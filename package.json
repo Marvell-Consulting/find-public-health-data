@@ -1,0 +1,26 @@
+{
+  "name": "find-public-health-data",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.11.0",
+  "engines": {
+    "node": ">=24.18.0 <25",
+    "pnpm": ">=11.11.0 <12"
+  },
+  "scripts": {
+    "build": "pnpm --recursive run build",
+    "check": "biome check . && pnpm typecheck && pnpm test && pnpm build",
+    "check:write": "biome check --write .",
+    "dev": "pnpm --recursive --parallel run dev",
+    "dev:internal": "pnpm --parallel --filter @fphd/internal-web --filter @fphd/internal-api run dev",
+    "dev:public": "pnpm --parallel --filter @fphd/public-web --filter @fphd/public-api run dev",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome lint .",
+    "test": "pnpm --recursive run test",
+    "typecheck": "pnpm --recursive run typecheck"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:"
+  }
+}
