@@ -1,4 +1,8 @@
+import { createLogger } from '@fphd/logger';
+
 import { createApp } from './app.js';
+
+const logger = createLogger({ name: 'public-api' });
 
 const defaultPort = 4000;
 const configuredPort = process.env.PORT;
@@ -9,5 +13,5 @@ if (!Number.isInteger(port) || port < 1 || port > 65_535) {
 }
 
 createApp().listen(port, '0.0.0.0', () => {
-  console.log(`Public API listening on port ${port}`);
+  logger.info({ port }, 'Public API listening');
 });

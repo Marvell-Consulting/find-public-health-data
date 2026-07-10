@@ -42,6 +42,7 @@ apps/
   public-api/
   internal-api/
 packages/
+  logger/
   ui/
   public-web-features/
   internal-web-features/
