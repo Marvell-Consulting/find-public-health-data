@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fphd/logger": "workspace:*",
     "@fphd/internal-web-features": "workspace:*",
     "@fphd/public-web-features": "workspace:*",
     "@fphd/ui": "workspace:*",

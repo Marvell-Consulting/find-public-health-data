@@ -1,4 +1,8 @@
+import { createLogger } from '@fphd/logger';
+
 import { createApp } from './app.js';
+
+const logger = createLogger({ name: 'internal-api' });
 
 const defaultPort = 4001;
 const configuredPort = process.env.PORT;
@@ -9,5 +13,5 @@ if (!Number.isInteger(port) || port < 1 || port > 65_535) {
 }
 
 createApp().listen(port, '0.0.0.0', () => {
-  console.log(`Internal API listening on port ${port}`);
+  logger.info({ port }, 'Internal API listening');
 });

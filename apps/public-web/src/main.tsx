@@ -1,10 +1,14 @@
 import '@fphd/ui/styles.css';
 
+import { createLogger } from '@fphd/logger';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
 
 import { publicRouter } from './router';
+
+const logger = createLogger({ name: 'public-web' });
+logger.info('Public web starting');
 
 const rootElement = document.getElementById('root');
 
