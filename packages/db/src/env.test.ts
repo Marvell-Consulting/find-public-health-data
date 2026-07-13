@@ -1,6 +1,28 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
-import { parsePort } from './env.js';
+import { parsePort, requireEnv } from './env.js';
+
+describe('requireEnv', () => {
+  const name = 'FPHD_TEST_ENV_VAR';
+
+  afterEach(() => {
+    delete process.env[name];
+  });
+
+  it('returns the value when set', () => {
+    process.env[name] = 'a-secret';
+    expect(requireEnv(name)).toBe('a-secret');
+  });
+
+  it('throws when the variable is unset', () => {
+    expect(() => requireEnv(name)).toThrow(`${name} is not set (see .env.example).`);
+  });
+
+  it('throws when the variable is blank', () => {
+    process.env[name] = '';
+    expect(() => requireEnv(name)).toThrow(`${name} is not set (see .env.example).`);
+  });
+});
 
 describe('parsePort', () => {
   it('returns the fallback when the variable is unset', () => {

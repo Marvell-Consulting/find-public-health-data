@@ -1,4 +1,18 @@
 /**
+ * Read an environment variable that has no sensible default, failing loudly when it is missing or
+ * blank. Used for credentials, where falling back to a default would be worse than not starting.
+ */
+export function requireEnv(name: string): string {
+  const value = process.env[name];
+
+  if (!value) {
+    throw new Error(`${name} is not set (see .env.example).`);
+  }
+
+  return value;
+}
+
+/**
  * Parse a port from an environment variable value.
  *
  * Returns the fallback when the variable is unset or blank (an unset var and `DB_PORT=` should

@@ -1,12 +1,4 @@
-import { createDb, parsePort } from '@fphd/db';
-
-function required(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`${name} is not set (see .env.example).`);
-  }
-  return value;
-}
+import { createDb, parsePort, requireEnv } from '@fphd/db';
 
 // Connects as the internal_api role.
 export const db = createDb({
@@ -14,5 +6,5 @@ export const db = createDb({
   port: parsePort(process.env.DB_PORT, 5432),
   database: process.env.POSTGRES_DB ?? 'fphd',
   user: 'internal_api',
-  password: required('INTERNAL_API_PASSWORD'),
+  password: requireEnv('INTERNAL_API_PASSWORD'),
 });
