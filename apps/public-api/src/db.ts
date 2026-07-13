@@ -1,4 +1,4 @@
-import { createDb } from '@fphd/db';
+import { createDb, parsePort } from '@fphd/db';
 
 function required(name: string): string {
   const value = process.env[name];
@@ -11,7 +11,7 @@ function required(name: string): string {
 // Connects as the public_api role.
 export const db = createDb({
   host: process.env.DB_HOST ?? 'localhost',
-  port: Number(process.env.DB_PORT ?? '5432'),
+  port: parsePort(process.env.DB_PORT, 5432),
   database: process.env.POSTGRES_DB ?? 'fphd',
   user: 'public_api',
   password: required('PUBLIC_API_PASSWORD'),
