@@ -23,13 +23,15 @@ function resolveLevel(explicit: LoggerOptions['level']): NonNullable<LoggerOptio
 }
 
 /**
- * Human-readable pretty-printing, enabled only in a Node dev runtime that opts in via LOG_PRETTY.
- * pino-pretty is a devDependency and is never required in production (JSON is emitted there), nor
- * in the browser (no Node runtime). Returns undefined when it should not apply.
+ * Human-readable pretty-printing, enabled only in a non-production Node runtime that opts in via
+ * LOG_PRETTY. pino-pretty is a devDependency, so it is absent from a production install (e.g.
+ * `pnpm install --prod`); the NODE_ENV check means a stray LOG_PRETTY there cannot make pino try
+ * to resolve a missing module at startup. The browser never reaches this (no Node runtime).
+ * Returns undefined when pretty-printing should not apply.
  */
 function prettyTransport(): LoggerOptions['transport'] {
   const isNodeRuntime = typeof process !== 'undefined' && process.versions?.node !== undefined;
-  if (!isNodeRuntime || !process.env.LOG_PRETTY) {
+  if (!isNodeRuntime || process.env.NODE_ENV === 'production' || !process.env.LOG_PRETTY) {
     return undefined;
   }
 
