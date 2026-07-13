@@ -4,14 +4,16 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/host.js",
-    "./entry-server": "./src/entry-server.tsx"
+    ".": "./src/host.ts",
+    "./entry-server": "./src/entry-server.tsx",
+    "./react-router": "./src/react-router-app.ts"
   },
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@react-router/express": "catalog:",
     "@react-router/node": "catalog:",
     "compression": "catalog:",
     "express": "catalog:",

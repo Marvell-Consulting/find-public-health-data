@@ -1,7 +1,7 @@
-import { formatDocumentTitle } from '@fphd/ui';
+import { createDocumentMeta } from '@fphd/ui';
 
 import { ManageDataPage } from './index';
 
-export const meta = () => [{ title: formatDocumentTitle('Manage public health data') }];
+export const meta = createDocumentMeta('Manage public health data');
 
 export default ManageDataPage;

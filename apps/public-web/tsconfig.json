@@ -1,21 +1,13 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../tsconfig.web.json",
   "compilerOptions": {
-    "allowJs": true,
-    "checkJs": true,
-    "lib": ["ES2024", "DOM", "DOM.Iterable"],
-    "jsx": "react-jsx",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "noEmit": true,
-    "rootDirs": [".", ".react-router/types"],
-    "types": ["vite/client", "node"]
+    "rootDirs": [".", ".react-router/types"]
   },
   "include": [
     ".react-router/types/**/*",
     "src",
     "server",
-    "server.js",
+    "server.ts",
     "react-router.config.ts",
     "vite.config.ts",
     "vitest.config.ts"

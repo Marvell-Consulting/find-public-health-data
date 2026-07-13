@@ -1,16 +1,25 @@
+import type { Config } from '@react-router/dev/config';
+import { reactRouter } from '@react-router/dev/vite';
+import type { UserConfig } from 'vite';
+import type { ViteUserConfig as VitestUserConfig } from 'vitest/config';
+
 interface WebViteConfigOptions {
   apiPort: number;
   hmrPort: number;
   webPort: number;
 }
 
-export function createWebViteConfig({ apiPort, hmrPort, webPort }: WebViteConfigOptions) {
+export function createWebViteConfig({
+  apiPort,
+  hmrPort,
+  webPort,
+}: WebViteConfigOptions): UserConfig {
   return {
     css: {
       preprocessorOptions: {
         scss: {
           quietDeps: true,
-          silenceDeprecations: ['if-function' as const, 'import' as const],
+          silenceDeprecations: ['if-function', 'import'],
         },
       },
     },
@@ -33,10 +42,26 @@ export function createWebViteConfig({ apiPort, hmrPort, webPort }: WebViteConfig
       },
     },
     build: {
-      cssMinify: 'esbuild' as const,
+      cssMinify: 'esbuild',
     },
+    environments: {
+      ssr: {
+        build: {
+          rollupOptions: {
+            input: './server/app.ts',
+          },
+        },
+      },
+    },
+    plugins: reactRouter(),
   };
 }
+
+export const reactRouterConfig = {
+  appDirectory: 'src',
+  buildDirectory: 'dist',
+  ssr: true,
+} satisfies Config;
 
 export const webVitestConfig = {
   resolve: {
@@ -45,11 +70,11 @@ export const webVitestConfig = {
     },
   },
   test: {
-    environment: 'jsdom' as const,
+    environment: 'jsdom',
     server: {
       deps: {
         inline: [/@not-govuk/, /@react-foundry/],
       },
     },
   },
-};
+} satisfies VitestUserConfig;

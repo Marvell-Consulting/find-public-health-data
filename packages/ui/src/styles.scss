@@ -6,7 +6,13 @@
   box-sizing: border-box;
 }
 
-body {
+body.govuk-template__body {
   min-width: 320px;
   min-height: 100vh;
+  height: auto;
+}
+
+body.govuk-template__body > .not-govuk-page {
+  min-height: 100vh;
+  height: auto;
 }

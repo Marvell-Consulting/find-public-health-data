@@ -29,6 +29,9 @@
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
-    "sass": "catalog:"
+    "@react-router/dev": "catalog:",
+    "sass": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
   }
 }

@@ -1,6 +1,6 @@
 import '@fphd/ui/styles.scss';
 
-import { AppDocument, AppShell, formatDocumentTitle } from '@fphd/ui';
+import { AppDocument, AppShell, createDocumentMeta } from '@fphd/ui';
 import { Outlet } from 'react-router';
 
 const navigation = [
@@ -10,7 +10,7 @@ const navigation = [
 ];
 
 export const Layout = AppDocument;
-export const meta = () => [{ title: formatDocumentTitle() }];
+export const meta = createDocumentMeta();
 
 export default function InternalApp() {
   return (

@@ -4,5 +4,5 @@ export { default as SearchBox } from '@not-govuk/search-box';
 export { AppDocument } from './app-document';
 export { type AppNavigationItem, AppShell, serviceName } from './app-shell';
 export { NotFoundPage, PageIntro } from './content-page';
-export { formatDocumentTitle } from './document-title';
+export { createDocumentMeta, formatDocumentTitle } from './document-title';
 export { GridColumn, GridRow, SectionBreak } from './layout';

@@ -13,14 +13,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fphd/api-server": "workspace:*",
     "@fphd/config": "workspace:*",
     "@fphd/db": "workspace:*",
     "@fphd/logger": "workspace:*",
-    "drizzle-orm": "catalog:",
-    "express": "catalog:"
+    "drizzle-orm": "catalog:"
   },
   "devDependencies": {
-    "@types/express": "catalog:",
     "@types/node": "catalog:",
     "@types/supertest": "catalog:",
     "supertest": "catalog:",

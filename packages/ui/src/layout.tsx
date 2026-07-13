@@ -38,5 +38,15 @@ export function SectionBreak({
   visible = false,
   ...props
 }: SectionBreakProps) {
-  return <hr {...props} className={classNames(size, visible ? 'visible' : '', className)} />;
+  return (
+    <hr
+      {...props}
+      className={classNames(
+        'govuk-section-break',
+        `govuk-section-break--${size}`,
+        visible ? 'govuk-section-break--visible' : '',
+        className,
+      )}
+    />
+  );
 }
