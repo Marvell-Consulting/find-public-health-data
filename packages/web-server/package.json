@@ -1,0 +1,37 @@
+{
+  "name": "@fphd/web-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/host.js",
+    "./entry-server": "./src/entry-server.tsx"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@react-router/node": "catalog:",
+    "compression": "catalog:",
+    "express": "catalog:",
+    "isbot": "catalog:",
+    "morgan": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-router": "catalog:"
+  },
+  "devDependencies": {
+    "@types/compression": "catalog:",
+    "@types/express": "catalog:",
+    "@types/morgan": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@types/supertest": "catalog:",
+    "supertest": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

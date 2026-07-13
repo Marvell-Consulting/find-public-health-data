@@ -1,20 +1,22 @@
-import react from '@vitejs/plugin-react';
+import { reactRouter } from '@react-router/dev/vite';
 import { defineConfig } from 'vite';
 
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    port: 3000,
-    strictPort: true,
-    proxy: {
-      '/api': 'http://localhost:4000',
+import { createWebViteConfig } from '../web-config';
+
+export default defineConfig(() => {
+  const config = createWebViteConfig({ apiPort: 4000, hmrPort: 24_678, webPort: 3000 });
+
+  return {
+    ...config,
+    environments: {
+      ssr: {
+        build: {
+          rollupOptions: {
+            input: './server/app.ts',
+          },
+        },
+      },
     },
-  },
-  preview: {
-    port: 3000,
-    strictPort: true,
-  },
-  build: {
-    outDir: 'dist',
-  },
+    plugins: reactRouter(),
+  };
 });

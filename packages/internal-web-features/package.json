@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
+    "@fphd/ui": "workspace:*",
     "react": "catalog:",
     "react-router": "catalog:"
   },
