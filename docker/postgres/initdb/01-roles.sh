@@ -4,8 +4,10 @@
 # Runs once, as the owner role ($POSTGRES_USER), when the data volume is first initialised.
 set -euo pipefail
 
-public_api_password="${PUBLIC_API_PASSWORD:-public_api}"
-internal_api_password="${INTERNAL_API_PASSWORD:-internal_api}"
+# No fallback passwords: if a password is missing, fail rather than create a login role with a
+# well-known default. compose.yaml also requires these, so this is a guard for any other caller.
+public_api_password="${PUBLIC_API_PASSWORD:?PUBLIC_API_PASSWORD is not set (see .env.example)}"
+internal_api_password="${INTERNAL_API_PASSWORD:?INTERNAL_API_PASSWORD is not set (see .env.example)}"
 
 # Passwords are passed as psql variables and quoted by psql itself (:'var' emits a safe SQL
 # literal). Interpolating them into the SQL text here would break on a quote character and
