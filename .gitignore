@@ -10,4 +10,4 @@ docs/
 !.env.example
 .DS_Store
 CLAUDE.md
-agents.md
+AGENTS.md
