@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fphd/db": "workspace:*",
     "@fphd/logger": "workspace:*",
+    "drizzle-orm": "catalog:",
     "express": "catalog:"
   },
   "devDependencies": {
