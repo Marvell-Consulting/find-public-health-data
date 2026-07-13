@@ -5,16 +5,18 @@
   "type": "module",
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
-    "dev": "LOG_PRETTY=1 tsx watch --conditions=development src/server.ts",
+    "dev": "LOG_PRETTY=1 tsx watch --env-file-if-exists=../../.env --conditions=development src/server.ts",
     "start": "node dist/server.js",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fphd/config": "workspace:*",
     "@fphd/db": "workspace:*",
     "@fphd/logger": "workspace:*",
     "drizzle-orm": "catalog:",
-    "express": "catalog:"
+    "express": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/express": "catalog:",
