@@ -14,24 +14,24 @@ describe('loadConfig', () => {
 
   it('reads every value from the environment', () => {
     const config = loadConfig({
-      APP_ENV: 'staging',
+      APP_ENV: 'preview',
       PORT: '8080',
       LOG_LEVEL: 'debug',
       LOG_PRETTY: '1',
       DB_HOST: 'db.internal',
       DB_PORT: '5433',
-      POSTGRES_DB: 'fphd_staging',
+      POSTGRES_DB: 'fphd_preview',
       PUBLIC_API_PASSWORD: 'pw',
     });
 
     expect(config).toEqual({
-      appEnv: 'staging',
+      appEnv: 'preview',
       port: 8080,
       log: { level: 'debug', pretty: true },
       db: {
         host: 'db.internal',
         port: 5433,
-        database: 'fphd_staging',
+        database: 'fphd_preview',
         user: 'public_api',
         password: 'pw',
       },

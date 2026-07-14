@@ -3,7 +3,7 @@ import { dbEnvFields } from '@fphd/db';
 import { z } from 'zod';
 
 const envSchema = z.object({
-  APP_ENV: z.enum(['local', 'dev', 'staging', 'production']).default('local'),
+  APP_ENV: z.enum(['local', 'dev', 'preview', 'production']).default('local'),
   PORT: portSchema.default(4000),
   ...logEnvFields,
   ...dbEnvFields,
