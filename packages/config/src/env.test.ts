@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { boolSchema, logEnvFields, parseEnv, portSchema } from './env.js';
+import { boolSchema, logEnvFields, parseEnv, portSchema, serverEnvFields } from './env.js';
 
 describe('portSchema', () => {
   it('parses a valid port from env text', () => {
@@ -37,6 +37,26 @@ describe('boolSchema', () => {
     expect(() => boolSchema.parse('yes')).toThrow();
     expect(() => boolSchema.parse('TRUE')).toThrow();
     expect(() => boolSchema.parse('2')).toThrow();
+  });
+});
+
+describe('serverEnvFields', () => {
+  const schema = z.object(serverEnvFields({ port: 4000 }));
+
+  it('defaults to a local server on all interfaces with the given port', () => {
+    expect(schema.parse({})).toEqual({ APP_ENV: 'local', HOST: '0.0.0.0', PORT: 4000 });
+  });
+
+  it('reads overrides from the environment', () => {
+    expect(schema.parse({ APP_ENV: 'preview', HOST: '127.0.0.1', PORT: '8080' })).toEqual({
+      APP_ENV: 'preview',
+      HOST: '127.0.0.1',
+      PORT: 8080,
+    });
+  });
+
+  it('rejects unknown environments', () => {
+    expect(() => schema.parse({ APP_ENV: 'qa' })).toThrow();
   });
 });
 

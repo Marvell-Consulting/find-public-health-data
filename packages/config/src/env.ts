@@ -15,6 +15,22 @@ export const boolSchema = z.enum(['true', '1', 'false', '0']).transform((value) 
   return value === 'true' || value === '1';
 });
 
+/** The deployment environments an app can run in. `local` is a developer machine. */
+export const appEnvSchema = z.enum(['local', 'dev', 'preview', 'production']);
+
+/**
+ * The vars every server process shares — deployment environment and listen address. Defined
+ * once so the names and accepted values can't drift between apps; only the port default is
+ * per-app, so it is a parameter.
+ */
+export function serverEnvFields(defaults: { port: number }) {
+  return {
+    APP_ENV: appEnvSchema.default('local'),
+    HOST: z.string().default('0.0.0.0'),
+    PORT: portSchema.default(defaults.port),
+  };
+}
+
 /**
  * Logging vars shared by every app schema. The level names mirror pino's, kept as a plain
  * enum so this package carries no pino dependency. LOG_PRETTY has no default here — apps

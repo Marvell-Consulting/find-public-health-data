@@ -1,10 +1,8 @@
-import { logEnvFields, parseEnv, portSchema, z } from '@fphd/config';
+import { logEnvFields, parseEnv, serverEnvFields, z } from '@fphd/config';
 import { dbEnvFields } from '@fphd/db';
 
 const envSchema = z.object({
-  APP_ENV: z.enum(['local', 'dev', 'preview', 'production']).default('local'),
-  HOST: z.string().default('0.0.0.0'),
-  PORT: portSchema.default(4000),
+  ...serverEnvFields({ port: 4000 }),
   ...logEnvFields,
   ...dbEnvFields,
   PUBLIC_API_PASSWORD: z.string().min(1),
