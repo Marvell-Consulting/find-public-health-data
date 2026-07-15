@@ -1,9 +1,9 @@
-import { logEnvFields, parseEnv, portSchema } from '@fphd/config';
+import { logEnvFields, parseEnv, portSchema, z } from '@fphd/config';
 import { dbEnvFields } from '@fphd/db';
-import { z } from 'zod';
 
 const envSchema = z.object({
   APP_ENV: z.enum(['local', 'dev', 'preview', 'production']).default('local'),
+  HOST: z.string().default('0.0.0.0'),
   PORT: portSchema.default(4000),
   ...logEnvFields,
   ...dbEnvFields,
@@ -19,10 +19,13 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
 
   return {
     appEnv: parsed.APP_ENV,
+    host: parsed.HOST,
     port: parsed.PORT,
     log: {
       level: parsed.LOG_LEVEL,
-      pretty: parsed.LOG_PRETTY,
+      // Pretty logs are a local-development nicety; unless LOG_PRETTY says otherwise,
+      // every deployed environment gets JSON.
+      pretty: parsed.LOG_PRETTY ?? parsed.APP_ENV === 'local',
     },
     db: {
       host: parsed.DB_HOST,

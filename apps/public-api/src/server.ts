@@ -11,6 +11,6 @@ const logger = createLogger({
   pretty: config.log.pretty,
 });
 
-createApp().listen(config.port, '0.0.0.0', () => {
+createApp().listen(config.port, config.host, () => {
   logger.info({ port: config.port }, 'Public API listening');
 });

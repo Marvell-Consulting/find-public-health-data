@@ -1,6 +1,5 @@
-import { parseEnv } from '@fphd/config';
+import { parseEnv, z } from '@fphd/config';
 import { describe, expect, it } from 'vitest';
-import { z } from 'zod';
 
 import { dbEnvFields } from './env.js';
 

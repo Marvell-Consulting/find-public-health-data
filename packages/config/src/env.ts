@@ -17,11 +17,12 @@ export const boolSchema = z.enum(['true', '1', 'false', '0']).transform((value) 
 
 /**
  * Logging vars shared by every app schema. The level names mirror pino's, kept as a plain
- * enum so this package carries no pino dependency.
+ * enum so this package carries no pino dependency. LOG_PRETTY has no default here — apps
+ * derive one from APP_ENV (pretty on locally, JSON everywhere else) when it is unset.
  */
 export const logEnvFields = {
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
-  LOG_PRETTY: boolSchema.default(false),
+  LOG_PRETTY: boolSchema.optional(),
 };
 
 /**

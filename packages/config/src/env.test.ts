@@ -43,8 +43,10 @@ describe('boolSchema', () => {
 describe('logEnvFields', () => {
   const schema = z.object(logEnvFields);
 
-  it('defaults to info level without pretty printing', () => {
-    expect(schema.parse({})).toEqual({ LOG_LEVEL: 'info', LOG_PRETTY: false });
+  it('defaults to info level, leaving LOG_PRETTY for the app to derive', () => {
+    const parsed = schema.parse({});
+    expect(parsed.LOG_LEVEL).toBe('info');
+    expect(parsed.LOG_PRETTY).toBeUndefined();
   });
 
   it('accepts pino level names and boolean text', () => {

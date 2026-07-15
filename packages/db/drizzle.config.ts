@@ -1,8 +1,7 @@
 import { existsSync } from 'node:fs';
 
-import { parseEnv } from '@fphd/config';
+import { parseEnv, z } from '@fphd/config';
 import { defineConfig } from 'drizzle-kit';
-import { z } from 'zod';
 
 import { dbEnvFields } from './src/env.js';
 

@@ -22,8 +22,7 @@
   "dependencies": {
     "@fphd/config": "workspace:*",
     "drizzle-orm": "catalog:",
-    "postgres": "catalog:",
-    "zod": "catalog:"
+    "postgres": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",

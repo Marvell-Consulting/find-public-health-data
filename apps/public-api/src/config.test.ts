@@ -6,8 +6,9 @@ describe('loadConfig', () => {
   it('applies local defaults when only the password is set', () => {
     expect(loadConfig({ PUBLIC_API_PASSWORD: 'pw' })).toEqual({
       appEnv: 'local',
+      host: '0.0.0.0',
       port: 4000,
-      log: { level: 'info', pretty: false },
+      log: { level: 'info', pretty: true },
       db: { host: 'localhost', port: 5432, database: 'fphd', user: 'public_api', password: 'pw' },
     });
   });
@@ -15,6 +16,7 @@ describe('loadConfig', () => {
   it('reads every value from the environment', () => {
     const config = loadConfig({
       APP_ENV: 'preview',
+      HOST: '127.0.0.1',
       PORT: '8080',
       LOG_LEVEL: 'debug',
       LOG_PRETTY: '1',
@@ -26,6 +28,7 @@ describe('loadConfig', () => {
 
     expect(config).toEqual({
       appEnv: 'preview',
+      host: '127.0.0.1',
       port: 8080,
       log: { level: 'debug', pretty: true },
       db: {
@@ -36,6 +39,14 @@ describe('loadConfig', () => {
         password: 'pw',
       },
     });
+  });
+
+  it('defaults pretty logging on locally and off elsewhere, with LOG_PRETTY overriding both', () => {
+    const env = { PUBLIC_API_PASSWORD: 'pw' };
+    expect(loadConfig({ ...env }).log.pretty).toBe(true);
+    expect(loadConfig({ ...env, APP_ENV: 'production' }).log.pretty).toBe(false);
+    expect(loadConfig({ ...env, LOG_PRETTY: '0' }).log.pretty).toBe(false);
+    expect(loadConfig({ ...env, APP_ENV: 'production', LOG_PRETTY: '1' }).log.pretty).toBe(true);
   });
 
   it('throws naming the missing password', () => {
