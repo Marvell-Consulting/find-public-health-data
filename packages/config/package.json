@@ -1,5 +1,5 @@
 {
-  "name": "@fphd/db",
+  "name": "@fphd/config",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -13,20 +13,13 @@
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
     "test": "vitest run"
   },
   "dependencies": {
-    "@fphd/config": "workspace:*",
-    "drizzle-orm": "catalog:",
-    "postgres": "catalog:"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "drizzle-kit": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

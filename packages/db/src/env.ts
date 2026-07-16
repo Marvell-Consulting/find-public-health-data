@@ -1,35 +1,11 @@
-/**
- * Read an environment variable that has no sensible default, failing loudly when it is missing or
- * blank. Used for credentials, where falling back to a default would be worse than not starting.
- */
-export function requireEnv(name: string): string {
-  const value = process.env[name];
-
-  if (!value) {
-    throw new Error(`${name} is not set (see .env.example).`);
-  }
-
-  return value;
-}
+import { portSchema, z } from '@fphd/config';
 
 /**
- * Parse a port from an environment variable value.
- *
- * Returns the fallback when the variable is unset or blank (an unset var and `DB_PORT=` should
- * behave the same). Anything else must be a valid port: `Number('')` is 0 and `Number('abc')` is
- * NaN, and letting either through surfaces later as a confusing connection error instead of a
- * clear config one.
+ * Each app adds its own role password on top of these. Defaults match the local docker
+ * compose database.
  */
-export function parsePort(value: string | undefined, fallback: number): number {
-  if (value === undefined || value.trim() === '') {
-    return fallback;
-  }
-
-  const port = Number(value);
-
-  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
-    throw new Error(`Port must be an integer between 1 and 65535; received '${value}'`);
-  }
-
-  return port;
-}
+export const dbEnvFields = {
+  DB_HOST: z.string().default('localhost'),
+  DB_PORT: portSchema.default(5432),
+  POSTGRES_DB: z.string().default('fphd'),
+};

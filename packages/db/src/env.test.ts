@@ -1,53 +1,30 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { parseEnv, z } from '@fphd/config';
+import { describe, expect, it } from 'vitest';
 
-import { parsePort, requireEnv } from './env.js';
+import { dbEnvFields } from './env.js';
 
-describe('requireEnv', () => {
-  const name = 'FPHD_TEST_ENV_VAR';
+describe('dbEnvFields', () => {
+  const schema = z.object(dbEnvFields);
 
-  afterEach(() => {
-    delete process.env[name];
+  it('defaults to the local docker compose database', () => {
+    expect(parseEnv(schema, {})).toEqual({
+      DB_HOST: 'localhost',
+      DB_PORT: 5432,
+      POSTGRES_DB: 'fphd',
+    });
   });
 
-  it('returns the value when set', () => {
-    process.env[name] = 'a-secret';
-    expect(requireEnv(name)).toBe('a-secret');
+  it('reads overrides from the environment', () => {
+    expect(
+      parseEnv(schema, { DB_HOST: 'db.internal', DB_PORT: '5433', POSTGRES_DB: 'fphd_test' }),
+    ).toEqual({
+      DB_HOST: 'db.internal',
+      DB_PORT: 5433,
+      POSTGRES_DB: 'fphd_test',
+    });
   });
 
-  it('throws when the variable is unset', () => {
-    expect(() => requireEnv(name)).toThrow(`${name} is not set (see .env.example).`);
-  });
-
-  it('throws when the variable is blank', () => {
-    process.env[name] = '';
-    expect(() => requireEnv(name)).toThrow(`${name} is not set (see .env.example).`);
-  });
-});
-
-describe('parsePort', () => {
-  it('returns the fallback when the variable is unset', () => {
-    expect(parsePort(undefined, 5432)).toBe(5432);
-  });
-
-  it('returns the fallback when the variable is blank', () => {
-    expect(parsePort('', 5432)).toBe(5432);
-    expect(parsePort('   ', 5432)).toBe(5432);
-  });
-
-  it('parses a valid port', () => {
-    expect(parsePort('5433', 5432)).toBe(5433);
-    expect(parsePort('1', 5432)).toBe(1);
-    expect(parsePort('65535', 5432)).toBe(65_535);
-  });
-
-  it('rejects non-numeric values rather than passing NaN to the driver', () => {
-    expect(() => parsePort('abc', 5432)).toThrow(/between 1 and 65535/);
-  });
-
-  it('rejects out-of-range and non-integer ports', () => {
-    expect(() => parsePort('0', 5432)).toThrow(/between 1 and 65535/);
-    expect(() => parsePort('-1', 5432)).toThrow(/between 1 and 65535/);
-    expect(() => parsePort('65536', 5432)).toThrow(/between 1 and 65535/);
-    expect(() => parsePort('5432.5', 5432)).toThrow(/between 1 and 65535/);
+  it('rejects an invalid DB_PORT with a clear config error', () => {
+    expect(() => parseEnv(schema, { DB_PORT: 'abc' })).toThrow(/DB_PORT/);
   });
 });
