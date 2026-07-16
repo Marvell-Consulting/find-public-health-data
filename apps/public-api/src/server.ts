@@ -1,9 +1,7 @@
 import { createLogger } from '@fphd/logger';
 
 import { createApp } from './app.js';
-import { getConfig } from './config.js';
-
-const config = getConfig();
+import * as config from './config.js';
 
 const logger = createLogger({
   name: 'public-api',

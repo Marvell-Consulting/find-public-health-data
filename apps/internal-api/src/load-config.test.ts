@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { loadConfig } from './config.js';
+import { loadConfig } from './load-config.js';
 
 describe('loadConfig', () => {
   it('applies local defaults when only the password is set', () => {

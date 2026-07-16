@@ -1,47 +1,5 @@
-import { logEnvFields, parseEnv, serverEnvFields, z } from '@fphd/config';
-import { dbEnvFields } from '@fphd/db';
+import { loadConfig } from './load-config.js';
 
-const envSchema = z.object({
-  ...serverEnvFields({ port: 4000 }),
-  ...logEnvFields,
-  ...dbEnvFields,
-  PUBLIC_API_PASSWORD: z.string().min(1),
-});
-
-/**
- * Every process.env read in this app happens here; new config domains (auth,
- * notifications, …) add a schema fragment above and a section below.
- */
-export function loadConfig(env: NodeJS.ProcessEnv) {
-  const parsed = parseEnv(envSchema, env);
-
-  return {
-    appEnv: parsed.APP_ENV,
-    host: parsed.HOST,
-    port: parsed.PORT,
-    log: {
-      level: parsed.LOG_LEVEL,
-      pretty: parsed.LOG_PRETTY ?? parsed.APP_ENV === 'local',
-    },
-    db: {
-      host: parsed.DB_HOST,
-      port: parsed.DB_PORT,
-      database: parsed.POSTGRES_DB,
-      user: 'public_api',
-      password: parsed.PUBLIC_API_PASSWORD,
-    },
-  } as const;
-}
-
-export type Config = ReturnType<typeof loadConfig>;
-
-let loaded: Config | undefined;
-
-/**
- * A function rather than a module-level constant so importing this module (e.g. from tests)
- * never reads the real environment.
- */
-export function getConfig(): Config {
-  loaded ??= loadConfig(process.env);
-  return loaded;
-}
+// Parses the real environment once, at import — a misconfigured process fails here, at
+// startup. Import as `import * as config from './config.js'`.
+export const { appEnv, host, port, log, db } = loadConfig(process.env);
