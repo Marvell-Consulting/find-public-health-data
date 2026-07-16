@@ -1,0 +1,21 @@
+name: Set up workspace
+description: Installs the pinned Node and pnpm, restores the pnpm store, and installs dependencies.
+
+runs:
+  using: composite
+  steps:
+    # Must precede setup-node: its `cache: pnpm` shells out to `pnpm store path`, so pnpm has to
+    # already be on PATH. Corepack itself is opt-in — without this, a runner's ambient pnpm would be
+    # used silently, since `engines.pnpm` is not enforced.
+    - name: Enable corepack
+      shell: bash
+      run: corepack enable
+
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version-file: .nvmrc
+        cache: pnpm
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile

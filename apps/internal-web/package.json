@@ -7,7 +7,8 @@
     "build": "tsc --noEmit && vite build",
     "dev": "vite",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "vitest run --exclude '**/*.integration.test.*'",
+    "test:integration": "vitest run --passWithNoTests integration.test",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
