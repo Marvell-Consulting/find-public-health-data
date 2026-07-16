@@ -1,9 +1,8 @@
 import { portSchema, z } from '@fphd/config';
 
 /**
- * The database connection vars every consumer shares — the two APIs and drizzle-kit. Spread
- * into an app's env schema; each app adds its own role password on top. Defaults match the
- * local docker compose database.
+ * Each app adds its own role password on top of these. Defaults match the local docker
+ * compose database.
  */
 export const dbEnvFields = {
   DB_HOST: z.string().default('localhost'),

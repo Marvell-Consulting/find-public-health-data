@@ -1,27 +1,25 @@
 import { z } from 'zod';
 
 /**
- * A TCP port parsed from env text. No default here — each consumer attaches its own via
- * `.default(n)` so the fallback lives next to the app that owns it.
+ * No default here — each schema attaches its own via `.default(n)` so the fallback lives
+ * next to the app that owns it.
  */
 export const portSchema = z.coerce.number().int().min(1).max(65_535);
 
 /**
- * A boolean parsed from env text. Only 'true'/'1' and 'false'/'0' are accepted — a plain
- * `z.coerce.boolean()` would turn the string 'false' into true, which is never what an env
- * var means.
+ * Not `z.coerce.boolean()`, which would turn the string 'false' into true — never what an
+ * env var means.
  */
 export const boolSchema = z.enum(['true', '1', 'false', '0']).transform((value) => {
   return value === 'true' || value === '1';
 });
 
-/** The deployment environments an app can run in. `local` is a developer machine. */
+/** `local` is a developer machine; the rest are deployed environments. */
 export const appEnvSchema = z.enum(['local', 'dev', 'preview', 'production']);
 
 /**
- * The vars every server process shares — deployment environment and listen address. Defined
- * once so the names and accepted values can't drift between apps; only the port default is
- * per-app, so it is a parameter.
+ * One definition so the var names and accepted values can't drift between apps; only the
+ * port default is per-app, hence the parameter.
  */
 export function serverEnvFields(defaults: { port: number }) {
   return {
@@ -32,9 +30,9 @@ export function serverEnvFields(defaults: { port: number }) {
 }
 
 /**
- * Logging vars shared by every app schema. The level names mirror pino's, kept as a plain
- * enum so this package carries no pino dependency. LOG_PRETTY has no default here — apps
- * derive one from APP_ENV (pretty on locally, JSON everywhere else) when it is unset.
+ * The level names mirror pino's, kept as a plain enum so this package carries no pino
+ * dependency. LOG_PRETTY has no default here — apps derive one from APP_ENV when it is
+ * unset.
  */
 export const logEnvFields = {
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
@@ -42,8 +40,6 @@ export const logEnvFields = {
 };
 
 /**
- * Validate an environment against a schema, returning the typed result.
- *
  * Blank values are dropped before parsing so `PORT=` behaves the same as an unset PORT —
  * zod defaults only apply to `undefined`, and an empty string would otherwise coerce to 0
  * or fail a `min(1)` check with a confusing message.
