@@ -47,10 +47,11 @@ describe('loadConfig', () => {
     });
   });
 
-  it('defaults pretty logging on locally and off in deployed environments', () => {
+  it('allows pretty logging only locally, where it defaults on', () => {
     const env = { INTERNAL_API_PASSWORD: 'pw' };
     expect(loadConfig({ ...env }).log.pretty).toBe(true);
     expect(loadConfig({ ...env, APP_ENV: 'dev' }).log.pretty).toBe(false);
+    expect(loadConfig({ ...env, APP_ENV: 'dev', LOG_PRETTY: '1' }).log.pretty).toBe(false);
   });
 
   it('throws naming the missing password', () => {

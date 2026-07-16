@@ -22,7 +22,7 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
     port: parsed.PORT,
     log: {
       level: parsed.LOG_LEVEL,
-      pretty: parsed.LOG_PRETTY ?? parsed.APP_ENV === 'local',
+      pretty: parsed.APP_ENV === 'local' && (parsed.LOG_PRETTY ?? true),
     },
     db: {
       host: parsed.DB_HOST,

@@ -30,7 +30,7 @@ describe('loadConfig', () => {
       appEnv: 'preview',
       host: '127.0.0.1',
       port: 8080,
-      log: { level: 'debug', pretty: true },
+      log: { level: 'debug', pretty: false },
       db: {
         host: 'db.internal',
         port: 5433,
@@ -41,12 +41,13 @@ describe('loadConfig', () => {
     });
   });
 
-  it('defaults pretty logging on locally and off elsewhere, with LOG_PRETTY overriding both', () => {
+  it('allows pretty logging only locally, where it defaults on', () => {
     const env = { PUBLIC_API_PASSWORD: 'pw' };
     expect(loadConfig({ ...env }).log.pretty).toBe(true);
-    expect(loadConfig({ ...env, APP_ENV: 'production' }).log.pretty).toBe(false);
     expect(loadConfig({ ...env, LOG_PRETTY: '0' }).log.pretty).toBe(false);
-    expect(loadConfig({ ...env, APP_ENV: 'production', LOG_PRETTY: '1' }).log.pretty).toBe(true);
+    expect(loadConfig({ ...env, APP_ENV: 'production' }).log.pretty).toBe(false);
+    // pino-pretty is absent from deployed installs; LOG_PRETTY must not be able to force it.
+    expect(loadConfig({ ...env, APP_ENV: 'production', LOG_PRETTY: '1' }).log.pretty).toBe(false);
   });
 
   it('throws naming the missing password', () => {
