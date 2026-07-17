@@ -78,9 +78,15 @@ escape hatch; each entry is a reviewable decision.
 Each tier is its own CI job, so the jobs run `pnpm test:unit`, `pnpm test:integration` and
 `pnpm test:e2e` individually rather than `pnpm test`.
 
-**There are no integration or e2e tests yet.** Those two jobs are wiring: `pnpm test:integration` and
-`pnpm test:e2e` fan out with `--if-present` and currently match no package, so they exit 0 having run
-nothing. Their check names say so. To add real ones:
+**There are no integration or e2e tests yet**, so those two jobs execute zero tests — their check
+names say so. They get there differently, which matters when reading their logs:
+
+- `pnpm test:integration` fans out to all six testing packages and runs Vitest in each. Every run
+  passes because of `--passWithNoTests`, not because nothing ran.
+- `pnpm test:e2e` matches no package at all. It is the only tier carrying `--if-present`, which is
+  what makes it a no-op rather than an error; drop the flag once an e2e package exists.
+
+To add real ones:
 
 - An integration test is any `*.integration.test.ts`, colocated in `src/` like a unit test. Each
   package's own `test` script already excludes the pattern and its `test:integration` script selects

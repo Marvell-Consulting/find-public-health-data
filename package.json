@@ -22,7 +22,7 @@
     "lint": "biome lint .",
     "test": "pnpm test:unit && pnpm test:integration && pnpm test:e2e",
     "test:e2e": "pnpm --recursive run --if-present test:e2e",
-    "test:integration": "pnpm --recursive run --if-present test:integration",
+    "test:integration": "pnpm --recursive run test:integration",
     "test:unit": "pnpm --recursive run test",
     "typecheck": "pnpm --recursive run typecheck"
   },
