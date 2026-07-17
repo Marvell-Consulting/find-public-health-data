@@ -8,7 +8,7 @@
     "build": "react-router build",
     "dev": "cross-env NODE_ENV=development tsx watch --env-file-if-exists=../../.env --conditions=development server.ts",
     "preview": "pnpm build && pnpm start",
-    "start": "cross-env NODE_ENV=production node server.ts",
+    "start": "cross-env NODE_ENV=production node --env-file-if-exists=../../.env server.ts",
     "test": "vitest run",
     "typecheck": "react-router typegen && tsc --noEmit"
   },

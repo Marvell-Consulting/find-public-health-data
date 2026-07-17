@@ -40,6 +40,10 @@ default**. If any is unset or empty, `docker compose` fails with a message namin
 rather than creating a database role with a well-known password. This means `docker compose up`
 will not work without a `.env`.
 
+`SESSION_SECRET` signs the public and internal web session cookies. The example value is for local
+development only; each deployed application must receive its own secret of at least 32 bytes from
+the deployment environment.
+
 ## Commands
 
 ```sh

@@ -19,6 +19,11 @@
       "development": "./src/react-router-app.ts",
       "types": "./src/react-router-app.ts",
       "default": "./dist/react-router-app.js"
+    },
+    "./session": {
+      "development": "./src/session.ts",
+      "types": "./src/session.ts",
+      "default": "./dist/session.js"
     }
   },
   "scripts": {
