@@ -17,7 +17,20 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "preset": "recommended"
+      "preset": "recommended",
+      "style": {
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "paths": {
+              "@fphd/public-web": "Deployable apps must never import one another (ADR006). Move the shared code into a packages/* workspace package.",
+              "@fphd/internal-web": "Deployable apps must never import one another (ADR006). Move the shared code into a packages/* workspace package.",
+              "@fphd/public-api": "Deployable apps must never import one another (ADR006). Move the shared code into a packages/* workspace package.",
+              "@fphd/internal-api": "Deployable apps must never import one another (ADR006). Move the shared code into a packages/* workspace package."
+            }
+          }
+        }
+      }
     }
   },
   "assist": {
