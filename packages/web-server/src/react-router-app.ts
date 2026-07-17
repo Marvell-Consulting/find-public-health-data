@@ -1,8 +1,9 @@
 import { createRequestHandler } from '@react-router/express';
 import express, { type Express } from 'express';
-import { RouterContextProvider, type ServerBuild } from 'react-router';
+import { createCookieSessionStorage, type ServerBuild, type SessionStorage } from 'react-router';
 
 import { nonceContext } from './nonce-context.js';
+import { createSessionContext } from './session.js';
 
 type OptionalServerBuildKey = 'allowedActionOrigins' | 'basename' | 'unstable_getCriticalCss';
 
@@ -31,7 +32,49 @@ function normalizeServerBuild({
   };
 }
 
-export function createReactRouterApp(loadBuild: () => Promise<GeneratedServerBuild>): Express {
+interface ReactRouterAppOptions {
+  sessionStorage: SessionStorage;
+}
+
+interface WebSessionStorageOptions {
+  cookieName: string;
+  secret: string | undefined;
+  secure: boolean;
+}
+
+/**
+ * Creates signed, browser-backed session storage. Values are authenticated but
+ * not encrypted, so credentials and provider tokens must not be stored here.
+ */
+export function createWebSessionStorage({
+  cookieName,
+  secret,
+  secure,
+}: WebSessionStorageOptions): SessionStorage {
+  if (secret === undefined || secret.trim() === '') {
+    throw new Error('SESSION_SECRET is required');
+  }
+
+  if (new TextEncoder().encode(secret).byteLength < 32) {
+    throw new Error('SESSION_SECRET must be at least 32 bytes');
+  }
+
+  return createCookieSessionStorage({
+    cookie: {
+      httpOnly: true,
+      name: cookieName,
+      path: '/',
+      sameSite: 'lax',
+      secrets: [secret],
+      secure,
+    },
+  });
+}
+
+export function createReactRouterApp(
+  loadBuild: () => Promise<GeneratedServerBuild>,
+  { sessionStorage }: ReactRouterAppOptions,
+): Express {
   const app = express();
 
   app.disable('x-powered-by');
@@ -39,7 +82,7 @@ export function createReactRouterApp(loadBuild: () => Promise<GeneratedServerBui
     createRequestHandler({
       build: async () => normalizeServerBuild(await loadBuild()),
       getLoadContext: (_request, response) => {
-        const context = new RouterContextProvider();
+        const context = createSessionContext(sessionStorage);
         context.set(nonceContext, response.locals.nonce);
         return context;
       },
