@@ -1,0 +1,188 @@
+name: CI
+
+on:
+  pull_request:
+    # `ready_for_review` is essential given jobs skip drafts: without it, marking a draft ready
+    # triggers nothing and the pull request sits with no checks forever.
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Only supersede pull request runs — two quick merges must not leave main without a green run.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    name: Lint
+    # `github.event.pull_request` is null on a push, so this is true there too. False only on a
+    # draft pull request. Every job below repeats it.
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-workspace
+      # `biome ci` covers the same ground as the `biome check .` in `pnpm check` (format + lint +
+      # import order) but never writes and annotates the diff. `pnpm lint` is lint only, so it would
+      # let formatting drift onto main ungated.
+      - run: pnpm exec biome ci .
+
+  typecheck:
+    name: Typecheck
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-workspace
+      - run: pnpm typecheck
+
+  unit:
+    name: Unit tests
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-workspace
+      # Not `pnpm test` — that runs all three tiers, which is right locally and wrong here, where
+      # each tier is its own job.
+      - run: pnpm test:unit
+
+  integration:
+    name: Integration tests (none defined yet)
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18.4
+        env:
+          POSTGRES_USER: fphd
+          POSTGRES_PASSWORD: fphd
+          POSTGRES_DB: fphd
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fphd -d fphd"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-workspace
+      # Service containers start before checkout, so compose.yaml's initdb volume mount has no
+      # equivalent here — the same script is invoked explicitly instead.
+      - name: Create the per-API login roles
+        run: ./docker/postgres/initdb/01-roles.sh
+        env:
+          PGHOST: localhost
+          PGPASSWORD: fphd
+          POSTGRES_USER: fphd
+          POSTGRES_DB: fphd
+          PUBLIC_API_PASSWORD: public_api
+          INTERNAL_API_PASSWORD: internal_api
+      # Every testing package defines test:integration, so this really does fan out and start Vitest
+      # six times — it passes on --passWithNoTests, not because nothing ran. The first
+      # `*.integration.test.ts` makes it real; `pnpm db:migrate` belongs here once a migration exists.
+      - run: pnpm test:integration
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          POSTGRES_DB: fphd
+          POSTGRES_USER: fphd
+          POSTGRES_PASSWORD: fphd
+          PUBLIC_API_PASSWORD: public_api
+          INTERNAL_API_PASSWORD: internal_api
+
+  e2e:
+    name: E2E tests (none defined yet)
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-workspace
+      # No e2e package exists yet, so this exits 0 having run nothing. See the README.
+      - run: pnpm test:e2e
+
+  audit:
+    name: Audit
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+      - name: Enable corepack
+        run: corepack enable
+      # pnpm audit resolves the tree from pnpm-lock.yaml, so this job never installs — and so the
+      # job that hunts for malicious dependencies never executes one. (Every installing job runs
+      # esbuild's postinstall, per `allowBuilds` in pnpm-workspace.yaml.)
+      # Deliberately no --ignore-registry-errors: a registry outage must redden the gate rather than
+      # silently pass it.
+      - name: Audit dependencies
+        run: pnpm audit --audit-level high
+
+  build:
+    name: Build
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-workspace
+      - run: pnpm build
+
+  all-checks-pass:
+    name: All checks pass
+    # The only required status check in branch protection. Add every new job here — the gate can
+    # only report on what it depends on.
+    needs: [lint, typecheck, unit, integration, e2e, audit, build]
+    # `always()` so a failing need reddens the gate rather than skipping it — GitHub reports a
+    # skipped required check as satisfied, so the default `success()` would stop the gate blocking
+    # exactly when it matters. The draft clause keeps the gate off drafts, where every need is
+    # skipped and the gate would otherwise report a confusing failure.
+    if: ${{ always() && !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # Passed through env rather than interpolated into the shell body: `needs.*.result` is a
+      # trusted enumerated value, but inlining `${{ }}` in `run:` is the habit that goes wrong the
+      # day it is copied to an untrusted one.
+      - name: Check upstream results
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Upstream results: ${RESULTS}"
+          if [ -z "${RESULTS}" ]; then
+            echo '::error::The gate depends on no jobs; nothing was verified.'
+            exit 1
+          fi
+          for result in ${RESULTS}; do
+            if [ "${result}" != 'success' ]; then
+              echo '::error::A required check did not succeed.'
+              exit 1
+            fi
+          done

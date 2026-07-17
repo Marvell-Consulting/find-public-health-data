@@ -1,0 +1,19 @@
+version: 2
+updates:
+  # Actions are pinned to commit SHAs, which do not update themselves — pinning without Dependabot
+  # would leave them frozen and unpatched. Dependabot rewrites the SHA and its `# vX.Y.Z` comment
+  # together. `directory: /` covers both workflows/ and actions/.
+  #
+  # The npm ecosystem is deliberately absent: dependency versions live in the `catalog:` in
+  # pnpm-workspace.yaml, which Dependabot does not reliably understand. The audit job covers the
+  # security case.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns:
+          - '*'
+    commit-message:
+      prefix: ci
