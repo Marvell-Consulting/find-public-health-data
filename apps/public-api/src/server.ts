@@ -1,5 +1,5 @@
-import { createLogger } from '@fphd/logger';
 import { startApiServer } from '@fphd/api-server';
+import { createLogger } from '@fphd/logger';
 
 import { createApp } from './app.js';
 import * as config from './config.js';

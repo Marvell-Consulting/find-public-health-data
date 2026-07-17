@@ -30,7 +30,9 @@
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@react-router/dev": "catalog:",
+    "@types/node": "catalog:",
     "sass": "catalog:",
+    "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"
   }
