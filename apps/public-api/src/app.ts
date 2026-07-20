@@ -1,3 +1,4 @@
+import { healthHandler } from '@fphd/api';
 import express, { type Express } from 'express';
 
 export function createApp(): Express {
@@ -6,9 +7,7 @@ export function createApp(): Express {
   app.disable('x-powered-by');
   app.use(express.json());
 
-  app.get('/health', (_request, response) => {
-    response.status(200).json({ status: 'ok', service: 'public-api' });
-  });
+  app.get('/health', healthHandler({ service: 'public-api' }));
 
   app.get('/api', (_request, response) => {
     response.status(200).json({

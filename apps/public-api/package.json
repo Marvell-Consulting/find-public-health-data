@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fphd/api": "workspace:*",
     "@fphd/config": "workspace:*",
     "@fphd/db": "workspace:*",
     "@fphd/logger": "workspace:*",

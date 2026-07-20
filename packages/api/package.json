@@ -1,22 +1,22 @@
 {
-  "name": "@fphd/internal-api",
+  "name": "@fphd/api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
-    "dev": "tsx watch --env-file-if-exists=../../.env --conditions=development src/server.ts",
-    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run --exclude '**/*.integration.test.*'",
-    "test:integration": "vitest run --passWithNoTests integration.test",
-    "typecheck": "tsc --noEmit"
+    "test:integration": "vitest run --passWithNoTests integration.test"
   },
   "dependencies": {
-    "@fphd/api": "workspace:*",
-    "@fphd/config": "workspace:*",
-    "@fphd/db": "workspace:*",
-    "@fphd/logger": "workspace:*",
-    "drizzle-orm": "catalog:",
     "express": "catalog:"
   },
   "devDependencies": {
@@ -24,7 +24,6 @@
     "@types/node": "catalog:",
     "@types/supertest": "catalog:",
     "supertest": "catalog:",
-    "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }
