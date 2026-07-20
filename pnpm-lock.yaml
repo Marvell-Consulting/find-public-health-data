@@ -376,6 +376,21 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
+  tools/artefact-boundary:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.1.1
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.0
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@types/node@26.1.1)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.1.4(@types/node@26.1.1)(esbuild@0.28.1)(tsx@4.23.0))
+
 packages:
 
   '@asamuzakjp/css-color@5.1.11':

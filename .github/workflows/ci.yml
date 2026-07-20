@@ -155,11 +155,25 @@ jobs:
       - uses: ./.github/actions/setup-workspace
       - run: pnpm build
 
+  artefact-boundary:
+    name: Public artefact boundary
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-workspace
+      # Builds the public artefacts itself, so it does not depend on the build job — keeping the two
+      # jobs parallel, and keeping the check runnable standalone from a clean tree.
+      - run: pnpm check:artefacts
+
   all-checks-pass:
     name: All checks pass
     # The only required status check in branch protection. Add every new job here — the gate can
     # only report on what it depends on.
-    needs: [lint, typecheck, unit, integration, e2e, audit, build]
+    needs: [lint, typecheck, unit, integration, e2e, audit, build, artefact-boundary]
     # `always()` so a failing need reddens the gate rather than skipping it — GitHub reports a
     # skipped required check as satisfied, so the default `success()` would stop the gate blocking
     # exactly when it matters. The draft clause keeps the gate off drafts, where every need is

@@ -48,6 +48,7 @@ pnpm dev
 pnpm dev:public
 pnpm dev:internal
 pnpm check
+pnpm check:artefacts   # assert no internal code reaches the public artifacts
 pnpm build
 pnpm test              # all three tiers below, in order
 pnpm test:unit         # unit tests
@@ -61,9 +62,10 @@ unambiguous artifacts.
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs lint, typecheck, unit tests, integration tests, e2e tests,
-`pnpm audit` and build as parallel jobs. A final `All checks pass` job aggregates them and is the
-single required status check for merging, so the required-check list does not need editing whenever
-a job is added — but a new job must be added to that job's `needs` list, or it gates nothing.
+`pnpm audit`, build and the public artifact boundary check as parallel jobs. A final `All checks
+pass` job aggregates them and is the single required status check for merging, so the required-check
+list does not need editing whenever a job is added — but a new job must be added to that job's
+`needs` list, or it gates nothing.
 
 Runs are triggered on every non-draft pull request (on open, on every push to the branch, and when a
 draft is marked ready for review) and on every push to `main`. **Draft pull requests run nothing.**
@@ -81,7 +83,7 @@ Each tier is its own CI job, so the jobs run `pnpm test:unit`, `pnpm test:integr
 **There are no integration or e2e tests yet**, so those two jobs execute zero tests — their check
 names say so. They get there differently, which matters when reading their logs:
 
-- `pnpm test:integration` fans out to all six testing packages and runs Vitest in each. Every run
+- `pnpm test:integration` fans out to all seven testing packages and runs Vitest in each. Every run
   passes because of `--passWithNoTests`, not because nothing ran.
 - `pnpm test:e2e` matches no package at all. It is the only tier carrying `--if-present`, which is
   what makes it a no-op rather than an error; drop the flag once an e2e package exists.
@@ -107,6 +109,22 @@ dependency graph — a change to a root file such as `tsconfig.base.json` or `bi
 nothing, so it needs a full-run fallback. Filter inside the job with pnpm rather than with
 workflow-level `paths:` filters, which produce skipped jobs that branch protection reads as
 satisfied.
+
+## The public artifact boundary
+
+`pnpm check:artefacts` (`tools/artefact-boundary`, also its own CI job) fails if internal code has
+reached a public artifact. It builds `public-web` and `public-api` and applies three checks:
+
+- the two public apps' transitive workspace dependency closures contain no `internal-*` package;
+- no import specifier in `apps/public-api/dist` resolves to internal code — this is the one that
+  catches a deep relative import, which never appears in a `package.json`;
+- no module in the `public-web` bundle comes from an internal package. Vite's output is minified, so
+  module identity survives only in sourcemaps: the check builds a second time with them into a
+  temporary directory and reads each map's `sources`. The shipped `dist/` is untouched and stays
+  sourcemap-free.
+
+The rule the three share is "a module reference naming an `@fphd/internal-*` package or living under
+a directory named `internal-*`", unit-tested in `tools/artefact-boundary/src/internal.test.ts`.
 
 ## Database
 
@@ -148,7 +166,10 @@ packages/
   ui/
   public-web-features/
   internal-web-features/
+tools/
+  artefact-boundary/
 ```
 
 Application directories contain deployment wiring, routes, and entrypoints. Reusable business and
-feature logic belongs in workspace packages.
+feature logic belongs in workspace packages. `tools/*` holds workspace members that support the
+build rather than ship in it.

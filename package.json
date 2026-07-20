@@ -10,7 +10,8 @@
   },
   "scripts": {
     "build": "pnpm --recursive run build",
-    "check": "biome check . && pnpm typecheck && pnpm test && pnpm build",
+    "check": "biome check . && pnpm typecheck && pnpm test && pnpm build && pnpm check:artefacts",
+    "check:artefacts": "pnpm --filter @fphd/artefact-boundary run check:artefacts",
     "check:write": "biome check --write .",
     "db:generate": "pnpm --filter @fphd/config build && pnpm --filter @fphd/db db:generate",
     "db:migrate": "pnpm --filter @fphd/config build && pnpm --filter @fphd/db db:migrate",
