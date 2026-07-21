@@ -96,7 +96,7 @@ jobs:
           PUBLIC_API_PASSWORD: public_api
           INTERNAL_API_PASSWORD: internal_api
       # Every testing package defines test:integration, so this really does fan out and start Vitest
-      # six times — it passes on --passWithNoTests, not because nothing ran. The first
+      # eight times — it passes on --passWithNoTests, not because nothing ran. The first
       # `*.integration.test.ts` makes it real; `pnpm db:migrate` belongs here once a migration exists.
       - run: pnpm test:integration
         env:

@@ -81,7 +81,7 @@ Each tier is its own CI job, so the jobs run `pnpm test:unit`, `pnpm test:integr
 **There are no integration or e2e tests yet**, so those two jobs execute zero tests — their check
 names say so. They get there differently, which matters when reading their logs:
 
-- `pnpm test:integration` fans out to all six testing packages and runs Vitest in each. Every run
+- `pnpm test:integration` fans out to all eight testing packages and runs Vitest in each. Every run
   passes because of `--passWithNoTests`, not because nothing ran.
 - `pnpm test:e2e` matches no package at all. It is the only tier carrying `--if-present`, which is
   what makes it a no-op rather than an error; drop the flag once an e2e package exists.
