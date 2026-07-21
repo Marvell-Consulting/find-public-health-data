@@ -1,5 +1,15 @@
-import { createApiApp } from '@fphd/api-server';
+import { addNotFoundHandler, createApiApp } from '@fphd/api-server';
 
 export function createApp() {
-  return createApiApp('internal');
+  const app = createApiApp('internal-api');
+
+  app.get('/api/internal', (_request, response) => {
+    response.status(200).json({
+      service: 'find-public-health-data',
+      audience: 'internal',
+    });
+  });
+
+  addNotFoundHandler(app);
+  return app;
 }

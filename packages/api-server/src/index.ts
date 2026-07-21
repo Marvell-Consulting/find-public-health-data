@@ -1,15 +1,13 @@
 import express, { type Express } from 'express';
 
-export type ApiAudience = 'internal' | 'public';
-
-export function createApiApp(audience: ApiAudience): Express {
+export function createApiApp(serviceName: string): Express {
   const app = express();
 
   app.disable('x-powered-by');
   app.use(express.json());
 
   app.get('/health', (_request, response) => {
-    response.status(200).json({ status: 'ok', service: `${audience}-api` });
+    response.status(200).json({ status: 'ok', service: serviceName });
   });
 
   app.get('/api', (_request, response) => {
@@ -19,20 +17,13 @@ export function createApiApp(audience: ApiAudience): Express {
     });
   });
 
-  if (audience === 'internal') {
-    app.get('/api/internal', (_request, response) => {
-      response.status(200).json({
-        service: 'find-public-health-data',
-        audience: 'internal',
-      });
-    });
-  }
+  return app;
+}
 
+export function addNotFoundHandler(app: Express) {
   app.use((_request, response) => {
     response.status(404).json({ error: 'not_found' });
   });
-
-  return app;
 }
 
 interface StartApiServerOptions {

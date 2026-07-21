@@ -4,6 +4,7 @@ export { z } from 'zod';
 export {
   appEnvSchema,
   boolSchema,
+  loadWebServerConfig,
   logEnvFields,
   parseEnv,
   portSchema,

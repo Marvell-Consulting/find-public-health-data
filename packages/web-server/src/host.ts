@@ -1,7 +1,6 @@
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import compression from 'compression';
 import express, { type Express, type RequestHandler } from 'express';
 import morgan from 'morgan';
 
@@ -11,7 +10,6 @@ function createHost() {
   const app = express();
 
   app.disable('x-powered-by');
-  app.use(compression());
   app.get(healthcheckPaths, (_request, response) => {
     response.json({ message: 'success' });
   });
@@ -24,7 +22,10 @@ interface ProductionHostOptions {
   requestHandler: RequestHandler;
 }
 
-export function createProductionHost({ clientDirectory, requestHandler }: ProductionHostOptions) {
+export function createProductionHost({
+  clientDirectory,
+  requestHandler,
+}: ProductionHostOptions): Express {
   const app = createHost();
 
   app.use(

@@ -2,20 +2,33 @@
   "name": "@fphd/web-server",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "exports": {
-    ".": "./src/host.ts",
-    "./entry-server": "./src/entry-server.tsx",
-    "./react-router": "./src/react-router-app.ts"
+    ".": {
+      "development": "./src/host.ts",
+      "types": "./src/host.ts",
+      "default": "./dist/host.js"
+    },
+    "./entry-server": {
+      "development": "./src/entry-server.tsx",
+      "types": "./src/entry-server.tsx",
+      "default": "./dist/entry-server.js"
+    },
+    "./react-router": {
+      "development": "./src/react-router-app.ts",
+      "types": "./src/react-router-app.ts",
+      "default": "./dist/react-router-app.js"
+    }
   },
   "scripts": {
+    "build": "tsc --project tsconfig.build.json",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@react-router/express": "catalog:",
     "@react-router/node": "catalog:",
-    "compression": "catalog:",
     "express": "catalog:",
     "isbot": "catalog:",
     "morgan": "catalog:",
@@ -24,7 +37,6 @@
     "react-router": "catalog:"
   },
   "devDependencies": {
-    "@types/compression": "catalog:",
     "@types/express": "catalog:",
     "@types/morgan": "catalog:",
     "@types/node": "catalog:",

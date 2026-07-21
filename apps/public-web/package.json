@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "react-router build",
-    "dev": "cross-env NODE_ENV=development node --env-file-if-exists=../../.env server.ts",
+    "dev": "cross-env NODE_ENV=development tsx watch --env-file-if-exists=../../.env --conditions=development server.ts",
     "preview": "pnpm build && pnpm start",
     "start": "cross-env NODE_ENV=production node server.ts",
     "test": "vitest run",
@@ -31,6 +31,7 @@
     "@types/react-dom": "catalog:",
     "cross-env": "catalog:",
     "jsdom": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"

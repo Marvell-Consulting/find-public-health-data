@@ -20,6 +20,7 @@ catalog:
   '@testing-library/react': 16.3.2
   '@types/express': 5.0.6
   '@types/govuk-frontend': 5.11.0
+  # Match the minimum supported Node runtime; newer Node APIs must not enter accidentally.
   '@types/node': 24.13.3
   '@types/react': 19.2.17
   '@types/react-dom': 19.2.3
@@ -45,6 +46,7 @@ catalog:
   sass: 1.101.0
   supertest: 7.2.2
   tsx: 4.23.0
+  # React Router 8.2 supports TypeScript 5 and 6; TypeScript 7 produces unmet peers.
   typescript: 6.0.3
   vite: 8.1.4
   vitest: 4.1.10

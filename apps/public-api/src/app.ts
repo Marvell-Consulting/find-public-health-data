@@ -1,5 +1,7 @@
-import { createApiApp } from '@fphd/api-server';
+import { addNotFoundHandler, createApiApp } from '@fphd/api-server';
 
 export function createApp() {
-  return createApiApp('public');
+  const app = createApiApp('public-api');
+  addNotFoundHandler(app);
+  return app;
 }
