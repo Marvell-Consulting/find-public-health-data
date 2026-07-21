@@ -6,13 +6,14 @@
   "type": "module",
   "scripts": {
     "build": "react-router build",
-    "dev": "cross-env NODE_ENV=development node server.ts",
+    "dev": "cross-env NODE_ENV=development node --env-file-if-exists=../../.env server.ts",
     "preview": "pnpm build && pnpm start",
     "start": "cross-env NODE_ENV=production node server.ts",
     "test": "vitest run",
     "typecheck": "react-router typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@fphd/config": "workspace:*",
     "@fphd/logger": "workspace:*",
     "@fphd/public-web-features": "workspace:*",
     "@fphd/ui": "workspace:*",

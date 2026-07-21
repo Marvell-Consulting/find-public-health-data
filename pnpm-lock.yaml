@@ -195,6 +195,9 @@ importers:
 
   apps/internal-web:
     dependencies:
+      '@fphd/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@fphd/internal-web-features':
         specifier: workspace:*
         version: link:../../packages/internal-web-features
@@ -293,6 +296,9 @@ importers:
 
   apps/public-web:
     dependencies:
+      '@fphd/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@fphd/logger':
         specifier: workspace:*
         version: link:../../packages/logger

@@ -1,10 +1,18 @@
 import { createLogger } from '@fphd/logger';
 import { startReactRouterServer } from '@fphd/web-server';
 
-const logger = createLogger({ name: 'internal-web' });
+import * as config from './server/config.ts';
+
+const logger = createLogger({
+  name: 'internal-web',
+  level: config.log.level,
+  pretty: config.log.pretty,
+});
 
 await startReactRouterServer({
-  defaultPort: 3001,
-  onListening: () => logger.info('Internal web listening'),
+  development: config.development,
+  host: config.host,
+  port: config.port,
+  onListening: () => logger.info({ port: config.port }, 'Internal web listening'),
   rootDirectory: import.meta.dirname,
 });
