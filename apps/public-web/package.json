@@ -5,29 +5,33 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "tsc --noEmit && vite build",
-    "dev": "vite",
-    "preview": "vite preview",
-    "test": "vitest run --exclude '**/*.integration.test.*'",
-    "test:integration": "vitest run --passWithNoTests integration.test",
-    "typecheck": "tsc --noEmit"
+    "build": "react-router build",
+    "dev": "cross-env NODE_ENV=development tsx watch --env-file-if-exists=../../.env --conditions=development server.ts",
+    "preview": "pnpm build && pnpm start",
+    "start": "cross-env NODE_ENV=production node server.ts",
+    "test": "vitest run",
+    "typecheck": "react-router typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@fphd/config": "workspace:*",
     "@fphd/logger": "workspace:*",
     "@fphd/public-web-features": "workspace:*",
     "@fphd/ui": "workspace:*",
+    "@fphd/web-server": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-router": "catalog:"
   },
   "devDependencies": {
+    "@react-router/dev": "catalog:",
     "@testing-library/dom": "catalog:",
     "@testing-library/react": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "@vitejs/plugin-react": "catalog:",
+    "cross-env": "catalog:",
     "jsdom": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"

@@ -1,8 +1,8 @@
 {
+  "files": ["types/assets.d.ts"],
   "compilerOptions": {
     "target": "ES2024",
     "strict": true,
-    "skipLibCheck": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "moduleDetection": "force",

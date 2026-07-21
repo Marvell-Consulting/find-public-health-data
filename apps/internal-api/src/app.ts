@@ -1,21 +1,7 @@
-import express, { type Express } from 'express';
+import { addNotFoundHandler, createApiApp } from '@fphd/api-server';
 
-export function createApp(): Express {
-  const app = express();
-
-  app.disable('x-powered-by');
-  app.use(express.json());
-
-  app.get('/health', (_request, response) => {
-    response.status(200).json({ status: 'ok', service: 'internal-api' });
-  });
-
-  app.get('/api', (_request, response) => {
-    response.status(200).json({
-      service: 'find-public-health-data',
-      audience: 'public',
-    });
-  });
+export function createApp() {
+  const app = createApiApp('internal-api');
 
   app.get('/api/internal', (_request, response) => {
     response.status(200).json({
@@ -24,9 +10,6 @@ export function createApp(): Express {
     });
   });
 
-  app.use((_request, response) => {
-    response.status(404).json({ error: 'not_found' });
-  });
-
+  addNotFoundHandler(app);
   return app;
 }

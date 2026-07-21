@@ -1,12 +1,15 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../tsconfig.web.json",
   "compilerOptions": {
-    "lib": ["ES2024", "DOM", "DOM.Iterable"],
-    "jsx": "react-jsx",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "noEmit": true,
-    "types": ["vite/client", "node"]
+    "rootDirs": [".", ".react-router/types"]
   },
-  "include": ["src", "vite.config.ts", "vitest.config.ts"]
+  "include": [
+    ".react-router/types/**/*",
+    "src",
+    "server",
+    "server.ts",
+    "react-router.config.ts",
+    "vite.config.ts",
+    "vitest.config.ts"
+  ]
 }

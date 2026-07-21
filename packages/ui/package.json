@@ -6,17 +6,32 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./styles.css": "./src/styles.css"
+    "./hydrate": "./src/hydrate-web-app.tsx",
+    "./styles.scss": "./src/styles.scss"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "react": "catalog:"
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-router": "catalog:"
+  },
+  "dependencies": {
+    "@not-govuk/inset-text": "catalog:",
+    "@not-govuk/link": "catalog:",
+    "@not-govuk/page": "catalog:",
+    "@not-govuk/sass-base": "catalog:",
+    "@not-govuk/search-box": "catalog:",
+    "govuk-frontend": "catalog:"
   },
   "devDependencies": {
+    "@types/govuk-frontend": "catalog:",
     "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
     "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-router": "catalog:",
     "typescript": "catalog:"
   }
 }

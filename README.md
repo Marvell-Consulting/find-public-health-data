@@ -14,7 +14,7 @@ workspace packages. Deployable applications do not import one another.
 
 ## Requirements
 
-- Node.js 24.18.0 LTS
+- Node.js 24+
 - pnpm 11.11.0
 - Docker, to run the development database
 

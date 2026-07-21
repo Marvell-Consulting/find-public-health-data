@@ -1,0 +1,107 @@
+@use "@not-govuk/sass-base" as *;
+
+// TODO: Remove these compatibility overrides when NotGovUK supports GOV.UK Frontend 6.x.
+.govuk-header {
+  font-size: 16px;
+  line-height: 16px;
+}
+
+.govuk-service-navigation {
+  .govuk-service-navigation__service-name,
+  .govuk-service-navigation__link,
+  .govuk-service-navigation__toggle,
+  .govuk-service-navigation__list__link {
+    font-size: 19px;
+    line-height: 25px;
+  }
+}
+
+.govuk-phase-banner {
+  .govuk-phase-banner__content,
+  .govuk-phase-banner__tag,
+  .govuk-phase-banner__text {
+    font-size: 16px;
+    line-height: 20px;
+  }
+}
+
+.not-govuk-page .govuk-tag {
+  background-color: #d2e2f1;
+  color: #0f385c;
+}
+
+.not-govuk-page .govuk-inset-text {
+  border-left-color: #cecece;
+}
+
+.not-govuk-page .govuk-footer {
+  font-size: 19px;
+  line-height: 25px;
+
+  .govuk-footer__meta,
+  .govuk-footer__meta-item,
+  .govuk-footer__inline-list,
+  .govuk-footer__inline-list-item,
+  .govuk-footer__license-description,
+  .govuk-footer__copyright-logo {
+    font-size: 19px;
+    line-height: 25px;
+  }
+
+  .govuk-footer__inline-list-item {
+    margin-right: 18.8125px;
+  }
+
+  .govuk-footer__license-description {
+    display: inline-block;
+    margin-left: 3.8125px;
+  }
+
+  .govuk-footer__link:not(.govuk-footer__copyright-logo) {
+    &:link {
+      color: #1a65a6;
+    }
+
+    &:visited {
+      color: #54319f;
+    }
+
+    &:hover {
+      color: #0f385c;
+    }
+
+    &:active,
+    &:focus {
+      color: #0b0c0c;
+    }
+  }
+}
+
+@include govuk-media-query($until: tablet) {
+  .not-govuk-page .not-govuk-page__main .govuk-body,
+  .not-govuk-page .not-govuk-page__main .govuk-list,
+  .not-govuk-page .not-govuk-page__main .govuk-inset-text {
+    font-size: 19px;
+    line-height: 25px;
+  }
+
+  .not-govuk-page .govuk-heading-l {
+    font-size: 27px;
+    line-height: 30px;
+  }
+
+  .not-govuk-page .govuk-heading-s {
+    font-size: 19px;
+    line-height: 25px;
+  }
+
+  .not-govuk-page .govuk-body-s {
+    font-size: 16px;
+    line-height: 20px;
+  }
+
+  .govuk-footer .govuk-footer__license-description {
+    width: 100%;
+    margin-left: 0;
+  }
+}

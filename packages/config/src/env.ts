@@ -39,6 +39,8 @@ export const logEnvFields = {
   LOG_PRETTY: boolSchema.optional(),
 };
 
+const nodeEnvSchema = z.enum(['development', 'production', 'test']).default('production');
+
 /**
  * Blank values are dropped before parsing so `PORT=` behaves the same as an unset PORT —
  * zod defaults only apply to `undefined`, and an empty string would otherwise coerce to 0
@@ -64,4 +66,25 @@ export function parseEnv<T extends z.ZodType>(
   }
 
   return result.data;
+}
+
+export function loadWebServerConfig(env: NodeJS.ProcessEnv, defaults: { port: number }) {
+  const parsed = parseEnv(
+    z.object({
+      ...serverEnvFields(defaults),
+      ...logEnvFields,
+      NODE_ENV: nodeEnvSchema,
+    }),
+    env,
+  );
+
+  return {
+    development: parsed.NODE_ENV === 'development',
+    host: parsed.HOST,
+    port: parsed.PORT,
+    log: {
+      level: parsed.LOG_LEVEL,
+      pretty: parsed.APP_ENV === 'local' && (parsed.LOG_PRETTY ?? true),
+    },
+  } as const;
 }

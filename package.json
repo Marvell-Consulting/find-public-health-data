@@ -5,7 +5,7 @@
   "type": "module",
   "packageManager": "pnpm@11.11.0",
   "engines": {
-    "node": ">=24.18.0 <25",
+    "node": ">=24",
     "pnpm": ">=11.11.0 <12"
   },
   "scripts": {
@@ -28,6 +28,12 @@
     "typecheck": "pnpm --recursive run typecheck"
   },
   "devDependencies": {
-    "@biomejs/biome": "catalog:"
+    "@biomejs/biome": "catalog:",
+    "@react-router/dev": "catalog:",
+    "@types/node": "catalog:",
+    "sass": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
   }
 }

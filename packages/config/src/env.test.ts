@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { boolSchema, logEnvFields, parseEnv, portSchema, serverEnvFields } from './env.js';
+import {
+  boolSchema,
+  loadWebServerConfig,
+  logEnvFields,
+  parseEnv,
+  portSchema,
+  serverEnvFields,
+} from './env.js';
 
 describe('portSchema', () => {
   it('parses a valid port from env text', () => {
@@ -119,6 +126,38 @@ describe('parseEnv', () => {
     expect(parseEnv(schema, { SECRET: 's3cret', UNRELATED: 'x' })).toEqual({
       PORT: 4000,
       SECRET: 's3cret',
+    });
+  });
+});
+
+describe('loadWebServerConfig', () => {
+  it('uses the app port and local logging defaults', () => {
+    expect(loadWebServerConfig({}, { port: 3000 })).toEqual({
+      development: false,
+      host: '0.0.0.0',
+      port: 3000,
+      log: { level: 'info', pretty: true },
+    });
+  });
+
+  it('parses runtime and logging configuration', () => {
+    expect(
+      loadWebServerConfig(
+        {
+          APP_ENV: 'preview',
+          HOST: '127.0.0.1',
+          NODE_ENV: 'development',
+          PORT: '8080',
+          LOG_LEVEL: 'debug',
+          LOG_PRETTY: '1',
+        },
+        { port: 3000 },
+      ),
+    ).toEqual({
+      development: true,
+      host: '127.0.0.1',
+      port: 8080,
+      log: { level: 'debug', pretty: false },
     });
   });
 });

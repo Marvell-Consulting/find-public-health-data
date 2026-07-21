@@ -1,3 +1,4 @@
+import { startApiServer } from '@fphd/api-server';
 import { createLogger } from '@fphd/logger';
 
 import { createApp } from './app.js';
@@ -9,6 +10,9 @@ const logger = createLogger({
   pretty: config.log.pretty,
 });
 
-createApp().listen(config.port, config.host, () => {
-  logger.info({ port: config.port }, 'Internal API listening');
+startApiServer({
+  app: createApp(),
+  host: config.host,
+  port: config.port,
+  onListening: () => logger.info({ port: config.port }, 'Internal API listening'),
 });
