@@ -67,11 +67,13 @@ function readRequestHandler(serverModule: unknown): RequestHandler {
 
 interface ReactRouterServerOptions {
   defaultPort: number;
+  onListening: () => void;
   rootDirectory: string;
 }
 
 export async function startReactRouterServer({
   defaultPort,
+  onListening,
   rootDirectory,
 }: ReactRouterServerOptions) {
   const development = process.env.NODE_ENV === 'development';
@@ -109,7 +111,5 @@ export async function startReactRouterServer({
     app = createProductionHost({ clientDirectory, requestHandler });
   }
 
-  return app.listen(port, host, () => {
-    console.log(`Web server listening on http://${host}:${port}`);
-  });
+  return app.listen(port, host, onListening);
 }

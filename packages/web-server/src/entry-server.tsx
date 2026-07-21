@@ -14,7 +14,14 @@ export default function handleRequest(
   entryContext: EntryContext,
 ) {
   return new Promise<Response>((resolve, reject) => {
+    let abortTimeout: ReturnType<typeof setTimeout> | undefined;
     let shellRendered = false;
+    const clearAbortTimeout = () => {
+      if (abortTimeout !== undefined) {
+        clearTimeout(abortTimeout);
+        abortTimeout = undefined;
+      }
+    };
     const userAgent = request.headers.get('user-agent');
     const readyOption: keyof RenderToPipeableStreamOptions =
       (userAgent && isbot(userAgent)) || entryContext.isSpaMode ? 'onAllReady' : 'onShellReady';
@@ -26,12 +33,15 @@ export default function handleRequest(
           shellRendered = true;
           const body = new PassThrough();
           const stream = createReadableStreamFromReadable(body);
+          body.once('close', clearAbortTimeout);
+          body.once('finish', clearAbortTimeout);
 
           responseHeaders.set('Content-Type', 'text/html');
           resolve(new Response(stream, { headers: responseHeaders, status: responseStatusCode }));
           pipe(body);
         },
         onShellError(error: unknown) {
+          clearAbortTimeout();
           reject(error);
         },
         onError(error: unknown) {
@@ -41,6 +51,6 @@ export default function handleRequest(
       },
     );
 
-    setTimeout(abort, streamTimeout + 1_000);
+    abortTimeout = setTimeout(abort, streamTimeout + 1_000);
   });
 }
