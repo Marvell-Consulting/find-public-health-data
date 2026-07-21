@@ -38,16 +38,6 @@ export function createProductionHost({ clientDirectory, requestHandler }: Produc
   return app;
 }
 
-function parsePort(value: string | undefined, defaultPort: number) {
-  const port = value === undefined ? defaultPort : Number(value);
-
-  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
-    throw new Error(`Invalid port: ${value}`);
-  }
-
-  return port;
-}
-
 function isRequestHandler(value: unknown): value is RequestHandler {
   return typeof value === 'function';
 }
@@ -66,19 +56,20 @@ function readRequestHandler(serverModule: unknown): RequestHandler {
 }
 
 interface ReactRouterServerOptions {
-  defaultPort: number;
+  development: boolean;
+  host: string;
   onListening: () => void;
+  port: number;
   rootDirectory: string;
 }
 
 export async function startReactRouterServer({
-  defaultPort,
+  development,
+  host,
   onListening,
+  port,
   rootDirectory,
 }: ReactRouterServerOptions) {
-  const development = process.env.NODE_ENV === 'development';
-  const host = process.env.HOST ?? '0.0.0.0';
-  const port = parsePort(process.env.PORT, defaultPort);
   let app: Express;
 
   if (development) {
