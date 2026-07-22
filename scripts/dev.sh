@@ -60,14 +60,18 @@ if ((${#container_apps[@]} > 0)); then
     profile_flags+=(--profile "$app")
   done
 
-  echo "Starting containers: ${container_apps[*]} (+ db)" >&2
-  docker compose "${profile_flags[@]}" up --detach --build
-
+  # Armed before the containers start, not after: `up --build` can run for minutes,
+  # and a Ctrl-C partway through would otherwise leave the containers it had already
+  # started behind. Cleanup is best-effort — the EXIT trap's status becomes the
+  # script's, so a failing stop must not be what the run reports.
   stop_containers() {
     echo "Stopping containers: ${container_apps[*]}" >&2
-    docker compose "${profile_flags[@]}" stop "${container_apps[@]}"
+    docker compose "${profile_flags[@]}" stop "${container_apps[@]}" || true
   }
   trap stop_containers EXIT
+
+  echo "Starting containers: ${container_apps[*]} (+ db)" >&2
+  docker compose "${profile_flags[@]}" up --detach --build
 else
   echo "Starting containers: db" >&2
   docker compose up --detach --build

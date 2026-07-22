@@ -1,5 +1,11 @@
 **/node_modules
 **/dist
+**/coverage
+**/.vite
+**/.react-router
+**/*.tsbuildinfo
+.pnpm-store
 .git
-.env
+docs
+.env*
 *.log
