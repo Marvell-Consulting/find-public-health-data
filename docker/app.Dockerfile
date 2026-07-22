@@ -24,4 +24,9 @@ RUN pnpm --filter "@fphd/${APP}..." build
 
 ENV NODE_ENV=production
 ENV APP=${APP}
-CMD pnpm --filter "@fphd/${APP}" start
+# `exec` so pnpm replaces the shell as PID 1 and SIGTERM reaches the server directly.
+# compose sets `init: true`, and tini forwards the signal well enough that the shell
+# form stopped promptly there too — but a bare `docker run` of this image has no init,
+# and then the wrapping `sh -c` swallows SIGTERM and the stop takes the full 10s
+# timeout before SIGKILL.
+CMD ["sh", "-c", "exec pnpm --filter \"@fphd/$APP\" start"]
