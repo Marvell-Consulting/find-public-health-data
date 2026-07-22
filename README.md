@@ -98,8 +98,9 @@ vitest run -t 'partial test name'            # one test
 
 To add real ones:
 
-- An integration test is any `*.integration.test.ts`, colocated in `src/` like a unit test. The two
-  tiers are the same run under different filters — `test:unit` excludes that pattern, and
+- An integration test is any `*.integration.test.*`, colocated in `src/` like a unit test. The
+  extension is not part of the contract, so a React integration test is `.integration.test.tsx`.
+  The two tiers are the same run under different filters — `test:unit` excludes that pattern, and
   `test:integration` selects it — so a package needs no per-tier wiring.
   The integration job has a Postgres service and creates the per-API login roles, so a test needing
   the database should work without touching the workflow — except that `pnpm db:migrate` still needs
