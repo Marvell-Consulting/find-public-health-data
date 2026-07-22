@@ -35,16 +35,15 @@ describe('React Router production host', () => {
     expect(response.headers['x-powered-by']).toBeUndefined();
   });
 
-  it.each([
-    '/healthcheck',
-    '/healthcheck/live',
-    '/healthcheck/ready',
-  ])('reports server health at %s', async (path) => {
-    const response = await request(app).get(path);
+  it.each(['/healthcheck', '/healthcheck/live', '/healthcheck/ready'])(
+    'reports server health at %s',
+    async (path) => {
+      const response = await request(app).get(path);
 
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual({ message: 'success' });
-  });
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ message: 'success' });
+    },
+  );
 
   it('passes document requests to the React Router server build', async () => {
     const response = await request(app).get('/releases').accept('text/html');
