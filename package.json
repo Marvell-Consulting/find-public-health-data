@@ -23,8 +23,8 @@
     "lint": "biome lint .",
     "test": "pnpm test:unit && pnpm test:integration && pnpm test:e2e",
     "test:e2e": "pnpm --recursive run --if-present test:e2e",
-    "test:integration": "pnpm --recursive run test:integration",
-    "test:unit": "pnpm --recursive run test",
+    "test:integration": "vitest run --passWithNoTests integration.test",
+    "test:unit": "vitest run --exclude '**/*.integration.test.*'",
     "typecheck": "pnpm --recursive run typecheck"
   },
   "devDependencies": {

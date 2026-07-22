@@ -17,9 +17,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
-    "test": "vitest run --exclude '**/*.integration.test.*'",
-    "test:integration": "vitest run --passWithNoTests integration.test"
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@fphd/config": "workspace:*",

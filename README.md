@@ -81,17 +81,26 @@ Each tier is its own CI job, so the jobs run `pnpm test:unit`, `pnpm test:integr
 **There are no integration or e2e tests yet**, so those two jobs execute zero tests — their check
 names say so. They get there differently, which matters when reading their logs:
 
-- `pnpm test:integration` fans out to all six testing packages and runs Vitest in each. Every run
-  passes because of `--passWithNoTests`, not because nothing ran.
+- `pnpm test:integration` runs Vitest over every project and matches no file. It passes because of
+  `--passWithNoTests`, not because nothing ran.
 - `pnpm test:e2e` matches no package at all. It is the only tier carrying `--if-present`, which is
   what makes it a no-op rather than an error; drop the flag once an e2e package exists.
 
+Both tiers are one root Vitest run over the projects declared in `vitest.config.ts`, globbed from
+`apps/*` and `packages/*`. Packages declare no test scripts of their own, so a new package joins
+both tiers by existing rather than by remembering to opt in. Target one from the root:
+
+```sh
+vitest run --project @fphd/public-api        # one package
+vitest run apps/public-api/src/app.test.ts   # one file
+vitest run -t 'partial test name'            # one test
+```
+
 To add real ones:
 
-- An integration test is any `*.integration.test.ts`, colocated in `src/` like a unit test. Each
-  package's own `test` script already excludes the pattern and its `test:integration` script selects
-  it. (`test:unit` exists only at the root, where it fans out to those per-package `test` scripts —
-  a per-package `test:unit` would let a package that never defined one drop out of CI silently.)
+- An integration test is any `*.integration.test.ts`, colocated in `src/` like a unit test. The two
+  tiers are the same run under different filters — `test:unit` excludes that pattern, and
+  `test:integration` selects it — so a package needs no per-tier wiring.
   The integration job has a Postgres service and creates the per-API login roles, so a test needing
   the database should work without touching the workflow — except that `pnpm db:migrate` still needs
   adding to the job once a first migration exists.
