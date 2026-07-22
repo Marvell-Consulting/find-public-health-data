@@ -137,14 +137,16 @@ There is no schema yet, and no grants beyond the ability to log in.
 ## Mixed local/Docker development
 
 Any subset of the four applications can run as Docker containers while the rest run locally.
-`scripts/dev.sh` takes the apps to run **locally** and starts everything else (plus the database) as
+`pnpm dev:mixed` takes the apps to run **locally** and starts everything else (plus the database) as
 containers:
 
 ```sh
-scripts/dev.sh internal-api                 # internal-api local; other three in containers
-scripts/dev.sh internal-web internal-api    # internal pair local; public pair in containers
-scripts/dev.sh public-web internal-web      # both webs local; both APIs in containers
+pnpm dev:mixed internal-api                 # internal-api local; other three in containers
+pnpm dev:mixed internal-web internal-api    # internal pair local; public pair in containers
+pnpm dev:mixed public-web internal-web      # both webs local; both APIs in containers
 ```
+
+The script behind it is `scripts/dev.sh`, which can be run directly with the same arguments.
 
 Ctrl-C stops the local apps and the app containers; the database stays up. Running all four locally
 is just `pnpm dev`.
