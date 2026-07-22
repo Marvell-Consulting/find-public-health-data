@@ -16,6 +16,10 @@ COPY . .
 RUN pnpm install --frozen-lockfile --prefer-offline
 
 ARG APP
+RUN case "${APP}" in \
+      public-web | internal-web | public-api | internal-api) ;; \
+      *) echo "APP build arg must be one of: public-web internal-web public-api internal-api (got '${APP}')" >&2; exit 1 ;; \
+    esac
 RUN pnpm --filter "@fphd/${APP}..." build
 
 ENV NODE_ENV=production

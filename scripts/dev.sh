@@ -51,6 +51,9 @@ for app in "${all_apps[@]}"; do
   ((is_local == 0)) && container_apps+=("$app")
 done
 
+# db carries no profile, so it starts either way — including when every app is local
+# and there are no app containers to ask for. bash 3.2 (the macOS default) treats an
+# empty array under `set -u` as unbound, so that case can't share the code path.
 if ((${#container_apps[@]} > 0)); then
   profile_flags=()
   for app in "${container_apps[@]}"; do
@@ -65,6 +68,9 @@ if ((${#container_apps[@]} > 0)); then
     docker compose "${profile_flags[@]}" stop "${container_apps[@]}"
   }
   trap stop_containers EXIT
+else
+  echo "Starting containers: db" >&2
+  docker compose up --detach --build
 fi
 
 filter_flags=()
