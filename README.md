@@ -145,6 +145,38 @@ pnpm db:studio      # browse the database
 
 There is no schema yet, and no grants beyond the ability to log in.
 
+## Mixed local/Docker development
+
+Any subset of the four applications can run as Docker containers while the rest run locally.
+`pnpm dev:mixed` takes the apps to run **locally** and starts everything else (plus the database) as
+containers:
+
+```sh
+pnpm dev:mixed internal-api                 # internal-api local; other three in containers
+pnpm dev:mixed internal-web internal-api    # internal pair local; public pair in containers
+pnpm dev:mixed public-web internal-web      # both webs local; both APIs in containers
+```
+
+The script behind it is `scripts/dev.sh`, which can be run directly with the same arguments.
+
+Ctrl-C stops the local apps and the app containers; the database stays up. Running all four locally
+is just `pnpm dev`.
+
+Each app service in `compose.yaml` sits behind a profile of the same name, so plain
+`docker compose up` still starts only the database. The containers are built by
+`docker/app.Dockerfile` from the current working tree and run the app's **production build**
+(`pnpm build` output via `pnpm start`) — no file watching, no bind mounts. They are rebuilt each
+time the script starts (cheap when nothing changed, thanks to layer caching), so a container picks
+up source changes on the next start, not live.
+
+Every app is reachable on the host at its canonical port (3000/3001/4000/4001) whether local or
+containerised, because containers publish those ports. Any URL by which one app reaches another
+must be env-driven with a localhost default; a containerised app overrides it with
+`host.docker.internal:<port>`, which reaches whatever runs behind that port on the host — local
+process or published container alike. This one rule is what makes every combination work without
+per-combination configuration. (The APIs' database connection is the exception: containerised APIs
+reach Postgres directly over the compose network via `DB_HOST=db`.)
+
 ## Structure
 
 ```text
