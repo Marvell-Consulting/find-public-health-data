@@ -8,9 +8,11 @@ allowBuilds:
 
 catalog:
   '@biomejs/biome': 2.5.3
+  '@not-govuk/button': 0.18.1
   '@not-govuk/inset-text': 0.18.1
   '@not-govuk/link': 0.18.1
   '@not-govuk/page': 0.18.1
+  '@not-govuk/radios': 0.18.1
   '@not-govuk/sass-base': 0.18.1
   '@not-govuk/search-box': 0.18.1
   '@react-router/dev': 8.2.0
@@ -36,6 +38,7 @@ catalog:
   govuk-frontend: 5.14.0
   isbot: 5.2.0
   jsdom: 29.1.1
+  jose: 6.2.4
   morgan: 1.11.0
   pino: 10.3.1
   pino-pretty: 13.1.3

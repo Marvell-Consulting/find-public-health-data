@@ -1,5 +1,5 @@
 {
-  "name": "@fphd/api-server",
+  "name": "@fphd/auth",
   "version": "0.0.0",
   "private": true,
   "license": "MIT",
@@ -9,6 +9,16 @@
       "development": "./src/index.ts",
       "types": "./src/index.ts",
       "default": "./dist/index.js"
+    },
+    "./jwt-session": {
+      "development": "./src/jwt-session.ts",
+      "types": "./src/jwt-session.ts",
+      "default": "./dist/jwt-session.js"
+    },
+    "./session-errors": {
+      "development": "./src/session-errors.ts",
+      "types": "./src/session-errors.ts",
+      "default": "./dist/session-errors.js"
     }
   },
   "scripts": {
@@ -16,16 +26,12 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "@fphd/auth": "workspace:*",
-    "express": "catalog:"
-  },
   "devDependencies": {
-    "@types/express": "catalog:",
     "@types/node": "catalog:",
-    "@types/supertest": "catalog:",
-    "supertest": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "dependencies": {
+    "jose": "catalog:"
   }
 }

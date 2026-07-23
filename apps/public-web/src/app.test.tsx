@@ -1,4 +1,5 @@
-import { PublicHomePage, ReleasesPage } from '@fphd/public-web-features';
+import { fakeUsersForAudience } from '@fphd/auth';
+import { PublicHomePage, ReleasesPage, SignInPage } from '@fphd/public-web-features';
 import { cleanup, render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -13,6 +14,7 @@ describe('public application routes', () => {
       {
         path: '/',
         Component: PublicApp,
+        loader: () => ({ signedIn: false }),
         children: [{ index: true, Component: PublicHomePage }],
       },
     ]);
@@ -33,15 +35,41 @@ describe('public application routes', () => {
       {
         path: '/',
         Component: PublicApp,
+        loader: () => ({ signedIn: false }),
         children: [{ path: 'releases', Component: ReleasesPage }],
       },
     ]);
 
     render(<Routes initialEntries={['/releases']} />);
 
-    expect(screen.getByRole('link', { name: 'Skip to main content' })).toBeTruthy();
+    expect(await screen.findByRole('link', { name: 'Skip to main content' })).toBeTruthy();
     expect(screen.getByText('Alpha')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'GOV.UK' })).toBeTruthy();
     expect(await screen.findByRole('heading', { name: 'Releases' })).toBeTruthy();
+  });
+
+  it('offers all fake users on the public sign-in page', () => {
+    render(<SignInPage audience="public" returnTo="/" users={fakeUsersForAudience('public')} />);
+
+    expect(screen.getAllByRole('radio')).toHaveLength(3);
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeTruthy();
+  });
+
+  it('links to the account when a user is signed in', async () => {
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        loader: () => ({ signedIn: true }),
+        children: [{ index: true, Component: PublicHomePage }],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/']} />);
+
+    expect((await screen.findByRole('link', { name: 'Account' })).getAttribute('href')).toBe(
+      '/sign-in',
+    );
+    expect(screen.queryByRole('link', { name: 'Sign in' })).toBeNull();
   });
 });

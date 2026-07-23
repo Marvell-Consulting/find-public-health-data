@@ -15,6 +15,16 @@
       "types": "./src/entry-server.tsx",
       "default": "./dist/entry-server.js"
     },
+    "./fake-auth": {
+      "development": "./src/fake-auth.ts",
+      "types": "./src/fake-auth.ts",
+      "default": "./dist/fake-auth.js"
+    },
+    "./fake-auth-react-router": {
+      "development": "./src/fake-auth-react-router-app.ts",
+      "types": "./src/fake-auth-react-router-app.ts",
+      "default": "./dist/fake-auth-react-router-app.js"
+    },
     "./react-router": {
       "development": "./src/react-router-app.ts",
       "types": "./src/react-router-app.ts",
@@ -32,6 +42,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fphd/auth": "workspace:*",
     "@react-router/express": "catalog:",
     "@react-router/node": "catalog:",
     "express": "catalog:",
