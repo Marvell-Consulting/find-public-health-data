@@ -8,8 +8,6 @@
     "build": "tsc --project tsconfig.build.json",
     "dev": "tsx watch --env-file-if-exists=../../.env --conditions=development src/server.ts",
     "start": "node dist/server.js",
-    "test": "vitest run --exclude '**/*.integration.test.*'",
-    "test:integration": "vitest run --passWithNoTests integration.test",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
