@@ -18,7 +18,8 @@
   },
   "dependencies": {
     "@fphd/auth": "workspace:*",
-    "express": "catalog:"
+    "express": "catalog:",
+    "express-rate-limit": "catalog:"
   },
   "devDependencies": {
     "@types/express": "catalog:",
