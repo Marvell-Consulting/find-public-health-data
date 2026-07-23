@@ -6,6 +6,7 @@ const envSchema = z.object({
   ...logEnvFields,
   ...dbEnvFields,
   INTERNAL_API_PASSWORD: z.string().min(1),
+  SESSION_JWT_SECRET: z.string().min(32),
 });
 
 /**
@@ -23,6 +24,10 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
     log: {
       level: parsed.LOG_LEVEL,
       pretty: parsed.APP_ENV === 'local' && (parsed.LOG_PRETTY ?? true),
+    },
+    session: {
+      secret: parsed.SESSION_JWT_SECRET,
+      secure: parsed.APP_ENV !== 'local',
     },
     db: {
       host: parsed.DB_HOST,

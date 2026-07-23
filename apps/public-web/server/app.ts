@@ -1,11 +1,8 @@
-import { createReactRouterApp, createWebSessionStorage } from '@fphd/web-server/react-router';
+import { createFakeAuthReactRouterApp } from '@fphd/web-server/fake-auth-react-router';
 
-const sessionStorage = createWebSessionStorage({
-  cookieName: 'fphd-public-session',
-  secret: process.env.SESSION_SECRET,
-  secure: process.env.NODE_ENV === 'production',
-});
+import { session as sessionConfig } from './config.ts';
 
-export const app = createReactRouterApp(() => import('virtual:react-router/server-build'), {
-  sessionStorage,
+export const app = createFakeAuthReactRouterApp(() => import('virtual:react-router/server-build'), {
+  audience: 'public',
+  session: sessionConfig,
 });

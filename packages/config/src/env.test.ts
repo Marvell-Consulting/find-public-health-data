@@ -131,12 +131,15 @@ describe('parseEnv', () => {
 });
 
 describe('loadWebServerConfig', () => {
+  const sessionSecret = 'a-jwt-session-secret-that-is-long-enough';
+
   it('uses the app port and local logging defaults', () => {
-    expect(loadWebServerConfig({}, { port: 3000 })).toEqual({
+    expect(loadWebServerConfig({ SESSION_JWT_SECRET: sessionSecret }, { port: 3000 })).toEqual({
       development: false,
       host: '0.0.0.0',
       port: 3000,
       log: { level: 'info', pretty: true },
+      session: { secret: sessionSecret, secure: true },
     });
   });
 
@@ -150,6 +153,7 @@ describe('loadWebServerConfig', () => {
           PORT: '8080',
           LOG_LEVEL: 'debug',
           LOG_PRETTY: '1',
+          SESSION_JWT_SECRET: sessionSecret,
         },
         { port: 3000 },
       ),
@@ -158,6 +162,14 @@ describe('loadWebServerConfig', () => {
       host: '127.0.0.1',
       port: 8080,
       log: { level: 'debug', pretty: false },
+      session: { secret: sessionSecret, secure: false },
     });
+  });
+
+  it('requires a JWT session secret of at least 32 characters', () => {
+    expect(() => loadWebServerConfig({}, { port: 3000 })).toThrow(/SESSION_JWT_SECRET/);
+    expect(() => loadWebServerConfig({ SESSION_JWT_SECRET: 'too-short' }, { port: 3000 })).toThrow(
+      /SESSION_JWT_SECRET/,
+    );
   });
 });

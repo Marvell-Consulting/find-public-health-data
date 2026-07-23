@@ -1,126 +1,84 @@
+import type { JwtSessionClaims, JwtSessionVerifier } from '@fphd/auth/jwt-session';
+import { InvalidJwtSessionError } from '@fphd/auth/session-errors';
 import {
   createContext,
   type MiddlewareFunction,
   type RouterContext,
   RouterContextProvider,
-  type Session,
-  type SessionStorage,
+  redirect,
 } from 'react-router';
 
 type SessionContextReader = {
   get<T>(context: RouterContext<T>): T;
 };
 
-export interface RequestSession {
-  readonly id: string;
-  destroy(): void;
-  flash(name: string, value: unknown): void;
-  get<Value = unknown>(name: string): Value | undefined;
-  has(name: string): boolean;
-  set(name: string, value: unknown): void;
-  unset(name: string): void;
-}
+const sessionServiceContext = createContext<JwtSessionVerifier>();
+const requestSessionContext = createContext<JwtSessionClaims | undefined>();
 
-const sessionStorageContext = createContext<SessionStorage>();
-const requestSessionContext = createContext<RequestSession>();
+export function createRequireSessionRoleMiddleware({
+  forbiddenPath,
+  role,
+  signInPath = '/sign-in',
+}: {
+  forbiddenPath: string;
+  role: string;
+  signInPath?: string;
+}): MiddlewareFunction<Response> {
+  return async ({ context, request }, next) => {
+    const session = getSession(context);
 
-class TrackedRequestSession implements RequestSession {
-  readonly #session: Session;
-  #state: 'clean' | 'dirty' | 'destroyed' = 'clean';
-
-  constructor(session: Session) {
-    this.#session = session;
-  }
-
-  get id(): string {
-    return this.#session.id;
-  }
-
-  destroy(): void {
-    this.#state = 'destroyed';
-  }
-
-  flash(name: string, value: unknown): void {
-    this.#assertActive();
-    this.#session.flash(name, value);
-    this.#state = 'dirty';
-  }
-
-  get<Value = unknown>(name: string): Value | undefined {
-    this.#assertActive();
-    const keyCount = Object.keys(this.#session.data).length;
-    const value = this.#session.get(name) as Value | undefined;
-
-    if (Object.keys(this.#session.data).length !== keyCount) {
-      this.#state = 'dirty';
+    if (session === undefined) {
+      const requestUrl = new URL(request.url);
+      const signInUrl = new URL(signInPath, requestUrl);
+      signInUrl.searchParams.set('returnTo', `${requestUrl.pathname}${requestUrl.search}`);
+      throw redirect(`${signInUrl.pathname}${signInUrl.search}`);
     }
 
-    return value;
-  }
+    if (!session.roles.includes(role)) throw redirect(forbiddenPath);
 
-  has(name: string): boolean {
-    this.#assertActive();
-    return this.#session.has(name);
-  }
-
-  set(name: string, value: unknown): void {
-    this.#assertActive();
-    this.#session.set(name, value);
-    this.#state = 'dirty';
-  }
-
-  unset(name: string): void {
-    this.#assertActive();
-    this.#session.unset(name);
-    this.#state = 'dirty';
-  }
-
-  async createSetCookieHeader(storage: SessionStorage): Promise<string | undefined> {
-    if (this.#state === 'clean') {
-      return undefined;
-    }
-
-    if (this.#state === 'destroyed') {
-      return storage.destroySession(this.#session);
-    }
-
-    return storage.commitSession(this.#session);
-  }
-
-  #assertActive(): void {
-    if (this.#state === 'destroyed') {
-      throw new Error('The session has already been destroyed');
-    }
-  }
+    return next();
+  };
 }
 
 export const sessionMiddleware: MiddlewareFunction<Response> = async (
   { context, request },
   next,
 ) => {
-  const storage = context.get(sessionStorageContext);
-  const session = new TrackedRequestSession(
-    await storage.getSession(request.headers.get('Cookie')),
-  );
+  const service = context.get(sessionServiceContext);
+  const token = service.readToken(request.headers.get('Cookie'));
+  let invalidToken = false;
+  let session: JwtSessionClaims | undefined;
 
-  context.set(requestSessionContext, session);
-
-  const response = await next();
-  const setCookie = await session.createSetCookieHeader(storage);
-
-  if (setCookie !== undefined) {
-    response.headers.append('Set-Cookie', setCookie);
+  if (token !== undefined) {
+    try {
+      session = await service.verifyToken(token);
+    } catch (error) {
+      if (!(error instanceof InvalidJwtSessionError)) throw error;
+      invalidToken = true;
+    }
   }
 
-  return response;
+  context.set(requestSessionContext, session);
+  try {
+    const response = await next();
+
+    if (invalidToken) response.headers.append('Set-Cookie', service.clearCookieHeader());
+
+    return response;
+  } catch (error) {
+    if (invalidToken && error instanceof Response) {
+      error.headers.append('Set-Cookie', service.clearCookieHeader());
+    }
+    throw error;
+  }
 };
 
-export function getSession(context: SessionContextReader): RequestSession {
+export function getSession(context: SessionContextReader): JwtSessionClaims | undefined {
   return context.get(requestSessionContext);
 }
 
-export function createSessionContext(storage: SessionStorage): RouterContextProvider {
+export function createSessionContext(service: JwtSessionVerifier): RouterContextProvider {
   const context = new RouterContextProvider();
-  context.set(sessionStorageContext, storage);
+  context.set(sessionServiceContext, service);
   return context;
 }

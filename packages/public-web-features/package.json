@@ -11,11 +11,13 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
+    "@fphd/auth": "workspace:*",
     "@fphd/ui": "workspace:*",
     "react": "catalog:",
     "react-router": "catalog:"
   },
   "devDependencies": {
+    "@fphd/auth": "workspace:*",
     "@types/react": "catalog:",
     "react": "catalog:",
     "react-router": "catalog:",
