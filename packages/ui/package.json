@@ -18,9 +18,11 @@
     "react-router": "catalog:"
   },
   "dependencies": {
+    "@not-govuk/button": "catalog:",
     "@not-govuk/inset-text": "catalog:",
     "@not-govuk/link": "catalog:",
     "@not-govuk/page": "catalog:",
+    "@not-govuk/radios": "catalog:",
     "@not-govuk/sass-base": "catalog:",
     "@not-govuk/search-box": "catalog:",
     "govuk-frontend": "catalog:"

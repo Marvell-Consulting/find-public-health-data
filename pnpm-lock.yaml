@@ -9,6 +9,9 @@ catalogs:
     '@biomejs/biome':
       specifier: 2.5.3
       version: 2.5.3
+    '@not-govuk/button':
+      specifier: 0.18.1
+      version: 0.18.1
     '@not-govuk/inset-text':
       specifier: 0.18.1
       version: 0.18.1
@@ -16,6 +19,9 @@ catalogs:
       specifier: 0.18.1
       version: 0.18.1
     '@not-govuk/page':
+      specifier: 0.18.1
+      version: 0.18.1
+    '@not-govuk/radios':
       specifier: 0.18.1
       version: 0.18.1
     '@not-govuk/sass-base':
@@ -72,12 +78,18 @@ catalogs:
     express:
       specifier: 5.2.1
       version: 5.2.1
+    express-rate-limit:
+      specifier: 8.6.0
+      version: 8.6.0
     govuk-frontend:
       specifier: 5.14.0
       version: 5.14.0
     isbot:
       specifier: 5.2.0
       version: 5.2.0
+    jose:
+      specifier: 6.2.4
+      version: 6.2.4
     jsdom:
       specifier: 29.1.1
       version: 29.1.1
@@ -155,6 +167,9 @@ importers:
       '@fphd/api-server':
         specifier: workspace:*
         version: link:../../packages/api-server
+      '@fphd/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@fphd/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -189,6 +204,9 @@ importers:
 
   apps/internal-web:
     dependencies:
+      '@fphd/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@fphd/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -293,6 +311,9 @@ importers:
 
   apps/public-web:
     dependencies:
+      '@fphd/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@fphd/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -357,9 +378,15 @@ importers:
 
   packages/api-server:
     dependencies:
+      '@fphd/auth':
+        specifier: workspace:*
+        version: link:../auth
       express:
         specifier: 'catalog:'
         version: 5.2.1
+      express-rate-limit:
+        specifier: 'catalog:'
+        version: 8.6.0(express@5.2.1)
     devDependencies:
       '@types/express':
         specifier: 'catalog:'
@@ -373,6 +400,22 @@ importers:
       supertest:
         specifier: 'catalog:'
         version: 7.2.2
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@types/node@24.13.3)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.1.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0))
+
+  packages/auth:
+    dependencies:
+      jose:
+        specifier: 'catalog:'
+        version: 6.2.4
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.13.3
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -462,6 +505,9 @@ importers:
         specifier: workspace:*
         version: link:../ui
     devDependencies:
+      '@fphd/auth':
+        specifier: workspace:*
+        version: link:../auth
       '@types/react':
         specifier: 'catalog:'
         version: 19.2.17
@@ -477,6 +523,9 @@ importers:
 
   packages/ui:
     dependencies:
+      '@not-govuk/button':
+        specifier: 'catalog:'
+        version: 0.18.1(react-router@8.2.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
       '@not-govuk/inset-text':
         specifier: 'catalog:'
         version: 0.18.1(react@19.2.7)
@@ -486,6 +535,9 @@ importers:
       '@not-govuk/page':
         specifier: 'catalog:'
         version: 0.18.1(react-router@8.2.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@not-govuk/radios':
+        specifier: 'catalog:'
+        version: 0.18.1(react@19.2.7)
       '@not-govuk/sass-base':
         specifier: 'catalog:'
         version: 0.18.1
@@ -520,6 +572,9 @@ importers:
 
   packages/web-server:
     dependencies:
+      '@fphd/auth':
+        specifier: workspace:*
+        version: link:../auth
       '@react-router/express':
         specifier: 'catalog:'
         version: 8.2.0(express@5.2.1)(react-router@8.2.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(typescript@6.0.3)
@@ -1505,6 +1560,18 @@ packages:
       '@storybook/addon-docs':
         optional: true
 
+  '@not-govuk/radios@0.18.1':
+    resolution: {integrity: sha512-k/3NgSQ9C0bfZ+CAZWsRFcUiLgKsZ1bQ1Pezhz5Um5JQRH2NOamJeXOD94C7j7bKUXy8VcV9G6PoVALo91Grfg==}
+    peerDependencies:
+      '@react-foundry/docs-components': ^0.3.0
+      '@storybook/addon-docs': ^10.3.5
+      react: ^19.2.5
+    peerDependenciesMeta:
+      '@react-foundry/docs-components':
+        optional: true
+      '@storybook/addon-docs':
+        optional: true
+
   '@not-govuk/sass-base@0.18.1':
     resolution: {integrity: sha512-vmXoeySWAWyEI30tvaCAtdzJ/wIMa148/4gsEVWsCz0nrinGGEv7nCbfEb8o76Jup4eRvyzb/aEw66Yj2iOjzQ==}
 
@@ -2378,6 +2445,12 @@ packages:
     resolution: {integrity: sha512-KfYbmpRm0VbLjEvVa9yGwCi9GI34xvi7A/HXYWQO65CSD2u3MczUJSuwXKFIxlGsgBQizV9q5J9NHj4VG0n+pA==}
     engines: {node: '>=12.0.0'}
 
+  express-rate-limit@8.6.0:
+    resolution: {integrity: sha512-XKJXDsASUOo0LLtFwW5hCcQGH0N4WQc/Rn8/Pvoia+TJFOkkFPvrtW9lZOeeNcxQJspvOIERMwiRLsVFlhHEkA==}
+    engines: {node: '>= 16'}
+    peerDependencies:
+      express: '>= 4.11'
+
   express@5.2.1:
     resolution: {integrity: sha512-hIS4idWWai69NezIdRt2xFVofaF4j+6INOpJlVOLDO8zXGpUVEVzIYk12UUi2JzjEzWL3IOAxcTubgz9Po0yXw==}
     engines: {node: '>= 18'}
@@ -2484,6 +2557,10 @@ packages:
   inherits@2.0.4:
     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
 
+  ip-address@10.2.0:
+    resolution: {integrity: sha512-/+S6j4E9AHvW9SWMSEY9Xfy66O5PWvVEJ08O0y5JGyEKQpojb0K0GKpz/v5HJ/G0vi3D2sjGK78119oXZeE0qA==}
+    engines: {node: '>= 12'}
+
   ipaddr.js@1.9.1:
     resolution: {integrity: sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==}
     engines: {node: '>= 0.10'}
@@ -2508,6 +2585,9 @@ packages:
 
   isexe@2.0.0:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
+
+  jose@6.2.4:
+    resolution: {integrity: sha512-N8acGzVsQy6M/fjFcxtysNc4Q379TcM5dM/qKkNtsHFji88yANnXTr7BLeP75iPnFwBfQzM/jg2BZ9+HZrHCZA==}
 
   joycon@3.1.1:
     resolution: {integrity: sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw==}
@@ -3903,6 +3983,16 @@ snapshots:
       govuk-frontend: 5.14.0
       react: 19.2.7
 
+  '@not-govuk/radios@0.18.1(react@19.2.7)':
+    dependencies:
+      '@not-govuk/form-group': 0.18.1(react@19.2.7)
+      '@not-govuk/hint': 0.18.1(react@19.2.7)
+      '@not-govuk/label': 0.18.1(react@19.2.7)
+      '@not-govuk/sass-base': 0.18.1
+      '@react-foundry/component-helpers': 0.3.0
+      govuk-frontend: 5.14.0
+      react: 19.2.7
+
   '@not-govuk/sass-base@0.18.1':
     dependencies:
       govuk-frontend: 5.14.0
@@ -4647,6 +4737,14 @@ snapshots:
 
   expect-type@1.4.0: {}
 
+  express-rate-limit@8.6.0(express@5.2.1):
+    dependencies:
+      debug: 4.4.3
+      express: 5.2.1
+      ip-address: 10.2.0
+    transitivePeerDependencies:
+      - supports-color
+
   express@5.2.1:
     dependencies:
       accepts: 2.0.0
@@ -4786,6 +4884,8 @@ snapshots:
 
   inherits@2.0.4: {}
 
+  ip-address@10.2.0: {}
+
   ipaddr.js@1.9.1: {}
 
   is-extglob@2.1.1:
@@ -4803,6 +4903,8 @@ snapshots:
   isbot@5.2.0: {}
 
   isexe@2.0.0: {}
+
+  jose@6.2.4: {}
 
   joycon@3.1.1: {}
 
