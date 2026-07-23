@@ -21,4 +21,21 @@ describe('API server', () => {
     expect(publicResponse.status).toBe(200);
     expect(internalResponse.status).toBe(404);
   });
+
+  it('rate-limits API routes without rate-limiting health checks', async () => {
+    const app = createApiApp('test-api', {
+      rateLimit: { limit: 2, windowMs: 60_000 },
+    });
+
+    expect((await request(app).get('/api')).status).toBe(200);
+    expect((await request(app).get('/api')).status).toBe(200);
+
+    const limitedResponse = await request(app).get('/api');
+    expect(limitedResponse.status).toBe(429);
+    expect(limitedResponse.get('RateLimit')).toBeDefined();
+
+    expect((await request(app).get('/health')).status).toBe(200);
+    expect((await request(app).get('/health')).status).toBe(200);
+    expect((await request(app).get('/health')).status).toBe(200);
+  });
 });
