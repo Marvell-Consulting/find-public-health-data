@@ -1,6 +1,8 @@
 import type { RenderToPipeableStreamOptions } from 'react-dom/server';
-import type { EntryContext } from 'react-router';
+import { type EntryContext, RouterContextProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { nonceContext } from './nonce-context.js';
 
 const renderer = vi.hoisted(() => ({
   abort: vi.fn(),
@@ -21,12 +23,19 @@ import handleRequest, { streamTimeout } from './entry-server.js';
 
 const entryContext = { isSpaMode: false } as EntryContext;
 
+function loadContextWithNonce() {
+  const context = new RouterContextProvider();
+  context.set(nonceContext, 'test-nonce');
+  return context;
+}
+
 function startRequest() {
   const response = handleRequest(
     new Request('https://example.com/'),
     200,
     new Headers(),
     entryContext,
+    loadContextWithNonce(),
   );
   const onShellReady = renderer.options?.onShellReady;
 
@@ -75,6 +84,7 @@ describe('React Router server rendering', () => {
       200,
       new Headers(),
       entryContext,
+      loadContextWithNonce(),
     );
 
     renderer.options?.onShellError?.(error);

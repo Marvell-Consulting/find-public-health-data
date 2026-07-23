@@ -35,6 +35,32 @@ describe('React Router production host', () => {
     expect(response.headers['x-powered-by']).toBeUndefined();
   });
 
+  it('sets security headers on document responses', async () => {
+    const response = await request(app).get('/releases').accept('text/html');
+
+    expect(response.headers['strict-transport-security']).toBe(
+      'max-age=31536000; includeSubDomains',
+    );
+    expect(response.headers['x-content-type-options']).toBe('nosniff');
+    expect(response.headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
+    expect(response.headers['x-frame-options']).toBe('DENY');
+    expect(response.headers['content-security-policy']).toContain("script-src 'self' 'nonce-");
+  });
+
+  it('issues a fresh CSP nonce per request', async () => {
+    const extractNonce = (policy: string | undefined) => policy?.match(/'nonce-([^']+)'/)?.[1];
+
+    const first = await request(app).get('/releases').accept('text/html');
+    const second = await request(app).get('/releases').accept('text/html');
+
+    const firstNonce = extractNonce(first.headers['content-security-policy']);
+    const secondNonce = extractNonce(second.headers['content-security-policy']);
+
+    expect(firstNonce).toBeDefined();
+    expect(secondNonce).toBeDefined();
+    expect(firstNonce).not.toBe(secondNonce);
+  });
+
   it.each(['/healthcheck', '/healthcheck/live', '/healthcheck/ready'])(
     'reports server health at %s',
     async (path) => {

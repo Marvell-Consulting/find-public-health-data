@@ -26,6 +26,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fphd/ui": "workspace:*",
     "@react-router/express": "catalog:",
     "@react-router/node": "catalog:",
     "express": "catalog:",

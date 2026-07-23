@@ -1,6 +1,8 @@
 import { createRequestHandler } from '@react-router/express';
 import express, { type Express } from 'express';
-import type { ServerBuild } from 'react-router';
+import { RouterContextProvider, type ServerBuild } from 'react-router';
+
+import { nonceContext } from './nonce-context.js';
 
 type OptionalServerBuildKey = 'allowedActionOrigins' | 'basename' | 'unstable_getCriticalCss';
 
@@ -32,9 +34,15 @@ function normalizeServerBuild({
 export function createReactRouterApp(loadBuild: () => Promise<GeneratedServerBuild>): Express {
   const app = express();
 
+  app.disable('x-powered-by');
   app.use(
     createRequestHandler({
       build: async () => normalizeServerBuild(await loadBuild()),
+      getLoadContext: (_request, response) => {
+        const context = new RouterContextProvider();
+        context.set(nonceContext, response.locals.nonce);
+        return context;
+      },
     }),
   );
 

@@ -7,6 +7,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./hydrate": "./src/hydrate-web-app.tsx",
+    "./nonce": "./src/nonce.tsx",
     "./styles.scss": "./src/styles.scss"
   },
   "scripts": {

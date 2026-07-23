@@ -1,11 +1,15 @@
 import type { ReactNode } from 'react';
 import { Links, Meta, Scripts, ScrollRestoration } from 'react-router';
 
+import { useNonce } from './nonce';
+
 interface AppDocumentProps {
   children: ReactNode;
 }
 
 export function AppDocument({ children }: AppDocumentProps) {
+  const nonce = useNonce();
+
   return (
     <html lang="en" className="govuk-template">
       <head>
@@ -16,6 +20,7 @@ export function AppDocument({ children }: AppDocumentProps) {
       </head>
       <body className="govuk-template__body" suppressHydrationWarning>
         <script
+          nonce={nonce}
           // GOV.UK Frontend uses these classes to progressively enhance interactive components.
           dangerouslySetInnerHTML={{
             __html:
