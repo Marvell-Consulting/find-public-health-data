@@ -1,9 +1,12 @@
 import { PassThrough } from 'node:stream';
+import { NonceProvider } from '@fphd/ui/nonce';
 import { createReadableStreamFromReadable } from '@react-router/node';
 import { isbot } from 'isbot';
 import type { RenderToPipeableStreamOptions } from 'react-dom/server';
 import { renderToPipeableStream } from 'react-dom/server';
-import { type EntryContext, ServerRouter } from 'react-router';
+import { type EntryContext, type RouterContextProvider, ServerRouter } from 'react-router';
+
+import { nonceContext } from './nonce-context.js';
 
 export const streamTimeout = 5_000;
 
@@ -12,7 +15,9 @@ export default function handleRequest(
   responseStatusCode: number,
   responseHeaders: Headers,
   entryContext: EntryContext,
+  loadContext: RouterContextProvider,
 ) {
+  const nonce = loadContext.get(nonceContext);
   return new Promise<Response>((resolve, reject) => {
     let abortTimeout: ReturnType<typeof setTimeout> | undefined;
     let shellRendered = false;
@@ -27,7 +32,9 @@ export default function handleRequest(
       (userAgent && isbot(userAgent)) || entryContext.isSpaMode ? 'onAllReady' : 'onShellReady';
 
     const { abort, pipe } = renderToPipeableStream(
-      <ServerRouter context={entryContext} url={request.url} />,
+      <NonceProvider value={nonce}>
+        <ServerRouter context={entryContext} nonce={nonce} url={request.url} />
+      </NonceProvider>,
       {
         [readyOption]() {
           shellRendered = true;

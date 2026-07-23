@@ -4,12 +4,15 @@ import { pathToFileURL } from 'node:url';
 import express, { type Express, type RequestHandler } from 'express';
 import morgan from 'morgan';
 
+import { securityHeaders } from './security-headers.js';
+
 const healthcheckPaths = ['/healthcheck', '/healthcheck/live', '/healthcheck/ready'];
 
-function createHost() {
+function createHost({ development }: { development: boolean }) {
   const app = express();
 
   app.disable('x-powered-by');
+  app.use(securityHeaders({ development }));
   app.get(healthcheckPaths, (_request, response) => {
     response.json({ message: 'success' });
   });
@@ -26,7 +29,7 @@ export function createProductionHost({
   clientDirectory,
   requestHandler,
 }: ProductionHostOptions): Express {
-  const app = createHost();
+  const app = createHost({ development: false });
 
   app.use(
     '/assets',
@@ -82,7 +85,7 @@ export async function startReactRouterServer({
       }),
     );
 
-    app = createHost();
+    app = createHost({ development: true });
     app.use(vite.middlewares);
     app.use(async (request, response, next) => {
       try {
