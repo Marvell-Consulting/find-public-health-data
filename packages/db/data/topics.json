@@ -1,0 +1,200 @@
+[
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+    "slug": "alcohol",
+    "title": "Alcohol",
+    "description": "Alcohol indicators cover levels of drinking, alcohol-related hospital admissions and deaths, and the wider harms of alcohol to individuals and communities."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+    "slug": "cancer",
+    "title": "Cancer",
+    "description": "Cancer indicators cover incidence, screening uptake, early diagnosis, treatment and survival across the major cancer types."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+    "slug": "cardiovascular-disease",
+    "title": "Cardiovascular disease",
+    "description": "Cardiovascular disease indicators cover heart disease and stroke, including risk factors, prevalence, hospital admissions and deaths."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+    "slug": "children-and-young-peoples-health",
+    "title": "Children and young people's health",
+    "description": "Indicators covering the health and development of children and young people, from infancy through adolescence, including physical and mental health, and health behaviours."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edb6f0e97c04",
+    "slug": "crime-safety-and-vulnerability",
+    "title": "Crime, safety and vulnerability",
+    "description": "Crime and safety shape health and wellbeing. These indicators cover violence, community safety and the health of vulnerable groups."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+    "slug": "dementia-and-neurological-conditions",
+    "title": "Dementia and neurological conditions",
+    "description": "Indicators covering the prevalence, diagnosis and care of dementia and other neurological conditions, and outcomes for people living with them."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+    "slug": "diabetes",
+    "title": "Diabetes",
+    "description": "Diabetes is one of the most common endocrine diseases affecting all age groups, with over 3 million people in the UK having the condition. Effective control and monitoring can reduce mortality and morbidity."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+    "slug": "diet-nutrition-and-healthy-weight",
+    "title": "Diet, nutrition and healthy weight",
+    "description": "What people eat and their weight are major influences on health. These indicators cover diet, nutrition, obesity and healthy weight across all age groups."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+    "slug": "drugs-and-substance-misuse",
+    "title": "Drugs and substance misuse",
+    "description": "Indicators covering drug use and dependence, treatment access and outcomes, and drug-related hospital admissions and deaths."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+    "slug": "education-and-early-development",
+    "title": "Education and early development",
+    "description": "Education and early childhood development are strongly linked to health throughout life. These indicators cover school readiness, attainment and early years development."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+    "slug": "end-of-life-and-palliative-care",
+    "title": "End of life and palliative care",
+    "description": "Indicators covering where and how people die, and access to and quality of palliative and end of life care."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+    "slug": "healthcare-access-use-and-quality",
+    "title": "Healthcare access, use and quality",
+    "description": "Indicators covering how people access and use healthcare services, and the quality and outcomes of the care they receive."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+    "slug": "housing-environment-and-place",
+    "title": "Housing, environment and place",
+    "description": "The physical and social conditions of where people live shape their health. This includes factors like housing quality, air pollution, access to green space and neighbourhood deprivation. Poor conditions in any of these areas are strongly associated with worse physical and mental health outcomes. These tend to be concentrated in more deprived communities."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edbfb7ac2bd3",
+    "slug": "income-poverty-and-deprivation",
+    "title": "Income, poverty and deprivation",
+    "description": "Income and deprivation are among the strongest determinants of health. These indicators cover poverty, deprivation and their links to health outcomes."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edc04a410071",
+    "slug": "kidney-disease",
+    "title": "Kidney disease",
+    "description": "Indicators covering the prevalence, detection and management of chronic kidney disease and outcomes for people living with it."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edc1bf5f41c1",
+    "slug": "learning-disability-and-autism",
+    "title": "Learning disability and autism",
+    "description": "Indicators covering the health, care and outcomes of people with a learning disability and autistic people, including inequalities in health and life expectancy."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+    "slug": "liver-disease",
+    "title": "Liver disease",
+    "description": "Liver disease is largely preventable and a growing cause of early death. These indicators cover risk factors, hospital admissions and mortality."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+    "slug": "maternal-and-perinatal-health",
+    "title": "Maternal and perinatal health",
+    "description": "Indicators covering health during pregnancy, birth outcomes and the health of mothers and babies in the perinatal period."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+    "slug": "mental-health-and-wellbeing",
+    "title": "Mental health and wellbeing",
+    "description": "Mental health and wellbeing indicators cover the prevalence of mental health conditions, access to services and outcomes for people living with mental illness."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edc56969334f",
+    "slug": "mortality-and-life-expectancy",
+    "title": "Mortality and life expectancy",
+    "description": "Mortality and life expectancy indicators provide key measures of population health. Including patterns in death rates, causes of death and how long people can expect to live in good health."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+    "slug": "musculoskeletal-health",
+    "title": "Musculoskeletal health",
+    "description": "Indicators covering musculoskeletal conditions such as arthritis and back pain, which are leading causes of pain and disability."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+    "slug": "older-peoples-health-and-healthy-ageing",
+    "title": "Older people's health and healthy ageing",
+    "description": "Indicators covering the health, independence and care of older people, including falls, frailty and healthy ageing."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edc898dc2b10",
+    "slug": "oral-and-dental-health",
+    "title": "Oral and dental health",
+    "description": "Indicators covering oral and dental health, including tooth decay in children, access to dental services and oral cancers."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edc911ef103a",
+    "slug": "physical-activity",
+    "title": "Physical activity",
+    "description": "Physical activity protects against many long-term conditions. These indicators cover activity and inactivity levels across the population."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edca5f2e1820",
+    "slug": "population-and-demographics",
+    "title": "Population and demographics",
+    "description": "Indicators describing the size, structure and characteristics of the population, providing essential context for other measures of health."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+    "slug": "public-health-spend-and-finance",
+    "title": "Public health spend and finance",
+    "description": "Indicators covering spending on public health and prevention, and how resources relate to population health outcomes."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+    "slug": "respiratory-disease",
+    "title": "Respiratory disease",
+    "description": "Indicators covering respiratory conditions such as asthma and chronic obstructive pulmonary disease, including prevalence, admissions and deaths."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edcd10805883",
+    "slug": "sexual-and-reproductive-health",
+    "title": "Sexual and reproductive health",
+    "description": "Indicators covering sexual health, contraception, sexually transmitted infections and reproductive health services."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+    "slug": "smoking-and-tobacco",
+    "title": "Smoking and tobacco",
+    "description": "Smoking remains a leading cause of preventable illness and death. These indicators cover smoking prevalence, quitting and smoking-related harm."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+    "slug": "suicide-self-harm-and-injury",
+    "title": "Suicide, self-harm and injury",
+    "description": "Indicators covering suicide, self-harm and unintentional injury, including hospital admissions and deaths."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+    "slug": "vaccination-and-infectious-disease",
+    "title": "Vaccination and infectious disease",
+    "description": "Indicators covering vaccination coverage and the incidence, prevention and control of infectious diseases."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+    "slug": "vision-and-hearing",
+    "title": "Vision and hearing",
+    "description": "Indicators covering sight and hearing loss, including preventable sight loss and access to related services."
+  },
+  {
+    "id": "019f93b8-2b47-75d0-b03a-edd2bfad0915",
+    "slug": "work-and-worklessness",
+    "title": "Work and worklessness",
+    "description": "Work is a key determinant of health. These indicators cover employment, worklessness and the relationship between work and health."
+  }
+]

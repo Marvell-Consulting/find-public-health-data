@@ -61,7 +61,7 @@ jobs:
       - run: pnpm test:unit
 
   integration:
-    name: Integration tests (none defined yet)
+    name: Integration tests
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -95,9 +95,17 @@ jobs:
           POSTGRES_DB: fphd
           PUBLIC_API_PASSWORD: public_api
           INTERNAL_API_PASSWORD: internal_api
+      - name: Run database migrations
+        run: pnpm db:migrate
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          POSTGRES_DB: fphd
+          POSTGRES_USER: fphd
+          POSTGRES_PASSWORD: fphd
       # One root Vitest run across every project, filtered to paths containing `integration.test`
-      # (any extension) — it passes on --passWithNoTests, not because nothing ran. The first such
-      # file makes it real; `pnpm db:migrate` belongs here once a migration exists.
+      # (any extension) — still passes on --passWithNoTests for any project without one, but
+      # packages/db's topics import test makes the run real.
       - run: pnpm test:integration
         env:
           DB_HOST: localhost

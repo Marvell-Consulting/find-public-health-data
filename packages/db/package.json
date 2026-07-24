@@ -15,6 +15,7 @@
     "build": "tsc --project tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
+    "db:import-topics": "tsx --env-file-if-exists=../../.env --conditions=development src/import-topics.ts",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
@@ -27,6 +28,7 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "drizzle-kit": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

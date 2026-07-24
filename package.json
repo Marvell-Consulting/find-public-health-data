@@ -13,6 +13,7 @@
     "check": "biome check . && pnpm typecheck && pnpm test && pnpm build",
     "check:write": "biome check --write .",
     "db:generate": "pnpm --filter @fphd/config build && pnpm --filter @fphd/db db:generate",
+    "db:import-topics": "pnpm --filter @fphd/config build && pnpm --filter @fphd/db db:import-topics",
     "db:migrate": "pnpm --filter @fphd/config build && pnpm --filter @fphd/db db:migrate",
     "db:studio": "pnpm --filter @fphd/config build && pnpm --filter @fphd/db db:studio",
     "dev": "pnpm --recursive --parallel run dev",

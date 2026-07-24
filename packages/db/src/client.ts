@@ -4,7 +4,9 @@ import postgres from 'postgres';
 import * as schema from './schema.js';
 
 export type Schema = typeof schema;
-export type Database = PostgresJsDatabase<Schema>;
+// $client is exposed so short-lived callers (e.g. the topics import CLI) can end the
+// connection explicitly instead of leaving the process to hang on an open socket.
+export type Database = PostgresJsDatabase<Schema> & { $client: postgres.Sql };
 
 export interface DbConnection {
   host: string;
