@@ -7,7 +7,7 @@ import { createDb, type Database } from './client.js';
 import { dbEnvFields } from './env.js';
 import { topics, type TopicRecord } from './schema.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
-import { importTopics } from './topics-repository.js';
+import { upsertTopics } from './topics-repository.js';
 
 const env = parseEnv(
   z.object({
@@ -68,7 +68,7 @@ async function requireRow(id: string) {
 
 describe('topics import (integration)', () => {
   it('inserts every row on a fresh import', async () => {
-    const { summary, orphaned } = await importTopics(db, [topicA, topicB]);
+    const { summary, orphaned } = await upsertTopics(db, [topicA, topicB]);
 
     expect(summary).toEqual({ inserted: 2, updated: 0, unchanged: 0 });
     expect(orphaned).toEqual([]);
@@ -80,7 +80,7 @@ describe('topics import (integration)', () => {
   it('is idempotent on a re-run, leaving updated_at untouched', async () => {
     const before = await requireRow(topicA.id);
 
-    const { summary } = await importTopics(db, [topicA, topicB]);
+    const { summary } = await upsertTopics(db, [topicA, topicB]);
 
     expect(summary).toEqual({ inserted: 0, updated: 0, unchanged: 2 });
 
@@ -92,7 +92,7 @@ describe('topics import (integration)', () => {
     const before = await requireRow(topicA.id);
     const renamed: TopicRecord = { ...topicA, title: 'Topic A Renamed' };
 
-    const { summary } = await importTopics(db, [renamed, topicB]);
+    const { summary } = await upsertTopics(db, [renamed, topicB]);
 
     expect(summary).toEqual({ inserted: 0, updated: 1, unchanged: 1 });
 
@@ -104,7 +104,7 @@ describe('topics import (integration)', () => {
   it('updates a changed slug in place, leaving the primary key unchanged', async () => {
     const resluggedA: TopicRecord = { ...topicA, title: 'Topic A Renamed', slug: 'topic-a-new' };
 
-    const { summary } = await importTopics(db, [resluggedA, topicB]);
+    const { summary } = await upsertTopics(db, [resluggedA, topicB]);
 
     expect(summary).toEqual({ inserted: 0, updated: 1, unchanged: 1 });
 
@@ -116,7 +116,7 @@ describe('topics import (integration)', () => {
   });
 
   it('reports a row missing from the file without deleting it', async () => {
-    const { orphaned } = await importTopics(db, [topicB]);
+    const { orphaned } = await upsertTopics(db, [topicB]);
 
     expect(orphaned).toEqual([
       {

@@ -5,7 +5,7 @@ import { parseEnv, z } from '@fphd/config';
 
 import { createDb } from '../client.js';
 import { dbEnvFields } from '../env.js';
-import { importTopics } from '../topics-repository.js';
+import { upsertTopics } from '../topics-repository.js';
 import { parseTopicsFile } from './parse-topics-file.js';
 
 const envSchema = z.object({
@@ -28,7 +28,7 @@ async function main() {
   });
 
   try {
-    const { summary, orphaned } = await importTopics(db, fileTopics);
+    const { summary, orphaned } = await upsertTopics(db, fileTopics);
 
     console.log(
       `Imported ${filePath}: ${summary.inserted} inserted, ${summary.updated} updated, ${summary.unchanged} unchanged.`,

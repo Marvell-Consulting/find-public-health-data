@@ -10,14 +10,14 @@ export interface ExistingTopic {
   description: string;
 }
 
-/** Rows present in the database but absent from the file — reported, never deleted. */
+/** Rows present in the database but absent from the given records — reported, never deleted. */
 export function findOrphanedTopics(
-  fileTopics: TopicRecord[],
+  records: TopicRecord[],
   existingTopics: ExistingTopic[],
 ): ExistingTopic[] {
-  const fileIds = new Set(fileTopics.map((topic) => topic.id));
+  const recordIds = new Set(records.map((record) => record.id));
 
-  return existingTopics.filter((topic) => !fileIds.has(topic.id));
+  return existingTopics.filter((topic) => !recordIds.has(topic.id));
 }
 
 export interface UpsertOutcome {
@@ -26,7 +26,7 @@ export interface UpsertOutcome {
   wasInsert: boolean;
 }
 
-export interface ImportSummary {
+export interface UpsertSummary {
   inserted: number;
   updated: number;
   unchanged: number;
@@ -34,25 +34,26 @@ export interface ImportSummary {
 
 /**
  * Rows the database didn't return went through the upsert's conflict branch but failed its
- * `setWhere` — i.e. an existing row whose data already matched the file, left untouched.
+ * `setWhere` — i.e. an existing row whose data already matched the incoming record, left
+ * untouched.
  */
-export function summarizeUpsert(fileTopicCount: number, outcomes: UpsertOutcome[]): ImportSummary {
+export function summarizeUpsert(recordCount: number, outcomes: UpsertOutcome[]): UpsertSummary {
   const inserted = outcomes.filter((outcome) => outcome.wasInsert).length;
   const updated = outcomes.filter((outcome) => !outcome.wasInsert).length;
 
-  return { inserted, updated, unchanged: fileTopicCount - inserted - updated };
+  return { inserted, updated, unchanged: recordCount - inserted - updated };
 }
 
-export interface ImportResult {
-  summary: ImportSummary;
+export interface UpsertResult {
+  summary: UpsertSummary;
   orphaned: ExistingTopic[];
 }
 
 /**
- * Upserts the file's topics into the database, matched on id. Never deletes: a database row
- * missing from the file is reported back via `orphaned`, not removed.
+ * Upserts the given topics, matched on id. Never deletes: a database row absent from the
+ * records is reported back via `orphaned`, not removed.
  */
-export async function importTopics(db: Database, fileTopics: TopicRecord[]): Promise<ImportResult> {
+export async function upsertTopics(db: Database, records: TopicRecord[]): Promise<UpsertResult> {
   const existingTopics = await db
     .select({
       id: topics.id,
@@ -62,12 +63,12 @@ export async function importTopics(db: Database, fileTopics: TopicRecord[]): Pro
     })
     .from(topics);
 
-  const orphaned = findOrphanedTopics(fileTopics, existingTopics);
+  const orphaned = findOrphanedTopics(records, existingTopics);
 
-  const outcomes = fileTopics.length
+  const outcomes = records.length
     ? await db
         .insert(topics)
-        .values(fileTopics)
+        .values(records)
         .onConflictDoUpdate({
           target: topics.id,
           set: {
@@ -76,8 +77,9 @@ export async function importTopics(db: Database, fileTopics: TopicRecord[]): Pro
             description: sql`excluded.description`,
             updatedAt: sql`now()`,
           },
-          // Only rewrite the row (and bump updatedAt) when the file actually disagrees with
-          // what's stored — otherwise a no-op re-run would still touch every row's timestamp.
+          // Only rewrite the row (and bump updatedAt) when the incoming record actually
+          // disagrees with what's stored — otherwise a no-op re-run would still touch every
+          // row's timestamp.
           setWhere: sql`${topics.slug} IS DISTINCT FROM excluded.slug OR ${topics.title} IS DISTINCT FROM excluded.title OR ${topics.description} IS DISTINCT FROM excluded.description`,
         })
         // xmax = 0 is the standard postgres upsert idiom for "this row was just inserted, not
@@ -85,5 +87,5 @@ export async function importTopics(db: Database, fileTopics: TopicRecord[]): Pro
         .returning({ id: topics.id, wasInsert: sql<boolean>`xmax = 0` })
     : [];
 
-  return { summary: summarizeUpsert(fileTopics.length, outcomes), orphaned };
+  return { summary: summarizeUpsert(records.length, outcomes), orphaned };
 }
