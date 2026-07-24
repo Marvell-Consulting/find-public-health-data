@@ -19,6 +19,11 @@ describe('parseTopicsFile', () => {
     expect(() => parseTopicsFile([{ ...validTopic, id: 'not-a-uuid' }])).toThrow(/Invalid/);
   });
 
+  it('rejects a uuid that is not version 7', () => {
+    const v4 = '8b7e4a52-9c1d-4f6e-8a3b-2d5c9e7f1a04';
+    expect(() => parseTopicsFile([{ ...validTopic, id: v4 }])).toThrow(/Invalid/);
+  });
+
   it.each(['Alcohol', 'alcohol_use', 'alcohol--use', '-alcohol', 'alcohol-'])(
     'rejects a malformed slug: %s',
     (slug) => {

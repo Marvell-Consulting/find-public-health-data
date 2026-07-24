@@ -16,7 +16,7 @@ export const topics = pgTable('topics', {
  * Timestamps are deliberately absent — the database manages them.
  */
 export const topicRecordSchema = z.object({
-  id: z.uuid(),
+  id: z.uuidv7(),
   slug: z
     .string()
     .min(1)
