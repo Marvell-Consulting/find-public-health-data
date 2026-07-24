@@ -4,10 +4,10 @@ import { resolve } from 'node:path';
 
 import { parseEnv, z } from '@fphd/config';
 
-import { createDb } from './client.js';
-import { dbEnvFields } from './env.js';
-import { parseTopicsFile } from './topics-import.js';
-import { importTopics } from './topics-repository.js';
+import { createDb } from '../client.js';
+import { dbEnvFields } from '../env.js';
+import { parseTopicsFile } from '../topics-import.js';
+import { importTopics } from '../topics-repository.js';
 
 const envSchema = z.object({
   ...dbEnvFields,

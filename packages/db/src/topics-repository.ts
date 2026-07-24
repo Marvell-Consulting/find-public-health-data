@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 
 import type { Database } from './client.js';
-import { topics } from './schema.js';
+import { topics } from './schema/index.js';
 import {
   type ExistingTopic,
   findOrphanedTopics,

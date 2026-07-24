@@ -1,7 +1,7 @@
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
-import * as schema from './schema.js';
+import * as schema from './schema/index.js';
 
 export type Schema = typeof schema;
 // $client is exposed so short-lived callers (e.g. the topics import CLI) can end the
