@@ -94,10 +94,6 @@ escape hatch; each entry is a reviewable decision.
 Each tier is its own CI job, so the jobs run `pnpm test:unit`, `pnpm test:integration` and
 `pnpm test:e2e` individually rather than `pnpm test`.
 
-Integration tests exist (the first cover the topics import in `packages/db`, against a disposable
-`fphd_test` database). **There are no e2e tests yet**, so that job executes zero tests — its check
-name says so:
-
 - `pnpm test:integration` runs Vitest over every project, selecting `integration.test` files. A
   project without any still passes because of `--passWithNoTests`.
 - `pnpm test:e2e` matches no package at all. It is the only tier carrying `--if-present`, which is
