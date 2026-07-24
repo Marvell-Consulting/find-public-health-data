@@ -28,22 +28,25 @@ async function main() {
     password: env.POSTGRES_PASSWORD,
   });
 
-  const { summary, orphaned } = await importTopics(db, fileTopics);
+  try {
+    const { summary, orphaned } = await importTopics(db, fileTopics);
 
-  console.log(
-    `Imported ${filePath}: ${summary.inserted} inserted, ${summary.updated} updated, ${summary.unchanged} unchanged.`,
-  );
-
-  if (orphaned.length > 0) {
-    console.warn(
-      `Warning: ${orphaned.length} topic(s) in the database are absent from the file and were left in place:`,
+    console.log(
+      `Imported ${filePath}: ${summary.inserted} inserted, ${summary.updated} updated, ${summary.unchanged} unchanged.`,
     );
-    for (const topic of orphaned) {
-      console.warn(`  ${topic.id}  ${topic.slug}`);
-    }
-  }
 
-  await db.$client.end();
+    if (orphaned.length > 0) {
+      console.warn(
+        `Warning: ${orphaned.length} topic(s) in the database are absent from the file and were left in place:`,
+      );
+      for (const topic of orphaned) {
+        console.warn(`  ${topic.id}  ${topic.slug}`);
+      }
+    }
+  } finally {
+    // Without this a failed import leaves the socket open and the process hanging.
+    await db.$client.end();
+  }
 }
 
 main().catch((error: unknown) => {
