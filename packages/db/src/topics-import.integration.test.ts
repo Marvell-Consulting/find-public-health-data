@@ -5,9 +5,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDb, type Database } from './client.js';
 import { dbEnvFields } from './env.js';
-import { topics } from './schema.js';
+import { topics, type TopicRecord } from './schema.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
-import type { TopicRecord } from './topics-import.js';
 import { importTopics } from './topics-repository.js';
 
 const env = parseEnv(

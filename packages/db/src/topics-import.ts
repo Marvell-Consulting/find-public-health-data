@@ -1,16 +1,6 @@
 import { z } from '@fphd/config';
 
-export const topicRecordSchema = z.object({
-  id: z.uuid(),
-  slug: z
-    .string()
-    .min(1)
-    .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'slug must be lowercase, hyphen-separated words'),
-  title: z.string().min(1),
-  description: z.string().min(1),
-});
-
-export type TopicRecord = z.infer<typeof topicRecordSchema>;
+import { type TopicRecord, topicRecordSchema } from './schema/index.js';
 
 const topicsFileSchema = z.array(topicRecordSchema);
 
