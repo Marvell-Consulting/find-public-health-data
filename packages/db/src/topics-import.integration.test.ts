@@ -1,5 +1,5 @@
 import { parseEnv, z } from '@fphd/config';
-import { eq } from 'drizzle-orm';
+import { eq, getTableColumns, sql } from 'drizzle-orm';
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -58,7 +58,15 @@ const topicB: TopicRecord = {
 };
 
 async function requireRow(id: string) {
-  const rows = await db.select().from(topics).where(eq(topics.id, id));
+  const rows = await db
+    .select({
+      ...getTableColumns(topics),
+      // Drizzle maps timestamptz to a millisecond-precision JS Date; the ::text form keeps
+      // postgres's microseconds, so timestamp assertions can't alias across a fast run.
+      updatedAtText: sql<string>`${topics.updatedAt}::text`,
+    })
+    .from(topics)
+    .where(eq(topics.id, id));
   const row = rows[0];
   if (!row) {
     throw new Error(`No topic row found for id ${id}`);
@@ -85,7 +93,7 @@ describe('topics import (integration)', () => {
     expect(summary).toEqual({ inserted: 0, updated: 0, unchanged: 2 });
 
     const after = await requireRow(topicA.id);
-    expect(after.updatedAt).toEqual(before.updatedAt);
+    expect(after.updatedAtText).toBe(before.updatedAtText);
   });
 
   it('updates a renamed title in place and bumps updated_at', async () => {
@@ -98,7 +106,8 @@ describe('topics import (integration)', () => {
 
     const after = await requireRow(topicA.id);
     expect(after.title).toBe('Topic A Renamed');
-    expect(after.updatedAt.getTime()).toBeGreaterThan(before.updatedAt.getTime());
+    expect(after.updatedAtText).not.toBe(before.updatedAtText);
+    expect(after.updatedAt.getTime()).toBeGreaterThanOrEqual(before.updatedAt.getTime());
   });
 
   it('updates a changed slug in place, leaving the primary key unchanged', async () => {
