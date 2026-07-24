@@ -12,7 +12,8 @@ drizzle/              Generated migrations + drizzle-kit metadata — never edit
 src/
   schema/             One file per table, re-exported by schema/index.ts
     shared.ts         Column helpers shared across tables (timestamps)
-  scripts/            CLI entrypoints (run via package scripts, tsx)
+  scripts/            CLI entrypoints and their script-only helpers — the package.json
+                      scripts are the run surface; anything reusable lives outside
   client.ts           createDb + Database/Schema types
   env.ts              dbEnvFields — shared connection env fragment
   *-repository.ts     Query functions per aggregate: pure, take `db` as first argument

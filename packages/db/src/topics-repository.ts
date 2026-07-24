@@ -2,12 +2,46 @@ import { sql } from 'drizzle-orm';
 
 import type { Database } from './client.js';
 import { type TopicRecord, topics } from './schema/index.js';
-import {
-  type ExistingTopic,
-  findOrphanedTopics,
-  type ImportSummary,
-  summarizeUpsert,
-} from './topics-import.js';
+
+export interface ExistingTopic {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+}
+
+/** Rows present in the database but absent from the file — reported, never deleted. */
+export function findOrphanedTopics(
+  fileTopics: TopicRecord[],
+  existingTopics: ExistingTopic[],
+): ExistingTopic[] {
+  const fileIds = new Set(fileTopics.map((topic) => topic.id));
+
+  return existingTopics.filter((topic) => !fileIds.has(topic.id));
+}
+
+export interface UpsertOutcome {
+  id: string;
+  /** True for a fresh insert (`xmax = 0`), false for a row the conflict clause updated. */
+  wasInsert: boolean;
+}
+
+export interface ImportSummary {
+  inserted: number;
+  updated: number;
+  unchanged: number;
+}
+
+/**
+ * Rows the database didn't return went through the upsert's conflict branch but failed its
+ * `setWhere` — i.e. an existing row whose data already matched the file, left untouched.
+ */
+export function summarizeUpsert(fileTopicCount: number, outcomes: UpsertOutcome[]): ImportSummary {
+  const inserted = outcomes.filter((outcome) => outcome.wasInsert).length;
+  const updated = outcomes.filter((outcome) => !outcome.wasInsert).length;
+
+  return { inserted, updated, unchanged: fileTopicCount - inserted - updated };
+}
 
 export interface ImportResult {
   summary: ImportSummary;

@@ -5,8 +5,8 @@ import { parseEnv, z } from '@fphd/config';
 
 import { createDb } from '../client.js';
 import { dbEnvFields } from '../env.js';
-import { parseTopicsFile } from '../topics-import.js';
 import { importTopics } from '../topics-repository.js';
+import { parseTopicsFile } from './parse-topics-file.js';
 
 const envSchema = z.object({
   ...dbEnvFields,
