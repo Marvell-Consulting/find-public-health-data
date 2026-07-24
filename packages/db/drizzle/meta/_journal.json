@@ -29,6 +29,20 @@
       "when": 1785155448581,
       "tag": "0003_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785161777469,
+      "tag": "0004_create-topics",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1785161790105,
+      "tag": "0005_topics-grants",
+      "breakpoints": true
     }
   ]
 }
