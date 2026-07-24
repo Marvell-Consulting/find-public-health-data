@@ -16,6 +16,7 @@ const env = parseEnv(
     POSTGRES_USER: z.string().default('fphd'),
     POSTGRES_PASSWORD: z.string().default('fphd'),
     PUBLIC_API_PASSWORD: z.string().default('public_api'),
+    INTERNAL_API_PASSWORD: z.string().default('internal_api'),
   }),
   process.env,
 );
@@ -131,22 +132,27 @@ describe('topics import (integration)', () => {
     await expect(requireRow(topicA.id)).resolves.toBeDefined();
   });
 
-  it('lets public_api select topics but not write them', async () => {
-    const publicApi = postgres({
+  const apiRoles = [
+    { role: 'public_api', password: env.PUBLIC_API_PASSWORD },
+    { role: 'internal_api', password: env.INTERNAL_API_PASSWORD },
+  ];
+
+  it.each(apiRoles)('lets $role select topics but not write them', async ({ role, password }) => {
+    const client = postgres({
       host: env.DB_HOST,
       port: env.DB_PORT,
       database: testDb.name,
-      username: 'public_api',
-      password: env.PUBLIC_API_PASSWORD,
+      username: role,
+      password,
     });
 
     try {
-      await expect(publicApi`SELECT * FROM topics`).resolves.toBeDefined();
+      await expect(client`SELECT * FROM topics`).resolves.toBeDefined();
       await expect(
-        publicApi`INSERT INTO topics (id, slug, title, description) VALUES (gen_random_uuid(), 'x', 'x', 'x')`,
+        client`INSERT INTO topics (id, slug, title, description) VALUES (gen_random_uuid(), 'x', 'x', 'x')`,
       ).rejects.toThrow(/permission denied/);
     } finally {
-      await publicApi.end();
+      await client.end();
     }
   });
 });
