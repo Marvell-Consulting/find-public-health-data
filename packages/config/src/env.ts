@@ -89,7 +89,7 @@ export function loadWebServerConfig(env: NodeJS.ProcessEnv, defaults: { port: nu
     },
     session: {
       secret: parsed.SESSION_JWT_SECRET,
-      secure: parsed.NODE_ENV === 'production',
+      secure: parsed.APP_ENV !== 'local',
     },
   } as const;
 }

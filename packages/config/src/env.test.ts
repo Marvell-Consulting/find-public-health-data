@@ -139,7 +139,7 @@ describe('loadWebServerConfig', () => {
       host: '0.0.0.0',
       port: 3000,
       log: { level: 'info', pretty: true },
-      session: { secret: sessionSecret, secure: true },
+      session: { secret: sessionSecret, secure: false },
     });
   });
 
@@ -162,8 +162,25 @@ describe('loadWebServerConfig', () => {
       host: '127.0.0.1',
       port: 8080,
       log: { level: 'debug', pretty: false },
-      session: { secret: sessionSecret, secure: false },
+      session: { secret: sessionSecret, secure: true },
     });
+  });
+
+  it.each([
+    'dev',
+    'preview',
+    'production',
+  ] as const)('uses secure session cookies in the %s environment', (appEnv) => {
+    expect(
+      loadWebServerConfig(
+        {
+          APP_ENV: appEnv,
+          NODE_ENV: 'development',
+          SESSION_JWT_SECRET: sessionSecret,
+        },
+        { port: 3000 },
+      ).session.secure,
+    ).toBe(true);
   });
 
   it('requires a JWT session secret of at least 32 characters', () => {

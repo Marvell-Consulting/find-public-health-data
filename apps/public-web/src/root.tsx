@@ -2,7 +2,7 @@ import '@fphd/ui/styles.scss';
 
 import { AppDocument, AppShell, createDocumentMeta } from '@fphd/ui';
 import { getSession, sessionMiddleware } from '@fphd/web-server/session';
-import { Outlet, useLoaderData } from 'react-router';
+import { href, Outlet, useLoaderData } from 'react-router';
 
 import type { Route } from './+types/root';
 
@@ -17,9 +17,9 @@ export function loader({ context }: Route.LoaderArgs) {
 export default function PublicApp() {
   const { signedIn } = useLoaderData<typeof loader>();
   const navigation = [
-    { href: '/', text: 'Home' },
-    { href: '/releases', text: 'Releases' },
-    { href: '/sign-in', text: signedIn ? 'Account' : 'Sign in' },
+    { href: href('/'), text: 'Home' },
+    { href: href('/releases'), text: 'Releases' },
+    { href: href('/sign-in'), text: signedIn ? 'Account' : 'Sign in' },
   ];
 
   return (
