@@ -61,7 +61,7 @@ jobs:
       - run: pnpm test:unit
 
   integration:
-    name: Integration tests (none defined yet)
+    name: Integration tests
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -96,8 +96,9 @@ jobs:
           PUBLIC_API_PASSWORD: public_api
           INTERNAL_API_PASSWORD: internal_api
       # One root Vitest run across every project, filtered to paths containing `integration.test`
-      # (any extension) — it passes on --passWithNoTests, not because nothing ran. The first such
-      # file makes it real; `pnpm db:migrate` belongs here once a migration exists.
+      # (any extension) — it passes on --passWithNoTests, not because nothing ran. The global
+      # setup builds a migrated, seeded template database; each test file copies it, so files
+      # run in parallel against isolated databases.
       - run: pnpm test:integration
         env:
           DB_HOST: localhost
@@ -107,6 +108,8 @@ jobs:
           POSTGRES_PASSWORD: fphd
           PUBLIC_API_PASSWORD: public_api
           INTERNAL_API_PASSWORD: internal_api
+          # internal-api's config requires it at import; CI-only value, not a secret.
+          SESSION_JWT_SECRET: ci-only-jwt-session-secret-at-least-32-bytes
 
   e2e:
     name: E2E tests (none defined yet)

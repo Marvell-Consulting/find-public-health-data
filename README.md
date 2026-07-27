@@ -119,9 +119,11 @@ To add real ones:
   the extension is part of the contract, so `.integration.test.tsx` and a bare `integration.test.ts`
   both qualify. The two tiers are the same run under different filters — `test:unit` excludes that
   pattern and `test:integration` selects it — so a package needs no per-tier wiring.
-  The integration job has a Postgres service and creates the per-API login roles, so a test needing
-  the database should work without touching the workflow — except that `pnpm db:migrate` still needs
-  adding to the job once a first migration exists.
+  The integration job has a Postgres service and creates the per-API login roles. The root
+  Vitest global setup (gated on `INTEGRATION_DB=1`, set by `test:integration`) builds a
+  migrated, seeded template database once per run; each test file calls
+  `createTestDatabase()` from `@fphd/db/testing` for its own copy, so files run in parallel
+  against isolated databases and never touch the development database.
 - E2e tests will live in a new top-level `e2e` workspace package, not in `packages/*`: a package
   there is shared code the applications are built from, which an e2e suite is not. It would drive
   applications over HTTP, choosing which by base-URL environment variables rather than by importing
@@ -154,12 +156,31 @@ changes to it require `docker compose down -v` to take effect.
 Schema and migrations are managed with Drizzle in `packages/db`:
 
 ```sh
-pnpm db:generate    # generate a migration from the schema
-pnpm db:migrate     # apply pending migrations
-pnpm db:studio      # browse the database
+pnpm db:generate              # generate a migration from the schema
+pnpm db:migrate               # apply pending migrations
+pnpm db:seed                  # load the committed seed data (10 real indicators)
+pnpm db:rebuild-read-models   # rebuild the derived cache tables from canonical data
+pnpm db:studio                # browse the database
 ```
 
-There is no schema yet, and no grants beyond the ability to log in.
+The schema implements the bridge/registry canonical model ratified in ADR023: governed
+registries for dimension types and values, observations linked to dimension values through
+bridge records, and three derived read-model tables rebuilt from canonical data. Surrogate
+keys are UUIDv7 (native `uuidv7()` default in PostgreSQL 18); the public Fingertips
+indicator number survives as `indicator.fingertips_id`. Grants are explicit and read-only:
+`public_api` sees the published surface (not `upload_batch`), `internal_api` additionally
+sees upload state, and a table added by a future migration gets no access until granted
+deliberately. Write grants wait for the publisher workflow design.
+
+A fresh database is ready for development with:
+
+```sh
+docker compose up -d && pnpm db:migrate && pnpm db:seed && pnpm db:rebuild-read-models
+```
+
+The seed is real Pholio data for 10 indicators at core administrative geographies,
+committed as gzipped CSVs — see `packages/db/data/seed/README.md` for what is in it and
+how to regenerate it.
 
 ## Mixed local/Docker development
 
