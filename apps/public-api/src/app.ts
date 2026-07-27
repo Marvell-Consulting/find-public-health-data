@@ -13,6 +13,7 @@ export function createApp({ db }: AppDependencies) {
     const indicators = await db
       .select({
         id: schema.indicator.id,
+        fingertipsId: schema.indicator.fingertipsId,
         name: schema.indicator.name,
         status: schema.indicator.status,
       })

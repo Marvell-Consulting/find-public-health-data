@@ -1,28 +1,28 @@
 import { sql } from 'drizzle-orm';
 import {
-  bigint,
   check,
   date,
   doublePrecision,
   foreignKey,
   index,
-  integer,
   pgTable,
   smallint,
   text,
   timestamp,
   unique,
+  uuid,
 } from 'drizzle-orm/pg-core';
 
 import { dimensionValue } from './dimension.js';
 import { area } from './geography.js';
+import { uuidPrimaryKey } from './helpers.js';
 import { indicator } from './indicator.js';
 import { uploadBatch } from './upload.js';
 
 export const noteType = pgTable(
   'note_type',
   {
-    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    id: uuidPrimaryKey(),
     text: text().notNull(),
     category: text().notNull(),
   },
@@ -39,11 +39,11 @@ export const noteType = pgTable(
 export const observation = pgTable(
   'observation',
   {
-    id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
-    indicatorId: integer()
+    id: uuidPrimaryKey(),
+    indicatorId: uuid()
       .notNull()
       .references(() => indicator.id),
-    areaId: integer()
+    areaId: uuid()
       .notNull()
       .references(() => area.id),
     fromDate: date().notNull(),
@@ -58,7 +58,7 @@ export const observation = pgTable(
     upperCi998: doublePrecision('upper_ci_998'),
     distributionRank: smallint(),
     publishedAt: timestamp({ withTimezone: true }).notNull(),
-    uploadBatchId: integer().notNull(),
+    uploadBatchId: uuid().notNull(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     createdBy: text().notNull(),
     deletedAt: timestamp({ withTimezone: true }),
@@ -92,12 +92,12 @@ export const observation = pgTable(
 export const observationDimension = pgTable(
   'observation_dimension',
   {
-    id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
-    observationId: bigint({ mode: 'number' })
+    id: uuidPrimaryKey(),
+    observationId: uuid()
       .notNull()
       .references(() => observation.id, { onDelete: 'cascade' }),
-    dimensionValueId: integer().notNull(),
-    dimensionTypeId: integer().notNull(),
+    dimensionValueId: uuid().notNull(),
+    dimensionTypeId: uuid().notNull(),
   },
   (t) => [
     foreignKey({
@@ -113,11 +113,11 @@ export const observationDimension = pgTable(
 export const observationNote = pgTable(
   'observation_note',
   {
-    id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
-    observationId: bigint({ mode: 'number' })
+    id: uuidPrimaryKey(),
+    observationId: uuid()
       .notNull()
       .references(() => observation.id, { onDelete: 'cascade' }),
-    noteTypeId: integer()
+    noteTypeId: uuid()
       .notNull()
       .references(() => noteType.id),
   },

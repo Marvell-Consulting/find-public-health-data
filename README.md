@@ -119,9 +119,11 @@ To add real ones:
   the extension is part of the contract, so `.integration.test.tsx` and a bare `integration.test.ts`
   both qualify. The two tiers are the same run under different filters — `test:unit` excludes that
   pattern and `test:integration` selects it — so a package needs no per-tier wiring.
-  The integration job has a Postgres service, creates the per-API login roles, then migrates,
-  seeds and rebuilds read models, so a test needing the seeded database works without touching
-  the workflow.
+  The integration job has a Postgres service and creates the per-API login roles. The root
+  Vitest global setup (gated on `INTEGRATION_DB=1`, set by `test:integration`) builds a
+  migrated, seeded template database once per run; each test file calls
+  `createTestDatabase()` from `@fphd/db/testing` for its own copy, so files run in parallel
+  against isolated databases and never touch the development database.
 - E2e tests will live in a new top-level `e2e` workspace package, not in `packages/*`: a package
   there is shared code the applications are built from, which an e2e suite is not. It would drive
   applications over HTTP, choosing which by base-URL environment variables rather than by importing
@@ -163,11 +165,12 @@ pnpm db:studio                # browse the database
 
 The schema implements the bridge/registry canonical model ratified in ADR023: governed
 registries for dimension types and values, observations linked to dimension values through
-bridge records, and three derived read-model tables rebuilt from canonical data. Grants
-are explicit and read-only: `public_api` sees the published surface (not `upload_batch`),
-`internal_api` additionally sees upload state, and a table added by a future migration
-gets no access until granted deliberately. Write grants wait for the publisher workflow
-design.
+bridge records, and three derived read-model tables rebuilt from canonical data. Surrogate
+keys are UUIDv7 (native `uuidv7()` default in PostgreSQL 18); the public Fingertips
+indicator number survives as `indicator.fingertips_id`. Grants are explicit and read-only:
+`public_api` sees the published surface (not `upload_batch`), `internal_api` additionally
+sees upload state, and a table added by a future migration gets no access until granted
+deliberately. Write grants wait for the publisher workflow design.
 
 A fresh database is ready for development with:
 

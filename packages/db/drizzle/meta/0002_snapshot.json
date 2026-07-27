@@ -1,6 +1,6 @@
 {
-  "id": "66176e2d-8830-48f4-9eaf-01c448338c5f",
-  "prevId": "16bd605b-ae4f-4113-943d-de2f3219df61",
+  "id": "d6f9d5dd-468d-429b-bb97-48759d26b387",
+  "prevId": "795c64b0-0690-4980-8d45-b59bd843e42b",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -10,13 +10,13 @@
       "columns": {
         "indicator_id": {
           "name": "indicator_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "area_type_id": {
           "name": "area_type_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -77,13 +77,13 @@
       "columns": {
         "indicator_id": {
           "name": "indicator_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "dimension_type_id": {
           "name": "dimension_type_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -95,7 +95,7 @@
         },
         "dimension_value_id": {
           "name": "dimension_value_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -157,13 +157,13 @@
       "columns": {
         "indicator_id": {
           "name": "indicator_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "area_id": {
           "name": "area_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -264,20 +264,10 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "identity": {
-            "name": "dimension_type_id_seq",
-            "increment": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "startWith": "1",
-            "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "always"
-          }
+          "default": "uuidv7()"
         },
         "name": {
           "name": "name",
@@ -344,30 +334,20 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "identity": {
-            "name": "dimension_value_id_seq",
-            "increment": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "startWith": "1",
-            "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "always"
-          }
+          "default": "uuidv7()"
         },
         "dimension_type_id": {
           "name": "dimension_type_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "parent_id": {
           "name": "parent_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -488,20 +468,10 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "identity": {
-            "name": "area_id_seq",
-            "increment": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "startWith": "1",
-            "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "always"
-          }
+          "default": "uuidv7()"
         },
         "code": {
           "name": "code",
@@ -517,7 +487,7 @@
         },
         "area_type_id": {
           "name": "area_type_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -652,30 +622,20 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "identity": {
-            "name": "area_relationship_id_seq",
-            "increment": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "startWith": "1",
-            "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "always"
-          }
+          "default": "uuidv7()"
         },
         "parent_area_id": {
           "name": "parent_area_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "child_area_id": {
           "name": "child_area_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -769,20 +729,10 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "identity": {
-            "name": "area_type_id_seq",
-            "increment": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "startWith": "1",
-            "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "always"
-          }
+          "default": "uuidv7()"
         },
         "name": {
           "name": "name",
@@ -830,20 +780,16 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "identity": {
-            "name": "indicator_id_seq",
-            "increment": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "startWith": "1",
-            "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "always"
-          }
+          "default": "uuidv7()"
+        },
+        "fingertips_id": {
+          "name": "fingertips_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
         },
         "name": {
           "name": "name",
@@ -853,43 +799,43 @@
         },
         "value_type_id": {
           "name": "value_type_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "unit_id": {
           "name": "unit_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "year_type_id": {
           "name": "year_type_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "ci_method_id": {
           "name": "ci_method_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
         "polarity_id": {
           "name": "polarity_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "frequency_id": {
           "name": "frequency_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "comparator_method_id": {
           "name": "comparator_method_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -907,7 +853,7 @@
         },
         "supersedes_id": {
           "name": "supersedes_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -943,18 +889,18 @@
           "notNull": true,
           "default": "now()"
         },
-        "created_by": {
-          "name": "created_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         },
         "updated_by": {
           "name": "updated_by",
@@ -1088,7 +1034,15 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "indicator_fingertipsId_unique": {
+          "name": "indicator_fingertipsId_unique",
+          "columns": [
+            "fingertips_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
       "policies": {},
       "checkConstraints": {
         "indicator_ci_confidence_level_check": {
@@ -1108,24 +1062,14 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "identity": {
-            "name": "indicator_metadata_id_seq",
-            "increment": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "startWith": "1",
-            "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "always"
-          }
+          "default": "uuidv7()"
         },
         "indicator_id": {
           "name": "indicator_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -1179,19 +1123,19 @@
         },
         "data_source_id": {
           "name": "data_source_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
         "numerator_source_id": {
           "name": "numerator_source_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
         "denominator_source_id": {
           "name": "denominator_source_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         }
@@ -1288,20 +1232,10 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "identity": {
-            "name": "ci_method_id_seq",
-            "increment": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "startWith": "1",
-            "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "always"
-          }
+          "default": "uuidv7()"
         },
         "name": {
           "name": "name",
@@ -1338,20 +1272,10 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "identity": {
-            "name": "comparator_method_id_seq",
-            "increment": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "startWith": "1",
-            "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "always"
-          }
+          "default": "uuidv7()"
         },
         "name": {
           "name": "name",
@@ -1382,20 +1306,10 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "identity": {
-            "name": "data_source_id_seq",
-            "increment": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "startWith": "1",
-            "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "always"
-          }
+          "default": "uuidv7()"
         },
         "name": {
           "name": "name",
@@ -1424,20 +1338,10 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "identity": {
-            "name": "frequency_id_seq",
-            "increment": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "startWith": "1",
-            "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "always"
-          }
+          "default": "uuidv7()"
         },
         "name": {
           "name": "name",
@@ -1468,20 +1372,10 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "identity": {
-            "name": "numerator_denominator_source_id_seq",
-            "increment": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "startWith": "1",
-            "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "always"
-          }
+          "default": "uuidv7()"
         },
         "name": {
           "name": "name",
@@ -1510,20 +1404,10 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "identity": {
-            "name": "polarity_id_seq",
-            "increment": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "startWith": "1",
-            "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "always"
-          }
+          "default": "uuidv7()"
         },
         "name": {
           "name": "name",
@@ -1554,20 +1438,10 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "identity": {
-            "name": "unit_id_seq",
-            "increment": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "startWith": "1",
-            "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "always"
-          }
+          "default": "uuidv7()"
         },
         "name": {
           "name": "name",
@@ -1603,20 +1477,10 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "identity": {
-            "name": "value_type_id_seq",
-            "increment": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "startWith": "1",
-            "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "always"
-          }
+          "default": "uuidv7()"
         },
         "name": {
           "name": "name",
@@ -1647,20 +1511,10 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "identity": {
-            "name": "year_type_id_seq",
-            "increment": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "startWith": "1",
-            "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "always"
-          }
+          "default": "uuidv7()"
         },
         "name": {
           "name": "name",
@@ -1691,20 +1545,10 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "identity": {
-            "name": "note_type_id_seq",
-            "increment": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "startWith": "1",
-            "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "always"
-          }
+          "default": "uuidv7()"
         },
         "text": {
           "name": "text",
@@ -1738,30 +1582,20 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "identity": {
-            "name": "observation_id_seq",
-            "increment": "1",
-            "minValue": "1",
-            "maxValue": "9223372036854775807",
-            "startWith": "1",
-            "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "always"
-          }
+          "default": "uuidv7()"
         },
         "indicator_id": {
           "name": "indicator_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "area_id": {
           "name": "area_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -1839,7 +1673,7 @@
         },
         "upload_batch_id": {
           "name": "upload_batch_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -2046,36 +1880,26 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "identity": {
-            "name": "observation_dimension_id_seq",
-            "increment": "1",
-            "minValue": "1",
-            "maxValue": "9223372036854775807",
-            "startWith": "1",
-            "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "always"
-          }
+          "default": "uuidv7()"
         },
         "observation_id": {
           "name": "observation_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "dimension_value_id": {
           "name": "dimension_value_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "dimension_type_id": {
           "name": "dimension_type_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         }
@@ -2154,30 +1978,20 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "identity": {
-            "name": "observation_note_id_seq",
-            "increment": "1",
-            "minValue": "1",
-            "maxValue": "9223372036854775807",
-            "startWith": "1",
-            "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "always"
-          }
+          "default": "uuidv7()"
         },
         "observation_id": {
           "name": "observation_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "note_type_id": {
           "name": "note_type_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         }
@@ -2232,24 +2046,14 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "identity": {
-            "name": "upload_batch_id_seq",
-            "increment": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "startWith": "1",
-            "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "always"
-          }
+          "default": "uuidv7()"
         },
         "indicator_id": {
           "name": "indicator_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -2287,7 +2091,7 @@
         },
         "superseded_by_id": {
           "name": "superseded_by_id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         }

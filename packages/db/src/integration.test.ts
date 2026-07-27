@@ -1,11 +1,24 @@
-import { describe, expect, it } from 'vitest';
+import type postgres from 'postgres';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { rebuildReadModels } from './read-models.js';
 import { createOwnerClient } from './scripts/owner-client.js';
+import { createTestDatabase, type TestDatabase } from './testing.js';
 
-// Requires a migrated, seeded database (see packages/db/README.md). CI runs
-// db:migrate + db:seed before this tier.
-const sql = createOwnerClient();
+const MISSING_UUID = '00000000-0000-0000-0000-000000000000';
+
+let testDb: TestDatabase;
+let sql: postgres.Sql;
+
+beforeAll(async () => {
+  testDb = await createTestDatabase();
+  sql = createOwnerClient(testDb.name);
+});
+
+afterAll(async () => {
+  await sql.end();
+  await testDb.drop();
+});
 
 describe('bridge/registry schema', () => {
   it('holds the seeded indicators', async () => {
@@ -21,11 +34,21 @@ describe('bridge/registry schema', () => {
     expect(orphaned).toHaveLength(0);
   });
 
+  it('generates time-ordered uuidv7 ids by default', async () => {
+    const rows = await sql`
+      INSERT INTO value_type (name) VALUES ('integration-test-value-type')
+      RETURNING id
+    `;
+    const id = rows[0]?.id as string;
+    await sql`DELETE FROM value_type WHERE id = ${id}`;
+    expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
   it('rejects an observation referencing an unknown indicator', async () => {
     await expect(sql`
       INSERT INTO observation
         (indicator_id, area_id, from_date, to_date, published_at, upload_batch_id, created_by)
-      SELECT 999999999, a.id, '2024-01-01', '2024-12-31', now(), ub.id, 'integration-test'
+      SELECT ${MISSING_UUID}, a.id, '2024-01-01', '2024-12-31', now(), ub.id, 'integration-test'
       FROM area a, upload_batch ub LIMIT 1
     `).rejects.toMatchObject({ code: '23503' });
   });
@@ -78,7 +101,7 @@ describe('bridge/registry schema', () => {
   it('rejects an observation period ending before it starts', async () => {
     const failed = sql.begin(async (tx) => {
       const rows = await tx`
-        SELECT ub.indicator_id, ub.id AS batch, (SELECT min(id) FROM area) AS area_id
+        SELECT ub.indicator_id, ub.id AS batch, (SELECT id FROM area LIMIT 1) AS area_id
         FROM upload_batch ub
         LIMIT 1
       `;
@@ -108,22 +131,6 @@ describe('bridge/registry schema', () => {
       `;
     });
     await expect(failed).rejects.toMatchObject({ code: '23P01' });
-  });
-
-  it('resynced identity sequences past the seeded ids', async () => {
-    const inserted = await sql.begin(async (tx) => {
-      const returned = await tx`
-        INSERT INTO value_type (name) VALUES ('integration-test-value-type')
-        RETURNING id
-      `;
-      const id = Number(returned[0]?.id);
-      const maxRows = await tx`
-        SELECT max(id)::int AS max FROM value_type WHERE id <> ${id}
-      `;
-      await tx`DELETE FROM value_type WHERE id = ${id}`;
-      return { id, max: Number(maxRows[0]?.max) };
-    });
-    expect(inserted.id).toBeGreaterThan(inserted.max);
   });
 
   it('rebuilds populated read models', async () => {

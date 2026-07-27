@@ -1,24 +1,24 @@
 CREATE TABLE "available_data" (
-	"indicator_id" integer NOT NULL,
-	"area_type_id" integer NOT NULL,
+	"indicator_id" uuid NOT NULL,
+	"area_type_id" uuid NOT NULL,
 	"area_type_name" text NOT NULL,
 	"area_count" integer NOT NULL,
 	CONSTRAINT "available_data_indicator_id_area_type_id_pk" PRIMARY KEY("indicator_id","area_type_id")
 );
 --> statement-breakpoint
 CREATE TABLE "indicator_dimension_values" (
-	"indicator_id" integer NOT NULL,
-	"dimension_type_id" integer NOT NULL,
+	"indicator_id" uuid NOT NULL,
+	"dimension_type_id" uuid NOT NULL,
 	"dimension_type_name" text NOT NULL,
-	"dimension_value_id" integer NOT NULL,
+	"dimension_value_id" uuid NOT NULL,
 	"dimension_value_name" text NOT NULL,
 	"sort_order" integer DEFAULT 0 NOT NULL,
 	CONSTRAINT "indicator_dimension_values_indicator_id_dimension_value_id_pk" PRIMARY KEY("indicator_id","dimension_value_id")
 );
 --> statement-breakpoint
 CREATE TABLE "latest_headline" (
-	"indicator_id" integer NOT NULL,
-	"area_id" integer NOT NULL,
+	"indicator_id" uuid NOT NULL,
+	"area_id" uuid NOT NULL,
 	"from_date" date NOT NULL,
 	"to_date" date NOT NULL,
 	"value" double precision,
@@ -27,7 +27,7 @@ CREATE TABLE "latest_headline" (
 );
 --> statement-breakpoint
 CREATE TABLE "dimension_type" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "dimension_type_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
 	"name" text NOT NULL,
 	"dimension_class" text NOT NULL,
 	"classification_scheme" text,
@@ -39,9 +39,9 @@ CREATE TABLE "dimension_type" (
 );
 --> statement-breakpoint
 CREATE TABLE "dimension_value" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "dimension_value_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
-	"dimension_type_id" integer NOT NULL,
-	"parent_id" integer,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
+	"dimension_type_id" uuid NOT NULL,
+	"parent_id" uuid,
 	"name" text NOT NULL,
 	"code" text,
 	"sort_order" integer DEFAULT 0 NOT NULL,
@@ -51,26 +51,26 @@ CREATE TABLE "dimension_value" (
 );
 --> statement-breakpoint
 CREATE TABLE "area" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "area_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
 	"code" text NOT NULL,
 	"name" text NOT NULL,
-	"area_type_id" integer NOT NULL,
+	"area_type_id" uuid NOT NULL,
 	"valid_from" date NOT NULL,
 	"valid_to" date,
 	CONSTRAINT "area_validity_order_check" CHECK ("area"."valid_to" IS NULL OR "area"."valid_from" <= "area"."valid_to")
 );
 --> statement-breakpoint
 CREATE TABLE "area_relationship" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "area_relationship_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
-	"parent_area_id" integer NOT NULL,
-	"child_area_id" integer NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
+	"parent_area_id" uuid NOT NULL,
+	"child_area_id" uuid NOT NULL,
 	"valid_from" date NOT NULL,
 	"valid_to" date,
 	CONSTRAINT "area_relationship_validity_order_check" CHECK ("area_relationship"."valid_to" IS NULL OR "area_relationship"."valid_from" <= "area_relationship"."valid_to")
 );
 --> statement-breakpoint
 CREATE TABLE "area_type" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "area_type_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
 	"name" text NOT NULL,
 	"hierarchy_type" text NOT NULL,
 	"level" integer NOT NULL,
@@ -79,33 +79,35 @@ CREATE TABLE "area_type" (
 );
 --> statement-breakpoint
 CREATE TABLE "indicator" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "indicator_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
+	"fingertips_id" integer NOT NULL,
 	"name" text NOT NULL,
-	"value_type_id" integer NOT NULL,
-	"unit_id" integer NOT NULL,
-	"year_type_id" integer NOT NULL,
-	"ci_method_id" integer,
-	"polarity_id" integer NOT NULL,
-	"frequency_id" integer NOT NULL,
-	"comparator_method_id" integer,
+	"value_type_id" uuid NOT NULL,
+	"unit_id" uuid NOT NULL,
+	"year_type_id" uuid NOT NULL,
+	"ci_method_id" uuid,
+	"polarity_id" uuid NOT NULL,
+	"frequency_id" uuid NOT NULL,
+	"comparator_method_id" uuid,
 	"disclosure_threshold" smallint,
 	"ci_confidence_level" text,
-	"supersedes_id" integer,
+	"supersedes_id" uuid,
 	"status" text DEFAULT 'approved' NOT NULL,
 	"reviewed_at" timestamp with time zone,
 	"reviewed_by" text,
 	"config" jsonb,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"created_by" text NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"created_by" text NOT NULL,
 	"updated_by" text NOT NULL,
+	CONSTRAINT "indicator_fingertipsId_unique" UNIQUE("fingertips_id"),
 	CONSTRAINT "indicator_ci_confidence_level_check" CHECK ("indicator"."ci_confidence_level" IN ('95', '99.8', 'both')),
 	CONSTRAINT "indicator_status_check" CHECK ("indicator"."status" IN ('draft', 'in_review', 'approved', 'archived'))
 );
 --> statement-breakpoint
 CREATE TABLE "indicator_metadata" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "indicator_metadata_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
-	"indicator_id" integer NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
+	"indicator_id" uuid NOT NULL,
 	"definition" text,
 	"rationale" text,
 	"methodology" text,
@@ -114,79 +116,79 @@ CREATE TABLE "indicator_metadata" (
 	"disclosure_control" text,
 	"caveats" text,
 	"notes" text,
-	"data_source_id" integer,
-	"numerator_source_id" integer,
-	"denominator_source_id" integer,
+	"data_source_id" uuid,
+	"numerator_source_id" uuid,
+	"denominator_source_id" uuid,
 	CONSTRAINT "indicator_metadata_indicatorId_unique" UNIQUE("indicator_id")
 );
 --> statement-breakpoint
 CREATE TABLE "ci_method" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "ci_method_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
 	"name" text NOT NULL,
 	"description" text,
 	CONSTRAINT "ci_method_name_unique" UNIQUE("name")
 );
 --> statement-breakpoint
 CREATE TABLE "comparator_method" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "comparator_method_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
 	"name" text NOT NULL,
 	CONSTRAINT "comparator_method_name_unique" UNIQUE("name")
 );
 --> statement-breakpoint
 CREATE TABLE "data_source" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "data_source_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
 	"name" text NOT NULL,
 	"url" text
 );
 --> statement-breakpoint
 CREATE TABLE "frequency" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "frequency_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
 	"name" text NOT NULL,
 	CONSTRAINT "frequency_name_unique" UNIQUE("name")
 );
 --> statement-breakpoint
 CREATE TABLE "numerator_denominator_source" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "numerator_denominator_source_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
 	"name" text NOT NULL,
 	"url" text
 );
 --> statement-breakpoint
 CREATE TABLE "polarity" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "polarity_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
 	"name" text NOT NULL,
 	CONSTRAINT "polarity_name_unique" UNIQUE("name")
 );
 --> statement-breakpoint
 CREATE TABLE "unit" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "unit_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
 	"name" text NOT NULL,
 	"label" text NOT NULL,
 	"multiplier" double precision DEFAULT 1 NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "value_type" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "value_type_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
 	"name" text NOT NULL,
 	CONSTRAINT "value_type_name_unique" UNIQUE("name")
 );
 --> statement-breakpoint
 CREATE TABLE "year_type" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "year_type_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
 	"name" text NOT NULL,
 	CONSTRAINT "year_type_name_unique" UNIQUE("name")
 );
 --> statement-breakpoint
 CREATE TABLE "note_type" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "note_type_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
 	"text" text NOT NULL,
 	"category" text NOT NULL,
 	CONSTRAINT "note_type_category_check" CHECK ("note_type"."category" IN ('disclosure', 'quality', 'geographic', 'methodological', 'estimation', 'missing', 'contextual'))
 );
 --> statement-breakpoint
 CREATE TABLE "observation" (
-	"id" bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "observation_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 1 CACHE 1),
-	"indicator_id" integer NOT NULL,
-	"area_id" integer NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
+	"indicator_id" uuid NOT NULL,
+	"area_id" uuid NOT NULL,
 	"from_date" date NOT NULL,
 	"to_date" date NOT NULL,
 	"value" double precision,
@@ -199,7 +201,7 @@ CREATE TABLE "observation" (
 	"upper_ci_998" double precision,
 	"distribution_rank" smallint,
 	"published_at" timestamp with time zone NOT NULL,
-	"upload_batch_id" integer NOT NULL,
+	"upload_batch_id" uuid NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"created_by" text NOT NULL,
 	"deleted_at" timestamp with time zone,
@@ -207,29 +209,29 @@ CREATE TABLE "observation" (
 );
 --> statement-breakpoint
 CREATE TABLE "observation_dimension" (
-	"id" bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "observation_dimension_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 1 CACHE 1),
-	"observation_id" bigint NOT NULL,
-	"dimension_value_id" integer NOT NULL,
-	"dimension_type_id" integer NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
+	"observation_id" uuid NOT NULL,
+	"dimension_value_id" uuid NOT NULL,
+	"dimension_type_id" uuid NOT NULL,
 	CONSTRAINT "observation_dimension_observationId_dimensionTypeId_unique" UNIQUE("observation_id","dimension_type_id")
 );
 --> statement-breakpoint
 CREATE TABLE "observation_note" (
-	"id" bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "observation_note_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 1 CACHE 1),
-	"observation_id" bigint NOT NULL,
-	"note_type_id" integer NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
+	"observation_id" uuid NOT NULL,
+	"note_type_id" uuid NOT NULL,
 	CONSTRAINT "observation_note_observationId_noteTypeId_unique" UNIQUE("observation_id","note_type_id")
 );
 --> statement-breakpoint
 CREATE TABLE "upload_batch" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "upload_batch_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
-	"indicator_id" integer NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
+	"indicator_id" uuid NOT NULL,
 	"original_filename" text NOT NULL,
 	"uploaded_by" text NOT NULL,
 	"uploaded_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"status" text DEFAULT 'received' NOT NULL,
 	"validation_result" jsonb,
-	"superseded_by_id" integer,
+	"superseded_by_id" uuid,
 	CONSTRAINT "upload_batch_id_indicatorId_unique" UNIQUE("id","indicator_id"),
 	CONSTRAINT "upload_batch_status_check" CHECK ("upload_batch"."status" IN ('received', 'validated', 'processed', 'failed', 'superseded'))
 );

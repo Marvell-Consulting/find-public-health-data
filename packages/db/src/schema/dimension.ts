@@ -8,12 +8,15 @@ import {
   pgTable,
   text,
   unique,
+  uuid,
 } from 'drizzle-orm/pg-core';
+
+import { uuidPrimaryKey } from './helpers.js';
 
 export const dimensionType = pgTable(
   'dimension_type',
   {
-    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    id: uuidPrimaryKey(),
     name: text().notNull().unique(),
     dimensionClass: text().notNull(),
     classificationScheme: text(),
@@ -32,11 +35,11 @@ export const dimensionType = pgTable(
 export const dimensionValue = pgTable(
   'dimension_value',
   {
-    id: integer().primaryKey().generatedAlwaysAsIdentity(),
-    dimensionTypeId: integer()
+    id: uuidPrimaryKey(),
+    dimensionTypeId: uuid()
       .notNull()
       .references(() => dimensionType.id),
-    parentId: integer().references((): AnyPgColumn => dimensionValue.id),
+    parentId: uuid().references((): AnyPgColumn => dimensionValue.id),
     name: text().notNull(),
     code: text(),
     sortOrder: integer().notNull().default(0),

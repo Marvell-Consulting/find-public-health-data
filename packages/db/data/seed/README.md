@@ -45,12 +45,16 @@ That yields ~356k observations, ~632k bridge rows and ~74k observation notes.
 ## Regenerating
 
 `export/export-seed.py` runs on the benchmark VM (`fphd-benchmark`, resource group
-`find-public-health-data-alpha` — deallocated when idle; its public IP changes on start):
+`find-public-health-data-alpha` — deallocated when idle; its public IP changes on start),
+then `export/transform-uuids.py` rekeys the integer-keyed export to UUIDv7 locally:
 
 ```sh
 scp export/export-seed.py fphd@<vm-ip>:/tmp/
 ssh fphd@<vm-ip> 'MSSQL_PASSWORD=<sa-password> python3 /tmp/export-seed.py /tmp/seed-out'
 scp 'fphd@<vm-ip>:/tmp/seed-out/*.csv.gz' .
+python3 export/transform-uuids.py .
 ```
 
-Adjust the indicator list, geography set or year floors at the top of the script.
+The transform assigns sequential UUIDv7 ids in source-id order, remaps every foreign key,
+and keeps the public Fingertips indicator number in `indicator.fingertips_id`. Adjust the
+indicator list, geography set or year floors at the top of `export-seed.py`.

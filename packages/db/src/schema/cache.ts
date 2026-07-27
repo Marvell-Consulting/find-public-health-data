@@ -7,6 +7,7 @@ import {
   primaryKey,
   text,
   uniqueIndex,
+  uuid,
 } from 'drizzle-orm/pg-core';
 
 // Derived read models rebuilt from canonical tables; deliberately no foreign keys so
@@ -15,8 +16,8 @@ import {
 export const latestHeadline = pgTable(
   'latest_headline',
   {
-    indicatorId: integer().notNull(),
-    areaId: integer().notNull(),
+    indicatorId: uuid().notNull(),
+    areaId: uuid().notNull(),
     fromDate: date().notNull(),
     toDate: date().notNull(),
     value: doublePrecision(),
@@ -33,8 +34,8 @@ export const latestHeadline = pgTable(
 export const availableData = pgTable(
   'available_data',
   {
-    indicatorId: integer().notNull(),
-    areaTypeId: integer().notNull(),
+    indicatorId: uuid().notNull(),
+    areaTypeId: uuid().notNull(),
     areaTypeName: text().notNull(),
     areaCount: integer().notNull(),
   },
@@ -47,10 +48,10 @@ export const availableData = pgTable(
 export const indicatorDimensionValues = pgTable(
   'indicator_dimension_values',
   {
-    indicatorId: integer().notNull(),
-    dimensionTypeId: integer().notNull(),
+    indicatorId: uuid().notNull(),
+    dimensionTypeId: uuid().notNull(),
     dimensionTypeName: text().notNull(),
-    dimensionValueId: integer().notNull(),
+    dimensionValueId: uuid().notNull(),
     dimensionValueName: text().notNull(),
     sortOrder: integer().notNull().default(0),
   },

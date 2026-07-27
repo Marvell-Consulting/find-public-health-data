@@ -1,10 +1,12 @@
 import { sql } from 'drizzle-orm';
-import { check, date, index, integer, pgTable, text } from 'drizzle-orm/pg-core';
+import { check, date, index, integer, pgTable, text, uuid } from 'drizzle-orm/pg-core';
+
+import { uuidPrimaryKey } from './helpers.js';
 
 export const areaType = pgTable(
   'area_type',
   {
-    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    id: uuidPrimaryKey(),
     name: text().notNull().unique(),
     hierarchyType: text().notNull(),
     level: integer().notNull(),
@@ -19,10 +21,10 @@ export const areaType = pgTable(
 export const area = pgTable(
   'area',
   {
-    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    id: uuidPrimaryKey(),
     code: text().notNull(),
     name: text().notNull(),
-    areaTypeId: integer()
+    areaTypeId: uuid()
       .notNull()
       .references(() => areaType.id),
     validFrom: date().notNull(),
@@ -40,11 +42,11 @@ export const area = pgTable(
 export const areaRelationship = pgTable(
   'area_relationship',
   {
-    id: integer().primaryKey().generatedAlwaysAsIdentity(),
-    parentAreaId: integer()
+    id: uuidPrimaryKey(),
+    parentAreaId: uuid()
       .notNull()
       .references(() => area.id),
-    childAreaId: integer()
+    childAreaId: uuid()
       .notNull()
       .references(() => area.id),
     validFrom: date().notNull(),
