@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDb, type Database } from './client.js';
 import { dbEnvFields } from './env.js';
-import { topics, type TopicRecord } from './schema.js';
+import { type TopicRecord, topics } from './schema.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
 import { upsertTopics } from './topics-repository.js';
 
