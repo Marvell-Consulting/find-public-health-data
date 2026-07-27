@@ -2,42 +2,54 @@
 
 Drizzle ORM schema, migrations, repository functions and database tooling shared by the
 API apps. Each API connects with its own login role (`public_api` / `internal_api`) via
-`createDb`; migrations and the import tooling run as the owner role (`POSTGRES_USER`).
+`createDb`. Everything that writes — migrations, the seed, the read-model rebuild, the
+import tooling and the test harness — runs as the owner role (`POSTGRES_USER`), via
+`createOwnerClient` outside drizzle-kit.
 
 ## Layout
 
 ```
-data/                 Seed/import files (e.g. topics.json, seed/)
+data/                 Import files (topics.json) and the committed seed (seed/)
 drizzle/              Generated migrations + drizzle-kit metadata — never edit applied ones
 src/
-  schema/             One file per table, re-exported by schema/index.ts
+  schema/             One file per domain group, re-exported by schema/index.ts: lookup.ts
+                      holds the reference tables, observation.ts the observation family,
+                      cache.ts the derived read models
     helpers.ts        Column helpers shared across tables (uuidPrimaryKey, timestamps, audit)
   scripts/            CLI entrypoints and their script-only helpers — the package.json
                       scripts are the run surface; anything reusable lives outside
   client.ts           createDb + Database/Schema types
   env.ts              dbEnvFields — shared connection env fragment
+  read-models.ts      rebuildReadModels — repopulates the cache.ts tables from canonical data
+  seeding.ts          Loads data/seed into an empty database
   testing.ts          Integration-test database harness (@fphd/db/testing)
+  schema.ts           Barrel re-exporting schema/index.ts; what drizzle.config.ts reads
   *-repository.ts     Query functions per aggregate: pure, take `db` as first argument
   index.ts            Package surface
 ```
 
 ## Conventions
 
-- **Tables**: plural `snake_case` names (`topics`); columns singular. A future junction
-  table is `<singular>_<plural>` (e.g. `indicator_topics`). Write camelCase property
-  names in schema files — `casing: 'snake_case'` maps them.
+- **Tables**: singular `snake_case` names (`indicator`, `observation`, `topic`), and so
+  are columns. A junction table joins the two singular names — `observation_dimension`,
+  `area_relationship`. Write camelCase property names in schema files; `casing:
+  'snake_case'` maps them.
 - **Ids**: UUIDv7 via `uuidPrimaryKey()` from `schema/helpers.ts`, which defaults to
   Postgres 18's native `uuidv7()`. Rows created by an import supply their own ids
-  instead, so the id survives a re-import.
-- **Timestamps**: every table spreads `timestamps` from `schema/helpers.ts`
-  (`created_at` / `updated_at`, timestamptz), or `audit` where the actor columns are
-  wanted too. `updated_at` is app-maintained on writes; see the topics import's
-  conditional upsert for the pattern.
+  instead, so the id survives a re-import. The read models in `cache.ts` are the
+  exception: they are keyed by the columns they aggregate and carry no surrogate id.
+- **Timestamps**: opt-in, not universal. Spread `timestamps` from `schema/helpers.ts`
+  (`created_at` / `updated_at`, timestamptz) on a table whose rows are updated in place,
+  as `topic` does, or `audit` where the actor columns matter too, as `indicator` does.
+  `observation` records only creation, since a correction supersedes a row rather than
+  editing it. Reference tables carry neither. `updated_at` is app-maintained on writes;
+  see the topics import's conditional upsert for the pattern.
 - **Repository functions**: pure, `db` first argument, one file per aggregate.
 
 ## Adding a table
 
-1. Create `src/schema/<table>.ts` and re-export it from `src/schema/index.ts`.
+1. Add the table to the `src/schema/` file for its domain, or create one and re-export it
+   from `src/schema/index.ts`.
 2. `pnpm db:generate --name=create-<table>` (from the repo root; always pass a
    meaningful `--name`).
 3. Grants are explicit and per-table — the API roles can read exactly what they have

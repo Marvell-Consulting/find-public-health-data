@@ -3,7 +3,7 @@ import { pgTable, text } from 'drizzle-orm/pg-core';
 
 import { timestamps, uuidPrimaryKey } from './helpers.js';
 
-export const topics = pgTable('topics', {
+export const topic = pgTable('topic', {
   id: uuidPrimaryKey(),
   slug: text().notNull().unique(),
   title: text().notNull(),

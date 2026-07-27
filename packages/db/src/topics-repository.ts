@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 
 import type { Database } from './client.js';
-import { type TopicRecord, topics } from './schema/index.js';
+import { type TopicRecord, topic } from './schema/index.js';
 
 export interface ExistingTopic {
   id: string;
@@ -56,21 +56,21 @@ export interface UpsertResult {
 export async function upsertTopics(db: Database, records: TopicRecord[]): Promise<UpsertResult> {
   const existingTopics = await db
     .select({
-      id: topics.id,
-      slug: topics.slug,
-      title: topics.title,
-      description: topics.description,
+      id: topic.id,
+      slug: topic.slug,
+      title: topic.title,
+      description: topic.description,
     })
-    .from(topics);
+    .from(topic);
 
   const orphaned = findOrphanedTopics(records, existingTopics);
 
   const outcomes = records.length
     ? await db
-        .insert(topics)
+        .insert(topic)
         .values(records)
         .onConflictDoUpdate({
-          target: topics.id,
+          target: topic.id,
           set: {
             slug: sql`excluded.slug`,
             title: sql`excluded.title`,
@@ -80,11 +80,11 @@ export async function upsertTopics(db: Database, records: TopicRecord[]): Promis
           // Only rewrite the row (and bump updatedAt) when the incoming record actually
           // disagrees with what's stored — otherwise a no-op re-run would still touch every
           // row's timestamp.
-          setWhere: sql`${topics.slug} IS DISTINCT FROM excluded.slug OR ${topics.title} IS DISTINCT FROM excluded.title OR ${topics.description} IS DISTINCT FROM excluded.description`,
+          setWhere: sql`${topic.slug} IS DISTINCT FROM excluded.slug OR ${topic.title} IS DISTINCT FROM excluded.title OR ${topic.description} IS DISTINCT FROM excluded.description`,
         })
         // xmax = 0 is the standard postgres upsert idiom for "this row was just inserted, not
         // updated" — a fresh tuple has never been superseded, so its xmax is unset.
-        .returning({ id: topics.id, wasInsert: sql<boolean>`xmax = 0` })
+        .returning({ id: topic.id, wasInsert: sql<boolean>`xmax = 0` })
     : [];
 
   return { summary: summarizeUpsert(records.length, outcomes), orphaned };

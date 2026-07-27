@@ -1,5 +1,5 @@
 {
-  "id": "cd626892-3f71-4d52-8a73-9dff6f491985",
+  "id": "fcaede87-62b4-429e-bc68-997b72e593d4",
   "prevId": "62e070cb-455e-4b69-bdf6-7324741730f6",
   "version": "7",
   "dialect": "postgresql",
@@ -2040,8 +2040,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.topics": {
-      "name": "topics",
+    "public.topic": {
+      "name": "topic",
       "schema": "",
       "columns": {
         "id": {
@@ -2088,8 +2088,8 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "topics_slug_unique": {
-          "name": "topics_slug_unique",
+        "topic_slug_unique": {
+          "name": "topic_slug_unique",
           "nullsNotDistinct": false,
           "columns": [
             "slug"

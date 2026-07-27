@@ -1,6 +1,6 @@
 {
-  "id": "5d1bdc6f-e137-4689-8c5d-3fa8c4ec4855",
-  "prevId": "cd626892-3f71-4d52-8a73-9dff6f491985",
+  "id": "c5d697fe-c15f-4dde-9b86-5e240e470bb3",
+  "prevId": "fcaede87-62b4-429e-bc68-997b72e593d4",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2040,8 +2040,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.topics": {
-      "name": "topics",
+    "public.topic": {
+      "name": "topic",
       "schema": "",
       "columns": {
         "id": {
@@ -2088,8 +2088,8 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "topics_slug_unique": {
-          "name": "topics_slug_unique",
+        "topic_slug_unique": {
+          "name": "topic_slug_unique",
           "columns": [
             "slug"
           ],

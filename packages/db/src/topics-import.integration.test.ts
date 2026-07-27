@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDb, type Database } from './client.js';
 import { dbEnvFields } from './env.js';
-import { type TopicRecord, topics } from './schema.js';
+import { type TopicRecord, topic } from './schema.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
 import { upsertTopics } from './topics-repository.js';
 
@@ -60,13 +60,13 @@ const topicB: TopicRecord = {
 async function requireRow(id: string) {
   const rows = await db
     .select({
-      ...getTableColumns(topics),
+      ...getTableColumns(topic),
       // Drizzle maps timestamptz to a millisecond-precision JS Date; the ::text form keeps
       // postgres's microseconds, so timestamp assertions can't alias across a fast run.
-      updatedAtText: sql<string>`${topics.updatedAt}::text`,
+      updatedAtText: sql<string>`${topic.updatedAt}::text`,
     })
-    .from(topics)
-    .where(eq(topics.id, id));
+    .from(topic)
+    .where(eq(topic.id, id));
   const row = rows[0];
   if (!row) {
     throw new Error(`No topic row found for id ${id}`);
@@ -81,7 +81,7 @@ describe('topics import (integration)', () => {
     expect(summary).toEqual({ inserted: 2, updated: 0, unchanged: 0 });
     expect(orphaned).toEqual([]);
 
-    const rows = await db.select().from(topics);
+    const rows = await db.select().from(topic);
     expect(rows).toHaveLength(2);
   });
 
@@ -120,7 +120,7 @@ describe('topics import (integration)', () => {
     const after = await requireRow(topicA.id);
     expect(after.slug).toBe('topic-a-new');
 
-    const rows = await db.select().from(topics);
+    const rows = await db.select().from(topic);
     expect(rows.map((row) => row.id).sort()).toEqual([topicA.id, topicB.id].sort());
   });
 
@@ -155,9 +155,9 @@ describe('topics import (integration)', () => {
     });
 
     try {
-      await expect(client`SELECT * FROM topics`).resolves.toBeDefined();
+      await expect(client`SELECT * FROM topic`).resolves.toBeDefined();
       await expect(
-        client`INSERT INTO topics (id, slug, title, description) VALUES (gen_random_uuid(), 'x', 'x', 'x')`,
+        client`INSERT INTO topic (id, slug, title, description) VALUES (gen_random_uuid(), 'x', 'x', 'x')`,
       ).rejects.toThrow(/permission denied/);
     } finally {
       await client.end();
