@@ -166,22 +166,21 @@ describe('loadWebServerConfig', () => {
     });
   });
 
-  it.each([
-    'dev',
-    'preview',
-    'production',
-  ] as const)('uses secure session cookies in the %s environment', (appEnv) => {
-    expect(
-      loadWebServerConfig(
-        {
-          APP_ENV: appEnv,
-          NODE_ENV: 'development',
-          SESSION_JWT_SECRET: sessionSecret,
-        },
-        { port: 3000 },
-      ).session.secure,
-    ).toBe(true);
-  });
+  it.each(['dev', 'preview', 'production'] as const)(
+    'uses secure session cookies in the %s environment',
+    (appEnv) => {
+      expect(
+        loadWebServerConfig(
+          {
+            APP_ENV: appEnv,
+            NODE_ENV: 'development',
+            SESSION_JWT_SECRET: sessionSecret,
+          },
+          { port: 3000 },
+        ).session.secure,
+      ).toBe(true);
+    },
+  );
 
   it('requires a JWT session secret of at least 32 characters', () => {
     expect(() => loadWebServerConfig({}, { port: 3000 })).toThrow(/SESSION_JWT_SECRET/);

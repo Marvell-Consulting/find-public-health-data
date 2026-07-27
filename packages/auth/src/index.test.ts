@@ -41,13 +41,10 @@ describe('normalizeReturnTo', () => {
     expect(normalizeReturnTo('/manage?view=drafts#latest')).toBe('/manage?view=drafts#latest');
   });
 
-  it.each([
-    'https://example.com',
-    '//example.com/path',
-    '',
-    undefined,
-    null,
-  ])('rejects an external or invalid target', (target) => {
-    expect(normalizeReturnTo(target, '/fallback')).toBe('/fallback');
-  });
+  it.each(['https://example.com', '//example.com/path', '', undefined, null])(
+    'rejects an external or invalid target',
+    (target) => {
+      expect(normalizeReturnTo(target, '/fallback')).toBe('/fallback');
+    },
+  );
 });
