@@ -64,6 +64,7 @@ pnpm dev
 pnpm dev:public
 pnpm dev:internal
 pnpm check
+pnpm check:artefacts   # assert no internal code reaches the public artifacts
 pnpm build
 pnpm test              # all three tiers below, in order
 pnpm test:unit         # unit tests
@@ -77,9 +78,10 @@ unambiguous artifacts.
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs lint, typecheck, unit tests, integration tests, e2e tests,
-`pnpm audit` and build as parallel jobs. A final `All checks pass` job aggregates them and is the
-single required status check for merging, so the required-check list does not need editing whenever
-a job is added — but a new job must be added to that job's `needs` list, or it gates nothing.
+`pnpm audit`, build and the public artifact boundary check as parallel jobs. A final `All checks
+pass` job aggregates them and is the single required status check for merging, so the required-check
+list does not need editing whenever a job is added — but a new job must be added to that job's
+`needs` list, or it gates nothing.
 
 Runs are triggered on every non-draft pull request (on open, on every push to the branch, and when a
 draft is marked ready for review) and on every push to `main`. **Draft pull requests run nothing.**
@@ -100,8 +102,8 @@ Each tier is its own CI job, so the jobs run `pnpm test:unit`, `pnpm test:integr
   what makes it a no-op rather than an error; drop the flag once an e2e package exists.
 
 Both tiers are one root Vitest run over the projects declared in `vitest.config.ts`, globbed from
-`apps/*` and `packages/*`. Packages declare no test scripts of their own, so a new package joins
-both tiers by existing rather than by remembering to opt in. Target one from the root:
+`apps/*`, `packages/*` and `tools/*`. Packages declare no test scripts of their own, so a new
+package joins both tiers by existing rather than by remembering to opt in. Target one from the root:
 
 ```sh
 vitest run --project @fphd/public-api        # one package
@@ -133,6 +135,38 @@ dependency graph — a change to a root file such as `tsconfig.base.json` or `bi
 nothing, so it needs a full-run fallback. Filter inside the job with pnpm rather than with
 workflow-level `paths:` filters, which produce skipped jobs that branch protection reads as
 satisfied.
+
+## The public artifact boundary
+
+`pnpm check:artefacts` (`tools/artefact-boundary`, also its own CI job) fails if internal code has
+reached a public artifact. It applies four checks, cheapest first so the common failure is reported
+without waiting for a build:
+
+- the two public apps' transitive workspace dependency closures contain no `internal-*` package;
+- no route module in `public-web`'s route table is internal. React Router declares routes as path
+  strings rather than imports, so `route('manage', '../../packages/internal-web-features/…')` is
+  invisible to an import linter — `react-router routes --json` names those paths directly;
+- no import specifier in `apps/public-api/dist` resolves to internal code — this is the one that
+  catches a deep relative import, which never appears in a `package.json`;
+- no module in the `public-web` bundle comes from an internal package. The bundle is minified, so
+  module identity survives only in sourcemaps. The check builds with `--sourcemapClient hidden
+  --sourcemapServer hidden`, reads each map's `sources` across `dist/client` and `dist/server`, then
+  deletes the maps: `hidden` omits the `sourceMappingURL` comment that would point at them, so what
+  remains in `dist/` is byte-identical to a plain `react-router build`. React Router prints a
+  "source maps are enabled in production" warning during this build; it does not apply to what
+  ships, because the maps do not survive the check.
+
+The rule the four share is "a module reference naming an `@fphd/internal-*` package or living under
+a directory named `internal-*`", unit-tested in `tools/artefact-boundary/src/internal.test.ts`.
+
+Two of the checks would pass vacuously if they silently found nothing to inspect, so both refuse to:
+an app name absent from the workspace refuses to be checked rather than yielding an empty closure,
+and a `dist` holding no JavaScript or no sourcemaps is an error, not a pass.
+
+Some vectors are caught earlier than this gate: TypeScript's `rootDir` rejects a relative cross-app
+import at compile time, and Biome's `noRestrictedImports` rejects one by package name. The artifact
+checks are the backstop for what those cannot see, and the only thing that inspects what actually
+ships.
 
 ## Database
 
@@ -232,7 +266,10 @@ packages/
   web-server/
   public-web-features/
   internal-web-features/
+tools/
+  artefact-boundary/
 ```
 
 Application directories contain deployment wiring, routes, and entrypoints. Reusable business and
-feature logic belongs in workspace packages.
+feature logic belongs in workspace packages. `tools/*` holds workspace members that support the
+build rather than ship in it.

@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - packages/*
+  - tools/*
 
 overrides:
   # GHSA postcss <=8.5.17 source-map path traversal; transitive via vite.
