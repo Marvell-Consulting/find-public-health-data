@@ -108,6 +108,8 @@ jobs:
           POSTGRES_PASSWORD: fphd
           PUBLIC_API_PASSWORD: public_api
           INTERNAL_API_PASSWORD: internal_api
+          # internal-api's config requires it at import; CI-only value, not a secret.
+          SESSION_JWT_SECRET: ci-only-jwt-session-secret-at-least-32-bytes
 
   e2e:
     name: E2E tests (none defined yet)
