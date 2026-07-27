@@ -1,8 +1,10 @@
+import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { createRequestHandler } from '@react-router/express';
-import express, { type Express } from 'express';
-import { RouterContextProvider, type ServerBuild } from 'react-router';
+import express, { type Express, type RequestHandler } from 'express';
+import type { ServerBuild } from 'react-router';
 
 import { nonceContext } from './nonce-context.js';
+import { createSessionContext } from './session.js';
 
 type OptionalServerBuildKey = 'allowedActionOrigins' | 'basename' | 'unstable_getCriticalCss';
 
@@ -11,6 +13,8 @@ type GeneratedServerBuild = Omit<ServerBuild, OptionalServerBuildKey> & {
   basename: ServerBuild['basename'] | undefined;
   unstable_getCriticalCss: ServerBuild['unstable_getCriticalCss'] | undefined;
 };
+
+export type ReactRouterBuildLoader = () => Promise<GeneratedServerBuild>;
 
 /**
  * React Router's generated module emits optional build fields as required
@@ -31,15 +35,30 @@ function normalizeServerBuild({
   };
 }
 
-export function createReactRouterApp(loadBuild: () => Promise<GeneratedServerBuild>): Express {
+interface ReactRouterAppOptions {
+  backendMiddleware?: readonly RequestHandler[];
+  session: JwtSessionVerifier;
+}
+
+export function createReactRouterApp(
+  loadBuild: ReactRouterBuildLoader,
+  { backendMiddleware = [], session }: ReactRouterAppOptions,
+): Express {
   const app = express();
 
   app.disable('x-powered-by');
+  app.use((_request, response, next) => {
+    response.setHeader('Cache-Control', 'private, no-store');
+    next();
+  });
+
+  for (const middleware of backendMiddleware) app.use(middleware);
+
   app.use(
     createRequestHandler({
       build: async () => normalizeServerBuild(await loadBuild()),
       getLoadContext: (_request, response) => {
-        const context = new RouterContextProvider();
+        const context = createSessionContext(session);
         context.set(nonceContext, response.locals.nonce);
         return context;
       },

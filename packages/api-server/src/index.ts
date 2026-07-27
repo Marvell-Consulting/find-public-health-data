@@ -1,6 +1,26 @@
+import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
+import { InvalidJwtSessionError } from '@fphd/auth/session-errors';
 import express, { type Express } from 'express';
+import { rateLimit } from 'express-rate-limit';
 
-export function createApiApp(serviceName: string): Express {
+interface ApiRateLimitOptions {
+  limit: number;
+  windowMs: number;
+}
+
+interface CreateApiAppOptions {
+  rateLimit?: ApiRateLimitOptions;
+}
+
+const defaultApiRateLimit: ApiRateLimitOptions = {
+  limit: 100,
+  windowMs: 15 * 60 * 1_000,
+};
+
+export function createApiApp(
+  serviceName: string,
+  { rateLimit: rateLimitOptions = defaultApiRateLimit }: CreateApiAppOptions = {},
+): Express {
   const app = express();
 
   app.disable('x-powered-by');
@@ -9,6 +29,16 @@ export function createApiApp(serviceName: string): Express {
   app.get('/health', (_request, response) => {
     response.status(200).json({ status: 'ok', service: serviceName });
   });
+
+  app.use(
+    '/api',
+    rateLimit({
+      legacyHeaders: false,
+      limit: rateLimitOptions.limit,
+      standardHeaders: 'draft-8',
+      windowMs: rateLimitOptions.windowMs,
+    }),
+  );
 
   app.get('/api', (_request, response) => {
     response.status(200).json({
@@ -24,6 +54,32 @@ export function addNotFoundHandler(app: Express) {
   app.use((_request, response) => {
     response.status(404).json({ error: 'not_found' });
   });
+}
+
+export function requireJwtRole(verifier: JwtSessionVerifier, role: string): express.RequestHandler {
+  return async (request, response, next) => {
+    const token = verifier.readToken(request.headers.cookie ?? null);
+
+    if (token === undefined) {
+      response.status(401).json({ error: 'authentication_required' });
+      return;
+    }
+
+    try {
+      const session = await verifier.verifyToken(token);
+
+      if (!session.roles.includes(role)) {
+        response.status(403).json({ error: 'forbidden' });
+        return;
+      }
+
+      next();
+    } catch (error) {
+      if (!(error instanceof InvalidJwtSessionError)) throw error;
+      response.setHeader('Set-Cookie', verifier.clearCookieHeader());
+      response.status(401).json({ error: 'invalid_session' });
+    }
+  };
 }
 
 interface StartApiServerOptions {

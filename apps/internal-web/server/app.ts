@@ -1,3 +1,8 @@
-import { createReactRouterApp } from '@fphd/web-server/react-router';
+import { createFakeAuthReactRouterApp } from '@fphd/web-server/fake-auth-react-router';
 
-export const app = createReactRouterApp(() => import('virtual:react-router/server-build'));
+import { session as sessionConfig } from './config.ts';
+
+export const app = createFakeAuthReactRouterApp(() => import('virtual:react-router/server-build'), {
+  audience: 'internal',
+  session: sessionConfig,
+});
