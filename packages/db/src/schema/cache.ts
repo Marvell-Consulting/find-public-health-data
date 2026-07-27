@@ -35,7 +35,7 @@ export const availableData = pgTable(
   {
     indicatorId: integer().notNull(),
     areaTypeId: integer().notNull(),
-    areaTypeName: text(),
+    areaTypeName: text().notNull(),
     areaCount: integer().notNull(),
   },
   (t) => [

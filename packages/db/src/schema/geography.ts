@@ -29,6 +29,7 @@ export const area = pgTable(
     validTo: date(),
   },
   (t) => [
+    check('area_validity_order_check', sql`${t.validTo} IS NULL OR ${t.validFrom} <= ${t.validTo}`),
     index('idx_area_code').on(t.code),
     index('idx_area_code_validity').on(t.code, t.validFrom, t.validTo),
     index('idx_area_type').on(t.areaTypeId),
@@ -50,6 +51,10 @@ export const areaRelationship = pgTable(
     validTo: date(),
   },
   (t) => [
+    check(
+      'area_relationship_validity_order_check',
+      sql`${t.validTo} IS NULL OR ${t.validFrom} <= ${t.validTo}`,
+    ),
     index('idx_area_rel_parent').on(t.parentAreaId),
     index('idx_area_rel_child').on(t.childAreaId),
   ],

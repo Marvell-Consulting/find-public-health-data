@@ -11,7 +11,11 @@ import type postgres from 'postgres';
  */
 export async function rebuildReadModels(sql: postgres.Sql): Promise<void> {
   await sql.begin(async (tx) => {
-    await tx`TRUNCATE latest_headline, available_data, indicator_dimension_values`;
+    // DELETE rather than TRUNCATE: it takes only row locks, so readers keep seeing
+    // the previous read models until the rebuild commits.
+    await tx`DELETE FROM latest_headline`;
+    await tx`DELETE FROM available_data`;
+    await tx`DELETE FROM indicator_dimension_values`;
 
     await tx`
       INSERT INTO latest_headline

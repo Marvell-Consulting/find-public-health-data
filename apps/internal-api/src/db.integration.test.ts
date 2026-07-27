@@ -23,4 +23,9 @@ describe('internal API database connection', () => {
       db.insert(schema.valueType).values({ name: 'integration-test-denied' }),
     ).rejects.toMatchObject({ cause: { code: '42501' } });
   });
+
+  it('can read operational upload data, unlike the public role', async () => {
+    const batches = await db.select({ id: schema.uploadBatch.id }).from(schema.uploadBatch);
+    expect(batches).toHaveLength(10);
+  });
 });

@@ -37,6 +37,63 @@ describe('bridge/registry schema', () => {
     `).rejects.toMatchObject({ code: '23514' });
   });
 
+  it('rejects a second value of the same dimension type on one observation', async () => {
+    const failed = sql.begin(async (tx) => {
+      const rows = await tx`
+        SELECT od.observation_id, od.dimension_type_id, dv.id AS other_value
+        FROM observation_dimension od
+        JOIN dimension_value dv
+          ON dv.dimension_type_id = od.dimension_type_id AND dv.id <> od.dimension_value_id
+        LIMIT 1
+      `;
+      const target = rows[0];
+      await tx`
+        INSERT INTO observation_dimension (observation_id, dimension_value_id, dimension_type_id)
+        VALUES (${target?.observation_id}, ${target?.other_value}, ${target?.dimension_type_id})
+      `;
+    });
+    await expect(failed).rejects.toMatchObject({ code: '23505' });
+  });
+
+  it('rejects an observation whose batch belongs to another indicator', async () => {
+    const failed = sql.begin(async (tx) => {
+      const rows = await tx`
+        SELECT o.indicator_id, o.area_id, ub.id AS other_batch
+        FROM observation o
+        JOIN upload_batch ub ON ub.indicator_id <> o.indicator_id
+        LIMIT 1
+      `;
+      const target = rows[0];
+      await tx`
+        INSERT INTO observation
+          (indicator_id, area_id, from_date, to_date, published_at, upload_batch_id, created_by)
+        VALUES
+          (${target?.indicator_id}, ${target?.area_id}, '2024-01-01', '2024-12-31', now(),
+           ${target?.other_batch}, 'integration-test')
+      `;
+    });
+    await expect(failed).rejects.toMatchObject({ code: '23503' });
+  });
+
+  it('rejects an observation period ending before it starts', async () => {
+    const failed = sql.begin(async (tx) => {
+      const rows = await tx`
+        SELECT ub.indicator_id, ub.id AS batch, (SELECT min(id) FROM area) AS area_id
+        FROM upload_batch ub
+        LIMIT 1
+      `;
+      const target = rows[0];
+      await tx`
+        INSERT INTO observation
+          (indicator_id, area_id, from_date, to_date, published_at, upload_batch_id, created_by)
+        VALUES
+          (${target?.indicator_id}, ${target?.area_id}, '2024-12-31', '2024-01-01', now(),
+           ${target?.batch}, 'integration-test')
+      `;
+    });
+    await expect(failed).rejects.toMatchObject({ code: '23514' });
+  });
+
   it('rejects overlapping validity ranges for one area code', async () => {
     const failed = sql.begin(async (tx) => {
       const areaTypes = await tx`SELECT id FROM area_type LIMIT 1`;

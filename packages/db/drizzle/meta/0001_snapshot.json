@@ -1,6 +1,6 @@
 {
-  "id": "d88cf161-12b3-4120-8375-c43cf2a4260b",
-  "prevId": "cedf9a69-2d03-4a28-a246-27bd4199d293",
+  "id": "16bd605b-ae4f-4113-943d-de2f3219df61",
+  "prevId": "8773bc58-a165-40f6-892f-52bd02cecc12",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -24,7 +24,7 @@
           "name": "area_type_name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "area_count": {
           "name": "area_count",
@@ -468,6 +468,14 @@
             "dimension_type_id",
             "name"
           ]
+        },
+        "dimension_value_id_dimensionTypeId_unique": {
+          "name": "dimension_value_id_dimensionTypeId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id",
+            "dimension_type_id"
+          ]
         }
       },
       "policies": {},
@@ -630,7 +638,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "area_validity_order_check": {
+          "name": "area_validity_order_check",
+          "value": "\"area\".\"valid_to\" IS NULL OR \"area\".\"valid_from\" <= \"area\".\"valid_to\""
+        }
+      },
       "isRLSEnabled": false
     },
     "public.area_relationship": {
@@ -742,7 +755,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "area_relationship_validity_order_check": {
+          "name": "area_relationship_validity_order_check",
+          "value": "\"area_relationship\".\"valid_to\" IS NULL OR \"area_relationship\".\"valid_from\" <= \"area_relationship\".\"valid_to\""
+        }
+      },
       "isRLSEnabled": false
     },
     "public.area_type": {
@@ -1846,6 +1864,21 @@
         }
       },
       "indexes": {
+        "idx_obs_upload_batch": {
+          "name": "idx_obs_upload_batch",
+          "columns": [
+            {
+              "expression": "upload_batch_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "idx_obs_indicator_dates": {
           "name": "idx_obs_indicator_dates",
           "columns": [
@@ -1980,15 +2013,17 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "observation_upload_batch_id_upload_batch_id_fk": {
-          "name": "observation_upload_batch_id_upload_batch_id_fk",
+        "observation_upload_batch_indicator_fk": {
+          "name": "observation_upload_batch_indicator_fk",
           "tableFrom": "observation",
           "tableTo": "upload_batch",
           "columnsFrom": [
-            "upload_batch_id"
+            "upload_batch_id",
+            "indicator_id"
           ],
           "columnsTo": [
-            "id"
+            "id",
+            "indicator_id"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
@@ -1997,7 +2032,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "observation_date_order_check": {
+          "name": "observation_date_order_check",
+          "value": "\"observation\".\"from_date\" <= \"observation\".\"to_date\""
+        }
+      },
       "isRLSEnabled": false
     },
     "public.observation_dimension": {
@@ -2032,30 +2072,15 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "dimension_type_id": {
+          "name": "dimension_type_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {
-        "idx_obs_dim_obs_val": {
-          "name": "idx_obs_dim_obs_val",
-          "columns": [
-            {
-              "expression": "observation_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "dimension_value_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "idx_obs_dim_val_obs": {
           "name": "idx_obs_dim_val_obs",
           "columns": [
@@ -2092,15 +2117,17 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "observation_dimension_dimension_value_id_dimension_value_id_fk": {
-          "name": "observation_dimension_dimension_value_id_dimension_value_id_fk",
+        "observation_dimension_value_type_fk": {
+          "name": "observation_dimension_value_type_fk",
           "tableFrom": "observation_dimension",
           "tableTo": "dimension_value",
           "columnsFrom": [
-            "dimension_value_id"
+            "dimension_value_id",
+            "dimension_type_id"
           ],
           "columnsTo": [
-            "id"
+            "id",
+            "dimension_type_id"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
@@ -2108,12 +2135,12 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "observation_dimension_observationId_dimensionValueId_unique": {
-          "name": "observation_dimension_observationId_dimensionValueId_unique",
+        "observation_dimension_observationId_dimensionTypeId_unique": {
+          "name": "observation_dimension_observationId_dimensionTypeId_unique",
           "nullsNotDistinct": false,
           "columns": [
             "observation_id",
-            "dimension_value_id"
+            "dimension_type_id"
           ]
         }
       },
@@ -2295,7 +2322,16 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "upload_batch_id_indicatorId_unique": {
+          "name": "upload_batch_id_indicatorId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id",
+            "indicator_id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {
         "upload_batch_status_check": {

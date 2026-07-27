@@ -7,6 +7,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
 } from 'drizzle-orm/pg-core';
 
 import { indicator } from './indicator.js';
@@ -30,5 +31,7 @@ export const uploadBatch = pgTable(
       'upload_batch_status_check',
       sql`${t.status} IN ('received', 'validated', 'processed', 'failed', 'superseded')`,
     ),
+    // Target for observation's composite (batch, indicator) foreign key.
+    unique().on(t.id, t.indicatorId),
   ],
 );

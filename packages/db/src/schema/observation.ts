@@ -4,6 +4,7 @@ import {
   check,
   date,
   doublePrecision,
+  foreignKey,
   index,
   integer,
   pgTable,
@@ -57,14 +58,21 @@ export const observation = pgTable(
     upperCi998: doublePrecision('upper_ci_998'),
     distributionRank: smallint(),
     publishedAt: timestamp({ withTimezone: true }).notNull(),
-    uploadBatchId: integer()
-      .notNull()
-      .references(() => uploadBatch.id),
+    uploadBatchId: integer().notNull(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     createdBy: text().notNull(),
     deletedAt: timestamp({ withTimezone: true }),
   },
   (t) => [
+    // Pairing upload_batch_id with indicator_id guarantees an observation's batch
+    // belongs to the same indicator the observation records.
+    foreignKey({
+      columns: [t.uploadBatchId, t.indicatorId],
+      foreignColumns: [uploadBatch.id, uploadBatch.indicatorId],
+      name: 'observation_upload_batch_indicator_fk',
+    }),
+    check('observation_date_order_check', sql`${t.fromDate} <= ${t.toDate}`),
+    index('idx_obs_upload_batch').on(t.uploadBatchId),
     index('idx_obs_indicator_dates')
       .on(t.indicatorId, t.fromDate, t.toDate)
       .where(sql`${t.deletedAt} IS NULL`),
@@ -78,6 +86,9 @@ export const observation = pgTable(
   ],
 );
 
+// dimension_type_id is denormalised onto the bridge so the database itself can
+// enforce at most one value per dimension type per observation; the composite
+// foreign key keeps it consistent with the referenced dimension value.
 export const observationDimension = pgTable(
   'observation_dimension',
   {
@@ -85,13 +96,16 @@ export const observationDimension = pgTable(
     observationId: bigint({ mode: 'number' })
       .notNull()
       .references(() => observation.id, { onDelete: 'cascade' }),
-    dimensionValueId: integer()
-      .notNull()
-      .references(() => dimensionValue.id),
+    dimensionValueId: integer().notNull(),
+    dimensionTypeId: integer().notNull(),
   },
   (t) => [
-    unique().on(t.observationId, t.dimensionValueId),
-    index('idx_obs_dim_obs_val').on(t.observationId, t.dimensionValueId),
+    foreignKey({
+      columns: [t.dimensionValueId, t.dimensionTypeId],
+      foreignColumns: [dimensionValue.id, dimensionValue.dimensionTypeId],
+      name: 'observation_dimension_value_type_fk',
+    }),
+    unique().on(t.observationId, t.dimensionTypeId),
     index('idx_obs_dim_val_obs').on(t.dimensionValueId, t.observationId),
   ],
 );

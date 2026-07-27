@@ -101,7 +101,9 @@ TABLES = [
     ("observation", f"SELECT {OBS_COLS} FROM observation o WHERE {OBS_WHERE}"),
     (
         "observation_dimension",
-        "SELECT od.id,od.observation_id,od.dimension_value_id FROM observation_dimension od "
+        "SELECT od.id,od.observation_id,od.dimension_value_id,dv.dimension_type_id "
+        "FROM observation_dimension od "
+        "JOIN dimension_value dv ON dv.id = od.dimension_value_id "
         f"JOIN observation o ON o.id = od.observation_id WHERE {OBS_WHERE}",
     ),
     (

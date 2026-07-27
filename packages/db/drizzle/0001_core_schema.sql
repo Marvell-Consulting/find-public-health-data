@@ -1,7 +1,7 @@
 CREATE TABLE "available_data" (
 	"indicator_id" integer NOT NULL,
 	"area_type_id" integer NOT NULL,
-	"area_type_name" text,
+	"area_type_name" text NOT NULL,
 	"area_count" integer NOT NULL,
 	CONSTRAINT "available_data_indicator_id_area_type_id_pk" PRIMARY KEY("indicator_id","area_type_id")
 );
@@ -46,7 +46,8 @@ CREATE TABLE "dimension_value" (
 	"code" text,
 	"sort_order" integer DEFAULT 0 NOT NULL,
 	"is_aggregate" boolean DEFAULT false NOT NULL,
-	CONSTRAINT "dimension_value_dimensionTypeId_name_unique" UNIQUE("dimension_type_id","name")
+	CONSTRAINT "dimension_value_dimensionTypeId_name_unique" UNIQUE("dimension_type_id","name"),
+	CONSTRAINT "dimension_value_id_dimensionTypeId_unique" UNIQUE("id","dimension_type_id")
 );
 --> statement-breakpoint
 CREATE TABLE "area" (
@@ -55,7 +56,8 @@ CREATE TABLE "area" (
 	"name" text NOT NULL,
 	"area_type_id" integer NOT NULL,
 	"valid_from" date NOT NULL,
-	"valid_to" date
+	"valid_to" date,
+	CONSTRAINT "area_validity_order_check" CHECK ("area"."valid_to" IS NULL OR "area"."valid_from" <= "area"."valid_to")
 );
 --> statement-breakpoint
 CREATE TABLE "area_relationship" (
@@ -63,7 +65,8 @@ CREATE TABLE "area_relationship" (
 	"parent_area_id" integer NOT NULL,
 	"child_area_id" integer NOT NULL,
 	"valid_from" date NOT NULL,
-	"valid_to" date
+	"valid_to" date,
+	CONSTRAINT "area_relationship_validity_order_check" CHECK ("area_relationship"."valid_to" IS NULL OR "area_relationship"."valid_from" <= "area_relationship"."valid_to")
 );
 --> statement-breakpoint
 CREATE TABLE "area_type" (
@@ -199,14 +202,16 @@ CREATE TABLE "observation" (
 	"upload_batch_id" integer NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"created_by" text NOT NULL,
-	"deleted_at" timestamp with time zone
+	"deleted_at" timestamp with time zone,
+	CONSTRAINT "observation_date_order_check" CHECK ("observation"."from_date" <= "observation"."to_date")
 );
 --> statement-breakpoint
 CREATE TABLE "observation_dimension" (
 	"id" bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "observation_dimension_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 1 CACHE 1),
 	"observation_id" bigint NOT NULL,
 	"dimension_value_id" integer NOT NULL,
-	CONSTRAINT "observation_dimension_observationId_dimensionValueId_unique" UNIQUE("observation_id","dimension_value_id")
+	"dimension_type_id" integer NOT NULL,
+	CONSTRAINT "observation_dimension_observationId_dimensionTypeId_unique" UNIQUE("observation_id","dimension_type_id")
 );
 --> statement-breakpoint
 CREATE TABLE "observation_note" (
@@ -225,6 +230,7 @@ CREATE TABLE "upload_batch" (
 	"status" text DEFAULT 'received' NOT NULL,
 	"validation_result" jsonb,
 	"superseded_by_id" integer,
+	CONSTRAINT "upload_batch_id_indicatorId_unique" UNIQUE("id","indicator_id"),
 	CONSTRAINT "upload_batch_status_check" CHECK ("upload_batch"."status" IN ('received', 'validated', 'processed', 'failed', 'superseded'))
 );
 --> statement-breakpoint
@@ -247,9 +253,9 @@ ALTER TABLE "indicator_metadata" ADD CONSTRAINT "indicator_metadata_numerator_so
 ALTER TABLE "indicator_metadata" ADD CONSTRAINT "indicator_metadata_denominator_source_id_numerator_denominator_source_id_fk" FOREIGN KEY ("denominator_source_id") REFERENCES "public"."numerator_denominator_source"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "observation" ADD CONSTRAINT "observation_indicator_id_indicator_id_fk" FOREIGN KEY ("indicator_id") REFERENCES "public"."indicator"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "observation" ADD CONSTRAINT "observation_area_id_area_id_fk" FOREIGN KEY ("area_id") REFERENCES "public"."area"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "observation" ADD CONSTRAINT "observation_upload_batch_id_upload_batch_id_fk" FOREIGN KEY ("upload_batch_id") REFERENCES "public"."upload_batch"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "observation" ADD CONSTRAINT "observation_upload_batch_indicator_fk" FOREIGN KEY ("upload_batch_id","indicator_id") REFERENCES "public"."upload_batch"("id","indicator_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "observation_dimension" ADD CONSTRAINT "observation_dimension_observation_id_observation_id_fk" FOREIGN KEY ("observation_id") REFERENCES "public"."observation"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "observation_dimension" ADD CONSTRAINT "observation_dimension_dimension_value_id_dimension_value_id_fk" FOREIGN KEY ("dimension_value_id") REFERENCES "public"."dimension_value"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "observation_dimension" ADD CONSTRAINT "observation_dimension_value_type_fk" FOREIGN KEY ("dimension_value_id","dimension_type_id") REFERENCES "public"."dimension_value"("id","dimension_type_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "observation_note" ADD CONSTRAINT "observation_note_observation_id_observation_id_fk" FOREIGN KEY ("observation_id") REFERENCES "public"."observation"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "observation_note" ADD CONSTRAINT "observation_note_note_type_id_note_type_id_fk" FOREIGN KEY ("note_type_id") REFERENCES "public"."note_type"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "upload_batch" ADD CONSTRAINT "upload_batch_indicator_id_indicator_id_fk" FOREIGN KEY ("indicator_id") REFERENCES "public"."indicator"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -269,9 +275,9 @@ CREATE INDEX "idx_area_rel_parent" ON "area_relationship" USING btree ("parent_a
 CREATE INDEX "idx_area_rel_child" ON "area_relationship" USING btree ("child_area_id");--> statement-breakpoint
 CREATE INDEX "idx_indicator_name_trgm" ON "indicator" USING gin ("name" gin_trgm_ops);--> statement-breakpoint
 CREATE INDEX "idx_indmeta_definition_trgm" ON "indicator_metadata" USING gin ("definition" gin_trgm_ops);--> statement-breakpoint
+CREATE INDEX "idx_obs_upload_batch" ON "observation" USING btree ("upload_batch_id");--> statement-breakpoint
 CREATE INDEX "idx_obs_indicator_dates" ON "observation" USING btree ("indicator_id","from_date","to_date") WHERE "observation"."deleted_at" IS NULL;--> statement-breakpoint
 CREATE INDEX "idx_obs_area_indicator" ON "observation" USING btree ("area_id","indicator_id") WHERE "observation"."deleted_at" IS NULL;--> statement-breakpoint
 CREATE INDEX "idx_obs_indicator_area_from" ON "observation" USING btree ("indicator_id","area_id","from_date") WHERE "observation"."deleted_at" IS NULL;--> statement-breakpoint
 CREATE INDEX "idx_observation_area_from_indicator" ON "observation" USING btree ("area_id","from_date","indicator_id") WHERE "observation"."deleted_at" IS NULL;--> statement-breakpoint
-CREATE INDEX "idx_obs_dim_obs_val" ON "observation_dimension" USING btree ("observation_id","dimension_value_id");--> statement-breakpoint
 CREATE INDEX "idx_obs_dim_val_obs" ON "observation_dimension" USING btree ("dimension_value_id","observation_id");

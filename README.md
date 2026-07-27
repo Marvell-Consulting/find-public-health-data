@@ -163,8 +163,11 @@ pnpm db:studio                # browse the database
 
 The schema implements the bridge/registry canonical model ratified in ADR023: governed
 registries for dimension types and values, observations linked to dimension values through
-bridge records, and three derived read-model tables rebuilt from canonical data. Both API
-roles hold `SELECT` on every table; write grants wait for the publisher workflow design.
+bridge records, and three derived read-model tables rebuilt from canonical data. Grants
+are explicit and read-only: `public_api` sees the published surface (not `upload_batch`),
+`internal_api` additionally sees upload state, and a table added by a future migration
+gets no access until granted deliberately. Write grants wait for the publisher workflow
+design.
 
 A fresh database is ready for development with:
 

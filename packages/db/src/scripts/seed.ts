@@ -53,7 +53,10 @@ async function readCsvHeader(file: string): Promise<string[]> {
   throw new Error(`No header row in ${file}`);
 }
 
-async function loadTable(sql: postgres.Sql, table: string): Promise<number> {
+async function loadTable(
+  sql: postgres.Sql | postgres.TransactionSql,
+  table: string,
+): Promise<number> {
   const file = `${seedDir}${table}.csv.gz`;
   const columns = await readCsvHeader(file);
   const columnList = columns.map((c) => `"${c}"`).join(', ');
@@ -84,23 +87,34 @@ async function loadTable(sql: postgres.Sql, table: string): Promise<number> {
 
 const sql = createOwnerClient();
 try {
-  const allTables = [...SEED_TABLES, ...READ_MODEL_TABLES].map((t) => `"${t}"`).join(', ');
-  await sql.unsafe(`TRUNCATE ${allTables} RESTART IDENTITY CASCADE`);
-
-  for (const table of SEED_TABLES) {
-    const count = await loadTable(sql, table);
-    console.log(`${table}: ${count} rows`);
+  // The seed erases and replaces every table, so it refuses to run outside a local
+  // or test database.
+  const appEnv = process.env.APP_ENV ?? 'local';
+  if (appEnv !== 'local' && appEnv !== 'test') {
+    throw new Error(`Refusing to seed: APP_ENV is '${appEnv}', not 'local' or 'test'`);
   }
 
-  for (const table of SEED_TABLES) {
-    await sql`
-      SELECT setval(
-        pg_get_serial_sequence(${table}, 'id'),
-        (SELECT COALESCE(MAX(id), 0) + 1 FROM ${sql(table)}),
-        false
-      )
-    `;
-  }
+  // One transaction: a failed load rolls back to the previous state instead of
+  // leaving a partially seeded database.
+  await sql.begin(async (tx) => {
+    const allTables = [...SEED_TABLES, ...READ_MODEL_TABLES].map((t) => `"${t}"`).join(', ');
+    await tx.unsafe(`TRUNCATE ${allTables} RESTART IDENTITY CASCADE`);
+
+    for (const table of SEED_TABLES) {
+      const count = await loadTable(tx, table);
+      console.log(`${table}: ${count} rows`);
+    }
+
+    for (const table of SEED_TABLES) {
+      await tx`
+        SELECT setval(
+          pg_get_serial_sequence(${table}, 'id'),
+          (SELECT COALESCE(MAX(id), 0) + 1 FROM ${tx(table)}),
+          false
+        )
+      `;
+    }
+  });
   console.log('Sequences resynced. Run db:rebuild-read-models to populate read models.');
 } finally {
   await sql.end();

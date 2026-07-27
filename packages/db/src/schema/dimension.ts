@@ -44,6 +44,8 @@ export const dimensionValue = pgTable(
   },
   (t) => [
     unique().on(t.dimensionTypeId, t.name),
+    // Target for the bridge table's composite (value, type) foreign key.
+    unique().on(t.id, t.dimensionTypeId),
     index('idx_dim_val_type').on(t.dimensionTypeId),
     index('idx_dim_val_parent').on(t.parentId).where(sql`${t.parentId} IS NOT NULL`),
   ],
