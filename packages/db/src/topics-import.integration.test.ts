@@ -7,7 +7,7 @@ import { createDb, type Database } from './client.js';
 import { dbEnvFields } from './env.js';
 import { type TopicRecord, topic } from './schema.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
-import { upsertTopics } from './topics-repository.js';
+import { upsertTopics } from './topic-repository.js';
 
 const env = parseEnv(
   z.object({

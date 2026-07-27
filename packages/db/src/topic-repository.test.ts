@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { TopicRecord } from './schema/index.js';
-import { findOrphanedTopics, summarizeUpsert } from './topics-repository.js';
+import { findOrphanedTopics, summarizeUpsert } from './topic-repository.js';
 
 const validTopic: TopicRecord = {
   id: '019f93b8-2b47-75d0-b03a-edb28d2d43c6',

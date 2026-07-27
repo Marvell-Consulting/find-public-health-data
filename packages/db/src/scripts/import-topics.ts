@@ -5,7 +5,7 @@ import { parseEnv, z } from '@fphd/config';
 
 import { createDb } from '../client.js';
 import { dbEnvFields } from '../env.js';
-import { upsertTopics } from '../topics-repository.js';
+import { upsertTopics } from '../topic-repository.js';
 import { parseTopicsFile } from './parse-topics-file.js';
 
 const envSchema = z.object({
