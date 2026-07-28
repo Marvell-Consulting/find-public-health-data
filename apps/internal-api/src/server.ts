@@ -1,9 +1,9 @@
 import { startApiServer } from '@fphd/api-server';
 import { createJwtSessionService, createJwtSessionVerifier } from '@fphd/auth/jwt-session';
-import { listTopics } from '@fphd/db';
+import { createRepositories } from '@fphd/db';
 import { createLogger } from '@fphd/logger';
 
-import { createApp, type TopicsReader } from './app.js';
+import { createApp } from './app.js';
 import * as config from './config.js';
 import { db } from './db.js';
 
@@ -13,18 +13,9 @@ const logger = createLogger({
   pretty: config.log.pretty,
 });
 
-const topics: TopicsReader = {
-  list: async () =>
-    (await listTopics(db)).map(({ slug, title, createdAt, updatedAt }) => ({
-      slug,
-      title,
-      createdAt,
-      updatedAt,
-    })),
-};
-
 startApiServer({
   app: createApp({
+    repositories: createRepositories(db),
     session: createJwtSessionVerifier(
       createJwtSessionService({
         audience: 'fphd-internal',
@@ -33,7 +24,6 @@ startApiServer({
         ...config.session,
       }),
     ),
-    topics,
   }),
   host: config.host,
   port: config.port,

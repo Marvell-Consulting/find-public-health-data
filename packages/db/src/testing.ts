@@ -5,6 +5,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 
 import { rebuildReadModels } from './read-models.js';
+import type { Repositories } from './repositories.js';
 import { createOwnerClient } from './scripts/owner-client.js';
 import { seedDatabase } from './seeding.js';
 
@@ -93,4 +94,28 @@ export async function createTestDatabase(): Promise<TestDatabase> {
       }
     },
   };
+}
+
+/**
+ * Repositories for an app-level unit test. Anything the test does not stub throws when
+ * called, so a handler reaching for data the test did not intend to provide fails loudly
+ * instead of quietly receiving an empty result.
+ */
+export function createFakeRepositories(overrides: Partial<Repositories> = {}): Repositories {
+  return {
+    indicators: overrides.indicators ?? unstubbed('indicators'),
+    topics: overrides.topics ?? unstubbed('topics'),
+  };
+}
+
+function unstubbed<T extends object>(name: string): T {
+  return new Proxy({} as T, {
+    get(_target, property) {
+      return () => {
+        throw new Error(
+          `The ${name} repository was called (.${String(property)}) but this test did not stub it`,
+        );
+      };
+    },
+  });
 }

@@ -10,6 +10,11 @@
       "types": "./src/host.ts",
       "default": "./dist/host.js"
     },
+    "./api-context": {
+      "development": "./src/api-context.ts",
+      "types": "./src/api-context.ts",
+      "default": "./dist/api-context.js"
+    },
     "./entry-server": {
       "development": "./src/entry-server.tsx",
       "types": "./src/entry-server.tsx",

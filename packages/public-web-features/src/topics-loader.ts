@@ -1,6 +1,5 @@
+import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
-
-import { apiContext } from './api-context';
 
 export interface TopicSummary {
   slug: string;

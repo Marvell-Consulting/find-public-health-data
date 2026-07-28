@@ -1,4 +1,3 @@
-export { type ApiContext, apiContext } from './api-context';
 export { ReleasesPage, SignInPage } from './content-pages';
 export { PublicHomePage } from './home-page';
 export { createSignInRoute } from './routes/sign-in';

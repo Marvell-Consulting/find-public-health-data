@@ -1,8 +1,7 @@
+import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
 import { RouterContextProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-
-import { apiContext } from './api-context';
 import { loadTopics } from './topics-loader';
 
 function loaderArgs(baseUrl: string): LoaderFunctionArgs {

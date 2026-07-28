@@ -16,7 +16,7 @@
     "@fphd/config": "workspace:*",
     "@fphd/db": "workspace:*",
     "@fphd/logger": "workspace:*",
-    "drizzle-orm": "catalog:"
+    "@fphd/public-api-features": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",
