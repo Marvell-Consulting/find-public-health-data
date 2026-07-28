@@ -30,8 +30,21 @@ describe('apiPath', () => {
     );
   });
 
-  it('treats a missing segment as empty rather than the string undefined', () => {
-    expect(apiPath`/api/topics/${undefined}`).toBe('/api/topics/');
+  it('keeps a whitespace-only segment, which is a slug the api can legitimately not find', () => {
+    expect(apiPath`/api/topics/${' '}`).toBe('/api/topics/%20');
+  });
+
+  // The parameter type forbids these, so the casts stand in for a caller whose types have
+  // been erased. Failing loudly beats addressing /api/topics — a different route entirely.
+  it.each([
+    ['undefined', undefined],
+    ['empty', ''],
+  ])('refuses an %s segment rather than silently changing the route', (_label, segment) => {
+    expect(() => apiPath`/api/topics/${segment as string}`).toThrow(/segment 1 is empty/);
+  });
+
+  it('refuses an empty segment that is not the last one', () => {
+    expect(() => apiPath`/api/${'' as string}/topics/${'topic-a'}`).toThrow(/segment 1 is empty/);
   });
 });
 

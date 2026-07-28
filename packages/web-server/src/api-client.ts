@@ -21,13 +21,28 @@ const DEFAULT_TIMEOUT_MS = 10_000;
  * Path segments are encoded here so no caller can interpolate one raw. React Router decodes
  * `%2F` inside a single dynamic segment, so an un-encoded slug of `../internal` would
  * normalise the request onto a different API route entirely.
+ *
+ * An empty segment is rejected rather than tolerated: it silently changes which route the
+ * path addresses — `/api/topics/` is the collection, not a member — and it does so wherever
+ * it appears, not only at the end, so a trailing slash is not a signal a caller could check
+ * for. The parameter type keeps this out of reach at compile time; the throw is for callers
+ * whose types have been erased.
  */
-export function apiPath(strings: TemplateStringsArray, ...segments: (string | undefined)[]) {
-  return strings.reduce(
-    (path, literal, index) =>
-      index === 0 ? literal : `${path}${encodeURIComponent(segments[index - 1] ?? '')}${literal}`,
-    '',
-  );
+export function apiPath(strings: TemplateStringsArray, ...segments: string[]) {
+  return strings.reduce((path, literal, index) => {
+    if (index === 0) {
+      return literal;
+    }
+
+    const segment = segments[index - 1];
+    if (segment === undefined || segment === '') {
+      throw new Error(
+        `apiPath: segment ${index} is empty, which would address a different route than intended`,
+      );
+    }
+
+    return `${path}${encodeURIComponent(segment)}${literal}`;
+  }, '');
 }
 
 export function createApiClient({
