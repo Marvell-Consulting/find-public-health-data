@@ -1,6 +1,7 @@
 #!/bin/bash
 # Dev-only: create a login role per API so each connects with its own user.
-# No grants yet — access rules will be defined later once the schema and plan exist.
+# Roles only, no grants — those are explicit per-table statements in the drizzle
+# migrations (packages/db/drizzle), applied by pnpm db:migrate.
 # Runs once, as the owner role ($POSTGRES_USER), when the data volume is first initialised.
 set -euo pipefail
 

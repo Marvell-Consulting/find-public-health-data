@@ -67,7 +67,7 @@ pnpm check
 pnpm build
 pnpm test              # all three tiers below, in order
 pnpm test:unit         # unit tests
-pnpm test:integration  # integration tests — none exist yet
+pnpm test:integration  # integration tests — need the local database running
 pnpm test:e2e          # end-to-end tests — none exist yet
 ```
 
@@ -85,8 +85,8 @@ Runs are triggered on every non-draft pull request (on open, on every push to th
 draft is marked ready for review) and on every push to `main`. **Draft pull requests run nothing.**
 
 `pnpm check` is the local equivalent for lint, typecheck, test and build. It runs `pnpm test`, so it
-covers all three test tiers — which today costs nothing, but once integration tests exist `pnpm check`
-will need the database running. CI additionally runs `pnpm audit --audit-level high`, which fails on
+covers all three test tiers — which means `pnpm check` needs the local database running
+(`docker compose up -d db`) for the integration tier. CI additionally runs `pnpm audit --audit-level high`, which fails on
 high and critical advisories, so a newly published advisory can redden a pull request that changed
 nothing. Where a real advisory has no fix and blocks all work, `pnpm.auditConfig.ignoreGhsas` is the
 escape hatch; each entry is a reviewable decision.
@@ -94,11 +94,8 @@ escape hatch; each entry is a reviewable decision.
 Each tier is its own CI job, so the jobs run `pnpm test:unit`, `pnpm test:integration` and
 `pnpm test:e2e` individually rather than `pnpm test`.
 
-**There are no integration or e2e tests yet**, so those two jobs execute zero tests — their check
-names say so. They get there differently, which matters when reading their logs:
-
-- `pnpm test:integration` runs Vitest over every project and matches no file. It passes because of
-  `--passWithNoTests`, not because nothing ran.
+- `pnpm test:integration` runs Vitest over every project, selecting `integration.test` files. A
+  project without any still passes because of `--passWithNoTests`.
 - `pnpm test:e2e` matches no package at all. It is the only tier carrying `--if-present`, which is
   what makes it a no-op rather than an error; drop the flag once an e2e package exists.
 
@@ -159,6 +156,7 @@ Schema and migrations are managed with Drizzle in `packages/db`:
 pnpm db:generate              # generate a migration from the schema
 pnpm db:migrate               # apply pending migrations
 pnpm db:seed                  # load the committed seed data (10 real indicators)
+pnpm db:import-topics         # upsert topics from packages/db/data/topics.json
 pnpm db:rebuild-read-models   # rebuild the derived cache tables from canonical data
 pnpm db:studio                # browse the database
 ```
@@ -171,6 +169,9 @@ indicator number survives as `indicator.fingertips_id`. Grants are explicit and 
 `public_api` sees the published surface (not `upload_batch`), `internal_api` additionally
 sees upload state, and a table added by a future migration gets no access until granted
 deliberately. Write grants wait for the publisher workflow design.
+
+The package layout, naming conventions, the add-a-table checklist and the topics import
+tool's semantics are documented in [`packages/db/README.md`](packages/db/README.md).
 
 A fresh database is ready for development with:
 

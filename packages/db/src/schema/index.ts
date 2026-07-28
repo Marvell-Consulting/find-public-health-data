@@ -5,4 +5,5 @@ export * from './helpers.js';
 export * from './indicator.js';
 export * from './lookup.js';
 export * from './observation.js';
+export * from './topic.js';
 export * from './upload.js';
