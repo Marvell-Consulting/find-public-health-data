@@ -1,22 +1,13 @@
+import { topicSummaryListSchema } from '@fphd/public-api-features/contract';
 import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
 
-export interface TopicSummary {
-  slug: string;
-  title: string;
-}
+export type { TopicSummary } from '@fphd/public-api-features/contract';
 
 /**
  * Kept free of any @fphd/ui import so it can be unit-tested without the jsdom/SSR
  * environment the GOV.UK component library needs.
  */
-export async function loadTopics({ context }: LoaderFunctionArgs): Promise<TopicSummary[]> {
-  const { baseUrl } = context.get(apiContext);
-  const response = await fetch(`${baseUrl}/api/topics`);
-
-  if (!response.ok) {
-    throw new Response('Failed to load topics', { status: response.status });
-  }
-
-  return (await response.json()) as TopicSummary[];
+export async function loadTopics({ context }: LoaderFunctionArgs) {
+  return context.get(apiContext).get('/api/topics', topicSummaryListSchema);
 }

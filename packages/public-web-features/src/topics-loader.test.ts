@@ -1,41 +1,45 @@
+import type { ApiClient } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
 import { RouterContextProvider } from 'react-router';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
 import { loadTopics } from './topics-loader';
 
-function loaderArgs(baseUrl: string): LoaderFunctionArgs {
+function loaderArgs(api: ApiClient, params: Record<string, string> = {}): LoaderFunctionArgs {
   const context = new RouterContextProvider();
-  context.set(apiContext, { baseUrl });
+  context.set(apiContext, api);
 
   return {
     context,
-    params: {},
+    params,
     request: new Request('http://localhost/topics'),
   } as unknown as LoaderFunctionArgs;
 }
 
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
-
 describe('loadTopics', () => {
-  it('fetches topics from the configured api base url and returns the parsed body', async () => {
-    const topics = [{ slug: 'a-topic', title: 'A Topic' }];
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(new Response(JSON.stringify(topics), { status: 200 }));
-    vi.stubGlobal('fetch', fetchMock);
+  it('asks the api for the topic list and returns what the contract schema yields', async () => {
+    const topics = [
+      {
+        slug: 'a-topic',
+        title: 'A Topic',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-02T00:00:00.000Z',
+      },
+    ];
+    const get = vi.fn().mockResolvedValue(topics);
 
-    const result = await loadTopics(loaderArgs('http://localhost:4000'));
+    const result = await loadTopics(loaderArgs({ get } as unknown as ApiClient));
 
-    expect(fetchMock).toHaveBeenCalledWith('http://localhost:4000/api/topics');
+    expect(get).toHaveBeenCalledWith('/api/topics', expect.anything());
     expect(result).toEqual(topics);
   });
 
-  it('throws when the response is not ok', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 500 })));
+  it('propagates the failure the client raises rather than returning a partial page', async () => {
+    const get = vi.fn().mockRejectedValue(new Response('Bad Gateway', { status: 502 }));
 
-    await expect(loadTopics(loaderArgs('http://localhost:4000'))).rejects.toBeInstanceOf(Response);
+    await expect(loadTopics(loaderArgs({ get } as unknown as ApiClient))).rejects.toBeInstanceOf(
+      Response,
+    );
   });
 });

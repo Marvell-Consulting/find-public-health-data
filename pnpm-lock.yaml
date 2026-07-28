@@ -513,6 +513,9 @@ importers:
 
   packages/public-api-features:
     dependencies:
+      '@fphd/config':
+        specifier: workspace:*
+        version: link:../config
       '@fphd/db':
         specifier: workspace:*
         version: link:../db
@@ -542,6 +545,9 @@ importers:
       '@fphd/auth':
         specifier: workspace:*
         version: link:../auth
+      '@fphd/public-api-features':
+        specifier: workspace:*
+        version: link:../public-api-features
       '@fphd/web-server':
         specifier: workspace:*
         version: link:../web-server
@@ -612,6 +618,9 @@ importers:
       '@fphd/auth':
         specifier: workspace:*
         version: link:../auth
+      '@fphd/config':
+        specifier: workspace:*
+        version: link:../config
       '@fphd/ui':
         specifier: workspace:*
         version: link:../ui

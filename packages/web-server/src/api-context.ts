@@ -1,7 +1,10 @@
 import { createContext } from 'react-router';
 
-export interface ApiContext {
-  baseUrl: string;
-}
+import type { ApiClient } from './api-client.js';
 
-export const apiContext = createContext<ApiContext>();
+/**
+ * The API client a loader should use. Holding the client rather than a base URL means no
+ * feature builds its own request, so path encoding, timeouts, error mapping and response
+ * validation are decided in one place.
+ */
+export const apiContext = createContext<ApiClient>();

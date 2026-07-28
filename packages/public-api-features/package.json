@@ -9,6 +9,11 @@
       "development": "./src/index.ts",
       "types": "./src/index.ts",
       "default": "./dist/index.js"
+    },
+    "./contract": {
+      "development": "./src/contract.ts",
+      "types": "./src/contract.ts",
+      "default": "./dist/contract.js"
     }
   },
   "scripts": {
@@ -16,6 +21,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fphd/config": "workspace:*",
     "@fphd/db": "workspace:*",
     "express": "catalog:"
   },

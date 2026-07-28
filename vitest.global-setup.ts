@@ -1,4 +1,4 @@
-// Builds the seeded template database the integration tier copies per test file.
+// Builds the template databases the integration tier copies per test file.
 // Gated on INTEGRATION_DB so the unit tier never touches Postgres; the
 // test:integration script sets it.
 export default async function setup(): Promise<(() => Promise<void>) | undefined> {

@@ -4,8 +4,8 @@ import { Router } from 'express';
 import { indicatorsRouter } from './indicators.js';
 import { topicsRouter } from './topics.js';
 
-export { type IndicatorSummary, indicatorsRouter } from './indicators.js';
-export { type TopicSummary, topicsRouter } from './topics.js';
+export { indicatorsRouter } from './indicators.js';
+export { topicsRouter } from './topics.js';
 
 /**
  * Every route on the public API surface, in one router. `internal-api` mounts this too, so

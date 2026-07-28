@@ -10,6 +10,11 @@
       "types": "./src/host.ts",
       "default": "./dist/host.js"
     },
+    "./api-client": {
+      "development": "./src/api-client.ts",
+      "types": "./src/api-client.ts",
+      "default": "./dist/api-client.js"
+    },
     "./api-context": {
       "development": "./src/api-context.ts",
       "types": "./src/api-context.ts",
@@ -47,6 +52,7 @@
   },
   "dependencies": {
     "@fphd/auth": "workspace:*",
+    "@fphd/config": "workspace:*",
     "@fphd/ui": "workspace:*",
     "@react-router/express": "catalog:",
     "@react-router/node": "catalog:",

@@ -11,7 +11,7 @@ let testDb: TestDatabase;
 let sql: postgres.Sql;
 
 beforeAll(async () => {
-  testDb = await createTestDatabase();
+  testDb = await createTestDatabase({ template: 'seeded' });
   sql = createOwnerClient(testDb.name);
 });
 

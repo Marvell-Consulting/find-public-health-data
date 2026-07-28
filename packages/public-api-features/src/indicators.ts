@@ -1,13 +1,6 @@
 import type { Repositories } from '@fphd/db';
 import { Router } from 'express';
 
-export interface IndicatorSummary {
-  id: string;
-  fingertipsId: number;
-  name: string;
-  status: string;
-}
-
 export function indicatorsRouter(indicators: Repositories['indicators']): Router {
   const router = Router();
 

@@ -1,19 +1,15 @@
 import type { Repositories, Topic } from '@fphd/db';
 import { Router } from 'express';
 
-/**
- * The wire shape of a topic in a list response. Deliberately not the database row type:
- * `id` is internal, and the API contract should not move every time the table does.
- */
-export interface TopicSummary {
-  slug: string;
-  title: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import type { TopicSummary } from './contract.js';
 
 function toSummary({ slug, title, createdAt, updatedAt }: Topic): TopicSummary {
-  return { slug, title, createdAt, updatedAt };
+  return {
+    slug,
+    title,
+    createdAt: createdAt.toISOString(),
+    updatedAt: updatedAt.toISOString(),
+  };
 }
 
 /**
