@@ -3,7 +3,9 @@ import { alias } from 'drizzle-orm/pg-core';
 
 import type { Database } from './client.js';
 import {
+  availableData,
   ciMethod,
+  comparatorMethod,
   dataSource,
   frequency,
   indicator,
@@ -41,6 +43,11 @@ export interface IndicatorSource {
   url: string | null;
 }
 
+export interface IndicatorAreaType {
+  name: string;
+  areaCount: number;
+}
+
 export interface IndicatorDetail {
   fingertipsId: number;
   name: string;
@@ -51,6 +58,7 @@ export interface IndicatorDetail {
   polarity: string;
   ciMethod: string | null;
   ciConfidenceLevel: string | null;
+  comparatorMethod: string | null;
   definition: string | null;
   rationale: string | null;
   methodology: string | null;
@@ -62,6 +70,7 @@ export interface IndicatorDetail {
   dataSource: IndicatorSource | null;
   numeratorSource: IndicatorSource | null;
   denominatorSource: IndicatorSource | null;
+  areaTypes: IndicatorAreaType[];
 }
 
 /**
@@ -78,6 +87,7 @@ export async function getApprovedIndicatorByFingertipsId(
 
   const [row] = await db
     .select({
+      id: indicator.id,
       fingertipsId: indicator.fingertipsId,
       name: indicator.name,
       valueType: valueType.name,
@@ -88,6 +98,7 @@ export async function getApprovedIndicatorByFingertipsId(
       polarity: polarity.name,
       ciMethod: ciMethod.name,
       ciConfidenceLevel: indicator.ciConfidenceLevel,
+      comparatorMethod: comparatorMethod.name,
       definition: indicatorMetadata.definition,
       rationale: indicatorMetadata.rationale,
       methodology: indicatorMetadata.methodology,
@@ -110,6 +121,7 @@ export async function getApprovedIndicatorByFingertipsId(
     .innerJoin(polarity, eq(indicator.polarityId, polarity.id))
     .innerJoin(frequency, eq(indicator.frequencyId, frequency.id))
     .leftJoin(ciMethod, eq(indicator.ciMethodId, ciMethod.id))
+    .leftJoin(comparatorMethod, eq(indicator.comparatorMethodId, comparatorMethod.id))
     .leftJoin(indicatorMetadata, eq(indicatorMetadata.indicatorId, indicator.id))
     .leftJoin(dataSource, eq(indicatorMetadata.dataSourceId, dataSource.id))
     .leftJoin(numeratorSource, eq(indicatorMetadata.numeratorSourceId, numeratorSource.id))
@@ -121,6 +133,12 @@ export async function getApprovedIndicatorByFingertipsId(
     return undefined;
   }
 
+  const areaTypes = await db
+    .select({ name: availableData.areaTypeName, areaCount: availableData.areaCount })
+    .from(availableData)
+    .where(eq(availableData.indicatorId, row.id))
+    .orderBy(asc(availableData.areaTypeName));
+
   return {
     fingertipsId: row.fingertipsId,
     name: row.name,
@@ -131,6 +149,7 @@ export async function getApprovedIndicatorByFingertipsId(
     polarity: row.polarity,
     ciMethod: row.ciMethod,
     ciConfidenceLevel: row.ciConfidenceLevel,
+    comparatorMethod: row.comparatorMethod,
     definition: row.definition,
     rationale: row.rationale,
     methodology: row.methodology,
@@ -149,5 +168,6 @@ export async function getApprovedIndicatorByFingertipsId(
       row.denominatorSourceName === null
         ? null
         : { name: row.denominatorSourceName, url: row.denominatorSourceUrl },
+    areaTypes,
   };
 }

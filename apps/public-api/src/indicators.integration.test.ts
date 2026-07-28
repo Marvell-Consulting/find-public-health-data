@@ -73,6 +73,11 @@ describe('public API against the seeded database', () => {
       unit: { name: expect.any(String), label: expect.any(String) },
       definition: expect.any(String),
     });
+    expect(response.body.areaTypes.length).toBeGreaterThan(0);
+    expect(response.body.areaTypes[0]).toEqual({
+      name: expect.any(String),
+      areaCount: expect.any(Number),
+    });
     expect(response.body).not.toHaveProperty('id');
     expect(() => indicatorDetailSchema.parse(response.body)).not.toThrow();
   });

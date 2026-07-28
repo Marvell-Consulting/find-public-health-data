@@ -48,15 +48,51 @@
   @include govuk-font($size: 19);
 }
 
+.fphd-chart-section {
+  margin-bottom: 50px;
+}
+
 .fphd-chart-placeholder {
   padding: govuk-spacing(4);
-  margin-bottom: govuk-spacing(4);
-  border: 1px dashed govuk-colour("mid-grey");
+  border: 1px solid #bfc1c3;
 }
 
 // Metadata prose arrives from the database with meaningful line breaks.
 .fphd-metadata-text {
   white-space: pre-line;
+}
+
+.fphd-filter-pane__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: govuk-spacing(3) govuk-spacing(3) govuk-spacing(2);
+  background-color: #d1d2d3;
+}
+
+.fphd-filter-pane__header .govuk-heading-m {
+  margin-bottom: 0;
+}
+
+.fphd-filter-pane__body {
+  padding: 1.5em 1em;
+  background-color: #e1e2e3;
+}
+
+.fphd-filter-pane__selected-card {
+  padding: govuk-spacing(3);
+  margin-bottom: govuk-spacing(3);
+  background-color: govuk-colour("white");
+  border: 1px solid #bfc1c3;
+}
+
+.fphd-filter-pane__body .govuk-select {
+  width: 100%;
+}
+
+.fphd-contents-list {
+  list-style-type: "— ";
+  padding-left: govuk-spacing(4);
 }
 
 .fphd-show-more {

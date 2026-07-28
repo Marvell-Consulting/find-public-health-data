@@ -32,6 +32,7 @@ const indicatorDetail = {
   polarity: 'RAG - Low is good',
   ciMethod: "Dobson & Byar's methods",
   ciConfidenceLevel: '95',
+  comparatorMethod: null,
   definition: 'Directly age-standardised mortality rate for all deaths.',
   rationale: null,
   methodology: null,
@@ -43,6 +44,7 @@ const indicatorDetail = {
   dataSource: { name: 'Office for National Statistics', url: null },
   numeratorSource: null,
   denominatorSource: null,
+  areaTypes: [{ name: 'Counties & UAs (from Apr 2023)', areaCount: 153 }],
 };
 
 describe('public API', () => {

@@ -142,6 +142,7 @@ describe('public application routes', () => {
       polarity: 'RAG - Low is good',
       ciMethod: "Dobson & Byar's methods",
       ciConfidenceLevel: '95',
+      comparatorMethod: null,
       definition: 'Directly age-standardised mortality rate for all deaths.',
       rationale: 'Premature mortality is a key measure of population health.',
       methodology: null,
@@ -153,6 +154,7 @@ describe('public application routes', () => {
       dataSource: { name: 'Office for National Statistics', url: 'https://www.ons.gov.uk' },
       numeratorSource: null,
       denominatorSource: null,
+      areaTypes: [{ name: 'Counties & UAs (from Apr 2023)', areaCount: 153 }],
     };
     const Routes = createRoutesStub([
       {
@@ -168,20 +170,33 @@ describe('public application routes', () => {
     render(<Routes initialEntries={['/indicators/108']} />);
 
     expect(
-      await screen.findByRole('heading', { name: 'Under 75 mortality rate from all causes' }),
+      await screen.findByRole('heading', { name: 'View data for selected indicators and areas' }),
     ).toBeTruthy();
-    expect(
-      screen.getByText('Directly age-standardised mortality rate for all deaths.'),
-    ).toBeTruthy();
+
+    // The filter pane shows the selected indicator and its available area types.
+    expect(screen.getByRole('heading', { name: 'Filters' })).toBeTruthy();
+    expect(screen.getByText('Under 75 mortality rate from all causes')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'View background information' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Counties & UAs (from Apr 2023)' })).toBeTruthy();
 
     // The chart placeholders are labelled, keyboard-reachable regions (ADR013), one per
     // chart in the initial scope.
-    for (const name of ['Trend over time', 'Compare areas', 'Compare with England']) {
+    for (const name of [
+      'Indicator segmentations overview',
+      'Indicator trends over time',
+      'Compare areas for one time period',
+    ]) {
       const region = screen.getByRole('region', { name });
       expect(region.getAttribute('tabindex')).toBe('0');
     }
 
-    expect(screen.getByText('Rationale')).toBeTruthy();
+    expect(
+      screen.getByRole('heading', { name: 'Background information and indicator definitions' }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText('Directly age-standardised mortality rate for all deaths.'),
+    ).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Indicator rationale' })).toBeTruthy();
     expect(
       screen.getByRole('link', { name: 'Office for National Statistics' }).getAttribute('href'),
     ).toBe('https://www.ons.gov.uk');

@@ -50,6 +50,7 @@ export const indicatorDetailSchema = z.object({
   polarity: z.string().min(1),
   ciMethod: z.string().nullable(),
   ciConfidenceLevel: z.string().nullable(),
+  comparatorMethod: z.string().nullable(),
   definition: z.string().nullable(),
   rationale: z.string().nullable(),
   methodology: z.string().nullable(),
@@ -61,6 +62,7 @@ export const indicatorDetailSchema = z.object({
   dataSource: indicatorSourceSchema.nullable(),
   numeratorSource: indicatorSourceSchema.nullable(),
   denominatorSource: indicatorSourceSchema.nullable(),
+  areaTypes: z.array(z.object({ name: z.string().min(1), areaCount: z.number().int() })),
 });
 
 export type TopicSummary = z.infer<typeof topicSummarySchema>;
