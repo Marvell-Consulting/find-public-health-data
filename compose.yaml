@@ -47,6 +47,8 @@ services:
         APP: public-web
     container_name: fphd-public-web
     init: true
+    environment:
+      API_URL: http://host.docker.internal:4000
     ports:
       - '3000:3000'
     extra_hosts:
@@ -72,6 +74,8 @@ services:
         APP: internal-web
     container_name: fphd-internal-web
     init: true
+    environment:
+      API_URL: http://host.docker.internal:4001
     ports:
       - '3001:3001'
     extra_hosts:

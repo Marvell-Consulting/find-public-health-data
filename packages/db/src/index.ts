@@ -3,3 +3,4 @@ export { dbEnvFields } from './env.js';
 export { rebuildReadModels } from './read-models.js';
 export * as schema from './schema.js';
 export { createOwnerClient } from './scripts/owner-client.js';
+export { listTopics, type Topic } from './topic-repository.js';

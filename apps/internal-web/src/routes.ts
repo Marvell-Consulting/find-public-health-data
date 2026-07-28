@@ -6,6 +6,7 @@ export default [
   layout('./authenticated.tsx', [
     index('../../../packages/public-web-features/src/routes/home.tsx'),
     route('releases', '../../../packages/public-web-features/src/routes/releases.tsx'),
+    route('topics', '../../../packages/public-web-features/src/routes/topics.tsx'),
     route('manage', './manage.tsx'),
   ]),
   route('*', '../../../packages/ui/src/not-found-route.tsx'),

@@ -2,7 +2,25 @@ import { createJwtSessionService, createJwtSessionVerifier } from '@fphd/auth/jw
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
-import { createApp } from './app.js';
+import { createApp, type TopicSummary, type TopicsReader } from './app.js';
+
+const topicA = {
+  slug: 'topic-a',
+  title: 'Topic A',
+  createdAt: new Date('2024-01-01T00:00:00.000Z'),
+  updatedAt: new Date('2024-01-02T00:00:00.000Z'),
+};
+
+const topicB = {
+  slug: 'topic-b',
+  title: 'Topic B',
+  createdAt: new Date('2024-02-01T00:00:00.000Z'),
+  updatedAt: new Date('2024-02-02T00:00:00.000Z'),
+};
+
+function fakeTopics(items: TopicSummary[]): TopicsReader {
+  return { list: async () => items };
+}
 
 const session = createJwtSessionService({
   audience: 'fphd-internal',
@@ -12,7 +30,8 @@ const session = createJwtSessionService({
   secret: 'a-jwt-session-secret-that-is-long-enough-for-tests',
   secure: false,
 });
-const app = createApp(createJwtSessionVerifier(session));
+const verifier = createJwtSessionVerifier(session);
+const app = createApp({ session: verifier, topics: fakeTopics([]) });
 
 async function createCookie(roles: readonly string[]): Promise<string> {
   const token = await session.issueToken({
@@ -64,5 +83,39 @@ describe('internal API', () => {
     expect(response.status).toBe(401);
     expect(response.body).toEqual({ error: 'invalid_session' });
     expect(response.get('Set-Cookie')?.[0]).toContain('Max-Age=0');
+  });
+
+  it('lists topics in the order the repository returns them, as ISO timestamps', async () => {
+    const response = await request(
+      createApp({ session: verifier, topics: fakeTopics([topicA, topicB]) }),
+    ).get('/api/topics');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([
+      {
+        slug: 'topic-a',
+        title: 'Topic A',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-02T00:00:00.000Z',
+      },
+      {
+        slug: 'topic-b',
+        title: 'Topic B',
+        createdAt: '2024-02-01T00:00:00.000Z',
+        updatedAt: '2024-02-02T00:00:00.000Z',
+      },
+    ]);
+  });
+
+  it('returns a 500 when the repository fails', async () => {
+    const failing: TopicsReader = {
+      list: () => Promise.reject(new Error('database unavailable')),
+    };
+
+    const response = await request(createApp({ session: verifier, topics: failing })).get(
+      '/api/topics',
+    );
+
+    expect(response.status).toBe(500);
   });
 });

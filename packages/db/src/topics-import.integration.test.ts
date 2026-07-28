@@ -7,7 +7,7 @@ import { createDb, type Database } from './client.js';
 import { dbEnvFields } from './env.js';
 import { type TopicRecord, topic } from './schema.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
-import { upsertTopics } from './topic-repository.js';
+import { listTopics, upsertTopics } from './topic-repository.js';
 
 const env = parseEnv(
   z.object({
@@ -162,5 +162,39 @@ describe('topics import (integration)', () => {
     } finally {
       await client.end();
     }
+  });
+});
+
+describe('listTopics (integration)', () => {
+  it('returns topics ordered alphabetically by title', async () => {
+    const zebra: TopicRecord = {
+      id: '00000000-0000-4000-8000-000000000003',
+      slug: 'zebra-topic',
+      title: 'Zebra topic',
+      description: 'Should sort last.',
+    };
+    const apple: TopicRecord = {
+      id: '00000000-0000-4000-8000-000000000004',
+      slug: 'apple-topic',
+      title: 'Apple topic',
+      description: 'Should sort first.',
+    };
+
+    await upsertTopics(db, [zebra, apple]);
+
+    const all = await listTopics(db);
+    const titles = all.map((topic) => topic.title);
+
+    expect(titles.indexOf('Apple topic')).toBeLessThan(titles.indexOf('Zebra topic'));
+
+    const zebraRow = all.find((topic) => topic.slug === 'zebra-topic');
+    expect(zebraRow).toMatchObject({
+      id: zebra.id,
+      slug: 'zebra-topic',
+      title: 'Zebra topic',
+      description: 'Should sort last.',
+    });
+    expect(zebraRow?.createdAt).toBeInstanceOf(Date);
+    expect(zebraRow?.updatedAt).toBeInstanceOf(Date);
   });
 });

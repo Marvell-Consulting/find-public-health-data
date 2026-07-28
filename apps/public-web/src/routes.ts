@@ -4,5 +4,6 @@ export default [
   index('../../../packages/public-web-features/src/routes/home.tsx'),
   route('releases', '../../../packages/public-web-features/src/routes/releases.tsx'),
   route('sign-in', './sign-in.tsx'),
+  route('topics', '../../../packages/public-web-features/src/routes/topics.tsx'),
   route('*', '../../../packages/ui/src/not-found-route.tsx'),
 ] satisfies RouteConfig;

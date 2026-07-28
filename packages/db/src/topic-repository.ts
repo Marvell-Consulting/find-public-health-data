@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { asc, sql } from 'drizzle-orm';
 
 import type { Database } from './client.js';
 import { type TopicRecord, topic } from './schema/index.js';
@@ -44,9 +44,16 @@ export function summarizeUpsert(recordCount: number, outcomes: UpsertOutcome[]):
   return { inserted, updated, unchanged: recordCount - inserted - updated };
 }
 
+export type Topic = typeof topic.$inferSelect;
+
 export interface UpsertResult {
   summary: UpsertSummary;
   orphaned: ExistingTopic[];
+}
+
+/** All topics, ordered alphabetically by title. */
+export async function listTopics(db: Database): Promise<Topic[]> {
+  return db.select().from(topic).orderBy(asc(topic.title));
 }
 
 /**

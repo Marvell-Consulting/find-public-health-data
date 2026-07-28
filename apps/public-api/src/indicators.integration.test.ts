@@ -16,9 +16,21 @@ process.env.POSTGRES_DB = testDb.name;
 
 const { db } = await import('./db.js');
 const { createApp } = await import('./app.js');
-const { createOwnerClient, schema } = await import('@fphd/db');
+const { createOwnerClient, listTopics, schema } = await import('@fphd/db');
 
 const owner = createOwnerClient(testDb.name);
+
+// The route under test is /api/indicators, but createApp wires both surfaces; this is the
+// same reader server.ts builds, so the app is exercised as it runs.
+const topics = {
+  list: async () =>
+    (await listTopics(db)).map(({ slug, title, createdAt, updatedAt }) => ({
+      slug,
+      title,
+      createdAt,
+      updatedAt,
+    })),
+};
 
 afterAll(async () => {
   await owner.end();
@@ -27,7 +39,7 @@ afterAll(async () => {
 
 describe('public API against the seeded database', () => {
   it('lists the seeded indicators', async () => {
-    const response = await request(createApp({ db })).get('/api/indicators');
+    const response = await request(createApp({ db, topics })).get('/api/indicators');
 
     expect(response.status).toBe(200);
     expect(response.body.indicators).toHaveLength(10);
@@ -52,7 +64,7 @@ describe('public API against the seeded database', () => {
       LIMIT 1
       RETURNING id
     `;
-    const response = await request(createApp({ db })).get('/api/indicators');
+    const response = await request(createApp({ db, topics })).get('/api/indicators');
     expect(response.status).toBe(200);
     expect(response.body.indicators).toHaveLength(10);
     const ids = response.body.indicators.map((i: { id: string }) => i.id);
