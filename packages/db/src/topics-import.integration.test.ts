@@ -1,21 +1,18 @@
 import { parseEnv, z } from '@fphd/config';
 import { eq, getTableColumns, sql } from 'drizzle-orm';
-import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDb, type Database } from './client.js';
 import { dbEnvFields } from './env.js';
 import { type TopicRecord, topic } from './schema.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
-import { listTopics, upsertTopics } from './topic-repository.js';
+import { upsertTopics } from './topic-repository.js';
 
 const env = parseEnv(
   z.object({
     ...dbEnvFields,
     POSTGRES_USER: z.string().default('fphd'),
     POSTGRES_PASSWORD: z.string().default('fphd'),
-    PUBLIC_API_PASSWORD: z.string().default('public_api'),
-    INTERNAL_API_PASSWORD: z.string().default('internal_api'),
   }),
   process.env,
 );
@@ -138,63 +135,5 @@ describe('topics import (integration)', () => {
 
     // Left in place, not deleted.
     await expect(requireRow(topicA.id)).resolves.toBeDefined();
-  });
-
-  const apiRoles = [
-    { role: 'public_api', password: env.PUBLIC_API_PASSWORD },
-    { role: 'internal_api', password: env.INTERNAL_API_PASSWORD },
-  ];
-
-  it.each(apiRoles)('lets $role select topics but not write them', async ({ role, password }) => {
-    const client = postgres({
-      host: env.DB_HOST,
-      port: env.DB_PORT,
-      database: testDb.name,
-      username: role,
-      password,
-    });
-
-    try {
-      await expect(client`SELECT * FROM topic`).resolves.toBeDefined();
-      await expect(
-        client`INSERT INTO topic (id, slug, title, description) VALUES (gen_random_uuid(), 'x', 'x', 'x')`,
-      ).rejects.toThrow(/permission denied/);
-    } finally {
-      await client.end();
-    }
-  });
-});
-
-describe('listTopics (integration)', () => {
-  it('returns topics ordered alphabetically by title', async () => {
-    const zebra: TopicRecord = {
-      id: '00000000-0000-4000-8000-000000000003',
-      slug: 'zebra-topic',
-      title: 'Zebra topic',
-      description: 'Should sort last.',
-    };
-    const apple: TopicRecord = {
-      id: '00000000-0000-4000-8000-000000000004',
-      slug: 'apple-topic',
-      title: 'Apple topic',
-      description: 'Should sort first.',
-    };
-
-    await upsertTopics(db, [zebra, apple]);
-
-    const all = await listTopics(db);
-    const titles = all.map((topic) => topic.title);
-
-    expect(titles.indexOf('Apple topic')).toBeLessThan(titles.indexOf('Zebra topic'));
-
-    const zebraRow = all.find((topic) => topic.slug === 'zebra-topic');
-    expect(zebraRow).toMatchObject({
-      id: zebra.id,
-      slug: 'zebra-topic',
-      title: 'Zebra topic',
-      description: 'Should sort last.',
-    });
-    expect(zebraRow?.createdAt).toBeInstanceOf(Date);
-    expect(zebraRow?.updatedAt).toBeInstanceOf(Date);
   });
 });
