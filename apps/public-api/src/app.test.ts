@@ -22,6 +22,29 @@ const topicB = {
   updatedAt: new Date('2024-02-02T00:00:00.000Z'),
 };
 
+const indicatorDetail = {
+  fingertipsId: 108,
+  name: 'Under 75 mortality rate from all causes',
+  valueType: 'Directly standardised rate',
+  unit: { name: 'per 100,000', label: 'per 100,000' },
+  yearType: 'Calendar',
+  frequency: 'Annual',
+  polarity: 'RAG - Low is good',
+  ciMethod: "Dobson & Byar's methods",
+  ciConfidenceLevel: '95',
+  definition: 'Directly age-standardised mortality rate for all deaths.',
+  rationale: null,
+  methodology: null,
+  numeratorDefinition: null,
+  denominatorDefinition: null,
+  disclosureControl: null,
+  caveats: null,
+  notes: null,
+  dataSource: { name: 'Office for National Statistics', url: null },
+  numeratorSource: null,
+  denominatorSource: null,
+};
+
 describe('public API', () => {
   it('reports its health', async () => {
     const response = await request(createApp({ repositories: createFakeRepositories() })).get(
@@ -109,6 +132,38 @@ describe('public API', () => {
     const repositories = createFakeRepositories({ topics: { findBySlug: async () => undefined } });
 
     const response = await request(createApp({ repositories })).get('/api/topics/no-such-topic');
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: 'not_found' });
+  });
+
+  it('finds an indicator by its fingertips id', async () => {
+    const repositories = createFakeRepositories({
+      indicators: { findApprovedByFingertipsId: async () => indicatorDetail },
+    });
+
+    const response = await request(createApp({ repositories })).get('/api/indicators/108');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(indicatorDetail);
+  });
+
+  it('returns the standard not-found body for an unknown fingertips id', async () => {
+    const repositories = createFakeRepositories({
+      indicators: { findApprovedByFingertipsId: async () => undefined },
+    });
+
+    const response = await request(createApp({ repositories })).get('/api/indicators/424242');
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: 'not_found' });
+  });
+
+  it('rejects a non-numeric indicator id without touching the repository', async () => {
+    // No stub: if the route reached the repository, the fake would throw and this would 500.
+    const response = await request(createApp({ repositories: createFakeRepositories() })).get(
+      '/api/indicators/not-a-number',
+    );
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'not_found' });

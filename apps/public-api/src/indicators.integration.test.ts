@@ -60,6 +60,46 @@ describe('public API against the seeded database', () => {
     expect(ids).not.toContain(inserted[0]?.id);
   });
 
+  it('returns the full detail for a seeded indicator, matching the wire contract', async () => {
+    const { indicatorDetailSchema } = await import('@fphd/public-api-features/contract');
+
+    const response = await request(createApp({ repositories })).get('/api/indicators/108');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      fingertipsId: 108,
+      name: expect.stringContaining('Under 75 mortality rate'),
+      valueType: expect.any(String),
+      unit: { name: expect.any(String), label: expect.any(String) },
+      definition: expect.any(String),
+    });
+    expect(response.body).not.toHaveProperty('id');
+    expect(() => indicatorDetailSchema.parse(response.body)).not.toThrow();
+  });
+
+  it('returns 404 for a fingertips id with no indicator', async () => {
+    const response = await request(createApp({ repositories })).get('/api/indicators/424242');
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: 'not_found' });
+  });
+
+  it('does not serve an indicator that is not approved', async () => {
+    await owner`
+      INSERT INTO indicator
+        (fingertips_id, name, value_type_id, unit_id, year_type_id, polarity_id, frequency_id,
+         status, created_by, updated_by)
+      SELECT 999998, 'integration-test archived indicator', vt.id, u.id, yt.id, p.id, f.id,
+             'archived', 'integration-test', 'integration-test'
+      FROM value_type vt, unit u, year_type yt, polarity p, frequency f
+      LIMIT 1
+    `;
+
+    const response = await request(createApp({ repositories })).get('/api/indicators/999998');
+
+    expect(response.status).toBe(404);
+  });
+
   it('connects with a read-only role', async () => {
     await expect(
       db.insert(schema.valueType).values({ name: 'integration-test-denied' }),

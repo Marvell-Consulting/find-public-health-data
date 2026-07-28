@@ -48,6 +48,17 @@
   @include govuk-font($size: 19);
 }
 
+.fphd-chart-placeholder {
+  padding: govuk-spacing(4);
+  margin-bottom: govuk-spacing(4);
+  border: 1px dashed govuk-colour("mid-grey");
+}
+
+// Metadata prose arrives from the database with meaningful line breaks.
+.fphd-metadata-text {
+  white-space: pre-line;
+}
+
 .fphd-show-more {
   display: inline-flex;
   align-items: center;

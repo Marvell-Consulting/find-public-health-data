@@ -35,6 +35,36 @@ export const indicatorListResponseSchema = z.object({
   indicators: z.array(indicatorSummarySchema),
 });
 
+export const indicatorSourceSchema = z.object({
+  name: z.string().min(1),
+  url: z.string().nullable(),
+});
+
+export const indicatorDetailSchema = z.object({
+  fingertipsId: z.number().int(),
+  name: z.string().min(1),
+  valueType: z.string().min(1),
+  unit: z.object({ name: z.string().min(1), label: z.string().min(1) }),
+  yearType: z.string().min(1),
+  frequency: z.string().min(1),
+  polarity: z.string().min(1),
+  ciMethod: z.string().nullable(),
+  ciConfidenceLevel: z.string().nullable(),
+  definition: z.string().nullable(),
+  rationale: z.string().nullable(),
+  methodology: z.string().nullable(),
+  numeratorDefinition: z.string().nullable(),
+  denominatorDefinition: z.string().nullable(),
+  disclosureControl: z.string().nullable(),
+  caveats: z.string().nullable(),
+  notes: z.string().nullable(),
+  dataSource: indicatorSourceSchema.nullable(),
+  numeratorSource: indicatorSourceSchema.nullable(),
+  denominatorSource: indicatorSourceSchema.nullable(),
+});
+
 export type TopicSummary = z.infer<typeof topicSummarySchema>;
 export type TopicDetail = z.infer<typeof topicDetailSchema>;
 export type IndicatorSummary = z.infer<typeof indicatorSummarySchema>;
+export type IndicatorDetail = z.infer<typeof indicatorDetailSchema>;
+export type IndicatorSource = z.infer<typeof indicatorSourceSchema>;

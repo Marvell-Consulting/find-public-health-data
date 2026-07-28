@@ -1,5 +1,6 @@
 import { fakeUsersForAudience } from '@fphd/auth';
 import {
+  IndicatorRoute,
   PublicHomePage,
   ReleasesPage,
   SignInPage,
@@ -128,6 +129,88 @@ describe('public application routes', () => {
 
     expect(await screen.findByRole('heading', { name: 'Topic A' })).toBeTruthy();
     expect(screen.getByText('All about topic A.')).toBeTruthy();
+  });
+
+  it('renders the indicator page skeleton from loader data', async () => {
+    const indicator = {
+      fingertipsId: 108,
+      name: 'Under 75 mortality rate from all causes',
+      valueType: 'Directly standardised rate',
+      unit: { name: 'per 100,000', label: 'per 100,000' },
+      yearType: 'Calendar',
+      frequency: 'Annual',
+      polarity: 'RAG - Low is good',
+      ciMethod: "Dobson & Byar's methods",
+      ciConfidenceLevel: '95',
+      definition: 'Directly age-standardised mortality rate for all deaths.',
+      rationale: 'Premature mortality is a key measure of population health.',
+      methodology: null,
+      numeratorDefinition: null,
+      denominatorDefinition: null,
+      disclosureControl: null,
+      caveats: null,
+      notes: null,
+      dataSource: { name: 'Office for National Statistics', url: 'https://www.ons.gov.uk' },
+      numeratorSource: null,
+      denominatorSource: null,
+    };
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        loader: () => ({ signedIn: false }),
+        children: [
+          { path: 'indicators/:fingertipsId', Component: IndicatorRoute, loader: () => indicator },
+        ],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/indicators/108']} />);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Under 75 mortality rate from all causes' }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText('Directly age-standardised mortality rate for all deaths.'),
+    ).toBeTruthy();
+
+    // The chart placeholders are labelled, keyboard-reachable regions (ADR013), one per
+    // chart in the initial scope.
+    for (const name of ['Trend over time', 'Compare areas', 'Compare with England']) {
+      const region = screen.getByRole('region', { name });
+      expect(region.getAttribute('tabindex')).toBe('0');
+    }
+
+    expect(screen.getByText('Rationale')).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: 'Office for National Statistics' }).getAttribute('href'),
+    ).toBe('https://www.ons.gov.uk');
+    expect(screen.getByText('Confidence level')).toBeTruthy();
+    expect(screen.getByText('95%')).toBeTruthy();
+  });
+
+  it('renders the not-found page when the indicator loader throws a 404 response', async () => {
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        ErrorBoundary,
+        loader: () => ({ signedIn: false }),
+        children: [
+          {
+            path: 'indicators/:fingertipsId',
+            Component: IndicatorRoute,
+            loader: () => {
+              throw new Response('Not Found', { status: 404 });
+            },
+          },
+        ],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/indicators/424242']} />);
+
+    expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeTruthy();
   });
 
   it('renders the not-found page when the topic loader throws a 404 response', async () => {

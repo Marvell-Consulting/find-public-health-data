@@ -6,5 +6,9 @@ export default [
   route('sign-in', './sign-in.tsx'),
   route('topics', '../../../packages/public-web-features/src/routes/topics.tsx'),
   route('topics/:slug', '../../../packages/public-web-features/src/routes/topic.tsx'),
+  route(
+    'indicators/:fingertipsId',
+    '../../../packages/public-web-features/src/routes/indicator.tsx',
+  ),
   route('*', '../../../packages/ui/src/not-found-route.tsx'),
 ] satisfies RouteConfig;

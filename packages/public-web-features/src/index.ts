@@ -1,5 +1,8 @@
 export { ReleasesPage, SignInPage } from './content-pages';
 export { PublicHomePage } from './home-page';
+export type { IndicatorDetail } from './indicator-loader';
+export { IndicatorPage } from './indicator-page';
+export { IndicatorRoute } from './routes/indicator';
 export { createSignInRoute } from './routes/sign-in';
 export { TopicRoute } from './routes/topic';
 export { TopicsRoute } from './routes/topics';

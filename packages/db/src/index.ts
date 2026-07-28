@@ -6,7 +6,13 @@ export {
   type SqlClient,
 } from './client.js';
 export { dbEnvFields, resolveDbTls } from './env.js';
-export { type ApprovedIndicator, listApprovedIndicators } from './indicator-repository.js';
+export {
+  type ApprovedIndicator,
+  getApprovedIndicatorByFingertipsId,
+  type IndicatorDetail,
+  type IndicatorSource,
+  listApprovedIndicators,
+} from './indicator-repository.js';
 export { rebuildReadModels } from './read-models.js';
 export {
   createRepositories,

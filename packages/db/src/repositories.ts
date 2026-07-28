@@ -1,9 +1,15 @@
 import type { Database } from './client.js';
-import { type ApprovedIndicator, listApprovedIndicators } from './indicator-repository.js';
+import {
+  type ApprovedIndicator,
+  getApprovedIndicatorByFingertipsId,
+  type IndicatorDetail,
+  listApprovedIndicators,
+} from './indicator-repository.js';
 import { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';
 
 export interface IndicatorRepository {
   listApproved(): Promise<ApprovedIndicator[]>;
+  findApprovedByFingertipsId(fingertipsId: number): Promise<IndicatorDetail | undefined>;
 }
 
 export interface TopicRepository {
@@ -25,6 +31,8 @@ export function createRepositories(db: Database): Repositories {
   return {
     indicators: {
       listApproved: () => listApprovedIndicators(db),
+      findApprovedByFingertipsId: (fingertipsId) =>
+        getApprovedIndicatorByFingertipsId(db, fingertipsId),
     },
     topics: {
       list: () => listTopics(db),
