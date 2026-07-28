@@ -70,12 +70,16 @@ function FilterPane({ indicator }: { indicator: IndicatorDetail }) {
   const areaTypeId = useId();
   const groupTypeId = useId();
   const groupId = useId();
+  const selectAllCheckboxId = useId();
   const englandCheckboxId = useId();
 
   return (
     <div className="fphd-filter-pane">
       <div className="fphd-filter-pane__header">
         <h2 className="govuk-heading-m">Filters</h2>
+        <button type="button" className="govuk-link fphd-link-button">
+          Hide filter
+        </button>
       </div>
       <div className="fphd-filter-pane__body">
         <p className="govuk-body govuk-!-font-weight-bold">Selected indicators (1)</p>
@@ -87,9 +91,14 @@ function FilterPane({ indicator }: { indicator: IndicatorDetail }) {
           Add or change indicators
         </a>
 
-        <p className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">
-          Selected areas (0)
-        </p>
+        <div className="fphd-filter-pane__row">
+          <p className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">
+            Selected areas (0)
+          </p>
+          <button type="button" className="govuk-link fphd-link-button">
+            Clear all
+          </button>
+        </div>
         <p className="govuk-body">Default area England</p>
 
         <div className="govuk-form-group">
@@ -126,15 +135,30 @@ function FilterPane({ indicator }: { indicator: IndicatorDetail }) {
           <legend className="govuk-fieldset__legend govuk-!-font-weight-bold">
             Select one or more areas
           </legend>
+          <div className="fphd-filter-pane__row">
+            <div className="govuk-checkboxes govuk-checkboxes--small">
+              <div className="govuk-checkboxes__item">
+                <input
+                  className="govuk-checkboxes__input"
+                  id={selectAllCheckboxId}
+                  type="checkbox"
+                />
+                <label
+                  className="govuk-label govuk-checkboxes__label"
+                  htmlFor={selectAllCheckboxId}
+                >
+                  Select all areas
+                </label>
+              </div>
+            </div>
+            <button type="button" className="govuk-link fphd-link-button">
+              Clear all
+            </button>
+          </div>
           <SectionBreak size="m" visible />
           <div className="govuk-checkboxes govuk-checkboxes--small">
             <div className="govuk-checkboxes__item">
-              <input
-                className="govuk-checkboxes__input"
-                id={englandCheckboxId}
-                type="checkbox"
-                defaultChecked
-              />
+              <input className="govuk-checkboxes__input" id={englandCheckboxId} type="checkbox" />
               <label className="govuk-label govuk-checkboxes__label" htmlFor={englandCheckboxId}>
                 England
               </label>

@@ -66,7 +66,7 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  padding: govuk-spacing(3) govuk-spacing(3) govuk-spacing(2);
+  padding: 8px 16px;
   background-color: #d1d2d3;
 }
 
@@ -80,14 +80,43 @@
 }
 
 .fphd-filter-pane__selected-card {
-  padding: govuk-spacing(3);
+  padding: 8px 12px;
   margin-bottom: govuk-spacing(3);
   background-color: govuk-colour("white");
-  border: 1px solid #bfc1c3;
+  border: 1px solid #d1d2d3;
+}
+
+// The pane is a dense sidebar: the prototype steps its type down to 16px throughout.
+.fphd-filter-pane__body .govuk-body,
+.fphd-filter-pane__body .govuk-label,
+.fphd-filter-pane__body .govuk-fieldset__legend,
+.fphd-filter-pane__body .govuk-checkboxes__label,
+.fphd-filter-pane__body .govuk-link {
+  font-size: 16px;
+}
+
+.fphd-filter-pane__body .govuk-button {
+  padding: 7px 10px;
+  font-size: 16px;
 }
 
 .fphd-filter-pane__body .govuk-select {
   width: 100%;
+}
+
+.fphd-filter-pane__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.fphd-link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: govuk-colour("blue");
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .fphd-contents-list {
