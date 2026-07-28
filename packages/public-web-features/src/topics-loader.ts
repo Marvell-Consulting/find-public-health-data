@@ -15,7 +15,9 @@ export async function loadTopics({ context }: LoaderFunctionArgs) {
 
 /**
  * The client turns the API's 404 into a thrown 404 Response, so React Router renders the
- * nearest not-found boundary instead of the page component.
+ * nearest not-found boundary instead of the page component. It also encodes the slug —
+ * React Router decodes %2F inside a single dynamic segment, so an un-encoded slug of
+ * '../internal' would normalise the request onto a different API route entirely.
  */
 export async function loadTopic({ context, params }: LoaderFunctionArgs) {
   return context.get(apiContext).get(apiPath`/api/topics/${params.slug}`, topicDetailSchema);

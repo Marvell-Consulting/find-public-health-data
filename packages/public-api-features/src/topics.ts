@@ -1,7 +1,7 @@
 import type { Repositories, Topic } from '@fphd/db';
 import { Router } from 'express';
 
-import type { TopicSummary } from './contract.js';
+import type { TopicDetail, TopicSummary } from './contract.js';
 
 function toSummary({ slug, title, createdAt, updatedAt }: Topic): TopicSummary {
   return {
@@ -10,6 +10,10 @@ function toSummary({ slug, title, createdAt, updatedAt }: Topic): TopicSummary {
     createdAt: createdAt.toISOString(),
     updatedAt: updatedAt.toISOString(),
   };
+}
+
+function toDetail(topic: Topic): TopicDetail {
+  return { ...toSummary(topic), description: topic.description };
 }
 
 /**
@@ -21,6 +25,17 @@ export function topicsRouter(topics: Repositories['topics']): Router {
 
   router.get('/api/topics', async (_request, response) => {
     response.status(200).json((await topics.list()).map(toSummary));
+  });
+
+  router.get('/api/topics/:slug', async (request, response) => {
+    const topic = await topics.findBySlug(request.params.slug);
+
+    if (!topic) {
+      response.status(404).json({ error: 'not_found' });
+      return;
+    }
+
+    response.status(200).json(toDetail(topic));
   });
 
   return router;

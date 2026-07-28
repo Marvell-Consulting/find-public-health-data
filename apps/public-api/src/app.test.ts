@@ -82,6 +82,38 @@ describe('public API', () => {
     expect(response.status).toBe(500);
   });
 
+  it('finds a topic by slug, as ISO timestamps', async () => {
+    const repositories = createFakeRepositories({ topics: { findBySlug: async () => topicA } });
+
+    const response = await request(createApp({ repositories })).get('/api/topics/topic-a');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      slug: 'topic-a',
+      title: 'Topic A',
+      description: 'All about topic A.',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-02T00:00:00.000Z',
+    });
+  });
+
+  it('does not leak the internal row id in a topic detail', async () => {
+    const repositories = createFakeRepositories({ topics: { findBySlug: async () => topicA } });
+
+    const response = await request(createApp({ repositories })).get('/api/topics/topic-a');
+
+    expect(response.body).not.toHaveProperty('id');
+  });
+
+  it('returns the standard not-found body for an unknown slug', async () => {
+    const repositories = createFakeRepositories({ topics: { findBySlug: async () => undefined } });
+
+    const response = await request(createApp({ repositories })).get('/api/topics/no-such-topic');
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: 'not_found' });
+  });
+
   it('fails loudly when a route reaches for a repository the test did not stub', async () => {
     const response = await request(createApp({ repositories: createFakeRepositories() })).get(
       '/api/topics',
