@@ -1,8 +1,9 @@
-import { topicSummaryListSchema } from '@fphd/public-api-features/contract';
+import { topicDetailSchema, topicSummaryListSchema } from '@fphd/public-api-features/contract';
+import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
 
-export type { TopicSummary } from '@fphd/public-api-features/contract';
+export type { TopicDetail, TopicSummary } from '@fphd/public-api-features/contract';
 
 /**
  * Kept free of any @fphd/ui import so it can be unit-tested without the jsdom/SSR
@@ -10,4 +11,12 @@ export type { TopicSummary } from '@fphd/public-api-features/contract';
  */
 export async function loadTopics({ context }: LoaderFunctionArgs) {
   return context.get(apiContext).get('/api/topics', topicSummaryListSchema);
+}
+
+/**
+ * The client turns the API's 404 into a thrown 404 Response, so React Router renders the
+ * nearest not-found boundary instead of the page component.
+ */
+export async function loadTopic({ context, params }: LoaderFunctionArgs) {
+  return context.get(apiContext).get(apiPath`/api/topics/${params.slug}`, topicDetailSchema);
 }

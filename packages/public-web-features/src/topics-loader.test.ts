@@ -4,7 +4,7 @@ import type { LoaderFunctionArgs } from 'react-router';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { loadTopics } from './topics-loader';
+import { loadTopic, loadTopics } from './topics-loader';
 
 function loaderArgs(api: ApiClient, params: Record<string, string> = {}): LoaderFunctionArgs {
   const context = new RouterContextProvider();
@@ -41,5 +41,35 @@ describe('loadTopics', () => {
     await expect(loadTopics(loaderArgs({ get } as unknown as ApiClient))).rejects.toBeInstanceOf(
       Response,
     );
+  });
+});
+
+describe('loadTopic', () => {
+  it('requests the topic by slug', async () => {
+    const get = vi.fn().mockResolvedValue({});
+
+    await loadTopic(loaderArgs({ get } as unknown as ApiClient, { slug: 'topic-a' }));
+
+    expect(get).toHaveBeenCalledWith('/api/topics/topic-a', expect.anything());
+  });
+
+  it.each([['../internal'], ['../../health']])(
+    'escapes a slug of %s so it cannot traverse onto another api route',
+    async (slug) => {
+      const get = vi.fn().mockResolvedValue({});
+
+      await loadTopic(loaderArgs({ get } as unknown as ApiClient, { slug }));
+
+      // The guarantee that matters: whatever the slug, the request stays under /api/topics/.
+      expect(String(get.mock.calls[0]?.[0])).toMatch(/^\/api\/topics\/[^/]+$/);
+    },
+  );
+
+  it('lets the client 404 through so the not-found boundary renders', async () => {
+    const get = vi.fn().mockRejectedValue(new Response('Not Found', { status: 404 }));
+
+    await expect(
+      loadTopic(loaderArgs({ get } as unknown as ApiClient, { slug: 'nope' })),
+    ).rejects.toMatchObject({ status: 404 });
   });
 });

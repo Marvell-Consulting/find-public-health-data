@@ -1,10 +1,16 @@
 import { fakeUsersForAudience } from '@fphd/auth';
-import { PublicHomePage, ReleasesPage, SignInPage, TopicsRoute } from '@fphd/public-web-features';
+import {
+  PublicHomePage,
+  ReleasesPage,
+  SignInPage,
+  TopicRoute,
+  TopicsRoute,
+} from '@fphd/public-web-features';
 import { cleanup, render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import PublicApp from './root';
+import PublicApp, { ErrorBoundary } from './root';
 
 afterEach(cleanup);
 
@@ -99,5 +105,52 @@ describe('public application routes', () => {
       '/topics/topic-a',
       '/topics/topic-b',
     ]);
+  });
+
+  it('renders the topic page title and description from loader data', async () => {
+    const topic = {
+      slug: 'topic-a',
+      title: 'Topic A',
+      description: 'All about topic A.',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-02T00:00:00.000Z',
+    };
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        loader: () => ({ signedIn: false }),
+        children: [{ path: 'topics/:slug', Component: TopicRoute, loader: () => topic }],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/topics/topic-a']} />);
+
+    expect(await screen.findByRole('heading', { name: 'Topic A' })).toBeTruthy();
+    expect(screen.getByText('All about topic A.')).toBeTruthy();
+  });
+
+  it('renders the not-found page when the topic loader throws a 404 response', async () => {
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        ErrorBoundary,
+        loader: () => ({ signedIn: false }),
+        children: [
+          {
+            path: 'topics/:slug',
+            Component: TopicRoute,
+            loader: () => {
+              throw new Response('Not Found', { status: 404 });
+            },
+          },
+        ],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/topics/no-such-topic']} />);
+
+    expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeTruthy();
   });
 });

@@ -1,6 +1,6 @@
 import { A, PageIntro } from '@fphd/ui';
 
-import type { TopicSummary } from './topics-loader';
+import type { TopicDetail, TopicSummary } from './topics-loader';
 
 export function TopicsPage({ topics }: { topics: TopicSummary[] }) {
   return (
@@ -12,6 +12,14 @@ export function TopicsPage({ topics }: { topics: TopicSummary[] }) {
           </li>
         ))}
       </ul>
+    </PageIntro>
+  );
+}
+
+export function TopicPage({ topic }: { topic: TopicDetail }) {
+  return (
+    <PageIntro title={topic.title}>
+      <p className="govuk-body">{topic.description}</p>
     </PageIntro>
   );
 }
