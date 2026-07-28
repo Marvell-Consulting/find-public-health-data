@@ -65,6 +65,15 @@ describe('loadTopic', () => {
     },
   );
 
+  it('fails with a developer-facing error when the route supplies no slug', async () => {
+    const get = vi.fn();
+
+    await expect(loadTopic(loaderArgs({ get } as unknown as ApiClient))).rejects.toThrow(
+      /expects a slug param/,
+    );
+    expect(get).not.toHaveBeenCalled();
+  });
+
   it('lets the client 404 through so the not-found boundary renders', async () => {
     const get = vi.fn().mockRejectedValue(new Response('Not Found', { status: 404 }));
 

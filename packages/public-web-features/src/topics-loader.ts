@@ -20,5 +20,13 @@ export async function loadTopics({ context }: LoaderFunctionArgs) {
  * '../internal' would normalise the request onto a different API route entirely.
  */
 export async function loadTopic({ context, params }: LoaderFunctionArgs) {
-  return context.get(apiContext).get(apiPath`/api/topics/${params.slug}`, topicDetailSchema);
+  const { slug } = params;
+
+  if (!slug) {
+    // `topics/:slug` cannot match without a segment, so reaching here means the route table
+    // and this loader have drifted apart — a wiring bug, not a request the user can make.
+    throw new Error('loadTopic expects a slug param; check the route that renders it');
+  }
+
+  return context.get(apiContext).get(apiPath`/api/topics/${slug}`, topicDetailSchema);
 }
