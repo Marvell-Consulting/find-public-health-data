@@ -9,6 +9,33 @@ const CONFIDENCE_LEVEL_LABELS: Record<string, string> = {
   both: '95% and 99.8%',
 };
 
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: '&',
+  apos: "'",
+  gt: '>',
+  hellip: '…',
+  lt: '<',
+  mdash: '—',
+  nbsp: ' ',
+  ndash: '–',
+  pound: '£',
+  quot: '"',
+};
+
+// Pholio metadata arrives with HTML entities baked into the plain text (`&hellip;`,
+// `&nbsp;`), which React would otherwise render literally.
+function decodeEntities(text: string): string {
+  return text.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (match, code: string) => {
+    if (code.toLowerCase().startsWith('#x')) {
+      return String.fromCodePoint(Number.parseInt(code.slice(2), 16));
+    }
+    if (code.startsWith('#')) {
+      return String.fromCodePoint(Number.parseInt(code.slice(1), 10));
+    }
+    return NAMED_ENTITIES[code.toLowerCase()] ?? match;
+  });
+}
+
 /**
  * Stands in for a chart that is not built yet (ADR013): a labelled, keyboard-reachable
  * region rather than a blank div, so the page's accessibility structure is real from the
@@ -37,7 +64,7 @@ function MetadataSection({ title, text }: { title: string; text: string | null }
   return (
     <>
       <h3 className="govuk-heading-s">{title}</h3>
-      <p className="govuk-body fphd-metadata-text">{text}</p>
+      <p className="govuk-body fphd-metadata-text">{decodeEntities(text)}</p>
     </>
   );
 }
@@ -85,7 +112,7 @@ export function IndicatorPage({ indicator }: { indicator: IndicatorDetail }) {
   return (
     <PageIntro title={indicator.name}>
       {indicator.definition ? (
-        <p className="govuk-body-l fphd-metadata-text">{indicator.definition}</p>
+        <p className="govuk-body-l fphd-metadata-text">{decodeEntities(indicator.definition)}</p>
       ) : null}
 
       <h2 className="govuk-heading-l">Data</h2>
