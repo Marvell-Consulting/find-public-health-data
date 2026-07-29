@@ -1,5 +1,5 @@
 import { fakeUsersForAudience } from '@fphd/auth';
-import { PublicHomePage, ReleasesPage, SignInPage } from '@fphd/public-web-features';
+import { PublicHomePage, ReleasesPage, SignInPage, TopicsRoute } from '@fphd/public-web-features';
 import { cleanup, render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -71,5 +71,33 @@ describe('public application routes', () => {
       '/sign-in',
     );
     expect(screen.queryByRole('link', { name: 'Sign in' })).toBeNull();
+  });
+
+  it('renders the topics page as an alphabetical list of links from loader data', async () => {
+    // Ordering is the repository/API's responsibility (asserted elsewhere); this fixture is
+    // already alphabetical, and the page must render it in that order without reshuffling.
+    const topics = [
+      { slug: 'topic-a', title: 'Topic A' },
+      { slug: 'topic-b', title: 'Topic B' },
+    ];
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        loader: () => ({ signedIn: false }),
+        children: [{ path: 'topics', Component: TopicsRoute, loader: () => topics }],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/topics']} />);
+
+    expect(await screen.findByRole('heading', { name: 'Topics' })).toBeTruthy();
+
+    const links = screen.getAllByRole('link', { name: /^Topic [AB]$/ });
+    expect(links.map((link) => link.textContent)).toEqual(['Topic A', 'Topic B']);
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      '/topics/topic-a',
+      '/topics/topic-b',
+    ]);
   });
 });

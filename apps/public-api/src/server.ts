@@ -1,4 +1,5 @@
 import { startApiServer } from '@fphd/api-server';
+import { createRepositories } from '@fphd/db';
 import { createLogger } from '@fphd/logger';
 
 import { createApp } from './app.js';
@@ -12,7 +13,7 @@ const logger = createLogger({
 });
 
 startApiServer({
-  app: createApp({ db }),
+  app: createApp({ repositories: createRepositories(db) }),
   host: config.host,
   port: config.port,
   onListening: () => logger.info({ port: config.port }, 'Public API listening'),

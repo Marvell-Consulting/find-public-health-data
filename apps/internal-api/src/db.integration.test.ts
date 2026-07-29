@@ -10,7 +10,7 @@ if (existsSync(envFile)) {
   process.loadEnvFile(envFile);
 }
 const { createTestDatabase } = await import('@fphd/db/testing');
-const testDb = await createTestDatabase();
+const testDb = await createTestDatabase({ template: 'seeded' });
 process.env.POSTGRES_DB = testDb.name;
 
 const { db } = await import('./db.js');

@@ -11,14 +11,15 @@ if (existsSync(envFile)) {
   process.loadEnvFile(envFile);
 }
 const { createTestDatabase } = await import('@fphd/db/testing');
-const testDb = await createTestDatabase();
+const testDb = await createTestDatabase({ template: 'seeded' });
 process.env.POSTGRES_DB = testDb.name;
 
 const { db } = await import('./db.js');
 const { createApp } = await import('./app.js');
-const { createOwnerClient, schema } = await import('@fphd/db');
+const { createOwnerClient, createRepositories, schema } = await import('@fphd/db');
 
 const owner = createOwnerClient(testDb.name);
+const repositories = createRepositories(db);
 
 afterAll(async () => {
   await owner.end();
@@ -27,7 +28,7 @@ afterAll(async () => {
 
 describe('public API against the seeded database', () => {
   it('lists the seeded indicators', async () => {
-    const response = await request(createApp({ db })).get('/api/indicators');
+    const response = await request(createApp({ repositories })).get('/api/indicators');
 
     expect(response.status).toBe(200);
     expect(response.body.indicators).toHaveLength(10);
@@ -52,7 +53,7 @@ describe('public API against the seeded database', () => {
       LIMIT 1
       RETURNING id
     `;
-    const response = await request(createApp({ db })).get('/api/indicators');
+    const response = await request(createApp({ repositories })).get('/api/indicators');
     expect(response.status).toBe(200);
     expect(response.body.indicators).toHaveLength(10);
     const ids = response.body.indicators.map((i: { id: string }) => i.id);

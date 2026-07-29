@@ -132,12 +132,14 @@ describe('parseEnv', () => {
 
 describe('loadWebServerConfig', () => {
   const sessionSecret = 'a-jwt-session-secret-that-is-long-enough';
+  const defaults = { port: 3000, apiUrl: 'http://localhost:4000' };
 
-  it('uses the app port and local logging defaults', () => {
-    expect(loadWebServerConfig({ SESSION_JWT_SECRET: sessionSecret }, { port: 3000 })).toEqual({
+  it('uses the app port, api url and local logging defaults', () => {
+    expect(loadWebServerConfig({ SESSION_JWT_SECRET: sessionSecret }, defaults)).toEqual({
       development: false,
       host: '0.0.0.0',
       port: 3000,
+      apiUrl: 'http://localhost:4000',
       log: { level: 'info', pretty: true },
       session: { secret: sessionSecret, secure: false },
     });
@@ -151,16 +153,18 @@ describe('loadWebServerConfig', () => {
           HOST: '127.0.0.1',
           NODE_ENV: 'development',
           PORT: '8080',
+          API_URL: 'http://api.internal:9000',
           LOG_LEVEL: 'debug',
           LOG_PRETTY: '1',
           SESSION_JWT_SECRET: sessionSecret,
         },
-        { port: 3000 },
+        defaults,
       ),
     ).toEqual({
       development: true,
       host: '127.0.0.1',
       port: 8080,
+      apiUrl: 'http://api.internal:9000',
       log: { level: 'debug', pretty: false },
       session: { secret: sessionSecret, secure: true },
     });
@@ -176,16 +180,31 @@ describe('loadWebServerConfig', () => {
             NODE_ENV: 'development',
             SESSION_JWT_SECRET: sessionSecret,
           },
-          { port: 3000 },
+          defaults,
         ).session.secure,
       ).toBe(true);
     },
   );
 
   it('requires a JWT session secret of at least 32 characters', () => {
-    expect(() => loadWebServerConfig({}, { port: 3000 })).toThrow(/SESSION_JWT_SECRET/);
-    expect(() => loadWebServerConfig({ SESSION_JWT_SECRET: 'too-short' }, { port: 3000 })).toThrow(
+    expect(() => loadWebServerConfig({}, defaults)).toThrow(/SESSION_JWT_SECRET/);
+    expect(() => loadWebServerConfig({ SESSION_JWT_SECRET: 'too-short' }, defaults)).toThrow(
       /SESSION_JWT_SECRET/,
     );
+  });
+
+  it('strips a trailing slash from the api url so callers can build paths without doubling it', () => {
+    expect(
+      loadWebServerConfig(
+        { API_URL: 'http://api.internal:9000/', SESSION_JWT_SECRET: sessionSecret },
+        defaults,
+      ).apiUrl,
+    ).toBe('http://api.internal:9000');
+  });
+
+  it('rejects an invalid api url', () => {
+    expect(() =>
+      loadWebServerConfig({ API_URL: 'not-a-url', SESSION_JWT_SECRET: sessionSecret }, defaults),
+    ).toThrow(/API_URL/);
   });
 });

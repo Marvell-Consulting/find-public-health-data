@@ -1,7 +1,7 @@
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { createRequestHandler } from '@react-router/express';
 import express, { type Express, type RequestHandler } from 'express';
-import type { ServerBuild } from 'react-router';
+import type { RouterContextProvider, ServerBuild } from 'react-router';
 
 import { nonceContext } from './nonce-context.js';
 import { createSessionContext } from './session.js';
@@ -38,11 +38,13 @@ function normalizeServerBuild({
 interface ReactRouterAppOptions {
   backendMiddleware?: readonly RequestHandler[];
   session: JwtSessionVerifier;
+  /** Runs after the nonce is set, so it can add further values to the loader/action context. */
+  extendContext?: (context: RouterContextProvider) => void;
 }
 
 export function createReactRouterApp(
   loadBuild: ReactRouterBuildLoader,
-  { backendMiddleware = [], session }: ReactRouterAppOptions,
+  { backendMiddleware = [], session, extendContext }: ReactRouterAppOptions,
 ): Express {
   const app = express();
 
@@ -60,6 +62,7 @@ export function createReactRouterApp(
       getLoadContext: (_request, response) => {
         const context = createSessionContext(session);
         context.set(nonceContext, response.locals.nonce);
+        extendContext?.(context);
         return context;
       },
     }),

@@ -188,9 +188,9 @@ importers:
       '@fphd/logger':
         specifier: workspace:*
         version: link:../../packages/logger
-      drizzle-orm:
-        specifier: 'catalog:'
-        version: 0.45.2(postgres@3.4.9)
+      '@fphd/public-api-features':
+        specifier: workspace:*
+        version: link:../../packages/public-api-features
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -295,9 +295,9 @@ importers:
       '@fphd/logger':
         specifier: workspace:*
         version: link:../../packages/logger
-      drizzle-orm:
-        specifier: 'catalog:'
-        version: 0.45.2(postgres@3.4.9)
+      '@fphd/public-api-features':
+        specifier: workspace:*
+        version: link:../../packages/public-api-features
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -511,6 +511,31 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
+  packages/public-api-features:
+    dependencies:
+      '@fphd/config':
+        specifier: workspace:*
+        version: link:../config
+      '@fphd/db':
+        specifier: workspace:*
+        version: link:../db
+      express:
+        specifier: 'catalog:'
+        version: 5.2.1
+    devDependencies:
+      '@types/express':
+        specifier: 'catalog:'
+        version: 5.0.6
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.13.3
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@types/node@24.13.3)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.1.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0))
+
   packages/public-web-features:
     dependencies:
       '@fphd/ui':
@@ -520,6 +545,12 @@ importers:
       '@fphd/auth':
         specifier: workspace:*
         version: link:../auth
+      '@fphd/public-api-features':
+        specifier: workspace:*
+        version: link:../public-api-features
+      '@fphd/web-server':
+        specifier: workspace:*
+        version: link:../web-server
       '@types/react':
         specifier: 'catalog:'
         version: 19.2.17
@@ -587,6 +618,9 @@ importers:
       '@fphd/auth':
         specifier: workspace:*
         version: link:../auth
+      '@fphd/config':
+        specifier: workspace:*
+        version: link:../config
       '@fphd/ui':
         specifier: workspace:*
         version: link:../ui

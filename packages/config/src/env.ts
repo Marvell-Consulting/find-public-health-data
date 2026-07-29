@@ -68,11 +68,21 @@ export function parseEnv<T extends z.ZodType>(
   return result.data;
 }
 
-export function loadWebServerConfig(env: NodeJS.ProcessEnv, defaults: { port: number }) {
+/**
+ * Trailing slash stripped so callers can always build request URLs as
+ * `${apiUrl}/api/...` without risking a doubled slash.
+ */
+const apiUrlSchema = z.url().transform((value) => value.replace(/\/+$/, ''));
+
+export function loadWebServerConfig(
+  env: NodeJS.ProcessEnv,
+  defaults: { apiUrl: string; port: number },
+) {
   const parsed = parseEnv(
     z.object({
       ...serverEnvFields(defaults),
       ...logEnvFields,
+      API_URL: apiUrlSchema.default(defaults.apiUrl),
       NODE_ENV: nodeEnvSchema,
       SESSION_JWT_SECRET: z.string().min(32),
     }),
@@ -83,6 +93,7 @@ export function loadWebServerConfig(env: NodeJS.ProcessEnv, defaults: { port: nu
     development: parsed.NODE_ENV === 'development',
     host: parsed.HOST,
     port: parsed.PORT,
+    apiUrl: parsed.API_URL,
     log: {
       level: parsed.LOG_LEVEL,
       pretty: parsed.APP_ENV === 'local' && (parsed.LOG_PRETTY ?? true),

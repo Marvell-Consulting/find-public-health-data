@@ -5,17 +5,20 @@ import {
   type JwtSessionServiceOptions,
 } from '@fphd/auth/jwt-session';
 
+import type { RouterContextProvider } from 'react-router';
+
 import { createFakeAuthRouter } from './fake-auth.js';
 import { createReactRouterApp, type ReactRouterBuildLoader } from './react-router-app.js';
 
 interface FakeAuthReactRouterAppOptions {
   audience: AppAudience;
   session: Pick<JwtSessionServiceOptions, 'secret' | 'secure'>;
+  extendContext?: (context: RouterContextProvider) => void;
 }
 
 export function createFakeAuthReactRouterApp(
   loadBuild: ReactRouterBuildLoader,
-  { audience, session }: FakeAuthReactRouterAppOptions,
+  { audience, session, extendContext }: FakeAuthReactRouterAppOptions,
 ) {
   const sessionService = createJwtSessionService({
     audience: `fphd-${audience}`,
@@ -33,5 +36,7 @@ export function createFakeAuthReactRouterApp(
       }),
     ],
     session: createJwtSessionVerifier(sessionService),
+    // Spread rather than passed directly: exactOptionalPropertyTypes rejects an explicit undefined.
+    ...(extendContext === undefined ? {} : { extendContext }),
   });
 }

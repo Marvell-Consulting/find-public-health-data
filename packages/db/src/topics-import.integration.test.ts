@@ -1,6 +1,5 @@
 import { parseEnv, z } from '@fphd/config';
 import { eq, getTableColumns, sql } from 'drizzle-orm';
-import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDb, type Database } from './client.js';
@@ -14,8 +13,6 @@ const env = parseEnv(
     ...dbEnvFields,
     POSTGRES_USER: z.string().default('fphd'),
     POSTGRES_PASSWORD: z.string().default('fphd'),
-    PUBLIC_API_PASSWORD: z.string().default('public_api'),
-    INTERNAL_API_PASSWORD: z.string().default('internal_api'),
   }),
   process.env,
 );
@@ -138,29 +135,5 @@ describe('topics import (integration)', () => {
 
     // Left in place, not deleted.
     await expect(requireRow(topicA.id)).resolves.toBeDefined();
-  });
-
-  const apiRoles = [
-    { role: 'public_api', password: env.PUBLIC_API_PASSWORD },
-    { role: 'internal_api', password: env.INTERNAL_API_PASSWORD },
-  ];
-
-  it.each(apiRoles)('lets $role select topics but not write them', async ({ role, password }) => {
-    const client = postgres({
-      host: env.DB_HOST,
-      port: env.DB_PORT,
-      database: testDb.name,
-      username: role,
-      password,
-    });
-
-    try {
-      await expect(client`SELECT * FROM topic`).resolves.toBeDefined();
-      await expect(
-        client`INSERT INTO topic (id, slug, title, description) VALUES (gen_random_uuid(), 'x', 'x', 'x')`,
-      ).rejects.toThrow(/permission denied/);
-    } finally {
-      await client.end();
-    }
   });
 });

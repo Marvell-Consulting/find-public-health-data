@@ -1,9 +1,11 @@
 import { startApiServer } from '@fphd/api-server';
 import { createJwtSessionService, createJwtSessionVerifier } from '@fphd/auth/jwt-session';
+import { createRepositories } from '@fphd/db';
 import { createLogger } from '@fphd/logger';
 
 import { createApp } from './app.js';
 import * as config from './config.js';
+import { db } from './db.js';
 
 const logger = createLogger({
   name: 'internal-api',
@@ -12,8 +14,9 @@ const logger = createLogger({
 });
 
 startApiServer({
-  app: createApp(
-    createJwtSessionVerifier(
+  app: createApp({
+    repositories: createRepositories(db),
+    session: createJwtSessionVerifier(
       createJwtSessionService({
         audience: 'fphd-internal',
         cookieName: 'fphd-internal-session',
@@ -21,7 +24,7 @@ startApiServer({
         ...config.session,
       }),
     ),
-  ),
+  }),
   host: config.host,
   port: config.port,
   onListening: () => logger.info({ port: config.port }, 'Internal API listening'),

@@ -12,12 +12,16 @@
   },
   "peerDependencies": {
     "@fphd/auth": "workspace:*",
+    "@fphd/public-api-features": "workspace:*",
     "@fphd/ui": "workspace:*",
+    "@fphd/web-server": "workspace:*",
     "react": "catalog:",
     "react-router": "catalog:"
   },
   "devDependencies": {
     "@fphd/auth": "workspace:*",
+    "@fphd/public-api-features": "workspace:*",
+    "@fphd/web-server": "workspace:*",
     "@types/react": "catalog:",
     "react": "catalog:",
     "react-router": "catalog:",
