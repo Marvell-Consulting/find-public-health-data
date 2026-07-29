@@ -1,4 +1,4 @@
-import { asc, sql } from 'drizzle-orm';
+import { asc, eq, sql } from 'drizzle-orm';
 
 import type { Database } from './client.js';
 import { type TopicRecord, topic } from './schema/index.js';
@@ -54,6 +54,12 @@ export interface UpsertResult {
 /** All topics, ordered alphabetically by title. */
 export async function listTopics(db: Database): Promise<Topic[]> {
   return db.select().from(topic).orderBy(asc(topic.title));
+}
+
+/** The topic with the given slug, or `undefined` if no topic matches. */
+export async function getTopicBySlug(db: Database, slug: string): Promise<Topic | undefined> {
+  const rows = await db.select().from(topic).where(eq(topic.slug, slug));
+  return rows[0];
 }
 
 /**

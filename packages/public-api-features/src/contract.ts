@@ -20,6 +20,10 @@ export const topicSummarySchema = z.object({
 
 export const topicSummaryListSchema = z.array(topicSummarySchema);
 
+export const topicDetailSchema = topicSummarySchema.extend({
+  description: z.string(),
+});
+
 export const indicatorSummarySchema = z.object({
   id: z.uuid(),
   fingertipsId: z.number().int(),
@@ -32,4 +36,5 @@ export const indicatorListResponseSchema = z.object({
 });
 
 export type TopicSummary = z.infer<typeof topicSummarySchema>;
+export type TopicDetail = z.infer<typeof topicDetailSchema>;
 export type IndicatorSummary = z.infer<typeof indicatorSummarySchema>;

@@ -1,6 +1,6 @@
 import type { Database } from './client.js';
 import { type ApprovedIndicator, listApprovedIndicators } from './indicator-repository.js';
-import { listTopics, type Topic } from './topic-repository.js';
+import { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';
 
 export interface IndicatorRepository {
   listApproved(): Promise<ApprovedIndicator[]>;
@@ -8,6 +8,7 @@ export interface IndicatorRepository {
 
 export interface TopicRepository {
   list(): Promise<Topic[]>;
+  findBySlug(slug: string): Promise<Topic | undefined>;
 }
 
 /**
@@ -27,6 +28,7 @@ export function createRepositories(db: Database): Repositories {
     },
     topics: {
       list: () => listTopics(db),
+      findBySlug: (slug) => getTopicBySlug(db, slug),
     },
   };
 }

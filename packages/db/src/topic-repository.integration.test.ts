@@ -6,7 +6,7 @@ import { createDb, type Database } from './client.js';
 import { dbEnvFields } from './env.js';
 import type { TopicRecord } from './schema.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
-import { listTopics, upsertTopics } from './topic-repository.js';
+import { getTopicBySlug, listTopics, upsertTopics } from './topic-repository.js';
 
 const env = parseEnv(
   z.object({
@@ -22,22 +22,6 @@ const env = parseEnv(
 let testDb: TestDatabase;
 let db: Database;
 
-beforeAll(async () => {
-  testDb = await createTestDatabase();
-  db = createDb({
-    host: env.DB_HOST,
-    port: env.DB_PORT,
-    database: testDb.name,
-    user: env.POSTGRES_USER,
-    password: env.POSTGRES_PASSWORD,
-  });
-});
-
-afterAll(async () => {
-  await db.$client.end();
-  await testDb.drop();
-});
-
 const zebra: TopicRecord = {
   id: '00000000-0000-7000-8000-000000000003',
   slug: 'zebra-topic',
@@ -52,11 +36,25 @@ const apple: TopicRecord = {
   description: 'Should sort first.',
 };
 
-describe('listTopics', () => {
-  beforeAll(async () => {
-    await upsertTopics(db, [zebra, apple]);
+// Seeded once for the whole file so no describe depends on another having run first.
+beforeAll(async () => {
+  testDb = await createTestDatabase();
+  db = createDb({
+    host: env.DB_HOST,
+    port: env.DB_PORT,
+    database: testDb.name,
+    user: env.POSTGRES_USER,
+    password: env.POSTGRES_PASSWORD,
   });
+  await upsertTopics(db, [zebra, apple]);
+});
 
+afterAll(async () => {
+  await db.$client.end();
+  await testDb.drop();
+});
+
+describe('listTopics', () => {
   it('orders topics alphabetically by title', async () => {
     const titles = (await listTopics(db)).map((row) => row.title);
 
@@ -74,6 +72,23 @@ describe('listTopics', () => {
     });
     expect(found?.createdAt).toBeInstanceOf(Date);
     expect(found?.updatedAt).toBeInstanceOf(Date);
+  });
+});
+
+describe('getTopicBySlug', () => {
+  it('returns the topic matching the given slug', async () => {
+    const found = await getTopicBySlug(db, 'zebra-topic');
+
+    expect(found).toMatchObject({
+      id: zebra.id,
+      slug: 'zebra-topic',
+      title: 'Zebra topic',
+      description: 'Should sort last.',
+    });
+  });
+
+  it('returns undefined for an unknown slug', async () => {
+    expect(await getTopicBySlug(db, 'no-such-topic')).toBeUndefined();
   });
 });
 

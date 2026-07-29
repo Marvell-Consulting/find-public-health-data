@@ -139,21 +139,37 @@ export async function createTestDatabase({
 /**
  * Repositories for an app-level unit test. Anything the test does not stub throws when
  * called, so a handler reaching for data the test did not intend to provide fails loudly
- * instead of quietly receiving an empty result.
+ * instead of quietly receiving an empty result. Stubs are per-method: a test that only
+ * exercises `topics.list` supplies only that.
  */
-export function createFakeRepositories(overrides: Partial<Repositories> = {}): Repositories {
+export type FakeRepositoryOverrides = {
+  [K in keyof Repositories]?: Partial<Repositories[K]>;
+};
+
+export function createFakeRepositories(overrides: FakeRepositoryOverrides = {}): Repositories {
   return {
-    indicators: overrides.indicators ?? unstubbed('indicators'),
-    topics: overrides.topics ?? unstubbed('topics'),
+    indicators: withThrowingDefaults('indicators', overrides.indicators),
+    topics: withThrowingDefaults('topics', overrides.topics),
   };
 }
 
-function unstubbed<T extends object>(name: string): T {
-  return new Proxy({} as T, {
-    get(_target, property) {
+function withThrowingDefaults<T extends object>(name: string, stubs: Partial<T> = {}): T {
+  return new Proxy(stubs as T, {
+    get(target, property, receiver) {
+      // Symbols are left alone so an accidental await or console.log of the object behaves
+      // normally rather than resolving a throwing `then`.
+      if (typeof property === 'symbol') {
+        return Reflect.get(target, property, receiver);
+      }
+
+      const stub = Reflect.get(target, property, receiver);
+      if (stub !== undefined) {
+        return stub;
+      }
+
       return () => {
         throw new Error(
-          `The ${name} repository was called (.${String(property)}) but this test did not stub it`,
+          `The ${name} repository was called (.${property}) but this test did not stub it`,
         );
       };
     },
