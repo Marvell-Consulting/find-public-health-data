@@ -7,9 +7,9 @@ import {
   TopicRoute,
   TopicsRoute,
 } from '@fphd/public-web-features';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import PublicApp, { ErrorBoundary } from './root';
 
@@ -261,6 +261,69 @@ describe('public application routes', () => {
     ).toBe('https://www.ons.gov.uk');
     expect(screen.getByText('Confidence level')).toBeTruthy();
     expect(screen.getByText('95%')).toBeTruthy();
+  });
+
+  it('reloads with the new area type as soon as the type select changes', async () => {
+    const requestedUrls: string[] = [];
+    const loaderData = {
+      indicator: {
+        fingertipsId: 108,
+        name: 'Under 75 mortality rate from all causes',
+        valueType: 'Directly standardised rate',
+        unit: { name: 'per 100,000', label: 'per 100,000' },
+        yearType: 'Calendar',
+        frequency: 'Annual',
+        polarity: 'RAG - Low is good',
+        ciMethod: null,
+        ciConfidenceLevel: null,
+        comparatorMethod: null,
+        definition: null,
+        rationale: null,
+        methodology: null,
+        numeratorDefinition: null,
+        denominatorDefinition: null,
+        disclosureControl: null,
+        caveats: null,
+        notes: null,
+        dataSource: null,
+        numeratorSource: null,
+        denominatorSource: null,
+        areaTypes: [
+          { name: 'England', areaCount: 1 },
+          { name: 'Regions (statistical)', areaCount: 9 },
+        ],
+      },
+      availableAreas: [{ code: 'E92000001', name: 'England' }],
+      areaData: [],
+      selection: { areaType: 'England', areaCodes: [] },
+    };
+    const loader = vi.fn(({ request }: { request: Request }) => {
+      requestedUrls.push(request.url);
+      return loaderData;
+    });
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        loader: () => ({ signedIn: false }),
+        children: [{ path: 'indicators/:fingertipsId', Component: IndicatorRoute, loader }],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/indicators/108']} />);
+
+    const typeSelect = await screen.findByRole('combobox', {
+      name: 'Select a type of health or administrative area',
+    });
+    fireEvent.change(typeSelect, { target: { value: 'Regions (statistical)' } });
+
+    await waitFor(() =>
+      expect(
+        requestedUrls.some((url) =>
+          url.includes(`ats=${encodeURIComponent('Regions (statistical)')}`),
+        ),
+      ).toBe(true),
+    );
   });
 
   it('compares selected areas row by row when more than one is selected', async () => {

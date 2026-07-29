@@ -1,6 +1,6 @@
 import { A, GridColumn, GridRow, SectionBreak } from '@fphd/ui';
 import { type ReactNode, useId } from 'react';
-import { Form } from 'react-router';
+import { Form, useNavigate } from 'react-router';
 
 import {
   formatConfidenceInterval,
@@ -97,6 +97,7 @@ function FilterPane({
   const groupTypeId = useId();
   const groupId = useId();
   const checkboxIdPrefix = useId();
+  const navigate = useNavigate();
 
   return (
     <div className="fphd-filter-pane">
@@ -138,6 +139,14 @@ function FilterPane({
               id={areaTypeId}
               name="ats"
               defaultValue={selection.areaType}
+              onChange={(event) => {
+                // Changing type invalidates the current area selection, so navigate with
+                // the new type alone; without JavaScript the Apply button does the same.
+                navigate(
+                  { search: `?ats=${encodeURIComponent(event.currentTarget.value)}` },
+                  { preventScrollReset: true },
+                );
+              }}
             >
               {indicator.areaTypes.map((areaType) => (
                 <option key={areaType.name}>{areaType.name}</option>
