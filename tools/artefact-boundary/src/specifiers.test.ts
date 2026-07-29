@@ -22,6 +22,12 @@ describe('extractImportSpecifiers', () => {
     ]);
   });
 
+  it('extracts compacted side-effect imports, several to a line', () => {
+    const source = 'import"@fphd/internal-api";import"./styles.css";';
+
+    expect(extractImportSpecifiers(source)).toEqual(['@fphd/internal-api', './styles.css']);
+  });
+
   it('catches a deliberate internal import in compiled API output', () => {
     const source = [
       "import { internalRoutes } from '@fphd/internal-api-features';",
