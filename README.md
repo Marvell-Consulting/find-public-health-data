@@ -15,7 +15,7 @@ workspace packages. Deployable applications do not import one another.
 ## Requirements
 
 - Node.js 24+
-- pnpm 11.11.0
+- pnpm 11.18.0
 - Docker, to run the development database
 
 Corepack will select the pinned pnpm version from `package.json`.
