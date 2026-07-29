@@ -1,3 +1,4 @@
+export { type AreaSummary, listAreasByType } from './area-repository.js';
 export {
   createDb,
   type Database,
@@ -18,6 +19,7 @@ export {
 } from './indicator-repository.js';
 export { rebuildReadModels } from './read-models.js';
 export {
+  type AreaRepository,
   createRepositories,
   type IndicatorRepository,
   type Repositories,

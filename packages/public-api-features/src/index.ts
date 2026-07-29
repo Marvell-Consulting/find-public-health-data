@@ -1,9 +1,11 @@
 import type { Repositories } from '@fphd/db';
 import { Router } from 'express';
 
+import { areasRouter } from './areas.js';
 import { indicatorsRouter } from './indicators.js';
 import { topicsRouter } from './topics.js';
 
+export { areasRouter } from './areas.js';
 export { indicatorsRouter } from './indicators.js';
 export { topicsRouter } from './topics.js';
 
@@ -15,6 +17,7 @@ export { topicsRouter } from './topics.js';
 export function publicApiRoutes(repositories: Repositories): Router {
   const router = Router();
 
+  router.use(areasRouter(repositories.areas));
   router.use(indicatorsRouter(repositories.indicators));
   router.use(topicsRouter(repositories.topics));
 

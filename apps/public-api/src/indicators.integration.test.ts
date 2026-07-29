@@ -101,6 +101,27 @@ describe('public API against the seeded database', () => {
     expect(singleDimension[0].dimensions[0]).toMatchObject({ type: 'Age', value: '<75 yrs' });
   });
 
+  it('lists the current areas of a seeded area type', async () => {
+    const response = await request(createApp({ repositories })).get(
+      `/api/areas?area_type=${encodeURIComponent('Regions (statistical)')}`,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveLength(9);
+    expect(response.body[0]).toEqual({ code: expect.any(String), name: expect.any(String) });
+    const names = response.body.map((a: { name: string }) => a.name);
+    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
+  });
+
+  it('returns an empty list for an unknown area type', async () => {
+    const response = await request(createApp({ repositories })).get(
+      '/api/areas?area_type=No%20Such%20Type',
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([]);
+  });
+
   it('returns an empty observation list for an area with no data', async () => {
     const rows = await owner`
       SELECT i.fingertips_id, a.code FROM indicator i CROSS JOIN area a

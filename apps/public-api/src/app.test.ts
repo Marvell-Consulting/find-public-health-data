@@ -161,6 +161,29 @@ describe('public API', () => {
     expect(response.body).toEqual({ error: 'not_found' });
   });
 
+  it('lists current areas of a type', async () => {
+    const listByType = vi
+      .fn()
+      .mockResolvedValue([{ code: 'E12000001', name: 'North East region (statistical)' }]);
+    const repositories = createFakeRepositories({ areas: { listByType } });
+
+    const response = await request(createApp({ repositories })).get(
+      `/api/areas?area_type=${encodeURIComponent('Regions (statistical)')}`,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([{ code: 'E12000001', name: 'North East region (statistical)' }]);
+    expect(listByType).toHaveBeenCalledWith('Regions (statistical)');
+  });
+
+  it('rejects an areas request without an area type', async () => {
+    const response = await request(createApp({ repositories: createFakeRepositories() })).get(
+      '/api/areas',
+    );
+
+    expect(response.status).toBe(400);
+  });
+
   it('serves observations for an indicator, defaulting to England', async () => {
     const data = {
       areaCode: 'E92000001',

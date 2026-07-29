@@ -148,6 +148,7 @@ export type FakeRepositoryOverrides = {
 
 export function createFakeRepositories(overrides: FakeRepositoryOverrides = {}): Repositories {
   return {
+    areas: withThrowingDefaults('areas', overrides.areas),
     indicators: withThrowingDefaults('indicators', overrides.indicators),
     topics: withThrowingDefaults('topics', overrides.topics),
   };

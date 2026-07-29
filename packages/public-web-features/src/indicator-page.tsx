@@ -1,5 +1,6 @@
 import { A, GridColumn, GridRow, SectionBreak } from '@fphd/ui';
 import { type ReactNode, useId } from 'react';
+import { Form } from 'react-router';
 
 import {
   formatConfidenceInterval,
@@ -9,7 +10,13 @@ import {
   segmentLabel,
   trendSeries,
 } from './indicator-data';
-import type { IndicatorAreaData, IndicatorDetail } from './indicator-loader';
+import type {
+  AreaSummary,
+  IndicatorAreaData,
+  IndicatorDetail,
+  IndicatorObservation,
+  IndicatorSelection,
+} from './indicator-loader';
 
 const CONFIDENCE_LEVEL_LABELS: Record<string, string> = {
   '95': '95%',
@@ -77,12 +84,19 @@ function ChartSection({
   );
 }
 
-function FilterPane({ indicator }: { indicator: IndicatorDetail }) {
+function FilterPane({
+  indicator,
+  availableAreas,
+  selection,
+}: {
+  indicator: IndicatorDetail;
+  availableAreas: AreaSummary[];
+  selection: IndicatorSelection;
+}) {
   const areaTypeId = useId();
   const groupTypeId = useId();
   const groupId = useId();
-  const selectAllCheckboxId = useId();
-  const englandCheckboxId = useId();
+  const checkboxIdPrefix = useId();
 
   return (
     <div className="fphd-filter-pane">
@@ -104,78 +118,81 @@ function FilterPane({ indicator }: { indicator: IndicatorDetail }) {
 
         <div className="fphd-filter-pane__row">
           <p className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">
-            Selected areas (0)
+            Selected areas ({selection.areaCodes.length})
           </p>
-          <button type="button" className="govuk-link fphd-link-button">
+          <a className="govuk-link" href="?">
             Clear all
+          </a>
+        </div>
+        {selection.areaCodes.length === 0 ? (
+          <p className="govuk-body">Default area England</p>
+        ) : null}
+
+        <Form method="get">
+          <div className="govuk-form-group">
+            <label className="govuk-label govuk-!-font-weight-bold" htmlFor={areaTypeId}>
+              Select a type of health or administrative area
+            </label>
+            <select
+              className="govuk-select"
+              id={areaTypeId}
+              name="ats"
+              defaultValue={selection.areaType}
+            >
+              {indicator.areaTypes.map((areaType) => (
+                <option key={areaType.name}>{areaType.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="govuk-form-group">
+            <label className="govuk-label govuk-!-font-weight-bold" htmlFor={groupTypeId}>
+              Select a type of group to compare with
+            </label>
+            <select className="govuk-select" id={groupTypeId} defaultValue="England">
+              <option>England</option>
+            </select>
+          </div>
+
+          <div className="govuk-form-group">
+            <label className="govuk-label govuk-!-font-weight-bold" htmlFor={groupId}>
+              Select a group
+            </label>
+            <select className="govuk-select" id={groupId} defaultValue="England">
+              <option>England</option>
+            </select>
+          </div>
+
+          <fieldset className="govuk-fieldset">
+            <legend className="govuk-fieldset__legend govuk-!-font-weight-bold">
+              Select one or more areas
+            </legend>
+            <div className="fphd-filter-pane__areas govuk-checkboxes govuk-checkboxes--small">
+              {availableAreas.map((area) => {
+                const checkboxId = `${checkboxIdPrefix}-${area.code}`;
+                return (
+                  <div className="govuk-checkboxes__item" key={area.code}>
+                    <input
+                      className="govuk-checkboxes__input"
+                      id={checkboxId}
+                      type="checkbox"
+                      name="as"
+                      value={area.code}
+                      defaultChecked={selection.areaCodes.includes(area.code)}
+                    />
+                    <label className="govuk-label govuk-checkboxes__label" htmlFor={checkboxId}>
+                      {area.name}
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
+          </fieldset>
+
+          <button type="submit" className="govuk-button govuk-!-margin-top-4">
+            Apply filters
           </button>
-        </div>
-        <p className="govuk-body">Default area England</p>
-
-        <div className="govuk-form-group">
-          <label className="govuk-label govuk-!-font-weight-bold" htmlFor={areaTypeId}>
-            Select a type of health or administrative area
-          </label>
-          <select className="govuk-select" id={areaTypeId} defaultValue="England">
-            <option>England</option>
-            {indicator.areaTypes.map((areaType) => (
-              <option key={areaType.name}>{areaType.name}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="govuk-form-group">
-          <label className="govuk-label govuk-!-font-weight-bold" htmlFor={groupTypeId}>
-            Select a type of group to compare with
-          </label>
-          <select className="govuk-select" id={groupTypeId} defaultValue="England">
-            <option>England</option>
-          </select>
-        </div>
-
-        <div className="govuk-form-group">
-          <label className="govuk-label govuk-!-font-weight-bold" htmlFor={groupId}>
-            Select a group
-          </label>
-          <select className="govuk-select" id={groupId} defaultValue="England">
-            <option>England</option>
-          </select>
-        </div>
-
-        <fieldset className="govuk-fieldset">
-          <legend className="govuk-fieldset__legend govuk-!-font-weight-bold">
-            Select one or more areas
-          </legend>
-          <div className="fphd-filter-pane__row">
-            <div className="govuk-checkboxes govuk-checkboxes--small">
-              <div className="govuk-checkboxes__item">
-                <input
-                  className="govuk-checkboxes__input"
-                  id={selectAllCheckboxId}
-                  type="checkbox"
-                />
-                <label
-                  className="govuk-label govuk-checkboxes__label"
-                  htmlFor={selectAllCheckboxId}
-                >
-                  Select all areas
-                </label>
-              </div>
-            </div>
-            <button type="button" className="govuk-link fphd-link-button">
-              Clear all
-            </button>
-          </div>
-          <SectionBreak size="m" visible />
-          <div className="govuk-checkboxes govuk-checkboxes--small">
-            <div className="govuk-checkboxes__item">
-              <input className="govuk-checkboxes__input" id={englandCheckboxId} type="checkbox" />
-              <label className="govuk-label govuk-checkboxes__label" htmlFor={englandCheckboxId}>
-                England
-              </label>
-            </div>
-          </div>
-        </fieldset>
+        </Form>
       </div>
     </div>
   );
@@ -360,20 +377,40 @@ function SegmentationTable({
   );
 }
 
-function TrendTable({ indicator, data }: { indicator: IndicatorDetail; data: IndicatorAreaData }) {
-  const series = trendSeries(data.observations);
-  const first = series[0];
-  if (!first) {
+function TrendTable({
+  indicator,
+  areaData,
+}: {
+  indicator: IndicatorDetail;
+  areaData: IndicatorAreaData[];
+}) {
+  const seriesByArea = areaData
+    .map((data) => ({ data, series: trendSeries(data.observations) }))
+    .filter(({ series }) => series.length > 0);
+  const firstObservation = seriesByArea[0]?.series[0];
+  if (!firstObservation) {
     return null;
   }
+  const multipleAreas = seriesByArea.length > 1;
 
   return (
     <table className="govuk-table">
       <caption className="govuk-table__caption govuk-table__caption--s">
-        {data.areaName}, {segmentLabel(first)}
+        {multipleAreas ? (
+          segmentLabel(firstObservation)
+        ) : (
+          <>
+            {seriesByArea[0]?.data.areaName}, {segmentLabel(firstObservation)}
+          </>
+        )}
       </caption>
       <thead className="govuk-table__head">
         <tr className="govuk-table__row">
+          {multipleAreas ? (
+            <th scope="col" className="govuk-table__header">
+              Area
+            </th>
+          ) : null}
           <th scope="col" className="govuk-table__header">
             Period
           </th>
@@ -389,22 +426,32 @@ function TrendTable({ indicator, data }: { indicator: IndicatorDetail; data: Ind
         </tr>
       </thead>
       <tbody className="govuk-table__body">
-        {series.map((observation) => (
-          <tr className="govuk-table__row" key={`${observation.fromDate}-${observation.toDate}`}>
-            <th scope="row" className="govuk-table__header">
-              {periodLabel(observation)}
-            </th>
-            <td className="govuk-table__cell govuk-table__cell--numeric">
-              {formatValue(observation.value)}
-            </td>
-            <td className="govuk-table__cell govuk-table__cell--numeric">
-              {formatConfidenceInterval(observation)}
-            </td>
-            <td className="govuk-table__cell govuk-table__cell--numeric">
-              {observation.count === null ? '—' : formatValue(observation.count)}
-            </td>
-          </tr>
-        ))}
+        {seriesByArea.flatMap(({ data, series }) =>
+          series.map((observation) => (
+            <tr
+              className="govuk-table__row"
+              key={`${data.areaCode}-${observation.fromDate}-${observation.toDate}`}
+            >
+              {multipleAreas ? (
+                <th scope="row" className="govuk-table__header">
+                  {data.areaName}
+                </th>
+              ) : null}
+              <th scope="row" className="govuk-table__header">
+                {periodLabel(observation)}
+              </th>
+              <td className="govuk-table__cell govuk-table__cell--numeric">
+                {formatValue(observation.value)}
+              </td>
+              <td className="govuk-table__cell govuk-table__cell--numeric">
+                {formatConfidenceInterval(observation)}
+              </td>
+              <td className="govuk-table__cell govuk-table__cell--numeric">
+                {observation.count === null ? '—' : formatValue(observation.count)}
+              </td>
+            </tr>
+          )),
+        )}
       </tbody>
     </table>
   );
@@ -412,20 +459,25 @@ function TrendTable({ indicator, data }: { indicator: IndicatorDetail; data: Ind
 
 function CompareAreasTable({
   indicator,
-  data,
+  areaData,
 }: {
   indicator: IndicatorDetail;
-  data: IndicatorAreaData;
+  areaData: IndicatorAreaData[];
 }) {
-  const latest = trendSeries(data.observations).at(-1);
-  if (!latest) {
+  const latestByArea = areaData
+    .map((data) => ({ data, latest: trendSeries(data.observations).at(-1) }))
+    .filter((entry): entry is { data: IndicatorAreaData; latest: IndicatorObservation } =>
+      Boolean(entry.latest),
+    );
+  const first = latestByArea[0];
+  if (!first) {
     return null;
   }
 
   return (
     <table className="govuk-table">
       <caption className="govuk-table__caption govuk-table__caption--s">
-        {periodLabel(latest)}, {segmentLabel(latest)}
+        {periodLabel(first.latest)}, {segmentLabel(first.latest)}
       </caption>
       <thead className="govuk-table__head">
         <tr className="govuk-table__row">
@@ -441,17 +493,19 @@ function CompareAreasTable({
         </tr>
       </thead>
       <tbody className="govuk-table__body">
-        <tr className="govuk-table__row">
-          <th scope="row" className="govuk-table__header">
-            {data.areaName}
-          </th>
-          <td className="govuk-table__cell govuk-table__cell--numeric">
-            {formatValue(latest.value)}
-          </td>
-          <td className="govuk-table__cell govuk-table__cell--numeric">
-            {formatConfidenceInterval(latest)}
-          </td>
-        </tr>
+        {latestByArea.map(({ data, latest }) => (
+          <tr className="govuk-table__row" key={data.areaCode}>
+            <th scope="row" className="govuk-table__header">
+              {data.areaName}
+            </th>
+            <td className="govuk-table__cell govuk-table__cell--numeric">
+              {formatValue(latest.value)}
+            </td>
+            <td className="govuk-table__cell govuk-table__cell--numeric">
+              {formatConfidenceInterval(latest)}
+            </td>
+          </tr>
+        ))}
       </tbody>
     </table>
   );
@@ -459,10 +513,14 @@ function CompareAreasTable({
 
 export function IndicatorPage({
   indicator,
-  data,
+  availableAreas,
+  areaData,
+  selection,
 }: {
   indicator: IndicatorDetail;
-  data: IndicatorAreaData;
+  availableAreas: AreaSummary[];
+  areaData: IndicatorAreaData[];
+  selection: IndicatorSelection;
 }) {
   const benchmarkId = useId();
 
@@ -473,7 +531,12 @@ export function IndicatorPage({
       </A>
       <GridRow>
         <GridColumn width="one-quarter">
-          <FilterPane indicator={indicator} />
+          <FilterPane
+            key={`${selection.areaType}|${selection.areaCodes.join(',')}`}
+            indicator={indicator}
+            availableAreas={availableAreas}
+            selection={selection}
+          />
         </GridColumn>
         <GridColumn width="three-quarters">
           <h1 className="govuk-heading-l">View data for selected indicators and areas</h1>
@@ -505,21 +568,21 @@ export function IndicatorPage({
             title="Indicator segmentations overview"
             description="An overview of this indicator's values across its reported segments, compared with the benchmark."
           >
-            <SegmentationTable indicator={indicator} data={data} />
+            {areaData[0] ? <SegmentationTable indicator={indicator} data={areaData[0]} /> : null}
           </ChartSection>
           <ChartSection
             id="trends"
             title="Indicator trends over time"
             description="How this indicator has changed over time."
           >
-            <TrendTable indicator={indicator} data={data} />
+            <TrendTable indicator={indicator} areaData={areaData} />
           </ChartSection>
           <ChartSection
             id="compare-areas"
             title="Compare areas for one time period"
             description="How areas compare with each other for the latest time period."
           >
-            <CompareAreasTable indicator={indicator} data={data} />
+            <CompareAreasTable indicator={indicator} areaData={areaData} />
           </ChartSection>
 
           <div className="fphd-chart-section">

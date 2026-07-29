@@ -1,3 +1,4 @@
+import { type AreaSummary, listAreasByType } from './area-repository.js';
 import type { Database } from './client.js';
 import {
   type ApprovedIndicator,
@@ -15,6 +16,10 @@ export interface IndicatorRepository {
   findObservations(fingertipsId: number, areaCode: string): Promise<IndicatorAreaData | undefined>;
 }
 
+export interface AreaRepository {
+  listByType(areaTypeName: string): Promise<AreaSummary[]>;
+}
+
 export interface TopicRepository {
   list(): Promise<Topic[]>;
   findBySlug(slug: string): Promise<Topic | undefined>;
@@ -26,12 +31,16 @@ export interface TopicRepository {
  * here, and no app factory or test signature changes.
  */
 export interface Repositories {
+  areas: AreaRepository;
   indicators: IndicatorRepository;
   topics: TopicRepository;
 }
 
 export function createRepositories(db: Database): Repositories {
   return {
+    areas: {
+      listByType: (areaTypeName) => listAreasByType(db, areaTypeName),
+    },
     indicators: {
       listApproved: () => listApprovedIndicators(db),
       findApprovedByFingertipsId: (fingertipsId) =>

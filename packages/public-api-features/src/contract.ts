@@ -89,6 +89,13 @@ export const indicatorAreaDataSchema = z.object({
   observations: z.array(indicatorObservationSchema),
 });
 
+export const areaSummarySchema = z.object({
+  code: z.string().min(1),
+  name: z.string().min(1),
+});
+
+export const areaListSchema = z.array(areaSummarySchema);
+
 export type TopicSummary = z.infer<typeof topicSummarySchema>;
 export type TopicDetail = z.infer<typeof topicDetailSchema>;
 export type IndicatorSummary = z.infer<typeof indicatorSummarySchema>;
@@ -96,3 +103,4 @@ export type IndicatorDetail = z.infer<typeof indicatorDetailSchema>;
 export type IndicatorSource = z.infer<typeof indicatorSourceSchema>;
 export type IndicatorObservation = z.infer<typeof indicatorObservationSchema>;
 export type IndicatorAreaData = z.infer<typeof indicatorAreaDataSchema>;
+export type AreaSummary = z.infer<typeof areaSummarySchema>;

@@ -110,6 +110,12 @@
   justify-content: space-between;
 }
 
+.fphd-filter-pane__areas {
+  max-height: 340px;
+  padding-right: govuk-spacing(1);
+  overflow-y: auto;
+}
+
 .fphd-link-button {
   padding: 0;
   border: 0;
