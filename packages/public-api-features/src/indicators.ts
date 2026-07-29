@@ -1,13 +1,41 @@
 import type { Repositories } from '@fphd/db';
 import { Router } from 'express';
 
-import type { IndicatorDetail } from './contract.js';
+import type { IndicatorAreaData, IndicatorDetail } from './contract.js';
+
+const DEFAULT_AREA_CODE = 'E92000001';
 
 export function indicatorsRouter(indicators: Repositories['indicators']): Router {
   const router = Router();
 
   router.get('/api/indicators', async (_request, response) => {
     response.status(200).json({ indicators: await indicators.listApproved() });
+  });
+
+  router.get('/api/indicators/:fingertipsId/data', async (request, response) => {
+    const { fingertipsId } = request.params;
+    const areaCode = request.query.area_code ?? DEFAULT_AREA_CODE;
+
+    if (
+      !/^\d+$/.test(fingertipsId) ||
+      typeof areaCode !== 'string' ||
+      !/^[A-Z0-9]+$/i.test(areaCode)
+    ) {
+      response.status(404).json({ error: 'not_found' });
+      return;
+    }
+
+    const data: IndicatorAreaData | undefined = await indicators.findObservations(
+      Number(fingertipsId),
+      areaCode,
+    );
+
+    if (!data) {
+      response.status(404).json({ error: 'not_found' });
+      return;
+    }
+
+    response.status(200).json(data);
   });
 
   router.get('/api/indicators/:fingertipsId', async (request, response) => {

@@ -1,7 +1,15 @@
 import { A, GridColumn, GridRow, SectionBreak } from '@fphd/ui';
 import { type ReactNode, useId } from 'react';
 
-import type { IndicatorDetail } from './indicator-loader';
+import {
+  formatConfidenceInterval,
+  formatValue,
+  latestCoreSegments,
+  periodLabel,
+  segmentLabel,
+  trendSeries,
+} from './indicator-data';
+import type { IndicatorAreaData, IndicatorDetail } from './indicator-loader';
 
 const CONFIDENCE_LEVEL_LABELS: Record<string, string> = {
   '95': '95%',
@@ -45,10 +53,12 @@ function ChartSection({
   id,
   title,
   description,
+  children,
 }: {
   id: string;
   title: string;
   description: string;
+  children?: ReactNode;
 }) {
   const headingId = useId();
 
@@ -61,6 +71,7 @@ function ChartSection({
       <section className="fphd-chart-placeholder" aria-labelledby={headingId} tabIndex={0}>
         <p className="govuk-body">{description}</p>
         <p className="govuk-hint">Data visualisation to follow</p>
+        {children}
       </section>
     </div>
   );
@@ -299,7 +310,160 @@ function BackgroundInformation({ indicator }: { indicator: IndicatorDetail }) {
   );
 }
 
-export function IndicatorPage({ indicator }: { indicator: IndicatorDetail }) {
+function SegmentationTable({
+  indicator,
+  data,
+}: {
+  indicator: IndicatorDetail;
+  data: IndicatorAreaData;
+}) {
+  const segments = latestCoreSegments(data.observations);
+  const first = segments[0];
+  if (!first) {
+    return null;
+  }
+
+  return (
+    <table className="govuk-table">
+      <caption className="govuk-table__caption govuk-table__caption--s">
+        {data.areaName}, {periodLabel(first)}
+      </caption>
+      <thead className="govuk-table__head">
+        <tr className="govuk-table__row">
+          <th scope="col" className="govuk-table__header">
+            Segment
+          </th>
+          <th scope="col" className="govuk-table__header govuk-table__header--numeric">
+            Value ({indicator.unit.name})
+          </th>
+          <th scope="col" className="govuk-table__header govuk-table__header--numeric">
+            95% confidence interval
+          </th>
+        </tr>
+      </thead>
+      <tbody className="govuk-table__body">
+        {segments.map((observation) => (
+          <tr className="govuk-table__row" key={segmentLabel(observation)}>
+            <th scope="row" className="govuk-table__header">
+              {segmentLabel(observation)}
+            </th>
+            <td className="govuk-table__cell govuk-table__cell--numeric">
+              {formatValue(observation.value)}
+            </td>
+            <td className="govuk-table__cell govuk-table__cell--numeric">
+              {formatConfidenceInterval(observation)}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function TrendTable({ indicator, data }: { indicator: IndicatorDetail; data: IndicatorAreaData }) {
+  const series = trendSeries(data.observations);
+  const first = series[0];
+  if (!first) {
+    return null;
+  }
+
+  return (
+    <table className="govuk-table">
+      <caption className="govuk-table__caption govuk-table__caption--s">
+        {data.areaName}, {segmentLabel(first)}
+      </caption>
+      <thead className="govuk-table__head">
+        <tr className="govuk-table__row">
+          <th scope="col" className="govuk-table__header">
+            Period
+          </th>
+          <th scope="col" className="govuk-table__header govuk-table__header--numeric">
+            Value ({indicator.unit.name})
+          </th>
+          <th scope="col" className="govuk-table__header govuk-table__header--numeric">
+            95% confidence interval
+          </th>
+          <th scope="col" className="govuk-table__header govuk-table__header--numeric">
+            Count
+          </th>
+        </tr>
+      </thead>
+      <tbody className="govuk-table__body">
+        {series.map((observation) => (
+          <tr className="govuk-table__row" key={`${observation.fromDate}-${observation.toDate}`}>
+            <th scope="row" className="govuk-table__header">
+              {periodLabel(observation)}
+            </th>
+            <td className="govuk-table__cell govuk-table__cell--numeric">
+              {formatValue(observation.value)}
+            </td>
+            <td className="govuk-table__cell govuk-table__cell--numeric">
+              {formatConfidenceInterval(observation)}
+            </td>
+            <td className="govuk-table__cell govuk-table__cell--numeric">
+              {observation.count === null ? '—' : formatValue(observation.count)}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function CompareAreasTable({
+  indicator,
+  data,
+}: {
+  indicator: IndicatorDetail;
+  data: IndicatorAreaData;
+}) {
+  const latest = trendSeries(data.observations).at(-1);
+  if (!latest) {
+    return null;
+  }
+
+  return (
+    <table className="govuk-table">
+      <caption className="govuk-table__caption govuk-table__caption--s">
+        {periodLabel(latest)}, {segmentLabel(latest)}
+      </caption>
+      <thead className="govuk-table__head">
+        <tr className="govuk-table__row">
+          <th scope="col" className="govuk-table__header">
+            Area
+          </th>
+          <th scope="col" className="govuk-table__header govuk-table__header--numeric">
+            Value ({indicator.unit.name})
+          </th>
+          <th scope="col" className="govuk-table__header govuk-table__header--numeric">
+            95% confidence interval
+          </th>
+        </tr>
+      </thead>
+      <tbody className="govuk-table__body">
+        <tr className="govuk-table__row">
+          <th scope="row" className="govuk-table__header">
+            {data.areaName}
+          </th>
+          <td className="govuk-table__cell govuk-table__cell--numeric">
+            {formatValue(latest.value)}
+          </td>
+          <td className="govuk-table__cell govuk-table__cell--numeric">
+            {formatConfidenceInterval(latest)}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  );
+}
+
+export function IndicatorPage({
+  indicator,
+  data,
+}: {
+  indicator: IndicatorDetail;
+  data: IndicatorAreaData;
+}) {
   const benchmarkId = useId();
 
   return (
@@ -340,17 +504,23 @@ export function IndicatorPage({ indicator }: { indicator: IndicatorDetail }) {
             id="segmentations"
             title="Indicator segmentations overview"
             description="An overview of this indicator's values across its reported segments, compared with the benchmark."
-          />
+          >
+            <SegmentationTable indicator={indicator} data={data} />
+          </ChartSection>
           <ChartSection
             id="trends"
             title="Indicator trends over time"
             description="How this indicator has changed over time."
-          />
+          >
+            <TrendTable indicator={indicator} data={data} />
+          </ChartSection>
           <ChartSection
             id="compare-areas"
             title="Compare areas for one time period"
             description="How areas compare with each other for the latest time period."
-          />
+          >
+            <CompareAreasTable indicator={indicator} data={data} />
+          </ChartSection>
 
           <div className="fphd-chart-section">
             <h3 className="govuk-heading-m">Related population data</h3>

@@ -1,6 +1,6 @@
 import { createFakeRepositories } from '@fphd/db/testing';
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createApp } from './app.js';
 
@@ -156,6 +156,66 @@ describe('public API', () => {
     });
 
     const response = await request(createApp({ repositories })).get('/api/indicators/424242');
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: 'not_found' });
+  });
+
+  it('serves observations for an indicator, defaulting to England', async () => {
+    const data = {
+      areaCode: 'E92000001',
+      areaName: 'England',
+      observations: [
+        {
+          fromDate: '2023-01-01',
+          toDate: '2023-12-31',
+          value: 341.1,
+          lowerCi95: 339,
+          upperCi95: 343.2,
+          count: 130000,
+          denominator: null,
+          dimensions: [{ type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 }],
+        },
+      ],
+    };
+    const findObservations = vi.fn().mockResolvedValue(data);
+    const repositories = createFakeRepositories({ indicators: { findObservations } });
+
+    const response = await request(createApp({ repositories })).get('/api/indicators/108/data');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(data);
+    expect(findObservations).toHaveBeenCalledWith(108, 'E92000001');
+  });
+
+  it('passes an explicit area code through to the repository', async () => {
+    const findObservations = vi
+      .fn()
+      .mockResolvedValue({ areaCode: 'E06000001', areaName: 'Hartlepool', observations: [] });
+    const repositories = createFakeRepositories({ indicators: { findObservations } });
+
+    const response = await request(createApp({ repositories })).get(
+      '/api/indicators/108/data?area_code=E06000001',
+    );
+
+    expect(response.status).toBe(200);
+    expect(findObservations).toHaveBeenCalledWith(108, 'E06000001');
+  });
+
+  it('rejects a malformed area code without touching the repository', async () => {
+    const response = await request(createApp({ repositories: createFakeRepositories() })).get(
+      '/api/indicators/108/data?area_code=../nope',
+    );
+
+    expect(response.status).toBe(404);
+  });
+
+  it('returns not-found for observations of an unknown indicator', async () => {
+    const repositories = createFakeRepositories({
+      indicators: { findObservations: async () => undefined },
+    });
+
+    const response = await request(createApp({ repositories })).get('/api/indicators/424242/data');
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'not_found' });

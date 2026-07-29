@@ -1,16 +1,21 @@
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import type { Database } from './client.js';
 import {
+  area,
   availableData,
   ciMethod,
   comparatorMethod,
   dataSource,
+  dimensionType,
+  dimensionValue,
   frequency,
   indicator,
   indicatorMetadata,
   numeratorDenominatorSource,
+  observation,
+  observationDimension,
   polarity,
   unit,
   valueType,
@@ -169,5 +174,122 @@ export async function getApprovedIndicatorByFingertipsId(
         ? null
         : { name: row.denominatorSourceName, url: row.denominatorSourceUrl },
     areaTypes,
+  };
+}
+
+export interface ObservationDimensionValue {
+  type: string;
+  value: string;
+  dimensionClass: string;
+  sortOrder: number;
+}
+
+export interface IndicatorObservation {
+  fromDate: string;
+  toDate: string;
+  value: number | null;
+  lowerCi95: number | null;
+  upperCi95: number | null;
+  count: number | null;
+  denominator: number | null;
+  dimensions: ObservationDimensionValue[];
+}
+
+export interface IndicatorAreaData {
+  areaCode: string;
+  areaName: string;
+  observations: IndicatorObservation[];
+}
+
+/**
+ * All published observations for one indicator in one area, with their dimension labels.
+ * An observation with no dimensions is the fully-aggregate value for its period.
+ */
+export async function getIndicatorObservations(
+  db: Database,
+  fingertipsId: number,
+  areaCode: string,
+): Promise<IndicatorAreaData | undefined> {
+  const rows = await db
+    .select({
+      obsId: observation.id,
+      fromDate: observation.fromDate,
+      toDate: observation.toDate,
+      value: observation.value,
+      lowerCi95: observation.lowerCi95,
+      upperCi95: observation.upperCi95,
+      count: observation.count,
+      denominator: observation.denominator,
+      areaName: area.name,
+    })
+    .from(observation)
+    .innerJoin(
+      indicator,
+      and(
+        eq(observation.indicatorId, indicator.id),
+        eq(indicator.fingertipsId, fingertipsId),
+        eq(indicator.status, 'approved'),
+      ),
+    )
+    .innerJoin(area, and(eq(observation.areaId, area.id), eq(area.code, areaCode)))
+    .where(isNull(observation.deletedAt))
+    .orderBy(asc(observation.fromDate), asc(observation.toDate));
+
+  if (rows.length === 0) {
+    const [indicatorExists] = await db
+      .select({ id: indicator.id })
+      .from(indicator)
+      .where(and(eq(indicator.fingertipsId, fingertipsId), eq(indicator.status, 'approved')))
+      .limit(1);
+    const [areaRow] = await db
+      .select({ name: area.name })
+      .from(area)
+      .where(eq(area.code, areaCode))
+      .limit(1);
+
+    if (!indicatorExists || !areaRow) {
+      return undefined;
+    }
+
+    return { areaCode, areaName: areaRow.name, observations: [] };
+  }
+
+  const dimensionRows = await db
+    .select({
+      observationId: observationDimension.observationId,
+      type: dimensionType.name,
+      value: dimensionValue.name,
+      dimensionClass: dimensionType.dimensionClass,
+      sortOrder: dimensionValue.sortOrder,
+    })
+    .from(observationDimension)
+    .innerJoin(dimensionValue, eq(observationDimension.dimensionValueId, dimensionValue.id))
+    .innerJoin(dimensionType, eq(observationDimension.dimensionTypeId, dimensionType.id))
+    .where(
+      inArray(
+        observationDimension.observationId,
+        rows.map((row) => row.obsId),
+      ),
+    );
+
+  const dimensionsByObservation = new Map<string, ObservationDimensionValue[]>();
+  for (const { observationId, ...dimension } of dimensionRows) {
+    const existing = dimensionsByObservation.get(observationId);
+    if (existing) {
+      existing.push(dimension);
+    } else {
+      dimensionsByObservation.set(observationId, [dimension]);
+    }
+  }
+
+  return {
+    areaCode,
+    areaName: rows[0]?.areaName ?? areaCode,
+    observations: rows.map(({ obsId, areaName: _areaName, ...observationRow }) => ({
+      ...observationRow,
+      dimensions: (dimensionsByObservation.get(obsId) ?? []).sort((a, b) =>
+        a.type.localeCompare(b.type),
+      ),
+    })),
   };
 }

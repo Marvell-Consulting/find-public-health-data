@@ -1,9 +1,13 @@
-import { indicatorDetailSchema } from '@fphd/public-api-features/contract';
+import { indicatorAreaDataSchema, indicatorDetailSchema } from '@fphd/public-api-features/contract';
 import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
 
-export type { IndicatorDetail } from '@fphd/public-api-features/contract';
+export type {
+  IndicatorAreaData,
+  IndicatorDetail,
+  IndicatorObservation,
+} from '@fphd/public-api-features/contract';
 
 /**
  * Kept free of any @fphd/ui import so it can be unit-tested without the jsdom/SSR
@@ -21,7 +25,11 @@ export async function loadIndicator({ context, params }: LoaderFunctionArgs) {
     throw new Error('loadIndicator expects a fingertipsId param; check the route that renders it');
   }
 
-  return context
-    .get(apiContext)
-    .get(apiPath`/api/indicators/${fingertipsId}`, indicatorDetailSchema);
+  const api = context.get(apiContext);
+  const [indicator, data] = await Promise.all([
+    api.get(apiPath`/api/indicators/${fingertipsId}`, indicatorDetailSchema),
+    api.get(apiPath`/api/indicators/${fingertipsId}/data`, indicatorAreaDataSchema),
+  ]);
+
+  return { indicator, data };
 }

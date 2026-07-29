@@ -65,8 +65,34 @@ export const indicatorDetailSchema = z.object({
   areaTypes: z.array(z.object({ name: z.string().min(1), areaCount: z.number().int() })),
 });
 
+export const indicatorObservationSchema = z.object({
+  fromDate: z.string().min(1),
+  toDate: z.string().min(1),
+  value: z.number().nullable(),
+  lowerCi95: z.number().nullable(),
+  upperCi95: z.number().nullable(),
+  count: z.number().nullable(),
+  denominator: z.number().nullable(),
+  dimensions: z.array(
+    z.object({
+      type: z.string().min(1),
+      value: z.string().min(1),
+      dimensionClass: z.string().min(1),
+      sortOrder: z.number().int(),
+    }),
+  ),
+});
+
+export const indicatorAreaDataSchema = z.object({
+  areaCode: z.string().min(1),
+  areaName: z.string().min(1),
+  observations: z.array(indicatorObservationSchema),
+});
+
 export type TopicSummary = z.infer<typeof topicSummarySchema>;
 export type TopicDetail = z.infer<typeof topicDetailSchema>;
 export type IndicatorSummary = z.infer<typeof indicatorSummarySchema>;
 export type IndicatorDetail = z.infer<typeof indicatorDetailSchema>;
 export type IndicatorSource = z.infer<typeof indicatorSourceSchema>;
+export type IndicatorObservation = z.infer<typeof indicatorObservationSchema>;
+export type IndicatorAreaData = z.infer<typeof indicatorAreaDataSchema>;

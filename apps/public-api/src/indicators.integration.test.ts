@@ -82,6 +82,46 @@ describe('public API against the seeded database', () => {
     expect(() => indicatorDetailSchema.parse(response.body)).not.toThrow();
   });
 
+  it('serves the England observations for a seeded indicator, matching the wire contract', async () => {
+    const { indicatorAreaDataSchema } = await import('@fphd/public-api-features/contract');
+
+    const response = await request(createApp({ repositories })).get('/api/indicators/108/data');
+
+    expect(response.status).toBe(200);
+    expect(response.body.areaCode).toBe('E92000001');
+    expect(response.body.areaName).toBe('England');
+    expect(response.body.observations.length).toBeGreaterThan(1000);
+    expect(() => indicatorAreaDataSchema.parse(response.body)).not.toThrow();
+
+    // The least-disaggregated England series for 108 carries a single Age dimension.
+    const singleDimension = response.body.observations.filter(
+      (o: { dimensions: unknown[] }) => o.dimensions.length === 1,
+    );
+    expect(singleDimension).toHaveLength(18);
+    expect(singleDimension[0].dimensions[0]).toMatchObject({ type: 'Age', value: '<75 yrs' });
+  });
+
+  it('returns an empty observation list for an area with no data', async () => {
+    const rows = await owner`
+      SELECT i.fingertips_id, a.code FROM indicator i CROSS JOIN area a
+      WHERE i.status = 'approved'
+      AND NOT EXISTS (
+        SELECT 1 FROM observation o
+        WHERE o.indicator_id = i.id AND o.area_id = a.id AND o.deleted_at IS NULL
+      )
+      LIMIT 1
+    `;
+    const pair = rows[0];
+    expect(pair).toBeTruthy();
+
+    const response = await request(createApp({ repositories })).get(
+      `/api/indicators/${pair?.fingertips_id}/data?area_code=${pair?.code}`,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body.observations).toEqual([]);
+  });
+
   it('returns 404 for a fingertips id with no indicator', async () => {
     const response = await request(createApp({ repositories })).get('/api/indicators/424242');
 

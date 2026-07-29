@@ -9,7 +9,10 @@ export { dbEnvFields, resolveDbTls } from './env.js';
 export {
   type ApprovedIndicator,
   getApprovedIndicatorByFingertipsId,
+  getIndicatorObservations,
+  type IndicatorAreaData,
   type IndicatorDetail,
+  type IndicatorObservation,
   type IndicatorSource,
   listApprovedIndicators,
 } from './indicator-repository.js';

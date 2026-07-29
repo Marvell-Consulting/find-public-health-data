@@ -18,12 +18,16 @@ function loaderArgs(api: ApiClient, params: Record<string, string> = {}): Loader
 }
 
 describe('loadIndicator', () => {
-  it('requests the indicator by its fingertips id', async () => {
+  it('requests the indicator detail and its default-area data in parallel', async () => {
     const get = vi.fn().mockResolvedValue({});
 
-    await loadIndicator(loaderArgs({ get } as unknown as ApiClient, { fingertipsId: '108' }));
+    const result = await loadIndicator(
+      loaderArgs({ get } as unknown as ApiClient, { fingertipsId: '108' }),
+    );
 
     expect(get).toHaveBeenCalledWith('/api/indicators/108', expect.anything());
+    expect(get).toHaveBeenCalledWith('/api/indicators/108/data', expect.anything());
+    expect(result).toEqual({ indicator: {}, data: {} });
   });
 
   it.each([['../topics'], ['../../health']])(
@@ -34,7 +38,9 @@ describe('loadIndicator', () => {
       await loadIndicator(loaderArgs({ get } as unknown as ApiClient, { fingertipsId }));
 
       // The guarantee that matters: whatever the param, the request stays under /api/indicators/.
-      expect(String(get.mock.calls[0]?.[0])).toMatch(/^\/api\/indicators\/[^/]+$/);
+      for (const call of get.mock.calls) {
+        expect(String(call[0])).toMatch(/^\/api\/indicators\/[^/]+(\/data)?$/);
+      }
     },
   );
 

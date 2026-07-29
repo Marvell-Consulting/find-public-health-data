@@ -9,8 +9,8 @@ export const loader = loadIndicator;
 export const meta = createDocumentMeta('Indicator');
 
 export function IndicatorRoute() {
-  const indicator = useLoaderData<typeof loader>();
-  return <IndicatorPage indicator={indicator} />;
+  const { indicator, data } = useLoaderData<typeof loader>();
+  return <IndicatorPage indicator={indicator} data={data} />;
 }
 
 export default IndicatorRoute;

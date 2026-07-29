@@ -2,6 +2,8 @@ import type { Database } from './client.js';
 import {
   type ApprovedIndicator,
   getApprovedIndicatorByFingertipsId,
+  getIndicatorObservations,
+  type IndicatorAreaData,
   type IndicatorDetail,
   listApprovedIndicators,
 } from './indicator-repository.js';
@@ -10,6 +12,7 @@ import { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';
 export interface IndicatorRepository {
   listApproved(): Promise<ApprovedIndicator[]>;
   findApprovedByFingertipsId(fingertipsId: number): Promise<IndicatorDetail | undefined>;
+  findObservations(fingertipsId: number, areaCode: string): Promise<IndicatorAreaData | undefined>;
 }
 
 export interface TopicRepository {
@@ -33,6 +36,8 @@ export function createRepositories(db: Database): Repositories {
       listApproved: () => listApprovedIndicators(db),
       findApprovedByFingertipsId: (fingertipsId) =>
         getApprovedIndicatorByFingertipsId(db, fingertipsId),
+      findObservations: (fingertipsId, areaCode) =>
+        getIndicatorObservations(db, fingertipsId, areaCode),
     },
     topics: {
       list: () => listTopics(db),

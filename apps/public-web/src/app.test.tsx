@@ -156,13 +156,56 @@ describe('public application routes', () => {
       denominatorSource: null,
       areaTypes: [{ name: 'Counties & UAs (from Apr 2023)', areaCount: 153 }],
     };
+    const data = {
+      areaCode: 'E92000001',
+      areaName: 'England',
+      observations: [
+        {
+          fromDate: '2022-01-01',
+          toDate: '2022-12-31',
+          value: 342.2,
+          lowerCi95: 340.1,
+          upperCi95: 344.3,
+          count: 129000,
+          denominator: null,
+          dimensions: [{ type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 }],
+        },
+        {
+          fromDate: '2023-01-01',
+          toDate: '2023-12-31',
+          value: 341.1,
+          lowerCi95: 339.0,
+          upperCi95: 343.2,
+          count: 130000,
+          denominator: null,
+          dimensions: [{ type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 }],
+        },
+        {
+          fromDate: '2023-01-01',
+          toDate: '2023-12-31',
+          value: 420.5,
+          lowerCi95: 417.2,
+          upperCi95: 423.8,
+          count: 70000,
+          denominator: null,
+          dimensions: [
+            { type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 },
+            { type: 'Sex', value: 'Male', dimensionClass: 'core', sortOrder: 1 },
+          ],
+        },
+      ],
+    };
     const Routes = createRoutesStub([
       {
         path: '/',
         Component: PublicApp,
         loader: () => ({ signedIn: false }),
         children: [
-          { path: 'indicators/:fingertipsId', Component: IndicatorRoute, loader: () => indicator },
+          {
+            path: 'indicators/:fingertipsId',
+            Component: IndicatorRoute,
+            loader: () => ({ indicator, data }),
+          },
         ],
       },
     ]);
@@ -189,6 +232,15 @@ describe('public application routes', () => {
       const region = screen.getByRole('region', { name });
       expect(region.getAttribute('tabindex')).toBe('0');
     }
+
+    // The trend table shows the least-disaggregated series in period order.
+    expect(screen.getByRole('rowheader', { name: '2022' })).toBeTruthy();
+    expect(screen.getByRole('cell', { name: '342.2' })).toBeTruthy();
+    expect(screen.getByRole('cell', { name: '340.1 to 344.3' })).toBeTruthy();
+
+    // The segmentation table breaks the latest period down by core segments.
+    expect(screen.getByRole('rowheader', { name: '<75 yrs, Male' })).toBeTruthy();
+    expect(screen.getByRole('cell', { name: '420.5' })).toBeTruthy();
 
     expect(
       screen.getByRole('heading', { name: 'Background information and indicator definitions' }),
