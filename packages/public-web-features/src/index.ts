@@ -6,6 +6,8 @@ export type {
   IndicatorDetail,
   IndicatorObservation,
   IndicatorSelection,
+  IndicatorSummary,
+  SelectedIndicator,
 } from './indicator-loader';
 export { IndicatorPage } from './indicator-page';
 export { IndicatorRoute } from './routes/indicator';

@@ -9,12 +9,13 @@ export const loader = loadIndicator;
 export const meta = createDocumentMeta('Indicator');
 
 export function IndicatorRoute() {
-  const { indicator, availableAreas, areaData, selection } = useLoaderData<typeof loader>();
+  const { selected, availableAreas, availableIndicators, selection } =
+    useLoaderData<typeof loader>();
   return (
     <IndicatorPage
-      indicator={indicator}
+      selected={selected}
       availableAreas={availableAreas}
-      areaData={areaData}
+      availableIndicators={availableIndicators}
       selection={selection}
     />
   );

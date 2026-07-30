@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  comparisonRows,
   formatConfidenceInterval,
   formatValue,
   latestCoreSegments,
@@ -111,5 +112,57 @@ describe('formatting', () => {
   it('formats a confidence interval as a range', () => {
     expect(formatConfidenceInterval(obs())).toBe('95 to 105');
     expect(formatConfidenceInterval(obs({ lowerCi95: null }))).toBe('—');
+  });
+});
+
+describe('comparisonRows', () => {
+  const detail = (fingertipsId: number, name: string) =>
+    ({
+      fingertipsId,
+      name,
+      unit: { name: 'per 100,000', label: 'per 100,000' },
+    }) as never;
+
+  it('takes each indicator’s latest value in the first selected area', () => {
+    const rows = comparisonRows([
+      {
+        detail: detail(108, 'Mortality'),
+        areaData: [
+          {
+            areaCode: 'E92000001',
+            areaName: 'England',
+            observations: [
+              obs({ fromDate: '2022-01-01', toDate: '2022-12-31', value: 342.2 }),
+              obs({ value: 341.1 }),
+            ],
+          },
+        ],
+      },
+      {
+        detail: detail(90366, 'Life expectancy'),
+        areaData: [
+          { areaCode: 'E92000001', areaName: 'England', observations: [obs({ value: 80.1 })] },
+        ],
+      },
+    ]);
+
+    expect(rows.map((r) => [r.name, r.value, r.period])).toEqual([
+      ['Mortality', 341.1, '2023'],
+      ['Life expectancy', 80.1, '2023'],
+    ]);
+    expect(rows[0]?.areaName).toBe('England');
+  });
+
+  it('keeps an indicator with no data in the table rather than dropping it', () => {
+    const rows = comparisonRows([
+      {
+        detail: detail(93622, 'No data here'),
+        areaData: [{ areaCode: 'E92000001', areaName: 'England', observations: [] }],
+      },
+    ]);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.value).toBeNull();
+    expect(rows[0]?.period).toBe('');
   });
 });

@@ -198,7 +198,15 @@ describe('public application routes', () => {
     ];
     const areaData = [{ areaCode: 'E92000001', areaName: 'England', observations }];
     const availableAreas = [{ code: 'E92000001', name: 'England' }];
-    const selection = { areaType: 'England', areaCodes: [] };
+    const availableIndicators = [
+      {
+        id: 'a',
+        fingertipsId: 108,
+        name: 'Under 75 mortality rate from all causes',
+        status: 'approved',
+      },
+    ];
+    const selection = { areaType: 'England', areaCodes: [], fingertipsIds: [108] };
     const Routes = createRoutesStub([
       {
         path: '/',
@@ -208,7 +216,12 @@ describe('public application routes', () => {
           {
             path: 'indicators/:fingertipsId',
             Component: IndicatorRoute,
-            loader: () => ({ indicator, availableAreas, areaData, selection }),
+            loader: () => ({
+              selected: [{ detail: indicator, areaData }],
+              availableAreas,
+              availableIndicators,
+              selection,
+            }),
           },
         ],
       },
@@ -277,38 +290,43 @@ describe('public application routes', () => {
   it('reloads with the new area type as soon as the type select changes', async () => {
     const requestedUrls: string[] = [];
     const loaderData = {
-      indicator: {
-        fingertipsId: 108,
-        name: 'Under 75 mortality rate from all causes',
-        valueType: 'Directly standardised rate',
-        unit: { name: 'per 100,000', label: 'per 100,000' },
-        yearType: 'Calendar',
-        frequency: 'Annual',
-        polarity: 'RAG - Low is good',
-        ciMethod: null,
-        ciConfidenceLevel: null,
-        comparatorMethod: null,
-        dataUpdatedAt: null,
-        definition: null,
-        rationale: null,
-        methodology: null,
-        numeratorDefinition: null,
-        denominatorDefinition: null,
-        disclosureControl: null,
-        caveats: null,
-        notes: null,
-        dataSource: null,
-        numeratorSource: null,
-        denominatorSource: null,
-        areaTypes: [
-          { name: 'England', areaCount: 1 },
-          { name: 'Regions (statistical)', areaCount: 9 },
-        ],
-        topics: [],
-      },
+      selected: [
+        {
+          detail: {
+            fingertipsId: 108,
+            name: 'Under 75 mortality rate from all causes',
+            valueType: 'Directly standardised rate',
+            unit: { name: 'per 100,000', label: 'per 100,000' },
+            yearType: 'Calendar',
+            frequency: 'Annual',
+            polarity: 'RAG - Low is good',
+            ciMethod: null,
+            ciConfidenceLevel: null,
+            comparatorMethod: null,
+            dataUpdatedAt: null,
+            definition: null,
+            rationale: null,
+            methodology: null,
+            numeratorDefinition: null,
+            denominatorDefinition: null,
+            disclosureControl: null,
+            caveats: null,
+            notes: null,
+            dataSource: null,
+            numeratorSource: null,
+            denominatorSource: null,
+            areaTypes: [
+              { name: 'England', areaCount: 1 },
+              { name: 'Regions (statistical)', areaCount: 9 },
+            ],
+            topics: [],
+          },
+          areaData: [],
+        },
+      ],
       availableAreas: [{ code: 'E92000001', name: 'England' }],
-      areaData: [],
-      selection: { areaType: 'England', areaCodes: [] },
+      availableIndicators: [],
+      selection: { areaType: 'England', areaCodes: [], fingertipsIds: [108] },
     };
     const loader = vi.fn(({ request }: { request: Request }) => {
       requestedUrls.push(request.url);
@@ -330,10 +348,12 @@ describe('public application routes', () => {
     });
     fireEvent.change(typeSelect, { target: { value: 'Regions (statistical)' } });
 
+    // Assert on the decoded parameter: '+' and '%20' are both valid space encodings, and
+    // which one appears is an implementation detail of how the URL was built.
     await waitFor(() =>
       expect(
-        requestedUrls.some((url) =>
-          url.includes(`ats=${encodeURIComponent('Regions (statistical)')}`),
+        requestedUrls.some(
+          (url) => new URL(url).searchParams.get('ats') === 'Regions (statistical)',
         ),
       ).toBe(true),
     );
@@ -350,42 +370,60 @@ describe('public application routes', () => {
       denominator: null,
       dimensions: [{ type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 }],
     });
+    const indicatorDetail = {
+      fingertipsId: 108,
+      name: 'Under 75 mortality rate from all causes',
+      valueType: 'Directly standardised rate',
+      unit: { name: 'per 100,000', label: 'per 100,000' },
+      yearType: 'Calendar',
+      frequency: 'Annual',
+      polarity: 'RAG - Low is good',
+      ciMethod: null,
+      ciConfidenceLevel: null,
+      comparatorMethod: null,
+      dataUpdatedAt: null,
+      definition: null,
+      rationale: null,
+      methodology: null,
+      numeratorDefinition: null,
+      denominatorDefinition: null,
+      disclosureControl: null,
+      caveats: null,
+      notes: null,
+      dataSource: null,
+      numeratorSource: null,
+      denominatorSource: null,
+      areaTypes: [{ name: 'Regions (statistical)', areaCount: 9 }],
+      topics: [],
+    };
     const loaderData = {
-      indicator: {
-        fingertipsId: 108,
-        name: 'Under 75 mortality rate from all causes',
-        valueType: 'Directly standardised rate',
-        unit: { name: 'per 100,000', label: 'per 100,000' },
-        yearType: 'Calendar',
-        frequency: 'Annual',
-        polarity: 'RAG - Low is good',
-        ciMethod: null,
-        ciConfidenceLevel: null,
-        comparatorMethod: null,
-        dataUpdatedAt: null,
-        definition: null,
-        rationale: null,
-        methodology: null,
-        numeratorDefinition: null,
-        denominatorDefinition: null,
-        disclosureControl: null,
-        caveats: null,
-        notes: null,
-        dataSource: null,
-        numeratorSource: null,
-        denominatorSource: null,
-        areaTypes: [{ name: 'Regions (statistical)', areaCount: 9 }],
-        topics: [],
-      },
       availableAreas: [
         { code: 'E12000001', name: 'North East' },
         { code: 'E12000002', name: 'North West' },
       ],
-      areaData: [
-        { areaCode: 'E12000001', areaName: 'North East', observations: [observationFor(410.3)] },
-        { areaCode: 'E12000002', areaName: 'North West', observations: [observationFor(395.6)] },
+      availableIndicators: [],
+      selected: [
+        {
+          detail: indicatorDetail,
+          areaData: [
+            {
+              areaCode: 'E12000001',
+              areaName: 'North East',
+              observations: [observationFor(410.3)],
+            },
+            {
+              areaCode: 'E12000002',
+              areaName: 'North West',
+              observations: [observationFor(395.6)],
+            },
+          ],
+        },
       ],
-      selection: { areaType: 'Regions (statistical)', areaCodes: ['E12000001', 'E12000002'] },
+      selection: {
+        areaType: 'Regions (statistical)',
+        areaCodes: ['E12000001', 'E12000002'],
+        fingertipsIds: [108],
+      },
     };
     const Routes = createRoutesStub([
       {
@@ -416,6 +454,125 @@ describe('public application routes', () => {
     expect(screen.getAllByRole('rowheader', { name: 'North West' }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('cell', { name: '410.3' }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('cell', { name: '395.6' }).length).toBeGreaterThan(0);
+  });
+
+  it('adds a comparison section only when more than one indicator is selected', async () => {
+    const detailFor = (fingertipsId: number, name: string) => ({
+      fingertipsId,
+      name,
+      valueType: 'Directly standardised rate',
+      unit: { name: 'per 100,000', label: 'per 100,000' },
+      yearType: 'Calendar',
+      frequency: 'Annual',
+      polarity: 'RAG - Low is good',
+      ciMethod: null,
+      ciConfidenceLevel: null,
+      comparatorMethod: null,
+      dataUpdatedAt: null,
+      definition: null,
+      rationale: null,
+      methodology: null,
+      numeratorDefinition: null,
+      denominatorDefinition: null,
+      disclosureControl: null,
+      caveats: null,
+      notes: null,
+      dataSource: null,
+      numeratorSource: null,
+      denominatorSource: null,
+      areaTypes: [{ name: 'England', areaCount: 1 }],
+      topics: [],
+    });
+    const areaDataFor = (value: number) => [
+      {
+        areaCode: 'E92000001',
+        areaName: 'England',
+        observations: [
+          {
+            fromDate: '2023-01-01',
+            toDate: '2023-12-31',
+            value,
+            lowerCi95: null,
+            upperCi95: null,
+            count: 500,
+            denominator: null,
+            dimensions: [],
+          },
+        ],
+      },
+    ];
+    const routesFor = (loaderData: unknown) =>
+      createRoutesStub([
+        {
+          path: '/',
+          Component: PublicApp,
+          loader: () => ({ signedIn: false }),
+          children: [{ path: 'indicators', Component: IndicatorRoute, loader: () => loaderData }],
+        },
+      ]);
+
+    const OneIndicator = routesFor({
+      selected: [{ detail: detailFor(108, 'Mortality'), areaData: areaDataFor(341.1) }],
+      availableAreas: [{ code: 'E92000001', name: 'England' }],
+      availableIndicators: [],
+      selection: { areaType: 'England', areaCodes: [], fingertipsIds: [108] },
+    });
+    render(<OneIndicator initialEntries={['/indicators?is=108']} />);
+
+    expect(await screen.findByRole('heading', { name: 'Mortality' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Compare selected indicators' })).toBeNull();
+
+    cleanup();
+
+    const TwoIndicators = routesFor({
+      selected: [
+        { detail: detailFor(108, 'Mortality'), areaData: areaDataFor(341.1) },
+        { detail: detailFor(90366, 'Life expectancy'), areaData: areaDataFor(80.1) },
+      ],
+      availableAreas: [{ code: 'E92000001', name: 'England' }],
+      availableIndicators: [],
+      selection: { areaType: 'England', areaCodes: [], fingertipsIds: [108, 90366] },
+    });
+    render(<TwoIndicators initialEntries={['/indicators?is=108&is=90366']} />);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Compare selected indicators' }),
+    ).toBeTruthy();
+    // A block per indicator, plus a comparison row per indicator linking to its block.
+    expect(screen.getByRole('heading', { name: 'Mortality' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Life expectancy' })).toBeTruthy();
+    expect(screen.getByText('341.1 per 100,000')).toBeTruthy();
+    expect(screen.getByText('80.1 per 100,000')).toBeTruthy();
+    expect(screen.getByText('Selected indicators (2)')).toBeTruthy();
+  });
+
+  it('renders the empty state when nothing is selected', async () => {
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        loader: () => ({ signedIn: false }),
+        children: [
+          {
+            path: 'indicators',
+            Component: IndicatorRoute,
+            loader: () => ({
+              selected: [],
+              availableAreas: [],
+              availableIndicators: [
+                { id: 'a', fingertipsId: 108, name: 'Mortality', status: 'approved' },
+              ],
+              selection: { areaType: 'England', areaCodes: [], fingertipsIds: [] },
+            }),
+          },
+        ],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/indicators']} />);
+
+    expect(await screen.findByText('None selected')).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: 'Add an indicator' })).toBeTruthy();
   });
 
   it('renders the not-found page when the indicator loader throws a 404 response', async () => {

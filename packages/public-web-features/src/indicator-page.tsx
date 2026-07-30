@@ -12,6 +12,7 @@ import { type ReactNode, useId } from 'react';
 import { Form, useNavigate } from 'react-router';
 
 import {
+  comparisonRows,
   formatConfidenceInterval,
   formatValue,
   latestCoreSegments,
@@ -25,6 +26,8 @@ import type {
   IndicatorDetail,
   IndicatorObservation,
   IndicatorSelection,
+  IndicatorSummary,
+  SelectedIndicator,
 } from './indicator-loader';
 
 const CONFIDENCE_LEVEL_LABELS: Record<string, string> = {
@@ -33,20 +36,57 @@ const CONFIDENCE_LEVEL_LABELS: Record<string, string> = {
   both: '95% and 99.8%',
 };
 
+/** The query string for a selection, so every control links to a complete page state. */
+function selectionSearch({
+  selection,
+  fingertipsIds = selection.fingertipsIds,
+}: {
+  selection: IndicatorSelection;
+  fingertipsIds?: number[];
+}) {
+  const params = new URLSearchParams();
+  for (const id of fingertipsIds) {
+    params.append('is', String(id));
+  }
+  if (selection.areaType) {
+    params.set('ats', selection.areaType);
+  }
+  for (const code of selection.areaCodes) {
+    params.append('as', code);
+  }
+  return `?${params.toString()}`;
+}
+
 function FilterPane({
-  indicator,
+  selected,
   availableAreas,
+  availableIndicators,
   selection,
 }: {
-  indicator: IndicatorDetail;
+  selected: SelectedIndicator[];
   availableAreas: AreaSummary[];
+  availableIndicators: IndicatorSummary[];
   selection: IndicatorSelection;
 }) {
   const areaTypeId = useId();
   const groupTypeId = useId();
   const groupId = useId();
   const checkboxIdPrefix = useId();
+  const addIndicatorId = useId();
   const navigate = useNavigate();
+
+  const unselected = availableIndicators.filter(
+    ({ fingertipsId }) => !selection.fingertipsIds.includes(fingertipsId),
+  );
+
+  // Area types every selected indicator publishes against, so a choice cannot produce a
+  // page where some indicators have no data at all. England is always offered.
+  const areaTypeOptions =
+    selected.length === 0
+      ? ['England']
+      : selected
+          .map(({ detail }) => detail.areaTypes.map(({ name }) => name))
+          .reduce((shared, names) => shared.filter((name) => names.includes(name)));
 
   return (
     <div className="fphd-filter-pane">
@@ -57,28 +97,83 @@ function FilterPane({
         </button>
       </div>
       <div className="fphd-filter-pane__body">
-        <p className="govuk-body govuk-!-font-weight-bold">Selected indicators (1)</p>
-        <div className="fphd-filter-pane__selected-card">
-          <p className="govuk-body govuk-!-margin-bottom-1">{indicator.name}</p>
-          <A href="#background">View background information</A>
+        <div className="fphd-filter-pane__row">
+          <p className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">
+            Selected indicators ({selected.length})
+          </p>
+          {selected.length > 0 ? (
+            <A className="govuk-link" href={selectionSearch({ selection, fingertipsIds: [] })}>
+              Clear all
+            </A>
+          ) : null}
         </div>
-        <a href="/" role="button" draggable="false" className="govuk-button">
-          Add or change indicators
-        </a>
+        {selected.length === 0 ? <p className="govuk-body">None selected</p> : null}
+        {selected.map(({ detail }) => (
+          <div className="fphd-filter-pane__selected-card" key={detail.fingertipsId}>
+            <p className="govuk-body govuk-!-margin-bottom-1">{detail.name}</p>
+            <A href={`#background-${detail.fingertipsId}`}>View background information</A>{' '}
+            <A
+              href={selectionSearch({
+                selection,
+                fingertipsIds: selection.fingertipsIds.filter((id) => id !== detail.fingertipsId),
+              })}
+            >
+              Remove
+            </A>
+          </div>
+        ))}
+
+        {unselected.length > 0 ? (
+          <div className="govuk-form-group">
+            <label className="govuk-label govuk-!-font-weight-bold" htmlFor={addIndicatorId}>
+              Add an indicator
+            </label>
+            <select
+              className="govuk-select"
+              id={addIndicatorId}
+              defaultValue=""
+              onChange={(event) => {
+                const added = Number(event.currentTarget.value);
+                if (added) {
+                  navigate({
+                    search: selectionSearch({
+                      selection,
+                      fingertipsIds: [...selection.fingertipsIds, added],
+                    }),
+                  });
+                }
+              }}
+            >
+              <option value="">Choose an indicator</option>
+              {unselected.map((option) => (
+                <option key={option.fingertipsId} value={option.fingertipsId}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
 
         <div className="fphd-filter-pane__row">
           <p className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">
             Selected areas ({selection.areaCodes.length})
           </p>
-          <a className="govuk-link" href="?">
+          <A
+            className="govuk-link"
+            href={selectionSearch({ selection: { ...selection, areaCodes: [] } })}
+          >
             Clear all
-          </a>
+          </A>
         </div>
         {selection.areaCodes.length === 0 ? (
           <p className="govuk-body">Default area England</p>
         ) : null}
 
         <Form method="get">
+          {/* The selected indicators ride along so applying an area filter keeps them. */}
+          {selection.fingertipsIds.map((id) => (
+            <input key={id} type="hidden" name="is" value={id} />
+          ))}
           <div className="govuk-form-group">
             <label className="govuk-label govuk-!-font-weight-bold" htmlFor={areaTypeId}>
               Select a type of health or administrative area
@@ -92,13 +187,21 @@ function FilterPane({
                 // Changing type invalidates the current area selection, so navigate with
                 // the new type alone; without JavaScript the Apply button does the same.
                 navigate(
-                  { search: `?ats=${encodeURIComponent(event.currentTarget.value)}` },
+                  {
+                    search: selectionSearch({
+                      selection: {
+                        ...selection,
+                        areaType: event.currentTarget.value,
+                        areaCodes: [],
+                      },
+                    }),
+                  },
                   { preventScrollReset: true },
                 );
               }}
             >
-              {indicator.areaTypes.map((areaType) => (
-                <option key={areaType.name}>{areaType.name}</option>
+              {areaTypeOptions.map((name) => (
+                <option key={name}>{name}</option>
               ))}
             </select>
           </div>
@@ -239,7 +342,7 @@ function BackgroundInformation({ indicator }: { indicator: IndicatorDetail }) {
     : null;
 
   return (
-    <section id="background">
+    <section id={`background-${indicator.fingertipsId}`}>
       <h2 className="govuk-heading-l">Background information and indicator definitions</h2>
       <p className="govuk-body-s govuk-!-margin-bottom-0">Indicator ID {indicator.fingertipsId}</p>
       <p className="govuk-body-s">Frequency {indicator.frequency}</p>
@@ -510,15 +613,117 @@ function CompareAreasTable({
   );
 }
 
+/** Everything shown for one selected indicator, repeated per selection. */
+function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
+  const id = detail.fingertipsId;
+
+  return (
+    <section aria-labelledby={`indicator-${id}`}>
+      <h2 className="govuk-heading-l" id={`indicator-${id}`}>
+        {detail.name}
+      </h2>
+      <IndicatorSummary indicator={detail} />
+
+      <p className="govuk-body govuk-!-margin-bottom-1">Available charts</p>
+      <ul className="govuk-list govuk-list--bullet">
+        <li>
+          <A href={`#segmentations-${id}`}>Indicator segmentations overview</A>
+        </li>
+        <li>
+          <A href={`#trends-${id}`}>Indicator trends over time</A>
+        </li>
+        <li>
+          <A href={`#compare-areas-${id}`}>Compare areas for one time period</A>
+        </li>
+      </ul>
+
+      <ChartSection
+        id={`segmentations-${id}`}
+        title="Indicator segmentations overview"
+        description="An overview of this indicator's values across its reported segments, compared with the benchmark."
+      >
+        {areaData[0] ? <SegmentationTable indicator={detail} data={areaData[0]} /> : null}
+      </ChartSection>
+      <ChartSection
+        id={`trends-${id}`}
+        title="Indicator trends over time"
+        description="How this indicator has changed over time."
+      >
+        <TrendTable indicator={detail} areaData={areaData} />
+      </ChartSection>
+      <ChartSection
+        id={`compare-areas-${id}`}
+        title="Compare areas for one time period"
+        description="How areas compare with each other for the latest time period."
+      >
+        <CompareAreasTable indicator={detail} areaData={areaData} />
+      </ChartSection>
+
+      <BackgroundInformation indicator={detail} />
+      <SectionBreak size="l" visible />
+    </section>
+  );
+}
+
+/** Only shown for two or more indicators: their latest values side by side. */
+function ComparisonSection({ selected }: { selected: SelectedIndicator[] }) {
+  const rows = comparisonRows(selected);
+  const areaName = rows.find((row) => row.areaName)?.areaName;
+
+  return (
+    <div className="fphd-chart-section" id="compare-indicators">
+      <h2 className="govuk-heading-l">Compare selected indicators</h2>
+      <table className="govuk-table">
+        {areaName ? (
+          <caption className="govuk-table__caption govuk-table__caption--s">{areaName}</caption>
+        ) : null}
+        <thead className="govuk-table__head">
+          <tr className="govuk-table__row">
+            <th scope="col" className="govuk-table__header">
+              Indicator
+            </th>
+            <th scope="col" className="govuk-table__header">
+              Most recent period
+            </th>
+            <th scope="col" className="govuk-table__header govuk-table__header--numeric">
+              Count
+            </th>
+            <th scope="col" className="govuk-table__header govuk-table__header--numeric">
+              Value
+            </th>
+          </tr>
+        </thead>
+        <tbody className="govuk-table__body">
+          {rows.map((row) => (
+            <tr className="govuk-table__row" key={row.fingertipsId}>
+              <th scope="row" className="govuk-table__header">
+                <A href={`#indicator-${row.fingertipsId}`}>{row.name}</A>
+                {row.segment ? <span className="govuk-hint"> {row.segment}</span> : null}
+              </th>
+              <td className="govuk-table__cell">{row.period || 'No data'}</td>
+              <td className="govuk-table__cell govuk-table__cell--numeric">
+                {row.count === null ? '—' : formatValue(row.count)}
+              </td>
+              <td className="govuk-table__cell govuk-table__cell--numeric">
+                {row.value === null ? 'No data' : `${formatValue(row.value)} ${row.unit}`}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function IndicatorPage({
-  indicator,
+  selected,
   availableAreas,
-  areaData,
+  availableIndicators,
   selection,
 }: {
-  indicator: IndicatorDetail;
+  selected: SelectedIndicator[];
   availableAreas: AreaSummary[];
-  areaData: IndicatorAreaData[];
+  availableIndicators: IndicatorSummary[];
   selection: IndicatorSelection;
 }) {
   const benchmarkId = useId();
@@ -529,77 +734,56 @@ export function IndicatorPage({
       <GridRow>
         <GridColumn width="one-quarter">
           <FilterPane
-            key={`${selection.areaType}|${selection.areaCodes.join(',')}`}
-            indicator={indicator}
+            key={`${selection.fingertipsIds.join(',')}|${selection.areaType}|${selection.areaCodes.join(',')}`}
+            selected={selected}
             availableAreas={availableAreas}
+            availableIndicators={availableIndicators}
             selection={selection}
           />
         </GridColumn>
         <GridColumn width="three-quarters">
-          <PageIntro size="l" title={indicator.name} />
-          <IndicatorSummary indicator={indicator} />
+          {selected.length === 0 ? (
+            <>
+              <PageIntro size="l" title="Selected indicators" />
+              <p className="govuk-body">
+                No indicators selected. Add one from the filters to see its data.
+              </p>
+            </>
+          ) : (
+            <>
+              <PageIntro size="l" title="View data for selected indicators and areas" />
 
-          <p className="govuk-body govuk-!-margin-bottom-1">Available charts</p>
-          <ul className="govuk-list govuk-list--bullet">
-            <li>
-              <A href="#segmentations">Indicator segmentations overview</A>
-            </li>
-            <li>
-              <A href="#trends">Indicator trends over time</A>
-            </li>
-            <li>
-              <A href="#compare-areas">Compare areas for one time period</A>
-            </li>
-          </ul>
+              {selected.length > 1 ? (
+                <>
+                  <p className="govuk-body govuk-!-margin-bottom-1">Contents</p>
+                  <ul className="govuk-list fphd-contents-list">
+                    <li>
+                      <A href="#compare-indicators">Compare selected indicators</A>
+                    </li>
+                    {selected.map(({ detail }) => (
+                      <li key={detail.fingertipsId}>
+                        <A href={`#indicator-${detail.fingertipsId}`}>{detail.name}</A>
+                      </li>
+                    ))}
+                  </ul>
+                  <ComparisonSection selected={selected} />
+                </>
+              ) : null}
 
-          <div className="govuk-form-group">
-            <label className="govuk-label govuk-!-font-weight-bold" htmlFor={benchmarkId}>
-              Select a benchmark for all charts
-            </label>
-            <select className="govuk-select" id={benchmarkId} defaultValue="England">
-              <option>England</option>
-            </select>
-          </div>
-
-          <ChartSection
-            id="segmentations"
-            title="Indicator segmentations overview"
-            description="An overview of this indicator's values across its reported segments, compared with the benchmark."
-          >
-            {areaData[0] ? <SegmentationTable indicator={indicator} data={areaData[0]} /> : null}
-          </ChartSection>
-          <ChartSection
-            id="trends"
-            title="Indicator trends over time"
-            description="How this indicator has changed over time."
-          >
-            <TrendTable indicator={indicator} areaData={areaData} />
-          </ChartSection>
-          <ChartSection
-            id="compare-areas"
-            title="Compare areas for one time period"
-            description="How areas compare with each other for the latest time period."
-          >
-            <CompareAreasTable indicator={indicator} areaData={areaData} />
-          </ChartSection>
-
-          <div className="fphd-chart-section">
-            <h3 className="govuk-heading-m">Related population data</h3>
-            <details className="govuk-details">
-              <summary className="govuk-details__summary">
-                <span className="govuk-details__summary-text">Show population data</span>
-              </summary>
-              <div className="govuk-details__text">
-                <p className="govuk-body">
-                  Population breakdown for the selected areas.{' '}
-                  <span className="govuk-hint">Data visualisation to follow</span>
-                </p>
+              <div className="govuk-form-group">
+                <label className="govuk-label govuk-!-font-weight-bold" htmlFor={benchmarkId}>
+                  Select a benchmark for all charts
+                </label>
+                <select className="govuk-select" id={benchmarkId} defaultValue="England">
+                  <option>England</option>
+                </select>
               </div>
-            </details>
-          </div>
 
-          <SectionBreak size="l" visible />
-          <BackgroundInformation indicator={indicator} />
+              {selected.map((entry) => (
+                <IndicatorBlock key={entry.detail.fingertipsId} {...entry} />
+              ))}
+            </>
+          )}
         </GridColumn>
       </GridRow>
     </>

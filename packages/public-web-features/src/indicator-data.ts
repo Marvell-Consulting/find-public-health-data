@@ -1,4 +1,8 @@
-import type { IndicatorObservation } from '@fphd/public-api-features/contract';
+import type {
+  IndicatorAreaData,
+  IndicatorDetail,
+  IndicatorObservation,
+} from '@fphd/public-api-features/contract';
 
 export function periodLabel({
   fromDate,
@@ -95,4 +99,40 @@ export function formatConfidenceInterval(observation: IndicatorObservation): str
     return '—';
   }
   return `${valueFormat.format(observation.lowerCi95)} to ${valueFormat.format(observation.upperCi95)}`;
+}
+
+export interface ComparisonRow {
+  fingertipsId: number;
+  name: string;
+  unit: string;
+  areaName: string;
+  period: string;
+  segment: string;
+  value: number | null;
+  count: number | null;
+}
+
+/**
+ * One row per selected indicator for the comparison table: its most recent value in the
+ * first selected area. Indicators with no data for that area are still listed, so a user
+ * comparing several can see which have nothing rather than wondering where a row went.
+ */
+export function comparisonRows(
+  selected: { detail: IndicatorDetail; areaData: IndicatorAreaData[] }[],
+): ComparisonRow[] {
+  return selected.map(({ detail, areaData }) => {
+    const first = areaData[0];
+    const latest = first ? trendSeries(first.observations).at(-1) : undefined;
+
+    return {
+      fingertipsId: detail.fingertipsId,
+      name: detail.name,
+      unit: detail.unit.name,
+      areaName: first?.areaName ?? '',
+      period: latest ? periodLabel(latest) : '',
+      segment: latest ? segmentLabel(latest) : '',
+      value: latest?.value ?? null,
+      count: latest?.count ?? null,
+    };
+  });
 }
