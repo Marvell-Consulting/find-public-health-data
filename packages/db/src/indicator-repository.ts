@@ -2,7 +2,6 @@ import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import type { Database } from './client.js';
-import { listCollectionsForIndicator } from './collection-repository.js';
 import {
   area,
   availableData,
@@ -22,6 +21,7 @@ import {
   valueType,
   yearType,
 } from './schema/index.js';
+import { listTopicsForIndicator } from './topic-indicator-repository.js';
 
 export interface ApprovedIndicator {
   id: string;
@@ -54,9 +54,9 @@ export interface IndicatorAreaType {
   areaCount: number;
 }
 
-export interface IndicatorCollection {
+export interface IndicatorTopic {
   slug: string;
-  name: string;
+  title: string;
 }
 
 export interface IndicatorDetail {
@@ -83,7 +83,7 @@ export interface IndicatorDetail {
   numeratorSource: IndicatorSource | null;
   denominatorSource: IndicatorSource | null;
   areaTypes: IndicatorAreaType[];
-  collections: IndicatorCollection[];
+  topics: IndicatorTopic[];
 }
 
 /**
@@ -147,13 +147,13 @@ export async function getApprovedIndicatorByFingertipsId(
     return undefined;
   }
 
-  const [areaTypes, collections] = await Promise.all([
+  const [areaTypes, topics] = await Promise.all([
     db
       .select({ name: availableData.areaTypeName, areaCount: availableData.areaCount })
       .from(availableData)
       .where(eq(availableData.indicatorId, row.id))
       .orderBy(asc(availableData.areaTypeName)),
-    listCollectionsForIndicator(db, row.id),
+    listTopicsForIndicator(db, row.id),
   ]);
 
   return {
@@ -187,7 +187,7 @@ export async function getApprovedIndicatorByFingertipsId(
         ? null
         : { name: row.denominatorSourceName, url: row.denominatorSourceUrl },
     areaTypes,
-    collections,
+    topics,
   };
 }
 

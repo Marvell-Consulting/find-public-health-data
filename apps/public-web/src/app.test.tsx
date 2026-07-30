@@ -159,7 +159,7 @@ describe('public application routes', () => {
         { name: 'England', areaCount: 1 },
         { name: 'Counties & UAs (from Apr 2023)', areaCount: 153 },
       ],
-      collections: [{ slug: 'mortality-profile', name: 'Mortality Profile' }],
+      topics: [{ slug: 'mortality-and-life-expectancy', title: 'Mortality and life expectancy' }],
     };
     const observations = [
       {
@@ -223,7 +223,9 @@ describe('public application routes', () => {
     // The summary table carries the source system's publication date and the collections
     // the indicator belongs to.
     expect(screen.getByText('20 April 2026')).toBeTruthy();
-    expect(screen.getByText('Mortality Profile')).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: 'Mortality and life expectancy' }).getAttribute('href'),
+    ).toBe('/topics/mortality-and-life-expectancy');
 
     // The filter pane shows the selected indicator, its available area types, and a
     // checkbox per area of the selected type wired into the GET form.
@@ -302,7 +304,7 @@ describe('public application routes', () => {
           { name: 'England', areaCount: 1 },
           { name: 'Regions (statistical)', areaCount: 9 },
         ],
-        collections: [],
+        topics: [],
       },
       availableAreas: [{ code: 'E92000001', name: 'England' }],
       areaData: [],
@@ -373,7 +375,7 @@ describe('public application routes', () => {
         numeratorSource: null,
         denominatorSource: null,
         areaTypes: [{ name: 'Regions (statistical)', areaCount: 9 }],
-        collections: [],
+        topics: [],
       },
       availableAreas: [
         { code: 'E12000001', name: 'North East' },

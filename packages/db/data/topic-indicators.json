@@ -1,0 +1,84 @@
+{
+  "topicIndicators": [
+    {
+      "topicSlug": "mortality-and-life-expectancy",
+      "fingertipsId": 108
+    },
+    {
+      "topicSlug": "mortality-and-life-expectancy",
+      "fingertipsId": 40501
+    },
+    {
+      "topicSlug": "mortality-and-life-expectancy",
+      "fingertipsId": 90366
+    },
+    {
+      "topicSlug": "diet-nutrition-and-healthy-weight",
+      "fingertipsId": 92026
+    },
+    {
+      "topicSlug": "diet-nutrition-and-healthy-weight",
+      "fingertipsId": 92033
+    },
+    {
+      "topicSlug": "cardiovascular-disease",
+      "fingertipsId": 92443
+    },
+    {
+      "topicSlug": "diabetes",
+      "fingertipsId": 92443
+    },
+    {
+      "topicSlug": "mental-health-and-wellbeing",
+      "fingertipsId": 92443
+    },
+    {
+      "topicSlug": "musculoskeletal-health",
+      "fingertipsId": 92443
+    },
+    {
+      "topicSlug": "respiratory-disease",
+      "fingertipsId": 92443
+    },
+    {
+      "topicSlug": "smoking-and-tobacco",
+      "fingertipsId": 92443
+    },
+    {
+      "topicSlug": "vision-and-hearing",
+      "fingertipsId": 92443
+    },
+    {
+      "topicSlug": "population-and-demographics",
+      "fingertipsId": 92708
+    },
+    {
+      "topicSlug": "children-and-young-peoples-health",
+      "fingertipsId": 93622
+    },
+    {
+      "topicSlug": "mental-health-and-wellbeing",
+      "fingertipsId": 93622
+    },
+    {
+      "topicSlug": "maternal-and-perinatal-health",
+      "fingertipsId": 94194
+    },
+    {
+      "topicSlug": "vaccination-and-infectious-disease",
+      "fingertipsId": 94194
+    }
+  ],
+  "indicatorDataUpdatedAt": {
+    "108": "2026-04-20T16:25:18",
+    "40501": "2026-04-20T16:22:18",
+    "90366": "2026-04-20T16:25:53",
+    "90851": "2019-03-08T16:58:43",
+    "92026": "2025-10-07T09:57:20",
+    "92033": "2025-10-07T09:57:59",
+    "92443": "2026-06-19T08:47:43",
+    "92708": "2026-02-13T14:19:37",
+    "93622": "2026-06-16T14:16:39",
+    "94194": "2026-04-15T09:38:25"
+  }
+}

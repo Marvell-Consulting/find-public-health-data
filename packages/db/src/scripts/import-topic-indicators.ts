@@ -4,8 +4,8 @@ import { resolve } from 'node:path';
 import { parseEnv, z } from '@fphd/config';
 
 import { createDb } from '../client.js';
-import { importCollections, parseCollectionsFile } from '../collection-repository.js';
 import { dbEnvFields } from '../env.js';
+import { importTopicIndicators, parseTopicIndicatorFile } from '../topic-indicator-repository.js';
 
 const envSchema = z.object({
   ...dbEnvFields,
@@ -14,8 +14,8 @@ const envSchema = z.object({
 });
 
 async function main() {
-  const filePath = resolve(process.argv[2] ?? 'data/indicator-collections.json');
-  const file = parseCollectionsFile(JSON.parse(readFileSync(filePath, 'utf-8')));
+  const filePath = resolve(process.argv[2] ?? 'data/topic-indicators.json');
+  const file = parseTopicIndicatorFile(JSON.parse(readFileSync(filePath, 'utf-8')));
 
   const env = parseEnv(envSchema, process.env);
   const db = createDb({
@@ -27,12 +27,17 @@ async function main() {
   });
 
   try {
-    const summary = await importCollections(db, file);
+    const summary = await importTopicIndicators(db, file);
 
     console.log(
-      `Imported ${filePath}: ${summary.collections} collections, ${summary.links} indicator links, ${summary.timestamps} data timestamps.`,
+      `Imported ${filePath}: ${summary.links} topic links, ${summary.timestamps} data timestamps.`,
     );
 
+    if (summary.unknownTopics.length > 0) {
+      console.warn(
+        `Warning: ${summary.unknownTopics.length} topic slug(s) in the file are not in this database and were skipped: ${summary.unknownTopics.join(', ')}`,
+      );
+    }
     if (summary.unknownIndicators.length > 0) {
       console.warn(
         `Warning: ${summary.unknownIndicators.length} indicator(s) in the file are not in this database and were skipped: ${summary.unknownIndicators.join(', ')}`,

@@ -199,11 +199,7 @@ const updatedFormat = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'UTC',
 });
 
-/**
- * The at-a-glance header the prototype puts above each indicator's charts. Collections are
- * shown as tags: they come from Fingertips profiles today, so the label stays generic
- * rather than promising the editorial topic list this is expected to become.
- */
+/** The at-a-glance header the prototype puts above each indicator's charts. */
 function IndicatorSummary({ indicator }: { indicator: IndicatorDetail }) {
   return (
     <table className="govuk-table">
@@ -215,13 +211,13 @@ function IndicatorSummary({ indicator }: { indicator: IndicatorDetail }) {
           }
         />
         <TableRow
-          label="Collections"
+          label="Topics"
           value={
-            indicator.collections.length > 0 ? (
+            indicator.topics.length > 0 ? (
               <ul className="govuk-list fphd-tag-list">
-                {indicator.collections.map((collectionItem) => (
-                  <li className="fphd-tag" key={collectionItem.slug}>
-                    {collectionItem.name}
+                {indicator.topics.map((topicItem) => (
+                  <li className="fphd-tag" key={topicItem.slug}>
+                    <A href={`/topics/${topicItem.slug}`}>{topicItem.title}</A>
                   </li>
                 ))}
               </ul>

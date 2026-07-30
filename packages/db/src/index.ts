@@ -6,13 +6,6 @@ export {
   type Schema,
   type SqlClient,
 } from './client.js';
-export {
-  type CollectionSummary,
-  type CollectionsFile,
-  importCollections,
-  listCollectionsForIndicator,
-  parseCollectionsFile,
-} from './collection-repository.js';
 export { dbEnvFields, resolveDbTls } from './env.js';
 export {
   type ApprovedIndicator,
@@ -34,4 +27,11 @@ export {
 } from './repositories.js';
 export * as schema from './schema.js';
 export { createOwnerClient } from './scripts/owner-client.js';
+export {
+  importTopicIndicators,
+  listTopicsForIndicator,
+  parseTopicIndicatorFile,
+  type TopicIndicatorFile,
+  type TopicSummaryForIndicator,
+} from './topic-indicator-repository.js';
 export { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';

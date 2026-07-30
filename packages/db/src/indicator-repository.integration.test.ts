@@ -73,9 +73,9 @@ describe('getApprovedIndicatorByFingertipsId', () => {
       polarity: expect.any(String),
       definition: expect.any(String),
     });
-    // Collections and the source publication date come from the Fingertips import.
+    // Topic membership and the source publication date come from the seed import.
     expect(indicator?.dataUpdatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-    expect(indicator?.collections.map(({ name }) => name)).toContain('Mortality Profile');
+    expect(indicator?.topics.map(({ title }) => title)).toContain('Mortality and life expectancy');
 
     expect(indicator?.areaTypes.length).toBeGreaterThan(0);
     // Ordered by name so the filter pane does not have to sort what it renders.

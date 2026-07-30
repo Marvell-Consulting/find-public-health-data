@@ -1,5 +1,4 @@
 export * from './cache.js';
-export * from './collection.js';
 export * from './dimension.js';
 export * from './geography.js';
 export * from './helpers.js';
