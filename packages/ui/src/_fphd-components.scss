@@ -8,6 +8,66 @@
   max-width: none;
 }
 
+.fphd-card-list {
+  display: grid;
+  column-gap: govuk-spacing(6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fphd-card-list__item {
+  padding: govuk-spacing(1) 0 govuk-spacing(4);
+  border-top: 1px solid $govuk-border-colour;
+
+  &:first-child {
+    border-top: 0;
+  }
+}
+
+.fphd-card-list__item-wrapper {
+  position: relative;
+  // Off the spacing scale, but what the design's card rhythm needs against the 5px item padding.
+  padding: 19px 0 4px;
+}
+
+.fphd-card-list__heading {
+  margin: 0 govuk-spacing(6) govuk-spacing(2) 0;
+}
+
+.fphd-card-list__description {
+  margin: 0 govuk-spacing(6) 0 0;
+}
+
+// Stretches the link over the whole card so the description is part of the click target.
+.fphd-card-list__link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.fphd-card-list__link::before {
+  content: "";
+  display: block;
+  position: absolute;
+  top: 50%;
+  right: govuk-spacing(1);
+  width: 7px;
+  height: 7px;
+  margin-top: 5px;
+  border-top: 3px solid $govuk-link-colour;
+  border-right: 3px solid $govuk-link-colour;
+  transform: rotate(45deg);
+}
+
+.fphd-card-list__link:hover::before {
+  border-color: $govuk-link-hover-colour;
+}
+
+.fphd-card-list__link:focus::before {
+  border-color: $govuk-focus-text-colour;
+}
+
 .fphd-stat-card {
   padding: govuk-spacing(4);
   margin-bottom: govuk-spacing(4);

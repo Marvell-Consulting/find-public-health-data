@@ -16,7 +16,7 @@ import PublicApp, { ErrorBoundary } from './root';
 afterEach(cleanup);
 
 describe('public application routes', () => {
-  it('renders the prototype-aligned search landing page', async () => {
+  it('renders the landing page introduction and shell navigation', async () => {
     const Routes = createRoutesStub([
       {
         path: '/',
@@ -29,11 +29,13 @@ describe('public application routes', () => {
     render(<Routes initialEntries={['/']} />);
 
     expect(await screen.findByRole('heading', { name: 'Find public health data' })).toBeTruthy();
-    expect(screen.getByRole('searchbox', { name: 'Search for indicators' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Search' })).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Topic summaries for England' })).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Latest release' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Releases' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Public health data' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Using this service' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Find data' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Browse by topics' }).getAttribute('href')).toBe(
+      '/topics',
+    );
+    expect(screen.getByRole('link', { name: 'Topics' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Sign in' })).toBeTruthy();
   });
 

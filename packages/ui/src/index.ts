@@ -11,6 +11,7 @@ export { default as SummaryList } from '@not-govuk/summary-list';
 export { AppDocument } from './app-document';
 export { type AppNavigationItem, AppShell, serviceName } from './app-shell';
 export { Autocomplete, type AutocompleteOption } from './autocomplete';
+export { CardList, type CardListItem } from './card-list';
 export { ChartSection } from './chart-section';
 export { NotFoundPage, PageIntro } from './content-page';
 export { decodeEntities, plainTextFromHtml } from './decode-entities';
