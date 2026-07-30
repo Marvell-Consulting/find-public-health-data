@@ -28,10 +28,14 @@ Corepack will select the pinned pnpm version from `package.json`.
 ```sh
 cp .env.example .env    # required — see Configuration below
 pnpm install
-docker compose up -d    # start the development database
+pnpm services:up        # start the development database and wait for it
 pnpm db:bootstrap       # once per fresh database: create the per-API login roles
 pnpm dev
 ```
+
+`pnpm dev` (and `dev:public`, `dev:internal`, `dev:mixed`) starts the Docker services it needs and
+waits for them to report healthy before running any app, so no separate `docker compose up` is
+needed. A **brand-new** database is empty until migrated — see [Database](#database).
 
 ## Configuration
 
@@ -192,10 +196,15 @@ A PostgreSQL 18 container defined in `compose.yaml`, for local development only 
 deployed.
 
 ```sh
-docker compose up -d      # start
+pnpm services:up          # start and wait for healthy — what the dev scripts run
+docker compose up -d      # start without waiting
 docker compose down       # stop
 docker compose down -v    # stop and delete all data
 ```
+
+`pnpm services:up` starts every compose service that carries no `profiles:` key, so a service added
+to `compose.yaml` without a profile becomes a dev prerequisite without the script changing. The four
+app services are profile-gated and belong to `pnpm dev:mixed`.
 
 Each API connects with its own login role (`public_api`, `internal_api`) rather than as the owner,
 so access can be constrained per audience at the grant level. The roles are created by
@@ -230,8 +239,12 @@ tool's semantics are documented in [`packages/db/README.md`](packages/db/README.
 A fresh database is ready for development with:
 
 ```sh
-docker compose up -d && pnpm db:bootstrap && pnpm db:migrate && pnpm db:seed && pnpm db:rebuild-read-models
+pnpm services:up && pnpm db:bootstrap && pnpm db:migrate && pnpm db:seed && pnpm db:rebuild-read-models
 ```
+
+The dev scripts start the database but deliberately do not migrate it: applying migrations is not
+something that should happen as a side effect of running the apps. So a first run — or any run after
+`docker compose down -v` — needs the command above before the pages have data.
 
 The seed is real Pholio data for 13 indicators and the prototype's geography catalogue,
 committed as gzipped CSVs — see `packages/db/data/seed/README.md` for what is in it and
