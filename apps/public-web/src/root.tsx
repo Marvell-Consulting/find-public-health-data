@@ -26,11 +26,7 @@ export default function PublicApp() {
   const { signedIn } = useLoaderData<typeof loader>();
 
   return (
-    <AppShell
-      audience="Public"
-      highlightCurrentNavigation={false}
-      navigation={navigationFor(signedIn)}
-    >
+    <AppShell audience="Public" navigation={navigationFor(signedIn)}>
       <Outlet />
     </AppShell>
   );

@@ -100,7 +100,7 @@ describe('public application routes', () => {
 
     render(<Routes initialEntries={['/topics']} />);
 
-    expect(await screen.findByRole('heading', { name: 'Topics' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Public health topics' })).toBeTruthy();
 
     const links = screen.getAllByRole('link', { name: /^Topic [AB]$/ });
     expect(links.map((link) => link.textContent)).toEqual(['Topic A', 'Topic B']);
