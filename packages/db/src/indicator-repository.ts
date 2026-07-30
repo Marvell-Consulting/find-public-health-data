@@ -2,6 +2,7 @@ import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import type { Database } from './client.js';
+import { listCollectionsForIndicator } from './collection-repository.js';
 import {
   area,
   availableData,
@@ -53,6 +54,11 @@ export interface IndicatorAreaType {
   areaCount: number;
 }
 
+export interface IndicatorCollection {
+  slug: string;
+  name: string;
+}
+
 export interface IndicatorDetail {
   fingertipsId: number;
   name: string;
@@ -64,6 +70,7 @@ export interface IndicatorDetail {
   ciMethod: string | null;
   ciConfidenceLevel: string | null;
   comparatorMethod: string | null;
+  dataUpdatedAt: string | null;
   definition: string | null;
   rationale: string | null;
   methodology: string | null;
@@ -76,6 +83,7 @@ export interface IndicatorDetail {
   numeratorSource: IndicatorSource | null;
   denominatorSource: IndicatorSource | null;
   areaTypes: IndicatorAreaType[];
+  collections: IndicatorCollection[];
 }
 
 /**
@@ -104,6 +112,7 @@ export async function getApprovedIndicatorByFingertipsId(
       ciMethod: ciMethod.name,
       ciConfidenceLevel: indicator.ciConfidenceLevel,
       comparatorMethod: comparatorMethod.name,
+      dataUpdatedAt: indicator.dataUpdatedAt,
       definition: indicatorMetadata.definition,
       rationale: indicatorMetadata.rationale,
       methodology: indicatorMetadata.methodology,
@@ -138,11 +147,14 @@ export async function getApprovedIndicatorByFingertipsId(
     return undefined;
   }
 
-  const areaTypes = await db
-    .select({ name: availableData.areaTypeName, areaCount: availableData.areaCount })
-    .from(availableData)
-    .where(eq(availableData.indicatorId, row.id))
-    .orderBy(asc(availableData.areaTypeName));
+  const [areaTypes, collections] = await Promise.all([
+    db
+      .select({ name: availableData.areaTypeName, areaCount: availableData.areaCount })
+      .from(availableData)
+      .where(eq(availableData.indicatorId, row.id))
+      .orderBy(asc(availableData.areaTypeName)),
+    listCollectionsForIndicator(db, row.id),
+  ]);
 
   return {
     fingertipsId: row.fingertipsId,
@@ -155,6 +167,7 @@ export async function getApprovedIndicatorByFingertipsId(
     ciMethod: row.ciMethod,
     ciConfidenceLevel: row.ciConfidenceLevel,
     comparatorMethod: row.comparatorMethod,
+    dataUpdatedAt: row.dataUpdatedAt?.toISOString() ?? null,
     definition: row.definition,
     rationale: row.rationale,
     methodology: row.methodology,
@@ -174,6 +187,7 @@ export async function getApprovedIndicatorByFingertipsId(
         ? null
         : { name: row.denominatorSourceName, url: row.denominatorSourceUrl },
     areaTypes,
+    collections,
   };
 }
 

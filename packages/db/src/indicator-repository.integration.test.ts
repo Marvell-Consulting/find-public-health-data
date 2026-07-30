@@ -73,6 +73,10 @@ describe('getApprovedIndicatorByFingertipsId', () => {
       polarity: expect.any(String),
       definition: expect.any(String),
     });
+    // Collections and the source publication date come from the Fingertips import.
+    expect(indicator?.dataUpdatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(indicator?.collections.map(({ name }) => name)).toContain('Mortality Profile');
+
     expect(indicator?.areaTypes.length).toBeGreaterThan(0);
     // Ordered by name so the filter pane does not have to sort what it renders.
     const areaTypeNames = indicator?.areaTypes.map(({ name }) => name) ?? [];

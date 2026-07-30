@@ -25,7 +25,8 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/scripts/seed.ts",
-    "db:rebuild-read-models": "tsx src/scripts/rebuild-read-models.ts"
+    "db:rebuild-read-models": "tsx src/scripts/rebuild-read-models.ts",
+    "db:import-collections": "tsx --env-file-if-exists=../../.env --conditions=development src/scripts/import-collections.ts"
   },
   "dependencies": {
     "@fphd/config": "workspace:*",

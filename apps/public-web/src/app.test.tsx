@@ -143,6 +143,7 @@ describe('public application routes', () => {
       ciMethod: "Dobson & Byar's methods",
       ciConfidenceLevel: '95',
       comparatorMethod: null,
+      dataUpdatedAt: '2026-04-20T16:25:18.000Z',
       definition: 'Directly age-standardised mortality rate for all deaths.',
       rationale: 'Premature mortality is a key measure of population health.',
       methodology: null,
@@ -158,6 +159,7 @@ describe('public application routes', () => {
         { name: 'England', areaCount: 1 },
         { name: 'Counties & UAs (from Apr 2023)', areaCount: 153 },
       ],
+      collections: [{ slug: 'mortality-profile', name: 'Mortality Profile' }],
     };
     const observations = [
       {
@@ -215,13 +217,19 @@ describe('public application routes', () => {
     render(<Routes initialEntries={['/indicators/108']} />);
 
     expect(
-      await screen.findByRole('heading', { name: 'View data for selected indicators and areas' }),
+      await screen.findByRole('heading', { name: 'Under 75 mortality rate from all causes' }),
     ).toBeTruthy();
+
+    // The summary table carries the source system's publication date and the collections
+    // the indicator belongs to.
+    expect(screen.getByText('20 April 2026')).toBeTruthy();
+    expect(screen.getByText('Mortality Profile')).toBeTruthy();
 
     // The filter pane shows the selected indicator, its available area types, and a
     // checkbox per area of the selected type wired into the GET form.
     expect(screen.getByRole('heading', { name: 'Filters' })).toBeTruthy();
-    expect(screen.getByText('Under 75 mortality rate from all causes')).toBeTruthy();
+    // The name appears twice by design: as the page heading and in the sidebar's card.
+    expect(screen.getAllByText('Under 75 mortality rate from all causes')).toHaveLength(2);
     expect(screen.getByRole('link', { name: 'View background information' })).toBeTruthy();
     expect(screen.getByRole('option', { name: 'Counties & UAs (from Apr 2023)' })).toBeTruthy();
     const areaCheckbox = screen.getByRole('checkbox', { name: 'England' });
@@ -252,9 +260,10 @@ describe('public application routes', () => {
     expect(
       screen.getByRole('heading', { name: 'Background information and indicator definitions' }),
     ).toBeTruthy();
+    // Shown in the summary table and again under the definitions section, as the design does.
     expect(
-      screen.getByText('Directly age-standardised mortality rate for all deaths.'),
-    ).toBeTruthy();
+      screen.getAllByText('Directly age-standardised mortality rate for all deaths.'),
+    ).toHaveLength(2);
     expect(screen.getByRole('heading', { name: 'Indicator rationale' })).toBeTruthy();
     expect(
       screen.getByRole('link', { name: 'Office for National Statistics' }).getAttribute('href'),
@@ -277,6 +286,7 @@ describe('public application routes', () => {
         ciMethod: null,
         ciConfidenceLevel: null,
         comparatorMethod: null,
+        dataUpdatedAt: null,
         definition: null,
         rationale: null,
         methodology: null,
@@ -292,6 +302,7 @@ describe('public application routes', () => {
           { name: 'England', areaCount: 1 },
           { name: 'Regions (statistical)', areaCount: 9 },
         ],
+        collections: [],
       },
       availableAreas: [{ code: 'E92000001', name: 'England' }],
       areaData: [],
@@ -349,6 +360,7 @@ describe('public application routes', () => {
         ciMethod: null,
         ciConfidenceLevel: null,
         comparatorMethod: null,
+        dataUpdatedAt: null,
         definition: null,
         rationale: null,
         methodology: null,
@@ -361,6 +373,7 @@ describe('public application routes', () => {
         numeratorSource: null,
         denominatorSource: null,
         areaTypes: [{ name: 'Regions (statistical)', areaCount: 9 }],
+        collections: [],
       },
       availableAreas: [
         { code: 'E12000001', name: 'North East' },

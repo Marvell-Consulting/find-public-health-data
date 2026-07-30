@@ -6,6 +6,13 @@ export {
   type Schema,
   type SqlClient,
 } from './client.js';
+export {
+  type CollectionSummary,
+  type CollectionsFile,
+  importCollections,
+  listCollectionsForIndicator,
+  parseCollectionsFile,
+} from './collection-repository.js';
 export { dbEnvFields, resolveDbTls } from './env.js';
 export {
   type ApprovedIndicator,

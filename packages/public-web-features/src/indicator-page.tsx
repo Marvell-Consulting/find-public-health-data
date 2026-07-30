@@ -192,6 +192,51 @@ function sourceLink(source: IndicatorDetail['dataSource']) {
   return source.url ? <A href={source.url}>{source.name}</A> : source.name;
 }
 
+const updatedFormat = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
+/**
+ * The at-a-glance header the prototype puts above each indicator's charts. Collections are
+ * shown as tags: they come from Fingertips profiles today, so the label stays generic
+ * rather than promising the editorial topic list this is expected to become.
+ */
+function IndicatorSummary({ indicator }: { indicator: IndicatorDetail }) {
+  return (
+    <table className="govuk-table">
+      <tbody className="govuk-table__body">
+        <TableRow
+          label="Last updated"
+          value={
+            indicator.dataUpdatedAt ? updatedFormat.format(new Date(indicator.dataUpdatedAt)) : null
+          }
+        />
+        <TableRow
+          label="Collections"
+          value={
+            indicator.collections.length > 0 ? (
+              <ul className="govuk-list fphd-tag-list">
+                {indicator.collections.map((collectionItem) => (
+                  <li className="fphd-tag" key={collectionItem.slug}>
+                    {collectionItem.name}
+                  </li>
+                ))}
+              </ul>
+            ) : null
+          }
+        />
+        <TableRow
+          label="Definition"
+          value={indicator.definition ? decodeEntities(indicator.definition) : null}
+        />
+      </tbody>
+    </table>
+  );
+}
+
 function BackgroundInformation({ indicator }: { indicator: IndicatorDetail }) {
   const confidenceLevel = indicator.ciConfidenceLevel
     ? (CONFIDENCE_LEVEL_LABELS[indicator.ciConfidenceLevel] ?? indicator.ciConfidenceLevel)
@@ -495,7 +540,8 @@ export function IndicatorPage({
           />
         </GridColumn>
         <GridColumn width="three-quarters">
-          <PageIntro size="l" title="View data for selected indicators and areas" />
+          <PageIntro size="l" title={indicator.name} />
+          <IndicatorSummary indicator={indicator} />
 
           <p className="govuk-body govuk-!-margin-bottom-1">Available charts</p>
           <ul className="govuk-list govuk-list--bullet">

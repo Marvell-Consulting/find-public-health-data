@@ -33,6 +33,7 @@ const indicatorDetail = {
   ciMethod: "Dobson & Byar's methods",
   ciConfidenceLevel: '95',
   comparatorMethod: null,
+  dataUpdatedAt: '2026-04-20T16:25:18.000Z',
   definition: 'Directly age-standardised mortality rate for all deaths.',
   rationale: null,
   methodology: null,
@@ -45,6 +46,7 @@ const indicatorDetail = {
   numeratorSource: null,
   denominatorSource: null,
   areaTypes: [{ name: 'Counties & UAs (from Apr 2023)', areaCount: 153 }],
+  collections: [{ slug: 'mortality-profile', name: 'Mortality Profile' }],
 };
 
 describe('public API', () => {

@@ -125,6 +125,18 @@
   cursor: pointer;
 }
 
+.fphd-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(2);
+  margin-bottom: 0;
+}
+
+.fphd-tag {
+  padding: 2px govuk-spacing(2);
+  border: 1px solid govuk-colour("mid-grey");
+}
+
 .fphd-contents-list {
   list-style-type: "— ";
   padding-left: govuk-spacing(4);

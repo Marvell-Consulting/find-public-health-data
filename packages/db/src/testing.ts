@@ -1,14 +1,20 @@
 import { randomBytes } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import type postgres from 'postgres';
 
+import type { Database } from './client.js';
+import { importCollections, parseCollectionsFile } from './collection-repository.js';
 import { rebuildReadModels } from './read-models.js';
 import type { Repositories } from './repositories.js';
+import * as schema from './schema.js';
 import { createOwnerClient } from './scripts/owner-client.js';
 import { seedDatabase } from './seeding.js';
+
+const collectionsFile = new URL('../data/indicator-collections.json', import.meta.url);
 
 /**
  * Two templates, because most integration tests do not want the seed. Copying `seeded`
@@ -70,6 +76,14 @@ async function buildTemplate(name: string, seed: boolean): Promise<void> {
     if (seed) {
       await seedDatabase(template);
       await rebuildReadModels(template);
+      // Collections live in a JSON file rather than the CSV export, so the seeded template
+      // imports them the same way a developer's database does.
+      await importCollections(
+        drizzle(template, { schema, casing: 'snake_case' }) as Database,
+        parseCollectionsFile(
+          JSON.parse(readFileSync(fileURLToPath(collectionsFile), 'utf-8')) as unknown,
+        ),
+      );
     }
   } finally {
     // Left with no connections: a template with an open session cannot be copied.

@@ -51,6 +51,7 @@ export const indicatorDetailSchema = z.object({
   ciMethod: z.string().nullable(),
   ciConfidenceLevel: z.string().nullable(),
   comparatorMethod: z.string().nullable(),
+  dataUpdatedAt: z.iso.datetime().nullable(),
   definition: z.string().nullable(),
   rationale: z.string().nullable(),
   methodology: z.string().nullable(),
@@ -63,6 +64,7 @@ export const indicatorDetailSchema = z.object({
   numeratorSource: indicatorSourceSchema.nullable(),
   denominatorSource: indicatorSourceSchema.nullable(),
   areaTypes: z.array(z.object({ name: z.string().min(1), areaCount: z.number().int() })),
+  collections: z.array(z.object({ slug: z.string().min(1), name: z.string().min(1) })),
 });
 
 export const indicatorObservationSchema = z.object({

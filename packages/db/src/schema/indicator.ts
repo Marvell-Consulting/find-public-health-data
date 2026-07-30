@@ -53,6 +53,9 @@ export const indicator = pgTable(
     disclosureThreshold: smallint(),
     ciConfidenceLevel: text(),
     supersedesId: uuid().references((): AnyPgColumn => indicator.id),
+    // When the source system last published data for this indicator. Distinct from the
+    // audit timestamps, which record when our own row changed.
+    dataUpdatedAt: timestamp({ withTimezone: true }),
     status: text().notNull().default('approved'),
     reviewedAt: timestamp({ withTimezone: true }),
     reviewedBy: text(),
