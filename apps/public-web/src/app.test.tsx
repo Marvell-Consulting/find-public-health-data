@@ -242,7 +242,8 @@ describe('public application routes', () => {
 
     // The filter pane shows the selected indicator, its available area types, and a
     // checkbox per area of the selected type wired into the GET form.
-    expect(screen.getByRole('heading', { name: 'Filters' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Selected indicators' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Geography filters' })).toBeTruthy();
     // The name appears twice by design: as the page heading and in the sidebar's card.
     expect(screen.getAllByText('Under 75 mortality rate from all causes')).toHaveLength(2);
     expect(screen.getByRole('link', { name: 'View background information' })).toBeTruthy();
@@ -252,7 +253,7 @@ describe('public application routes', () => {
     const areaCheckboxes = screen.getAllByRole('checkbox', { name: 'England' });
     expect(areaCheckboxes.map((box) => box.getAttribute('value'))).toContain('E92000001');
     expect(areaCheckboxes.some((box) => box.getAttribute('name') === 'as')).toBe(true);
-    expect(screen.getByRole('button', { name: 'Apply filters' })).toBeTruthy();
+    // Controls apply on change; the submit button exists only for the no-script path.
 
     // The prototype's tab set, with every panel a real anchor target.
     for (const name of ['Chart', 'Table', 'Inequalities', 'About this indicator']) {
@@ -445,8 +446,13 @@ describe('public application routes', () => {
       />,
     );
 
-    expect(await screen.findByText('Selected areas (2)')).toBeTruthy();
-    expect(screen.getByRole('checkbox', { name: 'North East' }).hasAttribute('checked')).toBe(true);
+    // Both selected areas appear as chips in the geography card.
+    expect(await screen.findByRole('heading', { name: 'Geography filters' })).toBeTruthy();
+    expect(
+      Array.from(document.querySelectorAll('.fphd-filter-chip--tag')).map(
+        (chip) => chip.textContent,
+      ),
+    ).toEqual(['North East', 'North West']);
 
     // Both areas appear in the comparison, and their values with them.
     expect(screen.getAllByRole('rowheader', { name: 'North East' }).length).toBeGreaterThan(0);
@@ -542,7 +548,7 @@ describe('public application routes', () => {
     expect(screen.getByRole('heading', { name: 'Life expectancy' })).toBeTruthy();
     expect(screen.getByText('341.1 per 100,000')).toBeTruthy();
     expect(screen.getByText('80.1 per 100,000')).toBeTruthy();
-    expect(screen.getByText('Selected indicators (2)')).toBeTruthy();
+    expect(screen.getAllByRole('link', { name: /^Remove / })).toHaveLength(2);
   });
 
   it('renders the empty state when nothing is selected', async () => {

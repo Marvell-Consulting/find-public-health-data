@@ -97,74 +97,89 @@ function FilterPane({
           .reduce((shared, names) => shared.filter((name) => names.includes(name)));
 
   return (
-    <div className="fphd-filter-pane">
-      <div className="fphd-filter-pane__header">
-        <h2 className="govuk-heading-m">Filters</h2>
-        <button type="button" className="govuk-link fphd-link-button">
-          Hide filter
-        </button>
-      </div>
-      <div className="fphd-filter-pane__body">
-        <div className="fphd-filter-pane__row">
-          <p className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">
-            Selected indicators ({selected.length})
-          </p>
+    <>
+      <div className="fphd-filter-card">
+        <div className="fphd-filter-card__header">
+          <h2 className="govuk-heading-m">Selected indicators</h2>
           {selected.length > 0 ? (
             <A className="govuk-link" href={selectionSearch({ selection, fingertipsIds: [] })}>
               Clear all
             </A>
           ) : null}
         </div>
-        {selected.length === 0 ? <p className="govuk-body">None selected</p> : null}
-        {selected.map(({ detail }) => (
-          <div className="fphd-filter-pane__selected-card" key={detail.fingertipsId}>
-            <p className="govuk-body govuk-!-margin-bottom-1">{detail.name}</p>
-            <A href={`#background-${detail.fingertipsId}`}>View background information</A>{' '}
-            <A
-              href={selectionSearch({
-                selection,
-                fingertipsIds: selection.fingertipsIds.filter((id) => id !== detail.fingertipsId),
-              })}
-            >
-              Remove
-            </A>
-          </div>
-        ))}
-
-        {unselected.length > 0 ? (
-          <Autocomplete
-            label="Search for an indicator"
-            options={unselected.map(({ fingertipsId, name: optionName }) => ({
-              value: String(fingertipsId),
-              label: optionName,
-            }))}
-            onSelect={({ value }) =>
-              navigate({
-                search: selectionSearch({
+        <div className="fphd-filter-card__body">
+          {selected.length === 0 ? <p className="govuk-body">None selected</p> : null}
+          {selected.map(({ detail }) => (
+            <div className="fphd-filter-chip" key={detail.fingertipsId}>
+              <A
+                className="fphd-filter-chip__remove"
+                href={selectionSearch({
                   selection,
-                  fingertipsIds: [...selection.fingertipsIds, Number(value)],
-                }),
-              })
-            }
-          />
-        ) : null}
-
-        <div className="fphd-filter-pane__row">
-          <p className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">
-            Selected areas ({selection.areaCodes.length})
-          </p>
-          <A
-            className="govuk-link"
-            href={selectionSearch({ selection: { ...selection, areaCodes: [] } })}
-          >
-            Clear all
-          </A>
+                  fingertipsIds: selection.fingertipsIds.filter((id) => id !== detail.fingertipsId),
+                })}
+              >
+                <span aria-hidden="true">×</span>
+                <span className="govuk-visually-hidden">Remove {detail.name}</span>
+              </A>
+              <span className="fphd-filter-chip__content">
+                {detail.name}
+                <br />
+                <A href={`#background-${detail.fingertipsId}`}>View background information</A>
+              </span>
+            </div>
+          ))}
         </div>
-        {selection.areaCodes.length === 0 ? (
-          <p className="govuk-body">Default area England</p>
-        ) : null}
+        <div className="fphd-filter-card__footer">
+          {unselected.length > 0 ? (
+            <Autocomplete
+              label="Search for an indicator"
+              options={unselected.map(({ fingertipsId, name: optionName }) => ({
+                value: String(fingertipsId),
+                label: optionName,
+              }))}
+              onSelect={({ value }) =>
+                navigate({
+                  search: selectionSearch({
+                    selection,
+                    fingertipsIds: [...selection.fingertipsIds, Number(value)],
+                  }),
+                })
+              }
+            />
+          ) : null}
+        </div>
+      </div>
 
-        <Form method="get">
+      <div className="fphd-filter-card">
+        <div className="fphd-filter-card__header">
+          <h2 className="govuk-heading-m">Geography filters</h2>
+          {selection.areaCodes.length > 0 ? (
+            <A
+              className="govuk-link"
+              href={selectionSearch({ selection: { ...selection, areaCodes: [] } })}
+            >
+              Clear all
+            </A>
+          ) : null}
+        </div>
+        <div className="fphd-filter-card__body">
+          <p className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">
+            Selected areas
+          </p>
+          {selection.areaCodes.length === 0 ? (
+            <p className="govuk-body">Default area England</p>
+          ) : (
+            <div className="fphd-filter-chips">
+              {selection.areaCodes.map((code) => (
+                <span className="fphd-filter-chip fphd-filter-chip--tag" key={code}>
+                  {availableAreas.find((area) => area.code === code)?.name ?? code}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <Form className="fphd-filter-card__footer" method="get">
           {/* The selected indicators ride along so applying an area filter keeps them. */}
           {selection.fingertipsIds.map((id) => (
             <input key={id} type="hidden" name="is" value={id} />
@@ -226,17 +241,26 @@ function FilterPane({
             <GeographyTree
               groups={[{ name: selection.areaType, areas: availableAreas }]}
               name="as"
-              onChange={setAreaCodes}
+              onChange={(codes) => {
+                setAreaCodes(codes);
+                navigate(
+                  { search: selectionSearch({ selection: { ...selection, areaCodes: codes } }) },
+                  { preventScrollReset: true },
+                );
+              }}
               selected={areaCodes}
             />
           </fieldset>
 
-          <button type="submit" className="govuk-button govuk-!-margin-top-4">
-            Apply filters
-          </button>
+          {/* Every control applies on change; this only submits when scripting is off. */}
+          <noscript>
+            <button type="submit" className="govuk-button govuk-!-margin-top-4">
+              Apply filters
+            </button>
+          </noscript>
         </Form>
       </div>
-    </div>
+    </>
   );
 }
 

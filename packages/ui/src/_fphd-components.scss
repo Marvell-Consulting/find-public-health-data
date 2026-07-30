@@ -62,7 +62,12 @@
   white-space: pre-line;
 }
 
-.fphd-filter-pane__header {
+.fphd-filter-card {
+  margin-bottom: govuk-spacing(4);
+  border: 1px solid #b1b4b6;
+}
+
+.fphd-filter-card__header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -70,50 +75,60 @@
   background-color: #d1d2d3;
 }
 
-.fphd-filter-pane__header .govuk-heading-m {
+.fphd-filter-card__header .govuk-heading-m {
   margin-bottom: 0;
+  font-size: 19px;
 }
 
-.fphd-filter-pane__body {
-  padding: 1.5em 1em;
-  background-color: #e1e2e3;
+.fphd-filter-card__body {
+  padding: govuk-spacing(3) govuk-spacing(3) 0;
+  background-color: #f3f2f1;
 }
 
-.fphd-filter-pane__selected-card {
-  padding: 8px 12px;
-  margin-bottom: govuk-spacing(3);
+.fphd-filter-card__footer {
+  padding: govuk-spacing(3);
   background-color: govuk-colour("white");
-  border: 1px solid #d1d2d3;
 }
 
-// The pane is a dense sidebar: the prototype steps its type down to 16px throughout.
-.fphd-filter-pane__body .govuk-body,
-.fphd-filter-pane__body .govuk-label,
-.fphd-filter-pane__body .govuk-fieldset__legend,
-.fphd-filter-pane__body .govuk-checkboxes__label,
-.fphd-filter-pane__body .govuk-link {
+// The sidebar is dense: the prototype steps its type down to 16px throughout.
+.fphd-filter-card .govuk-body,
+.fphd-filter-card .govuk-label,
+.fphd-filter-card .govuk-fieldset__legend,
+.fphd-filter-card .govuk-checkboxes__label,
+.fphd-filter-card .govuk-link {
   font-size: 16px;
 }
 
-.fphd-filter-pane__body .govuk-button {
-  padding: 7px 10px;
-  font-size: 16px;
-}
-
-.fphd-filter-pane__body .govuk-select {
+.fphd-filter-card .govuk-select,
+.fphd-filter-card .govuk-input {
   width: 100%;
 }
 
-.fphd-filter-pane__row {
+.fphd-filter-chip {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  gap: govuk-spacing(2);
+  padding: 8px 12px;
+  margin-bottom: govuk-spacing(2);
+  background-color: govuk-colour("white");
+  border: 1px solid #b1b4b6;
 }
 
-.fphd-filter-pane__areas {
-  max-height: 340px;
-  padding-right: govuk-spacing(1);
-  overflow-y: auto;
+.fphd-filter-chip--tag {
+  display: inline-block;
+  margin-right: govuk-spacing(2);
+}
+
+.fphd-filter-chip__remove {
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.fphd-filter-chip__content {
+  flex: 1;
+}
+
+.fphd-filter-chips {
+  margin-bottom: govuk-spacing(3);
 }
 
 .fphd-link-button {
