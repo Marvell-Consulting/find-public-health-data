@@ -183,3 +183,75 @@ export function inequalitySegments(observations: IndicatorObservation[]): Indica
         segmentLabel(a).localeCompare(segmentLabel(b)),
     );
 }
+
+export type PeriodType = 'all' | '1-year' | '3-year';
+
+/** A period spanning appreciably more than a year is a rolling average. */
+function isRolling({ fromDate, toDate }: IndicatorObservation): boolean {
+  const days = (Date.parse(toDate) - Date.parse(fromDate)) / 86_400_000;
+  return days > 400;
+}
+
+export function periodTypeLabel(periodType: PeriodType): string {
+  return periodType === '1-year' ? '1 year' : periodType === '3-year' ? '3 year rolling' : 'All';
+}
+
+/** The distinct values of one dimension across an indicator's observations, in sort order. */
+export function dimensionValues(
+  observations: IndicatorObservation[],
+  dimensionType: string,
+): string[] {
+  const bySortOrder = new Map<string, number>();
+  for (const observation of observations) {
+    for (const dimension of observation.dimensions) {
+      if (dimension.type === dimensionType) {
+        bySortOrder.set(dimension.value, dimension.sortOrder);
+      }
+    }
+  }
+  return [...bySortOrder.entries()]
+    .sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0]))
+    .map(([value]) => value);
+}
+
+export interface ObservationFilter {
+  sex?: string;
+  periodType?: PeriodType;
+}
+
+/**
+ * Narrows observations to what the chart and table options ask for. An observation that
+ * carries no Sex dimension is kept whatever the sex filter says: it is the value for all
+ * people, which stays meaningful alongside a single sex.
+ */
+export function filterObservations(
+  observations: IndicatorObservation[],
+  { sex, periodType = 'all' }: ObservationFilter,
+): IndicatorObservation[] {
+  return observations.filter((observation) => {
+    if (periodType !== 'all' && isRolling(observation) !== (periodType === '3-year')) {
+      return false;
+    }
+    if (!sex) {
+      return true;
+    }
+    const observationSex = observation.dimensions.find(({ type }) => type === 'Sex');
+    return observationSex === undefined || observationSex.value === sex;
+  });
+}
+
+/**
+ * A comparison row's bar width as a percentage of the largest value sharing its unit.
+ * Scaling per unit keeps a percentage from being dwarfed by a rate per 100,000.
+ */
+export function barWidth(row: ComparisonRow, rows: ComparisonRow[]): number {
+  if (row.value === null) {
+    return 0;
+  }
+  const peers = rows.filter((other) => other.unit === row.unit && other.value !== null);
+  const largest = Math.max(...peers.map((other) => Math.abs(other.value ?? 0)));
+  if (largest === 0) {
+    return 0;
+  }
+  return Math.max(2, Math.round((Math.abs(row.value) / largest) * 100));
+}

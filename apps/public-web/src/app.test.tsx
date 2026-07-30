@@ -247,9 +247,11 @@ describe('public application routes', () => {
     expect(screen.getAllByText('Under 75 mortality rate from all causes')).toHaveLength(2);
     expect(screen.getByRole('link', { name: 'View background information' })).toBeTruthy();
     expect(screen.getByRole('option', { name: 'Counties & UAs (from Apr 2023)' })).toBeTruthy();
-    const areaCheckbox = screen.getByRole('checkbox', { name: 'England' });
-    expect(areaCheckbox.getAttribute('name')).toBe('as');
-    expect(areaCheckbox.getAttribute('value')).toBe('E92000001');
+    // The geography tree renders a group checkbox for the area type and one per area
+    // beneath it; only the area checkboxes carry a code to submit.
+    const areaCheckboxes = screen.getAllByRole('checkbox', { name: 'England' });
+    expect(areaCheckboxes.map((box) => box.getAttribute('value'))).toContain('E92000001');
+    expect(areaCheckboxes.some((box) => box.getAttribute('name') === 'as')).toBe(true);
     expect(screen.getByRole('button', { name: 'Apply filters' })).toBeTruthy();
 
     // The prototype's tab set, with every panel a real anchor target.
@@ -569,7 +571,8 @@ describe('public application routes', () => {
     render(<Routes initialEntries={['/indicators']} />);
 
     expect(await screen.findByText('None selected')).toBeTruthy();
-    expect(screen.getByRole('combobox', { name: 'Add an indicator' })).toBeTruthy();
+    // Indicators are added through a type-ahead over the available list.
+    expect(screen.getByRole('combobox', { name: 'Search for an indicator' })).toBeTruthy();
   });
 
   it('renders the not-found page when the indicator loader throws a 404 response', async () => {

@@ -207,3 +207,98 @@
     line-height: 25px;
   }
 }
+
+.fphd-geo__tree {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid govuk-colour("mid-grey");
+  padding: govuk-spacing(2);
+}
+
+.fphd-geo__group-row {
+  display: flex;
+  align-items: center;
+  gap: govuk-spacing(1);
+}
+
+.fphd-geo__toggle {
+  padding: govuk-spacing(1);
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.fphd-geo__chevron {
+  display: block;
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 7px solid govuk-colour("black");
+  transition: transform 0.1s;
+}
+
+.fphd-geo__toggle--open .fphd-geo__chevron {
+  transform: rotate(90deg);
+}
+
+.fphd-geo__children {
+  margin-left: govuk-spacing(6);
+}
+
+.fphd-autocomplete {
+  position: relative;
+}
+
+.fphd-autocomplete__menu {
+  position: absolute;
+  z-index: 10;
+  width: 100%;
+  max-height: 240px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  background-color: govuk-colour("white");
+  border: 2px solid govuk-colour("black");
+  border-top: 0;
+}
+
+.fphd-autocomplete__option {
+  padding: govuk-spacing(1) govuk-spacing(2);
+  cursor: pointer;
+}
+
+.fphd-autocomplete__option--active {
+  background-color: govuk-colour("blue");
+  color: govuk-colour("white");
+}
+
+.fphd-autocomplete__group {
+  color: $govuk-secondary-text-colour;
+}
+
+.fphd-autocomplete__option--active .fphd-autocomplete__group {
+  color: govuk-colour("white");
+}
+
+// A value's magnitude relative to the largest in the comparison, so rows can be scanned
+// without reading every number.
+.fphd-bar-container {
+  display: flex;
+  align-items: center;
+  gap: govuk-spacing(2);
+}
+
+.fphd-bar {
+  height: 12px;
+  min-width: 1px;
+  background-color: govuk-colour("blue");
+}
+
+.fphd-segmentation-options__selects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(4);
+  align-items: flex-end;
+}

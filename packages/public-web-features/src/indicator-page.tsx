@@ -1,24 +1,31 @@
 import {
   A,
+  Autocomplete,
   BackLink,
   ChartSection,
   decodeEntities,
+  GeographyTree,
   GridColumn,
   GridRow,
   PageIntro,
   SectionBreak,
   Tabs,
 } from '@fphd/ui';
-import { type ReactNode, useId } from 'react';
+import { type ReactNode, useId, useState } from 'react';
 import { Form, useNavigate } from 'react-router';
 
 import {
+  barWidth,
   comparisonRows,
+  dimensionValues,
+  filterObservations,
   formatConfidenceInterval,
   formatValue,
   inequalitySegments,
   latestCoreSegments,
+  type PeriodType,
   periodLabel,
+  periodTypeLabel,
   segmentLabel,
   trendSeries,
 } from './indicator-data';
@@ -73,9 +80,8 @@ function FilterPane({
   const areaTypeId = useId();
   const groupTypeId = useId();
   const groupId = useId();
-  const checkboxIdPrefix = useId();
-  const addIndicatorId = useId();
   const navigate = useNavigate();
+  const [areaCodes, setAreaCodes] = useState(selection.areaCodes);
 
   const unselected = availableIndicators.filter(
     ({ fingertipsId }) => !selection.fingertipsIds.includes(fingertipsId),
@@ -126,34 +132,21 @@ function FilterPane({
         ))}
 
         {unselected.length > 0 ? (
-          <div className="govuk-form-group">
-            <label className="govuk-label govuk-!-font-weight-bold" htmlFor={addIndicatorId}>
-              Add an indicator
-            </label>
-            <select
-              className="govuk-select"
-              id={addIndicatorId}
-              defaultValue=""
-              onChange={(event) => {
-                const added = Number(event.currentTarget.value);
-                if (added) {
-                  navigate({
-                    search: selectionSearch({
-                      selection,
-                      fingertipsIds: [...selection.fingertipsIds, added],
-                    }),
-                  });
-                }
-              }}
-            >
-              <option value="">Choose an indicator</option>
-              {unselected.map((option) => (
-                <option key={option.fingertipsId} value={option.fingertipsId}>
-                  {option.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Autocomplete
+            label="Search for an indicator"
+            options={unselected.map(({ fingertipsId, name: optionName }) => ({
+              value: String(fingertipsId),
+              label: optionName,
+            }))}
+            onSelect={({ value }) =>
+              navigate({
+                search: selectionSearch({
+                  selection,
+                  fingertipsIds: [...selection.fingertipsIds, Number(value)],
+                }),
+              })
+            }
+          />
         ) : null}
 
         <div className="fphd-filter-pane__row">
@@ -230,26 +223,12 @@ function FilterPane({
             <legend className="govuk-fieldset__legend govuk-!-font-weight-bold">
               Select one or more areas
             </legend>
-            <div className="fphd-filter-pane__areas govuk-checkboxes govuk-checkboxes--small">
-              {availableAreas.map((area) => {
-                const checkboxId = `${checkboxIdPrefix}-${area.code}`;
-                return (
-                  <div className="govuk-checkboxes__item" key={area.code}>
-                    <input
-                      className="govuk-checkboxes__input"
-                      id={checkboxId}
-                      type="checkbox"
-                      name="as"
-                      value={area.code}
-                      defaultChecked={selection.areaCodes.includes(area.code)}
-                    />
-                    <label className="govuk-label govuk-checkboxes__label" htmlFor={checkboxId}>
-                      {area.name}
-                    </label>
-                  </div>
-                );
-              })}
-            </div>
+            <GeographyTree
+              groups={[{ name: selection.areaType, areas: availableAreas }]}
+              name="as"
+              onChange={setAreaCodes}
+              selected={areaCodes}
+            />
           </fieldset>
 
           <button type="submit" className="govuk-button govuk-!-margin-top-4">
@@ -615,6 +594,75 @@ function CompareAreasTable({
   );
 }
 
+/**
+ * The prototype's "Chart options" / "Table options" panel: a details disclosure holding
+ * the segment controls. Filtering happens in the browser because the data for every
+ * segment is already loaded — a round trip would only hide rows already on the page.
+ */
+function SegmentOptions({
+  label,
+  sexes,
+  sex,
+  onSexChange,
+  periodType,
+  onPeriodTypeChange,
+}: {
+  label: string;
+  sexes: string[];
+  sex: string;
+  onSexChange: (value: string) => void;
+  periodType: PeriodType;
+  onPeriodTypeChange: (value: PeriodType) => void;
+}) {
+  const sexId = useId();
+  const periodId = useId();
+
+  return (
+    <details className="govuk-details fphd-segmentation-options" open>
+      <summary className="govuk-details__summary">
+        <span className="govuk-details__summary-text">{label}</span>
+      </summary>
+      <div className="govuk-details__text fphd-segmentation-options__selects">
+        {sexes.length > 0 ? (
+          <div className="govuk-form-group govuk-!-margin-bottom-0">
+            <label className="govuk-label govuk-!-font-weight-bold" htmlFor={sexId}>
+              Select sex
+            </label>
+            <select
+              className="govuk-select"
+              id={sexId}
+              value={sex}
+              onChange={(event) => onSexChange(event.currentTarget.value)}
+            >
+              <option value="">All</option>
+              {sexes.map((value) => (
+                <option key={value}>{value}</option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+        <div className="govuk-form-group govuk-!-margin-bottom-0">
+          <label className="govuk-label govuk-!-font-weight-bold" htmlFor={periodId}>
+            Select time period type
+          </label>
+          <select
+            className="govuk-select"
+            id={periodId}
+            value={periodType}
+            onChange={(event) => onPeriodTypeChange(event.currentTarget.value as PeriodType)}
+          >
+            {(['all', '1-year', '3-year'] as const).map((value) => (
+              <option key={value} value={value}>
+                {periodTypeLabel(value)}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+    </details>
+  );
+}
+
 function InequalitiesTable({
   indicator,
   observations,
@@ -672,7 +720,26 @@ function InequalitiesTable({
  */
 function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
   const id = detail.fingertipsId;
-  const inequalities = areaData[0] ? inequalitySegments(areaData[0].observations) : [];
+  const [sex, setSex] = useState('');
+  const [periodType, setPeriodType] = useState<PeriodType>('all');
+
+  const sexes = dimensionValues(areaData[0]?.observations ?? [], 'Sex');
+  const filtered = areaData.map((data) => ({
+    ...data,
+    observations: filterObservations(data.observations, { sex, periodType }),
+  }));
+  const inequalities = filtered[0] ? inequalitySegments(filtered[0].observations) : [];
+
+  const options = (label: string) => (
+    <SegmentOptions
+      label={label}
+      sexes={sexes}
+      sex={sex}
+      onSexChange={setSex}
+      periodType={periodType}
+      onPeriodTypeChange={setPeriodType}
+    />
+  );
 
   return (
     <section className="fphd-indicator-section" aria-labelledby={`indicator-${id}`}>
@@ -688,11 +755,14 @@ function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
             id: `chart-${id}`,
             label: 'Chart',
             panel: (
-              <ChartSection
-                id={`trends-${id}`}
-                title="Indicator trends over time"
-                description="How this indicator has changed over time."
-              />
+              <>
+                {options('Chart options')}
+                <ChartSection
+                  id={`trends-${id}`}
+                  title="Indicator trends over time"
+                  description="How this indicator has changed over time."
+                />
+              </>
             ),
           },
           {
@@ -700,12 +770,13 @@ function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
             label: 'Table',
             panel: (
               <>
+                {options('Table options')}
                 <h3 className="govuk-heading-m">Indicator trends over time</h3>
-                <TrendTable indicator={detail} areaData={areaData} />
+                <TrendTable indicator={detail} areaData={filtered} />
                 <h3 className="govuk-heading-m">Compare areas for one time period</h3>
-                <CompareAreasTable indicator={detail} areaData={areaData} />
+                <CompareAreasTable indicator={detail} areaData={filtered} />
                 <h3 className="govuk-heading-m">Indicator segmentations overview</h3>
-                {areaData[0] ? <SegmentationTable indicator={detail} data={areaData[0]} /> : null}
+                {filtered[0] ? <SegmentationTable indicator={detail} data={filtered[0]} /> : null}
               </>
             ),
           },
@@ -771,8 +842,23 @@ function ComparisonSection({ selected }: { selected: SelectedIndicator[] }) {
               <td className="govuk-table__cell govuk-table__cell--numeric">
                 {row.count === null ? '—' : formatValue(row.count)}
               </td>
-              <td className="govuk-table__cell govuk-table__cell--numeric">
-                {row.value === null ? 'No data' : `${formatValue(row.value)} ${row.unit}`}
+              <td className="govuk-table__cell">
+                {row.value === null ? (
+                  'No data'
+                ) : (
+                  <span className="fphd-bar-container">
+                    <span
+                      aria-hidden="true"
+                      className="fphd-bar"
+                      // Indicators use different units, so each bar is scaled against the
+                      // largest value sharing its unit — never across unrelated scales.
+                      style={{ width: `${barWidth(row, rows)}%` }}
+                    />
+                    <span>
+                      {formatValue(row.value)} {row.unit}
+                    </span>
+                  </span>
+                )}
               </td>
             </tr>
           ))}
