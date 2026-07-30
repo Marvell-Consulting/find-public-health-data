@@ -252,16 +252,13 @@ describe('public application routes', () => {
     expect(areaCheckbox.getAttribute('value')).toBe('E92000001');
     expect(screen.getByRole('button', { name: 'Apply filters' })).toBeTruthy();
 
-    // The chart placeholders are labelled, keyboard-reachable regions (ADR013), one per
-    // chart in the initial scope.
-    for (const name of [
-      'Indicator segmentations overview',
-      'Indicator trends over time',
-      'Compare areas for one time period',
-    ]) {
-      const region = screen.getByRole('region', { name });
-      expect(region.getAttribute('tabindex')).toBe('0');
+    // The prototype's tab set, with every panel a real anchor target.
+    for (const name of ['Chart', 'Table', 'Inequalities', 'About this indicator']) {
+      expect(screen.getByRole('tab', { name })).toBeTruthy();
     }
+    // The chart placeholder is a labelled, keyboard-reachable region (ADR013).
+    const region = screen.getByRole('region', { name: 'Indicator trends over time' });
+    expect(region.getAttribute('tabindex')).toBe('0');
 
     // The trend table shows the least-disaggregated series in period order.
     expect(screen.getByRole('rowheader', { name: '2022' })).toBeTruthy();

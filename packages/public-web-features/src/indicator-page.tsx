@@ -7,6 +7,7 @@ import {
   GridRow,
   PageIntro,
   SectionBreak,
+  Tabs,
 } from '@fphd/ui';
 import { type ReactNode, useId } from 'react';
 import { Form, useNavigate } from 'react-router';
@@ -15,6 +16,7 @@ import {
   comparisonRows,
   formatConfidenceInterval,
   formatValue,
+  inequalitySegments,
   latestCoreSegments,
   periodLabel,
   segmentLabel,
@@ -613,54 +615,119 @@ function CompareAreasTable({
   );
 }
 
-/** Everything shown for one selected indicator, repeated per selection. */
-function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
-  const id = detail.fingertipsId;
+function InequalitiesTable({
+  indicator,
+  observations,
+}: {
+  indicator: IndicatorDetail;
+  observations: IndicatorObservation[];
+}) {
+  const first = observations[0];
+  if (!first) {
+    return null;
+  }
+  const dimensionType =
+    first.dimensions.find(({ dimensionClass }) => dimensionClass === 'inequality')?.type ?? '';
 
   return (
-    <section aria-labelledby={`indicator-${id}`}>
+    <table className="govuk-table">
+      <caption className="govuk-table__caption govuk-table__caption--s">
+        {dimensionType}, {periodLabel(first)}
+      </caption>
+      <thead className="govuk-table__head">
+        <tr className="govuk-table__row">
+          <th scope="col" className="govuk-table__header">
+            Segment
+          </th>
+          <th scope="col" className="govuk-table__header govuk-table__header--numeric">
+            Value ({indicator.unit.name})
+          </th>
+          <th scope="col" className="govuk-table__header govuk-table__header--numeric">
+            95% confidence interval
+          </th>
+        </tr>
+      </thead>
+      <tbody className="govuk-table__body">
+        {observations.map((observation) => (
+          <tr className="govuk-table__row" key={segmentLabel(observation)}>
+            <th scope="row" className="govuk-table__header">
+              {segmentLabel(observation)}
+            </th>
+            <td className="govuk-table__cell govuk-table__cell--numeric">
+              {formatValue(observation.value)}
+            </td>
+            <td className="govuk-table__cell govuk-table__cell--numeric">
+              {formatConfidenceInterval(observation)}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+/**
+ * Everything shown for one selected indicator, repeated per selection: the summary
+ * table, then the prototype's Chart / Table / Inequalities / About tab set.
+ */
+function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
+  const id = detail.fingertipsId;
+  const inequalities = areaData[0] ? inequalitySegments(areaData[0].observations) : [];
+
+  return (
+    <section className="fphd-indicator-section" aria-labelledby={`indicator-${id}`}>
       <h2 className="govuk-heading-l" id={`indicator-${id}`}>
         {detail.name}
       </h2>
       <IndicatorSummary indicator={detail} />
 
-      <p className="govuk-body govuk-!-margin-bottom-1">Available charts</p>
-      <ul className="govuk-list govuk-list--bullet">
-        <li>
-          <A href={`#segmentations-${id}`}>Indicator segmentations overview</A>
-        </li>
-        <li>
-          <A href={`#trends-${id}`}>Indicator trends over time</A>
-        </li>
-        <li>
-          <A href={`#compare-areas-${id}`}>Compare areas for one time period</A>
-        </li>
-      </ul>
-
-      <ChartSection
-        id={`segmentations-${id}`}
-        title="Indicator segmentations overview"
-        description="An overview of this indicator's values across its reported segments, compared with the benchmark."
-      >
-        {areaData[0] ? <SegmentationTable indicator={detail} data={areaData[0]} /> : null}
-      </ChartSection>
-      <ChartSection
-        id={`trends-${id}`}
-        title="Indicator trends over time"
-        description="How this indicator has changed over time."
-      >
-        <TrendTable indicator={detail} areaData={areaData} />
-      </ChartSection>
-      <ChartSection
-        id={`compare-areas-${id}`}
-        title="Compare areas for one time period"
-        description="How areas compare with each other for the latest time period."
-      >
-        <CompareAreasTable indicator={detail} areaData={areaData} />
-      </ChartSection>
-
-      <BackgroundInformation indicator={detail} />
-      <SectionBreak size="l" visible />
+      <Tabs
+        label={`${detail.name} data`}
+        tabs={[
+          {
+            id: `chart-${id}`,
+            label: 'Chart',
+            panel: (
+              <ChartSection
+                id={`trends-${id}`}
+                title="Indicator trends over time"
+                description="How this indicator has changed over time."
+              />
+            ),
+          },
+          {
+            id: `table-${id}`,
+            label: 'Table',
+            panel: (
+              <>
+                <h3 className="govuk-heading-m">Indicator trends over time</h3>
+                <TrendTable indicator={detail} areaData={areaData} />
+                <h3 className="govuk-heading-m">Compare areas for one time period</h3>
+                <CompareAreasTable indicator={detail} areaData={areaData} />
+                <h3 className="govuk-heading-m">Indicator segmentations overview</h3>
+                {areaData[0] ? <SegmentationTable indicator={detail} data={areaData[0]} /> : null}
+              </>
+            ),
+          },
+          {
+            id: `inequalities-${id}`,
+            label: 'Inequalities',
+            panel:
+              inequalities.length > 0 ? (
+                <InequalitiesTable indicator={detail} observations={inequalities} />
+              ) : (
+                <p className="govuk-body">
+                  This indicator has no inequality breakdowns for the selected areas.
+                </p>
+              ),
+          },
+          {
+            id: `about-${id}`,
+            label: 'About this indicator',
+            panel: <BackgroundInformation indicator={detail} />,
+          },
+        ]}
+      />
     </section>
   );
 }

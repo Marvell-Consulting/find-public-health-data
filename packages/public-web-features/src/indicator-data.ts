@@ -136,3 +136,50 @@ export function comparisonRows(
     };
   });
 }
+
+/**
+ * The latest period's values broken down by an inequality dimension (deprivation,
+ * ethnicity, and the like) rather than the core sex/age segmentation. One dimension only:
+ * mixing several in a single table would compare values that are not comparable.
+ */
+export function inequalitySegments(observations: IndicatorObservation[]): IndicatorObservation[] {
+  const withInequality = observations.filter((observation) =>
+    observation.dimensions.some(({ dimensionClass }) => dimensionClass === 'inequality'),
+  );
+  if (withInequality.length === 0) {
+    return [];
+  }
+
+  const latestToDate = withInequality
+    .map(({ toDate }) => toDate)
+    .sort()
+    .at(-1);
+  const latest = withInequality.filter(({ toDate }) => toDate === latestToDate);
+  const latestFromDate = latest
+    .map(({ fromDate }) => fromDate)
+    .sort()
+    .at(-1);
+  const period = latest.filter(({ fromDate }) => fromDate === latestFromDate);
+
+  // Whichever inequality dimension has the most values in that period is the one with a
+  // story to tell; the others would each render a table of one or two rows.
+  const counts = new Map<string, number>();
+  for (const observation of period) {
+    for (const { type, dimensionClass } of observation.dimensions) {
+      if (dimensionClass === 'inequality') {
+        counts.set(type, (counts.get(type) ?? 0) + 1);
+      }
+    }
+  }
+  const [chosen] =
+    [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0] ?? [];
+
+  return period
+    .filter((observation) => observation.dimensions.some(({ type }) => type === chosen))
+    .sort(
+      (a, b) =>
+        a.dimensions.reduce((sum, d) => sum + d.sortOrder, 0) -
+          b.dimensions.reduce((sum, d) => sum + d.sortOrder, 0) ||
+        segmentLabel(a).localeCompare(segmentLabel(b)),
+    );
+}

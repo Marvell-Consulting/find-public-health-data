@@ -13,3 +13,4 @@ export { createDocumentMeta, formatDocumentTitle } from './document-title';
 export { GridColumn, GridRow, SectionBreak } from './layout';
 export { NonceProvider, useNonce } from './nonce';
 export { RootErrorBoundary } from './root-error-boundary';
+export { type TabDefinition, Tabs } from './tabs';
