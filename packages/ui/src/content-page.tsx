@@ -2,13 +2,15 @@ import type { ReactNode } from 'react';
 
 interface PageIntroProps {
   children?: ReactNode;
+  /** Step the heading down on pages whose content sits in a narrower column. */
+  size?: 'l' | 'xl';
   title: string;
 }
 
-export function PageIntro({ children, title }: PageIntroProps) {
+export function PageIntro({ children, size = 'xl', title }: PageIntroProps) {
   return (
-    <section className="page-intro">
-      <h1 className="govuk-heading-xl">{title}</h1>
+    <section className={size === 'xl' ? 'page-intro' : undefined}>
+      <h1 className={`govuk-heading-${size}`}>{title}</h1>
       {children}
     </section>
   );

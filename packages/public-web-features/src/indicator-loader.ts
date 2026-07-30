@@ -31,6 +31,11 @@ const MAX_SELECTED_AREAS = 20;
  * environment the GOV.UK component library needs. Selection state lives in the query
  * string (`ats` = area type, `as` = area codes, repeatable) so the page is a working
  * form without client JavaScript and every view is a shareable URL.
+ *
+ * The client turns the API's 404 into a thrown 404 Response, so React Router renders the
+ * nearest not-found boundary instead of the page component. It also encodes the path
+ * segment — React Router decodes %2F inside a single dynamic segment, so an un-encoded id
+ * of '../topics' would normalise the request onto a different API route entirely.
  */
 export async function loadIndicator({ context, params, request }: LoaderFunctionArgs) {
   const { fingertipsId } = params;

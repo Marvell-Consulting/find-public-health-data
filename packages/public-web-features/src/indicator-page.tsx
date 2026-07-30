@@ -1,4 +1,13 @@
-import { A, GridColumn, GridRow, SectionBreak } from '@fphd/ui';
+import {
+  A,
+  BackLink,
+  ChartSection,
+  decodeEntities,
+  GridColumn,
+  GridRow,
+  PageIntro,
+  SectionBreak,
+} from '@fphd/ui';
 import { type ReactNode, useId } from 'react';
 import { Form, useNavigate } from 'react-router';
 
@@ -23,66 +32,6 @@ const CONFIDENCE_LEVEL_LABELS: Record<string, string> = {
   '99.8': '99.8%',
   both: '95% and 99.8%',
 };
-
-const NAMED_ENTITIES: Record<string, string> = {
-  amp: '&',
-  apos: "'",
-  gt: '>',
-  hellip: '…',
-  lt: '<',
-  mdash: '—',
-  nbsp: ' ',
-  ndash: '–',
-  pound: '£',
-  quot: '"',
-};
-
-// Pholio metadata arrives with HTML entities baked into the plain text (`&hellip;`,
-// `&nbsp;`), which React would otherwise render literally.
-function decodeEntities(text: string): string {
-  return text.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (match, code: string) => {
-    if (code.toLowerCase().startsWith('#x')) {
-      return String.fromCodePoint(Number.parseInt(code.slice(2), 16));
-    }
-    if (code.startsWith('#')) {
-      return String.fromCodePoint(Number.parseInt(code.slice(1), 10));
-    }
-    return NAMED_ENTITIES[code.toLowerCase()] ?? match;
-  });
-}
-
-/**
- * Stands in for a chart that is not built yet (ADR013): a labelled, keyboard-reachable
- * region rather than a blank div, so the page's accessibility structure is real from the
- * start and each chart ticket replaces a placeholder in situ.
- */
-function ChartSection({
-  id,
-  title,
-  description,
-  children,
-}: {
-  id: string;
-  title: string;
-  description: string;
-  children?: ReactNode;
-}) {
-  const headingId = useId();
-
-  return (
-    <div className="fphd-chart-section" id={id}>
-      <h3 className="govuk-heading-m" id={headingId}>
-        {title}
-      </h3>
-      {/* biome-ignore lint/a11y/noNoninteractiveTabindex: ADR013 requires chart regions to be keyboard-reachable from day one, the focusable scrollable-region pattern real charts will need. */}
-      <section className="fphd-chart-placeholder" aria-labelledby={headingId} tabIndex={0}>
-        <p className="govuk-body">{description}</p>
-        <p className="govuk-hint">Data visualisation to follow</p>
-        {children}
-      </section>
-    </div>
-  );
-}
 
 function FilterPane({
   indicator,
@@ -535,9 +484,7 @@ export function IndicatorPage({
 
   return (
     <>
-      <A href="/" className="govuk-back-link">
-        Back
-      </A>
+      <BackLink href="/" />
       <GridRow>
         <GridColumn width="one-quarter">
           <FilterPane
@@ -548,7 +495,7 @@ export function IndicatorPage({
           />
         </GridColumn>
         <GridColumn width="three-quarters">
-          <h1 className="govuk-heading-l">View data for selected indicators and areas</h1>
+          <PageIntro size="l" title="View data for selected indicators and areas" />
 
           <p className="govuk-body govuk-!-margin-bottom-1">Available charts</p>
           <ul className="govuk-list govuk-list--bullet">
