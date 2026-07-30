@@ -446,13 +446,10 @@ describe('public application routes', () => {
       />,
     );
 
-    // Both selected areas appear as chips in the geography card.
+    // Both selected areas appear as removable chips in the geography card.
     expect(await screen.findByRole('heading', { name: 'Geography filters' })).toBeTruthy();
-    expect(
-      Array.from(document.querySelectorAll('.fphd-filter-chip--tag')).map(
-        (chip) => chip.textContent,
-      ),
-    ).toEqual(['North East', 'North West']);
+    expect(screen.getByRole('link', { name: 'Remove North East' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Remove North West' })).toBeTruthy();
 
     // Both areas appear in the comparison, and their values with them.
     expect(screen.getAllByRole('rowheader', { name: 'North East' }).length).toBeGreaterThan(0);

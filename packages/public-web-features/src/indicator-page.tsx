@@ -81,7 +81,7 @@ function FilterPane({
   const groupTypeId = useId();
   const groupId = useId();
   const navigate = useNavigate();
-  const [areaCodes, setAreaCodes] = useState(selection.areaCodes);
+  const [pending, setPending] = useState<string[]>([]);
 
   const unselected = availableIndicators.filter(
     ({ fingertipsId }) => !selection.fingertipsIds.includes(fingertipsId),
@@ -170,11 +170,26 @@ function FilterPane({
             <p className="govuk-body">Default area England</p>
           ) : (
             <div className="fphd-filter-chips">
-              {selection.areaCodes.map((code) => (
-                <span className="fphd-filter-chip fphd-filter-chip--tag" key={code}>
-                  {availableAreas.find((area) => area.code === code)?.name ?? code}
-                </span>
-              ))}
+              {selection.areaCodes.map((code) => {
+                const areaName = availableAreas.find((area) => area.code === code)?.name ?? code;
+                return (
+                  <span className="fphd-filter-chip fphd-filter-chip--tag" key={code}>
+                    <A
+                      className="fphd-filter-chip__remove"
+                      href={selectionSearch({
+                        selection: {
+                          ...selection,
+                          areaCodes: selection.areaCodes.filter((value) => value !== code),
+                        },
+                      })}
+                    >
+                      <span aria-hidden="true">×</span>
+                      <span className="govuk-visually-hidden">Remove {areaName}</span>
+                    </A>
+                    {areaName}
+                  </span>
+                );
+              })}
             </div>
           )}
         </div>
@@ -241,23 +256,33 @@ function FilterPane({
             <GeographyTree
               groups={[{ name: selection.areaType, areas: availableAreas }]}
               name="as"
-              onChange={(codes) => {
-                setAreaCodes(codes);
-                navigate(
-                  { search: selectionSearch({ selection: { ...selection, areaCodes: codes } }) },
-                  { preventScrollReset: true },
-                );
-              }}
-              selected={areaCodes}
+              onChange={setPending}
+              selected={pending}
             />
           </fieldset>
 
-          {/* Every control applies on change; this only submits when scripting is off. */}
-          <noscript>
-            <button type="submit" className="govuk-button govuk-!-margin-top-4">
-              Apply filters
+          {/* Ticking gathers a pending set; adding them is the deliberate second step, so
+              a long list can be built up without the page reloading between each tick. */}
+          {pending.length > 0 ? (
+            <button
+              className="govuk-button govuk-!-margin-top-4"
+              onClick={(event) => {
+                event.preventDefault();
+                setPending([]);
+                navigate({
+                  search: selectionSearch({
+                    selection: {
+                      ...selection,
+                      areaCodes: [...new Set([...selection.areaCodes, ...pending])],
+                    },
+                  }),
+                });
+              }}
+              type="submit"
+            >
+              Add selected geographies ({pending.length})
             </button>
-          </noscript>
+          ) : null}
         </Form>
       </div>
     </>
