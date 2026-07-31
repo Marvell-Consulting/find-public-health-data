@@ -19,12 +19,15 @@ import { Form, useNavigate } from 'react-router';
 
 import {
   barWidth,
+  type ConfidenceLevel,
   comparisonRows,
+  confidenceInterval,
   dimensionValues,
   filterObservations,
-  formatConfidenceInterval,
   formatValue,
-  inequalitySegments,
+  inequalityBreakdown,
+  inequalityCategories,
+  inequalityPeriods,
   latestCoreSegments,
   type PeriodType,
   periodLabel,
@@ -387,11 +390,13 @@ function BackgroundInformation({ indicator }: { indicator: IndicatorDetail }) {
 }
 
 function SegmentationTable({
-  indicator,
+  confidence,
   data,
+  indicator,
 }: {
-  indicator: IndicatorDetail;
+  confidence: ConfidenceLevel;
   data: IndicatorAreaData;
+  indicator: IndicatorDetail;
 }) {
   const segments = latestCoreSegments(data.observations);
   const first = segments[0];
@@ -412,9 +417,11 @@ function SegmentationTable({
           <th scope="col" className="govuk-table__header govuk-table__header--numeric">
             Value ({indicator.unit.name})
           </th>
-          <th scope="col" className="govuk-table__header govuk-table__header--numeric">
-            95% confidence interval
-          </th>
+          {confidence === 'none' ? null : (
+            <th scope="col" className="govuk-table__header govuk-table__header--numeric">
+              {confidence}% confidence interval
+            </th>
+          )}
         </tr>
       </thead>
       <tbody className="govuk-table__body">
@@ -426,9 +433,11 @@ function SegmentationTable({
             <td className="govuk-table__cell govuk-table__cell--numeric">
               {formatValue(observation.value)}
             </td>
-            <td className="govuk-table__cell govuk-table__cell--numeric">
-              {formatConfidenceInterval(observation)}
-            </td>
+            {confidence === 'none' ? null : (
+              <td className="govuk-table__cell govuk-table__cell--numeric">
+                {confidenceInterval(observation, confidence)}
+              </td>
+            )}
           </tr>
         ))}
       </tbody>
@@ -437,11 +446,13 @@ function SegmentationTable({
 }
 
 function TrendTable({
-  indicator,
   areaData,
+  confidence,
+  indicator,
 }: {
-  indicator: IndicatorDetail;
   areaData: IndicatorAreaData[];
+  confidence: ConfidenceLevel;
+  indicator: IndicatorDetail;
 }) {
   const seriesByArea = areaData
     .map((data) => ({ data, series: trendSeries(data.observations) }))
@@ -476,9 +487,11 @@ function TrendTable({
           <th scope="col" className="govuk-table__header govuk-table__header--numeric">
             Value ({indicator.unit.name})
           </th>
-          <th scope="col" className="govuk-table__header govuk-table__header--numeric">
-            95% confidence interval
-          </th>
+          {confidence === 'none' ? null : (
+            <th scope="col" className="govuk-table__header govuk-table__header--numeric">
+              {confidence}% confidence interval
+            </th>
+          )}
           <th scope="col" className="govuk-table__header govuk-table__header--numeric">
             Count
           </th>
@@ -502,9 +515,11 @@ function TrendTable({
               <td className="govuk-table__cell govuk-table__cell--numeric">
                 {formatValue(observation.value)}
               </td>
-              <td className="govuk-table__cell govuk-table__cell--numeric">
-                {formatConfidenceInterval(observation)}
-              </td>
+              {confidence === 'none' ? null : (
+                <td className="govuk-table__cell govuk-table__cell--numeric">
+                  {confidenceInterval(observation, confidence)}
+                </td>
+              )}
               <td className="govuk-table__cell govuk-table__cell--numeric">
                 {observation.count === null ? '—' : formatValue(observation.count)}
               </td>
@@ -517,11 +532,15 @@ function TrendTable({
 }
 
 function CompareAreasTable({
-  indicator,
   areaData,
+  benchmark,
+  confidence,
+  indicator,
 }: {
-  indicator: IndicatorDetail;
   areaData: IndicatorAreaData[];
+  benchmark: string;
+  confidence: ConfidenceLevel;
+  indicator: IndicatorDetail;
 }) {
   const latestByArea = areaData
     .map((data) => ({ data, latest: trendSeries(data.observations).at(-1) }))
@@ -546,9 +565,16 @@ function CompareAreasTable({
           <th scope="col" className="govuk-table__header govuk-table__header--numeric">
             Value ({indicator.unit.name})
           </th>
-          <th scope="col" className="govuk-table__header govuk-table__header--numeric">
-            95% confidence interval
-          </th>
+          {confidence === 'none' ? null : (
+            <th scope="col" className="govuk-table__header govuk-table__header--numeric">
+              {confidence}% confidence interval
+            </th>
+          )}
+          {benchmark ? (
+            <th scope="col" className="govuk-table__header">
+              Compared with {benchmark}
+            </th>
+          ) : null}
         </tr>
       </thead>
       <tbody className="govuk-table__body">
@@ -560,9 +586,19 @@ function CompareAreasTable({
             <td className="govuk-table__cell govuk-table__cell--numeric">
               {formatValue(latest.value)}
             </td>
-            <td className="govuk-table__cell govuk-table__cell--numeric">
-              {formatConfidenceInterval(latest)}
-            </td>
+            {confidence === 'none' ? null : (
+              <td className="govuk-table__cell govuk-table__cell--numeric">
+                {confidenceInterval(latest, confidence)}
+              </td>
+            )}
+            {benchmark ? (
+              <td className="govuk-table__cell">
+                {/* Significance against the benchmark is a calculation the service does
+                    not perform yet, so the column states what it will compare, not a
+                    verdict it cannot support. */}
+                <span className="govuk-hint">Comparison to follow</span>
+              </td>
+            ) : null}
           </tr>
         ))}
       </tbody>
@@ -570,28 +606,39 @@ function CompareAreasTable({
   );
 }
 
-/**
- * The prototype's "Chart options" / "Table options" panel: a details disclosure holding
- * the segment controls. Filtering happens in the browser because the data for every
- * segment is already loaded — a round trip would only hide rows already on the page.
- */
-function SegmentOptions({
-  label,
-  sexes,
-  sex,
-  onSexChange,
-  periodType,
-  onPeriodTypeChange,
-}: {
-  label: string;
-  sexes: string[];
-  sex: string;
-  onSexChange: (value: string) => void;
+interface PanelOptions {
+  benchmark: string;
+  confidence: ConfidenceLevel;
   periodType: PeriodType;
-  onPeriodTypeChange: (value: PeriodType) => void;
+  sex: string;
+}
+
+/**
+ * The prototype's "Chart options" / "Table options" disclosure. Every panel offers the
+ * benchmark and confidence-interval choices; the sex and period controls appear only
+ * where the indicator reports those segments.
+ */
+function PanelOptionsPanel({
+  benchmarks,
+  label,
+  onChange,
+  options,
+  sexes,
+  showConfidence,
+}: {
+  benchmarks: string[];
+  label: string;
+  onChange: (options: PanelOptions) => void;
+  options: PanelOptions;
+  sexes: string[];
+  showConfidence: boolean;
 }) {
-  const sexId = useId();
-  const periodId = useId();
+  const ids = {
+    benchmark: useId(),
+    confidence: useId(),
+    period: useId(),
+    sex: useId(),
+  };
 
   return (
     <details className="govuk-details fphd-segmentation-options" open>
@@ -601,14 +648,14 @@ function SegmentOptions({
       <div className="govuk-details__text fphd-segmentation-options__selects">
         {sexes.length > 0 ? (
           <div className="govuk-form-group govuk-!-margin-bottom-0">
-            <label className="govuk-label govuk-!-font-weight-bold" htmlFor={sexId}>
+            <label className="govuk-label govuk-label--s" htmlFor={ids.sex}>
               Select sex
             </label>
             <select
               className="govuk-select"
-              id={sexId}
-              value={sex}
-              onChange={(event) => onSexChange(event.currentTarget.value)}
+              id={ids.sex}
+              onChange={(event) => onChange({ ...options, sex: event.currentTarget.value })}
+              value={options.sex}
             >
               <option value="">All</option>
               {sexes.map((value) => (
@@ -617,15 +664,18 @@ function SegmentOptions({
             </select>
           </div>
         ) : null}
+
         <div className="govuk-form-group govuk-!-margin-bottom-0">
-          <label className="govuk-label govuk-!-font-weight-bold" htmlFor={periodId}>
+          <label className="govuk-label govuk-label--s" htmlFor={ids.period}>
             Select time period type
           </label>
           <select
             className="govuk-select"
-            id={periodId}
-            value={periodType}
-            onChange={(event) => onPeriodTypeChange(event.currentTarget.value as PeriodType)}
+            id={ids.period}
+            onChange={(event) =>
+              onChange({ ...options, periodType: event.currentTarget.value as PeriodType })
+            }
+            value={options.periodType}
           >
             {(['all', '1-year', '3-year'] as const).map((value) => (
               <option key={value} value={value}>
@@ -634,15 +684,136 @@ function SegmentOptions({
             ))}
           </select>
         </div>
+
+        {showConfidence ? (
+          <div className="govuk-form-group govuk-!-margin-bottom-0">
+            <label className="govuk-label govuk-label--s" htmlFor={ids.confidence}>
+              Select confidence intervals
+            </label>
+            <select
+              className="govuk-select"
+              id={ids.confidence}
+              onChange={(event) =>
+                onChange({ ...options, confidence: event.currentTarget.value as ConfidenceLevel })
+              }
+              value={options.confidence}
+            >
+              <option value="none">None</option>
+              <option value="95">95%</option>
+              <option value="99.8">99.8%</option>
+            </select>
+          </div>
+        ) : null}
+
+        <div className="govuk-form-group govuk-!-margin-bottom-0">
+          <label className="govuk-label govuk-label--s" htmlFor={ids.benchmark}>
+            Select a geography or goal to compare with
+          </label>
+          <select
+            className="govuk-select"
+            id={ids.benchmark}
+            onChange={(event) => onChange({ ...options, benchmark: event.currentTarget.value })}
+            value={options.benchmark}
+          >
+            <option value="">None</option>
+            {benchmarks.map((value) => (
+              <option key={value}>{value}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+    </details>
+  );
+}
+
+/** The prototype's Inequalities "Options" disclosure: category, period and intervals. */
+function InequalityOptions({
+  categories,
+  category,
+  confidence,
+  onCategoryChange,
+  onConfidenceChange,
+  onPeriodChange,
+  period,
+  periods,
+}: {
+  categories: string[];
+  category: string;
+  confidence: ConfidenceLevel;
+  onCategoryChange: (value: string) => void;
+  onConfidenceChange: (value: ConfidenceLevel) => void;
+  onPeriodChange: (value: string) => void;
+  period: string;
+  periods: { value: string; label: string }[];
+}) {
+  const categoryId = useId();
+  const periodId = useId();
+  const confidenceId = useId();
+
+  return (
+    <details className="govuk-details fphd-segmentation-options" open>
+      <summary className="govuk-details__summary">
+        <span className="govuk-details__summary-text">Options</span>
+      </summary>
+      <div className="govuk-details__text fphd-segmentation-options__selects">
+        <div className="govuk-form-group govuk-!-margin-bottom-0">
+          <label className="govuk-label govuk-label--s" htmlFor={categoryId}>
+            Select inequality category
+          </label>
+          <select
+            className="govuk-select"
+            id={categoryId}
+            onChange={(event) => onCategoryChange(event.currentTarget.value)}
+            value={category}
+          >
+            {categories.map((value) => (
+              <option key={value}>{value}</option>
+            ))}
+          </select>
+        </div>
+        <div className="govuk-form-group govuk-!-margin-bottom-0">
+          <label className="govuk-label govuk-label--s" htmlFor={periodId}>
+            Select time period
+          </label>
+          <select
+            className="govuk-select"
+            id={periodId}
+            onChange={(event) => onPeriodChange(event.currentTarget.value)}
+            value={period}
+          >
+            {periods.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="govuk-form-group govuk-!-margin-bottom-0">
+          <label className="govuk-label govuk-label--s" htmlFor={confidenceId}>
+            Select confidence intervals
+          </label>
+          <select
+            className="govuk-select"
+            id={confidenceId}
+            onChange={(event) => onConfidenceChange(event.currentTarget.value as ConfidenceLevel)}
+            value={confidence}
+          >
+            <option value="none">None</option>
+            <option value="95">95%</option>
+            <option value="99.8">99.8%</option>
+          </select>
+        </div>
       </div>
     </details>
   );
 }
 
 function InequalitiesTable({
+  confidence,
   indicator,
   observations,
 }: {
+  confidence: ConfidenceLevel;
   indicator: IndicatorDetail;
   observations: IndicatorObservation[];
 }) {
@@ -666,9 +837,11 @@ function InequalitiesTable({
           <th scope="col" className="govuk-table__header govuk-table__header--numeric">
             Value ({indicator.unit.name})
           </th>
-          <th scope="col" className="govuk-table__header govuk-table__header--numeric">
-            95% confidence interval
-          </th>
+          {confidence === 'none' ? null : (
+            <th scope="col" className="govuk-table__header govuk-table__header--numeric">
+              {confidence}% confidence interval
+            </th>
+          )}
         </tr>
       </thead>
       <tbody className="govuk-table__body">
@@ -680,9 +853,11 @@ function InequalitiesTable({
             <td className="govuk-table__cell govuk-table__cell--numeric">
               {formatValue(observation.value)}
             </td>
-            <td className="govuk-table__cell govuk-table__cell--numeric">
-              {formatConfidenceInterval(observation)}
-            </td>
+            {confidence === 'none' ? null : (
+              <td className="govuk-table__cell govuk-table__cell--numeric">
+                {confidenceInterval(observation, confidence)}
+              </td>
+            )}
           </tr>
         ))}
       </tbody>
@@ -696,24 +871,41 @@ function InequalitiesTable({
  */
 function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
   const id = detail.fingertipsId;
-  const [sex, setSex] = useState('');
-  const [periodType, setPeriodType] = useState<PeriodType>('all');
+  const [options, setOptions] = useState<PanelOptions>({
+    benchmark: 'England',
+    confidence: '95',
+    periodType: 'all',
+    sex: '',
+  });
 
-  const sexes = dimensionValues(areaData[0]?.observations ?? [], 'Sex');
+  const allObservations = areaData[0]?.observations ?? [];
+  const sexes = dimensionValues(allObservations, 'Sex');
+  const categories = inequalityCategories(allObservations);
+  const [category, setCategory] = useState(categories[0] ?? '');
+  const periods = inequalityPeriods(allObservations, category);
+  const [period, setPeriod] = useState(periods.at(-1)?.value ?? '');
+
   const filtered = areaData.map((data) => ({
     ...data,
-    observations: filterObservations(data.observations, { sex, periodType }),
+    observations: filterObservations(data.observations, {
+      sex: options.sex,
+      periodType: options.periodType,
+    }),
   }));
-  const inequalities = filtered[0] ? inequalitySegments(filtered[0].observations) : [];
+  // Benchmarks come from the area types the indicator publishes against; England is the
+  // default comparison the prototype offers alongside them.
+  const benchmarks = ['England', ...detail.areaTypes.map(({ name }) => name)].filter(
+    (name, index, all) => all.indexOf(name) === index,
+  );
 
-  const options = (label: string) => (
-    <SegmentOptions
+  const panelOptions = (label: string, showConfidence: boolean) => (
+    <PanelOptionsPanel
+      benchmarks={benchmarks}
       label={label}
+      onChange={setOptions}
+      options={options}
       sexes={sexes}
-      sex={sex}
-      onSexChange={setSex}
-      periodType={periodType}
-      onPeriodTypeChange={setPeriodType}
+      showConfidence={showConfidence}
     />
   );
 
@@ -732,7 +924,7 @@ function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
             label: 'Chart',
             panel: (
               <>
-                {options('Chart options')}
+                {panelOptions('Chart options', false)}
                 <ChartSection
                   id={`trends-${id}`}
                   title="Indicator trends over time"
@@ -746,13 +938,28 @@ function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
             label: 'Table',
             panel: (
               <>
-                {options('Table options')}
+                {panelOptions('Table options', true)}
                 <h3 className="govuk-heading-m">Indicator trends over time</h3>
-                <TrendTable indicator={detail} areaData={filtered} />
+                <TrendTable
+                  indicator={detail}
+                  areaData={filtered}
+                  confidence={options.confidence}
+                />
                 <h3 className="govuk-heading-m">Compare areas for one time period</h3>
-                <CompareAreasTable indicator={detail} areaData={filtered} />
+                <CompareAreasTable
+                  indicator={detail}
+                  areaData={filtered}
+                  benchmark={options.benchmark}
+                  confidence={options.confidence}
+                />
                 <h3 className="govuk-heading-m">Indicator segmentations overview</h3>
-                {filtered[0] ? <SegmentationTable indicator={detail} data={filtered[0]} /> : null}
+                {filtered[0] ? (
+                  <SegmentationTable
+                    indicator={detail}
+                    data={filtered[0]}
+                    confidence={options.confidence}
+                  />
+                ) : null}
               </>
             ),
           },
@@ -760,12 +967,37 @@ function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
             id: `inequalities-${id}`,
             label: 'Inequalities',
             panel:
-              inequalities.length > 0 ? (
-                <InequalitiesTable indicator={detail} observations={inequalities} />
-              ) : (
+              categories.length === 0 ? (
                 <p className="govuk-body">
                   This indicator has no inequality breakdowns for the selected areas.
                 </p>
+              ) : (
+                <>
+                  <InequalityOptions
+                    categories={categories}
+                    category={category}
+                    confidence={options.confidence}
+                    onCategoryChange={(value) => {
+                      setCategory(value);
+                      // The chosen period may not exist for the new category.
+                      setPeriod(inequalityPeriods(allObservations, value).at(-1)?.value ?? '');
+                    }}
+                    onConfidenceChange={(confidence) => setOptions({ ...options, confidence })}
+                    onPeriodChange={setPeriod}
+                    period={period}
+                    periods={periods}
+                  />
+                  <ChartSection
+                    id={`inequalities-chart-${id}`}
+                    title="Inequalities"
+                    description={`How ${detail.name.toLowerCase()} varies by ${category.toLowerCase()}.`}
+                  />
+                  <InequalitiesTable
+                    indicator={detail}
+                    confidence={options.confidence}
+                    observations={inequalityBreakdown(allObservations, category, period)}
+                  />
+                </>
               ),
           },
           {

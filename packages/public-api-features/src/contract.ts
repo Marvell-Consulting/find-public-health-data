@@ -73,6 +73,8 @@ export const indicatorObservationSchema = z.object({
   value: z.number().nullable(),
   lowerCi95: z.number().nullable(),
   upperCi95: z.number().nullable(),
+  lowerCi998: z.number().nullable(),
+  upperCi998: z.number().nullable(),
   count: z.number().nullable(),
   denominator: z.number().nullable(),
   dimensions: z.array(

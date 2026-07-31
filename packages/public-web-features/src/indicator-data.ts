@@ -255,3 +255,69 @@ export function barWidth(row: ComparisonRow, rows: ComparisonRow[]): number {
   }
   return Math.max(2, Math.round((Math.abs(row.value) / largest) * 100));
 }
+
+export type ConfidenceLevel = 'none' | '95' | '99.8';
+
+export function confidenceInterval(
+  observation: IndicatorObservation,
+  level: ConfidenceLevel,
+): string {
+  if (level === 'none') {
+    return '';
+  }
+  const lower = level === '95' ? observation.lowerCi95 : observation.lowerCi998;
+  const upper = level === '95' ? observation.upperCi95 : observation.upperCi998;
+  if (lower === null || upper === null || lower === undefined || upper === undefined) {
+    return '—';
+  }
+  return `${valueFormat.format(lower)} to ${valueFormat.format(upper)}`;
+}
+
+/** Every inequality dimension an indicator reports, for the category chooser. */
+export function inequalityCategories(observations: IndicatorObservation[]): string[] {
+  const types = new Set<string>();
+  for (const observation of observations) {
+    for (const { type, dimensionClass } of observation.dimensions) {
+      if (dimensionClass === 'inequality') {
+        types.add(type);
+      }
+    }
+  }
+  return [...types].sort((a, b) => a.localeCompare(b));
+}
+
+/** The periods an indicator reports for one inequality category, most recent last. */
+export function inequalityPeriods(
+  observations: IndicatorObservation[],
+  category: string,
+): { value: string; label: string }[] {
+  const periods = new Map<string, string>();
+  for (const observation of observations) {
+    if (observation.dimensions.some(({ type }) => type === category)) {
+      periods.set(`${observation.fromDate}/${observation.toDate}`, periodLabel(observation));
+    }
+  }
+  return [...periods.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([value, label]) => ({ value, label }));
+}
+
+/** One inequality category's values for one period, in the dimension's own order. */
+export function inequalityBreakdown(
+  observations: IndicatorObservation[],
+  category: string,
+  period: string,
+): IndicatorObservation[] {
+  return observations
+    .filter(
+      (observation) =>
+        `${observation.fromDate}/${observation.toDate}` === period &&
+        observation.dimensions.some(({ type }) => type === category),
+    )
+    .sort(
+      (a, b) =>
+        a.dimensions.reduce((sum, d) => sum + d.sortOrder, 0) -
+          b.dimensions.reduce((sum, d) => sum + d.sortOrder, 0) ||
+        segmentLabel(a).localeCompare(segmentLabel(b)),
+    );
+}

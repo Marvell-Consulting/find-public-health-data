@@ -204,6 +204,8 @@ export interface IndicatorObservation {
   value: number | null;
   lowerCi95: number | null;
   upperCi95: number | null;
+  lowerCi998: number | null;
+  upperCi998: number | null;
   count: number | null;
   denominator: number | null;
   dimensions: ObservationDimensionValue[];
@@ -232,6 +234,8 @@ export async function getIndicatorObservations(
       value: observation.value,
       lowerCi95: observation.lowerCi95,
       upperCi95: observation.upperCi95,
+      lowerCi998: observation.lowerCi998,
+      upperCi998: observation.upperCi998,
       count: observation.count,
       denominator: observation.denominator,
       areaName: area.name,

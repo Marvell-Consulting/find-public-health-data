@@ -3,10 +3,14 @@ import { describe, expect, it } from 'vitest';
 import {
   barWidth,
   comparisonRows,
+  confidenceInterval,
   dimensionValues,
   filterObservations,
   formatConfidenceInterval,
   formatValue,
+  inequalityBreakdown,
+  inequalityCategories,
+  inequalityPeriods,
   inequalitySegments,
   latestCoreSegments,
   periodLabel,
@@ -21,6 +25,8 @@ function obs(overrides = {}) {
     value: 100,
     lowerCi95: 95,
     upperCi95: 105,
+    lowerCi998: 92,
+    upperCi998: 108,
     count: 1000,
     denominator: null,
     dimensions: [],
@@ -260,5 +266,57 @@ describe('barWidth', () => {
   it('has no width without a value', () => {
     const missing = row(null, 'Percent');
     expect(barWidth(missing, [missing])).toBe(0);
+  });
+});
+
+describe('confidenceInterval', () => {
+  it('reads the interval for the chosen level', () => {
+    expect(confidenceInterval(obs(), '95')).toBe('95 to 105');
+    expect(confidenceInterval(obs(), '99.8')).toBe('92 to 108');
+  });
+
+  it('shows nothing at all when intervals are turned off', () => {
+    expect(confidenceInterval(obs(), 'none')).toBe('');
+  });
+
+  it('marks an interval the source does not carry', () => {
+    expect(confidenceInterval(obs({ lowerCi998: null }), '99.8')).toBe('—');
+  });
+});
+
+describe('inequality selection', () => {
+  const deprivation = (name: string, period = ['2023-01-01', '2023-12-31']) =>
+    obs({
+      fromDate: period[0],
+      toDate: period[1],
+      dimensions: [dim('Deprivation deciles', name, { dimensionClass: 'inequality' })],
+    });
+  const ethnicity = obs({
+    dimensions: [dim('Ethnic group', 'White', { dimensionClass: 'inequality' })],
+  });
+  const all = [
+    obs({ dimensions: [dim('Sex', 'Male')] }),
+    ethnicity,
+    deprivation('Most deprived'),
+    deprivation('Least deprived'),
+    deprivation('Most deprived', ['2022-01-01', '2022-12-31']),
+  ];
+
+  it('offers every inequality category the indicator reports', () => {
+    expect(inequalityCategories(all)).toEqual(['Deprivation deciles', 'Ethnic group']);
+  });
+
+  it('offers the periods that category reports, oldest first', () => {
+    expect(inequalityPeriods(all, 'Deprivation deciles').map((p) => p.label)).toEqual([
+      '2022',
+      '2023',
+    ]);
+  });
+
+  it('breaks one category down for one period', () => {
+    const rows = inequalityBreakdown(all, 'Deprivation deciles', '2023-01-01/2023-12-31');
+
+    expect(rows).toHaveLength(2);
+    expect(rows.every((row) => row.dimensions[0]?.type === 'Deprivation deciles')).toBe(true);
   });
 });

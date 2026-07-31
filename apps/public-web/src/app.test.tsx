@@ -168,6 +168,8 @@ describe('public application routes', () => {
         value: 342.2,
         lowerCi95: 340.1,
         upperCi95: 344.3,
+        lowerCi998: null,
+        upperCi998: null,
         count: 129000,
         denominator: null,
         dimensions: [{ type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 }],
@@ -178,6 +180,8 @@ describe('public application routes', () => {
         value: 341.1,
         lowerCi95: 339.0,
         upperCi95: 343.2,
+        lowerCi998: null,
+        upperCi998: null,
         count: 130000,
         denominator: null,
         dimensions: [{ type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 }],
@@ -188,6 +192,8 @@ describe('public application routes', () => {
         value: 420.5,
         lowerCi95: 417.2,
         upperCi95: 423.8,
+        lowerCi998: null,
+        upperCi998: null,
         count: 70000,
         denominator: null,
         dimensions: [
@@ -288,8 +294,10 @@ describe('public application routes', () => {
     expect(
       screen.getByRole('link', { name: 'Office for National Statistics' }).getAttribute('href'),
     ).toBe('https://www.ons.gov.uk');
-    expect(screen.getByText('Confidence level')).toBeTruthy();
-    expect(screen.getByText('95%')).toBeTruthy();
+    // The indicator's own confidence level, in the metadata table rather than the
+    // interval selector that offers the same wording.
+    const confidenceRow = screen.getByText('Confidence level').closest('tr');
+    expect(confidenceRow?.textContent).toContain('95%');
   });
 
   it('gathers ticked areas and applies them in one step', async () => {
@@ -337,6 +345,8 @@ describe('public application routes', () => {
       value,
       lowerCi95: value - 2,
       upperCi95: value + 2,
+      lowerCi998: null,
+      upperCi998: null,
       count: 1000,
       denominator: null,
       dimensions: [{ type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 }],
@@ -472,6 +482,8 @@ describe('public application routes', () => {
             value,
             lowerCi95: null,
             upperCi95: null,
+            lowerCi998: null,
+            upperCi998: null,
             count: 500,
             denominator: null,
             dimensions: [],

@@ -202,6 +202,8 @@ describe('public API', () => {
           value: 341.1,
           lowerCi95: 339,
           upperCi95: 343.2,
+          lowerCi998: null,
+          upperCi998: null,
           count: 130000,
           denominator: null,
           dimensions: [{ type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 }],
