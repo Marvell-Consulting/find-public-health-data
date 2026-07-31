@@ -321,3 +321,20 @@ export function inequalityBreakdown(
         segmentLabel(a).localeCompare(segmentLabel(b)),
     );
 }
+
+/** The span an indicator's data covers, as the summary table states it. */
+export function periodCovered(observations: IndicatorObservation[]): string {
+  if (observations.length === 0) {
+    return '';
+  }
+  const from = observations
+    .map(({ fromDate }) => fromDate)
+    .sort()[0]
+    ?.slice(0, 4);
+  const to = observations
+    .map(({ toDate }) => toDate)
+    .sort()
+    .at(-1)
+    ?.slice(0, 4);
+  return from === to ? (from ?? '') : `${from} to ${to}`;
+}

@@ -160,6 +160,9 @@ describe('public application routes', () => {
         { name: 'Counties & UAs (from Apr 2023)', areaCount: 153 },
       ],
       topics: [{ slug: 'mortality-and-life-expectancy', title: 'Mortality and life expectancy' }],
+      classifications: [
+        { dimension: 'indicator_type', slug: 'indicator-type-outcome', name: 'Outcome' },
+      ],
     };
     const observations = [
       {
@@ -375,6 +378,7 @@ describe('public application routes', () => {
       denominatorSource: null,
       areaTypes: [{ name: 'Regions (statistical)', areaCount: 9 }],
       topics: [],
+      classifications: [],
     };
     const loaderData = {
       areaGroups: [
@@ -469,6 +473,7 @@ describe('public application routes', () => {
       denominatorSource: null,
       areaTypes: [{ name: 'England', areaCount: 1 }],
       topics: [],
+      classifications: [],
     });
     const areaDataFor = (value: number) => [
       {

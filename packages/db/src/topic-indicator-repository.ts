@@ -1,14 +1,38 @@
 import { z } from '@fphd/config';
-import { asc, eq, inArray } from 'drizzle-orm';
+import { asc, eq, inArray, sql } from 'drizzle-orm';
 
 import type { Database } from './client.js';
-import { indicator, topic, topicIndicator } from './schema/index.js';
+import {
+  classification,
+  indicator,
+  indicatorClassification,
+  topic,
+  topicIndicator,
+} from './schema/index.js';
 
 export const topicIndicatorFileSchema = z.object({
   topicIndicators: z.array(
     z.object({ topicSlug: z.string().min(1), fingertipsId: z.number().int() }),
   ),
   indicatorDataUpdatedAt: z.record(z.string(), z.iso.datetime({ local: true }).nullable()),
+  classifications: z
+    .array(
+      z.object({
+        slug: z.string().min(1),
+        dimension: z.enum([
+          'indicator_type',
+          'population',
+          'risk_factor',
+          'inequality',
+          'framework',
+        ]),
+        name: z.string().min(1),
+      }),
+    )
+    .default([]),
+  indicatorClassifications: z
+    .array(z.object({ fingertipsId: z.number().int(), classificationSlug: z.string().min(1) }))
+    .default([]),
 });
 
 export type TopicIndicatorFile = z.infer<typeof topicIndicatorFileSchema>;
@@ -18,7 +42,15 @@ export interface TopicSummaryForIndicator {
   title: string;
 }
 
+export interface IndicatorClassification {
+  dimension: string;
+  slug: string;
+  name: string;
+}
+
 export interface TopicIndicatorImportSummary {
+  classifications: number;
+  classificationLinks: number;
   links: number;
   timestamps: number;
   unknownTopics: string[];
@@ -96,7 +128,42 @@ export async function importTopicIndicators(
       timestamps += 1;
     }
 
+    let classificationCount = 0;
+    let classificationLinks = 0;
+    if (file.classifications.length > 0) {
+      const stored = await tx
+        .insert(classification)
+        .values(file.classifications)
+        .onConflictDoUpdate({
+          target: classification.slug,
+          set: {
+            name: sql`excluded.name`,
+            dimension: sql`excluded.dimension`,
+            updatedAt: sql`now()`,
+          },
+        })
+        .returning({ id: classification.id, slug: classification.slug });
+      classificationCount = stored.length;
+      const idBySlug = new Map(stored.map((row) => [row.slug, row.id]));
+
+      const rows = file.indicatorClassifications.flatMap(({ fingertipsId, classificationSlug }) => {
+        const indicatorId = indicatorIdByFingertipsId.get(fingertipsId);
+        const classificationId = idBySlug.get(classificationSlug);
+        return indicatorId && classificationId ? [{ indicatorId, classificationId }] : [];
+      });
+      const classified = [...new Set(rows.map(({ indicatorId }) => indicatorId))];
+      if (classified.length > 0) {
+        await tx
+          .delete(indicatorClassification)
+          .where(inArray(indicatorClassification.indicatorId, classified));
+        await tx.insert(indicatorClassification).values(rows);
+      }
+      classificationLinks = rows.length;
+    }
+
     return {
+      classifications: classificationCount,
+      classificationLinks,
       links: links.length,
       timestamps,
       unknownTopics: slugs.filter((slug) => !topicIdBySlug.has(slug)),
@@ -116,4 +183,21 @@ export async function listTopicsForIndicator(
     .innerJoin(topic, eq(topicIndicator.topicId, topic.id))
     .where(eq(topicIndicator.indicatorId, indicatorId))
     .orderBy(asc(topic.title));
+}
+
+/** An indicator's classifications, grouped ready for the summary table. */
+export async function listClassificationsForIndicator(
+  db: Database,
+  indicatorId: string,
+): Promise<IndicatorClassification[]> {
+  return db
+    .select({
+      dimension: classification.dimension,
+      slug: classification.slug,
+      name: classification.name,
+    })
+    .from(indicatorClassification)
+    .innerJoin(classification, eq(indicatorClassification.classificationId, classification.id))
+    .where(eq(indicatorClassification.indicatorId, indicatorId))
+    .orderBy(asc(classification.dimension), asc(classification.name));
 }

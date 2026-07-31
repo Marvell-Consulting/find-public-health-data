@@ -56,6 +56,7 @@ export function AppShell({
           </>
         )
       }
+      rebrand
       serviceHref="/"
       serviceName={serviceName}
     >

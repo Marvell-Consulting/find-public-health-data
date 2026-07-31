@@ -1,4 +1,5 @@
 export * from './cache.js';
+export * from './classification.js';
 export * from './dimension.js';
 export * from './geography.js';
 export * from './helpers.js';

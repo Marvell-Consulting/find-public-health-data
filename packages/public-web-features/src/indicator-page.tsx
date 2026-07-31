@@ -32,6 +32,7 @@ import {
   inequalityPeriods,
   latestCoreSegments,
   type PeriodType,
+  periodCovered,
   periodLabel,
   periodTypeLabel,
   segmentLabel,
@@ -271,10 +272,20 @@ const updatedFormat = new Intl.DateTimeFormat('en-GB', {
 });
 
 /** The at-a-glance header the prototype puts above each indicator's charts. */
-function IndicatorSummary({ indicator }: { indicator: IndicatorDetail }) {
+function IndicatorSummary({
+  indicator,
+  observations,
+}: {
+  indicator: IndicatorDetail;
+  observations: IndicatorObservation[];
+}) {
+  const ofDimension = (dimension: string) =>
+    indicator.classifications.filter((entry) => entry.dimension === dimension);
+
   return (
     <table className="govuk-table">
       <tbody className="govuk-table__body">
+        <TableRow label="Period covered" value={periodCovered(observations)} />
         <TableRow
           label="Last updated"
           value={
@@ -289,6 +300,20 @@ function IndicatorSummary({ indicator }: { indicator: IndicatorDetail }) {
                 {indicator.topics.map((topicItem) => (
                   <li className="fphd-tag" key={topicItem.slug}>
                     <A href={`/topics/${topicItem.slug}`}>{topicItem.title}</A>
+                  </li>
+                ))}
+              </ul>
+            ) : null
+          }
+        />
+        <TableRow
+          label="Indicator types"
+          value={
+            ofDimension('indicator_type').length > 0 ? (
+              <ul className="govuk-list fphd-tag-list">
+                {ofDimension('indicator_type').map((entry) => (
+                  <li className="fphd-tag" key={entry.slug}>
+                    {entry.name}
                   </li>
                 ))}
               </ul>
@@ -870,7 +895,7 @@ function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
       <h2 className="govuk-heading-l" id={`indicator-${id}`}>
         {detail.name}
       </h2>
-      <IndicatorSummary indicator={detail} />
+      <IndicatorSummary indicator={detail} observations={allObservations} />
 
       <Tabs
         title={`${detail.name} data`}

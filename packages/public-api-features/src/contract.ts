@@ -65,6 +65,13 @@ export const indicatorDetailSchema = z.object({
   denominatorSource: indicatorSourceSchema.nullable(),
   areaTypes: z.array(z.object({ name: z.string().min(1), areaCount: z.number().int() })),
   topics: z.array(z.object({ slug: z.string().min(1), title: z.string().min(1) })),
+  classifications: z.array(
+    z.object({
+      dimension: z.string().min(1),
+      slug: z.string().min(1),
+      name: z.string().min(1),
+    }),
+  ),
 });
 
 export const indicatorObservationSchema = z.object({

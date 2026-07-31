@@ -30,7 +30,7 @@ async function main() {
     const summary = await importTopicIndicators(db, file);
 
     console.log(
-      `Imported ${filePath}: ${summary.links} topic links, ${summary.timestamps} data timestamps.`,
+      `Imported ${filePath}: ${summary.links} topic links, ${summary.classifications} classifications, ${summary.classificationLinks} classification links, ${summary.timestamps} data timestamps.`,
     );
 
     if (summary.unknownTopics.length > 0) {

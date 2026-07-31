@@ -28,7 +28,9 @@ export {
 export * as schema from './schema.js';
 export { createOwnerClient } from './scripts/owner-client.js';
 export {
+  type IndicatorClassification,
   importTopicIndicators,
+  listClassificationsForIndicator,
   listTopicsForIndicator,
   parseTopicIndicatorFile,
   type TopicIndicatorFile,

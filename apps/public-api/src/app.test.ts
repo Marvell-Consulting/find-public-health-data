@@ -47,6 +47,9 @@ const indicatorDetail = {
   denominatorSource: null,
   areaTypes: [{ name: 'Counties & UAs (from Apr 2023)', areaCount: 153 }],
   topics: [{ slug: 'mortality-and-life-expectancy', title: 'Mortality and life expectancy' }],
+  classifications: [
+    { dimension: 'indicator_type', slug: 'indicator-type-outcome', name: 'Outcome' },
+  ],
 };
 
 describe('public API', () => {

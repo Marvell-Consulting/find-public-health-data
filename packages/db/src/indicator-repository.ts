@@ -21,7 +21,11 @@ import {
   valueType,
   yearType,
 } from './schema/index.js';
-import { listTopicsForIndicator } from './topic-indicator-repository.js';
+import {
+  type IndicatorClassification,
+  listClassificationsForIndicator,
+  listTopicsForIndicator,
+} from './topic-indicator-repository.js';
 
 export interface ApprovedIndicator {
   id: string;
@@ -84,6 +88,7 @@ export interface IndicatorDetail {
   denominatorSource: IndicatorSource | null;
   areaTypes: IndicatorAreaType[];
   topics: IndicatorTopic[];
+  classifications: IndicatorClassification[];
 }
 
 /**
@@ -147,13 +152,14 @@ export async function getApprovedIndicatorByFingertipsId(
     return undefined;
   }
 
-  const [areaTypes, topics] = await Promise.all([
+  const [areaTypes, topics, classifications] = await Promise.all([
     db
       .select({ name: availableData.areaTypeName, areaCount: availableData.areaCount })
       .from(availableData)
       .where(eq(availableData.indicatorId, row.id))
       .orderBy(asc(availableData.areaTypeName)),
     listTopicsForIndicator(db, row.id),
+    listClassificationsForIndicator(db, row.id),
   ]);
 
   return {
@@ -188,6 +194,7 @@ export async function getApprovedIndicatorByFingertipsId(
         : { name: row.denominatorSourceName, url: row.denominatorSourceUrl },
     areaTypes,
     topics,
+    classifications,
   };
 }
 
