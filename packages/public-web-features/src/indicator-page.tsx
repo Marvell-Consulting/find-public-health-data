@@ -13,6 +13,7 @@ import {
   GridRow,
   PageIntro,
   SectionBreak,
+  Select,
   Tabs,
 } from '@fphd/ui';
 import { type ReactNode, useId, useState } from 'react';
@@ -45,6 +46,12 @@ import type {
   IndicatorSummary,
   SelectedIndicator,
 } from './indicator-loader';
+
+const CONFIDENCE_OPTIONS = [
+  { label: 'None', value: 'none' },
+  { label: '95%', value: '95' },
+  { label: '99.8%', value: '99.8' },
+];
 
 const CONFIDENCE_LEVEL_LABELS: Record<string, string> = {
   '95': '95%',
@@ -645,80 +652,57 @@ function PanelOptionsPanel({
     <Details summary={label} open>
       <div className="fphd-segmentation-options__selects">
         {sexes.length > 0 ? (
-          <div className="govuk-form-group govuk-!-margin-bottom-0">
-            <label className="govuk-label govuk-label--s" htmlFor={ids.sex}>
-              Select sex
-            </label>
-            <select
-              className="govuk-select"
-              id={ids.sex}
-              onChange={(event) => onChange({ ...options, sex: event.currentTarget.value })}
-              value={options.sex}
-            >
-              <option value="">All</option>
-              {sexes.map((value) => (
-                <option key={value}>{value}</option>
-              ))}
-            </select>
-          </div>
+          <Select
+            id={ids.sex}
+            label="Select sex"
+            name="sex"
+            onChange={(event) => onChange({ ...options, sex: event.currentTarget.value })}
+            options={[
+              { label: 'All', value: '' },
+              ...sexes.map((value) => ({ label: value, value })),
+            ]}
+            value={options.sex}
+          />
         ) : null}
 
-        <div className="govuk-form-group govuk-!-margin-bottom-0">
-          <label className="govuk-label govuk-label--s" htmlFor={ids.period}>
-            Select time period type
-          </label>
-          <select
-            className="govuk-select"
-            id={ids.period}
-            onChange={(event) =>
-              onChange({ ...options, periodType: event.currentTarget.value as PeriodType })
-            }
-            value={options.periodType}
-          >
-            {(['all', '1-year', '3-year'] as const).map((value) => (
-              <option key={value} value={value}>
-                {periodTypeLabel(value)}
-              </option>
-            ))}
-          </select>
-        </div>
+        <Select
+          id={ids.period}
+          label="Select time period type"
+          name="periodType"
+          onChange={(event) =>
+            onChange({ ...options, periodType: event.currentTarget.value as PeriodType })
+          }
+          options={(['all', '1-year', '3-year'] as const).map((value) => ({
+            label: periodTypeLabel(value),
+            value,
+          }))}
+          value={options.periodType}
+        />
 
         {showConfidence ? (
-          <div className="govuk-form-group govuk-!-margin-bottom-0">
-            <label className="govuk-label govuk-label--s" htmlFor={ids.confidence}>
-              Select confidence intervals
-            </label>
-            <select
-              className="govuk-select"
-              id={ids.confidence}
-              onChange={(event) =>
-                onChange({ ...options, confidence: event.currentTarget.value as ConfidenceLevel })
-              }
-              value={options.confidence}
-            >
-              <option value="none">None</option>
-              <option value="95">95%</option>
-              <option value="99.8">99.8%</option>
-            </select>
-          </div>
+          <Select
+            id={ids.confidence}
+            label="Select confidence intervals"
+            name="confidence"
+            onChange={(event) =>
+              onChange({ ...options, confidence: event.currentTarget.value as ConfidenceLevel })
+            }
+            options={CONFIDENCE_OPTIONS}
+            value={options.confidence}
+          />
         ) : null}
 
-        <div className="govuk-form-group govuk-!-margin-bottom-0">
-          <label className="govuk-label govuk-label--s" htmlFor={ids.benchmark}>
-            Select a geography or goal to compare with
-          </label>
-          <select
-            className="govuk-select"
-            id={ids.benchmark}
-            onChange={(event) => onChange({ ...options, benchmark: event.currentTarget.value })}
-            value={options.benchmark}
-          >
-            <option value="">None</option>
-            {benchmarks.map((value) => (
-              <option key={value}>{value}</option>
-            ))}
-          </select>
-        </div>
+        <Select
+          id={ids.benchmark}
+          label="Select a geography or goal to compare with"
+          name="benchmark"
+          onChange={(event) => onChange({ ...options, benchmark: event.currentTarget.value })}
+          options={[
+            { label: 'None', value: '' },
+            ...benchmarks.map((value) => ({ label: value, value })),
+          ]}
+          value={options.benchmark}
+        />
       </div>
     </Details>
   );
@@ -751,53 +735,30 @@ function InequalityOptions({
   return (
     <Details summary="Options" open>
       <div className="fphd-segmentation-options__selects">
-        <div className="govuk-form-group govuk-!-margin-bottom-0">
-          <label className="govuk-label govuk-label--s" htmlFor={categoryId}>
-            Select inequality category
-          </label>
-          <select
-            className="govuk-select"
-            id={categoryId}
-            onChange={(event) => onCategoryChange(event.currentTarget.value)}
-            value={category}
-          >
-            {categories.map((value) => (
-              <option key={value}>{value}</option>
-            ))}
-          </select>
-        </div>
-        <div className="govuk-form-group govuk-!-margin-bottom-0">
-          <label className="govuk-label govuk-label--s" htmlFor={periodId}>
-            Select time period
-          </label>
-          <select
-            className="govuk-select"
-            id={periodId}
-            onChange={(event) => onPeriodChange(event.currentTarget.value)}
-            value={period}
-          >
-            {periods.map(({ value, label }) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="govuk-form-group govuk-!-margin-bottom-0">
-          <label className="govuk-label govuk-label--s" htmlFor={confidenceId}>
-            Select confidence intervals
-          </label>
-          <select
-            className="govuk-select"
-            id={confidenceId}
-            onChange={(event) => onConfidenceChange(event.currentTarget.value as ConfidenceLevel)}
-            value={confidence}
-          >
-            <option value="none">None</option>
-            <option value="95">95%</option>
-            <option value="99.8">99.8%</option>
-          </select>
-        </div>
+        <Select
+          id={categoryId}
+          label="Select inequality category"
+          name="inequalityCategory"
+          onChange={(event) => onCategoryChange(event.currentTarget.value)}
+          options={categories.map((value) => ({ label: value, value }))}
+          value={category}
+        />
+        <Select
+          id={periodId}
+          label="Select time period"
+          name="inequalityPeriod"
+          onChange={(event) => onPeriodChange(event.currentTarget.value)}
+          options={periods}
+          value={period}
+        />
+        <Select
+          id={confidenceId}
+          label="Select confidence intervals"
+          name="inequalityConfidence"
+          onChange={(event) => onConfidenceChange(event.currentTarget.value as ConfidenceLevel)}
+          options={CONFIDENCE_OPTIONS}
+          value={confidence}
+        />
       </div>
     </Details>
   );

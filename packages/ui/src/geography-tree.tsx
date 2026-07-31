@@ -1,3 +1,4 @@
+import Checkboxes from '@not-govuk/checkboxes';
 import { useId, useState } from 'react';
 
 export interface GeographyGroup {
@@ -118,27 +119,18 @@ export function GeographyTree({ groups, name, onChange, selected }: GeographyTre
 
               {isOpen ? (
                 <div className="fphd-geo-alt__children">
-                  <div className="govuk-checkboxes govuk-checkboxes--small">
-                    {visible.map((area) => (
-                      <div className="govuk-checkboxes__item" key={area.code}>
-                        <input
-                          checked={selected.includes(area.code)}
-                          className="govuk-checkboxes__input"
-                          id={`${groupId}-${area.code}`}
-                          name={name}
-                          onChange={(event) => toggleArea(area.code, event.currentTarget.checked)}
-                          type="checkbox"
-                          value={area.code}
-                        />
-                        <label
-                          className="govuk-label govuk-checkboxes__label"
-                          htmlFor={`${groupId}-${area.code}`}
-                        >
-                          {area.name}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
+                  <Checkboxes
+                    id={`${groupId}-areas`}
+                    label={<span className="govuk-visually-hidden">Areas in {group.name}</span>}
+                    name={name}
+                    onChange={(event) => toggleArea(event.target.value, event.target.checked)}
+                    classModifiers="small"
+                    options={visible.map((area) => ({
+                      label: area.name,
+                      selected: selected.includes(area.code),
+                      value: area.code,
+                    }))}
+                  />
                 </div>
               ) : (
                 // Ticks in a collapsed group must still submit with the form.
