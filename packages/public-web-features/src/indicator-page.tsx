@@ -1087,8 +1087,6 @@ export function IndicatorPage({
   availableIndicators: IndicatorSummary[];
   selection: IndicatorSelection;
 }) {
-  const benchmarkId = useId();
-
   return (
     <>
       <BackLink href="/" />
@@ -1130,15 +1128,6 @@ export function IndicatorPage({
                   <ComparisonSection selected={selected} />
                 </>
               ) : null}
-
-              <div className="govuk-form-group">
-                <label className="govuk-label govuk-!-font-weight-bold" htmlFor={benchmarkId}>
-                  Select a benchmark for all charts
-                </label>
-                <select className="govuk-select" id={benchmarkId} defaultValue="England">
-                  <option>England</option>
-                </select>
-              </div>
 
               {selected.map((entry) => (
                 <IndicatorBlock key={entry.detail.fingertipsId} {...entry} />

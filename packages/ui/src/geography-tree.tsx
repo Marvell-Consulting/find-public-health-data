@@ -23,7 +23,14 @@ interface GeographyTreeProps {
 export function GeographyTree({ groups, name, onChange, selected }: GeographyTreeProps) {
   const idPrefix = useId();
   const [query, setQuery] = useState('');
-  const [expanded, setExpanded] = useState<string[]>([]);
+  // The first group opens so the tree shows selectable areas rather than a row of
+  // collapsed headings that give no sign of holding anything.
+  const [expanded, setExpanded] = useState<string[]>(() => {
+    const withSelection = groups
+      .filter(({ areas }) => areas.some(({ code }) => selected.includes(code)))
+      .map(({ name: groupName }) => groupName);
+    return withSelection.length > 0 ? withSelection : groups.slice(0, 1).map(({ name }) => name);
+  });
 
   const searching = query.trim() !== '';
   const matches = ({ name: areaName, code }: { name: string; code: string }) =>
@@ -100,7 +107,11 @@ export function GeographyTree({ groups, name, onChange, selected }: GeographyTre
                     type="checkbox"
                   />
                   <label className="govuk-label govuk-checkboxes__label" htmlFor={groupId}>
-                    {group.name}
+                    {group.name}{' '}
+                    <span className="govuk-hint fphd-geo-alt__count">
+                      ({chosen.length > 0 ? `${chosen.length} of ` : ''}
+                      {group.areas.length})
+                    </span>
                   </label>
                 </div>
               </div>

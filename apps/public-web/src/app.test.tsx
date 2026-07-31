@@ -257,11 +257,9 @@ describe('public application routes', () => {
     ).toBeTruthy();
     // Geographies are picked from the tree, not an area-type dropdown.
     expect(screen.getByRole('searchbox', { name: 'Add geographies' })).toBeTruthy();
-    // Each area type is a collapsed group; expanding it reveals its area checkboxes.
-    expect(screen.getByRole('checkbox', { name: 'England' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Expand England' }));
+    // The first area type opens by default, so its areas are selectable straight away.
     const areaCheckbox = screen
-      .getAllByRole('checkbox', { name: 'England' })
+      .getAllByRole('checkbox', { name: /^England/ })
       .find((box) => box.getAttribute('name') === 'as');
     expect(areaCheckbox?.getAttribute('value')).toBe('E92000001');
     // Controls apply on change; the submit button exists only for the no-script path.
@@ -331,7 +329,7 @@ describe('public application routes', () => {
     expect(screen.queryByRole('button', { name: /Add selected geographies/ })).toBeNull();
 
     // The group is collapsed, so its checkbox is what selects everything beneath it.
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Statistical regions' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /^Statistical regions/ }));
 
     expect(
       await screen.findByRole('button', { name: 'Add selected geographies (2)' }),
