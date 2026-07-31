@@ -19,13 +19,20 @@
     "react-router": "catalog:"
   },
   "dependencies": {
+    "@not-govuk/back-link": "0.18.1",
     "@not-govuk/button": "catalog:",
+    "@not-govuk/checkboxes": "0.18.1",
+    "@not-govuk/details": "0.18.1",
     "@not-govuk/inset-text": "catalog:",
     "@not-govuk/link": "catalog:",
     "@not-govuk/page": "catalog:",
     "@not-govuk/radios": "catalog:",
     "@not-govuk/sass-base": "catalog:",
     "@not-govuk/search-box": "catalog:",
+    "@not-govuk/select": "0.18.1",
+    "@not-govuk/summary-list": "0.18.1",
+    "@not-govuk/table": "0.18.1",
+    "@not-govuk/tabs": "0.18.1",
     "govuk-frontend": "catalog:"
   },
   "devDependencies": {

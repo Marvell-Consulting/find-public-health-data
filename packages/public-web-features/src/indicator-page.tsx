@@ -3,6 +3,7 @@ import {
   Autocomplete,
   BackLink,
   ChartSection,
+  Details,
   decodeEntities,
   FilterCard,
   FilterChip,
@@ -10,7 +11,6 @@ import {
   GeographyTree,
   GridColumn,
   GridRow,
-  OptionsAccordion,
   PageIntro,
   SectionBreak,
   Tabs,
@@ -642,7 +642,7 @@ function PanelOptionsPanel({
   };
 
   return (
-    <OptionsAccordion title={label}>
+    <Details summary={label} open>
       <div className="fphd-segmentation-options__selects">
         {sexes.length > 0 ? (
           <div className="govuk-form-group govuk-!-margin-bottom-0">
@@ -720,7 +720,7 @@ function PanelOptionsPanel({
           </select>
         </div>
       </div>
-    </OptionsAccordion>
+    </Details>
   );
 }
 
@@ -749,7 +749,7 @@ function InequalityOptions({
   const confidenceId = useId();
 
   return (
-    <OptionsAccordion title="Options">
+    <Details summary="Options" open>
       <div className="fphd-segmentation-options__selects">
         <div className="govuk-form-group govuk-!-margin-bottom-0">
           <label className="govuk-label govuk-label--s" htmlFor={categoryId}>
@@ -799,7 +799,7 @@ function InequalityOptions({
           </select>
         </div>
       </div>
-    </OptionsAccordion>
+    </Details>
   );
 }
 
@@ -912,12 +912,12 @@ function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
       <IndicatorSummary indicator={detail} />
 
       <Tabs
-        label={`${detail.name} data`}
-        tabs={[
+        title={`${detail.name} data`}
+        items={[
           {
             id: `chart-${id}`,
             label: 'Chart',
-            panel: (
+            content: (
               <>
                 {panelOptions('Chart options', false)}
                 <ChartSection
@@ -931,7 +931,7 @@ function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
           {
             id: `table-${id}`,
             label: 'Table',
-            panel: (
+            content: (
               <>
                 {panelOptions('Table options', true)}
                 <h3 className="govuk-heading-m">Indicator trends over time</h3>
@@ -961,7 +961,7 @@ function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
           {
             id: `inequalities-${id}`,
             label: 'Inequalities',
-            panel:
+            content:
               categories.length === 0 ? (
                 <p className="govuk-body">
                   This indicator has no inequality breakdowns for the selected areas.
@@ -998,7 +998,7 @@ function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
           {
             id: `about-${id}`,
             label: 'About this indicator',
-            panel: <BackgroundInformation indicator={detail} />,
+            content: <BackgroundInformation indicator={detail} />,
           },
         ]}
       />
