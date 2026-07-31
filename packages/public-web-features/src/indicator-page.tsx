@@ -10,6 +10,7 @@ import {
   GeographyTree,
   GridColumn,
   GridRow,
+  OptionsAccordion,
   PageIntro,
   SectionBreak,
   Tabs,
@@ -641,11 +642,8 @@ function PanelOptionsPanel({
   };
 
   return (
-    <details className="govuk-details fphd-segmentation-options" open>
-      <summary className="govuk-details__summary">
-        <span className="govuk-details__summary-text">{label}</span>
-      </summary>
-      <div className="govuk-details__text fphd-segmentation-options__selects">
+    <OptionsAccordion title={label}>
+      <div className="fphd-segmentation-options__selects">
         {sexes.length > 0 ? (
           <div className="govuk-form-group govuk-!-margin-bottom-0">
             <label className="govuk-label govuk-label--s" htmlFor={ids.sex}>
@@ -722,7 +720,7 @@ function PanelOptionsPanel({
           </select>
         </div>
       </div>
-    </details>
+    </OptionsAccordion>
   );
 }
 
@@ -751,11 +749,8 @@ function InequalityOptions({
   const confidenceId = useId();
 
   return (
-    <details className="govuk-details fphd-segmentation-options" open>
-      <summary className="govuk-details__summary">
-        <span className="govuk-details__summary-text">Options</span>
-      </summary>
-      <div className="govuk-details__text fphd-segmentation-options__selects">
+    <OptionsAccordion title="Options">
+      <div className="fphd-segmentation-options__selects">
         <div className="govuk-form-group govuk-!-margin-bottom-0">
           <label className="govuk-label govuk-label--s" htmlFor={categoryId}>
             Select inequality category
@@ -804,7 +799,7 @@ function InequalityOptions({
           </select>
         </div>
       </div>
-    </details>
+    </OptionsAccordion>
   );
 }
 
@@ -1110,24 +1105,25 @@ export function IndicatorPage({
             </>
           ) : (
             <>
-              <PageIntro size="l" title="View data for selected indicators and areas" />
-
-              {selected.length > 1 ? (
-                <>
-                  <p className="govuk-body govuk-!-margin-bottom-1">Contents</p>
-                  <ul className="govuk-list fphd-contents-list">
+              {/* The page's heading is its contents list: the indicator names below are
+                  the real headings, so a second title above them would say nothing. */}
+              <nav className="govuk-!-margin-bottom-6">
+                <h1 className="govuk-heading-m">Contents</h1>
+                <ul className="govuk-list">
+                  {selected.length > 1 ? (
                     <li>
                       <A href="#compare-indicators">Compare selected indicators</A>
                     </li>
-                    {selected.map(({ detail }) => (
-                      <li key={detail.fingertipsId}>
-                        <A href={`#indicator-${detail.fingertipsId}`}>{detail.name}</A>
-                      </li>
-                    ))}
-                  </ul>
-                  <ComparisonSection selected={selected} />
-                </>
-              ) : null}
+                  ) : null}
+                  {selected.map(({ detail }) => (
+                    <li key={detail.fingertipsId}>
+                      <A href={`#indicator-${detail.fingertipsId}`}>{detail.name}</A>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+
+              {selected.length > 1 ? <ComparisonSection selected={selected} /> : null}
 
               {selected.map((entry) => (
                 <IndicatorBlock key={entry.detail.fingertipsId} {...entry} />

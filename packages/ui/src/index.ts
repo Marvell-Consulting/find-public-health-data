@@ -15,5 +15,6 @@ export { FilterCard, FilterChip, FilterChips } from './filter-card';
 export { type GeographyGroup, GeographyTree } from './geography-tree';
 export { GridColumn, GridRow, SectionBreak } from './layout';
 export { NonceProvider, useNonce } from './nonce';
+export { OptionsAccordion } from './options-accordion';
 export { RootErrorBoundary } from './root-error-boundary';
 export { type TabDefinition, Tabs } from './tabs';

@@ -1,4 +1,4 @@
-import { type ReactNode, useId } from 'react';
+import type { ReactNode } from 'react';
 
 interface ChartSectionProps {
   children?: ReactNode;
@@ -14,15 +14,12 @@ interface ChartSectionProps {
  * rebuild the page's accessibility structure.
  */
 export function ChartSection({ children, description, id, title }: ChartSectionProps) {
-  const headingId = useId();
-
   return (
     <div className="fphd-chart-section" id={id}>
-      <h3 className="govuk-heading-m" id={headingId}>
-        {title}
-      </h3>
+      {/* The title names the region for assistive technology without printing a heading
+          above the chart, which the design does not carry. */}
       {/* biome-ignore lint/a11y/noNoninteractiveTabindex: see the note above — the region is deliberately focusable. */}
-      <section className="fphd-chart-placeholder" aria-labelledby={headingId} tabIndex={0}>
+      <section aria-label={title} className="fphd-chart-placeholder" tabIndex={0}>
         <p className="govuk-body">{description}</p>
         <p className="govuk-hint">Data visualisation to follow</p>
         {children}
