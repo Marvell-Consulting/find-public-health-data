@@ -11,6 +11,7 @@ export { ChartSection } from './chart-section';
 export { NotFoundPage, PageIntro } from './content-page';
 export { decodeEntities } from './decode-entities';
 export { createDocumentMeta, formatDocumentTitle } from './document-title';
+export { FilterCard, FilterChip, FilterChips } from './filter-card';
 export { type GeographyGroup, GeographyTree } from './geography-tree';
 export { GridColumn, GridRow, SectionBreak } from './layout';
 export { NonceProvider, useNonce } from './nonce';

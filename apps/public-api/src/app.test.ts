@@ -174,7 +174,12 @@ describe('public API', () => {
     );
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual([{ code: 'E12000001', name: 'North East region (statistical)' }]);
+    expect(response.body).toEqual([
+      {
+        areaType: 'Regions (statistical)',
+        areas: [{ code: 'E12000001', name: 'North East region (statistical)' }],
+      },
+    ]);
     expect(listByType).toHaveBeenCalledWith('Regions (statistical)');
   });
 

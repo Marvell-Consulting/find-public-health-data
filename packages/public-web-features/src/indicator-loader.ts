@@ -1,5 +1,5 @@
 import {
-  areaListSchema,
+  areaGroupListSchema,
   indicatorAreaDataSchema,
   indicatorDetailSchema,
   indicatorListResponseSchema,
@@ -9,6 +9,7 @@ import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
 
 export type {
+  AreaGroup,
   AreaSummary,
   IndicatorAreaData,
   IndicatorDetail,
@@ -80,8 +81,9 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
   const codesToLoad = areaCodes.length > 0 ? areaCodes : [DEFAULT_AREA_CODE];
 
   const api = context.get(apiContext);
-  const [availableAreas, availableIndicators, selected] = await Promise.all([
-    api.get(`/api/areas?area_type=${encodeURIComponent(areaType)}`, areaListSchema),
+  // Every indicator must be fetched before its area types are known, so the geography
+  // groups are loaded in a second pass rather than guessed from the query string.
+  const [availableIndicators, selected] = await Promise.all([
     api.get('/api/indicators', indicatorListResponseSchema),
     Promise.all(
       fingertipsIds.map(async (id) => {
@@ -101,9 +103,21 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
     ),
   ]);
 
+  // Offer every area type the selection shares, so the tree can list them all as groups.
+  const areaTypeNames =
+    selected.length === 0
+      ? [DEFAULT_AREA_TYPE]
+      : selected
+          .map(({ detail }) => detail.areaTypes.map(({ name }) => name))
+          .reduce((shared, names) => shared.filter((name) => names.includes(name)));
+  const areaGroups = await api.get(
+    `/api/areas?${areaTypeNames.map((name) => `area_type=${encodeURIComponent(name)}`).join('&')}`,
+    areaGroupListSchema,
+  );
+
   return {
     selected,
-    availableAreas,
+    areaGroups,
     availableIndicators: availableIndicators.indicators,
     selection: { areaType, areaCodes, fingertipsIds } satisfies IndicatorSelection,
   };

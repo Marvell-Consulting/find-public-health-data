@@ -6,16 +6,25 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { loadIndicator } from './indicator-loader';
 
-// The loader asks for three shapes; one stub serves whichever the path implies.
+// The loader asks for several shapes; one stub serves whichever the path implies.
 function api(get = vi.fn()) {
   const client = {
     get: get.getMockImplementation()
       ? get
-      : get.mockImplementation((path: string) =>
-          path.startsWith('/api/indicators?') || path === '/api/indicators'
-            ? Promise.resolve({ indicators: [] })
-            : Promise.resolve([]),
-        ),
+      : get.mockImplementation((path: string) => {
+          if (path === '/api/indicators') {
+            return Promise.resolve({ indicators: [] });
+          }
+          if (path.startsWith('/api/areas')) {
+            return Promise.resolve([{ areaType: 'England', areas: [] }]);
+          }
+          // An indicator detail needs area types for the geography groups to be derived.
+          return Promise.resolve(
+            path.includes('/data')
+              ? { areaCode: '', areaName: '', observations: [] }
+              : { areaTypes: [] },
+          );
+        }),
   } as unknown as ApiClient;
   return { client, get };
 }

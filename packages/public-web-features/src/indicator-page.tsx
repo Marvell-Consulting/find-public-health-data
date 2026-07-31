@@ -4,6 +4,9 @@ import {
   BackLink,
   ChartSection,
   decodeEntities,
+  FilterCard,
+  FilterChip,
+  FilterChips,
   GeographyTree,
   GridColumn,
   GridRow,
@@ -30,7 +33,7 @@ import {
   trendSeries,
 } from './indicator-data';
 import type {
-  AreaSummary,
+  AreaGroup,
   IndicatorAreaData,
   IndicatorDetail,
   IndicatorObservation,
@@ -68,74 +71,61 @@ function selectionSearch({
 
 function FilterPane({
   selected,
-  availableAreas,
+  areaGroups,
   availableIndicators,
   selection,
 }: {
   selected: SelectedIndicator[];
-  availableAreas: AreaSummary[];
+  areaGroups: AreaGroup[];
   availableIndicators: IndicatorSummary[];
   selection: IndicatorSelection;
 }) {
-  const areaTypeId = useId();
-  const groupTypeId = useId();
-  const groupId = useId();
   const navigate = useNavigate();
   const [pending, setPending] = useState<string[]>([]);
 
   const unselected = availableIndicators.filter(
     ({ fingertipsId }) => !selection.fingertipsIds.includes(fingertipsId),
   );
-
-  // Area types every selected indicator publishes against, so a choice cannot produce a
-  // page where some indicators have no data at all. England is always offered.
-  const areaTypeOptions =
-    selected.length === 0
-      ? ['England']
-      : selected
-          .map(({ detail }) => detail.areaTypes.map(({ name }) => name))
-          .reduce((shared, names) => shared.filter((name) => names.includes(name)));
+  const areaName = (code: string) =>
+    areaGroups.flatMap(({ areas }) => areas).find((area) => area.code === code)?.name ?? code;
 
   return (
     <>
-      <div className="fphd-filter-card">
-        <div className="fphd-filter-card__header">
-          <h2 className="govuk-heading-m">Selected indicators</h2>
-          {selected.length > 0 ? (
-            <A className="govuk-link" href={selectionSearch({ selection, fingertipsIds: [] })}>
-              Clear all
-            </A>
-          ) : null}
-        </div>
-        <div className="fphd-filter-card__body">
-          {selected.length === 0 ? <p className="govuk-body">None selected</p> : null}
-          {selected.map(({ detail }) => (
-            <div className="fphd-filter-chip" key={detail.fingertipsId}>
-              <A
-                className="fphd-filter-chip__remove"
-                href={selectionSearch({
-                  selection,
-                  fingertipsIds: selection.fingertipsIds.filter((id) => id !== detail.fingertipsId),
-                })}
-              >
-                <span aria-hidden="true">×</span>
-                <span className="govuk-visually-hidden">Remove {detail.name}</span>
-              </A>
-              <span className="fphd-filter-chip__content">
-                {detail.name}
-                <br />
-                <A href={`#background-${detail.fingertipsId}`}>View background information</A>
-              </span>
-            </div>
-          ))}
-        </div>
-        <div className="fphd-filter-card__footer">
-          {unselected.length > 0 ? (
+      <FilterCard
+        title="Selected indicators"
+        onClear={
+          selected.length > 0 ? selectionSearch({ selection, fingertipsIds: [] }) : undefined
+        }
+        body={
+          selected.length === 0 ? (
+            <p className="govuk-body">None selected</p>
+          ) : (
+            <FilterChips>
+              {selected.map(({ detail }) => (
+                <FilterChip
+                  key={detail.fingertipsId}
+                  onRemove={selectionSearch({
+                    selection,
+                    fingertipsIds: selection.fingertipsIds.filter(
+                      (id) => id !== detail.fingertipsId,
+                    ),
+                  })}
+                  removeLabel={detail.name}
+                  value={String(detail.fingertipsId)}
+                >
+                  {detail.name}
+                </FilterChip>
+              ))}
+            </FilterChips>
+          )
+        }
+        footer={
+          unselected.length > 0 ? (
             <Autocomplete
               label="Search for an indicator"
-              options={unselected.map(({ fingertipsId, name: optionName }) => ({
+              options={unselected.map(({ fingertipsId, name }) => ({
                 value: String(fingertipsId),
-                label: optionName,
+                label: name,
               }))}
               onSelect={({ value }) =>
                 navigate({
@@ -146,145 +136,82 @@ function FilterPane({
                 })
               }
             />
-          ) : null}
-        </div>
-      </div>
+          ) : null
+        }
+      />
 
-      <div className="fphd-filter-card">
-        <div className="fphd-filter-card__header">
-          <h2 className="govuk-heading-m">Geography filters</h2>
-          {selection.areaCodes.length > 0 ? (
-            <A
-              className="govuk-link"
-              href={selectionSearch({ selection: { ...selection, areaCodes: [] } })}
-            >
-              Clear all
-            </A>
-          ) : null}
-        </div>
-        <div className="fphd-filter-card__body">
-          <p className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">
-            Selected areas
-          </p>
-          {selection.areaCodes.length === 0 ? (
-            <p className="govuk-body">Default area England</p>
-          ) : (
-            <div className="fphd-filter-chips">
-              {selection.areaCodes.map((code) => {
-                const areaName = availableAreas.find((area) => area.code === code)?.name ?? code;
-                return (
-                  <span className="fphd-filter-chip fphd-filter-chip--tag" key={code}>
-                    <A
-                      className="fphd-filter-chip__remove"
-                      href={selectionSearch({
-                        selection: {
-                          ...selection,
-                          areaCodes: selection.areaCodes.filter((value) => value !== code),
-                        },
-                      })}
-                    >
-                      <span aria-hidden="true">×</span>
-                      <span className="govuk-visually-hidden">Remove {areaName}</span>
-                    </A>
-                    {areaName}
-                  </span>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        <Form className="fphd-filter-card__footer" method="get">
-          {/* The selected indicators ride along so applying an area filter keeps them. */}
-          {selection.fingertipsIds.map((id) => (
-            <input key={id} type="hidden" name="is" value={id} />
-          ))}
-          <div className="govuk-form-group">
-            <label className="govuk-label govuk-!-font-weight-bold" htmlFor={areaTypeId}>
-              Select a type of health or administrative area
-            </label>
-            <select
-              className="govuk-select"
-              id={areaTypeId}
-              name="ats"
-              defaultValue={selection.areaType}
-              onChange={(event) => {
-                // Changing type invalidates the current area selection, so navigate with
-                // the new type alone; without JavaScript the Apply button does the same.
-                navigate(
-                  {
-                    search: selectionSearch({
+      <FilterCard
+        title="Geography filters"
+        onClear={
+          selection.areaCodes.length > 0
+            ? selectionSearch({ selection: { ...selection, areaCodes: [] } })
+            : undefined
+        }
+        body={
+          <>
+            <p className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-2">
+              Selected areas
+            </p>
+            <FilterChips>
+              {/* England is the default comparison, so it has no remove control. */}
+              <FilterChip value="E92000001">England</FilterChip>
+              {selection.areaCodes
+                .filter((code) => code !== 'E92000001')
+                .map((code) => (
+                  <FilterChip
+                    key={code}
+                    onRemove={selectionSearch({
                       selection: {
                         ...selection,
-                        areaType: event.currentTarget.value,
-                        areaCodes: [],
+                        areaCodes: selection.areaCodes.filter((value) => value !== code),
                       },
-                    }),
-                  },
-                  { preventScrollReset: true },
-                );
-              }}
-            >
-              {areaTypeOptions.map((name) => (
-                <option key={name}>{name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="govuk-form-group">
-            <label className="govuk-label govuk-!-font-weight-bold" htmlFor={groupTypeId}>
-              Select a type of group to compare with
-            </label>
-            <select className="govuk-select" id={groupTypeId} defaultValue="England">
-              <option>England</option>
-            </select>
-          </div>
-
-          <div className="govuk-form-group">
-            <label className="govuk-label govuk-!-font-weight-bold" htmlFor={groupId}>
-              Select a group
-            </label>
-            <select className="govuk-select" id={groupId} defaultValue="England">
-              <option>England</option>
-            </select>
-          </div>
-
-          <fieldset className="govuk-fieldset">
-            <legend className="govuk-fieldset__legend govuk-!-font-weight-bold">
-              Select one or more areas
-            </legend>
+                    })}
+                    removeLabel={areaName(code)}
+                    value={code}
+                  >
+                    {areaName(code)}
+                  </FilterChip>
+                ))}
+            </FilterChips>
+          </>
+        }
+        footer={
+          <Form method="get">
+            {/* The selected indicators ride along so applying an area filter keeps them. */}
+            {selection.fingertipsIds.map((id) => (
+              <input key={id} type="hidden" name="is" value={id} />
+            ))}
             <GeographyTree
-              groups={[{ name: selection.areaType, areas: availableAreas }]}
+              groups={areaGroups.map(({ areaType, areas }) => ({ name: areaType, areas }))}
               name="as"
               onChange={setPending}
               selected={pending}
             />
-          </fieldset>
-
-          {/* Ticking gathers a pending set; adding them is the deliberate second step, so
-              a long list can be built up without the page reloading between each tick. */}
-          {pending.length > 0 ? (
-            <button
-              className="govuk-button govuk-!-margin-top-4"
-              onClick={(event) => {
-                event.preventDefault();
-                setPending([]);
-                navigate({
-                  search: selectionSearch({
-                    selection: {
-                      ...selection,
-                      areaCodes: [...new Set([...selection.areaCodes, ...pending])],
-                    },
-                  }),
-                });
-              }}
-              type="submit"
-            >
-              Add selected geographies ({pending.length})
-            </button>
-          ) : null}
-        </Form>
-      </div>
+            {/* Ticking gathers a pending set; adding them is the deliberate second step, so
+                a long list can be built up without the page reloading between each tick. */}
+            {pending.length > 0 ? (
+              <button
+                className="govuk-button govuk-!-margin-top-3 govuk-!-margin-bottom-0"
+                onClick={(event) => {
+                  event.preventDefault();
+                  setPending([]);
+                  navigate({
+                    search: selectionSearch({
+                      selection: {
+                        ...selection,
+                        areaCodes: [...new Set([...selection.areaCodes, ...pending])],
+                      },
+                    }),
+                  });
+                }}
+                type="submit"
+              >
+                Add selected geographies ({pending.length})
+              </button>
+            ) : null}
+          </Form>
+        }
+      />
     </>
   );
 }
@@ -919,12 +846,12 @@ function ComparisonSection({ selected }: { selected: SelectedIndicator[] }) {
 
 export function IndicatorPage({
   selected,
-  availableAreas,
+  areaGroups,
   availableIndicators,
   selection,
 }: {
   selected: SelectedIndicator[];
-  availableAreas: AreaSummary[];
+  areaGroups: AreaGroup[];
   availableIndicators: IndicatorSummary[];
   selection: IndicatorSelection;
 }) {
@@ -938,7 +865,7 @@ export function IndicatorPage({
           <FilterPane
             key={`${selection.fingertipsIds.join(',')}|${selection.areaType}|${selection.areaCodes.join(',')}`}
             selected={selected}
-            availableAreas={availableAreas}
+            areaGroups={areaGroups}
             availableIndicators={availableIndicators}
             selection={selection}
           />

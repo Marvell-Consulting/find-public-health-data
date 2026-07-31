@@ -7,9 +7,9 @@ import {
   TopicRoute,
   TopicsRoute,
 } from '@fphd/public-web-features';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import PublicApp, { ErrorBoundary } from './root';
 
@@ -197,7 +197,7 @@ describe('public application routes', () => {
       },
     ];
     const areaData = [{ areaCode: 'E92000001', areaName: 'England', observations }];
-    const availableAreas = [{ code: 'E92000001', name: 'England' }];
+    const areaGroups = [{ areaType: 'England', areas: [{ code: 'E92000001', name: 'England' }] }];
     const availableIndicators = [
       {
         id: 'a',
@@ -218,7 +218,7 @@ describe('public application routes', () => {
             Component: IndicatorRoute,
             loader: () => ({
               selected: [{ detail: indicator, areaData }],
-              availableAreas,
+              areaGroups,
               availableIndicators,
               selection,
             }),
@@ -246,13 +246,18 @@ describe('public application routes', () => {
     expect(screen.getByRole('heading', { name: 'Geography filters' })).toBeTruthy();
     // The name appears twice by design: as the page heading and in the sidebar's card.
     expect(screen.getAllByText('Under 75 mortality rate from all causes')).toHaveLength(2);
-    expect(screen.getByRole('link', { name: 'View background information' })).toBeTruthy();
-    expect(screen.getByRole('option', { name: 'Counties & UAs (from Apr 2023)' })).toBeTruthy();
-    // The geography tree renders a group checkbox for the area type and one per area
-    // beneath it; only the area checkboxes carry a code to submit.
-    const areaCheckboxes = screen.getAllByRole('checkbox', { name: 'England' });
-    expect(areaCheckboxes.map((box) => box.getAttribute('value'))).toContain('E92000001');
-    expect(areaCheckboxes.some((box) => box.getAttribute('name') === 'as')).toBe(true);
+    expect(
+      screen.getByRole('link', { name: 'Remove Under 75 mortality rate from all causes filter' }),
+    ).toBeTruthy();
+    // Geographies are picked from the tree, not an area-type dropdown.
+    expect(screen.getByRole('searchbox', { name: 'Add geographies' })).toBeTruthy();
+    // Each area type is a collapsed group; expanding it reveals its area checkboxes.
+    expect(screen.getByRole('checkbox', { name: 'England' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Expand England' }));
+    const areaCheckbox = screen
+      .getAllByRole('checkbox', { name: 'England' })
+      .find((box) => box.getAttribute('name') === 'as');
+    expect(areaCheckbox?.getAttribute('value')).toBe('E92000001');
     // Controls apply on change; the submit button exists only for the no-script path.
 
     // The prototype's tab set, with every panel a real anchor target.
@@ -287,76 +292,42 @@ describe('public application routes', () => {
     expect(screen.getByText('95%')).toBeTruthy();
   });
 
-  it('reloads with the new area type as soon as the type select changes', async () => {
-    const requestedUrls: string[] = [];
+  it('gathers ticked areas and applies them in one step', async () => {
     const loaderData = {
-      selected: [
+      selected: [],
+      areaGroups: [
         {
-          detail: {
-            fingertipsId: 108,
-            name: 'Under 75 mortality rate from all causes',
-            valueType: 'Directly standardised rate',
-            unit: { name: 'per 100,000', label: 'per 100,000' },
-            yearType: 'Calendar',
-            frequency: 'Annual',
-            polarity: 'RAG - Low is good',
-            ciMethod: null,
-            ciConfidenceLevel: null,
-            comparatorMethod: null,
-            dataUpdatedAt: null,
-            definition: null,
-            rationale: null,
-            methodology: null,
-            numeratorDefinition: null,
-            denominatorDefinition: null,
-            disclosureControl: null,
-            caveats: null,
-            notes: null,
-            dataSource: null,
-            numeratorSource: null,
-            denominatorSource: null,
-            areaTypes: [
-              { name: 'England', areaCount: 1 },
-              { name: 'Regions (statistical)', areaCount: 9 },
-            ],
-            topics: [],
-          },
-          areaData: [],
+          areaType: 'Statistical regions',
+          areas: [
+            { code: 'E12000001', name: 'North East' },
+            { code: 'E12000002', name: 'North West' },
+          ],
         },
       ],
-      availableAreas: [{ code: 'E92000001', name: 'England' }],
       availableIndicators: [],
       selection: { areaType: 'England', areaCodes: [], fingertipsIds: [108] },
     };
-    const loader = vi.fn(({ request }: { request: Request }) => {
-      requestedUrls.push(request.url);
-      return loaderData;
-    });
     const Routes = createRoutesStub([
       {
         path: '/',
         Component: PublicApp,
         loader: () => ({ signedIn: false }),
-        children: [{ path: 'indicators/:fingertipsId', Component: IndicatorRoute, loader }],
+        children: [{ path: 'indicators', Component: IndicatorRoute, loader: () => loaderData }],
       },
     ]);
 
-    render(<Routes initialEntries={['/indicators/108']} />);
+    render(<Routes initialEntries={['/indicators?is=108']} />);
 
-    const typeSelect = await screen.findByRole('combobox', {
-      name: 'Select a type of health or administrative area',
-    });
-    fireEvent.change(typeSelect, { target: { value: 'Regions (statistical)' } });
+    // Nothing to apply until an area is ticked.
+    expect(await screen.findByRole('searchbox', { name: 'Add geographies' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Add selected geographies/ })).toBeNull();
 
-    // Assert on the decoded parameter: '+' and '%20' are both valid space encodings, and
-    // which one appears is an implementation detail of how the URL was built.
-    await waitFor(() =>
-      expect(
-        requestedUrls.some(
-          (url) => new URL(url).searchParams.get('ats') === 'Regions (statistical)',
-        ),
-      ).toBe(true),
-    );
+    // The group is collapsed, so its checkbox is what selects everything beneath it.
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Statistical regions' }));
+
+    expect(
+      await screen.findByRole('button', { name: 'Add selected geographies (2)' }),
+    ).toBeTruthy();
   });
 
   it('compares selected areas row by row when more than one is selected', async () => {
@@ -397,9 +368,14 @@ describe('public application routes', () => {
       topics: [],
     };
     const loaderData = {
-      availableAreas: [
-        { code: 'E12000001', name: 'North East' },
-        { code: 'E12000002', name: 'North West' },
+      areaGroups: [
+        {
+          areaType: 'Regions (statistical)',
+          areas: [
+            { code: 'E12000001', name: 'North East' },
+            { code: 'E12000002', name: 'North West' },
+          ],
+        },
       ],
       availableIndicators: [],
       selected: [
@@ -448,8 +424,8 @@ describe('public application routes', () => {
 
     // Both selected areas appear as removable chips in the geography card.
     expect(await screen.findByRole('heading', { name: 'Geography filters' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Remove North East' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Remove North West' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Remove North East filter' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Remove North West filter' })).toBeTruthy();
 
     // Both areas appear in the comparison, and their values with them.
     expect(screen.getAllByRole('rowheader', { name: 'North East' }).length).toBeGreaterThan(0);
@@ -515,7 +491,7 @@ describe('public application routes', () => {
 
     const OneIndicator = routesFor({
       selected: [{ detail: detailFor(108, 'Mortality'), areaData: areaDataFor(341.1) }],
-      availableAreas: [{ code: 'E92000001', name: 'England' }],
+      areaGroups: [{ areaType: 'England', areas: [{ code: 'E92000001', name: 'England' }] }],
       availableIndicators: [],
       selection: { areaType: 'England', areaCodes: [], fingertipsIds: [108] },
     });
@@ -531,7 +507,7 @@ describe('public application routes', () => {
         { detail: detailFor(108, 'Mortality'), areaData: areaDataFor(341.1) },
         { detail: detailFor(90366, 'Life expectancy'), areaData: areaDataFor(80.1) },
       ],
-      availableAreas: [{ code: 'E92000001', name: 'England' }],
+      areaGroups: [{ areaType: 'England', areas: [{ code: 'E92000001', name: 'England' }] }],
       availableIndicators: [],
       selection: { areaType: 'England', areaCodes: [], fingertipsIds: [108, 90366] },
     });
@@ -545,7 +521,7 @@ describe('public application routes', () => {
     expect(screen.getByRole('heading', { name: 'Life expectancy' })).toBeTruthy();
     expect(screen.getByText('341.1 per 100,000')).toBeTruthy();
     expect(screen.getByText('80.1 per 100,000')).toBeTruthy();
-    expect(screen.getAllByRole('link', { name: /^Remove / })).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: /^Remove .* filter$/ })).toHaveLength(2);
   });
 
   it('renders the empty state when nothing is selected', async () => {
@@ -560,7 +536,7 @@ describe('public application routes', () => {
             Component: IndicatorRoute,
             loader: () => ({
               selected: [],
-              availableAreas: [],
+              areaGroups: [],
               availableIndicators: [
                 { id: 'a', fingertipsId: 108, name: 'Mortality', status: 'approved' },
               ],

@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 
 export interface GeographyGroup {
-  /** The area type this group offers, e.g. 'Regions (statistical)'. */
+  /** The area type this group offers, e.g. 'Statistical regions'. */
   name: string;
   areas: { code: string; name: string }[];
 }
@@ -15,35 +15,24 @@ interface GeographyTreeProps {
 }
 
 /**
- * The prototype's expandable geography picker: each area type collapses to a single row,
- * its checkbox selecting or clearing every area beneath it. A search narrows the visible
- * areas without changing what is selected, so filtering can never silently drop a choice.
+ * The prototype's geography picker: a search over every area, above a list of area types
+ * that each expand to their areas. A group's own checkbox takes or releases all of them.
+ * Searching filters what is shown without changing what is ticked, so a narrowed list can
+ * never silently drop a selection.
  */
 export function GeographyTree({ groups, name, onChange, selected }: GeographyTreeProps) {
-  const searchId = useId();
   const idPrefix = useId();
   const [query, setQuery] = useState('');
-  const [expanded, setExpanded] = useState<string[]>(() => {
-    // A group holding a selection starts open, so a restored selection is visible. With
-    // only one group there is nothing to choose between, so it opens too rather than
-    // hiding every area behind a toggle.
-    const withSelection = groups
-      .filter(({ areas }) => areas.some(({ code }) => selected.includes(code)))
-      .map(({ name: groupName }) => groupName);
+  const [expanded, setExpanded] = useState<string[]>([]);
 
-    return withSelection.length > 0 || groups.length > 1
-      ? withSelection
-      : groups.map(({ name: groupName }) => groupName);
-  });
-
+  const searching = query.trim() !== '';
   const matches = ({ name: areaName, code }: { name: string; code: string }) =>
-    query.trim() === '' ||
+    !searching ||
     areaName.toLowerCase().includes(query.trim().toLowerCase()) ||
     code.toLowerCase() === query.trim().toLowerCase();
 
-  const toggleArea = (code: string, checked: boolean) => {
+  const toggleArea = (code: string, checked: boolean) =>
     onChange(checked ? [...selected, code] : selected.filter((value) => value !== code));
-  };
 
   const toggleGroup = (group: GeographyGroup, checked: boolean) => {
     const codes = group.areas.map((area) => area.code);
@@ -55,75 +44,69 @@ export function GeographyTree({ groups, name, onChange, selected }: GeographyTre
   };
 
   return (
-    <div className="fphd-geo">
-      <div className="govuk-form-group">
-        <label className="govuk-label govuk-!-font-weight-bold" htmlFor={searchId}>
-          Search for an area
+    <div>
+      <div className="govuk-form-group govuk-!-margin-bottom-2">
+        <label className="govuk-label govuk-label--s" htmlFor={`${idPrefix}-search`}>
+          Add geographies
         </label>
         <input
+          autoComplete="off"
           className="govuk-input fphd-geo-search"
-          id={searchId}
+          id={`${idPrefix}-search`}
+          onChange={(event) => setQuery(event.currentTarget.value)}
+          placeholder="Type to find geographies"
           type="search"
           value={query}
-          onChange={(event) => setQuery(event.currentTarget.value)}
         />
       </div>
-
-      <div className="fphd-geo__tree">
+      <div className="fphd-geo-alt__tree" aria-label="Geographies grouped by level">
         {groups.map((group) => {
           const visible = group.areas.filter(matches);
           const chosen = group.areas.filter(({ code }) => selected.includes(code));
-          const isOpen =
-            expanded.includes(group.name) || (query.trim() !== '' && visible.length > 0);
-          const groupId = `${idPrefix}-${group.name.replace(/\W+/g, '-')}`;
+          // A search opens the groups it matches, so results are not hidden behind a toggle.
+          const isOpen = searching ? visible.length > 0 : expanded.includes(group.name);
+          const groupId = `${idPrefix}-grp-${group.name.toLowerCase().replace(/\W+/g, '-')}`;
 
-          if (visible.length === 0) {
+          if (searching && visible.length === 0) {
             return null;
           }
 
           return (
-            <div className="fphd-geo__group" key={group.name}>
-              <div className="fphd-geo__group-row">
-                <button
-                  aria-controls={groupId}
-                  aria-expanded={isOpen}
-                  className={`fphd-geo__toggle${isOpen ? ' fphd-geo__toggle--open' : ''}`}
-                  onClick={() =>
-                    setExpanded((current) =>
-                      current.includes(group.name)
-                        ? current.filter((value) => value !== group.name)
-                        : [...current, group.name],
-                    )
-                  }
-                  type="button"
-                >
-                  <span className="govuk-visually-hidden">
-                    {isOpen ? 'Collapse' : 'Expand'} {group.name}
-                  </span>
-                  <span aria-hidden="true" className="fphd-geo__chevron" />
-                </button>
-                <div className="govuk-checkboxes govuk-checkboxes--small">
-                  <div className="govuk-checkboxes__item">
-                    <input
-                      checked={chosen.length === group.areas.length && group.areas.length > 0}
-                      className="govuk-checkboxes__input"
-                      id={`${groupId}-all`}
-                      onChange={(event) => toggleGroup(group, event.currentTarget.checked)}
-                      type="checkbox"
-                    />
-                    <label
-                      className="govuk-label govuk-checkboxes__label"
-                      htmlFor={`${groupId}-all`}
-                    >
-                      {group.name}
-                      {chosen.length > 0 ? ` (${chosen.length} selected)` : ''}
-                    </label>
-                  </div>
+            <div className="fphd-geo-alt__group" key={group.name}>
+              <button
+                aria-expanded={isOpen}
+                className={`fphd-geo-alt__toggle${isOpen ? ' fphd-geo-alt__toggle--open' : ''}`}
+                onClick={() =>
+                  setExpanded((current) =>
+                    current.includes(group.name)
+                      ? current.filter((value) => value !== group.name)
+                      : [...current, group.name],
+                  )
+                }
+                type="button"
+              >
+                <span className="fphd-geo-alt__chevron" aria-hidden="true" />
+                <span className="govuk-visually-hidden">
+                  {isOpen ? 'Collapse' : 'Expand'} {group.name}
+                </span>
+              </button>
+              <div className="govuk-checkboxes govuk-checkboxes--small fphd-geo-alt__group-cb">
+                <div className="govuk-checkboxes__item">
+                  <input
+                    checked={group.areas.length > 0 && chosen.length === group.areas.length}
+                    className="govuk-checkboxes__input"
+                    id={groupId}
+                    onChange={(event) => toggleGroup(group, event.currentTarget.checked)}
+                    type="checkbox"
+                  />
+                  <label className="govuk-label govuk-checkboxes__label" htmlFor={groupId}>
+                    {group.name}
+                  </label>
                 </div>
               </div>
 
               {isOpen ? (
-                <div className="fphd-geo__children" id={groupId}>
+                <div className="fphd-geo-alt__children">
                   <div className="govuk-checkboxes govuk-checkboxes--small">
                     {visible.map((area) => (
                       <div className="govuk-checkboxes__item" key={area.code}>
@@ -147,7 +130,7 @@ export function GeographyTree({ groups, name, onChange, selected }: GeographyTre
                   </div>
                 </div>
               ) : (
-                // Selections in a collapsed group must still submit with the form.
+                // Ticks in a collapsed group must still submit with the form.
                 chosen.map((area) => (
                   <input key={area.code} name={name} type="hidden" value={area.code} />
                 ))
