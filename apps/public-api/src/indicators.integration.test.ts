@@ -107,19 +107,35 @@ describe('public API against the seeded database', () => {
     );
 
     expect(response.status).toBe(200);
-    expect(response.body).toHaveLength(9);
-    expect(response.body[0]).toEqual({ code: expect.any(String), name: expect.any(String) });
-    const names = response.body.map((a: { name: string }) => a.name);
+    expect(response.body).toHaveLength(1);
+    const [group] = response.body;
+    expect(group.areaType).toBe('Regions (statistical)');
+    expect(group.areas).toHaveLength(9);
+    expect(group.areas[0]).toEqual({ code: expect.any(String), name: expect.any(String) });
+    const names = group.areas.map((a: { name: string }) => a.name);
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
   });
 
-  it('returns an empty list for an unknown area type', async () => {
+  it('returns an empty group for an unknown area type', async () => {
     const response = await request(createApp({ repositories })).get(
       '/api/areas?area_type=No%20Such%20Type',
     );
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual([]);
+    expect(response.body).toEqual([{ areaType: 'No Such Type', areas: [] }]);
+  });
+
+  it('answers with one group per area type requested', async () => {
+    const response = await request(createApp({ repositories })).get(
+      `/api/areas?area_type=${encodeURIComponent('Regions (statistical)')}&area_type=England`,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body.map((g: { areaType: string }) => g.areaType)).toEqual([
+      'Regions (statistical)',
+      'England',
+    ]);
+    expect(response.body[1].areas).toHaveLength(1);
   });
 
   it('returns an empty observation list for an area with no data', async () => {
