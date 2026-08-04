@@ -54,6 +54,10 @@ done
 # db carries no profile, so it starts either way — including when every app is local
 # and there are no app containers to ask for. bash 3.2 (the macOS default) treats an
 # empty array under `set -u` as unbound, so that case can't share the code path.
+#
+# --wait blocks until every started container passes its healthcheck, matching what
+# scripts/services.sh gives the other dev scripts. It covers the app containers too, so a
+# local web app cannot start proxying to an API container that is still booting.
 if ((${#container_apps[@]} > 0)); then
   profile_flags=()
   for app in "${container_apps[@]}"; do
@@ -71,10 +75,10 @@ if ((${#container_apps[@]} > 0)); then
   trap stop_containers EXIT
 
   echo "Starting containers: ${container_apps[*]} (+ db)" >&2
-  docker compose "${profile_flags[@]}" up --detach --build
+  docker compose "${profile_flags[@]}" up --detach --build --wait
 else
   echo "Starting containers: db" >&2
-  docker compose up --detach --build
+  docker compose up --detach --build --wait
 fi
 
 filter_flags=()
