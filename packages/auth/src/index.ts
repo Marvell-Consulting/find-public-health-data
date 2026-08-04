@@ -1,5 +1,13 @@
 export type AppAudience = 'internal' | 'public';
 
+/**
+ * Defined here rather than at each call site: the web app sets this cookie, and its server
+ * has to name it again when forwarding the session on to the API.
+ */
+export function sessionCookieName(audience: AppAudience): string {
+  return `fphd-${audience}-session`;
+}
+
 export interface FakeUser {
   readonly description: string;
   readonly id: string;

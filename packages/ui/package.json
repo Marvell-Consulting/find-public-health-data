@@ -19,21 +19,25 @@
     "react-router": "catalog:"
   },
   "dependencies": {
-    "@not-govuk/back-link": "0.18.1",
+    "@date-fns/tz": "catalog:",
+    "@not-govuk/back-link": "catalog:",
     "@not-govuk/button": "catalog:",
     "@not-govuk/checkboxes": "0.18.1",
     "@not-govuk/details": "0.18.1",
     "@not-govuk/inset-text": "catalog:",
     "@not-govuk/link": "catalog:",
+    "@not-govuk/notification-banner": "catalog:",
     "@not-govuk/page": "catalog:",
     "@not-govuk/radios": "catalog:",
     "@not-govuk/sass-base": "catalog:",
     "@not-govuk/search-box": "catalog:",
     "@not-govuk/select": "0.18.1",
     "@not-govuk/summary-list": "0.18.1",
-    "@not-govuk/table": "0.18.1",
+    "@not-govuk/table": "catalog:",
     "@not-govuk/tabs": "0.18.1",
-    "@not-govuk/text-input": "0.18.1",
+    "@not-govuk/text-input": "catalog:",
+    "@not-govuk/textarea": "catalog:",
+    "date-fns": "catalog:",
     "govuk-frontend": "catalog:"
   },
   "devDependencies": {

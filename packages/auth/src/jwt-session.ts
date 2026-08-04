@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { jwtVerify, SignJWT } from 'jose';
 
+import { readCookie } from './cookies.js';
 import { InvalidJwtSessionError } from './session-errors.js';
 
 export interface JwtSessionClaims {
@@ -52,20 +53,6 @@ function validateCookieName(cookieName: string): string {
     throw new Error('JWT session cookie name is invalid');
   }
   return cookieName;
-}
-
-function parseCookie(cookieHeader: string | null, cookieName: string): string | undefined {
-  if (cookieHeader === null) return undefined;
-
-  for (const entry of cookieHeader.split(';')) {
-    const separator = entry.indexOf('=');
-    if (separator === -1) continue;
-
-    const name = entry.slice(0, separator).trim();
-    if (name === cookieName) return entry.slice(separator + 1).trim();
-  }
-
-  return undefined;
 }
 
 function serializeCookie(
@@ -147,7 +134,7 @@ export function createJwtSessionService({
     },
 
     readToken(cookieHeader) {
-      return parseCookie(cookieHeader, validatedCookieName);
+      return readCookie(cookieHeader, validatedCookieName);
     },
 
     async verifyToken(token) {

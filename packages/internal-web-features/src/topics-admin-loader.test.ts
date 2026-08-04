@@ -1,0 +1,227 @@
+import type { ApiClient } from '@fphd/web-server/api-client';
+import { apiContext } from '@fphd/web-server/api-context';
+import {
+  createFlashSessionStorage,
+  flashMiddleware,
+  setFlashStorage,
+} from '@fphd/web-server/flash';
+import { RouterContextProvider } from 'react-router';
+import { describe, expect, it, vi } from 'vitest';
+
+import { editTopicPath, loadAdminTopic, loadAdminTopics, saveTopic } from './topics-admin-loader';
+
+const flashStorage = createFlashSessionStorage({
+  audience: 'internal',
+  secret: 'a-web-session-secret-that-is-long-enough-for-tests',
+  secure: false,
+});
+
+const topic = {
+  id: '00000000-0000-7000-8000-000000000001',
+  slug: 'air-quality',
+  title: 'Air quality',
+  description: 'About air quality.',
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-02T00:00:00.000Z',
+};
+
+const valid = { title: 'Air quality', slug: 'air-quality', description: 'About air quality.' };
+
+function fakeApi(overrides: Partial<Record<keyof ApiClient, unknown>> = {}): ApiClient {
+  return {
+    get: () => Promise.reject(new Error('get was not stubbed for this test')),
+    put: () => Promise.reject(new Error('put was not stubbed for this test')),
+    ...overrides,
+  } as unknown as ApiClient;
+}
+
+function createContext(api: ApiClient): RouterContextProvider {
+  const context = new RouterContextProvider();
+  context.set(apiContext, api);
+  setFlashStorage(context, flashStorage);
+  return context;
+}
+
+interface RunOptions {
+  context: RouterContextProvider;
+  cookie?: string;
+  method?: 'GET' | 'POST';
+  body?: Record<string, string>;
+  params?: Record<string, string>;
+}
+
+/**
+ * Loaders and the action are run through the flash middleware here because they are in the
+ * app: the flash they read and write only exists inside it, and a message becomes a
+ * `Set-Cookie` only because the middleware commits it onto the response.
+ */
+async function run<T>(
+  handler: (args: never) => Promise<T>,
+  { context, cookie, method = 'GET', body, params = {} }: RunOptions,
+): Promise<{ outcome: T; response: Response }> {
+  const request = new Request(`https://internal.test${editTopicPath(topic.id)}`, {
+    method,
+    ...(body === undefined ? {} : { body: new URLSearchParams(body) }),
+    ...(cookie === undefined ? {} : { headers: { Cookie: cookie } }),
+  });
+  const args = { context, params, pattern: '/', request, url: new URL(request.url) };
+
+  let outcome: T | undefined;
+  let produced = false;
+
+  const response = await flashMiddleware(args as never, async () => {
+    outcome = await handler(args as never);
+    produced = true;
+    return outcome instanceof Response ? outcome : new Response('rendered');
+  });
+
+  if (!produced) throw new Error('The handler produced nothing');
+  if (!(response instanceof Response)) throw new Error('The middleware returned no response');
+
+  return { outcome: outcome as T, response };
+}
+
+/** The cookie the browser would send back after a response set one. */
+function cookieFrom(response: Response): string {
+  return response.headers.getSetCookie().at(-1)?.split(';', 1)[0] ?? '';
+}
+
+describe('loadAdminTopics', () => {
+  it('asks the internal listing endpoint for every topic', async () => {
+    const get = vi.fn().mockResolvedValue([topic]);
+
+    const { outcome } = await run(loadAdminTopics, { context: createContext(fakeApi({ get })) });
+
+    expect(get.mock.calls[0]?.[0]).toBe('/api/internal/topics');
+    expect(outcome.topics).toEqual([topic]);
+  });
+});
+
+describe('loadAdminTopic', () => {
+  it('fetches the topic by id', async () => {
+    const get = vi.fn().mockResolvedValue(topic);
+
+    const { outcome } = await run(loadAdminTopic, {
+      context: createContext(fakeApi({ get })),
+      params: { id: topic.id },
+    });
+
+    expect(get.mock.calls[0]?.[0]).toBe(`/api/internal/topics/${topic.id}`);
+    expect(outcome.topic).toEqual(topic);
+    expect(outcome.notification).toBeUndefined();
+  });
+
+  // `:id` matches anything, so this is reachable by typing a URL. It is a page that does not
+  // exist — not the bad gateway that letting the API reject the id would produce.
+  it.each([
+    ['a non-uuid segment', { id: 'not-a-uuid' }],
+    ['no segment at all', {}],
+  ])('answers %s with a 404 rather than calling the API', async (_case, params) => {
+    await expect(
+      run(loadAdminTopic, { context: createContext(fakeApi()), params }),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe('saveTopic', () => {
+  function save(context: RouterContextProvider, body: Record<string, string>) {
+    return run(saveTopic, { context, method: 'POST', body, params: { id: topic.id } });
+  }
+
+  it('does not call the API when the submission is invalid', async () => {
+    const { outcome } = await save(createContext(fakeApi()), { ...valid, title: '' });
+
+    expect(outcome).toEqual({
+      values: { ...valid, title: '' },
+      fieldErrors: { title: 'Enter a topic name' },
+    });
+  });
+
+  it('puts the trimmed values to the topic id', async () => {
+    const put = vi.fn().mockResolvedValue({ ok: true, data: { changed: true, topic } });
+
+    await save(createContext(fakeApi({ put })), { ...valid, title: '  Air quality  ' });
+
+    expect(put.mock.calls[0]?.[0]).toBe(`/api/internal/topics/${topic.id}`);
+    expect(put.mock.calls[0]?.[1]).toEqual(valid);
+  });
+
+  // Redirecting rather than rendering is what stops a refresh re-submitting, and addressing
+  // the redirect by id is what keeps an edited slug from moving the publisher.
+  it.each([true, false])(
+    'redirects back to the same edit page when changed is %s',
+    async (changed) => {
+      const put = vi.fn().mockResolvedValue({ ok: true, data: { changed, topic } });
+
+      const { response } = await save(createContext(fakeApi({ put })), valid);
+
+      expect(response.status).toBe(302);
+      expect(response.headers.get('Location')).toBe(editTopicPath(topic.id));
+      expect(response.headers.get('Set-Cookie')).toContain('fphd-internal-flash=');
+    },
+  );
+
+  it.each([
+    [
+      'a rejected submission',
+      400,
+      { error: 'validation_failed', fieldErrors: { slug: 'Enter a slug' } },
+      { slug: 'Enter a slug' },
+    ],
+    [
+      'a slug already in use',
+      409,
+      { error: 'slug_taken', fieldErrors: { slug: 'This slug is already used' } },
+      { slug: 'This slug is already used' },
+    ],
+  ])('renders %s against its field', async (_case, status, error, fieldErrors) => {
+    const put = vi.fn().mockResolvedValue({ ok: false, status, error });
+
+    const { outcome } = await save(createContext(fakeApi({ put })), valid);
+
+    expect(outcome).toEqual({ values: valid, fieldErrors });
+  });
+
+  it('keeps the submitted values when the API rejects them', async () => {
+    const put = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      error: { error: 'slug_taken', fieldErrors: { slug: 'This slug is already used' } },
+    });
+
+    const { outcome } = await save(createContext(fakeApi({ put })), {
+      ...valid,
+      slug: 'taken-slug',
+    });
+
+    expect(outcome).toMatchObject({ values: { ...valid, slug: 'taken-slug' } });
+  });
+});
+
+describe('the message a save leaves for the page it redirects to', () => {
+  async function messageAfter(changed: boolean): Promise<string | undefined> {
+    const put = vi.fn().mockResolvedValue({ ok: true, data: { changed, topic } });
+    const { response } = await run(saveTopic, {
+      context: createContext(fakeApi({ put })),
+      method: 'POST',
+      body: valid,
+      params: { id: topic.id },
+    });
+
+    const { outcome } = await run(loadAdminTopic, {
+      context: createContext(fakeApi({ get: () => Promise.resolve(topic) })),
+      cookie: cookieFrom(response),
+      params: { id: topic.id },
+    });
+
+    return outcome.notification;
+  }
+
+  it('says the topic was updated when something changed', async () => {
+    expect(await messageAfter(true)).toBe('Topic updated');
+  });
+
+  it('says nothing changed when the submission matched what was stored', async () => {
+    expect(await messageAfter(false)).toBe('No changes were made');
+  });
+});

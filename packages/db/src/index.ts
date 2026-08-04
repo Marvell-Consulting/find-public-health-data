@@ -51,4 +51,12 @@ export {
 export * as schema from './schema.js';
 export { createOwnerClient } from './scripts/owner-client.js';
 export { assertSeedingAllowed, seedDatabase, seedTables } from './seeding.js';
-export { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';
+export {
+  getTopicById,
+  getTopicBySlug,
+  listTopics,
+  type Topic,
+  type TopicUpdate,
+  type UpdateTopicResult,
+  updateTopic,
+} from './topic-repository.js';
