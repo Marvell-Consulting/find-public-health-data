@@ -195,12 +195,12 @@ describe('parseEnv', () => {
 
 describe('loadWebServerConfig', () => {
   const sessionSecret = 'a-jwt-session-secret-that-is-long-enough';
+  const webSessionSecret = 'a-web-session-secret-that-is-long-enough';
+  const secrets = { SESSION_JWT_SECRET: sessionSecret, WEB_SESSION_SECRET: webSessionSecret };
   const defaults = { port: 3000, apiUrl: 'http://localhost:4000' };
 
   it('uses the app port, api url and local logging defaults', () => {
-    expect(
-      loadWebServerConfig({ APP_ENV: 'local', SESSION_JWT_SECRET: sessionSecret }, defaults),
-    ).toEqual({
+    expect(loadWebServerConfig({ APP_ENV: 'local', ...secrets }, defaults)).toEqual({
       development: false,
       host: '0.0.0.0',
       port: 3000,
@@ -208,6 +208,7 @@ describe('loadWebServerConfig', () => {
       log: { level: 'info', pretty: true },
       shutdown: { drainDelayMs: 0, gracePeriodMs: 25_000 },
       session: { secret: sessionSecret, secure: false },
+      webSession: { secret: webSessionSecret, secure: false },
     });
   });
 
@@ -222,7 +223,7 @@ describe('loadWebServerConfig', () => {
           API_URL: 'http://api.internal:9000',
           LOG_LEVEL: 'debug',
           LOG_PRETTY: '1',
-          SESSION_JWT_SECRET: sessionSecret,
+          ...secrets,
         },
         defaults,
       ),
@@ -234,6 +235,7 @@ describe('loadWebServerConfig', () => {
       log: { level: 'debug', pretty: false },
       shutdown: { drainDelayMs: 5_000, gracePeriodMs: 25_000 },
       session: { secret: sessionSecret, secure: true },
+      webSession: { secret: webSessionSecret, secure: true },
     });
   });
 
@@ -245,11 +247,11 @@ describe('loadWebServerConfig', () => {
           {
             APP_ENV: appEnv,
             NODE_ENV: 'development',
-            SESSION_JWT_SECRET: sessionSecret,
+            ...secrets,
           },
           defaults,
-        ).session.secure,
-      ).toBe(true);
+        ),
+      ).toMatchObject({ session: { secure: true }, webSession: { secure: true } });
     },
   );
 
@@ -261,35 +263,32 @@ describe('loadWebServerConfig', () => {
           {
             APP_ENV: appEnv,
             NODE_ENV: 'development',
-            SESSION_JWT_SECRET: sessionSecret,
+            ...secrets,
           },
           defaults,
-        ).session.secure,
-      ).toBe(false);
+        ),
+      ).toMatchObject({ session: { secure: false }, webSession: { secure: false } });
     },
   );
 
   it('requires APP_ENV', () => {
-    expect(() => loadWebServerConfig({ SESSION_JWT_SECRET: sessionSecret }, defaults)).toThrow(
-      /APP_ENV/,
-    );
+    expect(() => loadWebServerConfig(secrets, defaults)).toThrow(/APP_ENV/);
   });
 
-  it('requires a JWT session secret of at least 32 characters', () => {
-    expect(() => loadWebServerConfig({ APP_ENV: 'local' }, defaults)).toThrow(/SESSION_JWT_SECRET/);
-    expect(() =>
-      loadWebServerConfig({ APP_ENV: 'local', SESSION_JWT_SECRET: 'too-short' }, defaults),
-    ).toThrow(/SESSION_JWT_SECRET/);
-  });
+  it.each(['SESSION_JWT_SECRET', 'WEB_SESSION_SECRET'] as const)(
+    'requires a %s of at least 32 characters',
+    (name) => {
+      expect(() => loadWebServerConfig({ APP_ENV: 'local' }, defaults)).toThrow(name);
+      expect(() =>
+        loadWebServerConfig({ APP_ENV: 'local', ...secrets, [name]: 'too-short' }, defaults),
+      ).toThrow(name);
+    },
+  );
 
   it('strips a trailing slash from the api url so callers can build paths without doubling it', () => {
     expect(
       loadWebServerConfig(
-        {
-          APP_ENV: 'local',
-          API_URL: 'http://api.internal:9000/',
-          SESSION_JWT_SECRET: sessionSecret,
-        },
+        { APP_ENV: 'local', API_URL: 'http://api.internal:9000/', ...secrets },
         defaults,
       ).apiUrl,
     ).toBe('http://api.internal:9000');
@@ -297,10 +296,7 @@ describe('loadWebServerConfig', () => {
 
   it('rejects an invalid api url', () => {
     expect(() =>
-      loadWebServerConfig(
-        { APP_ENV: 'local', API_URL: 'not-a-url', SESSION_JWT_SECRET: sessionSecret },
-        defaults,
-      ),
+      loadWebServerConfig({ APP_ENV: 'local', API_URL: 'not-a-url', ...secrets }, defaults),
     ).toThrow(/API_URL/);
   });
 });

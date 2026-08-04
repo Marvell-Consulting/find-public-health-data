@@ -1,6 +1,7 @@
 import { addNotFoundHandler, createApiApp, requireJwtRole } from '@fphd/api-server';
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import type { Repositories } from '@fphd/db';
+import { internalApiRoutes } from '@fphd/internal-api-features';
 import { publicApiRoutes } from '@fphd/public-api-features';
 
 export interface AppDependencies {
@@ -19,6 +20,8 @@ export function createApp({ repositories, session }: AppDependencies) {
       audience: 'internal',
     });
   });
+
+  app.use(internalApiRoutes({ repositories, session }));
 
   addNotFoundHandler(app);
   return app;

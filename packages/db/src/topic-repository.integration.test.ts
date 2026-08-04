@@ -5,7 +5,7 @@ import { createDb, createPostgresClient, type Database } from './client.js';
 import { dbEnvFields, resolveDbTls } from './env.js';
 import type { TopicRecord } from './schema.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
-import { getTopicBySlug, listTopics, upsertTopics } from './topic-repository.js';
+import { getTopicById, getTopicBySlug, listTopics, upsertTopics } from './topic-repository.js';
 
 const env = parseEnv(
   z.object({
@@ -90,6 +90,23 @@ describe('getTopicBySlug', () => {
 
   it('returns undefined for an unknown slug', async () => {
     expect(await getTopicBySlug(db, 'no-such-topic')).toBeUndefined();
+  });
+});
+
+describe('getTopicById', () => {
+  it('returns the topic matching the given id', async () => {
+    const found = await getTopicById(db, zebra.id);
+
+    expect(found).toMatchObject({
+      id: zebra.id,
+      slug: 'zebra-topic',
+      title: 'Zebra topic',
+      description: 'Should sort last.',
+    });
+  });
+
+  it('returns undefined for an unknown id', async () => {
+    expect(await getTopicById(db, '00000000-0000-7000-8000-00000000ffff')).toBeUndefined();
   });
 });
 

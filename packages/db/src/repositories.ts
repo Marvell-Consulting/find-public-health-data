@@ -19,7 +19,15 @@ import {
   type ObservationRangePeriod,
   searchApprovedIndicators,
 } from './indicator-repository.js';
-import { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';
+import {
+  getTopicById,
+  getTopicBySlug,
+  listTopics,
+  type Topic,
+  type TopicUpdate,
+  type UpdateTopicResult,
+  updateTopic,
+} from './topic-repository.js';
 
 export interface IndicatorRepository {
   listApproved(): Promise<ApprovedIndicator[]>;
@@ -41,7 +49,9 @@ export interface AreaRepository {
 
 export interface TopicRepository {
   list(): Promise<Topic[]>;
+  findById(id: string): Promise<Topic | undefined>;
   findBySlug(slug: string): Promise<Topic | undefined>;
+  update(id: string, values: TopicUpdate): Promise<UpdateTopicResult>;
 }
 
 /**
@@ -75,7 +85,9 @@ export function createRepositories(db: Database): Repositories {
     },
     topics: {
       list: () => listTopics(db),
+      findById: (id) => getTopicById(db, id),
       findBySlug: (slug) => getTopicBySlug(db, slug),
+      update: (id, values) => updateTopic(db, id, values),
     },
   };
 }

@@ -25,6 +25,11 @@
       "types": "./src/entry-server.tsx",
       "default": "./dist/entry-server.js"
     },
+    "./flash": {
+      "development": "./src/flash.ts",
+      "types": "./src/flash.ts",
+      "default": "./dist/flash.js"
+    },
     "./fake-auth": {
       "development": "./src/fake-auth.ts",
       "types": "./src/fake-auth.ts",

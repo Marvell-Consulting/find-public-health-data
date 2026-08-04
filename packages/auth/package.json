@@ -10,6 +10,11 @@
       "types": "./src/index.ts",
       "default": "./dist/index.js"
     },
+    "./cookies": {
+      "development": "./src/cookies.ts",
+      "types": "./src/cookies.ts",
+      "default": "./dist/cookies.js"
+    },
     "./jwt-session": {
       "development": "./src/jwt-session.ts",
       "types": "./src/jwt-session.ts",
