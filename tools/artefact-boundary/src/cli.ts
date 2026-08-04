@@ -9,7 +9,12 @@ import { collectDependencyClosure, readWorkspacePackages } from './workspace.js'
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
 
-const PUBLIC_APPS = ['@fphd/public-web', '@fphd/public-api'];
+/** Every reference to a public app — pnpm filter, dist path, log line — derives from these. */
+type PublicApp = { pkg: string; dir: string };
+
+const PUBLIC_WEB: PublicApp = { pkg: '@fphd/public-web', dir: 'apps/public-web' };
+const PUBLIC_API: PublicApp = { pkg: '@fphd/public-api', dir: 'apps/public-api' };
+const PUBLIC_APPS = [PUBLIC_WEB, PUBLIC_API];
 
 type Violation = {
   check: string;
@@ -45,11 +50,11 @@ async function checkDependencyClosures(): Promise<Violation[]> {
   console.log('Checking the public apps’ workspace dependency closures…');
   const packages = await readWorkspacePackages(repoRoot);
 
-  return PUBLIC_APPS.flatMap((app) => {
-    const references = findInternalReferences(collectDependencyClosure(app, packages));
+  return PUBLIC_APPS.flatMap(({ pkg }) => {
+    const references = findInternalReferences(collectDependencyClosure(pkg, packages));
     return references.length === 0
       ? []
-      : [{ check: 'dependency closure', detail: app, references }];
+      : [{ check: 'dependency closure', detail: pkg, references }];
   });
 }
 
@@ -60,10 +65,10 @@ async function checkDependencyClosures(): Promise<Violation[]> {
  * wrote rather than as a bundle chunk.
  */
 function checkWebRouteTable(): Violation[] {
-  console.log('Checking @fphd/public-web’s route table…');
+  console.log(`Checking ${PUBLIC_WEB.pkg}’s route table…`);
   const output = capture('pnpm', [
     '--filter',
-    '@fphd/public-web',
+    PUBLIC_WEB.pkg,
     'exec',
     'react-router',
     'routes',
@@ -82,10 +87,10 @@ function checkWebRouteTable(): Violation[] {
 }
 
 async function checkApiOutput(): Promise<Violation[]> {
-  console.log('Building @fphd/public-api…');
-  run('pnpm', ['--filter', '@fphd/public-api...', 'run', 'build']);
+  console.log(`Building ${PUBLIC_API.pkg}…`);
+  run('pnpm', ['--filter', `${PUBLIC_API.pkg}...`, 'run', 'build']);
 
-  const dist = path.join(repoRoot, 'apps', 'public-api', 'dist');
+  const dist = path.join(repoRoot, PUBLIC_API.dir, 'dist');
   const files = await findFiles(dist, '.js');
   if (files.length === 0) {
     throw new Error(`No JavaScript was emitted to ${dist}; the output cannot be inspected.`);
@@ -113,11 +118,11 @@ async function checkApiOutput(): Promise<Violation[]> {
  * `dist/` is byte-identical to a plain `react-router build`.
  */
 async function checkWebBundle(): Promise<Violation[]> {
-  console.log('Building @fphd/public-web and its dependencies, with sourcemaps…');
-  run('pnpm', ['--filter', '@fphd/public-web^...', 'run', 'build']);
+  console.log(`Building ${PUBLIC_WEB.pkg} and its dependencies, with sourcemaps…`);
+  run('pnpm', ['--filter', `${PUBLIC_WEB.pkg}^...`, 'run', 'build']);
   run('pnpm', [
     '--filter',
-    '@fphd/public-web',
+    PUBLIC_WEB.pkg,
     'exec',
     'react-router',
     'build',
@@ -127,7 +132,7 @@ async function checkWebBundle(): Promise<Violation[]> {
     'hidden',
   ]);
 
-  const dist = path.join(repoRoot, 'apps', 'public-web', 'dist');
+  const dist = path.join(repoRoot, PUBLIC_WEB.dir, 'dist');
   const maps = await findFiles(dist, '.map');
   try {
     if (maps.length === 0) {
