@@ -10,6 +10,13 @@
 # and any URL by which one app reaches another is env-driven with a localhost default.
 # A containerised app overrides such URLs with host.docker.internal:<port>, reaching
 # whatever runs behind that port without knowing whether it's local or a container.
+#
+# Each service is given its environment inline rather than through a shared env_file, so a
+# container receives only what its own app needs — public-api has no session secret because
+# it verifies no sessions. The cost is that a newly required variable must be added here as
+# well as to .env.example, and an app whose config schema gains one fails at startup until
+# it is. The `:?` forms fail the compose command naming the missing variable, rather than
+# starting a container that crashes on boot.
 services:
   db:
     image: postgres:18.4
@@ -49,6 +56,7 @@ services:
     init: true
     environment:
       API_URL: http://host.docker.internal:4000
+      SESSION_JWT_SECRET: ${SESSION_JWT_SECRET:?set SESSION_JWT_SECRET in .env (see .env.example)}
     ports:
       - '3000:3000'
     extra_hosts:
@@ -76,6 +84,7 @@ services:
     init: true
     environment:
       API_URL: http://host.docker.internal:4001
+      SESSION_JWT_SECRET: ${SESSION_JWT_SECRET:?set SESSION_JWT_SECRET in .env (see .env.example)}
     ports:
       - '3001:3001'
     extra_hosts:
@@ -137,6 +146,7 @@ services:
       DB_HOST: db
       POSTGRES_DB: ${POSTGRES_DB:-fphd}
       INTERNAL_API_PASSWORD: ${INTERNAL_API_PASSWORD:?set INTERNAL_API_PASSWORD in .env (see .env.example)}
+      SESSION_JWT_SECRET: ${SESSION_JWT_SECRET:?set SESSION_JWT_SECRET in .env (see .env.example)}
     ports:
       - '4001:4001'
     extra_hosts:
