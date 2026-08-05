@@ -1,7 +1,7 @@
-import { execFileSync } from 'node:child_process';
 import { readdir, readFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
 
+import { capture, run } from './exec.js';
 import { findInternalReferences } from './internal.js';
 import { collectRouteFiles } from './routes.js';
 import { extractImportSpecifiers } from './specifiers.js';
@@ -66,14 +66,11 @@ async function checkDependencyClosures(): Promise<Violation[]> {
  */
 function checkWebRouteTable(): Violation[] {
   console.log(`Checking ${PUBLIC_WEB.pkg}’s route table…`);
-  const output = capture('pnpm', [
-    '--filter',
-    PUBLIC_WEB.pkg,
-    'exec',
-    'react-router',
-    'routes',
-    '--json',
-  ]);
+  const output = capture(
+    'pnpm',
+    ['--filter', PUBLIC_WEB.pkg, 'exec', 'react-router', 'routes', '--json'],
+    repoRoot,
+  );
 
   const files = collectRouteFiles(output);
   if (files.length === 0) {
@@ -88,7 +85,7 @@ function checkWebRouteTable(): Violation[] {
 
 async function checkApiOutput(): Promise<Violation[]> {
   console.log(`Building ${PUBLIC_API.pkg}…`);
-  run('pnpm', ['--filter', `${PUBLIC_API.pkg}...`, 'run', 'build']);
+  run('pnpm', ['--filter', `${PUBLIC_API.pkg}...`, 'run', 'build'], repoRoot);
 
   const dist = path.join(repoRoot, PUBLIC_API.dir, 'dist');
   const files = await findFiles(dist, '.js');
@@ -119,18 +116,22 @@ async function checkApiOutput(): Promise<Violation[]> {
  */
 async function checkWebBundle(): Promise<Violation[]> {
   console.log(`Building ${PUBLIC_WEB.pkg} and its dependencies, with sourcemaps…`);
-  run('pnpm', ['--filter', `${PUBLIC_WEB.pkg}^...`, 'run', 'build']);
-  run('pnpm', [
-    '--filter',
-    PUBLIC_WEB.pkg,
-    'exec',
-    'react-router',
-    'build',
-    '--sourcemapClient',
-    'hidden',
-    '--sourcemapServer',
-    'hidden',
-  ]);
+  run('pnpm', ['--filter', `${PUBLIC_WEB.pkg}^...`, 'run', 'build'], repoRoot);
+  run(
+    'pnpm',
+    [
+      '--filter',
+      PUBLIC_WEB.pkg,
+      'exec',
+      'react-router',
+      'build',
+      '--sourcemapClient',
+      'hidden',
+      '--sourcemapServer',
+      'hidden',
+    ],
+    repoRoot,
+  );
 
   const dist = path.join(repoRoot, PUBLIC_WEB.dir, 'dist');
   const maps = await findFiles(dist, '.map');
@@ -141,7 +142,7 @@ async function checkWebBundle(): Promise<Violation[]> {
 
     const violations: Violation[] = [];
     for (const map of maps) {
-      const { sources } = JSON.parse(await readFile(map, 'utf8')) as { sources?: unknown };
+      const { sources } = parseSourcemap(await readFile(map, 'utf8'), map);
       const references = findInternalReferences(
         (Array.isArray(sources) ? sources : []).filter((source) => typeof source === 'string'),
       );
@@ -159,39 +160,26 @@ async function checkWebBundle(): Promise<Violation[]> {
   }
 }
 
+/** A map this cannot read is a chunk left uninspected, so it names the file rather than failing bare. */
+function parseSourcemap(raw: string, file: string): { sources?: unknown } {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (cause) {
+    throw new Error(`Could not parse the sourcemap at ${file}.`, { cause });
+  }
+
+  if (typeof parsed !== 'object' || parsed === null) {
+    throw new Error(`The sourcemap at ${file} is not an object; the bundle cannot be inspected.`);
+  }
+  return parsed;
+}
+
 async function findFiles(dir: string, extension: string): Promise<string[]> {
   const entries = await readdir(dir, { recursive: true, withFileTypes: true });
   return entries
     .filter((entry) => entry.isFile() && entry.name.endsWith(extension))
     .map((entry) => path.join(entry.parentPath, entry.name));
-}
-
-/**
- * A build that fails takes its own diagnostics to stderr, so the only thing left to add is which
- * step gave up — without a Node stack trace, which in a CI log reads as this tool crashing rather
- * than as the gate doing its job.
- */
-function run(command: string, args: string[]): void {
-  try {
-    execFileSync(command, args, { cwd: repoRoot, stdio: 'inherit' });
-  } catch {
-    console.error(`\n${[command, ...args].join(' ')} failed; the artefacts cannot be inspected.`);
-    process.exit(1);
-  }
-}
-
-/** As `run`, but returns stdout. Anything the command reports goes straight to this process's stderr. */
-function capture(command: string, args: string[]): string {
-  try {
-    return execFileSync(command, args, {
-      cwd: repoRoot,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'inherit'],
-    });
-  } catch {
-    console.error(`\n${[command, ...args].join(' ')} failed; the artefacts cannot be inspected.`);
-    process.exit(1);
-  }
 }
 
 await main();
