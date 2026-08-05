@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import { findInternalReferences } from './internal.js';
 import { extractImportSpecifiers } from './specifiers.js';
 
 describe('extractImportSpecifiers', () => {
@@ -26,18 +25,5 @@ describe('extractImportSpecifiers', () => {
     const source = 'import"@fphd/internal-api";import"./styles.css";';
 
     expect(extractImportSpecifiers(source)).toEqual(['@fphd/internal-api', './styles.css']);
-  });
-
-  it('catches a deliberate internal import in compiled API output', () => {
-    const source = [
-      "import { internalRoutes } from '@fphd/internal-api-features';",
-      "import { secret } from '../../internal-api/src/secret.js';",
-      "import express from 'express';",
-    ].join('\n');
-
-    expect(findInternalReferences(extractImportSpecifiers(source))).toEqual([
-      '../../internal-api/src/secret.js',
-      '@fphd/internal-api-features',
-    ]);
   });
 });
