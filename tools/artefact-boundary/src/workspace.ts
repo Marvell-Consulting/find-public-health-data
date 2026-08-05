@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-const WORKSPACE_DIRS = ['apps', 'packages', 'tools'];
+import { parse } from 'yaml';
 
 export type WorkspacePackage = {
   name: string;
@@ -9,11 +9,44 @@ export type WorkspacePackage = {
   dependencies: string[];
 };
 
+/**
+ * The directories pnpm itself treats as the workspace, so a glob added there cannot be missed here.
+ * A directory this did not know about would drop its packages from every closure, and a dependency
+ * on one of them would read as third-party and be skipped — a false negative in the one check that
+ * must not have any.
+ */
+export async function readWorkspaceDirs(repoRoot: string): Promise<string[]> {
+  const file = path.join(repoRoot, 'pnpm-workspace.yaml');
+  return parseWorkspaceDirs(await readFile(file, 'utf8'), file);
+}
+
+export function parseWorkspaceDirs(yaml: string, file: string): string[] {
+  const parsed: unknown = parse(yaml);
+  const { packages } = (typeof parsed === 'object' && parsed !== null ? parsed : {}) as {
+    packages?: unknown;
+  };
+
+  if (!Array.isArray(packages) || packages.length === 0) {
+    throw new Error(`${file} declares no workspace packages; nothing can be checked.`);
+  }
+
+  return packages.map((glob) => {
+    const dir = typeof glob === 'string' ? /^([^*/]+)\/\*$/.exec(glob)?.[1] : undefined;
+    if (dir === undefined) {
+      throw new Error(
+        `${file} declares the workspace glob ${JSON.stringify(glob)}, which this check cannot expand.`,
+      );
+    }
+    return dir;
+  });
+}
+
 export async function readWorkspacePackages(
   repoRoot: string,
 ): Promise<Map<string, WorkspacePackage>> {
+  const workspaceDirs = await readWorkspaceDirs(repoRoot);
   const manifests = await Promise.all(
-    WORKSPACE_DIRS.map(async (workspaceDir) => {
+    workspaceDirs.map(async (workspaceDir) => {
       const parent = path.join(repoRoot, workspaceDir);
       const entries = await readdir(parent, { withFileTypes: true });
       return Promise.all(
@@ -33,14 +66,23 @@ export async function readWorkspacePackages(
 }
 
 async function readManifest(dir: string): Promise<WorkspacePackage | null> {
+  const file = path.join(dir, 'package.json');
   let raw: string;
   try {
-    raw = await readFile(path.join(dir, 'package.json'), 'utf8');
+    raw = await readFile(file, 'utf8');
   } catch {
     return null;
   }
 
-  const manifest: unknown = JSON.parse(raw);
+  // A directory with no manifest is not a package; a manifest that will not parse is a broken one,
+  // and swallowing it here would drop that package out of every closure silently.
+  let manifest: unknown;
+  try {
+    manifest = JSON.parse(raw);
+  } catch (cause) {
+    throw new Error(`Could not parse the manifest at ${file}.`, { cause });
+  }
+
   if (typeof manifest !== 'object' || manifest === null) return null;
   const { name, dependencies } = manifest as {
     name?: unknown;
