@@ -50,4 +50,24 @@ describe('collectRouteFiles', () => {
   it('reports the output it could not parse', () => {
     expect(() => collectRouteFiles('not json')).toThrow(/Could not parse the route table/);
   });
+
+  // A route the walk did not recognise is a route this check never looks at, so an unexpected
+  // shape has to be reported rather than skipped.
+  it('rejects a route table that is not an array', () => {
+    expect(() => collectRouteFiles('{"routes":[]}')).toThrow(/not an array of routes/);
+  });
+
+  it('rejects a route that is not an object', () => {
+    expect(() => collectRouteFiles('["root.tsx"]')).toThrow(/not an object/);
+  });
+
+  it('rejects a route whose file is not a string', () => {
+    expect(() => collectRouteFiles('[{"file":42}]')).toThrow(/file is not a string/);
+  });
+
+  it('rejects an unexpected shape nested in children', () => {
+    expect(() => collectRouteFiles('[{"file":"a.tsx","children":{}}]')).toThrow(
+      /not an array of routes/,
+    );
+  });
 });
