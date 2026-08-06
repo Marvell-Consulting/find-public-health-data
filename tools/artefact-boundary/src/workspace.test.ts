@@ -33,9 +33,12 @@ describe('collectDependencyClosure', () => {
   });
 
   it('terminates on a dependency cycle without reporting the entry', () => {
-    const packages = workspace(['a', ['b']], ['b', ['a']]);
+    const packages = workspace(
+      ['@fphd/public-web', ['@fphd/ui']],
+      ['@fphd/ui', ['@fphd/public-web']],
+    );
 
-    expect(collectDependencyClosure('a', packages)).toEqual(['b']);
+    expect(collectDependencyClosure('@fphd/public-web', packages)).toEqual(['@fphd/ui']);
   });
 
   // A dependency outside the workspace is third-party and cannot reach back into this repo, so it
