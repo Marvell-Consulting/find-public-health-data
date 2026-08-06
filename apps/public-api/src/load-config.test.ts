@@ -9,7 +9,14 @@ describe('loadConfig', () => {
       host: '0.0.0.0',
       port: 4000,
       log: { level: 'info', pretty: true },
-      db: { host: 'localhost', port: 5432, database: 'fphd', user: 'public_api', password: 'pw' },
+      db: {
+        host: 'localhost',
+        port: 5432,
+        database: 'fphd',
+        user: 'public_api',
+        password: 'pw',
+        ssl: false,
+      },
     });
   });
 
@@ -23,6 +30,7 @@ describe('loadConfig', () => {
       DB_HOST: 'db.internal',
       DB_PORT: '5433',
       POSTGRES_DB: 'fphd_preview',
+      DB_SSL: '0',
       PUBLIC_API_PASSWORD: 'pw',
     });
 
@@ -37,8 +45,18 @@ describe('loadConfig', () => {
         database: 'fphd_preview',
         user: 'public_api',
         password: 'pw',
+        ssl: false,
       },
     });
+  });
+
+  it('turns database TLS on everywhere but a developer machine, and lets DB_SSL override', () => {
+    const env = { PUBLIC_API_PASSWORD: 'pw' };
+    expect(loadConfig({ ...env }).db.ssl).toBe(false);
+    expect(loadConfig({ ...env, APP_ENV: 'dev' }).db.ssl).toBe(true);
+    expect(loadConfig({ ...env, APP_ENV: 'production' }).db.ssl).toBe(true);
+    expect(loadConfig({ ...env, DB_SSL: '1' }).db.ssl).toBe(true);
+    expect(loadConfig({ ...env, APP_ENV: 'production', DB_SSL: '0' }).db.ssl).toBe(false);
   });
 
   it('allows pretty logging only locally, where it defaults on', () => {

@@ -12,6 +12,10 @@ A pnpm monorepo containing four independently deployable applications:
 The internal applications are functional supersets of the public applications through shared
 workspace packages. Deployable applications do not import one another.
 
+Alongside them sits `@fphd/operations`, which serves no traffic and has no port. It is a
+command-line application, shipped as its own image and run as a job — see
+[Operational commands](#operational-commands).
+
 ## Requirements
 
 - Node.js 24+
@@ -39,6 +43,12 @@ The three passwords (`POSTGRES_PASSWORD`, `PUBLIC_API_PASSWORD`, `INTERNAL_API_P
 default**. If any is unset or empty, `docker compose` fails with a message naming the variable
 rather than creating a database role with a well-known password. This means `docker compose up`
 will not work without a `.env`.
+
+`DB_SSL` turns TLS to the database on or off. Left unset it follows `APP_ENV`: off on a developer
+machine, on everywhere else, because every managed Postgres this deploys to requires it and the
+compose database offers none. Certificates are verified against Node's CA store, which already
+contains the roots Azure's Postgres certificates chain to — so it is not a way to accept an
+unknown certificate, and no CA bundle is shipped in the images.
 
 `SESSION_JWT_SECRET` signs JWT session cookies issued by the authentication backend. The example
 value is for local development only; each deployed service must receive a secret of at least 32
@@ -217,6 +227,111 @@ The seed is real Pholio data for 10 indicators at core administrative geographie
 committed as gzipped CSVs — see `packages/db/data/seed/README.md` for what is in it and
 how to regenerate it.
 
+## Operational commands
+
+`apps/operations` is a command-line application for work done *to* a deployed environment rather
+than by it. The `pnpm db:*` scripts above cover a developer machine, where the database is a
+container on localhost and drizzle-kit is installed; neither is true of a managed server behind a
+private endpoint, which has no public endpoint at all and can only be reached from inside its
+network. This is what runs there, as a job:
+
+```sh
+pnpm --filter @fphd/operations cli db bootstrap             # create the per-API login roles
+pnpm --filter @fphd/operations cli db migrate               # apply pending migrations
+pnpm --filter @fphd/operations cli db seed                  # replace all data with the seed
+pnpm --filter @fphd/operations cli db rebuild-read-models
+```
+
+Deployed, the same commands are `node dist/cli.js db migrate` and so on, in the `operations` image.
+That image also carries `psql`, because a database with no public endpoint makes a container inside
+the network the only route to an ad-hoc query.
+
+Two commands differ from their local equivalents, deliberately:
+
+- `db bootstrap` is the managed-server counterpart of `docker/postgres/initdb/01-roles.sh`, which a
+  managed server never runs. It is idempotent — safe against a server where the roles already
+  exist — and it sets the passwords every time, so it is also how a credential is rotated. Because
+  it is the only path with no local equivalent, CI's integration job creates its roles by running
+  it rather than the initdb script, so it is exercised on every run.
+- `db seed` rebuilds the read models in the same command. A job runs one command, and a seeded
+  database whose read models are still empty serves an empty site. It refuses to run unless
+  `APP_ENV` is `local`, `test` or `dev`; nothing seeds preview or production.
+
+`db bootstrap` needs `PUBLIC_API_PASSWORD` and `INTERNAL_API_PASSWORD`; the other commands do not,
+and fail naming them rather than requiring every job to hold role passwords. All of them connect as
+the owner role (`POSTGRES_USER`/`POSTGRES_PASSWORD`), not as a per-API role.
+
+### Invoking them from a deployed environment
+
+Deployment lives in the infrastructure repository, which owns the jobs that call these. Image
+`fphdbetaacr.azurecr.io/operations:<commit-sha>`, command `node dist/cli.js <command>`:
+
+```sh
+db bootstrap             # additionally needs PUBLIC_API_PASSWORD and INTERNAL_API_PASSWORD
+db migrate
+db seed
+db rebuild-read-models
+```
+
+Required environment, for every command:
+
+```sh
+APP_ENV                  # dev | preview | production — unset means local, which disables TLS
+DB_HOST
+POSTGRES_DB
+POSTGRES_USER            # the owner role, not a per-API role
+POSTGRES_PASSWORD
+```
+
+`DB_PORT`, `DB_SSL` and `LOG_LEVEL` are optional. Exit codes: `0` success, `1` failure, `2`
+unrecognised command.
+
+## Container images
+
+`docker/Dockerfile` builds the production images — one per deployable application, plus
+`operations`. A shared builder stage installs the workspace and builds the requested app; then
+`--target` picks the runtime shape and `--build-arg APP` picks the app:
+
+```sh
+docker build -f docker/Dockerfile --target web --build-arg APP=public-web   -t public-web   .
+docker build -f docker/Dockerfile --target web --build-arg APP=internal-web -t internal-web .
+docker build -f docker/Dockerfile --target api --build-arg APP=public-api   -t public-api   .
+docker build -f docker/Dockerfile --target api --build-arg APP=internal-api -t internal-api .
+docker build -f docker/Dockerfile --target operations --build-arg APP=operations -t operations .
+```
+
+Five images, three targets. The two web apps have identical runtime stages — same base, same
+init, same start command — and so do the two APIs; only *which* app the builder compiled into
+the image differs. A per-app target would be a copy with nothing changed in it, so the targets
+split only where the runtime genuinely does: `dist/server.js` for an API, `server.ts` for a web
+app, and the CLI-plus-`psql` image for operations.
+
+`pnpm deploy --prod` prunes devDependencies and copies only the workspace packages the app actually
+depends on, so no image carries pnpm, TypeScript, drizzle-kit or another app's code. Images run as
+the `node` user and start under tini, which guarantees SIGTERM is delivered to a process running as
+PID 1 — the kernel discards a default-action signal sent to PID 1 unless that process installed a
+handler. `HOST` and `PORT` come from the environment, defaulting to `0.0.0.0` and the app's own
+port.
+
+Every server shuts down gracefully. On SIGTERM or SIGINT it stops accepting connections, lets
+in-flight requests finish, closes idle keep-alive sockets so that finishes promptly rather than
+waiting out a timeout, and destroys anything still mid-request after ten seconds — comfortably
+inside Container Apps' thirty-second grace period. The APIs then close their database pool; without
+that the process would sit with an idle pool holding the event loop open and have to be killed. The
+shared implementation is `@fphd/server-lifecycle`, used by both `startApiServer` and
+`startReactRouterServer`.
+
+This is separate from `docker/app.Dockerfile`, which is the development image used by
+[mixed local/Docker development](#mixed-localdocker-development) and keeps the whole workspace and
+its devDependencies — exactly what the production images must not do.
+
+`.github/workflows/publish-images.yml` builds all five on every push to `main` and pushes them to
+Azure Container Registry, tagged with the commit SHA and `latest`. Deployments pin the SHA. There
+is no registry password and no service-principal secret: the workflow mints a GitHub OIDC token,
+`azure/login` exchanges it for an Azure token under a federated credential that trusts only
+main-branch runs of this workflow, and the identity behind it holds `AcrPush` alone. It needs three
+repository secrets — `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID`.
+
 ## Mixed local/Docker development
 
 Any subset of the four applications can run as Docker containers while the rest run locally.
@@ -257,13 +372,19 @@ apps/
   internal-web/
   public-api/
   internal-api/
+  operations/
 packages/
+  api/
   api-server/
   auth/
+  config/
   db/
   logger/
+  server-lifecycle/
   ui/
   web-server/
+  public-api-features/
+  internal-api-features/
   public-web-features/
   internal-web-features/
 tools/
@@ -272,4 +393,5 @@ tools/
 
 Application directories contain deployment wiring, routes, and entrypoints. Reusable business and
 feature logic belongs in workspace packages. `tools/*` holds workspace members that support the
-build rather than ship in it.
+build rather than ship in it. `apps/operations` is the exception to the pattern above: it ships as
+an image like the other four but serves no traffic — see [Operational commands](#operational-commands).

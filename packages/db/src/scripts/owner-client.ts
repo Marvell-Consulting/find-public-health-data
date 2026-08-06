@@ -2,9 +2,10 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { parseEnv, z } from '@fphd/config';
-import postgres from 'postgres';
+import type postgres from 'postgres';
 
-import { dbEnvFields } from '../env.js';
+import { createPostgresClient } from '../client.js';
+import { dbEnvFields, resolveDbSsl } from '../env.js';
 
 const repoEnvFile = fileURLToPath(new URL('../../../../.env', import.meta.url));
 
@@ -18,18 +19,23 @@ export function createOwnerClient(database?: string): postgres.Sql {
   const env = parseEnv(
     z.object({
       ...dbEnvFields,
+      // Not appEnvSchema: this path also runs under the integration harness's APP_ENV=test,
+      // which the apps' schema rejects. Only the TLS default reads it.
+      APP_ENV: z.string().default('local'),
       POSTGRES_USER: z.string().default('fphd'),
       POSTGRES_PASSWORD: z.string().default('fphd'),
     }),
     process.env,
   );
-  return postgres({
-    host: env.DB_HOST,
-    port: env.DB_PORT,
-    database: database ?? env.POSTGRES_DB,
-    username: env.POSTGRES_USER,
-    password: env.POSTGRES_PASSWORD,
-    max: 1,
-    onnotice: () => {},
-  });
+  return createPostgresClient(
+    {
+      host: env.DB_HOST,
+      port: env.DB_PORT,
+      database: database ?? env.POSTGRES_DB,
+      user: env.POSTGRES_USER,
+      password: env.POSTGRES_PASSWORD,
+      ssl: resolveDbSsl(env.APP_ENV, env.DB_SSL),
+    },
+    { max: 1, onnotice: () => {} },
+  );
 }

@@ -17,4 +17,8 @@ startApiServer({
   host: config.host,
   port: config.port,
   onListening: () => logger.info({ port: config.port }, 'Public API listening'),
+  onShutdown: async (signal) => {
+    await db.$client.end();
+    logger.info({ signal }, 'Public API stopped');
+  },
 });

@@ -4,12 +4,13 @@ import { resolve } from 'node:path';
 import { parseEnv, z } from '@fphd/config';
 
 import { createDb } from '../client.js';
-import { dbEnvFields } from '../env.js';
+import { dbEnvFields, resolveDbSsl } from '../env.js';
 import { upsertTopics } from '../topic-repository.js';
 import { parseTopicsFile } from './parse-topics-file.js';
 
 const envSchema = z.object({
   ...dbEnvFields,
+  APP_ENV: z.string().default('local'),
   POSTGRES_USER: z.string().default('fphd'),
   POSTGRES_PASSWORD: z.string().default('fphd'),
 });
@@ -25,6 +26,7 @@ async function main() {
     database: env.POSTGRES_DB,
     user: env.POSTGRES_USER,
     password: env.POSTGRES_PASSWORD,
+    ssl: resolveDbSsl(env.APP_ENV, env.DB_SSL),
   });
 
   try {

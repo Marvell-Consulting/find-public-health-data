@@ -3,7 +3,7 @@ import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDb, type Database } from './client.js';
-import { dbEnvFields } from './env.js';
+import { dbEnvFields, resolveDbSsl } from './env.js';
 import type { TopicRecord } from './schema.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
 import { getTopicBySlug, listTopics, upsertTopics } from './topic-repository.js';
@@ -11,6 +11,7 @@ import { getTopicBySlug, listTopics, upsertTopics } from './topic-repository.js'
 const env = parseEnv(
   z.object({
     ...dbEnvFields,
+    APP_ENV: z.string().default('local'),
     POSTGRES_USER: z.string().default('fphd'),
     POSTGRES_PASSWORD: z.string().default('fphd'),
     PUBLIC_API_PASSWORD: z.string().default('public_api'),
@@ -45,6 +46,7 @@ beforeAll(async () => {
     database: testDb.name,
     user: env.POSTGRES_USER,
     password: env.POSTGRES_PASSWORD,
+    ssl: resolveDbSsl(env.APP_ENV, env.DB_SSL),
   });
   await upsertTopics(db, [zebra, apple]);
 });

@@ -1,5 +1,5 @@
 {
-  "name": "@fphd/api-server",
+  "name": "@fphd/server-lifecycle",
   "version": "0.0.0",
   "private": true,
   "license": "MIT",
@@ -15,17 +15,8 @@
     "build": "tsc --project tsconfig.build.json",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "@fphd/auth": "workspace:*",
-    "@fphd/server-lifecycle": "workspace:*",
-    "express": "catalog:",
-    "express-rate-limit": "catalog:"
-  },
   "devDependencies": {
-    "@types/express": "catalog:",
     "@types/node": "catalog:",
-    "@types/supertest": "catalog:",
-    "supertest": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

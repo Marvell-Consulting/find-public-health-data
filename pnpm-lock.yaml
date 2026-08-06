@@ -285,6 +285,31 @@ importers:
         specifier: 'catalog:'
         version: 4.1.10(@types/node@24.13.3)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.1.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0)(yaml@2.9.0))
 
+  apps/operations:
+    dependencies:
+      '@fphd/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@fphd/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@fphd/logger':
+        specifier: workspace:*
+        version: link:../../packages/logger
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.13.3
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.0
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@types/node@24.13.3)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.1.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0)(yaml@2.9.0))
+
   apps/public-api:
     dependencies:
       '@fphd/api-server':
@@ -394,6 +419,9 @@ importers:
       '@fphd/auth':
         specifier: workspace:*
         version: link:../auth
+      '@fphd/server-lifecycle':
+        specifier: workspace:*
+        version: link:../server-lifecycle
       express:
         specifier: 'catalog:'
         version: 5.2.1
@@ -568,6 +596,18 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
+  packages/server-lifecycle:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.13.3
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@types/node@24.13.3)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.1.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0)(yaml@2.9.0))
+
   packages/ui:
     dependencies:
       '@not-govuk/button':
@@ -625,6 +665,9 @@ importers:
       '@fphd/config':
         specifier: workspace:*
         version: link:../config
+      '@fphd/server-lifecycle':
+        specifier: workspace:*
+        version: link:../server-lifecycle
       '@fphd/ui':
         specifier: workspace:*
         version: link:../ui

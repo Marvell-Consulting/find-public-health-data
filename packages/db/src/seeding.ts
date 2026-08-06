@@ -83,6 +83,25 @@ async function loadTable(
   return count;
 }
 
+// 'test' is not an APP_ENV the apps accept; the integration harness sets it and seeds
+// through seedDatabase directly, and it is listed so that path stays permitted if it ever
+// reaches for the CLI. 'dev' is here because the deployed dev environment is populated by
+// running the seed against it; 'preview' and 'production' hold data no command may erase.
+const SEEDABLE_APP_ENVS = ['local', 'test', 'dev'];
+
+/**
+ * The seed erases and replaces every table, so it fails closed: an explicit APP_ENV is
+ * required rather than a missing value being assumed safe.
+ */
+export function assertSeedingAllowed(appEnv: string | undefined): void {
+  if (appEnv !== undefined && SEEDABLE_APP_ENVS.includes(appEnv)) return;
+
+  throw new Error(
+    `Refusing to seed: APP_ENV is ${appEnv === undefined ? 'unset' : `'${appEnv}'`}; ` +
+      `set it to one of ${SEEDABLE_APP_ENVS.map((value) => `'${value}'`).join(', ')} explicitly`,
+  );
+}
+
 /**
  * Erase and reload every canonical table from the committed seed CSVs, in one
  * transaction: a failed load rolls back to the previous state instead of leaving a

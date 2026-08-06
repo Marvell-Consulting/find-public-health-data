@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { installShutdownHandlers, type ShutdownOptions } from '@fphd/server-lifecycle';
 import express, { type Express, type RequestHandler } from 'express';
 import morgan from 'morgan';
 
@@ -63,6 +64,8 @@ interface ReactRouterServerOptions {
   development: boolean;
   host: string;
   onListening: () => void;
+  /** Runs once the server has stopped serving, before the process exits. */
+  onShutdown?: ShutdownOptions['onShutdown'];
   port: number;
   rootDirectory: string;
 }
@@ -71,10 +74,14 @@ export async function startReactRouterServer({
   development,
   host,
   onListening,
+  onShutdown,
   port,
   rootDirectory,
 }: ReactRouterServerOptions) {
   let app: Express;
+  // In development the Vite server is the handle that would otherwise keep the process alive
+  // after the HTTP server has closed — including on every `tsx watch` restart.
+  let closeDevServer: (() => Promise<void>) | undefined;
 
   if (development) {
     const vite = await import('vite').then(({ createServer }) =>
@@ -84,6 +91,7 @@ export async function startReactRouterServer({
         server: { middlewareMode: true },
       }),
     );
+    closeDevServer = () => vite.close();
 
     app = createHost({ development: true });
     app.use(vite.middlewares);
@@ -106,5 +114,13 @@ export async function startReactRouterServer({
     app = createProductionHost({ clientDirectory, requestHandler });
   }
 
-  return app.listen(port, host, onListening);
+  const server = app.listen(port, host, onListening);
+  installShutdownHandlers(server, {
+    onShutdown: async (signal) => {
+      await closeDevServer?.();
+      await onShutdown?.(signal);
+    },
+  });
+
+  return server;
 }
