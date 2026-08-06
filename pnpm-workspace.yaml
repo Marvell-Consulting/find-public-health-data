@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - packages/*
+  - tools/*
 
 overrides:
   # GHSA postcss <=8.5.17 source-map path traversal; transitive via vite.
@@ -60,4 +61,5 @@ catalog:
   typescript: 6.0.3
   vite: 8.1.4
   vitest: 4.1.10
+  yaml: 2.9.0
   zod: 4.4.3
