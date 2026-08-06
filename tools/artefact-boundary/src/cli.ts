@@ -4,6 +4,7 @@ import path from 'node:path';
 import { capture, run } from './exec.js';
 import { findInternalReferences } from './internal.js';
 import { collectRouteFiles } from './routes.js';
+import { collectSourcemapSources } from './sourcemaps.js';
 import { extractImportSpecifiers } from './specifiers.js';
 import { collectDependencyClosure, readWorkspacePackages } from './workspace.js';
 
@@ -142,9 +143,8 @@ async function checkWebBundle(): Promise<Violation[]> {
 
     const violations: Violation[] = [];
     for (const map of maps) {
-      const { sources } = parseSourcemap(await readFile(map, 'utf8'), map);
       const references = findInternalReferences(
-        (Array.isArray(sources) ? sources : []).filter((source) => typeof source === 'string'),
+        collectSourcemapSources(await readFile(map, 'utf8'), map),
       );
       if (references.length > 0) {
         violations.push({
@@ -158,21 +158,6 @@ async function checkWebBundle(): Promise<Violation[]> {
   } finally {
     await Promise.all(maps.map((map) => unlink(map)));
   }
-}
-
-/** A map this cannot read is a chunk left uninspected, so it names the file rather than failing bare. */
-function parseSourcemap(raw: string, file: string): { sources?: unknown } {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (cause) {
-    throw new Error(`Could not parse the sourcemap at ${file}.`, { cause });
-  }
-
-  if (typeof parsed !== 'object' || parsed === null) {
-    throw new Error(`The sourcemap at ${file} is not an object; the bundle cannot be inspected.`);
-  }
-  return parsed;
 }
 
 async function findFiles(dir: string, extension: string): Promise<string[]> {
