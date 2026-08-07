@@ -1,5 +1,7 @@
+export { bootstrapRoles, type DatabaseRole } from './bootstrap.js';
 export {
   createDb,
+  createPostgresClient,
   type Database,
   type DbConnection,
   type Schema,
@@ -7,6 +9,7 @@ export {
 } from './client.js';
 export { dbEnvFields, resolveDbTls } from './env.js';
 export { type ApprovedIndicator, listApprovedIndicators } from './indicator-repository.js';
+export { migrateToLatest } from './migrations.js';
 export { rebuildReadModels } from './read-models.js';
 export {
   createRepositories,
@@ -16,4 +19,5 @@ export {
 } from './repositories.js';
 export * as schema from './schema.js';
 export { createOwnerClient } from './scripts/owner-client.js';
+export { assertSeedingAllowed, seedDatabase } from './seeding.js';
 export { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';

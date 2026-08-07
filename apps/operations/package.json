@@ -1,0 +1,24 @@
+{
+  "name": "@fphd/operations",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "cli": "tsx --env-file-if-exists=../../.env --conditions=development src/cli.ts",
+    "start": "node dist/cli.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fphd/config": "workspace:*",
+    "@fphd/db": "workspace:*",
+    "@fphd/logger": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

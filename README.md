@@ -12,6 +12,9 @@ A pnpm monorepo containing four independently deployable applications:
 The internal applications are functional supersets of the public applications through shared
 workspace packages. Deployable applications do not import one another.
 
+Alongside them sits `@fphd/operations`, which serves no traffic and has no port. It is a
+command-line application, run as a job — see [Operational commands](#operational-commands).
+
 ## Requirements
 
 - Node.js 24+
@@ -245,6 +248,63 @@ All four apps serve the same two probes, so one configuration covers every app: 
 throughout a stop, `/readyz` answers 503 with `"status": "draining"` from the moment a signal
 arrives.
 
+## Operational commands
+
+`apps/operations` is a command-line application for work done *to* a deployed environment rather
+than by it. The `pnpm db:*` scripts above cover a developer machine, where the database is a
+container on localhost and drizzle-kit is installed; neither is true of a managed server, which has
+no public endpoint and can only be reached from inside its network. This is what runs there, as a
+job:
+
+```sh
+pnpm --filter @fphd/operations cli db bootstrap             # create the per-API login roles
+pnpm --filter @fphd/operations cli db migrate               # apply pending migrations
+pnpm --filter @fphd/operations cli db seed                  # replace all data with the seed
+pnpm --filter @fphd/operations cli db rebuild-read-models
+```
+
+Deployed, the same commands are `node dist/cli.js db migrate` and so on.
+
+Two commands differ from their local equivalents, deliberately:
+
+- `db bootstrap` is the managed-server counterpart of `docker/postgres/initdb/01-roles.sh`, which a
+  managed server never runs. It is idempotent — safe against a server where the roles already
+  exist — and it sets the passwords every time, so it is also how a credential is rotated. Because
+  it is the only path with no local equivalent, CI's integration job creates its roles by running
+  it rather than the initdb script, so it is exercised on every run.
+- `db seed` rebuilds the read models in the same command. A job runs one command, and a seeded
+  database whose read models are still empty serves an empty site. It refuses to run unless
+  `APP_ENV` is `local`, `test` or `dev`; nothing seeds preview or production.
+
+`db bootstrap` needs `PUBLIC_API_PASSWORD` and `INTERNAL_API_PASSWORD`; the other commands do not,
+and fail naming them rather than requiring every job to hold role passwords. All of them connect as
+the owner role (`POSTGRES_USER`/`POSTGRES_PASSWORD`), not as a per-API role.
+
+### Invoking them from a deployed environment
+
+Deployment lives in the infrastructure repository, which owns the jobs that call these. Command
+`node dist/cli.js <command>`:
+
+```sh
+db bootstrap             # additionally needs PUBLIC_API_PASSWORD and INTERNAL_API_PASSWORD
+db migrate
+db seed
+db rebuild-read-models
+```
+
+Required environment, for every command:
+
+```sh
+APP_ENV                  # dev | preview | production — unset means local, which disables TLS
+DB_HOST
+POSTGRES_DB
+POSTGRES_USER            # the owner role, not a per-API role
+POSTGRES_PASSWORD
+```
+
+`DB_PORT`, `DB_SSL` and `LOG_LEVEL` are optional. Exit codes: `0` success, `1` failure, `2`
+unrecognised command.
+
 ## Mixed local/Docker development
 
 Any subset of the four applications can run as Docker containers while the rest run locally.
@@ -281,4 +341,5 @@ reach Postgres directly over the compose network via `DB_HOST=db`.)
 
 `apps/*` hold deployment wiring, routes and entrypoints, and never import one another — reusable
 business and feature logic belongs in `packages/*`. `tools/*` holds workspace members that support
-the build rather than ship in it.
+the build rather than ship in it. `apps/operations` is the exception: an application like the other
+four, but it serves no traffic — see [Operational commands](#operational-commands).

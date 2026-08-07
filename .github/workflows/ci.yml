@@ -85,14 +85,17 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
       # Service containers start before checkout, so compose.yaml's initdb volume mount has no
-      # equivalent here — the same script is invoked explicitly instead.
+      # equivalent here. Rather than invoke that script, this runs the operations CLI — the
+      # same command a deployed environment bootstraps with — so the path that has no local
+      # equivalent is exercised on every run instead of only in Azure.
       - name: Create the per-API login roles
-        run: ./docker/postgres/initdb/01-roles.sh
+        run: pnpm --filter @fphd/operations cli db bootstrap
         env:
-          PGHOST: localhost
-          PGPASSWORD: fphd
-          POSTGRES_USER: fphd
+          APP_ENV: test
+          DB_HOST: localhost
           POSTGRES_DB: fphd
+          POSTGRES_USER: fphd
+          POSTGRES_PASSWORD: fphd
           PUBLIC_API_PASSWORD: public_api
           INTERNAL_API_PASSWORD: internal_api
       # One root Vitest run across every project, filtered to paths containing `integration.test`
