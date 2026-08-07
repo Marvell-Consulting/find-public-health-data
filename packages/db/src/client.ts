@@ -4,8 +4,10 @@ import postgres from 'postgres';
 import * as schema from './schema/index.js';
 
 export type Schema = typeof schema;
-// Named here so callers that hold a raw handle — the operations CLI, the seed and read-model
-// routines — can type it without depending on `postgres` themselves.
+// This package's public surface hands out raw handles — `createOwnerClient` returns one and
+// `rebuildReadModels` takes one — so consumers need a name for the type without taking a
+// dependency on `postgres` themselves. Exported from the package index for that reason; the
+// modules in here import `postgres` directly and have no use for the alias.
 export type SqlClient = postgres.Sql;
 // $client is exposed so short-lived callers (e.g. the topics import CLI) can end the
 // connection explicitly instead of leaving the process to hang on an open socket.

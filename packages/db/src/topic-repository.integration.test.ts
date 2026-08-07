@@ -1,8 +1,7 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
-import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createDb, type Database } from './client.js';
+import { createDb, createPostgresClient, type Database } from './client.js';
 import { dbEnvFields, resolveDbSsl } from './env.js';
 import type { TopicRecord } from './schema.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
@@ -101,12 +100,13 @@ describe('the topic read surface', () => {
   ];
 
   it.each(apiRoles)('lets $role select topics but not write them', async ({ role, password }) => {
-    const client = postgres({
+    const client = createPostgresClient({
       host: env.DB_HOST,
       port: env.DB_PORT,
       database: testDb.name,
-      username: role,
+      user: role,
       password,
+      ssl: resolveDbSsl(env.APP_ENV, env.DB_SSL),
     });
 
     try {

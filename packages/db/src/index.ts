@@ -1,4 +1,10 @@
-export { createDb, type Database, type DbConnection, type Schema } from './client.js';
+export {
+  createDb,
+  type Database,
+  type DbConnection,
+  type Schema,
+  type SqlClient,
+} from './client.js';
 export { dbEnvFields, resolveDbSsl } from './env.js';
 export { type ApprovedIndicator, listApprovedIndicators } from './indicator-repository.js';
 export { rebuildReadModels } from './read-models.js';
