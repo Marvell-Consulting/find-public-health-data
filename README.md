@@ -233,13 +233,38 @@ how to regenerate it.
 
 ## Graceful shutdown
 
-Every server stops cleanly. On SIGTERM or SIGINT it stops accepting connections, lets in-flight
-requests finish, and destroys anything still mid-request after ten seconds. It closes idle
-keep-alive sockets as it goes: those carry no work, but `close` alone waits for them, which is the
-difference between stopping in milliseconds and stopping in ten seconds. The APIs then close their
-database pool; without that the process would sit with an idle pool holding the event loop open and
-have to be killed. In development the same path closes the Vite server, which is what makes a
-`tsx watch` restart release the port instead of failing to rebind.
+Every server stops cleanly, in three phases.
+
+**Drain.** On SIGTERM or SIGINT the server keeps listening and keeps serving, but readiness starts
+failing and every response now carries `Connection: close`. The ingress sees the failing probe and
+stops routing to the replica; clients that are mid-conversation retire their own pooled connections
+rather than having them destroyed underneath a request they had already written — destroying a
+socket with an unparsed request in its buffer is a TCP reset, which is the failure graceful
+shutdown exists to avoid. `SHUTDOWN_DRAIN_MS` sets the length: zero on a developer machine, where
+nothing routes to the process and a delay would only make Ctrl-C slow, five seconds elsewhere.
+
+**Close.** The listener closes and in-flight requests finish. Idle keep-alive sockets are swept
+repeatedly meanwhile: they carry no work, but `close` waits for them and sweeps only once, as it is
+called, so a socket whose request finishes during the close would otherwise hold the stop open for
+the whole keep-alive timeout. Anything still mid-request after ten seconds is destroyed, so one
+hung handler cannot stall the stop.
+
+**Cleanup.** The APIs close their database pool; without that the process would sit with an idle
+pool holding the event loop open and have to be killed. In development the same path closes the
+Vite server, which is what makes a `tsx watch` restart release the port instead of failing to
+rebind. Cleanup is bounded by the same ten seconds, because a pool that never finishes closing
+would otherwise leave a process that has already replaced the default signal handlers ignoring
+every subsequent stop until the platform kills it — and locally, ignoring Ctrl-C. A stop that fails
+reports through `onError`, which each app points at its logger, and exits non-zero.
+
+Worst case is therefore the drain plus twice the timeout, 25 seconds by default, inside Container
+Apps' 30-second grace period. Raising either without checking that sum is how a stop starts being
+SIGKILLed.
+
+All four apps serve the same three health paths, so one probe configuration covers every app:
+`/health` and `/health/live` report `{ "status": "ok", "service": "public-api" }` and keep doing so
+throughout a stop, because the process is alive and serving the whole time; `/health/ready` answers
+503 with `"status": "draining"` from the moment a signal arrives.
 
 The shared implementation is `@fphd/server-lifecycle`, used by both `startApiServer` and
 `startReactRouterServer`. It is its own package because those two live in sibling packages that must

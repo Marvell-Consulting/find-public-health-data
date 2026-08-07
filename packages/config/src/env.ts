@@ -51,7 +51,25 @@ export function serverEnvFields(defaults: { port: number }) {
     ...appEnvFields,
     HOST: z.string().default('0.0.0.0'),
     PORT: portSchema.default(defaults.port),
+    SHUTDOWN_DRAIN_MS: z.coerce.number().int().min(0).optional(),
   };
+}
+
+/**
+ * How long a server keeps serving after SIGTERM before it closes anything, so the ingress
+ * has time to notice readiness failing and stop routing to it. No default in the field above
+ * because the fallback depends on APP_ENV, which a shared fragment cannot see.
+ *
+ * Nothing routes to a developer machine, so a delay there would only make Ctrl-C slow. The
+ * deployed default is two readiness probe intervals plus a margin; tune it per environment
+ * once the probe config is known, keeping the drain plus twice the shutdown timeout inside
+ * the platform's grace period.
+ */
+export function resolveShutdownDrainMs(
+  appEnv: z.output<typeof appEnvSchema>,
+  drainMs: number | undefined,
+): number {
+  return drainMs ?? (appEnv === 'local' ? 0 : 5_000);
 }
 
 /**
@@ -119,6 +137,9 @@ export function loadWebServerConfig(
     host: parsed.HOST,
     port: parsed.PORT,
     apiUrl: parsed.API_URL,
+    shutdown: {
+      drainMs: resolveShutdownDrainMs(parsed.APP_ENV, parsed.SHUTDOWN_DRAIN_MS),
+    },
     log: {
       level: parsed.LOG_LEVEL,
       pretty: parsed.APP_ENV === 'local' && (parsed.LOG_PRETTY ?? true),

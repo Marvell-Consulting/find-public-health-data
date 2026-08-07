@@ -16,9 +16,11 @@ startApiServer({
   app: createApp({ repositories: createRepositories(db) }),
   host: config.host,
   port: config.port,
+  drainMs: config.shutdown.drainMs,
   onListening: () => logger.info({ port: config.port }, 'Public API listening'),
   onShutdown: async (signal) => {
     await db.$client.end();
     logger.info({ signal }, 'Public API stopped');
   },
+  onError: (error) => logger.error({ err: error }, 'Public API did not stop cleanly'),
 });

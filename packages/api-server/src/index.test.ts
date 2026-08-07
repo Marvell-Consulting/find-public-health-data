@@ -5,10 +5,27 @@ import { addNotFoundHandler, createApiApp } from './index.js';
 
 describe('API server', () => {
   it('reports service health', async () => {
-    const response = await request(createApiApp('test-api')).get('/health');
+    const app = createApiApp('test-api');
 
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual({ status: 'ok', service: 'test-api' });
+    const health = await request(app).get('/health');
+    const live = await request(app).get('/health/live');
+    const ready = await request(app).get('/health/ready');
+
+    expect(health.status).toBe(200);
+    expect(health.body).toEqual({ status: 'ok', service: 'test-api' });
+    expect(live.status).toBe(200);
+    expect(ready.status).toBe(200);
+  });
+
+  it('fails readiness, but not health, once the server starts draining', async () => {
+    const app = createApiApp('test-api');
+    app.locals.draining = true;
+
+    const ready = await request(app).get('/health/ready');
+
+    expect(ready.status).toBe(503);
+    expect(ready.body).toEqual({ status: 'draining', service: 'test-api' });
+    expect((await request(app).get('/health')).status).toBe(200);
   });
 
   it('serves only the shared public route table', async () => {

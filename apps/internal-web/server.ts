@@ -13,6 +13,9 @@ await startReactRouterServer({
   development: config.development,
   host: config.host,
   port: config.port,
+  drainMs: config.shutdown.drainMs,
   onListening: () => logger.info({ port: config.port }, 'Internal web listening'),
+  onError: (error) => logger.error({ err: error }, 'Internal web did not stop cleanly'),
   rootDirectory: import.meta.dirname,
+  serviceName: 'internal-web',
 });

@@ -27,9 +27,11 @@ startApiServer({
   }),
   host: config.host,
   port: config.port,
+  drainMs: config.shutdown.drainMs,
   onListening: () => logger.info({ port: config.port }, 'Internal API listening'),
   onShutdown: async (signal) => {
     await db.$client.end();
     logger.info({ signal }, 'Internal API stopped');
   },
+  onError: (error) => logger.error({ err: error }, 'Internal API did not stop cleanly'),
 });

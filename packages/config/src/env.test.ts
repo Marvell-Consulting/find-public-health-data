@@ -165,6 +165,7 @@ describe('loadWebServerConfig', () => {
       port: 3000,
       apiUrl: 'http://localhost:4000',
       log: { level: 'info', pretty: true },
+      shutdown: { drainMs: 0 },
       session: { secret: sessionSecret, secure: false },
     });
   });
@@ -190,6 +191,7 @@ describe('loadWebServerConfig', () => {
       port: 8080,
       apiUrl: 'http://api.internal:9000',
       log: { level: 'debug', pretty: false },
+      shutdown: { drainMs: 5_000 },
       session: { secret: sessionSecret, secure: true },
     });
   });

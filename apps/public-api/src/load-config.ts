@@ -1,4 +1,4 @@
-import { logEnvFields, parseEnv, serverEnvFields, z } from '@fphd/config';
+import { logEnvFields, parseEnv, resolveShutdownDrainMs, serverEnvFields, z } from '@fphd/config';
 import { dbEnvFields, resolveDbTls } from '@fphd/db';
 
 const envSchema = z.object({
@@ -23,6 +23,9 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
     log: {
       level: parsed.LOG_LEVEL,
       pretty: parsed.APP_ENV === 'local' && (parsed.LOG_PRETTY ?? true),
+    },
+    shutdown: {
+      drainMs: resolveShutdownDrainMs(parsed.APP_ENV, parsed.SHUTDOWN_DRAIN_MS),
     },
     db: {
       host: parsed.DB_HOST,

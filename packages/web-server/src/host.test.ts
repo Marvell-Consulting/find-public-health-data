@@ -25,6 +25,7 @@ describe('React Router production host', () => {
     requestHandler: (_request, response) => {
       response.status(418).type('html').send('<html><main>Server rendered</main></html>');
     },
+    serviceName: 'test-web',
   });
 
   it('serves hashed client assets with long-lived caching', async () => {
@@ -61,15 +62,35 @@ describe('React Router production host', () => {
     expect(firstNonce).not.toBe(secondNonce);
   });
 
-  it.each(['/healthcheck', '/healthcheck/live', '/healthcheck/ready'])(
+  it.each(['/health', '/health/live', '/health/ready'])(
     'reports server health at %s',
     async (path) => {
       const response = await request(app).get(path);
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual({ message: 'success' });
+      expect(response.body).toEqual({ status: 'ok', service: 'test-web' });
     },
   );
+
+  it('fails readiness, but not liveness, once the server starts draining', async () => {
+    // Its own host: the flag is application state, and flipping the shared one would leak into
+    // every test after this.
+    const draining = createProductionHost({
+      clientDirectory,
+      requestHandler: (_request, response) => {
+        response.status(418).send('unused');
+      },
+      serviceName: 'test-web',
+    });
+    draining.locals.draining = true;
+
+    const ready = await request(draining).get('/health/ready');
+    const live = await request(draining).get('/health/live');
+
+    expect(ready.status).toBe(503);
+    expect(ready.body).toEqual({ status: 'draining', service: 'test-web' });
+    expect(live.status).toBe(200);
+  });
 
   it('passes document requests to the React Router server build', async () => {
     const response = await request(app).get('/releases').accept('text/html');
