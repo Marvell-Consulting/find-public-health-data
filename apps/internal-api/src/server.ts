@@ -28,4 +28,8 @@ startApiServer({
   host: config.host,
   port: config.port,
   onListening: () => logger.info({ port: config.port }, 'Internal API listening'),
+  onShutdown: async (signal) => {
+    await db.$client.end();
+    logger.info({ signal }, 'Internal API stopped');
+  },
 });

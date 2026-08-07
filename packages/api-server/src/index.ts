@@ -1,5 +1,6 @@
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { InvalidJwtSessionError } from '@fphd/auth/session-errors';
+import { installShutdownHandlers, type ShutdownOptions } from '@fphd/server-lifecycle';
 import express, { type Express } from 'express';
 import { rateLimit } from 'express-rate-limit';
 
@@ -86,9 +87,20 @@ interface StartApiServerOptions {
   app: Express;
   host: string;
   onListening: () => void;
+  /** Runs once the server has stopped serving — close the database pool here. */
+  onShutdown?: ShutdownOptions['onShutdown'];
   port: number;
 }
 
-export function startApiServer({ app, host, onListening, port }: StartApiServerOptions) {
-  return app.listen(port, host, onListening);
+export function startApiServer({
+  app,
+  host,
+  onListening,
+  onShutdown,
+  port,
+}: StartApiServerOptions) {
+  const server = app.listen(port, host, onListening);
+  // Spread rather than passed directly: exactOptionalPropertyTypes rejects an explicit undefined.
+  installShutdownHandlers(server, onShutdown === undefined ? {} : { onShutdown });
+  return server;
 }

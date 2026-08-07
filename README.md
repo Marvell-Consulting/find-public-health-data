@@ -231,6 +231,19 @@ The seed is real Pholio data for 10 indicators at core administrative geographie
 committed as gzipped CSVs — see `packages/db/data/seed/README.md` for what is in it and
 how to regenerate it.
 
+## Graceful shutdown
+
+Every server stops cleanly. On SIGTERM or SIGINT it stops accepting connections, lets in-flight
+requests finish, closes idle keep-alive sockets so that finishes promptly rather than waiting out a
+timeout, and destroys anything still mid-request after ten seconds. The APIs then close their
+database pool; without that the process would sit with an idle pool holding the event loop open and
+have to be killed. In development the same path closes the Vite server, which is what makes a
+`tsx watch` restart release the port instead of failing to rebind.
+
+The shared implementation is `@fphd/server-lifecycle`, used by both `startApiServer` and
+`startReactRouterServer`. It is its own package because those two live in sibling packages that must
+not import one another, and a copy in each would drift.
+
 ## Mixed local/Docker development
 
 Any subset of the four applications can run as Docker containers while the rest run locally.
@@ -272,12 +285,17 @@ apps/
   public-api/
   internal-api/
 packages/
+  api/
   api-server/
   auth/
+  config/
   db/
   logger/
+  server-lifecycle/
   ui/
   web-server/
+  public-api-features/
+  internal-api-features/
   public-web-features/
   internal-web-features/
 tools/
