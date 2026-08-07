@@ -41,6 +41,12 @@ describe('resolveDbSsl', () => {
     expect(resolveDbSsl('test', undefined)).toBe(false);
   });
 
+  it('is on for an environment it has never heard of', () => {
+    // appEnvSchema is what rejects an unknown value; if one ever reaches here the safe
+    // reading is that it is deployed.
+    expect(resolveDbSsl('staging' as never, undefined)).toBe(true);
+  });
+
   it('is on for every deployed environment', () => {
     expect(resolveDbSsl('dev', undefined)).toBe(true);
     expect(resolveDbSsl('preview', undefined)).toBe(true);

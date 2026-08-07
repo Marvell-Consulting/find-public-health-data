@@ -1,4 +1,4 @@
-import { logEnvFields, parseEnv, serverEnvFields, z } from '@fphd/config';
+import { isDeployedEnv, logEnvFields, parseEnv, serverEnvFields, z } from '@fphd/config';
 import { dbEnvFields, resolveDbSsl } from '@fphd/db';
 
 const envSchema = z.object({
@@ -27,7 +27,7 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
     },
     session: {
       secret: parsed.SESSION_JWT_SECRET,
-      secure: parsed.APP_ENV !== 'local',
+      secure: isDeployedEnv(parsed.APP_ENV),
     },
     db: {
       host: parsed.DB_HOST,

@@ -40,11 +40,19 @@ default**. If any is unset or empty, `docker compose` fails with a message namin
 rather than creating a database role with a well-known password. This means `docker compose up`
 will not work without a `.env`.
 
+`APP_ENV` names the environment: `local` | `test` | `dev` | `preview` | `production`. It has **no
+default either**, and for the same reason. `local` is a developer machine and `test` a test run or
+CI job; both mean everything is on this machine over http, so both relax settings that must hold
+when deployed — database TLS and secure session cookies. A default could only be `local`, which
+would let an unset variable pick the relaxed side in silence. Every runtime supplies it: `.env` for
+development, `compose.yaml` for the containers, the `test:integration` script for test runs, and the
+platform for deployed services.
+
 `DB_SSL` turns TLS to the database on or off. Left unset it follows `APP_ENV`: off for `local` and
-`test`, both of which mean a database on this machine, and on everywhere else, because every managed
-Postgres this deploys to requires it and the compose database offers none. Certificates are verified
-against Node's CA store — so it is not a way to accept an unknown certificate, and no CA bundle has
-to be shipped.
+`test`, where the database is the compose container and presents no certificate, and on everywhere
+else, because every managed Postgres this deploys to requires it. Certificates are verified against
+Node's CA store — so it is not a way to accept an unknown certificate, and no CA bundle has to be
+shipped. Set it only to override the default in a deployed environment.
 
 `SESSION_JWT_SECRET` signs JWT session cookies issued by the authentication backend. The example
 value is for local development only; each deployed service must receive a secret of at least 32

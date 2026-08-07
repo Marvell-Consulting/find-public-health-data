@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import {
   boolSchema,
+  isDeployedEnv,
   loadWebServerConfig,
   logEnvFields,
   parseEnv,
@@ -47,11 +48,28 @@ describe('boolSchema', () => {
   });
 });
 
+describe('isDeployedEnv', () => {
+  it('treats a developer machine and a test run as the same thing', () => {
+    expect(isDeployedEnv('local')).toBe(false);
+    expect(isDeployedEnv('test')).toBe(false);
+  });
+
+  it('treats every other environment as deployed', () => {
+    expect(isDeployedEnv('dev')).toBe(true);
+    expect(isDeployedEnv('preview')).toBe(true);
+    expect(isDeployedEnv('production')).toBe(true);
+  });
+});
+
 describe('serverEnvFields', () => {
   const schema = z.object(serverEnvFields({ port: 4000 }));
 
-  it('defaults to a local server on all interfaces with the given port', () => {
-    expect(schema.parse({})).toEqual({ APP_ENV: 'local', HOST: '0.0.0.0', PORT: 4000 });
+  it('defaults to all interfaces with the given port', () => {
+    expect(schema.parse({ APP_ENV: 'local' })).toEqual({
+      APP_ENV: 'local',
+      HOST: '0.0.0.0',
+      PORT: 4000,
+    });
   });
 
   it('reads overrides from the environment', () => {
@@ -60,6 +78,10 @@ describe('serverEnvFields', () => {
       HOST: '127.0.0.1',
       PORT: 8080,
     });
+  });
+
+  it('requires APP_ENV rather than assuming the environment it relaxes everything for', () => {
+    expect(() => schema.parse({})).toThrow();
   });
 
   it('rejects unknown environments', () => {
@@ -135,7 +157,9 @@ describe('loadWebServerConfig', () => {
   const defaults = { port: 3000, apiUrl: 'http://localhost:4000' };
 
   it('uses the app port, api url and local logging defaults', () => {
-    expect(loadWebServerConfig({ SESSION_JWT_SECRET: sessionSecret }, defaults)).toEqual({
+    expect(
+      loadWebServerConfig({ APP_ENV: 'local', SESSION_JWT_SECRET: sessionSecret }, defaults),
+    ).toEqual({
       development: false,
       host: '0.0.0.0',
       port: 3000,
@@ -186,17 +210,43 @@ describe('loadWebServerConfig', () => {
     },
   );
 
-  it('requires a JWT session secret of at least 32 characters', () => {
-    expect(() => loadWebServerConfig({}, defaults)).toThrow(/SESSION_JWT_SECRET/);
-    expect(() => loadWebServerConfig({ SESSION_JWT_SECRET: 'too-short' }, defaults)).toThrow(
-      /SESSION_JWT_SECRET/,
+  it.each(['local', 'test'] as const)(
+    'leaves session cookies insecure in the %s environment, which is served over http',
+    (appEnv) => {
+      expect(
+        loadWebServerConfig(
+          {
+            APP_ENV: appEnv,
+            NODE_ENV: 'development',
+            SESSION_JWT_SECRET: sessionSecret,
+          },
+          defaults,
+        ).session.secure,
+      ).toBe(false);
+    },
+  );
+
+  it('requires APP_ENV', () => {
+    expect(() => loadWebServerConfig({ SESSION_JWT_SECRET: sessionSecret }, defaults)).toThrow(
+      /APP_ENV/,
     );
+  });
+
+  it('requires a JWT session secret of at least 32 characters', () => {
+    expect(() => loadWebServerConfig({ APP_ENV: 'local' }, defaults)).toThrow(/SESSION_JWT_SECRET/);
+    expect(() =>
+      loadWebServerConfig({ APP_ENV: 'local', SESSION_JWT_SECRET: 'too-short' }, defaults),
+    ).toThrow(/SESSION_JWT_SECRET/);
   });
 
   it('strips a trailing slash from the api url so callers can build paths without doubling it', () => {
     expect(
       loadWebServerConfig(
-        { API_URL: 'http://api.internal:9000/', SESSION_JWT_SECRET: sessionSecret },
+        {
+          APP_ENV: 'local',
+          API_URL: 'http://api.internal:9000/',
+          SESSION_JWT_SECRET: sessionSecret,
+        },
         defaults,
       ).apiUrl,
     ).toBe('http://api.internal:9000');
@@ -204,7 +254,10 @@ describe('loadWebServerConfig', () => {
 
   it('rejects an invalid api url', () => {
     expect(() =>
-      loadWebServerConfig({ API_URL: 'not-a-url', SESSION_JWT_SECRET: sessionSecret }, defaults),
+      loadWebServerConfig(
+        { APP_ENV: 'local', API_URL: 'not-a-url', SESSION_JWT_SECRET: sessionSecret },
+        defaults,
+      ),
     ).toThrow(/API_URL/);
   });
 });

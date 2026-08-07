@@ -1,4 +1,4 @@
-import { boolSchema, portSchema, z } from '@fphd/config';
+import { type AppEnv, boolSchema, isDeployedEnv, portSchema, z } from '@fphd/config';
 
 /**
  * Each app adds its own role password on top of these. Defaults match the local docker
@@ -11,16 +11,13 @@ export const dbEnvFields = {
   POSTGRES_DB: z.string().default('fphd'),
 };
 
-// 'test' is not an APP_ENV the apps accept, but the seed CLI and integration harness
-// recognise it; like 'local' it means a database on this machine, which presents no
-// certificate for TLS to verify.
-const NON_TLS_APP_ENVS = ['local', 'test'];
-
 /**
- * Every managed Postgres this deploys to requires TLS, so it is on unless the environment
- * is a developer's machine. No default on the field itself: like LOG_PRETTY, the fallback
- * depends on APP_ENV, which a shared field fragment cannot see.
+ * Every managed Postgres this deploys to requires TLS, so it is on unless the database is
+ * on this machine — the compose stack under `local`, the disposable test databases under
+ * `test` — where nothing presents a certificate to verify. No default on the field itself:
+ * like LOG_PRETTY, the fallback depends on APP_ENV, which a shared field fragment cannot
+ * see.
  */
-export function resolveDbSsl(appEnv: string, dbSsl: boolean | undefined): boolean {
-  return dbSsl ?? !NON_TLS_APP_ENVS.includes(appEnv);
+export function resolveDbSsl(appEnv: AppEnv, dbSsl: boolean | undefined): boolean {
+  return dbSsl ?? isDeployedEnv(appEnv);
 }

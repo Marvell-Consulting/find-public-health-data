@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 
-import { parseEnv, z } from '@fphd/config';
+import { appEnvFields, parseEnv, z } from '@fphd/config';
 import { defineConfig } from 'drizzle-kit';
 
 import { dbEnvFields, resolveDbSsl } from './src/env.js';
@@ -14,7 +14,7 @@ if (existsSync('../../.env')) {
 const env = parseEnv(
   z.object({
     ...dbEnvFields,
-    APP_ENV: z.string().default('local'),
+    ...appEnvFields,
     POSTGRES_USER: z.string().default('fphd'),
     POSTGRES_PASSWORD: z.string().default('fphd'),
   }),

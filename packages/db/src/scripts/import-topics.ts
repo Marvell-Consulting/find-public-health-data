@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { parseEnv, z } from '@fphd/config';
+import { appEnvFields, parseEnv, z } from '@fphd/config';
 
 import { createDb } from '../client.js';
 import { dbEnvFields, resolveDbSsl } from '../env.js';
@@ -10,7 +10,7 @@ import { parseTopicsFile } from './parse-topics-file.js';
 
 const envSchema = z.object({
   ...dbEnvFields,
-  APP_ENV: z.string().default('local'),
+  ...appEnvFields,
   POSTGRES_USER: z.string().default('fphd'),
   POSTGRES_PASSWORD: z.string().default('fphd'),
 });

@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { parseEnv, z } from '@fphd/config';
+import { appEnvFields, parseEnv, z } from '@fphd/config';
 import type postgres from 'postgres';
 
 import { createPostgresClient } from '../client.js';
@@ -19,9 +19,7 @@ export function createOwnerClient(database?: string): postgres.Sql {
   const env = parseEnv(
     z.object({
       ...dbEnvFields,
-      // Not appEnvSchema: this path also runs under the integration harness's APP_ENV=test,
-      // which the apps' schema rejects. Only the TLS default reads it.
-      APP_ENV: z.string().default('local'),
+      ...appEnvFields,
       POSTGRES_USER: z.string().default('fphd'),
       POSTGRES_PASSWORD: z.string().default('fphd'),
     }),
