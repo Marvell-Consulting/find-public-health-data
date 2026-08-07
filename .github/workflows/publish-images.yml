@@ -1,0 +1,88 @@
+name: Publish images
+
+# Only main, and only on push: the federated credential in Azure trusts workflow runs from
+# this branch alone, so a pull request run could not authenticate even if it were triggered.
+# The pull request gate has already passed by the time a commit lands here, and an image in
+# the registry that nothing deploys is harmless, so this does not wait on CI.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# Never cancels: two quick merges must queue rather than race, or `latest` can end up
+# pointing at the older of the two.
+concurrency:
+  group: publish-images
+  cancel-in-progress: false
+
+env:
+  ACR_NAME: fphdbetaacr
+  REGISTRY: fphdbetaacr.azurecr.io
+
+jobs:
+  publish:
+    name: Publish ${{ matrix.app }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      # Mints the OIDC token azure/login exchanges for an Azure access token. This is the
+      # whole of the auth: the workflow holds no registry password and no client secret.
+      id-token: write
+    strategy:
+      # One app failing to build must not stop the other four publishing.
+      fail-fast: false
+      matrix:
+        include:
+          - app: public-web
+            target: web
+          - app: internal-web
+            target: web
+          - app: public-api
+            target: api
+          - app: internal-api
+            target: api
+          - app: operations
+            target: operations
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The three identifiers are not credentials on their own — the federated trust is what
+      # authorises — but they are held as secrets because this repository is public and the
+      # subscription and tenant should not be enumerable from it.
+      - uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Exchanges the Azure token for a short-lived registry token and writes it to the
+      # Docker config. The identity behind it holds AcrPush and nothing else.
+      - name: Sign in to the container registry
+        run: az acr login --name "${ACR_NAME}"
+
+      - name: Build the image
+        env:
+          APP: ${{ matrix.app }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          docker build \
+            --file docker/Dockerfile \
+            --target "${TARGET}" \
+            --build-arg "APP=${APP}" \
+            --tag "${REGISTRY}/${APP}:${GITHUB_SHA}" \
+            --tag "${REGISTRY}/${APP}:latest" \
+            .
+
+      # The commit SHA is what deployments pin to; `latest` is a convenience for pulling by
+      # hand and must never be what a revision references.
+      - name: Push the image
+        env:
+          APP: ${{ matrix.app }}
+        run: |
+          docker push "${REGISTRY}/${APP}:${GITHUB_SHA}"
+          docker push "${REGISTRY}/${APP}:latest"

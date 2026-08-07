@@ -267,7 +267,9 @@ pnpm --filter @fphd/operations cli db seed                  # replace all data w
 pnpm --filter @fphd/operations cli db rebuild-read-models
 ```
 
-Deployed, the same commands are `node dist/cli.js db migrate` and so on.
+Deployed, the same commands are `node dist/cli.js db migrate` and so on, in the `operations` image.
+That image also carries `psql`, because a database with no public endpoint makes a container inside
+the network the only route to an ad-hoc query.
 
 Two commands are worth noting:
 
@@ -310,6 +312,44 @@ POSTGRES_PASSWORD
 
 `DB_PORT`, `DB_TLS` and `LOG_LEVEL` are optional. Exit codes: `0` success, `1` failure, `2`
 unrecognised command.
+
+## Container images
+
+`docker/Dockerfile` builds the production images — one per deployable application, plus
+`operations`. A shared builder stage installs the workspace and builds the requested app; then
+`--target` picks the runtime shape and `--build-arg APP` picks the app:
+
+```sh
+docker build -f docker/Dockerfile --target web --build-arg APP=public-web   -t public-web   .
+docker build -f docker/Dockerfile --target web --build-arg APP=internal-web -t internal-web .
+docker build -f docker/Dockerfile --target api --build-arg APP=public-api   -t public-api   .
+docker build -f docker/Dockerfile --target api --build-arg APP=internal-api -t internal-api .
+docker build -f docker/Dockerfile --target operations --build-arg APP=operations -t operations .
+```
+
+Five images, three targets. The two web apps have identical runtime stages — same base, same
+init, same start command — and so do the two APIs; only *which* app the builder compiled into
+the image differs. A per-app target would be a copy with nothing changed in it, so the targets
+split only where the runtime genuinely does: `dist/server.js` for an API, `server.ts` for a web
+app, and the CLI-plus-`psql` image for operations.
+
+`pnpm deploy --prod` prunes devDependencies and copies only the workspace packages the app actually
+depends on, so no image carries pnpm, TypeScript, drizzle-kit or another app's code. Images run as
+the `node` user and start under tini, which guarantees SIGTERM is delivered to a process running as
+PID 1 — the kernel discards a default-action signal sent to PID 1 unless that process installed a
+handler. Every server stops gracefully on that signal, well inside a thirty-second grace period.
+`HOST` and `PORT` come from the environment, defaulting to `0.0.0.0` and the app's own port.
+
+This is separate from `docker/app.Dockerfile`, which is the development image used by
+[mixed local/Docker development](#mixed-localdocker-development) and keeps the whole workspace and
+its devDependencies — exactly what the production images must not do.
+
+`.github/workflows/publish-images.yml` builds all five on every push to `main` and pushes them to
+Azure Container Registry, tagged with the commit SHA and `latest`. Deployments pin the SHA. There
+is no registry password and no service-principal secret: the workflow mints a GitHub OIDC token,
+`azure/login` exchanges it for an Azure token under a federated credential that trusts only
+main-branch runs of this workflow, and the identity behind it holds `AcrPush` alone. It needs three
+repository secrets — `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID`.
 
 ## Mixed local/Docker development
 
