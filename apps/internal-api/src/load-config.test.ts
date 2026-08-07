@@ -18,6 +18,7 @@ describe('loadConfig', () => {
         database: 'fphd',
         user: 'internal_api',
         password: 'pw',
+        ssl: false,
       },
     });
   });
@@ -48,8 +49,17 @@ describe('loadConfig', () => {
         database: 'fphd_prod',
         user: 'internal_api',
         password: 'pw',
+        ssl: true,
       },
     });
+  });
+
+  it('turns database TLS on everywhere but a developer machine, and lets DB_SSL override', () => {
+    const env = { INTERNAL_API_PASSWORD: 'pw', SESSION_JWT_SECRET: sessionSecret };
+    expect(loadConfig({ ...env }).db.ssl).toBe(false);
+    expect(loadConfig({ ...env, APP_ENV: 'dev' }).db.ssl).toBe(true);
+    expect(loadConfig({ ...env, DB_SSL: '1' }).db.ssl).toBe(true);
+    expect(loadConfig({ ...env, APP_ENV: 'production', DB_SSL: '0' }).db.ssl).toBe(false);
   });
 
   it('allows pretty logging only locally, where it defaults on', () => {

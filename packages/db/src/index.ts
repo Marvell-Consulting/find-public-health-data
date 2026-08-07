@@ -1,5 +1,5 @@
 export { createDb, type Database, type DbConnection, type Schema } from './client.js';
-export { dbEnvFields } from './env.js';
+export { dbEnvFields, resolveDbSsl } from './env.js';
 export { type ApprovedIndicator, listApprovedIndicators } from './indicator-repository.js';
 export { rebuildReadModels } from './read-models.js';
 export {

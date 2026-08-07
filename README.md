@@ -40,6 +40,11 @@ default**. If any is unset or empty, `docker compose` fails with a message namin
 rather than creating a database role with a well-known password. This means `docker compose up`
 will not work without a `.env`.
 
+`DB_SSL` turns TLS to the database on or off. Left unset it follows `APP_ENV`: off on a developer
+machine, on everywhere else, because every managed Postgres this deploys to requires it and the
+compose database offers none. Certificates are verified against Node's CA store — so it is not a way
+to accept an unknown certificate, and no CA bundle has to be shipped.
+
 `SESSION_JWT_SECRET` signs JWT session cookies issued by the authentication backend. The example
 value is for local development only; each deployed service must receive a secret of at least 32
 bytes from the deployment environment. Services issuing and validating a session for the same
