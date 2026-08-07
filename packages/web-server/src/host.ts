@@ -117,8 +117,13 @@ export async function startReactRouterServer({
   const server = app.listen(port, host, onListening);
   installShutdownHandlers(server, {
     onShutdown: async (signal) => {
-      await closeDevServer?.();
-      await onShutdown?.(signal);
+      // A Vite server that fails to close must not cost the caller its own cleanup — that is
+      // where a database pool or another handle keeping the process alive gets released.
+      try {
+        await closeDevServer?.();
+      } finally {
+        await onShutdown?.(signal);
+      }
     },
   });
 

@@ -1,4 +1,4 @@
-import { createServer, type Server } from 'node:http';
+import { createServer, request, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -16,6 +16,19 @@ async function startServer(handler: Handler): Promise<{ server: Server; url: str
 
   const { port } = server.address() as AddressInfo;
   return { server, url: `http://127.0.0.1:${port}` };
+}
+
+/**
+ * `agent: false` forces a brand-new socket. `fetch` pools connections, so a refusal it reported
+ * could be a pooled socket the server had already closed rather than the listener refusing to
+ * accept — which is the thing under test.
+ */
+function requestOnNewConnection(url: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const outgoing = request(url, { agent: false }, () => resolve());
+    outgoing.on('error', reject);
+    outgoing.end();
+  });
 }
 
 function deferred<T = void>() {
@@ -81,7 +94,7 @@ describe('shutdownServer', () => {
     await reachedHandler.promise;
     const shutdown = shutdownServer(server);
 
-    await expect(fetch(`${url}/late`)).rejects.toThrow();
+    await expect(requestOnNewConnection(`${url}/late`)).rejects.toThrow();
 
     releaseHandler.resolve();
     await inFlight;

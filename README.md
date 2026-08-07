@@ -234,8 +234,9 @@ how to regenerate it.
 ## Graceful shutdown
 
 Every server stops cleanly. On SIGTERM or SIGINT it stops accepting connections, lets in-flight
-requests finish, closes idle keep-alive sockets so that finishes promptly rather than waiting out a
-timeout, and destroys anything still mid-request after ten seconds. The APIs then close their
+requests finish, and destroys anything still mid-request after ten seconds. It closes idle
+keep-alive sockets as it goes: those carry no work, but `close` alone waits for them, which is the
+difference between stopping in milliseconds and stopping in ten seconds. The APIs then close their
 database pool; without that the process would sit with an idle pool holding the event loop open and
 have to be killed. In development the same path closes the Vite server, which is what makes a
 `tsx watch` restart release the port instead of failing to rebind.
@@ -285,7 +286,6 @@ apps/
   public-api/
   internal-api/
 packages/
-  api/
   api-server/
   auth/
   config/
@@ -295,7 +295,6 @@ packages/
   ui/
   web-server/
   public-api-features/
-  internal-api-features/
   public-web-features/
   internal-web-features/
 tools/
