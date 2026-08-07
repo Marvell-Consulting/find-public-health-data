@@ -12,8 +12,8 @@ export const dbEnvFields = {
 };
 
 // 'test' is not an APP_ENV the apps accept, but the seed CLI and integration harness
-// recognise it; like 'local' it means a database on this machine, presenting no certificate
-// there is anything to verify against.
+// recognise it; like 'local' it means a database on this machine, which presents no
+// certificate for TLS to verify.
 const NON_TLS_APP_ENVS = ['local', 'test'];
 
 /**

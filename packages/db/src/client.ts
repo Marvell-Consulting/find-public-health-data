@@ -31,14 +31,17 @@ export function createPostgresClient(
   connection: DbConnection,
   options: postgres.Options<Record<string, never>> = {},
 ): postgres.Sql {
+  // The connection spreads last so `options` cannot reach a connection field. Nothing needs
+  // to, and an options bag that could quietly turn `ssl` back off would undo the point of
+  // routing every caller through here.
   return postgres({
+    ...options,
     host: connection.host,
     port: connection.port,
     database: connection.database,
     username: connection.user,
     password: connection.password,
     ssl: connection.ssl,
-    ...options,
   });
 }
 
