@@ -7,7 +7,7 @@ import { type AppEnv, boolSchema, isDeployedEnv, portSchema, z } from '@fphd/con
 export const dbEnvFields = {
   DB_HOST: z.string().default('localhost'),
   DB_PORT: portSchema.default(5432),
-  DB_SSL: boolSchema.optional(),
+  DB_TLS: boolSchema.optional(),
   POSTGRES_DB: z.string().default('fphd'),
 };
 
@@ -18,6 +18,6 @@ export const dbEnvFields = {
  * like LOG_PRETTY, the fallback depends on APP_ENV, which a shared field fragment cannot
  * see.
  */
-export function resolveDbSsl(appEnv: AppEnv, dbSsl: boolean | undefined): boolean {
-  return dbSsl ?? isDeployedEnv(appEnv);
+export function resolveDbTls(appEnv: AppEnv, dbTls: boolean | undefined): boolean {
+  return dbTls ?? isDeployedEnv(appEnv);
 }

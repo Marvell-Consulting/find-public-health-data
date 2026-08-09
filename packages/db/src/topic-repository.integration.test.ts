@@ -2,7 +2,7 @@ import { appEnvFields, parseEnv, z } from '@fphd/config';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDb, createPostgresClient, type Database } from './client.js';
-import { dbEnvFields, resolveDbSsl } from './env.js';
+import { dbEnvFields, resolveDbTls } from './env.js';
 import type { TopicRecord } from './schema.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
 import { getTopicBySlug, listTopics, upsertTopics } from './topic-repository.js';
@@ -45,7 +45,7 @@ beforeAll(async () => {
     database: testDb.name,
     user: env.POSTGRES_USER,
     password: env.POSTGRES_PASSWORD,
-    ssl: resolveDbSsl(env.APP_ENV, env.DB_SSL),
+    ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
   });
   await upsertTopics(db, [zebra, apple]);
 });
@@ -106,7 +106,7 @@ describe('the topic read surface', () => {
       database: testDb.name,
       user: role,
       password,
-      ssl: resolveDbSsl(env.APP_ENV, env.DB_SSL),
+      ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
     });
 
     try {

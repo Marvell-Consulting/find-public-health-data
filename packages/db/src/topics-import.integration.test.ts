@@ -3,7 +3,7 @@ import { eq, getTableColumns, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDb, type Database } from './client.js';
-import { dbEnvFields, resolveDbSsl } from './env.js';
+import { dbEnvFields, resolveDbTls } from './env.js';
 import { type TopicRecord, topic } from './schema.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
 import { upsertTopics } from './topic-repository.js';
@@ -25,7 +25,7 @@ function ownerConnection(database: string) {
     database,
     user: env.POSTGRES_USER,
     password: env.POSTGRES_PASSWORD,
-    ssl: resolveDbSsl(env.APP_ENV, env.DB_SSL),
+    ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
   };
 }
 

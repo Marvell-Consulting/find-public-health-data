@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { appEnvFields, parseEnv, z } from '@fphd/config';
 
 import { createDb } from '../client.js';
-import { dbEnvFields, resolveDbSsl } from '../env.js';
+import { dbEnvFields, resolveDbTls } from '../env.js';
 import { upsertTopics } from '../topic-repository.js';
 import { parseTopicsFile } from './parse-topics-file.js';
 
@@ -26,7 +26,7 @@ async function main() {
     database: env.POSTGRES_DB,
     user: env.POSTGRES_USER,
     password: env.POSTGRES_PASSWORD,
-    ssl: resolveDbSsl(env.APP_ENV, env.DB_SSL),
+    ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
   });
 
   try {

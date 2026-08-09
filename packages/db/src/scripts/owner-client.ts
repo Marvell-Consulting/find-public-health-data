@@ -5,7 +5,7 @@ import { appEnvFields, parseEnv, z } from '@fphd/config';
 import type postgres from 'postgres';
 
 import { createPostgresClient } from '../client.js';
-import { dbEnvFields, resolveDbSsl } from '../env.js';
+import { dbEnvFields, resolveDbTls } from '../env.js';
 
 const repoEnvFile = fileURLToPath(new URL('../../../../.env', import.meta.url));
 
@@ -32,7 +32,7 @@ export function createOwnerClient(database?: string): postgres.Sql {
       database: database ?? env.POSTGRES_DB,
       user: env.POSTGRES_USER,
       password: env.POSTGRES_PASSWORD,
-      ssl: resolveDbSsl(env.APP_ENV, env.DB_SSL),
+      ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
     },
     { max: 1, onnotice: () => {} },
   );

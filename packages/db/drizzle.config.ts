@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import { appEnvFields, parseEnv, z } from '@fphd/config';
 import { defineConfig } from 'drizzle-kit';
 
-import { dbEnvFields, resolveDbSsl } from './src/env.js';
+import { dbEnvFields, resolveDbTls } from './src/env.js';
 
 // Load the repo-root .env when running drizzle-kit from this package (cwd = packages/db).
 // drizzle-kit runs migrations as the owner role.
@@ -32,6 +32,6 @@ export default defineConfig({
     user: env.POSTGRES_USER,
     password: env.POSTGRES_PASSWORD,
     database: env.POSTGRES_DB,
-    ssl: resolveDbSsl(env.APP_ENV, env.DB_SSL),
+    ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
   },
 });

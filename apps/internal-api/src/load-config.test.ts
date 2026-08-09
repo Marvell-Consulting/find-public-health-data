@@ -59,13 +59,13 @@ describe('loadConfig', () => {
     });
   });
 
-  it('turns database TLS on everywhere but this machine, and lets DB_SSL override', () => {
+  it('turns database TLS on everywhere but this machine, and lets DB_TLS override', () => {
     expect(loadConfig({ ...local }).db.ssl).toBe(false);
     expect(loadConfig({ ...local, APP_ENV: 'test' }).db.ssl).toBe(false);
     expect(loadConfig({ ...local, APP_ENV: 'dev' }).db.ssl).toBe(true);
     expect(loadConfig({ ...local, APP_ENV: 'production' }).db.ssl).toBe(true);
-    expect(loadConfig({ ...local, DB_SSL: '1' }).db.ssl).toBe(true);
-    expect(loadConfig({ ...local, APP_ENV: 'production', DB_SSL: '0' }).db.ssl).toBe(false);
+    expect(loadConfig({ ...local, DB_TLS: '1' }).db.ssl).toBe(true);
+    expect(loadConfig({ ...local, APP_ENV: 'production', DB_TLS: '0' }).db.ssl).toBe(false);
   });
 
   it('secures session cookies everywhere but this machine', () => {

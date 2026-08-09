@@ -48,7 +48,7 @@ would let an unset variable pick the relaxed side in silence. Every runtime supp
 development, `compose.yaml` for the containers, the `test:integration` script for test runs, and the
 platform for deployed services.
 
-`DB_SSL` turns TLS to the database on or off. Left unset it follows `APP_ENV`: off for `local` and
+`DB_TLS` turns TLS to the database on or off. Left unset it follows `APP_ENV`: off for `local` and
 `test`, where the database is the compose container and presents no certificate, and on everywhere
 else, because every managed Postgres this deploys to requires it. Certificates are verified against
 Node's CA store — so it is not a way to accept an unknown certificate, and no CA bundle has to be
