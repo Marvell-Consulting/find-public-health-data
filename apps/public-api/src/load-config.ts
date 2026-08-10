@@ -25,7 +25,8 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
       pretty: parsed.APP_ENV === 'local' && (parsed.LOG_PRETTY ?? true),
     },
     shutdown: {
-      drainMs: resolveShutdownDrainMs(parsed.APP_ENV, parsed.SHUTDOWN_DRAIN_MS),
+      drainDelayMs: resolveShutdownDrainMs(parsed.APP_ENV, parsed.SHUTDOWN_DRAIN_MS),
+      gracePeriodMs: parsed.SHUTDOWN_GRACE_PERIOD_MS,
     },
     db: {
       host: parsed.DB_HOST,

@@ -191,6 +191,30 @@ describe('shutdownServer', () => {
     expect(server.listening).toBe(false);
     await expect(abandoned).rejects.toThrow();
   });
+
+  it('reports work cut short, so a forced close is not a silent one', async () => {
+    const reachedHandler = deferred();
+    const { server, url } = await startServer(() => reachedHandler.resolve());
+    const onForcedClose = vi.fn();
+
+    // Caught as it is made, not asserted on later: the socket is destroyed during the shutdown
+    // below, and a rejection with nothing attached yet surfaces as an unhandled one.
+    const abandoned = fetch(`${url}/never`).catch((error: unknown) => error);
+    await reachedHandler.promise;
+    await shutdownServer(server, 50, onForcedClose);
+
+    expect(onForcedClose).toHaveBeenCalled();
+    expect(await abandoned).toBeInstanceOf(Error);
+  });
+
+  it('stays quiet when everything finished in time', async () => {
+    const { server } = await startServer((_request, response) => response.end('ok'));
+    const onForcedClose = vi.fn();
+
+    await shutdownServer(server, 5_000, onForcedClose);
+
+    expect(onForcedClose).not.toHaveBeenCalled();
+  });
 });
 
 describe('createShutdownHandler', () => {
@@ -209,7 +233,7 @@ describe('createShutdownHandler', () => {
     const { server } = await startServer((_request, response) => response.end('ok'));
     const listeningWhenDraining = deferred<boolean>();
     const shutdown = createShutdownHandler(server, {
-      drainMs: 20,
+      drainDelayMs: 20,
       onDraining: () => listeningWhenDraining.resolve(server.listening),
     });
 
@@ -265,11 +289,35 @@ describe('createShutdownHandler', () => {
     const shutdown = createShutdownHandler(server, {
       onShutdown: () => stuck.promise,
       onError,
-      timeoutMs: 50,
+      gracePeriodMs: 50,
     });
 
     expect(await shutdown('SIGTERM')).toBe(1);
     expect(onError).toHaveBeenCalledWith(expect.any(Error));
+    stuck.resolve();
+  });
+
+  it('fits the whole stop inside the grace period rather than one budget per phase', async () => {
+    const reachedHandler = deferred();
+    const { server, url } = await startServer(() => reachedHandler.resolve());
+    const stuck = deferred();
+    // Every phase overruns: a request that never finishes and cleanup that never settles. The
+    // stop is bounded by the grace period itself, not by the drain plus a timeout each.
+    const shutdown = createShutdownHandler(server, {
+      gracePeriodMs: 400,
+      drainDelayMs: 100,
+      onShutdown: () => stuck.promise,
+      onError: () => {},
+    });
+
+    const abandoned = fetch(`${url}/never`).catch((error: unknown) => error);
+    await reachedHandler.promise;
+    const started = Date.now();
+
+    expect(await shutdown('SIGTERM')).toBe(1);
+
+    expect(Date.now() - started).toBeLessThan(900);
+    expect(await abandoned).toBeInstanceOf(Error);
     stuck.resolve();
   });
 

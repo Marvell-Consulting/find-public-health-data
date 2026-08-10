@@ -1,7 +1,8 @@
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { InvalidJwtSessionError } from '@fphd/auth/session-errors';
-import { installShutdownHandlers, type ShutdownOptions } from '@fphd/server-lifecycle';
-import express, { type Express } from 'express';
+import { createBaseApp, type StartServerOptions, startServer } from '@fphd/express';
+import type { Express, RequestHandler } from 'express';
+import { json } from 'express';
 import { rateLimit } from 'express-rate-limit';
 
 interface ApiRateLimitOptions {
@@ -22,26 +23,9 @@ export function createApiApp(
   serviceName: string,
   { rateLimit: rateLimitOptions = defaultApiRateLimit }: CreateApiAppOptions = {},
 ): Express {
-  const app = express();
+  const app = createBaseApp({ serviceName });
 
-  app.disable('x-powered-by');
-  app.use(express.json());
-
-  // The same three paths and the same body as `@fphd/web-server` serves, so one probe
-  // configuration covers all four apps — mirror any change to one in the other.
-  app.get(['/health', '/health/live'], (_request, response) => {
-    response.status(200).json({ status: 'ok', service: serviceName });
-  });
-
-  // Readiness is separate from the other two: during a stop the process is alive and still
-  // serving, but it must stop being routed to before it closes anything.
-  app.get('/health/ready', (request, response) => {
-    const draining = request.app.locals.draining === true;
-    response.status(draining ? 503 : 200).json({
-      status: draining ? 'draining' : 'ok',
-      service: serviceName,
-    });
-  });
+  app.use(json());
 
   app.use(
     '/api',
@@ -69,7 +53,7 @@ export function addNotFoundHandler(app: Express) {
   });
 }
 
-export function requireJwtRole(verifier: JwtSessionVerifier, role: string): express.RequestHandler {
+export function requireJwtRole(verifier: JwtSessionVerifier, role: string): RequestHandler {
   return async (request, response, next) => {
     const token = verifier.readToken(request.headers.cookie ?? null);
 
@@ -95,40 +79,9 @@ export function requireJwtRole(verifier: JwtSessionVerifier, role: string): expr
   };
 }
 
-interface StartApiServerOptions {
-  app: Express;
-  /** How long to keep serving after the signal, before closing anything. */
-  drainMs?: ShutdownOptions['drainMs'];
-  host: string;
-  /** Reports a stop that failed; the lifecycle package cannot log. */
-  onError?: ShutdownOptions['onError'];
-  onListening: () => void;
-  /** Runs once the server has stopped serving — close the database pool here. */
-  onShutdown?: ShutdownOptions['onShutdown'];
-  port: number;
-}
-
-export function startApiServer({
-  app,
-  drainMs,
-  host,
-  onError,
-  onListening,
-  onShutdown,
-  port,
-}: StartApiServerOptions) {
-  const server = app.listen(port, host, onListening);
-
-  installShutdownHandlers(server, {
-    drainMs,
-    // `app.locals` rather than a capability threaded through `createApp`: the readiness route
-    // reads it off the request, so the flag reaches it without a new argument on every factory.
-    onDraining: () => {
-      app.locals.draining = true;
-    },
-    onError,
-    onShutdown,
-  });
-
-  return server;
-}
+/**
+ * Re-exported so an API app has one import source, but not wrapped: there is nothing
+ * API-specific left in starting one, and a `startApiServer` that only forwarded would imply
+ * there was.
+ */
+export { type StartServerOptions, startServer };

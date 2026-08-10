@@ -395,9 +395,9 @@ importers:
       '@fphd/auth':
         specifier: workspace:*
         version: link:../auth
-      '@fphd/server-lifecycle':
+      '@fphd/express':
         specifier: workspace:*
-        version: link:../server-lifecycle
+        version: link:../express
       express:
         specifier: 'catalog:'
         version: 5.2.1
@@ -477,6 +477,34 @@ importers:
       tsx:
         specifier: 'catalog:'
         version: 4.23.0
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@types/node@24.13.3)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.1.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0)(yaml@2.9.0))
+
+  packages/express:
+    dependencies:
+      '@fphd/server-lifecycle':
+        specifier: workspace:*
+        version: link:../server-lifecycle
+      express:
+        specifier: 'catalog:'
+        version: 5.2.1
+    devDependencies:
+      '@types/express':
+        specifier: 'catalog:'
+        version: 5.0.6
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.13.3
+      '@types/supertest':
+        specifier: 'catalog:'
+        version: 7.2.0
+      supertest:
+        specifier: 'catalog:'
+        version: 7.2.2
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -641,9 +669,9 @@ importers:
       '@fphd/config':
         specifier: workspace:*
         version: link:../config
-      '@fphd/server-lifecycle':
+      '@fphd/express':
         specifier: workspace:*
-        version: link:../server-lifecycle
+        version: link:../express
       '@fphd/ui':
         specifier: workspace:*
         version: link:../ui

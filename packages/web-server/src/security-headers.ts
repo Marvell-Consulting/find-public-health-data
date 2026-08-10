@@ -27,13 +27,14 @@ function contentSecurityPolicy({ development, nonce }: SecurityHeaderOptions): s
   ].join('; ');
 }
 
+/**
+ * Only the headers that need an HTML document to mean anything. The ones that apply to every
+ * response from any host — HSTS, `nosniff`, `Referrer-Policy` — are `@fphd/express`'s, so the
+ * APIs get them too; neither of these two would do anything on a JSON response.
+ */
 export function buildSecurityHeaders(options: SecurityHeaderOptions): Record<string, string> {
   return {
     'Content-Security-Policy': contentSecurityPolicy(options),
-    // Inert over plain HTTP; TLS terminates at the platform edge, so always behave as HTTPS.
-    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-    'X-Content-Type-Options': 'nosniff',
-    'Referrer-Policy': 'strict-origin-when-cross-origin',
     // frame-ancestors covers modern browsers; X-Frame-Options covers the ones that ignore it.
     'X-Frame-Options': 'DENY',
   };

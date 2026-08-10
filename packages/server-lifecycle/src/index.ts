@@ -1,32 +1,51 @@
 import type { Server } from 'node:http';
 
 /**
- * Long enough for a slow request to finish, comfortably shorter than the platform's grace
- * period before SIGKILL — Container Apps allows 30 seconds by default, and a shutdown that
- * outlives it is indistinguishable from one that never started. It bounds the drain and the
- * cleanup separately, so the worst case is `drainMs` plus twice this; raising either without
- * checking that sum against the grace period is how a stop starts being SIGKILLed instead.
+ * The budget for a whole stop, drain included, so this number is directly comparable to the
+ * platform's grace period rather than being one term of a sum. Container Apps allows 30 seconds
+ * by default (`terminationGracePeriodSeconds`, raisable to an hour), and a shutdown that outlives
+ * the grace period is indistinguishable from one that never started.
  */
-const DEFAULT_TIMEOUT_MS = 10_000;
+const DEFAULT_GRACE_PERIOD_MS = 25_000;
 
-/** A socket falling idle mid-drain then costs a tenth of a second rather than five. */
+/**
+ * Held back from the phases that run before cleanup. Closing a pool takes milliseconds, but it
+ * is the phase that releases the handles keeping the process alive, so a slow drain or a hung
+ * request must not be able to squeeze it down to nothing. Capped as a share of the budget as
+ * well, so a deliberately short grace period shortens the reserve rather than being consumed
+ * by it.
+ */
+const CLEANUP_RESERVE_MS = 2_000;
+const CLEANUP_RESERVE_SHARE = 0.2;
+
+/** A socket falling idle mid-close then costs a tenth of a second rather than five. */
 const IDLE_SWEEP_INTERVAL_MS = 100;
 
 const SHUTDOWN_SIGNALS: NodeJS.Signals[] = ['SIGTERM', 'SIGINT'];
 
 export interface ShutdownOptions {
-  /** Bounds the wait for in-flight requests, and separately the wait for `onShutdown`. */
-  timeoutMs?: number | undefined;
+  /**
+   * The whole stop, drain included, must fit in this. Keep it under the platform's grace
+   * period: whatever is unfinished when it expires is destroyed rather than waited for.
+   */
+  gracePeriodMs?: number | undefined;
   /**
    * How long to keep serving after the signal, before closing anything. Zero on a developer
    * machine, where nothing is routing to the process and the delay would just make Ctrl-C slow.
    */
-  drainMs?: number | undefined;
+  drainDelayMs?: number | undefined;
   /**
    * Runs as the drain begins — this is where readiness starts failing, so the ingress stops
    * routing to a replica that is still perfectly able to serve what it has already been sent.
    */
   onDraining?: (() => void) | undefined;
+  /**
+   * Runs when the grace period expired with requests still in flight, which are then destroyed.
+   * Separate from `onError` because it reports a stop that had to cut work short rather than one
+   * that failed, so it leaves the exit code alone — but it is worth a warning either way, since
+   * under normal load nothing should still be running when the budget runs out.
+   */
+  onForcedClose?: (() => void) | undefined;
   /**
    * Runs once the server has stopped serving, before the process exits — close database
    * pools and other handles here. Without it a pool keeps the event loop alive and the
@@ -55,7 +74,7 @@ export interface ShutdownOptions {
  */
 export function drainServer(
   server: Server,
-  drainMs: number,
+  delayMs: number,
   onDraining?: (() => void) | undefined,
 ): Promise<void> {
   server.prependListener('request', (_request, response) => {
@@ -64,14 +83,14 @@ export function drainServer(
 
   onDraining?.();
 
-  return new Promise((resolve) => setTimeout(resolve, drainMs));
+  return new Promise((resolve) => setTimeout(resolve, delayMs));
 }
 
 /**
  * Stops accepting connections, then waits for in-flight requests to finish.
  *
  * `close` sweeps idle keep-alive sockets, but only once, as it is called. The interval repeats
- * that sweep: a socket whose request completes *during* the drain is carrying no work from that
+ * that sweep: a socket whose request completes *during* the close is carrying no work from that
  * moment on, and would otherwise hold the close open for the entire keep-alive timeout. The
  * timeout then destroys whatever is genuinely still mid-request, so one hung handler cannot
  * stall the shutdown indefinitely.
@@ -80,10 +99,18 @@ export function drainServer(
  * than served. Node's own `close` does the same, and avoiding it would mean draining with
  * `Connection: close` instead of destroying idle sockets.
  */
-export function shutdownServer(server: Server, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<void> {
+export function shutdownServer(
+  server: Server,
+  timeoutMs = DEFAULT_GRACE_PERIOD_MS,
+  onForcedClose?: (() => void) | undefined,
+): Promise<void> {
   return new Promise((resolve, reject) => {
     const sweepIdle = setInterval(() => server.closeIdleConnections(), IDLE_SWEEP_INTERVAL_MS);
-    const forceClose = setTimeout(() => server.closeAllConnections(), timeoutMs);
+    // Only ever reached with work still in flight: a close that finishes first clears it.
+    const forceClose = setTimeout(() => {
+      onForcedClose?.();
+      server.closeAllConnections();
+    }, timeoutMs);
     // Nothing should be kept alive merely because a shutdown timer is pending.
     sweepIdle.unref();
     forceClose.unref();
@@ -122,13 +149,17 @@ function withDeadline(work: Promise<void>, timeoutMs: number): Promise<void> {
  * signalling the test runner's own process. Resolves to the exit code the process should
  * use; safe to call more than once, because a platform that has sent SIGTERM will often
  * send it again if the process is slow to go.
+ *
+ * The phases share one deadline rather than holding a timeout each, so the worst case is the
+ * grace period itself and there is no sum to get wrong when tuning it.
  */
 export function createShutdownHandler(
   server: Server,
   {
-    timeoutMs = DEFAULT_TIMEOUT_MS,
-    drainMs = 0,
+    gracePeriodMs = DEFAULT_GRACE_PERIOD_MS,
+    drainDelayMs = 0,
     onDraining,
+    onForcedClose,
     onShutdown,
     onError,
   }: ShutdownOptions = {},
@@ -137,23 +168,28 @@ export function createShutdownHandler(
 
   return (signal) => {
     inProgress ??= (async () => {
+      const expiresAt = Date.now() + gracePeriodMs;
+      const reserve = Math.min(CLEANUP_RESERVE_MS, gracePeriodMs * CLEANUP_RESERVE_SHARE);
+      const remaining = () => Math.max(0, expiresAt - Date.now());
+      /** What a phase running before cleanup may spend, leaving cleanup its reserve. */
+      const spendable = () => Math.max(0, remaining() - reserve);
       const failures: unknown[] = [];
 
       try {
-        await drainServer(server, drainMs, onDraining);
+        await drainServer(server, Math.min(drainDelayMs, spendable()), onDraining);
       } catch (error) {
         failures.push(error);
       }
 
       try {
-        await shutdownServer(server, timeoutMs);
+        await shutdownServer(server, spendable(), onForcedClose);
       } catch (error) {
         failures.push(error);
       }
 
       try {
         if (onShutdown !== undefined) {
-          await withDeadline(Promise.resolve(onShutdown(signal)), timeoutMs);
+          await withDeadline(Promise.resolve(onShutdown(signal)), remaining());
         }
       } catch (error) {
         failures.push(error);

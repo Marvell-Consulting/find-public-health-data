@@ -25,7 +25,7 @@ const topicB = {
 describe('public API', () => {
   it('reports its health', async () => {
     const response = await request(createApp({ repositories: createFakeRepositories() })).get(
-      '/health',
+      '/livez',
     );
 
     expect(response.status).toBe(200);

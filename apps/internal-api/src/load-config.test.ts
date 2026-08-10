@@ -16,7 +16,7 @@ describe('loadConfig', () => {
       host: '0.0.0.0',
       port: 4001,
       log: { level: 'info', pretty: true },
-      shutdown: { drainMs: 0 },
+      shutdown: { drainDelayMs: 0, gracePeriodMs: 25_000 },
       session: { secret: sessionSecret, secure: false },
       db: {
         host: 'localhost',
@@ -48,7 +48,7 @@ describe('loadConfig', () => {
       host: '127.0.0.1',
       port: 8081,
       log: { level: 'warn', pretty: false },
-      shutdown: { drainMs: 5_000 },
+      shutdown: { drainDelayMs: 5_000, gracePeriodMs: 25_000 },
       session: { secret: sessionSecret, secure: true },
       db: {
         host: 'db.internal',

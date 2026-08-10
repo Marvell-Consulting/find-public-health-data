@@ -1,33 +1,19 @@
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { installShutdownHandlers, type ShutdownOptions } from '@fphd/server-lifecycle';
+import { createBaseApp, type StartServerOptions, startServer } from '@fphd/express';
 import express, { type Express, type RequestHandler } from 'express';
 import morgan from 'morgan';
 
 import { securityHeaders } from './security-headers.js';
 
-/**
- * The same three paths and the same body as `@fphd/api-server` serves, so one probe
- * configuration covers all four apps — mirror any change to one in the other.
- */
 function createHost({ development, serviceName }: { development: boolean; serviceName: string }) {
-  const app = express();
+  const app = createBaseApp({ serviceName });
 
-  app.disable('x-powered-by');
+  // After the base, so the probes it registered answer without a CSP. That is deliberate: a
+  // policy constrains what a browser may load while rendering a document, and there is no
+  // document in a JSON probe response for it to constrain.
   app.use(securityHeaders({ development }));
-  app.get(['/health', '/health/live'], (_request, response) => {
-    response.json({ status: 'ok', service: serviceName });
-  });
-
-  // Readiness is separate from the other two: during a stop the process is alive and still
-  // serving, but it must stop being routed to before it closes anything.
-  app.get('/health/ready', (request, response) => {
-    const draining = request.app.locals.draining === true;
-    response
-      .status(draining ? 503 : 200)
-      .json({ status: draining ? 'draining' : 'ok', service: serviceName });
-  });
 
   return app;
 }
@@ -73,14 +59,8 @@ function readRequestHandler(serverModule: unknown): RequestHandler {
   return serverModule.app;
 }
 
-interface ReactRouterServerOptions {
+interface ReactRouterServerOptions extends Omit<StartServerOptions, 'app' | 'onShutdown' | 'port'> {
   development: boolean;
-  /** How long to keep serving after the signal, before closing anything. */
-  drainMs?: ShutdownOptions['drainMs'];
-  host: string;
-  /** Reports a stop that failed; the lifecycle package cannot log. */
-  onError?: ShutdownOptions['onError'];
-  onListening: () => void;
   port: number;
   rootDirectory: string;
   /** Names this app in its health responses, where four apps sit behind one front door. */
@@ -89,9 +69,11 @@ interface ReactRouterServerOptions {
 
 export async function startReactRouterServer({
   development,
-  drainMs,
+  drainDelayMs,
+  gracePeriodMs,
   host,
   onError,
+  onForcedClose,
   onListening,
   port,
   rootDirectory,
@@ -133,15 +115,15 @@ export async function startReactRouterServer({
     app = createProductionHost({ clientDirectory, requestHandler, serviceName });
   }
 
-  const server = app.listen(port, host, onListening);
-  installShutdownHandlers(server, {
-    drainMs,
-    onDraining: () => {
-      app.locals.draining = true;
-    },
+  return startServer({
+    app,
+    drainDelayMs,
+    gracePeriodMs,
+    host,
     onError,
+    onForcedClose,
+    onListening,
     onShutdown: closeDevServer,
+    port,
   });
-
-  return server;
 }

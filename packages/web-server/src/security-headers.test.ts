@@ -10,14 +10,18 @@ describe('buildSecurityHeaders', () => {
   const prod = buildSecurityHeaders({ development: false, nonce: 'test-nonce' });
   const dev = buildSecurityHeaders({ development: true, nonce: 'test-nonce' });
 
-  it('sets the full set of security headers', () => {
-    expect(prod).toMatchObject({
-      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-      'X-Content-Type-Options': 'nosniff',
-      'Referrer-Policy': 'strict-origin-when-cross-origin',
-      'X-Frame-Options': 'DENY',
-    });
+  it('sets the headers that need a document to mean anything, and only those', () => {
+    expect(prod['X-Frame-Options']).toBe('DENY');
     expect(prod['Content-Security-Policy']).toBeDefined();
+  });
+
+  // The universal three come from `@fphd/express`, so that every app sends them rather than
+  // only the two that render HTML. Duplicating them here would let the base app drop them
+  // without a test noticing.
+  it('leaves the headers every app sends to the shared base', () => {
+    expect(prod['Strict-Transport-Security']).toBeUndefined();
+    expect(prod['X-Content-Type-Options']).toBeUndefined();
+    expect(prod['Referrer-Policy']).toBeUndefined();
   });
 
   it('carries the request nonce in script-src', () => {

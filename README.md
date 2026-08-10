@@ -236,39 +236,54 @@ how to regenerate it.
 Every server stops cleanly, in three phases.
 
 **Drain.** On SIGTERM or SIGINT the server keeps listening and keeps serving, but readiness starts
-failing and every response now carries `Connection: close`. The ingress sees the failing probe and
-stops routing to the replica; clients that are mid-conversation retire their own pooled connections
-rather than having them destroyed underneath a request they had already written — destroying a
-socket with an unparsed request in its buffer is a TCP reset, which is the failure graceful
-shutdown exists to avoid. `SHUTDOWN_DRAIN_MS` sets the length: zero on a developer machine, where
-nothing routes to the process and a delay would only make Ctrl-C slow, five seconds elsewhere.
+failing and every response now carries `Connection: close`. A readiness probe then stops routing to
+the replica, and clients that are mid-conversation retire their own pooled connections rather than
+having them destroyed underneath a request they had already written — destroying a socket with an
+unparsed request in its buffer is a TCP reset, which is the failure graceful shutdown exists to
+avoid. `SHUTDOWN_DRAIN_MS` sets the length: zero on a developer machine, where nothing routes to the
+process and a delay would only make Ctrl-C slow, five seconds elsewhere. **Nothing probes readiness
+yet** — the infrastructure defines no probes at all — so today only the `Connection: close` half has
+an effect; the deregistration half starts working when a readiness probe is configured against
+`/readyz`.
 
 **Close.** The listener closes and in-flight requests finish. Idle keep-alive sockets are swept
 repeatedly meanwhile: they carry no work, but `close` waits for them and sweeps only once, as it is
 called, so a socket whose request finishes during the close would otherwise hold the stop open for
-the whole keep-alive timeout. Anything still mid-request after ten seconds is destroyed, so one
-hung handler cannot stall the stop.
+the whole keep-alive timeout. Anything still mid-request when the budget runs out is destroyed, so
+one hung handler cannot stall the stop; that reports through `onForcedClose`, which each app logs at
+warn, because under normal load nothing should still be running by then.
 
 **Cleanup.** The APIs close their database pool; without that the process would sit with an idle
 pool holding the event loop open and have to be killed. In development the same path closes the
 Vite server, which is what makes a `tsx watch` restart release the port instead of failing to
-rebind. Cleanup is bounded by the same ten seconds, because a pool that never finishes closing
-would otherwise leave a process that has already replaced the default signal handlers ignoring
-every subsequent stop until the platform kills it — and locally, ignoring Ctrl-C. A stop that fails
-reports through `onError`, which each app points at its logger, and exits non-zero.
+rebind. Cleanup is bounded too, because a pool that never finishes closing would otherwise leave a
+process that has already replaced the default signal handlers ignoring every subsequent stop until
+the platform kills it — and locally, ignoring Ctrl-C. A stop that fails reports through `onError`,
+which each app points at its logger, and exits non-zero.
 
-Worst case is therefore the drain plus twice the timeout, 25 seconds by default, inside Container
-Apps' 30-second grace period. Raising either without checking that sum is how a stop starts being
-SIGKILLed.
+The three phases share **one budget**, `SHUTDOWN_GRACE_PERIOD_MS`, rather than holding a timeout
+each, so the worst case for a stop is that number and there is no sum to get wrong. It defaults to
+25 seconds, inside Container Apps' 30-second grace period. It is a ceiling and not a wait: a stop
+with nothing in flight is immediate, which is why it needs no separate local value. Raising it means
+raising `terminationGracePeriodSeconds` alongside it — that is what actually decides when SIGKILL
+arrives, and it is configurable up to an hour if long responses ever need it. Cleanup keeps a small
+reserve of the budget, since it is the phase that releases the handles keeping the process alive.
 
-All four apps serve the same three health paths, so one probe configuration covers every app:
-`/health` and `/health/live` report `{ "status": "ok", "service": "public-api" }` and keep doing so
-throughout a stop, because the process is alive and serving the whole time; `/health/ready` answers
-503 with `"status": "draining"` from the moment a signal arrives.
+All four apps serve the same two probes, so one probe configuration covers every app. `/livez`
+reports `{ "status": "ok", "service": "<app>" }` and keeps doing so throughout a stop, because the
+process is alive and serving the whole time; `/readyz` answers 503 with `"status": "draining"` from
+the moment a signal arrives. The paths follow Kubernetes' own convention for its control-plane
+components — the `z` keeps them clear of the content routes a health data catalogue might want.
+Probes read the status code alone; the body is there for a human curling one of the four apps
+during an incident.
 
-The shared implementation is `@fphd/server-lifecycle`, used by both `startApiServer` and
-`startReactRouterServer`. It is its own package because those two live in sibling packages that must
-not import one another, and a copy in each would drift.
+Two packages sit underneath this. `@fphd/express` is the Express every app starts from — the probes,
+`x-powered-by` off, the security headers every app sends, and `startServer`, which listens and wires
+the drain to the readiness flag. It
+exists because `@fphd/api-server` and `@fphd/web-server` must not import one another, so anything all
+four apps must agree on has nowhere else to live without being mirrored between them. `@fphd/express`
+in turn uses `@fphd/server-lifecycle`, which knows only `node:http` and nothing about Express, so a
+stop can be tested against a bare server rather than through a framework.
 
 ## Mixed local/Docker development
 
@@ -315,6 +330,7 @@ packages/
   auth/
   config/
   db/
+  express/
   logger/
   server-lifecycle/
   ui/

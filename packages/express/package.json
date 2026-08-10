@@ -1,5 +1,5 @@
 {
-  "name": "@fphd/api-server",
+  "name": "@fphd/express",
   "version": "0.0.0",
   "private": true,
   "license": "MIT",
@@ -16,10 +16,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@fphd/auth": "workspace:*",
-    "@fphd/express": "workspace:*",
-    "express": "catalog:",
-    "express-rate-limit": "catalog:"
+    "@fphd/server-lifecycle": "workspace:*",
+    "express": "catalog:"
   },
   "devDependencies": {
     "@types/express": "catalog:",

@@ -69,14 +69,23 @@ describe('serverEnvFields', () => {
       APP_ENV: 'local',
       HOST: '0.0.0.0',
       PORT: 4000,
+      SHUTDOWN_GRACE_PERIOD_MS: 25_000,
     });
   });
 
   it('reads overrides from the environment', () => {
-    expect(schema.parse({ APP_ENV: 'preview', HOST: '127.0.0.1', PORT: '8080' })).toEqual({
+    expect(
+      schema.parse({
+        APP_ENV: 'preview',
+        HOST: '127.0.0.1',
+        PORT: '8080',
+        SHUTDOWN_GRACE_PERIOD_MS: '60000',
+      }),
+    ).toEqual({
       APP_ENV: 'preview',
       HOST: '127.0.0.1',
       PORT: 8080,
+      SHUTDOWN_GRACE_PERIOD_MS: 60_000,
     });
   });
 
@@ -165,7 +174,7 @@ describe('loadWebServerConfig', () => {
       port: 3000,
       apiUrl: 'http://localhost:4000',
       log: { level: 'info', pretty: true },
-      shutdown: { drainMs: 0 },
+      shutdown: { drainDelayMs: 0, gracePeriodMs: 25_000 },
       session: { secret: sessionSecret, secure: false },
     });
   });
@@ -191,7 +200,7 @@ describe('loadWebServerConfig', () => {
       port: 8080,
       apiUrl: 'http://api.internal:9000',
       log: { level: 'debug', pretty: false },
-      shutdown: { drainMs: 5_000 },
+      shutdown: { drainDelayMs: 5_000, gracePeriodMs: 25_000 },
       session: { secret: sessionSecret, secure: true },
     });
   });

@@ -62,34 +62,13 @@ describe('React Router production host', () => {
     expect(firstNonce).not.toBe(secondNonce);
   });
 
-  it.each(['/health', '/health/live', '/health/ready'])(
-    'reports server health at %s',
-    async (path) => {
-      const response = await request(app).get(path);
+  // The probes themselves are `@fphd/express`'s; this only asserts a web host is built on it,
+  // rather than serving the React Router catch-all at those paths.
+  it.each(['/livez', '/readyz'])('serves the shared probe at %s', async (path) => {
+    const response = await request(app).get(path);
 
-      expect(response.status).toBe(200);
-      expect(response.body).toEqual({ status: 'ok', service: 'test-web' });
-    },
-  );
-
-  it('fails readiness, but not liveness, once the server starts draining', async () => {
-    // Its own host: the flag is application state, and flipping the shared one would leak into
-    // every test after this.
-    const draining = createProductionHost({
-      clientDirectory,
-      requestHandler: (_request, response) => {
-        response.status(418).send('unused');
-      },
-      serviceName: 'test-web',
-    });
-    draining.locals.draining = true;
-
-    const ready = await request(draining).get('/health/ready');
-    const live = await request(draining).get('/health/live');
-
-    expect(ready.status).toBe(503);
-    expect(ready.body).toEqual({ status: 'draining', service: 'test-web' });
-    expect(live.status).toBe(200);
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ status: 'ok', service: 'test-web' });
   });
 
   it('passes document requests to the React Router server build', async () => {

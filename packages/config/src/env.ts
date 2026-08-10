@@ -52,6 +52,10 @@ export function serverEnvFields(defaults: { port: number }) {
     HOST: z.string().default('0.0.0.0'),
     PORT: portSchema.default(defaults.port),
     SHUTDOWN_DRAIN_MS: z.coerce.number().int().min(0).optional(),
+    // Unlike the drain, this carries a default here: it is a ceiling rather than a wait, so a
+    // stop with nothing in flight is instant under it and a developer machine needs no
+    // different value. Raise it only alongside the platform's own grace period.
+    SHUTDOWN_GRACE_PERIOD_MS: z.coerce.number().int().min(0).default(25_000),
   };
 }
 
@@ -62,8 +66,8 @@ export function serverEnvFields(defaults: { port: number }) {
  *
  * Nothing routes to a developer machine, so a delay there would only make Ctrl-C slow. The
  * deployed default is two readiness probe intervals plus a margin; tune it per environment
- * once the probe config is known, keeping the drain plus twice the shutdown timeout inside
- * the platform's grace period.
+ * once the probe config is known. It comes out of the grace period rather than adding to it,
+ * so raising it shortens the time left to finish in-flight work.
  */
 export function resolveShutdownDrainMs(
   appEnv: z.output<typeof appEnvSchema>,
@@ -138,7 +142,8 @@ export function loadWebServerConfig(
     port: parsed.PORT,
     apiUrl: parsed.API_URL,
     shutdown: {
-      drainMs: resolveShutdownDrainMs(parsed.APP_ENV, parsed.SHUTDOWN_DRAIN_MS),
+      drainDelayMs: resolveShutdownDrainMs(parsed.APP_ENV, parsed.SHUTDOWN_DRAIN_MS),
+      gracePeriodMs: parsed.SHUTDOWN_GRACE_PERIOD_MS,
     },
     log: {
       level: parsed.LOG_LEVEL,
