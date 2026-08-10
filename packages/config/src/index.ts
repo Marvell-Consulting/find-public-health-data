@@ -2,8 +2,11 @@
 // instance — depend on @fphd/config, not on zod directly.
 export { z } from 'zod';
 export {
+  type AppEnv,
+  appEnvFields,
   appEnvSchema,
   boolSchema,
+  isDeployedEnv,
   loadWebServerConfig,
   logEnvFields,
   parseEnv,

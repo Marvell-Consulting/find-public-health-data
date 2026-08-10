@@ -14,8 +14,33 @@ export const boolSchema = z.enum(['true', '1', 'false', '0']).transform((value) 
   return value === 'true' || value === '1';
 });
 
-/** `local` is a developer machine; the rest are deployed environments. */
-export const appEnvSchema = z.enum(['local', 'dev', 'preview', 'production']);
+/**
+ * `local` is a developer machine and `test` a test run or CI job; both mean everything
+ * involved is on this machine, reached over http, with no certificate anywhere in the
+ * picture. The rest are deployed.
+ */
+export const appEnvSchema = z.enum(['local', 'test', 'dev', 'preview', 'production']);
+
+export type AppEnv = z.infer<typeof appEnvSchema>;
+
+/**
+ * The one predicate behind every fallback that differs between a machine here and a
+ * deployed service — database TLS and secure session cookies today. Kept as a function
+ * rather than repeated `!== 'local'` checks so adding an environment cannot leave one of
+ * them behind.
+ */
+export function isDeployedEnv(appEnv: AppEnv): boolean {
+  return appEnv !== 'local' && appEnv !== 'test';
+}
+
+/**
+ * No default, deliberately. Every fallback keyed off APP_ENV is safe when deployed and
+ * relaxed when not, so a default would have to be `local` — and an unset variable would
+ * then silently pick the one value that turns TLS and secure cookies off. Every runtime
+ * sets it: `.env.example` for development, compose for the containers, the test scripts
+ * and CI for test runs, and the platform for deployed services.
+ */
+export const appEnvFields = { APP_ENV: appEnvSchema };
 
 /**
  * One definition so the var names and accepted values can't drift between apps; only the
@@ -23,7 +48,7 @@ export const appEnvSchema = z.enum(['local', 'dev', 'preview', 'production']);
  */
 export function serverEnvFields(defaults: { port: number }) {
   return {
-    APP_ENV: appEnvSchema.default('local'),
+    ...appEnvFields,
     HOST: z.string().default('0.0.0.0'),
     PORT: portSchema.default(defaults.port),
   };
@@ -100,7 +125,7 @@ export function loadWebServerConfig(
     },
     session: {
       secret: parsed.SESSION_JWT_SECRET,
-      secure: parsed.APP_ENV !== 'local',
+      secure: isDeployedEnv(parsed.APP_ENV),
     },
   } as const;
 }

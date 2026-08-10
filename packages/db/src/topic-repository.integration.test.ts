@@ -1,9 +1,8 @@
-import { parseEnv, z } from '@fphd/config';
-import postgres from 'postgres';
+import { appEnvFields, parseEnv, z } from '@fphd/config';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createDb, type Database } from './client.js';
-import { dbEnvFields } from './env.js';
+import { createDb, createPostgresClient, type Database } from './client.js';
+import { dbEnvFields, resolveDbTls } from './env.js';
 import type { TopicRecord } from './schema.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
 import { getTopicBySlug, listTopics, upsertTopics } from './topic-repository.js';
@@ -11,6 +10,7 @@ import { getTopicBySlug, listTopics, upsertTopics } from './topic-repository.js'
 const env = parseEnv(
   z.object({
     ...dbEnvFields,
+    ...appEnvFields,
     POSTGRES_USER: z.string().default('fphd'),
     POSTGRES_PASSWORD: z.string().default('fphd'),
     PUBLIC_API_PASSWORD: z.string().default('public_api'),
@@ -45,6 +45,7 @@ beforeAll(async () => {
     database: testDb.name,
     user: env.POSTGRES_USER,
     password: env.POSTGRES_PASSWORD,
+    ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
   });
   await upsertTopics(db, [zebra, apple]);
 });
@@ -99,12 +100,13 @@ describe('the topic read surface', () => {
   ];
 
   it.each(apiRoles)('lets $role select topics but not write them', async ({ role, password }) => {
-    const client = postgres({
+    const client = createPostgresClient({
       host: env.DB_HOST,
       port: env.DB_PORT,
       database: testDb.name,
-      username: role,
+      user: role,
       password,
+      ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
     });
 
     try {

@@ -55,6 +55,7 @@ services:
     container_name: fphd-public-web
     init: true
     environment:
+      APP_ENV: ${APP_ENV:?set APP_ENV in .env (see .env.example)}
       API_URL: http://host.docker.internal:4000
       SESSION_JWT_SECRET: ${SESSION_JWT_SECRET:?set SESSION_JWT_SECRET in .env (see .env.example)}
     ports:
@@ -83,6 +84,7 @@ services:
     container_name: fphd-internal-web
     init: true
     environment:
+      APP_ENV: ${APP_ENV:?set APP_ENV in .env (see .env.example)}
       API_URL: http://host.docker.internal:4001
       SESSION_JWT_SECRET: ${SESSION_JWT_SECRET:?set SESSION_JWT_SECRET in .env (see .env.example)}
     ports:
@@ -111,6 +113,7 @@ services:
     container_name: fphd-public-api
     init: true
     environment:
+      APP_ENV: ${APP_ENV:?set APP_ENV in .env (see .env.example)}
       DB_HOST: db
       POSTGRES_DB: ${POSTGRES_DB:-fphd}
       PUBLIC_API_PASSWORD: ${PUBLIC_API_PASSWORD:?set PUBLIC_API_PASSWORD in .env (see .env.example)}
@@ -143,6 +146,7 @@ services:
     container_name: fphd-internal-api
     init: true
     environment:
+      APP_ENV: ${APP_ENV:?set APP_ENV in .env (see .env.example)}
       DB_HOST: db
       POSTGRES_DB: ${POSTGRES_DB:-fphd}
       INTERNAL_API_PASSWORD: ${INTERNAL_API_PASSWORD:?set INTERNAL_API_PASSWORD in .env (see .env.example)}
