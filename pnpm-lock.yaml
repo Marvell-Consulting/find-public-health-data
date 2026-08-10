@@ -141,7 +141,7 @@ catalogs:
 
 overrides:
   postcss: '>=8.5.18'
-  nanoid: '>=3.3.17 <4'
+  postcss>nanoid: '>=3.3.17 <4'
   undici: '>=7.29.0 <8'
 
 importers:
