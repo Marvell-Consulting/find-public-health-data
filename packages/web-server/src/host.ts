@@ -113,9 +113,15 @@ export async function startReactRouterServer({
   return startServer({
     ...options,
     app,
+    // `finally`, because the caller's cleanup is where a pool or another handle keeping the
+    // process alive gets released: losing it to a Vite close that rejected would leave the
+    // process to be killed rather than exiting.
     onShutdown: async (signal) => {
-      await closeDevServer?.();
-      await onShutdown?.(signal);
+      try {
+        await closeDevServer?.();
+      } finally {
+        await onShutdown?.(signal);
+      }
     },
   });
 }
