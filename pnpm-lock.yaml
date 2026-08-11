@@ -84,6 +84,9 @@ catalogs:
     govuk-frontend:
       specifier: 5.14.0
       version: 5.14.0
+    http-graceful-shutdown:
+      specifier: 4.0.0
+      version: 4.0.0
     isbot:
       specifier: 5.2.0
       version: 5.2.0
@@ -601,6 +604,10 @@ importers:
         version: 6.0.3
 
   packages/server-lifecycle:
+    dependencies:
+      http-graceful-shutdown:
+        specifier: 'catalog:'
+        version: 4.0.0
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -2664,6 +2671,10 @@ packages:
   http-errors@2.0.1:
     resolution: {integrity: sha512-4FbRdAX+bSdmo4AUFuS0WNiPz8NgFt+r8ThgNWmlrjQjt1Q7ZR9+zTlce2859x4KSXrwIsaeTqDoKQmtP8pLmQ==}
     engines: {node: '>= 0.8'}
+
+  http-graceful-shutdown@4.0.0:
+    resolution: {integrity: sha512-2fLwjJeKjySWhSoRCZVTGPwwxHzqQilic8P/x6ySBtXIAgFOg7SbAP5JPAYEZ0a7ZS2V+yGpdLsbr/02ObkaSw==}
+    engines: {node: '>=16.0.0'}
 
   iconv-lite@0.7.3:
     resolution: {integrity: sha512-IKXpvIzjnC9XTAUbVBcMfGS0EPaIXtW6v+zr+RRp+hqULEpo0owZax6wyRwPOJbWbzjYspQwusTsfVr0ifh4uQ==}
@@ -4998,6 +5009,12 @@ snapshots:
       setprototypeof: 1.2.0
       statuses: 2.0.2
       toidentifier: 1.0.1
+
+  http-graceful-shutdown@4.0.0:
+    dependencies:
+      debug: 4.4.3
+    transitivePeerDependencies:
+      - supports-color
 
   iconv-lite@0.7.3:
     dependencies:

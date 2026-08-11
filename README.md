@@ -246,12 +246,11 @@ yet** — the infrastructure defines no probes at all — so today only the `Con
 an effect; the deregistration half starts working when a readiness probe is configured against
 `/readyz`.
 
-**Close.** The listener closes and in-flight requests finish. Idle keep-alive sockets are swept
-repeatedly meanwhile: they carry no work, but `close` waits for them and sweeps only once, as it is
-called, so a socket whose request finishes during the close would otherwise hold the stop open for
-the whole keep-alive timeout. Anything still mid-request when the budget runs out is destroyed, so
-one hung handler cannot stall the stop; that reports through `onForcedClose`, which each app logs at
-warn, because under normal load nothing should still be running by then.
+**Close.** The listener closes and in-flight requests finish. Each socket is destroyed as its
+response completes: it carries no work from that moment on, but `close` alone would wait for it and
+hold the stop open for the whole keep-alive timeout. Anything still mid-request when the budget runs
+out is destroyed, so one hung handler cannot stall the stop; that reports through `onForcedClose`,
+which each app logs at warn, because under normal load nothing should still be running by then.
 
 **Cleanup.** The APIs close their database pool; without that the process would sit with an idle
 pool holding the event loop open and have to be killed. In development the same path closes the
@@ -279,11 +278,17 @@ during an incident.
 
 Two packages sit underneath this. `@fphd/express` is the Express every app starts from — the probes,
 `x-powered-by` off, the security headers every app sends, and `startServer`, which listens and wires
-the drain to the readiness flag. It
-exists because `@fphd/api-server` and `@fphd/web-server` must not import one another, so anything all
-four apps must agree on has nowhere else to live without being mirrored between them. `@fphd/express`
-in turn uses `@fphd/server-lifecycle`, which knows only `node:http` and nothing about Express, so a
-stop can be tested against a bare server rather than through a framework.
+the drain to the readiness flag. It exists because `@fphd/api-server` and `@fphd/web-server` must not
+import one another, so anything all four apps must agree on has nowhere else to live without being
+mirrored between them. `@fphd/express` in turn uses `@fphd/server-lifecycle`, which knows nothing
+about Express, so a stop can be tested against a bare server rather than through a framework.
+
+The close phase itself is [`http-graceful-shutdown`](https://www.npmjs.com/package/http-graceful-shutdown);
+`@fphd/server-lifecycle` is the drain, the budget, the signal wiring and the cleanup around it. The
+library bounds only the close, so on its own a stop would have the drain added to that timeout and
+an unbounded cleanup after it, with no single ceiling to compare against the platform's grace
+period. It also installs no signal handlers here (`signals: ''`), because its own would exit the
+process outright on a repeated SIGTERM and lose the cleanup that closes the pool.
 
 ## Mixed local/Docker development
 

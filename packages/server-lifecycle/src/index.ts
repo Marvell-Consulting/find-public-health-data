@@ -1,5 +1,7 @@
 import type { Server } from 'node:http';
 
+import gracefulShutdown from 'http-graceful-shutdown';
+
 /**
  * The budget for a whole stop, drain included, so this number is directly comparable to the
  * platform's grace period rather than being one term of a sum. Container Apps allows 30 seconds
@@ -17,9 +19,6 @@ const DEFAULT_GRACE_PERIOD_MS = 25_000;
  */
 const CLEANUP_RESERVE_MS = 2_000;
 const CLEANUP_RESERVE_SHARE = 0.2;
-
-/** A socket falling idle mid-close then costs a tenth of a second rather than five. */
-const IDLE_SWEEP_INTERVAL_MS = 100;
 
 const SHUTDOWN_SIGNALS: NodeJS.Signals[] = ['SIGTERM', 'SIGINT'];
 
@@ -40,7 +39,7 @@ export interface ShutdownOptions {
    */
   onDraining?: (() => void) | undefined;
   /**
-   * Runs when the grace period expired with requests still in flight, which are then destroyed.
+   * Runs when the budget expired with requests still in flight, which are then destroyed.
    * Separate from `onError` because it reports a stop that had to cut work short rather than one
    * that failed, so it leaves the exit code alone — but it is worth a warning either way, since
    * under normal load nothing should still be running when the budget runs out.
@@ -54,9 +53,8 @@ export interface ShutdownOptions {
    */
   onShutdown?: ((signal: NodeJS.Signals) => void | Promise<void>) | undefined;
   /**
-   * Reports a stop that did not go to plan. This package logs nothing itself — it has no
-   * dependencies beyond `node:http` — so without this a failed shutdown is a non-zero exit
-   * code and no explanation of it anywhere.
+   * Reports a stop that did not go to plan. This package logs nothing itself, so without this
+   * a failed shutdown is a non-zero exit code and no explanation of it anywhere.
    */
   onError?: ((error: unknown) => void) | undefined;
 }
@@ -64,13 +62,15 @@ export interface ShutdownOptions {
 /**
  * The first phase of a stop: still listening and still serving, but every response now carries
  * `Connection: close`, so a client retires its own pooled socket instead of having it destroyed
- * underneath a request it had already written. Destroying a socket with an unparsed request in
- * its receive buffer is a TCP reset, and no sweep policy avoids that — retiring the connection
- * through HTTP does. `onDraining` fires first: readiness fails, the ingress stops routing here,
- * and by the time anything closes there is little left to race with.
+ * underneath a request it had already written. `onDraining` fires first: readiness fails, the
+ * ingress stops routing here, and by the time anything closes there is little left to race with.
  *
- * The listener is prepended because Express is already the server's `request` listener, and a
- * synchronous handler would otherwise have sent the headers before this ran.
+ * Ours rather than the library's, for two reasons. It sets the header only once its own shutdown
+ * has begun, which is the moment it also stops listening, so there is no window in which a client
+ * is told to retire a connection while the server is still there to serve it. And it registers
+ * with `server.on('request')`, which appends: Express is already the server's request listener,
+ * so for any synchronous response the headers are sent before the library's listener runs and its
+ * `!res.headersSent` guard silently skips the header. Prepending is what makes it reliable.
  */
 export function drainServer(
   server: Server,
@@ -87,51 +87,15 @@ export function drainServer(
 }
 
 /**
- * Stops accepting connections, then waits for in-flight requests to finish.
- *
- * `close` sweeps idle keep-alive sockets, but only once, as it is called. The interval repeats
- * that sweep: a socket whose request completes *during* the close is carrying no work from that
- * moment on, and would otherwise hold the close open for the entire keep-alive timeout. The
- * timeout then destroys whatever is genuinely still mid-request, so one hung handler cannot
- * stall the shutdown indefinitely.
- *
- * A request written to a keep-alive socket but not yet parsed counts as idle and is reset rather
- * than served. Node's own `close` does the same, and avoiding it would mean draining with
- * `Connection: close` instead of destroying idle sockets.
- */
-export function shutdownServer(
-  server: Server,
-  timeoutMs = DEFAULT_GRACE_PERIOD_MS,
-  onForcedClose?: (() => void) | undefined,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const sweepIdle = setInterval(() => server.closeIdleConnections(), IDLE_SWEEP_INTERVAL_MS);
-    // Only ever reached with work still in flight: a close that finishes first clears it.
-    const forceClose = setTimeout(() => {
-      onForcedClose?.();
-      server.closeAllConnections();
-    }, timeoutMs);
-    // Nothing should be kept alive merely because a shutdown timer is pending.
-    sweepIdle.unref();
-    forceClose.unref();
-
-    server.close((error) => {
-      clearInterval(sweepIdle);
-      clearTimeout(forceClose);
-      if (error === undefined) resolve();
-      else reject(error);
-    });
-  });
-}
-
-/**
  * `onShutdown` is caller code holding caller handles: postgres's `end()` waits for every
  * connection to drain, and one wedged on a half-open socket never returns. By the time it runs
  * the signal handlers have already replaced the default terminate action, so an unbounded wait
- * here is a process that ignores SIGTERM and SIGINT until the platform kills it.
+ * here is a process that ignores SIGTERM and SIGINT until the platform kills it. The library's
+ * own `onShutdown` hook is unbounded and is skipped entirely when the close failed, so cleanup
+ * is run here instead of through it.
  *
- * The timer is deliberately not `unref`'d, unlike the ones in `shutdownServer`: it is the only
- * thing left guaranteeing the stop reaches an exit code once cleanup has stopped making progress.
+ * The timer is deliberately not `unref`'d: it is the only thing left guaranteeing the stop
+ * reaches an exit code once cleanup has stopped making progress.
  */
 function withDeadline(work: Promise<void>, timeoutMs: number): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -150,8 +114,16 @@ function withDeadline(work: Promise<void>, timeoutMs: number): Promise<void> {
  * use; safe to call more than once, because a platform that has sent SIGTERM will often
  * send it again if the process is slow to go.
  *
- * The phases share one deadline rather than holding a timeout each, so the worst case is the
- * grace period itself and there is no sum to get wrong when tuning it.
+ * The close phase is `http-graceful-shutdown`: it tracks connections, destroys each one as its
+ * response finishes, refuses new ones, and destroys whatever is left at its timeout. The phases
+ * around it are ours, because the library bounds only that middle phase — the drain would be
+ * added to its timeout and cleanup would be unbounded, so a stop would have no single ceiling.
+ * Here they share one deadline and the worst case is the grace period itself.
+ *
+ * **Call this before the server takes any traffic.** The library learns about connections from a
+ * `connection` listener attached here, so a socket that already exists is invisible to it: it is
+ * never destroyed, and the close waits on it until the grace period runs out. Every entrypoint
+ * satisfies this by calling `installShutdownHandlers` in the same tick as `listen`.
  */
 export function createShutdownHandler(
   server: Server,
@@ -164,12 +136,26 @@ export function createShutdownHandler(
     onError,
   }: ShutdownOptions = {},
 ): (signal: NodeJS.Signals) => Promise<number> {
+  const reserve = Math.min(CLEANUP_RESERVE_MS, gracePeriodMs * CLEANUP_RESERVE_SHARE);
+  const closeTimeoutMs = Math.max(0, gracePeriodMs - drainDelayMs - reserve);
+
+  const closeHttpServer = gracefulShutdown(server, {
+    // No signal handlers of its own. Ours memoize the in-flight stop, where a repeated signal
+    // here would `process.exit(1)` and lose the cleanup that releases the pool — and a platform
+    // that has sent SIGTERM sends it again when the process is slow to go.
+    signals: '',
+    // The exit code is decided below, once cleanup has had its turn.
+    forceExit: false,
+    // Its development mode exits immediately, before the Vite server is closed.
+    development: false,
+    timeout: closeTimeoutMs,
+  });
+
   let inProgress: Promise<number> | undefined;
 
   return (signal) => {
     inProgress ??= (async () => {
       const expiresAt = Date.now() + gracePeriodMs;
-      const reserve = Math.min(CLEANUP_RESERVE_MS, gracePeriodMs * CLEANUP_RESERVE_SHARE);
       const remaining = () => Math.max(0, expiresAt - Date.now());
       /** What a phase running before cleanup may spend, leaving cleanup its reserve. */
       const spendable = () => Math.max(0, remaining() - reserve);
@@ -181,10 +167,18 @@ export function createShutdownHandler(
         failures.push(error);
       }
 
+      // The library destroys what is still in flight at its timeout but only logs through
+      // `debug`, so the warning is raised alongside it. Cleared when the close wins the race,
+      // which is every stop that did not have to cut work short.
+      const forced = setTimeout(() => onForcedClose?.(), closeTimeoutMs);
+      forced.unref();
+
       try {
-        await shutdownServer(server, spendable(), onForcedClose);
+        await closeHttpServer();
       } catch (error) {
         failures.push(error);
+      } finally {
+        clearTimeout(forced);
       }
 
       try {

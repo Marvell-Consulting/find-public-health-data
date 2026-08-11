@@ -15,6 +15,9 @@
     "build": "tsc --project tsconfig.build.json",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "http-graceful-shutdown": "catalog:"
+  },
   "devDependencies": {
     "@types/node": "catalog:",
     "typescript": "catalog:",

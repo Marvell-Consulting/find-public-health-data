@@ -3,7 +3,17 @@ import type { AddressInfo } from 'node:net';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createShutdownHandler, drainServer, shutdownServer } from './index.js';
+import { createShutdownHandler, drainServer, type ShutdownOptions } from './index.js';
+
+/**
+ * Built before any traffic, as `installShutdownHandlers` is in every real entrypoint: the
+ * library learns about connections through a `connection` listener it attaches here, so a
+ * handler created after a socket already exists cannot see it, and the close waits on a
+ * connection it will never destroy.
+ */
+function shutdownHandler(server: Server, options: ShutdownOptions = {}) {
+  return createShutdownHandler(server, { onError: () => {}, ...options });
+}
 
 type Handler = Parameters<typeof createServer>[1];
 
@@ -96,11 +106,13 @@ describe('drainServer', () => {
   });
 });
 
-describe('shutdownServer', () => {
+// What the library is relied on for. These are here rather than taken on trust because the
+// close phase is the half of a stop that a swap of implementation could quietly change.
+describe('the close phase', () => {
   it('stops the server listening', async () => {
     const { server } = await startServer((_request, response) => response.end('ok'));
 
-    await shutdownServer(server);
+    await shutdownHandler(server)('SIGTERM');
 
     expect(server.listening).toBe(false);
   });
@@ -113,12 +125,13 @@ describe('shutdownServer', () => {
       await releaseHandler.promise;
       response.end('finished');
     });
+    const stop = shutdownHandler(server);
 
     const inFlight = fetch(`${url}/slow`);
     await reachedHandler.promise;
 
     const settled = vi.fn();
-    const shutdown = shutdownServer(server).then(settled);
+    const shutdown = stop('SIGTERM').then(settled);
 
     // The request is still being served, so the shutdown must not have completed.
     await new Promise((resolve) => setTimeout(resolve, 20));
@@ -138,10 +151,11 @@ describe('shutdownServer', () => {
       await releaseHandler.promise;
       response.end('finished');
     });
+    const stop = shutdownHandler(server);
 
     const inFlight = fetch(`${url}/slow`);
     await reachedHandler.promise;
-    const shutdown = shutdownServer(server);
+    const shutdown = stop('SIGTERM');
 
     await expect(requestOnNewConnection(`${url}/late`)).rejects.toThrow();
 
@@ -159,15 +173,17 @@ describe('shutdownServer', () => {
       response.end('finished');
     });
     const agent = new Agent({ keepAlive: true });
+    const stop = shutdownHandler(server, { gracePeriodMs: 5_000 });
 
     // The socket is busy when the shutdown starts and idle a moment later, so the single sweep
-    // `close` performs as it is called cannot see it. Without a repeated sweep this waits out
-    // Node's five-second keep-alive timeout for a connection carrying no work.
+    // `close` performs as it is called cannot see it. Without the library destroying it as the
+    // response finishes, this waits out Node's five-second keep-alive timeout for a connection
+    // carrying no work.
     const inFlight = keepAliveRequest(`${url}/slow`, agent);
     await reachedHandler.promise;
 
     const started = Date.now();
-    const shutdown = shutdownServer(server, 5_000);
+    const shutdown = stop('SIGTERM');
     releaseHandler.resolve();
     await inFlight;
     await shutdown;
@@ -183,25 +199,28 @@ describe('shutdownServer', () => {
       reachedHandler.resolve();
     });
 
-    const abandoned = fetch(`${url}/never`);
+    const stop = shutdownHandler(server, { gracePeriodMs: 300 });
+
+    const abandoned = fetch(`${url}/never`).catch((error: unknown) => error);
     await reachedHandler.promise;
 
-    await shutdownServer(server, 50);
+    await stop('SIGTERM');
 
     expect(server.listening).toBe(false);
-    await expect(abandoned).rejects.toThrow();
+    expect(await abandoned).toBeInstanceOf(Error);
   });
 
   it('reports work cut short, so a forced close is not a silent one', async () => {
     const reachedHandler = deferred();
     const { server, url } = await startServer(() => reachedHandler.resolve());
     const onForcedClose = vi.fn();
+    const stop = shutdownHandler(server, { gracePeriodMs: 300, onForcedClose });
 
     // Caught as it is made, not asserted on later: the socket is destroyed during the shutdown
     // below, and a rejection with nothing attached yet surfaces as an unhandled one.
     const abandoned = fetch(`${url}/never`).catch((error: unknown) => error);
     await reachedHandler.promise;
-    await shutdownServer(server, 50, onForcedClose);
+    await stop('SIGTERM');
 
     expect(onForcedClose).toHaveBeenCalled();
     expect(await abandoned).toBeInstanceOf(Error);
@@ -211,7 +230,7 @@ describe('shutdownServer', () => {
     const { server } = await startServer((_request, response) => response.end('ok'));
     const onForcedClose = vi.fn();
 
-    await shutdownServer(server, 5_000, onForcedClose);
+    await shutdownHandler(server, { gracePeriodMs: 5_000, onForcedClose })('SIGTERM');
 
     expect(onForcedClose).not.toHaveBeenCalled();
   });
