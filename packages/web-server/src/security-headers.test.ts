@@ -15,9 +15,8 @@ describe('buildSecurityHeaders', () => {
     expect(prod['Content-Security-Policy']).toBeDefined();
   });
 
-  // The universal three come from `@fphd/express`, so that every app sends them rather than
-  // only the two that render HTML. Duplicating them here would let the base app drop them
-  // without a test noticing.
+  // The universal three come from `@fphd/express`. Duplicating them here would let the base app
+  // drop them without a test noticing.
   it('leaves the headers every app sends to the shared base', () => {
     expect(prod['Strict-Transport-Security']).toBeUndefined();
     expect(prod['X-Content-Type-Options']).toBeUndefined();

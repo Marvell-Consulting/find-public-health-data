@@ -1,6 +1,6 @@
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { InvalidJwtSessionError } from '@fphd/auth/session-errors';
-import { createBaseApp, type StartServerOptions, startServer } from '@fphd/express';
+import { createBaseApp, type StartServerOptions, serverLogging, startServer } from '@fphd/express';
 import type { Express, RequestHandler } from 'express';
 import { json } from 'express';
 import { rateLimit } from 'express-rate-limit';
@@ -79,9 +79,6 @@ export function requireJwtRole(verifier: JwtSessionVerifier, role: string): Requ
   };
 }
 
-/**
- * Re-exported so an API app has one import source, but not wrapped: there is nothing
- * API-specific left in starting one, and a `startApiServer` that only forwarded would imply
- * there was.
- */
-export { type StartServerOptions, startServer };
+// Re-exported so an API app has one import source, but not wrapped: nothing about starting a
+// server is API-specific, and a `startApiServer` that only forwarded would imply otherwise.
+export { type StartServerOptions, serverLogging, startServer };

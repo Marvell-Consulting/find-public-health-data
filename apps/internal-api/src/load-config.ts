@@ -2,7 +2,7 @@ import {
   isDeployedEnv,
   logEnvFields,
   parseEnv,
-  resolveShutdownDrainMs,
+  resolveShutdown,
   serverEnvFields,
   z,
 } from '@fphd/config';
@@ -32,10 +32,7 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
       level: parsed.LOG_LEVEL,
       pretty: parsed.APP_ENV === 'local' && (parsed.LOG_PRETTY ?? true),
     },
-    shutdown: {
-      drainDelayMs: resolveShutdownDrainMs(parsed.APP_ENV, parsed.SHUTDOWN_DRAIN_MS),
-      gracePeriodMs: parsed.SHUTDOWN_GRACE_PERIOD_MS,
-    },
+    shutdown: resolveShutdown(parsed.APP_ENV, parsed),
     session: {
       secret: parsed.SESSION_JWT_SECRET,
       secure: isDeployedEnv(parsed.APP_ENV),

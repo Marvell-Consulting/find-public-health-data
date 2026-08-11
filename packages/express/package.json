@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fphd/logger": "workspace:*",
     "@fphd/server-lifecycle": "workspace:*",
     "express": "catalog:"
   },

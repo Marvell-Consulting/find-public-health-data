@@ -8,6 +8,7 @@ import {
   logEnvFields,
   parseEnv,
   portSchema,
+  resolveShutdown,
   serverEnvFields,
 } from './env.js';
 
@@ -95,6 +96,37 @@ describe('serverEnvFields', () => {
 
   it('rejects unknown environments', () => {
     expect(() => schema.parse({ APP_ENV: 'qa' })).toThrow();
+  });
+
+  it('rejects a grace period too short to have phases at all', () => {
+    expect(() => schema.parse({ APP_ENV: 'local', SHUTDOWN_GRACE_PERIOD_MS: '0' })).toThrow();
+  });
+});
+
+describe('resolveShutdown', () => {
+  const budget = { SHUTDOWN_GRACE_PERIOD_MS: 25_000 };
+
+  it('drains only where something is routing to the process', () => {
+    expect(resolveShutdown('local', budget).drainDelayMs).toBe(0);
+    expect(resolveShutdown('test', budget).drainDelayMs).toBe(0);
+    expect(resolveShutdown('production', budget).drainDelayMs).toBe(5_000);
+  });
+
+  it('takes the drain from the environment over either default', () => {
+    expect(resolveShutdown('production', { ...budget, SHUTDOWN_DRAIN_MS: 250 }).drainDelayMs).toBe(
+      250,
+    );
+  });
+
+  // The drain comes out of the budget rather than adding to it, so one that fills it leaves
+  // nothing to finish in-flight work in.
+  it('refuses a drain that leaves the stop no time to stop in', () => {
+    expect(() =>
+      resolveShutdown('production', {
+        SHUTDOWN_DRAIN_MS: 30_000,
+        SHUTDOWN_GRACE_PERIOD_MS: 25_000,
+      }),
+    ).toThrow(/SHUTDOWN_DRAIN_MS/);
   });
 });
 

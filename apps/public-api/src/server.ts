@@ -1,4 +1,4 @@
-import { startServer } from '@fphd/api-server';
+import { serverLogging, startServer } from '@fphd/api-server';
 import { createRepositories } from '@fphd/db';
 import { createLogger } from '@fphd/logger';
 
@@ -16,13 +16,6 @@ startServer({
   app: createApp({ repositories: createRepositories(db) }),
   host: config.host,
   port: config.port,
-  drainDelayMs: config.shutdown.drainDelayMs,
-  gracePeriodMs: config.shutdown.gracePeriodMs,
-  onListening: () => logger.info({ port: config.port }, 'Public API listening'),
-  onShutdown: async (signal) => {
-    await db.$client.end();
-    logger.info({ signal }, 'Public API stopped');
-  },
-  onForcedClose: () => logger.warn('Public API destroyed requests still running at the deadline'),
-  onError: (error) => logger.error({ err: error }, 'Public API did not stop cleanly'),
+  shutdown: config.shutdown,
+  ...serverLogging(logger, { port: config.port, onShutdown: () => db.$client.end() }),
 });

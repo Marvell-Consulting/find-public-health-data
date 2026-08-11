@@ -489,6 +489,9 @@ importers:
 
   packages/express:
     dependencies:
+      '@fphd/logger':
+        specifier: workspace:*
+        version: link:../logger
       '@fphd/server-lifecycle':
         specifier: workspace:*
         version: link:../server-lifecycle

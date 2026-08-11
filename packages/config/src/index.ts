@@ -11,6 +11,6 @@ export {
   logEnvFields,
   parseEnv,
   portSchema,
-  resolveShutdownDrainMs,
+  resolveShutdown,
   serverEnvFields,
 } from './env.js';

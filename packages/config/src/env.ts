@@ -54,26 +54,37 @@ export function serverEnvFields(defaults: { port: number }) {
     SHUTDOWN_DRAIN_MS: z.coerce.number().int().min(0).optional(),
     // Unlike the drain, this carries a default here: it is a ceiling rather than a wait, so a
     // stop with nothing in flight is instant under it and a developer machine needs no
-    // different value. Raise it only alongside the platform's own grace period.
-    SHUTDOWN_GRACE_PERIOD_MS: z.coerce.number().int().min(0).default(25_000),
+    // different value. The floor is what a stop needs to have phases at all.
+    SHUTDOWN_GRACE_PERIOD_MS: z.coerce.number().int().min(1_000).default(25_000),
   };
 }
 
 /**
- * How long a server keeps serving after SIGTERM before it closes anything, so the ingress
- * has time to notice readiness failing and stop routing to it. No default in the field above
- * because the fallback depends on APP_ENV, which a shared fragment cannot see.
+ * The two shutdown numbers together, so the one thing they must satisfy is checked once. The
+ * drain has no default in the field above because this fallback depends on APP_ENV, which a
+ * shared fragment cannot see: nothing routes to a machine here, so a delay would only make
+ * Ctrl-C slow. The deployed value is two readiness probe intervals plus a margin.
  *
- * Nothing routes to a developer machine, so a delay there would only make Ctrl-C slow. The
- * deployed default is two readiness probe intervals plus a margin; tune it per environment
- * once the probe config is known. It comes out of the grace period rather than adding to it,
- * so raising it shortens the time left to finish in-flight work.
+ * The drain comes out of the grace period rather than adding to it, so one that fills the
+ * budget leaves nothing to finish in-flight work in — a misconfiguration worth a startup
+ * failure rather than a stop that resets every live request.
  */
-export function resolveShutdownDrainMs(
-  appEnv: z.output<typeof appEnvSchema>,
-  drainMs: number | undefined,
-): number {
-  return drainMs ?? (appEnv === 'local' ? 0 : 5_000);
+export function resolveShutdown(
+  appEnv: AppEnv,
+  env: { SHUTDOWN_DRAIN_MS?: number | undefined; SHUTDOWN_GRACE_PERIOD_MS: number },
+) {
+  const drainDelayMs = env.SHUTDOWN_DRAIN_MS ?? (isDeployedEnv(appEnv) ? 5_000 : 0);
+  const gracePeriodMs = env.SHUTDOWN_GRACE_PERIOD_MS;
+
+  if (drainDelayMs >= gracePeriodMs) {
+    throw new Error(
+      `Invalid environment configuration:\nSHUTDOWN_DRAIN_MS (${drainDelayMs}) must be under ` +
+        `SHUTDOWN_GRACE_PERIOD_MS (${gracePeriodMs}), the budget for the whole stop\n` +
+        '(see .env.example)',
+    );
+  }
+
+  return { drainDelayMs, gracePeriodMs } as const;
 }
 
 /**
@@ -141,10 +152,7 @@ export function loadWebServerConfig(
     host: parsed.HOST,
     port: parsed.PORT,
     apiUrl: parsed.API_URL,
-    shutdown: {
-      drainDelayMs: resolveShutdownDrainMs(parsed.APP_ENV, parsed.SHUTDOWN_DRAIN_MS),
-      gracePeriodMs: parsed.SHUTDOWN_GRACE_PERIOD_MS,
-    },
+    shutdown: resolveShutdown(parsed.APP_ENV, parsed),
     log: {
       level: parsed.LOG_LEVEL,
       pretty: parsed.APP_ENV === 'local' && (parsed.LOG_PRETTY ?? true),

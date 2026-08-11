@@ -1,5 +1,5 @@
 import { createLogger } from '@fphd/logger';
-import { startReactRouterServer } from '@fphd/web-server';
+import { serverLogging, startReactRouterServer } from '@fphd/web-server';
 
 import * as config from './server/config.ts';
 
@@ -13,11 +13,8 @@ await startReactRouterServer({
   development: config.development,
   host: config.host,
   port: config.port,
-  drainDelayMs: config.shutdown.drainDelayMs,
-  gracePeriodMs: config.shutdown.gracePeriodMs,
-  onListening: () => logger.info({ port: config.port }, 'Public web listening'),
-  onForcedClose: () => logger.warn('Public web destroyed requests still running at the deadline'),
-  onError: (error) => logger.error({ err: error }, 'Public web did not stop cleanly'),
+  shutdown: config.shutdown,
   rootDirectory: import.meta.dirname,
   serviceName: 'public-web',
+  ...serverLogging(logger, { port: config.port }),
 });

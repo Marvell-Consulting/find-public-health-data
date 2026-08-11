@@ -7,12 +7,13 @@ import morgan from 'morgan';
 
 import { securityHeaders } from './security-headers.js';
 
+export { serverLogging } from '@fphd/express';
+
 function createHost({ development, serviceName }: { development: boolean; serviceName: string }) {
   const app = createBaseApp({ serviceName });
 
-  // After the base, so the probes it registered answer without a CSP. That is deliberate: a
-  // policy constrains what a browser may load while rendering a document, and there is no
-  // document in a JSON probe response for it to constrain.
+  // After the base, so the probes it registered answer without a CSP: a policy constrains what
+  // a browser may load while rendering a document, and a JSON probe response has none.
   app.use(securityHeaders({ development }));
 
   return app;
@@ -59,9 +60,8 @@ function readRequestHandler(serverModule: unknown): RequestHandler {
   return serverModule.app;
 }
 
-interface ReactRouterServerOptions extends Omit<StartServerOptions, 'app' | 'onShutdown' | 'port'> {
+interface ReactRouterServerOptions extends Omit<StartServerOptions, 'app'> {
   development: boolean;
-  port: number;
   rootDirectory: string;
   /** Names this app in its health responses, where four apps sit behind one front door. */
   serviceName: string;
@@ -69,15 +69,10 @@ interface ReactRouterServerOptions extends Omit<StartServerOptions, 'app' | 'onS
 
 export async function startReactRouterServer({
   development,
-  drainDelayMs,
-  gracePeriodMs,
-  host,
-  onError,
-  onForcedClose,
-  onListening,
-  port,
+  onShutdown,
   rootDirectory,
   serviceName,
+  ...options
 }: ReactRouterServerOptions) {
   let app: Express;
   // In development the Vite server is the handle that would otherwise keep the process alive
@@ -116,14 +111,11 @@ export async function startReactRouterServer({
   }
 
   return startServer({
+    ...options,
     app,
-    drainDelayMs,
-    gracePeriodMs,
-    host,
-    onError,
-    onForcedClose,
-    onListening,
-    onShutdown: closeDevServer,
-    port,
+    onShutdown: async (signal) => {
+      await closeDevServer?.();
+      await onShutdown?.(signal);
+    },
   });
 }
