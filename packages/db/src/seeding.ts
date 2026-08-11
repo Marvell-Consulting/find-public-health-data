@@ -105,9 +105,9 @@ export function assertSeedingAllowed(appEnv: string | undefined): void {
 /**
  * Erase and reload every canonical table from the committed seed CSVs, in one
  * transaction: a failed load rolls back to the previous state instead of leaving a
- * partially seeded database. Callers own the safety decision — the db:seed CLI
- * refuses to run outside local/test, and the integration harness only ever targets
- * its own disposable databases.
+ * partially seeded database. Callers own the safety decision — the db:seed CLI calls
+ * assertSeedingAllowed, and the integration harness only ever targets its own
+ * disposable databases.
  */
 export async function seedDatabase(sql: postgres.Sql): Promise<void> {
   await sql.begin(async (tx) => {

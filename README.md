@@ -295,14 +295,15 @@ db rebuild-read-models
 Required environment, for every command:
 
 ```sh
-APP_ENV                  # dev | preview | production — unset means local, which disables TLS
+APP_ENV                  # dev | preview | production for a deployed job; no default, so an
+                         # unset value fails the job rather than relaxing TLS in silence
 DB_HOST
 POSTGRES_DB
 POSTGRES_USER            # the owner role, not a per-API role
 POSTGRES_PASSWORD
 ```
 
-`DB_PORT`, `DB_SSL` and `LOG_LEVEL` are optional. Exit codes: `0` success, `1` failure, `2`
+`DB_PORT`, `DB_TLS` and `LOG_LEVEL` are optional. Exit codes: `0` success, `1` failure, `2`
 unrecognised command.
 
 ## Mixed local/Docker development

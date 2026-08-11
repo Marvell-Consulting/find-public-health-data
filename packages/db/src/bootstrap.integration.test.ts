@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { bootstrapRoles } from './bootstrap.js';
 import { createPostgresClient } from './client.js';
-import { dbEnvFields, resolveDbSsl } from './env.js';
+import { dbEnvFields, resolveDbTls } from './env.js';
 import { createOwnerClient } from './scripts/owner-client.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
 
@@ -42,7 +42,7 @@ async function canLogIn(role: string, password: string): Promise<boolean> {
       database: testDb.name,
       user: role,
       password,
-      ssl: resolveDbSsl(env.APP_ENV, env.DB_SSL),
+      ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
     },
     { max: 1, onnotice: () => {} },
   );

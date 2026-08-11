@@ -1,5 +1,5 @@
 import { appEnvFields, logEnvFields, parseEnv, z } from '@fphd/config';
-import { dbEnvFields, resolveDbSsl } from '@fphd/db';
+import { dbEnvFields, resolveDbTls } from '@fphd/db';
 
 const envSchema = z.object({
   ...appEnvFields,
@@ -37,7 +37,7 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
       database: parsed.POSTGRES_DB,
       user: parsed.POSTGRES_USER,
       password: parsed.POSTGRES_PASSWORD,
-      ssl: resolveDbSsl(parsed.APP_ENV, parsed.DB_SSL),
+      ssl: resolveDbTls(parsed.APP_ENV, parsed.DB_TLS),
     },
     roles: {
       publicApiPassword: parsed.PUBLIC_API_PASSWORD,
