@@ -74,10 +74,11 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
   const fingertipsIds = selectedIndicatorIds(url, params.fingertipsId);
 
   const areaType = url.searchParams.get('ats') || DEFAULT_AREA_TYPE;
-  const areaCodes = url.searchParams
-    .getAll('as')
-    .filter((code) => /^[A-Z0-9]+$/i.test(code))
-    .slice(0, MAX_SELECTED_AREAS);
+  // De-duplicated: a hand-edited URL repeating a code would otherwise fetch it twice and
+  // render it twice.
+  const areaCodes = [
+    ...new Set(url.searchParams.getAll('as').filter((code) => /^[A-Z0-9]+$/i.test(code))),
+  ].slice(0, MAX_SELECTED_AREAS);
   const codesToLoad = areaCodes.length > 0 ? areaCodes : [DEFAULT_AREA_CODE];
 
   const api = context.get(apiContext);

@@ -1,21 +1,34 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { parseEnv, z } from '@fphd/config';
+import { appEnvFields, parseEnv, z } from '@fphd/config';
 
 import { createDb } from '../client.js';
-import { dbEnvFields } from '../env.js';
-import { importTopicIndicators, parseTopicIndicatorFile } from '../topic-indicator-repository.js';
+import { dbEnvFields, resolveDbTls } from '../env.js';
+import { importIndicatorTopics, parseIndicatorTopicFile } from '../indicator-topic-repository.js';
 
 const envSchema = z.object({
   ...dbEnvFields,
+  ...appEnvFields,
   POSTGRES_USER: z.string().default('fphd'),
   POSTGRES_PASSWORD: z.string().default('fphd'),
 });
 
+// The three files are separate concerns but a single import: they all key off the same
+// indicators, so importing one without the others would leave the page half-populated.
+const SEED_FILES = [
+  'data/indicator-topics.json',
+  'data/indicator-classifications.json',
+  'data/indicator-data-updated.json',
+];
+
 async function main() {
-  const filePath = resolve(process.argv[2] ?? 'data/topic-indicators.json');
-  const file = parseTopicIndicatorFile(JSON.parse(readFileSync(filePath, 'utf-8')));
+  const filePaths = process.argv.length > 2 ? process.argv.slice(2) : SEED_FILES;
+  const merged = filePaths.reduce<Record<string, unknown>>(
+    (all, path) => ({ ...all, ...JSON.parse(readFileSync(resolve(path), 'utf-8')) }),
+    {},
+  );
+  const file = parseIndicatorTopicFile(merged);
 
   const env = parseEnv(envSchema, process.env);
   const db = createDb({
@@ -24,13 +37,14 @@ async function main() {
     database: env.POSTGRES_DB,
     user: env.POSTGRES_USER,
     password: env.POSTGRES_PASSWORD,
+    ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
   });
 
   try {
-    const summary = await importTopicIndicators(db, file);
+    const summary = await importIndicatorTopics(db, file);
 
     console.log(
-      `Imported ${filePath}: ${summary.links} topic links, ${summary.classifications} classifications, ${summary.classificationLinks} classification links, ${summary.timestamps} data timestamps.`,
+      `Imported ${filePaths.join(', ')}: ${summary.links} topic links, ${summary.classifications} classifications, ${summary.classificationLinks} classification links, ${summary.timestamps} data timestamps.`,
     );
 
     if (summary.unknownTopics.length > 0) {

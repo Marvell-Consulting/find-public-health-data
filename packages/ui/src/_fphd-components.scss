@@ -75,11 +75,6 @@
   background-color: #d1d2d3;
 }
 
-.fphd-filter-card__header .govuk-heading-m {
-  margin-bottom: 0;
-  font-size: 19px;
-}
-
 .fphd-filter-card__body {
   padding: govuk-spacing(3) govuk-spacing(3) 0;
   background-color: #f3f2f1;
@@ -248,7 +243,7 @@
   transition: transform 0.1s;
 }
 
-.fphd-geo__toggle--open .fphd-geo-alt__chevron {
+.fphd-geo-alt__toggle--open .fphd-geo-alt__chevron {
   transform: rotate(90deg);
 }
 

@@ -7,17 +7,21 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import type postgres from 'postgres';
 
 import type { Database } from './client.js';
+import { importIndicatorTopics, parseIndicatorTopicFile } from './indicator-topic-repository.js';
 import { rebuildReadModels } from './read-models.js';
 import type { Repositories } from './repositories.js';
 import * as schema from './schema.js';
 import { createOwnerClient } from './scripts/owner-client.js';
 import { parseTopicsFile } from './scripts/parse-topics-file.js';
 import { seedDatabase } from './seeding.js';
-import { importTopicIndicators, parseTopicIndicatorFile } from './topic-indicator-repository.js';
 import { upsertTopics } from './topic-repository.js';
 
 const topicsFile = new URL('../data/topics.json', import.meta.url);
-const topicIndicatorsFile = new URL('../data/topic-indicators.json', import.meta.url);
+const seedRelationshipFiles = [
+  '../data/indicator-topics.json',
+  '../data/indicator-classifications.json',
+  '../data/indicator-data-updated.json',
+].map((path) => new URL(path, import.meta.url));
 
 /**
  * Two templates, because most integration tests do not want the seed. Copying `seeded`
@@ -87,10 +91,19 @@ async function buildTemplate(name: string, seed: boolean): Promise<void> {
         db,
         parseTopicsFile(JSON.parse(readFileSync(fileURLToPath(topicsFile), 'utf-8')) as unknown),
       );
-      await importTopicIndicators(
+      await importIndicatorTopics(
         db,
-        parseTopicIndicatorFile(
-          JSON.parse(readFileSync(fileURLToPath(topicIndicatorsFile), 'utf-8')) as unknown,
+        parseIndicatorTopicFile(
+          seedRelationshipFiles.reduce<Record<string, unknown>>(
+            (all, file) => ({
+              ...all,
+              ...(JSON.parse(readFileSync(fileURLToPath(file), 'utf-8')) as Record<
+                string,
+                unknown
+              >),
+            }),
+            {},
+          ),
         ),
       );
     }

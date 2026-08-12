@@ -2277,8 +2277,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.topic_indicator": {
-      "name": "topic_indicator",
+    "public.indicator_topic": {
+      "name": "indicator_topic",
       "schema": "",
       "columns": {
         "topic_id": {
@@ -2309,8 +2309,8 @@
         }
       },
       "indexes": {
-        "idx_topic_indicator_indicator": {
-          "name": "idx_topic_indicator_indicator",
+        "idx_indicator_topic_indicator": {
+          "name": "idx_indicator_topic_indicator",
           "columns": [
             {
               "expression": "indicator_id",
@@ -2326,9 +2326,9 @@
         }
       },
       "foreignKeys": {
-        "topic_indicator_topic_id_topic_id_fk": {
-          "name": "topic_indicator_topic_id_topic_id_fk",
-          "tableFrom": "topic_indicator",
+        "indicator_topic_topic_id_topic_id_fk": {
+          "name": "indicator_topic_topic_id_topic_id_fk",
+          "tableFrom": "indicator_topic",
           "tableTo": "topic",
           "columnsFrom": [
             "topic_id"
@@ -2339,9 +2339,9 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "topic_indicator_indicator_id_indicator_id_fk": {
-          "name": "topic_indicator_indicator_id_indicator_id_fk",
-          "tableFrom": "topic_indicator",
+        "indicator_topic_indicator_id_indicator_id_fk": {
+          "name": "indicator_topic_indicator_id_indicator_id_fk",
+          "tableFrom": "indicator_topic",
           "tableTo": "indicator",
           "columnsFrom": [
             "indicator_id"
@@ -2354,8 +2354,8 @@
         }
       },
       "compositePrimaryKeys": {
-        "topic_indicator_topic_id_indicator_id_pk": {
-          "name": "topic_indicator_topic_id_indicator_id_pk",
+        "indicator_topic_topic_id_indicator_id_pk": {
+          "name": "indicator_topic_topic_id_indicator_id_pk",
           "columns": [
             "topic_id",
             "indicator_id"

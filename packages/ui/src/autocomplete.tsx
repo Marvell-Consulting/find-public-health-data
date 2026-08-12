@@ -47,6 +47,9 @@ export function Autocomplete({ label, onSelect, options, limit = 10 }: Autocompl
         {label}
       </label>
       <input
+        // Names the highlighted option so assistive technology announces it as the arrow
+        // keys move through the list.
+        aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
         aria-autocomplete="list"
         aria-controls={listId}
         aria-expanded={open && matches.length > 0}

@@ -17,6 +17,15 @@ export {
   type IndicatorSource,
   listApprovedIndicators,
 } from './indicator-repository.js';
+export {
+  type IndicatorClassification,
+  type IndicatorTopicFile,
+  importIndicatorTopics,
+  listClassificationsForIndicator,
+  listTopicsForIndicator,
+  parseIndicatorTopicFile,
+  type TopicSummaryForIndicator,
+} from './indicator-topic-repository.js';
 export { rebuildReadModels } from './read-models.js';
 export {
   type AreaRepository,
@@ -27,13 +36,4 @@ export {
 } from './repositories.js';
 export * as schema from './schema.js';
 export { createOwnerClient } from './scripts/owner-client.js';
-export {
-  type IndicatorClassification,
-  importTopicIndicators,
-  listClassificationsForIndicator,
-  listTopicsForIndicator,
-  parseTopicIndicatorFile,
-  type TopicIndicatorFile,
-  type TopicSummaryForIndicator,
-} from './topic-indicator-repository.js';
 export { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';

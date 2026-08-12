@@ -19,3 +19,11 @@ describe('decodeEntities', () => {
     expect(decodeEntities('under 75s & over')).toBe('under 75s & over');
   });
 });
+
+describe('malformed references', () => {
+  it('leaves a numeric reference the source got wrong as written', () => {
+    // String.fromCodePoint throws on these, which would take the whole render down.
+    expect(decodeEntities('rate &#xZZ; per 100,000')).toBe('rate &#xZZ; per 100,000');
+    expect(decodeEntities('&#1114112;')).toBe('&#1114112;');
+  });
+});

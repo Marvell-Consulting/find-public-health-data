@@ -121,6 +121,18 @@ describe('loadIndicator', () => {
     }
   });
 
+  it('loads a repeated area code once', async () => {
+    const { client, get } = api();
+
+    const result = await loadIndicator(
+      loaderArgs(client, {}, 'http://localhost/indicators?is=108&as=E12000001&as=E12000001'),
+    );
+
+    expect(result.selection.areaCodes).toEqual(['E12000001']);
+    const dataCalls = get.mock.calls.filter(([path]) => String(path).includes('/data?'));
+    expect(dataCalls).toHaveLength(1);
+  });
+
   it('404s a non-numeric route param without calling the api for it', async () => {
     const { client } = api();
 

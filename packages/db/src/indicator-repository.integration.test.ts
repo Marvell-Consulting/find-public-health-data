@@ -1,9 +1,9 @@
-import { parseEnv, z } from '@fphd/config';
+import { appEnvFields, parseEnv, z } from '@fphd/config';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { listAreasByType } from './area-repository.js';
 import { createDb, type Database } from './client.js';
-import { dbEnvFields } from './env.js';
+import { dbEnvFields, resolveDbTls } from './env.js';
 import {
   getApprovedIndicatorByFingertipsId,
   getIndicatorObservations,
@@ -14,6 +14,7 @@ import { createTestDatabase, type TestDatabase } from './testing.js';
 const env = parseEnv(
   z.object({
     ...dbEnvFields,
+    ...appEnvFields,
     POSTGRES_USER: z.string().default('fphd'),
     POSTGRES_PASSWORD: z.string().default('fphd'),
   }),
@@ -27,6 +28,7 @@ function ownerConnection(database: string) {
     database,
     user: env.POSTGRES_USER,
     password: env.POSTGRES_PASSWORD,
+    ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
   };
 }
 

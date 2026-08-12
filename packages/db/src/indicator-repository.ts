@@ -3,6 +3,11 @@ import { alias } from 'drizzle-orm/pg-core';
 
 import type { Database } from './client.js';
 import {
+  type IndicatorClassification,
+  listClassificationsForIndicator,
+  listTopicsForIndicator,
+} from './indicator-topic-repository.js';
+import {
   area,
   availableData,
   ciMethod,
@@ -21,11 +26,6 @@ import {
   valueType,
   yearType,
 } from './schema/index.js';
-import {
-  type IndicatorClassification,
-  listClassificationsForIndicator,
-  listTopicsForIndicator,
-} from './topic-indicator-repository.js';
 
 export interface ApprovedIndicator {
   id: string;

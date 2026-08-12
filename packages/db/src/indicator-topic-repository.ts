@@ -6,15 +6,22 @@ import {
   classification,
   indicator,
   indicatorClassification,
+  indicatorTopic,
   topic,
-  topicIndicator,
 } from './schema/index.js';
 
-export const topicIndicatorFileSchema = z.object({
-  topicIndicators: z.array(
-    z.object({ topicSlug: z.string().min(1), fingertipsId: z.number().int() }),
-  ),
-  indicatorDataUpdatedAt: z.record(z.string(), z.iso.datetime({ local: true }).nullable()),
+/**
+ * Three files rather than one, because they are three unrelated concerns: which topics an
+ * indicator sits under, how it is classified, and when its data was last published. Topics
+ * are referenced by id — a slug is a label that may be rewritten, the id is the row.
+ */
+export const indicatorTopicFileSchema = z.object({
+  indicatorTopics: z
+    .array(z.object({ topicId: z.uuidv7(), fingertipsId: z.number().int() }))
+    .default([]),
+  indicatorDataUpdatedAt: z
+    .record(z.string(), z.iso.datetime({ local: true }).nullable())
+    .default({}),
   classifications: z
     .array(
       z.object({
@@ -35,7 +42,7 @@ export const topicIndicatorFileSchema = z.object({
     .default([]),
 });
 
-export type TopicIndicatorFile = z.infer<typeof topicIndicatorFileSchema>;
+export type IndicatorTopicFile = z.infer<typeof indicatorTopicFileSchema>;
 
 export interface TopicSummaryForIndicator {
   slug: string;
@@ -48,7 +55,7 @@ export interface IndicatorClassification {
   name: string;
 }
 
-export interface TopicIndicatorImportSummary {
+export interface IndicatorTopicImportSummary {
   classifications: number;
   classificationLinks: number;
   links: number;
@@ -57,8 +64,8 @@ export interface TopicIndicatorImportSummary {
   unknownIndicators: number[];
 }
 
-export function parseTopicIndicatorFile(data: unknown): TopicIndicatorFile {
-  const result = topicIndicatorFileSchema.safeParse(data);
+export function parseIndicatorTopicFile(data: unknown): IndicatorTopicFile {
+  const result = indicatorTopicFileSchema.safeParse(data);
 
   if (!result.success) {
     throw new Error(`Invalid topic indicator file:\n${z.prettifyError(result.error)}`);
@@ -75,21 +82,21 @@ export function parseTopicIndicatorFile(data: unknown): TopicIndicatorFile {
  * Rows naming a topic or indicator this database does not hold are reported rather than
  * failed on — a seed file and a database can legitimately drift while both are in flux.
  */
-export async function importTopicIndicators(
+export async function importIndicatorTopics(
   db: Database,
-  file: TopicIndicatorFile,
-): Promise<TopicIndicatorImportSummary> {
-  const slugs = [...new Set(file.topicIndicators.map(({ topicSlug }) => topicSlug))];
+  file: IndicatorTopicFile,
+): Promise<IndicatorTopicImportSummary> {
+  const topicIds = [...new Set(file.indicatorTopics.map(({ topicId }) => topicId))];
   const fingertipsIds = [
     ...new Set([
-      ...file.topicIndicators.map(({ fingertipsId }) => fingertipsId),
+      ...file.indicatorTopics.map(({ fingertipsId }) => fingertipsId),
       ...Object.keys(file.indicatorDataUpdatedAt).map(Number),
     ]),
   ];
 
   const [topics, indicators] = await Promise.all([
-    slugs.length > 0
-      ? db.select({ id: topic.id, slug: topic.slug }).from(topic).where(inArray(topic.slug, slugs))
+    topicIds.length > 0
+      ? db.select({ id: topic.id }).from(topic).where(inArray(topic.id, topicIds))
       : Promise.resolve([]),
     fingertipsIds.length > 0
       ? db
@@ -99,20 +106,19 @@ export async function importTopicIndicators(
       : Promise.resolve([]),
   ]);
 
-  const topicIdBySlug = new Map(topics.map((row) => [row.slug, row.id]));
+  const knownTopicIds = new Set(topics.map((row) => row.id));
   const indicatorIdByFingertipsId = new Map(indicators.map((row) => [row.fingertipsId, row.id]));
 
   return db.transaction(async (tx) => {
-    const links = file.topicIndicators.flatMap(({ topicSlug, fingertipsId }) => {
-      const topicId = topicIdBySlug.get(topicSlug);
+    const links = file.indicatorTopics.flatMap(({ topicId, fingertipsId }) => {
       const indicatorId = indicatorIdByFingertipsId.get(fingertipsId);
-      return topicId && indicatorId ? [{ topicId, indicatorId }] : [];
+      return knownTopicIds.has(topicId) && indicatorId ? [{ topicId, indicatorId }] : [];
     });
 
     const indicatorIds = [...new Set(links.map(({ indicatorId }) => indicatorId))];
     if (indicatorIds.length > 0) {
-      await tx.delete(topicIndicator).where(inArray(topicIndicator.indicatorId, indicatorIds));
-      await tx.insert(topicIndicator).values(links);
+      await tx.delete(indicatorTopic).where(inArray(indicatorTopic.indicatorId, indicatorIds));
+      await tx.insert(indicatorTopic).values(links);
     }
 
     let timestamps = 0;
@@ -166,7 +172,7 @@ export async function importTopicIndicators(
       classificationLinks,
       links: links.length,
       timestamps,
-      unknownTopics: slugs.filter((slug) => !topicIdBySlug.has(slug)),
+      unknownTopics: topicIds.filter((id) => !knownTopicIds.has(id)),
       unknownIndicators: fingertipsIds.filter((id) => !indicatorIdByFingertipsId.has(id)),
     };
   });
@@ -179,9 +185,9 @@ export async function listTopicsForIndicator(
 ): Promise<TopicSummaryForIndicator[]> {
   return db
     .select({ slug: topic.slug, title: topic.title })
-    .from(topicIndicator)
-    .innerJoin(topic, eq(topicIndicator.topicId, topic.id))
-    .where(eq(topicIndicator.indicatorId, indicatorId))
+    .from(indicatorTopic)
+    .innerJoin(topic, eq(indicatorTopic.topicId, topic.id))
+    .where(eq(indicatorTopic.indicatorId, indicatorId))
     .orderBy(asc(topic.title));
 }
 

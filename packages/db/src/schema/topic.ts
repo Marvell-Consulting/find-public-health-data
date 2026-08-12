@@ -16,8 +16,8 @@ export const topic = pgTable('topic', {
  * Which topics an indicator belongs to. Many-to-many in both directions: an indicator is
  * reachable from several topics, and a topic lists many indicators.
  */
-export const topicIndicator = pgTable(
-  'topic_indicator',
+export const indicatorTopic = pgTable(
+  'indicator_topic',
   {
     topicId: uuid()
       .notNull()
@@ -29,7 +29,7 @@ export const topicIndicator = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.topicId, t.indicatorId] }),
-    index('idx_topic_indicator_indicator').on(t.indicatorId),
+    index('idx_indicator_topic_indicator').on(t.indicatorId),
   ],
 );
 
