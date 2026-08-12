@@ -279,28 +279,6 @@ reach Postgres directly over the compose network via `DB_HOST=db`.)
 
 ## Structure
 
-```text
-apps/
-  public-web/
-  internal-web/
-  public-api/
-  internal-api/
-packages/
-  api-server/
-  auth/
-  config/
-  db/
-  express/
-  logger/
-  ui/
-  web-server/
-  public-api-features/
-  public-web-features/
-  internal-web-features/
-tools/
-  artefact-boundary/
-```
-
-Application directories contain deployment wiring, routes, and entrypoints. Reusable business and
-feature logic belongs in workspace packages. `tools/*` holds workspace members that support the
-build rather than ship in it.
+`apps/*` hold deployment wiring, routes and entrypoints, and never import one another — reusable
+business and feature logic belongs in `packages/*`. `tools/*` holds workspace members that support
+the build rather than ship in it.
