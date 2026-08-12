@@ -328,9 +328,10 @@ describe('public application routes', () => {
 
     render(<Routes initialEntries={['/indicators?is=108']} />);
 
-    // Nothing to apply until an area is ticked.
+    // The button is always present so the form works without scripting; the count
+    // appears once something is ticked.
     expect(await screen.findByRole('searchbox', { name: 'Add geographies' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /Add selected geographies/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Add selected geographies' })).toBeTruthy();
 
     // The group is collapsed, so its checkbox is what selects everything beneath it.
     fireEvent.click(screen.getByRole('checkbox', { name: /^Statistical regions/ }));
