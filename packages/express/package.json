@@ -17,8 +17,8 @@
   },
   "dependencies": {
     "@fphd/logger": "workspace:*",
-    "@fphd/server-lifecycle": "workspace:*",
-    "express": "catalog:"
+    "express": "catalog:",
+    "http-graceful-shutdown": "catalog:"
   },
   "devDependencies": {
     "@types/express": "catalog:",

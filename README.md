@@ -233,56 +233,17 @@ how to regenerate it.
 
 ## Graceful shutdown
 
-Every server stops in three phases, sharing one budget.
+On SIGTERM or SIGINT every server drains, closes, then cleans up — releasing the database pool, and
+Vite in dev. `SHUTDOWN_GRACE_PERIOD_MS` (default 25s) is the budget for all three rather than a
+timeout per phase, so it is directly comparable to Container Apps' `terminationGracePeriodSeconds`
+and must stay under it, since that is what decides when SIGKILL arrives. It is a ceiling and not a
+wait: a stop with nothing in flight is immediate. `SHUTDOWN_DRAIN_MS` is how long the server goes on
+serving while readiness fails, giving the ingress time to stop routing here; it comes out of the
+budget rather than adding to it, and is zero locally, five seconds elsewhere.
 
-**Drain.** On SIGTERM or SIGINT the server keeps listening and keeps serving, but readiness starts
-failing and every response carries `Connection: close`, so the ingress stops routing here and
-clients retire their own pooled connections rather than having them destroyed underneath a request
-they had already written. `SHUTDOWN_DRAIN_MS` sets the length: zero on a machine here, where nothing
-routes to the process and a delay would only make Ctrl-C slow, five seconds elsewhere. **Nothing
-probes readiness yet**, so today only the `Connection: close` half has any effect; the other half
-starts working when a probe is configured against `/readyz`.
-
-**Close.** The listener closes and in-flight requests finish, each socket destroyed as its response
-completes — it carries no work from then on, but `close` alone would hold the stop open for the
-whole keep-alive timeout waiting on it. Anything still mid-request when the budget runs out is
-destroyed, so one hung handler cannot stall the stop; that reports through `onForcedClose`, which
-each app logs at warn.
-
-**Cleanup.** The APIs close their database pool, and the dev-mode web server closes Vite — without
-that the process sits holding the event loop open until it is killed, and a `tsx watch` restart
-fails to rebind the port. It is bounded too, and keeps a reserve of the budget, because a pool that
-never finishes closing would otherwise leave a process that has already replaced the default signal
-handlers ignoring every subsequent stop, and Ctrl-C locally. A stop that fails reports through
-`onError` and exits non-zero.
-
-`SHUTDOWN_GRACE_PERIOD_MS` (default 25s) is the budget for all three, so the worst case for a stop
-is that number and there is no sum to get wrong. It is a ceiling and not a wait — a stop with
-nothing in flight is immediate — which is why a developer machine needs no separate value. Raising
-it means raising Container Apps' `terminationGracePeriodSeconds` alongside it, since that is what
-decides when SIGKILL arrives. The drain comes out of the budget rather than adding to it, so one
-that would fill it fails at startup rather than leaving the close nothing to work with.
-
-All four apps serve the same two probes, so one probe configuration covers every app. `/livez`
-reports `{ "status": "ok", "service": "<app>" }` throughout a stop, because the process is alive and
-serving the whole time; `/readyz` answers 503 with `"status": "draining"` from the moment a signal
-arrives. The paths follow Kubernetes' convention for its own control-plane components — the `z`
-keeps them clear of the content routes a health data catalogue might want. Probes read the status
-code alone; the body is there for a human curling one of four apps during an incident.
-
-Two packages sit underneath. `@fphd/express` is the Express every app starts from — the probes,
-`x-powered-by` off, the shared security headers, and `startServer`, which listens and wires the
-drain to the readiness flag. It exists because `@fphd/api-server` and `@fphd/web-server` must not
-import one another, so anything all four apps must agree on has nowhere else to live. It uses
-`@fphd/server-lifecycle`, which knows nothing about Express, so a stop can be tested against a bare
-server rather than through a framework.
-
-The close phase itself is [`http-graceful-shutdown`](https://www.npmjs.com/package/http-graceful-shutdown);
-`@fphd/server-lifecycle` is the drain, the budget, the signal wiring and the cleanup around it. The
-library bounds only the close, so on its own a stop would have the drain added to that timeout and
-an unbounded cleanup after it, with no single ceiling to compare against the platform's grace
-period. It also installs no signal handlers here (`signals: ''`), because its own would exit the
-process outright on a repeated SIGTERM and lose the cleanup that closes the pool.
+All four apps serve the same two probes, so one configuration covers every app: `/livez` stays 200
+throughout a stop, `/readyz` answers 503 with `"status": "draining"` from the moment a signal
+arrives.
 
 ## Mixed local/Docker development
 
@@ -331,7 +292,6 @@ packages/
   db/
   express/
   logger/
-  server-lifecycle/
   ui/
   web-server/
   public-api-features/

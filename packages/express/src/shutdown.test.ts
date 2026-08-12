@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createShutdownHandler, drainServer, type ShutdownOptions } from './index.js';
+import { createShutdownHandler, phaseBudgets, type ShutdownOptions } from './shutdown.js';
 
 const defaults = { gracePeriodMs: 5_000, drainDelayMs: 0 };
 
@@ -41,11 +41,11 @@ function requestOnNewConnection(url: string): Promise<void> {
 }
 
 /** A keep-alive socket the test owns, so it stays open and idle once the response has ended. */
-function keepAliveRequest(url: string, agent: Agent): Promise<string | undefined> {
+function keepAliveRequest(url: string, agent: Agent): Promise<void> {
   return new Promise((resolve, reject) => {
     const outgoing = request(url, { agent }, (response) => {
       response.resume();
-      response.on('end', () => resolve(response.headers.connection));
+      response.on('end', () => resolve());
     });
     outgoing.on('error', reject);
     outgoing.end();
@@ -70,36 +70,43 @@ afterEach(async () => {
   running = undefined;
 });
 
-describe('drainServer', () => {
-  it('keeps serving while it drains, and tells the client to retire the connection', async () => {
-    let served = 0;
-    const { server, url } = await startServer((_request, response) => {
-      served += 1;
-      response.end('ok');
-    });
-    const agent = new Agent({ keepAlive: true, maxSockets: 1 });
+describe('phaseBudgets', () => {
+  it('leaves the close a window to work with when the drain would fill the budget', () => {
+    const { drainMs, closeTimeoutMs } = phaseBudgets(600, 600);
 
-    expect(await keepAliveRequest(`${url}/before`, agent)).toBe('keep-alive');
-
-    const draining = drainServer(server, 20);
-    // Served on the pooled socket, and answered with the header that has the client close it
-    // itself — rather than the socket being destroyed under a request it had already written.
-    expect(await keepAliveRequest(`${url}/during`, agent)).toBe('close');
-    await draining;
-
-    expect(served).toBe(2);
-    expect(server.listening).toBe(true);
-    agent.destroy();
+    // A zero timeout is the library destroying every live request the moment the drain ends, so
+    // the drain gives way rather than the close being left the remainder.
+    expect(closeTimeoutMs).toBeGreaterThan(0);
+    expect(drainMs).toBeLessThan(600);
   });
 
-  it('fails readiness as it starts, not once the wait is over', async () => {
-    const { server } = await startServer((_request, response) => response.end('ok'));
-    const onDraining = vi.fn();
+  it('fits all three phases inside the grace period', () => {
+    for (const [gracePeriodMs, drainDelayMs] of [
+      [25_000, 5_000],
+      [5_000, 0],
+      [1_000, 5_000],
+      [600, 600],
+    ] as const) {
+      const { drainMs, closeMs, reserveMs } = phaseBudgets(gracePeriodMs, drainDelayMs);
 
-    const draining = drainServer(server, 20, onDraining);
+      expect(drainMs + closeMs + reserveMs).toBeLessThanOrEqual(gracePeriodMs);
+      expect(drainMs).toBeGreaterThanOrEqual(0);
+    }
+  });
 
-    expect(onDraining).toHaveBeenCalled();
-    await draining;
+  it('asks the library to finish early, so its poll loop can slip and still be in time', () => {
+    // It counts its timeout in 250ms hops and each one slips by however late the event loop is,
+    // which on a loaded process runs to seconds. Told the whole share, a close that succeeded
+    // would trip the backstop and be reported as a stop that failed.
+    const { closeMs, closeTimeoutMs } = phaseBudgets(25_000, 5_000);
+
+    expect(closeTimeoutMs).toBeLessThan(closeMs);
+    expect(closeMs - closeTimeoutMs).toBeGreaterThan(2_000);
+  });
+
+  it('shortens the reserve on a short grace period rather than spending the budget on it', () => {
+    expect(phaseBudgets(25_000, 0).reserveMs).toBe(2_000);
+    expect(phaseBudgets(1_000, 0).reserveMs).toBe(200);
   });
 });
 
@@ -149,19 +156,22 @@ describe('the close phase', () => {
     });
     const stop = shutdownHandler(server);
 
-    const inFlight = fetch(`${url}/slow`);
+    const settled = vi.fn();
+    const inFlight = fetch(`${url}/slow`).finally(settled);
     await reachedHandler.promise;
     const shutdown = stop('SIGTERM');
 
-    // Raced rather than awaited: a connection accepted in the instant the close begins is held
-    // and destroyed at the deadline rather than refused outright. Either way it is never served.
-    const late = requestOnNewConnection(`${url}/late`).then(() => 'served');
-    expect(
-      await Promise.race([late.catch(() => 'refused'), delay(200).then(() => 'refused')]),
-    ).toBe('refused');
+    // Waited for rather than raced: until the listener has actually closed, a late connection
+    // being accepted says nothing. Once it has, the request below can only be refused.
+    await vi.waitFor(() => expect(server.listening).toBe(false));
+    await expect(requestOnNewConnection(`${url}/late`)).rejects.toThrow();
+
+    // The half that makes it a graceful close rather than a stop: the request already being
+    // served is still open.
+    expect(settled).not.toHaveBeenCalled();
 
     releaseHandler.resolve();
-    await inFlight;
+    expect(await (await inFlight).text()).toBe('finished');
     await shutdown;
   });
 
@@ -209,67 +219,27 @@ describe('the close phase', () => {
     expect(server.listening).toBe(false);
     expect(await abandoned).toBeInstanceOf(Error);
   });
-
-  it('reports work cut short, so a forced close is not a silent one', async () => {
-    const reachedHandler = deferred();
-    const { server, url } = await startServer(() => reachedHandler.resolve());
-    const onForcedClose = vi.fn();
-    const stop = shutdownHandler(server, { gracePeriodMs: 300, onForcedClose });
-
-    // Caught as it is made, not asserted on later: the socket is destroyed during the shutdown
-    // below, and a rejection with nothing attached yet surfaces as an unhandled one.
-    const abandoned = fetch(`${url}/never`).catch((error: unknown) => error);
-    await reachedHandler.promise;
-    await stop('SIGTERM');
-
-    expect(onForcedClose).toHaveBeenCalled();
-    expect(await abandoned).toBeInstanceOf(Error);
-  });
-
-  it('still reports it when the drain was configured to fill the whole budget', async () => {
-    const reachedHandler = deferred();
-    const { server, url } = await startServer(() => reachedHandler.resolve());
-    const onForcedClose = vi.fn();
-    // The close gets its share of the budget before the drain does. Left as the remainder it
-    // reaches zero here, which the library reads as "destroy everything now" — and a stop that
-    // resets every live request must not be the one stop that reports nothing.
-    const stop = shutdownHandler(server, {
-      gracePeriodMs: 600,
-      drainDelayMs: 600,
-      onForcedClose,
-    });
-
-    const abandoned = fetch(`${url}/never`).catch((error: unknown) => error);
-    await reachedHandler.promise;
-    await stop('SIGTERM');
-
-    expect(onForcedClose).toHaveBeenCalled();
-    expect(await abandoned).toBeInstanceOf(Error);
-  });
-
-  it('stays quiet when everything finished in time', async () => {
-    const { server } = await startServer((_request, response) => response.end('ok'));
-    const onForcedClose = vi.fn();
-
-    await shutdownHandler(server, { onForcedClose })('SIGTERM');
-
-    expect(onForcedClose).not.toHaveBeenCalled();
-  });
 });
 
 describe('createShutdownHandler', () => {
-  it('runs onShutdown after the server has closed, and reports success', async () => {
-    const closedWhenCalled = deferred<boolean>();
-    const { server } = await startServer((_request, response) => response.end('ok'));
-    const shutdown = shutdownHandler(server, {
-      onShutdown: () => closedWhenCalled.resolve(server.listening === false),
+  it('keeps serving while it drains, before anything stops listening', async () => {
+    let served = 0;
+    const { server, url } = await startServer((_request, response) => {
+      served += 1;
+      response.end('ok');
     });
+    const shutdown = shutdownHandler(server, { drainDelayMs: 100 })('SIGTERM');
 
-    expect(await shutdown('SIGTERM')).toBe(0);
-    expect(await closedWhenCalled.promise).toBe(true);
+    expect(server.listening).toBe(true);
+    expect(await (await fetch(`${url}/during`)).text()).toBe('ok');
+
+    await shutdown;
+
+    expect(served).toBe(1);
+    expect(server.listening).toBe(false);
   });
 
-  it('drains while still listening, and only then closes', async () => {
+  it('fails readiness as the drain starts, not once it is over', async () => {
     const { server } = await startServer((_request, response) => response.end('ok'));
     const listeningWhenDraining = deferred<boolean>();
     const shutdown = shutdownHandler(server, {
@@ -280,6 +250,39 @@ describe('createShutdownHandler', () => {
     expect(await shutdown('SIGTERM')).toBe(0);
     expect(await listeningWhenDraining.promise).toBe(true);
     expect(server.listening).toBe(false);
+  });
+
+  it('closes the server even when the readiness flip throws', async () => {
+    const { server } = await startServer((_request, response) => response.end('ok'));
+    const failure = new Error('readiness flip threw');
+    const onShutdown = vi.fn();
+    const onError = vi.fn();
+
+    const exitCode = await shutdownHandler(server, {
+      onDraining: () => {
+        throw failure;
+      },
+      onShutdown,
+      onError,
+    })('SIGTERM');
+
+    // A `preShutdown` that rejects short-circuits the library before it closes anything, so this
+    // is reported and stepped over rather than thrown.
+    expect(server.listening).toBe(false);
+    expect(onShutdown).toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledWith(failure);
+    expect(exitCode).toBe(1);
+  });
+
+  it('runs onShutdown after the server has closed, and reports success', async () => {
+    const closedWhenCalled = deferred<boolean>();
+    const { server } = await startServer((_request, response) => response.end('ok'));
+    const shutdown = shutdownHandler(server, {
+      onShutdown: () => closedWhenCalled.resolve(server.listening === false),
+    });
+
+    expect(await shutdown('SIGTERM')).toBe(0);
+    expect(await closedWhenCalled.promise).toBe(true);
   });
 
   it('passes the signal through to onShutdown', async () => {
@@ -349,8 +352,10 @@ describe('createShutdownHandler', () => {
     // — the backstop is what keeps the exception from hanging a process that has already
     // replaced the default signal handlers.
     const cleanedUp = vi.fn();
+    const onForcedClose = vi.fn();
     const shutdown = shutdownHandler(server, {
       gracePeriodMs: 400,
+      onForcedClose,
       onShutdown: async () => {
         await delay(50);
         cleanedUp();
@@ -359,12 +364,24 @@ describe('createShutdownHandler', () => {
 
     const started = Date.now();
 
-    expect(await shutdown('SIGTERM')).toBe(1);
+    // Zero, not one: the budget ran out, which is what it is for. The library counts its own
+    // timeout in 250ms hops that slip with the event loop, so a loaded process reaches here on a
+    // stop that did nothing wrong, and a non-zero exit on every busy stop reads as a crash.
+    expect(await shutdown('SIGTERM')).toBe(0);
+    expect(onForcedClose).toHaveBeenCalled();
 
     expect(Date.now() - started).toBeLessThan(2_000);
     // Cleanup keeps its reserve even though the close spent the whole budget.
     expect(cleanedUp).toHaveBeenCalled();
     expect(await abandoned).toBeInstanceOf(Error);
+  });
+
+  it('stays quiet about a forced close when everything finished in time', async () => {
+    const { server } = await startServer((_request, response) => response.end('ok'));
+    const onForcedClose = vi.fn();
+
+    expect(await shutdownHandler(server, { onForcedClose })('SIGTERM')).toBe(0);
+    expect(onForcedClose).not.toHaveBeenCalled();
   });
 
   it('fits the whole stop inside the grace period rather than one budget per phase', async () => {

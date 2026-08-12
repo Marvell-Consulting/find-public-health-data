@@ -28,7 +28,7 @@ export function serverLogging(
       await onShutdown?.();
       logger.info({ signal }, 'Stopped');
     },
-    onForcedClose: () => logger.warn('Destroyed requests still running at the deadline'),
+    onForcedClose: () => logger.warn('Ran out of time to close, so requests were cut short'),
     onError: (error) => logger.error({ err: error }, 'Did not stop cleanly'),
   };
 }
