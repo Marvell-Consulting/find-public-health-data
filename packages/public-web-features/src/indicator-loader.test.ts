@@ -102,7 +102,7 @@ describe('loadIndicator', () => {
     expect(result.selection.fingertipsIds.filter((id) => id === 108)).toHaveLength(1);
   });
 
-  it('loads one data set per selected area for each indicator', async () => {
+  it('asks for every selected area in one request per indicator', async () => {
     const { client, get } = api();
 
     await loadIndicator(
@@ -113,12 +113,12 @@ describe('loadIndicator', () => {
       ),
     );
 
-    for (const code of ['E12000001', 'E12000002']) {
-      expect(get).toHaveBeenCalledWith(
-        `/api/indicators/108/data?area_code=${code}`,
-        expect.anything(),
-      );
-    }
+    // One call carrying both codes, not one call per code.
+    expect(get).toHaveBeenCalledWith(
+      '/api/indicators/108/data?area_code=E12000001&area_code=E12000002',
+      expect.anything(),
+    );
+    expect(get.mock.calls.filter(([path]) => String(path).includes('/data?'))).toHaveLength(1);
   });
 
   it('loads a repeated area code once', async () => {
@@ -131,6 +131,7 @@ describe('loadIndicator', () => {
     expect(result.selection.areaCodes).toEqual(['E12000001']);
     const dataCalls = get.mock.calls.filter(([path]) => String(path).includes('/data?'));
     expect(dataCalls).toHaveLength(1);
+    expect(String(dataCalls[0]?.[0])).toBe('/api/indicators/108/data?area_code=E12000001');
   });
 
   it('404s a non-numeric route param without calling the api for it', async () => {

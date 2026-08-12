@@ -100,6 +100,8 @@ export const indicatorAreaDataSchema = z.object({
   observations: z.array(indicatorObservationSchema),
 });
 
+export const indicatorAreaDataListSchema = z.array(indicatorAreaDataSchema);
+
 export const areaSummarySchema = z.object({
   code: z.string().min(1),
   name: z.string().min(1),

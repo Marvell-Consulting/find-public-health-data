@@ -1,5 +1,6 @@
 import {
   areaGroupListSchema,
+  indicatorAreaDataListSchema,
   indicatorAreaDataSchema,
   indicatorDetailSchema,
   indicatorListResponseSchema,
@@ -90,13 +91,15 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
       fingertipsIds.map(async (id) => {
         const [detail, areaData] = await Promise.all([
           api.get(apiPath`/api/indicators/${String(id)}`, indicatorDetailSchema),
-          Promise.all(
-            codesToLoad.map((code) =>
-              api.get(
-                `${apiPath`/api/indicators/${String(id)}/data`}?area_code=${encodeURIComponent(code)}`,
-                indicatorAreaDataSchema,
-              ),
-            ),
+          // One request per indicator carrying every area, rather than one per pair: a
+          // page comparing ten indicators across twenty areas would otherwise fire 200.
+          api.get(
+            `${apiPath`/api/indicators/${String(id)}/data`}?${codesToLoad
+              .map((code) => `area_code=${encodeURIComponent(code)}`)
+              .join('&')}`,
+            codesToLoad.length === 1
+              ? indicatorAreaDataSchema.transform((one) => [one])
+              : indicatorAreaDataListSchema,
           ),
         ]);
         return { detail, areaData };

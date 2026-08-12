@@ -14,28 +14,32 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
 
   router.get('/api/indicators/:fingertipsId/data', async (request, response) => {
     const { fingertipsId } = request.params;
-    const areaCode = request.query.area_code ?? DEFAULT_AREA_CODE;
-
-    if (
-      !/^\d+$/.test(fingertipsId) ||
-      typeof areaCode !== 'string' ||
-      !/^[A-Z0-9]+$/i.test(areaCode)
-    ) {
-      response.status(404).json({ error: 'not_found' });
-      return;
-    }
-
-    const data: IndicatorAreaData | undefined = await indicators.findObservations(
-      Number(fingertipsId),
-      areaCode,
+    // Repeatable, so a page comparing many areas asks once rather than once per area.
+    const requested = request.query.area_code ?? DEFAULT_AREA_CODE;
+    const areaCodes = [...new Set(Array.isArray(requested) ? requested : [requested])].filter(
+      (code): code is string => typeof code === 'string' && /^[A-Z0-9]+$/i.test(code),
     );
 
-    if (!data) {
+    if (!/^\d+$/.test(fingertipsId) || areaCodes.length === 0) {
       response.status(404).json({ error: 'not_found' });
       return;
     }
 
-    response.status(200).json(data);
+    const found = await Promise.all(
+      areaCodes.map((code) => indicators.findObservations(Number(fingertipsId), code)),
+    );
+    const data: IndicatorAreaData[] = found.filter(
+      (entry): entry is IndicatorAreaData => entry !== undefined,
+    );
+
+    // Every requested area missing means the indicator itself is unknown.
+    if (data.length === 0) {
+      response.status(404).json({ error: 'not_found' });
+      return;
+    }
+
+    // A single area answers with the bare object it always has; several answer with a list.
+    response.status(200).json(areaCodes.length === 1 ? data[0] : data);
   });
 
   router.get('/api/indicators/:fingertipsId', async (request, response) => {

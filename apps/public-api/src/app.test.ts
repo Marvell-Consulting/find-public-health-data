@@ -237,6 +237,25 @@ describe('public API', () => {
     expect(findObservations).toHaveBeenCalledWith(108, 'E06000001');
   });
 
+  it('answers with a list when several areas are asked for', async () => {
+    const findObservations = vi.fn().mockImplementation(async (_id: number, areaCode: string) => ({
+      areaCode,
+      areaName: areaCode,
+      observations: [],
+    }));
+    const repositories = createFakeRepositories({ indicators: { findObservations } });
+
+    const response = await request(createApp({ repositories })).get(
+      '/api/indicators/108/data?area_code=E12000001&area_code=E12000002',
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body.map((entry: { areaCode: string }) => entry.areaCode)).toEqual([
+      'E12000001',
+      'E12000002',
+    ]);
+  });
+
   it('rejects a malformed area code without touching the repository', async () => {
     const response = await request(createApp({ repositories: createFakeRepositories() })).get(
       '/api/indicators/108/data?area_code=../nope',
