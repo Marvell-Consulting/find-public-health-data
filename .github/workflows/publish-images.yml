@@ -65,6 +65,9 @@ jobs:
       - name: Sign in to the container registry
         run: az acr login --name "${ACR_NAME}"
 
+      # The OCI labels are where "which commit is this, and when was it built" belongs. Encoding
+      # either into the tag would be the same fact in a place that can drift from it, and the
+      # tags are load-bearing: deployments pin the SHA.
       - name: Build the image
         env:
           APP: ${{ matrix.app }}
@@ -74,9 +77,45 @@ jobs:
             --file docker/Dockerfile \
             --target "${TARGET}" \
             --build-arg "APP=${APP}" \
+            --label "org.opencontainers.image.title=${APP}" \
+            --label "org.opencontainers.image.source=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --label "org.opencontainers.image.licenses=MIT" \
             --tag "${REGISTRY}/${APP}:${GITHUB_SHA}" \
             --tag "${REGISTRY}/${APP}:latest" \
             .
+
+      # The layer nothing else covers: CodeQL reads source and CI's audit job resolves the npm
+      # tree from the lockfile, so the Debian userland these images are built on — the base
+      # image, tini, and psql in the operations image — is otherwise unscanned. Between build
+      # and push, so a failing image is never in the registry to be deployed.
+      #
+      # --pkg-types os is the whole point rather than a narrowing: the npm tree is already gated
+      # from the lockfile by CI's audit job, and scanning it here instead fails on npm's own
+      # bundled dependencies — the Node image ships an npm whose tar and undici carry fixable
+      # highs, which only a new base image fixes and which nothing in these images even runs.
+      #
+      # --ignore-unfixed because a CVE with no fixed version yet is a red build with nothing to
+      # do about it but wait. --scanners vuln keeps the failure legible as "this image has a
+      # fixable CVE": anything reaching an image came out of this repository, where secret
+      # scanning and push protection already apply.
+      - name: Scan the image
+        env:
+          APP: ${{ matrix.app }}
+          # v0.73.0, pinned by digest for the same reason the actions above are.
+          TRIVY_IMAGE: ghcr.io/aquasecurity/trivy@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c
+        run: |
+          docker run --rm \
+            --volume /var/run/docker.sock:/var/run/docker.sock \
+            "${TRIVY_IMAGE}" image \
+              --scanners vuln \
+              --pkg-types os \
+              --severity HIGH,CRITICAL \
+              --ignore-unfixed \
+              --exit-code 1 \
+              --no-progress \
+              "${REGISTRY}/${APP}:${GITHUB_SHA}"
 
       # The commit SHA is what deployments pin to; `latest` is a convenience for pulling by
       # hand and must never be what a revision references.

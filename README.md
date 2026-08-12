@@ -269,7 +269,9 @@ pnpm --filter @fphd/operations cli db rebuild-read-models
 
 Deployed, the same commands are `node dist/cli.js db migrate` and so on, in the `operations` image.
 That image also carries `psql`, because a database with no public endpoint makes a container inside
-the network the only route to an ad-hoc query.
+the network the only route to an ad-hoc query. It is version 18, from PostgreSQL's own apt
+repository, to match the server — Debian 12 ships 15, and `pg_dump` refuses to run against a newer
+server.
 
 Two commands are worth noting:
 
@@ -333,23 +335,33 @@ the image differs. A per-app target would be a copy with nothing changed in it, 
 split only where the runtime genuinely does: `dist/server.js` for an API, `server.ts` for a web
 app, and the CLI-plus-`psql` image for operations.
 
-`pnpm deploy --prod` prunes devDependencies and copies only the workspace packages the app actually
-depends on, so no image carries pnpm, TypeScript, drizzle-kit or another app's code. Images run as
-the `node` user and start under tini, which guarantees SIGTERM is delivered to a process running as
-PID 1 — the kernel discards a default-action signal sent to PID 1 unless that process installed a
-handler. Every server stops gracefully on that signal, well inside a thirty-second grace period.
-`HOST` and `PORT` come from the environment, defaulting to `0.0.0.0` and the app's own port.
+`pnpm deploy --prod --legacy` prunes devDependencies and copies only the workspace packages the app
+actually depends on, so no image carries pnpm, TypeScript, drizzle-kit or another app's code.
+`--legacy` is required because the current implementation expects injected workspace packages, which
+this workspace does not use. Images run as the `node` user and start under tini, which guarantees
+SIGTERM is delivered to a process running as PID 1 — the kernel discards a default-action signal
+sent to PID 1 unless that process installed a handler. Every server stops gracefully on that
+signal, well inside a thirty-second grace period. `HOST` and `PORT` come from the environment,
+defaulting to `0.0.0.0` and the app's own port.
 
 This is separate from `docker/app.Dockerfile`, which is the development image used by
 [mixed local/Docker development](#mixed-localdocker-development) and keeps the whole workspace and
 its devDependencies — exactly what the production images must not do.
 
 `.github/workflows/publish-images.yml` builds all five on every push to `main` and pushes them to
-Azure Container Registry, tagged with the commit SHA and `latest`. Deployments pin the SHA. There
+Azure Container Registry, tagged with the commit SHA and `latest`. Deployments pin the SHA, and OCI
+labels carry the repository, commit and build time rather than encoding them in the tag. There
 is no registry password and no service-principal secret: the workflow mints a GitHub OIDC token,
 `azure/login` exchanges it for an Azure token under a federated credential that trusts only
 main-branch runs of this workflow, and the identity behind it holds `AcrPush` alone. It needs three
 repository secrets — `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID`.
+
+Trivy scans each image between building and pushing, and a fixable high or critical vulnerability
+in an operating system package stops it reaching the registry. That layer is otherwise unscanned —
+CodeQL reads the source and CI's audit job resolves the npm tree from the lockfile, and neither
+looks at the Debian packages underneath, which is also why the scan covers OS packages only. The
+base image is pinned by digest and raised by Dependabot; nothing runs `apt-get upgrade`, so a
+red scan is fixed by bumping the pin.
 
 ## Mixed local/Docker development
 
