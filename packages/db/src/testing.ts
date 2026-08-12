@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 
 import type postgres from 'postgres';
 
+import { bootstrapOwnerRole, SCHEMA_OWNER_ROLE } from './bootstrap.js';
 import { migrateToLatest } from './migrations.js';
 import { rebuildReadModels } from './read-models.js';
 import type { Repositories } from './repositories.js';
@@ -63,6 +64,8 @@ async function buildTemplate(name: string, seed: boolean): Promise<void> {
 
   const template = createOwnerClient(name);
   try {
+    // Per-database, so a freshly created template needs it before anything can migrate.
+    await bootstrapOwnerRole(template);
     await migrateToLatest(template);
     if (seed) {
       await seedDatabase(template);
@@ -116,6 +119,12 @@ export async function createTestDatabase({
     await withCopyLock(admin, () =>
       admin.unsafe(`CREATE DATABASE "${name}" TEMPLATE "${TEMPLATES[template]}"`),
     );
+    // Grants held *inside* a database are copied with it; grants on the database itself are
+    // not, because pg_database is a shared catalog. Without this a copy cannot be migrated,
+    // since the migrator opens with `CREATE SCHEMA IF NOT EXISTS drizzle` and that checks the
+    // privilege before it checks existence. Issued from `postgres` — a database-level grant
+    // needs no connection to its subject.
+    await admin.unsafe(`GRANT CREATE ON DATABASE "${name}" TO "${SCHEMA_OWNER_ROLE}"`);
   } finally {
     await admin.end();
   }

@@ -88,7 +88,7 @@ jobs:
       # equivalent here. Rather than invoke that script, this runs the operations CLI — the
       # same command a deployed environment bootstraps with — so the path that has no local
       # equivalent is exercised on every run instead of only in Azure.
-      - name: Create the per-API login roles
+      - name: Create the schema owner group and the per-API login roles
         run: pnpm --filter @fphd/operations cli db bootstrap
         env:
           APP_ENV: test

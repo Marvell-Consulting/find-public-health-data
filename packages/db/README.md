@@ -3,8 +3,14 @@
 Drizzle ORM schema, migrations, repository functions and database tooling shared by the
 API apps. Each API connects with its own login role (`public_api` / `internal_api`) via
 `createDb`. Everything that writes — migrations, the seed, the read-model rebuild, the
-import tooling and the test harness — runs as the owner role (`POSTGRES_USER`), via
-`createOwnerClient` outside drizzle-kit.
+import tooling and the test harness — connects as the owner login (`POSTGRES_USER`) via
+`createOwnerClient`.
+
+Migrations then set their role to `fphd_owner`, a NOLOGIN group that owns every migrated
+object, so the identity running DDL can be replaced without splitting the schema across two
+owners. `bootstrapOwnerRole` creates it and must run once against each database before
+anything migrates; `operations db bootstrap` and the compose initdb script both do that,
+and it is safe to re-run against a database that predates the group.
 
 ## Layout
 

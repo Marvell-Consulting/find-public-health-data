@@ -1,5 +1,7 @@
 import {
+  API_ROLES,
   assertSeedingAllowed,
+  bootstrapOwnerRole,
   bootstrapRoles,
   type DatabaseRole,
   rebuildReadModels,
@@ -16,9 +18,13 @@ import type { Config } from './load-config.js';
  */
 export function rolesToBootstrap(roles: Config['roles']): DatabaseRole[] {
   const required = [
-    { name: 'public_api', variable: 'PUBLIC_API_PASSWORD', password: roles.publicApiPassword },
     {
-      name: 'internal_api',
+      name: API_ROLES.publicApi,
+      variable: 'PUBLIC_API_PASSWORD',
+      password: roles.publicApiPassword,
+    },
+    {
+      name: API_ROLES.internalApi,
       variable: 'INTERNAL_API_PASSWORD',
       password: roles.internalApiPassword,
     },
@@ -36,7 +42,12 @@ export function rolesToBootstrap(roles: Config['roles']): DatabaseRole[] {
   );
 }
 
+/**
+ * The owner group first: `db migrate` sets its role to it, so a database that has never been
+ * bootstrapped cannot be migrated.
+ */
 export async function bootstrap(sql: SqlClient, config: Config): Promise<void> {
+  await bootstrapOwnerRole(sql);
   await bootstrapRoles(sql, rolesToBootstrap(config.roles));
 }
 

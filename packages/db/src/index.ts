@@ -1,4 +1,10 @@
-export { bootstrapRoles, type DatabaseRole } from './bootstrap.js';
+export {
+  API_ROLES,
+  bootstrapOwnerRole,
+  bootstrapRoles,
+  type DatabaseRole,
+  SCHEMA_OWNER_ROLE,
+} from './bootstrap.js';
 export {
   createDb,
   createPostgresClient,
