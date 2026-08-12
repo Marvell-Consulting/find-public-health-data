@@ -8,28 +8,20 @@ import { installShutdownHandlers, type ShutdownOptions } from './shutdown.js';
 export { universalSecurityHeaders } from './security-headers.js';
 export { serverLogging } from './server-logging.js';
 
-/**
- * The Express every app starts from, so what all four must agree on is settled once rather than
- * mirrored between `@fphd/api-server` and `@fphd/web-server`, which must not import one another.
- *
- * The probe paths follow Kubernetes' convention for its own control-plane components; the `z`
- * keeps them clear of the routes a public health data catalogue might want, `/health` above all.
- */
+/** Base app for all four servers: shared configuration and routes go here. */
 export function createBaseApp({ serviceName }: { serviceName: string }): Express {
   const app = express();
 
   app.disable('x-powered-by');
   app.use(universalSecurityHeaders());
 
-  // Answers throughout a stop: the process is alive and serving the whole time, and failing
-  // this asks to be restarted rather than left alone to finish.
+  // Stays 200 while draining: the process is alive, and failing this asks for a restart.
   app.get('/livez', (_request, response) => {
     response.status(200).json({ status: 'ok', service: serviceName });
   });
 
-  // Readiness is the one that changes, so the ingress stops routing here while the replica goes
-  // on serving what it was already sent. Off `app.locals`, so the drain reaches it without a
-  // capability threaded through every app factory.
+  // Off `app.locals` so the drain can flip it without a capability threaded through every app
+  // factory.
   app.get('/readyz', (request, response) => {
     const draining = request.app.locals.draining === true;
     response
@@ -44,7 +36,7 @@ export interface StartServerOptions {
   app: Express;
   host: string;
   port: number;
-  /** Taken whole from `config.shutdown`, so no app can pass one number and forget the other. */
+  /** Taken whole, so no app can pass one number and forget the other. */
   shutdown: Pick<ShutdownOptions, 'drainDelayMs' | 'gracePeriodMs'>;
   onListening: () => void;
   onShutdown?: ShutdownOptions['onShutdown'];
@@ -52,10 +44,7 @@ export interface StartServerOptions {
   onError?: ShutdownOptions['onError'];
 }
 
-/**
- * Listens, and stops gracefully when the platform says to. Every app goes through here, so none
- * can be left without signal handlers, and the readiness flag is wired to the drain in one place.
- */
+/** Every app listens through here, so none can be left without signal handlers. */
 export function startServer({
   app,
   host,

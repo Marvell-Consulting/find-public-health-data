@@ -12,8 +12,7 @@ export { serverLogging } from '@fphd/express';
 function createHost({ development, serviceName }: { development: boolean; serviceName: string }) {
   const app = createBaseApp({ serviceName });
 
-  // After the base, so the probes it registered answer without a CSP: a policy constrains what
-  // a browser may load while rendering a document, and a JSON probe response has none.
+  // After the base, so its JSON probe responses answer without a CSP.
   app.use(securityHeaders({ development }));
 
   return app;
@@ -63,7 +62,7 @@ function readRequestHandler(serverModule: unknown): RequestHandler {
 interface ReactRouterServerOptions extends Omit<StartServerOptions, 'app'> {
   development: boolean;
   rootDirectory: string;
-  /** Names this app in its health responses, where four apps sit behind one front door. */
+  /** Names this app in its health responses. */
   serviceName: string;
 }
 
@@ -75,8 +74,8 @@ export async function startReactRouterServer({
   ...options
 }: ReactRouterServerOptions) {
   let app: Express;
-  // In development the Vite server is the handle that would otherwise keep the process alive
-  // after the HTTP server has closed — including on every `tsx watch` restart.
+  // The handle that would otherwise keep the process alive after the HTTP server has closed,
+  // including on every `tsx watch` restart.
   let closeDevServer: (() => Promise<void>) | undefined;
 
   if (development) {
@@ -113,9 +112,7 @@ export async function startReactRouterServer({
   return startServer({
     ...options,
     app,
-    // `finally`, because the caller's cleanup is where a pool or another handle keeping the
-    // process alive gets released: losing it to a Vite close that rejected would leave the
-    // process to be killed rather than exiting.
+    // `finally`, so a Vite close that rejects does not take the caller's cleanup with it.
     onShutdown: async (signal) => {
       try {
         await closeDevServer?.();

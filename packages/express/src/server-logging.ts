@@ -2,7 +2,6 @@ import type { Logger } from '@fphd/logger';
 
 interface ServerLoggingOptions {
   port: number;
-  /** Released before the process exits — the database pool, or the dev-mode Vite server. */
   onShutdown?: (() => void | Promise<void>) | undefined;
 }
 
@@ -13,11 +12,8 @@ interface ServerLogging {
   onError: (error: unknown) => void;
 }
 
-/**
- * The reporting side of a server's lifecycle, which is the same in all four apps. Nothing here
- * names the app: the logger already binds its name to every line, and four copies differing
- * only in that string are four places for a level or a message to drift.
- */
+/** The lifecycle callbacks, identical in all four apps. Nothing here names the app — the logger
+ * already binds that to every line. */
 export function serverLogging(
   logger: Logger,
   { port, onShutdown }: ServerLoggingOptions,

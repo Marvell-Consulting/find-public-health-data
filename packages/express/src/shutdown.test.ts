@@ -7,10 +7,8 @@ import { createShutdownHandler, phaseBudgets, type ShutdownOptions } from './shu
 
 const defaults = { gracePeriodMs: 5_000, drainDelayMs: 0 };
 
-/**
- * Built before any traffic, as every real entrypoint does: the library learns about connections
- * from a listener it attaches here, so one created later cannot see the sockets already open.
- */
+/** Built before any traffic, as every entrypoint does: a socket that already exists is invisible
+ * to the library. */
 function shutdownHandler(server: Server, options: Partial<ShutdownOptions> = {}) {
   return createShutdownHandler(server, { ...defaults, onError: () => {}, ...options });
 }
@@ -28,10 +26,8 @@ async function startServer(handler: Handler): Promise<{ server: Server; url: str
   return { server, url: `http://127.0.0.1:${port}` };
 }
 
-/**
- * `agent: false` forces a brand-new socket. `fetch` pools connections, so a refusal it reported
- * could be a pooled socket the server had already closed rather than the listener refusing it.
- */
+/** `agent: false` forces a brand-new socket, so a refusal is the listener's and not a pooled
+ * socket the server had already closed. */
 function requestOnNewConnection(url: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const outgoing = request(url, { agent: false }, () => resolve());
@@ -74,8 +70,7 @@ describe('phaseBudgets', () => {
   it('leaves the close a window to work with when the drain would fill the budget', () => {
     const { drainMs, closeTimeoutMs } = phaseBudgets(600, 600);
 
-    // A zero timeout is the library destroying every live request the moment the drain ends, so
-    // the drain gives way rather than the close being left the remainder.
+    // A zero timeout is the library destroying every live request at once, so the drain gives way.
     expect(closeTimeoutMs).toBeGreaterThan(0);
     expect(drainMs).toBeLessThan(600);
   });
@@ -95,9 +90,7 @@ describe('phaseBudgets', () => {
   });
 
   it('asks the library to finish early, so its poll loop can slip and still be in time', () => {
-    // It counts its timeout in 250ms hops and each one slips by however late the event loop is,
-    // which on a loaded process runs to seconds. Told the whole share, a close that succeeded
-    // would trip the backstop and be reported as a stop that failed.
+    // Its 250ms hops each slip with the event loop, by seconds on a loaded process.
     const { closeMs, closeTimeoutMs } = phaseBudgets(25_000, 5_000);
 
     expect(closeTimeoutMs).toBeLessThan(closeMs);
@@ -110,8 +103,7 @@ describe('phaseBudgets', () => {
   });
 });
 
-// What the library is relied on for. Tested rather than taken on trust, because the close is the
-// half of a stop that a swap of implementation could quietly change.
+// The library's half, tested rather than trusted: a change of implementation would alter it.
 describe('the close phase', () => {
   it('stops the server listening', async () => {
     const { server } = await startServer((_request, response) => response.end('ok'));
@@ -161,13 +153,12 @@ describe('the close phase', () => {
     await reachedHandler.promise;
     const shutdown = stop('SIGTERM');
 
-    // Waited for rather than raced: until the listener has actually closed, a late connection
-    // being accepted says nothing. Once it has, the request below can only be refused.
+    // Waited for, not raced: until the listener has closed, a connection being accepted proves
+    // nothing.
     await vi.waitFor(() => expect(server.listening).toBe(false));
     await expect(requestOnNewConnection(`${url}/late`)).rejects.toThrow();
 
-    // The half that makes it a graceful close rather than a stop: the request already being
-    // served is still open.
+    // The half that makes it graceful.
     expect(settled).not.toHaveBeenCalled();
 
     releaseHandler.resolve();
@@ -186,9 +177,8 @@ describe('the close phase', () => {
     const agent = new Agent({ keepAlive: true });
     const stop = shutdownHandler(server);
 
-    // The socket is busy when the shutdown starts and idle a moment later, so the single sweep
-    // `close` performs as it is called cannot see it. Without the library destroying it as the
-    // response finishes, this waits out Node's five-second keep-alive timeout.
+    // Busy when the shutdown starts and idle a moment later, so `close`'s single sweep misses it
+    // and this waits out Node's five-second keep-alive timeout instead.
     const inFlight = keepAliveRequest(`${url}/slow`, agent);
     await reachedHandler.promise;
 
@@ -205,7 +195,7 @@ describe('the close phase', () => {
   it('destroys a connection still mid-request once the timeout expires', async () => {
     const reachedHandler = deferred();
     const { server, url } = await startServer(() => {
-      // Never responds: the handler a graceful shutdown must not wait on forever.
+      // Never responds.
       reachedHandler.resolve();
     });
 
@@ -266,8 +256,7 @@ describe('createShutdownHandler', () => {
       onError,
     })('SIGTERM');
 
-    // A `preShutdown` that rejects short-circuits the library before it closes anything, so this
-    // is reported and stepped over rather than thrown.
+    // A rejected `preShutdown` short-circuits the library before it closes anything.
     expect(server.listening).toBe(false);
     expect(onShutdown).toHaveBeenCalled();
     expect(onError).toHaveBeenCalledWith(failure);
@@ -310,8 +299,8 @@ describe('createShutdownHandler', () => {
   });
 
   it('still runs cleanup when the server itself fails to close', async () => {
-    // Never listened, so `close` calls back with ERR_SERVER_NOT_RUNNING — the shape of a signal
-    // landing in the startup window, where the pool still has to be released.
+    // Never listened, so `close` fails — a signal landing in the startup window, where the pool
+    // still has to be released.
     const server = createServer();
     const onShutdown = vi.fn();
     const onError = vi.fn();
@@ -346,11 +335,8 @@ describe('createShutdownHandler', () => {
     const abandoned = fetch(`${url}/never`).catch((error: unknown) => error);
     await reachedHandler.promise;
 
-    // The request above is already being served when the handler is built, so the library never
-    // saw its socket: it destroys nothing at its timeout and `close` waits on a connection that
-    // never ends. Every entrypoint installs the handler before traffic for exactly this reason
-    // — the backstop is what keeps the exception from hanging a process that has already
-    // replaced the default signal handlers.
+    // Served before the handler was built, so the library never saw the socket and `close` waits
+    // on a connection that never ends. Only the backstop ends this stop.
     const cleanedUp = vi.fn();
     const onForcedClose = vi.fn();
     const shutdown = shutdownHandler(server, {
@@ -364,9 +350,8 @@ describe('createShutdownHandler', () => {
 
     const started = Date.now();
 
-    // Zero, not one: the budget ran out, which is what it is for. The library counts its own
-    // timeout in 250ms hops that slip with the event loop, so a loaded process reaches here on a
-    // stop that did nothing wrong, and a non-zero exit on every busy stop reads as a crash.
+    // Zero, not one: a loaded process reaches here on a stop that did nothing wrong, and a
+    // non-zero exit on every busy stop reads as a crash.
     expect(await shutdown('SIGTERM')).toBe(0);
     expect(onForcedClose).toHaveBeenCalled();
 
