@@ -2,6 +2,7 @@ import {
   API_ROLES,
   assertMigratable,
   assertSeedingAllowed,
+  assertVerified,
   bootstrapOwnerRole,
   bootstrapRoles,
   compareMigrations,
@@ -10,6 +11,7 @@ import {
   readLocalMigrations,
   rebuildReadModels,
   seedDatabase,
+  verifyDatabase,
 } from '@fphd/db';
 
 import type { CommandContext } from './commands.js';
@@ -92,4 +94,20 @@ export async function status({ sql, logger }: CommandContext): Promise<void> {
   logger.info({ total: reports.length, ...counts }, 'Migration status');
 
   assertMigratable(reports);
+}
+
+/**
+ * The post-restore gate: a logical dump carries neither roles nor database-level grants, so a
+ * restored database can hold every table and still be unable to migrate. Reports each finding
+ * before failing, since one command run is all an operator has to go on.
+ */
+export async function verify({ sql, logger }: CommandContext): Promise<void> {
+  const findings = await verifyDatabase(sql);
+
+  for (const finding of findings) {
+    logger.error({ check: finding.check, subjects: finding.subjects }, finding.detail);
+  }
+  logger.info({ findings: findings.length }, 'Verification complete');
+
+  assertVerified(findings);
 }

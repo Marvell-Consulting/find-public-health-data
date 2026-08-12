@@ -1,7 +1,7 @@
 import { migrateToLatest, rebuildReadModels, type SqlClient } from '@fphd/db';
 import type { Logger } from '@fphd/logger';
 
-import { bootstrap, seed, status } from './db-commands.js';
+import { bootstrap, seed, status, verify } from './db-commands.js';
 import type { Config } from './load-config.js';
 
 /**
@@ -36,6 +36,10 @@ export const commands: Record<string, Command> = {
   'db status': {
     description: 'Report the state of every migration, and fail if one blocks migrating',
     run: status,
+  },
+  'db verify': {
+    description: 'Check schema ownership, the owner grants and the public read-only surface',
+    run: verify,
   },
   'db seed': {
     description: 'Replace all data with the committed seed, then rebuild the read models',

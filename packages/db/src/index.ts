@@ -38,3 +38,4 @@ export * as schema from './schema.js';
 export { createOwnerClient } from './scripts/owner-client.js';
 export { assertSeedingAllowed, seedDatabase } from './seeding.js';
 export { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';
+export { assertVerified, type VerificationFinding, verifyDatabase } from './verification.js';
