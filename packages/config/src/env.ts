@@ -51,7 +51,40 @@ export function serverEnvFields(defaults: { port: number }) {
     ...appEnvFields,
     HOST: z.string().default('0.0.0.0'),
     PORT: portSchema.default(defaults.port),
+    SHUTDOWN_DRAIN_MS: z.coerce.number().int().min(0).optional(),
+    // Unlike the drain, this carries a default here: it is a ceiling rather than a wait, so a
+    // stop with nothing in flight is instant under it and a developer machine needs no
+    // different value. The floor is what a stop needs to have phases at all.
+    SHUTDOWN_GRACE_PERIOD_MS: z.coerce.number().int().min(1_000).default(25_000),
   };
+}
+
+/**
+ * The two shutdown numbers together, so the one thing they must satisfy is checked once. The
+ * drain has no default in the field above because this fallback depends on APP_ENV, which a
+ * shared fragment cannot see: nothing routes to a machine here, so a delay would only make
+ * Ctrl-C slow. The deployed value is two readiness probe intervals plus a margin.
+ *
+ * The drain comes out of the grace period rather than adding to it, so one that fills the
+ * budget leaves nothing to finish in-flight work in — a misconfiguration worth a startup
+ * failure rather than a stop that resets every live request.
+ */
+export function resolveShutdown(
+  appEnv: AppEnv,
+  env: { SHUTDOWN_DRAIN_MS?: number | undefined; SHUTDOWN_GRACE_PERIOD_MS: number },
+) {
+  const drainDelayMs = env.SHUTDOWN_DRAIN_MS ?? (isDeployedEnv(appEnv) ? 5_000 : 0);
+  const gracePeriodMs = env.SHUTDOWN_GRACE_PERIOD_MS;
+
+  if (drainDelayMs >= gracePeriodMs) {
+    throw new Error(
+      `Invalid environment configuration:\nSHUTDOWN_DRAIN_MS (${drainDelayMs}) must be under ` +
+        `SHUTDOWN_GRACE_PERIOD_MS (${gracePeriodMs}), the budget for the whole stop\n` +
+        '(see .env.example)',
+    );
+  }
+
+  return { drainDelayMs, gracePeriodMs } as const;
 }
 
 /**
@@ -119,6 +152,7 @@ export function loadWebServerConfig(
     host: parsed.HOST,
     port: parsed.PORT,
     apiUrl: parsed.API_URL,
+    shutdown: resolveShutdown(parsed.APP_ENV, parsed),
     log: {
       level: parsed.LOG_LEVEL,
       pretty: parsed.APP_ENV === 'local' && (parsed.LOG_PRETTY ?? true),

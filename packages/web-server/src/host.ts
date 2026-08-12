@@ -1,21 +1,19 @@
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { createBaseApp, type StartServerOptions, startServer } from '@fphd/express';
 import express, { type Express, type RequestHandler } from 'express';
 import morgan from 'morgan';
 
 import { securityHeaders } from './security-headers.js';
 
-const healthcheckPaths = ['/healthcheck', '/healthcheck/live', '/healthcheck/ready'];
+export { serverLogging } from '@fphd/express';
 
-function createHost({ development }: { development: boolean }) {
-  const app = express();
+function createHost({ development, serviceName }: { development: boolean; serviceName: string }) {
+  const app = createBaseApp({ serviceName });
 
-  app.disable('x-powered-by');
+  // After the base, so its JSON probe responses answer without a CSP.
   app.use(securityHeaders({ development }));
-  app.get(healthcheckPaths, (_request, response) => {
-    response.json({ message: 'success' });
-  });
 
   return app;
 }
@@ -23,13 +21,15 @@ function createHost({ development }: { development: boolean }) {
 interface ProductionHostOptions {
   clientDirectory: string;
   requestHandler: RequestHandler;
+  serviceName: string;
 }
 
 export function createProductionHost({
   clientDirectory,
   requestHandler,
+  serviceName,
 }: ProductionHostOptions): Express {
-  const app = createHost({ development: false });
+  const app = createHost({ development: false, serviceName });
 
   app.use(
     '/assets',
@@ -59,22 +59,24 @@ function readRequestHandler(serverModule: unknown): RequestHandler {
   return serverModule.app;
 }
 
-interface ReactRouterServerOptions {
+interface ReactRouterServerOptions extends Omit<StartServerOptions, 'app'> {
   development: boolean;
-  host: string;
-  onListening: () => void;
-  port: number;
   rootDirectory: string;
+  /** Names this app in its health responses. */
+  serviceName: string;
 }
 
 export async function startReactRouterServer({
   development,
-  host,
-  onListening,
-  port,
+  onShutdown,
   rootDirectory,
+  serviceName,
+  ...options
 }: ReactRouterServerOptions) {
   let app: Express;
+  // The handle that would otherwise keep the process alive after the HTTP server has closed,
+  // including on every `tsx watch` restart.
+  let closeDevServer: (() => Promise<void>) | undefined;
 
   if (development) {
     const vite = await import('vite').then(({ createServer }) =>
@@ -84,8 +86,9 @@ export async function startReactRouterServer({
         server: { middlewareMode: true },
       }),
     );
+    closeDevServer = () => vite.close();
 
-    app = createHost({ development: true });
+    app = createHost({ development: true, serviceName });
     app.use(vite.middlewares);
     app.use(async (request, response, next) => {
       try {
@@ -103,8 +106,19 @@ export async function startReactRouterServer({
     const serverModule: unknown = await import(buildUrl);
     const requestHandler = readRequestHandler(serverModule);
 
-    app = createProductionHost({ clientDirectory, requestHandler });
+    app = createProductionHost({ clientDirectory, requestHandler, serviceName });
   }
 
-  return app.listen(port, host, onListening);
+  return startServer({
+    ...options,
+    app,
+    // `finally`, so a Vite close that rejects does not take the caller's cleanup with it.
+    onShutdown: async (signal) => {
+      try {
+        await closeDevServer?.();
+      } finally {
+        await onShutdown?.(signal);
+      }
+    },
+  });
 }

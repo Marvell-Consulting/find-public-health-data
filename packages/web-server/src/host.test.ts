@@ -25,6 +25,7 @@ describe('React Router production host', () => {
     requestHandler: (_request, response) => {
       response.status(418).type('html').send('<html><main>Server rendered</main></html>');
     },
+    serviceName: 'test-web',
   });
 
   it('serves hashed client assets with long-lived caching', async () => {
@@ -61,15 +62,14 @@ describe('React Router production host', () => {
     expect(firstNonce).not.toBe(secondNonce);
   });
 
-  it.each(['/healthcheck', '/healthcheck/live', '/healthcheck/ready'])(
-    'reports server health at %s',
-    async (path) => {
-      const response = await request(app).get(path);
+  // The probes themselves are `@fphd/express`'s; this only asserts a web host is built on it,
+  // rather than serving the React Router catch-all at those paths.
+  it.each(['/livez', '/readyz'])('serves the shared probe at %s', async (path) => {
+    const response = await request(app).get(path);
 
-      expect(response.status).toBe(200);
-      expect(response.body).toEqual({ message: 'success' });
-    },
-  );
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ status: 'ok', service: 'test-web' });
+  });
 
   it('passes document requests to the React Router server build', async () => {
     const response = await request(app).get('/releases').accept('text/html');

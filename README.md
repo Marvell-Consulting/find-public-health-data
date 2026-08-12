@@ -231,6 +231,20 @@ The seed is real Pholio data for 10 indicators at core administrative geographie
 committed as gzipped CSVs — see `packages/db/data/seed/README.md` for what is in it and
 how to regenerate it.
 
+## Graceful shutdown
+
+On SIGTERM or SIGINT every server drains, closes, then cleans up — releasing the database pool, and
+Vite in dev. `SHUTDOWN_GRACE_PERIOD_MS` (default 25s) is the budget for all three rather than a
+timeout per phase, so it is directly comparable to Container Apps' `terminationGracePeriodSeconds`
+and must stay under it, since that is what decides when SIGKILL arrives. It is a ceiling and not a
+wait: a stop with nothing in flight is immediate. `SHUTDOWN_DRAIN_MS` is how long the server goes on
+serving while readiness fails, giving the ingress time to stop routing here; it comes out of the
+budget rather than adding to it, and is zero locally, five seconds elsewhere.
+
+All four apps serve the same two probes, so one configuration covers every app: `/livez` stays 200
+throughout a stop, `/readyz` answers 503 with `"status": "draining"` from the moment a signal
+arrives.
+
 ## Mixed local/Docker development
 
 Any subset of the four applications can run as Docker containers while the rest run locally.
@@ -265,25 +279,6 @@ reach Postgres directly over the compose network via `DB_HOST=db`.)
 
 ## Structure
 
-```text
-apps/
-  public-web/
-  internal-web/
-  public-api/
-  internal-api/
-packages/
-  api-server/
-  auth/
-  db/
-  logger/
-  ui/
-  web-server/
-  public-web-features/
-  internal-web-features/
-tools/
-  artefact-boundary/
-```
-
-Application directories contain deployment wiring, routes, and entrypoints. Reusable business and
-feature logic belongs in workspace packages. `tools/*` holds workspace members that support the
-build rather than ship in it.
+`apps/*` hold deployment wiring, routes and entrypoints, and never import one another — reusable
+business and feature logic belongs in `packages/*`. `tools/*` holds workspace members that support
+the build rather than ship in it.

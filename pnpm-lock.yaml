@@ -84,6 +84,9 @@ catalogs:
     govuk-frontend:
       specifier: 5.14.0
       version: 5.14.0
+    http-graceful-shutdown:
+      specifier: 4.0.0
+      version: 4.0.0
     isbot:
       specifier: 5.2.0
       version: 5.2.0
@@ -395,6 +398,9 @@ importers:
       '@fphd/auth':
         specifier: workspace:*
         version: link:../auth
+      '@fphd/express':
+        specifier: workspace:*
+        version: link:../express
       express:
         specifier: 'catalog:'
         version: 5.2.1
@@ -474,6 +480,37 @@ importers:
       tsx:
         specifier: 'catalog:'
         version: 4.23.0
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@types/node@24.13.3)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.1.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0)(yaml@2.9.0))
+
+  packages/express:
+    dependencies:
+      '@fphd/logger':
+        specifier: workspace:*
+        version: link:../logger
+      express:
+        specifier: 'catalog:'
+        version: 5.2.1
+      http-graceful-shutdown:
+        specifier: 'catalog:'
+        version: 4.0.0
+    devDependencies:
+      '@types/express':
+        specifier: 'catalog:'
+        version: 5.0.6
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.13.3
+      '@types/supertest':
+        specifier: 'catalog:'
+        version: 7.2.0
+      supertest:
+        specifier: 'catalog:'
+        version: 7.2.2
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -626,6 +663,9 @@ importers:
       '@fphd/config':
         specifier: workspace:*
         version: link:../config
+      '@fphd/express':
+        specifier: workspace:*
+        version: link:../express
       '@fphd/ui':
         specifier: workspace:*
         version: link:../ui
@@ -2618,6 +2658,10 @@ packages:
   http-errors@2.0.1:
     resolution: {integrity: sha512-4FbRdAX+bSdmo4AUFuS0WNiPz8NgFt+r8ThgNWmlrjQjt1Q7ZR9+zTlce2859x4KSXrwIsaeTqDoKQmtP8pLmQ==}
     engines: {node: '>= 0.8'}
+
+  http-graceful-shutdown@4.0.0:
+    resolution: {integrity: sha512-2fLwjJeKjySWhSoRCZVTGPwwxHzqQilic8P/x6ySBtXIAgFOg7SbAP5JPAYEZ0a7ZS2V+yGpdLsbr/02ObkaSw==}
+    engines: {node: '>=16.0.0'}
 
   iconv-lite@0.7.3:
     resolution: {integrity: sha512-IKXpvIzjnC9XTAUbVBcMfGS0EPaIXtW6v+zr+RRp+hqULEpo0owZax6wyRwPOJbWbzjYspQwusTsfVr0ifh4uQ==}
@@ -4952,6 +4996,12 @@ snapshots:
       setprototypeof: 1.2.0
       statuses: 2.0.2
       toidentifier: 1.0.1
+
+  http-graceful-shutdown@4.0.0:
+    dependencies:
+      debug: 4.4.3
+    transitivePeerDependencies:
+      - supports-color
 
   iconv-lite@0.7.3:
     dependencies:

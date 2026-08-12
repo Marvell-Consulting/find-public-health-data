@@ -1,5 +1,5 @@
 import { createLogger } from '@fphd/logger';
-import { startReactRouterServer } from '@fphd/web-server';
+import { serverLogging, startReactRouterServer } from '@fphd/web-server';
 
 import * as config from './server/config.ts';
 
@@ -13,6 +13,8 @@ await startReactRouterServer({
   development: config.development,
   host: config.host,
   port: config.port,
-  onListening: () => logger.info({ port: config.port }, 'Internal web listening'),
+  shutdown: config.shutdown,
   rootDirectory: import.meta.dirname,
+  serviceName: 'internal-web',
+  ...serverLogging(logger, { port: config.port }),
 });

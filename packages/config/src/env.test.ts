@@ -8,6 +8,7 @@ import {
   logEnvFields,
   parseEnv,
   portSchema,
+  resolveShutdown,
   serverEnvFields,
 } from './env.js';
 
@@ -69,14 +70,23 @@ describe('serverEnvFields', () => {
       APP_ENV: 'local',
       HOST: '0.0.0.0',
       PORT: 4000,
+      SHUTDOWN_GRACE_PERIOD_MS: 25_000,
     });
   });
 
   it('reads overrides from the environment', () => {
-    expect(schema.parse({ APP_ENV: 'preview', HOST: '127.0.0.1', PORT: '8080' })).toEqual({
+    expect(
+      schema.parse({
+        APP_ENV: 'preview',
+        HOST: '127.0.0.1',
+        PORT: '8080',
+        SHUTDOWN_GRACE_PERIOD_MS: '60000',
+      }),
+    ).toEqual({
       APP_ENV: 'preview',
       HOST: '127.0.0.1',
       PORT: 8080,
+      SHUTDOWN_GRACE_PERIOD_MS: 60_000,
     });
   });
 
@@ -86,6 +96,37 @@ describe('serverEnvFields', () => {
 
   it('rejects unknown environments', () => {
     expect(() => schema.parse({ APP_ENV: 'qa' })).toThrow();
+  });
+
+  it('rejects a grace period too short to have phases at all', () => {
+    expect(() => schema.parse({ APP_ENV: 'local', SHUTDOWN_GRACE_PERIOD_MS: '0' })).toThrow();
+  });
+});
+
+describe('resolveShutdown', () => {
+  const budget = { SHUTDOWN_GRACE_PERIOD_MS: 25_000 };
+
+  it('drains only where something is routing to the process', () => {
+    expect(resolveShutdown('local', budget).drainDelayMs).toBe(0);
+    expect(resolveShutdown('test', budget).drainDelayMs).toBe(0);
+    expect(resolveShutdown('production', budget).drainDelayMs).toBe(5_000);
+  });
+
+  it('takes the drain from the environment over either default', () => {
+    expect(resolveShutdown('production', { ...budget, SHUTDOWN_DRAIN_MS: 250 }).drainDelayMs).toBe(
+      250,
+    );
+  });
+
+  // The drain comes out of the budget rather than adding to it, so one that fills it leaves
+  // nothing to finish in-flight work in.
+  it('refuses a drain that leaves the stop no time to stop in', () => {
+    expect(() =>
+      resolveShutdown('production', {
+        SHUTDOWN_DRAIN_MS: 30_000,
+        SHUTDOWN_GRACE_PERIOD_MS: 25_000,
+      }),
+    ).toThrow(/SHUTDOWN_DRAIN_MS/);
   });
 });
 
@@ -165,6 +206,7 @@ describe('loadWebServerConfig', () => {
       port: 3000,
       apiUrl: 'http://localhost:4000',
       log: { level: 'info', pretty: true },
+      shutdown: { drainDelayMs: 0, gracePeriodMs: 25_000 },
       session: { secret: sessionSecret, secure: false },
     });
   });
@@ -190,6 +232,7 @@ describe('loadWebServerConfig', () => {
       port: 8080,
       apiUrl: 'http://api.internal:9000',
       log: { level: 'debug', pretty: false },
+      shutdown: { drainDelayMs: 5_000, gracePeriodMs: 25_000 },
       session: { secret: sessionSecret, secure: true },
     });
   });

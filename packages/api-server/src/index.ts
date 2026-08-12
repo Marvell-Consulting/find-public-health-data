@@ -1,6 +1,8 @@
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { InvalidJwtSessionError } from '@fphd/auth/session-errors';
-import express, { type Express } from 'express';
+import { createBaseApp, type StartServerOptions, serverLogging, startServer } from '@fphd/express';
+import type { Express, RequestHandler } from 'express';
+import { json } from 'express';
 import { rateLimit } from 'express-rate-limit';
 
 interface ApiRateLimitOptions {
@@ -21,14 +23,9 @@ export function createApiApp(
   serviceName: string,
   { rateLimit: rateLimitOptions = defaultApiRateLimit }: CreateApiAppOptions = {},
 ): Express {
-  const app = express();
+  const app = createBaseApp({ serviceName });
 
-  app.disable('x-powered-by');
-  app.use(express.json());
-
-  app.get('/health', (_request, response) => {
-    response.status(200).json({ status: 'ok', service: serviceName });
-  });
+  app.use(json());
 
   app.use(
     '/api',
@@ -56,7 +53,7 @@ export function addNotFoundHandler(app: Express) {
   });
 }
 
-export function requireJwtRole(verifier: JwtSessionVerifier, role: string): express.RequestHandler {
+export function requireJwtRole(verifier: JwtSessionVerifier, role: string): RequestHandler {
   return async (request, response, next) => {
     const token = verifier.readToken(request.headers.cookie ?? null);
 
@@ -82,13 +79,6 @@ export function requireJwtRole(verifier: JwtSessionVerifier, role: string): expr
   };
 }
 
-interface StartApiServerOptions {
-  app: Express;
-  host: string;
-  onListening: () => void;
-  port: number;
-}
-
-export function startApiServer({ app, host, onListening, port }: StartApiServerOptions) {
-  return app.listen(port, host, onListening);
-}
+// Re-exported so an API app has one import source, but not wrapped: nothing about starting a
+// server is API-specific, and a `startApiServer` that only forwarded would imply otherwise.
+export { type StartServerOptions, serverLogging, startServer };

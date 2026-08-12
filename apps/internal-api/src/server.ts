@@ -1,4 +1,4 @@
-import { startApiServer } from '@fphd/api-server';
+import { serverLogging, startServer } from '@fphd/api-server';
 import { createJwtSessionService, createJwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { createRepositories } from '@fphd/db';
 import { createLogger } from '@fphd/logger';
@@ -13,7 +13,7 @@ const logger = createLogger({
   pretty: config.log.pretty,
 });
 
-startApiServer({
+startServer({
   app: createApp({
     repositories: createRepositories(db),
     session: createJwtSessionVerifier(
@@ -27,5 +27,6 @@ startApiServer({
   }),
   host: config.host,
   port: config.port,
-  onListening: () => logger.info({ port: config.port }, 'Internal API listening'),
+  shutdown: config.shutdown,
+  ...serverLogging(logger, { port: config.port, onShutdown: () => db.$client.end() }),
 });

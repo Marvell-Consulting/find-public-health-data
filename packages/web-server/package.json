@@ -53,6 +53,7 @@
   "dependencies": {
     "@fphd/auth": "workspace:*",
     "@fphd/config": "workspace:*",
+    "@fphd/express": "workspace:*",
     "@fphd/ui": "workspace:*",
     "@react-router/express": "catalog:",
     "@react-router/node": "catalog:",

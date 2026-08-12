@@ -11,6 +11,7 @@ describe('loadConfig', () => {
       host: '0.0.0.0',
       port: 4000,
       log: { level: 'info', pretty: true },
+      shutdown: { drainDelayMs: 0, gracePeriodMs: 25_000 },
       db: {
         host: 'localhost',
         port: 5432,
@@ -40,6 +41,7 @@ describe('loadConfig', () => {
       host: '127.0.0.1',
       port: 8080,
       log: { level: 'debug', pretty: false },
+      shutdown: { drainDelayMs: 5_000, gracePeriodMs: 25_000 },
       db: {
         host: 'db.internal',
         port: 5433,
@@ -70,6 +72,20 @@ describe('loadConfig', () => {
 
   it('requires APP_ENV rather than assuming the environment that relaxes TLS', () => {
     expect(() => loadConfig({ PUBLIC_API_PASSWORD: 'pw' })).toThrow(/APP_ENV/);
+  });
+
+  it('drains before shutting down everywhere but a developer machine', () => {
+    expect(loadConfig({ ...local }).shutdown.drainDelayMs).toBe(0);
+    expect(loadConfig({ ...local, APP_ENV: 'production' }).shutdown.drainDelayMs).toBe(5_000);
+    expect(loadConfig({ ...local, SHUTDOWN_DRAIN_MS: '250' }).shutdown.drainDelayMs).toBe(250);
+  });
+
+  it('bounds the whole stop the same everywhere, because it is a ceiling and not a wait', () => {
+    expect(loadConfig({ ...local }).shutdown.gracePeriodMs).toBe(25_000);
+    expect(loadConfig({ ...local, APP_ENV: 'production' }).shutdown.gracePeriodMs).toBe(25_000);
+    expect(loadConfig({ ...local, SHUTDOWN_GRACE_PERIOD_MS: '60000' }).shutdown.gracePeriodMs).toBe(
+      60_000,
+    );
   });
 
   it('throws naming the missing password', () => {

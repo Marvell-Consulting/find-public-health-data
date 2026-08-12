@@ -1,4 +1,11 @@
-import { isDeployedEnv, logEnvFields, parseEnv, serverEnvFields, z } from '@fphd/config';
+import {
+  isDeployedEnv,
+  logEnvFields,
+  parseEnv,
+  resolveShutdown,
+  serverEnvFields,
+  z,
+} from '@fphd/config';
 import { dbEnvFields, resolveDbTls } from '@fphd/db';
 
 const envSchema = z.object({
@@ -25,6 +32,7 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
       level: parsed.LOG_LEVEL,
       pretty: parsed.APP_ENV === 'local' && (parsed.LOG_PRETTY ?? true),
     },
+    shutdown: resolveShutdown(parsed.APP_ENV, parsed),
     session: {
       secret: parsed.SESSION_JWT_SECRET,
       secure: isDeployedEnv(parsed.APP_ENV),
