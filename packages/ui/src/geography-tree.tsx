@@ -67,7 +67,8 @@ export function GeographyTree({ groups, name, onChange, selected }: GeographyTre
           value={query}
         />
       </div>
-      <div className="fphd-geo-alt__tree" aria-label="Geographies grouped by level">
+      <fieldset className="fphd-geo-alt__tree">
+        <legend className="govuk-visually-hidden">Geographies grouped by level</legend>
         {groups.map((group) => {
           const visible = group.areas.filter(matches);
           const chosen = group.areas.filter(({ code }) => selected.includes(code));
@@ -141,7 +142,7 @@ export function GeographyTree({ groups, name, onChange, selected }: GeographyTre
             </div>
           );
         })}
-      </div>
+      </fieldset>
     </div>
   );
 }

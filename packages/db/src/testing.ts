@@ -17,6 +17,14 @@ import { seedDatabase } from './seeding.js';
 import { upsertTopics } from './topic-repository.js';
 
 const topicsFile = new URL('../data/topics.json', import.meta.url);
+function readSeedRelationships(): Record<string, unknown> {
+  const merged: Record<string, unknown> = {};
+  for (const file of seedRelationshipFiles) {
+    Object.assign(merged, JSON.parse(readFileSync(fileURLToPath(file), 'utf-8')));
+  }
+  return merged;
+}
+
 const seedRelationshipFiles = [
   '../data/indicator-topics.json',
   '../data/indicator-classifications.json',
@@ -85,27 +93,13 @@ async function buildTemplate(name: string, seed: boolean): Promise<void> {
       await rebuildReadModels(template);
       // Topics and their indicator membership live in JSON files rather than the CSV
       // export, so the seeded template imports them the same way a developer's database
-      // does — topics first, since the membership file references them by slug.
+      // does — topics first, since the membership file references them by id.
       const db = drizzle(template, { schema, casing: 'snake_case' }) as Database;
       await upsertTopics(
         db,
         parseTopicsFile(JSON.parse(readFileSync(fileURLToPath(topicsFile), 'utf-8')) as unknown),
       );
-      await importIndicatorTopics(
-        db,
-        parseIndicatorTopicFile(
-          seedRelationshipFiles.reduce<Record<string, unknown>>(
-            (all, file) => ({
-              ...all,
-              ...(JSON.parse(readFileSync(fileURLToPath(file), 'utf-8')) as Record<
-                string,
-                unknown
-              >),
-            }),
-            {},
-          ),
-        ),
-      );
+      await importIndicatorTopics(db, parseIndicatorTopicFile(readSeedRelationships()));
     }
   } finally {
     // Left with no connections: a template with an open session cannot be copied.

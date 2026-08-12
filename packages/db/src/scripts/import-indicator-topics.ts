@@ -24,10 +24,10 @@ const SEED_FILES = [
 
 async function main() {
   const filePaths = process.argv.length > 2 ? process.argv.slice(2) : SEED_FILES;
-  const merged = filePaths.reduce<Record<string, unknown>>(
-    (all, path) => ({ ...all, ...JSON.parse(readFileSync(resolve(path), 'utf-8')) }),
-    {},
-  );
+  const merged: Record<string, unknown> = {};
+  for (const path of filePaths) {
+    Object.assign(merged, JSON.parse(readFileSync(resolve(path), 'utf-8')));
+  }
   const file = parseIndicatorTopicFile(merged);
 
   const env = parseEnv(envSchema, process.env);

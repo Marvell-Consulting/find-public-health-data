@@ -91,10 +91,14 @@ export function Autocomplete({ label, onSelect, options, limit = 10 }: Autocompl
         value={query}
       />
       {open && matches.length > 0 ? (
-        <ul className="fphd-autocomplete__menu" id={listId} role="listbox">
+        // The ARIA combobox pattern puts the listbox and its options on non-interactive
+        // elements, with the input owning focus and keyboard handling throughout. The
+        // linter's generic advice does not apply to it.
+        <div className="fphd-autocomplete__menu" id={listId} role="listbox">
           {matches.map((option, index) => (
             // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard selection is handled on the combobox input, per the ARIA pattern.
-            <li
+            // biome-ignore lint/a11y/useFocusableInteractive: focus stays on the input; options are referenced by aria-activedescendant.
+            <div
               aria-selected={index === active}
               className={`fphd-autocomplete__option${index === active ? ' fphd-autocomplete__option--active' : ''}`}
               id={`${listId}-${index}`}
@@ -108,9 +112,9 @@ export function Autocomplete({ label, onSelect, options, limit = 10 }: Autocompl
               {option.hint ? (
                 <span className="fphd-autocomplete__group"> ({option.hint})</span>
               ) : null}
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       ) : null}
     </div>
   );
