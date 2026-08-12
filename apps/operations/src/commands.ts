@@ -1,11 +1,22 @@
 import { migrateToLatest, rebuildReadModels, type SqlClient } from '@fphd/db';
+import type { Logger } from '@fphd/logger';
 
-import { bootstrap, seed } from './db-commands.js';
+import { bootstrap, seed, status } from './db-commands.js';
 import type { Config } from './load-config.js';
+
+/**
+ * The capabilities a command may use, passed whole rather than as positional arguments, so
+ * adding one does not change every command's signature.
+ */
+export interface CommandContext {
+  sql: SqlClient;
+  config: Config;
+  logger: Logger;
+}
 
 export interface Command {
   description: string;
-  run(sql: SqlClient, config: Config): Promise<void>;
+  run(context: CommandContext): Promise<void>;
 }
 
 /**
@@ -20,7 +31,11 @@ export const commands: Record<string, Command> = {
   },
   'db migrate': {
     description: 'Apply every pending migration',
-    run: (sql) => migrateToLatest(sql),
+    run: ({ sql }) => migrateToLatest(sql),
+  },
+  'db status': {
+    description: 'Report the state of every migration, and fail if one blocks migrating',
+    run: status,
   },
   'db seed': {
     description: 'Replace all data with the committed seed, then rebuild the read models',
@@ -28,7 +43,7 @@ export const commands: Record<string, Command> = {
   },
   'db rebuild-read-models': {
     description: 'Rebuild the read models from the canonical tables',
-    run: (sql) => rebuildReadModels(sql),
+    run: ({ sql }) => rebuildReadModels(sql),
   },
 };
 

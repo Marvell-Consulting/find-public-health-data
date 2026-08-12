@@ -15,6 +15,17 @@ export {
 } from './client.js';
 export { dbEnvFields, resolveDbTls } from './env.js';
 export { type ApprovedIndicator, listApprovedIndicators } from './indicator-repository.js';
+export {
+  type AppliedMigration,
+  assertMigratable,
+  blockingMigrations,
+  compareMigrations,
+  type LocalMigration,
+  type MigrationReport,
+  type MigrationState,
+  readAppliedMigrations,
+  readLocalMigrations,
+} from './migration-status.js';
 export { migrateToLatest } from './migrations.js';
 export { rebuildReadModels } from './read-models.js';
 export {

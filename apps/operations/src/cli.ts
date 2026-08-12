@@ -34,7 +34,7 @@ async function main(argv: readonly string[]): Promise<number> {
 
   try {
     logger.info({ command: name, database: config.db.database }, 'Running command');
-    await command.run(sql, config);
+    await command.run({ sql, config, logger });
     logger.info({ command: name }, 'Command complete');
     return 0;
   } catch (error) {

@@ -1,14 +1,18 @@
 import {
   API_ROLES,
+  assertMigratable,
   assertSeedingAllowed,
   bootstrapOwnerRole,
   bootstrapRoles,
+  compareMigrations,
   type DatabaseRole,
+  readAppliedMigrations,
+  readLocalMigrations,
   rebuildReadModels,
-  type SqlClient,
   seedDatabase,
 } from '@fphd/db';
 
+import type { CommandContext } from './commands.js';
 import type { Config } from './load-config.js';
 
 /**
@@ -46,7 +50,7 @@ export function rolesToBootstrap(roles: Config['roles']): DatabaseRole[] {
  * The owner group first: `db migrate` sets its role to it, so a database that has never been
  * bootstrapped cannot be migrated.
  */
-export async function bootstrap(sql: SqlClient, config: Config): Promise<void> {
+export async function bootstrap({ sql, config }: CommandContext): Promise<void> {
   await bootstrapOwnerRole(sql);
   await bootstrapRoles(sql, rolesToBootstrap(config.roles));
 }
@@ -56,8 +60,36 @@ export async function bootstrap(sql: SqlClient, config: Config): Promise<void> {
  * `db:rebuild-read-models` pair: a job runs one command, and a seeded database whose read
  * models are still empty serves an empty site.
  */
-export async function seed(sql: SqlClient, config: Config): Promise<void> {
+export async function seed({ sql, config }: CommandContext): Promise<void> {
   assertSeedingAllowed(config.appEnv);
   await seedDatabase(sql);
   await rebuildReadModels(sql);
+}
+
+/**
+ * One structured line per migration rather than a table, because a job's stdout is the log
+ * stream and a deployed environment reads it as JSON. It reports first and fails after, so
+ * the detail is on the way out before the error that gates a pipeline on it.
+ */
+export async function status({ sql, logger }: CommandContext): Promise<void> {
+  const reports = compareMigrations(readLocalMigrations(), await readAppliedMigrations(sql));
+
+  for (const report of reports) {
+    logger.info(
+      {
+        migration: report.tag,
+        state: report.state,
+        appliedAt: report.appliedAt === undefined ? undefined : new Date(report.appliedAt),
+      },
+      'Migration',
+    );
+  }
+
+  const counts = reports.reduce<Record<string, number>>((totals, report) => {
+    totals[report.state] = (totals[report.state] ?? 0) + 1;
+    return totals;
+  }, {});
+  logger.info({ total: reports.length, ...counts }, 'Migration status');
+
+  assertMigratable(reports);
 }
