@@ -18,6 +18,61 @@ export { migrationsFolder };
 const MIGRATION_LOCK_KEY = 0x6d696772; // 'migr'
 
 /**
+ * A plain `finally` would let a failing teardown replace the error that caused it — a dead
+ * connection rejects RESET ROLE and the unlock too, and the job would log the teardown
+ * instead of the migration that failed. The teardown error only propagates when the work
+ * itself succeeded.
+ */
+export async function withTeardown<T>(
+  run: () => Promise<T>,
+  teardown: () => Promise<unknown>,
+): Promise<T> {
+  let result: T;
+  try {
+    result = await run();
+  } catch (error) {
+    await teardown().catch(() => {});
+    throw error;
+  }
+  await teardown();
+  return result;
+}
+
+/**
+ * postgres.js reconnects a dropped connection transparently, and a fresh session has no SET
+ * ROLE — anything the migrator ran after that point would be owned by the login, reported as
+ * success, and discovered only by the next `db verify`. The migrator applies everything in
+ * one transaction so the window is small, but the outcome is silent; this makes it loud.
+ * Filters mirror what bootstrapOwnerRole reassigns, so the remediation can always clear it.
+ */
+async function assertMigratedOwnership(sql: postgres.Sql): Promise<void> {
+  const misowned = await sql<{ name: string }[]>`
+    SELECT 'schema ' || nspname AS name FROM pg_namespace
+    WHERE nspowner = session_user::regrole
+      AND nspname NOT LIKE 'pg\\_%'
+      AND nspname <> 'information_schema'
+    UNION ALL
+    SELECT c.oid::regclass::text FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE c.relowner = session_user::regrole
+      AND c.relkind IN ('r', 'p', 'v', 'm', 'S')
+      AND n.nspname NOT LIKE 'pg\\_%'
+      AND n.nspname <> 'information_schema'
+      AND NOT EXISTS (
+        SELECT 1 FROM pg_depend d
+        WHERE d.classid = 'pg_class'::regclass AND d.objid = c.oid AND d.deptype IN ('e', 'a', 'i')
+      )
+    ORDER BY 1
+  `;
+  if (misowned.length > 0) {
+    throw new Error(
+      `Migrations applied, but owned by the login rather than ${SCHEMA_OWNER_ROLE}: ` +
+        `${misowned.map((row) => row.name).join(', ')} — run db bootstrap to reassign`,
+    );
+  }
+}
+
+/**
  * Applies pending migrations through drizzle-orm's migrator rather than `drizzle-kit
  * migrate`, so the deployed path needs no devDependency: drizzle-kit is a build-time tool
  * and is absent from a production install.
@@ -45,16 +100,17 @@ export async function migrateToLatest(sql: postgres.Sql): Promise<void> {
   }
 
   await sql`SELECT pg_advisory_lock(${MIGRATION_LOCK_KEY})`;
-  try {
-    assertMigratable(compareMigrations(readLocalMigrations(), await readAppliedMigrations(sql)));
+  await withTeardown(
+    async () => {
+      assertMigratable(compareMigrations(readLocalMigrations(), await readAppliedMigrations(sql)));
 
-    await sql`SET ROLE ${sql(SCHEMA_OWNER_ROLE)}`;
-    try {
-      await migrate(drizzle(sql), { migrationsFolder });
-    } finally {
-      await sql`RESET ROLE`;
-    }
-  } finally {
-    await sql`SELECT pg_advisory_unlock(${MIGRATION_LOCK_KEY})`;
-  }
+      await sql`SET ROLE ${sql(SCHEMA_OWNER_ROLE)}`;
+      await withTeardown(
+        () => migrate(drizzle(sql), { migrationsFolder }),
+        () => sql`RESET ROLE`,
+      );
+      await assertMigratedOwnership(sql);
+    },
+    () => sql`SELECT pg_advisory_unlock(${MIGRATION_LOCK_KEY})`,
+  );
 }

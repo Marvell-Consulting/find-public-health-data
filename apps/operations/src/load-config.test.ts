@@ -54,6 +54,12 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ POSTGRES_PASSWORD: 'owner-pw' })).toThrow(/APP_ENV/);
   });
 
+  it('requires POSTGRES_USER when deployed rather than assuming the dev superuser', () => {
+    expect(() => loadConfig({ APP_ENV: 'production', POSTGRES_PASSWORD: 'owner-pw' })).toThrow(
+      /POSTGRES_USER/,
+    );
+  });
+
   it('does not require the role passwords, which only db bootstrap uses', () => {
     expect(() => loadConfig({ ...local })).not.toThrow();
   });

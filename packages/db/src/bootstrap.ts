@@ -46,7 +46,8 @@ export async function bootstrapOwnerRole(sql: postgres.Sql): Promise<void> {
       BEGIN
         BEGIN
           EXECUTE format('CREATE ROLE %I NOLOGIN', owner_role);
-        EXCEPTION WHEN duplicate_object THEN
+        -- unique_violation is what the loser of a genuinely concurrent CREATE ROLE gets.
+        EXCEPTION WHEN duplicate_object OR unique_violation THEN
           NULL;
         END;
 
@@ -100,7 +101,7 @@ export async function bootstrapOwnerRole(sql: postgres.Sql): Promise<void> {
  * server or an existing one, and it sets the password every time so the same command also
  * rotates a credential.
  *
- * `CREATE ROLE` is attempted and its duplicate_object swallowed rather than guarded by a
+ * `CREATE ROLE` is attempted and its duplicate errors swallowed rather than guarded by a
  * `SELECT FROM pg_roles` first — roles are cluster-wide, so two jobs bootstrapping at once
  * would both pass such a check and one would then fail.
  *
@@ -125,7 +126,8 @@ export async function bootstrapRoles(
         BEGIN
           BEGIN
             EXECUTE format('CREATE ROLE %I LOGIN', role_name);
-          EXCEPTION WHEN duplicate_object THEN
+          -- unique_violation is what the loser of a genuinely concurrent CREATE ROLE gets.
+          EXCEPTION WHEN duplicate_object OR unique_violation THEN
             NULL;
           END;
           EXECUTE format('ALTER ROLE %I WITH LOGIN PASSWORD %L', role_name, role_password);

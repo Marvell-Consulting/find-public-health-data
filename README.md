@@ -259,6 +259,8 @@ job:
 ```sh
 pnpm --filter @fphd/operations cli db bootstrap             # create the per-API login roles
 pnpm --filter @fphd/operations cli db migrate               # apply pending migrations
+pnpm --filter @fphd/operations cli db status                # report migration state; non-zero if blocked
+pnpm --filter @fphd/operations cli db verify                # check ownership, grants and the read-only surface
 pnpm --filter @fphd/operations cli db seed                  # replace all data with the seed
 pnpm --filter @fphd/operations cli db rebuild-read-models
 ```
@@ -270,8 +272,9 @@ Two commands differ from their local equivalents, deliberately:
 - `db bootstrap` is the managed-server counterpart of `docker/postgres/initdb/01-roles.sh`, which a
   managed server never runs. It is idempotent — safe against a server where the roles already
   exist — and it sets the passwords every time, so it is also how a credential is rotated. Because
-  it is the only path with no local equivalent, CI's integration job creates its roles by running
-  it rather than the initdb script, so it is exercised on every run.
+  it is the only path with no local equivalent, CI's integration job runs it on every run — after
+  the initdb script, which otherwise only executes on a fresh dev volume, so both paths are
+  exercised and the CLI is proven to converge a script-initialised database.
 - `db seed` rebuilds the read models in the same command. A job runs one command, and a seeded
   database whose read models are still empty serves an empty site. It refuses to run unless
   `APP_ENV` is `local`, `test` or `dev`; nothing seeds preview or production.
@@ -288,6 +291,8 @@ Deployment lives in the infrastructure repository, which owns the jobs that call
 ```sh
 db bootstrap             # additionally needs PUBLIC_API_PASSWORD and INTERNAL_API_PASSWORD
 db migrate
+db status
+db verify
 db seed
 db rebuild-read-models
 ```

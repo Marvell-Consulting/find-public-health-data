@@ -90,6 +90,14 @@ describe('migrateToLatest', () => {
     await expect(migrateToLatest(sql)).rejects.toThrow(/skipped/);
   });
 
+  // The state a session lost mid-run would leave behind: postgres.js reconnects without the
+  // SET ROLE, so objects end up owned by the login and the run would otherwise report success.
+  it('refuses to report success when an object is owned by the login', async () => {
+    await sql`CREATE TABLE strayed (id int)`;
+
+    await expect(migrateToLatest(sql)).rejects.toThrow(/strayed.*run db bootstrap/);
+  });
+
   it('waits for a migration already in progress rather than racing it', async () => {
     const holder = createOwnerClient(testDb.name);
     await holder`SELECT pg_advisory_lock(${MIGRATION_LOCK_KEY})`;

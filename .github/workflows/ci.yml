@@ -85,9 +85,22 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
       # Service containers start before checkout, so compose.yaml's initdb volume mount has no
-      # equivalent here. Rather than invoke that script, this runs the operations CLI — the
-      # same command a deployed environment bootstraps with — so the path that has no local
-      # equivalent is exercised on every run instead of only in Azure.
+      # equivalent here — and a script that only ever runs on a fresh dev volume would ship a
+      # defect unseen. Run it here first (it is not idempotent, so it must go before the CLI),
+      # against the service over TCP rather than initdb's socket.
+      - name: Run the compose initdb role script
+        run: ./docker/postgres/initdb/01-roles.sh
+        env:
+          PGHOST: localhost
+          PGPORT: '5432'
+          PGPASSWORD: fphd
+          POSTGRES_USER: fphd
+          POSTGRES_DB: fphd
+          PUBLIC_API_PASSWORD: public_api
+          INTERNAL_API_PASSWORD: internal_api
+      # Then the operations CLI — the same command a deployed environment bootstraps with — so
+      # the path that has no local equivalent is exercised on every run instead of only in
+      # Azure, and is proven to converge a script-initialised database.
       - name: Create the schema owner group and the per-API login roles
         run: pnpm --filter @fphd/operations cli db bootstrap
         env:

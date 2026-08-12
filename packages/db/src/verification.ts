@@ -46,26 +46,38 @@ export async function verifyDatabase(sql: postgres.Sql): Promise<VerificationFin
     });
   }
 
-  const [privileges] = await sql<{ database: boolean; schema: boolean }[]>`
-    SELECT
-      has_database_privilege(${SCHEMA_OWNER_ROLE}, current_database(), 'CREATE') AS database,
-      has_schema_privilege(${SCHEMA_OWNER_ROLE}, 'public', 'CREATE')
-        AND has_schema_privilege(${SCHEMA_OWNER_ROLE}, 'public', 'USAGE') AS schema
-  `;
-  if (privileges?.database !== true) {
+  // Guarded on the role existing: has_database_privilege raises for an unknown role, and a
+  // crash mid-report would discard every finding already gathered on exactly the database —
+  // fresh, or freshly restored — this command exists to diagnose.
+  const ownerExists = await sql`SELECT 1 FROM pg_roles WHERE rolname = ${SCHEMA_OWNER_ROLE}`;
+  if (ownerExists.length === 0) {
     findings.push({
-      check: 'owner-database-privilege',
-      // The one a dump never carries, and the one that stops the next migration dead.
-      detail: `${SCHEMA_OWNER_ROLE} cannot CREATE in this database — run db bootstrap`,
+      check: 'owner-role-present',
+      detail: `${SCHEMA_OWNER_ROLE} does not exist — run db bootstrap`,
       subjects: [],
     });
-  }
-  if (privileges?.schema !== true) {
-    findings.push({
-      check: 'owner-schema-privilege',
-      detail: `${SCHEMA_OWNER_ROLE} lacks CREATE or USAGE on schema public — run db bootstrap`,
-      subjects: [],
-    });
+  } else {
+    const [privileges] = await sql<{ database: boolean; schema: boolean }[]>`
+      SELECT
+        has_database_privilege(${SCHEMA_OWNER_ROLE}, current_database(), 'CREATE') AS database,
+        has_schema_privilege(${SCHEMA_OWNER_ROLE}, 'public', 'CREATE')
+          AND has_schema_privilege(${SCHEMA_OWNER_ROLE}, 'public', 'USAGE') AS schema
+    `;
+    if (privileges?.database !== true) {
+      findings.push({
+        check: 'owner-database-privilege',
+        // The one a dump never carries, and the one that stops the next migration dead.
+        detail: `${SCHEMA_OWNER_ROLE} cannot CREATE in this database — run db bootstrap`,
+        subjects: [],
+      });
+    }
+    if (privileges?.schema !== true) {
+      findings.push({
+        check: 'owner-schema-privilege',
+        detail: `${SCHEMA_OWNER_ROLE} lacks CREATE or USAGE on schema public — run db bootstrap`,
+        subjects: [],
+      });
+    }
   }
 
   const apiRoles = Object.values(API_ROLES);
@@ -83,15 +95,33 @@ export async function verifyDatabase(sql: postgres.Sql): Promise<VerificationFin
 
   // Only the public role. internal_api writes — it serves the publisher interface — so what
   // is checkable about it is that it owns nothing, which object-ownership already covers.
+  // Every schema and every writable relation kind, because a grant on an updatable view, a
+  // single column or a sequence is a write path just as a table grant is.
   if (!missing.includes(API_ROLES.publicApi)) {
     const writable = await sql<{ name: string; privilege: string }[]>`
       SELECT c.oid::regclass::text AS name, privilege.name AS privilege
       FROM pg_class c
       JOIN pg_namespace n ON n.oid = c.relnamespace
       CROSS JOIN unnest(${sql.array([...WRITE_PRIVILEGES])}::text[]) AS privilege(name)
-      WHERE c.relkind IN ('r', 'p')
-        AND n.nspname = 'public'
-        AND has_table_privilege(${API_ROLES.publicApi}, c.oid, privilege.name)
+      WHERE c.relkind IN ('r', 'p', 'v', 'm', 'f')
+        AND n.nspname NOT LIKE 'pg\\_%'
+        AND n.nspname <> 'information_schema'
+        AND CASE
+          -- Column-level grants imply the table-level check false; this form covers both.
+          WHEN privilege.name IN ('INSERT', 'UPDATE')
+            THEN has_any_column_privilege(${API_ROLES.publicApi}, c.oid, privilege.name)
+          ELSE has_table_privilege(${API_ROLES.publicApi}, c.oid, privilege.name)
+        END
+      UNION ALL
+      SELECT c.oid::regclass::text, privilege.name
+      FROM pg_class c
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      -- USAGE on a sequence permits nextval, which mutates it.
+      CROSS JOIN unnest(ARRAY['USAGE', 'UPDATE']::text[]) AS privilege(name)
+      WHERE c.relkind = 'S'
+        AND n.nspname NOT LIKE 'pg\\_%'
+        AND n.nspname <> 'information_schema'
+        AND has_sequence_privilege(${API_ROLES.publicApi}, c.oid, privilege.name)
       ORDER BY 1, 2
     `;
     if (writable.length > 0) {
@@ -107,9 +137,17 @@ export async function verifyDatabase(sql: postgres.Sql): Promise<VerificationFin
     SELECT c.oid::regclass::text AS name
     FROM pg_class c
     JOIN pg_namespace n ON n.oid = c.relnamespace
-    WHERE c.relkind IN ('r', 'p', 'v', 'm')
-      AND n.nspname = 'public'
-      AND EXISTS (SELECT 1 FROM aclexplode(c.relacl) acl WHERE acl.grantee = 0)
+    WHERE c.relkind IN ('r', 'p', 'v', 'm', 'S', 'f')
+      AND n.nspname NOT LIKE 'pg\\_%'
+      AND n.nspname <> 'information_schema'
+      AND (
+        EXISTS (SELECT 1 FROM aclexplode(c.relacl) acl WHERE acl.grantee = 0)
+        OR EXISTS (
+          SELECT 1 FROM pg_attribute a
+          CROSS JOIN LATERAL aclexplode(a.attacl) acl
+          WHERE a.attrelid = c.oid AND acl.grantee = 0
+        )
+      )
     ORDER BY 1
   `;
   if (worldReadable.length > 0) {

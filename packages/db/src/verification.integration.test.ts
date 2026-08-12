@@ -63,6 +63,50 @@ describe('verifyDatabase', () => {
     expect(findings.flatMap((finding) => finding.subjects)).toContain('INSERT on topic');
   });
 
+  it('reports public_api holding a write path through an updatable view', async () => {
+    await sql`CREATE VIEW topic_titles AS SELECT id, title FROM topic`;
+    await sql.unsafe(`ALTER VIEW topic_titles OWNER TO "${SCHEMA_OWNER_ROLE}"`);
+    await sql`GRANT INSERT ON topic_titles TO public_api`;
+
+    const findings = await verifyDatabase(sql);
+
+    expect(checksIn(findings)).toContain('public-api-read-only');
+    expect(findings.flatMap((finding) => finding.subjects)).toContain('INSERT on topic_titles');
+  });
+
+  it('reports public_api holding a column-level write grant', async () => {
+    await sql`GRANT UPDATE (title) ON topic TO public_api`;
+
+    const findings = await verifyDatabase(sql);
+
+    expect(checksIn(findings)).toContain('public-api-read-only');
+    expect(findings.flatMap((finding) => finding.subjects)).toContain('UPDATE on topic');
+  });
+
+  // USAGE alone permits nextval, so a sequence grant is a write path too.
+  it('reports public_api being able to advance a sequence', async () => {
+    await sql`CREATE SEQUENCE restored_seq`;
+    await sql.unsafe(`ALTER SEQUENCE restored_seq OWNER TO "${SCHEMA_OWNER_ROLE}"`);
+    await sql`GRANT USAGE ON SEQUENCE restored_seq TO public_api`;
+
+    const findings = await verifyDatabase(sql);
+
+    expect(checksIn(findings)).toContain('public-api-read-only');
+    expect(findings.flatMap((finding) => finding.subjects)).toContain('USAGE on restored_seq');
+  });
+
+  it('reports public_api writes on a table outside schema public', async () => {
+    await sql`CREATE SCHEMA staging`;
+    await sql`CREATE TABLE staging.import (id int)`;
+    await sql.unsafe(`ALTER TABLE staging.import OWNER TO "${SCHEMA_OWNER_ROLE}"`);
+    await sql`GRANT INSERT ON staging.import TO public_api`;
+
+    const findings = await verifyDatabase(sql);
+
+    expect(checksIn(findings)).toContain('public-api-read-only');
+    expect(findings.flatMap((finding) => finding.subjects)).toContain('INSERT on staging.import');
+  });
+
   // internal_api serves the publisher interface, so its writes are the design rather than a
   // regression. Pinned as a test because the obvious symmetry — check both roles — is wrong.
   it('accepts internal_api holding write privileges', async () => {
@@ -78,6 +122,26 @@ describe('verifyDatabase', () => {
 
     expect(checksIn(findings)).toContain('no-public-grants');
     expect(findings.flatMap((finding) => finding.subjects)).toContain('indicator');
+  });
+
+  it('reports a sequence granted to PUBLIC', async () => {
+    await sql`CREATE SEQUENCE shared_seq`;
+    await sql.unsafe(`ALTER SEQUENCE shared_seq OWNER TO "${SCHEMA_OWNER_ROLE}"`);
+    await sql`GRANT USAGE ON SEQUENCE shared_seq TO PUBLIC`;
+
+    const findings = await verifyDatabase(sql);
+
+    expect(checksIn(findings)).toContain('no-public-grants');
+    expect(findings.flatMap((finding) => finding.subjects)).toContain('shared_seq');
+  });
+
+  it('reports a column granted to PUBLIC', async () => {
+    await sql`GRANT SELECT (title) ON topic TO PUBLIC`;
+
+    const findings = await verifyDatabase(sql);
+
+    expect(checksIn(findings)).toContain('no-public-grants');
+    expect(findings.flatMap((finding) => finding.subjects)).toContain('topic');
   });
 
   it('reports every broken invariant in one run rather than the first', async () => {
