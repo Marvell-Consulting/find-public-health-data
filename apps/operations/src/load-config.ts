@@ -1,0 +1,61 @@
+import { appEnvFields, isDeployedEnv, logEnvFields, parseEnv, z } from '@fphd/config';
+import { dbEnvFields, resolveDbTls } from '@fphd/db';
+
+const envSchema = z
+  .object({
+    ...appEnvFields,
+    ...logEnvFields,
+    ...dbEnvFields,
+    // The owner role, not one of the per-API roles: every command here either creates those
+    // roles, alters the schema they are granted on, or writes data they may only read.
+    // Defaulted only locally — deployed, a missed injection must fail at startup rather than
+    // reach the server as the dev superuser's name.
+    POSTGRES_USER: z.string().min(1).optional(),
+    POSTGRES_PASSWORD: z.string().min(1),
+    // Only `db bootstrap` needs these, and it is one command of several. Required here they
+    // would stop `db migrate` running in a job that has no business holding role passwords,
+    // so the command that uses them asserts them instead.
+    PUBLIC_API_PASSWORD: z.string().min(1).optional(),
+    INTERNAL_API_PASSWORD: z.string().min(1).optional(),
+  })
+  .superRefine((env, ctx) => {
+    if (isDeployedEnv(env.APP_ENV) && env.POSTGRES_USER === undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['POSTGRES_USER'],
+        message: `required when APP_ENV is '${env.APP_ENV}'`,
+      });
+    }
+  });
+
+/**
+ * Every process.env read in this app happens via this module. Kept pure — the parse of the
+ * real environment happens once, in config.ts.
+ *
+ * No HOST or PORT: this app is a set of jobs run to completion, never a listening server.
+ */
+export function loadConfig(env: NodeJS.ProcessEnv) {
+  const parsed = parseEnv(envSchema, env);
+
+  return {
+    appEnv: parsed.APP_ENV,
+    log: {
+      level: parsed.LOG_LEVEL,
+      pretty: parsed.APP_ENV === 'local' && (parsed.LOG_PRETTY ?? true),
+    },
+    db: {
+      host: parsed.DB_HOST,
+      port: parsed.DB_PORT,
+      database: parsed.POSTGRES_DB,
+      user: parsed.POSTGRES_USER ?? 'fphd',
+      password: parsed.POSTGRES_PASSWORD,
+      ssl: resolveDbTls(parsed.APP_ENV, parsed.DB_TLS),
+    },
+    roles: {
+      publicApiPassword: parsed.PUBLIC_API_PASSWORD,
+      internalApiPassword: parsed.INTERNAL_API_PASSWORD,
+    },
+  } as const;
+}
+
+export type Config = ReturnType<typeof loadConfig>;

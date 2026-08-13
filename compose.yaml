@@ -28,17 +28,14 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-fphd}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (see .env.example)}
       POSTGRES_DB: ${POSTGRES_DB:-fphd}
-      # Passed through to the role-bootstrap init script (docker/postgres/initdb).
-      PUBLIC_API_PASSWORD: ${PUBLIC_API_PASSWORD:?set PUBLIC_API_PASSWORD in .env (see .env.example)}
-      INTERNAL_API_PASSWORD: ${INTERNAL_API_PASSWORD:?set INTERNAL_API_PASSWORD in .env (see .env.example)}
     ports:
       - '${DB_PORT:-5432}:5432'
     volumes:
       # Postgres 18+ images store data in a version-specific subdirectory, so the
       # volume mounts at /var/lib/postgresql (not the pre-18 /var/lib/postgresql/data).
+      # No initdb scripts: the per-API login roles come from `pnpm db:bootstrap`, the same
+      # path a managed server uses.
       - fphd-pgdata:/var/lib/postgresql
-      # Role/grant bootstrap — runs once on first init (empty volume).
-      - ./docker/postgres/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-fphd} -d ${POSTGRES_DB:-fphd}']
       interval: 5s

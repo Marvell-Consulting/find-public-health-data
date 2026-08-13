@@ -289,6 +289,31 @@ importers:
         specifier: 'catalog:'
         version: 4.1.10(@types/node@24.13.3)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.1.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0)(yaml@2.9.0))
 
+  apps/operations:
+    dependencies:
+      '@fphd/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@fphd/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@fphd/logger':
+        specifier: workspace:*
+        version: link:../../packages/logger
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.13.3
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.0
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@types/node@24.13.3)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.1.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0)(yaml@2.9.0))
+
   apps/public-api:
     dependencies:
       '@fphd/api-server':
