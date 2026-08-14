@@ -349,12 +349,25 @@ This is separate from `docker/app.Dockerfile`, which is the development image us
 its devDependencies — exactly what the production images must not do.
 
 `.github/workflows/publish-images.yml` builds all five on every push to `main` and pushes them to
-Azure Container Registry, tagged with the commit SHA and `latest`. Deployments pin the SHA, and OCI
-labels carry the repository, commit and build time rather than encoding them in the tag. There
-is no registry password and no service-principal secret: the workflow mints a GitHub OIDC token,
-`azure/login` exchanges it for an Azure token under a federated credential that trusts only
-main-branch runs of this workflow, and the identity behind it holds `AcrPush` alone. It needs three
-repository secrets — `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID`.
+Azure Container Registry, tagged with the commit SHA and `latest`. OCI labels carry the repository,
+commit and build time rather than encoding them in the tag. There is no registry password and no
+service-principal secret: the workflow mints a GitHub OIDC token, `azure/login` exchanges it for an
+Azure token under a federated credential that trusts only main-branch runs of this workflow, and the
+identity behind it holds `AcrPush` alone. It needs three repository secrets — `AZURE_CLIENT_ID`,
+`AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID`.
+
+**Deploy by digest, not by tag.** Both tags are labels for people; neither is a stable reference to
+particular bits. ACR tags are mutable, and re-running the workflow for a commit already published
+necessarily builds a different manifest — the `created` label alone guarantees it — which then
+overwrites both tags. A replica scaling up afterwards against the same tag can get different code
+from the one already running. Each run therefore prints the pushed digest to its summary:
+
+```
+fphdbetaacr.azurecr.io/public-web@sha256:4f30b957…
+```
+
+That is what a revision should reference, and what `app_images` in the infrastructure repository
+should be set to. Deploys are manual for now, so the summary is where to copy it from.
 
 Trivy scans each image between building and pushing, and a fixable high or critical vulnerability
 in an operating system package stops it reaching the registry. That layer is otherwise unscanned —

@@ -120,11 +120,39 @@ jobs:
           ignore-unfixed: true
           exit-code: 1
 
-      # The commit SHA is what deployments pin to; `latest` is a convenience for pulling by
-      # hand and must never be what a revision references.
+      # Both tags are labels for humans. Neither is what a deployment should reference: ACR tags
+      # are mutable, and re-running this workflow for the same commit necessarily produces a
+      # different manifest — the `created` label alone guarantees that — which then overwrites
+      # both. The digest below is the immutable reference.
       - name: Push the image
+        id: push
         env:
           APP: ${{ matrix.app }}
         run: |
-          docker push "${REGISTRY}/${APP}:${GITHUB_SHA}"
+          # `docker push` reports the manifest the registry stored as `<tag>: digest: sha256:…`.
+          # Read it from the push rather than from the local image: it is the registry's own
+          # answer to what now exists under this tag.
+          push_output=$(docker push "${REGISTRY}/${APP}:${GITHUB_SHA}" | tee /dev/stderr)
           docker push "${REGISTRY}/${APP}:latest"
+
+          digest=$(sed -n 's/.*digest: \(sha256:[0-9a-f]\{64\}\).*/\1/p' <<<"${push_output}" | head -1)
+          if [ -z "${digest}" ]; then
+            echo '::error::Could not read the pushed manifest digest'
+            exit 1
+          fi
+          echo "reference=${REGISTRY}/${APP}@${digest}" >> "${GITHUB_OUTPUT}"
+
+      # Deploys are manual for now, so the digest has to be somewhere a person can find it
+      # without digging through logs. The run summary is that place.
+      - name: Record the deployable reference
+        env:
+          APP: ${{ matrix.app }}
+          REFERENCE: ${{ steps.push.outputs.reference }}
+        run: |
+          {
+            echo "### ${APP}"
+            echo
+            echo '```'
+            echo "${REFERENCE}"
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
