@@ -1,10 +1,8 @@
 import { randomBytes } from 'node:crypto';
-import { fileURLToPath } from 'node:url';
 
-import { drizzle } from 'drizzle-orm/postgres-js';
-import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import type postgres from 'postgres';
 
+import { migrateToLatest } from './migrations.js';
 import { rebuildReadModels } from './read-models.js';
 import type { Repositories } from './repositories.js';
 import { createOwnerClient } from './scripts/owner-client.js';
@@ -23,7 +21,6 @@ const TEMPLATES = {
 export type TestTemplate = keyof typeof TEMPLATES;
 
 const TEST_DATABASE_PREFIX = 'fphd_test_';
-const migrationsFolder = fileURLToPath(new URL('../drizzle', import.meta.url));
 
 /**
  * Postgres refuses `CREATE DATABASE ... TEMPLATE` while any other session is connected to
@@ -66,7 +63,7 @@ async function buildTemplate(name: string, seed: boolean): Promise<void> {
 
   const template = createOwnerClient(name);
   try {
-    await migrate(drizzle(template), { migrationsFolder });
+    await migrateToLatest(template);
     if (seed) {
       await seedDatabase(template);
       await rebuildReadModels(template);

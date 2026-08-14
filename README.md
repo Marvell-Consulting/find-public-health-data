@@ -12,6 +12,9 @@ A pnpm monorepo containing four independently deployable applications:
 The internal applications are functional supersets of the public applications through shared
 workspace packages. Deployable applications do not import one another.
 
+Alongside them sits `@fphd/operations`, which serves no traffic and has no port. It is a
+command-line application, run as a job — see [Operational commands](#operational-commands).
+
 ## Requirements
 
 - Node.js 24+
@@ -26,6 +29,7 @@ Corepack will select the pinned pnpm version from `package.json`.
 cp .env.example .env    # required — see Configuration below
 pnpm install
 docker compose up -d    # start the development database
+pnpm db:bootstrap       # once per fresh database: create the per-API login roles
 pnpm dev
 ```
 
@@ -36,9 +40,9 @@ Environment variables are read from a `.env` file at the repository root. `.env`
 working local setup.
 
 The three passwords (`POSTGRES_PASSWORD`, `PUBLIC_API_PASSWORD`, `INTERNAL_API_PASSWORD`) have **no
-default**. If any is unset or empty, `docker compose` fails with a message naming the variable
-rather than creating a database role with a well-known password. This means `docker compose up`
-will not work without a `.env`.
+default**. If any is unset or empty, the command that needs it — `docker compose` for the first,
+`pnpm db:bootstrap` and the app containers for the other two — fails with a message naming the
+variable rather than creating a database role with a well-known password.
 
 `APP_ENV` names the environment: `local` | `test` | `dev` | `preview` | `production`. It has **no
 default either**, and for the same reason. `local` is a developer machine and `test` a test run or
@@ -194,9 +198,11 @@ docker compose down -v    # stop and delete all data
 ```
 
 Each API connects with its own login role (`public_api`, `internal_api`) rather than as the owner,
-so access can be constrained per audience at the grant level. The roles are created on first
-startup by `docker/postgres/initdb/01-roles.sh`, which runs only when the data volume is empty — so
-changes to it require `docker compose down -v` to take effect.
+so access can be constrained per audience at the grant level. The roles are created by
+`pnpm db:bootstrap` — run it once against a fresh database, before the first migration: the grant
+migrations reference the roles, so migrating a database that has never been bootstrapped fails.
+It is idempotent, and it sets the passwords every time, so re-running it is also how a password
+change in `.env` reaches the database.
 
 Schema and migrations are managed with Drizzle in `packages/db`:
 
@@ -224,7 +230,7 @@ tool's semantics are documented in [`packages/db/README.md`](packages/db/README.
 A fresh database is ready for development with:
 
 ```sh
-docker compose up -d && pnpm db:migrate && pnpm db:seed && pnpm db:rebuild-read-models
+docker compose up -d && pnpm db:bootstrap && pnpm db:migrate && pnpm db:seed && pnpm db:rebuild-read-models
 ```
 
 The seed is real Pholio data for 10 indicators at core administrative geographies,
@@ -244,6 +250,66 @@ budget rather than adding to it, and is zero locally, five seconds elsewhere.
 All four apps serve the same two probes, so one configuration covers every app: `/livez` stays 200
 throughout a stop, `/readyz` answers 503 with `"status": "draining"` from the moment a signal
 arrives.
+
+## Operational commands
+
+`apps/operations` is a command-line application for work done *to* a deployed environment rather
+than by it. The `pnpm db:*` scripts above cover a developer machine, where the database is a
+container on localhost and drizzle-kit is installed; neither is true of a managed server, which has
+no public endpoint and can only be reached from inside its network. This is what runs there, as a
+job:
+
+```sh
+pnpm --filter @fphd/operations cli db bootstrap             # create the per-API login roles
+pnpm --filter @fphd/operations cli db migrate               # apply pending migrations
+pnpm --filter @fphd/operations cli db status                # report migration state; non-zero if blocked
+pnpm --filter @fphd/operations cli db seed                  # replace all data with the seed
+pnpm --filter @fphd/operations cli db rebuild-read-models
+```
+
+Deployed, the same commands are `node dist/cli.js db migrate` and so on.
+
+Two commands are worth noting:
+
+- `db bootstrap` is the only bootstrap path: the local compose database (via `pnpm db:bootstrap`),
+  CI's integration job and a managed server all create the per-API roles through it. It is
+  idempotent — safe against a server where the roles already exist — and it sets the passwords
+  every time, so it is also how a credential is rotated.
+- `db seed` rebuilds the read models in the same command, unlike the local `db:seed`/
+  `db:rebuild-read-models` pair. A job runs one command, and a seeded database whose read models
+  are still empty serves an empty site. It refuses to run unless `APP_ENV` is `local`, `test` or
+  `dev`; nothing seeds preview or production.
+
+`db bootstrap` needs `PUBLIC_API_PASSWORD` and `INTERNAL_API_PASSWORD`; the other commands do not,
+and fail naming them rather than requiring every job to hold role passwords. All of them connect as
+the owner role (`POSTGRES_USER`/`POSTGRES_PASSWORD`), not as a per-API role.
+
+### Invoking them from a deployed environment
+
+Deployment lives in the infrastructure repository, which owns the jobs that call these. Command
+`node dist/cli.js <command>`:
+
+```sh
+db bootstrap             # additionally needs PUBLIC_API_PASSWORD and INTERNAL_API_PASSWORD
+db migrate
+db status
+db seed
+db rebuild-read-models
+```
+
+Required environment, for every command:
+
+```sh
+APP_ENV                  # dev | preview | production for a deployed job; no default, so an
+                         # unset value fails the job rather than relaxing TLS in silence
+DB_HOST
+POSTGRES_DB
+POSTGRES_USER            # the owner role, not a per-API role
+POSTGRES_PASSWORD
+```
+
+`DB_PORT`, `DB_TLS` and `LOG_LEVEL` are optional. Exit codes: `0` success, `1` failure, `2`
+unrecognised command.
 
 ## Mixed local/Docker development
 
@@ -281,4 +347,5 @@ reach Postgres directly over the compose network via `DB_HOST=db`.)
 
 `apps/*` hold deployment wiring, routes and entrypoints, and never import one another — reusable
 business and feature logic belongs in `packages/*`. `tools/*` holds workspace members that support
-the build rather than ship in it.
+the build rather than ship in it. `apps/operations` is the exception: an application like the other
+four, but it serves no traffic — see [Operational commands](#operational-commands).

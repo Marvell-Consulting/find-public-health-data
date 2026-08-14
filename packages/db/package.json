@@ -21,7 +21,7 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:import-topics": "tsx --env-file-if-exists=../../.env --conditions=development src/scripts/import-topics.ts",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "tsx src/scripts/migrate.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/scripts/seed.ts",

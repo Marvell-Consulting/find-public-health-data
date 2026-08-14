@@ -10,14 +10,19 @@ import type postgres from 'postgres';
  * the ISS106 read-model design, not this skeleton.
  */
 export async function rebuildReadModels(sql: postgres.Sql): Promise<void> {
-  await sql.begin(async (tx) => {
-    // DELETE rather than TRUNCATE: it takes only row locks, so readers keep seeing
-    // the previous read models until the rebuild commits.
-    await tx`DELETE FROM latest_headline`;
-    await tx`DELETE FROM available_data`;
-    await tx`DELETE FROM indicator_dimension_values`;
+  await sql.begin((tx) => rebuildReadModelTables(tx));
+  await analyzeReadModels(sql);
+}
 
-    await tx`
+/** The transaction-aware body, so a caller can commit a seed and this rebuild as one. */
+export async function rebuildReadModelTables(tx: postgres.TransactionSql): Promise<void> {
+  // DELETE rather than TRUNCATE: it takes only row locks, so readers keep seeing
+  // the previous read models until the rebuild commits.
+  await tx`DELETE FROM latest_headline`;
+  await tx`DELETE FROM available_data`;
+  await tx`DELETE FROM indicator_dimension_values`;
+
+  await tx`
       INSERT INTO latest_headline
         (indicator_id, area_id, from_date, to_date, value, lower_ci_95, upper_ci_95)
       SELECT DISTINCT ON (indicator_id, area_id)
@@ -30,7 +35,7 @@ export async function rebuildReadModels(sql: postgres.Sql): Promise<void> {
       ORDER BY indicator_id, area_id, from_date DESC, to_date DESC, id DESC
     `;
 
-    await tx`
+  await tx`
       INSERT INTO available_data (indicator_id, area_type_id, area_type_name, area_count)
       SELECT o.indicator_id, a.area_type_id, MAX(at.name), COUNT(DISTINCT o.area_id)
       FROM observation o
@@ -40,7 +45,7 @@ export async function rebuildReadModels(sql: postgres.Sql): Promise<void> {
       GROUP BY o.indicator_id, a.area_type_id
     `;
 
-    await tx`
+  await tx`
       INSERT INTO indicator_dimension_values
         (indicator_id, dimension_type_id, dimension_type_name,
          dimension_value_id, dimension_value_name, sort_order)
@@ -51,7 +56,9 @@ export async function rebuildReadModels(sql: postgres.Sql): Promise<void> {
       JOIN dimension_type dt ON dt.id = dv.dimension_type_id
       WHERE o.deleted_at IS NULL
     `;
-  });
+}
+
+export async function analyzeReadModels(sql: postgres.Sql): Promise<void> {
   await sql`ANALYZE latest_headline`;
   await sql`ANALYZE available_data`;
   await sql`ANALYZE indicator_dimension_values`;

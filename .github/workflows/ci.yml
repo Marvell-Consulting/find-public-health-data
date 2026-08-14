@@ -84,15 +84,17 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
-      # Service containers start before checkout, so compose.yaml's initdb volume mount has no
-      # equivalent here — the same script is invoked explicitly instead.
+      # The grant migrations reference the per-API roles, so they must exist before the global
+      # setup migrates the template databases. Same command locally (`pnpm db:bootstrap`) and
+      # in a deployed environment — this is the only bootstrap path.
       - name: Create the per-API login roles
-        run: ./docker/postgres/initdb/01-roles.sh
+        run: pnpm --filter @fphd/operations cli db bootstrap
         env:
-          PGHOST: localhost
-          PGPASSWORD: fphd
-          POSTGRES_USER: fphd
+          APP_ENV: test
+          DB_HOST: localhost
           POSTGRES_DB: fphd
+          POSTGRES_USER: fphd
+          POSTGRES_PASSWORD: fphd
           PUBLIC_API_PASSWORD: public_api
           INTERNAL_API_PASSWORD: internal_api
       # One root Vitest run across every project, filtered to paths containing `integration.test`

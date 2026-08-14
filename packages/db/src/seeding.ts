@@ -83,21 +83,43 @@ async function loadTable(
   return count;
 }
 
+// Its own list rather than isDeployedEnv: 'dev' is deployed but is populated by running the
+// seed against it, while 'preview' and 'production' hold data no command may erase. The
+// integration harness runs under 'test' and seeds through seedDatabase directly, but the
+// value is listed so that path stays permitted if it ever reaches for the CLI.
+const SEEDABLE_APP_ENVS = ['local', 'test', 'dev'];
+
+/**
+ * The seed erases and replaces every table, so it fails closed: an explicit APP_ENV is
+ * required rather than a missing value being assumed safe.
+ */
+export function assertSeedingAllowed(appEnv: string | undefined): void {
+  if (appEnv !== undefined && SEEDABLE_APP_ENVS.includes(appEnv)) return;
+
+  throw new Error(
+    `Refusing to seed: APP_ENV is ${appEnv === undefined ? 'unset' : `'${appEnv}'`}; ` +
+      `set it to one of ${SEEDABLE_APP_ENVS.map((value) => `'${value}'`).join(', ')} explicitly`,
+  );
+}
+
 /**
  * Erase and reload every canonical table from the committed seed CSVs, in one
  * transaction: a failed load rolls back to the previous state instead of leaving a
- * partially seeded database. Callers own the safety decision — the db:seed CLI
- * refuses to run outside local/test, and the integration harness only ever targets
- * its own disposable databases.
+ * partially seeded database. Callers own the safety decision — the db:seed CLI calls
+ * assertSeedingAllowed, and the integration harness only ever targets its own
+ * disposable databases.
  */
 export async function seedDatabase(sql: postgres.Sql): Promise<void> {
-  await sql.begin(async (tx) => {
-    const allTables = [...SEED_TABLES, ...READ_MODEL_TABLES].map((t) => `"${t}"`).join(', ');
-    await tx.unsafe(`TRUNCATE ${allTables} CASCADE`);
+  await sql.begin((tx) => seedTables(tx));
+}
 
-    for (const table of SEED_TABLES) {
-      const count = await loadTable(tx, table);
-      console.log(`${table}: ${count} rows`);
-    }
-  });
+/** The transaction-aware body, so a caller can commit the seed and a read-model rebuild as one. */
+export async function seedTables(tx: postgres.TransactionSql): Promise<void> {
+  const allTables = [...SEED_TABLES, ...READ_MODEL_TABLES].map((t) => `"${t}"`).join(', ');
+  await tx.unsafe(`TRUNCATE ${allTables} CASCADE`);
+
+  for (const table of SEED_TABLES) {
+    const count = await loadTable(tx, table);
+    console.log(`${table}: ${count} rows`);
+  }
 }
