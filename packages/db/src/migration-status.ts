@@ -33,7 +33,6 @@ export interface AppliedMigration {
 
 export interface MigrationReport extends LocalMigration {
   state: MigrationState;
-  appliedAt: number | undefined;
 }
 
 const journalSchema = z.object({
@@ -106,13 +105,11 @@ export function compareMigrations(
       return {
         ...migration,
         state: migration.folderMillis > watermark ? 'pending' : 'skipped',
-        appliedAt: undefined,
       };
     }
     return {
       ...migration,
       state: record.hash === migration.hash ? 'applied' : 'tampered',
-      appliedAt: record.createdAt,
     };
   });
 
@@ -124,7 +121,6 @@ export function compareMigrations(
         hash: migration.hash,
         folderMillis: migration.createdAt,
         state: 'unknown',
-        appliedAt: migration.createdAt,
       }),
     );
 

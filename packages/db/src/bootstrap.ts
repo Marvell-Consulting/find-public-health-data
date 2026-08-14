@@ -25,6 +25,10 @@ export const API_ROLES = {
  * `SELECT FROM pg_roles` first — roles are cluster-wide, so two jobs bootstrapping at once
  * would both pass such a check and one would then fail.
  *
+ * The whole set commits in one transaction: concurrent jobs serialise on the role rows and
+ * the later committer wins for every role, so the pair cannot end up split between two
+ * secret sets — and a failure on any role rotates nothing.
+ *
  * The password reaches the server as a bind parameter and is quoted by Postgres itself
  * (`format('%L')`). Interpolating it into the statement text would break on a quote
  * character and would let the value inject SQL; it would also write the password into
@@ -34,8 +38,8 @@ export async function bootstrapRoles(
   sql: postgres.Sql,
   roles: readonly DatabaseRole[],
 ): Promise<void> {
-  for (const role of roles) {
-    await sql.begin(async (tx) => {
+  await sql.begin(async (tx) => {
+    for (const role of roles) {
       await tx`SELECT set_config('fphd.bootstrap_role', ${role.name}, true)`;
       await tx`SELECT set_config('fphd.bootstrap_password', ${role.password}, true)`;
       await tx.unsafe(`
@@ -53,6 +57,6 @@ export async function bootstrapRoles(
           EXECUTE format('ALTER ROLE %I WITH LOGIN PASSWORD %L', role_name, role_password);
         END $$;
       `);
-    });
-  }
+    }
+  });
 }

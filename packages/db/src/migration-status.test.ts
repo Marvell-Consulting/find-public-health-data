@@ -30,7 +30,6 @@ describe('compareMigrations', () => {
     const reports = compareMigrations([local('0000_a', 100)], [applied(100, 'hash-0000_a')]);
 
     expect(stateOf(reports, '0000_a')).toBe('applied');
-    expect(reports[0]?.appliedAt).toBe(100);
   });
 
   it('reports an unrecorded migration newer than everything applied as pending', () => {

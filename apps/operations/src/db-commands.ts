@@ -1,5 +1,6 @@
 import {
   API_ROLES,
+  analyzeReadModels,
   assertMigratable,
   assertSeedingAllowed,
   bootstrapRoles,
@@ -7,8 +8,8 @@ import {
   type DatabaseRole,
   readAppliedMigrations,
   readLocalMigrations,
-  rebuildReadModels,
-  seedDatabase,
+  rebuildReadModelTables,
+  seedTables,
 } from '@fphd/db';
 
 import type { CommandContext } from './commands.js';
@@ -52,12 +53,16 @@ export async function bootstrap({ sql, config }: CommandContext): Promise<void> 
 /**
  * Rebuilds the read models in the same command, unlike the local `db:seed`/
  * `db:rebuild-read-models` pair: a job runs one command, and a seeded database whose read
- * models are still empty serves an empty site.
+ * models are still empty serves an empty site. One commit for both, so readers never see
+ * that state mid-run and a failed rebuild rolls the seed back with it.
  */
 export async function seed({ sql, config }: CommandContext): Promise<void> {
   assertSeedingAllowed(config.appEnv);
-  await seedDatabase(sql);
-  await rebuildReadModels(sql);
+  await sql.begin(async (tx) => {
+    await seedTables(tx);
+    await rebuildReadModelTables(tx);
+  });
+  await analyzeReadModels(sql);
 }
 
 /**
@@ -69,14 +74,7 @@ export async function status({ sql, logger }: CommandContext): Promise<void> {
   const reports = compareMigrations(readLocalMigrations(), await readAppliedMigrations(sql));
 
   for (const report of reports) {
-    logger.info(
-      {
-        migration: report.tag,
-        state: report.state,
-        appliedAt: report.appliedAt === undefined ? undefined : new Date(report.appliedAt),
-      },
-      'Migration',
-    );
+    logger.info({ migration: report.tag, state: report.state }, 'Migration');
   }
 
   const counts = reports.reduce<Record<string, number>>((totals, report) => {

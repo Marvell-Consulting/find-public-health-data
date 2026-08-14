@@ -21,7 +21,7 @@ export {
   readLocalMigrations,
 } from './migration-status.js';
 export { migrateToLatest } from './migrations.js';
-export { rebuildReadModels } from './read-models.js';
+export { analyzeReadModels, rebuildReadModels, rebuildReadModelTables } from './read-models.js';
 export {
   createRepositories,
   type IndicatorRepository,
@@ -30,5 +30,5 @@ export {
 } from './repositories.js';
 export * as schema from './schema.js';
 export { createOwnerClient } from './scripts/owner-client.js';
-export { assertSeedingAllowed, seedDatabase } from './seeding.js';
+export { assertSeedingAllowed, seedDatabase, seedTables } from './seeding.js';
 export { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';

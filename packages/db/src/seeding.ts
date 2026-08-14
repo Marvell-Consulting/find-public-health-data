@@ -110,13 +110,16 @@ export function assertSeedingAllowed(appEnv: string | undefined): void {
  * disposable databases.
  */
 export async function seedDatabase(sql: postgres.Sql): Promise<void> {
-  await sql.begin(async (tx) => {
-    const allTables = [...SEED_TABLES, ...READ_MODEL_TABLES].map((t) => `"${t}"`).join(', ');
-    await tx.unsafe(`TRUNCATE ${allTables} CASCADE`);
+  await sql.begin((tx) => seedTables(tx));
+}
 
-    for (const table of SEED_TABLES) {
-      const count = await loadTable(tx, table);
-      console.log(`${table}: ${count} rows`);
-    }
-  });
+/** The transaction-aware body, so a caller can commit the seed and a read-model rebuild as one. */
+export async function seedTables(tx: postgres.TransactionSql): Promise<void> {
+  const allTables = [...SEED_TABLES, ...READ_MODEL_TABLES].map((t) => `"${t}"`).join(', ');
+  await tx.unsafe(`TRUNCATE ${allTables} CASCADE`);
+
+  for (const table of SEED_TABLES) {
+    const count = await loadTable(tx, table);
+    console.log(`${table}: ${count} rows`);
+  }
 }
