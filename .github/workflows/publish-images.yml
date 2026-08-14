@@ -2,8 +2,10 @@ name: Publish images
 
 # Only main, and only on push: the federated credential in Azure trusts workflow runs from
 # this branch alone, so a pull request run could not authenticate even if it were triggered.
-# The pull request gate has already passed by the time a commit lands here, and an image in
-# the registry that nothing deploys is harmless, so this does not wait on CI.
+# This does not wait on CI. It does not need to: ci.yml's build-images job builds and starts
+# these same five images on the pull request, so a Dockerfile or runtime-tree regression is
+# already a red gate before merge. What is left here — registry auth, the scan and the push —
+# has no pull request equivalent, and an image in the registry that nothing deploys is harmless.
 on:
   push:
     branches: [main]

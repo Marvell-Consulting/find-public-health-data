@@ -12,7 +12,8 @@
 #   docker build -f docker/Dockerfile --target api --build-arg APP=internal-api  -t internal-api  .
 #   docker build -f docker/Dockerfile --target operations --build-arg APP=operations -t operations .
 #
-# .github/workflows/publish-images.yml builds exactly this list, one matrix job per row.
+# Two workflows build exactly this list, one matrix job per row: ci.yml builds and smoke-tests
+# them on every pull request, publish-images.yml scans and pushes them from main.
 #
 # docker/app.Dockerfile is the separate development image (see scripts/dev.sh); it keeps the
 # whole workspace and devDependencies, which is exactly what these must not do.
