@@ -57,7 +57,13 @@ export function readLocalMigrations(folder: string = migrationsFolder): LocalMig
 }
 
 function parseJournal(contents: string, file: string): z.infer<typeof journalSchema> {
-  const parsed = journalSchema.safeParse(JSON.parse(contents));
+  let json: unknown;
+  try {
+    json = JSON.parse(contents);
+  } catch (error) {
+    throw new Error(`${file} is not valid JSON: ${error instanceof Error ? error.message : error}`);
+  }
+  const parsed = journalSchema.safeParse(json);
   if (!parsed.success) {
     throw new Error(`${file} is not a drizzle migration journal: ${parsed.error.message}`);
   }

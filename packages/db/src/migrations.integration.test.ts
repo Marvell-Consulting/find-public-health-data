@@ -43,6 +43,15 @@ afterAll(async () => {
   await pool?.end();
 });
 
+async function advisoryLockWaiters(sql: postgres.Sql): Promise<number> {
+  const rows = await sql<{ count: number }[]>`
+    SELECT count(*)::int AS count FROM pg_stat_activity
+    WHERE datname = current_database()
+      AND wait_event_type = 'Lock' AND wait_event = 'advisory'
+  `;
+  return rows[0]?.count ?? 0;
+}
+
 function poolOf(size: number): postgres.Sql {
   pool = createPostgresClient(
     {
@@ -99,7 +108,9 @@ describe('migrateToLatest', () => {
       settled = true;
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    // Blocked, not merely slow: the migrator's session must show up waiting on the
+    // advisory lock before the release half of the test means anything.
+    await expect.poll(() => advisoryLockWaiters(holder)).toBeGreaterThan(0);
     expect(settled, 'migrated while another session held the lock').toBe(false);
 
     await holder`SELECT pg_advisory_unlock(${MIGRATION_LOCK_KEY})`;
