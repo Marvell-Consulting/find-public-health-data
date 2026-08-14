@@ -93,31 +93,32 @@ jobs:
       # image, tini, and psql in the operations image — is otherwise unscanned. Between build
       # and push, so a failing image is never in the registry to be deployed.
       #
-      # --pkg-types os is the whole point rather than a narrowing: the npm tree is already gated
-      # from the lockfile by CI's audit job, and scanning it here instead fails on npm's own
-      # bundled dependencies — the Node image ships an npm whose tar and undici carry fixable
-      # highs, which only a new base image fixes and which nothing in these images even runs.
+      # Restricting it to OS packages is the whole point rather than a narrowing: the npm tree is
+      # already gated from the lockfile by CI's audit job, and scanning it here instead fails on
+      # npm's own bundled dependencies — the Node image ships an npm whose tar and undici carry
+      # fixable highs, which only a new base image fixes and which nothing in these images runs.
       #
-      # --ignore-unfixed because a CVE with no fixed version yet is a red build with nothing to
-      # do about it but wait. --scanners vuln keeps the failure legible as "this image has a
+      # ignore-unfixed because a CVE with no fixed version yet is a red build with nothing to
+      # do about it but wait. scanners: vuln keeps the failure legible as "this image has a
       # fixable CVE": anything reaching an image came out of this repository, where secret
       # scanning and push protection already apply.
+      #
+      # The action rather than a pinned trivy image, because a bare image reference in a workflow
+      # is covered by neither Dependabot ecosystem — github-actions only reads `uses:`, and the
+      # docker one is scoped to /docker — so the engine would sit at whatever it was pinned at
+      # while only its vulnerability database moved. `uses:` puts it back under the actions
+      # updater. The trivy version comes from the action's own default, so bumping the action is
+      # what raises the engine; pinning `version:` here would recreate the problem one level down.
       - name: Scan the image
-        env:
-          APP: ${{ matrix.app }}
-          # v0.73.0, pinned by digest for the same reason the actions above are.
-          TRIVY_IMAGE: ghcr.io/aquasecurity/trivy@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c
-        run: |
-          docker run --rm \
-            --volume /var/run/docker.sock:/var/run/docker.sock \
-            "${TRIVY_IMAGE}" image \
-              --scanners vuln \
-              --pkg-types os \
-              --severity HIGH,CRITICAL \
-              --ignore-unfixed \
-              --exit-code 1 \
-              --no-progress \
-              "${REGISTRY}/${APP}:${GITHUB_SHA}"
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ matrix.app }}:${{ github.sha }}
+          scanners: vuln
+          # The action has not renamed this input yet; it sets TRIVY_PKG_TYPES.
+          vuln-type: os
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
 
       # The commit SHA is what deployments pin to; `latest` is a convenience for pulling by
       # hand and must never be what a revision references.
