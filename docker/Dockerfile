@@ -17,12 +17,20 @@
 # docker/app.Dockerfile is the separate development image (see scripts/dev.sh); it keeps the
 # whole workspace and devDependencies, which is exactly what these must not do.
 
-# Pinned by digest, not by the floating `24-slim` tag, so a build is reproducible and so the
-# base image has a version Dependabot can raise — see .github/dependabot.yml. Deliberately no
-# `apt-get upgrade` anywhere below: it would make every build non-deterministic, grow the image
-# (an upgraded package is a new layer on top of the old one, not a replacement), and hide a
-# stale base from the image scan whose job is to surface exactly that.
-FROM node:24-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba3275657f93595428be4fc03 AS base
+# Pinned by digest, so a build is reproducible and so the base image has a version Dependabot
+# can raise — see .github/dependabot.yml. The Debian release is named rather than left to the
+# floating `24-slim` alias: Dependabot resolves the alias to raise the digest, so the day Node
+# retargets it to a newer Debian, that bump would silently pair the new base with the
+# `trixie-pgdg` repository the operations stage hard-codes.
+#
+# Trixie rather than bookworm because bookworm left regular security support on 2026-06-11.
+# On LTS, fewer packages carry fixes, and the scan below only fails on a vulnerability that
+# has one — so a stale base would show up as a quieter scan rather than a red one.
+#
+# Deliberately no `apt-get upgrade` anywhere below: it would make every build non-deterministic,
+# grow the image (an upgraded package is a new layer on top of the old one, not a replacement),
+# and hide a stale base from the image scan whose job is to surface exactly that.
+FROM node:24-trixie-slim@sha256:0711b541c1c33a8a530ac4f0d391baa9a15b3d804695b1b24a47daa5fb60e74d AS base
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable
 WORKDIR /repo
@@ -53,7 +61,7 @@ RUN pnpm --filter "@fphd/${APP}..." build
 # injected workspace packages, which this workspace does not use.
 RUN pnpm deploy --filter "@fphd/${APP}" --prod --legacy /out
 
-FROM node:24-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba3275657f93595428be4fc03 AS runtime
+FROM node:24-trixie-slim@sha256:0711b541c1c33a8a530ac4f0d391baa9a15b3d804695b1b24a47daa5fb60e74d AS runtime
 ENV NODE_ENV=production
 # Container Apps stops a revision with SIGTERM, and the kernel discards a default-action
 # signal sent to PID 1 unless that process installed a handler — which Node does not do for
@@ -82,15 +90,17 @@ USER root
 # The database has no public endpoint, so a container inside the VNet is the only path to it
 # for ad-hoc work. psql is here for that; the CLI below covers the scripted jobs.
 #
-# Version 18 to match the server, from PostgreSQL's own repository because Debian 12 ships 15:
+# Version 18 to match the server, from PostgreSQL's own repository because Debian 13 ships 17:
 # psql itself would connect, but pg_dump refuses to run against a server newer than itself, so
 # the stock package would give an image that cannot take a backup of the database it exists to
 # reach. apt reads the ASCII-armoured key directly, which keeps gnupg out of the image.
+#
+# `trixie-pgdg` must track the base image's Debian release — see the pin at the top of the file.
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates curl \
   && install -d /etc/apt/keyrings \
   && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /etc/apt/keyrings/pgdg.asc \
-  && echo 'deb [signed-by=/etc/apt/keyrings/pgdg.asc] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main' \
+  && echo 'deb [signed-by=/etc/apt/keyrings/pgdg.asc] https://apt.postgresql.org/pub/repos/apt trixie-pgdg main' \
      > /etc/apt/sources.list.d/pgdg.list \
   && apt-get update \
   && apt-get install -y --no-install-recommends postgresql-client-18 \
