@@ -13,6 +13,7 @@
     "check": "biome check . && pnpm typecheck && pnpm test && pnpm build && pnpm check:artefacts",
     "check:artefacts": "pnpm --filter @fphd/artefact-boundary run check:artefacts",
     "check:write": "biome check --write .",
+    "db:bootstrap": "pnpm --filter @fphd/operations cli db bootstrap",
     "db:generate": "pnpm --filter @fphd/config build && pnpm --filter @fphd/db db:generate",
     "db:import-indicator-topics": "pnpm --filter @fphd/config build && pnpm --filter @fphd/db db:import-indicator-topics",
     "db:import-topics": "pnpm --filter @fphd/config build && pnpm --filter @fphd/db db:import-topics",

@@ -2,8 +2,6 @@ name: CI
 
 on:
   pull_request:
-    # `ready_for_review` is essential given jobs skip drafts: without it, marking a draft ready
-    # triggers nothing and the pull request sits with no checks forever.
     types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
@@ -19,9 +17,6 @@ concurrency:
 jobs:
   lint:
     name: Lint
-    # `github.event.pull_request` is null on a push, so this is true there too. False only on a
-    # draft pull request. Every job below repeats it.
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -36,7 +31,6 @@ jobs:
 
   typecheck:
     name: Typecheck
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -48,7 +42,6 @@ jobs:
 
   unit:
     name: Unit tests
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -62,7 +55,6 @@ jobs:
 
   integration:
     name: Integration tests
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     services:
@@ -84,15 +76,17 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
-      # Service containers start before checkout, so compose.yaml's initdb volume mount has no
-      # equivalent here — the same script is invoked explicitly instead.
+      # The grant migrations reference the per-API roles, so they must exist before the global
+      # setup migrates the template databases. Same command locally (`pnpm db:bootstrap`) and
+      # in a deployed environment — this is the only bootstrap path.
       - name: Create the per-API login roles
-        run: ./docker/postgres/initdb/01-roles.sh
+        run: pnpm --filter @fphd/operations cli db bootstrap
         env:
-          PGHOST: localhost
-          PGPASSWORD: fphd
-          POSTGRES_USER: fphd
+          APP_ENV: test
+          DB_HOST: localhost
           POSTGRES_DB: fphd
+          POSTGRES_USER: fphd
+          POSTGRES_PASSWORD: fphd
           PUBLIC_API_PASSWORD: public_api
           INTERNAL_API_PASSWORD: internal_api
       # One root Vitest run across every project, filtered to paths containing `integration.test`
@@ -126,7 +120,6 @@ jobs:
 
   audit:
     name: Audit
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -146,9 +139,8 @@ jobs:
       - name: Audit dependencies
         run: pnpm audit --audit-level high
 
-  build:
-    name: Build
-    if: ${{ !github.event.pull_request.draft }}
+  compile:
+    name: Compile apps
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -158,9 +150,119 @@ jobs:
       - uses: ./.github/actions/setup-workspace
       - run: pnpm build
 
+  # Distinct from `compile`, which only proves the workspace builds. This proves the artefact that
+  # actually ships assembles and starts: `pnpm deploy --prod --legacy` prunes devDependencies, so a
+  # module imported at runtime but declared as a devDependency compiles here and is missing there.
+  # Without this the first sign of that is a red publish after merge, or a crash-looping revision.
+  #
+  # Builds only — no registry login, and deliberately no Trivy. The scan runs against the pushed
+  # image on main, where a newly fixable base CVE blocks a publish; running it here would redden
+  # every open pull request over a vulnerability none of them introduced.
+  build-images:
+    name: Build images (${{ matrix.app }})
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      # One image failing to build must not mask the state of the other four.
+      fail-fast: false
+      # Mirrors the matrix in publish-images.yml; both need a row when an app is added, as does
+      # the `case` guard on APP in docker/Dockerfile.
+      matrix:
+        include:
+          - app: public-web
+            target: web
+          - app: internal-web
+            target: web
+          - app: public-api
+            target: api
+          - app: internal-api
+            target: api
+          - app: operations
+            target: operations
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      # Scoped per app rather than shared: the five jobs run concurrently, and one scope would have
+      # them overwriting each other's manifest for no gain. Run-over-run is where the saving is —
+      # the install and workspace build restore from the previous run of the same app. `mode=max`
+      # keeps the builder stage's layers, which are the expensive ones; the cache is well within
+      # the repository limit at five scopes, and GitHub evicts least-recently-used beyond it.
+      - name: Build ${{ matrix.app }}
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: docker/Dockerfile
+          target: ${{ matrix.target }}
+          build-args: APP=${{ matrix.app }}
+          tags: fphd-ci/${{ matrix.app }}:ci
+          # Into the local daemon, not a registry — the smoke test below runs it.
+          load: true
+          push: false
+          # The docker exporter `load` uses cannot carry attestations, and buildx warns rather
+          # than failing if asked for them.
+          provenance: false
+          cache-from: type=gha,scope=images-${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=images-${{ matrix.app }}
+
+      - name: Smoke test ${{ matrix.app }}
+        env:
+          APP: ${{ matrix.app }}
+          IMAGE: fphd-ci/${{ matrix.app }}:ci
+        run: |
+          # Enough to satisfy every app's schema; unknown keys are ignored by the one reading it.
+          # DB_HOST is deliberately unroutable — the servers connect lazily, so a reachable
+          # database would prove nothing more and a service container would cost a minute an image.
+          env_args=(
+            -e APP_ENV=dev
+            -e DB_HOST=127.0.0.1
+            -e DB_TLS=false
+            -e POSTGRES_DB=fphd
+            -e POSTGRES_USER=fphd
+            -e POSTGRES_PASSWORD=smoke-test-only
+            -e PUBLIC_API_PASSWORD=smoke-test-only
+            -e INTERNAL_API_PASSWORD=smoke-test-only
+            -e SESSION_JWT_SECRET=smoke-test-only-jwt-secret-at-least-32-bytes
+          )
+
+          if [ "${APP}" = 'operations' ]; then
+            # Bare, the CLI prints its usage and exits 2. Reaching that means config.ts and every
+            # module behind it resolved out of the pruned tree.
+            status=0
+            output=$(docker run --rm "${env_args[@]}" "${IMAGE}" 2>&1) || status=$?
+            echo "${output}"
+            if [ "${status}" -ne 2 ]; then
+              echo "::error::${APP} exited ${status}, expected 2 (usage)"
+              exit 1
+            fi
+            if ! grep -q 'Usage: operations' <<<"${output}"; then
+              echo "::error::${APP} did not print its usage"
+              exit 1
+            fi
+            exit 0
+          fi
+
+          # Every server logs `Listening` once bound. A module missing from the pruned tree fails
+          # well before that, with ERR_MODULE_NOT_FOUND.
+          cid=$(docker run -d "${env_args[@]}" "${IMAGE}")
+          for _ in $(seq 1 30); do
+            if docker logs "${cid}" 2>&1 | grep -q '"msg":"Listening"'; then break; fi
+            sleep 1
+          done
+          logs=$(docker logs "${cid}" 2>&1)
+          docker rm -f "${cid}" > /dev/null
+          echo "${logs}"
+          if ! grep -q '"msg":"Listening"' <<<"${logs}"; then
+            echo "::error::${APP} did not start"
+            exit 1
+          fi
+
   artefact-boundary:
     name: Public artefact boundary
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -168,20 +270,19 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
-      # Builds the public artefacts itself, so it does not depend on the build job — keeping the two
-      # jobs parallel, and keeping the check runnable standalone from a clean tree.
+      # Builds the public artefacts itself, so it does not depend on the compile job — keeping the
+      # two jobs parallel, and keeping the check runnable standalone from a clean tree.
       - run: pnpm check:artefacts
 
   all-checks-pass:
     name: All checks pass
     # The only required status check in branch protection. Add every new job here — the gate can
     # only report on what it depends on.
-    needs: [lint, typecheck, unit, integration, e2e, audit, build, artefact-boundary]
+    needs: [lint, typecheck, unit, integration, e2e, audit, compile, build-images, artefact-boundary]
     # `always()` so a failing need reddens the gate rather than skipping it — GitHub reports a
     # skipped required check as satisfied, so the default `success()` would stop the gate blocking
-    # exactly when it matters. The draft clause keeps the gate off drafts, where every need is
-    # skipped and the gate would otherwise report a confusing failure.
-    if: ${{ always() && !github.event.pull_request.draft }}
+    # exactly when it matters.
+    if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:

@@ -1,6 +1,8 @@
 export { type AreaSummary, listAreasByType } from './area-repository.js';
+export { API_ROLES, bootstrapRoles, type DatabaseRole } from './bootstrap.js';
 export {
   createDb,
+  createPostgresClient,
   type Database,
   type DbConnection,
   type Schema,
@@ -26,7 +28,19 @@ export {
   parseIndicatorTopicFile,
   type TopicSummaryForIndicator,
 } from './indicator-topic-repository.js';
-export { rebuildReadModels } from './read-models.js';
+export {
+  type AppliedMigration,
+  assertMigratable,
+  blockingMigrations,
+  compareMigrations,
+  type LocalMigration,
+  type MigrationReport,
+  type MigrationState,
+  readAppliedMigrations,
+  readLocalMigrations,
+} from './migration-status.js';
+export { migrateToLatest } from './migrations.js';
+export { analyzeReadModels, rebuildReadModels, rebuildReadModelTables } from './read-models.js';
 export {
   type AreaRepository,
   createRepositories,
@@ -36,4 +50,5 @@ export {
 } from './repositories.js';
 export * as schema from './schema.js';
 export { createOwnerClient } from './scripts/owner-client.js';
+export { assertSeedingAllowed, seedDatabase, seedTables } from './seeding.js';
 export { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';

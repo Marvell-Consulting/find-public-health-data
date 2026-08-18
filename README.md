@@ -12,6 +12,9 @@ A pnpm monorepo containing four independently deployable applications:
 The internal applications are functional supersets of the public applications through shared
 workspace packages. Deployable applications do not import one another.
 
+Alongside them sits `@fphd/operations`, which serves no traffic and has no port. It is a
+command-line application, run as a job — see [Operational commands](#operational-commands).
+
 ## Requirements
 
 - Node.js 24+
@@ -26,6 +29,7 @@ Corepack will select the pinned pnpm version from `package.json`.
 cp .env.example .env    # required — see Configuration below
 pnpm install
 docker compose up -d    # start the development database
+pnpm db:bootstrap       # once per fresh database: create the per-API login roles
 pnpm dev
 ```
 
@@ -36,9 +40,9 @@ Environment variables are read from a `.env` file at the repository root. `.env`
 working local setup.
 
 The three passwords (`POSTGRES_PASSWORD`, `PUBLIC_API_PASSWORD`, `INTERNAL_API_PASSWORD`) have **no
-default**. If any is unset or empty, `docker compose` fails with a message naming the variable
-rather than creating a database role with a well-known password. This means `docker compose up`
-will not work without a `.env`.
+default**. If any is unset or empty, the command that needs it — `docker compose` for the first,
+`pnpm db:bootstrap` and the app containers for the other two — fails with a message naming the
+variable rather than creating a database role with a well-known password.
 
 `APP_ENV` names the environment: `local` | `test` | `dev` | `preview` | `production`. It has **no
 default either**, and for the same reason. `local` is a developer machine and `test` a test run or
@@ -194,9 +198,11 @@ docker compose down -v    # stop and delete all data
 ```
 
 Each API connects with its own login role (`public_api`, `internal_api`) rather than as the owner,
-so access can be constrained per audience at the grant level. The roles are created on first
-startup by `docker/postgres/initdb/01-roles.sh`, which runs only when the data volume is empty — so
-changes to it require `docker compose down -v` to take effect.
+so access can be constrained per audience at the grant level. The roles are created by
+`pnpm db:bootstrap` — run it once against a fresh database, before the first migration: the grant
+migrations reference the roles, so migrating a database that has never been bootstrapped fails.
+It is idempotent, and it sets the passwords every time, so re-running it is also how a password
+change in `.env` reaches the database.
 
 Schema and migrations are managed with Drizzle in `packages/db`:
 
@@ -224,7 +230,7 @@ tool's semantics are documented in [`packages/db/README.md`](packages/db/README.
 A fresh database is ready for development with:
 
 ```sh
-docker compose up -d && pnpm db:migrate && pnpm db:seed && pnpm db:rebuild-read-models
+docker compose up -d && pnpm db:bootstrap && pnpm db:migrate && pnpm db:seed && pnpm db:rebuild-read-models
 ```
 
 The seed is real Pholio data for 13 indicators and the prototype's geography catalogue,
@@ -244,6 +250,133 @@ budget rather than adding to it, and is zero locally, five seconds elsewhere.
 All four apps serve the same two probes, so one configuration covers every app: `/livez` stays 200
 throughout a stop, `/readyz` answers 503 with `"status": "draining"` from the moment a signal
 arrives.
+
+## Operational commands
+
+`apps/operations` is a command-line application for work done *to* a deployed environment rather
+than by it. The `pnpm db:*` scripts above cover a developer machine, where the database is a
+container on localhost and drizzle-kit is installed; neither is true of a managed server, which has
+no public endpoint and can only be reached from inside its network. This is what runs there, as a
+job:
+
+```sh
+pnpm --filter @fphd/operations cli db bootstrap             # create the per-API login roles
+pnpm --filter @fphd/operations cli db migrate               # apply pending migrations
+pnpm --filter @fphd/operations cli db status                # report migration state; non-zero if blocked
+pnpm --filter @fphd/operations cli db seed                  # replace all data with the seed
+pnpm --filter @fphd/operations cli db rebuild-read-models
+```
+
+Deployed, the same commands are `node dist/cli.js db migrate` and so on, in the `operations` image.
+That image also carries `psql`, because a database with no public endpoint makes a container inside
+the network the only route to an ad-hoc query. It is version 18, from PostgreSQL's own apt
+repository, to match the server — Debian 13 ships 17, and `pg_dump` refuses to run against a newer
+server.
+
+Two commands are worth noting:
+
+- `db bootstrap` is the only bootstrap path: the local compose database (via `pnpm db:bootstrap`),
+  CI's integration job and a managed server all create the per-API roles through it. It is
+  idempotent — safe against a server where the roles already exist — and it sets the passwords
+  every time, so it is also how a credential is rotated.
+- `db seed` rebuilds the read models in the same command, unlike the local `db:seed`/
+  `db:rebuild-read-models` pair. A job runs one command, and a seeded database whose read models
+  are still empty serves an empty site. It refuses to run unless `APP_ENV` is `local`, `test` or
+  `dev`; nothing seeds preview or production.
+
+`db bootstrap` needs `PUBLIC_API_PASSWORD` and `INTERNAL_API_PASSWORD`; the other commands do not,
+and fail naming them rather than requiring every job to hold role passwords. All of them connect as
+the owner role (`POSTGRES_USER`/`POSTGRES_PASSWORD`), not as a per-API role.
+
+### Invoking them from a deployed environment
+
+Deployment lives in the infrastructure repository, which owns the jobs that call these. Command
+`node dist/cli.js <command>`:
+
+```sh
+db bootstrap             # additionally needs PUBLIC_API_PASSWORD and INTERNAL_API_PASSWORD
+db migrate
+db status
+db seed
+db rebuild-read-models
+```
+
+Required environment, for every command:
+
+```sh
+APP_ENV                  # dev | preview | production for a deployed job; no default, so an
+                         # unset value fails the job rather than relaxing TLS in silence
+DB_HOST
+POSTGRES_DB
+POSTGRES_USER            # the owner role, not a per-API role
+POSTGRES_PASSWORD
+```
+
+`DB_PORT`, `DB_TLS` and `LOG_LEVEL` are optional. Exit codes: `0` success, `1` failure, `2`
+unrecognised command.
+
+## Container images
+
+`docker/Dockerfile` builds the production images — one per deployable application, plus
+`operations`. A shared builder stage installs the workspace and builds the requested app; then
+`--target` picks the runtime shape and `--build-arg APP` picks the app:
+
+```sh
+docker build -f docker/Dockerfile --target web --build-arg APP=public-web   -t public-web   .
+docker build -f docker/Dockerfile --target web --build-arg APP=internal-web -t internal-web .
+docker build -f docker/Dockerfile --target api --build-arg APP=public-api   -t public-api   .
+docker build -f docker/Dockerfile --target api --build-arg APP=internal-api -t internal-api .
+docker build -f docker/Dockerfile --target operations --build-arg APP=operations -t operations .
+```
+
+Five images, three targets. The two web apps have identical runtime stages — same base, same
+init, same start command — and so do the two APIs; only *which* app the builder compiled into
+the image differs. A per-app target would be a copy with nothing changed in it, so the targets
+split only where the runtime genuinely does: `dist/server.js` for an API, `server.ts` for a web
+app, and the CLI-plus-`psql` image for operations.
+
+`pnpm deploy --prod --legacy` prunes devDependencies and copies only the workspace packages the app
+actually depends on, so no image carries pnpm, TypeScript, drizzle-kit or another app's code.
+`--legacy` is required because the current implementation expects injected workspace packages, which
+this workspace does not use. Images run as the `node` user and start under tini, which guarantees
+SIGTERM is delivered to a process running as PID 1 — the kernel discards a default-action signal
+sent to PID 1 unless that process installed a handler. Every server stops gracefully on that
+signal, well inside a thirty-second grace period. `HOST` and `PORT` come from the environment,
+defaulting to `0.0.0.0` and the app's own port.
+
+This is separate from `docker/app.Dockerfile`, which is the development image used by
+[mixed local/Docker development](#mixed-localdocker-development) and keeps the whole workspace and
+its devDependencies — exactly what the production images must not do.
+
+`.github/workflows/publish-images.yml` builds all five on every push to `main` and pushes them to
+Azure Container Registry, tagged with the commit SHA and `latest`. OCI labels carry the repository,
+commit and build time rather than encoding them in the tag. There is no registry password and no
+service-principal secret: the workflow mints a GitHub OIDC token, `azure/login` exchanges it for an
+Azure token under a federated credential that trusts only main-branch runs of this workflow, and the
+identity behind it holds `AcrPush` alone. It needs three repository secrets — `AZURE_CLIENT_ID`,
+`AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID`.
+
+**Deploy by digest, not by tag.** Both tags are labels for people; neither is a stable reference to
+particular bits. ACR tags are mutable, and re-running the workflow for a commit already published
+necessarily builds a different manifest — the `created` label alone guarantees it — which then
+overwrites both tags. A replica scaling up afterwards against the same tag can get different code
+from the one already running. Each run therefore prints the pushed digest to its summary:
+
+```
+fphdbetaacr.azurecr.io/public-web@sha256:4f30b957…
+```
+
+That is what a revision should reference, and what `app_images` in the infrastructure repository
+should be set to. Deploys are manual for now, so the summary is where to copy it from.
+
+Trivy scans each image between building and pushing, and a fixable high or critical vulnerability
+in an operating system package stops it reaching the registry. That layer is otherwise unscanned —
+CodeQL reads the source and CI's audit job resolves the npm tree from the lockfile, and neither
+looks at the Debian packages underneath, which is also why the scan covers OS packages only. The
+base image is pinned by digest and raised by Dependabot; nothing runs `apt-get upgrade`, so a
+red scan is fixed by bumping the pin. The pin names its Debian release (`24-trixie-slim`) rather
+than using the floating `24-slim` alias, so a Dependabot bump cannot move the base to a Debian the
+operations image's `trixie-pgdg` repository does not match.
 
 ## Mixed local/Docker development
 
@@ -281,4 +414,5 @@ reach Postgres directly over the compose network via `DB_HOST=db`.)
 
 `apps/*` hold deployment wiring, routes and entrypoints, and never import one another — reusable
 business and feature logic belongs in `packages/*`. `tools/*` holds workspace members that support
-the build rather than ship in it.
+the build rather than ship in it. `apps/operations` is the exception: an application like the other
+four, but it serves no traffic — see [Operational commands](#operational-commands).

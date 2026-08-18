@@ -17,3 +17,19 @@ updates:
           - '*'
     commit-message:
       prefix: ci
+
+  # Same reasoning one layer down: docker/Dockerfile pins its base image by digest, which never
+  # moves on its own. Weekly rather than monthly because a stale base is what the image scan in
+  # publish-images.yml fails a publish over, and raising the pin is the only way to clear it —
+  # the images deliberately do not `apt-get upgrade` their way out. app.Dockerfile sits in the
+  # same directory but tracks a tag, so there is nothing in it to raise.
+  - package-ecosystem: docker
+    directory: /docker
+    schedule:
+      interval: weekly
+    groups:
+      docker:
+        patterns:
+          - '*'
+    commit-message:
+      prefix: build
