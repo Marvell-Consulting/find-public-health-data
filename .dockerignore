@@ -6,6 +6,7 @@
 **/*.tsbuildinfo
 .pnpm-store
 .git
+.vscode
 docs
 .env*
 *.log
