@@ -1,6 +1,6 @@
 import { fakeUsersForAudience } from '@fphd/auth';
 import { ManageDataPage } from '@fphd/internal-web-features';
-import { ReleasesPage, SignInPage } from '@fphd/public-web-features';
+import { SignInPage, TopicsRoute } from '@fphd/public-web-features';
 import { cleanup, render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -9,6 +9,8 @@ import InternalApp from './root';
 
 afterEach(cleanup);
 
+const topics = [{ slug: 'topic-a', title: 'Topic A', description: 'All about topic A.' }];
+
 describe('internal application routes', () => {
   it('includes the shared public routes', async () => {
     const Routes = createRoutesStub([
@@ -16,13 +18,13 @@ describe('internal application routes', () => {
         path: '/',
         Component: InternalApp,
         loader: () => ({ canManage: false }),
-        children: [{ path: 'releases', Component: ReleasesPage }],
+        children: [{ path: 'topics', Component: TopicsRoute, loader: () => topics }],
       },
     ]);
 
-    render(<Routes initialEntries={['/releases']} />);
+    render(<Routes initialEntries={['/topics']} />);
 
-    expect(await screen.findByRole('heading', { name: 'Releases' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Public health topics' })).toBeTruthy();
   });
 
   it('includes internal-only routes', async () => {
@@ -62,13 +64,13 @@ describe('internal application routes', () => {
         path: '/',
         Component: InternalApp,
         loader: () => ({ canManage: false }),
-        children: [{ path: 'releases', Component: ReleasesPage }],
+        children: [{ path: 'topics', Component: TopicsRoute, loader: () => topics }],
       },
     ]);
 
-    render(<Routes initialEntries={['/releases']} />);
+    render(<Routes initialEntries={['/topics']} />);
 
-    expect(await screen.findByRole('heading', { name: 'Releases' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Public health topics' })).toBeTruthy();
     expect(screen.queryByRole('link', { name: 'Manage data' })).toBeNull();
   });
 
@@ -78,11 +80,11 @@ describe('internal application routes', () => {
         path: '/',
         Component: InternalApp,
         loader: () => ({ canManage: true }),
-        children: [{ path: 'releases', Component: ReleasesPage }],
+        children: [{ path: 'topics', Component: TopicsRoute, loader: () => topics }],
       },
     ]);
 
-    render(<Routes initialEntries={['/releases']} />);
+    render(<Routes initialEntries={['/topics']} />);
 
     expect(await screen.findByRole('link', { name: 'Manage data' })).toBeTruthy();
   });

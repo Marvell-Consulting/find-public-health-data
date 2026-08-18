@@ -2,7 +2,6 @@ import { fakeUsersForAudience } from '@fphd/auth';
 import {
   IndicatorRoute,
   PublicHomePage,
-  ReleasesPage,
   SignInPage,
   TopicRoute,
   TopicsRoute,
@@ -37,24 +36,9 @@ describe('public application routes', () => {
     );
     expect(screen.getByRole('link', { name: 'Topics' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Sign in' })).toBeTruthy();
-  });
-
-  it('renders the prototype release route and shared shell', async () => {
-    const Routes = createRoutesStub([
-      {
-        path: '/',
-        Component: PublicApp,
-        loader: () => ({ signedIn: false }),
-        children: [{ path: 'releases', Component: ReleasesPage }],
-      },
-    ]);
-
-    render(<Routes initialEntries={['/releases']} />);
-
-    expect(await screen.findByRole('link', { name: 'Skip to main content' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Skip to main content' })).toBeTruthy();
     expect(screen.getByText('Alpha')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'GOV.UK' })).toBeTruthy();
-    expect(await screen.findByRole('heading', { name: 'Releases' })).toBeTruthy();
   });
 
   it('offers all fake users on the public sign-in page', () => {
@@ -86,8 +70,8 @@ describe('public application routes', () => {
     // Ordering is the repository/API's responsibility (asserted elsewhere); this fixture is
     // already alphabetical, and the page must render it in that order without reshuffling.
     const topics = [
-      { slug: 'topic-a', title: 'Topic A' },
-      { slug: 'topic-b', title: 'Topic B' },
+      { slug: 'topic-a', title: 'Topic A', description: 'All about topic A.' },
+      { slug: 'topic-b', title: 'Topic B', description: 'All about topic B.' },
     ];
     const Routes = createRoutesStub([
       {
@@ -108,6 +92,8 @@ describe('public application routes', () => {
       '/topics/topic-a',
       '/topics/topic-b',
     ]);
+    expect(screen.getByText('All about topic A.')).toBeTruthy();
+    expect(screen.getByText('All about topic B.')).toBeTruthy();
   });
 
   it('renders the topic page title and description from loader data', async () => {

@@ -1,14 +1,6 @@
 import type { AppAudience, FakeUser } from '@fphd/auth';
 import { A, Button, PageIntro, Radios } from '@fphd/ui';
 
-export function ReleasesPage() {
-  return (
-    <PageIntro title="Releases">
-      <p className="govuk-body">Public health indicator release history will be published here.</p>
-    </PageIntro>
-  );
-}
-
 export interface SignInSession {
   readonly roles: readonly string[];
   readonly subject: string;
