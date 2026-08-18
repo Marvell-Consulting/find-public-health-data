@@ -159,9 +159,8 @@ function withThrowingDefaults<T extends object>(name: string, stubs: Partial<T> 
         return Reflect.get(target, property, receiver);
       }
 
-      const stub = Reflect.get(target, property, receiver);
-      if (stub !== undefined) {
-        return stub;
+      if (Object.prototype.hasOwnProperty.call(target, property)) {
+        return Reflect.get(target, property, receiver);
       }
 
       return () => {
