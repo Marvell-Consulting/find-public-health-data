@@ -33,6 +33,7 @@
     "@not-govuk/summary-list": "0.18.1",
     "@not-govuk/table": "0.18.1",
     "@not-govuk/tabs": "0.18.1",
+    "@not-govuk/text-input": "0.18.1",
     "govuk-frontend": "catalog:"
   },
   "devDependencies": {
