@@ -31,7 +31,7 @@
 # Deliberately no `apt-get upgrade` anywhere below: it would make every build non-deterministic,
 # grow the image (an upgraded package is a new layer on top of the old one, not a replacement),
 # and hide a stale base from the image scan whose job is to surface exactly that.
-FROM node:24-trixie-slim@sha256:0711b541c1c33a8a530ac4f0d391baa9a15b3d804695b1b24a47daa5fb60e74d AS base
+FROM node:26-trixie-slim@sha256:4ebb5ace66f15a24c14c492e01a8beeed4fddf970a856109f5126e703e5fe503 AS base
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable
 WORKDIR /repo
@@ -62,7 +62,7 @@ RUN pnpm --filter "@fphd/${APP}..." build
 # injected workspace packages, which this workspace does not use.
 RUN pnpm deploy --filter "@fphd/${APP}" --prod --legacy /out
 
-FROM node:24-trixie-slim@sha256:0711b541c1c33a8a530ac4f0d391baa9a15b3d804695b1b24a47daa5fb60e74d AS runtime
+FROM node:26-trixie-slim@sha256:4ebb5ace66f15a24c14c492e01a8beeed4fddf970a856109f5126e703e5fe503 AS runtime
 ENV NODE_ENV=production
 # Container Apps stops a revision with SIGTERM, and the kernel discards a default-action
 # signal sent to PID 1 unless that process installed a handler — which Node does not do for
