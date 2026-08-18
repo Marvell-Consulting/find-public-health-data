@@ -31,7 +31,7 @@ describe('public API against the seeded database', () => {
     const response = await request(createApp({ repositories })).get('/api/indicators');
 
     expect(response.status).toBe(200);
-    expect(response.body.indicators).toHaveLength(10);
+    expect(response.body.indicators).toHaveLength(13);
     expect(response.body.indicators[0]).toMatchObject({
       id: expect.stringMatching(/^[0-9a-f-]{36}$/),
       fingertipsId: expect.any(Number),
@@ -55,7 +55,7 @@ describe('public API against the seeded database', () => {
     `;
     const response = await request(createApp({ repositories })).get('/api/indicators');
     expect(response.status).toBe(200);
-    expect(response.body.indicators).toHaveLength(10);
+    expect(response.body.indicators).toHaveLength(13);
     const ids = response.body.indicators.map((i: { id: string }) => i.id);
     expect(ids).not.toContain(inserted[0]?.id);
   });
@@ -101,6 +101,28 @@ describe('public API against the seeded database', () => {
     expect(singleDimension[0].dimensions[0]).toMatchObject({ type: 'Age', value: '<75 yrs' });
   });
 
+  it('serves the prototype diabetes indicator across GP, NHS and local geographies', async () => {
+    const detail = await request(createApp({ repositories })).get('/api/indicators/241');
+
+    expect(detail.status).toBe(200);
+    expect(detail.body).toMatchObject({
+      fingertipsId: 241,
+      name: 'Diabetes: QOF prevalence',
+      valueType: 'Proportion',
+      unit: { label: '%' },
+    });
+    expect(detail.body.areaTypes.map(({ name }: { name: string }) => name)).toEqual(
+      expect.arrayContaining(['England', 'GPs', 'ICBs', 'NHS regions', 'Regions (statistical)']),
+    );
+
+    const cornwall = await request(createApp({ repositories })).get(
+      '/api/indicators/241/data?area_code=E06000052',
+    );
+    expect(cornwall.status).toBe(200);
+    expect(cornwall.body.areaName).toBe('Cornwall');
+    expect(cornwall.body.observations).toHaveLength(13);
+  });
+
   it('lists the current areas of a seeded area type', async () => {
     const response = await request(createApp({ repositories })).get(
       `/api/areas?area_type=${encodeURIComponent('Regions (statistical)')}`,
@@ -114,6 +136,15 @@ describe('public API against the seeded database', () => {
     expect(group.areas[0]).toEqual({ code: expect.any(String), name: expect.any(String) });
     const names = group.areas.map((a: { name: string }) => a.name);
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
+  });
+
+  it('lists the current GP practices added for the prototype indicator', async () => {
+    const response = await request(createApp({ repositories })).get('/api/areas?area_type=GPs');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveLength(1);
+    expect(response.body[0].areaType).toBe('GPs');
+    expect(response.body[0].areas).toHaveLength(6168);
   });
 
   it('returns an empty group for an unknown area type', async () => {

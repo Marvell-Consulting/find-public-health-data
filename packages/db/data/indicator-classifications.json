@@ -56,6 +56,11 @@
       "name": "Excess weight or obesity"
     },
     {
+      "slug": "risk-factor-air-pollution-or-environment",
+      "dimension": "risk_factor",
+      "name": "Air pollution or environment"
+    },
+    {
       "slug": "risk-factor-smoking-and-tobacco",
       "dimension": "risk_factor",
       "name": "Smoking and tobacco"
@@ -68,6 +73,14 @@
     },
     {
       "fingertipsId": 108,
+      "classificationSlug": "population-all-ages"
+    },
+    {
+      "fingertipsId": 241,
+      "classificationSlug": "indicator-type-prevalence-and-detection"
+    },
+    {
+      "fingertipsId": 241,
       "classificationSlug": "population-all-ages"
     },
     {
@@ -172,6 +185,30 @@
     },
     {
       "fingertipsId": 93622,
+      "classificationSlug": "population-all-ages"
+    },
+    {
+      "fingertipsId": 93861,
+      "classificationSlug": "indicator-type-determinant-or-risk-factor"
+    },
+    {
+      "fingertipsId": 93861,
+      "classificationSlug": "indicator-type-outcome"
+    },
+    {
+      "fingertipsId": 93861,
+      "classificationSlug": "population-all-ages"
+    },
+    {
+      "fingertipsId": 93861,
+      "classificationSlug": "risk-factor-air-pollution-or-environment"
+    },
+    {
+      "fingertipsId": 93995,
+      "classificationSlug": "indicator-type-outcome"
+    },
+    {
+      "fingertipsId": 93995,
       "classificationSlug": "population-all-ages"
     },
     {

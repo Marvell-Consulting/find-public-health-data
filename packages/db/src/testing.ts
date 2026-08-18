@@ -33,7 +33,7 @@ const seedRelationshipFiles = [
 
 /**
  * Two templates, because most integration tests do not want the seed. Copying `seeded`
- * duplicates ~356k observations and ~632k bridge rows; a test that only exercises the
+ * duplicates ~490k observations and ~759k bridge rows; a test that only exercises the
  * topics table should not pay for that.
  */
 const TEMPLATES = {

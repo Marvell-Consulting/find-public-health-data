@@ -35,7 +35,9 @@ function ownerConnection(database: string) {
 // Under 75 mortality rate from all causes: a seeded indicator with full metadata, both
 // single-year and rolling periods, and sex/age/deprivation breakdowns.
 const MORTALITY_UNDER_75 = 108;
+const DIABETES_QOF_PREVALENCE = 241;
 const ENGLAND = 'E92000001';
+const CORNWALL = 'E06000052';
 
 let testDb: TestDatabase;
 let db: Database;
@@ -54,7 +56,7 @@ describe('listApprovedIndicators', () => {
   it('returns the seeded indicators in name order', async () => {
     const indicators = await listApprovedIndicators(db);
 
-    expect(indicators).toHaveLength(10);
+    expect(indicators).toHaveLength(13);
     const names = indicators.map(({ name }) => name);
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
     expect(indicators.every(({ status }) => status === 'approved')).toBe(true);
@@ -87,6 +89,20 @@ describe('getApprovedIndicatorByFingertipsId', () => {
 
   it('returns undefined for a fingertips id no indicator carries', async () => {
     expect(await getApprovedIndicatorByFingertipsId(db, 424242)).toBeUndefined();
+  });
+
+  it('includes the prototype diabetes indicator with its high-fidelity geography coverage', async () => {
+    const indicator = await getApprovedIndicatorByFingertipsId(db, DIABETES_QOF_PREVALENCE);
+
+    expect(indicator).toMatchObject({
+      fingertipsId: DIABETES_QOF_PREVALENCE,
+      name: 'Diabetes: QOF prevalence',
+      valueType: 'Proportion',
+      unit: { label: '%' },
+    });
+    expect(indicator?.areaTypes.map(({ name }) => name)).toEqual(
+      expect.arrayContaining(['England', 'GPs', 'ICBs', 'NHS regions', 'Regions (statistical)']),
+    );
   });
 });
 
@@ -125,6 +141,21 @@ describe('getIndicatorObservations', () => {
   it('returns undefined when the indicator or the area does not exist', async () => {
     expect(await getIndicatorObservations(db, 424242, ENGLAND)).toBeUndefined();
     expect(await getIndicatorObservations(db, MORTALITY_UNDER_75, 'E00000000')).toBeUndefined();
+  });
+
+  it('returns the published Cornwall trend for the prototype diabetes indicator', async () => {
+    const data = await getIndicatorObservations(db, DIABETES_QOF_PREVALENCE, CORNWALL);
+
+    expect(data?.areaName).toBe('Cornwall');
+    expect(data?.observations).toHaveLength(13);
+    expect(data?.observations[0]).toMatchObject({
+      fromDate: '2012-04-01',
+      toDate: '2013-03-31',
+    });
+    expect(data?.observations.at(-1)).toMatchObject({
+      fromDate: '2024-04-01',
+      toDate: '2025-03-31',
+    });
   });
 });
 

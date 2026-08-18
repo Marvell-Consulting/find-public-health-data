@@ -23,7 +23,7 @@ afterAll(async () => {
 describe('internal API database connection', () => {
   it('reads the seeded schema as the internal_api role', async () => {
     const indicators = await db.select({ id: schema.indicator.id }).from(schema.indicator);
-    expect(indicators).toHaveLength(10);
+    expect(indicators).toHaveLength(13);
   });
 
   it('connects with a read-only role', async () => {
@@ -34,6 +34,6 @@ describe('internal API database connection', () => {
 
   it('can read operational upload data, unlike the public role', async () => {
     const batches = await db.select({ id: schema.uploadBatch.id }).from(schema.uploadBatch);
-    expect(batches).toHaveLength(10);
+    expect(batches).toHaveLength(13);
   });
 });
