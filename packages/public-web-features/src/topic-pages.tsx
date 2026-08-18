@@ -15,6 +15,7 @@ export function TopicsPage({ topics }: { topics: TopicSummary[] }) {
           columns="three"
           headingLevel={2}
           items={topics.map((topic) => ({
+            description: topic.description,
             href: `/topics/${topic.slug}`,
             title: topic.title,
           }))}

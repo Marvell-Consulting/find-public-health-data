@@ -106,6 +106,7 @@ describe('internal API', () => {
       {
         slug: 'topic-a',
         title: 'Topic A',
+        description: 'All about topic A.',
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-02T00:00:00.000Z',
       },

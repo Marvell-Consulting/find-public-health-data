@@ -14,15 +14,16 @@ import { z } from '@fphd/config/zod';
 export const topicSummarySchema = z.object({
   slug: z.string().min(1),
   title: z.string().min(1),
+  description: z.string(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
 
 export const topicSummaryListSchema = z.array(topicSummarySchema);
 
-export const topicDetailSchema = topicSummarySchema.extend({
-  description: z.string(),
-});
+// A topic's detail currently adds nothing to its summary. Kept as a distinct name so the
+// detail response can grow (indicators, related links) without touching the list contract.
+export const topicDetailSchema = topicSummarySchema;
 
 export const indicatorSummarySchema = z.object({
   id: z.uuid(),
