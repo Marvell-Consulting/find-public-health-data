@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  barWidth,
+  availablePeriodTypes,
   comparisonRows,
   confidenceInterval,
   dimensionValues,
@@ -30,6 +30,7 @@ function obs(overrides = {}) {
     count: 1000,
     denominator: null,
     dimensions: [],
+    notes: [],
     ...overrides,
   };
 }
@@ -160,6 +161,7 @@ describe('comparisonRows', () => {
       ['Mortality', 341.1, '2023'],
       ['Life expectancy', 80.1, '2023'],
     ]);
+    expect(rows.every((r) => r.suffix === '')).toBe(true);
     expect(rows[0]?.areaName).toBe('England');
   });
 
@@ -183,8 +185,13 @@ describe('filterObservations', () => {
   const persons = obs({ dimensions: [] });
   const rolling = obs({ fromDate: '2021-01-01', toDate: '2023-12-31', dimensions: [] });
 
-  it('keeps only the chosen sex, and always the value for all people', () => {
-    expect(filterObservations([male, female, persons], { sex: 'Male' })).toEqual([male, persons]);
+  it('keeps only the chosen sex, so the selection visibly changes the series', () => {
+    expect(filterObservations([male, female, persons], { sex: 'Male' })).toEqual([male]);
+    expect(filterObservations([male, female, persons], { sex: '' })).toEqual([
+      male,
+      female,
+      persons,
+    ]);
   });
 
   it('separates single-year periods from rolling averages', () => {
@@ -194,6 +201,18 @@ describe('filterObservations', () => {
       persons,
       rolling,
     ]);
+  });
+});
+
+describe('availablePeriodTypes', () => {
+  const single = obs({ dimensions: [] });
+  const rolling = obs({ fromDate: '2021-01-01', toDate: '2023-12-31', dimensions: [] });
+
+  it('offers only the period shapes the observations contain', () => {
+    expect(availablePeriodTypes([single])).toEqual(['1-year']);
+    expect(availablePeriodTypes([rolling])).toEqual(['3-year']);
+    expect(availablePeriodTypes([single, rolling])).toEqual(['1-year', '3-year']);
+    expect(availablePeriodTypes([])).toEqual([]);
   });
 });
 
@@ -236,36 +255,6 @@ describe('inequalitySegments', () => {
 
   it('returns nothing when an indicator has no inequality breakdown', () => {
     expect(inequalitySegments([obs({ dimensions: [dim('Sex', 'Male')] })])).toEqual([]);
-  });
-});
-
-describe('barWidth', () => {
-  const row = (value: number | null, unit: string) => ({
-    value,
-    unit,
-    fingertipsId: 1,
-    name: '',
-    areaName: '',
-    period: '',
-    segment: '',
-    count: null,
-  });
-
-  it('scales against the largest value sharing the unit', () => {
-    const half = row(50, 'Percent');
-    const full = row(100, 'Percent');
-    const otherUnit = row(900, 'per 100,000');
-    const rows = [half, full, otherUnit];
-
-    expect(barWidth(half, rows)).toBe(50);
-    expect(barWidth(full, rows)).toBe(100);
-    // The rate is not dwarfed by being on a different scale to the percentages.
-    expect(barWidth(otherUnit, rows)).toBe(100);
-  });
-
-  it('has no width without a value', () => {
-    const missing = row(null, 'Percent');
-    expect(barWidth(missing, [missing])).toBe(0);
   });
 });
 

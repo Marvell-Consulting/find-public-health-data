@@ -1,13 +1,17 @@
-import { A, BackLink, ChartSection, GridColumn, GridRow, PageIntro, Tabs } from '@fphd/ui';
+import { A, BackLink, Button, ChartSection, GridColumn, GridRow, PageIntro, Tabs } from '@fphd/ui';
 import { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 
 import {
+  availableConfidenceLevels,
+  availablePeriodTypes,
   dimensionValues,
   filterObservations,
   inequalityBreakdown,
   inequalityCategories,
   inequalityPeriods,
 } from './indicator-data';
+import { allDataCsv, downloadCsv, trendCsv } from './indicator-download';
 import { FilterPane } from './indicator-filter-pane';
 import type {
   AreaGroup,
@@ -17,13 +21,7 @@ import type {
 } from './indicator-loader';
 import { BackgroundInformation, IndicatorSummary } from './indicator-metadata';
 import { InequalityOptions, type PanelOptions, PanelOptionsPanel } from './indicator-options';
-import {
-  CompareAreasTable,
-  ComparisonSection,
-  InequalitiesTable,
-  SegmentationTable,
-  TrendTable,
-} from './indicator-tables';
+import { ComparisonSection, InequalitiesTable, TrendTable } from './indicator-tables';
 
 /**
  * Everything shown for one selected indicator, repeated per selection: the summary
@@ -31,39 +29,73 @@ import {
  */
 function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
   const id = detail.fingertipsId;
-  const [options, setOptions] = useState<PanelOptions>({
-    benchmark: 'England',
-    confidence: '95',
-    periodType: 'all',
-    sex: '',
+  const location = useLocation();
+  const navigate = useNavigate();
+  // The option choices live in the query string (`ci`, `pt`, `sex`), so they survive the
+  // full page reload every filter change causes. Reading them from the location keeps
+  // server and client renders identical.
+  const params = new URLSearchParams(location.search);
+  const [options, setOptions] = useState<PanelOptions>(() => {
+    const ci = params.get('ci');
+    const pt = params.get('pt');
+    return {
+      confidence: ci === '95' || ci === '99.8' ? ci : 'none',
+      periodType: pt === '1-year' || pt === '3-year' ? pt : 'all',
+      sex: params.get('sex') ?? '',
+    };
   });
+  const applyOptions = (next: PanelOptions) => {
+    setOptions(next);
+    const nextParams = new URLSearchParams(location.search);
+    for (const [key, value, empty] of [
+      ['ci', next.confidence, 'none'],
+      ['pt', next.periodType, 'all'],
+      ['sex', next.sex, ''],
+    ] as const) {
+      if (value === empty) {
+        nextParams.delete(key);
+      } else {
+        nextParams.set(key, value);
+      }
+    }
+    // Through the router — not history.replaceState — so the filter pane's links see the
+    // change; the route's shouldRevalidate stops the loader refetching over it.
+    navigate(
+      { search: `?${nextParams.toString()}`, hash: location.hash.slice(1) },
+      { replace: true, preventScrollReset: true },
+    );
+  };
 
   const allObservations = areaData[0]?.observations ?? [];
   const sexes = dimensionValues(allObservations, 'Sex');
+  const periodTypes = availablePeriodTypes(areaData.flatMap(({ observations }) => observations));
+  const confidenceLevels = availableConfidenceLevels(
+    areaData.flatMap(({ observations }) => observations),
+  );
+  // A level in the URL that this indicator does not publish falls back to none.
+  const confidence = confidenceLevels.includes(options.confidence as '95' | '99.8')
+    ? options.confidence
+    : 'none';
   const categories = inequalityCategories(allObservations);
   const [category, setCategory] = useState(categories[0] ?? '');
-  const periods = inequalityPeriods(allObservations, category);
+  const periods = inequalityPeriods(allObservations, category, detail.yearType);
   const [period, setPeriod] = useState(periods.at(-1)?.value ?? '');
 
   const filtered = areaData.map((data) => ({
     ...data,
     observations: filterObservations(data.observations, {
-      sex: options.sex,
+      // A sex chosen on another indicator's panel must not blank this one's table.
+      sex: sexes.includes(options.sex) ? options.sex : '',
       periodType: options.periodType,
     }),
   }));
-  // Benchmarks come from the area types the indicator publishes against; England is the
-  // default comparison the prototype offers alongside them.
-  const benchmarks = ['England', ...detail.areaTypes.map(({ name }) => name)].filter(
-    (name, index, all) => all.indexOf(name) === index,
-  );
-
   const panelOptions = (label: string, showConfidence: boolean) => (
     <PanelOptionsPanel
-      benchmarks={benchmarks}
+      confidenceLevels={confidenceLevels}
       label={label}
-      onChange={setOptions}
+      onChange={applyOptions}
       options={options}
+      periodTypes={periodTypes}
       sexes={sexes}
       showConfidence={showConfidence}
     />
@@ -83,14 +115,11 @@ function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
             id: `chart-${id}`,
             label: 'Chart',
             content: (
-              <>
-                {panelOptions('Chart options', false)}
-                <ChartSection
-                  id={`trends-${id}`}
-                  title="Indicator trends over time"
-                  description="How this indicator has changed over time."
-                />
-              </>
+              <ChartSection
+                id={`trends-${id}`}
+                title="Indicator trends over time"
+                description="How this indicator has changed over time."
+              />
             ),
           },
           {
@@ -98,28 +127,30 @@ function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
             label: 'Table',
             content: (
               <>
+                <div className="fphd-download-buttons">
+                  <Button
+                    onClick={() =>
+                      downloadCsv(`${detail.fingertipsId}-table.csv`, trendCsv(detail, filtered))
+                    }
+                    type="button"
+                  >
+                    Download this table
+                  </Button>
+                  <Button
+                    className="govuk-button--secondary"
+                    onClick={() =>
+                      downloadCsv(
+                        `${detail.fingertipsId}-all-data.csv`,
+                        allDataCsv(detail, areaData),
+                      )
+                    }
+                    type="button"
+                  >
+                    Download all data for this indicator
+                  </Button>
+                </div>
                 {panelOptions('Table options', true)}
-                <h3 className="govuk-heading-m">Indicator trends over time</h3>
-                <TrendTable
-                  indicator={detail}
-                  areaData={filtered}
-                  confidence={options.confidence}
-                />
-                <h3 className="govuk-heading-m">Compare areas for one time period</h3>
-                <CompareAreasTable
-                  indicator={detail}
-                  areaData={filtered}
-                  benchmark={options.benchmark}
-                  confidence={options.confidence}
-                />
-                <h3 className="govuk-heading-m">Indicator segmentations overview</h3>
-                {filtered[0] ? (
-                  <SegmentationTable
-                    indicator={detail}
-                    data={filtered[0]}
-                    confidence={options.confidence}
-                  />
-                ) : null}
+                <TrendTable indicator={detail} areaData={filtered} confidence={confidence} />
               </>
             ),
           },
@@ -136,13 +167,17 @@ function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
                   <InequalityOptions
                     categories={categories}
                     category={category}
-                    confidence={options.confidence}
+                    confidence={confidence}
+                    confidenceLevels={confidenceLevels}
                     onCategoryChange={(value) => {
                       setCategory(value);
                       // The chosen period may not exist for the new category.
-                      setPeriod(inequalityPeriods(allObservations, value).at(-1)?.value ?? '');
+                      setPeriod(
+                        inequalityPeriods(allObservations, value, detail.yearType).at(-1)?.value ??
+                          '',
+                      );
                     }}
-                    onConfidenceChange={(confidence) => setOptions({ ...options, confidence })}
+                    onConfidenceChange={(confidence) => applyOptions({ ...options, confidence })}
                     onPeriodChange={setPeriod}
                     period={period}
                     periods={periods}
@@ -154,7 +189,7 @@ function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
                   />
                   <InequalitiesTable
                     indicator={detail}
-                    confidence={options.confidence}
+                    confidence={confidence}
                     observations={inequalityBreakdown(allObservations, category, period)}
                   />
                 </>
@@ -175,11 +210,15 @@ export function IndicatorPage({
   selected,
   areaGroups,
   availableIndicators,
+  searchResults = [],
+  searchSubject = '',
   selection,
 }: {
   selected: SelectedIndicator[];
   areaGroups: AreaGroup[];
   availableIndicators: IndicatorSummaryData[];
+  searchResults?: IndicatorSummaryData[];
+  searchSubject?: string;
   selection: IndicatorSelection;
 }) {
   return (
@@ -188,7 +227,7 @@ export function IndicatorPage({
       <GridRow>
         <GridColumn width="one-quarter">
           <FilterPane
-            key={`${selection.fingertipsIds.join(',')}|${selection.areaType}|${selection.areaCodes.join(',')}`}
+            key={`${selection.fingertipsIds.join(',')}|${selection.areaType}|${selection.areaCodes.join(',')}|${selection.areaLevels.join(',')}`}
             selected={selected}
             areaGroups={areaGroups}
             availableIndicators={availableIndicators}
@@ -197,12 +236,37 @@ export function IndicatorPage({
         </GridColumn>
         <GridColumn width="three-quarters">
           {selected.length === 0 ? (
-            <>
-              <PageIntro size="l" title="Selected indicators" />
-              <p className="govuk-body">
-                No indicators selected. Add one from the filters to see its data.
-              </p>
-            </>
+            searchSubject ? (
+              <>
+                <PageIntro size="l" title={`Search results for “${searchSubject}”`} />
+                {searchResults.length === 0 ? (
+                  <p className="govuk-body">
+                    No indicators match your search. Try a different term, or add an indicator from
+                    the filters.
+                  </p>
+                ) : (
+                  <>
+                    <p className="govuk-body">
+                      {searchResults.length} indicator{searchResults.length === 1 ? '' : 's'} found.
+                    </p>
+                    <ul className="govuk-list">
+                      {searchResults.map(({ fingertipsId, name }) => (
+                        <li key={fingertipsId}>
+                          <A href={`/indicators/${fingertipsId}`}>{name}</A>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                <PageIntro size="l" title="Selected indicators" />
+                <p className="govuk-body">
+                  No indicators selected. Add one from the filters to see its data.
+                </p>
+              </>
+            )
           ) : (
             <>
               {/* The page's heading is its contents list: the indicator names below are

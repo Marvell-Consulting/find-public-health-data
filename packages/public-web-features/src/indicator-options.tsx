@@ -1,17 +1,18 @@
-import { Details, Select } from '@fphd/ui';
+import { OptionsAccordion, Select } from '@fphd/ui';
 import { useId } from 'react';
 
 import { type ConfidenceLevel, type PeriodType, periodTypeLabel } from './indicator-data';
 
-/** The confidence-interval choices every panel offers. */
-export const CONFIDENCE_OPTIONS = [
-  { label: 'None', value: 'none' },
-  { label: '95%', value: '95' },
-  { label: '99.8%', value: '99.8' },
-];
+/** The confidence-interval choices, narrowed to what the indicator publishes. */
+export function confidenceOptions(levels: string[]) {
+  return [
+    { label: 'None', value: 'none' },
+    ...(levels.includes('95') ? [{ label: '95%', value: '95' }] : []),
+    ...(levels.includes('99.8') ? [{ label: '99.8%', value: '99.8' }] : []),
+  ];
+}
 
 export interface PanelOptions {
-  benchmark: string;
   confidence: ConfidenceLevel;
   periodType: PeriodType;
   sex: string;
@@ -19,33 +20,34 @@ export interface PanelOptions {
 
 /**
  * The prototype's "Chart options" / "Table options" disclosure. Every panel offers the
- * benchmark and confidence-interval choices; the sex and period controls appear only
- * where the indicator reports those segments.
+ * confidence-interval choice; the sex and period controls appear only where the
+ * indicator reports those segments.
  */
 export function PanelOptionsPanel({
-  benchmarks,
+  confidenceLevels,
   label,
   onChange,
   options,
+  periodTypes,
   sexes,
   showConfidence,
 }: {
-  benchmarks: string[];
+  confidenceLevels: string[];
   label: string;
   onChange: (options: PanelOptions) => void;
   options: PanelOptions;
+  periodTypes: PeriodType[];
   sexes: string[];
   showConfidence: boolean;
 }) {
   const ids = {
-    benchmark: useId(),
     confidence: useId(),
     period: useId(),
     sex: useId(),
   };
 
   return (
-    <Details summary={label} open>
+    <OptionsAccordion label={label}>
       <div className="fphd-segmentation-options__selects">
         {sexes.length > 0 ? (
           <Select
@@ -61,21 +63,23 @@ export function PanelOptionsPanel({
           />
         ) : null}
 
-        <Select
-          id={ids.period}
-          label="Select time period type"
-          name="periodType"
-          onChange={(event) =>
-            onChange({ ...options, periodType: event.currentTarget.value as PeriodType })
-          }
-          options={(['all', '1-year', '3-year'] as const).map((value) => ({
-            label: periodTypeLabel(value),
-            value,
-          }))}
-          value={options.periodType}
-        />
+        {periodTypes.length > 1 ? (
+          <Select
+            id={ids.period}
+            label="Select time period type"
+            name="periodType"
+            onChange={(event) =>
+              onChange({ ...options, periodType: event.currentTarget.value as PeriodType })
+            }
+            options={['all' as const, ...periodTypes].map((value) => ({
+              label: periodTypeLabel(value),
+              value,
+            }))}
+            value={options.periodType}
+          />
+        ) : null}
 
-        {showConfidence ? (
+        {showConfidence && confidenceLevels.length > 0 ? (
           <Select
             id={ids.confidence}
             label="Select confidence intervals"
@@ -83,24 +87,12 @@ export function PanelOptionsPanel({
             onChange={(event) =>
               onChange({ ...options, confidence: event.currentTarget.value as ConfidenceLevel })
             }
-            options={CONFIDENCE_OPTIONS}
+            options={confidenceOptions(confidenceLevels)}
             value={options.confidence}
           />
         ) : null}
-
-        <Select
-          id={ids.benchmark}
-          label="Select a geography or goal to compare with"
-          name="benchmark"
-          onChange={(event) => onChange({ ...options, benchmark: event.currentTarget.value })}
-          options={[
-            { label: 'None', value: '' },
-            ...benchmarks.map((value) => ({ label: value, value })),
-          ]}
-          value={options.benchmark}
-        />
       </div>
-    </Details>
+    </OptionsAccordion>
   );
 }
 
@@ -109,6 +101,7 @@ export function InequalityOptions({
   categories,
   category,
   confidence,
+  confidenceLevels,
   onCategoryChange,
   onConfidenceChange,
   onPeriodChange,
@@ -118,6 +111,7 @@ export function InequalityOptions({
   categories: string[];
   category: string;
   confidence: ConfidenceLevel;
+  confidenceLevels: string[];
   onCategoryChange: (value: string) => void;
   onConfidenceChange: (value: ConfidenceLevel) => void;
   onPeriodChange: (value: string) => void;
@@ -129,7 +123,7 @@ export function InequalityOptions({
   const confidenceId = useId();
 
   return (
-    <Details summary="Options" open>
+    <OptionsAccordion label="Options">
       <div className="fphd-segmentation-options__selects">
         <Select
           id={categoryId}
@@ -147,15 +141,17 @@ export function InequalityOptions({
           options={periods}
           value={period}
         />
-        <Select
-          id={confidenceId}
-          label="Select confidence intervals"
-          name="inequalityConfidence"
-          onChange={(event) => onConfidenceChange(event.currentTarget.value as ConfidenceLevel)}
-          options={CONFIDENCE_OPTIONS}
-          value={confidence}
-        />
+        {confidenceLevels.length > 0 ? (
+          <Select
+            id={confidenceId}
+            label="Select confidence intervals"
+            name="inequalityConfidence"
+            onChange={(event) => onConfidenceChange(event.currentTarget.value as ConfidenceLevel)}
+            options={confidenceOptions(confidenceLevels)}
+            value={confidence}
+          />
+        ) : null}
       </div>
-    </Details>
+    </OptionsAccordion>
   );
 }

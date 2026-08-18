@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { decodeEntities } from './decode-entities';
+import { decodeEntities, plainTextFromHtml } from './decode-entities';
 
 describe('decodeEntities', () => {
   it('decodes the named entities Pholio prose contains', () => {
@@ -25,5 +25,23 @@ describe('malformed references', () => {
     // String.fromCodePoint throws on these, which would take the whole render down.
     expect(decodeEntities('rate &#xZZ; per 100,000')).toBe('rate &#xZZ; per 100,000');
     expect(decodeEntities('&#1114112;')).toBe('&#1114112;');
+  });
+});
+
+describe('plainTextFromHtml', () => {
+  it('drops tags and turns block closers into line breaks', () => {
+    expect(
+      plainTextFromHtml(
+        '<span style="mso-fareast-font-family: Calibri;">Fraction of mortality.</span><br /><br /><p>PM<sub>2.5</sub> is fine particulate matter.</p>',
+      ),
+    ).toBe('Fraction of mortality.\n\nPM2.5 is fine particulate matter.');
+  });
+
+  it('keeps a bare less-than in prose', () => {
+    expect(plainTextFromHtml('rate in those aged <75 years')).toBe('rate in those aged <75 years');
+  });
+
+  it('decodes entities after stripping', () => {
+    expect(plainTextFromHtml('<p>10&nbsp;&ndash;&nbsp;20</p>')).toBe('10 – 20');
   });
 });

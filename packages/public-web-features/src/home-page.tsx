@@ -5,6 +5,7 @@ interface TopicSummary {
   description: string;
   link: string;
   name: string;
+  searchSubject: string;
   unit?: string;
   value: string;
 }
@@ -22,6 +23,7 @@ const topicSummaries = [
     unit: 'years old',
     change: 'in 2025, up 0.3% from 2024',
     link: 'See more life expectancy indicators',
+    searchSubject: 'life expectancy',
   },
   {
     name: 'Mental health and wellbeing',
@@ -30,6 +32,7 @@ const topicSummaries = [
     unit: 'years old',
     change: 'in 2023, up 7.4% from 2012',
     link: 'See more mental health and wellbeing indicators',
+    searchSubject: 'mental health',
   },
   {
     name: 'Smoking',
@@ -37,6 +40,7 @@ const topicSummaries = [
     value: '10.4%',
     change: 'in 2024, down 9.4% from 2011',
     link: 'See more smoking indicators',
+    searchSubject: 'smoking',
   },
   {
     name: 'Alcohol',
@@ -45,6 +49,7 @@ const topicSummaries = [
     unit: 'per 100,000 people',
     change: 'in 2023/24, up 12 from 2016/17',
     link: 'See more alcohol indicators',
+    searchSubject: 'alcohol',
   },
   {
     name: 'Obesity',
@@ -52,6 +57,7 @@ const topicSummaries = [
     value: '22.2%',
     change: 'in 2024/25, up 4.7% from 2006/07',
     link: 'See more obesity indicators',
+    searchSubject: 'obesity',
   },
   {
     name: 'Cancer',
@@ -60,6 +66,7 @@ const topicSummaries = [
     unit: 'every 100,000 people',
     change: 'in 2024, down 33.4 from 2001',
     link: 'See more cancer indicators',
+    searchSubject: 'cancer',
   },
 ] satisfies TopicSummary[];
 
@@ -157,7 +164,10 @@ function TopicSummaryCard({ summary }: { summary: TopicSummary }) {
         <p className="govuk-body-s fphd-stat-card__change">
           <strong>{summary.change}</strong>
         </p>
-        <A className="govuk-body-s fphd-stat-card__link" href="/indicators">
+        <A
+          className="govuk-body-s fphd-stat-card__link"
+          href={`/indicators?searchSubject=${encodeURIComponent(summary.searchSubject)}`}
+        >
           {summary.link}
         </A>
       </div>

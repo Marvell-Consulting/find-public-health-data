@@ -175,6 +175,7 @@ describe('public application routes', () => {
         upperCi998: null,
         count: 129000,
         denominator: null,
+        notes: [],
         dimensions: [{ type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 }],
       },
       {
@@ -187,6 +188,7 @@ describe('public application routes', () => {
         upperCi998: null,
         count: 130000,
         denominator: null,
+        notes: [],
         dimensions: [{ type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 }],
       },
       {
@@ -199,6 +201,7 @@ describe('public application routes', () => {
         upperCi998: null,
         count: 70000,
         denominator: null,
+        notes: [],
         dimensions: [
           { type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 },
           { type: 'Sex', value: 'Male', dimensionClass: 'core', sortOrder: 1 },
@@ -206,7 +209,10 @@ describe('public application routes', () => {
       },
     ];
     const areaData = [{ areaCode: 'E92000001', areaName: 'England', observations }];
-    const areaGroups = [{ areaType: 'England', areas: [{ code: 'E92000001', name: 'England' }] }];
+    const areaGroups = [
+      { areaType: 'England', areas: [{ code: 'E92000001', name: 'England' }] },
+      { areaType: 'UA unchanged', areas: [{ code: 'E06000052', name: 'Cornwall' }] },
+    ];
     const availableIndicators = [
       {
         id: 'a',
@@ -215,7 +221,7 @@ describe('public application routes', () => {
         status: 'approved',
       },
     ];
-    const selection = { areaType: 'England', areaCodes: [], fingertipsIds: [108] };
+    const selection = { areaType: 'England', areaCodes: [], areaLevels: [], fingertipsIds: [108] };
     const Routes = createRoutesStub([
       {
         path: '/',
@@ -261,11 +267,15 @@ describe('public application routes', () => {
     ).toBeTruthy();
     // Geographies are picked from the tree, not an area-type dropdown.
     expect(screen.getByRole('searchbox', { name: 'Add geographies' })).toBeTruthy();
-    // The first area type opens by default, so its areas are selectable straight away.
+    // Raw Pholio area-type names are mapped to the prototype's display levels, and
+    // England never appears in the tree — it is the default selected area.
+    expect(screen.getByText('Local authorities')).toBeTruthy();
+    expect(screen.queryByRole('checkbox', { name: /^England/ })).toBeNull();
+    // The first level opens by default, so its areas are selectable straight away.
     const areaCheckbox = screen
-      .getAllByRole('checkbox', { name: /^England/ })
+      .getAllByRole('checkbox', { name: 'Cornwall' })
       .find((box) => box.getAttribute('name') === 'as');
-    expect(areaCheckbox?.getAttribute('value')).toBe('E92000001');
+    expect(areaCheckbox?.getAttribute('value')).toBe('E06000052');
     // Controls apply on change; the submit button exists only for the no-script path.
 
     // The prototype's tab set, with every panel a real anchor target.
@@ -276,29 +286,30 @@ describe('public application routes', () => {
     const region = screen.getByRole('region', { name: 'Indicator trends over time' });
     expect(region.getAttribute('tabindex')).toBe('0');
 
-    // The trend table shows the least-disaggregated series in period order.
+    // The trend table shows the least-disaggregated series in period order, laid out
+    // the prototype's way: the area as a column group over count and calculated value.
     expect(screen.getByRole('rowheader', { name: '2022' })).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: 'Count (Raw number)' })).toBeTruthy();
     expect(screen.getByRole('cell', { name: '342.2' })).toBeTruthy();
-    expect(screen.getByRole('cell', { name: '340.1 to 344.3' })).toBeTruthy();
+    expect(screen.getByRole('cell', { name: '129,000' })).toBeTruthy();
 
-    // The segmentation table breaks the latest period down by core segments.
-    expect(screen.getByRole('rowheader', { name: '<75 yrs, Male' })).toBeTruthy();
-    expect(screen.getByRole('cell', { name: '420.5' })).toBeTruthy();
-
-    expect(
-      screen.getByRole('heading', { name: 'Background information and indicator definitions' }),
-    ).toBeTruthy();
-    // Shown in the summary table and again under the definitions section, as the design does.
+    // The About tab follows the prototype's section structure.
+    for (const name of ['Overview', 'Data attributes', 'Calculation']) {
+      expect(screen.getByRole('heading', { name })).toBeTruthy();
+    }
+    // The definition lives in the summary table; the About tab opens with the rationale.
     expect(
       screen.getAllByText('Directly age-standardised mortality rate for all deaths.'),
-    ).toHaveLength(2);
-    expect(screen.getByRole('heading', { name: 'Indicator rationale' })).toBeTruthy();
+    ).toHaveLength(1);
+    expect(
+      screen.getByText('Premature mortality is a key measure of population health.'),
+    ).toBeTruthy();
     expect(
       screen.getByRole('link', { name: 'Office for National Statistics' }).getAttribute('href'),
     ).toBe('https://www.ons.gov.uk');
-    // The indicator's own confidence level, in the metadata table rather than the
+    // The indicator's own confidence level, in the About summary list rather than the
     // interval selector that offers the same wording.
-    const confidenceRow = screen.getByText('Confidence level').closest('tr');
+    const confidenceRow = screen.getByText('Confidence level').closest('div');
     expect(confidenceRow?.textContent).toContain('95%');
   });
 
@@ -315,7 +326,7 @@ describe('public application routes', () => {
         },
       ],
       availableIndicators: [],
-      selection: { areaType: 'England', areaCodes: [], fingertipsIds: [108] },
+      selection: { areaType: 'England', areaCodes: [], areaLevels: [], fingertipsIds: [108] },
     };
     const Routes = createRoutesStub([
       {
@@ -352,6 +363,7 @@ describe('public application routes', () => {
       upperCi998: null,
       count: 1000,
       denominator: null,
+      notes: [],
       dimensions: [{ type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 }],
     });
     const indicatorDetail = {
@@ -412,6 +424,7 @@ describe('public application routes', () => {
       selection: {
         areaType: 'Regions (statistical)',
         areaCodes: ['E12000001', 'E12000002'],
+        areaLevels: [],
         fingertipsIds: [108],
       },
     };
@@ -441,9 +454,9 @@ describe('public application routes', () => {
     expect(screen.getByRole('link', { name: 'Remove North East filter' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Remove North West filter' })).toBeTruthy();
 
-    // Both areas appear in the comparison, and their values with them.
-    expect(screen.getAllByRole('rowheader', { name: 'North East' }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole('rowheader', { name: 'North West' }).length).toBeGreaterThan(0);
+    // Both areas appear side by side as column groups, and their values with them.
+    expect(screen.getAllByRole('columnheader', { name: 'North East' }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('columnheader', { name: 'North West' }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('cell', { name: '410.3' }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('cell', { name: '395.6' }).length).toBeGreaterThan(0);
   });
@@ -491,6 +504,7 @@ describe('public application routes', () => {
             upperCi998: null,
             count: 500,
             denominator: null,
+            notes: [],
             dimensions: [],
           },
         ],
@@ -510,7 +524,7 @@ describe('public application routes', () => {
       selected: [{ detail: detailFor(108, 'Mortality'), areaData: areaDataFor(341.1) }],
       areaGroups: [{ areaType: 'England', areas: [{ code: 'E92000001', name: 'England' }] }],
       availableIndicators: [],
-      selection: { areaType: 'England', areaCodes: [], fingertipsIds: [108] },
+      selection: { areaType: 'England', areaCodes: [], areaLevels: [], fingertipsIds: [108] },
     });
     render(<OneIndicator initialEntries={['/indicators?is=108']} />);
 
@@ -526,7 +540,12 @@ describe('public application routes', () => {
       ],
       areaGroups: [{ areaType: 'England', areas: [{ code: 'E92000001', name: 'England' }] }],
       availableIndicators: [],
-      selection: { areaType: 'England', areaCodes: [], fingertipsIds: [108, 90366] },
+      selection: {
+        areaType: 'England',
+        areaCodes: [],
+        areaLevels: [],
+        fingertipsIds: [108, 90366],
+      },
     });
     render(<TwoIndicators initialEntries={['/indicators?is=108&is=90366']} />);
 
@@ -557,7 +576,7 @@ describe('public application routes', () => {
               availableIndicators: [
                 { id: 'a', fingertipsId: 108, name: 'Mortality', status: 'approved' },
               ],
-              selection: { areaType: 'England', areaCodes: [], fingertipsIds: [] },
+              selection: { areaType: 'England', areaCodes: [], areaLevels: [], fingertipsIds: [] },
             }),
           },
         ],

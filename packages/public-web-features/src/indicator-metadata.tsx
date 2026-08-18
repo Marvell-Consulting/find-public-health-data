@@ -1,7 +1,7 @@
-import { A, decodeEntities, SectionBreak } from '@fphd/ui';
+import { A, plainTextFromHtml, SectionBreak, SummaryList } from '@fphd/ui';
 import type { ReactNode } from 'react';
 
-import { periodCovered } from './indicator-data';
+import { periodCovered, recentTrend } from './indicator-data';
 import type { IndicatorDetail, IndicatorObservation } from './indicator-loader';
 
 const CONFIDENCE_LEVEL_LABELS: Record<string, string> = {
@@ -18,7 +18,7 @@ export function DefinitionBlock({ title, text }: { title: string; text: string |
   return (
     <>
       <h4 className="govuk-heading-s">{title}</h4>
-      <p className="govuk-body fphd-metadata-text">{decodeEntities(text)}</p>
+      <p className="govuk-body fphd-metadata-text">{plainTextFromHtml(text)}</p>
     </>
   );
 }
@@ -63,15 +63,30 @@ export function IndicatorSummary({
 }) {
   const ofDimension = (dimension: string) =>
     indicator.classifications.filter((entry) => entry.dimension === dimension);
+  const trend = recentTrend(observations, indicator.polarity);
 
   return (
     <table className="govuk-table">
       <tbody className="govuk-table__body">
-        <TableRow label="Period covered" value={periodCovered(observations)} />
+        <TableRow label="Period covered" value={periodCovered(observations, indicator.yearType)} />
         <TableRow
           label="Last updated"
           value={
             indicator.dataUpdatedAt ? updatedFormat.format(new Date(indicator.dataUpdatedAt)) : null
+          }
+        />
+        <TableRow
+          label="Most recent trend"
+          value={
+            <strong className={`govuk-tag govuk-tag--${trend.tone} fphd-trend-tag`}>
+              {trend.direction ? (
+                <span
+                  className={`fphd-trend-tag__arrow fphd-trend-tag__arrow--${trend.direction}`}
+                  aria-hidden="true"
+                />
+              ) : null}
+              <span className="fphd-trend-tag__text">{trend.label}</span>
+            </strong>
           }
         />
         <TableRow
@@ -103,99 +118,152 @@ export function IndicatorSummary({
           }
         />
         <TableRow
+          label="Risk factors"
+          value={
+            ofDimension('risk_factor').length > 0 ? (
+              <ul className="govuk-list fphd-tag-list">
+                {ofDimension('risk_factor').map((entry) => (
+                  <li className="fphd-tag" key={entry.slug}>
+                    {entry.name}
+                  </li>
+                ))}
+              </ul>
+            ) : null
+          }
+        />
+        <TableRow
           label="Definition"
-          value={indicator.definition ? decodeEntities(indicator.definition) : null}
+          value={indicator.definition ? plainTextFromHtml(indicator.definition) : null}
         />
       </tbody>
     </table>
   );
 }
 
+function CalculationPart({
+  title,
+  explainer,
+  source,
+  definition,
+}: {
+  title: string;
+  explainer: string;
+  source: IndicatorDetail['dataSource'];
+  definition: string | null;
+}) {
+  if (!source && !definition) {
+    return null;
+  }
+
+  return (
+    <>
+      <h3 className="govuk-heading-s">{title}</h3>
+      <p className="govuk-body">{explainer}</p>
+      <SummaryList
+        items={[
+          ...(source ? [{ name: 'Sources', children: sourceLink(source) }] : []),
+          ...(definition
+            ? [
+                {
+                  name: 'Definition',
+                  children: (
+                    <span className="fphd-metadata-text">{plainTextFromHtml(definition)}</span>
+                  ),
+                },
+              ]
+            : []),
+        ]}
+      />
+    </>
+  );
+}
+
+/** The prototype's About tab: Overview, Data attributes, Calculation, Other notes. */
 export function BackgroundInformation({ indicator }: { indicator: IndicatorDetail }) {
   const confidenceLevel = indicator.ciConfidenceLevel
     ? (CONFIDENCE_LEVEL_LABELS[indicator.ciConfidenceLevel] ?? indicator.ciConfidenceLevel)
     : null;
+  const attribute = (name: string, value: string | null) =>
+    value ? [{ name, children: value }] : [];
 
   return (
     <section id={`background-${indicator.fingertipsId}`}>
-      <h2 className="govuk-heading-l">Background information and indicator definitions</h2>
-      <p className="govuk-body-s govuk-!-margin-bottom-0">Indicator ID {indicator.fingertipsId}</p>
-      <p className="govuk-body-s">Frequency {indicator.frequency}</p>
+      <h2 className="govuk-heading-l">Overview</h2>
+      <SummaryList
+        items={[
+          { name: 'Indicator ID', children: String(indicator.fingertipsId) },
+          ...(indicator.rationale
+            ? [
+                {
+                  name: 'Rationale',
+                  children: (
+                    <span className="fphd-metadata-text">
+                      {plainTextFromHtml(indicator.rationale)}
+                    </span>
+                  ),
+                },
+              ]
+            : []),
+        ]}
+      />
 
       <SectionBreak size="m" visible />
 
-      <p className="govuk-body">Contents</p>
-      <ul className="govuk-list fphd-contents-list">
-        <li>
-          <A href="#definitions">Indicator definitions</A>
-        </li>
-        <li>
-          <A href="#sources">Data sources and reuse</A>
-        </li>
-        <li>
-          <A href="#benchmarking">Benchmarking and confidence information</A>
-        </li>
-        <li>
-          <A href="#rationale">Indicator rationale</A>
-        </li>
-        <li>
-          <A href="#notes">Notes and caveats</A>
-        </li>
-      </ul>
+      <h2 className="govuk-heading-l">Data attributes</h2>
+      <SummaryList
+        items={[
+          ...attribute('Value type', indicator.valueType),
+          ...attribute('Unit', indicator.unit.name),
+          ...attribute('Year type', indicator.yearType),
+          ...attribute('Frequency', indicator.frequency),
+          ...attribute('Polarity', indicator.polarity),
+          ...(indicator.dataSource
+            ? [{ name: 'Data source', children: sourceLink(indicator.dataSource) }]
+            : []),
+        ]}
+      />
 
-      <h3 className="govuk-heading-m" id="definitions">
-        Indicator definitions
-      </h3>
-      <DefinitionBlock title="Definition" text={indicator.definition} />
-      <DefinitionBlock title="Methodology" text={indicator.methodology} />
-      <DefinitionBlock title="Definition of numerator" text={indicator.numeratorDefinition} />
-      <DefinitionBlock title="Definition of denominator" text={indicator.denominatorDefinition} />
-      <DefinitionBlock title="Disclosure control" text={indicator.disclosureControl} />
-      <table className="govuk-table">
-        <tbody className="govuk-table__body">
-          <TableRow label="Value type" value={indicator.valueType} />
-          <TableRow label="Unit" value={indicator.unit.name} />
-          <TableRow label="Year type" value={indicator.yearType} />
-          <TableRow label="Polarity" value={indicator.polarity} />
-        </tbody>
-      </table>
+      <SectionBreak size="m" visible />
 
-      <h3 className="govuk-heading-m" id="sources">
-        Data sources and reuse
-      </h3>
-      <table className="govuk-table">
-        <tbody className="govuk-table__body">
-          <TableRow label="Data source" value={sourceLink(indicator.dataSource)} />
-          <TableRow label="Source of numerator" value={sourceLink(indicator.numeratorSource)} />
-          <TableRow label="Source of denominator" value={sourceLink(indicator.denominatorSource)} />
-        </tbody>
-      </table>
-
-      <h3 className="govuk-heading-m" id="benchmarking">
-        Benchmarking and confidence information
-      </h3>
-      <table className="govuk-table">
-        <tbody className="govuk-table__body">
-          <TableRow label="Benchmarking method" value={indicator.comparatorMethod} />
-          <TableRow label="Confidence interval method" value={indicator.ciMethod} />
-          <TableRow label="Confidence level" value={confidenceLevel} />
-        </tbody>
-      </table>
-
-      {indicator.rationale ? (
+      <h2 className="govuk-heading-l">Calculation</h2>
+      <CalculationPart
+        title="Numerator"
+        explainer="This is the count, or raw number, of the thing an indicator measures."
+        source={indicator.numeratorSource}
+        definition={indicator.numeratorDefinition}
+      />
+      <CalculationPart
+        title="Denominator"
+        explainer="This is the total eligible group an indicator covers."
+        source={indicator.denominatorSource}
+        definition={indicator.denominatorDefinition}
+      />
+      {indicator.methodology ? (
         <>
-          <h3 className="govuk-heading-m" id="rationale">
-            Indicator rationale
-          </h3>
-          <p className="govuk-body fphd-metadata-text">{decodeEntities(indicator.rationale)}</p>
+          <h3 className="govuk-heading-s">Method</h3>
+          <p className="govuk-body fphd-metadata-text">
+            {plainTextFromHtml(indicator.methodology)}
+          </p>
+        </>
+      ) : null}
+      {indicator.ciMethod || confidenceLevel || indicator.comparatorMethod ? (
+        <>
+          <h3 className="govuk-heading-s">Confidence intervals</h3>
+          <SummaryList
+            items={[
+              ...attribute('Confidence interval method', indicator.ciMethod),
+              ...attribute('Confidence level', confidenceLevel),
+              ...attribute('Benchmarking method', indicator.comparatorMethod),
+            ]}
+          />
         </>
       ) : null}
 
-      {indicator.notes || indicator.caveats ? (
+      {indicator.disclosureControl || indicator.notes || indicator.caveats ? (
         <>
-          <h3 className="govuk-heading-m" id="notes">
-            Notes and caveats
-          </h3>
+          <SectionBreak size="m" visible />
+          <h2 className="govuk-heading-l">Other notes and caveats</h2>
+          <DefinitionBlock title="Disclosure control" text={indicator.disclosureControl} />
           <DefinitionBlock title="Notes" text={indicator.notes} />
           <DefinitionBlock title="Caveats" text={indicator.caveats} />
         </>

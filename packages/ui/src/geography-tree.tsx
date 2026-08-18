@@ -1,8 +1,9 @@
 import Checkboxes from '@not-govuk/checkboxes';
+import TextInput from '@not-govuk/text-input';
 import { useId, useState } from 'react';
 
 export interface GeographyGroup {
-  /** The area type this group offers, e.g. 'Statistical regions'. */
+  /** The display level this group offers, e.g. 'Local authorities'. */
   name: string;
   areas: { code: string; name: string }[];
 }
@@ -15,9 +16,13 @@ interface GeographyTreeProps {
   selected: string[];
 }
 
+// Matches the prototype: cap rendered checkboxes per group so a level with thousands of
+// areas (GP practices) cannot flood the DOM; the search reaches everything regardless.
+const CHILD_CAP = 100;
+
 /**
- * The prototype's geography picker: a search over every area, above a list of area types
- * that each expand to their areas. A group's own checkbox takes or releases all of them.
+ * The prototype's geography picker: a search over every area, above a list of levels that
+ * each expand to their areas. A group's own checkbox takes or releases all of them.
  * Searching filters what is shown without changing what is ticked, so a narrowed list can
  * never silently drop a selection.
  */
@@ -53,95 +58,108 @@ export function GeographyTree({ groups, name, onChange, selected }: GeographyTre
 
   return (
     <div>
-      <div className="govuk-form-group govuk-!-margin-bottom-2">
-        <label className="govuk-label govuk-label--s" htmlFor={`${idPrefix}-search`}>
-          Add geographies
-        </label>
-        <input
-          autoComplete="off"
-          className="govuk-input fphd-geo-search"
-          id={`${idPrefix}-search`}
-          onChange={(event) => setQuery(event.currentTarget.value)}
-          placeholder="Type to find geographies"
-          type="search"
-          value={query}
-        />
-      </div>
-      <fieldset className="fphd-geo-alt__tree">
+      <TextInput
+        autoComplete="off"
+        className="fphd-geo-search govuk-!-margin-bottom-2"
+        id={`${idPrefix}-search`}
+        label={<span className="govuk-label--s">Add geographies</span>}
+        name=""
+        onChange={(event) => setQuery(event.currentTarget.value)}
+        placeholder="Type to find geographies"
+        type="search"
+        value={query}
+      />
+      <fieldset className="fphd-geo-alt">
         <legend className="govuk-visually-hidden">Geographies grouped by level</legend>
-        {groups.map((group) => {
-          const visible = group.areas.filter(matches);
-          const chosen = group.areas.filter(({ code }) => selected.includes(code));
-          // A search opens the groups it matches, so results are not hidden behind a toggle.
-          const isOpen = searching ? visible.length > 0 : expanded.includes(group.name);
-          const groupId = `${idPrefix}-grp-${group.name.toLowerCase().replace(/\W+/g, '-')}`;
+        <div className="fphd-geo-alt__tree">
+          {groups.map((group) => {
+            const visible = group.areas.filter(matches);
+            const chosen = group.areas.filter(({ code }) => selected.includes(code));
+            // A search opens the groups it matches, so results are not hidden behind a toggle.
+            const isOpen = searching ? visible.length > 0 : expanded.includes(group.name);
+            const groupId = `${idPrefix}-grp-${group.name.toLowerCase().replace(/\W+/g, '-')}`;
+            // Ticked areas stay rendered past the cap, so their state remains visible.
+            const shown = visible
+              .filter((_, index) => index < CHILD_CAP)
+              .concat(visible.slice(CHILD_CAP).filter(({ code }) => selected.includes(code)));
 
-          if (searching && visible.length === 0) {
-            return null;
-          }
+            if (searching && visible.length === 0) {
+              return null;
+            }
 
-          return (
-            <div className="fphd-geo-alt__group" key={group.name}>
-              <button
-                aria-expanded={isOpen}
-                className={`fphd-geo-alt__toggle${isOpen ? ' fphd-geo-alt__toggle--open' : ''}`}
-                onClick={() =>
-                  setExpanded((current) =>
-                    current.includes(group.name)
-                      ? current.filter((value) => value !== group.name)
-                      : [...current, group.name],
-                  )
-                }
-                type="button"
-              >
-                <span className="fphd-geo-alt__chevron" aria-hidden="true" />
-                <span className="govuk-visually-hidden">
-                  {isOpen ? 'Collapse' : 'Expand'} {group.name}
-                </span>
-              </button>
-              <div className="govuk-checkboxes govuk-checkboxes--small fphd-geo-alt__group-cb">
-                <div className="govuk-checkboxes__item">
-                  <input
-                    checked={group.areas.length > 0 && chosen.length === group.areas.length}
-                    className="govuk-checkboxes__input"
-                    id={groupId}
-                    onChange={(event) => toggleGroup(group, event.currentTarget.checked)}
-                    type="checkbox"
-                  />
-                  <label className="govuk-label govuk-checkboxes__label" htmlFor={groupId}>
-                    {group.name}{' '}
-                    <span className="govuk-hint fphd-geo-alt__count">
-                      ({chosen.length > 0 ? `${chosen.length} of ` : ''}
-                      {group.areas.length})
+            const groupOption = {
+              label: group.name,
+              // The component's own `selected` is uncontrolled (defaultChecked); `checked`
+              // rides the option spread onto the input so React owns the state.
+              checked: group.areas.length > 0 && chosen.length === group.areas.length,
+              value: group.name,
+            };
+
+            return (
+              <div key={group.name}>
+                <div className="fphd-geo-alt__group">
+                  <button
+                    aria-expanded={isOpen}
+                    className={`fphd-geo-alt__toggle${isOpen ? ' fphd-geo-alt__toggle--open' : ''}`}
+                    onClick={() =>
+                      setExpanded((current) =>
+                        current.includes(group.name)
+                          ? current.filter((value) => value !== group.name)
+                          : [...current, group.name],
+                      )
+                    }
+                    type="button"
+                  >
+                    <span className="fphd-geo-alt__chevron" aria-hidden="true" />
+                    <span className="govuk-visually-hidden">
+                      {isOpen ? 'Collapse' : 'Expand'} {group.name}
                     </span>
-                  </label>
-                </div>
-              </div>
-
-              {isOpen ? (
-                <div className="fphd-geo-alt__children">
+                  </button>
                   <Checkboxes
-                    id={`${groupId}-areas`}
-                    label={<span className="govuk-visually-hidden">Areas in {group.name}</span>}
-                    name={name}
-                    onChange={(event) => toggleArea(event.target.value, event.target.checked)}
+                    className="fphd-geo-alt__group-cb"
                     classModifiers="small"
-                    options={visible.map((area) => ({
-                      label: area.name,
-                      selected: selected.includes(area.code),
-                      value: area.code,
-                    }))}
+                    id={groupId}
+                    label={
+                      <span className="govuk-visually-hidden">Every area in {group.name}</span>
+                    }
+                    name=""
+                    onChange={(event) => toggleGroup(group, event.currentTarget.checked)}
+                    options={[groupOption]}
                   />
                 </div>
-              ) : (
-                // Ticks in a collapsed group must still submit with the form.
-                chosen.map((area) => (
-                  <input key={area.code} name={name} type="hidden" value={area.code} />
-                ))
-              )}
-            </div>
-          );
-        })}
+
+                {isOpen ? (
+                  <div className="fphd-geo-alt__children">
+                    <Checkboxes
+                      id={`${groupId}-areas`}
+                      label={<span className="govuk-visually-hidden">Areas in {group.name}</span>}
+                      name={name}
+                      onChange={(event) => toggleArea(event.target.value, event.target.checked)}
+                      classModifiers="small"
+                      options={shown.map((area) => ({
+                        label: area.name,
+                        checked: selected.includes(area.code),
+                        value: area.code,
+                      }))}
+                    />
+                    {visible.length > shown.length ? (
+                      <p className="govuk-body-s fphd-geo-alt__more">
+                        Showing {shown.length} of {visible.length} — search to find the rest
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+                {/* Ticks in a collapsed group, or hidden by a search or the cap, must
+                  still submit with the form. */}
+                {chosen
+                  .filter(({ code }) => !isOpen || !shown.some((area) => area.code === code))
+                  .map((area) => (
+                    <input key={area.code} name={name} type="hidden" value={area.code} />
+                  ))}
+              </div>
+            );
+          })}
+        </div>
       </fieldset>
     </div>
   );

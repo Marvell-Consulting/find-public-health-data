@@ -1,6 +1,7 @@
-import { Autocomplete, FilterCard, FilterChip, FilterChips, GeographyTree } from '@fphd/ui';
+import { Autocomplete, Button, FilterCard, FilterChip, FilterChips, GeographyTree } from '@fphd/ui';
 import { useState } from 'react';
-import { Form, useNavigate } from 'react-router';
+import { Form, useLocation, useNavigate } from 'react-router';
+import { cleanAreaName, displayGeographyGroups } from './geography-display';
 
 import type {
   AreaGroup,
@@ -27,6 +28,9 @@ export function selectionSearch({
   for (const code of selection.areaCodes) {
     params.append('as', code);
   }
+  for (const level of selection.areaLevels) {
+    params.append('als', level);
+  }
   return `?${params.toString()}`;
 }
 
@@ -42,21 +46,41 @@ export function FilterPane({
   selection: IndicatorSelection;
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [pending, setPending] = useState<string[]>([]);
+  // Filter changes reload the page; carrying the hash and the option params keeps the
+  // open tab open and the chosen options chosen.
+  const current = new URLSearchParams(location.search);
+  const searchOnly = (args: Parameters<typeof selectionSearch>[0]) => {
+    const params = new URLSearchParams(selectionSearch(args));
+    for (const key of ['ci', 'pt', 'sex']) {
+      const value = current.get(key);
+      if (value) {
+        params.set(key, value);
+      }
+    }
+    return `?${params.toString()}`;
+  };
+  // Links take the full string; navigate() must get search and hash separately, or the
+  // hash is encoded into the last query value and the loader rejects it.
+  const searchWithTab = (args: Parameters<typeof selectionSearch>[0]) =>
+    `${searchOnly(args)}${location.hash}`;
+  const navigateWithTab = (args: Parameters<typeof selectionSearch>[0]) =>
+    navigate({ search: searchOnly(args), hash: location.hash.slice(1) });
 
   const unselected = availableIndicators.filter(
     ({ fingertipsId }) => !selection.fingertipsIds.includes(fingertipsId),
   );
-  const areaName = (code: string) =>
-    areaGroups.flatMap(({ areas }) => areas).find((area) => area.code === code)?.name ?? code;
+  const areaName = (code: string) => {
+    const raw = areaGroups.flatMap(({ areas }) => areas).find((area) => area.code === code)?.name;
+    return raw ? cleanAreaName(raw) : code;
+  };
 
   return (
     <>
       <FilterCard
         title="Selected indicators"
-        onClear={
-          selected.length > 0 ? selectionSearch({ selection, fingertipsIds: [] }) : undefined
-        }
+        onClear={selected.length > 0 ? searchWithTab({ selection, fingertipsIds: [] }) : undefined}
         body={
           selected.length === 0 ? (
             <p className="govuk-body">None selected</p>
@@ -65,7 +89,7 @@ export function FilterPane({
               {selected.map(({ detail }) => (
                 <FilterChip
                   key={detail.fingertipsId}
-                  onRemove={selectionSearch({
+                  onRemove={searchWithTab({
                     selection,
                     fingertipsIds: selection.fingertipsIds.filter(
                       (id) => id !== detail.fingertipsId,
@@ -89,11 +113,9 @@ export function FilterPane({
                 label: name,
               }))}
               onSelect={({ value }) =>
-                navigate({
-                  search: selectionSearch({
-                    selection,
-                    fingertipsIds: [...selection.fingertipsIds, Number(value)],
-                  }),
+                navigateWithTab({
+                  selection,
+                  fingertipsIds: [...selection.fingertipsIds, Number(value)],
                 })
               }
             />
@@ -104,8 +126,8 @@ export function FilterPane({
       <FilterCard
         title="Geography filters"
         onClear={
-          selection.areaCodes.length > 0
-            ? selectionSearch({ selection: { ...selection, areaCodes: [] } })
+          selection.areaCodes.length > 0 || selection.areaLevels.length > 0
+            ? searchWithTab({ selection: { ...selection, areaCodes: [], areaLevels: [] } })
             : undefined
         }
         body={
@@ -116,12 +138,28 @@ export function FilterPane({
             <FilterChips>
               {/* England is the default comparison, so it has no remove control. */}
               <FilterChip value="E92000001">England</FilterChip>
+              {/* A whole level is one chip, not one per area within it. */}
+              {selection.areaLevels.map((level) => (
+                <FilterChip
+                  key={level}
+                  onRemove={searchWithTab({
+                    selection: {
+                      ...selection,
+                      areaLevels: selection.areaLevels.filter((value) => value !== level),
+                    },
+                  })}
+                  removeLabel={level}
+                  value={level}
+                >
+                  {level}
+                </FilterChip>
+              ))}
               {selection.areaCodes
                 .filter((code) => code !== 'E92000001')
                 .map((code) => (
                   <FilterChip
                     key={code}
-                    onRemove={selectionSearch({
+                    onRemove={searchWithTab({
                       selection: {
                         ...selection,
                         areaCodes: selection.areaCodes.filter((value) => value !== code),
@@ -146,8 +184,15 @@ export function FilterPane({
             {selection.areaCodes.map((code) => (
               <input key={code} type="hidden" name="as" value={code} />
             ))}
+            {selection.areaLevels.map((level) => (
+              <input key={level} type="hidden" name="als" value={level} />
+            ))}
+            {['ci', 'pt', 'sex'].map((key) => {
+              const value = current.get(key);
+              return value ? <input key={key} type="hidden" name={key} value={value} /> : null;
+            })}
             <GeographyTree
-              groups={areaGroups.map(({ areaType, areas }) => ({ name: areaType, areas }))}
+              groups={displayGeographyGroups(areaGroups)}
               name="as"
               onChange={setPending}
               selected={pending}
@@ -157,28 +202,44 @@ export function FilterPane({
                 The button is always rendered: hiding it until something is ticked would
                 leave the form unusable without scripting, since the count comes from state
                 the browser only has once hydrated. */}
-            <button
-              className="govuk-button govuk-!-margin-top-3 govuk-!-margin-bottom-0"
-              onClick={(event) => {
+            <Button
+              className="govuk-!-margin-top-3 govuk-!-margin-bottom-0"
+              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                 if (pending.length === 0) {
                   // Nothing gathered: let the form submit whatever is ticked in the DOM.
                   return;
                 }
                 event.preventDefault();
                 setPending([]);
-                navigate({
-                  search: selectionSearch({
-                    selection: {
-                      ...selection,
-                      areaCodes: [...new Set([...selection.areaCodes, ...pending])],
-                    },
-                  }),
+                // A group ticked in full collapses to its level name — one chip and one
+                // query value instead of hundreds of area codes.
+                const groups = displayGeographyGroups(areaGroups);
+                const fullLevels = groups.filter(
+                  ({ areas }) =>
+                    areas.length > 0 && areas.every(({ code }) => pending.includes(code)),
+                );
+                const levelled = new Set(
+                  fullLevels.flatMap(({ areas }) => areas.map(({ code }) => code)),
+                );
+                navigateWithTab({
+                  selection: {
+                    ...selection,
+                    areaCodes: [
+                      ...new Set([
+                        ...selection.areaCodes,
+                        ...pending.filter((code) => !levelled.has(code)),
+                      ]),
+                    ],
+                    areaLevels: [
+                      ...new Set([...selection.areaLevels, ...fullLevels.map(({ name }) => name)]),
+                    ],
+                  },
                 });
               }}
               type="submit"
             >
               Add selected geographies{pending.length > 0 ? ` (${pending.length})` : ''}
-            </button>
+            </Button>
           </Form>
         }
       />

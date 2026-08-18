@@ -4,13 +4,24 @@ import type {
   IndicatorObservation,
 } from '@fphd/public-api-features/contract';
 
-export function periodLabel({
-  fromDate,
-  toDate,
-}: Pick<IndicatorObservation, 'fromDate' | 'toDate'>): string {
+import { cleanAreaName } from './geography-display';
+
+export function periodLabel(
+  { fromDate, toDate }: Pick<IndicatorObservation, 'fromDate' | 'toDate'>,
+  yearType?: string,
+): string {
   const fromYear = fromDate.slice(0, 4);
   const toYear = toDate.slice(0, 4);
-  return fromYear === toYear ? fromYear : `${fromYear} to ${toYear}`;
+  if (fromYear === toYear) {
+    return fromYear;
+  }
+  // A financial year spans two calendar years but is one period: 2009/10, not
+  // "2009 to 2010" — which the prototype reserves for genuine ranges.
+  const days = (Date.parse(toDate) - Date.parse(fromDate)) / 86_400_000;
+  if (yearType === 'Financial' && days <= 400) {
+    return `${fromYear}/${toYear.slice(2)}`;
+  }
+  return `${fromYear} to ${toYear}`;
 }
 
 export function segmentLabel(observation: IndicatorObservation): string {
@@ -94,6 +105,16 @@ export function formatValue(value: number | null): string {
   return value === null ? 'No data' : valueFormat.format(value);
 }
 
+const calculatedValueFormat = new Intl.NumberFormat('en-GB', {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
+
+/** Calculated values always show one decimal place ("6.0%"), matching Fingertips. */
+export function formatCalculatedValue(value: number | null): string {
+  return value === null ? 'No data' : calculatedValueFormat.format(value);
+}
+
 export function formatConfidenceInterval(observation: IndicatorObservation): string {
   if (observation.lowerCi95 === null || observation.upperCi95 === null) {
     return '—';
@@ -101,39 +122,145 @@ export function formatConfidenceInterval(observation: IndicatorObservation): str
   return `${valueFormat.format(observation.lowerCi95)} to ${valueFormat.format(observation.upperCi95)}`;
 }
 
-export interface ComparisonRow {
-  fingertipsId: number;
-  name: string;
-  unit: string;
+export interface ComparisonCell {
+  areaCode: string;
   areaName: string;
-  period: string;
-  segment: string;
   value: number | null;
   count: number | null;
+  /** The cell's own series, for the recent-trend calculation. */
+  series: IndicatorObservation[];
+  /** Note texts attached to the latest value. */
+  notes: string[];
+}
+
+export interface ComparisonRow {
+  fingertipsId: number;
+  /** Distinguishes breakout rows of one indicator ("Female, 1 year"). */
+  key: string;
+  name: string;
+  suffix: string;
+  unit: string;
+  unitLabel: string;
+  areaName: string;
+  period: string;
+  value: number | null;
+  count: number | null;
+  series: IndicatorObservation[];
+  notes: string[];
+  /** One cell per compared area, aligned with comparisonAreas(). */
+  cells: ComparisonCell[];
 }
 
 /**
- * One row per selected indicator for the comparison table: its most recent value in the
- * first selected area. Indicators with no data for that area are still listed, so a user
- * comparing several can see which have nothing rather than wondering where a row went.
+ * The areas the comparison table sets side by side: every selected area, except that
+ * England steps back once real areas are picked — the same rule as the trend table.
+ */
+export function comparisonAreas(areaData: IndicatorAreaData[]): IndicatorAreaData[] {
+  const nonEngland = areaData.filter(({ areaCode }) => areaCode !== 'E92000001');
+  return nonEngland.length > 0 ? nonEngland : areaData;
+}
+
+const PERIOD_TYPE_SUFFIX: Record<Exclude<PeriodType, 'all'>, string> = {
+  '1-year': '1 year',
+  '3-year': '3 year rolling average',
+};
+
+/**
+ * The comparison table's rows: normally one per indicator (its least-disaggregated
+ * series), but an indicator that is always sexed has no such aggregate, so it breaks out
+ * one row per sex — and per period shape where it publishes both — as the prototype does
+ * for life expectancy. Indicators with no data still get a row rather than vanishing.
  */
 export function comparisonRows(
   selected: { detail: IndicatorDetail; areaData: IndicatorAreaData[] }[],
 ): ComparisonRow[] {
-  return selected.map(({ detail, areaData }) => {
+  return selected.flatMap(({ detail, areaData }) => {
     const first = areaData[0];
-    const latest = first ? trendSeries(first.observations).at(-1) : undefined;
+    const observations = first?.observations ?? [];
+    const sexes = dimensionValues(observations, 'Sex');
+    const hasAggregate = observations.some(
+      (observation) => !observation.dimensions.some(({ type }) => type === 'Sex'),
+    );
+    const periodTypes = availablePeriodTypes(observations);
 
-    return {
-      fingertipsId: detail.fingertipsId,
-      name: detail.name,
-      unit: detail.unit.name,
-      areaName: first?.areaName ?? '',
-      period: latest ? periodLabel(latest) : '',
-      segment: latest ? segmentLabel(latest) : '',
-      value: latest?.value ?? null,
-      count: latest?.count ?? null,
+    const variants =
+      sexes.length === 0 || hasAggregate
+        ? [{ sex: '', periodType: 'all' as PeriodType, suffix: '' }]
+        : sexes.flatMap((sex) =>
+            (periodTypes.length > 1 ? periodTypes : (['all'] as PeriodType[])).map(
+              (periodType) => ({
+                sex,
+                periodType,
+                suffix:
+                  periodType === 'all' ? `(${sex})` : `(${sex}, ${PERIOD_TYPE_SUFFIX[periodType]})`,
+              }),
+            ),
+          );
+
+    const areas = comparisonAreas(areaData);
+    const cellFor = (data: IndicatorAreaData, variant: (typeof variants)[number]) => {
+      const series = trendSeries(
+        filterObservations(data.observations, {
+          sex: variant.sex,
+          periodType: variant.periodType,
+        }),
+      );
+      const latest = series.at(-1);
+      return {
+        areaCode: data.areaCode,
+        areaName: cleanAreaName(data.areaName),
+        value: latest?.value ?? null,
+        count: latest?.count ?? null,
+        series,
+        notes: latest?.notes.map(({ text }) => text) ?? [],
+      };
     };
+
+    const rows = variants.flatMap((variant) => {
+      const cells = areas.map((data) => cellFor(data, variant));
+      const firstWithData = cells.find(({ series }) => series.length > 0);
+      const latest = firstWithData?.series.at(-1);
+      if (!latest) {
+        return [];
+      }
+      return [
+        {
+          fingertipsId: detail.fingertipsId,
+          key: `${detail.fingertipsId}|${variant.suffix}`,
+          name: detail.name,
+          suffix: variant.suffix,
+          unit: detail.unit.name,
+          unitLabel: detail.unit.label,
+          areaName: firstWithData?.areaName ?? '',
+          period: periodLabel(latest, detail.yearType),
+          value: firstWithData?.value ?? null,
+          count: firstWithData?.count ?? null,
+          series: firstWithData?.series ?? [],
+          notes: firstWithData?.notes ?? [],
+          cells,
+        },
+      ];
+    });
+
+    return rows.length > 0
+      ? rows
+      : [
+          {
+            fingertipsId: detail.fingertipsId,
+            key: String(detail.fingertipsId),
+            name: detail.name,
+            suffix: '',
+            unit: detail.unit.name,
+            unitLabel: detail.unit.label,
+            areaName: first?.areaName ?? '',
+            period: '',
+            value: null,
+            count: null,
+            series: [],
+            notes: [],
+            cells: [],
+          },
+        ];
   });
 }
 
@@ -196,6 +323,22 @@ export function periodTypeLabel(periodType: PeriodType): string {
   return periodType === '1-year' ? '1 year' : periodType === '3-year' ? '3 year rolling' : 'All';
 }
 
+/**
+ * The period shapes an indicator actually publishes. Many indicators are single-year
+ * only (QOF prevalence) or rolling only (life expectancy), so the period filter must
+ * offer just the shapes present or a choice can never match anything.
+ */
+export function availablePeriodTypes(observations: IndicatorObservation[]): PeriodType[] {
+  const types: PeriodType[] = [];
+  if (observations.some((observation) => !isRolling(observation))) {
+    types.push('1-year');
+  }
+  if (observations.some(isRolling)) {
+    types.push('3-year');
+  }
+  return types;
+}
+
 /** The distinct values of one dimension across an indicator's observations, in sort order. */
 export function dimensionValues(
   observations: IndicatorObservation[],
@@ -220,9 +363,9 @@ export interface ObservationFilter {
 }
 
 /**
- * Narrows observations to what the chart and table options ask for. An observation that
- * carries no Sex dimension is kept whatever the sex filter says: it is the value for all
- * people, which stays meaningful alongside a single sex.
+ * Narrows observations to what the chart and table options ask for. Choosing a sex keeps
+ * only that sex's observations — the sexless all-people series would otherwise always win
+ * as the least-disaggregated segment and the selection would appear to do nothing.
  */
 export function filterObservations(
   observations: IndicatorObservation[],
@@ -235,28 +378,27 @@ export function filterObservations(
     if (!sex) {
       return true;
     }
-    const observationSex = observation.dimensions.find(({ type }) => type === 'Sex');
-    return observationSex === undefined || observationSex.value === sex;
+    return observation.dimensions.some(({ type, value }) => type === 'Sex' && value === sex);
   });
 }
 
-/**
- * A comparison row's bar width as a percentage of the largest value sharing its unit.
- * Scaling per unit keeps a percentage from being dwarfed by a rate per 100,000.
- */
-export function barWidth(row: ComparisonRow, rows: ComparisonRow[]): number {
-  if (row.value === null) {
-    return 0;
-  }
-  const peers = rows.filter((other) => other.unit === row.unit && other.value !== null);
-  const largest = Math.max(...peers.map((other) => Math.abs(other.value ?? 0)));
-  if (largest === 0) {
-    return 0;
-  }
-  return Math.max(2, Math.round((Math.abs(row.value) / largest) * 100));
-}
-
 export type ConfidenceLevel = 'none' | '95' | '99.8';
+
+/** The interval levels the data actually carries; the filter offers nothing emptier. */
+export function availableConfidenceLevels(
+  observations: IndicatorObservation[],
+): Exclude<ConfidenceLevel, 'none'>[] {
+  const levels: Exclude<ConfidenceLevel, 'none'>[] = [];
+  if (observations.some(({ lowerCi95, upperCi95 }) => lowerCi95 !== null || upperCi95 !== null)) {
+    levels.push('95');
+  }
+  if (
+    observations.some(({ lowerCi998, upperCi998 }) => lowerCi998 !== null || upperCi998 !== null)
+  ) {
+    levels.push('99.8');
+  }
+  return levels;
+}
 
 export function confidenceInterval(
   observation: IndicatorObservation,
@@ -290,11 +432,15 @@ export function inequalityCategories(observations: IndicatorObservation[]): stri
 export function inequalityPeriods(
   observations: IndicatorObservation[],
   category: string,
+  yearType?: string,
 ): { value: string; label: string }[] {
   const periods = new Map<string, string>();
   for (const observation of observations) {
     if (observation.dimensions.some(({ type }) => type === category)) {
-      periods.set(`${observation.fromDate}/${observation.toDate}`, periodLabel(observation));
+      periods.set(
+        `${observation.fromDate}/${observation.toDate}`,
+        periodLabel(observation, yearType),
+      );
     }
   }
   return [...periods.entries()]
@@ -323,18 +469,58 @@ export function inequalityBreakdown(
 }
 
 /** The span an indicator's data covers, as the summary table states it. */
-export function periodCovered(observations: IndicatorObservation[]): string {
+export function periodCovered(observations: IndicatorObservation[], yearType?: string): string {
   if (observations.length === 0) {
     return '';
   }
-  const from = observations
-    .map(({ fromDate }) => fromDate)
-    .sort()[0]
-    ?.slice(0, 4);
-  const to = observations
-    .map(({ toDate }) => toDate)
-    .sort()
-    .at(-1)
-    ?.slice(0, 4);
-  return from === to ? (from ?? '') : `${from} to ${to}`;
+  const sorted = [...observations].sort(
+    (a, b) => a.fromDate.localeCompare(b.fromDate) || a.toDate.localeCompare(b.toDate),
+  );
+  const first = sorted[0];
+  const last = sorted.at(-1);
+  if (!first || !last) {
+    return '';
+  }
+  const from = periodLabel(first, yearType);
+  const to = periodLabel(last, yearType);
+  return from === to ? from : `${from} to ${to}`;
+}
+
+export type RecentTrend =
+  | { direction: 'up' | 'down'; label: string; tone: 'green' | 'red' | 'blue' }
+  | { direction: 'right'; label: string; tone: 'yellow' }
+  | { direction: null; label: string; tone: 'grey' };
+
+/**
+ * Direction of the latest five aggregate values, read with the indicator's polarity so
+ * the tag can say whether the movement is good. A change smaller than 2% of the series
+ * mean is reported as no significant change rather than a trend.
+ */
+export function recentTrend(
+  observations: IndicatorObservation[],
+  polarity: string | null,
+): RecentTrend {
+  const series = trendSeries(observations).filter(({ value }) => value !== null);
+  if (series.length < 5) {
+    return { direction: null, label: 'Trend cannot be calculated', tone: 'grey' };
+  }
+  const latest = series.slice(-5).map(({ value }) => value as number);
+  const change = (latest.at(-1) ?? 0) - (latest[0] ?? 0);
+  const mean = latest.reduce((sum, value) => sum + value, 0) / latest.length;
+  if (mean === 0 || Math.abs(change) < Math.abs(mean) * 0.02) {
+    return { direction: 'right', label: 'No significant change', tone: 'yellow' };
+  }
+  const direction = change > 0 ? 'up' : 'down';
+  const lowIsGood = polarity?.toLowerCase().includes('low is good') ?? false;
+  const highIsGood = polarity?.toLowerCase().includes('high is good') ?? false;
+  const word = direction === 'up' ? 'Increasing' : 'Decreasing';
+  if (!lowIsGood && !highIsGood) {
+    return { direction, label: word, tone: 'blue' };
+  }
+  const better = (direction === 'down') === lowIsGood;
+  return {
+    direction,
+    label: `${word} and getting ${better ? 'better' : 'worse'}`,
+    tone: better ? 'green' : 'red',
+  };
 }

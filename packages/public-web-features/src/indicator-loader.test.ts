@@ -19,9 +19,11 @@ function api(get = vi.fn()) {
             return Promise.resolve([{ areaType: 'England', areas: [] }]);
           }
           // An indicator detail needs area types for the geography groups to be derived.
+          // The data schema transforms a single-area response into an array, so the stub
+          // returns the post-schema shape the loader actually receives.
           return Promise.resolve(
             path.includes('/data')
-              ? { areaCode: '', areaName: '', observations: [] }
+              ? [{ areaCode: '', areaName: '', observations: [] }]
               : { areaTypes: [] },
           );
         }),

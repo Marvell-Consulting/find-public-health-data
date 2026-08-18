@@ -26,6 +26,22 @@ function fromCodePoint(value: number, match: string): string {
     : match;
 }
 
+/**
+ * Fingertips metadata arrives as HTML — including Word's mso-* soup — which React would
+ * show literally. Block-level closers become line breaks (the metadata styles preserve
+ * them via `white-space: pre-line`), every other tag is dropped, and entities are decoded
+ * afterwards so a decoded "&lt;" in prose is never mistaken for markup.
+ */
+export function plainTextFromHtml(text: string): string {
+  const stripped = text
+    .replace(/<\s*(?:br|\/p|\/div|\/li|\/tr|\/h[1-6])[^>]*>/gi, '\n')
+    .replace(/<[^>]+>/g, '');
+  return decodeEntities(stripped)
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export function decodeEntities(text: string): string {
   return text.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (match, code: string) => {
     if (code.toLowerCase().startsWith('#x')) {
