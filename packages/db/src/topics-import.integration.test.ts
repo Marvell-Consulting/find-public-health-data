@@ -1,6 +1,6 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
 import { eq, getTableColumns, sql } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { createDb, type Database } from './client.js';
 import { dbEnvFields, resolveDbTls } from './env.js';
@@ -55,6 +55,11 @@ const topicB: TopicRecord = {
   title: 'Topic B',
   description: 'The second topic.',
 };
+
+beforeEach(async () => {
+  await db.delete(topic);
+  await upsertTopics(db, [topicA, topicB]);
+});
 
 async function requireRow(id: string) {
   const rows = await db
