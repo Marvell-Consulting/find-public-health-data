@@ -2,8 +2,6 @@ name: CI
 
 on:
   pull_request:
-    # `ready_for_review` is essential given jobs skip drafts: without it, marking a draft ready
-    # triggers nothing and the pull request sits with no checks forever.
     types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
@@ -19,9 +17,6 @@ concurrency:
 jobs:
   lint:
     name: Lint
-    # `github.event.pull_request` is null on a push, so this is true there too. False only on a
-    # draft pull request. Every job below repeats it.
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -36,7 +31,6 @@ jobs:
 
   typecheck:
     name: Typecheck
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -48,7 +42,6 @@ jobs:
 
   unit:
     name: Unit tests
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -62,7 +55,6 @@ jobs:
 
   integration:
     name: Integration tests
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     services:
@@ -128,7 +120,6 @@ jobs:
 
   audit:
     name: Audit
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -150,7 +141,6 @@ jobs:
 
   compile:
     name: Compile apps
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -273,7 +263,6 @@ jobs:
 
   artefact-boundary:
     name: Public artefact boundary
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -292,9 +281,8 @@ jobs:
     needs: [lint, typecheck, unit, integration, e2e, audit, compile, build-images, artefact-boundary]
     # `always()` so a failing need reddens the gate rather than skipping it — GitHub reports a
     # skipped required check as satisfied, so the default `success()` would stop the gate blocking
-    # exactly when it matters. The draft clause keeps the gate off drafts, where every need is
-    # skipped and the gate would otherwise report a confusing failure.
-    if: ${{ always() && !github.event.pull_request.draft }}
+    # exactly when it matters.
+    if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
