@@ -60,7 +60,7 @@ function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
     }
     // Through the router — not history.replaceState — so the filter pane's links see the
     // change; the route's shouldRevalidate stops the loader refetching over it.
-    navigate(
+    void navigate(
       { search: `?${nextParams.toString()}`, hash: location.hash.slice(1) },
       { replace: true, preventScrollReset: true },
     );
