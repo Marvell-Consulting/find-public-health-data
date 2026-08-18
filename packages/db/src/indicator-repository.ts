@@ -18,9 +18,11 @@ import {
   frequency,
   indicator,
   indicatorMetadata,
+  noteType,
   numeratorDenominatorSource,
   observation,
   observationDimension,
+  observationNote,
   polarity,
   unit,
   valueType,
@@ -216,6 +218,8 @@ export interface IndicatorObservation {
   count: number | null;
   denominator: number | null;
   dimensions: ObservationDimensionValue[];
+  /** Note texts attached to the value, with their category ("quality", "disclosure"…). */
+  notes: { text: string; category: string }[];
 }
 
 export interface IndicatorAreaData {
@@ -307,6 +311,30 @@ export async function getIndicatorObservations(
     }
   }
 
+  const noteRows = await db
+    .select({
+      observationId: observationNote.observationId,
+      text: noteType.text,
+      category: noteType.category,
+    })
+    .from(observationNote)
+    .innerJoin(noteType, eq(observationNote.noteTypeId, noteType.id))
+    .where(
+      inArray(
+        observationNote.observationId,
+        rows.map((row) => row.obsId),
+      ),
+    );
+  const notesByObservation = new Map<string, { text: string; category: string }[]>();
+  for (const { observationId, ...note } of noteRows) {
+    const existing = notesByObservation.get(observationId);
+    if (existing) {
+      existing.push(note);
+    } else {
+      notesByObservation.set(observationId, [note]);
+    }
+  }
+
   return {
     areaCode,
     areaName: rows[0]?.areaName ?? areaCode,
@@ -315,6 +343,7 @@ export async function getIndicatorObservations(
       dimensions: (dimensionsByObservation.get(obsId) ?? []).sort((a, b) =>
         a.type.localeCompare(b.type),
       ),
+      notes: notesByObservation.get(obsId) ?? [],
     })),
   };
 }
