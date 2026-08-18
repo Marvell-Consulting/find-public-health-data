@@ -26,16 +26,49 @@ function fromCodePoint(value: number, match: string): string {
     : match;
 }
 
+// Closing one of these, or a <br>, marks a paragraph-level break in the source prose.
+const BLOCK_BREAK_TAGS = new Set(['p', 'div', 'li', 'tr', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
+
 /**
  * Fingertips metadata arrives as HTML — including Word's mso-* soup — which React would
  * show literally. Block-level closers become line breaks (the metadata styles preserve
  * them via `white-space: pre-line`), every other tag is dropped, and entities are decoded
  * afterwards so a decoded "&lt;" in prose is never mistaken for markup.
+ *
+ * Tags are removed in one left-to-right pass rather than by regex rewriting: a repeated
+ * rewrite can be tricked into assembling markup out of its own deletions, and the
+ * backtracking regexes are what CodeQL flags for polynomial blow-up. A "<" that does not
+ * open a plausible tag (as in "aged <75 years") is kept as text, as HTML itself would.
  */
 export function plainTextFromHtml(text: string): string {
-  const stripped = text
-    .replace(/<\s*(?:br|\/p|\/div|\/li|\/tr|\/h[1-6])[^>]*>/gi, '\n')
-    .replace(/<[^>]+>/g, '');
+  let stripped = '';
+  let index = 0;
+  while (index < text.length) {
+    const open = text.indexOf('<', index);
+    if (open === -1) {
+      stripped += text.slice(index);
+      break;
+    }
+    stripped += text.slice(index, open);
+    const body = text.startsWith('</', open) ? open + 2 : open + 1;
+    if (!/[a-z!]/i.test(text[body] ?? '')) {
+      // Not a tag — a bare less-than in prose. Emit it and carry on.
+      stripped += '<';
+      index = open + 1;
+      continue;
+    }
+    const close = text.indexOf('>', body);
+    if (close === -1) {
+      // An unterminated tag swallows the rest, as a browser would treat it.
+      break;
+    }
+    const isCloser = text[open + 1] === '/';
+    const name = (/^[a-z0-9]+/i.exec(text.slice(body, close))?.[0] ?? '').toLowerCase();
+    if (name === 'br' || (isCloser && BLOCK_BREAK_TAGS.has(name))) {
+      stripped += '\n';
+    }
+    index = close + 1;
+  }
   return decodeEntities(stripped)
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')

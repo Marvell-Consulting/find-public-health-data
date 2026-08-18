@@ -44,4 +44,14 @@ describe('plainTextFromHtml', () => {
   it('decodes entities after stripping', () => {
     expect(plainTextFromHtml('<p>10&nbsp;&ndash;&nbsp;20</p>')).toBe('10 – 20');
   });
+
+  it('cannot be tricked into assembling markup from its own deletions', () => {
+    expect(plainTextFromHtml('<scr<b>ipt>alert(1)</scr</b>ipt>')).not.toContain('<script');
+  });
+
+  it('keeps comparison prose with both angle brackets', () => {
+    expect(plainTextFromHtml('counts <5 or >10 are suppressed')).toBe(
+      'counts <5 or >10 are suppressed',
+    );
+  });
 });
