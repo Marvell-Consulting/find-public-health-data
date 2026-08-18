@@ -13,7 +13,7 @@ const logger = createLogger({
 });
 
 startServer({
-  app: createApp({ repositories: createRepositories(db) }),
+  app: createApp({ repositories: createRepositories(db), rateLimit: config.rateLimit }),
   host: config.host,
   port: config.port,
   shutdown: config.shutdown,

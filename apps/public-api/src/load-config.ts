@@ -6,6 +6,9 @@ const envSchema = z.object({
   ...logEnvFields,
   ...dbEnvFields,
   PUBLIC_API_PASSWORD: z.string().min(1),
+  // The public web app's SSR loader fans out several API calls per page view from one
+  // IP, so local demos need far more headroom than the production default.
+  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
 });
 
 /**
@@ -25,6 +28,7 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
       pretty: parsed.APP_ENV === 'local' && (parsed.LOG_PRETTY ?? true),
     },
     shutdown: resolveShutdown(parsed.APP_ENV, parsed),
+    rateLimit: { limit: parsed.RATE_LIMIT_MAX, windowMs: 15 * 60_000 },
     db: {
       host: parsed.DB_HOST,
       port: parsed.DB_PORT,

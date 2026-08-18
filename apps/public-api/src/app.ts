@@ -4,10 +4,11 @@ import { publicApiRoutes } from '@fphd/public-api-features';
 
 export interface AppDependencies {
   repositories: Repositories;
+  rateLimit?: { limit: number; windowMs: number };
 }
 
-export function createApp({ repositories }: AppDependencies) {
-  const app = createApiApp('public-api');
+export function createApp({ repositories, rateLimit }: AppDependencies) {
+  const app = createApiApp('public-api', rateLimit ? { rateLimit } : undefined);
 
   app.use(publicApiRoutes(repositories));
 
