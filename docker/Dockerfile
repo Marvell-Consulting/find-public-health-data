@@ -28,9 +28,15 @@
 # On LTS, fewer packages carry fixes, and the scan below only fails on a vulnerability that
 # has one — so a stale base would show up as a quieter scan rather than a red one.
 #
-# Deliberately no `apt-get upgrade` anywhere below: it would make every build non-deterministic,
-# grow the image (an upgraded package is a new layer on top of the old one, not a replacement),
-# and hide a stale base from the image scan whose job is to surface exactly that.
+# The runtime stage runs `apt-get upgrade` so Debian security fixes apply at build time
+# rather than waiting for a rebuilt base image: Debian publishes a fix days or weeks before
+# the Node image is rebuilt with it, and without the upgrade every HIGH/CRITICAL fix in that
+# window turns the publish scan red — blocking deploys of images no worse than the one
+# already running. The cost is that the shipped userland floats with trixie-security between
+# digest bumps; on Debian stable that means security and point updates only, and the stage
+# already floats by installing tini. A red scan now means a fixable vulnerability apt could
+# not deliver, not an upstream rebuild lag. The builder stage skips the upgrade — nothing in
+# it ships.
 FROM node:24-trixie-slim@sha256:0711b541c1c33a8a530ac4f0d391baa9a15b3d804695b1b24a47daa5fb60e74d AS base
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable
@@ -68,6 +74,7 @@ ENV NODE_ENV=production
 # signal sent to PID 1 unless that process installed a handler — which Node does not do for
 # SIGTERM. Without an init, every stop would wait out the full grace period and then SIGKILL.
 RUN apt-get update \
+  && apt-get upgrade -y \
   && apt-get install -y --no-install-recommends tini \
   && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
