@@ -88,10 +88,11 @@ jobs:
             --tag "${REGISTRY}/${APP}:latest" \
             .
 
-      # The layer nothing else covers: CodeQL reads source and CI's audit job resolves the npm
-      # tree from the lockfile, so the Debian userland these images are built on — the base
-      # image, tini, and psql in the operations image — is otherwise unscanned. Between build
-      # and push, so a failing image is never in the registry to be deployed.
+      # CodeQL reads source and CI's audit job resolves the npm tree from the lockfile; this
+      # scan and its mirror in ci.yml cover the Debian userland the images are built on — the
+      # base image, tini, and psql in the operations image. Between build and push, so a failing
+      # image is never in the registry to be deployed; the pull request scan ran against an image
+      # built from an earlier apt snapshot, so this one is authoritative for what ships.
       #
       # Restricting it to OS packages is the whole point rather than a narrowing: the npm tree is
       # already gated from the lockfile by CI's audit job, and scanning it here instead fails on
