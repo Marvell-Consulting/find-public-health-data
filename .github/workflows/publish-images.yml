@@ -1,11 +1,8 @@
 name: Publish images
 
-# Only main, and only on push: the federated credential in Azure trusts workflow runs from
-# this branch alone, so a pull request run could not authenticate even if it were triggered.
-# This does not wait on CI. It does not need to: ci.yml's build-images job builds and starts
-# these same five images on the pull request, so a Dockerfile or runtime-tree regression is
-# already a red gate before merge. What is left here — registry auth, the scan and the push —
-# has no pull request equivalent, and an image in the registry that nothing deploys is harmless.
+# Only main, and only on push — the federated credential in Azure trusts runs from this
+# branch alone. It doesn't wait on CI: build-images already gates image regressions on the
+# pull request, and what's left here (auth, scan, push) has no pull request equivalent.
 on:
   push:
     branches: [main]
@@ -67,9 +64,8 @@ jobs:
       - name: Sign in to the container registry
         run: az acr login --name "${ACR_NAME}"
 
-      # The OCI labels are where "which commit is this, and when was it built" belongs. Encoding
-      # either into the tag would be the same fact in a place that can drift from it, and the
-      # tags are load-bearing: deployments pin the SHA.
+      # Commit and build-time metadata go in the OCI labels, not the tags — a tag encoding
+      # them could drift from the truth the labels carry.
       - name: Build the image
         env:
           APP: ${{ matrix.app }}
@@ -88,27 +84,14 @@ jobs:
             --tag "${REGISTRY}/${APP}:latest" \
             .
 
-      # The layer nothing else covers: CodeQL reads source and CI's audit job resolves the npm
-      # tree from the lockfile, so the Debian userland these images are built on — the base
-      # image, tini, and psql in the operations image — is otherwise unscanned. Between build
-      # and push, so a failing image is never in the registry to be deployed.
+      # Runs between build and push, so a failing image is never in the registry to be deployed.
+      # ci.yml runs the same scan on pull requests; this one gates what actually ships.
       #
-      # Restricting it to OS packages is the whole point rather than a narrowing: the npm tree is
-      # already gated from the lockfile by CI's audit job, and scanning it here instead fails on
-      # npm's own bundled dependencies — the Node image ships an npm whose tar and undici carry
-      # fixable highs, which only a new base image fixes and which nothing in these images runs.
-      #
-      # ignore-unfixed because a CVE with no fixed version yet is a red build with nothing to
-      # do about it but wait. scanners: vuln keeps the failure legible as "this image has a
-      # fixable CVE": anything reaching an image came out of this repository, where secret
-      # scanning and push protection already apply.
-      #
-      # The action rather than a pinned trivy image, because a bare image reference in a workflow
-      # is covered by neither Dependabot ecosystem — github-actions only reads `uses:`, and the
-      # docker one is scoped to /docker — so the engine would sit at whatever it was pinned at
-      # while only its vulnerability database moved. `uses:` puts it back under the actions
-      # updater. The trivy version comes from the action's own default, so bumping the action is
-      # what raises the engine; pinning `version:` here would recreate the problem one level down.
+      # OS packages only: the npm tree is already audited from the lockfile in CI, and scanning
+      # it here would fail on npm's own bundled dependencies — which nothing in these images runs
+      # and only a new base image fixes. ignore-unfixed because a CVE with no fix yet is a red
+      # build with nothing to do about it but wait. The action rather than a trivy image so the
+      # engine sits under Dependabot's actions updater; pinning `version:` would undo that.
       - name: Scan the image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
@@ -120,10 +103,9 @@ jobs:
           ignore-unfixed: true
           exit-code: 1
 
-      # Both tags are labels for humans. Neither is what a deployment should reference: ACR tags
-      # are mutable, and re-running this workflow for the same commit necessarily produces a
-      # different manifest — the `created` label alone guarantees that — which then overwrites
-      # both. The digest below is the immutable reference.
+      # Both tags are labels for humans, not what a deployment should reference: ACR tags are
+      # mutable, and re-running this workflow for the same commit produces a different manifest
+      # that overwrites both. The digest below is the immutable reference.
       - name: Push the image
         id: push
         env:
@@ -142,8 +124,8 @@ jobs:
           fi
           echo "reference=${REGISTRY}/${APP}@${digest}" >> "${GITHUB_OUTPUT}"
 
-      # Deploys are manual for now, so the digest has to be somewhere a person can find it
-      # without digging through logs. The run summary is that place.
+      # Deploys are manual for now; the run summary puts the digest where a person can find
+      # it without digging through logs.
       - name: Record the deployable reference
         env:
           APP: ${{ matrix.app }}

@@ -19,10 +19,10 @@ updates:
       prefix: ci
 
   # Same reasoning one layer down: docker/Dockerfile pins its base image by digest, which never
-  # moves on its own. Weekly rather than monthly because a stale base is what the image scan in
-  # publish-images.yml fails a publish over, and raising the pin is the only way to clear it —
-  # the images deliberately do not `apt-get upgrade` their way out. app.Dockerfile sits in the
-  # same directory but tracks a tag, so there is nothing in it to raise.
+  # moves on its own. The runtime stage runs `apt-get upgrade` at build time, so a stale base
+  # no longer fails the publish scan; weekly keeps the pin moving anyway — a fresh base keeps the
+  # upgrade delta small, and it is the only route to a newer Node and npm. app.Dockerfile sits
+  # in the same directory but tracks a tag, so there is nothing in it to raise.
   - package-ecosystem: docker
     directory: /docker
     schedule:

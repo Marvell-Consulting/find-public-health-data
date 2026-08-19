@@ -155,9 +155,10 @@ jobs:
   # module imported at runtime but declared as a devDependency compiles here and is missing there.
   # Without this the first sign of that is a red publish after merge, or a crash-looping revision.
   #
-  # Builds only — no registry login, and deliberately no Trivy. The scan runs against the pushed
-  # image on main, where a newly fixable base CVE blocks a publish; running it here would redden
-  # every open pull request over a vulnerability none of them introduced.
+  # No registry login — the images are built into the local daemon and discarded. The Trivy scan
+  # mirrors the one in publish-images.yml, where the settings are explained: a failure means a
+  # vulnerability apt could not deliver, surfaced here before merge rather than as a red publish
+  # after it.
   build-images:
     name: Build images (${{ matrix.app }})
     if: ${{ !github.event.pull_request.draft }}
@@ -260,6 +261,18 @@ jobs:
             echo "::error::${APP} did not start"
             exit 1
           fi
+
+      # After the smoke test, so a scan finding never masks an image that fails to start.
+      - name: Scan ${{ matrix.app }}
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: fphd-ci/${{ matrix.app }}:ci
+          scanners: vuln
+          # The action has not renamed this input yet; it sets TRIVY_PKG_TYPES.
+          vuln-type: os
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
 
   artefact-boundary:
     name: Public artefact boundary
