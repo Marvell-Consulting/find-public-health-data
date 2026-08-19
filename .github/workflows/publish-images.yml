@@ -1,11 +1,8 @@
 name: Publish images
 
-# Only main, and only on push: the federated credential in Azure trusts workflow runs from
-# this branch alone, so a pull request run could not authenticate even if it were triggered.
-# This does not wait on CI. It does not need to: ci.yml's build-images job builds and starts
-# these same five images on the pull request, so a Dockerfile or runtime-tree regression is
-# already a red gate before merge. What is left here — registry auth, the scan and the push —
-# has no pull request equivalent, and an image in the registry that nothing deploys is harmless.
+# Only main, and only on push — the federated credential in Azure trusts runs from this
+# branch alone. It doesn't wait on CI: build-images already gates image regressions on the
+# pull request, and what's left here (auth, scan, push) has no pull request equivalent.
 on:
   push:
     branches: [main]
@@ -67,9 +64,8 @@ jobs:
       - name: Sign in to the container registry
         run: az acr login --name "${ACR_NAME}"
 
-      # The OCI labels are where "which commit is this, and when was it built" belongs. Encoding
-      # either into the tag would be the same fact in a place that can drift from it, and the
-      # tags are load-bearing: deployments pin the SHA.
+      # Commit and build-time metadata go in the OCI labels, not the tags — a tag encoding
+      # them could drift from the truth the labels carry.
       - name: Build the image
         env:
           APP: ${{ matrix.app }}
@@ -107,10 +103,9 @@ jobs:
           ignore-unfixed: true
           exit-code: 1
 
-      # Both tags are labels for humans. Neither is what a deployment should reference: ACR tags
-      # are mutable, and re-running this workflow for the same commit necessarily produces a
-      # different manifest — the `created` label alone guarantees that — which then overwrites
-      # both. The digest below is the immutable reference.
+      # Both tags are labels for humans, not what a deployment should reference: ACR tags are
+      # mutable, and re-running this workflow for the same commit produces a different manifest
+      # that overwrites both. The digest below is the immutable reference.
       - name: Push the image
         id: push
         env:
@@ -129,8 +124,8 @@ jobs:
           fi
           echo "reference=${REGISTRY}/${APP}@${digest}" >> "${GITHUB_OUTPUT}"
 
-      # Deploys are manual for now, so the digest has to be somewhere a person can find it
-      # without digging through logs. The run summary is that place.
+      # Deploys are manual for now; the run summary puts the digest where a person can find
+      # it without digging through logs.
       - name: Record the deployable reference
         env:
           APP: ${{ matrix.app }}
