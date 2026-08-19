@@ -3,8 +3,7 @@
 # Production images, one per deployable app. The builder stage is shared, so the install and
 # the workspace build are cached once across all of them. `--target` picks the runtime shape
 # and `APP` picks the app, which is why five images come out of three targets — the two web
-# apps have identical runtime stages, as do the two APIs, and a per-app target would be a
-# copy with nothing changed in it:
+# apps have identical runtime stages, as do the two APIs:
 #
 #   docker build -f docker/Dockerfile --target web --build-arg APP=public-web    -t public-web    .
 #   docker build -f docker/Dockerfile --target web --build-arg APP=internal-web  -t internal-web  .
@@ -24,19 +23,13 @@
 # retargets it to a newer Debian, that bump would silently pair the new base with the
 # `trixie-pgdg` repository the operations stage hard-codes.
 #
-# Trixie rather than bookworm because bookworm left regular security support on 2026-06-11.
-# On LTS, fewer packages carry fixes, and the scan below only fails on a vulnerability that
-# has one — so a stale base would show up as a quieter scan rather than a red one.
+# Trixie rather than bookworm: bookworm left regular security support on 2026-06-11, and on
+# LTS fewer CVEs get fixes for the upgrade and scan to catch.
 #
-# The runtime stage runs `apt-get upgrade` so Debian security fixes apply at build time
-# rather than waiting for a rebuilt base image: Debian publishes a fix days or weeks before
-# the Node image is rebuilt with it, and without the upgrade every HIGH/CRITICAL fix in that
-# window turns the publish scan red — blocking deploys of images no worse than the one
-# already running. The cost is that the shipped userland floats with trixie-security between
-# digest bumps; on Debian stable that means security and point updates only, and the stage
-# already floats by installing tini. A red scan now means a fixable vulnerability apt could
-# not deliver, not an upstream rebuild lag. The builder stage skips the upgrade — nothing in
-# it ships.
+# The runtime stage runs `apt-get upgrade` so Debian security fixes apply at build time rather
+# than waiting for the base image to be rebuilt with them — a red scan means a vulnerability
+# apt could not deliver, not upstream rebuild lag. The builder stage skips it; nothing in it
+# ships.
 FROM node:24-trixie-slim@sha256:0711b541c1c33a8a530ac4f0d391baa9a15b3d804695b1b24a47daa5fb60e74d AS base
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable
