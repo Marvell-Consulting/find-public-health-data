@@ -138,3 +138,54 @@ jobs:
             echo "${REFERENCE}"
             echo '```'
           } >> "${GITHUB_STEP_SUMMARY}"
+
+  # One Slack message per run, never one per matrix leg. Per-app conclusions come
+  # from the jobs API because needs.publish.result collapses the matrix to one
+  # value — and the partial publish (fail-fast: false) is the case worth spelling
+  # out, since the registry is then a mixed set under `latest`.
+  notify:
+    name: Notify publish outcome
+    needs: [publish]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Compose the message
+        id: message
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          jobs=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" \
+            --jq '[.jobs[] | select(.name | startswith("Publish ")) | {app: (.name | ltrimstr("Publish ")), conclusion}]')
+          total=$(jq length <<<"${jobs}")
+          published=$(jq '[.[] | select(.conclusion == "success")] | length' <<<"${jobs}")
+          if [ "${total}" -eq 0 ]; then
+            echo '::error::found no publish jobs in this run'
+            exit 1
+          fi
+          if [ "${published}" -eq "${total}" ]; then
+            headline=":white_check_mark: Published all ${total} images"
+          elif [ "${published}" -eq 0 ]; then
+            headline=":x: Publish failed — no images pushed"
+          else
+            headline=":warning: PARTIAL publish (${published}/${total}) — \`latest\` is now a mixed set"
+          fi
+          subject=${COMMIT_MESSAGE%%$'\n'*}
+          subject=$(sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' <<<"${subject}")
+          {
+            echo 'text<<MESSAGE_END'
+            echo "${headline} for \`${GITHUB_SHA}\` ${subject} — <${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|run>"
+            jq -r '.[] | "• \(.app): \(.conclusion)"' <<<"${jobs}"
+            echo 'MESSAGE_END'
+          } >> "${GITHUB_OUTPUT}"
+      - uses: ./.github/actions/notify-slack
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          text: ${{ steps.message.outputs.text }}

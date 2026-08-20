@@ -1,0 +1,27 @@
+name: notify-slack
+description: Post a message to the team Slack channel via the incoming webhook
+
+# The infra repo carries an identical copy — sharing would mean publishing an action.
+
+inputs:
+  webhook-url:
+    description: Slack incoming webhook URL (pass secrets.SLACK_WEBHOOK_URL)
+    required: true
+  text:
+    description: Message text, Slack mrkdwn
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # Through env and jq, never interpolated: the text carries commit messages.
+    - name: Post to Slack
+      shell: bash
+      env:
+        WEBHOOK_URL: ${{ inputs.webhook-url }}
+        TEXT: ${{ inputs.text }}
+      run: |
+        jq --null-input --arg text "$TEXT" '{text: $text}' \
+          | curl --fail --silent --show-error --retry 3 \
+              --header 'Content-Type: application/json' \
+              --data @- "$WEBHOOK_URL"

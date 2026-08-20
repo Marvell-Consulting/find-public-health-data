@@ -317,3 +317,55 @@ jobs:
               exit 1
             fi
           done
+
+  # The two Slack jobs run only on push to main: the webhook secret must never be
+  # available to pull_request jobs. Neither joins all-checks-pass's needs — they
+  # gate nothing, and would sit skipped (not success) on the runs the gate checks.
+  notify-merge:
+    name: Notify merge
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # No needs, so the message posts when the run starts, not when it finishes.
+      - name: Compose the message
+        id: message
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          COMMIT_URL: ${{ github.event.head_commit.url }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          subject=${COMMIT_MESSAGE%%$'\n'*}
+          subject=$(sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' <<<"${subject}")
+          echo "text=*${GITHUB_REPOSITORY#*/}* main: <${COMMIT_URL}|${subject}> (${ACTOR})" >> "${GITHUB_OUTPUT}"
+      - uses: ./.github/actions/notify-slack
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          text: ${{ steps.message.outputs.text }}
+
+  notify-ci-failure:
+    name: Notify CI failure
+    needs: [all-checks-pass]
+    # Success is silent — the merge message already said the commit landed.
+    if: ${{ always() && github.event_name == 'push' && needs.all-checks-pass.result != 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Compose the message
+        id: message
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          subject=${COMMIT_MESSAGE%%$'\n'*}
+          subject=$(sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' <<<"${subject}")
+          echo "text=:x: *${GITHUB_REPOSITORY#*/}* CI failed on main: ${subject} — <${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|run>" >> "${GITHUB_OUTPUT}"
+      - uses: ./.github/actions/notify-slack
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          text: ${{ steps.message.outputs.text }}
