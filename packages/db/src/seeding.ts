@@ -108,7 +108,7 @@ function assertDevClassEnv(action: string, appEnv: string | undefined): void {
 
 /** The seed erases and replaces every dummy table. */
 export function assertSeedingAllowed(appEnv: string | undefined): void {
-  assertDevClassEnv('seed', appEnv);
+  assertDevClassEnv('seed dummy data', appEnv);
 }
 
 /** A reset erases the whole application schema. Same gate as seeding, deliberately. */

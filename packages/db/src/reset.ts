@@ -18,22 +18,22 @@ export async function resetDatabase(sql: postgres.Sql): Promise<void> {
 
     const views = await tx`SELECT viewname FROM pg_views WHERE schemaname = 'public'`;
     for (const { viewname } of views) {
-      await tx.unsafe(`DROP VIEW IF EXISTS "${viewname}" CASCADE`);
+      await tx`DROP VIEW IF EXISTS ${tx(viewname)} CASCADE`;
     }
 
     const matviews = await tx`SELECT matviewname FROM pg_matviews WHERE schemaname = 'public'`;
     for (const { matviewname } of matviews) {
-      await tx.unsafe(`DROP MATERIALIZED VIEW IF EXISTS "${matviewname}" CASCADE`);
+      await tx`DROP MATERIALIZED VIEW IF EXISTS ${tx(matviewname)} CASCADE`;
     }
 
     const tables = await tx`SELECT tablename FROM pg_tables WHERE schemaname = 'public'`;
     for (const { tablename } of tables) {
-      await tx.unsafe(`DROP TABLE IF EXISTS "${tablename}" CASCADE`);
+      await tx`DROP TABLE IF EXISTS ${tx(tablename)} CASCADE`;
     }
 
     const sequences = await tx`SELECT sequencename FROM pg_sequences WHERE schemaname = 'public'`;
     for (const { sequencename } of sequences) {
-      await tx.unsafe(`DROP SEQUENCE IF EXISTS "${sequencename}" CASCADE`);
+      await tx`DROP SEQUENCE IF EXISTS ${tx(sequencename)} CASCADE`;
     }
 
     // Enum, domain and standalone composite types; each table's implicit row type went
@@ -47,7 +47,7 @@ export async function resetDatabase(sql: postgres.Sql): Promise<void> {
         AND (t.typtype IN ('e', 'd') OR (t.typtype = 'c' AND c.relkind = 'c'))
     `;
     for (const { typname } of types) {
-      await tx.unsafe(`DROP TYPE IF EXISTS "${typname}" CASCADE`);
+      await tx`DROP TYPE IF EXISTS ${tx(typname)} CASCADE`;
     }
   });
 }
