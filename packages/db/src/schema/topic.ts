@@ -1,7 +1,8 @@
 import { z } from '@fphd/config';
-import { pgTable, text } from 'drizzle-orm/pg-core';
+import { index, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
 
 import { timestamps, uuidPrimaryKey } from './helpers.js';
+import { indicator } from './indicator.js';
 
 export const topic = pgTable('topic', {
   id: uuidPrimaryKey(),
@@ -10,6 +11,27 @@ export const topic = pgTable('topic', {
   description: text().notNull(),
   ...timestamps,
 });
+
+/**
+ * Which topics an indicator belongs to. Many-to-many in both directions: an indicator is
+ * reachable from several topics, and a topic lists many indicators.
+ */
+export const indicatorTopic = pgTable(
+  'indicator_topic',
+  {
+    topicId: uuid()
+      .notNull()
+      .references(() => topic.id),
+    indicatorId: uuid()
+      .notNull()
+      .references(() => indicator.id),
+    ...timestamps,
+  },
+  (t) => [
+    primaryKey({ columns: [t.topicId, t.indicatorId] }),
+    index('idx_indicator_topic_indicator').on(t.indicatorId),
+  ],
+);
 
 /**
  * A topic as supplied by a caller (the import file today, publisher CRUD later).

@@ -12,5 +12,6 @@ docs/
 .DS_Store
 CLAUDE.md
 AGENTS.md
+.claude/
 agent-docs
 plans

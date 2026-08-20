@@ -209,7 +209,7 @@ Schema and migrations are managed with Drizzle in `packages/db`:
 ```sh
 pnpm db:generate              # generate a migration from the schema
 pnpm db:migrate               # apply pending migrations
-pnpm db:seed                  # load the committed seed data (10 real indicators)
+pnpm db:seed                  # load the committed seed data (13 real indicators)
 pnpm db:import-topics         # upsert topics from packages/db/data/topics.json
 pnpm db:rebuild-read-models   # rebuild the derived cache tables from canonical data
 pnpm db:studio                # browse the database
@@ -233,7 +233,7 @@ A fresh database is ready for development with:
 docker compose up -d && pnpm db:bootstrap && pnpm db:migrate && pnpm db:seed && pnpm db:rebuild-read-models
 ```
 
-The seed is real Pholio data for 10 indicators at core administrative geographies,
+The seed is real Pholio data for 13 indicators and the prototype's geography catalogue,
 committed as gzipped CSVs — see `packages/db/data/seed/README.md` for what is in it and
 how to regenerate it.
 

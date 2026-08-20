@@ -1,3 +1,4 @@
+export { type AreaSummary, listAreasByType } from './area-repository.js';
 export { API_ROLES, bootstrapRoles, type DatabaseRole } from './bootstrap.js';
 export {
   createDb,
@@ -8,7 +9,25 @@ export {
   type SqlClient,
 } from './client.js';
 export { dbEnvFields, resolveDbTls } from './env.js';
-export { type ApprovedIndicator, listApprovedIndicators } from './indicator-repository.js';
+export {
+  type ApprovedIndicator,
+  getApprovedIndicatorByFingertipsId,
+  getIndicatorObservations,
+  type IndicatorAreaData,
+  type IndicatorDetail,
+  type IndicatorObservation,
+  type IndicatorSource,
+  listApprovedIndicators,
+} from './indicator-repository.js';
+export {
+  type IndicatorClassification,
+  type IndicatorTopicFile,
+  importIndicatorTopics,
+  listClassificationsForIndicator,
+  listTopicsForIndicator,
+  parseIndicatorTopicFile,
+  type TopicSummaryForIndicator,
+} from './indicator-topic-repository.js';
 export {
   type AppliedMigration,
   assertMigratable,
@@ -23,6 +42,7 @@ export {
 export { migrateToLatest } from './migrations.js';
 export { analyzeReadModels, rebuildReadModels, rebuildReadModelTables } from './read-models.js';
 export {
+  type AreaRepository,
   createRepositories,
   type IndicatorRepository,
   type Repositories,

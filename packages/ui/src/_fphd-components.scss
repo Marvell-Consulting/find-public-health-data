@@ -48,6 +48,115 @@
   @include govuk-font($size: 19);
 }
 
+.fphd-chart-section {
+  margin-bottom: 50px;
+}
+
+.fphd-chart-placeholder {
+  padding: govuk-spacing(4);
+  border: 1px solid #bfc1c3;
+}
+
+// Metadata prose arrives from the database with meaningful line breaks.
+.fphd-metadata-text {
+  white-space: pre-line;
+}
+
+.fphd-filter-card {
+  margin-bottom: govuk-spacing(4);
+  border: 1px solid #b1b4b6;
+}
+
+.fphd-filter-card__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 15px 20px;
+  background-color: #d1d2d3;
+}
+
+.fphd-filter-card__body {
+  padding: govuk-spacing(4);
+  background-color: #f3f2f1;
+}
+
+.fphd-filter-card__footer {
+  padding: govuk-spacing(3);
+  background-color: govuk-colour("white");
+}
+
+// The sidebar's controls run at 16px, but card titles and body prose keep 19px.
+.fphd-filter-card .govuk-label,
+.fphd-filter-card .govuk-fieldset__legend,
+.fphd-filter-card .govuk-checkboxes__label,
+.fphd-filter-card .govuk-link {
+  font-size: 16px;
+}
+
+.fphd-filter-card .govuk-select,
+.fphd-filter-card .govuk-input {
+  width: 100%;
+}
+
+.fphd-filter-chips--inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(1);
+}
+
+.fphd-filter-chip {
+  display: flex;
+  gap: govuk-spacing(2);
+  align-items: center;
+  padding: 5px 10px;
+  background-color: govuk-colour("white");
+  border: 1px solid #b1b4b6;
+  font-size: 16px;
+}
+
+.fphd-filter-chip__remove {
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.fphd-link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: govuk-colour("blue");
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.fphd-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 0;
+}
+
+.fphd-tag-list .fphd-tag {
+  margin-bottom: 0;
+}
+
+// Chip-bearing summary rows sit at the prototype's tighter 8px vertical padding.
+.fphd-indicator-section .govuk-table td:has(.fphd-tag-list),
+.fphd-indicator-section .govuk-table td:has(.fphd-trend-tag) {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.fphd-tag {
+  padding: 2px 8px 3px;
+  border: 1px solid govuk-colour("black");
+  @include govuk-font-size($size: 16);
+}
+
+.fphd-contents-list {
+  list-style-type: "— ";
+  padding-left: govuk-spacing(4);
+}
+
 .fphd-show-more {
   display: inline-flex;
   align-items: center;
@@ -112,4 +221,386 @@
     font-size: 21px;
     line-height: 25px;
   }
+}
+
+// The scroll box is a div: a fieldset cannot reliably be a scroll container, and its
+// overflowing rows would stretch the page far below the footer.
+.fphd-geo-alt {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.fphd-geo-alt__tree {
+  // Positioned so the visually-hidden (absolutely positioned) checkbox legends anchor
+  // inside this scroll box instead of stretching the whole page below the footer.
+  position: relative;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid govuk-colour("mid-grey");
+  padding: govuk-spacing(2);
+}
+
+// The Checkboxes legends here only carry visually-hidden text, but the legend element
+// itself still takes margin; collapse it so rows sit at their natural height.
+.fphd-geo-alt__tree .govuk-fieldset__legend {
+  @include govuk-visually-hidden;
+}
+
+// Compact the rows to the prototype's 36px rhythm: sit the 44px touch target onto the
+// 24px visual box (these offsets are govuk-frontend v5's small-checkbox geometry). The
+// selectors carry .govuk-checkboxes--small because @not-govuk/checkboxes injects its own
+// copy of the govuk checkbox CSS after this sheet — these must win on specificity, not
+// source order.
+.fphd-geo-alt__tree .govuk-checkboxes--small .govuk-checkboxes__input {
+  width: 24px;
+  height: 36px;
+  margin: 0;
+}
+
+.fphd-geo-alt__tree .govuk-checkboxes--small .govuk-checkboxes__label {
+  font-size: 1rem;
+  padding: 8px 15px 5px 6px;
+  margin-bottom: 0;
+  // The injected checkbox styles reserve 74px for the full-size input; ours is 24px.
+  max-width: calc(100% - 30px);
+}
+
+.fphd-geo-alt__tree .govuk-checkboxes--small .govuk-checkboxes__label::before {
+  top: 6px;
+  left: 0;
+}
+
+.fphd-geo-alt__tree .govuk-checkboxes--small .govuk-checkboxes__label::after {
+  top: 13px;
+}
+
+// Remove the grey hover halo on checkboxes (keep the keyboard focus ring).
+.fphd-geo-alt__tree
+  .govuk-checkboxes--small
+  .govuk-checkboxes__item:hover
+  .govuk-checkboxes__input:not(:disabled):not(:focus)
+  + .govuk-checkboxes__label::before {
+  box-shadow: none;
+}
+
+.fphd-geo-alt__group {
+  display: flex;
+  align-items: flex-start;
+}
+
+.fphd-geo-alt__group .govuk-form-group,
+.fphd-geo-alt__group .govuk-checkboxes__item,
+.fphd-geo-alt__children .govuk-form-group,
+.fphd-geo-alt__children .govuk-checkboxes__item {
+  margin-bottom: 0;
+}
+
+// Match the compacted 36px checkbox row so the chevron centres on it.
+.fphd-geo-alt__toggle {
+  padding: 0 8px 0 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 36px;
+}
+
+.fphd-geo-alt__toggle:focus-visible {
+  outline: 3px solid $govuk-focus-colour;
+}
+
+.fphd-geo-alt__chevron {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-left: 11px solid govuk-colour("black");
+  transition: transform 0.1s ease;
+}
+
+.fphd-geo-alt__toggle--open .fphd-geo-alt__chevron {
+  transform: rotate(90deg);
+}
+
+// The component's className lands on the inner checkboxes div; the flex child that must
+// grow is its form-group wrapper.
+.fphd-geo-alt__group > .govuk-form-group {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.fphd-geo-alt__group-cb {
+  width: 100%;
+}
+
+.fphd-geo-alt__children {
+  margin-left: 45px;
+  margin-bottom: 6px;
+}
+
+.fphd-geo-alt__more {
+  color: govuk-colour("dark-grey");
+  margin-bottom: 0;
+}
+
+.fphd-autocomplete {
+  position: relative;
+}
+
+.fphd-autocomplete__menu {
+  position: absolute;
+  z-index: 10;
+  width: 100%;
+  max-height: 240px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  background-color: govuk-colour("white");
+  border: 2px solid govuk-colour("black");
+  border-top: 0;
+}
+
+.fphd-autocomplete__option {
+  padding: govuk-spacing(1) govuk-spacing(2);
+  cursor: pointer;
+}
+
+.fphd-autocomplete__option--active {
+  background-color: govuk-colour("blue");
+  color: govuk-colour("white");
+}
+
+.fphd-autocomplete__group {
+  color: $govuk-secondary-text-colour;
+}
+
+.fphd-autocomplete__option--active .fphd-autocomplete__group {
+  color: govuk-colour("white");
+}
+
+// A value's magnitude relative to the largest in the comparison, so rows can be scanned
+// without reading every number.
+.fphd-bar-container {
+  display: flex;
+  align-items: center;
+  gap: govuk-spacing(2);
+}
+
+.fphd-bar {
+  height: 12px;
+  min-width: 1px;
+  background-color: govuk-colour("blue");
+}
+
+.fphd-segmentation-options__selects .govuk-form-group {
+  margin-bottom: govuk-spacing(3);
+}
+
+
+
+.fphd-geo-alt__count {
+  display: inline;
+  font-size: inherit;
+}
+
+.fphd-table-note {
+  color: govuk-colour("dark-grey");
+  font-weight: 400;
+}
+
+// The prototype's "Most recent trend" tag: an arrow glyph beside the label on one line.
+// Selectors are tag-qualified because a second copy of the govuk tag base loads after
+// this sheet and must lose on specificity (same story as the checkboxes).
+.govuk-tag.fphd-trend-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: govuk-spacing(2);
+  white-space: normal;
+  text-align: left;
+  min-width: 120px;
+  max-width: 500px;
+  flex-shrink: 0;
+  @include govuk-font-size($size: 16);
+}
+
+.govuk-tag--grey.fphd-trend-tag {
+  color: govuk-shade(govuk-colour("dark-grey"), 50%);
+  background-color: govuk-tint(govuk-colour("dark-grey"), 85%);
+}
+
+.govuk-tag--blue.fphd-trend-tag {
+  color: govuk-shade(govuk-colour("blue"), 60%);
+  background-color: govuk-tint(govuk-colour("blue"), 70%);
+}
+
+.govuk-tag--yellow.fphd-trend-tag {
+  color: govuk-shade(govuk-colour("yellow"), 65%);
+  background-color: govuk-tint(govuk-colour("yellow"), 75%);
+}
+
+.govuk-tag--red.fphd-trend-tag {
+  color: govuk-shade(govuk-colour("red"), 80%);
+  background-color: govuk-tint(govuk-colour("red"), 75%);
+}
+
+.govuk-tag--green.fphd-trend-tag {
+  color: govuk-shade(govuk-colour("green"), 20%);
+  background-color: govuk-tint(govuk-colour("green"), 80%);
+}
+
+.fphd-trend-tag__arrow {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
+.fphd-trend-tag__arrow::before {
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 0;
+}
+
+.fphd-trend-tag__arrow--up::before {
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 10px solid currentColor;
+}
+
+.fphd-trend-tag__arrow--down::before {
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 10px solid currentColor;
+}
+
+.fphd-trend-tag__arrow--right::before {
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 10px solid currentColor;
+}
+
+.fphd-trend-tag__text {
+  flex: 1;
+}
+
+.fphd-download-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(3);
+}
+
+
+// The prototype's indicator page runs its data content at 16px with tighter cells.
+.fphd-indicator-section > .govuk-heading-l {
+  margin-bottom: govuk-spacing(3);
+}
+
+.fphd-indicator-section .govuk-table,
+.fphd-chart-section .govuk-table {
+  @include govuk-font-size($size: 16);
+  // The prototype's tables hug their columns; only the scroll wrapper limits them.
+  width: auto;
+}
+
+.fphd-indicator-section .govuk-table th,
+.fphd-indicator-section .govuk-table td,
+.fphd-chart-section .govuk-table th,
+.fphd-chart-section .govuk-table td {
+  @include govuk-font-size($size: 16);
+  padding: 10px 15px 10px 0;
+}
+
+.fphd-chart-section .govuk-table td:has(.fphd-trend-tag) {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+// The accordion heading runs at 19px in the prototype, not the component's 24px.
+.fphd-options-accordion .govuk-accordion__section-button {
+  @include govuk-font-size($size: 19);
+}
+
+// The trend table's period column is plain text in the prototype.
+.fphd-indicator-section .fphd-trend-table tbody th {
+  font-weight: 400;
+}
+
+// Columns keep at least the prototype's natural width however few there are.
+.fphd-trend-table th,
+.fphd-trend-table td,
+.fphd-compare-table th,
+.fphd-compare-table td {
+  min-width: 135px;
+}
+
+.fphd-indicator-section .govuk-summary-list {
+  @include govuk-font-size($size: 16);
+}
+
+.fphd-download-buttons .govuk-button {
+  margin-bottom: 17px;
+}
+
+// The prototype's option labels are bold.
+.fphd-segmentation-options__selects .govuk-label {
+  font-weight: 700;
+}
+
+
+// A single-section accordion without the component's JS: no top border doubling and no
+// "show all" bar, just the section header and its content.
+.fphd-options-accordion {
+  margin-bottom: govuk-spacing(4);
+}
+
+.fphd-options-accordion .govuk-accordion__section-content {
+  padding-bottom: 0;
+}
+
+.fphd-trend-tag__arrow {
+  margin-right: 6px;
+}
+
+// Wide trend tables (one column group per area) scroll sideways inside their own
+// wrapper, the prototype's pattern, rather than pushing the whole page out.
+.fphd-table-scroll-wrapper {
+  overflow-x: auto;
+  margin-bottom: govuk-spacing(3);
+}
+
+.fphd-table-scroll-wrapper .fphd-trend-table {
+  white-space: nowrap;
+}
+
+
+// Inside tables the trend tag stays on one line — the scroll wrapper absorbs the width —
+// instead of stacking "Increasing and getting worse" over three lines.
+.fphd-indicator-section .govuk-table .fphd-trend-tag,
+.fphd-chart-section .govuk-table .fphd-trend-tag {
+  white-space: nowrap;
+  min-width: 0;
+}
+
+
+// The compare table scrolls sideways rather than crushing its columns: everything stays
+// on one line except the indicator name, which wraps within a readable width.
+.fphd-compare-table {
+  white-space: nowrap;
+}
+
+.fphd-compare-table tbody td:first-child {
+  white-space: normal;
+  min-width: 380px;
+}
+
+// Headers wrap within their column like the prototype; data cells stay on one line.
+.fphd-trend-table thead th,
+.fphd-compare-table thead th {
+  white-space: normal;
 }

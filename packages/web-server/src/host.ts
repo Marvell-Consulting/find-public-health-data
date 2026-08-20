@@ -87,6 +87,10 @@ export async function startReactRouterServer({
       }),
     );
     closeDevServer = () => vite.close();
+    // Vite only watches its root (the app directory), but this app's source lives in the
+    // workspace packages outside it — without this, edits there never hot reload. The
+    // watcher's own ignore list still excludes node_modules.
+    vite.watcher.add(join(rootDirectory, '..', '..', 'packages'));
 
     app = createHost({ development: true, serviceName });
     app.use(vite.middlewares);

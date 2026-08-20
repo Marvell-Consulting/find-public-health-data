@@ -1,0 +1,223 @@
+{
+  "classifications": [
+    {
+      "slug": "framework-public-health-outcomes-framework",
+      "dimension": "framework",
+      "name": "Public Health Outcomes Framework"
+    },
+    {
+      "slug": "indicator-type-determinant-or-risk-factor",
+      "dimension": "indicator_type",
+      "name": "Determinant or risk factor"
+    },
+    {
+      "slug": "indicator-type-healthcare-utilisation",
+      "dimension": "indicator_type",
+      "name": "Healthcare utilisation"
+    },
+    {
+      "slug": "indicator-type-outcome",
+      "dimension": "indicator_type",
+      "name": "Outcome"
+    },
+    {
+      "slug": "indicator-type-prevalence-and-detection",
+      "dimension": "indicator_type",
+      "name": "Prevalence and detection"
+    },
+    {
+      "slug": "indicator-type-treatment-and-care",
+      "dimension": "indicator_type",
+      "name": "Treatment and care"
+    },
+    {
+      "slug": "inequality-deprivation-or-income",
+      "dimension": "inequality",
+      "name": "Deprivation or income"
+    },
+    {
+      "slug": "population-all-ages",
+      "dimension": "population",
+      "name": "All ages"
+    },
+    {
+      "slug": "population-infants-and-early-years-aged-4-years-and-under",
+      "dimension": "population",
+      "name": "Infants and early years (aged 4 years and under)"
+    },
+    {
+      "slug": "population-working-age-adults-aged-18-to-64-years",
+      "dimension": "population",
+      "name": "Working-age adults (aged 18 to 64 years)"
+    },
+    {
+      "slug": "risk-factor-excess-weight-or-obesity",
+      "dimension": "risk_factor",
+      "name": "Excess weight or obesity"
+    },
+    {
+      "slug": "risk-factor-air-pollution-or-environment",
+      "dimension": "risk_factor",
+      "name": "Air pollution or environment"
+    },
+    {
+      "slug": "risk-factor-smoking-and-tobacco",
+      "dimension": "risk_factor",
+      "name": "Smoking and tobacco"
+    }
+  ],
+  "indicatorClassifications": [
+    {
+      "fingertipsId": 108,
+      "classificationSlug": "indicator-type-outcome"
+    },
+    {
+      "fingertipsId": 108,
+      "classificationSlug": "population-all-ages"
+    },
+    {
+      "fingertipsId": 241,
+      "classificationSlug": "indicator-type-prevalence-and-detection"
+    },
+    {
+      "fingertipsId": 241,
+      "classificationSlug": "population-all-ages"
+    },
+    {
+      "fingertipsId": 40501,
+      "classificationSlug": "framework-public-health-outcomes-framework"
+    },
+    {
+      "fingertipsId": 40501,
+      "classificationSlug": "indicator-type-outcome"
+    },
+    {
+      "fingertipsId": 40501,
+      "classificationSlug": "population-all-ages"
+    },
+    {
+      "fingertipsId": 90366,
+      "classificationSlug": "framework-public-health-outcomes-framework"
+    },
+    {
+      "fingertipsId": 90366,
+      "classificationSlug": "indicator-type-outcome"
+    },
+    {
+      "fingertipsId": 90366,
+      "classificationSlug": "population-all-ages"
+    },
+    {
+      "fingertipsId": 90851,
+      "classificationSlug": "indicator-type-determinant-or-risk-factor"
+    },
+    {
+      "fingertipsId": 90851,
+      "classificationSlug": "inequality-deprivation-or-income"
+    },
+    {
+      "fingertipsId": 90851,
+      "classificationSlug": "population-all-ages"
+    },
+    {
+      "fingertipsId": 92026,
+      "classificationSlug": "indicator-type-determinant-or-risk-factor"
+    },
+    {
+      "fingertipsId": 92026,
+      "classificationSlug": "indicator-type-prevalence-and-detection"
+    },
+    {
+      "fingertipsId": 92026,
+      "classificationSlug": "population-infants-and-early-years-aged-4-years-and-under"
+    },
+    {
+      "fingertipsId": 92026,
+      "classificationSlug": "risk-factor-excess-weight-or-obesity"
+    },
+    {
+      "fingertipsId": 92033,
+      "classificationSlug": "indicator-type-determinant-or-risk-factor"
+    },
+    {
+      "fingertipsId": 92033,
+      "classificationSlug": "indicator-type-prevalence-and-detection"
+    },
+    {
+      "fingertipsId": 92033,
+      "classificationSlug": "population-all-ages"
+    },
+    {
+      "fingertipsId": 92033,
+      "classificationSlug": "risk-factor-excess-weight-or-obesity"
+    },
+    {
+      "fingertipsId": 92443,
+      "classificationSlug": "framework-public-health-outcomes-framework"
+    },
+    {
+      "fingertipsId": 92443,
+      "classificationSlug": "indicator-type-determinant-or-risk-factor"
+    },
+    {
+      "fingertipsId": 92443,
+      "classificationSlug": "indicator-type-prevalence-and-detection"
+    },
+    {
+      "fingertipsId": 92443,
+      "classificationSlug": "population-working-age-adults-aged-18-to-64-years"
+    },
+    {
+      "fingertipsId": 92443,
+      "classificationSlug": "risk-factor-smoking-and-tobacco"
+    },
+    {
+      "fingertipsId": 92708,
+      "classificationSlug": "indicator-type-determinant-or-risk-factor"
+    },
+    {
+      "fingertipsId": 92708,
+      "classificationSlug": "population-all-ages"
+    },
+    {
+      "fingertipsId": 93622,
+      "classificationSlug": "indicator-type-treatment-and-care"
+    },
+    {
+      "fingertipsId": 93622,
+      "classificationSlug": "population-all-ages"
+    },
+    {
+      "fingertipsId": 93861,
+      "classificationSlug": "indicator-type-determinant-or-risk-factor"
+    },
+    {
+      "fingertipsId": 93861,
+      "classificationSlug": "indicator-type-outcome"
+    },
+    {
+      "fingertipsId": 93861,
+      "classificationSlug": "population-all-ages"
+    },
+    {
+      "fingertipsId": 93861,
+      "classificationSlug": "risk-factor-air-pollution-or-environment"
+    },
+    {
+      "fingertipsId": 93995,
+      "classificationSlug": "indicator-type-outcome"
+    },
+    {
+      "fingertipsId": 93995,
+      "classificationSlug": "population-all-ages"
+    },
+    {
+      "fingertipsId": 94194,
+      "classificationSlug": "indicator-type-healthcare-utilisation"
+    },
+    {
+      "fingertipsId": 94194,
+      "classificationSlug": "population-infants-and-early-years-aged-4-years-and-under"
+    }
+  ]
+}

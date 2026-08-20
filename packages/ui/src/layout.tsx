@@ -1,6 +1,12 @@
 import type { HTMLAttributes, ReactNode } from 'react';
 
-type GridWidth = 'one-third' | 'two-thirds' | 'one-half' | 'full';
+type GridWidth =
+  | 'one-quarter'
+  | 'one-third'
+  | 'two-thirds'
+  | 'one-half'
+  | 'three-quarters'
+  | 'full';
 
 function classNames(...names: string[]) {
   return names.filter(Boolean).join(' ');
