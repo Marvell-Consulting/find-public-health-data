@@ -1,35 +1,13 @@
 import { randomBytes } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 
-import { drizzle } from 'drizzle-orm/postgres-js';
 import type postgres from 'postgres';
 
-import type { Database } from './client.js';
-import { importIndicatorTopics, parseIndicatorTopicFile } from './indicator-topic-repository.js';
+import { importCoreData } from './core-data.js';
 import { migrateToLatest } from './migrations.js';
 import { rebuildReadModels } from './read-models.js';
 import type { Repositories } from './repositories.js';
-import * as schema from './schema.js';
 import { createOwnerClient } from './scripts/owner-client.js';
-import { parseTopicsFile } from './scripts/parse-topics-file.js';
-import { seedDatabase } from './seeding.js';
-import { upsertTopics } from './topic-repository.js';
-
-const topicsFile = new URL('../data/topics.json', import.meta.url);
-function readSeedRelationships(): Record<string, unknown> {
-  const merged: Record<string, unknown> = {};
-  for (const file of seedRelationshipFiles) {
-    Object.assign(merged, JSON.parse(readFileSync(fileURLToPath(file), 'utf-8')));
-  }
-  return merged;
-}
-
-const seedRelationshipFiles = [
-  '../data/indicator-topics.json',
-  '../data/indicator-classifications.json',
-  '../data/indicator-data-updated.json',
-].map((path) => new URL(path, import.meta.url));
+import { seedDummyTables } from './seeding.js';
 
 /**
  * Two templates, because most integration tests do not want the seed. Copying `seeded`
@@ -88,17 +66,11 @@ async function buildTemplate(name: string, seed: boolean): Promise<void> {
   try {
     await migrateToLatest(template);
     if (seed) {
-      await seedDatabase(template);
+      // The same sequence a deployed environment runs: core content first, since the dummy
+      // relationships reference topics by id, then the dummy seed, then the read models.
+      await importCoreData(template);
+      await template.begin((tx) => seedDummyTables(tx));
       await rebuildReadModels(template);
-      // Topics and their indicator membership live in JSON files rather than the CSV
-      // export, so the seeded template imports them the same way a developer's database
-      // does — topics first, since the membership file references them by id.
-      const db = drizzle(template, { schema, casing: 'snake_case' }) as Database;
-      await upsertTopics(
-        db,
-        parseTopicsFile(JSON.parse(readFileSync(fileURLToPath(topicsFile), 'utf-8')) as unknown),
-      );
-      await importIndicatorTopics(db, parseIndicatorTopicFile(readSeedRelationships()));
     }
   } finally {
     // Left with no connections: a template with an open session cannot be copied.

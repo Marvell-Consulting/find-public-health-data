@@ -1,7 +1,7 @@
 import { migrateToLatest, rebuildReadModels, type SqlClient } from '@fphd/db';
 import type { Logger } from '@fphd/logger';
 
-import { bootstrap, seed, status } from './db-commands.js';
+import { bootstrap, importCoreData, reset, seedDummyData, status } from './db-commands.js';
 import type { Config } from './load-config.js';
 
 /**
@@ -37,13 +37,21 @@ export const commands: Record<string, Command> = {
     description: 'Report the state of every migration, and fail if one blocks migrating',
     run: status,
   },
-  'db seed': {
-    description: 'Replace all data with the committed seed, then rebuild the read models',
-    run: seed,
+  'db import-core-data': {
+    description: 'Load the required core data (topics) — idempotent, any environment',
+    run: importCoreData,
+  },
+  'db seed-dummy-data': {
+    description: 'Replace all dummy data with the committed seed, then rebuild the read models',
+    run: seedDummyData,
   },
   'db rebuild-read-models': {
     description: 'Rebuild the read models from the canonical tables',
     run: ({ sql }) => rebuildReadModels(sql),
+  },
+  'db reset': {
+    description: 'Drop all application schema objects so `db migrate` rebuilds from empty',
+    run: reset,
   },
 };
 

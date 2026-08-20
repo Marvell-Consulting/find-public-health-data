@@ -1,6 +1,6 @@
 # Seed data
 
-Real Pholio data loaded as gzipped CSVs by `pnpm db:seed`. The original ten-indicator
+Real Pholio data loaded as gzipped CSVs by `pnpm db:seed-dummy-data`. The original ten-indicator
 snapshot came from the canonical bridge/registry migration; the three prototype showcase
 additions come from the public Fingertips API and are imported through local Postgres.
 
@@ -75,7 +75,7 @@ directory, then run:
 
 ```sh
 docker compose up -d db
-pnpm db:seed
+pnpm db:seed-dummy-data
 python3 export/import-prototype-indicators.py \
   --data-csv /tmp/fphd-prototype-indicators.csv \
   --metadata-json /tmp/fphd-prototype-metadata.json \
@@ -85,5 +85,6 @@ python3 export/import-prototype-indicators.py \
 ```
 
 Validate the staging output before copying its nine `.csv.gz` files into this directory.
-Then run `pnpm db:seed`, import the indicator relationships and rebuild read models to
-prove the committed files reproduce the local database.
+Then run `pnpm db:seed-dummy-data` — it imports the indicator relationships and rebuilds
+the read models in the same command — to prove the committed files reproduce the local
+database.
