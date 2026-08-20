@@ -81,6 +81,35 @@ describe('internal API', () => {
     expect(response.body).toEqual({ indicators: [] });
   });
 
+  it('mounts the internal topics surface behind the publisher role', async () => {
+    const repositories = createFakeRepositories({
+      topics: {
+        list: async () => [
+          {
+            id: '00000000-0000-7000-8000-000000000001',
+            slug: 'topic-a',
+            title: 'Topic A',
+            description: 'All about topic A.',
+            createdAt: new Date('2024-01-01T00:00:00.000Z'),
+            updatedAt: new Date('2024-01-02T00:00:00.000Z'),
+          },
+        ],
+      },
+    });
+    const app = createApp({ repositories, session: verifier });
+
+    const asPublisher = await request(app)
+      .get('/api/internal/topics')
+      .set('Cookie', await createCookie(['public', 'internal', 'publisher']));
+    const asViewer = await request(app)
+      .get('/api/internal/topics')
+      .set('Cookie', await createCookie(['public', 'internal']));
+
+    expect(asPublisher.status).toBe(200);
+    expect(asPublisher.body[0]).toMatchObject({ id: '00000000-0000-7000-8000-000000000001' });
+    expect(asViewer.status).toBe(403);
+  });
+
   it('serves the public topics surface without a session', async () => {
     const repositories = createFakeRepositories({
       topics: {

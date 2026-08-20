@@ -1,6 +1,7 @@
 import '@fphd/ui/styles.scss';
 
 import { AppDocument, AppShell, createDocumentMeta, RootErrorBoundary } from '@fphd/ui';
+import { flashMiddleware } from '@fphd/web-server/flash';
 import { getSession, sessionMiddleware } from '@fphd/web-server/session';
 import { href, Outlet, useLoaderData } from 'react-router';
 
@@ -8,7 +9,7 @@ import type { Route } from './+types/root';
 
 export const Layout = AppDocument;
 export const meta = createDocumentMeta();
-export const middleware: Route.MiddlewareFunction[] = [sessionMiddleware];
+export const middleware: Route.MiddlewareFunction[] = [sessionMiddleware, flashMiddleware];
 
 export function loader({ context }: Route.LoaderArgs) {
   return { canManage: getSession(context)?.roles.includes('publisher') === true };

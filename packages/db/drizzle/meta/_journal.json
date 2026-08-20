@@ -71,6 +71,13 @@
       "when": 1785518596265,
       "tag": "0009_classification-grants",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1787226456102,
+      "tag": "0010_topic-update-grant",
+      "breakpoints": true
     }
   ]
 }

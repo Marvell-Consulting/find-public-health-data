@@ -87,4 +87,28 @@ describe('fake authentication backend', () => {
     expect(response.get('Location')).toBe('/sign-in');
     expect(response.get('Set-Cookie')?.[0]).toContain('Max-Age=0');
   });
+  // This router sits in front of the whole app, so anything it reads is gone before React
+  // Router sees it — and a form action's request.formData() would come back empty.
+  it('leaves the body of a request it does not handle for whatever comes next', async () => {
+    const app = express();
+    app.use(
+      createFakeAuthRouter({
+        audience: 'internal',
+        session,
+        users: fakeUsersForAudience('internal'),
+      }),
+    );
+    app.post('/manage/topics/1', async (request, response) => {
+      const chunks: Buffer[] = [];
+      for await (const chunk of request) chunks.push(chunk as Buffer);
+      response.status(200).send(Buffer.concat(chunks).toString());
+    });
+
+    const response = await request(app)
+      .post('/manage/topics/1')
+      .type('form')
+      .send({ title: 'Air quality' });
+
+    expect(response.text).toBe('title=Air%20quality');
+  });
 });

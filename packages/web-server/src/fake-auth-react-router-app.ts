@@ -1,10 +1,11 @@
-import { type AppAudience, fakeUsersForAudience } from '@fphd/auth';
+import { type AppAudience, fakeUsersForAudience, sessionCookieName } from '@fphd/auth';
 import {
   createJwtSessionService,
   createJwtSessionVerifier,
   type JwtSessionServiceOptions,
 } from '@fphd/auth/jwt-session';
 
+import type { Request } from 'express';
 import type { RouterContextProvider } from 'react-router';
 
 import { createFakeAuthRouter } from './fake-auth.js';
@@ -13,7 +14,7 @@ import { createReactRouterApp, type ReactRouterBuildLoader } from './react-route
 interface FakeAuthReactRouterAppOptions {
   audience: AppAudience;
   session: Pick<JwtSessionServiceOptions, 'secret' | 'secure'>;
-  extendContext?: (context: RouterContextProvider) => void;
+  extendContext?: (context: RouterContextProvider, request: Request) => void;
 }
 
 export function createFakeAuthReactRouterApp(
@@ -22,7 +23,7 @@ export function createFakeAuthReactRouterApp(
 ) {
   const sessionService = createJwtSessionService({
     audience: `fphd-${audience}`,
-    cookieName: `fphd-${audience}-session`,
+    cookieName: sessionCookieName(audience),
     issuer: 'fphd-auth',
     ...session,
   });
