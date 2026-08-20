@@ -221,7 +221,7 @@ export function FilterPane({
                 const levelled = new Set(
                   fullLevels.flatMap(({ areas }) => areas.map(({ code }) => code)),
                 );
-                navigateWithTab({
+                void navigateWithTab({
                   selection: {
                     ...selection,
                     areaCodes: [
