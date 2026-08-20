@@ -9,8 +9,10 @@ import {
   compareMigrations,
   type DatabaseRole,
   importCoreData as importCoreDataFromFiles,
+  READ_MODEL_TABLES,
   readAppliedMigrations,
   readLocalMigrations,
+  rebuildReadModels as rebuildReadModelsFromCanonical,
   rebuildReadModelTables,
   resetDatabase,
   seedDummyTables,
@@ -101,6 +103,17 @@ export async function seedDummyData({ sql, config, logger }: CommandContext): Pr
       { indicators: unknownIndicators },
       'Indicators in the file not in this database; skipped',
     );
+  }
+}
+
+/** Reports each table's row count after the rebuild — an empty read model serves an empty site. */
+export async function rebuildReadModels({ sql, logger }: CommandContext): Promise<void> {
+  await rebuildReadModelsFromCanonical(sql);
+  for (const table of READ_MODEL_TABLES) {
+    const [row] = await sql<{ count: number }[]>`
+      SELECT count(*)::int AS count FROM ${sql(table)}
+    `;
+    logger.info({ table, rows: row?.count ?? 0 }, 'Read model rebuilt');
   }
 }
 

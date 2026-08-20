@@ -13,6 +13,7 @@ import {
   type IndicatorTopicImportSummary,
   parseIndicatorTopicFile,
 } from './indicator-topic-repository.js';
+import { READ_MODEL_TABLES } from './read-models.js';
 
 // Topological FK order: every table loads after the tables it references.
 // Self-references (dimension_value.parent_id etc.) resolve within a single COPY
@@ -40,8 +41,6 @@ const SEED_TABLES = [
   'observation_dimension',
   'observation_note',
 ] as const;
-
-const READ_MODEL_TABLES = ['latest_headline', 'available_data', 'indicator_dimension_values'];
 
 const seedDir = fileURLToPath(new URL('../data/seed/', import.meta.url));
 

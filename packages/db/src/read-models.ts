@@ -1,5 +1,13 @@
 import type postgres from 'postgres';
 
+/** The derived tables, in one place so the rebuild, the seed's truncate and the
+ * operations CLI's row-count report cannot disagree about what a read model is. */
+export const READ_MODEL_TABLES = [
+  'latest_headline',
+  'available_data',
+  'indicator_dimension_values',
+] as const;
+
 /**
  * Rebuild the three derived read-model tables from the canonical tables, atomically.
  *

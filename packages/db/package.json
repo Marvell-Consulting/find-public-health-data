@@ -19,9 +19,7 @@
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx src/scripts/migrate.ts",
     "db:push": "drizzle-kit push",
-    "db:rebuild-read-models": "tsx src/scripts/rebuild-read-models.ts",
     "db:studio": "drizzle-kit studio",
     "typecheck": "tsc --noEmit"
   },

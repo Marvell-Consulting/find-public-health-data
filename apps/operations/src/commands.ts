@@ -1,7 +1,14 @@
-import { migrateToLatest, rebuildReadModels, type SqlClient } from '@fphd/db';
+import { migrateToLatest, type SqlClient } from '@fphd/db';
 import type { Logger } from '@fphd/logger';
 
-import { bootstrap, importCoreData, reset, seedDummyData, status } from './db-commands.js';
+import {
+  bootstrap,
+  importCoreData,
+  rebuildReadModels,
+  reset,
+  seedDummyData,
+  status,
+} from './db-commands.js';
 import type { Config } from './load-config.js';
 
 /**
@@ -47,7 +54,7 @@ export const commands: Record<string, Command> = {
   },
   'db rebuild-read-models': {
     description: 'Rebuild the read models from the canonical tables',
-    run: ({ sql }) => rebuildReadModels(sql),
+    run: rebuildReadModels,
   },
   'db reset': {
     description: 'Drop all application schema objects so `db migrate` rebuilds from empty',

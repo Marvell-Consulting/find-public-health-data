@@ -2,9 +2,11 @@
 
 Drizzle ORM schema, migrations, repository functions and database tooling shared by the
 API apps. Each API connects with its own login role (`public_api` / `internal_api`) via
-`createDb`. Everything that writes — migrations, the seed, the read-model rebuild, the
-import tooling and the test harness — connects as the owner login (`POSTGRES_USER`) via
-`createOwnerClient`. The per-API roles are created by `bootstrapRoles` (`pnpm db:bootstrap`
+`createDb`. Everything that writes — migrations, the imports, the seed, the read-model
+rebuild — connects as the owner login (`POSTGRES_USER`), through the operations CLI's
+config for the root `db:*` commands, drizzle-kit's own config for `db:generate`/`db:studio`
+and `createOwnerClient` for the test harness. The per-API roles are created by
+`bootstrapRoles` (`pnpm db:bootstrap`
 locally, `operations db bootstrap` deployed), which must run against a fresh server before
 the first migration: the grant migrations reference the roles.
 
@@ -19,8 +21,8 @@ src/
                       holds the reference tables, observation.ts the observation family,
                       cache.ts the derived read models
     helpers.ts        Column helpers shared across tables (uuidPrimaryKey, timestamps, audit)
-  scripts/            CLI entrypoints and their script-only helpers — the package.json
-                      scripts are the run surface; anything reusable lives outside
+  scripts/            owner-client.ts — the owner-role connection helper the test harness
+                      uses; the runnable commands live in apps/operations
   client.ts           createDb + Database/Schema types
   env.ts              dbEnvFields — shared connection env fragment
   read-models.ts      rebuildReadModels — repopulates the cache.ts tables from canonical data

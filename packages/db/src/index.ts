@@ -40,7 +40,12 @@ export {
   readLocalMigrations,
 } from './migration-status.js';
 export { migrateToLatest } from './migrations.js';
-export { analyzeReadModels, rebuildReadModels, rebuildReadModelTables } from './read-models.js';
+export {
+  analyzeReadModels,
+  READ_MODEL_TABLES,
+  rebuildReadModels,
+  rebuildReadModelTables,
+} from './read-models.js';
 export {
   type AreaRepository,
   createRepositories,

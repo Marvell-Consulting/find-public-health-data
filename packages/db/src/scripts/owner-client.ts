@@ -9,9 +9,9 @@ import { dbEnvFields, resolveDbTls } from '../env.js';
 
 const repoEnvFile = fileURLToPath(new URL('../../../../.env', import.meta.url));
 
-// Seed, rebuild and test-harness connections run as the database owner role, like
-// drizzle-kit migrations. Values already present in the environment win over the
-// repo .env file. `database` overrides POSTGRES_DB for maintenance and test targets.
+// Test-harness connections run as the database owner role, like drizzle-kit and the
+// operations CLI. Values already present in the environment win over the repo .env
+// file. `database` overrides POSTGRES_DB for maintenance and test targets.
 export function createOwnerClient(database?: string): postgres.Sql {
   if (existsSync(repoEnvFile)) {
     process.loadEnvFile(repoEnvFile);
