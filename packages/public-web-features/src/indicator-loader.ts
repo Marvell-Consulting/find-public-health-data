@@ -105,17 +105,19 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
       ? [...new Set([...areaCodes, ...levelCodes])].slice(0, MAX_SELECTED_AREAS)
       : [DEFAULT_AREA_CODE];
 
-  const availableIndicators = await api.get('/api/indicators', indicatorListResponseSchema);
-
   const fingertipsIds = selectedIndicatorIds(url, params.fingertipsId);
   // The home page's search box lands here with only a subject: matches are offered as
-  // results to pick from, never selected on the user's behalf.
+  // results to pick from, never selected on the user's behalf. The API does the matching —
+  // the full catalogue never travels with the page.
   const searchSubject = url.searchParams.get('searchSubject')?.trim() ?? '';
   const searchResults =
     fingertipsIds.length === 0 && searchSubject
-      ? availableIndicators.indicators.filter(({ name }) =>
-          name.toLowerCase().includes(searchSubject.toLowerCase()),
-        )
+      ? (
+          await api.get(
+            `/api/indicators?q=${encodeURIComponent(searchSubject)}&limit=100`,
+            indicatorListResponseSchema,
+          )
+        ).indicators
       : [];
 
   const selected = await Promise.all(
@@ -156,7 +158,6 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
   return {
     selected,
     areaGroups,
-    availableIndicators: availableIndicators.indicators,
     searchResults,
     searchSubject,
     selection: { areaType, areaCodes, areaLevels, fingertipsIds } satisfies IndicatorSelection,

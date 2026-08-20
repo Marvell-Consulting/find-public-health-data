@@ -1,14 +1,9 @@
 import { Autocomplete, Button, FilterCard, FilterChip, FilterChips, GeographyTree } from '@fphd/ui';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Form, useLocation, useNavigate } from 'react-router';
 import { cleanAreaName, displayGeographyGroups } from './geography-display';
 
-import type {
-  AreaGroup,
-  IndicatorSelection,
-  IndicatorSummary,
-  SelectedIndicator,
-} from './indicator-loader';
+import type { AreaGroup, IndicatorSelection, SelectedIndicator } from './indicator-loader';
 
 /** The query string for a selection, so every control links to a complete page state. */
 export function selectionSearch({
@@ -37,12 +32,10 @@ export function selectionSearch({
 export function FilterPane({
   selected,
   areaGroups,
-  availableIndicators,
   selection,
 }: {
   selected: SelectedIndicator[];
   areaGroups: AreaGroup[];
-  availableIndicators: IndicatorSummary[];
   selection: IndicatorSelection;
 }) {
   const navigate = useNavigate();
@@ -68,8 +61,23 @@ export function FilterPane({
   const navigateWithTab = (args: Parameters<typeof selectionSearch>[0]) =>
     navigate({ search: searchOnly(args), hash: location.hash.slice(1) });
 
-  const unselected = availableIndicators.filter(
-    ({ fingertipsId }) => !selection.fingertipsIds.includes(fingertipsId),
+  // Stable so the autocomplete's debounce effect doesn't restart on unrelated re-renders.
+  const searchIndicators = useCallback(
+    async (query: string, signal: AbortSignal) => {
+      const response = await fetch(`/indicators/search?q=${encodeURIComponent(query)}`, {
+        signal,
+      });
+      if (!response.ok) {
+        return [];
+      }
+      const { indicators } = (await response.json()) as {
+        indicators: { fingertipsId: number; name: string }[];
+      };
+      return indicators
+        .filter(({ fingertipsId }) => !selection.fingertipsIds.includes(fingertipsId))
+        .map(({ fingertipsId, name }) => ({ value: String(fingertipsId), label: name }));
+    },
+    [selection.fingertipsIds],
   );
   const areaName = (code: string) => {
     const raw = areaGroups.flatMap(({ areas }) => areas).find((area) => area.code === code)?.name;
@@ -105,21 +113,16 @@ export function FilterPane({
           )
         }
         footer={
-          unselected.length > 0 ? (
-            <Autocomplete
-              label="Search for an indicator"
-              options={unselected.map(({ fingertipsId, name }) => ({
-                value: String(fingertipsId),
-                label: name,
-              }))}
-              onSelect={({ value }) =>
-                navigateWithTab({
-                  selection,
-                  fingertipsIds: [...selection.fingertipsIds, Number(value)],
-                })
-              }
-            />
-          ) : null
+          <Autocomplete
+            label="Search for an indicator"
+            source={searchIndicators}
+            onSelect={({ value }) =>
+              void navigateWithTab({
+                selection,
+                fingertipsIds: [...selection.fingertipsIds, Number(value)],
+              })
+            }
+          />
         }
       />
 

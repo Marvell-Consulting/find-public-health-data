@@ -22,13 +22,12 @@ export function shouldRevalidate({ currentUrl, nextUrl }: ShouldRevalidateFuncti
 export const meta = createDocumentMeta('Indicator');
 
 export function IndicatorRoute() {
-  const { selected, areaGroups, availableIndicators, searchResults, searchSubject, selection } =
+  const { selected, areaGroups, searchResults, searchSubject, selection } =
     useLoaderData<typeof loader>();
   return (
     <IndicatorPage
       selected={selected}
       areaGroups={areaGroups}
-      availableIndicators={availableIndicators}
       searchResults={searchResults}
       searchSubject={searchSubject}
       selection={selection}

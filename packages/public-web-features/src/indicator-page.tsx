@@ -209,14 +209,12 @@ function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
 export function IndicatorPage({
   selected,
   areaGroups,
-  availableIndicators,
   searchResults = [],
   searchSubject = '',
   selection,
 }: {
   selected: SelectedIndicator[];
   areaGroups: AreaGroup[];
-  availableIndicators: IndicatorSummaryData[];
   searchResults?: IndicatorSummaryData[];
   searchSubject?: string;
   selection: IndicatorSelection;
@@ -230,7 +228,6 @@ export function IndicatorPage({
             key={`${selection.fingertipsIds.join(',')}|${selection.areaType}|${selection.areaCodes.join(',')}|${selection.areaLevels.join(',')}`}
             selected={selected}
             areaGroups={areaGroups}
-            availableIndicators={availableIndicators}
             selection={selection}
           />
         </GridColumn>

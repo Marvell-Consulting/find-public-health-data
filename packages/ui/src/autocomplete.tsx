@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 export interface AutocompleteOption {
   value: string;
@@ -10,33 +10,64 @@ export interface AutocompleteOption {
 interface AutocompleteProps {
   label: string;
   onSelect: (option: AutocompleteOption) => void;
-  options: AutocompleteOption[];
+  /**
+   * Asked for suggestions once typing pauses; the signal aborts a request the next
+   * keystroke has made stale. Must be referentially stable (useCallback in the caller),
+   * or every render restarts the in-flight search.
+   */
+  source: (query: string, signal: AbortSignal) => Promise<AutocompleteOption[]>;
   /** Most suggestions worth showing at once; the rest stay behind a narrower query. */
   limit?: number;
 }
 
+// Long enough to spare the server a request per keystroke, short enough to feel live.
+const SEARCH_DEBOUNCE_MS = 300;
+
 /**
- * A type-ahead over a list already in memory, following the ARIA combobox pattern the
- * GOV.UK accessible-autocomplete implements. Written here rather than pulled in as a
- * dependency because the whole option set is a prop — there is nothing to fetch, and the
- * component has to render identically on the server.
+ * A type-ahead over a server-side search, following the ARIA combobox pattern the GOV.UK
+ * accessible-autocomplete implements. Written here rather than pulled in as a dependency
+ * because the component has to render identically on the server.
  */
-export function Autocomplete({ label, onSelect, options, limit = 10 }: AutocompleteProps) {
+export function Autocomplete({ label, onSelect, source, limit = 10 }: AutocompleteProps) {
   const inputId = useId();
   const listId = useId();
   const [query, setQuery] = useState('');
+  const [matches, setMatches] = useState<AutocompleteOption[]>([]);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const blurTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  const trimmed = query.trim().toLowerCase();
-  const matches = trimmed
-    ? options.filter(({ label: text }) => text.toLowerCase().includes(trimmed)).slice(0, limit)
-    : [];
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      setMatches([]);
+      setActive(-1);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      void source(trimmed, controller.signal).then(
+        (results) => {
+          if (!controller.signal.aborted) {
+            setMatches(results.slice(0, limit));
+            setActive(-1);
+          }
+        },
+        () => {
+          // Aborted by a newer keystroke, or failed: what is showing stays showing.
+        },
+      );
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query, source, limit]);
 
   const choose = (option: AutocompleteOption) => {
     onSelect(option);
     setQuery('');
+    setMatches([]);
     setOpen(false);
     setActive(-1);
   };
