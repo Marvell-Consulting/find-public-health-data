@@ -1,5 +1,4 @@
-import { appEnvFields, parseEnv, z } from '@fphd/config';
-import { createPostgresClient, dbEnvFields, type SqlClient } from '@fphd/db';
+import { createOwnerClient, loadOwnerEnv, type SqlClient } from '@fphd/db';
 import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
 import { createLogger } from '@fphd/logger';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -8,15 +7,9 @@ import { resolveCommand } from './commands.js';
 import { importCoreData, reset, seedDummyData } from './db-commands.js';
 import { type Config, loadConfig } from './load-config.js';
 
-const env = parseEnv(
-  z.object({
-    ...dbEnvFields,
-    ...appEnvFields,
-    POSTGRES_USER: z.string().default('fphd'),
-    POSTGRES_PASSWORD: z.string().default('fphd'),
-  }),
-  process.env,
-);
+// The same settings the createOwnerClient connections below use, so the configs built
+// here point at the same database.
+const env = loadOwnerEnv();
 
 // Through loadConfig rather than hand-built, so these contexts cannot drift from the shape
 // the real CLI passes. DB_TLS off explicitly: the deployed-env cases here still point at
@@ -39,27 +32,12 @@ function testContext(sql: SqlClient, database: string, appEnv: string) {
   return { sql, config: testConfig(database, appEnv), logger };
 }
 
-// Mirrors cli.ts: max 1 because `db migrate` binds its advisory lock to a single session.
-function connect(database: string): SqlClient {
-  return createPostgresClient(
-    {
-      host: env.DB_HOST,
-      port: env.DB_PORT,
-      database,
-      user: env.POSTGRES_USER,
-      password: env.POSTGRES_PASSWORD,
-      ssl: false,
-    },
-    { max: 1, onnotice: () => {} },
-  );
-}
-
 let emptyDb: TestDatabase;
 let emptySql: SqlClient;
 
 beforeAll(async () => {
   emptyDb = await createTestDatabase();
-  emptySql = connect(emptyDb.name);
+  emptySql = createOwnerClient(emptyDb.name);
 });
 
 afterAll(async () => {
@@ -98,9 +76,11 @@ describe('db seed-dummy-data (integration)', () => {
     );
   });
 
+  // Explicit timeout: the template copy in the body queues behind the copy lock, like the
+  // beforeAll copies the raised hookTimeout covers.
   it('refuses when core data has not been imported', async () => {
     const bare = await createTestDatabase();
-    const sql = connect(bare.name);
+    const sql = createOwnerClient(bare.name);
     try {
       await expect(seedDummyData(testContext(sql, bare.name, 'test'))).rejects.toThrow(
         /import-core-data/,
@@ -109,7 +89,7 @@ describe('db seed-dummy-data (integration)', () => {
       await sql.end();
       await bare.drop();
     }
-  });
+  }, 60_000);
 });
 
 describe('db reset (integration)', () => {
@@ -121,14 +101,19 @@ describe('db reset (integration)', () => {
 
   it('reset → migrate → import-core-data → seed-dummy-data rebuilds a working database', async () => {
     const seeded = await createTestDatabase({ template: 'seeded' });
-    const sql = connect(seeded.name);
+    const sql = createOwnerClient(seeded.name);
     try {
       const context = testContext(sql, seeded.name, 'test');
+
+      // Stands in for anything a future migration creates outside the table sweeps; the
+      // extensions' functions must survive it or the migrate below would break.
+      await sql`CREATE FUNCTION reset_probe() RETURNS int LANGUAGE sql AS 'SELECT 1'`;
 
       await reset(context);
       expect(await sql`SELECT tablename FROM pg_tables WHERE schemaname = 'public'`).toHaveLength(
         0,
       );
+      expect(await sql`SELECT 1 FROM pg_proc WHERE proname = 'reset_probe'`).toHaveLength(0);
       const [drizzleSchema] = await sql<{ present: boolean }[]>`
           SELECT to_regnamespace('drizzle') IS NOT NULL AS present
         `;
