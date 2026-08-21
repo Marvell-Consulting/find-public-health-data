@@ -2,7 +2,6 @@ import { fakeUsersForAudience } from '@fphd/auth';
 import {
   IndicatorRoute,
   PublicHomePage,
-  ReleasesPage,
   SignInPage,
   TopicRoute,
   TopicsRoute,
@@ -16,7 +15,7 @@ import PublicApp, { ErrorBoundary } from './root';
 afterEach(cleanup);
 
 describe('public application routes', () => {
-  it('renders the prototype-aligned search landing page', async () => {
+  it('renders the landing page introduction and shell navigation', async () => {
     const Routes = createRoutesStub([
       {
         path: '/',
@@ -29,30 +28,17 @@ describe('public application routes', () => {
     render(<Routes initialEntries={['/']} />);
 
     expect(await screen.findByRole('heading', { name: 'Find public health data' })).toBeTruthy();
-    expect(screen.getByRole('searchbox', { name: 'Search for indicators' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Search' })).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Topic summaries for England' })).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Latest release' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Releases' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Public health data' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Using this service' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Find data' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Browse by topics' }).getAttribute('href')).toBe(
+      '/topics',
+    );
+    expect(screen.getByRole('link', { name: 'Topics' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Sign in' })).toBeTruthy();
-  });
-
-  it('renders the prototype release route and shared shell', async () => {
-    const Routes = createRoutesStub([
-      {
-        path: '/',
-        Component: PublicApp,
-        loader: () => ({ signedIn: false }),
-        children: [{ path: 'releases', Component: ReleasesPage }],
-      },
-    ]);
-
-    render(<Routes initialEntries={['/releases']} />);
-
-    expect(await screen.findByRole('link', { name: 'Skip to main content' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Skip to main content' })).toBeTruthy();
     expect(screen.getByText('Alpha')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'GOV.UK' })).toBeTruthy();
-    expect(await screen.findByRole('heading', { name: 'Releases' })).toBeTruthy();
   });
 
   it('offers all fake users on the public sign-in page', () => {
@@ -84,8 +70,8 @@ describe('public application routes', () => {
     // Ordering is the repository/API's responsibility (asserted elsewhere); this fixture is
     // already alphabetical, and the page must render it in that order without reshuffling.
     const topics = [
-      { slug: 'topic-a', title: 'Topic A' },
-      { slug: 'topic-b', title: 'Topic B' },
+      { slug: 'topic-a', title: 'Topic A', description: 'All about topic A.' },
+      { slug: 'topic-b', title: 'Topic B', description: 'All about topic B.' },
     ];
     const Routes = createRoutesStub([
       {
@@ -98,7 +84,7 @@ describe('public application routes', () => {
 
     render(<Routes initialEntries={['/topics']} />);
 
-    expect(await screen.findByRole('heading', { name: 'Topics' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Public health topics' })).toBeTruthy();
 
     const links = screen.getAllByRole('link', { name: /^Topic [AB]$/ });
     expect(links.map((link) => link.textContent)).toEqual(['Topic A', 'Topic B']);
@@ -106,6 +92,8 @@ describe('public application routes', () => {
       '/topics/topic-a',
       '/topics/topic-b',
     ]);
+    expect(screen.getByText('All about topic A.')).toBeTruthy();
+    expect(screen.getByText('All about topic B.')).toBeTruthy();
   });
 
   it('renders the topic page title and description from loader data', async () => {

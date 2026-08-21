@@ -26,22 +26,14 @@ export interface AppNavigationItem {
 interface AppShellProps {
   audience: 'Public' | 'Internal';
   children: ReactNode;
-  highlightCurrentNavigation?: boolean;
   navigation: AppNavigationItem[];
 }
 
-export function AppShell({
-  audience,
-  children,
-  highlightCurrentNavigation = true,
-  navigation,
-}: AppShellProps) {
+export function AppShell({ audience, children, navigation }: AppShellProps) {
   const isInternal = audience === 'Internal';
-  const classModifiers = highlightCurrentNavigation ? [] : ['without-current-navigation'];
 
   return (
     <GovUKPage
-      classModifiers={classModifiers}
       maxContentsWidth={1400}
       meta={footerLinks}
       navigation={navigation}

@@ -1,18 +1,27 @@
-import { A, PageIntro } from '@fphd/ui';
+import { CardList, GridColumn, GridRow, PageIntro } from '@fphd/ui';
 
 import type { TopicDetail, TopicSummary } from './topics-loader';
 
+/**
+ * Full width rather than PageIntro's reading measure, because the cards need the whole grid to
+ * form three columns.
+ */
 export function TopicsPage({ topics }: { topics: TopicSummary[] }) {
   return (
-    <PageIntro title="Topics">
-      <ul className="govuk-list">
-        {topics.map((topic) => (
-          <li key={topic.slug}>
-            <A href={`/topics/${topic.slug}`}>{topic.title}</A>
-          </li>
-        ))}
-      </ul>
-    </PageIntro>
+    <GridRow>
+      <GridColumn width="full">
+        <h1 className="govuk-heading-xl">Public health topics</h1>
+        <CardList
+          columns="three"
+          headingLevel={2}
+          items={topics.map((topic) => ({
+            description: topic.description,
+            href: `/topics/${topic.slug}`,
+            title: topic.title,
+          }))}
+        />
+      </GridColumn>
+    </GridRow>
   );
 }
 

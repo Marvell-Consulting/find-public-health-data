@@ -17,7 +17,7 @@ export function loader({ context }: Route.LoaderArgs) {
 function navigationFor(signedIn: boolean) {
   return [
     { href: href('/'), text: 'Home' },
-    { href: href('/releases'), text: 'Releases' },
+    { href: href('/topics'), text: 'Topics' },
     { href: href('/sign-in'), text: signedIn ? 'Account' : 'Sign in' },
   ];
 }
@@ -26,11 +26,7 @@ export default function PublicApp() {
   const { signedIn } = useLoaderData<typeof loader>();
 
   return (
-    <AppShell
-      audience="Public"
-      highlightCurrentNavigation={false}
-      navigation={navigationFor(signedIn)}
-    >
+    <AppShell audience="Public" navigation={navigationFor(signedIn)}>
       <Outlet />
     </AppShell>
   );

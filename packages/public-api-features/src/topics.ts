@@ -1,19 +1,16 @@
 import type { Repositories, Topic } from '@fphd/db';
 import { Router } from 'express';
 
-import type { TopicDetail, TopicSummary } from './contract.js';
+import type { TopicSummary } from './contract.js';
 
-function toSummary({ slug, title, createdAt, updatedAt }: Topic): TopicSummary {
+function toSummary({ slug, title, description, createdAt, updatedAt }: Topic): TopicSummary {
   return {
     slug,
     title,
+    description,
     createdAt: createdAt.toISOString(),
     updatedAt: updatedAt.toISOString(),
   };
-}
-
-function toDetail(topic: Topic): TopicDetail {
-  return { ...toSummary(topic), description: topic.description };
 }
 
 /**
@@ -35,7 +32,7 @@ export function topicsRouter(topics: Repositories['topics']): Router {
       return;
     }
 
-    response.status(200).json(toDetail(topic));
+    response.status(200).json(toSummary(topic));
   });
 
   return router;

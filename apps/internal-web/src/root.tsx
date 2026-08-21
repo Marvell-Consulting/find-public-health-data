@@ -17,7 +17,7 @@ export function loader({ context }: Route.LoaderArgs) {
 function navigationFor(canManage: boolean) {
   return [
     { href: href('/'), text: 'Home' },
-    { href: href('/releases'), text: 'Releases' },
+    { href: href('/topics'), text: 'Topics' },
     ...(canManage ? [{ href: href('/manage'), text: 'Manage data' }] : []),
     { href: href('/sign-in'), text: 'Account' },
   ];

@@ -8,6 +8,116 @@
   max-width: none;
 }
 
+// @react-foundry/anchor-list marks a navigation item active when its href is a *prefix* of the
+// current path. Every path starts with '/', so the Home item is active on every page. The
+// anchor's own aria-current is an exact match, so where the two disagree on the root item, undo
+// the class's styling — the values here are the inactive ones from govuk-frontend's
+// service-navigation.
+//
+// Fixed upstream in @react-foundry/anchor-list 0.5.3 (react-foundry#301): a '/' href now
+// defaults to exact matching. That version only reaches us with NotGovUk 0.19+, which also
+// moves to govuk-frontend 6 — delete this whole block when that upgrade lands.
+//
+// Scoped to the root item deliberately: prefix matching is right for real sections, and keeping
+// it means '/topics/alcohol' still highlights Topics.
+.govuk-service-navigation__list__item--active:has(> a[href='/']):not(
+    :has(> a[aria-current='page'])
+  ) {
+  @include govuk-media-query($until: tablet) {
+    margin-left: 0;
+    padding-left: 0;
+    border-left-width: 0;
+  }
+
+  @include govuk-media-query($from: tablet) {
+    padding-bottom: govuk-spacing(3);
+    border-bottom-width: 0;
+  }
+}
+
+.fphd-card-list {
+  display: grid;
+  column-gap: govuk-spacing(6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fphd-card-list__item {
+  padding: govuk-spacing(1) 0 govuk-spacing(4);
+  border-top: 1px solid $govuk-border-colour;
+}
+
+// A single column reads as one continuous list, so a rule above the first card would look like
+// a stray line under the heading. Three columns keep every rule, because the cards align into
+// rows and the top row's rules read as the head of the grid.
+.fphd-card-list--one-column .fphd-card-list__item:first-child {
+  border-top: 0;
+}
+
+.fphd-card-list--three-column {
+  @include govuk-media-query($from: tablet) {
+    grid-auto-rows: 1fr;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  // Equal-height rows stretch short cards, so a chevron at 50% would float mid-card instead of
+  // sitting beside the heading it belongs to.
+  .fphd-card-list__link::before {
+    top: 27px;
+    margin: 0;
+  }
+
+  // The column gap already separates the text from the next card; only the heading needs to
+  // keep clear of the chevron.
+  .fphd-card-list__description {
+    margin: 0;
+  }
+}
+
+.fphd-card-list__item-wrapper {
+  position: relative;
+  // Off the spacing scale, but what the design's card rhythm needs against the 5px item padding.
+  padding: 19px 0 4px;
+}
+
+.fphd-card-list__heading {
+  margin: 0 govuk-spacing(6) govuk-spacing(2) 0;
+}
+
+.fphd-card-list__description {
+  margin: 0 govuk-spacing(6) 0 0;
+}
+
+// Stretches the link over the whole card so the description is part of the click target.
+.fphd-card-list__link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.fphd-card-list__link::before {
+  content: "";
+  display: block;
+  position: absolute;
+  top: 50%;
+  right: govuk-spacing(1);
+  width: 7px;
+  height: 7px;
+  margin-top: 5px;
+  border-top: 3px solid $govuk-link-colour;
+  border-right: 3px solid $govuk-link-colour;
+  transform: rotate(45deg);
+}
+
+.fphd-card-list__link:hover::before {
+  border-color: $govuk-link-hover-colour;
+}
+
+.fphd-card-list__link:focus::before {
+  border-color: $govuk-focus-text-colour;
+}
+
 .fphd-stat-card {
   padding: govuk-spacing(4);
   margin-bottom: govuk-spacing(4);
@@ -191,15 +301,6 @@
   background-size: 22px 22px;
   cursor: pointer;
   opacity: 1;
-}
-
-.not-govuk-page--without-current-navigation {
-  .govuk-service-navigation__list__item--active {
-    margin-left: 0;
-    padding-bottom: govuk-spacing(3);
-    padding-left: 0;
-    border-width: 0;
-  }
 }
 
 @include govuk-media-query($until: tablet) {

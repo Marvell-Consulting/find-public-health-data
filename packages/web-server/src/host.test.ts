@@ -37,7 +37,7 @@ describe('React Router production host', () => {
   });
 
   it('sets security headers on document responses', async () => {
-    const response = await request(app).get('/releases').accept('text/html');
+    const response = await request(app).get('/topics').accept('text/html');
 
     expect(response.headers['strict-transport-security']).toBe(
       'max-age=31536000; includeSubDomains',
@@ -51,8 +51,8 @@ describe('React Router production host', () => {
   it('issues a fresh CSP nonce per request', async () => {
     const extractNonce = (policy: string | undefined) => policy?.match(/'nonce-([^']+)'/)?.[1];
 
-    const first = await request(app).get('/releases').accept('text/html');
-    const second = await request(app).get('/releases').accept('text/html');
+    const first = await request(app).get('/topics').accept('text/html');
+    const second = await request(app).get('/topics').accept('text/html');
 
     const firstNonce = extractNonce(first.headers['content-security-policy']);
     const secondNonce = extractNonce(second.headers['content-security-policy']);
@@ -72,7 +72,7 @@ describe('React Router production host', () => {
   });
 
   it('passes document requests to the React Router server build', async () => {
-    const response = await request(app).get('/releases').accept('text/html');
+    const response = await request(app).get('/topics').accept('text/html');
 
     expect(response.status).toBe(418);
     expect(response.text).toContain('Server rendered');
