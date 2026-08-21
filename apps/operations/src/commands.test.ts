@@ -21,6 +21,20 @@ describe('resolveCommand', () => {
   });
 });
 
+describe('commands', () => {
+  it('registers the data lifecycle commands, and not the retired seed name', () => {
+    expect(Object.keys(commands)).toEqual([
+      'db bootstrap',
+      'db migrate',
+      'db status',
+      'db import-core-data',
+      'db seed-dummy-data',
+      'db rebuild-read-models',
+      'db reset',
+    ]);
+  });
+});
+
 describe('usage', () => {
   it('lists every registered command, so the registry cannot outgrow the help', () => {
     const text = usage();

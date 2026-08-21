@@ -2,28 +2,33 @@
 
 Drizzle ORM schema, migrations, repository functions and database tooling shared by the
 API apps. Each API connects with its own login role (`public_api` / `internal_api`) via
-`createDb`. Everything that writes — migrations, the seed, the read-model rebuild, the
-import tooling and the test harness — connects as the owner login (`POSTGRES_USER`) via
-`createOwnerClient`. The per-API roles are created by `bootstrapRoles` (`pnpm db:bootstrap`
+`createDb`. Everything that writes — migrations, the imports, the seed, the read-model
+rebuild — connects as the owner login (`POSTGRES_USER`), through the operations CLI's
+config for the root `db:*` commands, drizzle-kit's own config for `db:generate`/`db:studio`
+and `createOwnerClient` for the test harness. The per-API roles are created by
+`bootstrapRoles` (`pnpm db:bootstrap`
 locally, `operations db bootstrap` deployed), which must run against a fresh server before
 the first migration: the grant migrations reference the roles.
 
 ## Layout
 
 ```
-data/                 Import files (topics.json) and the committed seed (seed/)
+data/                 Core content (topics.json), the dummy indicator relationship files
+                      and the committed seed (seed/)
 drizzle/              Generated migrations + drizzle-kit metadata — never edit applied ones
 src/
   schema/             One file per domain group, re-exported by schema/index.ts: lookup.ts
                       holds the reference tables, observation.ts the observation family,
                       cache.ts the derived read models
     helpers.ts        Column helpers shared across tables (uuidPrimaryKey, timestamps, audit)
-  scripts/            CLI entrypoints and their script-only helpers — the package.json
-                      scripts are the run surface; anything reusable lives outside
+  scripts/            owner-client.ts — the owner-role connection helper the test harness
+                      uses; the runnable commands live in apps/operations
   client.ts           createDb + Database/Schema types
   env.ts              dbEnvFields — shared connection env fragment
   read-models.ts      rebuildReadModels — repopulates the cache.ts tables from canonical data
-  seeding.ts          Loads data/seed into an empty database
+  core-data.ts        importCoreData — loads the required core content (topics)
+  seeding.ts          seedDummyTables — loads data/seed and the indicator relationships
+  reset.ts            resetDatabase — drops all application schema objects
   testing.ts          Integration-test database harness (@fphd/db/testing)
   schema.ts           Barrel re-exporting schema/index.ts; what drizzle.config.ts reads
   *-repository.ts     Query functions per aggregate: pure, take `db` as first argument
@@ -62,17 +67,20 @@ src/
 5. Add repository functions and tests, including an integration assertion that the
    granted role can do what it needs and no more.
 
-## Topics import
+## Core data import
 
 ```sh
-pnpm db:import-topics            # imports data/topics.json
-pnpm db:import-topics -- <path>  # or another file
+pnpm db:import-core-data         # imports data/topics.json, via the operations CLI
 ```
 
 Upserts matched on `id`: a rename — even one that changes the slug — updates the row in
 place without changing the primary key. Rows in the database but absent from the file
 are reported and left alone, never deleted. Re-runs are true no-ops (`updated_at`
-untouched), so the import is safe to run repeatedly.
+untouched), so the import is safe to run repeatedly, in any environment.
+
+The data-loading commands (`db:import-core-data`, `db:seed-dummy-data`, `db:reset`) all
+run through `apps/operations`, so a developer machine and a deployed job use one engine —
+see the operations section of the root README.
 
 ## Integration tests
 

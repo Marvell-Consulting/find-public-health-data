@@ -1,6 +1,6 @@
 import { z } from '@fphd/config';
 
-import { type TopicRecord, topicRecordSchema } from '../schema/index.js';
+import { type TopicRecord, topicRecordSchema } from './schema/index.js';
 
 const topicsFileSchema = z.array(topicRecordSchema);
 

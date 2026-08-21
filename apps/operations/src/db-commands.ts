@@ -1,15 +1,21 @@
 import {
   API_ROLES,
   analyzeReadModels,
+  assertCoreDataPresent,
   assertMigratable,
+  assertResetAllowed,
   assertSeedingAllowed,
   bootstrapRoles,
   compareMigrations,
   type DatabaseRole,
+  importCoreData as importCoreDataFromFiles,
+  READ_MODEL_TABLES,
   readAppliedMigrations,
   readLocalMigrations,
+  rebuildReadModels as rebuildReadModelsFromCanonical,
   rebuildReadModelTables,
-  seedTables,
+  resetDatabase,
+  seedDummyTables,
 } from '@fphd/db';
 
 import type { CommandContext } from './commands.js';
@@ -51,18 +57,73 @@ export async function bootstrap({ sql, config }: CommandContext): Promise<void> 
 }
 
 /**
- * Rebuilds the read models in the same command, unlike the local `db:seed`/
- * `db:rebuild-read-models` pair: a job runs one command, and a seeded database whose read
- * models are still empty serves an empty site. One commit for both, so readers never see
- * that state mid-run and a failed rebuild rolls the seed back with it.
+ * Loads the required starting data — the content every environment needs before it can
+ * serve anything, as opposed to the dummy seed. Idempotent and ungated: preview and
+ * production run this too.
  */
-export async function seed({ sql, config }: CommandContext): Promise<void> {
+export async function importCoreData({ sql, logger }: CommandContext): Promise<void> {
+  const { summary, orphaned } = await importCoreDataFromFiles(sql);
+  logger.info({ ...summary }, 'Topics imported');
+  for (const topic of orphaned) {
+    logger.warn(
+      { id: topic.id, slug: topic.slug },
+      'Topic in the database but absent from the file; left in place',
+    );
+  }
+}
+
+/**
+ * Seeds, imports the dummy indicator relationships and rebuilds the read models in one
+ * command and one transaction, unlike the local multi-script history: a job runs one
+ * command, and a seeded database whose read models are still empty serves an empty site.
+ * One commit for all of it, so readers never see a partial state mid-run and any failure
+ * rolls the whole seed back.
+ *
+ * Core data must already be imported — the relationships reference topics by id, and dummy
+ * data may depend on core data, never the reverse.
+ */
+export async function seedDummyData({ sql, config, logger }: CommandContext): Promise<void> {
   assertSeedingAllowed(config.appEnv);
-  await sql.begin(async (tx) => {
-    await seedTables(tx);
+  await assertCoreDataPresent(sql);
+
+  const summary = await sql.begin(async (tx) => {
+    const applied = await seedDummyTables(tx);
     await rebuildReadModelTables(tx);
+    return applied;
   });
   await analyzeReadModels(sql);
+
+  const { unknownTopics, unknownIndicators, ...counts } = summary;
+  logger.info(counts, 'Indicator relationships imported');
+  if (unknownTopics.length > 0) {
+    logger.warn({ topics: unknownTopics }, 'Topic ids in the file not in this database; skipped');
+  }
+  if (unknownIndicators.length > 0) {
+    logger.warn(
+      { indicators: unknownIndicators },
+      'Indicators in the file not in this database; skipped',
+    );
+  }
+}
+
+/** Reports each table's row count after the rebuild — an empty read model serves an empty site. */
+export async function rebuildReadModels({ sql, logger }: CommandContext): Promise<void> {
+  await rebuildReadModelsFromCanonical(sql);
+  for (const table of READ_MODEL_TABLES) {
+    const [row] = await sql<{ count: number }[]>`
+      SELECT count(*)::int AS count FROM ${sql(table)}
+    `;
+    logger.info({ table, rows: row?.count ?? 0 }, 'Read model rebuilt');
+  }
+}
+
+/**
+ * The gate is the only guard: a deployed job has no interactive confirmation, so refusing
+ * outside dev-class environments is what stands between this and a production database.
+ */
+export async function reset({ sql, config }: CommandContext): Promise<void> {
+  assertResetAllowed(config.appEnv);
+  await resetDatabase(sql);
 }
 
 /**

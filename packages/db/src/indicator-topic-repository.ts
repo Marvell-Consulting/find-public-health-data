@@ -81,8 +81,11 @@ export function parseIndicatorTopicFile(data: unknown): IndicatorTopicFile {
  *
  * Rows naming a topic or indicator this database does not hold are reported rather than
  * failed on — a seed file and a database can legitimately drift while both are in flux.
+ *
+ * Runs several statements without opening a transaction, so the caller owns atomicity —
+ * the dummy seed applies this inside the same transaction as the tables it loads.
  */
-export async function importIndicatorTopics(
+export async function applyIndicatorTopics(
   db: Database,
   file: IndicatorTopicFile,
 ): Promise<IndicatorTopicImportSummary> {
@@ -109,73 +112,71 @@ export async function importIndicatorTopics(
   const knownTopicIds = new Set(topics.map((row) => row.id));
   const indicatorIdByFingertipsId = new Map(indicators.map((row) => [row.fingertipsId, row.id]));
 
-  return db.transaction(async (tx) => {
-    const links = file.indicatorTopics.flatMap(({ topicId, fingertipsId }) => {
-      const indicatorId = indicatorIdByFingertipsId.get(fingertipsId);
-      return knownTopicIds.has(topicId) && indicatorId ? [{ topicId, indicatorId }] : [];
-    });
-
-    const indicatorIds = [...new Set(links.map(({ indicatorId }) => indicatorId))];
-    if (indicatorIds.length > 0) {
-      await tx.delete(indicatorTopic).where(inArray(indicatorTopic.indicatorId, indicatorIds));
-      await tx.insert(indicatorTopic).values(links);
-    }
-
-    let timestamps = 0;
-    for (const [fingertipsId, updatedAt] of Object.entries(file.indicatorDataUpdatedAt)) {
-      const indicatorId = indicatorIdByFingertipsId.get(Number(fingertipsId));
-      if (!indicatorId || !updatedAt) {
-        continue;
-      }
-      await tx
-        .update(indicator)
-        .set({ dataUpdatedAt: new Date(`${updatedAt}Z`) })
-        .where(eq(indicator.id, indicatorId));
-      timestamps += 1;
-    }
-
-    let classificationCount = 0;
-    let classificationLinks = 0;
-    if (file.classifications.length > 0) {
-      const stored = await tx
-        .insert(classification)
-        .values(file.classifications)
-        .onConflictDoUpdate({
-          target: classification.slug,
-          set: {
-            name: sql`excluded.name`,
-            dimension: sql`excluded.dimension`,
-            updatedAt: sql`now()`,
-          },
-        })
-        .returning({ id: classification.id, slug: classification.slug });
-      classificationCount = stored.length;
-      const idBySlug = new Map(stored.map((row) => [row.slug, row.id]));
-
-      const rows = file.indicatorClassifications.flatMap(({ fingertipsId, classificationSlug }) => {
-        const indicatorId = indicatorIdByFingertipsId.get(fingertipsId);
-        const classificationId = idBySlug.get(classificationSlug);
-        return indicatorId && classificationId ? [{ indicatorId, classificationId }] : [];
-      });
-      const classified = [...new Set(rows.map(({ indicatorId }) => indicatorId))];
-      if (classified.length > 0) {
-        await tx
-          .delete(indicatorClassification)
-          .where(inArray(indicatorClassification.indicatorId, classified));
-        await tx.insert(indicatorClassification).values(rows);
-      }
-      classificationLinks = rows.length;
-    }
-
-    return {
-      classifications: classificationCount,
-      classificationLinks,
-      links: links.length,
-      timestamps,
-      unknownTopics: topicIds.filter((id) => !knownTopicIds.has(id)),
-      unknownIndicators: fingertipsIds.filter((id) => !indicatorIdByFingertipsId.has(id)),
-    };
+  const links = file.indicatorTopics.flatMap(({ topicId, fingertipsId }) => {
+    const indicatorId = indicatorIdByFingertipsId.get(fingertipsId);
+    return knownTopicIds.has(topicId) && indicatorId ? [{ topicId, indicatorId }] : [];
   });
+
+  const indicatorIds = [...new Set(links.map(({ indicatorId }) => indicatorId))];
+  if (indicatorIds.length > 0) {
+    await db.delete(indicatorTopic).where(inArray(indicatorTopic.indicatorId, indicatorIds));
+    await db.insert(indicatorTopic).values(links);
+  }
+
+  let timestamps = 0;
+  for (const [fingertipsId, updatedAt] of Object.entries(file.indicatorDataUpdatedAt)) {
+    const indicatorId = indicatorIdByFingertipsId.get(Number(fingertipsId));
+    if (!indicatorId || !updatedAt) {
+      continue;
+    }
+    await db
+      .update(indicator)
+      .set({ dataUpdatedAt: new Date(`${updatedAt}Z`) })
+      .where(eq(indicator.id, indicatorId));
+    timestamps += 1;
+  }
+
+  let classificationCount = 0;
+  let classificationLinks = 0;
+  if (file.classifications.length > 0) {
+    const stored = await db
+      .insert(classification)
+      .values(file.classifications)
+      .onConflictDoUpdate({
+        target: classification.slug,
+        set: {
+          name: sql`excluded.name`,
+          dimension: sql`excluded.dimension`,
+          updatedAt: sql`now()`,
+        },
+      })
+      .returning({ id: classification.id, slug: classification.slug });
+    classificationCount = stored.length;
+    const idBySlug = new Map(stored.map((row) => [row.slug, row.id]));
+
+    const rows = file.indicatorClassifications.flatMap(({ fingertipsId, classificationSlug }) => {
+      const indicatorId = indicatorIdByFingertipsId.get(fingertipsId);
+      const classificationId = idBySlug.get(classificationSlug);
+      return indicatorId && classificationId ? [{ indicatorId, classificationId }] : [];
+    });
+    const classified = [...new Set(rows.map(({ indicatorId }) => indicatorId))];
+    if (classified.length > 0) {
+      await db
+        .delete(indicatorClassification)
+        .where(inArray(indicatorClassification.indicatorId, classified));
+      await db.insert(indicatorClassification).values(rows);
+    }
+    classificationLinks = rows.length;
+  }
+
+  return {
+    classifications: classificationCount,
+    classificationLinks,
+    links: links.length,
+    timestamps,
+    unknownTopics: topicIds.filter((id) => !knownTopicIds.has(id)),
+    unknownIndicators: fingertipsIds.filter((id) => !indicatorIdByFingertipsId.has(id)),
+  };
 }
 
 /** The topics an indicator belongs to, ordered by title. */

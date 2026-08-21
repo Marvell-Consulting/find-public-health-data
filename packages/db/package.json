@@ -19,12 +19,7 @@
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "db:generate": "drizzle-kit generate",
-    "db:import-indicator-topics": "tsx --env-file-if-exists=../../.env --conditions=development src/scripts/import-indicator-topics.ts",
-    "db:import-topics": "tsx --env-file-if-exists=../../.env --conditions=development src/scripts/import-topics.ts",
-    "db:migrate": "tsx src/scripts/migrate.ts",
     "db:push": "drizzle-kit push",
-    "db:rebuild-read-models": "tsx src/scripts/rebuild-read-models.ts",
-    "db:seed": "tsx src/scripts/seed.ts",
     "db:studio": "drizzle-kit studio",
     "typecheck": "tsc --noEmit"
   },

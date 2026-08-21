@@ -8,6 +8,7 @@ export {
   type Schema,
   type SqlClient,
 } from './client.js';
+export { assertCoreDataPresent, importCoreData } from './core-data.js';
 export { dbEnvFields, resolveDbTls } from './env.js';
 export {
   type ApprovedIndicator,
@@ -22,10 +23,9 @@ export {
 export {
   type IndicatorClassification,
   type IndicatorTopicFile,
-  importIndicatorTopics,
+  type IndicatorTopicImportSummary,
   listClassificationsForIndicator,
   listTopicsForIndicator,
-  parseIndicatorTopicFile,
   type TopicSummaryForIndicator,
 } from './indicator-topic-repository.js';
 export {
@@ -40,7 +40,12 @@ export {
   readLocalMigrations,
 } from './migration-status.js';
 export { migrateToLatest } from './migrations.js';
-export { analyzeReadModels, rebuildReadModels, rebuildReadModelTables } from './read-models.js';
+export {
+  analyzeReadModels,
+  READ_MODEL_TABLES,
+  rebuildReadModels,
+  rebuildReadModelTables,
+} from './read-models.js';
 export {
   type AreaRepository,
   createRepositories,
@@ -48,7 +53,8 @@ export {
   type Repositories,
   type TopicRepository,
 } from './repositories.js';
+export { resetDatabase } from './reset.js';
 export * as schema from './schema.js';
 export { createOwnerClient } from './scripts/owner-client.js';
-export { assertSeedingAllowed, seedDatabase, seedTables } from './seeding.js';
+export { assertResetAllowed, assertSeedingAllowed, seedDummyTables } from './seeding.js';
 export { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';

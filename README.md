@@ -218,9 +218,10 @@ Schema and migrations are managed with Drizzle in `packages/db`:
 ```sh
 pnpm db:generate              # generate a migration from the schema
 pnpm db:migrate               # apply pending migrations
-pnpm db:seed                  # load the committed seed data (13 real indicators)
-pnpm db:import-topics         # upsert topics from packages/db/data/topics.json
+pnpm db:import-core-data      # load required core data (topics) — idempotent, any environment
+pnpm db:seed-dummy-data       # replace dummy data with the committed seed and rebuild read models
 pnpm db:rebuild-read-models   # rebuild the derived cache tables from canonical data
+pnpm db:reset                 # drop all schema objects so db:migrate rebuilds from empty
 pnpm db:studio                # browse the database
 ```
 
@@ -233,13 +234,13 @@ indicator number survives as `indicator.fingertips_id`. Grants are explicit and 
 sees upload state, and a table added by a future migration gets no access until granted
 deliberately. Write grants wait for the publisher workflow design.
 
-The package layout, naming conventions, the add-a-table checklist and the topics import
-tool's semantics are documented in [`packages/db/README.md`](packages/db/README.md).
+The package layout, naming conventions, the add-a-table checklist and the core data
+import's semantics are documented in [`packages/db/README.md`](packages/db/README.md).
 
 A fresh database is ready for development with:
 
 ```sh
-pnpm services:up && pnpm db:bootstrap && pnpm db:migrate && pnpm db:seed && pnpm db:rebuild-read-models
+pnpm services:up && pnpm db:bootstrap && pnpm db:migrate && pnpm db:import-core-data && pnpm db:seed-dummy-data
 ```
 
 The dev scripts start the database but deliberately do not migrate it: applying migrations is not
@@ -276,9 +277,16 @@ job:
 pnpm --filter @fphd/operations cli db bootstrap             # create the per-API login roles
 pnpm --filter @fphd/operations cli db migrate               # apply pending migrations
 pnpm --filter @fphd/operations cli db status                # report migration state; non-zero if blocked
-pnpm --filter @fphd/operations cli db seed                  # replace all data with the seed
+pnpm --filter @fphd/operations cli db import-core-data      # load required core data (topics)
+pnpm --filter @fphd/operations cli db seed-dummy-data       # replace all dummy data with the seed
 pnpm --filter @fphd/operations cli db rebuild-read-models
+pnpm --filter @fphd/operations cli db reset                 # dev-class only: drop all schema objects
 ```
+
+The `pnpm db:*` root scripts for these are thin wrappers over the same commands, so local and
+deployed run one engine. A first run — local or deployed — is `bootstrap` → `migrate` →
+`import-core-data` → `seed-dummy-data`; a dev-only rebuild from empty is `reset` → `migrate` →
+`import-core-data` → `seed-dummy-data`.
 
 Deployed, the same commands are `node dist/cli.js db migrate` and so on, in the `operations` image.
 That image also carries `psql`, because a database with no public endpoint makes a container inside
@@ -286,16 +294,25 @@ the network the only route to an ad-hoc query. It is version 18, from PostgreSQL
 repository, to match the server — Debian 13 ships 17, and `pg_dump` refuses to run against a newer
 server.
 
-Two commands are worth noting:
+Four commands are worth noting:
 
 - `db bootstrap` is the only bootstrap path: the local compose database (via `pnpm db:bootstrap`),
   CI's integration job and a managed server all create the per-API roles through it. It is
   idempotent — safe against a server where the roles already exist — and it sets the passwords
   every time, so it is also how a credential is rotated.
-- `db seed` rebuilds the read models in the same command, unlike the local `db:seed`/
-  `db:rebuild-read-models` pair. A job runs one command, and a seeded database whose read models
-  are still empty serves an empty site. It refuses to run unless `APP_ENV` is `local`, `test` or
-  `dev`; nothing seeds preview or production.
+- `db import-core-data` loads the required starting data the service relies on — today that is
+  topics, from `packages/db/data/topics.json`. It is idempotent (upserts keyed on stable ids,
+  rows absent from the file are reported rather than deleted) and runs in any environment: this
+  is permanent content preview and production need, not dummy data.
+- `db seed-dummy-data` replaces the dummy data — the committed indicators, observations and the
+  links tying those indicators to topics — and rebuilds the read models, in one command and one
+  transaction. A job runs one command, and a seeded database whose read models are still empty
+  serves an empty site. It refuses to run unless `APP_ENV` is `local`, `test` or `dev`, and fails
+  if topics have not been imported yet: dummy data may depend on core data, never the reverse. The
+  core-data tables are left alone.
+- `db reset` drops all application schema objects (tables, types, the migration watermark) so
+  `db migrate` rebuilds from empty — drop rather than truncate, so it also recovers from a broken
+  migration state. It refuses outside `local`/`test`/`dev` and never touches database roles.
 
 `db bootstrap` needs `PUBLIC_API_PASSWORD` and `INTERNAL_API_PASSWORD`; the other commands do not,
 and fail naming them rather than requiring every job to hold role passwords. All of them connect as
@@ -310,8 +327,10 @@ Deployment lives in the infrastructure repository, which owns the jobs that call
 db bootstrap             # additionally needs PUBLIC_API_PASSWORD and INTERNAL_API_PASSWORD
 db migrate
 db status
-db seed
+db import-core-data
+db seed-dummy-data
 db rebuild-read-models
+db reset
 ```
 
 Required environment, for every command:

@@ -54,3 +54,24 @@ export function createPostgresClient(
 export function createDb(connection: DbConnection): Database {
   return drizzle(createPostgresClient(connection), { schema, casing: 'snake_case' });
 }
+
+/** A Drizzle handle over an already-open client, for callers that own the connection. */
+export function createDbFromClient(client: postgres.Sql): Database {
+  return drizzle(client, { schema, casing: 'snake_case' });
+}
+
+/**
+ * A Drizzle handle over an open transaction, so repository functions can run inside a
+ * transaction the caller composes with other work. The cast is sound for queries — drizzle
+ * executes them through `unsafe`, which a transaction carries — but two limits follow.
+ * The handle's own `transaction()` would call `begin`, which a transaction lacks, so
+ * callers must not start one. And drizzle's constructor writes transparent parsers into
+ * `client.options`, which a transaction does not carry either — result parsing was fixed
+ * by the parent client at connect time — so the throwaway object here satisfies the
+ * constructor but columns drizzle expects raw (timestamps) arrive driver-parsed. Callers
+ * must read only values both parse identically: uuids, integers, text.
+ */
+export function createDbFromTransaction(tx: postgres.TransactionSql): Database {
+  const client = Object.assign(tx, { options: { parsers: {}, serializers: {} } });
+  return drizzle(client as unknown as postgres.Sql, { schema, casing: 'snake_case' });
+}

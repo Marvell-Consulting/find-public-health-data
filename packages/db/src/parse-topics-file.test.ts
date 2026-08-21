@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-
-import type { TopicRecord } from '../schema/index.js';
 import { parseTopicsFile } from './parse-topics-file.js';
+import type { TopicRecord } from './schema/index.js';
 
 const validTopic: TopicRecord = {
   id: '019f93b8-2b47-75d0-b03a-edb28d2d43c6',
