@@ -1,6 +1,6 @@
 import 'accessible-autocomplete/dist/accessible-autocomplete.min.css';
 
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 export interface AutocompleteOption {
   value: string;
@@ -15,6 +15,9 @@ interface AutocompleteProps {
    * keystroke has made stale.
    */
   source: (query: string, signal: AbortSignal) => Promise<AutocompleteOption[]>;
+  /** Submitted with the parent form, so the input works as a plain search field too. */
+  name: string;
+  defaultValue?: string;
   /** Most suggestions worth showing at once; the rest stay behind a narrower query. */
   limit?: number;
 }
@@ -31,18 +34,28 @@ function escapeHtml(text: string): string {
 }
 
 /**
- * GOV.UK's accessible-autocomplete over a server-side search. The library owns the
- * combobox behaviour, the "No results found" message and the assistive-technology status
- * announcements; this wraps it for React and adds the debounce its async source is
- * expected to bring. Its bundle touches `self` at module scope, so it is imported only
- * in the browser — the server renders the label and an empty mount point, which is all
- * a no-script visitor got from the previous implementation too.
+ * GOV.UK's accessible-autocomplete over a server-side search, as an enhancement: the
+ * server renders a real search input that submits with its parent form, and the library
+ * replaces it on mount, keeping the same id and name so the label and the form keep
+ * working. Without JavaScript the plain input remains and the form round-trips the
+ * search to the server. The library owns the combobox behaviour, the "No results found"
+ * message and the assistive-technology status announcements; this wrapper adds the
+ * debounce its async source is expected to bring. Its bundle touches `self` at module
+ * scope, so it is imported only in the browser.
  */
-export function Autocomplete({ label, onSelect, source, limit = 10 }: AutocompleteProps) {
+export function Autocomplete({
+  label,
+  onSelect,
+  source,
+  name,
+  defaultValue = '',
+  limit = 10,
+}: AutocompleteProps) {
   // The library builds its own input carrying this id; colons would break the CSS
   // selectors it uses internally.
   const inputId = `fphd-autocomplete-${useId().replace(/[^a-zA-Z0-9-]/g, '')}`;
   const containerRef = useRef<HTMLDivElement>(null);
+  const [enhanced, setEnhanced] = useState(false);
   // Kept current so the mount-once effect never holds stale props.
   const callbacks = useRef({ onSelect, source });
   callbacks.current = { onSelect, source };
@@ -63,6 +76,8 @@ export function Autocomplete({ label, onSelect, source, limit = 10 }: Autocomple
       accessibleAutocomplete<AutocompleteOption>({
         element: container,
         id: inputId,
+        name,
+        defaultValue,
         minLength: 2,
         source: (query, populateResults) => {
           clearTimeout(timer);
@@ -95,6 +110,9 @@ export function Autocomplete({ label, onSelect, source, limit = 10 }: Autocomple
         },
         tNoResults: () => 'No indicators found',
       });
+      // Swapping state after the library has rendered means an input is always on the
+      // page: the fallback leaves in the same paint its replacement arrives in.
+      setEnhanced(true);
     });
 
     return () => {
@@ -103,7 +121,7 @@ export function Autocomplete({ label, onSelect, source, limit = 10 }: Autocomple
       controller?.abort();
       container.innerHTML = '';
     };
-  }, [inputId, limit]);
+  }, [inputId, name, defaultValue, limit]);
 
   return (
     <div className="govuk-form-group fphd-autocomplete">
@@ -111,6 +129,15 @@ export function Autocomplete({ label, onSelect, source, limit = 10 }: Autocomple
         {label}
       </label>
       <div ref={containerRef} />
+      {enhanced ? null : (
+        <input
+          className="govuk-input"
+          defaultValue={defaultValue}
+          id={inputId}
+          name={name}
+          type="search"
+        />
+      )}
     </div>
   );
 }

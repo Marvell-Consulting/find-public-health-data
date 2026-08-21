@@ -229,6 +229,8 @@ export function IndicatorPage({
             selected={selected}
             areaGroups={areaGroups}
             selection={selection}
+            searchSubject={searchSubject}
+            searchResults={searchResults}
           />
         </GridColumn>
         <GridColumn width="three-quarters">

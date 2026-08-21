@@ -1,9 +1,22 @@
-import { Autocomplete, Button, FilterCard, FilterChip, FilterChips, GeographyTree } from '@fphd/ui';
+import {
+  A,
+  Autocomplete,
+  Button,
+  FilterCard,
+  FilterChip,
+  FilterChips,
+  GeographyTree,
+} from '@fphd/ui';
 import { useCallback, useState } from 'react';
 import { Form, useLocation, useNavigate } from 'react-router';
 import { cleanAreaName, displayGeographyGroups } from './geography-display';
 
-import type { AreaGroup, IndicatorSelection, SelectedIndicator } from './indicator-loader';
+import type {
+  AreaGroup,
+  IndicatorSelection,
+  IndicatorSummary,
+  SelectedIndicator,
+} from './indicator-loader';
 
 /** The query string for a selection, so every control links to a complete page state. */
 export function selectionSearch({
@@ -33,10 +46,14 @@ export function FilterPane({
   selected,
   areaGroups,
   selection,
+  searchSubject = '',
+  searchResults = [],
 }: {
   selected: SelectedIndicator[];
   areaGroups: AreaGroup[];
   selection: IndicatorSelection;
+  searchSubject?: string;
+  searchResults?: IndicatorSummary[];
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -84,6 +101,39 @@ export function FilterPane({
     return raw ? cleanAreaName(raw) : code;
   };
 
+  // Both filter forms are GET forms, so each must carry the whole current selection or
+  // submitting one would drop the other's state.
+  const hiddenSelection = (
+    <>
+      {selection.fingertipsIds.map((id) => (
+        <input key={id} type="hidden" name="is" value={id} />
+      ))}
+      {selection.areaCodes.map((code) => (
+        <input key={code} type="hidden" name="as" value={code} />
+      ))}
+      {selection.areaLevels.map((level) => (
+        <input key={level} type="hidden" name="als" value={level} />
+      ))}
+      {['ci', 'pt', 'sex'].map((key) => {
+        const value = current.get(key);
+        return value ? <input key={key} type="hidden" name={key} value={value} /> : null;
+      })}
+    </>
+  );
+
+  // Matches from a submitted (no-script) search, offered as add links that keep the
+  // subject so several can be added in a row.
+  const searchMatches = searchResults.filter(
+    ({ fingertipsId }) => !selection.fingertipsIds.includes(fingertipsId),
+  );
+  const addFromSearch = (id: number) => {
+    const params = new URLSearchParams(
+      searchOnly({ selection, fingertipsIds: [...selection.fingertipsIds, id] }),
+    );
+    params.set('searchSubject', searchSubject);
+    return `?${params.toString()}${location.hash}`;
+  };
+
   return (
     <>
       <FilterCard
@@ -113,16 +163,41 @@ export function FilterPane({
           )
         }
         footer={
-          <Autocomplete
-            label="Search for an indicator"
-            source={searchIndicators}
-            onSelect={({ value }) =>
-              void navigateWithTab({
-                selection,
-                fingertipsIds: [...selection.fingertipsIds, Number(value)],
-              })
-            }
-          />
+          <>
+            <Form method="get">
+              {hiddenSelection}
+              <Autocomplete
+                label="Search for an indicator"
+                name="searchSubject"
+                defaultValue={searchSubject}
+                source={searchIndicators}
+                onSelect={({ value }) =>
+                  void navigateWithTab({
+                    selection,
+                    fingertipsIds: [...selection.fingertipsIds, Number(value)],
+                  })
+                }
+              />
+              <Button className="govuk-button--secondary govuk-!-margin-bottom-0" type="submit">
+                Search
+              </Button>
+            </Form>
+            {searchSubject && selected.length > 0 ? (
+              searchMatches.length === 0 ? (
+                <p className="govuk-body govuk-!-margin-top-3 govuk-!-margin-bottom-0">
+                  No indicators found
+                </p>
+              ) : (
+                <ul className="govuk-list govuk-!-margin-top-3 govuk-!-margin-bottom-0">
+                  {searchMatches.map(({ fingertipsId, name }) => (
+                    <li key={fingertipsId}>
+                      <A href={addFromSearch(fingertipsId)}>{name}</A>
+                    </li>
+                  ))}
+                </ul>
+              )
+            ) : null}
+          </>
         }
       />
 
@@ -179,21 +254,7 @@ export function FilterPane({
         }
         footer={
           <Form method="get">
-            {/* The current selection rides along so a submit adds to it rather than
-                replacing it — the tree only carries what is newly ticked. */}
-            {selection.fingertipsIds.map((id) => (
-              <input key={id} type="hidden" name="is" value={id} />
-            ))}
-            {selection.areaCodes.map((code) => (
-              <input key={code} type="hidden" name="as" value={code} />
-            ))}
-            {selection.areaLevels.map((level) => (
-              <input key={level} type="hidden" name="als" value={level} />
-            ))}
-            {['ci', 'pt', 'sex'].map((key) => {
-              const value = current.get(key);
-              return value ? <input key={key} type="hidden" name={key} value={value} /> : null;
-            })}
+            {hiddenSelection}
             <GeographyTree
               groups={displayGeographyGroups(areaGroups)}
               name="as"

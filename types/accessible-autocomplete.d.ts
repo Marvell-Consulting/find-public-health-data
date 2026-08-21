@@ -5,6 +5,8 @@ declare module 'accessible-autocomplete' {
     element: unknown;
     id: string;
     source: (query: string, populateResults: (results: Option[]) => void) => void;
+    name?: string;
+    defaultValue?: string;
     minLength?: number;
     onConfirm?: (confirmed: Option | undefined) => void;
     templates?: {

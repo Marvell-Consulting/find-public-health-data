@@ -80,6 +80,17 @@ describe('loadIndicator', () => {
     expect(get).not.toHaveBeenCalledWith('/api/indicators', expect.anything());
   });
 
+  it('still searches when indicators are already selected, for the no-script form', async () => {
+    const { client, get } = api();
+
+    const result = await loadIndicator(
+      loaderArgs(client, {}, 'http://localhost/indicators?is=108&searchSubject=diabetes'),
+    );
+
+    expect(result.selection.fingertipsIds).toEqual([108]);
+    expect(get).toHaveBeenCalledWith('/api/indicators?q=diabetes&limit=100', expect.anything());
+  });
+
   it('treats the route param as a single selection', async () => {
     const { client, get } = api();
 

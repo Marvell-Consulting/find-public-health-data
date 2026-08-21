@@ -106,19 +106,19 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
       : [DEFAULT_AREA_CODE];
 
   const fingertipsIds = selectedIndicatorIds(url, params.fingertipsId);
-  // The home page's search box lands here with only a subject: matches are offered as
-  // results to pick from, never selected on the user's behalf. The API does the matching —
-  // the full catalogue never travels with the page.
+  // A search subject arrives from the home page's search box or the filter pane's
+  // no-script form: matches are offered as results to pick from, never selected on the
+  // user's behalf. The API does the matching — the full catalogue never travels with
+  // the page.
   const searchSubject = url.searchParams.get('searchSubject')?.trim() ?? '';
-  const searchResults =
-    fingertipsIds.length === 0 && searchSubject
-      ? (
-          await api.get(
-            `/api/indicators?q=${encodeURIComponent(searchSubject)}&limit=100`,
-            indicatorListResponseSchema,
-          )
-        ).indicators
-      : [];
+  const searchResults = searchSubject
+    ? (
+        await api.get(
+          `/api/indicators?q=${encodeURIComponent(searchSubject)}&limit=100`,
+          indicatorListResponseSchema,
+        )
+      ).indicators
+    : [];
 
   const selected = await Promise.all(
     fingertipsIds.map(async (id) => {
