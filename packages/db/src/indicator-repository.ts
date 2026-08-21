@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, asc, eq, ilike, inArray, isNull, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import type { Database } from './client.js';
@@ -48,6 +48,27 @@ export async function listApprovedIndicators(db: Database): Promise<ApprovedIndi
     .from(indicator)
     .where(eq(indicator.status, 'approved'))
     .orderBy(asc(indicator.name));
+}
+
+/** Case-insensitive name search, matches earliest in the name first. */
+export async function searchApprovedIndicators(
+  db: Database,
+  query: string,
+  limit: number,
+): Promise<ApprovedIndicator[]> {
+  // %, _ and \ are LIKE syntax, not search terms.
+  const escaped = query.replace(/[\\%_]/g, '\\$&');
+  return db
+    .select({
+      id: indicator.id,
+      fingertipsId: indicator.fingertipsId,
+      name: indicator.name,
+      status: indicator.status,
+    })
+    .from(indicator)
+    .where(and(eq(indicator.status, 'approved'), ilike(indicator.name, `%${escaped}%`)))
+    .orderBy(sql`position(lower(${query}) in lower(${indicator.name}))`, asc(indicator.name))
+    .limit(limit);
 }
 
 export interface IndicatorSource {

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Link } from 'react-router';
 
 /**
  * The sidebar card the prototype uses for each filter dimension: a grey header carrying
@@ -21,9 +22,9 @@ export function FilterCard({
       <div className="fphd-filter-card__header">
         <h2 className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-0">{title}</h2>
         {onClear ? (
-          <a className="govuk-link govuk-body-s" href={onClear}>
+          <Link className="govuk-link govuk-body-s" to={onClear}>
             Clear all
-          </a>
+          </Link>
         ) : null}
       </div>
       <div className="fphd-filter-card__body">{body}</div>
@@ -50,13 +51,13 @@ export function FilterChip({
   return (
     <div className="fphd-filter-chip" data-value={value}>
       {onRemove ? (
-        <a
+        <Link
           aria-label={`Remove ${removeLabel} filter`}
           className="fphd-filter-chip__remove govuk-link"
-          href={onRemove}
+          to={onRemove}
         >
           ×
-        </a>
+        </Link>
       ) : null}
       <span>{children}</span>
     </div>

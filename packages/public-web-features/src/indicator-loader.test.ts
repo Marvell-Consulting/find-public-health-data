@@ -12,7 +12,7 @@ function api(get = vi.fn()) {
     get: get.getMockImplementation()
       ? get
       : get.mockImplementation((path: string) => {
-          if (path === '/api/indicators') {
+          if (path === '/api/indicators' || path.startsWith('/api/indicators?')) {
             return Promise.resolve({ indicators: [] });
           }
           if (path.startsWith('/api/areas')) {
@@ -50,9 +50,45 @@ describe('loadIndicator', () => {
 
     expect(result.selected).toEqual([]);
     expect(result.selection.fingertipsIds).toEqual([]);
-    // The area list and the pickable indicators are still needed to render the filters.
+    // The area list is still needed to render the filters; the indicator catalogue is
+    // not — the autocomplete searches server-side on demand.
     expect(get).toHaveBeenCalledWith('/api/areas?area_type=England', expect.anything());
-    expect(get).toHaveBeenCalledWith('/api/indicators', expect.anything());
+    expect(get).not.toHaveBeenCalledWith('/api/indicators', expect.anything());
+  });
+
+  it('asks the api to match a search subject instead of fetching the catalogue', async () => {
+    const get = vi.fn().mockImplementation((path: string) => {
+      if (path.startsWith('/api/indicators?q=')) {
+        return Promise.resolve({
+          indicators: [
+            { id: 'a', fingertipsId: 241, name: 'Diabetes: QOF prevalence', status: 'approved' },
+          ],
+        });
+      }
+      if (path.startsWith('/api/areas')) {
+        return Promise.resolve([{ areaType: 'England', areas: [] }]);
+      }
+      return Promise.resolve({ areaTypes: [] });
+    });
+
+    const result = await loadIndicator(
+      loaderArgs(api(get).client, {}, 'http://localhost/indicators?searchSubject=diabetes'),
+    );
+
+    expect(get).toHaveBeenCalledWith('/api/indicators?q=diabetes&limit=100', expect.anything());
+    expect(result.searchResults.map(({ fingertipsId }) => fingertipsId)).toEqual([241]);
+    expect(get).not.toHaveBeenCalledWith('/api/indicators', expect.anything());
+  });
+
+  it('still searches when indicators are already selected, for the no-script form', async () => {
+    const { client, get } = api();
+
+    const result = await loadIndicator(
+      loaderArgs(client, {}, 'http://localhost/indicators?is=108&searchSubject=diabetes'),
+    );
+
+    expect(result.selection.fingertipsIds).toEqual([108]);
+    expect(get).toHaveBeenCalledWith('/api/indicators?q=diabetes&limit=100', expect.anything());
   });
 
   it('treats the route param as a single selection', async () => {

@@ -42,6 +42,33 @@ describe('public API against the seeded database', () => {
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
   });
 
+  it('searches by name when q is given', async () => {
+    const response = await request(createApp({ repositories })).get('/api/indicators?q=diabetes');
+
+    expect(response.status).toBe(200);
+    expect(response.body.indicators.length).toBeGreaterThanOrEqual(2);
+    expect(response.body.indicators[0].name).toBe('Diabetes: QOF prevalence');
+    expect(
+      response.body.indicators.every((i: { name: string }) =>
+        i.name.toLowerCase().includes('diabetes'),
+      ),
+    ).toBe(true);
+  });
+
+  it('caps search results at the requested limit', async () => {
+    const response = await request(createApp({ repositories })).get('/api/indicators?q=a&limit=2');
+
+    expect(response.status).toBe(200);
+    expect(response.body.indicators).toHaveLength(2);
+  });
+
+  it('ignores a blank q and returns the full list', async () => {
+    const response = await request(createApp({ repositories })).get('/api/indicators?q=++');
+
+    expect(response.status).toBe(200);
+    expect(response.body.indicators).toHaveLength(13);
+  });
+
   it('does not list indicators that are not approved', async () => {
     const inserted = await owner`
       INSERT INTO indicator
