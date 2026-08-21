@@ -74,10 +74,9 @@ export async function importCoreData({ sql, logger }: CommandContext): Promise<v
 
 /**
  * Seeds, imports the dummy indicator relationships and rebuilds the read models in one
- * command and one transaction, unlike the local multi-script history: a job runs one
- * command, and a seeded database whose read models are still empty serves an empty site.
- * One commit for all of it, so readers never see a partial state mid-run and any failure
- * rolls the whole seed back.
+ * command and one transaction: a job runs one command, and a seeded database whose read
+ * models are still empty serves an empty site. One commit for all of it, so readers never
+ * see a partial state mid-run and any failure rolls the whole seed back.
  *
  * Core data must already be imported — the relationships reference topics by id, and dummy
  * data may depend on core data, never the reverse.
