@@ -29,8 +29,19 @@ export async function importCoreData(sql: postgres.Sql): Promise<UpsertResult> {
  * drop every link.
  */
 export async function assertCoreDataPresent(sql: postgres.Sql): Promise<void> {
-  const [row] = await sql<{ count: number }[]>`SELECT count(*)::int AS count FROM topic`;
-  if ((row?.count ?? 0) === 0) {
+  let count: number;
+  try {
+    const [row] = await sql<{ count: number }[]>`SELECT count(*)::int AS count FROM topic`;
+    count = row?.count ?? 0;
+  } catch (error) {
+    // undefined_table: the guard's job is a clear next step, and an unmigrated database
+    // deserves one as much as an unimported one does.
+    if ((error as { code?: string }).code === '42P01') {
+      throw new Error('No topic table in the database — run `db migrate` before seeding');
+    }
+    throw error;
+  }
+  if (count === 0) {
     throw new Error('No topics in the database — run `db import-core-data` before seeding');
   }
 }
