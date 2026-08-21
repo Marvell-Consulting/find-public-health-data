@@ -317,3 +317,39 @@ jobs:
               exit 1
             fi
           done
+
+  # Runs only on push to main: the webhook secret must never be available to
+  # pull_request jobs. Not in all-checks-pass's needs — it gates nothing, and
+  # would sit skipped (not success) on the runs the gate checks.
+  notify-ci-failure:
+    name: Notify CI failure
+    needs: [all-checks-pass]
+    # Success is silent — a green run on main is the expected state, and the
+    # publish run posts the message that marks the commit landing.
+    if: ${{ always() && github.event_name == 'push' && needs.all-checks-pass.result != 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # Through env and jq, never interpolated: the text carries the commit message.
+      - name: Compose the message
+        env:
+          RESULT: ${{ needs.all-checks-pass.result }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          case "${RESULT}" in
+            cancelled) icon=":warning:" ;;
+            *) icon=":x:" ;;
+          esac
+          subject=${COMMIT_MESSAGE%%$'\n'*}
+          subject=$(sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' <<<"${subject}")
+          text="${icon} *${GITHUB_REPOSITORY#*/}* CI on main: ${RESULT} — ${subject} — <${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|run>"
+          jq --null-input --arg text "${text}" '{text: $text}' > "${RUNNER_TEMP}/slack-payload.json"
+
+      - name: Post to Slack
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload-file-path: ${{ runner.temp }}/slack-payload.json
+          # Fail the job if the post fails — a silent channel must not look healthy.
+          errors: true
