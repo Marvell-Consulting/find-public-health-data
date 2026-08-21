@@ -1,10 +1,10 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import 'accessible-autocomplete/dist/accessible-autocomplete.min.css';
+
+import { useEffect, useId, useRef } from 'react';
 
 export interface AutocompleteOption {
   value: string;
   label: string;
-  /** Secondary text shown after the label, e.g. the group an area belongs to. */
-  hint?: string;
 }
 
 interface AutocompleteProps {
@@ -12,8 +12,7 @@ interface AutocompleteProps {
   onSelect: (option: AutocompleteOption) => void;
   /**
    * Asked for suggestions once typing pauses; the signal aborts a request the next
-   * keystroke has made stale. Must be referentially stable (useCallback in the caller),
-   * or every render restarts the in-flight search.
+   * keystroke has made stale.
    */
   source: (query: string, signal: AbortSignal) => Promise<AutocompleteOption[]>;
   /** Most suggestions worth showing at once; the rest stay behind a narrower query. */
@@ -23,130 +22,95 @@ interface AutocompleteProps {
 // Long enough to spare the server a request per keystroke, short enough to feel live.
 const SEARCH_DEBOUNCE_MS = 300;
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 /**
- * A type-ahead over a server-side search, following the ARIA combobox pattern the GOV.UK
- * accessible-autocomplete implements. Written here rather than pulled in as a dependency
- * because the component has to render identically on the server.
+ * GOV.UK's accessible-autocomplete over a server-side search. The library owns the
+ * combobox behaviour, the "No results found" message and the assistive-technology status
+ * announcements; this wraps it for React and adds the debounce its async source is
+ * expected to bring. Its bundle touches `self` at module scope, so it is imported only
+ * in the browser — the server renders the label and an empty mount point, which is all
+ * a no-script visitor got from the previous implementation too.
  */
 export function Autocomplete({ label, onSelect, source, limit = 10 }: AutocompleteProps) {
-  const inputId = useId();
-  const listId = useId();
-  const [query, setQuery] = useState('');
-  const [matches, setMatches] = useState<AutocompleteOption[]>([]);
-  const [open, setOpen] = useState(false);
-  const [active, setActive] = useState(-1);
-  const blurTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // The library builds its own input carrying this id; colons would break the CSS
+  // selectors it uses internally.
+  const inputId = `fphd-autocomplete-${useId().replace(/[^a-zA-Z0-9-]/g, '')}`;
+  const containerRef = useRef<HTMLDivElement>(null);
+  // Kept current so the mount-once effect never holds stale props.
+  const callbacks = useRef({ onSelect, source });
+  callbacks.current = { onSelect, source };
 
   useEffect(() => {
-    const trimmed = query.trim();
-    if (!trimmed) {
-      setMatches([]);
-      setActive(-1);
+    const container = containerRef.current;
+    if (!container) {
       return;
     }
-    const controller = new AbortController();
-    const timer = setTimeout(() => {
-      void source(trimmed, controller.signal).then(
-        (results) => {
-          if (!controller.signal.aborted) {
-            setMatches(results.slice(0, limit));
-            setActive(-1);
+    let unmounted = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let controller: AbortController | undefined;
+
+    void import('accessible-autocomplete').then(({ default: accessibleAutocomplete }) => {
+      if (unmounted) {
+        return;
+      }
+      accessibleAutocomplete<AutocompleteOption>({
+        element: container,
+        id: inputId,
+        minLength: 2,
+        source: (query, populateResults) => {
+          clearTimeout(timer);
+          controller?.abort();
+          const own = new AbortController();
+          controller = own;
+          timer = setTimeout(() => {
+            void callbacks.current.source(query.trim(), own.signal).then(
+              (results) => {
+                if (!own.signal.aborted) {
+                  populateResults(results.slice(0, limit));
+                }
+              },
+              () => {
+                // Aborted by a newer keystroke, or failed: what is showing stays showing.
+              },
+            );
+          }, SEARCH_DEBOUNCE_MS);
+        },
+        templates: {
+          // Suggestion templates are injected as HTML; names are data, not markup. The
+          // input clears after a choice — choosing navigates, it does not fill a field.
+          suggestion: (option) => (option ? escapeHtml(option.label) : ''),
+          inputValue: () => '',
+        },
+        onConfirm: (option) => {
+          if (option) {
+            callbacks.current.onSelect(option);
           }
         },
-        () => {
-          // Aborted by a newer keystroke, or failed: what is showing stays showing.
-        },
-      );
-    }, SEARCH_DEBOUNCE_MS);
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [query, source, limit]);
+        tNoResults: () => 'No indicators found',
+      });
+    });
 
-  const choose = (option: AutocompleteOption) => {
-    onSelect(option);
-    setQuery('');
-    setMatches([]);
-    setOpen(false);
-    setActive(-1);
-  };
+    return () => {
+      unmounted = true;
+      clearTimeout(timer);
+      controller?.abort();
+      container.innerHTML = '';
+    };
+  }, [inputId, limit]);
 
   return (
     <div className="govuk-form-group fphd-autocomplete">
       <label className="govuk-label govuk-!-font-weight-bold" htmlFor={inputId}>
         {label}
       </label>
-      <input
-        // Names the highlighted option so assistive technology announces it as the arrow
-        // keys move through the list.
-        aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
-        aria-autocomplete="list"
-        aria-controls={listId}
-        aria-expanded={open && matches.length > 0}
-        autoComplete="off"
-        className="govuk-input"
-        id={inputId}
-        onBlur={() => {
-          // A click on a suggestion blurs the input before it fires, so closing waits.
-          blurTimer.current = setTimeout(() => setOpen(false), 150);
-        }}
-        onChange={(event) => {
-          setQuery(event.currentTarget.value);
-          setOpen(true);
-          setActive(-1);
-        }}
-        onFocus={() => clearTimeout(blurTimer.current)}
-        onKeyDown={(event) => {
-          if (matches.length === 0) {
-            return;
-          }
-          if (event.key === 'ArrowDown') {
-            event.preventDefault();
-            setActive((current) => (current + 1) % matches.length);
-          } else if (event.key === 'ArrowUp') {
-            event.preventDefault();
-            setActive((current) => (current <= 0 ? matches.length - 1 : current - 1));
-          } else if (event.key === 'Enter') {
-            const option = matches[active] ?? matches[0];
-            if (option) {
-              event.preventDefault();
-              choose(option);
-            }
-          } else if (event.key === 'Escape') {
-            setOpen(false);
-          }
-        }}
-        role="combobox"
-        type="text"
-        value={query}
-      />
-      {open && matches.length > 0 ? (
-        // The ARIA combobox pattern puts the listbox and its options on non-interactive
-        // elements, with the input owning focus and keyboard handling throughout. The
-        // linter's generic advice does not apply to it.
-        <div className="fphd-autocomplete__menu" id={listId} role="listbox">
-          {matches.map((option, index) => (
-            // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard selection is handled on the combobox input, per the ARIA pattern.
-            // biome-ignore lint/a11y/useFocusableInteractive: focus stays on the input; options are referenced by aria-activedescendant.
-            <div
-              aria-selected={index === active}
-              className={`fphd-autocomplete__option${index === active ? ' fphd-autocomplete__option--active' : ''}`}
-              id={`${listId}-${index}`}
-              key={option.value}
-              onClick={() => choose(option)}
-              onMouseDown={(event) => event.preventDefault()}
-              onMouseEnter={() => setActive(index)}
-              role="option"
-            >
-              {option.label}
-              {option.hint ? (
-                <span className="fphd-autocomplete__group"> ({option.hint})</span>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      ) : null}
+      <div ref={containerRef} />
     </div>
   );
 }
