@@ -138,3 +138,56 @@ jobs:
             echo "${REFERENCE}"
             echo '```'
           } >> "${GITHUB_STEP_SUMMARY}"
+
+  # One Slack message per run, never one per matrix leg. Per-app conclusions come
+  # from the jobs API because needs.publish.result collapses the matrix to one
+  # value — and the partial publish (fail-fast: false) is the case worth spelling
+  # out, since the registry is then a mixed set under `latest`.
+  notify:
+    name: Notify publish outcome
+    needs: [publish]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      # For reading this run's jobs; no id-token — this job talks to Slack, not Azure.
+      actions: read
+    steps:
+      # Through env and jq, never interpolated: the text carries the commit message.
+      - name: Compose the message
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          jobs=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" \
+            --jq '[.jobs[] | select(.name | startswith("Publish ")) | {app: (.name | ltrimstr("Publish ")), conclusion}]')
+          total=$(jq length <<<"${jobs}")
+          published=$(jq '[.[] | select(.conclusion == "success")] | length' <<<"${jobs}")
+          if [ "${total}" -eq 0 ]; then
+            echo '::error::found no publish jobs in this run'
+            exit 1
+          fi
+          mixed=''
+          if [ "${published}" -eq "${total}" ]; then
+            headline=":white_check_mark: Published all ${total} images"
+          elif [ "${published}" -eq 0 ]; then
+            headline=":x: Publish failed — no images pushed"
+          else
+            headline=":warning: PARTIAL publish (${published}/${total})"
+            mixed=" — \`latest\` is now a mixed set"
+          fi
+          subject=${COMMIT_MESSAGE%%$'\n'*}
+          subject=$(sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' <<<"${subject}")
+          text="${headline} for \`${GITHUB_SHA}\` ${subject}${mixed} — <${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|run>"
+          text+=$'\n'"$(jq -r '.[] | "• \(.app): \(.conclusion)"' <<<"${jobs}")"
+          jq --null-input --arg text "${text}" '{text: $text}' > "${RUNNER_TEMP}/slack-payload.json"
+
+      - name: Post to Slack
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload-file-path: ${{ runner.temp }}/slack-payload.json
+          # Fail the job if the post fails — a silent channel must not look healthy.
+          errors: true
