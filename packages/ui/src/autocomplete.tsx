@@ -68,6 +68,10 @@ export function Autocomplete({
     let unmounted = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let controller: AbortController | undefined;
+    // The library has no in-flight state: with an empty option list it shows tNoResults
+    // even while a search is running. Tracking the request here keeps that message
+    // truthful — "Loading results" until the response says there are none.
+    let searching = false;
 
     void import('accessible-autocomplete').then(({ default: accessibleAutocomplete }) => {
       if (unmounted) {
@@ -84,15 +88,22 @@ export function Autocomplete({
           controller?.abort();
           const own = new AbortController();
           controller = own;
+          searching = true;
           timer = setTimeout(() => {
             void callbacks.current.source(query.trim(), own.signal).then(
               (results) => {
                 if (!own.signal.aborted) {
+                  searching = false;
                   populateResults(results.slice(0, limit));
                 }
               },
               () => {
-                // Aborted by a newer keystroke, or failed: what is showing stays showing.
+                // An aborted request belongs to a newer keystroke, which now owns the
+                // menu. A real failure settles as an honest empty result.
+                if (!own.signal.aborted) {
+                  searching = false;
+                  populateResults([]);
+                }
               },
             );
           }, SEARCH_DEBOUNCE_MS);
@@ -108,7 +119,8 @@ export function Autocomplete({
             callbacks.current.onSelect(option);
           }
         },
-        tNoResults: () => 'No indicators found',
+        tNoResults: () => (searching ? 'Loading results' : 'No indicators found'),
+        tStatusNoResults: () => (searching ? 'Loading results' : 'No indicators found'),
       });
       // Swapping state after the library has rendered means an input is always on the
       // page: the fallback leaves in the same paint its replacement arrives in.

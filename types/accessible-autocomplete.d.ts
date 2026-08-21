@@ -14,6 +14,7 @@ declare module 'accessible-autocomplete' {
       suggestion?: (suggestion?: Option) => string;
     };
     tNoResults?: () => string;
+    tStatusNoResults?: () => string;
     showNoOptionsFound?: boolean;
     displayMenu?: 'inline' | 'overlay';
   }
