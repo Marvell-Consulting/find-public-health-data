@@ -21,6 +21,9 @@ export function AppDocument({ children }: AppDocumentProps) {
       <body className="govuk-template__body" suppressHydrationWarning>
         <script
           nonce={nonce}
+          // The CSP blanks the nonce attribute in the DOM, so hydration can never see it
+          // match the real value both renders agree on.
+          suppressHydrationWarning
           // GOV.UK Frontend uses these classes to progressively enhance interactive components.
           dangerouslySetInnerHTML={{
             __html:
