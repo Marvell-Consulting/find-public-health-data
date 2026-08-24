@@ -34,7 +34,6 @@ export function AppShell({ audience, children, navigation }: AppShellProps) {
 
   return (
     <GovUKPage
-      maxContentsWidth={1400}
       meta={footerLinks}
       navigation={navigation}
       phase={isInternal ? 'Internal' : 'Alpha'}
