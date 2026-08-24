@@ -102,9 +102,9 @@ export interface CreateTestDatabaseOptions {
   /**
    * `schema` (the default) is migrated and empty — ask for it unless the test asserts
    * something about the committed seed. `seeded` additionally has the seed loaded and the
-   * read models rebuilt.
+   * read models rebuilt. `unmigrated` is a fresh database with no migrations applied.
    */
-  template?: TestTemplate;
+  template?: TestTemplate | 'unmigrated';
 }
 
 /**
@@ -117,9 +117,14 @@ export async function createTestDatabase({
   const name = `${TEST_DATABASE_PREFIX}${randomBytes(6).toString('hex')}`;
   const admin = createOwnerClient('postgres');
   try {
-    await withCopyLock(admin, () =>
-      admin.unsafe(`CREATE DATABASE "${name}" TEMPLATE "${TEMPLATES[template]}"`),
-    );
+    if (template === 'unmigrated') {
+      // Nothing else connects to the default template, so no need to queue for the lock.
+      await admin.unsafe(`CREATE DATABASE "${name}"`);
+    } else {
+      await withCopyLock(admin, () =>
+        admin.unsafe(`CREATE DATABASE "${name}" TEMPLATE "${TEMPLATES[template]}"`),
+      );
+    }
   } finally {
     await admin.end();
   }

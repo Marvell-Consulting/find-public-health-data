@@ -55,7 +55,13 @@ export function createDb(connection: DbConnection): Database {
   return drizzle(createPostgresClient(connection), { schema, casing: 'snake_case' });
 }
 
-/** A Drizzle handle over an already-open client, for callers that own the connection. */
+/**
+ * A Drizzle handle over an already-open client, for callers that own the connection.
+ * Constructing it mutates the client: drizzle writes transparent date/time parsers into
+ * `client.options`, so from then on raw queries on the same client return timestamp and
+ * date columns as strings, not Dates. Raw readers of date/time columns on a shared client
+ * must cast (`::text`) and parse explicitly.
+ */
 export function createDbFromClient(client: postgres.Sql): Database {
   return drizzle(client, { schema, casing: 'snake_case' });
 }
@@ -67,11 +73,14 @@ export function createDbFromClient(client: postgres.Sql): Database {
  * The handle's own `transaction()` would call `begin`, which a transaction lacks, so
  * callers must not start one. And drizzle's constructor writes transparent parsers into
  * `client.options`, which a transaction does not carry either — result parsing was fixed
- * by the parent client at connect time — so the throwaway object here satisfies the
- * constructor but columns drizzle expects raw (timestamps) arrive driver-parsed. Callers
- * must read only values both parse identically: uuids, integers, text.
+ * by the parent client at connect time — so a facade over the transaction gives the
+ * constructor a throwaway options bag to write into, leaving the caller's `tx` untouched,
+ * but columns drizzle expects raw (timestamps) arrive driver-parsed. Callers must read
+ * only values both parse identically: uuids, integers, text.
  */
 export function createDbFromTransaction(tx: postgres.TransactionSql): Database {
-  const client = Object.assign(tx, { options: { parsers: {}, serializers: {} } });
-  return drizzle(client as unknown as postgres.Sql, { schema, casing: 'snake_case' });
+  const facade = Object.assign(Object.create(tx), {
+    options: { parsers: {}, serializers: {} },
+  });
+  return drizzle(facade as postgres.Sql, { schema, casing: 'snake_case' });
 }

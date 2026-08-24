@@ -9,14 +9,13 @@ import { dbEnvFields, resolveDbTls } from '../env.js';
 
 const repoEnvFile = fileURLToPath(new URL('../../../../.env', import.meta.url));
 
-// Test-harness connections run as the database owner role, like drizzle-kit and the
-// operations CLI. Values already present in the environment win over the repo .env
-// file. `database` overrides POSTGRES_DB for maintenance and test targets.
-export function createOwnerClient(database?: string): postgres.Sql {
+// The owner-role connection settings: the repo .env file, with values already present in
+// the environment winning over it.
+export function loadOwnerEnv() {
   if (existsSync(repoEnvFile)) {
     process.loadEnvFile(repoEnvFile);
   }
-  const env = parseEnv(
+  return parseEnv(
     z.object({
       ...dbEnvFields,
       ...appEnvFields,
@@ -25,6 +24,13 @@ export function createOwnerClient(database?: string): postgres.Sql {
     }),
     process.env,
   );
+}
+
+// Test-harness connections run as the database owner role, like drizzle-kit and the
+// operations CLI. `database` overrides POSTGRES_DB for maintenance and test targets.
+// `max: 1` because `db migrate` binds its advisory lock to a single session.
+export function createOwnerClient(database?: string): postgres.Sql {
+  const env = loadOwnerEnv();
   return createPostgresClient(
     {
       host: env.DB_HOST,
