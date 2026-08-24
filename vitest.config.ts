@@ -2,10 +2,6 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    // Copying a template database is quick but not instant, and copies queue behind one
-    // another. Set explicitly so the integration tier's beforeAll has room; it is not
-    // load-bearing — nothing retries against it.
-    hookTimeout: 60_000,
     // Runs once per vitest invocation; a no-op unless INTEGRATION_DB=1 (set by
     // test:integration), where it builds the template databases.
     globalSetup: ['./vitest.global-setup.ts'],
