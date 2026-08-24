@@ -145,8 +145,10 @@ function readDummyRelationships(): IndicatorTopicFile {
 export async function seedDummyTables(
   tx: postgres.TransactionSql,
 ): Promise<IndicatorTopicImportSummary> {
+  // Read before any database work, so a bad file fails while the transaction has done nothing.
+  const relationships = readDummyRelationships();
   await seedTables(tx);
-  return applyIndicatorTopics(createDbFromTransaction(tx), readDummyRelationships());
+  return applyIndicatorTopics(createDbFromTransaction(tx), relationships);
 }
 
 async function seedTables(tx: postgres.TransactionSql): Promise<void> {

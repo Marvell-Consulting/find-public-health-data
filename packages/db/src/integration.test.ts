@@ -1,7 +1,7 @@
 import type postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { rebuildReadModels } from './read-models.js';
+import { READ_MODEL_TABLES, rebuildReadModels } from './read-models.js';
 import { createOwnerClient } from './scripts/owner-client.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
 
@@ -135,7 +135,7 @@ describe('bridge/registry schema', () => {
 
   it('rebuilds populated read models', async () => {
     await rebuildReadModels(sql);
-    for (const table of ['latest_headline', 'available_data', 'indicator_dimension_values']) {
+    for (const table of READ_MODEL_TABLES) {
       const rows = await sql.unsafe(`SELECT count(*)::int AS count FROM "${table}"`);
       expect(Number(rows[0]?.count), table).toBeGreaterThan(0);
     }
