@@ -118,14 +118,38 @@ describe('db reset (integration)', () => {
     try {
       const context = testContext(sql, seeded.name, 'test');
 
+      // Stand-ins for anything a future migration might create, of object kinds the old
+      // per-kind sweep did not know: recreating the schema removes them by construction.
+      await sql`CREATE FUNCTION reset_probe() RETURNS int LANGUAGE sql AS 'SELECT 1'`;
+      await sql`CREATE AGGREGATE reset_probe_agg(int) (SFUNC = int4pl, STYPE = int)`;
+      await sql`CREATE TYPE reset_probe_range AS RANGE (subtype = int4)`;
+
       await reset(context);
       expect(await sql`SELECT tablename FROM pg_tables WHERE schemaname = 'public'`).toHaveLength(
         0,
       );
+      expect(await sql`SELECT 1 FROM pg_proc WHERE proname LIKE 'reset_probe%'`).toHaveLength(0);
+      expect(await sql`SELECT 1 FROM pg_type WHERE typname LIKE 'reset_probe%'`).toHaveLength(0);
       const [drizzleSchema] = await sql<{ present: boolean }[]>`
           SELECT to_regnamespace('drizzle') IS NOT NULL AS present
         `;
       expect(drizzleSchema?.present).toBe(false);
+
+      // The recreated public schema must match a freshly created database's: owned by
+      // pg_database_owner, USAGE granted to PUBLIC (grantee 0) — the APIs connect through
+      // that default, and nothing later in the rebuild would restore it.
+      const [publicSchema] = await sql<{ owner: string; public_usage: boolean }[]>`
+          SELECT
+            pg_get_userbyid(nspowner) AS owner,
+            EXISTS (
+              SELECT 1 FROM aclexplode(nspacl) a
+              WHERE a.grantee = 0 AND a.privilege_type = 'USAGE'
+            ) AS public_usage
+          FROM pg_namespace
+          WHERE nspname = 'public'
+        `;
+      expect(publicSchema?.owner).toBe('pg_database_owner');
+      expect(publicSchema?.public_usage).toBe(true);
 
       await resolveCommand(['db', 'migrate']).run(context);
       await importCoreData(context);

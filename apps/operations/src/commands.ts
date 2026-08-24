@@ -57,7 +57,8 @@ export const commands: Record<string, Command> = {
     run: rebuildReadModels,
   },
   'db reset': {
-    description: 'Drop all application schema objects so `db migrate` rebuilds from empty',
+    description:
+      'Reset the database to its freshly created state so `db migrate` rebuilds from empty',
     run: reset,
   },
 };
