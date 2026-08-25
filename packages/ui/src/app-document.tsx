@@ -16,7 +16,7 @@ export function AppDocument({ children }: AppDocumentProps) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
-        <Links />
+        <Links nonce={nonce} />
       </head>
       <body className="govuk-template__body" suppressHydrationWarning>
         <script

@@ -59,6 +59,12 @@ describe('React Router server rendering', () => {
     vi.useRealTimers();
   });
 
+  it('gives React the nonce, so its streamed boundary scripts satisfy the CSP', async () => {
+    await startRequest();
+
+    expect(renderer.options?.nonce).toBe('test-nonce');
+  });
+
   it('clears the abort deadline when streaming finishes', async () => {
     renderer.pipe.mockImplementation((body: NodeJS.EventEmitter) => {
       body.emit('finish');

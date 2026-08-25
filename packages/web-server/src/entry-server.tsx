@@ -36,6 +36,9 @@ export default function handleRequest(
         <ServerRouter context={entryContext} nonce={nonce} url={request.url} />
       </NonceProvider>,
       {
+        // React's own boundary-completion scripts are injected inline as the stream
+        // resolves; without this they carry no nonce and the CSP blocks them.
+        nonce,
         [readyOption]() {
           shellRendered = true;
           const body = new PassThrough();

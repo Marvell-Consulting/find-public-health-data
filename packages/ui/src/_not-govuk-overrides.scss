@@ -25,6 +25,12 @@
   }
 }
 
+// The page width NotGovUK's `maxContentsWidth` would apply as an inline style, which the
+// content security policy forbids.
+.not-govuk-page .govuk-width-container {
+  max-width: 1400px;
+}
+
 .not-govuk-page .govuk-tag {
   background-color: #d2e2f1;
   color: #0f385c;
