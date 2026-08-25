@@ -1,7 +1,3 @@
-import { TZDate } from '@date-fns/tz';
-import { format } from 'date-fns';
-import { enGB } from 'date-fns/locale';
-
 /**
  * Pinned rather than left to the runtime. The web apps render on the server in UTC and
  * hydrate in the browser in the user's local zone, so an unpinned formatter produces a
@@ -9,13 +5,29 @@ import { enGB } from 'date-fns/locale';
  */
 export const DISPLAY_TIME_ZONE = 'Europe/London';
 
-export const DATE_FORMATS = {
-  short: 'd MMM yyyy',
-  long: 'd MMMM yyyy',
-  longWithTime: "d MMMM yyyy 'at' h:mmaaa",
+const dateFormats = {
+  short: new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: DISPLAY_TIME_ZONE,
+  }),
+  long: new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: DISPLAY_TIME_ZONE,
+  }),
 } as const;
 
-export type DateFormat = keyof typeof DATE_FORMATS;
+const timeFormat = new Intl.DateTimeFormat('en-GB', {
+  hour: 'numeric',
+  minute: '2-digit',
+  hour12: true,
+  timeZone: DISPLAY_TIME_ZONE,
+});
+
+export type DateFormat = keyof typeof dateFormats | 'longWithTime';
 
 /**
  * Render an instant in the service's display time zone. Callers keep the machine-readable
@@ -24,5 +36,12 @@ export type DateFormat = keyof typeof DATE_FORMATS;
 export function formatDate(value: Date | string, dateFormat: DateFormat = 'short'): string {
   const instant = typeof value === 'string' ? new Date(value) : value;
 
-  return format(new TZDate(instant, DISPLAY_TIME_ZONE), DATE_FORMATS[dateFormat], { locale: enGB });
+  if (dateFormat === 'longWithTime') {
+    // GOV.UK style writes "12:30pm"; Intl separates the period with a space, so close it up.
+    const time = timeFormat.format(instant).replace(/\s+/g, '').toLowerCase();
+
+    return `${dateFormats.long.format(instant)} at ${time}`;
+  }
+
+  return dateFormats[dateFormat].format(instant);
 }

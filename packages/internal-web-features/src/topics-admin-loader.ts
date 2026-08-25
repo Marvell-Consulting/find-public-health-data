@@ -29,8 +29,9 @@ const FLASH_MESSAGES = {
 
 type FlashKey = keyof typeof FLASH_MESSAGES;
 
+// `in` would also admit inherited keys like 'constructor', turning the lookup into a function.
 function isFlashKey(value: string | undefined): value is FlashKey {
-  return value !== undefined && value in FLASH_MESSAGES;
+  return value !== undefined && Object.hasOwn(FLASH_MESSAGES, value);
 }
 
 export function editTopicPath(id: string): string {

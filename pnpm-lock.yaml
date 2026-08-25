@@ -12,9 +12,6 @@ catalogs:
     '@biomejs/biome':
       specifier: 2.5.9
       version: 2.5.9
-    '@date-fns/tz':
-      specifier: 1.5.0
-      version: 1.5.0
     '@not-govuk/back-link':
       specifier: 0.18.1
       version: 0.18.1
@@ -102,9 +99,6 @@ catalogs:
     cross-env:
       specifier: 10.1.0
       version: 10.1.0
-    date-fns:
-      specifier: 4.4.0
-      version: 4.4.0
     drizzle-kit:
       specifier: 0.31.10
       version: 0.31.10
@@ -726,9 +720,6 @@ importers:
 
   packages/ui:
     dependencies:
-      '@date-fns/tz':
-        specifier: 'catalog:'
-        version: 1.5.0
       '@not-govuk/back-link':
         specifier: 'catalog:'
         version: 0.18.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
@@ -783,9 +774,6 @@ importers:
       accessible-autocomplete:
         specifier: 'catalog:'
         version: 3.0.1
-      date-fns:
-        specifier: 'catalog:'
-        version: 4.4.0
       govuk-frontend:
         specifier: 'catalog:'
         version: 5.14.0
@@ -1157,9 +1145,6 @@ packages:
   '@csstools/css-tokenizer@4.0.0':
     resolution: {integrity: sha512-QxULHAm7cNu72w97JUNCBFODFaXpbDg+dP8b/oWFAZ2MTRppA3U00Y2L1HqaS4J6yBqxwa/Y3nMBaxVKbB/NsA==}
     engines: {node: '>=20.19.0'}
-
-  '@date-fns/tz@1.5.0':
-    resolution: {integrity: sha512-lwYN/vDPeNRULcepoE/LO2Pgx+7/RV+S9ARfbc9lr2DtGkOD7pAiruHvbR1RX3Qyf6ja47EWJDMsNK5vK08DJg==}
 
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
@@ -2533,9 +2518,6 @@ packages:
   data-urls@7.0.0:
     resolution: {integrity: sha512-23XHcCF+coGYevirZceTVD7NdJOqVn+49IHyxgszm+JIiHLoB2TkmPtsYkNWT1pvRSGkc35L6NHs0yHkN2SumA==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
-
-  date-fns@4.4.0:
-    resolution: {integrity: sha512-+1UMbeh68lH1SegH83CGWwpb6OHHbpSgr3+s5Eww5M4CAgswBpoWS0AjTOfEJ33HiYKz1hdj/KTFprzXHmq/6w==}
 
   dateformat@4.6.3:
     resolution: {integrity: sha512-2P0p0pFGzHS5EMnhdxQi7aJN+iMheud0UhG4dlE1DLAlvL8JHjJJTX/CSm4JXwV0Ka5nGk3zC5mcb5bUQUxxMA==}
@@ -3914,8 +3896,6 @@ snapshots:
 
   '@csstools/css-tokenizer@4.0.0': {}
 
-  '@date-fns/tz@1.5.0': {}
-
   '@drizzle-team/brocli@0.10.2': {}
 
   '@emnapi/core@1.11.1':
@@ -5003,8 +4983,6 @@ snapshots:
       whatwg-url: 16.0.1(@noble/hashes@1.8.0)
     transitivePeerDependencies:
       - '@noble/hashes'
-
-  date-fns@4.4.0: {}
 
   dateformat@4.6.3: {}
 

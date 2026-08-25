@@ -1,13 +1,12 @@
 import { requireJwtRole } from '@fphd/api-server';
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
-import type { z } from '@fphd/config/zod';
 import type { Repositories, Topic } from '@fphd/db';
 import { Router } from 'express';
 
 import {
   type TopicAdminDetail,
   type TopicAdminSummary,
-  type TopicFieldErrors,
+  toFieldErrors,
   topicIdSchema,
   topicUpdateSchema,
 } from './contract.js';
@@ -24,24 +23,6 @@ function toSummary({ id, slug, title, createdAt, updatedAt }: Topic): TopicAdmin
 
 function toDetail(topic: Topic): TopicAdminDetail {
   return { ...toSummary(topic), description: topic.description };
-}
-
-/**
- * One message per field — the form shows a single error against a control, and a slug that is
- * both empty and malformed fails two rules at once.
- */
-function toFieldErrors(error: z.ZodError): TopicFieldErrors {
-  const fieldErrors: TopicFieldErrors = {};
-
-  for (const issue of error.issues) {
-    const field = issue.path[0];
-
-    if (typeof field === 'string' && !(field in fieldErrors)) {
-      Object.assign(fieldErrors, { [field]: issue.message });
-    }
-  }
-
-  return fieldErrors;
 }
 
 /**

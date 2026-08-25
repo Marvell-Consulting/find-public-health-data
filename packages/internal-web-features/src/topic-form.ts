@@ -1,6 +1,7 @@
 import {
   type TopicFieldErrors,
   type TopicUpdate,
+  toFieldErrors,
   topicUpdateSchema,
 } from '@fphd/internal-api-features/contract';
 
@@ -33,24 +34,11 @@ export function readTopicForm(formData: FormData): TopicFormValues {
  * The same schema the API applies, run here first so an invalid submission re-renders the
  * form without a round trip — and, with JavaScript off, without one either. The API validates
  * again because it cannot trust a caller.
- *
- * One message per field: a slug that is both empty and malformed breaks two rules, and a
- * control shows one error.
  */
 export function parseTopicForm(formData: FormData): TopicFormResult {
   const result = topicUpdateSchema.safeParse(readTopicForm(formData));
 
-  if (result.success) return { ok: true, values: result.data };
-
-  const fieldErrors: TopicFieldErrors = {};
-
-  for (const issue of result.error.issues) {
-    const field = issue.path[0];
-
-    if (typeof field === 'string' && !(field in fieldErrors)) {
-      Object.assign(fieldErrors, { [field]: issue.message });
-    }
-  }
-
-  return { ok: false, fieldErrors };
+  return result.success
+    ? { ok: true, values: result.data }
+    : { ok: false, fieldErrors: toFieldErrors(result.error) };
 }

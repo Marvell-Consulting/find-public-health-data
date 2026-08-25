@@ -84,11 +84,43 @@ describe('flash middleware', () => {
       handle: (context) => expect(takeFlash(context)).toBe('topic-updated'),
     });
 
-    // The flash was cleared as it was read, so this response must re-commit the emptied
-    // session — otherwise the browser keeps the old cookie and shows the message again.
+    // Taking the message destroyed the cookie, so a browser honouring the response would not
+    // send one again; this simulates one that does anyway.
     await runFlashMiddleware({
       cookie: cookieFrom(first),
       handle: (context) => expect(takeFlash(context)).toBeUndefined(),
+    });
+  });
+
+  it('destroys the cookie on the response that takes the message', async () => {
+    const written = await runFlashMiddleware({
+      handle: (context) => setFlash(context, 'topic-updated'),
+    });
+
+    const taken = await runFlashMiddleware({
+      cookie: cookieFrom(written),
+      handle: (context) => takeFlash(context),
+    });
+
+    const setCookie = taken.headers.get('Set-Cookie') ?? '';
+    expect(setCookie).toContain('fphd-internal-flash=;');
+    expect(setCookie).toContain('Expires=Thu, 01 Jan 1970');
+  });
+
+  // Any request through the app runs this middleware — a second tab, a path falling through
+  // to the catch-all. One of those must not eat the message the redirected page will show.
+  it('leaves the message in place for a request that does not take it', async () => {
+    const written = await runFlashMiddleware({
+      handle: (context) => setFlash(context, 'topic-updated'),
+    });
+
+    const interleaved = await runFlashMiddleware({ cookie: cookieFrom(written) });
+
+    expect(interleaved.headers.has('Set-Cookie')).toBe(false);
+
+    await runFlashMiddleware({
+      cookie: cookieFrom(written),
+      handle: (context) => expect(takeFlash(context)).toBe('topic-updated'),
     });
   });
 

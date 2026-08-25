@@ -95,6 +95,19 @@ function parseOrFail<T>(path: string, schema: z.ZodType<T>, body: unknown): T {
   return result.data;
 }
 
+/**
+ * A body that is not JSON at all — an ingress error page, an empty 200 — is the same boundary
+ * failure as a shape mismatch, so it becomes the same 502 rather than a raw `SyntaxError`
+ * escaping to the error boundary.
+ */
+async function readJson(path: string, response: Response): Promise<unknown> {
+  try {
+    return await response.json();
+  } catch {
+    throw new Response(`Unexpected response from ${path}`, { status: 502 });
+  }
+}
+
 export function createApiClient({
   baseUrl,
   headers = {},
@@ -115,7 +128,7 @@ export function createApiClient({
         throw new Response('Bad Gateway', { status: 502 });
       }
 
-      return parseOrFail(path, schema, await response.json());
+      return parseOrFail(path, schema, await readJson(path, response));
     },
 
     async put(path, body, schema, errorSchema) {
@@ -134,7 +147,7 @@ export function createApiClient({
         return {
           ok: false,
           status: response.status,
-          error: parseOrFail(path, errorSchema, await response.json()),
+          error: parseOrFail(path, errorSchema, await readJson(path, response)),
         };
       }
 
@@ -142,7 +155,7 @@ export function createApiClient({
         throw new Response('Bad Gateway', { status: 502 });
       }
 
-      return { ok: true, data: parseOrFail(path, schema, await response.json()) };
+      return { ok: true, data: parseOrFail(path, schema, await readJson(path, response)) };
     },
   };
 }

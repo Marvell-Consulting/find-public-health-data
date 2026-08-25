@@ -1,3 +1,4 @@
+import { SLUG_PATTERN } from '@fphd/config/slug';
 import { z } from '@fphd/config/zod';
 
 /**
@@ -5,9 +6,9 @@ import { z } from '@fphd/config/zod';
  * routers build responses to these shapes, and the internal web app's loaders and actions
  * parse against them.
  *
- * Like the public contract this module imports nothing but zod, and is exposed on its own
- * subpath, so the web app can depend on it without pulling Express or the database package
- * into its module graph.
+ * Like the public contract this module imports nothing but zod and the shared slug rule, and
+ * is exposed on its own subpath, so the web app can depend on it without pulling Express or
+ * the database package into its module graph.
  *
  * Ids appear here and nowhere in the public contract. A write has to address a topic by
  * something stable, and the slug is the thing being edited.
@@ -28,11 +29,10 @@ export const topicAdminDetailSchema = topicAdminSummarySchema.extend({
   description: z.string(),
 });
 
-export const TOPIC_SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
-
 /**
- * The same rules the import path applies (`topicRecordSchema`), plus the messages a form has
- * to show. Values are trimmed before they are measured, so a name of spaces is empty.
+ * The same rules the import path applies (`topicRecordSchema`, which shares `SLUG_PATTERN`),
+ * plus the messages a form has to show. Values are trimmed before they are measured, so a
+ * name of spaces is empty.
  *
  * Uniqueness is absent deliberately — only the database can settle it, and it comes back from
  * the write as a field error rather than being asked for in advance.
@@ -43,13 +43,32 @@ export const topicUpdateSchema = z.object({
     .string()
     .trim()
     .min(1, 'Enter a slug')
-    .regex(TOPIC_SLUG_PATTERN, 'Slug must be lowercase letters or numbers, separated by hyphens'),
+    .regex(SLUG_PATTERN, 'Slug must be lowercase letters or numbers, separated by hyphens'),
   description: z.string().trim().min(1, 'Enter a description'),
 });
 
 export const topicFieldSchema = z.enum(['title', 'slug', 'description']);
 
 export const topicFieldErrorsSchema = z.partialRecord(topicFieldSchema, z.string());
+
+/**
+ * One message per field: a slug that is both empty and malformed breaks two rules, and a
+ * control shows one error. Defined once here because both sides of the contract render the
+ * same validation — the API for any caller, the form action for a round-trip-free re-render.
+ */
+export function toFieldErrors(error: z.ZodError): TopicFieldErrors {
+  const fieldErrors: TopicFieldErrors = {};
+
+  for (const issue of error.issues) {
+    const field = issue.path[0];
+
+    if (typeof field === 'string' && !Object.hasOwn(fieldErrors, field)) {
+      Object.assign(fieldErrors, { [field]: issue.message });
+    }
+  }
+
+  return fieldErrors;
+}
 
 export const topicUpdateResponseSchema = z.object({
   /** False when the submission matched the stored topic, so nothing was written. */

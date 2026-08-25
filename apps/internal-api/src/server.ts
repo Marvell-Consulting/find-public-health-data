@@ -1,4 +1,5 @@
 import { serverLogging, startServer } from '@fphd/api-server';
+import { sessionCookieName } from '@fphd/auth';
 import { createJwtSessionService, createJwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { createRepositories } from '@fphd/db';
 import { createLogger } from '@fphd/logger';
@@ -19,7 +20,9 @@ startServer({
     session: createJwtSessionVerifier(
       createJwtSessionService({
         audience: 'fphd-internal',
-        cookieName: 'fphd-internal-session',
+        // The helper, not a literal: internal-web forwards this cookie by the same name, and
+        // the two must never drift apart.
+        cookieName: sessionCookieName('internal'),
         issuer: 'fphd-auth',
         ...config.session,
       }),

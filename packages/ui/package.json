@@ -19,7 +19,6 @@
     "react-router": "catalog:"
   },
   "dependencies": {
-    "@date-fns/tz": "catalog:",
     "@not-govuk/back-link": "catalog:",
     "accessible-autocomplete": "catalog:",
     "@not-govuk/button": "catalog:",
@@ -38,7 +37,6 @@
     "@not-govuk/tabs": "0.18.1",
     "@not-govuk/text-input": "catalog:",
     "@not-govuk/textarea": "catalog:",
-    "date-fns": "catalog:",
     "govuk-frontend": "catalog:"
   },
   "devDependencies": {
