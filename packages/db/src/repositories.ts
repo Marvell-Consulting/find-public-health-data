@@ -20,6 +20,10 @@ import {
   searchApprovedIndicators,
 } from './indicator-repository.js';
 import {
+  type CreateTopicResult,
+  createTopic,
+  type DeleteTopicResult,
+  deleteTopic,
   getTopicById,
   getTopicBySlug,
   listTopics,
@@ -51,7 +55,9 @@ export interface TopicRepository {
   list(): Promise<Topic[]>;
   findById(id: string): Promise<Topic | undefined>;
   findBySlug(slug: string): Promise<Topic | undefined>;
+  create(values: TopicUpdate): Promise<CreateTopicResult>;
   update(id: string, values: TopicUpdate): Promise<UpdateTopicResult>;
+  delete(id: string): Promise<DeleteTopicResult>;
 }
 
 /**
@@ -87,7 +93,9 @@ export function createRepositories(db: Database): Repositories {
       list: () => listTopics(db),
       findById: (id) => getTopicById(db, id),
       findBySlug: (slug) => getTopicBySlug(db, slug),
+      create: (values) => createTopic(db, values),
       update: (id, values) => updateTopic(db, id, values),
+      delete: (id) => deleteTopic(db, id),
     },
   };
 }

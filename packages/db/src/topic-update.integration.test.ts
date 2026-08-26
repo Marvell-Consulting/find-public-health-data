@@ -5,7 +5,13 @@ import { createDb, createPostgresClient, type Database } from './client.js';
 import { dbEnvFields, resolveDbTls } from './env.js';
 import type { TopicRecord } from './schema.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
-import { getTopicById, updateTopic, upsertTopics } from './topic-repository.js';
+import {
+  createTopic,
+  deleteTopic,
+  getTopicById,
+  updateTopic,
+  upsertTopics,
+} from './topic-repository.js';
 
 // Its own file, and so its own database: these tests write, and the read-side fixtures in
 // topic-repository.integration.test.ts assert on the exact contents of the table.
@@ -77,6 +83,9 @@ describe('updateTopic', () => {
     const after = await getTopicById(db, topic.id);
     expect(after).toMatchObject(change);
     expect(after?.updatedAt.getTime()).toBeGreaterThan(before?.updatedAt.getTime() ?? 0);
+    // The surrogate key and creation timestamp are the database's; an edit never moves them.
+    expect(after?.id).toBe(topic.id);
+    expect(after?.createdAt).toEqual(before?.createdAt);
   });
 
   it('reports an identical submission as unchanged and leaves updatedAt alone', async () => {
@@ -108,6 +117,52 @@ describe('updateTopic', () => {
   });
 });
 
+describe('createTopic', () => {
+  it('inserts a topic, letting the database mint the id and both timestamps', async () => {
+    const result = await createTopic(db, {
+      slug: 'a-new-topic',
+      title: 'A new topic',
+      description: 'Freshly created.',
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      topic: { slug: 'a-new-topic', title: 'A new topic' },
+    });
+
+    if (result.ok) {
+      expect(result.topic.id).toMatch(/^[0-9a-f-]{36}$/);
+      expect(result.topic.createdAt).toBeInstanceOf(Date);
+      expect(await getTopicById(db, result.topic.id)).toMatchObject({ slug: 'a-new-topic' });
+    }
+  });
+
+  it('reports a slug already held by another topic rather than throwing', async () => {
+    const existing = await givenTopic();
+
+    const result = await createTopic(db, {
+      slug: existing.slug,
+      title: 'Different title',
+      description: 'Different description.',
+    });
+
+    expect(result).toEqual({ ok: false, reason: 'slug_taken' });
+  });
+});
+
+describe('deleteTopic', () => {
+  it('deletes a topic and reports success', async () => {
+    const topic = await givenTopic();
+
+    expect(await deleteTopic(db, topic.id)).toEqual({ ok: true });
+    expect(await getTopicById(db, topic.id)).toBeUndefined();
+  });
+
+  it('reports an unknown id rather than throwing', async () => {
+    expect(await deleteTopic(db, UNKNOWN_ID)).toEqual({ ok: false, reason: 'not_found' });
+  });
+});
+
 describe('the topic write surface', () => {
   function connectAs(role: string, password: string) {
     return createPostgresClient({
@@ -133,25 +188,63 @@ describe('the topic write surface', () => {
     }
   });
 
-  it('does not let internal_api rewrite the key or the creation timestamp', async () => {
-    const topic = await givenTopic();
+  it('lets internal_api insert and delete a topic', async () => {
     const client = connectAs('internal_api', env.INTERNAL_API_PASSWORD);
 
     try {
       await expect(
-        client`UPDATE topic SET created_at = now() WHERE id = ${topic.id}`,
-      ).rejects.toThrow(/permission denied/);
+        client`INSERT INTO topic (slug, title, description) VALUES ('granted-insert', 'Granted insert', 'x')`,
+      ).resolves.toBeDefined();
+      await expect(client`DELETE FROM topic WHERE slug = 'granted-insert'`).resolves.toBeDefined();
     } finally {
       await client.end();
     }
   });
 
-  it('does not let public_api update topics at all', async () => {
+  // The repository through a db connected as internal_api, not the owner: this is what proves
+  // the app's own write path works under the role's grants, which the owner-connected tests
+  // above cannot — the owner can write anything whatever the statement names.
+  it('creates and deletes through the repository connected as internal_api', async () => {
+    const apiDb = createDb({
+      host: env.DB_HOST,
+      port: env.DB_PORT,
+      database: testDb.name,
+      user: 'internal_api',
+      password: env.INTERNAL_API_PASSWORD,
+      ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
+    });
+
+    try {
+      const created = await createTopic(apiDb, {
+        slug: 'internal-api-create',
+        title: 'Internal API create',
+        description: 'Created by the API role.',
+      });
+
+      expect(created).toMatchObject({ ok: true, topic: { slug: 'internal-api-create' } });
+
+      if (created.ok) {
+        expect(created.topic.id).toMatch(/^[0-9a-f-]{36}$/);
+        expect(created.topic.createdAt).toBeInstanceOf(Date);
+        expect(await deleteTopic(apiDb, created.topic.id)).toEqual({ ok: true });
+      }
+    } finally {
+      await apiDb.$client.end();
+    }
+  });
+
+  it('does not let public_api update, insert or delete topics at all', async () => {
     const topic = await givenTopic();
     const client = connectAs('public_api', env.PUBLIC_API_PASSWORD);
 
     try {
       await expect(client`UPDATE topic SET title = 'Nope' WHERE id = ${topic.id}`).rejects.toThrow(
+        /permission denied/,
+      );
+      await expect(
+        client`INSERT INTO topic (slug, title, description) VALUES ('nope', 'Nope', 'x')`,
+      ).rejects.toThrow(/permission denied/);
+      await expect(client`DELETE FROM topic WHERE id = ${topic.id}`).rejects.toThrow(
         /permission denied/,
       );
     } finally {

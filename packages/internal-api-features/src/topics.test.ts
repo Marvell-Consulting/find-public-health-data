@@ -48,8 +48,10 @@ async function publisherCookie(roles: readonly string[] = ['internal', 'publishe
 describe('the internal topics surface', () => {
   const paths = [
     ['get', '/api/internal/topics'],
+    ['post', '/api/internal/topics'],
     ['get', `/api/internal/topics/${topic.id}`],
     ['put', `/api/internal/topics/${topic.id}`],
+    ['delete', `/api/internal/topics/${topic.id}`],
   ] as const;
 
   it.each(paths)('rejects an anonymous %s %s', async (method, path) => {
@@ -85,6 +87,76 @@ describe('GET /api/internal/topics', () => {
         updatedAt: '2026-01-02T00:00:00.000Z',
       },
     ]);
+  });
+});
+
+describe('POST /api/internal/topics', () => {
+  async function post(app: Express, body: unknown) {
+    return request(app)
+      .post('/api/internal/topics')
+      .set('Cookie', await publisherCookie())
+      .send(body as object);
+  }
+
+  it('creates the topic and returns it with the id the database minted', async () => {
+    const app = createTestApp({ create: async () => ({ ok: true, topic }) });
+
+    const response = await post(app, validSubmission);
+
+    expect(response.status).toBe(201);
+    expect(response.body).toEqual({
+      topic: {
+        id: topic.id,
+        slug: 'topic-a',
+        title: 'Topic A',
+        description: 'All about topic A.',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-02T00:00:00.000Z',
+      },
+    });
+  });
+
+  it('trims the submitted values before creating', async () => {
+    let written: unknown;
+    const app = createTestApp({
+      create: async (values) => {
+        written = values;
+        return { ok: true, topic };
+      },
+    });
+
+    await post(app, { title: '  Topic A  ', slug: ' topic-a ', description: ' A description. ' });
+
+    expect(written).toEqual({ title: 'Topic A', slug: 'topic-a', description: 'A description.' });
+  });
+
+  it('rejects an invalid submission with a field message', async () => {
+    const response = await post(createTestApp(), { ...validSubmission, title: '   ' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      error: 'validation_failed',
+      fieldErrors: { title: 'Enter a topic name' },
+    });
+  });
+
+  it('returns a 409 with a slug field message when the slug is taken', async () => {
+    const app = createTestApp({ create: async () => ({ ok: false, reason: 'slug_taken' }) });
+
+    const response = await post(app, validSubmission);
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({
+      error: 'slug_taken',
+      fieldErrors: { slug: 'This slug is already used' },
+    });
+  });
+
+  it('does not reach the repository when the submission is invalid', async () => {
+    // Nothing is stubbed, so any repository call throws and the response would be a 500.
+    const response = await post(createTestApp(), { title: '', slug: '', description: '' });
+
+    expect(response.status).toBe(400);
   });
 });
 
@@ -226,5 +298,52 @@ describe('PUT /api/internal/topics/:id', () => {
     const response = await put(createTestApp(), { title: '', slug: '', description: '' });
 
     expect(response.status).toBe(400);
+  });
+});
+
+describe('DELETE /api/internal/topics/:id', () => {
+  async function del(app: Express, id: string = topic.id) {
+    return request(app)
+      .delete(`/api/internal/topics/${id}`)
+      .set('Cookie', await publisherCookie());
+  }
+
+  it('deletes the topic and answers with an empty 204', async () => {
+    const app = createTestApp({ delete: async () => ({ ok: true }) });
+
+    const response = await del(app);
+
+    expect(response.status).toBe(204);
+    expect(response.body).toEqual({});
+  });
+
+  it('passes the id through to the repository', async () => {
+    let asked: string | undefined;
+    const app = createTestApp({
+      delete: async (id) => {
+        asked = id;
+        return { ok: true };
+      },
+    });
+
+    await del(app);
+
+    expect(asked).toBe(topic.id);
+  });
+
+  it('refuses a malformed id rather than handing it to the database', async () => {
+    const response = await del(createTestApp(), 'not-a-uuid');
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'invalid_id' });
+  });
+
+  it('returns a 404 when the topic has already gone', async () => {
+    const app = createTestApp({ delete: async () => ({ ok: false, reason: 'not_found' }) });
+
+    const response = await del(app);
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: 'not_found' });
   });
 });

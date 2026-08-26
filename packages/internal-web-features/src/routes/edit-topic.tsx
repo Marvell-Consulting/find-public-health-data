@@ -19,6 +19,7 @@ export function EditTopicRoute() {
     <EditTopicPage
       fieldErrors={rejected?.fieldErrors ?? {}}
       notification={notification}
+      topicId={topic.id}
       values={rejected?.values ?? topic}
     />
   );

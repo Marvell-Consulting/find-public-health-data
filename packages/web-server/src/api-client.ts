@@ -35,6 +35,25 @@ export interface ApiClient {
     schema: z.ZodType<T>,
     errorSchema: z.ZodType<E>,
   ): Promise<ApiWriteResult<T, E>>;
+
+  /**
+   * POST `body` to a collection to create a member. Like `put`, a rejected submission (400) and
+   * a conflict (409) come back as values for the form to render; a created resource (201) is
+   * parsed with `schema`. There is no 404 case — the collection always exists.
+   */
+  post<T, E>(
+    path: string,
+    body: unknown,
+    schema: z.ZodType<T>,
+    errorSchema: z.ZodType<E>,
+  ): Promise<ApiWriteResult<T, E>>;
+
+  /**
+   * DELETE `path`. Success is a 204 with no body, so nothing is parsed. A 404 becomes a 404
+   * `Response` for the not-found boundary — the thing was already gone — and every other
+   * non-2xx a 502, matching `get`.
+   */
+  delete(path: string): Promise<void>;
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -156,6 +175,45 @@ export function createApiClient({
       }
 
       return { ok: true, data: parseOrFail(path, schema, await readJson(path, response)) };
+    },
+
+    async post(path, body, schema, errorSchema) {
+      const response = await fetch(`${baseUrl}${path}`, {
+        method: 'POST',
+        headers: { ...headers, 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+
+      if (response.status === 400 || response.status === 409) {
+        return {
+          ok: false,
+          status: response.status,
+          error: parseOrFail(path, errorSchema, await readJson(path, response)),
+        };
+      }
+
+      if (!response.ok) {
+        throw new Response('Bad Gateway', { status: 502 });
+      }
+
+      return { ok: true, data: parseOrFail(path, schema, await readJson(path, response)) };
+    },
+
+    async delete(path) {
+      const response = await fetch(`${baseUrl}${path}`, {
+        method: 'DELETE',
+        headers,
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+
+      if (response.status === 404) {
+        throw new Response('Not Found', { status: 404 });
+      }
+
+      if (!response.ok) {
+        throw new Response('Bad Gateway', { status: 502 });
+      }
     },
   };
 }

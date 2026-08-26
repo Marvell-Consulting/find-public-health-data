@@ -70,6 +70,15 @@ export function toFieldErrors(error: z.ZodError): TopicFieldErrors {
   return fieldErrors;
 }
 
+/**
+ * A create and an update accept the same fields, so both validate against `topicUpdateSchema`
+ * — the name reads oddly on the create path, but the shape is genuinely identical and a second
+ * copy of the rules would be a copy to keep in step.
+ */
+export const topicCreateResponseSchema = z.object({
+  topic: topicAdminDetailSchema,
+});
+
 export const topicUpdateResponseSchema = z.object({
   /** False when the submission matched the stored topic, so nothing was written. */
   changed: z.boolean(),
@@ -86,5 +95,6 @@ export type TopicAdminDetail = z.infer<typeof topicAdminDetailSchema>;
 export type TopicField = z.infer<typeof topicFieldSchema>;
 export type TopicFieldErrors = z.infer<typeof topicFieldErrorsSchema>;
 export type TopicUpdate = z.infer<typeof topicUpdateSchema>;
+export type TopicCreateResponse = z.infer<typeof topicCreateResponseSchema>;
 export type TopicUpdateResponse = z.infer<typeof topicUpdateResponseSchema>;
 export type TopicUpdateError = z.infer<typeof topicUpdateErrorSchema>;

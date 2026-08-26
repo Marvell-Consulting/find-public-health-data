@@ -58,6 +58,10 @@ export * as schema from './schema.js';
 export { createOwnerClient, loadOwnerEnv } from './scripts/owner-client.js';
 export { assertResetAllowed, assertSeedingAllowed, seedDummyTables } from './seeding.js';
 export {
+  type CreateTopicResult,
+  createTopic,
+  type DeleteTopicResult,
+  deleteTopic,
   getTopicById,
   getTopicBySlug,
   listTopics,

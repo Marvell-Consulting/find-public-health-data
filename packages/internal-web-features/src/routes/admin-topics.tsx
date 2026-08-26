@@ -9,8 +9,8 @@ export const loader = loadAdminTopics;
 export const meta = createDocumentMeta('Manage topics');
 
 export function AdminTopicsRoute() {
-  const { topics } = useLoaderData<typeof loader>();
-  return <AdminTopicsPage topics={topics} />;
+  const { topics, notification } = useLoaderData<typeof loader>();
+  return <AdminTopicsPage notification={notification} topics={topics} />;
 }
 
 export default AdminTopicsRoute;

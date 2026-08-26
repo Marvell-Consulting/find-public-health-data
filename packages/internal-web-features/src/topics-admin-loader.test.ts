@@ -8,7 +8,16 @@ import {
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { editTopicPath, loadAdminTopic, loadAdminTopics, saveTopic } from './topics-admin-loader';
+import {
+  createTopic,
+  deleteTopic,
+  editTopicPath,
+  loadAdminTopic,
+  loadAdminTopics,
+  loadTopicToDelete,
+  saveTopic,
+  TOPICS_ADMIN_PATH,
+} from './topics-admin-loader';
 
 const flashStorage = createFlashSessionStorage({
   audience: 'internal',
@@ -31,6 +40,8 @@ function fakeApi(overrides: Partial<Record<keyof ApiClient, unknown>> = {}): Api
   return {
     get: () => Promise.reject(new Error('get was not stubbed for this test')),
     put: () => Promise.reject(new Error('put was not stubbed for this test')),
+    post: () => Promise.reject(new Error('post was not stubbed for this test')),
+    delete: () => Promise.reject(new Error('delete was not stubbed for this test')),
     ...overrides,
   } as unknown as ApiClient;
 }
@@ -195,6 +206,135 @@ describe('saveTopic', () => {
     });
 
     expect(outcome).toMatchObject({ values: { ...valid, slug: 'taken-slug' } });
+  });
+});
+
+describe('createTopic', () => {
+  function create(context: RouterContextProvider, body: Record<string, string>) {
+    return run(createTopic, { context, method: 'POST', body });
+  }
+
+  it('does not call the API when the submission is invalid', async () => {
+    const { outcome } = await create(createContext(fakeApi()), { ...valid, title: '' });
+
+    expect(outcome).toEqual({
+      values: { ...valid, title: '' },
+      fieldErrors: { title: 'Enter a topic name' },
+    });
+  });
+
+  it('posts the trimmed values, then redirects to the new topic with a flash', async () => {
+    const post = vi.fn().mockResolvedValue({ ok: true, data: { topic } });
+
+    const { response } = await create(createContext(fakeApi({ post })), {
+      ...valid,
+      title: '  Air quality  ',
+    });
+
+    expect(post.mock.calls[0]?.[0]).toBe('/api/internal/topics');
+    expect(post.mock.calls[0]?.[1]).toEqual(valid);
+    expect(response.status).toBe(302);
+    expect(response.headers.get('Location')).toBe(editTopicPath(topic.id));
+    expect(response.headers.get('Set-Cookie')).toContain('fphd-internal-flash=');
+  });
+
+  it('keeps the submitted values against the field when the slug is taken', async () => {
+    const post = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      error: { error: 'slug_taken', fieldErrors: { slug: 'This slug is already used' } },
+    });
+
+    const { outcome } = await create(createContext(fakeApi({ post })), {
+      ...valid,
+      slug: 'taken-slug',
+    });
+
+    expect(outcome).toEqual({
+      values: { ...valid, slug: 'taken-slug' },
+      fieldErrors: { slug: 'This slug is already used' },
+    });
+  });
+});
+
+describe('loadTopicToDelete', () => {
+  it('fetches the topic by id so the page can name what will go', async () => {
+    const get = vi.fn().mockResolvedValue(topic);
+
+    const { outcome } = await run(loadTopicToDelete, {
+      context: createContext(fakeApi({ get })),
+      params: { id: topic.id },
+    });
+
+    expect(get.mock.calls[0]?.[0]).toBe(`/api/internal/topics/${topic.id}`);
+    expect(outcome.topic).toEqual(topic);
+  });
+
+  it('answers a malformed id with a 404 rather than calling the API', async () => {
+    await expect(
+      run(loadTopicToDelete, { context: createContext(fakeApi()), params: { id: 'not-a-uuid' } }),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe('deleteTopic', () => {
+  it('deletes by id, then redirects to the list with a flash', async () => {
+    const del = vi.fn().mockResolvedValue(undefined);
+
+    const { response } = await run(deleteTopic, {
+      context: createContext(fakeApi({ delete: del })),
+      method: 'POST',
+      params: { id: topic.id },
+    });
+
+    expect(del.mock.calls[0]?.[0]).toBe(`/api/internal/topics/${topic.id}`);
+    expect(response.status).toBe(302);
+    expect(response.headers.get('Location')).toBe(TOPICS_ADMIN_PATH);
+    expect(response.headers.get('Set-Cookie')).toContain('fphd-internal-flash=');
+  });
+
+  it('answers a malformed id with a 404 rather than calling the API', async () => {
+    await expect(
+      run(deleteTopic, {
+        context: createContext(fakeApi()),
+        method: 'POST',
+        params: { id: 'not-a-uuid' },
+      }),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe('the message a create or delete leaves for the page it redirects to', () => {
+  it('tells the new topic edit page that the topic was created', async () => {
+    const post = vi.fn().mockResolvedValue({ ok: true, data: { topic } });
+    const { response } = await run(createTopic, {
+      context: createContext(fakeApi({ post })),
+      method: 'POST',
+      body: valid,
+    });
+
+    const { outcome } = await run(loadAdminTopic, {
+      context: createContext(fakeApi({ get: () => Promise.resolve(topic) })),
+      cookie: cookieFrom(response),
+      params: { id: topic.id },
+    });
+
+    expect(outcome.notification).toBe('Topic created');
+  });
+
+  it('tells the topic list that the topic was deleted', async () => {
+    const { response } = await run(deleteTopic, {
+      context: createContext(fakeApi({ delete: () => Promise.resolve(undefined) })),
+      method: 'POST',
+      params: { id: topic.id },
+    });
+
+    const { outcome } = await run(loadAdminTopics, {
+      context: createContext(fakeApi({ get: () => Promise.resolve([]) })),
+      cookie: cookieFrom(response),
+    });
+
+    expect(outcome.notification).toBe('Topic deleted');
   });
 });
 

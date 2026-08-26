@@ -40,6 +40,29 @@ export function internalTopicsRouter(
     response.status(200).json((await topics.list()).map(toSummary));
   });
 
+  router.post('/api/internal/topics', requirePublisher, async (request, response) => {
+    // Validated here as well as at the form: the API is reachable without going through it.
+    const submission = topicUpdateSchema.safeParse(request.body);
+
+    if (!submission.success) {
+      response
+        .status(400)
+        .json({ error: 'validation_failed', fieldErrors: toFieldErrors(submission.error) });
+      return;
+    }
+
+    const result = await topics.create(submission.data);
+
+    if (!result.ok) {
+      response
+        .status(409)
+        .json({ error: 'slug_taken', fieldErrors: { slug: 'This slug is already used' } });
+      return;
+    }
+
+    response.status(201).json({ topic: toDetail(result.topic) });
+  });
+
   router.get('/api/internal/topics/:id', requirePublisher, async (request, response) => {
     const id = topicIdSchema.safeParse(request.params.id);
 
@@ -93,6 +116,24 @@ export function internalTopicsRouter(
     }
 
     response.status(200).json({ changed: result.changed, topic: toDetail(result.topic) });
+  });
+
+  router.delete('/api/internal/topics/:id', requirePublisher, async (request, response) => {
+    const id = topicIdSchema.safeParse(request.params.id);
+
+    if (!id.success) {
+      response.status(400).json({ error: 'invalid_id' });
+      return;
+    }
+
+    const result = await topics.delete(id.data);
+
+    if (!result.ok) {
+      response.status(404).json({ error: 'not_found' });
+      return;
+    }
+
+    response.status(204).end();
   });
 
   return router;

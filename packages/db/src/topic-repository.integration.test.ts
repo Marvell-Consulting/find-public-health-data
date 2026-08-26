@@ -111,12 +111,14 @@ describe('getTopicById', () => {
 });
 
 describe('the topic read surface', () => {
+  // Both roles read topics; their write privileges differ and are covered where the writes
+  // live (topic-update.integration.test.ts). Here only the shared read grant is asserted.
   const apiRoles = [
     { role: 'public_api', password: env.PUBLIC_API_PASSWORD },
     { role: 'internal_api', password: env.INTERNAL_API_PASSWORD },
   ];
 
-  it.each(apiRoles)('lets $role select topics but not write them', async ({ role, password }) => {
+  it.each(apiRoles)('lets $role select topics', async ({ role, password }) => {
     const client = createPostgresClient({
       host: env.DB_HOST,
       port: env.DB_PORT,
@@ -128,9 +130,6 @@ describe('the topic read surface', () => {
 
     try {
       await expect(client`SELECT * FROM topic`).resolves.toBeDefined();
-      await expect(
-        client`INSERT INTO topic (id, slug, title, description) VALUES (gen_random_uuid(), 'x', 'x', 'x')`,
-      ).rejects.toThrow(/permission denied/);
     } finally {
       await client.end();
     }

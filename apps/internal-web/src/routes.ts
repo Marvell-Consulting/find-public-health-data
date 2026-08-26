@@ -22,8 +22,16 @@ export default [
       route('manage', './manage.tsx'),
       route('manage/topics', '../../../packages/internal-web-features/src/routes/admin-topics.tsx'),
       route(
+        'manage/topics/new',
+        '../../../packages/internal-web-features/src/routes/new-topic.tsx',
+      ),
+      route(
         'manage/topics/:id',
         '../../../packages/internal-web-features/src/routes/edit-topic.tsx',
+      ),
+      route(
+        'manage/topics/:id/delete',
+        '../../../packages/internal-web-features/src/routes/delete-topic.tsx',
       ),
     ]),
   ]),

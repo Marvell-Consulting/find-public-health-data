@@ -1,7 +1,7 @@
 import { asc, eq, sql } from 'drizzle-orm';
 
 import type { Database } from './client.js';
-import { type TopicRecord, topic } from './schema/index.js';
+import { indicatorTopic, type TopicRecord, topic } from './schema/index.js';
 
 export interface ExistingTopic {
   id: string;
@@ -73,9 +73,13 @@ export async function getTopicById(db: Database, id: string): Promise<Topic | un
 
 export type TopicUpdate = Pick<Topic, 'description' | 'slug' | 'title'>;
 
+export type CreateTopicResult = { ok: true; topic: Topic } | { ok: false; reason: 'slug_taken' };
+
 export type UpdateTopicResult =
   | { ok: true; topic: Topic; changed: boolean }
   | { ok: false; reason: 'not_found' | 'slug_taken' };
+
+export type DeleteTopicResult = { ok: true } | { ok: false; reason: 'not_found' };
 
 const UNIQUE_VIOLATION = '23505';
 
@@ -124,8 +128,8 @@ export async function updateTopic(
       if (matches(current, update)) return { ok: true, topic: current, changed: false };
 
       // Named columns, not a spread of the argument: a caller merging an edit into a whole
-      // topic row would otherwise have this rewrite the key and the creation timestamp —
-      // which the column-scoped grant refuses outright for internal_api.
+      // topic row would otherwise have this rewrite the surrogate key and the creation
+      // timestamp, which must stay the database's to set.
       const [updated] = await tx
         .update(topic)
         .set({ ...update, updatedAt: sql`now()` })
@@ -144,6 +148,45 @@ export async function updateTopic(
     if (isUniqueViolation(error)) return { ok: false, reason: 'slug_taken' };
     throw error;
   }
+}
+
+/**
+ * Insert a new topic, letting the database mint the id (UUIDv7) and both timestamps — the
+ * values object names only the editable columns, so the rest take their defaults. A slug
+ * already held by another topic comes back as a value, not an exception, because a form has to
+ * render it against the field.
+ */
+export async function createTopic(
+  db: Database,
+  { description, slug, title }: TopicUpdate,
+): Promise<CreateTopicResult> {
+  try {
+    const [created] = await db.insert(topic).values({ description, slug, title }).returning();
+
+    // A plain insert returns the row it wrote; an empty result is impossible.
+    if (created === undefined) throw new Error('createTopic inserted no row');
+
+    return { ok: true, topic: created };
+  } catch (error) {
+    if (isUniqueViolation(error)) return { ok: false, reason: 'slug_taken' };
+    throw error;
+  }
+}
+
+/**
+ * Delete a topic together with the indicator_topic links that reference it, in one
+ * transaction. The links go first because the foreign key would otherwise refuse the topic
+ * delete; the indicators themselves stay, only their association with this topic is removed.
+ * An id matching no topic is reported as a value rather than thrown.
+ */
+export async function deleteTopic(db: Database, id: string): Promise<DeleteTopicResult> {
+  return db.transaction(async (tx) => {
+    await tx.delete(indicatorTopic).where(eq(indicatorTopic.topicId, id));
+
+    const deleted = await tx.delete(topic).where(eq(topic.id, id)).returning({ id: topic.id });
+
+    return deleted.length === 0 ? { ok: false, reason: 'not_found' } : { ok: true };
+  });
 }
 
 /**

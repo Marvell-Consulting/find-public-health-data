@@ -1,5 +1,11 @@
 import { fakeUsersForAudience } from '@fphd/auth';
-import { AdminTopicsPage, EditTopicPage, ManageDataPage } from '@fphd/internal-web-features';
+import {
+  AdminTopicsPage,
+  DeleteTopicPage,
+  EditTopicPage,
+  ManageDataPage,
+  NewTopicPage,
+} from '@fphd/internal-web-features';
 import { SignInPage, TopicsRoute } from '@fphd/public-web-features';
 import type { RouteConfigEntry } from '@react-router/dev/routes';
 import { cleanup, render, screen } from '@testing-library/react';
@@ -113,7 +119,9 @@ describe('the publisher route table', () => {
     expect(publisher?.children?.map((child) => child.path)).toEqual([
       'manage',
       'manage/topics',
+      'manage/topics/new',
       'manage/topics/:id',
+      'manage/topics/:id/delete',
     ]);
   });
 
@@ -160,13 +168,90 @@ describe('the manage topics page', () => {
       expect(await screen.findByRole('columnheader', { name: heading })).toBeTruthy();
     }
   });
+
+  it('offers a way to add a topic', async () => {
+    renderPage(<AdminTopicsPage topics={[topic]} />);
+
+    // The GOV.UK button component renders an anchor with role="button", not a plain link.
+    expect((await screen.findByRole('button', { name: 'Add a topic' })).getAttribute('href')).toBe(
+      '/manage/topics/new',
+    );
+  });
+
+  it('shows the message a create or delete left behind', async () => {
+    renderPage(<AdminTopicsPage notification="Topic deleted" topics={[topic]} />);
+
+    expect(await screen.findByText('Topic deleted')).toBeTruthy();
+  });
+});
+
+describe('the add topic page', () => {
+  it('starts from an empty form that posts back to the same URL', async () => {
+    const { container } = renderPage(<NewTopicPage />);
+
+    expect((await screen.findByLabelText('Topic name')).getAttribute('value')).toBe('');
+    expect(screen.getByLabelText('Description').textContent).toBe('');
+
+    const form = container.querySelector('form');
+    expect(form?.getAttribute('method')).toBe('post');
+    expect(form?.hasAttribute('action')).toBe(false);
+    expect(screen.getByRole('button', { name: 'Create topic' })).toBeTruthy();
+  });
+
+  it('keeps what was typed and shows field errors when a create is rejected', async () => {
+    renderPage(
+      <NewTopicPage
+        fieldErrors={{ slug: 'This slug is already used' }}
+        values={{ title: 'Air quality', slug: 'air-quality', description: 'About air quality.' }}
+      />,
+    );
+
+    expect((await screen.findByLabelText('Topic name')).getAttribute('value')).toBe('Air quality');
+
+    const summary = await screen.findByRole('alert');
+    expect(summary.textContent).toContain('This slug is already used');
+  });
+});
+
+describe('the delete topic confirmation page', () => {
+  const topic = {
+    id: '00000000-0000-7000-8000-000000000001',
+    slug: 'air-quality',
+    title: 'Air quality',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-08-04T23:30:00.000Z',
+  };
+
+  it('names the topic and warns the delete cannot be undone', async () => {
+    renderPage(<DeleteTopicPage topic={topic} />);
+
+    expect(await screen.findByRole('heading', { name: 'Delete topic' })).toBeTruthy();
+    expect(screen.getByText(/cannot be undone/)).toBeTruthy();
+    expect(screen.getByText('Air quality')).toBeTruthy();
+  });
+
+  it('confirms with a plain-form warning button and offers a way back', async () => {
+    const { container } = renderPage(<DeleteTopicPage topic={topic} />);
+
+    const button = await screen.findByRole('button', { name: 'Delete topic' });
+    expect(button.className).toContain('govuk-button--warning');
+
+    const form = container.querySelector('form');
+    expect(form?.getAttribute('method')).toBe('post');
+    expect(form?.hasAttribute('action')).toBe(false);
+
+    expect(screen.getByRole('link', { name: 'Cancel' }).getAttribute('href')).toBe(
+      `/manage/topics/${topic.id}`,
+    );
+  });
 });
 
 describe('the edit topic page', () => {
+  const topicId = '00000000-0000-7000-8000-000000000001';
   const values = { title: 'Air quality', slug: 'air-quality', description: 'About air quality.' };
 
   it('pre-fills the form and offers a way back to the list', async () => {
-    renderPage(<EditTopicPage values={values} />);
+    renderPage(<EditTopicPage topicId={topicId} values={values} />);
 
     expect((await screen.findByLabelText('Topic name')).getAttribute('value')).toBe('Air quality');
     expect(screen.getByLabelText('Slug').getAttribute('value')).toBe('air-quality');
@@ -177,7 +262,7 @@ describe('the edit topic page', () => {
   });
 
   it('submits back to the same URL with a plain form, so it works without JavaScript', async () => {
-    const { container } = renderPage(<EditTopicPage values={values} />);
+    const { container } = renderPage(<EditTopicPage topicId={topicId} values={values} />);
 
     expect(await screen.findByRole('button', { name: 'Save' })).toBeTruthy();
 
@@ -187,13 +272,21 @@ describe('the edit topic page', () => {
   });
 
   it('shows the success message the save left behind', async () => {
-    renderPage(<EditTopicPage notification="Topic updated" values={values} />);
+    renderPage(<EditTopicPage notification="Topic updated" topicId={topicId} values={values} />);
 
     expect(await screen.findByText('Topic updated')).toBeTruthy();
   });
 
+  it('links to the delete confirmation page for this topic', async () => {
+    renderPage(<EditTopicPage topicId={topicId} values={values} />);
+
+    expect((await screen.findByRole('link', { name: 'Delete topic' })).getAttribute('href')).toBe(
+      `/manage/topics/${topicId}/delete`,
+    );
+  });
+
   it('shows no notification banner when there is nothing to report', async () => {
-    const { container } = renderPage(<EditTopicPage values={values} />);
+    const { container } = renderPage(<EditTopicPage topicId={topicId} values={values} />);
 
     expect(await screen.findByRole('button', { name: 'Save' })).toBeTruthy();
     expect(container.querySelector('.govuk-notification-banner')).toBeNull();
@@ -203,6 +296,7 @@ describe('the edit topic page', () => {
     renderPage(
       <EditTopicPage
         fieldErrors={{ description: 'Enter a description', title: 'Enter a topic name' }}
+        topicId={topicId}
         values={{ ...values, title: '', description: '' }}
       />,
     );
@@ -226,6 +320,7 @@ describe('the edit topic page', () => {
     const { container } = renderPage(
       <EditTopicPage
         fieldErrors={{ slug: 'Enter a slug' }}
+        topicId={topicId}
         values={{ ...values, slug: '', title: 'A half-finished edit' }}
       />,
     );

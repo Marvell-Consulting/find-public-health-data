@@ -67,8 +67,10 @@ describe('public API', () => {
   it.each([
     ['get', '/api/internal'],
     ['get', '/api/internal/topics'],
+    ['post', '/api/internal/topics'],
     ['get', `/api/internal/topics/${topicA.id}`],
     ['put', `/api/internal/topics/${topicA.id}`],
+    ['delete', `/api/internal/topics/${topicA.id}`],
   ] as const)('does not expose the internal surface at %s %s', async (method, path) => {
     const response = await request(createApp({ repositories: createFakeRepositories() }))[method](
       path,
