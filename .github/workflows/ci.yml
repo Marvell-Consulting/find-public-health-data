@@ -106,17 +106,81 @@ jobs:
           SESSION_JWT_SECRET: ci-only-jwt-session-secret-at-least-32-bytes
 
   e2e:
-    name: E2E tests (none defined yet)
+    name: E2E tests
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # Covers the uncached compose image build on top of the suite itself.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
-      # No e2e package exists yet, so this exits 0 having run nothing. See the README.
+
+      - name: Read the pinned Playwright version
+        id: playwright-version
+        run: |
+          version=$(sed -n "s/^  '@playwright\/test': //p" pnpm-workspace.yaml)
+          if [ -z "${version}" ]; then
+            echo '::error::@playwright/test not found in the pnpm-workspace.yaml catalog'
+            exit 1
+          fi
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ steps.playwright-version.outputs.version }}
+
+      # Skips the download on a cache hit but still installs the OS packages, which
+      # live outside the cached directory.
+      - name: Install Chromium
+        run: pnpm --filter @fphd/e2e exec playwright install --with-deps chromium
+
+      # The same development images and profiles scripts/dev.sh uses, built uncached: they
+      # share no Dockerfile instructions with build-images' production images, so borrowing
+      # that job's cache would hit nothing, and all four builds share every layer up to
+      # `ARG APP` through the daemon's local cache. The healthchecks make --wait a real
+      # readiness gate. APP_ENV=test rather than local so the TLS-to-database default stays
+      # off (isDeployedEnv is false for both) while container logs stay JSON.
+      - name: Start the stack
+        env:
+          APP_ENV: test
+          POSTGRES_USER: fphd
+          POSTGRES_PASSWORD: fphd
+          POSTGRES_DB: fphd
+          PUBLIC_API_PASSWORD: public_api
+          INTERNAL_API_PASSWORD: internal_api
+          # internal-web and internal-api must share it for sessions to verify; CI-only
+          # value, not a secret.
+          SESSION_JWT_SECRET: ci-only-jwt-session-secret-at-least-32-bytes
+        run: >
+          docker compose
+          --profile public-web --profile internal-web
+          --profile public-api --profile internal-api
+          up --build --wait
+
+      # The same commands a developer runs, from the host against the compose database.
+      - name: Seed the database
+        env:
+          APP_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          POSTGRES_DB: fphd
+          POSTGRES_USER: fphd
+          POSTGRES_PASSWORD: fphd
+          PUBLIC_API_PASSWORD: public_api
+          INTERNAL_API_PASSWORD: internal_api
+        run: pnpm db:bootstrap && pnpm db:migrate && pnpm db:import-core-data && pnpm db:seed-dummy-data
+
       - run: pnpm test:e2e
+
+      - name: Upload the Playwright report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
 
   audit:
     name: Audit

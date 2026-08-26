@@ -91,7 +91,7 @@ pnpm build
 pnpm test              # all three tiers below, in order
 pnpm test:unit         # unit tests
 pnpm test:integration  # integration tests — need the local database running
-pnpm test:e2e          # end-to-end tests — none exist yet
+pnpm test:e2e          # end-to-end tests — need the stack serving and the database seeded
 ```
 
 Each application builds to its own `dist` directory, giving CI and deployment tooling four
@@ -110,7 +110,8 @@ draft is marked ready for review) and on every push to `main`. **Draft pull requ
 
 `pnpm check` is the local equivalent for lint, typecheck, test and build. It runs `pnpm test`, so it
 covers all three test tiers — which means `pnpm check` needs the local database running
-(`docker compose up -d db`) for the integration tier. CI additionally runs `pnpm audit --audit-level high`, which fails on
+(`docker compose up -d db`) for the integration tier, and the apps serving with the database seeded
+for the e2e tier (see the e2e notes below). CI additionally runs `pnpm audit --audit-level high`, which fails on
 high and critical advisories, so a newly published advisory can redden a pull request that changed
 nothing. Where a real advisory has no fix and blocks all work, `pnpm.auditConfig.ignoreGhsas` is the
 escape hatch; each entry is a reviewable decision.
@@ -120,8 +121,10 @@ Each tier is its own CI job, so the jobs run `pnpm test:unit`, `pnpm test:integr
 
 - `pnpm test:integration` runs Vitest over every project, selecting `integration.test` files. A
   project without any still passes because of `--passWithNoTests`.
-- `pnpm test:e2e` matches no package at all. It is the only tier carrying `--if-present`, which is
-  what makes it a no-op rather than an error; drop the flag once an e2e package exists.
+- `pnpm test:e2e` names the one suite directly (`pnpm --filter @fphd/e2e run test:e2e`), so broken
+  e2e wiring is an error rather than a silent skip. In CI the job builds the four apps as compose
+  containers, seeds the database with the same commands a developer runs, runs the suite, and
+  uploads the Playwright report when it fails.
 
 Both tiers are one root Vitest run over the projects declared in `vitest.config.ts`, globbed from
 `apps/*`, `packages/*` and `tools/*`. Packages declare no test scripts of their own, so a new
@@ -145,10 +148,24 @@ To add real ones:
   migrated, seeded template database once per run; each test file calls
   `createTestDatabase()` from `@fphd/db/testing` for its own copy, so files run in parallel
   against isolated databases and never touch the development database.
-- E2e tests will live in a new top-level `e2e` workspace package, not in `packages/*`: a package
-  there is shared code the applications are built from, which an e2e suite is not. It would drive
-  applications over HTTP, choosing which by base-URL environment variables rather than by importing
-  them.
+- E2e tests are Playwright specs in the top-level `e2e` workspace package (`@fphd/e2e`), not in
+  `packages/*`: a package there is shared code the applications are built from, which an e2e suite
+  is not. Specs drive the applications over HTTP and never import application code; the spec's
+  directory picks the target — `tests/public` uses `PUBLIC_WEB_URL` (default
+  `http://localhost:3000`), `tests/internal` uses `INTERNAL_WEB_URL` (default
+  `http://localhost:3001`). Nothing starts the stack for the suite: serve it in another terminal
+  and seed the database, then run the tests —
+
+  ```sh
+  pnpm --filter @fphd/e2e exec playwright install chromium   # once
+  pnpm dev                                                   # or any dev:mixed split
+  pnpm test:e2e
+  ```
+
+  `pnpm --filter @fphd/e2e exec playwright test --ui` opens UI mode, and `--headed` and `-g`
+  filters pass through the same way. Specs run in parallel workers against the shared seed, so a
+  spec never mutates data another spec reads — a test of a write flow creates its own rows and
+  asserts on those.
 
 Every job runs the whole workspace rather than only the changed packages. When CI wall-clock starts
 to hurt, `pnpm --filter "...[origin/main]"` selects changed packages plus their dependents, with no

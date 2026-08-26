@@ -1,0 +1,17 @@
+import { expect, test } from '@playwright/test';
+
+// Proof of life for internal-web: the fake sign-in is drivable, the session survives the
+// redirect back, and the publisher-gated route renders — the wiring every internal test needs.
+test('bounces to sign-in and returns a publisher to the manage page', async ({ page }) => {
+  await page.goto('/manage');
+  await expect(page).toHaveURL('/sign-in?returnTo=%2Fmanage');
+  await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
+
+  await page.getByRole('radio', { name: 'Riley Singh' }).check();
+  await page.getByRole('button', { name: 'Sign in' }).click();
+
+  await expect(page).toHaveURL('/manage');
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Manage public health data' }),
+  ).toBeVisible();
+});

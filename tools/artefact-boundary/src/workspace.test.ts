@@ -55,17 +55,33 @@ describe('parseWorkspaceDirs', () => {
   it('reads the directory of every workspace glob', () => {
     const yaml = ['packages:', '  - apps/*', '  - packages/*', '  - tools/*', ''].join('\n');
 
-    expect(parseWorkspaceDirs(yaml, 'pnpm-workspace.yaml')).toEqual(['apps', 'packages', 'tools']);
+    expect(parseWorkspaceDirs(yaml, 'pnpm-workspace.yaml')).toEqual([
+      { dir: 'apps', isPackage: false },
+      { dir: 'packages', isPackage: false },
+      { dir: 'tools', isPackage: false },
+    ]);
+  });
+
+  // pnpm treats a bare entry as an exact directory that is itself a package.
+  it('reads a bare directory entry as a single package', () => {
+    const yaml = ['packages:', '  - apps/*', '  - e2e', ''].join('\n');
+
+    expect(parseWorkspaceDirs(yaml, 'pnpm-workspace.yaml')).toEqual([
+      { dir: 'apps', isPackage: false },
+      { dir: 'e2e', isPackage: true },
+    ]);
   });
 
   it('ignores the rest of the file', () => {
     const yaml = ['overrides:', '  postcss: ">=8.5.18"', 'packages:', '  - apps/*', ''].join('\n');
 
-    expect(parseWorkspaceDirs(yaml, 'pnpm-workspace.yaml')).toEqual(['apps']);
+    expect(parseWorkspaceDirs(yaml, 'pnpm-workspace.yaml')).toEqual([
+      { dir: 'apps', isPackage: false },
+    ]);
   });
 
   // Expanding a glob this check does not understand would quietly narrow what it inspects.
-  it.each(['packages/**', 'apps', './apps/*', 'packages/*/*'])('throws for the glob %s', (glob) => {
+  it.each(['packages/**', './apps/*', 'packages/*/*', 'e2e/'])('throws for the glob %s', (glob) => {
     expect(() => parseWorkspaceDirs(`packages:\n  - ${glob}\n`, 'pnpm-workspace.yaml')).toThrow(
       /cannot expand/,
     );

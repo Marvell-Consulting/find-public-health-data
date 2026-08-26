@@ -9,18 +9,24 @@ export type WorkspacePackage = {
   dependencies: string[];
 };
 
+export type WorkspaceDir = {
+  dir: string;
+  // A bare `<dir>` entry is itself a package; a `<dir>/*` glob holds packages as its children.
+  isPackage: boolean;
+};
+
 /**
  * The directories pnpm itself treats as the workspace, so a glob added there cannot be missed here.
  * A directory this did not know about would drop its packages from every closure, and a dependency
  * on one of them would read as third-party and be skipped — a false negative in the one check that
  * must not have any.
  */
-export async function readWorkspaceDirs(repoRoot: string): Promise<string[]> {
+export async function readWorkspaceDirs(repoRoot: string): Promise<WorkspaceDir[]> {
   const file = path.join(repoRoot, 'pnpm-workspace.yaml');
   return parseWorkspaceDirs(await readFile(file, 'utf8'), file);
 }
 
-export function parseWorkspaceDirs(yaml: string, file: string): string[] {
+export function parseWorkspaceDirs(yaml: string, file: string): WorkspaceDir[] {
   const parsed: unknown = parse(yaml);
   const { packages } = (typeof parsed === 'object' && parsed !== null ? parsed : {}) as {
     packages?: unknown;
@@ -31,13 +37,14 @@ export function parseWorkspaceDirs(yaml: string, file: string): string[] {
   }
 
   return packages.map((glob) => {
-    const dir = typeof glob === 'string' ? /^([^*/]+)\/\*$/.exec(glob)?.[1] : undefined;
-    if (dir === undefined) {
-      throw new Error(
-        `${file} declares the workspace glob ${JSON.stringify(glob)}, which this check cannot expand.`,
-      );
+    if (typeof glob === 'string') {
+      const globDir = /^([^*/]+)\/\*$/.exec(glob)?.[1];
+      if (globDir !== undefined) return { dir: globDir, isPackage: false };
+      if (/^[^*/]+$/.test(glob)) return { dir: glob, isPackage: true };
     }
-    return dir;
+    throw new Error(
+      `${file} declares the workspace glob ${JSON.stringify(glob)}, which this check cannot expand.`,
+    );
   });
 }
 
@@ -46,8 +53,17 @@ export async function readWorkspacePackages(
 ): Promise<Map<string, WorkspacePackage>> {
   const workspaceDirs = await readWorkspaceDirs(repoRoot);
   const manifests = await Promise.all(
-    workspaceDirs.map(async (workspaceDir) => {
-      const parent = path.join(repoRoot, workspaceDir);
+    workspaceDirs.map(async ({ dir, isPackage }) => {
+      const parent = path.join(repoRoot, dir);
+      if (isPackage) {
+        const pkg = await readManifest(parent);
+        // Unlike a glob's childless directory, a bare entry names one package; nothing there
+        // means this check is inspecting less than pnpm resolves.
+        if (pkg === null) {
+          throw new Error(`The workspace entry ${dir} holds no package manifest.`);
+        }
+        return [pkg];
+      }
       const entries = await readdir(parent, { withFileTypes: true });
       return Promise.all(
         entries
