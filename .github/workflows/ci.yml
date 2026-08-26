@@ -158,7 +158,7 @@ jobs:
           docker compose
           --profile public-web --profile internal-web
           --profile public-api --profile internal-api
-          up --build --wait
+          up --detach --build --wait
 
       # The same commands a developer runs, from the host against the compose database.
       - name: Seed the database
