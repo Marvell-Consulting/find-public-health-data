@@ -1,8 +1,9 @@
 name: Publish images
 
-# Only main, and only on push — the federated credential in Azure trusts runs from this
-# branch alone. It doesn't wait on CI: build-images already gates image regressions on the
-# pull request, and what's left here (auth, scan, push) has no pull request equivalent.
+# Only main, and only on push — these packages are what deployments pull, so only merged
+# code publishes to them. It doesn't wait on CI: build-images already gates image
+# regressions on the pull request, and what's left here (auth, scan, push) has no pull
+# request equivalent.
 on:
   push:
     branches: [main]
@@ -16,9 +17,14 @@ concurrency:
   group: publish-images
   cancel-in-progress: false
 
+# Repo-scoped names, so the packages inherit this repository's permissions and a generic
+# name like `operations` doesn't sit directly in the organisation namespace. Lowercase
+# because image references must be. The packages are public — deployments pull anonymously,
+# so neither side of the registry holds a credential — but GHCR creates a package private
+# on its first push: a brand-new package must be flipped to public by hand before anything
+# can pull it.
 env:
-  ACR_NAME: fphdbetaacr
-  REGISTRY: fphdbetaacr.azurecr.io
+  REGISTRY: ghcr.io/marvell-consulting/find-public-health-data
 
 jobs:
   publish:
@@ -27,9 +33,9 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
-      # Mints the OIDC token azure/login exchanges for an Azure access token. This is the
-      # whole of the auth: the workflow holds no registry password and no client secret.
-      id-token: write
+      # The run's own GITHUB_TOKEN is the whole of the auth: no PAT, no stored secret,
+      # and the token expires with the run.
+      packages: write
     strategy:
       # One app failing to build must not stop the other four publishing.
       fail-fast: false
@@ -50,19 +56,10 @@ jobs:
         with:
           persist-credentials: false
 
-      # The three identifiers are not credentials on their own — the federated trust is what
-      # authorises — but they are held as secrets because this repository is public and the
-      # subscription and tenant should not be enumerable from it.
-      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c # v3.0.2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      # Exchanges the Azure token for a short-lived registry token and writes it to the
-      # Docker config. The identity behind it holds AcrPush and nothing else.
       - name: Sign in to the container registry
-        run: az acr login --name "${ACR_NAME}"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: docker login ghcr.io --username "${GITHUB_ACTOR}" --password-stdin <<<"${GITHUB_TOKEN}"
 
       # Commit and build-time metadata go in the OCI labels, not the tags — a tag encoding
       # them could drift from the truth the labels carry.
@@ -103,7 +100,7 @@ jobs:
           ignore-unfixed: true
           exit-code: 1
 
-      # Both tags are labels for humans, not what a deployment should reference: ACR tags are
+      # Both tags are labels for humans, not what a deployment should reference: GHCR tags are
       # mutable, and re-running this workflow for the same commit produces a different manifest
       # that overwrites both. The digest below is the immutable reference.
       - name: Push the image
