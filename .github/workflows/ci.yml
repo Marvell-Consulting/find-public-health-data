@@ -305,17 +305,30 @@ jobs:
       - name: Check upstream results
         env:
           RESULTS: ${{ join(needs.*.result, ' ') }}
+          IS_DRAFT: ${{ github.event.pull_request.draft == true }}
+        # A skipped job only passes on a draft PR, where e2e and build-images skip themselves by
+        # design. Anywhere else a skip means something that should have run did not, and is a
+        # failure. A job skipped because an upstream need failed is caught through that need.
         run: |
-          echo "Upstream results: ${RESULTS}"
+          echo "Upstream results: ${RESULTS} (draft: ${IS_DRAFT})"
           if [ -z "${RESULTS}" ]; then
             echo '::error::The gate depends on no jobs; nothing was verified.'
             exit 1
           fi
           for result in ${RESULTS}; do
-            if [ "${result}" != 'success' ]; then
-              echo '::error::A required check did not succeed.'
-              exit 1
-            fi
+            case "${result}" in
+              success) ;;
+              skipped)
+                if [ "${IS_DRAFT}" != 'true' ]; then
+                  echo '::error::A required check was skipped outside a draft pull request.'
+                  exit 1
+                fi
+                ;;
+              *)
+                echo '::error::A required check did not succeed.'
+                exit 1
+                ;;
+            esac
           done
 
   # Runs only on push to main: the webhook secret must never be available to
