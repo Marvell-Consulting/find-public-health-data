@@ -17,20 +17,16 @@
 # docker/app.Dockerfile is the separate development image (see scripts/dev.sh); it keeps the
 # whole workspace and devDependencies, which is exactly what these must not do.
 
-# Pinned by digest, so a build is reproducible and so the base image has a version Dependabot
-# can raise — see .github/dependabot.yml. The Debian release is named rather than left to the
-# floating `24-slim` alias: Dependabot resolves the alias to raise the digest, so the day Node
-# retargets it to a newer Debian, that bump would silently pair the new base with the
-# `trixie-pgdg` repository the operations stage hard-codes.
+# Pinned by digest, so the base cannot change underneath a rebuild and has a version Dependabot
+# can raise — see .github/dependabot.yml. The Alpine release is named rather than left to the
+# floating `24-alpine` alias: Dependabot resolves the alias to raise the digest, so the day Node
+# retargets it, that bump would move the whole package set — including the `postgresql18-client`
+# the operations stage asks for by name — without anyone choosing to.
 #
-# Trixie rather than bookworm: bookworm left regular security support on 2026-06-11, and on
-# LTS fewer CVEs get fixes for the upgrade and scan to catch.
-#
-# The runtime stage runs `apt-get upgrade` so Debian security fixes apply at build time rather
-# than waiting for the base image to be rebuilt with them — a red scan means a vulnerability
-# apt could not deliver, not upstream rebuild lag. The builder stage skips it; nothing in it
-# ships.
-FROM node:24-trixie-slim@sha256:ab3eebe934147fee049b5eb83c570f68c849a13c930bdfa482de99fcdfa3b3de AS base
+# The runtime stage runs `apk upgrade` so security fixes apply at build time rather than waiting
+# for the base image to be rebuilt with them — a red scan means a fix apk could not deliver,
+# not upstream rebuild lag. The builder stage skips it; nothing in it ships.
+FROM node:24-alpine3.24@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43 AS base
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable
 WORKDIR /repo
@@ -61,18 +57,16 @@ RUN pnpm --filter "@fphd/${APP}..." build
 # injected workspace packages, which this workspace does not use.
 RUN pnpm deploy --filter "@fphd/${APP}" --prod --legacy /out
 
-FROM node:24-trixie-slim@sha256:ab3eebe934147fee049b5eb83c570f68c849a13c930bdfa482de99fcdfa3b3de AS runtime
+FROM node:24-alpine3.24@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43 AS runtime
 ENV NODE_ENV=production
 # Container Apps stops a revision with SIGTERM, and the kernel discards a default-action
 # signal sent to PID 1 unless that process installed a handler — which Node does not do for
 # SIGTERM. Without an init, every stop would wait out the full grace period and then SIGKILL.
-RUN apt-get update \
-  && apt-get upgrade -y \
-  && apt-get install -y --no-install-recommends tini \
-  && rm -rf /var/lib/apt/lists/*
+RUN apk upgrade --no-cache \
+  && apk add --no-cache tini
 WORKDIR /app
 USER node
-ENTRYPOINT ["/usr/bin/tini", "--"]
+ENTRYPOINT ["/sbin/tini", "--"]
 
 FROM runtime AS api
 COPY --from=builder --chown=node:node /out /app
@@ -91,22 +85,10 @@ USER root
 # The database has no public endpoint, so a container inside the VNet is the only path to it
 # for ad-hoc work. psql is here for that; the CLI below covers the scripted jobs.
 #
-# Version 18 to match the server, from PostgreSQL's own repository because Debian 13 ships 17:
-# psql itself would connect, but pg_dump refuses to run against a server newer than itself, so
-# the stock package would give an image that cannot take a backup of the database it exists to
-# reach. apt reads the ASCII-armoured key directly, which keeps gnupg out of the image.
-#
-# `trixie-pgdg` must track the base image's Debian release — see the pin at the top of the file.
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates curl \
-  && install -d /etc/apt/keyrings \
-  && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /etc/apt/keyrings/pgdg.asc \
-  && echo 'deb [signed-by=/etc/apt/keyrings/pgdg.asc] https://apt.postgresql.org/pub/repos/apt trixie-pgdg main' \
-     > /etc/apt/sources.list.d/pgdg.list \
-  && apt-get update \
-  && apt-get install -y --no-install-recommends postgresql-client-18 \
-  && apt-get purge -y --auto-remove curl \
-  && rm -rf /var/lib/apt/lists/*
+# Version 18 to match the server: psql itself would connect to a newer server, but pg_dump
+# refuses to, so a client older than the server cannot back up the database this image exists
+# to reach.
+RUN apk add --no-cache postgresql18-client
 USER node
 COPY --from=builder --chown=node:node /out /app
 # No default command worth running unattended — a job names the one it wants. Bare, this

@@ -290,9 +290,8 @@ deployed run one engine. A first run — local or deployed — is `bootstrap` �
 
 Deployed, the same commands are `node dist/cli.js db migrate` and so on, in the `operations` image.
 That image also carries `psql`, because a database with no public endpoint makes a container inside
-the network the only route to an ad-hoc query. It is version 18, from PostgreSQL's own apt
-repository, to match the server — Debian 13 ships 17, and `pg_dump` refuses to run against a newer
-server.
+the network the only route to an ad-hoc query. It is version 18, matching the server — `pg_dump`
+refuses to run against a server newer than itself.
 
 Four commands are worth noting:
 
@@ -404,11 +403,12 @@ should be set to. Deploys are manual for now, so the summary is where to copy it
 Trivy scans each image between building and pushing, and a fixable high or critical vulnerability
 in an operating system package stops it reaching the registry. That layer is otherwise unscanned —
 CodeQL reads the source and CI's audit job resolves the npm tree from the lockfile, and neither
-looks at the Debian packages underneath, which is also why the scan covers OS packages only. The
-base image is pinned by digest and raised by Dependabot; nothing runs `apt-get upgrade`, so a
-red scan is fixed by bumping the pin. The pin names its Debian release (`24-trixie-slim`) rather
-than using the floating `24-slim` alias, so a Dependabot bump cannot move the base to a Debian the
-operations image's `trixie-pgdg` repository does not match.
+looks at the Alpine packages underneath, which is also why the scan covers OS packages only. The
+base image is pinned by digest and raised by Dependabot, and the runtime stage runs `apk upgrade`,
+so a red scan means a fix apk could not deliver rather than a stale pin. The pin names its Alpine
+release (`24-alpine3.24`) rather than using the floating `24-alpine` alias, so a Dependabot digest
+bump cannot move the base to a new Alpine release — and everything the operations image installs
+by name — without anyone choosing to.
 
 ## Mixed local/Docker development
 
