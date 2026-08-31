@@ -1,4 +1,4 @@
-import { OptionsAccordion, Select } from '@fphd/ui';
+import { OptionsAccordion, Radios, Select } from '@fphd/ui';
 import { useId } from 'react';
 
 import { type ConfidenceLevel, type PeriodType, periodTypeLabel } from './indicator-data';
@@ -76,34 +76,18 @@ export function PanelOptionsPanel({
         />
       ) : null}
       {benchmarks && options.benchmark !== 'none' ? (
-        <fieldset className="govuk-fieldset govuk-!-margin-bottom-4">
-          <legend className="govuk-fieldset__legend govuk-fieldset__legend--s">
-            Show comparison range
-          </legend>
-          <div className="govuk-radios govuk-radios--inline">
-            {[
-              { label: 'Yes', value: true },
-              { label: 'No', value: false },
-            ].map(({ label: radioLabel, value }) => (
-              <div className="govuk-radios__item" key={radioLabel}>
-                <input
-                  checked={options.range === value}
-                  className="govuk-radios__input"
-                  id={`${ids.range}-${radioLabel}`}
-                  name={ids.range}
-                  onChange={() => onChange({ ...options, range: value })}
-                  type="radio"
-                />
-                <label
-                  className="govuk-label govuk-radios__label"
-                  htmlFor={`${ids.range}-${radioLabel}`}
-                >
-                  {radioLabel}
-                </label>
-              </div>
-            ))}
-          </div>
-        </fieldset>
+        <Radios
+          classModifiers="inline"
+          id={ids.range}
+          label="Show comparison range"
+          name={ids.range}
+          onChange={(event) => onChange({ ...options, range: event.currentTarget.value === 'yes' })}
+          options={[
+            { label: 'Yes', value: 'yes' },
+            { label: 'No', value: 'no' },
+          ]}
+          value={options.range ? 'yes' : 'no'}
+        />
       ) : null}
       <div className="fphd-segmentation-options__selects">
         {sexes.length > 0 ? (

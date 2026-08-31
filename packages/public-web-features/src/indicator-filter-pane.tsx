@@ -57,16 +57,14 @@ export function FilterPane({
   const location = useLocation();
   const [pending, setPending] = useState<string[]>([]);
   const [pendingIndicator, setPendingIndicator] = useState<AutocompleteOption | null>(null);
-  // Filter changes reload the page; carrying the hash and the option params keeps the
-  // open tab open and the chosen options chosen.
+  // Filter changes navigate; carrying the hash and every per-table option param keeps
+  // the open tab open and each table's chosen options chosen.
   const current = new URLSearchParams(location.search);
+  const optionEntries = [...current.entries()].filter(([key]) => /^(ci|pt|sex|cmp|cr)-/.test(key));
   const searchOnly = (args: Parameters<typeof selectionSearch>[0]) => {
     const params = new URLSearchParams(selectionSearch(args));
-    for (const key of ['ci', 'pt', 'sex']) {
-      const value = current.get(key);
-      if (value) {
-        params.set(key, value);
-      }
+    for (const [key, value] of optionEntries) {
+      params.set(key, value);
     }
     return `?${params.toString()}`;
   };
@@ -210,10 +208,9 @@ export function FilterPane({
             {selection.areaLevels.map((level) => (
               <input key={level} type="hidden" name="als" value={level} />
             ))}
-            {['ci', 'pt', 'sex'].map((key) => {
-              const value = current.get(key);
-              return value ? <input key={key} type="hidden" name={key} value={value} /> : null;
-            })}
+            {optionEntries.map(([key, value]) => (
+              <input key={key} type="hidden" name={key} value={value} />
+            ))}
             <GeographyTree
               groups={displayGeographyGroups(areaGroups)}
               name="as"

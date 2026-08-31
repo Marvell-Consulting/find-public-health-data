@@ -53,31 +53,32 @@ function IndicatorBlock({
   const id = detail.fingertipsId;
   const location = useLocation();
   const navigate = useNavigate();
-  // The option choices live in the query string (`ci`, `pt`, `sex`, `cmp`, `cr`), so they
-  // survive the full page reload every filter change causes. Reading them from the
-  // location keeps server and client renders identical.
+  // The option choices live in the query string, suffixed with the indicator's id
+  // (`ci-241`, `cmp-241`…) so each table's options are its own, yet a shared or
+  // reloaded URL reproduces the exact view. Reading them from the location keeps
+  // server and client renders identical.
   const params = new URLSearchParams(location.search);
   const [options, setOptions] = useState<PanelOptions>(() => {
-    const ci = params.get('ci');
-    const pt = params.get('pt');
-    const cmp = params.get('cmp');
+    const ci = params.get(`ci-${id}`);
+    const pt = params.get(`pt-${id}`);
+    const cmp = params.get(`cmp-${id}`);
     return {
       benchmark: cmp === 'england' || cmp === 'region' ? (cmp as BenchmarkChoice) : 'none',
       confidence: ci === '95' || ci === '99.8' ? ci : 'none',
       periodType: pt === '1-year' || pt === '3-year' ? pt : 'all',
-      range: params.get('cr') === 'yes',
-      sex: params.get('sex') ?? '',
+      range: params.get(`cr-${id}`) === 'yes',
+      sex: params.get(`sex-${id}`) ?? '',
     };
   });
   const applyOptions = (next: PanelOptions) => {
     setOptions(next);
     const nextParams = new URLSearchParams(location.search);
     for (const [key, value, empty] of [
-      ['ci', next.confidence, 'none'],
-      ['pt', next.periodType, 'all'],
-      ['sex', next.sex, ''],
-      ['cmp', next.benchmark, 'none'],
-      ['cr', next.range ? 'yes' : '', ''],
+      [`ci-${id}`, next.confidence, 'none'],
+      [`pt-${id}`, next.periodType, 'all'],
+      [`sex-${id}`, next.sex, ''],
+      [`cmp-${id}`, next.benchmark, 'none'],
+      [`cr-${id}`, next.range ? 'yes' : '', ''],
     ] as const) {
       if (value === empty) {
         nextParams.delete(key);

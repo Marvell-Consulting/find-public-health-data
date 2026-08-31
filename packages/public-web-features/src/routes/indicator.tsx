@@ -7,12 +7,17 @@ import { IndicatorPage } from '../indicator-page';
 export const loader = loadIndicator;
 
 // Changing a table option only re-renders with data the page already has; stripping the
-// option params shows whether anything the loader cares about actually changed.
+// option params shows whether anything the loader cares about actually changed. Each
+// table's params carry its own suffix (`ci-241`, `cmp-compare`), hence the prefix match.
+const OPTION_PARAM = /^(ci|pt|sex|cmp|cr)-/;
+
 export function shouldRevalidate({ currentUrl, nextUrl }: ShouldRevalidateFunctionArgs) {
   const strip = (url: URL) => {
     const params = new URLSearchParams(url.search);
-    for (const key of ['ci', 'pt', 'sex', 'cmp', 'cr']) {
-      params.delete(key);
+    for (const key of [...params.keys()]) {
+      if (OPTION_PARAM.test(key)) {
+        params.delete(key);
+      }
     }
     return `${url.pathname}?${params.toString()}`;
   };

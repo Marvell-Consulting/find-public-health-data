@@ -606,16 +606,16 @@ export function ComparisonSection({
 }) {
   const location = useLocation();
   const navigate = useNavigate();
-  // The same cmp/cr query params the indicator tables use, so one comparison choice
-  // reads consistently across the page after a reload.
+  // The compare table's own option params, suffixed like the per-indicator ones so a
+  // shared or reloaded URL reproduces the exact view without steering any other table.
   const params = new URLSearchParams(location.search);
   const [options, setOptions] = useState<PanelOptions>(() => {
-    const cmp = params.get('cmp');
+    const cmp = params.get('cmp-compare');
     return {
       benchmark: cmp === 'england' || cmp === 'region' ? cmp : 'none',
       confidence: 'none',
       periodType: 'all',
-      range: params.get('cr') === 'yes',
+      range: params.get('cr-compare') === 'yes',
       sex: '',
     };
   });
@@ -623,8 +623,8 @@ export function ComparisonSection({
     setOptions(next);
     const nextParams = new URLSearchParams(location.search);
     for (const [key, value, empty] of [
-      ['cmp', next.benchmark, 'none'],
-      ['cr', next.range ? 'yes' : '', ''],
+      ['cmp-compare', next.benchmark, 'none'],
+      ['cr-compare', next.range ? 'yes' : '', ''],
     ] as const) {
       if (value === empty) {
         nextParams.delete(key);
