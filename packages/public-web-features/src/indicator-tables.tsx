@@ -371,7 +371,8 @@ export function TrendTable({
                         {observation ? (
                           <>
                             {formatCalculatedValue(observation.value)}
-                            {valueSuffix}
+                            {/* The suffix belongs to a number, not to 'No data'. */}
+                            {observation.value === null ? '' : valueSuffix}
                             {observation.notes.map(({ text }) => markerFor(text)).join('')}
                           </>
                         ) : (
