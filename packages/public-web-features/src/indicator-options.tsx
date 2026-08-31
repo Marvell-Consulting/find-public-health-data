@@ -78,6 +78,10 @@ export function PanelOptionsPanel({
       {benchmarks && options.benchmark !== 'none' ? (
         <Radios
           classModifiers="inline"
+          // The component is uncontrolled: it only reads defaultValue (its `value` prop
+          // is discarded), and it remounts whenever the benchmark switches away from
+          // and back to a comparison, so the default always reflects current state.
+          defaultValue={options.range ? 'yes' : 'no'}
           id={ids.range}
           label="Show comparison range"
           name={ids.range}
@@ -86,7 +90,6 @@ export function PanelOptionsPanel({
             { label: 'Yes', value: 'yes' },
             { label: 'No', value: 'no' },
           ]}
-          value={options.range ? 'yes' : 'no'}
         />
       ) : null}
       <div className="fphd-segmentation-options__selects">
