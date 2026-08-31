@@ -1,12 +1,13 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { listAreasByType } from './area-repository.js';
+import { listAreaParents, listAreasByType } from './area-repository.js';
 import { createDb, type Database } from './client.js';
 import { dbEnvFields, resolveDbTls } from './env.js';
 import {
   getApprovedIndicatorByFingertipsId,
   getIndicatorObservations,
+  getObservationRange,
   listApprovedIndicators,
 } from './indicator-repository.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
@@ -156,6 +157,61 @@ describe('getIndicatorObservations', () => {
       fromDate: '2024-04-01',
       toDate: '2025-03-31',
     });
+  });
+});
+
+describe('getObservationRange', () => {
+  const LOCAL_AUTHORITY_TYPES = [
+    'County unchanged',
+    'LA unchanged',
+    'UA unchanged',
+    'UA new 2020',
+    'UA new 2021',
+    'UA new 2023',
+  ];
+
+  it('brackets each period of the trend series across every area of the level', async () => {
+    const [range, cornwall] = await Promise.all([
+      getObservationRange(db, DIABETES_QOF_PREVALENCE, LOCAL_AUTHORITY_TYPES),
+      getIndicatorObservations(db, DIABETES_QOF_PREVALENCE, CORNWALL),
+    ]);
+
+    expect(range.length).toBeGreaterThan(0);
+    for (const period of range) {
+      expect(period.min).toBeLessThanOrEqual(period.max);
+      const observation = cornwall?.observations.find(
+        ({ fromDate, toDate, value }) =>
+          fromDate === period.fromDate && toDate === period.toDate && value !== null,
+      );
+      if (observation?.value != null) {
+        expect(observation.value).toBeGreaterThanOrEqual(period.min);
+        expect(observation.value).toBeLessThanOrEqual(period.max);
+      }
+    }
+  });
+
+  it('returns an empty range without area types or for an unknown indicator', async () => {
+    expect(await getObservationRange(db, DIABETES_QOF_PREVALENCE, [])).toEqual([]);
+    expect(await getObservationRange(db, 424242, LOCAL_AUTHORITY_TYPES)).toEqual([]);
+  });
+});
+
+describe('listAreaParents', () => {
+  it('maps each area to its parent of the requested type', async () => {
+    const parents = await listAreaParents(db, [CORNWALL], 'Regions (statistical)');
+
+    expect(parents).toEqual([
+      {
+        code: CORNWALL,
+        parentCode: 'E12000009',
+        parentName: 'South West region (statistical)',
+      },
+    ]);
+  });
+
+  it('returns nothing for empty input or a parent type the areas do not roll up to', async () => {
+    expect(await listAreaParents(db, [], 'Regions (statistical)')).toEqual([]);
+    expect(await listAreaParents(db, [CORNWALL], 'No Such Type')).toEqual([]);
   });
 });
 

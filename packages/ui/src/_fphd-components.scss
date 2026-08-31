@@ -719,3 +719,21 @@
     display: none;
   }
 }
+
+.fphd-button--full-width {
+  width: 100%;
+}
+
+// The benchmark columns are shaded so a comparison reads as context, not more data: a
+// darker band on the group header, a lighter wash down its cells.
+.fphd-trend-table__benchmark-group {
+  background-color: govuk-colour("mid-grey");
+}
+
+.fphd-trend-table__benchmark-cell {
+  background-color: govuk-colour("light-grey");
+}
+
+.fphd-range-plot {
+  display: block;
+}

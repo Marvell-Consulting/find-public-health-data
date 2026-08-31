@@ -36,7 +36,9 @@ export function Autocomplete({ label, onSelect, options, limit = 10 }: Autocompl
 
   const choose = (option: AutocompleteOption) => {
     onSelect(option);
-    setQuery('');
+    // The picked name stays in the field, so the choice remains visible while a
+    // confirm step (e.g. an "Add indicator" button) is still to come.
+    setQuery(option.label);
     setOpen(false);
     setActive(-1);
   };

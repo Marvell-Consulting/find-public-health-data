@@ -1,4 +1,12 @@
-import { Autocomplete, Button, FilterCard, FilterChip, FilterChips, GeographyTree } from '@fphd/ui';
+import {
+  Autocomplete,
+  type AutocompleteOption,
+  Button,
+  FilterCard,
+  FilterChip,
+  FilterChips,
+  GeographyTree,
+} from '@fphd/ui';
 import { useState } from 'react';
 import { Form, useLocation, useNavigate } from 'react-router';
 import { cleanAreaName, displayGeographyGroups } from './geography-display';
@@ -48,6 +56,7 @@ export function FilterPane({
   const navigate = useNavigate();
   const location = useLocation();
   const [pending, setPending] = useState<string[]>([]);
+  const [pendingIndicator, setPendingIndicator] = useState<AutocompleteOption | null>(null);
   // Filter changes reload the page; carrying the hash and the option params keeps the
   // open tab open and the chosen options chosen.
   const current = new URLSearchParams(location.search);
@@ -106,19 +115,33 @@ export function FilterPane({
         }
         footer={
           unselected.length > 0 ? (
-            <Autocomplete
-              label="Search for an indicator"
-              options={unselected.map(({ fingertipsId, name }) => ({
-                value: String(fingertipsId),
-                label: name,
-              }))}
-              onSelect={({ value }) =>
-                navigateWithTab({
-                  selection,
-                  fingertipsIds: [...selection.fingertipsIds, Number(value)],
-                })
-              }
-            />
+            <>
+              <Autocomplete
+                label="Search for an indicator"
+                options={unselected.map(({ fingertipsId, name }) => ({
+                  value: String(fingertipsId),
+                  label: name,
+                }))}
+                onSelect={setPendingIndicator}
+              />
+              {/* The prototype's two-step add: picking a suggestion only readies it, and
+                  this button commits it, so a misclick in the list costs nothing. */}
+              {pendingIndicator ? (
+                <Button
+                  className="fphd-button--full-width govuk-!-margin-bottom-0"
+                  onClick={() => {
+                    setPendingIndicator(null);
+                    void navigateWithTab({
+                      selection,
+                      fingertipsIds: [...selection.fingertipsIds, Number(pendingIndicator.value)],
+                    });
+                  }}
+                  type="button"
+                >
+                  Add indicator
+                </Button>
+              ) : null}
+            </>
           ) : null
         }
       />

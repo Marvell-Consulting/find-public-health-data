@@ -576,8 +576,141 @@ describe('public application routes', () => {
     render(<Routes initialEntries={['/indicators']} />);
 
     expect(await screen.findByText('None selected')).toBeTruthy();
-    // Indicators are added through a type-ahead over the available list.
-    expect(screen.getByRole('combobox', { name: 'Search for an indicator' })).toBeTruthy();
+    // The main pane shows the prototype's inset-text empty state.
+    expect(screen.getByText('No indicators selected')).toBeTruthy();
+    // Indicators are added in two steps: picking a suggestion readies it, and the
+    // button — absent until then — commits it.
+    const combobox = screen.getByRole('combobox', { name: 'Search for an indicator' });
+    expect(screen.queryByRole('button', { name: 'Add indicator' })).toBeNull();
+    fireEvent.change(combobox, { target: { value: 'Mort' } });
+    fireEvent.click(screen.getByRole('option', { name: 'Mortality' }));
+    expect(screen.getByRole('button', { name: 'Add indicator' })).toBeTruthy();
+  });
+
+  it('offers a benchmark beside each picked area with an optional comparison range', async () => {
+    const observationFor = (value: number) => ({
+      fromDate: '2023-01-01',
+      toDate: '2023-12-31',
+      value,
+      lowerCi95: null,
+      upperCi95: null,
+      lowerCi998: null,
+      upperCi998: null,
+      count: null,
+      denominator: null,
+      notes: [],
+      dimensions: [{ type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 }],
+    });
+    const detail = {
+      fingertipsId: 108,
+      name: 'Under 75 mortality rate from all causes',
+      valueType: 'Directly standardised rate',
+      unit: { name: 'per 100,000', label: 'per 100,000' },
+      yearType: 'Calendar',
+      frequency: 'Annual',
+      polarity: 'RAG - Low is good',
+      ciMethod: null,
+      ciConfidenceLevel: null,
+      comparatorMethod: null,
+      dataUpdatedAt: null,
+      definition: null,
+      rationale: null,
+      methodology: null,
+      numeratorDefinition: null,
+      denominatorDefinition: null,
+      disclosureControl: null,
+      caveats: null,
+      notes: null,
+      dataSource: null,
+      numeratorSource: null,
+      denominatorSource: null,
+      areaTypes: [{ name: 'UA unchanged', areaCount: 125 }],
+      topics: [],
+      classifications: [],
+    };
+    const rangePeriod = { fromDate: '2023-01-01', toDate: '2023-12-31', min: 300.1, max: 500.9 };
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        loader: () => ({ signedIn: false }),
+        children: [
+          {
+            path: 'indicators/:fingertipsId',
+            Component: IndicatorRoute,
+            loader: () => ({
+              areaGroups: [
+                { areaType: 'UA unchanged', areas: [{ code: 'E06000052', name: 'Cornwall' }] },
+              ],
+              availableIndicators: [],
+              benchmarkGeography: {
+                regionByCode: { E06000052: { code: 'E12000009', name: 'South West' } },
+                levelByCode: { E06000052: 'Local authorities' },
+              },
+              selected: [
+                {
+                  detail,
+                  areaData: [
+                    {
+                      areaCode: 'E06000052',
+                      areaName: 'Cornwall',
+                      observations: [observationFor(395.6)],
+                    },
+                    {
+                      areaCode: 'E92000001',
+                      areaName: 'England',
+                      observations: [observationFor(410.3)],
+                    },
+                  ],
+                  regionData: [
+                    {
+                      areaCode: 'E12000009',
+                      areaName: 'South West',
+                      observations: [observationFor(400.2)],
+                    },
+                  ],
+                  ranges: {
+                    'Local authorities': [rangePeriod],
+                    'Statistical regions': [rangePeriod],
+                  },
+                },
+              ],
+              selection: {
+                areaType: 'England',
+                areaCodes: ['E06000052'],
+                areaLevels: [],
+                fingertipsIds: [108],
+              },
+            }),
+          },
+        ],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/indicators/108?as=E06000052']} />);
+
+    // England is not a column of its own while a real area is picked and no benchmark
+    // is chosen.
+    const select = await screen.findByLabelText('Select a geography or goal to compare with');
+    expect(screen.queryByRole('columnheader', { name: 'England' })).toBeNull();
+
+    fireEvent.change(select, { target: { value: 'england' } });
+    expect(screen.getByRole('columnheader', { name: 'England' })).toBeTruthy();
+
+    // Turning the range on adds the spread and the dot-and-whisker comparison.
+    fireEvent.click(screen.getByRole('radio', { name: 'Yes' }));
+    expect(screen.getByRole('columnheader', { name: 'Minimum' })).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: 'Maximum' })).toBeTruthy();
+    expect(screen.getByRole('cell', { name: '300.1' })).toBeTruthy();
+    expect(screen.getByRole('cell', { name: '500.9' })).toBeTruthy();
+    expect(screen.getByRole('img', { name: /Cornwall 395.6 against England 410.3/ })).toBeTruthy();
+
+    // The statistical-region benchmark takes the parent region's name and values.
+    fireEvent.change(select, { target: { value: 'region' } });
+    expect(
+      screen.getByRole('columnheader', { name: 'South West (Statistical region)' }),
+    ).toBeTruthy();
+    expect(screen.getByRole('cell', { name: '400.2' })).toBeTruthy();
   });
 
   it('renders the not-found page when the indicator loader throws a 404 response', async () => {

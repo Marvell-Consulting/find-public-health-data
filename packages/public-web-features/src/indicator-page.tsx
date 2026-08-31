@@ -1,4 +1,14 @@
-import { A, BackLink, Button, ChartSection, GridColumn, GridRow, PageIntro, Tabs } from '@fphd/ui';
+import {
+  A,
+  BackLink,
+  Button,
+  ChartSection,
+  GridColumn,
+  GridRow,
+  InsetText,
+  PageIntro,
+  Tabs,
+} from '@fphd/ui';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 
@@ -15,32 +25,47 @@ import { allDataCsv, downloadCsv, trendCsv } from './indicator-download';
 import { FilterPane } from './indicator-filter-pane';
 import type {
   AreaGroup,
+  BenchmarkGeography,
   IndicatorSelection,
   IndicatorSummary as IndicatorSummaryData,
   SelectedIndicator,
 } from './indicator-loader';
 import { BackgroundInformation, IndicatorSummary } from './indicator-metadata';
-import { InequalityOptions, type PanelOptions, PanelOptionsPanel } from './indicator-options';
+import {
+  type BenchmarkChoice,
+  InequalityOptions,
+  type PanelOptions,
+  PanelOptionsPanel,
+} from './indicator-options';
 import { ComparisonSection, InequalitiesTable, TrendTable } from './indicator-tables';
 
 /**
  * Everything shown for one selected indicator, repeated per selection: the summary
  * table, then the prototype's Chart / Table / Inequalities / About tab set.
  */
-function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
+function IndicatorBlock({
+  detail,
+  areaData,
+  regionData = [],
+  ranges = {},
+  geography,
+}: SelectedIndicator & { geography: BenchmarkGeography }) {
   const id = detail.fingertipsId;
   const location = useLocation();
   const navigate = useNavigate();
-  // The option choices live in the query string (`ci`, `pt`, `sex`), so they survive the
-  // full page reload every filter change causes. Reading them from the location keeps
-  // server and client renders identical.
+  // The option choices live in the query string (`ci`, `pt`, `sex`, `cmp`, `cr`), so they
+  // survive the full page reload every filter change causes. Reading them from the
+  // location keeps server and client renders identical.
   const params = new URLSearchParams(location.search);
   const [options, setOptions] = useState<PanelOptions>(() => {
     const ci = params.get('ci');
     const pt = params.get('pt');
+    const cmp = params.get('cmp');
     return {
+      benchmark: cmp === 'england' || cmp === 'region' ? (cmp as BenchmarkChoice) : 'none',
       confidence: ci === '95' || ci === '99.8' ? ci : 'none',
       periodType: pt === '1-year' || pt === '3-year' ? pt : 'all',
+      range: params.get('cr') === 'yes',
       sex: params.get('sex') ?? '',
     };
   });
@@ -51,6 +76,8 @@ function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
       ['ci', next.confidence, 'none'],
       ['pt', next.periodType, 'all'],
       ['sex', next.sex, ''],
+      ['cmp', next.benchmark, 'none'],
+      ['cr', next.range ? 'yes' : '', ''],
     ] as const) {
       if (value === empty) {
         nextParams.delete(key);
@@ -81,16 +108,23 @@ function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
   const periods = inequalityPeriods(allObservations, category, detail.yearType);
   const [period, setPeriod] = useState(periods.at(-1)?.value ?? '');
 
-  const filtered = areaData.map((data) => ({
+  const narrow = (data: (typeof areaData)[number]) => ({
     ...data,
     observations: filterObservations(data.observations, {
       // A sex chosen on another indicator's panel must not blank this one's table.
       sex: sexes.includes(options.sex) ? options.sex : '',
       periodType: options.periodType,
     }),
-  }));
+  });
+  const filtered = areaData.map(narrow);
+  const filteredRegions = regionData.map(narrow);
+  // The comparison controls only make sense once a real geography is picked — England
+  // against itself says nothing.
+  const hasPickedAreas = areaData.some(({ areaCode }) => areaCode !== 'E92000001');
+  const regionAvailable = areaData.some(({ areaCode }) => geography.regionByCode[areaCode]);
   const panelOptions = (label: string, showConfidence: boolean) => (
     <PanelOptionsPanel
+      benchmarks={hasPickedAreas ? { region: regionAvailable } : undefined}
       confidenceLevels={confidenceLevels}
       label={label}
       onChange={applyOptions}
@@ -150,7 +184,16 @@ function IndicatorBlock({ detail, areaData }: SelectedIndicator) {
                   </Button>
                 </div>
                 {panelOptions('Table options', true)}
-                <TrendTable indicator={detail} areaData={filtered} confidence={confidence} />
+                <TrendTable
+                  indicator={detail}
+                  areaData={filtered}
+                  benchmark={hasPickedAreas ? options.benchmark : 'none'}
+                  confidence={confidence}
+                  geography={geography}
+                  ranges={ranges}
+                  regionData={filteredRegions}
+                  showRange={options.range}
+                />
               </>
             ),
           },
@@ -210,6 +253,7 @@ export function IndicatorPage({
   selected,
   areaGroups,
   availableIndicators,
+  benchmarkGeography = { regionByCode: {}, levelByCode: {} },
   searchResults = [],
   searchSubject = '',
   selection,
@@ -217,6 +261,7 @@ export function IndicatorPage({
   selected: SelectedIndicator[];
   areaGroups: AreaGroup[];
   availableIndicators: IndicatorSummaryData[];
+  benchmarkGeography?: BenchmarkGeography;
   searchResults?: IndicatorSummaryData[];
   searchSubject?: string;
   selection: IndicatorSelection;
@@ -260,12 +305,7 @@ export function IndicatorPage({
                 )}
               </>
             ) : (
-              <>
-                <PageIntro size="l" title="Selected indicators" />
-                <p className="govuk-body">
-                  No indicators selected. Add one from the filters to see its data.
-                </p>
-              </>
+              <InsetText className="govuk-!-margin-top-0">No indicators selected</InsetText>
             )
           ) : (
             <>
@@ -290,7 +330,11 @@ export function IndicatorPage({
               {selected.length > 1 ? <ComparisonSection selected={selected} /> : null}
 
               {selected.map((entry) => (
-                <IndicatorBlock key={entry.detail.fingertipsId} {...entry} />
+                <IndicatorBlock
+                  key={entry.detail.fingertipsId}
+                  {...entry}
+                  geography={benchmarkGeography}
+                />
               ))}
             </>
           )}

@@ -104,6 +104,17 @@ export const indicatorAreaDataSchema = z.object({
 
 export const indicatorAreaDataListSchema = z.array(indicatorAreaDataSchema);
 
+export const indicatorRangeSchema = z.object({
+  periods: z.array(
+    z.object({
+      fromDate: z.string().min(1),
+      toDate: z.string().min(1),
+      min: z.number(),
+      max: z.number(),
+    }),
+  ),
+});
+
 export const areaSummarySchema = z.object({
   code: z.string().min(1),
   name: z.string().min(1),
@@ -115,6 +126,14 @@ export const areaGroupListSchema = z.array(
   z.object({ areaType: z.string().min(1), areas: areaListSchema }),
 );
 
+export const areaParentListSchema = z.array(
+  z.object({
+    code: z.string().min(1),
+    parentCode: z.string().min(1),
+    parentName: z.string().min(1),
+  }),
+);
+
 export type TopicSummary = z.infer<typeof topicSummarySchema>;
 export type TopicDetail = z.infer<typeof topicDetailSchema>;
 export type IndicatorSummary = z.infer<typeof indicatorSummarySchema>;
@@ -122,5 +141,8 @@ export type IndicatorDetail = z.infer<typeof indicatorDetailSchema>;
 export type IndicatorSource = z.infer<typeof indicatorSourceSchema>;
 export type IndicatorObservation = z.infer<typeof indicatorObservationSchema>;
 export type IndicatorAreaData = z.infer<typeof indicatorAreaDataSchema>;
+export type IndicatorRange = z.infer<typeof indicatorRangeSchema>;
+export type IndicatorRangePeriod = IndicatorRange['periods'][number];
 export type AreaSummary = z.infer<typeof areaSummarySchema>;
 export type AreaGroup = z.infer<typeof areaGroupListSchema>[number];
+export type AreaParent = z.infer<typeof areaParentListSchema>[number];

@@ -1,12 +1,19 @@
-import { type AreaSummary, listAreasByType } from './area-repository.js';
+import {
+  type AreaParent,
+  type AreaSummary,
+  listAreaParents,
+  listAreasByType,
+} from './area-repository.js';
 import type { Database } from './client.js';
 import {
   type ApprovedIndicator,
   getApprovedIndicatorByFingertipsId,
   getIndicatorObservations,
+  getObservationRange,
   type IndicatorAreaData,
   type IndicatorDetail,
   listApprovedIndicators,
+  type ObservationRangePeriod,
 } from './indicator-repository.js';
 import { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';
 
@@ -14,10 +21,15 @@ export interface IndicatorRepository {
   listApproved(): Promise<ApprovedIndicator[]>;
   findApprovedByFingertipsId(fingertipsId: number): Promise<IndicatorDetail | undefined>;
   findObservations(fingertipsId: number, areaCode: string): Promise<IndicatorAreaData | undefined>;
+  findObservationRange(
+    fingertipsId: number,
+    areaTypeNames: string[],
+  ): Promise<ObservationRangePeriod[]>;
 }
 
 export interface AreaRepository {
   listByType(areaTypeName: string): Promise<AreaSummary[]>;
+  listParents(childCodes: string[], parentTypeName: string): Promise<AreaParent[]>;
 }
 
 export interface TopicRepository {
@@ -40,6 +52,7 @@ export function createRepositories(db: Database): Repositories {
   return {
     areas: {
       listByType: (areaTypeName) => listAreasByType(db, areaTypeName),
+      listParents: (childCodes, parentTypeName) => listAreaParents(db, childCodes, parentTypeName),
     },
     indicators: {
       listApproved: () => listApprovedIndicators(db),
@@ -47,6 +60,8 @@ export function createRepositories(db: Database): Repositories {
         getApprovedIndicatorByFingertipsId(db, fingertipsId),
       findObservations: (fingertipsId, areaCode) =>
         getIndicatorObservations(db, fingertipsId, areaCode),
+      findObservationRange: (fingertipsId, areaTypeNames) =>
+        getObservationRange(db, fingertipsId, areaTypeNames),
     },
     topics: {
       list: () => listTopics(db),

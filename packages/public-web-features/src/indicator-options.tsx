@@ -12,9 +12,15 @@ export function confidenceOptions(levels: string[]) {
   ];
 }
 
+/** What a picked area is compared against: nothing, England, or its statistical region. */
+export type BenchmarkChoice = 'none' | 'england' | 'region';
+
 export interface PanelOptions {
+  benchmark: BenchmarkChoice;
   confidence: ConfidenceLevel;
   periodType: PeriodType;
+  /** Whether the benchmark columns include the min/max spread and comparison plot. */
+  range: boolean;
   sex: string;
 }
 
@@ -24,6 +30,7 @@ export interface PanelOptions {
  * indicator reports those segments.
  */
 export function PanelOptionsPanel({
+  benchmarks,
   confidenceLevels,
   label,
   onChange,
@@ -32,6 +39,8 @@ export function PanelOptionsPanel({
   sexes,
   showConfidence,
 }: {
+  /** Which comparisons the shown areas support; absent when only England is shown. */
+  benchmarks?: { region: boolean } | undefined;
   confidenceLevels: string[];
   label: string;
   onChange: (options: PanelOptions) => void;
@@ -41,13 +50,61 @@ export function PanelOptionsPanel({
   showConfidence: boolean;
 }) {
   const ids = {
+    benchmark: useId(),
     confidence: useId(),
     period: useId(),
+    range: useId(),
     sex: useId(),
   };
 
   return (
     <OptionsAccordion label={label}>
+      {benchmarks ? (
+        <Select
+          id={ids.benchmark}
+          label="Select a geography or goal to compare with"
+          name="benchmark"
+          onChange={(event) =>
+            onChange({ ...options, benchmark: event.currentTarget.value as BenchmarkChoice })
+          }
+          options={[
+            { label: 'None', value: 'none' },
+            { label: 'England', value: 'england' },
+            ...(benchmarks.region ? [{ label: 'Statistical regions', value: 'region' }] : []),
+          ]}
+          value={options.benchmark}
+        />
+      ) : null}
+      {benchmarks && options.benchmark !== 'none' ? (
+        <fieldset className="govuk-fieldset govuk-!-margin-bottom-4">
+          <legend className="govuk-fieldset__legend govuk-fieldset__legend--s">
+            Show comparison range
+          </legend>
+          <div className="govuk-radios govuk-radios--inline govuk-radios--small">
+            {[
+              { label: 'Yes', value: true },
+              { label: 'No', value: false },
+            ].map(({ label: radioLabel, value }) => (
+              <div className="govuk-radios__item" key={radioLabel}>
+                <input
+                  checked={options.range === value}
+                  className="govuk-radios__input"
+                  id={`${ids.range}-${radioLabel}`}
+                  name={ids.range}
+                  onChange={() => onChange({ ...options, range: value })}
+                  type="radio"
+                />
+                <label
+                  className="govuk-label govuk-radios__label"
+                  htmlFor={`${ids.range}-${radioLabel}`}
+                >
+                  {radioLabel}
+                </label>
+              </div>
+            ))}
+          </div>
+        </fieldset>
+      ) : null}
       <div className="fphd-segmentation-options__selects">
         {sexes.length > 0 ? (
           <Select

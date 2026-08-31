@@ -11,7 +11,7 @@ export const loader = loadIndicator;
 export function shouldRevalidate({ currentUrl, nextUrl }: ShouldRevalidateFunctionArgs) {
   const strip = (url: URL) => {
     const params = new URLSearchParams(url.search);
-    for (const key of ['ci', 'pt', 'sex']) {
+    for (const key of ['ci', 'pt', 'sex', 'cmp', 'cr']) {
       params.delete(key);
     }
     return `${url.pathname}?${params.toString()}`;
@@ -22,13 +22,21 @@ export function shouldRevalidate({ currentUrl, nextUrl }: ShouldRevalidateFuncti
 export const meta = createDocumentMeta('Indicator');
 
 export function IndicatorRoute() {
-  const { selected, areaGroups, availableIndicators, searchResults, searchSubject, selection } =
-    useLoaderData<typeof loader>();
+  const {
+    selected,
+    areaGroups,
+    availableIndicators,
+    benchmarkGeography,
+    searchResults,
+    searchSubject,
+    selection,
+  } = useLoaderData<typeof loader>();
   return (
     <IndicatorPage
       selected={selected}
       areaGroups={areaGroups}
       availableIndicators={availableIndicators}
+      benchmarkGeography={benchmarkGeography}
       searchResults={searchResults}
       searchSubject={searchSubject}
       selection={selection}

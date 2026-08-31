@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, isNull, max, min, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import type { Database } from './client.js';
@@ -9,6 +9,7 @@ import {
 } from './indicator-topic-repository.js';
 import {
   area,
+  areaType,
   availableData,
   ciMethod,
   comparatorMethod,
@@ -346,4 +347,96 @@ export async function getIndicatorObservations(
       notes: notesByObservation.get(obsId) ?? [],
     })),
   };
+}
+
+export interface ObservationRangePeriod {
+  fromDate: string;
+  toDate: string;
+  min: number;
+  max: number;
+}
+
+/**
+ * Per-period min and max of an indicator's value across every area of the given types,
+ * for the same series the trend table shows: the least-disaggregated segment with the
+ * most published values. Mirrors the web app's trendSeries selection so the range always
+ * brackets the numbers it sits beside.
+ */
+export async function getObservationRange(
+  db: Database,
+  fingertipsId: number,
+  areaTypeNames: string[],
+): Promise<ObservationRangePeriod[]> {
+  if (areaTypeNames.length === 0) {
+    return [];
+  }
+
+  // Each observation with its dimension count and a stable label for its exact segment.
+  const observations = db.$with('range_observations').as(
+    db
+      .select({
+        fromDate: observation.fromDate,
+        toDate: observation.toDate,
+        value: observation.value,
+        dims: sql<number>`count(${observationDimension.observationId})::int`.as('dims'),
+        segment:
+          sql<string>`coalesce(string_agg(${dimensionValue.name}, '|' order by ${dimensionType.name}), '')`.as(
+            'segment',
+          ),
+      })
+      .from(observation)
+      .innerJoin(
+        indicator,
+        and(
+          eq(observation.indicatorId, indicator.id),
+          eq(indicator.fingertipsId, fingertipsId),
+          eq(indicator.status, 'approved'),
+        ),
+      )
+      .innerJoin(area, eq(observation.areaId, area.id))
+      .innerJoin(
+        areaType,
+        and(eq(area.areaTypeId, areaType.id), inArray(areaType.name, areaTypeNames)),
+      )
+      .leftJoin(observationDimension, eq(observationDimension.observationId, observation.id))
+      .leftJoin(dimensionType, eq(observationDimension.dimensionTypeId, dimensionType.id))
+      .leftJoin(dimensionValue, eq(observationDimension.dimensionValueId, dimensionValue.id))
+      .where(and(isNull(observation.deletedAt), isNotNull(observation.value)))
+      .groupBy(observation.id, observation.fromDate, observation.toDate, observation.value),
+  );
+  const leastDisaggregated = db.$with('range_least_disaggregated').as(
+    db
+      .select()
+      .from(observations)
+      .where(eq(observations.dims, db.select({ dims: min(observations.dims) }).from(observations))),
+  );
+  const bestSegment = db
+    .$with('range_best_segment')
+    .as(
+      db
+        .select({ segment: leastDisaggregated.segment })
+        .from(leastDisaggregated)
+        .groupBy(leastDisaggregated.segment)
+        .orderBy(sql`count(*) desc`, asc(leastDisaggregated.segment))
+        .limit(1),
+    );
+
+  const rows = await db
+    .with(observations, leastDisaggregated, bestSegment)
+    .select({
+      fromDate: leastDisaggregated.fromDate,
+      toDate: leastDisaggregated.toDate,
+      min: min(leastDisaggregated.value),
+      max: max(leastDisaggregated.value),
+    })
+    .from(leastDisaggregated)
+    .where(eq(leastDisaggregated.segment, db.select().from(bestSegment)))
+    .groupBy(leastDisaggregated.fromDate, leastDisaggregated.toDate)
+    .orderBy(asc(leastDisaggregated.fromDate), asc(leastDisaggregated.toDate));
+
+  return rows.flatMap(({ fromDate, toDate, min: minValue, max: maxValue }) =>
+    minValue === null || maxValue === null
+      ? []
+      : [{ fromDate, toDate, min: minValue, max: maxValue }],
+  );
 }

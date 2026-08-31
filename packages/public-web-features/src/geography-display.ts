@@ -30,6 +30,14 @@ const EXCLUDED = new Set(['England']);
 /** The display level names, for validating `als` query values. */
 export const DISPLAY_LEVEL_NAMES = DISPLAY_GROUPS.map(({ label }) => label);
 
+/** Every Pholio area type behind the tree's levels — the tree always offers them all. */
+export const ALL_DISPLAY_AREA_TYPES = DISPLAY_GROUPS.flatMap(({ areaTypes }) => areaTypes);
+
+/** The display level an area type belongs to, e.g. 'UA unchanged' → 'Local authorities'. */
+export function displayLevelOf(areaTypeName: string): string | undefined {
+  return DISPLAY_GROUPS.find(({ areaTypes }) => areaTypes.includes(areaTypeName))?.label;
+}
+
 /** The Pholio area types behind one display level, for expanding a level selection. */
 export function levelAreaTypes(level: string): string[] {
   return DISPLAY_GROUPS.find(({ label }) => label === level)?.areaTypes ?? [];
