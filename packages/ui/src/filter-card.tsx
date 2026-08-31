@@ -21,7 +21,7 @@ export function FilterCard({
       <div className="fphd-filter-card__header">
         <h2 className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-0">{title}</h2>
         {onClear ? (
-          <a className="govuk-link govuk-body-s" href={onClear}>
+          <a className="govuk-link govuk-body-s govuk-!-margin-bottom-0" href={onClear}>
             Clear all
           </a>
         ) : null}
