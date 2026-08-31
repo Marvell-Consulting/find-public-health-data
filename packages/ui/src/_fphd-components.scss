@@ -705,3 +705,17 @@
 .fphd-compare-table thead th {
   white-space: normal;
 }
+
+// Every panel is in the document for no-script readers, but with scripting the selected
+// one must be the only one showing from first paint — hydration arrives too late to do
+// the hiding without a visible flash. The body's js-enabled class is set by an inline
+// script before paint; React drops the --ssr class once mounted and takes over.
+.js-enabled .fphd-tabs--ssr {
+  .govuk-tabs__panel:not(:target):not(:first-of-type) {
+    display: none;
+  }
+
+  &:has(.govuk-tabs__panel:target) .govuk-tabs__panel:first-of-type:not(:target) {
+    display: none;
+  }
+}

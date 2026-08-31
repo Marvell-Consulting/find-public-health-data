@@ -45,7 +45,7 @@ export function Tabs({ items, title = 'Contents' }: { items: TabItem[]; title?: 
   };
 
   return (
-    <div className="govuk-tabs" data-module="">
+    <div className={`govuk-tabs${mounted ? '' : ' fphd-tabs--ssr'}`} data-module="">
       <h2 className="govuk-tabs__title">{title}</h2>
       {/* biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: the ARIA tabs
           pattern (and govuk-frontend's own markup) puts role=tablist on the list. */}

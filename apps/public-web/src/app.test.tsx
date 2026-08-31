@@ -259,7 +259,9 @@ describe('public application routes', () => {
     // England never appears in the tree — it is the default selected area.
     expect(screen.getByText('Local authorities')).toBeTruthy();
     expect(screen.queryByRole('checkbox', { name: /^England/ })).toBeNull();
-    // The first level opens by default, so its areas are selectable straight away.
+    // Every level starts collapsed; expanding one reveals its areas.
+    expect(screen.queryByRole('checkbox', { name: 'Cornwall' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Expand Local authorities' }));
     const areaCheckbox = screen
       .getAllByRole('checkbox', { name: 'Cornwall' })
       .find((box) => box.getAttribute('name') === 'as');

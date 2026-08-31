@@ -29,14 +29,13 @@ const CHILD_CAP = 100;
 export function GeographyTree({ groups, name, onChange, selected }: GeographyTreeProps) {
   const idPrefix = useId();
   const [query, setQuery] = useState('');
-  // The first group opens so the tree shows selectable areas rather than a row of
-  // collapsed headings that give no sign of holding anything.
-  const [expanded, setExpanded] = useState<string[]>(() => {
-    const withSelection = groups
+  // Groups holding a selection open so their ticks are visible; everything else starts
+  // collapsed.
+  const [expanded, setExpanded] = useState<string[]>(() =>
+    groups
       .filter(({ areas }) => areas.some(({ code }) => selected.includes(code)))
-      .map(({ name: groupName }) => groupName);
-    return withSelection.length > 0 ? withSelection : groups.slice(0, 1).map(({ name }) => name);
-  });
+      .map(({ name: groupName }) => groupName),
+  );
 
   const searching = query.trim() !== '';
   const matches = ({ name: areaName, code }: { name: string; code: string }) =>
