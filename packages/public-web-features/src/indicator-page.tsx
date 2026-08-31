@@ -327,7 +327,9 @@ export function IndicatorPage({
                 </ul>
               </nav>
 
-              {selected.length > 1 ? <ComparisonSection selected={selected} /> : null}
+              {selected.length > 1 ? (
+                <ComparisonSection selected={selected} geography={benchmarkGeography} />
+              ) : null}
 
               {selected.map((entry) => (
                 <IndicatorBlock

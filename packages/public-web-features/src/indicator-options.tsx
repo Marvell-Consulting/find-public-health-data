@@ -80,7 +80,7 @@ export function PanelOptionsPanel({
           <legend className="govuk-fieldset__legend govuk-fieldset__legend--s">
             Show comparison range
           </legend>
-          <div className="govuk-radios govuk-radios--inline govuk-radios--small">
+          <div className="govuk-radios govuk-radios--inline">
             {[
               { label: 'Yes', value: true },
               { label: 'No', value: false },

@@ -147,6 +147,9 @@ export interface ComparisonRow {
   count: number | null;
   series: IndicatorObservation[];
   notes: string[];
+  /** The variant behind a breakout row, so a benchmark can be filtered the same way. */
+  sex: string;
+  periodType: PeriodType;
   /** One cell per compared area, aligned with comparisonAreas(). */
   cells: ComparisonCell[];
 }
@@ -237,6 +240,8 @@ export function comparisonRows(
           count: firstWithData?.count ?? null,
           series: firstWithData?.series ?? [],
           notes: firstWithData?.notes ?? [],
+          sex: variant.sex,
+          periodType: variant.periodType,
           cells,
         },
       ];
@@ -258,6 +263,8 @@ export function comparisonRows(
             count: null,
             series: [],
             notes: [],
+            sex: '',
+            periodType: 'all' as PeriodType,
             cells: [],
           },
         ];

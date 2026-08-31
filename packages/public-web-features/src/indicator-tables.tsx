@@ -1,11 +1,13 @@
 import { Button, ChartSection, Tabs } from '@fphd/ui';
-import { Fragment } from 'react';
+import { Fragment, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 import { cleanAreaName } from './geography-display';
 import {
   type ConfidenceLevel,
   comparisonAreas,
   comparisonRows,
   confidenceInterval,
+  filterObservations,
   formatCalculatedValue,
   formatValue,
   latestCoreSegments,
@@ -22,7 +24,7 @@ import type {
   IndicatorRangePeriod,
   SelectedIndicator,
 } from './indicator-loader';
-import type { BenchmarkChoice } from './indicator-options';
+import { type BenchmarkChoice, type PanelOptions, PanelOptionsPanel } from './indicator-options';
 
 export function SegmentationTable({
   confidence,
@@ -595,12 +597,53 @@ export function InequalitiesTable({
 }
 
 /** Only shown for two or more indicators: their latest values side by side. */
-export function ComparisonSection({ selected }: { selected: SelectedIndicator[] }) {
+export function ComparisonSection({
+  selected,
+  geography = { regionByCode: {}, levelByCode: {} },
+}: {
+  selected: SelectedIndicator[];
+  geography?: BenchmarkGeography;
+}) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  // The same cmp/cr query params the indicator tables use, so one comparison choice
+  // reads consistently across the page after a reload.
+  const params = new URLSearchParams(location.search);
+  const [options, setOptions] = useState<PanelOptions>(() => {
+    const cmp = params.get('cmp');
+    return {
+      benchmark: cmp === 'england' || cmp === 'region' ? cmp : 'none',
+      confidence: 'none',
+      periodType: 'all',
+      range: params.get('cr') === 'yes',
+      sex: '',
+    };
+  });
+  const applyOptions = (next: PanelOptions) => {
+    setOptions(next);
+    const nextParams = new URLSearchParams(location.search);
+    for (const [key, value, empty] of [
+      ['cmp', next.benchmark, 'none'],
+      ['cr', next.range ? 'yes' : '', ''],
+    ] as const) {
+      if (value === empty) {
+        nextParams.delete(key);
+      } else {
+        nextParams.set(key, value);
+      }
+    }
+    void navigate(
+      { search: `?${nextParams.toString()}`, hash: location.hash.slice(1) },
+      { replace: true, preventScrollReset: true },
+    );
+  };
+
   const rows = comparisonRows(selected);
   const areas = comparisonAreas(selected[0]?.areaData ?? []).map(({ areaCode, areaName }) => ({
     areaCode,
     areaName: cleanAreaName(areaName),
   }));
+  const byId = new Map(selected.map((entry) => [entry.detail.fingertipsId, entry]));
   const polarities = new Map(selected.map(({ detail }) => [detail.fingertipsId, detail.polarity]));
   const trendOf = (row: (typeof rows)[number], cell: { series: (typeof rows)[number]['series'] }) =>
     recentTrend(cell.series, polarities.get(row.fingertipsId) ?? null);
@@ -609,25 +652,107 @@ export function ComparisonSection({ selected }: { selected: SelectedIndicator[] 
   const markers = ['*', '**', '***', '****'];
   const markerFor = (text: string) => markers[noteTexts.indexOf(text)] ?? '*';
 
+  const hasPickedAreas = areas.some(({ areaCode }) => areaCode !== 'E92000001');
+  const regionAvailable = areas.some(({ areaCode }) => geography.regionByCode[areaCode]);
+  const benchmark = hasPickedAreas ? options.benchmark : 'none';
+  const benchmarkActive = benchmark !== 'none';
+  const benchmarkColumns = 1 + (options.range ? 3 : 0);
+  const benchmarkNameFor = (areaCode: string): string | undefined => {
+    if (!benchmarkActive) {
+      return undefined;
+    }
+    if (benchmark === 'england') {
+      return 'England';
+    }
+    const region = geography.regionByCode[areaCode];
+    return region ? `${region.name} (Statistical region)` : undefined;
+  };
+  // The benchmark's value at the same period, filtered the way a breakout row is — a
+  // "Female, 1 year" row must not sit beside the benchmark's all-persons figure.
+  const benchmarkCellFor = (
+    row: (typeof rows)[number],
+    cell: (typeof rows)[number]['cells'][number],
+  ) => {
+    const entry = byId.get(row.fingertipsId);
+    const latest = cell.series.at(-1);
+    if (!entry || !latest || !benchmarkNameFor(cell.areaCode)) {
+      return undefined;
+    }
+    const source =
+      benchmark === 'england'
+        ? entry.areaData.find(({ areaCode }) => areaCode === 'E92000001')
+        : (entry.regionData ?? []).find(
+            ({ areaCode }) => areaCode === geography.regionByCode[cell.areaCode]?.code,
+          );
+    const series = source
+      ? trendSeries(
+          filterObservations(source.observations, { sex: row.sex, periodType: row.periodType }),
+        )
+      : [];
+    const samePeriod = ({ fromDate, toDate }: { fromDate: string; toDate: string }) =>
+      fromDate === latest.fromDate && toDate === latest.toDate;
+    const rangeKey =
+      benchmark === 'england'
+        ? (geography.levelByCode[cell.areaCode] ?? '')
+        : 'Statistical regions';
+    return {
+      value: series.find(samePeriod)?.value ?? null,
+      rangePeriod: (entry.ranges?.[rangeKey] ?? []).find(samePeriod),
+      areaValue: latest.value,
+      polarity: entry.detail.polarity,
+    };
+  };
+  const withUnit = (row: (typeof rows)[number], value: number) =>
+    row.unitLabel === '%'
+      ? `${formatCalculatedValue(value)}%`
+      : `${formatCalculatedValue(value)} ${row.unit}`;
+
   const csv = () =>
     [
       [
         'Indicator',
         'Most recent period',
-        ...areas.flatMap(({ areaName }) => [
+        ...areas.flatMap(({ areaCode, areaName }) => [
           `${areaName} recent trend`,
           `${areaName} count`,
           `${areaName} calculated value`,
+          ...(benchmarkNameFor(areaCode)
+            ? [
+                `${areaName} ${benchmarkNameFor(areaCode)} calculated value`,
+                ...(options.range
+                  ? [
+                      `${areaName} ${benchmarkNameFor(areaCode)} minimum`,
+                      `${areaName} ${benchmarkNameFor(areaCode)} maximum`,
+                    ]
+                  : []),
+              ]
+            : []),
         ]),
       ],
       ...rows.map((row) => [
         `${row.name}${row.suffix ? ` ${row.suffix}` : ''}`,
         row.period,
-        ...row.cells.flatMap((cell) => [
-          trendOf(row, cell).label,
-          cell.count === null ? '' : String(cell.count),
-          cell.value === null ? '' : `${cell.value} ${row.unit}`,
-        ]),
+        ...row.cells.flatMap((cell) => {
+          const benchmarkCell = benchmarkNameFor(cell.areaCode)
+            ? benchmarkCellFor(row, cell)
+            : undefined;
+          return [
+            trendOf(row, cell).label,
+            cell.count === null ? '' : String(cell.count),
+            cell.value === null ? '' : `${cell.value} ${row.unit}`,
+            ...(benchmarkNameFor(cell.areaCode)
+              ? [
+                  benchmarkCell?.value == null ? '' : `${benchmarkCell.value} ${row.unit}`,
+                  ...(options.range
+                    ? [
+                        benchmarkCell?.rangePeriod ? String(benchmarkCell.rangePeriod.min) : '',
+                        benchmarkCell?.rangePeriod ? String(benchmarkCell.rangePeriod.max) : '',
+                      ]
+                    : []),
+                ]
+              : []),
+          ];
+        }),
       ]),
     ]
       .map((line) =>
@@ -655,6 +780,18 @@ export function ComparisonSection({ selected }: { selected: SelectedIndicator[] 
           Download this table
         </Button>
       </div>
+      {hasPickedAreas ? (
+        <PanelOptionsPanel
+          benchmarks={{ region: regionAvailable }}
+          confidenceLevels={[]}
+          label="Table options"
+          onChange={applyOptions}
+          options={options}
+          periodTypes={[]}
+          sexes={[]}
+          showConfidence={false}
+        />
+      ) : null}
       <div className="fphd-table-scroll-wrapper">
         <table className="govuk-table fphd-compare-table">
           <caption className="govuk-table__caption govuk-visually-hidden">
@@ -664,9 +801,20 @@ export function ComparisonSection({ selected }: { selected: SelectedIndicator[] 
             <tr className="govuk-table__row">
               <td colSpan={2} />
               {areas.map(({ areaCode, areaName }) => (
-                <th scope="colgroup" colSpan={3} className="govuk-table__header" key={areaCode}>
-                  {areaName}
-                </th>
+                <Fragment key={areaCode}>
+                  <th scope="colgroup" colSpan={3} className="govuk-table__header">
+                    {areaName}
+                  </th>
+                  {benchmarkNameFor(areaCode) ? (
+                    <th
+                      scope="colgroup"
+                      colSpan={benchmarkColumns}
+                      className="govuk-table__header fphd-trend-table__benchmark-group"
+                    >
+                      {benchmarkNameFor(areaCode)}
+                    </th>
+                  ) : null}
+                </Fragment>
               ))}
             </tr>
             <tr className="govuk-table__row">
@@ -687,6 +835,38 @@ export function ComparisonSection({ selected }: { selected: SelectedIndicator[] 
                   <th scope="col" className="govuk-table__header">
                     Calculated value
                   </th>
+                  {benchmarkNameFor(areaCode) ? (
+                    <>
+                      <th
+                        scope="col"
+                        className="govuk-table__header fphd-trend-table__benchmark-cell"
+                      >
+                        Calculated value
+                      </th>
+                      {options.range ? (
+                        <>
+                          <th
+                            scope="col"
+                            className="govuk-table__header fphd-trend-table__benchmark-cell"
+                          >
+                            Minimum
+                          </th>
+                          <th
+                            scope="col"
+                            className="govuk-table__header fphd-trend-table__benchmark-cell"
+                          >
+                            Maximum
+                          </th>
+                          <th
+                            scope="col"
+                            className="govuk-table__header fphd-trend-table__benchmark-cell"
+                          >
+                            Comparison
+                          </th>
+                        </>
+                      ) : null}
+                    </>
+                  ) : null}
                 </Fragment>
               ))}
             </tr>
@@ -722,15 +902,57 @@ export function ComparisonSection({ selected }: { selected: SelectedIndicator[] 
                           '-'
                         ) : (
                           <>
-                            {row.unitLabel === '%'
-                              ? `${formatCalculatedValue(cell.value)}%`
-                              : `${formatCalculatedValue(cell.value)} ${row.unit}`}
+                            {withUnit(row, cell.value)}
                             {cell.notes.map((text) => (
                               <sup key={text}>{markerFor(text)}</sup>
                             ))}
                           </>
                         )}
                       </td>
+                      {benchmarkNameFor(cell.areaCode)
+                        ? (() => {
+                            const benchmarkCell = benchmarkCellFor(row, cell);
+                            return (
+                              <>
+                                <td className="govuk-table__cell fphd-trend-table__benchmark-cell">
+                                  {benchmarkCell?.value == null
+                                    ? '-'
+                                    : withUnit(row, benchmarkCell.value)}
+                                </td>
+                                {options.range ? (
+                                  <>
+                                    <td className="govuk-table__cell fphd-trend-table__benchmark-cell">
+                                      {benchmarkCell?.rangePeriod
+                                        ? withUnit(row, benchmarkCell.rangePeriod.min)
+                                        : '-'}
+                                    </td>
+                                    <td className="govuk-table__cell fphd-trend-table__benchmark-cell">
+                                      {benchmarkCell?.rangePeriod
+                                        ? withUnit(row, benchmarkCell.rangePeriod.max)
+                                        : '-'}
+                                    </td>
+                                    <td className="govuk-table__cell fphd-trend-table__benchmark-cell">
+                                      {benchmarkCell?.rangePeriod &&
+                                      benchmarkCell.value != null &&
+                                      benchmarkCell.areaValue != null ? (
+                                        <RangePlot
+                                          value={benchmarkCell.areaValue}
+                                          benchmarkValue={benchmarkCell.value}
+                                          min={benchmarkCell.rangePeriod.min}
+                                          max={benchmarkCell.rangePeriod.max}
+                                          polarity={benchmarkCell.polarity}
+                                          label={`${cell.areaName} ${formatCalculatedValue(benchmarkCell.areaValue)} against ${benchmarkNameFor(cell.areaCode)} ${formatCalculatedValue(benchmarkCell.value)}, range ${formatCalculatedValue(benchmarkCell.rangePeriod.min)} to ${formatCalculatedValue(benchmarkCell.rangePeriod.max)}`}
+                                        />
+                                      ) : (
+                                        '-'
+                                      )}
+                                    </td>
+                                  </>
+                                ) : null}
+                              </>
+                            );
+                          })()
+                        : null}
                     </Fragment>
                   );
                 })}
