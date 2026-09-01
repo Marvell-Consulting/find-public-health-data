@@ -32,11 +32,8 @@ export function AppDocument({ children }: AppDocumentProps) {
           }}
         />
         {children}
-        {/* Default per-location keying: filter and option navigations all pass
-            preventScrollReset and never carry a hash (tab state lives in query params),
-            so nothing moves the page — while a genuine anchor navigation (the contents
-            list) still scrolls to its target. A shared scroll key would restore the old
-            position over the anchor jump. */}
+        {/* Default keying: filter navigations pass preventScrollReset and carry no
+            hash, so anchors still scroll while nothing else moves the page. */}
         <ScrollRestoration />
         <Scripts />
       </body>

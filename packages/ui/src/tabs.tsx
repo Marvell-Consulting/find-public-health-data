@@ -28,8 +28,7 @@ export function Tabs({
 }) {
   const location = useLocation();
   const navigate = useNavigate();
-  // The param is in the request URL, so the server already renders the right panel
-  // selected and hydration sees the same choice.
+  // The param is in the request URL, so server render and hydration agree on the choice.
   const fromParam = new URLSearchParams(location.search).get(paramKey);
   const paramIndex = items.findIndex(({ id, param }) => (param ?? id) === fromParam);
   const [selected, setSelected] = useState(paramIndex > 0 ? paramIndex : 0);
@@ -38,8 +37,7 @@ export function Tabs({
 
   useEffect(() => {
     setMounted(true);
-    // Legacy links carry the open tab as a #hash, which never reaches the server; it
-    // is honoured once here and superseded by the param on the next tab click.
+    // Legacy #hash links never reach the server; honoured once, superseded by the param.
     const fromHash = items.findIndex(({ id }) => window.location.hash === `#${id}`);
     if (fromHash > 0) {
       setSelected(fromHash);
@@ -94,8 +92,7 @@ export function Tabs({
               href={`#${id}`}
               id={`tab_${id}`}
               onClick={(event) => {
-                // The default would write the hash and scroll the panel into view; the
-                // param navigation changes neither the hash nor the scroll position.
+                // The anchor default would write the hash and scroll; the param changes neither.
                 event.preventDefault();
                 choose(index);
               }}

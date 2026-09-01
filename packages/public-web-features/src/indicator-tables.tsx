@@ -1,6 +1,6 @@
 import { Button, ChartSection, Tabs } from '@fphd/ui';
-import { Fragment, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router';
+import { Fragment, type ReactNode, useState } from 'react';
+import { useLocation } from 'react-router';
 import { cleanAreaName } from './geography-display';
 import {
   alignedTrendSeries,
@@ -14,6 +14,7 @@ import {
   inequalityCategoryLabel,
   latestCoreSegments,
   periodLabel,
+  polarityGoodDirection,
   recentTrend,
   segmentLabel,
   segmentValuesKey,
@@ -27,7 +28,12 @@ import type {
   IndicatorRangePeriod,
   SelectedIndicator,
 } from './indicator-loader';
-import { type BenchmarkChoice, type PanelOptions, PanelOptionsPanel } from './indicator-options';
+import {
+  type BenchmarkChoice,
+  type PanelOptions,
+  PanelOptionsPanel,
+  useOptionParamNavigation,
+} from './indicator-options';
 
 export function SegmentationTable({
   confidence,
@@ -85,8 +91,7 @@ export function SegmentationTable({
   );
 }
 
-// The prototype's comparison plot colours: RAG polarity judges the area against the
-// benchmark, BOB (and unknown) polarity only says which side it sits without judgement.
+// RAG polarity judges against the benchmark; BOB and unknown only say which side.
 const DOT_COLOURS = {
   better: '#8ED973',
   similar: '#FFC000',
@@ -100,11 +105,9 @@ function dotColour(areaX: number, benchmarkX: number, polarity: string): string 
     return DOT_COLOURS.similar;
   }
   const isLower = areaX < benchmarkX;
-  if (polarity === 'RAG - High is good') {
-    return isLower ? DOT_COLOURS.worse : DOT_COLOURS.better;
-  }
-  if (polarity === 'RAG - Low is good') {
-    return isLower ? DOT_COLOURS.better : DOT_COLOURS.worse;
+  const goodDirection = polarityGoodDirection(polarity);
+  if (goodDirection) {
+    return isLower === (goodDirection === 'low') ? DOT_COLOURS.better : DOT_COLOURS.worse;
   }
   return isLower ? DOT_COLOURS.lower : DOT_COLOURS.higher;
 }
@@ -152,6 +155,80 @@ function RangePlot({
   );
 }
 
+const BENCHMARK_HEADER = 'govuk-table__header fphd-trend-table__benchmark-cell';
+const BENCHMARK_CELL = 'govuk-table__cell fphd-trend-table__benchmark-cell';
+
+/** The benchmark group's sub-headers: its value, and the spread when the range is on. */
+function BenchmarkHeaderCells({ showRange, unit }: { showRange: boolean; unit?: ReactNode }) {
+  return (
+    <>
+      <th scope="col" className={BENCHMARK_HEADER}>
+        Calculated value{unit}
+      </th>
+      {showRange ? (
+        <>
+          <th scope="col" className={BENCHMARK_HEADER}>
+            Minimum
+          </th>
+          <th scope="col" className={BENCHMARK_HEADER}>
+            Maximum
+          </th>
+          <th scope="col" className={BENCHMARK_HEADER}>
+            Comparison
+          </th>
+        </>
+      ) : null}
+    </>
+  );
+}
+
+/** One row's benchmark cells: the value, and min/max/plot when the range is on. */
+function BenchmarkCells({
+  areaName,
+  areaValue,
+  benchmarkName,
+  benchmarkValue,
+  format,
+  polarity,
+  rangePeriod,
+  showRange,
+}: {
+  areaName: string;
+  areaValue: number | null;
+  benchmarkName: string;
+  benchmarkValue: number | null;
+  format: (value: number) => ReactNode;
+  polarity: string;
+  rangePeriod: IndicatorRangePeriod | undefined;
+  showRange: boolean;
+}) {
+  return (
+    <>
+      <td className={BENCHMARK_CELL}>{benchmarkValue == null ? '-' : format(benchmarkValue)}</td>
+      {showRange ? (
+        <>
+          <td className={BENCHMARK_CELL}>{rangePeriod ? format(rangePeriod.min) : '-'}</td>
+          <td className={BENCHMARK_CELL}>{rangePeriod ? format(rangePeriod.max) : '-'}</td>
+          <td className={BENCHMARK_CELL}>
+            {rangePeriod && areaValue != null && benchmarkValue != null ? (
+              <RangePlot
+                value={areaValue}
+                benchmarkValue={benchmarkValue}
+                min={rangePeriod.min}
+                max={rangePeriod.max}
+                polarity={polarity}
+                label={`${areaName} ${formatCalculatedValue(areaValue)} against ${benchmarkName} ${formatCalculatedValue(benchmarkValue)}, range ${formatCalculatedValue(rangePeriod.min)} to ${formatCalculatedValue(rangePeriod.max)}`}
+              />
+            ) : (
+              '-'
+            )}
+          </td>
+        </>
+      ) : null}
+    </>
+  );
+}
+
 interface AreaBenchmark {
   name: string;
   series: IndicatorObservation[];
@@ -177,16 +254,12 @@ export function TrendTable({
   regionData?: IndicatorAreaData[];
   showRange?: boolean;
 }) {
-  // The prototype shows England as a column only when it is the sole area; once real
-  // areas are picked the table belongs to them, and England (or the statistical region)
-  // comes back as a shaded benchmark group beside each one.
+  // England is a column only when it is the sole area; picked areas get it back as a shaded benchmark group.
   const nonEngland = areaData.filter(({ areaCode }) => areaCode !== 'E92000001');
   const england = areaData.filter(({ areaCode }) => areaCode === 'E92000001');
   const shownAreas = nonEngland.length === 0 ? areaData : nonEngland;
   const benchmarkActive = benchmark !== 'none' && nonEngland.length > 0;
-  // The first area's series sets the table's segment; every other column — areas and
-  // benchmarks alike — follows it, so an always-sexed indicator never sets one area's
-  // Female beside another's Male.
+  // The first area's series sets the table's segment and every column follows it.
   const reference = shownAreas[0] ? trendSeries(shownAreas[0].observations)[0] : undefined;
   const referenceSegment = reference ? segmentValuesKey(reference) : '';
   const seriesFor = (observations: IndicatorObservation[]) =>
@@ -227,11 +300,7 @@ export function TrendTable({
   );
   const benchmarkColumns = 1 + (showRange ? 3 : 0);
 
-  // The prototype's layout: periods as rows, each area a column group holding its raw
-  // count and calculated value, so areas sit side by side rather than stacked. The
-  // rows come from the shown areas alone: a benchmark annotates them, it must never
-  // add rows of its own — England's yearly series would otherwise interleave
-  // empty-for-everyone rows through areas that only publish rolling periods.
+  // Rows come from the shown areas alone; a benchmark annotates them, never adds them.
   const periods = [
     ...new Map(
       shownAreas
@@ -248,8 +317,7 @@ export function TrendTable({
       row.fromDate === period.fromDate && row.toDate === period.toDate;
   const cell = (areaSeries: (typeof seriesByArea)[number], period: (typeof periods)[number]) =>
     areaSeries.series.find(inPeriod(period));
-  // Indicators like life expectancy publish no raw counts; the prototype drops the
-  // column rather than rendering a dash for every period.
+  // Indicators without raw counts drop the column rather than render a column of dashes.
   const hasCounts = seriesByArea.some(({ series }) => series.some(({ count }) => count !== null));
   const columnsPerArea = (hasCounts ? 2 : 1) + (confidence === 'none' ? 0 : 2);
   const valueSuffix = indicator.unit.label === '%' ? '%' : '';
@@ -322,37 +390,15 @@ export function TrendTable({
                     </>
                   )}
                   {benchmarks.get(data.areaCode) ? (
-                    <>
-                      <th
-                        scope="col"
-                        className="govuk-table__header fphd-trend-table__benchmark-cell"
-                      >
-                        Calculated value{' '}
-                        <span className="fphd-table-note">({indicator.unit.label})</span>
-                      </th>
-                      {showRange ? (
+                    <BenchmarkHeaderCells
+                      showRange={showRange}
+                      unit={
                         <>
-                          <th
-                            scope="col"
-                            className="govuk-table__header fphd-trend-table__benchmark-cell"
-                          >
-                            Minimum
-                          </th>
-                          <th
-                            scope="col"
-                            className="govuk-table__header fphd-trend-table__benchmark-cell"
-                          >
-                            Maximum
-                          </th>
-                          <th
-                            scope="col"
-                            className="govuk-table__header fphd-trend-table__benchmark-cell"
-                          >
-                            Comparison
-                          </th>
+                          {' '}
+                          <span className="fphd-table-note">({indicator.unit.label})</span>
                         </>
-                      ) : null}
-                    </>
+                      }
+                    />
                   ) : null}
                 </Fragment>
               ))}
@@ -405,58 +451,21 @@ export function TrendTable({
                         </>
                       )}
                       {areaBenchmark ? (
-                        <>
-                          <td className="govuk-table__cell fphd-trend-table__benchmark-cell">
-                            {benchmarkObservation?.value != null ? (
-                              <>
-                                {formatCalculatedValue(benchmarkObservation.value)}
-                                {valueSuffix}
-                              </>
-                            ) : (
-                              '-'
-                            )}
-                          </td>
-                          {showRange ? (
+                        <BenchmarkCells
+                          areaName={areaSeries.data.areaName}
+                          areaValue={observation?.value ?? null}
+                          benchmarkName={areaBenchmark.name}
+                          benchmarkValue={benchmarkObservation?.value ?? null}
+                          format={(value) => (
                             <>
-                              <td className="govuk-table__cell fphd-trend-table__benchmark-cell">
-                                {rangePeriod ? (
-                                  <>
-                                    {formatCalculatedValue(rangePeriod.min)}
-                                    {valueSuffix}
-                                  </>
-                                ) : (
-                                  '-'
-                                )}
-                              </td>
-                              <td className="govuk-table__cell fphd-trend-table__benchmark-cell">
-                                {rangePeriod ? (
-                                  <>
-                                    {formatCalculatedValue(rangePeriod.max)}
-                                    {valueSuffix}
-                                  </>
-                                ) : (
-                                  '-'
-                                )}
-                              </td>
-                              <td className="govuk-table__cell fphd-trend-table__benchmark-cell">
-                                {rangePeriod &&
-                                observation?.value != null &&
-                                benchmarkObservation?.value != null ? (
-                                  <RangePlot
-                                    value={observation.value}
-                                    benchmarkValue={benchmarkObservation.value}
-                                    min={rangePeriod.min}
-                                    max={rangePeriod.max}
-                                    polarity={indicator.polarity}
-                                    label={`${areaSeries.data.areaName} ${formatCalculatedValue(observation.value)} against ${areaBenchmark.name} ${formatCalculatedValue(benchmarkObservation.value)}, range ${formatCalculatedValue(rangePeriod.min)} to ${formatCalculatedValue(rangePeriod.max)}`}
-                                  />
-                                ) : (
-                                  '-'
-                                )}
-                              </td>
+                              {formatCalculatedValue(value)}
+                              {valueSuffix}
                             </>
-                          ) : null}
-                        </>
+                          )}
+                          polarity={indicator.polarity}
+                          rangePeriod={rangePeriod}
+                          showRange={showRange}
+                        />
                       ) : null}
                     </Fragment>
                   );
@@ -581,8 +590,7 @@ export function InequalitiesTable({
           {observations.map((observation) => (
             <tr className="govuk-table__row" key={segmentLabel(observation)}>
               <th scope="row" className="govuk-table__header">
-                {/* The category value alone: baseline dimensions like "17+ yrs" belong
-                    to the whole table, not to every row. */}
+                {/* The category value alone — baseline dimensions describe the whole table. */}
                 {observation.dimensions.find(({ type }) => type === dimensionType)?.value ??
                   segmentLabel(observation)}
               </th>
@@ -617,9 +625,8 @@ export function ComparisonSection({
   geography?: BenchmarkGeography;
 }) {
   const location = useLocation();
-  const navigate = useNavigate();
-  // The compare table's own option params, suffixed like the per-indicator ones so a
-  // shared or reloaded URL reproduces the exact view without steering any other table.
+  const applyOptionParams = useOptionParamNavigation();
+  // The compare table's own option params, suffixed like the per-indicator ones.
   const params = new URLSearchParams(location.search);
   const [options, setOptions] = useState<PanelOptions>(() => {
     const cmp = params.get('cmp-compare');
@@ -633,21 +640,10 @@ export function ComparisonSection({
   });
   const applyOptions = (next: PanelOptions) => {
     setOptions(next);
-    const nextParams = new URLSearchParams(location.search);
-    for (const [key, value, empty] of [
+    applyOptionParams([
       ['cmp-compare', next.benchmark, 'none'],
       ['cr-compare', next.range ? 'yes' : '', ''],
-    ] as const) {
-      if (value === empty) {
-        nextParams.delete(key);
-      } else {
-        nextParams.set(key, value);
-      }
-    }
-    void navigate(
-      { search: `?${nextParams.toString()}` },
-      { replace: true, preventScrollReset: true },
-    );
+    ]);
   };
 
   const rows = comparisonRows(selected);
@@ -679,8 +675,7 @@ export function ComparisonSection({
     const region = geography.regionByCode[areaCode];
     return region ? `${region.name} (Statistical region)` : undefined;
   };
-  // The benchmark's value at the same period, filtered the way a breakout row is — a
-  // "Female, 1 year" row must not sit beside the benchmark's all-persons figure.
+  // The benchmark filtered the way the breakout row is — never all-persons beside a sexed row.
   const benchmarkCellFor = (
     row: (typeof rows)[number],
     cell: (typeof rows)[number]['cells'][number],
@@ -709,8 +704,7 @@ export function ComparisonSection({
         : 'Statistical regions';
     return {
       value: series.find(samePeriod)?.value ?? null,
-      // The range must describe the same segment the row shows — a Male row against a
-      // Female spread would bracket the dot with the wrong population.
+      // The range must describe the segment the row shows, not another population's spread.
       rangePeriod: (entry.ranges?.[rangeKey] ?? []).find(
         (range) => samePeriod(range) && range.segment === segmentValuesKey(latest),
       ),
@@ -852,36 +846,7 @@ export function ComparisonSection({
                     Calculated value
                   </th>
                   {benchmarkNameFor(areaCode) ? (
-                    <>
-                      <th
-                        scope="col"
-                        className="govuk-table__header fphd-trend-table__benchmark-cell"
-                      >
-                        Calculated value
-                      </th>
-                      {options.range ? (
-                        <>
-                          <th
-                            scope="col"
-                            className="govuk-table__header fphd-trend-table__benchmark-cell"
-                          >
-                            Minimum
-                          </th>
-                          <th
-                            scope="col"
-                            className="govuk-table__header fphd-trend-table__benchmark-cell"
-                          >
-                            Maximum
-                          </th>
-                          <th
-                            scope="col"
-                            className="govuk-table__header fphd-trend-table__benchmark-cell"
-                          >
-                            Comparison
-                          </th>
-                        </>
-                      ) : null}
-                    </>
+                    <BenchmarkHeaderCells showRange={options.range} />
                   ) : null}
                 </Fragment>
               ))}
@@ -929,43 +894,16 @@ export function ComparisonSection({
                         ? (() => {
                             const benchmarkCell = benchmarkCellFor(row, cell);
                             return (
-                              <>
-                                <td className="govuk-table__cell fphd-trend-table__benchmark-cell">
-                                  {benchmarkCell?.value == null
-                                    ? '-'
-                                    : withUnit(row, benchmarkCell.value)}
-                                </td>
-                                {options.range ? (
-                                  <>
-                                    <td className="govuk-table__cell fphd-trend-table__benchmark-cell">
-                                      {benchmarkCell?.rangePeriod
-                                        ? withUnit(row, benchmarkCell.rangePeriod.min)
-                                        : '-'}
-                                    </td>
-                                    <td className="govuk-table__cell fphd-trend-table__benchmark-cell">
-                                      {benchmarkCell?.rangePeriod
-                                        ? withUnit(row, benchmarkCell.rangePeriod.max)
-                                        : '-'}
-                                    </td>
-                                    <td className="govuk-table__cell fphd-trend-table__benchmark-cell">
-                                      {benchmarkCell?.rangePeriod &&
-                                      benchmarkCell.value != null &&
-                                      benchmarkCell.areaValue != null ? (
-                                        <RangePlot
-                                          value={benchmarkCell.areaValue}
-                                          benchmarkValue={benchmarkCell.value}
-                                          min={benchmarkCell.rangePeriod.min}
-                                          max={benchmarkCell.rangePeriod.max}
-                                          polarity={benchmarkCell.polarity}
-                                          label={`${cell.areaName} ${formatCalculatedValue(benchmarkCell.areaValue)} against ${benchmarkNameFor(cell.areaCode)} ${formatCalculatedValue(benchmarkCell.value)}, range ${formatCalculatedValue(benchmarkCell.rangePeriod.min)} to ${formatCalculatedValue(benchmarkCell.rangePeriod.max)}`}
-                                        />
-                                      ) : (
-                                        '-'
-                                      )}
-                                    </td>
-                                  </>
-                                ) : null}
-                              </>
+                              <BenchmarkCells
+                                areaName={cell.areaName}
+                                areaValue={benchmarkCell?.areaValue ?? null}
+                                benchmarkName={benchmarkNameFor(cell.areaCode) ?? ''}
+                                benchmarkValue={benchmarkCell?.value ?? null}
+                                format={(value) => withUnit(row, value)}
+                                polarity={benchmarkCell?.polarity ?? ''}
+                                rangePeriod={benchmarkCell?.rangePeriod}
+                                showRange={options.range}
+                              />
                             );
                           })()
                         : null}

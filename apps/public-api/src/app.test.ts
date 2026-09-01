@@ -287,6 +287,91 @@ describe('public API', () => {
     expect(response.body).toEqual({ error: 'not_found' });
   });
 
+  it('searches indicators when q is given, trimming and bounding the query', async () => {
+    const search = vi.fn().mockResolvedValue([]);
+    const app = createApp({ repositories: createFakeRepositories({ indicators: { search } }) });
+
+    await request(app).get('/api/indicators?q=%20%20diabetes%20%20');
+    expect(search).toHaveBeenCalledWith('diabetes', 20);
+
+    await request(app).get(`/api/indicators?q=${'a'.repeat(300)}`);
+    expect(search).toHaveBeenLastCalledWith('a'.repeat(200), 20);
+  });
+
+  it('caps the search limit at 100 and ignores a malformed one', async () => {
+    const search = vi.fn().mockResolvedValue([]);
+    const app = createApp({ repositories: createFakeRepositories({ indicators: { search } }) });
+
+    await request(app).get('/api/indicators?q=x&limit=500');
+    expect(search).toHaveBeenCalledWith('x', 100);
+
+    await request(app).get('/api/indicators?q=x&limit=nope');
+    expect(search).toHaveBeenLastCalledWith('x', 20);
+  });
+
+  it('lists every indicator when q is empty', async () => {
+    const listApproved = vi.fn().mockResolvedValue([]);
+    const app = createApp({
+      repositories: createFakeRepositories({ indicators: { listApproved } }),
+    });
+
+    const response = await request(app).get('/api/indicators?q=%20%20');
+
+    expect(response.status).toBe(200);
+    expect(listApproved).toHaveBeenCalled();
+  });
+
+  it('serves a per-segment range for the requested area types', async () => {
+    const periods = [
+      { fromDate: '2023-01-01', toDate: '2023-12-31', segment: 'Male', min: 1, max: 2 },
+    ];
+    const findObservationRange = vi.fn().mockResolvedValue(periods);
+    const app = createApp({
+      repositories: createFakeRepositories({ indicators: { findObservationRange } }),
+    });
+
+    const response = await request(app).get(
+      '/api/indicators/241/range?area_type=UA%20unchanged&area_type=LA%20unchanged',
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ periods });
+    expect(findObservationRange).toHaveBeenCalledWith(241, ['UA unchanged', 'LA unchanged']);
+  });
+
+  it('rejects a range request without area types or with a non-numeric id', async () => {
+    // No stub: if either route reached the repository, the fake would throw and 500.
+    const app = createApp({ repositories: createFakeRepositories() });
+
+    expect((await request(app).get('/api/indicators/241/range')).status).toBe(404);
+    expect((await request(app).get('/api/indicators/nope/range?area_type=UA')).status).toBe(404);
+  });
+
+  it('resolves area parents of one type, filtering malformed codes', async () => {
+    const listParents = vi.fn().mockResolvedValue([]);
+    const app = createApp({ repositories: createFakeRepositories({ areas: { listParents } }) });
+
+    const response = await request(app).get(
+      '/api/areas/parents?area_code=E06000052&area_code=..%2Fbad&parent_type=Regions%20(statistical)',
+    );
+
+    expect(response.status).toBe(200);
+    expect(listParents).toHaveBeenCalledWith(['E06000052'], 'Regions (statistical)');
+  });
+
+  it('rejects a parents request missing or overflowing parent_type', async () => {
+    const app = createApp({ repositories: createFakeRepositories() });
+
+    expect((await request(app).get('/api/areas/parents?area_code=E06000052')).status).toBe(400);
+    expect(
+      (
+        await request(app).get(
+          `/api/areas/parents?area_code=E06000052&parent_type=${'a'.repeat(101)}`,
+        )
+      ).status,
+    ).toBe(400);
+  });
+
   it('fails loudly when a route reaches for a repository the test did not stub', async () => {
     const response = await request(createApp({ repositories: createFakeRepositories() })).get(
       '/api/topics',

@@ -29,8 +29,7 @@ const CHILD_CAP = 100;
 export function GeographyTree({ groups, name, onChange, selected }: GeographyTreeProps) {
   const idPrefix = useId();
   const [query, setQuery] = useState('');
-  // Groups holding a selection open so their ticks are visible; everything else starts
-  // collapsed.
+  // Groups holding a selection open so their ticks are visible; the rest start collapsed.
   const [expanded, setExpanded] = useState<string[]>(() =>
     groups
       .filter(({ areas }) => areas.some(({ code }) => selected.includes(code)))

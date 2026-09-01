@@ -38,9 +38,25 @@ function segmentKey(observation: IndicatorObservation): string {
 }
 
 /** The observation's dimension values joined the way the range API labels segments:
- *  '|'-separated in dimension-type order (the API sorts dimensions by type). */
+ *  '|'-separated, ordered by dimension type in code-point order to match the query's
+ *  collate "C" — never locale rules, which the two sides could disagree on. */
 export function segmentValuesKey(observation: IndicatorObservation): string {
-  return observation.dimensions.map(({ value }) => value).join('|');
+  return [...observation.dimensions]
+    .sort((a, b) => (a.type < b.type ? -1 : a.type > b.type ? 1 : 0))
+    .map(({ value }) => value)
+    .join('|');
+}
+
+/** The direction a RAG polarity calls good; null for BOB and unknown polarities. */
+export function polarityGoodDirection(polarity: string | null): 'high' | 'low' | null {
+  const lowered = polarity?.toLowerCase() ?? '';
+  if (lowered.includes('high is good')) {
+    return 'high';
+  }
+  if (lowered.includes('low is good')) {
+    return 'low';
+  }
+  return null;
 }
 
 function sortOrderSum(observation: IndicatorObservation): number {
@@ -605,13 +621,12 @@ export function recentTrend(
     return { direction: 'right', label: 'No significant change', tone: 'yellow' };
   }
   const direction = change > 0 ? 'up' : 'down';
-  const lowIsGood = polarity?.toLowerCase().includes('low is good') ?? false;
-  const highIsGood = polarity?.toLowerCase().includes('high is good') ?? false;
+  const goodDirection = polarityGoodDirection(polarity);
   const word = direction === 'up' ? 'Increasing' : 'Decreasing';
-  if (!lowIsGood && !highIsGood) {
+  if (!goodDirection) {
     return { direction, label: word, tone: 'blue' };
   }
-  const better = (direction === 'down') === lowIsGood;
+  const better = (direction === 'down') === (goodDirection === 'low');
   return {
     direction,
     label: `${word} and getting ${better ? 'better' : 'worse'}`,

@@ -11,7 +11,12 @@ export function areasRouter(areas: Repositories['areas']): Router {
     ].filter((code): code is string => typeof code === 'string' && /^[A-Z0-9]+$/i.test(code));
     const parentType = request.query.parent_type;
 
-    if (codes.length === 0 || typeof parentType !== 'string' || parentType === '') {
+    if (
+      codes.length === 0 ||
+      typeof parentType !== 'string' ||
+      parentType === '' ||
+      parentType.length > 100
+    ) {
       response.status(400).json({ error: 'area_code_and_parent_type_required' });
       return;
     }

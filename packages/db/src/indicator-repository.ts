@@ -404,7 +404,7 @@ export async function getObservationRange(
         value: observation.value,
         dims: sql<number>`count(${observationDimension.observationId})::int`.as('dims'),
         segment:
-          sql<string>`coalesce(string_agg(${dimensionValue.name}, '|' order by ${dimensionType.name}), '')`.as(
+          sql<string>`coalesce(string_agg(${dimensionValue.name}, '|' order by ${dimensionType.name} collate "C"), '')`.as(
             'segment',
           ),
       })
@@ -435,8 +435,7 @@ export async function getObservationRange(
       .where(eq(observations.dims, db.select({ dims: min(observations.dims) }).from(observations))),
   );
 
-  // One range per segment, not one dominant segment: an always-sexed indicator has a
-  // Male range and a Female range, and the caller picks the one it is displaying.
+  // One range per segment — the caller picks the one it is displaying.
   const rows = await db
     .with(observations, leastDisaggregated)
     .select({

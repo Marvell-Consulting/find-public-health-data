@@ -121,23 +121,17 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
     );
     levelCodes = levelGroups.flatMap(({ areas }) => areas.map(({ code }) => code));
   }
-  // England rides along after the picked areas: the tables hide it as a column of its
-  // own, but the England benchmark needs its series. Appended last so the first entry
-  // stays the area the page's summary and inequality views describe.
-  const pickedCodes = [...new Set([...areaCodes, ...levelCodes])].slice(0, MAX_SELECTED_AREAS);
-  const codesToLoad =
-    pickedCodes.length > 0
-      ? [...pickedCodes.filter((code) => code !== DEFAULT_AREA_CODE), DEFAULT_AREA_CODE]
-      : [DEFAULT_AREA_CODE];
+  // England rides along last for the benchmark; the first entry stays the area the page describes.
+  const pickedCodes = [...new Set([...areaCodes, ...levelCodes])]
+    .filter((code) => code !== DEFAULT_AREA_CODE)
+    .slice(0, MAX_SELECTED_AREAS - 1);
+  const codesToLoad = [...pickedCodes, DEFAULT_AREA_CODE];
 
-  // The benchmark controls compare a picked area against England's spread across its own
-  // level, or against its statistical region; both need to know each area's level and
-  // parent up front.
+  // Both benchmarks need each picked area's display level and statistical region up front.
   const nonEnglandCodes = codesToLoad.filter((code) => code !== DEFAULT_AREA_CODE);
 
   const [areaGroups, areaParents] = await Promise.all([
-    // The tree always offers every level, whatever is selected — an indicator without
-    // data for an area simply shows no data, it does not hide the geography.
+    // The tree always offers every level; missing data never hides a geography.
     api.get(
       `/api/areas?${ALL_DISPLAY_AREA_TYPES.map(
         (name) => `area_type=${encodeURIComponent(name)}`,

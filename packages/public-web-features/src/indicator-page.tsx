@@ -1,6 +1,6 @@
 import { A, Button, ChartSection, GridColumn, GridRow, InsetText, Tabs } from '@fphd/ui';
 import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router';
+import { useLocation } from 'react-router';
 
 import {
   availableConfidenceLevels,
@@ -25,6 +25,7 @@ import {
   InequalityOptions,
   type PanelOptions,
   PanelOptionsPanel,
+  useOptionParamNavigation,
 } from './indicator-options';
 import { ComparisonSection, InequalitiesTable, TrendTable } from './indicator-tables';
 
@@ -42,11 +43,8 @@ function IndicatorBlock({
 }: SelectedIndicator & { geography: BenchmarkGeography; headingLevel?: 'h1' | 'h2' }) {
   const id = detail.fingertipsId;
   const location = useLocation();
-  const navigate = useNavigate();
-  // The option choices live in the query string, suffixed with the indicator's id
-  // (`ci-241`, `cmp-241`…) so each table's options are its own, yet a shared or
-  // reloaded URL reproduces the exact view. Reading them from the location keeps
-  // server and client renders identical.
+  const applyOptionParams = useOptionParamNavigation();
+  // Suffixed option params (`ci-241`) keep each table's choices its own in a shareable URL.
   const params = new URLSearchParams(location.search);
   const [options, setOptions] = useState<PanelOptions>(() => {
     const ci = params.get(`ci-${id}`);
@@ -62,41 +60,25 @@ function IndicatorBlock({
   });
   const applyOptions = (next: PanelOptions) => {
     setOptions(next);
-    const nextParams = new URLSearchParams(location.search);
-    for (const [key, value, empty] of [
+    applyOptionParams([
       [`ci-${id}`, next.confidence, 'none'],
       [`pt-${id}`, next.periodType, 'all'],
       [`sex-${id}`, next.sex, ''],
       [`cmp-${id}`, next.benchmark, 'none'],
       [`cr-${id}`, next.range ? 'yes' : '', ''],
-    ] as const) {
-      if (value === empty) {
-        nextParams.delete(key);
-      } else {
-        nextParams.set(key, value);
-      }
-    }
-    // Through the router — not history.replaceState — so the filter pane's links see the
-    // change; the route's shouldRevalidate stops the loader refetching over it.
-    void navigate(
-      { search: `?${nextParams.toString()}` },
-      { replace: true, preventScrollReset: true },
-    );
+    ]);
   };
 
   const allObservations = areaData[0]?.observations ?? [];
   const sexes = dimensionValues(allObservations, 'Sex');
-  // The options offer only what the SHOWN areas publish — England always rides along
-  // for the benchmark, and its yearly series must not put a "1 year" choice on a page
-  // whose picked areas are rolling-only (the table would have nothing to show).
+  // Options offer only what the shown areas publish; England's always-loaded series must not add choices they cannot honour.
   const pickedAreaData = areaData.filter(({ areaCode }) => areaCode !== 'E92000001');
   const shownObservations = (pickedAreaData.length > 0 ? pickedAreaData : areaData).flatMap(
     ({ observations }) => observations,
   );
   const periodTypes = availablePeriodTypes(shownObservations);
   const confidenceLevels = availableConfidenceLevels(shownObservations);
-  // A level or period shape in the URL that these areas do not publish falls back to
-  // the default rather than blanking the table.
+  // An option in the URL these areas do not publish falls back rather than blanking the table.
   const confidence = confidenceLevels.includes(options.confidence as '95' | '99.8')
     ? options.confidence
     : 'none';
@@ -118,10 +100,9 @@ function IndicatorBlock({
   });
   const filtered = areaData.map(narrow);
   const filteredRegions = regionData.map(narrow);
-  // The comparison controls only make sense once a real geography is picked — England
-  // against itself says nothing.
-  const hasPickedAreas = areaData.some(({ areaCode }) => areaCode !== 'E92000001');
-  const regionAvailable = areaData.some(({ areaCode }) => geography.regionByCode[areaCode]);
+  // Comparison controls need a real geography picked — England against itself says nothing.
+  const hasPickedAreas = pickedAreaData.length > 0;
+  const regionAvailable = pickedAreaData.some(({ areaCode }) => geography.regionByCode[areaCode]);
   const panelOptions = (label: string, showConfidence: boolean) => (
     <PanelOptionsPanel
       benchmarks={hasPickedAreas ? { region: regionAvailable } : undefined}
@@ -278,12 +259,14 @@ export function IndicatorPage({
         </GridColumn>
         <GridColumn width="three-quarters">
           {selected.length === 0 ? (
-            <InsetText className="govuk-!-margin-top-0">No indicators selected</InsetText>
+            <>
+              {/* The page's single h1; the prototype's empty state shows only the inset text. */}
+              <h1 className="govuk-visually-hidden">Selected indicators</h1>
+              <InsetText className="govuk-!-margin-top-0">No indicators selected</InsetText>
+            </>
           ) : (
             <>
-              {/* A single indicator needs no contents list — its own name is the page
-                  heading. With several, the list is the heading and the section names
-                  become the real headings below. */}
+              {/* One indicator needs no contents list; its own name is the page heading. */}
               {selected.length > 1 ? (
                 <nav className="govuk-!-margin-bottom-6">
                   <h1 className="govuk-heading-m">Contents</h1>

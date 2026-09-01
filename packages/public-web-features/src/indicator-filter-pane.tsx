@@ -50,30 +50,27 @@ export function FilterPane({
   const location = useLocation();
   const [pending, setPending] = useState<string[]>([]);
   const [pendingIndicator, setPendingIndicator] = useState<AutocompleteOption | null>(null);
-  // Filter changes navigate; carrying every per-table option param (open tabs
-  // included) keeps each table exactly as the user set it.
   const current = new URLSearchParams(location.search);
-  const optionEntries = [...current.entries()].filter(([key]) =>
-    /^(ci|pt|sex|cmp|cr|tab)-/.test(key),
-  );
-  const searchOnly = (args: Parameters<typeof selectionSearch>[0]) => {
+  // Option params ride along only for tables the selection still shows — nothing lingers.
+  const optionEntriesFor = (keptIds: Set<string>) =>
+    [...current.entries()].filter(([key]) => {
+      const suffix = key.match(/^(?:ci|pt|sex|cmp|cr|tab)-(.+)$/)?.[1];
+      return suffix === 'compare' || (suffix !== undefined && keptIds.has(suffix));
+    });
+  const searchFor = (args: Parameters<typeof selectionSearch>[0]) => {
     const params = new URLSearchParams(selectionSearch(args));
-    for (const [key, value] of optionEntries) {
+    const keptIds = new Set((args.fingertipsIds ?? args.selection.fingertipsIds).map(String));
+    for (const [key, value] of optionEntriesFor(keptIds)) {
       params.set(key, value);
     }
     return `?${params.toString()}`;
   };
-  // Open tabs travel as tab-* params in searchOnly, so the links carry no hash.
-  const searchWithTab = (args: Parameters<typeof selectionSearch>[0]) => searchOnly(args);
-  // preventScrollReset: a filter change refreshes the data in place — jumping the
-  // page back to the top would lose the table the user is reading.
-  const navigateWithTab = (args: Parameters<typeof selectionSearch>[0]) =>
-    navigate({ search: searchOnly(args) }, { preventScrollReset: true });
+  // preventScrollReset: refreshing data in place must not lose the reader's position.
+  const navigateTo = (args: Parameters<typeof selectionSearch>[0]) =>
+    navigate({ search: searchFor(args) }, { preventScrollReset: true });
 
-  // Stable so the autocomplete's mount-once widget never rebuilds on re-renders.
-  // Failures throw so the widget reports them as failures rather than "no indicators
-  // found"; already-selected matches stay listed, since re-adding one is a harmless
-  // no-op — the loader de-duplicates.
+  // Stable identity keeps the widget mounted; failures throw so they never read as
+  // empty results, and selected matches stay listed — the loader de-duplicates re-adds.
   const searchIndicators = useCallback(async (query: string, signal: AbortSignal) => {
     const response = await fetch(`/indicators/search?q=${encodeURIComponent(query)}`, {
       signal,
@@ -98,7 +95,7 @@ export function FilterPane({
     <>
       <FilterCard
         title="Selected indicators"
-        onClear={selected.length > 0 ? searchWithTab({ selection, fingertipsIds: [] }) : undefined}
+        onClear={selected.length > 0 ? searchFor({ selection, fingertipsIds: [] }) : undefined}
         body={
           selected.length === 0 ? (
             <p className="govuk-body">None selected</p>
@@ -107,7 +104,7 @@ export function FilterPane({
               {selected.map(({ detail }) => (
                 <FilterChip
                   key={detail.fingertipsId}
-                  onRemove={searchWithTab({
+                  onRemove={searchFor({
                     selection,
                     fingertipsIds: selection.fingertipsIds.filter(
                       (id) => id !== detail.fingertipsId,
@@ -126,18 +123,16 @@ export function FilterPane({
           <>
             <Autocomplete
               label="Search for an indicator"
-              name="quickSearch"
               source={searchIndicators}
               onSelect={setPendingIndicator}
             />
-            {/* The prototype's two-step add: picking a suggestion only readies it, and
-                this button commits it, so a misclick in the list costs nothing. */}
+            {/* Two-step add: picking readies, the button commits — a misclick costs nothing. */}
             {pendingIndicator ? (
               <Button
                 className="fphd-button--full-width govuk-!-margin-bottom-0"
                 onClick={() => {
                   setPendingIndicator(null);
-                  void navigateWithTab({
+                  void navigateTo({
                     selection,
                     fingertipsIds: [...selection.fingertipsIds, Number(pendingIndicator.value)],
                   });
@@ -155,7 +150,7 @@ export function FilterPane({
         title="Geography filters"
         onClear={
           selection.areaCodes.length > 0 || selection.areaLevels.length > 0
-            ? searchWithTab({ selection: { ...selection, areaCodes: [], areaLevels: [] } })
+            ? searchFor({ selection: { ...selection, areaCodes: [], areaLevels: [] } })
             : undefined
         }
         body={
@@ -170,7 +165,7 @@ export function FilterPane({
               {selection.areaLevels.map((level) => (
                 <FilterChip
                   key={level}
-                  onRemove={searchWithTab({
+                  onRemove={searchFor({
                     selection: {
                       ...selection,
                       areaLevels: selection.areaLevels.filter((value) => value !== level),
@@ -187,7 +182,7 @@ export function FilterPane({
                 .map((code) => (
                   <FilterChip
                     key={code}
-                    onRemove={searchWithTab({
+                    onRemove={searchFor({
                       selection: {
                         ...selection,
                         areaCodes: selection.areaCodes.filter((value) => value !== code),
@@ -215,7 +210,7 @@ export function FilterPane({
             {selection.areaLevels.map((level) => (
               <input key={level} type="hidden" name="als" value={level} />
             ))}
-            {optionEntries.map(([key, value]) => (
+            {optionEntriesFor(new Set(selection.fingertipsIds.map(String))).map(([key, value]) => (
               <input key={key} type="hidden" name={key} value={value} />
             ))}
             <GeographyTree
@@ -248,7 +243,7 @@ export function FilterPane({
                 const levelled = new Set(
                   fullLevels.flatMap(({ areas }) => areas.map(({ code }) => code)),
                 );
-                void navigateWithTab({
+                void navigateTo({
                   selection: {
                     ...selection,
                     areaCodes: [

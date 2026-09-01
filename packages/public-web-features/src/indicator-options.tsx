@@ -1,5 +1,6 @@
 import { OptionsAccordion, Radios, Select } from '@fphd/ui';
 import { useId } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 
 import {
   type ConfidenceLevel,
@@ -19,6 +20,24 @@ export function confidenceOptions(levels: string[]) {
 
 /** What a picked area is compared against: nothing, England, or its statistical region. */
 export type BenchmarkChoice = 'none' | 'england' | 'region';
+
+/** Writes [key, value, default] option triples to the query string in place: router
+ *  navigation with replace + preventScrollReset, skipped by the route's revalidation. */
+export function useOptionParamNavigation() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  return (entries: readonly (readonly [string, string, string])[]) => {
+    const params = new URLSearchParams(location.search);
+    for (const [key, value, empty] of entries) {
+      if (value === empty) {
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
+    }
+    void navigate({ search: `?${params.toString()}` }, { replace: true, preventScrollReset: true });
+  };
+}
 
 export interface PanelOptions {
   benchmark: BenchmarkChoice;
