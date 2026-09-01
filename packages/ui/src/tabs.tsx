@@ -5,11 +5,13 @@ interface TabItem {
   id: string;
   label: string;
   content: ReactNode;
+  /** Short value carried in the tab param ('table'); the id remains the anchor target. */
+  param?: string;
 }
 
 /**
  * The GOV.UK tabs pattern, with the open tab kept in a query param of its own
- * (`tab-241=table-241`) rather than the URL hash: several indicators' tab sets coexist
+ * (`tab-241=table`) rather than the URL hash: several indicators' tab sets coexist
  * on one page, and a single hash cannot remember more than one of them — nor stay out
  * of the browser's scroll handling. The anchors keep their panel hrefs, so without
  * JavaScript the panels stack and the links jump to them.
@@ -29,7 +31,7 @@ export function Tabs({
   // The param is in the request URL, so the server already renders the right panel
   // selected and hydration sees the same choice.
   const fromParam = new URLSearchParams(location.search).get(paramKey);
-  const paramIndex = items.findIndex(({ id }) => id === fromParam);
+  const paramIndex = items.findIndex(({ id, param }) => (param ?? id) === fromParam);
   const [selected, setSelected] = useState(paramIndex > 0 ? paramIndex : 0);
   const [mounted, setMounted] = useState(false);
   const refs = useRef<(HTMLAnchorElement | null)[]>([]);
@@ -47,12 +49,12 @@ export function Tabs({
   const choose = (index: number) => {
     setSelected(index);
     const params = new URLSearchParams(location.search);
-    const id = items[index]?.id;
-    if (index === 0 || !id) {
+    const item = items[index];
+    if (index === 0 || !item) {
       // The first tab is the default; a param would only clutter the URL.
       params.delete(paramKey);
     } else {
-      params.set(paramKey, id);
+      params.set(paramKey, item.param ?? item.id);
     }
     void navigate({ search: `?${params.toString()}` }, { replace: true, preventScrollReset: true });
   };

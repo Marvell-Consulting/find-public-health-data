@@ -147,6 +147,7 @@ function IndicatorBlock({
         items={[
           {
             id: `chart-${id}`,
+            param: 'chart',
             label: 'Chart',
             content: (
               <ChartSection
@@ -158,6 +159,7 @@ function IndicatorBlock({
           },
           {
             id: `table-${id}`,
+            param: 'table',
             label: 'Table',
             content: (
               <>
@@ -199,6 +201,7 @@ function IndicatorBlock({
           },
           {
             id: `inequalities-${id}`,
+            param: 'inequalities',
             label: 'Inequalities',
             content:
               categories.length === 0 ? (
@@ -240,6 +243,7 @@ function IndicatorBlock({
           },
           {
             id: `about-${id}`,
+            param: 'about',
             label: 'About this indicator',
             content: <BackgroundInformation indicator={detail} />,
           },

@@ -988,9 +988,10 @@ export function ComparisonSection({
         paramKey="tab-compare"
         title="Compare selected indicators data"
         items={[
-          { id: 'compare-table', label: 'Table', content: table },
+          { id: 'compare-table', param: 'table', label: 'Table', content: table },
           {
             id: 'compare-chart',
+            param: 'chart',
             label: 'Chart',
             content: (
               <ChartSection
