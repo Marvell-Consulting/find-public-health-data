@@ -37,7 +37,7 @@ export function parseWorkspaceDirs(yaml: string, file: string): WorkspaceDir[] {
   }
 
   return packages.map((glob) => {
-    if (typeof glob === 'string') {
+    if (typeof glob === 'string' && !glob.startsWith('!')) {
       const globDir = /^([^*/]+)\/\*$/.exec(glob)?.[1];
       if (globDir !== undefined) return { dir: globDir, isPackage: false };
       if (/^[^*/]+$/.test(glob)) return { dir: glob, isPackage: true };
@@ -60,7 +60,9 @@ export async function readWorkspacePackages(
         // Unlike a glob's childless directory, a bare entry names one package; nothing there
         // means this check is inspecting less than pnpm resolves.
         if (pkg === null) {
-          throw new Error(`The workspace entry ${dir} holds no package manifest.`);
+          throw new Error(
+            `The workspace entry ${dir} does not resolve to a package: no package.json, or one without a valid "name".`,
+          );
         }
         return [pkg];
       }

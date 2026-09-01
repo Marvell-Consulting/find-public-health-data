@@ -87,6 +87,14 @@ describe('parseWorkspaceDirs', () => {
     );
   });
 
+  // Unquoted, a leading '!' is YAML tag syntax, not a literal character, so these must be quoted
+  // to round-trip as the negated pnpm pattern this check needs to reject.
+  it.each(["'!apps/*'", "'!e2e'"])('throws for the negated pattern %s', (glob) => {
+    expect(() => parseWorkspaceDirs(`packages:\n  - ${glob}\n`, 'pnpm-workspace.yaml')).toThrow(
+      /cannot expand/,
+    );
+  });
+
   it.each([
     ['packages: []', /declares no workspace packages/],
     ['overrides: {}', /declares no workspace packages/],

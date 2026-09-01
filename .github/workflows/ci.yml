@@ -117,14 +117,12 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
 
-      - name: Read the pinned Playwright version
+      # Reads the version pnpm actually installed rather than re-parsing the catalog entry, so a
+      # reformatted pnpm-workspace.yaml can't silently break the cache key.
+      - name: Read the installed Playwright version
         id: playwright-version
         run: |
-          version=$(sed -n "s/^  '@playwright\/test': //p" pnpm-workspace.yaml)
-          if [ -z "${version}" ]; then
-            echo '::error::@playwright/test not found in the pnpm-workspace.yaml catalog'
-            exit 1
-          fi
+          version=$(pnpm --filter @fphd/e2e exec playwright --version | sed -E 's/^Version //')
           echo "version=${version}" >> "${GITHUB_OUTPUT}"
 
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
