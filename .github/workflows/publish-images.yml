@@ -17,13 +17,12 @@ concurrency:
   group: publish-images
   cancel-in-progress: false
 
-# Repo-prefixed names, so a generic name like `operations` doesn't sit directly in the
-# organisation namespace. The prefix is only a name: the packages are linked to this
-# repository, and inherit its permissions, because their first push comes from this
-# workflow's own token. Lowercase because image references must be. The packages are
-# public — deployments pull anonymously, so neither side of the registry holds a credential
-# — but GHCR creates a package private on its first push: a brand-new package must be
-# flipped to public by hand before anything can pull it.
+# Repo-prefixed so a generic name like `operations` isn't loose in the organisation namespace;
+# lowercase because image references must be. The packages are linked to this repository and
+# inherit its permissions because their first push comes from this workflow's token — the
+# prefix alone does nothing. They are public, so deployments pull anonymously, but GHCR
+# creates each package private: a new one must be flipped to public by hand before anything
+# can pull it.
 env:
   REGISTRY: ghcr.io/marvell-consulting/find-public-health-data
 
@@ -111,8 +110,7 @@ jobs:
           scanners: secret
           exit-code: 1
         env:
-          # A build arg or ENV lands in the image config and history, not in a file; the default
-          # scan walks the filesystem only.
+          # Build args and ENV land in the image config, not in a file; the default scan reads files only.
           TRIVY_IMAGE_CONFIG_SCANNERS: secret
 
       # Both tags are labels for humans, not what a deployment should reference: GHCR tags are

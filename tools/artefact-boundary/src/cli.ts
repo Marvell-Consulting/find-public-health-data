@@ -50,9 +50,8 @@ async function main(): Promise<void> {
 }
 
 /**
- * The images are public, so a repository secret that reaches `docker build` — as a build arg, or
- * through env the step inherits — can end up in a layer anyone can pull. Trivy scans the built
- * image for the ones it can recognise; this refuses the route regardless of what the value looks like.
+ * Trivy scans the built image for the secret patterns it knows; this refuses the route in,
+ * whatever the value looks like.
  */
 async function checkImageBuildInputs(): Promise<Violation[]> {
   console.log('Checking the workflows’ image builds for secrets…');

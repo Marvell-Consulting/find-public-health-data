@@ -346,8 +346,7 @@ jobs:
           scanners: secret
           exit-code: 1
         env:
-          # A build arg or ENV lands in the image config and history, not in a file; the default
-          # scan walks the filesystem only.
+          # Build args and ENV land in the image config, not in a file; the default scan reads files only.
           TRIVY_IMAGE_CONFIG_SCANNERS: secret
 
   artefact-boundary:

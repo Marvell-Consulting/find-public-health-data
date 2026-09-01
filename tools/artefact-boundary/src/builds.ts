@@ -29,15 +29,15 @@ const IMAGE_BUILD_ACTION = /^docker\/build-push-action(?:@|$)/;
 const IMAGE_BUILD_COMMAND =
   /(?:^|[;&|(])[ \t]*(?:(?:\w+=\S*|sudo)(?:\s|\\\n)+)*docker(?:\s|\\\n)+(?:(?:buildx|image|compose)(?:\s|\\\n)+)?build\b/m;
 
-// Only inside an expression: the word in a shell string or an echo is not a secret reaching
-// anything. YAML comments never get this far — the parser drops them.
+// Only inside `${{ }}`: the word in a shell string or an echo is not a secret. YAML comments
+// never get here — the parser drops them.
 const EXPRESSION = /\$\{\{[\s\S]*?\}\}/g;
 const SECRET_REFERENCE = /\bsecrets(?:\.[A-Za-z_][A-Za-z0-9_]*|\[[^\]]*\])?/g;
 
 /**
- * The images are public artefacts, so anything `docker build` can see may end up in a layer
- * anyone can pull. A repository secret gets there through the step's own `run`, `with` or `env`,
- * or through `env` inherited from the job or the workflow — every one of those is inspected.
+ * The images are public, so anything `docker build` can see may end up in a layer anyone can
+ * pull. Inspects each build step's `run`, `with` and `env`, and the `env` it inherits from the
+ * job and the workflow.
  */
 export async function findSecretsReachingBuilds(repoRoot: string): Promise<ImageBuild[]> {
   const dir = path.join(repoRoot, '.github', 'workflows');
@@ -115,7 +115,7 @@ function scalarsOf(mapping: unknown): string[] {
   return Object.values(mapping).map((value) => String(value));
 }
 
-/** Each distinct `secrets.NAME` (or the whole `secrets` context) inside an expression, tagged with its route. */
+/** Each distinct secret reference inside an expression, tagged with its route. */
 function secretReferences(values: readonly string[], via: string): string[] {
   const found = new Set<string>();
   for (const value of values) {
