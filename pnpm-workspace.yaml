@@ -13,6 +13,10 @@ overrides:
   'postcss>nanoid': '>=3.3.17 <4'
   # GHSA-4cwx-7wf7-3272 undici >=7.0.0 <7.29.0 cross-user information disclosure; transitive via jsdom.
   undici: '>=7.29.0 <8'
+  # GHSA-67mh-4wv8-2f99 esbuild <=0.24.2 dev server answers any origin. Transitive via
+  # drizzle-kit's deprecated @esbuild-kit loader, which pins ~0.18 and was merged into tsx, so
+  # no fixed release is coming. Scoped so drizzle-kit's and tsx's own esbuild stay untouched.
+  '@esbuild-kit/core-utils>esbuild': '>=0.24.3 <0.26'
   # chokidar v4+ dropped fsevents, so react-router dev's typegen watcher opens a kqueue
   # descriptor per directory, crawls the pnpm symlink tree and dies on EMFILE — killing
   # hot reload. v3 watches via fsevents on macOS.
