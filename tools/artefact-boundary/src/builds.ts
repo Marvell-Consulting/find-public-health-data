@@ -31,11 +31,14 @@ const COMMAND_PREFIX = /^(?:\w+=|sudo$|-)/;
 const BUILD_SUBCOMMANDS = ['buildx', 'image', 'compose'];
 
 // Only inside `${{ }}`: the word in a shell string or an echo is not a secret. YAML comments
-// never get here — the parser drops them.
+// never get here — the parser drops them. A `}}` inside a string literal truncates the match —
+// accepted; the Trivy scan on the built image is the backstop.
 const EXPRESSION = /\$\{\{[\s\S]*?\}\}/g;
+// GitHub expressions quote strings with `'` alone, doubling it to escape a literal quote.
+const STRING_LITERAL = /'[^']*(?:''[^']*)*'/g;
 // The `secrets` context itself, whole: not `vars.secrets2`, not a `.secrets` property of
-// another context.
-const SECRET_REFERENCE = /(?<![\w.])secrets(?!\w)(?:\.[A-Za-z_][A-Za-z0-9_]*|\[[^\]]*\])?/g;
+// another context, and not the word inside a bracket-access string like `vars['secrets']`.
+const SECRET_REFERENCE = /(?<![\w.'])secrets(?!\w)(?:\.[A-Za-z_][A-Za-z0-9_]*|\[[^\]]*\])?/g;
 
 /**
  * The images are public, so anything `docker build` can see may end up in a layer anyone can
@@ -145,10 +148,20 @@ function secretReferences(values: readonly string[], via: string): string[] {
   const found = new Set<string>();
   for (const value of values) {
     for (const [expression] of value.matchAll(EXPRESSION)) {
-      for (const [reference] of expression.matchAll(SECRET_REFERENCE)) {
+      for (const [reference] of withoutStringLiterals(expression).matchAll(SECRET_REFERENCE)) {
         found.add(`${reference} (${via})`);
       }
     }
   }
   return [...found].sort();
+}
+
+/**
+ * Blanks out an expression's string literals, so the word inside one is not a reference —
+ * except in bracket access, where the literal names the secret and is the point.
+ */
+function withoutStringLiterals(expression: string): string {
+  return expression.replaceAll(STRING_LITERAL, (literal: string, offset: number) =>
+    expression[offset - 1] === '[' ? literal : "''",
+  );
 }

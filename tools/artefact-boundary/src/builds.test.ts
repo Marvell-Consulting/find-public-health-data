@@ -150,6 +150,32 @@ jobs:
     ]);
   });
 
+  it('ignores the word inside expression string literals', () => {
+    const yaml = workflow(`
+jobs:
+  publish:
+    steps:
+      - env:
+          A: \${{ contains('secrets', github.ref) }}
+          B: \${{ 'it''s about secrets' }}
+          C: \${{ vars['secrets'] }}
+        run: docker build .
+`);
+    expect(collectImageBuilds(yaml, FILE)[0]?.references).toEqual([]);
+  });
+
+  it('still reports a reference beside a literal naming it', () => {
+    const yaml = workflow(`
+jobs:
+  publish:
+    steps:
+      - env:
+          A: \${{ contains('secrets', secrets.X) }}
+        run: docker build .
+`);
+    expect(collectImageBuilds(yaml, FILE)[0]?.references).toEqual(['secrets.X (step env)']);
+  });
+
   it('ignores identifiers that merely contain the word', () => {
     const yaml = workflow(`
 jobs:
