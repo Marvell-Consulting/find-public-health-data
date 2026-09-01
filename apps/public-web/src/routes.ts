@@ -1,15 +1,8 @@
-import { index, type RouteConfig, route } from '@react-router/dev/routes';
+import { publicRoutes } from '@fphd/public-web-features/route-config';
+import { type RouteConfig, route } from '@react-router/dev/routes';
 
 export default [
-  index('../../../packages/public-web-features/src/routes/home.tsx'),
+  ...publicRoutes(),
   route('sign-in', './sign-in.tsx'),
-  route('topics', '../../../packages/public-web-features/src/routes/topics.tsx'),
-  route('topics/:slug', '../../../packages/public-web-features/src/routes/topic.tsx'),
-  route('indicators', '../../../packages/public-web-features/src/routes/indicator.tsx'),
-  route(
-    'indicators/:fingertipsId',
-    '../../../packages/public-web-features/src/routes/indicator.tsx',
-    { id: 'indicator-detail' },
-  ),
   route('*', '../../../packages/ui/src/not-found-route.tsx'),
 ] satisfies RouteConfig;

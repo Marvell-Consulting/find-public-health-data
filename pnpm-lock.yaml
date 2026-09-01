@@ -628,6 +628,9 @@ importers:
       '@fphd/web-server':
         specifier: workspace:*
         version: link:../web-server
+      '@react-router/dev':
+        specifier: 'catalog:'
+        version: 8.3.0(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(typescript@6.0.3)(vite@8.1.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0)(yaml@2.9.0))
       '@types/react':
         specifier: 'catalog:'
         version: 19.2.17

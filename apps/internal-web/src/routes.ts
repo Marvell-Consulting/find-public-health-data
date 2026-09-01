@@ -1,19 +1,9 @@
-import { index, layout, type RouteConfig, route } from '@react-router/dev/routes';
+import { publicRoutes } from '@fphd/public-web-features/route-config';
+import { layout, type RouteConfig, route } from '@react-router/dev/routes';
 
 export default [
   route('sign-in', './sign-in.tsx'),
   route('access-denied', './access-denied.tsx'),
-  layout('./authenticated.tsx', [
-    index('../../../packages/public-web-features/src/routes/home.tsx'),
-    route('topics', '../../../packages/public-web-features/src/routes/topics.tsx'),
-    route('topics/:slug', '../../../packages/public-web-features/src/routes/topic.tsx'),
-    route('indicators', '../../../packages/public-web-features/src/routes/indicator.tsx'),
-    route(
-      'indicators/:fingertipsId',
-      '../../../packages/public-web-features/src/routes/indicator.tsx',
-      { id: 'indicator-detail' },
-    ),
-    route('manage', './manage.tsx'),
-  ]),
+  layout('./authenticated.tsx', [...publicRoutes(), route('manage', './manage.tsx')]),
   route('*', '../../../packages/ui/src/not-found-route.tsx'),
 ] satisfies RouteConfig;

@@ -5,7 +5,8 @@
   "license": "MIT",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./route-config": "./src/route-config.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
@@ -15,6 +16,7 @@
     "@fphd/public-api-features": "workspace:*",
     "@fphd/ui": "workspace:*",
     "@fphd/web-server": "workspace:*",
+    "@react-router/dev": "catalog:",
     "react": "catalog:",
     "react-router": "catalog:"
   },
@@ -22,6 +24,7 @@
     "@fphd/auth": "workspace:*",
     "@fphd/public-api-features": "workspace:*",
     "@fphd/web-server": "workspace:*",
+    "@react-router/dev": "catalog:",
     "@types/react": "catalog:",
     "react": "catalog:",
     "react-router": "catalog:",
