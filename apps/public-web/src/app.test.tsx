@@ -630,6 +630,107 @@ describe('public application routes', () => {
     }
   });
 
+  it('offers only the period shapes the picked areas publish', async () => {
+    const observation = (fromDate: string, toDate: string, value: number) => ({
+      fromDate,
+      toDate,
+      value,
+      lowerCi95: null,
+      upperCi95: null,
+      lowerCi998: null,
+      upperCi998: null,
+      count: null,
+      denominator: null,
+      notes: [],
+      dimensions: [{ type: 'Age', value: 'All ages', dimensionClass: 'core', sortOrder: 1 }],
+    });
+    const detail = {
+      fingertipsId: 93995,
+      name: 'Mortality rate for deaths involving diabetes, all ages',
+      valueType: 'Directly standardised rate',
+      unit: { name: 'per 100,000', label: 'per 100,000' },
+      yearType: 'Calendar',
+      frequency: 'Annual',
+      polarity: 'RAG - Low is good',
+      ciMethod: null,
+      ciConfidenceLevel: null,
+      comparatorMethod: null,
+      dataUpdatedAt: null,
+      definition: null,
+      rationale: null,
+      methodology: null,
+      numeratorDefinition: null,
+      denominatorDefinition: null,
+      disclosureControl: null,
+      caveats: null,
+      notes: null,
+      dataSource: null,
+      numeratorSource: null,
+      denominatorSource: null,
+      areaTypes: [{ name: 'UA unchanged', areaCount: 125 }],
+      topics: [],
+      classifications: [],
+    };
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        loader: () => ({ signedIn: false }),
+        children: [
+          {
+            path: 'indicators/:fingertipsId',
+            Component: IndicatorRoute,
+            loader: () => ({
+              areaGroups: [
+                { areaType: 'UA unchanged', areas: [{ code: 'E06000052', name: 'Cornwall' }] },
+              ],
+              selected: [
+                {
+                  detail,
+                  areaData: [
+                    {
+                      areaCode: 'E06000052',
+                      areaName: 'Cornwall',
+                      // Rolling-only: no single-year series exists for the picked area.
+                      observations: [observation('2021-01-01', '2023-12-31', 10.2)],
+                    },
+                    {
+                      areaCode: 'E92000001',
+                      areaName: 'England',
+                      // England publishes both shapes, but must not put a period
+                      // choice on a page whose picked area cannot honour it.
+                      observations: [
+                        observation('2021-01-01', '2023-12-31', 11.4),
+                        observation('2023-01-01', '2023-12-31', 11.9),
+                      ],
+                    },
+                  ],
+                },
+              ],
+              selection: {
+                areaType: 'England',
+                areaCodes: ['E06000052'],
+                areaLevels: [],
+                fingertipsIds: [93995],
+              },
+            }),
+          },
+        ],
+      },
+    ]);
+
+    // A stale pt param in the URL must fall back to All, not blank the table.
+    render(<Routes initialEntries={['/indicators/93995?as=E06000052&pt-93995=1-year']} />);
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Mortality rate for deaths involving diabetes, all ages',
+      }),
+    ).toBeTruthy();
+    expect(screen.queryByLabelText('Select time period type')).toBeNull();
+    expect(screen.getByRole('rowheader', { name: '2021 to 2023' })).toBeTruthy();
+  });
+
   it('offers a benchmark beside each picked area with an optional comparison range', async () => {
     const observationFor = (value: number) => ({
       fromDate: '2023-01-01',

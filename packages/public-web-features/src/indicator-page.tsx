@@ -85,14 +85,23 @@ function IndicatorBlock({
 
   const allObservations = areaData[0]?.observations ?? [];
   const sexes = dimensionValues(allObservations, 'Sex');
-  const periodTypes = availablePeriodTypes(areaData.flatMap(({ observations }) => observations));
-  const confidenceLevels = availableConfidenceLevels(
-    areaData.flatMap(({ observations }) => observations),
+  // The options offer only what the SHOWN areas publish — England always rides along
+  // for the benchmark, and its yearly series must not put a "1 year" choice on a page
+  // whose picked areas are rolling-only (the table would have nothing to show).
+  const pickedAreaData = areaData.filter(({ areaCode }) => areaCode !== 'E92000001');
+  const shownObservations = (pickedAreaData.length > 0 ? pickedAreaData : areaData).flatMap(
+    ({ observations }) => observations,
   );
-  // A level in the URL that this indicator does not publish falls back to none.
+  const periodTypes = availablePeriodTypes(shownObservations);
+  const confidenceLevels = availableConfidenceLevels(shownObservations);
+  // A level or period shape in the URL that these areas do not publish falls back to
+  // the default rather than blanking the table.
   const confidence = confidenceLevels.includes(options.confidence as '95' | '99.8')
     ? options.confidence
     : 'none';
+  const periodType = periodTypes.includes(options.periodType as '1-year' | '3-year')
+    ? options.periodType
+    : 'all';
   const categories = inequalityCategories(allObservations);
   const [category, setCategory] = useState(categories[0] ?? '');
   const periods = inequalityPeriods(allObservations, category, detail.yearType);
@@ -103,7 +112,7 @@ function IndicatorBlock({
     observations: filterObservations(data.observations, {
       // A sex chosen on another indicator's panel must not blank this one's table.
       sex: sexes.includes(options.sex) ? options.sex : '',
-      periodType: options.periodType,
+      periodType,
     }),
   });
   const filtered = areaData.map(narrow);
