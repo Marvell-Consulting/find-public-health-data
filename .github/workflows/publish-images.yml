@@ -101,11 +101,9 @@ jobs:
           ignore-unfixed: true
           exit-code: 1
 
-      # The packages are public, so a secret in a layer is a secret published. A separate step
-      # from the vulnerability scan because that one's severity floor would hide the generic
-      # credential patterns, which Trivy rates below HIGH. Nothing here should ever fire —
-      # check:artefacts refuses any workflow that lets a repository secret reach `docker build` —
-      # so this is the check on the bytes for whatever that check on the route does not foresee.
+      # The packages are public, so a secret in a layer is published. Separate from the
+      # vulnerability scan because its HIGH,CRITICAL floor would hide Trivy's generic credential
+      # patterns. check:artefacts already blocks the route in; this checks the bytes.
       - name: Scan the image for secrets
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:

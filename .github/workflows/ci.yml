@@ -336,10 +336,9 @@ jobs:
           ignore-unfixed: true
           exit-code: 1
 
-      # The same secret scan publish-images.yml runs before pushing, here so a pull request that
-      # would bake a credential into a public image goes red before it merges. Separate from the
-      # vulnerability scan because that one's severity floor would hide the generic credential
-      # patterns, which Trivy rates below HIGH.
+      # The scan publish-images.yml runs before pushing, here so the pull request goes red first.
+      # Separate from the vulnerability scan because its HIGH,CRITICAL floor would hide Trivy's
+      # generic credential patterns.
       - name: Scan ${{ matrix.app }} for secrets
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
