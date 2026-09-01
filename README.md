@@ -221,7 +221,7 @@ pnpm db:migrate               # apply pending migrations
 pnpm db:import-core-data      # load required core data (topics) — idempotent, any environment
 pnpm db:seed-dummy-data       # replace dummy data with the committed seed and rebuild read models
 pnpm db:rebuild-read-models   # rebuild the derived cache tables from canonical data
-pnpm db:reset                 # drop all schema objects so db:migrate rebuilds from empty
+pnpm db:reset                 # back to a freshly created database, for db:migrate to rebuild
 pnpm db:studio                # browse the database
 ```
 
@@ -309,9 +309,10 @@ Four commands are worth noting:
   serves an empty site. It refuses to run unless `APP_ENV` is `local`, `test` or `dev`, and fails
   if topics have not been imported yet: dummy data may depend on core data, never the reverse. The
   core-data tables are left alone.
-- `db reset` drops all application schema objects (tables, types, the migration watermark) so
-  `db migrate` rebuilds from empty — drop rather than truncate, so it also recovers from a broken
-  migration state. It refuses outside `local`/`test`/`dev` and never touches database roles.
+- `db reset` returns the database to its freshly created state (recreating the `public` schema
+  and dropping the migration watermark) so `db migrate` rebuilds from empty — recreate rather than
+  truncate, so it also recovers from a broken migration state. It refuses outside
+  `local`/`test`/`dev` and never touches database roles.
 
 `db bootstrap` needs `PUBLIC_API_PASSWORD` and `INTERNAL_API_PASSWORD`; the other commands do not,
 and fail naming them rather than requiring every job to hold role passwords. All of them connect as

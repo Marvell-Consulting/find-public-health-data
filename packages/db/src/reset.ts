@@ -1,53 +1,23 @@
 import type postgres from 'postgres';
 
 /**
- * Drop every application schema object — tables, views, sequences, standalone types — and
- * the drizzle migration schema, so `db migrate` rebuilds from empty. Dropping rather than
- * truncating means it also recovers from a broken migration state, not just bad data.
- *
- * Objects are dropped individually rather than via `DROP SCHEMA public CASCADE`:
- * recreating the schema would silently lose its grants and ownership. Extensions are left
- * in place (the extension migrations are `IF NOT EXISTS`), and roles are never touched —
- * `db bootstrap` owns those. Callers own the safety decision, via assertResetAllowed.
+ * Return the database to the state of a freshly created one, so `db migrate` rebuilds it
+ * from empty. Recreating the public schema wholesale beats dropping objects one kind at a
+ * time: there is no catalog sweep to keep in step with whatever object kinds migrations
+ * create next. What `CREATE SCHEMA` cannot restore is put back explicitly — a new
+ * database owns public through pg_database_owner and grants USAGE to PUBLIC. The
+ * extensions go with the schema; the first migration reinstalls them. Roles are never
+ * touched — `db bootstrap` owns those. Callers own the safety decision, via
+ * assertResetAllowed.
  */
 export async function resetDatabase(sql: postgres.Sql): Promise<void> {
   await sql.begin(async (tx) => {
-    // The migrator's watermark lives here; a table left behind would make it skip the
+    // The migrator's watermark lives here; left behind it would make migrate skip the
     // migrations that rebuild what was just dropped.
     await tx`DROP SCHEMA IF EXISTS drizzle CASCADE`;
-
-    const views = await tx`SELECT viewname FROM pg_views WHERE schemaname = 'public'`;
-    for (const { viewname } of views) {
-      await tx`DROP VIEW IF EXISTS ${tx(viewname)} CASCADE`;
-    }
-
-    const matviews = await tx`SELECT matviewname FROM pg_matviews WHERE schemaname = 'public'`;
-    for (const { matviewname } of matviews) {
-      await tx`DROP MATERIALIZED VIEW IF EXISTS ${tx(matviewname)} CASCADE`;
-    }
-
-    const tables = await tx`SELECT tablename FROM pg_tables WHERE schemaname = 'public'`;
-    for (const { tablename } of tables) {
-      await tx`DROP TABLE IF EXISTS ${tx(tablename)} CASCADE`;
-    }
-
-    const sequences = await tx`SELECT sequencename FROM pg_sequences WHERE schemaname = 'public'`;
-    for (const { sequencename } of sequences) {
-      await tx`DROP SEQUENCE IF EXISTS ${tx(sequencename)} CASCADE`;
-    }
-
-    // Enum, domain and standalone composite types; each table's implicit row type went
-    // with its table above.
-    const types = await tx`
-      SELECT t.typname
-      FROM pg_type t
-      JOIN pg_namespace n ON n.oid = t.typnamespace
-      LEFT JOIN pg_class c ON c.oid = t.typrelid
-      WHERE n.nspname = 'public'
-        AND (t.typtype IN ('e', 'd') OR (t.typtype = 'c' AND c.relkind = 'c'))
-    `;
-    for (const { typname } of types) {
-      await tx`DROP TYPE IF EXISTS ${tx(typname)} CASCADE`;
-    }
+    await tx`DROP SCHEMA IF EXISTS public CASCADE`;
+    await tx`CREATE SCHEMA public`;
+    await tx`ALTER SCHEMA public OWNER TO pg_database_owner`;
+    await tx`GRANT USAGE ON SCHEMA public TO PUBLIC`;
   });
 }

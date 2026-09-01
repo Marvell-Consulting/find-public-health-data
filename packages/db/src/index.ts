@@ -55,6 +55,6 @@ export {
 } from './repositories.js';
 export { resetDatabase } from './reset.js';
 export * as schema from './schema.js';
-export { createOwnerClient } from './scripts/owner-client.js';
+export { createOwnerClient, loadOwnerEnv } from './scripts/owner-client.js';
 export { assertResetAllowed, assertSeedingAllowed, seedDummyTables } from './seeding.js';
 export { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';
