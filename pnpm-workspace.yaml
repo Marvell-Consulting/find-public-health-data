@@ -2,6 +2,7 @@ packages:
   - apps/*
   - packages/*
   - tools/*
+  - e2e
 
 overrides:
   # GHSA postcss <=8.5.17 source-map path traversal; transitive via vite.
@@ -31,6 +32,7 @@ catalog:
   '@not-govuk/radios': 0.18.1
   '@not-govuk/sass-base': 0.18.1
   '@not-govuk/search-box': 0.18.1
+  '@playwright/test': 1.62.1
   '@react-router/dev': 8.3.0
   '@react-router/express': 8.3.0
   '@react-router/node': 8.3.0
