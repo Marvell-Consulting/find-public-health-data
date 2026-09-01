@@ -67,6 +67,28 @@ export function trendSeries(observations: IndicatorObservation[]): IndicatorObse
 }
 
 /**
+ * The trend series aligned to a reference observation's segment. Every column of a
+ * table must describe the same population: an always-sexed indicator has no aggregate
+ * series, and left to their own devices two areas can settle on different sexes as
+ * their "longest" series — a Female column silently compared against a Male benchmark.
+ * Falls back to the area's own trend series when it never publishes the reference
+ * segment.
+ */
+export function alignedTrendSeries(
+  observations: IndicatorObservation[],
+  reference: IndicatorObservation | undefined,
+): IndicatorObservation[] {
+  if (!reference) {
+    return trendSeries(observations);
+  }
+  const key = segmentKey(reference);
+  const matching = observations
+    .filter((observation) => segmentKey(observation) === key)
+    .sort((a, b) => a.fromDate.localeCompare(b.fromDate) || a.toDate.localeCompare(b.toDate));
+  return matching.length > 0 ? matching : trendSeries(observations);
+}
+
+/**
  * The latest period's breakdown across core segments (sex/age), for the segmentation
  * overview table. Where a single-year and a rolling period share the latest end date, the
  * shorter period wins.

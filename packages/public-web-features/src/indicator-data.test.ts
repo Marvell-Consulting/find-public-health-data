@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  alignedTrendSeries,
   availablePeriodTypes,
   comparisonRows,
   confidenceInterval,
@@ -91,6 +92,31 @@ describe('trendSeries', () => {
 
   it('returns empty for no observations', () => {
     expect(trendSeries([])).toEqual([]);
+  });
+});
+
+describe('alignedTrendSeries', () => {
+  it('follows the reference segment even when its own longest series differs', () => {
+    // One area's longest series is Female while the benchmark's is Male — left
+    // unaligned, the table would compare different sexes without saying so.
+    const reference = obs({ dimensions: [dim('Sex', 'Female')] });
+    const male2022 = obs({
+      fromDate: '2022-01-01',
+      toDate: '2022-12-31',
+      dimensions: [dim('Sex', 'Male')],
+    });
+    const male2023 = obs({ dimensions: [dim('Sex', 'Male')] });
+    const female2023 = obs({ dimensions: [dim('Sex', 'Female')] });
+
+    expect(alignedTrendSeries([male2023, female2023, male2022], reference)).toEqual([female2023]);
+  });
+
+  it('falls back to its own trend series when the reference segment is not published', () => {
+    const reference = obs({ dimensions: [dim('Sex', 'Female')] });
+    const male = obs({ dimensions: [dim('Sex', 'Male')] });
+
+    expect(alignedTrendSeries([male], reference)).toEqual([male]);
+    expect(alignedTrendSeries([male], undefined)).toEqual([male]);
   });
 });
 

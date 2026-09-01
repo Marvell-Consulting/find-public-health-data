@@ -3,6 +3,7 @@ import { Fragment, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { cleanAreaName } from './geography-display';
 import {
+  alignedTrendSeries,
   type ConfidenceLevel,
   comparisonAreas,
   comparisonRows,
@@ -181,7 +182,13 @@ export function TrendTable({
   const england = areaData.filter(({ areaCode }) => areaCode === 'E92000001');
   const shownAreas = nonEngland.length === 0 ? areaData : nonEngland;
   const benchmarkActive = benchmark !== 'none' && nonEngland.length > 0;
-  const englandSeries = england[0] ? trendSeries(england[0].observations) : [];
+  // The first area's series sets the table's segment; every other column — areas and
+  // benchmarks alike — follows it, so an always-sexed indicator never sets one area's
+  // Female beside another's Male.
+  const reference = shownAreas[0] ? trendSeries(shownAreas[0].observations)[0] : undefined;
+  const seriesFor = (observations: IndicatorObservation[]) =>
+    alignedTrendSeries(observations, reference);
+  const englandSeries = england[0] ? seriesFor(england[0].observations) : [];
   const benchmarkFor = (areaCode: string): AreaBenchmark | undefined => {
     if (!benchmarkActive) {
       return undefined;
@@ -200,12 +207,12 @@ export function TrendTable({
     const data = regionData.find(({ areaCode: code }) => code === region.code);
     return {
       name: `${region.name} (Statistical region)`,
-      series: data ? trendSeries(data.observations) : [],
+      series: data ? seriesFor(data.observations) : [],
       rangePeriods: ranges['Statistical regions'] ?? [],
     };
   };
   const seriesByArea = shownAreas
-    .map((data) => ({ data, series: trendSeries(data.observations) }))
+    .map((data) => ({ data, series: seriesFor(data.observations) }))
     .filter(({ series }) => series.length > 0);
   const firstObservation = seriesByArea[0]?.series[0];
   if (!firstObservation) {
@@ -228,7 +235,7 @@ export function TrendTable({
   const periods = [
     ...new Map(
       periodSources
-        .flatMap(({ observations }) => trendSeries(observations))
+        .flatMap(({ observations }) => seriesFor(observations))
         .sort((a, b) => a.fromDate.localeCompare(b.fromDate) || a.toDate.localeCompare(b.toDate))
         .map((observation) => [
           `${observation.fromDate}|${observation.toDate}`,
