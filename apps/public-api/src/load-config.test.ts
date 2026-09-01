@@ -12,7 +12,6 @@ describe('loadConfig', () => {
       port: 4000,
       log: { level: 'info', pretty: true },
       shutdown: { drainDelayMs: 0, gracePeriodMs: 25_000 },
-      rateLimit: { limit: 100, windowMs: 900_000 },
       db: {
         host: 'localhost',
         port: 5432,
@@ -43,7 +42,6 @@ describe('loadConfig', () => {
       port: 8080,
       log: { level: 'debug', pretty: false },
       shutdown: { drainDelayMs: 5_000, gracePeriodMs: 25_000 },
-      rateLimit: { limit: 100, windowMs: 900_000 },
       db: {
         host: 'db.internal',
         port: 5433,

@@ -3,39 +3,11 @@ import { InvalidJwtSessionError } from '@fphd/auth/session-errors';
 import { createBaseApp, type StartServerOptions, serverLogging, startServer } from '@fphd/express';
 import type { Express, RequestHandler } from 'express';
 import { json } from 'express';
-import { rateLimit } from 'express-rate-limit';
 
-interface ApiRateLimitOptions {
-  limit: number;
-  windowMs: number;
-}
-
-interface CreateApiAppOptions {
-  rateLimit?: ApiRateLimitOptions;
-}
-
-const defaultApiRateLimit: ApiRateLimitOptions = {
-  limit: 100,
-  windowMs: 15 * 60 * 1_000,
-};
-
-export function createApiApp(
-  serviceName: string,
-  { rateLimit: rateLimitOptions = defaultApiRateLimit }: CreateApiAppOptions = {},
-): Express {
+export function createApiApp(serviceName: string): Express {
   const app = createBaseApp({ serviceName });
 
   app.use(json());
-
-  app.use(
-    '/api',
-    rateLimit({
-      legacyHeaders: false,
-      limit: rateLimitOptions.limit,
-      standardHeaders: 'draft-8',
-      windowMs: rateLimitOptions.windowMs,
-    }),
-  );
 
   app.get('/api', (_request, response) => {
     response.status(200).json({
