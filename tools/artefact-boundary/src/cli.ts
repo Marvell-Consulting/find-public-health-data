@@ -1,6 +1,7 @@
 import { readdir, readFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
 
+import { findSecretsReachingBuilds } from './builds.js';
 import { capture, run } from './exec.js';
 import { findInternalReferences } from './internal.js';
 import { collectRouteFiles } from './routes.js';
@@ -26,6 +27,7 @@ type Violation = {
 /** Cheapest check first, so the common failure is reported without waiting for a build. */
 async function main(): Promise<void> {
   const violations: Violation[] = [
+    ...(await checkImageBuildInputs()),
     ...(await checkDependencyClosures()),
     ...checkWebRouteTable(),
     ...(await checkApiOutput()),
@@ -33,11 +35,11 @@ async function main(): Promise<void> {
   ];
 
   if (violations.length === 0) {
-    console.log('\nNo internal code found in the public artefacts.');
+    console.log('\nNothing crossed the public artefact boundary.');
     return;
   }
 
-  console.error('\nInternal code found in the public artefacts:\n');
+  console.error('\nCrossed the public artefact boundary:\n');
   for (const violation of violations) {
     console.error(`  ${violation.check}: ${violation.detail}`);
     for (const reference of violation.references) {
@@ -45,6 +47,20 @@ async function main(): Promise<void> {
     }
   }
   process.exitCode = 1;
+}
+
+/**
+ * Workflow YAML only: refuses the route in, whatever the value looks like. Trivy, in CI, checks
+ * the built bytes for the patterns it knows.
+ */
+async function checkImageBuildInputs(): Promise<Violation[]> {
+  console.log('Checking the workflows’ image builds for secrets…');
+  const builds = await findSecretsReachingBuilds(repoRoot);
+  return builds.map(({ file, job, step, references }) => ({
+    check: 'image build inputs',
+    detail: `${file} job ${job}, step ${step}`,
+    references,
+  }));
 }
 
 async function checkDependencyClosures(): Promise<Violation[]> {
