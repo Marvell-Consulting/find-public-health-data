@@ -463,6 +463,48 @@ export function inequalityCategories(observations: IndicatorObservation[]): stri
   return [...types].sort((a, b) => a.localeCompare(b));
 }
 
+/** Purely this category's breakdown: further-disaggregated rows (a decile split again
+ *  by sex) belong to a combined view the prototype does not offer. */
+function isPureCategory(observation: IndicatorObservation, category: string): boolean {
+  return (
+    observation.dimensions.length > 0 &&
+    observation.dimensions.every(({ type }) => type === category)
+  );
+}
+
+/**
+ * Pholio's inequality dimension names carry internal qualifiers ("in England", "4/23
+ * geography") the prototype's category labels drop. Where shortening makes two
+ * categories collide (the same deciles across boundary revisions), the geography
+ * qualifier stays as the differentiator.
+ */
+export function inequalityCategoryLabel(type: string, keepGeography = false): string {
+  const label = type
+    .replace('County & UA', 'County and unitary authority')
+    .replace('District & UA', 'District and unitary authority')
+    .replace(' in England', '')
+    .replace(' within area', '');
+  return keepGeography ? label : label.replace(/,\s*\d+\/\d+ geography/, '');
+}
+
+/** The category select's options, disambiguated where shortened labels collide. */
+export function inequalityCategoryOptions(
+  categories: string[],
+): { label: string; value: string }[] {
+  const counts = new Map<string, number>();
+  for (const value of categories) {
+    const label = inequalityCategoryLabel(value);
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  }
+  return categories.map((value) => {
+    const label = inequalityCategoryLabel(value);
+    return {
+      label: (counts.get(label) ?? 0) > 1 ? inequalityCategoryLabel(value, true) : label,
+      value,
+    };
+  });
+}
+
 /** The periods an indicator reports for one inequality category, most recent last. */
 export function inequalityPeriods(
   observations: IndicatorObservation[],
@@ -471,7 +513,7 @@ export function inequalityPeriods(
 ): { value: string; label: string }[] {
   const periods = new Map<string, string>();
   for (const observation of observations) {
-    if (observation.dimensions.some(({ type }) => type === category)) {
+    if (isPureCategory(observation, category)) {
       periods.set(
         `${observation.fromDate}/${observation.toDate}`,
         periodLabel(observation, yearType),
@@ -493,7 +535,7 @@ export function inequalityBreakdown(
     .filter(
       (observation) =>
         `${observation.fromDate}/${observation.toDate}` === period &&
-        observation.dimensions.some(({ type }) => type === category),
+        isPureCategory(observation, category),
     )
     .sort(
       (a, b) =>

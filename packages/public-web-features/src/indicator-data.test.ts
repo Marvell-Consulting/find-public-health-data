@@ -11,6 +11,8 @@ import {
   formatValue,
   inequalityBreakdown,
   inequalityCategories,
+  inequalityCategoryLabel,
+  inequalityCategoryOptions,
   inequalityPeriods,
   inequalitySegments,
   latestCoreSegments,
@@ -333,5 +335,50 @@ describe('inequality selection', () => {
 
     expect(rows).toHaveLength(2);
     expect(rows.every((row) => row.dimensions[0]?.type === 'Deprivation deciles')).toBe(true);
+  });
+
+  it('keeps only the pure category rows, never sexed sub-breakdowns', () => {
+    const sexedDecile = obs({
+      dimensions: [
+        dim('Deprivation deciles', 'Most deprived', { dimensionClass: 'inequality' }),
+        dim('Sex', 'Male'),
+      ],
+    });
+
+    const rows = inequalityBreakdown(
+      [...all, sexedDecile],
+      'Deprivation deciles',
+      '2023-01-01/2023-12-31',
+    );
+
+    expect(rows).toHaveLength(2);
+    expect(rows.every((row) => row.dimensions.length === 1)).toBe(true);
+  });
+});
+
+describe('inequalityCategoryOptions', () => {
+  it('shortens Pholio category names the way the prototype labels them', () => {
+    expect(
+      inequalityCategoryLabel(
+        'County & UA deprivation deciles in England (IMD2019, 4/23 geography)',
+      ),
+    ).toBe('County and unitary authority deprivation deciles (IMD2019)');
+    expect(inequalityCategoryLabel('LSOA21 deprivation deciles within area (IMD trend)')).toBe(
+      'LSOA21 deprivation deciles (IMD trend)',
+    );
+  });
+
+  it('keeps the geography qualifier only where shortened labels would collide', () => {
+    const options = inequalityCategoryOptions([
+      'County & UA deprivation deciles in England (IMD2019, 4/21 geography)',
+      'County & UA deprivation deciles in England (IMD2019, 4/23 geography)',
+      'District & UA deprivation deciles in England (IMD2025, 4/23 geography)',
+    ]);
+
+    expect(options.map(({ label }) => label)).toEqual([
+      'County and unitary authority deprivation deciles (IMD2019, 4/21 geography)',
+      'County and unitary authority deprivation deciles (IMD2019, 4/23 geography)',
+      'District and unitary authority deprivation deciles (IMD2025)',
+    ]);
   });
 });

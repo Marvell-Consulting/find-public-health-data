@@ -11,6 +11,7 @@ import {
   filterObservations,
   formatCalculatedValue,
   formatValue,
+  inequalityCategoryLabel,
   latestCoreSegments,
   periodLabel,
   recentTrend,
@@ -559,7 +560,7 @@ export function InequalitiesTable({
     <>
       <table className="govuk-table">
         <caption className="govuk-table__caption govuk-table__caption--s">
-          {dimensionType}, {periodLabel(first, indicator.yearType)}
+          {inequalityCategoryLabel(dimensionType)}, {periodLabel(first, indicator.yearType)}
         </caption>
         <thead className="govuk-table__head">
           <tr className="govuk-table__row">

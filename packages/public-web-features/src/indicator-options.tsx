@@ -1,7 +1,12 @@
 import { OptionsAccordion, Radios, Select } from '@fphd/ui';
 import { useId } from 'react';
 
-import { type ConfidenceLevel, type PeriodType, periodTypeLabel } from './indicator-data';
+import {
+  type ConfidenceLevel,
+  inequalityCategoryOptions,
+  type PeriodType,
+  periodTypeLabel,
+} from './indicator-data';
 
 /** The confidence-interval choices, narrowed to what the indicator publishes. */
 export function confidenceOptions(levels: string[]) {
@@ -174,7 +179,7 @@ export function InequalityOptions({
           label="Select inequality category"
           name="inequalityCategory"
           onChange={(event) => onCategoryChange(event.currentTarget.value)}
-          options={categories.map((value) => ({ label: value, value }))}
+          options={inequalityCategoryOptions(categories)}
           value={category}
         />
         <Select
