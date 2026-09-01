@@ -228,15 +228,12 @@ export function TrendTable({
 
   // The prototype's layout: periods as rows, each area a column group holding its raw
   // count and calculated value, so areas sit side by side rather than stacked. The
-  // period range spans the shown areas plus the active benchmark, so a benchmark with a
-  // longer history extends the table only while it is on screen.
-  const periodSources = [
-    ...shownAreas,
-    ...(benchmarkActive ? (benchmark === 'england' ? england : regionData) : []),
-  ];
+  // rows come from the shown areas alone: a benchmark annotates them, it must never
+  // add rows of its own — England's yearly series would otherwise interleave
+  // empty-for-everyone rows through areas that only publish rolling periods.
   const periods = [
     ...new Map(
-      periodSources
+      shownAreas
         .flatMap(({ observations }) => seriesFor(observations))
         .sort((a, b) => a.fromDate.localeCompare(b.fromDate) || a.toDate.localeCompare(b.toDate))
         .map((observation) => [
