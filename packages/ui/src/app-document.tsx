@@ -32,12 +32,12 @@ export function AppDocument({ children }: AppDocumentProps) {
           }}
         />
         {children}
-        {/* Keyed by pathname: filter and option changes navigate within one page, and
-            the position saved as the navigation starts is restored as it lands — the
-            page never moves. Without this the default per-location keying finds no
-            saved position and falls through to scrolling the URL hash (the open tab's
-            anchor) back into view on every change. */}
-        <ScrollRestoration getKey={(location) => location.pathname} />
+        {/* Default per-location keying: filter and option navigations all pass
+            preventScrollReset and never carry a hash (tab state lives in query params),
+            so nothing moves the page — while a genuine anchor navigation (the contents
+            list) still scrolls to its target. A shared scroll key would restore the old
+            position over the anchor jump. */}
+        <ScrollRestoration />
         <Scripts />
       </body>
     </html>
