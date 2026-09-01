@@ -14,11 +14,13 @@ import {
   type IndicatorDetail,
   listApprovedIndicators,
   type ObservationRangePeriod,
+  searchApprovedIndicators,
 } from './indicator-repository.js';
 import { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';
 
 export interface IndicatorRepository {
   listApproved(): Promise<ApprovedIndicator[]>;
+  search(query: string, limit: number): Promise<ApprovedIndicator[]>;
   findApprovedByFingertipsId(fingertipsId: number): Promise<IndicatorDetail | undefined>;
   findObservations(fingertipsId: number, areaCode: string): Promise<IndicatorAreaData | undefined>;
   findObservationRange(
@@ -56,6 +58,7 @@ export function createRepositories(db: Database): Repositories {
     },
     indicators: {
       listApproved: () => listApprovedIndicators(db),
+      search: (query, limit) => searchApprovedIndicators(db, query, limit),
       findApprovedByFingertipsId: (fingertipsId) =>
         getApprovedIndicatorByFingertipsId(db, fingertipsId),
       findObservations: (fingertipsId, areaCode) =>

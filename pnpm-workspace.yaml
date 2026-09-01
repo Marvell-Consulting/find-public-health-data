@@ -25,6 +25,7 @@ allowBuilds:
 
 catalog:
   '@biomejs/biome': 2.5.9
+  accessible-autocomplete: 3.0.1
   '@not-govuk/button': 0.18.1
   '@not-govuk/inset-text': 0.18.1
   '@not-govuk/link': 0.18.1

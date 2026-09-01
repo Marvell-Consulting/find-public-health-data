@@ -69,6 +69,9 @@ catalogs:
     '@types/supertest':
       specifier: 7.2.0
       version: 7.2.0
+    accessible-autocomplete:
+      specifier: 3.0.1
+      version: 3.0.1
     cross-env:
       specifier: 10.1.0
       version: 10.1.0
@@ -688,6 +691,9 @@ importers:
       '@not-govuk/text-input':
         specifier: 0.18.1
         version: 0.18.1(react@19.2.7)
+      accessible-autocomplete:
+        specifier: 'catalog:'
+        version: 3.0.1
       govuk-frontend:
         specifier: 'catalog:'
         version: 5.14.0
@@ -2353,6 +2359,14 @@ packages:
   accepts@2.0.0:
     resolution: {integrity: sha512-5cvg6CtKwfgdmVqY1WIiXKc3Q1bkRqGLi+2W/6ao+6Y7gu/RCwRuAhGEzh5B4KlszSuTLgZYuqFqo5bImjNKng==}
     engines: {node: '>= 0.6'}
+
+  accessible-autocomplete@3.0.1:
+    resolution: {integrity: sha512-xMshgc2LT5addvvfCTGzIkRrvhbOFeylFSnSMfS/PdjvvvElZkakCwxO3/yJYBWyi1hi3tZloqOJQ5kqqJtH4g==}
+    peerDependencies:
+      preact: ^8.0.0
+    peerDependenciesMeta:
+      preact:
+        optional: true
 
   ansi-regex@5.0.1:
     resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
@@ -4837,6 +4851,8 @@ snapshots:
     dependencies:
       mime-types: 3.0.2
       negotiator: 1.0.0
+
+  accessible-autocomplete@3.0.1: {}
 
   ansi-regex@5.0.1: {}
 

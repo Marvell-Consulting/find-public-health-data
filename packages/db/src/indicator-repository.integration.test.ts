@@ -9,6 +9,7 @@ import {
   getIndicatorObservations,
   getObservationRange,
   listApprovedIndicators,
+  searchApprovedIndicators,
 } from './indicator-repository.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
 
@@ -61,6 +62,30 @@ describe('listApprovedIndicators', () => {
     const names = indicators.map(({ name }) => name);
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
     expect(indicators.every(({ status }) => status === 'approved')).toBe(true);
+  });
+});
+
+describe('searchApprovedIndicators', () => {
+  it('matches case-insensitively anywhere in the name', async () => {
+    const results = await searchApprovedIndicators(db, 'DIABETES', 20);
+
+    expect(results.length).toBeGreaterThanOrEqual(2);
+    expect(results.every(({ name }) => name.toLowerCase().includes('diabetes'))).toBe(true);
+  });
+
+  it('ranks a match earlier in the name above a later one', async () => {
+    const results = await searchApprovedIndicators(db, 'diabetes', 20);
+
+    expect(results[0]?.name).toBe('Diabetes: QOF prevalence');
+  });
+
+  it('respects the limit', async () => {
+    expect(await searchApprovedIndicators(db, 'a', 3)).toHaveLength(3);
+  });
+
+  it('treats LIKE syntax in the query as literal text', async () => {
+    expect(await searchApprovedIndicators(db, '%', 20)).toEqual([]);
+    expect(await searchApprovedIndicators(db, '_', 20)).toEqual([]);
   });
 });
 

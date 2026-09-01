@@ -5,10 +5,25 @@ import type { IndicatorAreaData, IndicatorDetail } from './contract.js';
 
 const DEFAULT_AREA_CODE = 'E92000001';
 
+const DEFAULT_SEARCH_LIMIT = 20;
+const MAX_SEARCH_LIMIT = 100;
+// Longer than any indicator name, so truncation can never hide a legitimate match.
+const MAX_QUERY_LENGTH = 200;
+
 export function indicatorsRouter(indicators: Repositories['indicators']): Router {
   const router = Router();
 
-  router.get('/api/indicators', async (_request, response) => {
+  router.get('/api/indicators', async (request, response) => {
+    const { q, limit } = request.query;
+    const query = typeof q === 'string' ? q.trim().slice(0, MAX_QUERY_LENGTH) : '';
+    if (query) {
+      const capped =
+        typeof limit === 'string' && /^[1-9]\d*$/.test(limit)
+          ? Math.min(Number(limit), MAX_SEARCH_LIMIT)
+          : DEFAULT_SEARCH_LIMIT;
+      response.status(200).json({ indicators: await indicators.search(query, capped) });
+      return;
+    }
     response.status(200).json({ indicators: await indicators.listApproved() });
   });
 

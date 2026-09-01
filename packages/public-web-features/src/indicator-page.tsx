@@ -1,13 +1,4 @@
-import {
-  A,
-  Button,
-  ChartSection,
-  GridColumn,
-  GridRow,
-  InsetText,
-  PageIntro,
-  Tabs,
-} from '@fphd/ui';
+import { A, Button, ChartSection, GridColumn, GridRow, InsetText, Tabs } from '@fphd/ui';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 
@@ -26,7 +17,6 @@ import type {
   AreaGroup,
   BenchmarkGeography,
   IndicatorSelection,
-  IndicatorSummary as IndicatorSummaryData,
   SelectedIndicator,
 } from './indicator-loader';
 import { BackgroundInformation, IndicatorSummary } from './indicator-metadata';
@@ -252,18 +242,12 @@ function IndicatorBlock({
 export function IndicatorPage({
   selected,
   areaGroups,
-  availableIndicators,
   benchmarkGeography = { regionByCode: {}, levelByCode: {} },
-  searchResults = [],
-  searchSubject = '',
   selection,
 }: {
   selected: SelectedIndicator[];
   areaGroups: AreaGroup[];
-  availableIndicators: IndicatorSummaryData[];
   benchmarkGeography?: BenchmarkGeography;
-  searchResults?: IndicatorSummaryData[];
-  searchSubject?: string;
   selection: IndicatorSelection;
 }) {
   return (
@@ -274,38 +258,12 @@ export function IndicatorPage({
             key={`${selection.fingertipsIds.join(',')}|${selection.areaType}|${selection.areaCodes.join(',')}|${selection.areaLevels.join(',')}`}
             selected={selected}
             areaGroups={areaGroups}
-            availableIndicators={availableIndicators}
             selection={selection}
           />
         </GridColumn>
         <GridColumn width="three-quarters">
           {selected.length === 0 ? (
-            searchSubject ? (
-              <>
-                <PageIntro size="l" title={`Search results for “${searchSubject}”`} />
-                {searchResults.length === 0 ? (
-                  <p className="govuk-body">
-                    No indicators match your search. Try a different term, or add an indicator from
-                    the filters.
-                  </p>
-                ) : (
-                  <>
-                    <p className="govuk-body">
-                      {searchResults.length} indicator{searchResults.length === 1 ? '' : 's'} found.
-                    </p>
-                    <ul className="govuk-list">
-                      {searchResults.map(({ fingertipsId, name }) => (
-                        <li key={fingertipsId}>
-                          <A href={`/indicators/${fingertipsId}`}>{name}</A>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-              </>
-            ) : (
-              <InsetText className="govuk-!-margin-top-0">No indicators selected</InsetText>
-            )
+            <InsetText className="govuk-!-margin-top-0">No indicators selected</InsetText>
           ) : (
             <>
               {/* The page's heading is its contents list: the indicator names below are

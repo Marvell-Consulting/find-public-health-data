@@ -19,6 +19,7 @@
     "react-router": "catalog:"
   },
   "dependencies": {
+    "accessible-autocomplete": "catalog:",
     "@not-govuk/back-link": "0.18.1",
     "@not-govuk/button": "catalog:",
     "@not-govuk/checkboxes": "0.18.1",

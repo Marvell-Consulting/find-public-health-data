@@ -1,5 +1,5 @@
 {
-  "files": ["types/assets.d.ts"],
+  "files": ["types/assets.d.ts", "types/accessible-autocomplete.d.ts"],
   "compilerOptions": {
     "target": "ES2024",
     "strict": true,

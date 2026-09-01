@@ -6,9 +6,9 @@ import {
   TopicRoute,
   TopicsRoute,
 } from '@fphd/public-web-features';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import PublicApp, { ErrorBoundary } from './root';
 
@@ -201,14 +201,6 @@ describe('public application routes', () => {
       { areaType: 'England', areas: [{ code: 'E92000001', name: 'England' }] },
       { areaType: 'UA unchanged', areas: [{ code: 'E06000052', name: 'Cornwall' }] },
     ];
-    const availableIndicators = [
-      {
-        id: 'a',
-        fingertipsId: 108,
-        name: 'Under 75 mortality rate from all causes',
-        status: 'approved',
-      },
-    ];
     const selection = { areaType: 'England', areaCodes: [], areaLevels: [], fingertipsIds: [108] };
     const Routes = createRoutesStub([
       {
@@ -222,7 +214,6 @@ describe('public application routes', () => {
             loader: () => ({
               selected: [{ detail: indicator, areaData }],
               areaGroups,
-              availableIndicators,
               selection,
             }),
           },
@@ -315,7 +306,6 @@ describe('public application routes', () => {
           ],
         },
       ],
-      availableIndicators: [],
       selection: { areaType: 'England', areaCodes: [], areaLevels: [], fingertipsIds: [108] },
     };
     const Routes = createRoutesStub([
@@ -393,7 +383,6 @@ describe('public application routes', () => {
           ],
         },
       ],
-      availableIndicators: [],
       selected: [
         {
           detail: indicatorDetail,
@@ -513,7 +502,6 @@ describe('public application routes', () => {
     const OneIndicator = routesFor({
       selected: [{ detail: detailFor(108, 'Mortality'), areaData: areaDataFor(341.1) }],
       areaGroups: [{ areaType: 'England', areas: [{ code: 'E92000001', name: 'England' }] }],
-      availableIndicators: [],
       selection: { areaType: 'England', areaCodes: [], areaLevels: [], fingertipsIds: [108] },
     });
     render(<OneIndicator initialEntries={['/indicators?is=108']} />);
@@ -529,7 +517,6 @@ describe('public application routes', () => {
         { detail: detailFor(90366, 'Life expectancy'), areaData: areaDataFor(80.1) },
       ],
       areaGroups: [{ areaType: 'England', areas: [{ code: 'E92000001', name: 'England' }] }],
-      availableIndicators: [],
       selection: {
         areaType: 'England',
         areaCodes: [],
@@ -563,9 +550,6 @@ describe('public application routes', () => {
             loader: () => ({
               selected: [],
               areaGroups: [],
-              availableIndicators: [
-                { id: 'a', fingertipsId: 108, name: 'Mortality', status: 'approved' },
-              ],
               selection: { areaType: 'England', areaCodes: [], areaLevels: [], fingertipsIds: [] },
             }),
           },
@@ -578,13 +562,72 @@ describe('public application routes', () => {
     expect(await screen.findByText('None selected')).toBeTruthy();
     // The main pane shows the prototype's inset-text empty state.
     expect(screen.getByText('No indicators selected')).toBeTruthy();
-    // Indicators are added in two steps: picking a suggestion readies it, and the
-    // button — absent until then — commits it.
-    const combobox = screen.getByRole('combobox', { name: 'Search for an indicator' });
-    expect(screen.queryByRole('button', { name: 'Add indicator' })).toBeNull();
-    fireEvent.change(combobox, { target: { value: 'Mort' } });
-    fireEvent.click(screen.getByRole('option', { name: 'Mortality' }));
-    expect(screen.getByRole('button', { name: 'Add indicator' })).toBeTruthy();
+    // The search input arrives server-rendered and is replaced asynchronously by the
+    // accessible-autocomplete combobox, so the role must be awaited.
+    expect(await screen.findByRole('combobox', { name: 'Search for an indicator' })).toBeTruthy();
+  });
+
+  it('suggests server matches as you type and adds the picked indicator in two steps', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ indicators: [{ fingertipsId: 108, name: 'Mortality' }] }), {
+            headers: { 'content-type': 'application/json' },
+          }),
+      ),
+    );
+    const loaderUrls: string[] = [];
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        loader: () => ({ signedIn: false }),
+        children: [
+          {
+            path: 'indicators',
+            Component: IndicatorRoute,
+            loader: ({ request }: { request: Request }) => {
+              loaderUrls.push(request.url);
+              return {
+                selected: [],
+                areaGroups: [],
+                selection: {
+                  areaType: 'England',
+                  areaCodes: [],
+                  areaLevels: [],
+                  fingertipsIds: [],
+                },
+              };
+            },
+          },
+        ],
+      },
+    ]);
+
+    try {
+      render(<Routes initialEntries={['/indicators']} />);
+
+      const combobox = await screen.findByRole('combobox', { name: 'Search for an indicator' });
+      // Picking a suggestion only readies it; the Add indicator button commits it.
+      expect(screen.queryByRole('button', { name: 'Add indicator' })).toBeNull();
+      fireEvent.input(combobox, { target: { value: 'mort' } });
+
+      // The debounce holds the request for 300ms; the suggestion appearing proves the
+      // server round-trip and the escape-safe template.
+      const option = await screen.findByRole('option', { name: 'Mortality' }, { timeout: 3000 });
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith('/indicators/search?q=mort', expect.anything());
+
+      fireEvent.click(option);
+      const addButton = await screen.findByRole('button', { name: 'Add indicator' });
+      fireEvent.click(addButton);
+      // Committing navigates: the loader re-runs with the picked indicator selected.
+      await waitFor(() => {
+        expect(loaderUrls.some((url) => url.includes('is=108'))).toBe(true);
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('offers a benchmark beside each picked area with an optional comparison range', async () => {
@@ -642,7 +685,6 @@ describe('public application routes', () => {
               areaGroups: [
                 { areaType: 'UA unchanged', areas: [{ code: 'E06000052', name: 'Cornwall' }] },
               ],
-              availableIndicators: [],
               benchmarkGeography: {
                 regionByCode: { E06000052: { code: 'E12000009', name: 'South West' } },
                 levelByCode: { E06000052: 'Local authorities' },

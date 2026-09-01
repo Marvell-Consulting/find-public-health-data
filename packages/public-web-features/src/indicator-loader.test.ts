@@ -56,13 +56,14 @@ describe('loadIndicator', () => {
 
     expect(result.selected).toEqual([]);
     expect(result.selection.fingertipsIds).toEqual([]);
-    // The area list and the pickable indicators are still needed to render the filters;
-    // the tree always offers every level, so every display area type is requested.
+    // The area list is still needed to render the filters; the tree always offers
+    // every level, so every display area type is requested. The indicator catalogue is
+    // NOT fetched — search happens server-side per keystroke, never as a preload.
     expect(get).toHaveBeenCalledWith(
       expect.stringMatching(/^\/api\/areas\?area_type=.*area_type=GPs$/),
       expect.anything(),
     );
-    expect(get).toHaveBeenCalledWith('/api/indicators', expect.anything());
+    expect(get).not.toHaveBeenCalledWith('/api/indicators', expect.anything());
   });
 
   it('treats the route param as a single selection', async () => {

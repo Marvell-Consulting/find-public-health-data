@@ -7,16 +7,11 @@ import {
   FilterChips,
   GeographyTree,
 } from '@fphd/ui';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Form, useLocation, useNavigate } from 'react-router';
 import { cleanAreaName, displayGeographyGroups } from './geography-display';
 
-import type {
-  AreaGroup,
-  IndicatorSelection,
-  IndicatorSummary,
-  SelectedIndicator,
-} from './indicator-loader';
+import type { AreaGroup, IndicatorSelection, SelectedIndicator } from './indicator-loader';
 
 /** The query string for a selection, so every control links to a complete page state. */
 export function selectionSearch({
@@ -45,12 +40,10 @@ export function selectionSearch({
 export function FilterPane({
   selected,
   areaGroups,
-  availableIndicators,
   selection,
 }: {
   selected: SelectedIndicator[];
   areaGroups: AreaGroup[];
-  availableIndicators: IndicatorSummary[];
   selection: IndicatorSelection;
 }) {
   const navigate = useNavigate();
@@ -75,9 +68,25 @@ export function FilterPane({
   const navigateWithTab = (args: Parameters<typeof selectionSearch>[0]) =>
     navigate({ search: searchOnly(args), hash: location.hash.slice(1) });
 
-  const unselected = availableIndicators.filter(
-    ({ fingertipsId }) => !selection.fingertipsIds.includes(fingertipsId),
-  );
+  // Stable so the autocomplete's mount-once widget never rebuilds on re-renders.
+  // Failures throw so the widget reports them as failures rather than "no indicators
+  // found"; already-selected matches stay listed, since re-adding one is a harmless
+  // no-op — the loader de-duplicates.
+  const searchIndicators = useCallback(async (query: string, signal: AbortSignal) => {
+    const response = await fetch(`/indicators/search?q=${encodeURIComponent(query)}`, {
+      signal,
+    });
+    if (!response.ok) {
+      throw new Error(`search failed: ${response.status}`);
+    }
+    const { indicators } = (await response.json()) as {
+      indicators: { fingertipsId: number; name: string }[];
+    };
+    return indicators.map(({ fingertipsId, name }) => ({
+      value: String(fingertipsId),
+      label: name,
+    }));
+  }, []);
   const areaName = (code: string) => {
     const raw = areaGroups.flatMap(({ areas }) => areas).find((area) => area.code === code)?.name;
     return raw ? cleanAreaName(raw) : code;
@@ -112,35 +121,31 @@ export function FilterPane({
           )
         }
         footer={
-          unselected.length > 0 ? (
-            <>
-              <Autocomplete
-                label="Search for an indicator"
-                options={unselected.map(({ fingertipsId, name }) => ({
-                  value: String(fingertipsId),
-                  label: name,
-                }))}
-                onSelect={setPendingIndicator}
-              />
-              {/* The prototype's two-step add: picking a suggestion only readies it, and
-                  this button commits it, so a misclick in the list costs nothing. */}
-              {pendingIndicator ? (
-                <Button
-                  className="fphd-button--full-width govuk-!-margin-bottom-0"
-                  onClick={() => {
-                    setPendingIndicator(null);
-                    void navigateWithTab({
-                      selection,
-                      fingertipsIds: [...selection.fingertipsIds, Number(pendingIndicator.value)],
-                    });
-                  }}
-                  type="button"
-                >
-                  Add indicator
-                </Button>
-              ) : null}
-            </>
-          ) : null
+          <>
+            <Autocomplete
+              label="Search for an indicator"
+              name="quickSearch"
+              source={searchIndicators}
+              onSelect={setPendingIndicator}
+            />
+            {/* The prototype's two-step add: picking a suggestion only readies it, and
+                this button commits it, so a misclick in the list costs nothing. */}
+            {pendingIndicator ? (
+              <Button
+                className="fphd-button--full-width govuk-!-margin-bottom-0"
+                onClick={() => {
+                  setPendingIndicator(null);
+                  void navigateWithTab({
+                    selection,
+                    fingertipsIds: [...selection.fingertipsIds, Number(pendingIndicator.value)],
+                  });
+                }}
+                type="button"
+              >
+                Add indicator
+              </Button>
+            ) : null}
+          </>
         }
       />
 

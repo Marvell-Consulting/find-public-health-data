@@ -1,123 +1,205 @@
-import { useId, useRef, useState } from 'react';
+import 'accessible-autocomplete/dist/accessible-autocomplete.min.css';
+
+import { useEffect, useId, useRef, useState } from 'react';
 
 export interface AutocompleteOption {
   value: string;
   label: string;
-  /** Secondary text shown after the label, e.g. the group an area belongs to. */
-  hint?: string;
 }
 
 interface AutocompleteProps {
   label: string;
   onSelect: (option: AutocompleteOption) => void;
-  options: AutocompleteOption[];
+  /**
+   * Asked for suggestions once typing pauses; the signal aborts a request the next
+   * keystroke has made stale.
+   */
+  source: (query: string, signal: AbortSignal) => Promise<AutocompleteOption[]>;
+  /** Submitted with the parent form, so the input works as a plain search field too. */
+  name: string;
+  defaultValue?: string;
   /** Most suggestions worth showing at once; the rest stay behind a narrower query. */
   limit?: number;
 }
 
+// Long enough to spare the server a request per keystroke, short enough to feel live.
+const SEARCH_DEBOUNCE_MS = 300;
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 /**
- * A type-ahead over a list already in memory, following the ARIA combobox pattern the
- * GOV.UK accessible-autocomplete implements. Written here rather than pulled in as a
- * dependency because the whole option set is a prop — there is nothing to fetch, and the
- * component has to render identically on the server.
+ * GOV.UK's accessible-autocomplete over a server-side search, as an enhancement: the
+ * server renders a real search input that submits with its parent form, and the library
+ * replaces it on mount, keeping the same id and name so the label and the form keep
+ * working. Without JavaScript the plain input remains and the form round-trips the
+ * search to the server. The library owns the combobox behaviour, the "No results found"
+ * message and the assistive-technology status announcements; this wrapper adds the
+ * debounce its async source is expected to bring. Its bundle touches `self` at module
+ * scope, so it is imported only in the browser.
  */
-export function Autocomplete({ label, onSelect, options, limit = 10 }: AutocompleteProps) {
-  const inputId = useId();
-  const listId = useId();
-  const [query, setQuery] = useState('');
-  const [open, setOpen] = useState(false);
-  const [active, setActive] = useState(-1);
-  const blurTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+export function Autocomplete({
+  label,
+  onSelect,
+  source,
+  name,
+  defaultValue = '',
+  limit = 10,
+}: AutocompleteProps) {
+  // The library builds its own input carrying this id; colons would break the CSS
+  // selectors it uses internally.
+  const inputId = `fphd-autocomplete-${useId().replace(/[^a-zA-Z0-9-]/g, '')}`;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [enhanced, setEnhanced] = useState(false);
+  // Kept current so the mount-once effect never holds stale props.
+  const callbacks = useRef({ onSelect, source });
+  callbacks.current = { onSelect, source };
+  // Init-only: a later defaultValue (a fresh search submit) must not tear down the live
+  // widget, which would blank the menu and drop focus mid-interaction.
+  const initialValue = useRef(defaultValue);
 
-  const trimmed = query.trim().toLowerCase();
-  const matches = trimmed
-    ? options.filter(({ label: text }) => text.toLowerCase().includes(trimmed)).slice(0, limit)
-    : [];
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+    let unmounted = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let controller: AbortController | undefined;
+    // The library has no in-flight state: with an empty option list it shows tNoResults
+    // even while a search is running. Tracking the request here keeps that message
+    // truthful — "Loading results" until the response says there are none.
+    let searching = false;
+    let failed = false;
+    const cancelPending = () => {
+      clearTimeout(timer);
+      controller?.abort();
+      searching = false;
+    };
+    // The library stops calling source below minLength and on blur, so a debounced
+    // request scheduled just before either would still land and reopen the menu with
+    // results for text the user has deleted or left behind.
+    const onInput = (event: Event) => {
+      const target = event.target as HTMLInputElement;
+      if (target.value.trim().length < 2) {
+        cancelPending();
+      }
+    };
+    const onFocusOut = () => cancelPending();
+    // With nothing highlighted the library preventDefaults Enter without confirming
+    // anything, which would strand keyboard users unable to submit the surrounding
+    // search form. Stopping propagation before the library sees the key lets the
+    // browser's implicit form submission run instead; a highlighted option keeps the
+    // library's confirm behaviour.
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Enter' && !container.querySelector('.autocomplete__option--focused')) {
+        event.stopPropagation();
+      }
+    };
+    container.addEventListener('input', onInput);
+    container.addEventListener('focusout', onFocusOut);
+    container.addEventListener('keydown', onKeyDown, true);
 
-  const choose = (option: AutocompleteOption) => {
-    onSelect(option);
-    // The picked name stays in the field, so the choice remains visible while a
-    // confirm step (e.g. an "Add indicator" button) is still to come.
-    setQuery(option.label);
-    setOpen(false);
-    setActive(-1);
-  };
+    void import('accessible-autocomplete').then(({ default: accessibleAutocomplete }) => {
+      if (unmounted) {
+        return;
+      }
+      accessibleAutocomplete<AutocompleteOption>({
+        element: container,
+        id: inputId,
+        name,
+        defaultValue: initialValue.current,
+        minLength: 2,
+        // Blurring with a suggestion merely highlighted must not confirm it: confirming
+        // navigates and adds the indicator, which a click elsewhere never intends.
+        confirmOnBlur: false,
+        source: (query, populateResults) => {
+          clearTimeout(timer);
+          controller?.abort();
+          const own = new AbortController();
+          controller = own;
+          searching = true;
+          failed = false;
+          timer = setTimeout(() => {
+            void callbacks.current.source(query.trim(), own.signal).then(
+              (results) => {
+                if (!own.signal.aborted) {
+                  searching = false;
+                  populateResults(results.slice(0, limit));
+                }
+              },
+              () => {
+                // An aborted request belongs to a newer keystroke, which now owns the
+                // menu. A real failure must not read as "no such indicator".
+                if (!own.signal.aborted) {
+                  searching = false;
+                  failed = true;
+                  populateResults([]);
+                }
+              },
+            );
+          }, SEARCH_DEBOUNCE_MS);
+        },
+        templates: {
+          // Suggestion templates are injected as HTML; names are data, not markup. The
+          // picked name stays in the field, so the choice remains visible while the
+          // confirm step (the Add indicator button) is still to come.
+          suggestion: (option) => (option ? escapeHtml(option.label) : ''),
+          inputValue: (option) => option?.label ?? '',
+        },
+        onConfirm: (option) => {
+          if (option) {
+            callbacks.current.onSelect(option);
+          }
+        },
+        tNoResults: () =>
+          searching
+            ? 'Loading results'
+            : failed
+              ? 'Search is not working right now — try again'
+              : 'No indicators found',
+        tStatusNoResults: () =>
+          searching
+            ? 'Loading results'
+            : failed
+              ? 'Search is not working right now — try again'
+              : 'No indicators found',
+      });
+      // Swapping state after the library has rendered means an input is always on the
+      // page: the fallback leaves in the same paint its replacement arrives in.
+      setEnhanced(true);
+    });
+
+    return () => {
+      unmounted = true;
+      cancelPending();
+      container.removeEventListener('input', onInput);
+      container.removeEventListener('focusout', onFocusOut);
+      container.removeEventListener('keydown', onKeyDown, true);
+      container.innerHTML = '';
+    };
+  }, [inputId, name, limit]);
 
   return (
     <div className="govuk-form-group fphd-autocomplete">
       <label className="govuk-label govuk-!-font-weight-bold" htmlFor={inputId}>
         {label}
       </label>
-      <input
-        // Names the highlighted option so assistive technology announces it as the arrow
-        // keys move through the list.
-        aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
-        aria-autocomplete="list"
-        aria-controls={listId}
-        aria-expanded={open && matches.length > 0}
-        autoComplete="off"
-        className="govuk-input"
-        id={inputId}
-        onBlur={() => {
-          // A click on a suggestion blurs the input before it fires, so closing waits.
-          blurTimer.current = setTimeout(() => setOpen(false), 150);
-        }}
-        onChange={(event) => {
-          setQuery(event.currentTarget.value);
-          setOpen(true);
-          setActive(-1);
-        }}
-        onFocus={() => clearTimeout(blurTimer.current)}
-        onKeyDown={(event) => {
-          if (matches.length === 0) {
-            return;
-          }
-          if (event.key === 'ArrowDown') {
-            event.preventDefault();
-            setActive((current) => (current + 1) % matches.length);
-          } else if (event.key === 'ArrowUp') {
-            event.preventDefault();
-            setActive((current) => (current <= 0 ? matches.length - 1 : current - 1));
-          } else if (event.key === 'Enter') {
-            const option = matches[active] ?? matches[0];
-            if (option) {
-              event.preventDefault();
-              choose(option);
-            }
-          } else if (event.key === 'Escape') {
-            setOpen(false);
-          }
-        }}
-        role="combobox"
-        type="text"
-        value={query}
-      />
-      {open && matches.length > 0 ? (
-        // The ARIA combobox pattern puts the listbox and its options on non-interactive
-        // elements, with the input owning focus and keyboard handling throughout. The
-        // linter's generic advice does not apply to it.
-        <div className="fphd-autocomplete__menu" id={listId} role="listbox">
-          {matches.map((option, index) => (
-            // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard selection is handled on the combobox input, per the ARIA pattern.
-            // biome-ignore lint/a11y/useFocusableInteractive: focus stays on the input; options are referenced by aria-activedescendant.
-            <div
-              aria-selected={index === active}
-              className={`fphd-autocomplete__option${index === active ? ' fphd-autocomplete__option--active' : ''}`}
-              id={`${listId}-${index}`}
-              key={option.value}
-              onClick={() => choose(option)}
-              onMouseDown={(event) => event.preventDefault()}
-              onMouseEnter={() => setActive(index)}
-              role="option"
-            >
-              {option.label}
-              {option.hint ? (
-                <span className="fphd-autocomplete__group"> ({option.hint})</span>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      ) : null}
+      <div ref={containerRef} />
+      {enhanced ? null : (
+        <input
+          className="govuk-input"
+          defaultValue={defaultValue}
+          id={inputId}
+          name={name}
+          type="search"
+        />
+      )}
     </div>
   );
 }

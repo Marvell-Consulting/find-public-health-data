@@ -4,7 +4,6 @@ import {
   indicatorAreaDataListSchema,
   indicatorAreaDataSchema,
   indicatorDetailSchema,
-  indicatorListResponseSchema,
   indicatorRangeSchema,
 } from '@fphd/public-api-features/contract';
 import { apiPath } from '@fphd/web-server/api-client';
@@ -136,8 +135,7 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
   // parent up front.
   const nonEnglandCodes = codesToLoad.filter((code) => code !== DEFAULT_AREA_CODE);
 
-  const [availableIndicators, areaGroups, areaParents] = await Promise.all([
-    api.get('/api/indicators', indicatorListResponseSchema),
+  const [areaGroups, areaParents] = await Promise.all([
     // The tree always offers every level, whatever is selected — an indicator without
     // data for an area simply shows no data, it does not hide the geography.
     api.get(
@@ -180,16 +178,6 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
   const regionCodes = [...new Set(Object.values(regionByCode).map(({ code }) => code))];
 
   const fingertipsIds = selectedIndicatorIds(url, params.fingertipsId);
-  // The home page's search box lands here with only a subject: matches are offered as
-  // results to pick from, never selected on the user's behalf.
-  const searchSubject = url.searchParams.get('searchSubject')?.trim() ?? '';
-  const searchResults =
-    fingertipsIds.length === 0 && searchSubject
-      ? availableIndicators.indicators.filter(({ name }) =>
-          name.toLowerCase().includes(searchSubject.toLowerCase()),
-        )
-      : [];
-
   const selected = await Promise.all(
     fingertipsIds.map(async (id) => {
       const dataFor = (codes: string[]) =>
@@ -235,10 +223,7 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
   return {
     selected,
     areaGroups,
-    availableIndicators: availableIndicators.indicators,
     benchmarkGeography: { regionByCode, levelByCode } satisfies BenchmarkGeography,
-    searchResults,
-    searchSubject,
     selection: { areaType, areaCodes, areaLevels, fingertipsIds } satisfies IndicatorSelection,
   };
 }
