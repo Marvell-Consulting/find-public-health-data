@@ -37,6 +37,12 @@ function segmentKey(observation: IndicatorObservation): string {
     .join('|');
 }
 
+/** The observation's dimension values joined the way the range API labels segments:
+ *  '|'-separated in dimension-type order (the API sorts dimensions by type). */
+export function segmentValuesKey(observation: IndicatorObservation): string {
+  return observation.dimensions.map(({ value }) => value).join('|');
+}
+
 function sortOrderSum(observation: IndicatorObservation): number {
   return observation.dimensions.reduce((sum, dimension) => sum + dimension.sortOrder, 0);
 }

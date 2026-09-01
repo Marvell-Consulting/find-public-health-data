@@ -671,7 +671,15 @@ describe('public application routes', () => {
       topics: [],
       classifications: [],
     };
-    const rangePeriod = { fromDate: '2023-01-01', toDate: '2023-12-31', min: 300.1, max: 500.9 };
+    // The segment matches the fixture observations' dimension values, as the table only
+    // brackets a row with a range describing the same population.
+    const rangePeriod = {
+      fromDate: '2023-01-01',
+      toDate: '2023-12-31',
+      segment: '<75 yrs',
+      min: 300.1,
+      max: 500.9,
+    };
     const Routes = createRoutesStub([
       {
         path: '/',

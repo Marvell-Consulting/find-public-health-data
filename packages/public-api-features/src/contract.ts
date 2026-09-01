@@ -109,6 +109,8 @@ export const indicatorRangeSchema = z.object({
     z.object({
       fromDate: z.string().min(1),
       toDate: z.string().min(1),
+      /** Dimension values joined by '|' in dimension-type order; '' when aggregate. */
+      segment: z.string(),
       min: z.number(),
       max: z.number(),
     }),

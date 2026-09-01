@@ -38,6 +38,7 @@ function ownerConnection(database: string) {
 // single-year and rolling periods, and sex/age/deprivation breakdowns.
 const MORTALITY_UNDER_75 = 108;
 const DIABETES_QOF_PREVALENCE = 241;
+const LIFE_EXPECTANCY_AT_BIRTH = 90366;
 const ENGLAND = 'E92000001';
 const CORNWALL = 'E06000052';
 
@@ -218,6 +219,17 @@ describe('getObservationRange', () => {
   it('returns an empty range without area types or for an unknown indicator', async () => {
     expect(await getObservationRange(db, DIABETES_QOF_PREVALENCE, [])).toEqual([]);
     expect(await getObservationRange(db, 424242, LOCAL_AUTHORITY_TYPES)).toEqual([]);
+  });
+
+  it('returns one range per segment for an always-sexed indicator', async () => {
+    const range = await getObservationRange(db, LIFE_EXPECTANCY_AT_BIRTH, LOCAL_AUTHORITY_TYPES);
+
+    const segments = new Set(range.map(({ segment }) => segment));
+    expect(segments.has('Male')).toBe(true);
+    expect(segments.has('Female')).toBe(true);
+    for (const period of range) {
+      expect(period.min).toBeLessThanOrEqual(period.max);
+    }
   });
 });
 

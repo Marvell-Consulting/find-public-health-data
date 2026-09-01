@@ -15,6 +15,7 @@ import {
   periodLabel,
   recentTrend,
   segmentLabel,
+  segmentValuesKey,
   trendSeries,
 } from './indicator-data';
 import type {
@@ -186,6 +187,7 @@ export function TrendTable({
   // benchmarks alike — follows it, so an always-sexed indicator never sets one area's
   // Female beside another's Male.
   const reference = shownAreas[0] ? trendSeries(shownAreas[0].observations)[0] : undefined;
+  const referenceSegment = reference ? segmentValuesKey(reference) : '';
   const seriesFor = (observations: IndicatorObservation[]) =>
     alignedTrendSeries(observations, reference);
   const englandSeries = england[0] ? seriesFor(england[0].observations) : [];
@@ -368,7 +370,9 @@ export function TrendTable({
                   const observation = cell(areaSeries, period);
                   const areaBenchmark = benchmarks.get(areaSeries.data.areaCode);
                   const benchmarkObservation = areaBenchmark?.series.find(inPeriod(period));
-                  const rangePeriod = areaBenchmark?.rangePeriods.find(inPeriod(period));
+                  const rangePeriod = areaBenchmark?.rangePeriods.find(
+                    (range) => inPeriod(period)(range) && range.segment === referenceSegment,
+                  );
                   return (
                     <Fragment key={areaSeries.data.areaCode}>
                       {hasCounts ? (
@@ -704,7 +708,11 @@ export function ComparisonSection({
         : 'Statistical regions';
     return {
       value: series.find(samePeriod)?.value ?? null,
-      rangePeriod: (entry.ranges?.[rangeKey] ?? []).find(samePeriod),
+      // The range must describe the same segment the row shows — a Male row against a
+      // Female spread would bracket the dot with the wrong population.
+      rangePeriod: (entry.ranges?.[rangeKey] ?? []).find(
+        (range) => samePeriod(range) && range.segment === segmentValuesKey(latest),
+      ),
       areaValue: latest.value,
       polarity: entry.detail.polarity,
     };

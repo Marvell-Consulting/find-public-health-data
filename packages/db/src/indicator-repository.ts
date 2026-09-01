@@ -373,6 +373,9 @@ export async function getIndicatorObservations(
 export interface ObservationRangePeriod {
   fromDate: string;
   toDate: string;
+  /** The segment's dimension values joined by '|' in dimension-type order, '' for the
+   *  fully-aggregate series — the same shape a client derives from an observation. */
+  segment: string;
   min: number;
   max: number;
 }
@@ -431,33 +434,25 @@ export async function getObservationRange(
       .from(observations)
       .where(eq(observations.dims, db.select({ dims: min(observations.dims) }).from(observations))),
   );
-  const bestSegment = db
-    .$with('range_best_segment')
-    .as(
-      db
-        .select({ segment: leastDisaggregated.segment })
-        .from(leastDisaggregated)
-        .groupBy(leastDisaggregated.segment)
-        .orderBy(sql`count(*) desc`, asc(leastDisaggregated.segment))
-        .limit(1),
-    );
 
+  // One range per segment, not one dominant segment: an always-sexed indicator has a
+  // Male range and a Female range, and the caller picks the one it is displaying.
   const rows = await db
-    .with(observations, leastDisaggregated, bestSegment)
+    .with(observations, leastDisaggregated)
     .select({
       fromDate: leastDisaggregated.fromDate,
       toDate: leastDisaggregated.toDate,
+      segment: leastDisaggregated.segment,
       min: min(leastDisaggregated.value),
       max: max(leastDisaggregated.value),
     })
     .from(leastDisaggregated)
-    .where(eq(leastDisaggregated.segment, db.select().from(bestSegment)))
-    .groupBy(leastDisaggregated.fromDate, leastDisaggregated.toDate)
+    .groupBy(leastDisaggregated.fromDate, leastDisaggregated.toDate, leastDisaggregated.segment)
     .orderBy(asc(leastDisaggregated.fromDate), asc(leastDisaggregated.toDate));
 
-  return rows.flatMap(({ fromDate, toDate, min: minValue, max: maxValue }) =>
+  return rows.flatMap(({ fromDate, toDate, segment, min: minValue, max: maxValue }) =>
     minValue === null || maxValue === null
       ? []
-      : [{ fromDate, toDate, min: minValue, max: maxValue }],
+      : [{ fromDate, toDate, segment, min: minValue, max: maxValue }],
   );
 }
