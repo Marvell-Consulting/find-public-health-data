@@ -24,7 +24,11 @@ export function FilterCard({
         {onClear ? (
           // A router Link, so clearing is a push-state navigation with the plain
           // anchor as the no-script fallback.
-          <Link className="govuk-link govuk-body-s govuk-!-margin-bottom-0" to={onClear}>
+          <Link
+            className="govuk-link govuk-body-s govuk-!-margin-bottom-0"
+            preventScrollReset
+            to={onClear}
+          >
             Clear all
           </Link>
         ) : null}
@@ -56,6 +60,7 @@ export function FilterChip({
         <Link
           aria-label={`Remove ${removeLabel} filter`}
           className="fphd-filter-chip__remove govuk-link"
+          preventScrollReset
           to={onRemove}
         >
           ×

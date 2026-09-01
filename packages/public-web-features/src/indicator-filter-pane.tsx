@@ -65,8 +65,13 @@ export function FilterPane({
   // hash is encoded into the last query value and the loader rejects it.
   const searchWithTab = (args: Parameters<typeof selectionSearch>[0]) =>
     `${searchOnly(args)}${location.hash}`;
+  // preventScrollReset: a filter change refreshes the data in place — jumping the
+  // page back to the top would lose the table the user is reading.
   const navigateWithTab = (args: Parameters<typeof selectionSearch>[0]) =>
-    navigate({ search: searchOnly(args), hash: location.hash.slice(1) });
+    navigate(
+      { search: searchOnly(args), hash: location.hash.slice(1) },
+      { preventScrollReset: true },
+    );
 
   // Stable so the autocomplete's mount-once widget never rebuilds on re-renders.
   // Failures throw so the widget reports them as failures rather than "no indicators
