@@ -324,30 +324,12 @@ jobs:
             exit 1
           fi
 
-      # After the smoke test, so a scan finding never masks an image that fails to start.
+      # After the smoke test, so a scan finding never masks an image that fails to start. The
+      # same scan publish-images.yml runs before pushing; here the pull request goes red first.
       - name: Scan ${{ matrix.app }}
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        uses: ./.github/actions/scan-image
         with:
           image-ref: fphd-ci/${{ matrix.app }}:ci
-          scanners: vuln
-          # The action has not renamed this input yet; it sets TRIVY_PKG_TYPES.
-          vuln-type: os
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: 1
-
-      # The scan publish-images.yml runs before pushing, here so the pull request goes red first.
-      # Separate from the vulnerability scan because its HIGH,CRITICAL floor would hide Trivy's
-      # generic credential patterns.
-      - name: Scan ${{ matrix.app }} for secrets
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: fphd-ci/${{ matrix.app }}:ci
-          scanners: secret
-          exit-code: 1
-        env:
-          # Build args and ENV land in the image config, not in a file; the default scan reads files only.
-          TRIVY_IMAGE_CONFIG_SCANNERS: secret
 
   artefact-boundary:
     name: Public artefact boundary

@@ -27,13 +27,15 @@ const IMAGE_BUILD_ACTION = /^docker\/build-push-action(?:@|$)/;
 // Where one command ends and the next may begin: a newline, `;`, `&`, `|` or `(`.
 const COMMAND_BOUNDARY = /[\n;&|(]/;
 const LINE_CONTINUATION = /\\\n/g;
-const COMMAND_PREFIX = /^(?:\w+=|sudo$)/;
+const COMMAND_PREFIX = /^(?:\w+=|sudo$|-)/;
 const BUILD_SUBCOMMANDS = ['buildx', 'image', 'compose'];
 
 // Only inside `${{ }}`: the word in a shell string or an echo is not a secret. YAML comments
 // never get here — the parser drops them.
 const EXPRESSION = /\$\{\{[\s\S]*?\}\}/g;
-const SECRET_REFERENCE = /\bsecrets(?:\.[A-Za-z_][A-Za-z0-9_]*|\[[^\]]*\])?/g;
+// The `secrets` context itself, whole: not `vars.secrets2`, not a `.secrets` property of
+// another context.
+const SECRET_REFERENCE = /(?<![\w.])secrets(?!\w)(?:\.[A-Za-z_][A-Za-z0-9_]*|\[[^\]]*\])?/g;
 
 /**
  * The images are public, so anything `docker build` can see may end up in a layer anyone can
@@ -107,8 +109,10 @@ function buildsAnImage(step: Step): boolean {
 
 /**
  * `docker build`, or `docker {buildx,image,compose} build`, in command position — after any
- * `VAR=value` or `sudo` prefix. Tokenised rather than matched by one regular expression, which
- * CodeQL rightly flagged for backtracking; `docker build` in an echo or a string never qualifies.
+ * `VAR=value`, `sudo` or `-flag` prefix. Tokenised rather than matched by one regular expression,
+ * which CodeQL rightly flagged for backtracking; `docker build` in an echo or a string never
+ * qualifies. A flag's separate value is indistinguishable from a command, so `sudo -u root
+ * docker build` is missed — the Trivy scan on the built image is the backstop.
  */
 function runsAnImageBuild(script: string): boolean {
   return script

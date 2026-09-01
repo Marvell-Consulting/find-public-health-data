@@ -32,6 +32,8 @@ jobs:
     { label: 'a continued line', run: 'set -e\ndocker \\\n  build .' },
     { label: 'an env prefix', run: 'DOCKER_BUILDKIT=1 docker build .' },
     { label: 'sudo', run: 'sudo docker build .' },
+    { label: 'sudo with a flag', run: 'sudo -E docker build .' },
+    { label: 'sudo with a long flag', run: 'sudo --preserve-env docker build .' },
     { label: 'after &&', run: 'echo start && docker build .' },
     { label: 'in a substitution', run: 'cid=$(docker build -q .)' },
   ])('recognises $label as a build', ({ run }) => {
@@ -146,6 +148,20 @@ jobs:
       'secrets (step env)',
       "secrets['MY-TOKEN'] (step env)",
     ]);
+  });
+
+  it('ignores identifiers that merely contain the word', () => {
+    const yaml = workflow(`
+jobs:
+  publish:
+    steps:
+      - env:
+          A: \${{ vars.secrets2 }}
+          B: \${{ vars.secretsmanager_arn }}
+          C: \${{ steps.setup.outputs.secrets }}
+        run: docker build .
+`);
+    expect(collectImageBuilds(yaml, FILE)[0]?.references).toEqual([]);
   });
 
   it('ignores the word outside an expression', () => {
