@@ -32,7 +32,12 @@ export function AppDocument({ children }: AppDocumentProps) {
           }}
         />
         {children}
-        <ScrollRestoration />
+        {/* Keyed by pathname: filter and option changes navigate within one page, and
+            the position saved as the navigation starts is restored as it lands — the
+            page never moves. Without this the default per-location keying finds no
+            saved position and falls through to scrolling the URL hash (the open tab's
+            anchor) back into view on every change. */}
+        <ScrollRestoration getKey={(location) => location.pathname} />
         <Scripts />
       </body>
     </html>
