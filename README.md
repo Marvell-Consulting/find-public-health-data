@@ -86,7 +86,7 @@ pnpm dev
 pnpm dev:public
 pnpm dev:internal
 pnpm check
-pnpm check:artefacts   # assert no internal code reaches the public artifacts
+pnpm check:artefacts   # assert no internal code or secret reaches the public artifacts
 pnpm build
 pnpm test              # all three tiers below, in order
 pnpm test:unit         # unit tests
@@ -177,10 +177,15 @@ satisfied.
 
 ## The public artifact boundary
 
-`pnpm check:artefacts` (`tools/artefact-boundary`, also its own CI job) fails if internal code has
-reached a public artifact. It applies four checks, cheapest first so the common failure is reported
-without waiting for a build:
+`pnpm check:artefacts` (`tools/artefact-boundary`, also its own CI job) fails if internal code or a
+repository secret has reached a public artifact. It applies five checks, cheapest first so the
+common failure is reported without waiting for a build:
 
+- no `${{ secrets.* }}` reference can reach a `docker build` step in any workflow — not in the
+  step's `run`, `with` or `env`, and not in `env` inherited from its job or the workflow. The
+  images are public, so a secret passed as a build arg is a secret published; the Trivy secret
+  scan in CI inspects the built layers for the patterns it knows, and this refuses the route
+  whatever the value looks like;
 - the two public apps' transitive workspace dependency closures contain no `internal-*` package;
 - no route module in `public-web`'s route table is internal. React Router declares routes as path
   strings rather than imports, so `route('manage', '../../packages/internal-web-features/…')` is
@@ -195,12 +200,15 @@ without waiting for a build:
   "source maps are enabled in production" warning during this build; it does not apply to what
   ships, because the maps do not survive the check.
 
-The rule the four share is "a module reference naming an `@fphd/internal-*` package or living under
-a directory named `internal-*`", unit-tested in `tools/artefact-boundary/src/internal.test.ts`.
+The rule the four code checks share is "a module reference naming an `@fphd/internal-*` package or
+living under a directory named `internal-*`", unit-tested in
+`tools/artefact-boundary/src/internal.test.ts`. The build-input check is unit-tested in
+`tools/artefact-boundary/src/builds.test.ts`.
 
-Two of the checks would pass vacuously if they silently found nothing to inspect, so both refuse to:
-an app name absent from the workspace refuses to be checked rather than yielding an empty closure,
-and a `dist` holding no JavaScript or no sourcemaps is an error, not a pass.
+Three of the checks would pass vacuously if they silently found nothing to inspect, so all refuse
+to: no workflow building an image is an error, an app name absent from the workspace refuses to be
+checked rather than yielding an empty closure, and a `dist` holding no JavaScript or no sourcemaps
+is an error, not a pass.
 
 Some vectors are caught earlier than this gate: TypeScript's `rootDir` rejects a relative cross-app
 import at compile time, and Biome's `noRestrictedImports` rejects one by package name. The artifact
@@ -405,6 +413,12 @@ authenticates with its own run-scoped `GITHUB_TOKEN`, and the packages are publi
 pull anonymously. The one manual step is at creation: GHCR makes a package private on its first
 push, so a brand-new package must be flipped to public in its settings before anything can pull it.
 
+Write access to the packages is repository access: they are linked to this repository on that first
+push and inherit its permissions, so anyone with maintain or admin here can push to them, from any
+workflow on any branch or with a personal token. The `main`-only trigger is a convention of this
+workflow, not something the registry enforces. What keeps a stray push away from a deployment is
+the digest pin below — a new tag changes nothing until someone updates the infrastructure repository.
+
 **Deploy by digest, not by tag.** Both tags are labels for people; neither is a stable reference to
 particular bits. GHCR tags are mutable, and re-running the workflow for a commit already published
 necessarily builds a different manifest — the `created` label alone guarantees it — which then
@@ -427,6 +441,13 @@ so a red scan means a fix apk could not deliver rather than a stale pin. The pin
 release (`24-alpine3.24`) rather than using the floating `24-alpine` alias, so a Dependabot digest
 bump cannot move the base to a new Alpine release — and everything the operations image installs
 by name — without anyone choosing to.
+
+A second Trivy pass scans each image for secrets — in its files and, with
+`TRIVY_IMAGE_CONFIG_SCANNERS=secret`, in its config and layer history, which is where a build arg
+or `ENV` lands. It is a separate step because the vulnerability scan's `HIGH,CRITICAL` floor would
+drop the generic credential patterns Trivy rates lower. CI runs the same scan on every pull
+request, and `check:artefacts` refuses any workflow that lets a repository secret reach `docker
+build` at all, so this step should never be the first to notice.
 
 ## Mixed local/Docker development
 

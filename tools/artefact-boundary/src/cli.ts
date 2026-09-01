@@ -1,6 +1,7 @@
 import { readdir, readFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
 
+import { findSecretsReachingBuilds } from './builds.js';
 import { capture, run } from './exec.js';
 import { findInternalReferences } from './internal.js';
 import { collectRouteFiles } from './routes.js';
@@ -26,6 +27,7 @@ type Violation = {
 /** Cheapest check first, so the common failure is reported without waiting for a build. */
 async function main(): Promise<void> {
   const violations: Violation[] = [
+    ...(await checkImageBuildInputs()),
     ...(await checkDependencyClosures()),
     ...checkWebRouteTable(),
     ...(await checkApiOutput()),
@@ -33,11 +35,11 @@ async function main(): Promise<void> {
   ];
 
   if (violations.length === 0) {
-    console.log('\nNo internal code found in the public artefacts.');
+    console.log('\nNothing internal found in the public artefacts.');
     return;
   }
 
-  console.error('\nInternal code found in the public artefacts:\n');
+  console.error('\nSomething internal found in the public artefacts:\n');
   for (const violation of violations) {
     console.error(`  ${violation.check}: ${violation.detail}`);
     for (const reference of violation.references) {
@@ -45,6 +47,21 @@ async function main(): Promise<void> {
     }
   }
   process.exitCode = 1;
+}
+
+/**
+ * The images are public, so a repository secret that reaches `docker build` — as a build arg, or
+ * through env the step inherits — can end up in a layer anyone can pull. Trivy scans the built
+ * image for the ones it can recognise; this refuses the route regardless of what the value looks like.
+ */
+async function checkImageBuildInputs(): Promise<Violation[]> {
+  console.log('Checking the workflows’ image builds for secrets…');
+  const builds = await findSecretsReachingBuilds(repoRoot);
+  return builds.map(({ file, job, step, references }) => ({
+    check: 'image build inputs',
+    detail: `${file} job ${job}, step ${step}`,
+    references,
+  }));
 }
 
 async function checkDependencyClosures(): Promise<Violation[]> {

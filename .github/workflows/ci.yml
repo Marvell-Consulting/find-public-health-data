@@ -336,6 +336,21 @@ jobs:
           ignore-unfixed: true
           exit-code: 1
 
+      # The same secret scan publish-images.yml runs before pushing, here so a pull request that
+      # would bake a credential into a public image goes red before it merges. Separate from the
+      # vulnerability scan because that one's severity floor would hide the generic credential
+      # patterns, which Trivy rates below HIGH.
+      - name: Scan ${{ matrix.app }} for secrets
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: fphd-ci/${{ matrix.app }}:ci
+          scanners: secret
+          exit-code: 1
+        env:
+          # A build arg or ENV lands in the image config and history, not in a file; the default
+          # scan walks the filesystem only.
+          TRIVY_IMAGE_CONFIG_SCANNERS: secret
+
   artefact-boundary:
     name: Public artefact boundary
     runs-on: ubuntu-24.04
