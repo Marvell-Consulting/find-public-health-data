@@ -35,11 +35,11 @@ async function main(): Promise<void> {
   ];
 
   if (violations.length === 0) {
-    console.log('\nNothing internal found in the public artefacts.');
+    console.log('\nNothing crossed the public artefact boundary.');
     return;
   }
 
-  console.error('\nSomething internal found in the public artefacts:\n');
+  console.error('\nCrossed the public artefact boundary:\n');
   for (const violation of violations) {
     console.error(`  ${violation.check}: ${violation.detail}`);
     for (const reference of violation.references) {
@@ -50,8 +50,8 @@ async function main(): Promise<void> {
 }
 
 /**
- * Trivy scans the built image for the secret patterns it knows; this refuses the route in,
- * whatever the value looks like.
+ * Workflow YAML only: refuses the route in, whatever the value looks like. Trivy, in CI, checks
+ * the built bytes for the patterns it knows.
  */
 async function checkImageBuildInputs(): Promise<Violation[]> {
   console.log('Checking the workflows’ image builds for secrets…');

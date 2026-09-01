@@ -25,16 +25,16 @@ jobs:
   });
 
   it.each([
-    ['docker build .', 'docker build'],
-    ['docker buildx build .', 'docker buildx build'],
-    ['docker image build .', 'docker image build'],
-    ['docker compose build', 'docker compose build'],
-    ['set -e\ndocker \\\n  build .', 'a continued line'],
-    ['DOCKER_BUILDKIT=1 docker build .', 'an env prefix'],
-    ['sudo docker build .', 'sudo'],
-    ['echo start && docker build .', 'after &&'],
-    ['cid=$(docker build -q .)', 'in a substitution'],
-  ])('recognises %j as a build', (run) => {
+    { label: 'docker build', run: 'docker build .' },
+    { label: 'docker buildx build', run: 'docker buildx build .' },
+    { label: 'docker image build', run: 'docker image build .' },
+    { label: 'docker compose build', run: 'docker compose build' },
+    { label: 'a continued line', run: 'set -e\ndocker \\\n  build .' },
+    { label: 'an env prefix', run: 'DOCKER_BUILDKIT=1 docker build .' },
+    { label: 'sudo', run: 'sudo docker build .' },
+    { label: 'after &&', run: 'echo start && docker build .' },
+    { label: 'in a substitution', run: 'cid=$(docker build -q .)' },
+  ])('recognises $label as a build', ({ run }) => {
     const yaml = workflow(`
 jobs:
   ci:

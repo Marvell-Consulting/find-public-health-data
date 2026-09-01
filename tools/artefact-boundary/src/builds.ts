@@ -24,10 +24,11 @@ type Job = { env?: unknown; steps?: unknown };
 const WORKFLOW_EXTENSIONS = ['.yml', '.yaml'];
 
 const IMAGE_BUILD_ACTION = /^docker\/build-push-action(?:@|$)/;
-// In command position — the start of a line or after `;`, `&&`, `|` or `(` — with any
-// `VAR=value` or `sudo` prefix, and with `\`-continued lines allowed between the words.
-const IMAGE_BUILD_COMMAND =
-  /(?:^|[;&|(])[ \t]*(?:(?:\w+=\S*|sudo)(?:\s|\\\n)+)*docker(?:\s|\\\n)+(?:(?:buildx|image|compose)(?:\s|\\\n)+)?build\b/m;
+// Where one command ends and the next may begin: a newline, `;`, `&`, `|` or `(`.
+const COMMAND_BOUNDARY = /[\n;&|(]/;
+const LINE_CONTINUATION = /\\\n/g;
+const COMMAND_PREFIX = /^(?:\w+=|sudo$)/;
+const BUILD_SUBCOMMANDS = ['buildx', 'image', 'compose'];
 
 // Only inside `${{ }}`: the word in a shell string or an echo is not a secret. YAML comments
 // never get here — the parser drops them.
@@ -101,7 +102,27 @@ function buildsAnImage(step: Step): boolean {
   if (typeof step.uses === 'string' && IMAGE_BUILD_ACTION.test(step.uses)) {
     return true;
   }
-  return typeof step.run === 'string' && IMAGE_BUILD_COMMAND.test(step.run);
+  return typeof step.run === 'string' && runsAnImageBuild(step.run);
+}
+
+/**
+ * `docker build`, or `docker {buildx,image,compose} build`, in command position — after any
+ * `VAR=value` or `sudo` prefix. Tokenised rather than matched by one regular expression, which
+ * CodeQL rightly flagged for backtracking; `docker build` in an echo or a string never qualifies.
+ */
+function runsAnImageBuild(script: string): boolean {
+  return script
+    .replaceAll(LINE_CONTINUATION, ' ')
+    .split(COMMAND_BOUNDARY)
+    .some((command) => {
+      const words = command.trim().split(/\s+/);
+      const start = words.findIndex((word) => !COMMAND_PREFIX.test(word));
+      const [first, second = '', third] = start === -1 ? [] : words.slice(start);
+      if (first !== 'docker') {
+        return false;
+      }
+      return second === 'build' || (BUILD_SUBCOMMANDS.includes(second) && third === 'build');
+    });
 }
 
 function stepLabel(step: Step, index: number): string {

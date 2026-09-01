@@ -181,8 +181,8 @@ satisfied.
 repository secret has reached a public artifact. It applies five checks, cheapest first so the
 common failure is reported without waiting for a build:
 
-- no `${{ secrets.* }}` reference can reach a `docker build` step in any workflow — not in the
-  step's `run`, `with` or `env`, and not in `env` inherited from its job or the workflow. The
+- no reference to the `secrets` context can reach a `docker build` step in any workflow — not in
+  the step's `run`, `with` or `env`, and not in `env` inherited from its job or the workflow. The
   images are public, so a secret passed as a build arg is a secret published; the Trivy secret
   scan in CI inspects the built layers for the patterns it knows, and this refuses the route
   whatever the value looks like;
