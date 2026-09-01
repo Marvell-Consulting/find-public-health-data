@@ -161,7 +161,7 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
-      # For reading this run's jobs; no id-token — this job talks to Slack, not Azure.
+      # For reading this run's jobs.
       actions: read
     steps:
       # Through env and jq, never interpolated: the text carries the commit message.
