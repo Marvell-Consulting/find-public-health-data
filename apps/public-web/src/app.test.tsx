@@ -238,9 +238,13 @@ describe('public application routes', () => {
     // checkbox per area of the selected type wired into the GET form.
     expect(screen.getByRole('heading', { name: 'Selected indicators' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Geography filters' })).toBeTruthy();
-    // The name appears three times by design: the sidebar chip, the contents list and
-    // the block's own heading.
-    expect(screen.getAllByText('Under 75 mortality rate from all causes')).toHaveLength(3);
+    // The name appears twice by design: the sidebar chip and the block's own heading —
+    // a single indicator has no contents list, so its name is the page heading.
+    expect(screen.getAllByText('Under 75 mortality rate from all causes')).toHaveLength(2);
+    expect(screen.queryByRole('heading', { name: 'Contents' })).toBeNull();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Under 75 mortality rate from all causes' }),
+    ).toBeTruthy();
     expect(
       screen.getByRole('link', { name: 'Remove Under 75 mortality rate from all causes filter' }),
     ).toBeTruthy();

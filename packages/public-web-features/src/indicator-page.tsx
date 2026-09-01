@@ -38,7 +38,8 @@ function IndicatorBlock({
   regionData = [],
   ranges = {},
   geography,
-}: SelectedIndicator & { geography: BenchmarkGeography }) {
+  headingLevel: Heading = 'h2',
+}: SelectedIndicator & { geography: BenchmarkGeography; headingLevel?: 'h1' | 'h2' }) {
   const id = detail.fingertipsId;
   const location = useLocation();
   const navigate = useNavigate();
@@ -136,9 +137,9 @@ function IndicatorBlock({
 
   return (
     <section className="fphd-indicator-section" aria-labelledby={`indicator-${id}`}>
-      <h2 className="govuk-heading-l" id={`indicator-${id}`}>
+      <Heading className="govuk-heading-l" id={`indicator-${id}`}>
         {detail.name}
-      </h2>
+      </Heading>
       <IndicatorSummary indicator={detail} observations={allObservations} />
 
       <Tabs
@@ -280,23 +281,24 @@ export function IndicatorPage({
             <InsetText className="govuk-!-margin-top-0">No indicators selected</InsetText>
           ) : (
             <>
-              {/* The page's heading is its contents list: the indicator names below are
-                  the real headings, so a second title above them would say nothing. */}
-              <nav className="govuk-!-margin-bottom-6">
-                <h1 className="govuk-heading-m">Contents</h1>
-                <ul className="govuk-list">
-                  {selected.length > 1 ? (
+              {/* A single indicator needs no contents list — its own name is the page
+                  heading. With several, the list is the heading and the section names
+                  become the real headings below. */}
+              {selected.length > 1 ? (
+                <nav className="govuk-!-margin-bottom-6">
+                  <h1 className="govuk-heading-m">Contents</h1>
+                  <ul className="govuk-list">
                     <li>
                       <A href="#compare-indicators">Compare selected indicators</A>
                     </li>
-                  ) : null}
-                  {selected.map(({ detail }) => (
-                    <li key={detail.fingertipsId}>
-                      <A href={`#indicator-${detail.fingertipsId}`}>{detail.name}</A>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
+                    {selected.map(({ detail }) => (
+                      <li key={detail.fingertipsId}>
+                        <A href={`#indicator-${detail.fingertipsId}`}>{detail.name}</A>
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
+              ) : null}
 
               {selected.length > 1 ? (
                 <ComparisonSection selected={selected} geography={benchmarkGeography} />
@@ -307,6 +309,7 @@ export function IndicatorPage({
                   key={entry.detail.fingertipsId}
                   {...entry}
                   geography={benchmarkGeography}
+                  headingLevel={selected.length === 1 ? 'h1' : 'h2'}
                 />
               ))}
             </>
