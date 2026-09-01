@@ -312,6 +312,9 @@ describe('inequality selection', () => {
     dimensions: [dim('Ethnic group', 'White', { dimensionClass: 'inequality' })],
   });
   const all = [
+    // The headline series the reference segment comes from.
+    obs({ dimensions: [] }),
+    obs({ fromDate: '2022-01-01', toDate: '2022-12-31', dimensions: [] }),
     obs({ dimensions: [dim('Sex', 'Male')] }),
     ethnicity,
     deprivation('Most deprived'),
@@ -353,6 +356,29 @@ describe('inequality selection', () => {
 
     expect(rows).toHaveLength(2);
     expect(rows.every((row) => row.dimensions.length === 1)).toBe(true);
+  });
+
+  it('lets the headline series baseline dimensions ride on category rows', () => {
+    // QOF prevalence style: every observation carries Age 17+, deciles included.
+    const aged = (dimensions: ReturnType<typeof dim>[], period = ['2023-01-01', '2023-12-31']) =>
+      obs({
+        fromDate: period[0],
+        toDate: period[1],
+        dimensions: [dim('Age', '17+ yrs'), ...dimensions],
+      });
+    const observations = [
+      aged([]),
+      aged([], ['2022-01-01', '2022-12-31']),
+      aged([dim('Deprivation deciles', 'Most deprived', { dimensionClass: 'inequality' })]),
+      aged([dim('Deprivation deciles', 'Least deprived', { dimensionClass: 'inequality' })]),
+    ];
+
+    expect(inequalityPeriods(observations, 'Deprivation deciles').map((p) => p.label)).toEqual([
+      '2023',
+    ]);
+    expect(
+      inequalityBreakdown(observations, 'Deprivation deciles', '2023-01-01/2023-12-31'),
+    ).toHaveLength(2);
   });
 });
 

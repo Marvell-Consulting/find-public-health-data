@@ -463,12 +463,27 @@ export function inequalityCategories(observations: IndicatorObservation[]): stri
   return [...types].sort((a, b) => a.localeCompare(b));
 }
 
-/** Purely this category's breakdown: further-disaggregated rows (a decile split again
- *  by sex) belong to a combined view the prototype does not offer. */
-function isPureCategory(observation: IndicatorObservation, category: string): boolean {
+/**
+ * Purely this category's breakdown of the indicator's own baseline segment: beyond the
+ * category dimension, only the dimensions the headline series always carries (QOF
+ * prevalence's "Age 17+", a wholly-sexed indicator's aligned sex) may appear. A decile
+ * split further by sex belongs to a combined view the prototype does not offer.
+ */
+function isPureCategory(
+  observation: IndicatorObservation,
+  category: string,
+  reference: IndicatorObservation | undefined,
+): boolean {
+  const rest = observation.dimensions.filter(({ type }) => type !== category);
+  if (rest.length === observation.dimensions.length) {
+    return false;
+  }
+  const baseline = reference?.dimensions ?? [];
   return (
-    observation.dimensions.length > 0 &&
-    observation.dimensions.every(({ type }) => type === category)
+    rest.length === baseline.length &&
+    rest.every(({ type, value }) =>
+      baseline.some((dimension) => dimension.type === type && dimension.value === value),
+    )
   );
 }
 
@@ -511,9 +526,10 @@ export function inequalityPeriods(
   category: string,
   yearType?: string,
 ): { value: string; label: string }[] {
+  const reference = trendSeries(observations)[0];
   const periods = new Map<string, string>();
   for (const observation of observations) {
-    if (isPureCategory(observation, category)) {
+    if (isPureCategory(observation, category, reference)) {
       periods.set(
         `${observation.fromDate}/${observation.toDate}`,
         periodLabel(observation, yearType),
@@ -531,11 +547,12 @@ export function inequalityBreakdown(
   category: string,
   period: string,
 ): IndicatorObservation[] {
+  const reference = trendSeries(observations)[0];
   return observations
     .filter(
       (observation) =>
         `${observation.fromDate}/${observation.toDate}` === period &&
-        isPureCategory(observation, category),
+        isPureCategory(observation, category, reference),
     )
     .sort(
       (a, b) =>

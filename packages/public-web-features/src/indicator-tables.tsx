@@ -581,7 +581,10 @@ export function InequalitiesTable({
           {observations.map((observation) => (
             <tr className="govuk-table__row" key={segmentLabel(observation)}>
               <th scope="row" className="govuk-table__header">
-                {segmentLabel(observation)}
+                {/* The category value alone: baseline dimensions like "17+ yrs" belong
+                    to the whole table, not to every row. */}
+                {observation.dimensions.find(({ type }) => type === dimensionType)?.value ??
+                  segmentLabel(observation)}
               </th>
               <td className="govuk-table__cell govuk-table__cell--numeric">
                 {formatCalculatedValue(observation.value)}
