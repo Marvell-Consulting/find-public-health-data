@@ -78,7 +78,7 @@ function IndicatorBlock({
     // Through the router — not history.replaceState — so the filter pane's links see the
     // change; the route's shouldRevalidate stops the loader refetching over it.
     void navigate(
-      { search: `?${nextParams.toString()}`, hash: location.hash.slice(1) },
+      { search: `?${nextParams.toString()}` },
       { replace: true, preventScrollReset: true },
     );
   };
@@ -142,6 +142,7 @@ function IndicatorBlock({
       <IndicatorSummary indicator={detail} observations={allObservations} />
 
       <Tabs
+        paramKey={`tab-${id}`}
         title={`${detail.name} data`}
         items={[
           {

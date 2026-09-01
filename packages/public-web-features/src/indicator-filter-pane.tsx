@@ -50,10 +50,12 @@ export function FilterPane({
   const location = useLocation();
   const [pending, setPending] = useState<string[]>([]);
   const [pendingIndicator, setPendingIndicator] = useState<AutocompleteOption | null>(null);
-  // Filter changes navigate; carrying the hash and every per-table option param keeps
-  // the open tab open and each table's chosen options chosen.
+  // Filter changes navigate; carrying every per-table option param (open tabs
+  // included) keeps each table exactly as the user set it.
   const current = new URLSearchParams(location.search);
-  const optionEntries = [...current.entries()].filter(([key]) => /^(ci|pt|sex|cmp|cr)-/.test(key));
+  const optionEntries = [...current.entries()].filter(([key]) =>
+    /^(ci|pt|sex|cmp|cr|tab)-/.test(key),
+  );
   const searchOnly = (args: Parameters<typeof selectionSearch>[0]) => {
     const params = new URLSearchParams(selectionSearch(args));
     for (const [key, value] of optionEntries) {
@@ -61,17 +63,12 @@ export function FilterPane({
     }
     return `?${params.toString()}`;
   };
-  // Links take the full string; navigate() must get search and hash separately, or the
-  // hash is encoded into the last query value and the loader rejects it.
-  const searchWithTab = (args: Parameters<typeof selectionSearch>[0]) =>
-    `${searchOnly(args)}${location.hash}`;
+  // Open tabs travel as tab-* params in searchOnly, so the links carry no hash.
+  const searchWithTab = (args: Parameters<typeof selectionSearch>[0]) => searchOnly(args);
   // preventScrollReset: a filter change refreshes the data in place — jumping the
   // page back to the top would lose the table the user is reading.
   const navigateWithTab = (args: Parameters<typeof selectionSearch>[0]) =>
-    navigate(
-      { search: searchOnly(args), hash: location.hash.slice(1) },
-      { preventScrollReset: true },
-    );
+    navigate({ search: searchOnly(args) }, { preventScrollReset: true });
 
   // Stable so the autocomplete's mount-once widget never rebuilds on re-renders.
   // Failures throw so the widget reports them as failures rather than "no indicators

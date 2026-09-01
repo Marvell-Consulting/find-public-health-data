@@ -644,7 +644,7 @@ export function ComparisonSection({
       }
     }
     void navigate(
-      { search: `?${nextParams.toString()}`, hash: location.hash.slice(1) },
+      { search: `?${nextParams.toString()}` },
       { replace: true, preventScrollReset: true },
     );
   };
@@ -988,6 +988,7 @@ export function ComparisonSection({
     <div className="fphd-chart-section" id="compare-indicators">
       <h2 className="govuk-heading-l">Compare selected indicators</h2>
       <Tabs
+        paramKey="tab-compare"
         title="Compare selected indicators data"
         items={[
           { id: 'compare-table', label: 'Table', content: table },

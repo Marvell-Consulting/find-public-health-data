@@ -8,8 +8,8 @@ export const loader = loadIndicator;
 
 // Changing a table option only re-renders with data the page already has; stripping the
 // option params shows whether anything the loader cares about actually changed. Each
-// table's params carry its own suffix (`ci-241`, `cmp-compare`), hence the prefix match.
-const OPTION_PARAM = /^(ci|pt|sex|cmp|cr)-/;
+// table's params carry its own suffix (`ci-241`, `tab-241`, `cmp-compare`), hence the prefix match.
+const OPTION_PARAM = /^(ci|pt|sex|cmp|cr|tab)-/;
 
 export function shouldRevalidate({ currentUrl, nextUrl }: ShouldRevalidateFunctionArgs) {
   const strip = (url: URL) => {
