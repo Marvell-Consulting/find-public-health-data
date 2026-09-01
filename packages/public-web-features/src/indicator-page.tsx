@@ -1,6 +1,5 @@
 import {
   A,
-  BackLink,
   Button,
   ChartSection,
   GridColumn,
@@ -269,7 +268,6 @@ export function IndicatorPage({
 }) {
   return (
     <>
-      <BackLink href="/" />
       <GridRow>
         <GridColumn width="one-quarter">
           <FilterPane
