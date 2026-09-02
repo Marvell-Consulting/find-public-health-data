@@ -4,6 +4,7 @@ import {
   indicatorAreaDataListSchema,
   indicatorAreaDataSchema,
   indicatorDetailSchema,
+  indicatorListResponseSchema,
   indicatorRangeSchema,
 } from '@fphd/public-api-features/contract';
 import { apiPath } from '@fphd/web-server/api-client';
@@ -172,6 +173,17 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
   const regionCodes = [...new Set(Object.values(regionByCode).map(({ code }) => code))];
 
   const fingertipsIds = selectedIndicatorIds(url, params.fingertipsId);
+  // The no-script search: the quicksearch form round-trips `find` and the card lists
+  // the server's matches as add links.
+  const findSubject = url.searchParams.get('find')?.trim() ?? '';
+  const findResults = findSubject
+    ? (
+        await api.get(
+          `/api/indicators?q=${encodeURIComponent(findSubject)}&limit=20`,
+          indicatorListResponseSchema,
+        )
+      ).indicators
+    : [];
   const selected = await Promise.all(
     fingertipsIds.map(async (id) => {
       const dataFor = (codes: string[]) =>
@@ -218,6 +230,8 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
     selected,
     areaGroups,
     benchmarkGeography: { regionByCode, levelByCode } satisfies BenchmarkGeography,
+    findSubject,
+    findResults,
     selection: { areaType, areaCodes, areaLevels, fingertipsIds } satisfies IndicatorSelection,
   };
 }

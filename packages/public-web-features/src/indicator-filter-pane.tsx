@@ -8,10 +8,15 @@ import {
   GeographyTree,
 } from '@fphd/ui';
 import { useCallback, useState } from 'react';
-import { Form, useLocation, useNavigate } from 'react-router';
+import { Form, Link, useLocation, useNavigate } from 'react-router';
 import { cleanAreaName, displayGeographyGroups } from './geography-display';
 
-import type { AreaGroup, IndicatorSelection, SelectedIndicator } from './indicator-loader';
+import type {
+  AreaGroup,
+  IndicatorSelection,
+  IndicatorSummary,
+  SelectedIndicator,
+} from './indicator-loader';
 
 /** The query string for a selection, so every control links to a complete page state. */
 export function selectionSearch({
@@ -40,10 +45,14 @@ export function selectionSearch({
 export function FilterPane({
   selected,
   areaGroups,
+  findResults = [],
+  findSubject = '',
   selection,
 }: {
   selected: SelectedIndicator[];
   areaGroups: AreaGroup[];
+  findResults?: IndicatorSummary[];
+  findSubject?: string;
   selection: IndicatorSelection;
 }) {
   const navigate = useNavigate();
@@ -62,6 +71,10 @@ export function FilterPane({
     const keptIds = new Set((args.fingertipsIds ?? args.selection.fingertipsIds).map(String));
     for (const [key, value] of optionEntriesFor(keptIds)) {
       params.set(key, value);
+    }
+    // An active no-script search rides along, so several matches can be added in a row.
+    if (findSubject) {
+      params.set('find', findSubject);
     }
     return `?${params.toString()}`;
   };
@@ -86,6 +99,9 @@ export function FilterPane({
       label: name,
     }));
   }, []);
+  const findMatches = findResults.filter(
+    ({ fingertipsId }) => !selection.fingertipsIds.includes(fingertipsId),
+  );
   const areaName = (code: string) => {
     const raw = areaGroups.flatMap(({ areas }) => areas).find((area) => area.code === code)?.name;
     return raw ? cleanAreaName(raw) : code;
@@ -121,11 +137,35 @@ export function FilterPane({
         }
         footer={
           <>
-            <Autocomplete
-              label="Search for an indicator"
-              source={searchIndicators}
-              onSelect={setPendingIndicator}
-            />
+            <Form method="get">
+              {/* The whole selection rides in hidden inputs so a no-script search keeps it. */}
+              {selection.fingertipsIds.map((id) => (
+                <input key={id} name="is" type="hidden" value={id} />
+              ))}
+              {selection.areaCodes.map((code) => (
+                <input key={code} name="as" type="hidden" value={code} />
+              ))}
+              {selection.areaLevels.map((level) => (
+                <input key={level} name="als" type="hidden" value={level} />
+              ))}
+              {optionEntriesFor(new Set(selection.fingertipsIds.map(String))).map(
+                ([key, value]) => (
+                  <input key={key} name={key} type="hidden" value={value} />
+                ),
+              )}
+              <Autocomplete
+                defaultValue={findSubject}
+                label="Search for an indicator"
+                name="find"
+                source={searchIndicators}
+                onSelect={setPendingIndicator}
+              />
+              <noscript>
+                <Button className="govuk-button--secondary govuk-!-margin-bottom-0" type="submit">
+                  Search
+                </Button>
+              </noscript>
+            </Form>
             {/* Two-step add: picking readies, the button commits — a misclick costs nothing. */}
             {pendingIndicator ? (
               <Button
@@ -141,6 +181,32 @@ export function FilterPane({
               >
                 Add indicator
               </Button>
+            ) : null}
+            {findSubject ? (
+              findMatches.length === 0 ? (
+                <p className="govuk-body govuk-!-margin-top-3 govuk-!-margin-bottom-0">
+                  {findResults.length > 0
+                    ? 'All matching indicators are already selected'
+                    : 'No indicators found'}
+                </p>
+              ) : (
+                <ul className="govuk-list govuk-!-margin-top-3 govuk-!-margin-bottom-0">
+                  {findMatches.map(({ fingertipsId, name }) => (
+                    <li key={fingertipsId}>
+                      <Link
+                        className="govuk-link"
+                        preventScrollReset
+                        to={searchFor({
+                          selection,
+                          fingertipsIds: [...selection.fingertipsIds, fingertipsId],
+                        })}
+                      >
+                        {name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )
             ) : null}
           </>
         }

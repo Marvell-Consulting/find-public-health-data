@@ -17,6 +17,7 @@ import type {
   AreaGroup,
   BenchmarkGeography,
   IndicatorSelection,
+  IndicatorSummary as IndicatorSummaryData,
   SelectedIndicator,
 } from './indicator-loader';
 import { BackgroundInformation, IndicatorSummary } from './indicator-metadata';
@@ -239,11 +240,15 @@ export function IndicatorPage({
   selected,
   areaGroups,
   benchmarkGeography = { regionByCode: {}, levelByCode: {} },
+  findResults = [],
+  findSubject = '',
   selection,
 }: {
   selected: SelectedIndicator[];
   areaGroups: AreaGroup[];
   benchmarkGeography?: BenchmarkGeography;
+  findResults?: IndicatorSummaryData[];
+  findSubject?: string;
   selection: IndicatorSelection;
 }) {
   return (
@@ -254,6 +259,8 @@ export function IndicatorPage({
             key={`${selection.fingertipsIds.join(',')}|${selection.areaType}|${selection.areaCodes.join(',')}|${selection.areaLevels.join(',')}`}
             selected={selected}
             areaGroups={areaGroups}
+            findResults={findResults}
+            findSubject={findSubject}
             selection={selection}
           />
         </GridColumn>
