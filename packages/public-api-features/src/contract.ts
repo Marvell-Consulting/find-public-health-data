@@ -128,6 +128,14 @@ export const areaGroupListSchema = z.array(
   z.object({ areaType: z.string().min(1), areas: areaListSchema }),
 );
 
+export const areaLookupListSchema = z.array(
+  z.object({
+    code: z.string().min(1),
+    name: z.string().min(1),
+    areaType: z.string().min(1),
+  }),
+);
+
 export const areaParentListSchema = z.array(
   z.object({
     code: z.string().min(1),
@@ -147,4 +155,5 @@ export type IndicatorRange = z.infer<typeof indicatorRangeSchema>;
 export type IndicatorRangePeriod = IndicatorRange['periods'][number];
 export type AreaSummary = z.infer<typeof areaSummarySchema>;
 export type AreaGroup = z.infer<typeof areaGroupListSchema>[number];
+export type AreaLookup = z.infer<typeof areaLookupListSchema>[number];
 export type AreaParent = z.infer<typeof areaParentListSchema>[number];

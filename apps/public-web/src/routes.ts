@@ -10,6 +10,7 @@ export default [
     'indicators/search',
     '../../../packages/public-web-features/src/routes/indicator-search.ts',
   ),
+  route('geographies', '../../../packages/public-web-features/src/routes/geography.ts'),
   route(
     'indicators/:fingertipsId',
     '../../../packages/public-web-features/src/routes/indicator.tsx',

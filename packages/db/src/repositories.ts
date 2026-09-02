@@ -1,8 +1,11 @@
 import {
+  type AreaLookup,
   type AreaParent,
   type AreaSummary,
   listAreaParents,
+  listAreasByCodes,
   listAreasByType,
+  searchAreas,
 } from './area-repository.js';
 import type { Database } from './client.js';
 import {
@@ -31,6 +34,8 @@ export interface IndicatorRepository {
 
 export interface AreaRepository {
   listByType(areaTypeName: string): Promise<AreaSummary[]>;
+  listByCodes(codes: string[]): Promise<AreaLookup[]>;
+  search(query: string, areaTypeNames: string[], limit: number): Promise<AreaLookup[]>;
   listParents(childCodes: string[], parentTypeName: string): Promise<AreaParent[]>;
 }
 
@@ -54,6 +59,8 @@ export function createRepositories(db: Database): Repositories {
   return {
     areas: {
       listByType: (areaTypeName) => listAreasByType(db, areaTypeName),
+      listByCodes: (codes) => listAreasByCodes(db, codes),
+      search: (query, areaTypeNames, limit) => searchAreas(db, query, areaTypeNames, limit),
       listParents: (childCodes, parentTypeName) => listAreaParents(db, childCodes, parentTypeName),
     },
     indicators: {

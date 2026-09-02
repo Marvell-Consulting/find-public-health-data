@@ -9,6 +9,11 @@ export default [
     route('topics/:slug', '../../../packages/public-web-features/src/routes/topic.tsx'),
     route('indicators', '../../../packages/public-web-features/src/routes/indicator.tsx'),
     route(
+      'indicators/search',
+      '../../../packages/public-web-features/src/routes/indicator-search.ts',
+    ),
+    route('geographies', '../../../packages/public-web-features/src/routes/geography.ts'),
+    route(
       'indicators/:fingertipsId',
       '../../../packages/public-web-features/src/routes/indicator.tsx',
       { id: 'indicator-detail' },

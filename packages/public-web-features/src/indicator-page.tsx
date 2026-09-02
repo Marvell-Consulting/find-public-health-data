@@ -14,10 +14,10 @@ import {
 import { allDataCsv, downloadCsv, trendCsv } from './indicator-download';
 import { FilterPane } from './indicator-filter-pane';
 import type {
-  AreaGroup,
   BenchmarkGeography,
   IndicatorSelection,
   IndicatorSummary as IndicatorSummaryData,
+  SelectedArea,
   SelectedIndicator,
 } from './indicator-loader';
 import { BackgroundInformation, IndicatorSummary } from './indicator-metadata';
@@ -238,14 +238,14 @@ function IndicatorBlock({
 
 export function IndicatorPage({
   selected,
-  areaGroups,
+  selectedAreas = [],
   benchmarkGeography = { regionByCode: {}, levelByCode: {} },
   findResults = [],
   findSubject = '',
   selection,
 }: {
   selected: SelectedIndicator[];
-  areaGroups: AreaGroup[];
+  selectedAreas?: SelectedArea[];
   benchmarkGeography?: BenchmarkGeography;
   findResults?: IndicatorSummaryData[];
   findSubject?: string;
@@ -258,7 +258,7 @@ export function IndicatorPage({
           <FilterPane
             key={`${selection.fingertipsIds.join(',')}|${selection.areaType}|${selection.areaCodes.join(',')}|${selection.areaLevels.join(',')}`}
             selected={selected}
-            areaGroups={areaGroups}
+            selectedAreas={selectedAreas}
             findResults={findResults}
             findSubject={findSubject}
             selection={selection}

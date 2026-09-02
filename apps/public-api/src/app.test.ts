@@ -359,6 +359,55 @@ describe('public API', () => {
     expect(listParents).toHaveBeenCalledWith(['E06000052'], 'Regions (statistical)');
   });
 
+  it('looks up areas by code, deduplicating and filtering malformed ones', async () => {
+    const listByCodes = vi
+      .fn()
+      .mockResolvedValue([{ code: 'E06000052', name: 'Cornwall', areaType: 'UA unchanged' }]);
+    const app = createApp({ repositories: createFakeRepositories({ areas: { listByCodes } }) });
+
+    const response = await request(app).get(
+      '/api/areas/lookup?area_code=E06000052&area_code=E06000052&area_code=..%2Fbad',
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([
+      { code: 'E06000052', name: 'Cornwall', areaType: 'UA unchanged' },
+    ]);
+    expect(listByCodes).toHaveBeenCalledWith(['E06000052']);
+  });
+
+  it('rejects a lookup request without any well-formed area code', async () => {
+    const app = createApp({ repositories: createFakeRepositories() });
+
+    expect((await request(app).get('/api/areas/lookup')).status).toBe(400);
+    expect((await request(app).get('/api/areas/lookup?area_code=..%2Fbad')).status).toBe(400);
+  });
+
+  it('searches areas within the asked-for types, trimming and capping the inputs', async () => {
+    const search = vi.fn().mockResolvedValue([]);
+    const app = createApp({ repositories: createFakeRepositories({ areas: { search } }) });
+
+    const response = await request(app).get(
+      `/api/areas/search?q=${encodeURIComponent(`  ${'corn'.padEnd(120, 'w')}  `)}&area_type=UA+unchanged&area_type=${'a'.repeat(101)}&limit=500`,
+    );
+
+    expect(response.status).toBe(200);
+    expect(search).toHaveBeenCalledWith('corn'.padEnd(100, 'w'), ['UA unchanged'], 100);
+
+    await request(app).get('/api/areas/search?q=corn&area_type=UA+unchanged');
+    expect(search).toHaveBeenLastCalledWith('corn', ['UA unchanged'], 50);
+  });
+
+  it('rejects a search request missing its query or area types', async () => {
+    const app = createApp({ repositories: createFakeRepositories() });
+
+    expect((await request(app).get('/api/areas/search?q=corn')).status).toBe(400);
+    expect((await request(app).get('/api/areas/search?area_type=UA+unchanged')).status).toBe(400);
+    expect(
+      (await request(app).get('/api/areas/search?q=%20%20&area_type=UA+unchanged')).status,
+    ).toBe(400);
+  });
+
   it('rejects a parents request missing or overflowing parent_type', async () => {
     const app = createApp({ repositories: createFakeRepositories() });
 

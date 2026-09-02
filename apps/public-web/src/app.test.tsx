@@ -12,7 +12,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import PublicApp, { ErrorBoundary } from './root';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 describe('public application routes', () => {
   it('renders the landing page introduction and shell navigation', async () => {
@@ -197,10 +200,6 @@ describe('public application routes', () => {
       },
     ];
     const areaData = [{ areaCode: 'E92000001', areaName: 'England', observations }];
-    const areaGroups = [
-      { areaType: 'England', areas: [{ code: 'E92000001', name: 'England' }] },
-      { areaType: 'UA unchanged', areas: [{ code: 'E06000052', name: 'Cornwall' }] },
-    ];
     const selection = { areaType: 'England', areaCodes: [], areaLevels: [], fingertipsIds: [108] };
     const Routes = createRoutesStub([
       {
@@ -213,7 +212,6 @@ describe('public application routes', () => {
             Component: IndicatorRoute,
             loader: () => ({
               selected: [{ detail: indicator, areaData }],
-              areaGroups,
               selection,
             }),
           },
@@ -254,12 +252,20 @@ describe('public application routes', () => {
     // England never appears in the tree — it is the default selected area.
     expect(screen.getByText('Local authorities')).toBeTruthy();
     expect(screen.queryByRole('checkbox', { name: /^England/ })).toBeNull();
-    // Every level starts collapsed; expanding one reveals its areas.
+    // Every level starts collapsed; expanding one fetches its areas on demand.
     expect(screen.queryByRole('checkbox', { name: 'Cornwall' })).toBeNull();
+    const geographies = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ areas: [{ code: 'E06000052', name: 'Cornwall' }] }), {
+          headers: { 'content-type': 'application/json' },
+        }),
+    );
+    vi.stubGlobal('fetch', geographies);
     fireEvent.click(screen.getByRole('button', { name: 'Expand Local authorities' }));
-    const areaCheckbox = screen
-      .getAllByRole('checkbox', { name: 'Cornwall' })
-      .find((box) => box.getAttribute('name') === 'as');
+    expect(geographies).toHaveBeenCalledWith('/geographies?level=Local%20authorities');
+    const areaCheckbox = (await screen.findAllByRole('checkbox', { name: 'Cornwall' })).find(
+      (box) => box.getAttribute('name') === 'as',
+    );
     expect(areaCheckbox?.getAttribute('value')).toBe('E06000052');
     // Controls apply on change; the submit button exists only for the no-script path.
 
@@ -299,17 +305,23 @@ describe('public application routes', () => {
   });
 
   it('gathers ticked areas and applies them in one step', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              areas: [
+                { code: 'E12000001', name: 'North East' },
+                { code: 'E12000002', name: 'North West' },
+              ],
+            }),
+            { headers: { 'content-type': 'application/json' } },
+          ),
+      ),
+    );
     const loaderData = {
       selected: [],
-      areaGroups: [
-        {
-          areaType: 'Statistical regions',
-          areas: [
-            { code: 'E12000001', name: 'North East' },
-            { code: 'E12000002', name: 'North West' },
-          ],
-        },
-      ],
       selection: { areaType: 'England', areaCodes: [], areaLevels: [], fingertipsIds: [108] },
     };
     const Routes = createRoutesStub([
@@ -328,8 +340,15 @@ describe('public application routes', () => {
     expect(await screen.findByRole('searchbox', { name: 'Add geographies' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Add selected geographies' })).toBeTruthy();
 
-    // The group is collapsed, so its checkbox is what selects everything beneath it.
-    fireEvent.click(screen.getByRole('checkbox', { name: /^Statistical regions/ }));
+    // A level's own checkbox is a real form control, so whole-level selection still
+    // works when nothing beneath it has loaded.
+    const levelCheckbox = screen.getByRole('checkbox', { name: /^Statistical regions/ });
+    expect(levelCheckbox.getAttribute('name')).toBe('als');
+
+    // Areas arrive only when the level is expanded; ticking them builds the count.
+    fireEvent.click(screen.getByRole('button', { name: 'Expand Statistical regions' }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'North East' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'North West' }));
 
     expect(
       await screen.findByRole('button', { name: 'Add selected geographies (2)' }),
@@ -378,14 +397,9 @@ describe('public application routes', () => {
       classifications: [],
     };
     const loaderData = {
-      areaGroups: [
-        {
-          areaType: 'Regions (statistical)',
-          areas: [
-            { code: 'E12000001', name: 'North East' },
-            { code: 'E12000002', name: 'North West' },
-          ],
-        },
+      selectedAreas: [
+        { code: 'E12000001', name: 'North East', level: 'Statistical regions' },
+        { code: 'E12000002', name: 'North West', level: 'Statistical regions' },
       ],
       selected: [
         {
@@ -505,7 +519,6 @@ describe('public application routes', () => {
 
     const OneIndicator = routesFor({
       selected: [{ detail: detailFor(108, 'Mortality'), areaData: areaDataFor(341.1) }],
-      areaGroups: [{ areaType: 'England', areas: [{ code: 'E92000001', name: 'England' }] }],
       selection: { areaType: 'England', areaCodes: [], areaLevels: [], fingertipsIds: [108] },
     });
     render(<OneIndicator initialEntries={['/indicators?is=108']} />);
@@ -520,7 +533,6 @@ describe('public application routes', () => {
         { detail: detailFor(108, 'Mortality'), areaData: areaDataFor(341.1) },
         { detail: detailFor(90366, 'Life expectancy'), areaData: areaDataFor(80.1) },
       ],
-      areaGroups: [{ areaType: 'England', areas: [{ code: 'E92000001', name: 'England' }] }],
       selection: {
         areaType: 'England',
         areaCodes: [],
@@ -553,7 +565,6 @@ describe('public application routes', () => {
             Component: IndicatorRoute,
             loader: () => ({
               selected: [],
-              areaGroups: [],
               selection: { areaType: 'England', areaCodes: [], areaLevels: [], fingertipsIds: [] },
             }),
           },
@@ -595,7 +606,6 @@ describe('public application routes', () => {
               loaderUrls.push(request.url);
               return {
                 selected: [],
-                areaGroups: [],
                 selection: {
                   areaType: 'England',
                   areaCodes: [],
@@ -685,9 +695,7 @@ describe('public application routes', () => {
             path: 'indicators/:fingertipsId',
             Component: IndicatorRoute,
             loader: () => ({
-              areaGroups: [
-                { areaType: 'UA unchanged', areas: [{ code: 'E06000052', name: 'Cornwall' }] },
-              ],
+              selectedAreas: [{ code: 'E06000052', name: 'Cornwall', level: 'Local authorities' }],
               selected: [
                 {
                   detail,
@@ -795,9 +803,7 @@ describe('public application routes', () => {
             path: 'indicators/:fingertipsId',
             Component: IndicatorRoute,
             loader: () => ({
-              areaGroups: [
-                { areaType: 'UA unchanged', areas: [{ code: 'E06000052', name: 'Cornwall' }] },
-              ],
+              selectedAreas: [{ code: 'E06000052', name: 'Cornwall', level: 'Local authorities' }],
               benchmarkGeography: {
                 regionByCode: { E06000052: { code: 'E12000009', name: 'South West' } },
                 levelByCode: { E06000052: 'Local authorities' },

@@ -18,6 +18,12 @@ function api(get = vi.fn()) {
           if (path.startsWith('/api/areas/parents')) {
             return Promise.resolve([]);
           }
+          if (path.startsWith('/api/areas/lookup')) {
+            const codes = [...new URL(`http://x${path}`).searchParams.getAll('area_code')];
+            return Promise.resolve(
+              codes.map((code) => ({ code, name: `Area ${code}`, areaType: 'UA unchanged' })),
+            );
+          }
           if (path.startsWith('/api/areas')) {
             return Promise.resolve([{ areaType: 'England', areas: [] }]);
           }
@@ -56,14 +62,10 @@ describe('loadIndicator', () => {
 
     expect(result.selected).toEqual([]);
     expect(result.selection.fingertipsIds).toEqual([]);
-    // The area list is still needed to render the filters; the tree always offers
-    // every level, so every display area type is requested. The indicator catalogue is
-    // NOT fetched — search happens server-side per keystroke, never as a preload.
-    expect(get).toHaveBeenCalledWith(
-      expect.stringMatching(/^\/api\/areas\?area_type=.*area_type=GPs$/),
-      expect.anything(),
-    );
+    // Neither catalogue ships with the page: indicators are searched per keystroke and
+    // the geography tree fetches its levels on demand.
     expect(get).not.toHaveBeenCalledWith('/api/indicators', expect.anything());
+    expect(get.mock.calls.some(([path]) => String(path).startsWith('/api/areas?'))).toBe(false);
   });
 
   it('treats the route param as a single selection', async () => {

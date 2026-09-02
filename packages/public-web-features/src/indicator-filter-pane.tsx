@@ -9,12 +9,12 @@ import {
 } from '@fphd/ui';
 import { useCallback, useState } from 'react';
 import { Form, Link, useLocation, useNavigate } from 'react-router';
-import { cleanAreaName, displayGeographyGroups } from './geography-display';
+import { DISPLAY_LEVEL_NAMES } from './geography-display';
 
 import type {
-  AreaGroup,
   IndicatorSelection,
   IndicatorSummary,
+  SelectedArea,
   SelectedIndicator,
 } from './indicator-loader';
 
@@ -44,13 +44,13 @@ export function selectionSearch({
 
 export function FilterPane({
   selected,
-  areaGroups,
+  selectedAreas = [],
   findResults = [],
   findSubject = '',
   selection,
 }: {
   selected: SelectedIndicator[];
-  areaGroups: AreaGroup[];
+  selectedAreas?: SelectedArea[];
   findResults?: IndicatorSummary[];
   findSubject?: string;
   selection: IndicatorSelection;
@@ -58,6 +58,7 @@ export function FilterPane({
   const navigate = useNavigate();
   const location = useLocation();
   const [pending, setPending] = useState<string[]>([]);
+  const [pendingLevels, setPendingLevels] = useState<string[]>(selection.areaLevels);
   const [pendingIndicator, setPendingIndicator] = useState<AutocompleteOption | null>(null);
   const current = new URLSearchParams(location.search);
   // Option params ride along only for tables the selection still shows — nothing lingers.
@@ -102,10 +103,7 @@ export function FilterPane({
   const findMatches = findResults.filter(
     ({ fingertipsId }) => !selection.fingertipsIds.includes(fingertipsId),
   );
-  const areaName = (code: string) => {
-    const raw = areaGroups.flatMap(({ areas }) => areas).find((area) => area.code === code)?.name;
-    return raw ? cleanAreaName(raw) : code;
-  };
+  const areaName = (code: string) => selectedAreas.find((area) => area.code === code)?.name ?? code;
 
   return (
     <>
@@ -265,62 +263,44 @@ export function FilterPane({
         }
         footer={
           <Form method="get">
-            {/* The current selection rides along so a submit adds to it rather than
-                replacing it — the tree only carries what is newly ticked. */}
+            {/* The current selection rides along so a submit adds to it; levels are the
+                tree's own checkboxes, so they are not doubled here. */}
             {selection.fingertipsIds.map((id) => (
               <input key={id} type="hidden" name="is" value={id} />
             ))}
             {selection.areaCodes.map((code) => (
               <input key={code} type="hidden" name="as" value={code} />
             ))}
-            {selection.areaLevels.map((level) => (
-              <input key={level} type="hidden" name="als" value={level} />
-            ))}
             {optionEntriesFor(new Set(selection.fingertipsIds.map(String))).map(([key, value]) => (
               <input key={key} type="hidden" name={key} value={value} />
             ))}
             <GeographyTree
-              groups={displayGeographyGroups(areaGroups)}
+              levels={DISPLAY_LEVEL_NAMES}
               name="as"
               onChange={setPending}
+              onLevelsChange={setPendingLevels}
               selected={pending}
+              selectedLevels={pendingLevels}
             />
-            {/* Ticking gathers a pending set; adding them is the deliberate second step, so
-                a long list can be built up without the page reloading between each tick.
-                The button is always rendered: hiding it until something is ticked would
-                leave the form unusable without scripting, since the count comes from state
-                the browser only has once hydrated. */}
+            {/* The button is always rendered: without scripting the tick count only
+                exists in the browser, and the form must stay submittable. */}
             <Button
               className="govuk-!-margin-top-3 govuk-!-margin-bottom-0"
               onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                if (pending.length === 0) {
+                const levelsChanged =
+                  pendingLevels.length !== selection.areaLevels.length ||
+                  pendingLevels.some((level) => !selection.areaLevels.includes(level));
+                if (pending.length === 0 && !levelsChanged) {
                   // Nothing gathered: let the form submit whatever is ticked in the DOM.
                   return;
                 }
                 event.preventDefault();
                 setPending([]);
-                // A group ticked in full collapses to its level name — one chip and one
-                // query value instead of hundreds of area codes.
-                const groups = displayGeographyGroups(areaGroups);
-                const fullLevels = groups.filter(
-                  ({ areas }) =>
-                    areas.length > 0 && areas.every(({ code }) => pending.includes(code)),
-                );
-                const levelled = new Set(
-                  fullLevels.flatMap(({ areas }) => areas.map(({ code }) => code)),
-                );
                 void navigateTo({
                   selection: {
                     ...selection,
-                    areaCodes: [
-                      ...new Set([
-                        ...selection.areaCodes,
-                        ...pending.filter((code) => !levelled.has(code)),
-                      ]),
-                    ],
-                    areaLevels: [
-                      ...new Set([...selection.areaLevels, ...fullLevels.map(({ name }) => name)]),
-                    ],
+                    areaCodes: [...new Set([...selection.areaCodes, ...pending])],
+                    areaLevels: pendingLevels,
                   },
                 });
               }}

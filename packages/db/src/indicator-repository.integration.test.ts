@@ -1,7 +1,12 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { listAreaParents, listAreasByType } from './area-repository.js';
+import {
+  listAreaParents,
+  listAreasByCodes,
+  listAreasByType,
+  searchAreas,
+} from './area-repository.js';
 import { createDb, type Database } from './client.js';
 import { dbEnvFields, resolveDbTls } from './env.js';
 import {
@@ -264,5 +269,42 @@ describe('listAreasByType', () => {
 
   it('returns nothing for an area type that does not exist', async () => {
     expect(await listAreasByType(db, 'No Such Area Type')).toEqual([]);
+  });
+});
+
+describe('listAreasByCodes', () => {
+  it('resolves each code to its current name and area type', async () => {
+    expect(await listAreasByCodes(db, [CORNWALL, ENGLAND])).toEqual([
+      { code: CORNWALL, name: 'Cornwall', areaType: 'UA unchanged' },
+      { code: ENGLAND, name: 'England', areaType: 'England' },
+    ]);
+  });
+
+  it('returns nothing for empty input, silently skipping unknown codes', async () => {
+    expect(await listAreasByCodes(db, [])).toEqual([]);
+    expect(await listAreasByCodes(db, ['X99999999'])).toEqual([]);
+  });
+});
+
+describe('searchAreas', () => {
+  it('matches by name or exact code within the asked-for types only', async () => {
+    const cornwall = { code: CORNWALL, name: 'Cornwall', areaType: 'UA unchanged' };
+
+    expect(await searchAreas(db, 'corn', ['UA unchanged'], 10)).toEqual([cornwall]);
+    expect(await searchAreas(db, 'e06000052', ['UA unchanged'], 10)).toEqual([cornwall]);
+    expect(await searchAreas(db, 'corn', ['Regions (statistical)'], 10)).toEqual([]);
+  });
+
+  it('ranks earlier matches first and applies the limit', async () => {
+    const names = (await searchAreas(db, 'west', ['UA unchanged', 'Regions (statistical)'], 3)).map(
+      ({ name }) => name,
+    );
+
+    expect(names).toEqual(['West Berkshire', 'West Midlands region (statistical)', 'Westminster']);
+  });
+
+  it('treats pattern characters literally instead of as wildcards', async () => {
+    expect(await searchAreas(db, '%', ['UA unchanged'], 10)).toEqual([]);
+    expect(await searchAreas(db, '____', ['UA unchanged'], 10)).toEqual([]);
   });
 });

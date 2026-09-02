@@ -4,6 +4,40 @@ import { Router } from 'express';
 export function areasRouter(areas: Repositories['areas']): Router {
   const router = Router();
 
+  router.get('/api/areas/lookup', async (request, response) => {
+    const requestedCodes = request.query.area_code;
+    const codes = [
+      ...new Set(Array.isArray(requestedCodes) ? requestedCodes : [requestedCodes]),
+    ].filter((code): code is string => typeof code === 'string' && /^[A-Z0-9]+$/i.test(code));
+
+    if (codes.length === 0) {
+      response.status(400).json({ error: 'area_code_required' });
+      return;
+    }
+
+    response.status(200).json(await areas.listByCodes(codes));
+  });
+
+  router.get('/api/areas/search', async (request, response) => {
+    const { q, limit } = request.query;
+    const query = typeof q === 'string' ? q.trim().slice(0, 100) : '';
+    const requestedTypes = request.query.area_type;
+    const areaTypeNames = (
+      Array.isArray(requestedTypes) ? requestedTypes : [requestedTypes]
+    ).filter(
+      (value): value is string => typeof value === 'string' && value !== '' && value.length <= 100,
+    );
+
+    if (!query || areaTypeNames.length === 0) {
+      response.status(400).json({ error: 'q_and_area_type_required' });
+      return;
+    }
+
+    const capped =
+      typeof limit === 'string' && /^[1-9]\d*$/.test(limit) ? Math.min(Number(limit), 100) : 50;
+    response.status(200).json(await areas.search(query, areaTypeNames, capped));
+  });
+
   router.get('/api/areas/parents', async (request, response) => {
     const requestedCodes = request.query.area_code;
     const codes = [

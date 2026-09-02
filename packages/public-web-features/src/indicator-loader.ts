@@ -1,5 +1,6 @@
 import {
   areaGroupListSchema,
+  areaLookupListSchema,
   areaParentListSchema,
   indicatorAreaDataListSchema,
   indicatorAreaDataSchema,
@@ -12,7 +13,6 @@ import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
 
 import {
-  ALL_DISPLAY_AREA_TYPES,
   cleanAreaName,
   DISPLAY_LEVEL_NAMES,
   displayLevelOf,
@@ -47,6 +47,13 @@ export interface SelectedIndicator {
   /** Per display level ('Local authorities', 'Statistical regions'…): min/max of the
    *  value across every area of that level, per period — the comparison range. */
   ranges?: Record<string, import('@fphd/public-api-features/contract').IndicatorRangePeriod[]>;
+}
+
+/** A picked area resolved to its display name and level. */
+export interface SelectedArea {
+  code: string;
+  name: string;
+  level: string;
 }
 
 /** Which benchmark each selected area can be compared against. */
@@ -131,35 +138,31 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
   // Both benchmarks need each picked area's display level and statistical region up front.
   const nonEnglandCodes = codesToLoad.filter((code) => code !== DEFAULT_AREA_CODE);
 
-  const [areaGroups, areaParents] = await Promise.all([
-    // The tree always offers every level; missing data never hides a geography.
-    api.get(
-      `/api/areas?${ALL_DISPLAY_AREA_TYPES.map(
-        (name) => `area_type=${encodeURIComponent(name)}`,
-      ).join('&')}`,
-      areaGroupListSchema,
-    ),
+  // Only the picked areas resolve to names and levels — the tree fetches its own
+  // catalogue on demand, keeping thousands of areas out of the page payload.
+  const codeQuery = nonEnglandCodes
+    .map((code) => `area_code=${encodeURIComponent(code)}`)
+    .join('&');
+  const [lookedUp, areaParents] = await Promise.all([
+    nonEnglandCodes.length > 0
+      ? api.get(`/api/areas/lookup?${codeQuery}`, areaLookupListSchema)
+      : Promise.resolve([]),
     nonEnglandCodes.length > 0
       ? api.get(
-          `/api/areas/parents?${nonEnglandCodes
-            .map((code) => `area_code=${encodeURIComponent(code)}`)
-            .join('&')}&parent_type=${encodeURIComponent('Regions (statistical)')}`,
+          `/api/areas/parents?${codeQuery}&parent_type=${encodeURIComponent('Regions (statistical)')}`,
           areaParentListSchema,
         )
       : Promise.resolve([]),
   ]);
 
+  const selectedAreas = lookedUp.map(({ code, name, areaType: typeName }) => ({
+    code,
+    name: cleanAreaName(name),
+    level: displayLevelOf(typeName) ?? typeName,
+  }));
   const levelByCode: Record<string, string> = {};
-  for (const { areaType: typeName, areas } of areaGroups) {
-    const level = displayLevelOf(typeName);
-    if (!level) {
-      continue;
-    }
-    for (const { code } of areas) {
-      if (nonEnglandCodes.includes(code)) {
-        levelByCode[code] = level;
-      }
-    }
+  for (const { code, level } of selectedAreas) {
+    levelByCode[code] = level;
   }
   const regionByCode: Record<string, { code: string; name: string }> = {};
   for (const { code, parentCode, parentName } of areaParents) {
@@ -228,7 +231,7 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
 
   return {
     selected,
-    areaGroups,
+    selectedAreas,
     benchmarkGeography: { regionByCode, levelByCode } satisfies BenchmarkGeography,
     findSubject,
     findResults,
