@@ -175,6 +175,12 @@ To add real ones:
   spec never mutates data another spec reads — a test of a write flow creates its own rows and
   asserts on those.
 
+  The suite also scans every page with axe-core against WCAG 2.2 AA (`tests/*/accessibility.spec.ts`).
+  A spec that drives a page into a further state — a validation error, a selection — scans that
+  state too, with `expectNoAccessibilityViolations` from `tests/support/accessibility.ts`. Automated
+  checks catch around a third of WCAG issues, so this is a regression net rather than an audit:
+  keyboard operation, zoom and reflow, and screen-reader behaviour still need manual testing.
+
 Every job runs the whole workspace rather than only the changed packages. When CI wall-clock starts
 to hurt, `pnpm --filter "...[origin/main]"` selects changed packages plus their dependents, with no
 extra tooling. Two caveats: it needs `fetch-depth: 0` on checkout, and it understands only the

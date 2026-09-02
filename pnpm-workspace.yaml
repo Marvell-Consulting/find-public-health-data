@@ -38,6 +38,7 @@ allowBuilds:
   fsevents: true
 
 catalog:
+  '@axe-core/playwright': 4.13.0
   '@biomejs/biome': 2.5.9
   accessible-autocomplete: 3.0.1
   '@not-govuk/button': 0.18.1
