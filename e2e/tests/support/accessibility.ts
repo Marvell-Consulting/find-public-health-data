@@ -14,10 +14,12 @@ function describeViolation(violation: Violation): string {
 
 /** Scans the page as it currently stands; call it after driving the page into the state under test. */
 export async function expectNoAccessibilityViolations(page: Page, testInfo: TestInfo) {
-  const { violations } = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+  const { incomplete, violations } = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+  // `incomplete` is what axe could not decide, such as text over a gradient: the manual-review
+  // list, attached alongside so a failure carries everything the scan had to say.
   if (violations.length > 0) {
-    await testInfo.attach('axe-violations.json', {
-      body: JSON.stringify(violations, null, 2),
+    await testInfo.attach('axe-results.json', {
+      body: JSON.stringify({ violations, incomplete }, null, 2),
       contentType: 'application/json',
     });
   }
