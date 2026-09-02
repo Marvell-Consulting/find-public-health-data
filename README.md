@@ -175,10 +175,10 @@ To add real ones:
   spec never mutates data another spec reads — a test of a write flow creates its own rows and
   asserts on those.
 
-  Every page has a spec that checks it renders and then scans it with axe-core against WCAG 2.2 AA,
-  using `expectNoAccessibilityViolations` from `tests/support/accessibility.ts`; a new page gets a
-  spec with it. A spec that drives a page into a further state — a validation error, a selection —
-  scans that state too. Automated checks catch around a third of WCAG issues, so this is a
+  Every page has a spec with a test that it renders and a separate test that it has no WCAG 2.2 AA
+  violations, scanned with axe-core through `expectNoAccessibilityViolations` from
+  `tests/support/accessibility.ts`; a new page gets a spec with both. A spec that drives a page into
+  a further state — a validation error, a selection — scans that state too. Automated checks catch around a third of WCAG issues, so this is a
   regression net rather than an audit: keyboard operation, zoom and reflow, and screen-reader
   behaviour still need manual testing.
 
