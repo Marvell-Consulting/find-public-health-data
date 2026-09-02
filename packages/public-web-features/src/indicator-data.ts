@@ -59,6 +59,49 @@ export function polarityGoodDirection(polarity: string | null): 'high' | 'low' |
   return null;
 }
 
+export type BenchmarkJudgement = 'better' | 'similar' | 'worse' | 'lower' | 'higher' | 'none';
+
+/**
+ * How an observation stands against a benchmark value, the Fingertips way: for RAG
+ * polarities the observation's confidence interval is tested against the benchmark —
+ * only where the indicator's comparator method sanctions it — and BOB polarities just
+ * say which side. 'none' means no honest comparison exists.
+ */
+export function benchmarkJudgement(
+  observation:
+    | Pick<IndicatorObservation, 'value' | 'lowerCi95' | 'upperCi95' | 'lowerCi998' | 'upperCi998'>
+    | undefined,
+  benchmarkValue: number | null,
+  indicator: Pick<IndicatorDetail, 'polarity' | 'comparatorMethod'>,
+  confidence: '95' | '99.8' = '95',
+): BenchmarkJudgement {
+  if (observation?.value == null || benchmarkValue == null) {
+    return 'none';
+  }
+  const goodDirection = polarityGoodDirection(indicator.polarity);
+  if (!goodDirection) {
+    if (observation.value === benchmarkValue) {
+      return 'similar';
+    }
+    return observation.value < benchmarkValue ? 'lower' : 'higher';
+  }
+  if (!indicator.comparatorMethod?.toLowerCase().includes('confidence intervals overlapping')) {
+    return 'none';
+  }
+  const lower = confidence === '99.8' ? observation.lowerCi998 : observation.lowerCi95;
+  const upper = confidence === '99.8' ? observation.upperCi998 : observation.upperCi95;
+  if (lower == null || upper == null) {
+    return 'none';
+  }
+  if (lower > benchmarkValue) {
+    return goodDirection === 'high' ? 'better' : 'worse';
+  }
+  if (upper < benchmarkValue) {
+    return goodDirection === 'low' ? 'better' : 'worse';
+  }
+  return 'similar';
+}
+
 function sortOrderSum(observation: IndicatorObservation): number {
   return observation.dimensions.reduce((sum, dimension) => sum + dimension.sortOrder, 0);
 }

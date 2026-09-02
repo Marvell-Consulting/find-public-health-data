@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   alignedTrendSeries,
   availablePeriodTypes,
+  benchmarkJudgement,
   comparisonRows,
   confidenceInterval,
   dimensionValues,
@@ -298,6 +299,48 @@ describe('confidenceInterval', () => {
 
   it('marks an interval the source does not carry', () => {
     expect(confidenceInterval(obs({ lowerCi998: null }), '99.8')).toBe('—');
+  });
+});
+
+describe('benchmarkJudgement', () => {
+  const ciIndicator = {
+    polarity: 'RAG - Low is good',
+    comparatorMethod: 'Confidence intervals overlapping reference value (95.0 & 99.8)',
+  };
+
+  it('judges significance from the confidence interval against the benchmark', () => {
+    expect(
+      benchmarkJudgement(obs({ value: 90, lowerCi95: 85, upperCi95: 95 }), 100, ciIndicator),
+    ).toBe('better');
+    expect(
+      benchmarkJudgement(obs({ value: 110, lowerCi95: 105, upperCi95: 115 }), 100, ciIndicator),
+    ).toBe('worse');
+    expect(
+      benchmarkJudgement(obs({ value: 99, lowerCi95: 95, upperCi95: 105 }), 100, ciIndicator),
+    ).toBe('similar');
+  });
+
+  it('uses the 99.8 interval when that level is selected', () => {
+    const wide = obs({ value: 90, lowerCi95: 85, upperCi95: 95, lowerCi998: 80, upperCi998: 105 });
+    expect(benchmarkJudgement(wide, 100, ciIndicator, '99.8')).toBe('similar');
+  });
+
+  it('refuses to judge without a sanctioned comparator or intervals', () => {
+    expect(
+      benchmarkJudgement(obs({ value: 90, lowerCi95: 85, upperCi95: 95 }), 100, {
+        polarity: 'RAG - Low is good',
+        comparatorMethod: 'No comparison',
+      }),
+    ).toBe('none');
+    expect(
+      benchmarkJudgement(obs({ value: 90, lowerCi95: null, upperCi95: null }), 100, ciIndicator),
+    ).toBe('none');
+  });
+
+  it('reports sides without judgement for BOB polarity', () => {
+    const bob = { polarity: 'BOB - Blue orange blue', comparatorMethod: null };
+    expect(benchmarkJudgement(obs({ value: 90 }), 100, bob)).toBe('lower');
+    expect(benchmarkJudgement(obs({ value: 110 }), 100, bob)).toBe('higher');
   });
 });
 

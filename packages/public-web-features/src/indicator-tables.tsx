@@ -4,6 +4,8 @@ import { useLocation } from 'react-router';
 import { cleanAreaName } from './geography-display';
 import {
   alignedTrendSeries,
+  type BenchmarkJudgement,
+  benchmarkJudgement,
   type ConfidenceLevel,
   comparisonAreas,
   comparisonRows,
@@ -14,7 +16,6 @@ import {
   inequalityCategoryLabel,
   latestCoreSegments,
   periodLabel,
-  polarityGoodDirection,
   recentTrend,
   segmentLabel,
   segmentValuesKey,
@@ -91,26 +92,16 @@ export function SegmentationTable({
   );
 }
 
-// RAG polarity judges against the benchmark; BOB and unknown only say which side.
-const DOT_COLOURS = {
-  better: '#8ED973',
-  similar: '#FFC000',
-  worse: '#D4351C',
-  lower: '#12436D',
-  higher: '#5694CA',
+// Fingertips' marker colours: significance for RAG comparisons, sides for BOB, and an
+// open ring where no honest comparison exists.
+const DOT_STYLES: Record<BenchmarkJudgement, { fill: string; stroke?: string }> = {
+  better: { fill: '#8ED973' },
+  similar: { fill: '#FFC000' },
+  worse: { fill: '#D4351C' },
+  lower: { fill: '#12436D' },
+  higher: { fill: '#5694CA' },
+  none: { fill: '#ffffff', stroke: '#505a5f' },
 };
-
-function dotColour(areaX: number, benchmarkX: number, polarity: string): string {
-  if (Math.abs(areaX - benchmarkX) <= 5) {
-    return DOT_COLOURS.similar;
-  }
-  const isLower = areaX < benchmarkX;
-  const goodDirection = polarityGoodDirection(polarity);
-  if (goodDirection) {
-    return isLower === (goodDirection === 'low') ? DOT_COLOURS.better : DOT_COLOURS.worse;
-  }
-  return isLower ? DOT_COLOURS.lower : DOT_COLOURS.higher;
-}
 
 /**
  * The prototype's dot-and-whisker comparison: the grey line spans the min–max range
@@ -122,14 +113,14 @@ function RangePlot({
   benchmarkValue,
   min,
   max,
-  polarity,
+  judgement,
   label,
 }: {
   value: number;
   benchmarkValue: number;
   min: number;
   max: number;
-  polarity: string;
+  judgement: BenchmarkJudgement;
   label: string;
 }) {
   const span = max - min;
@@ -137,6 +128,7 @@ function RangePlot({
     span <= 0 ? 60 : Math.max(10, Math.min(110, 10 + ((v - min) / span) * 100));
   const benchmarkX = toX(benchmarkValue);
   const areaX = toX(value);
+  const dot = DOT_STYLES[judgement];
   return (
     <svg
       aria-label={label}
@@ -150,7 +142,14 @@ function RangePlot({
       <line stroke="#b1b4b6" strokeWidth="2" x1="10" x2="10" y1="8" y2="16" />
       <line stroke="#b1b4b6" strokeWidth="2" x1="110" x2="110" y1="8" y2="16" />
       <line stroke="#0b0c0c" strokeWidth="2" x1={benchmarkX} x2={benchmarkX} y1="5" y2="19" />
-      <circle cx={areaX} cy="12" fill={dotColour(areaX, benchmarkX, polarity)} r="5" />
+      <circle
+        cx={areaX}
+        cy="12"
+        fill={dot.fill}
+        r="5"
+        stroke={dot.stroke}
+        strokeWidth={dot.stroke ? 1.5 : 0}
+      />
     </svg>
   );
 }
@@ -182,26 +181,34 @@ function BenchmarkHeaderCells({ showRange, unit }: { showRange: boolean; unit?: 
   );
 }
 
+type ComparableObservation = Pick<
+  IndicatorObservation,
+  'value' | 'lowerCi95' | 'upperCi95' | 'lowerCi998' | 'upperCi998'
+>;
+
 /** One row's benchmark cells: the value, and min/max/plot when the range is on. */
 function BenchmarkCells({
   areaName,
-  areaValue,
+  areaObservation,
   benchmarkName,
   benchmarkValue,
+  confidence = '95',
   format,
-  polarity,
+  indicator,
   rangePeriod,
   showRange,
 }: {
   areaName: string;
-  areaValue: number | null;
+  areaObservation: ComparableObservation | undefined;
   benchmarkName: string;
   benchmarkValue: number | null;
+  confidence?: '95' | '99.8';
   format: (value: number) => ReactNode;
-  polarity: string;
+  indicator: Pick<IndicatorDetail, 'polarity' | 'comparatorMethod'>;
   rangePeriod: IndicatorRangePeriod | undefined;
   showRange: boolean;
 }) {
+  const areaValue = areaObservation?.value ?? null;
   return (
     <>
       <td className={BENCHMARK_CELL}>{benchmarkValue == null ? '-' : format(benchmarkValue)}</td>
@@ -216,7 +223,12 @@ function BenchmarkCells({
                 benchmarkValue={benchmarkValue}
                 min={rangePeriod.min}
                 max={rangePeriod.max}
-                polarity={polarity}
+                judgement={benchmarkJudgement(
+                  areaObservation,
+                  benchmarkValue,
+                  indicator,
+                  confidence,
+                )}
                 label={`${areaName} ${formatCalculatedValue(areaValue)} against ${benchmarkName} ${formatCalculatedValue(benchmarkValue)}, range ${formatCalculatedValue(rangePeriod.min)} to ${formatCalculatedValue(rangePeriod.max)}`}
               />
             ) : (
@@ -453,16 +465,17 @@ export function TrendTable({
                       {areaBenchmark ? (
                         <BenchmarkCells
                           areaName={areaSeries.data.areaName}
-                          areaValue={observation?.value ?? null}
+                          areaObservation={observation}
                           benchmarkName={areaBenchmark.name}
                           benchmarkValue={benchmarkObservation?.value ?? null}
+                          confidence={confidence === '99.8' ? '99.8' : '95'}
                           format={(value) => (
                             <>
                               {formatCalculatedValue(value)}
                               {valueSuffix}
                             </>
                           )}
-                          polarity={indicator.polarity}
+                          indicator={indicator}
                           rangePeriod={rangePeriod}
                           showRange={showRange}
                         />
@@ -708,8 +721,8 @@ export function ComparisonSection({
       rangePeriod: (entry.ranges?.[rangeKey] ?? []).find(
         (range) => samePeriod(range) && range.segment === segmentValuesKey(latest),
       ),
-      areaValue: latest.value,
-      polarity: entry.detail.polarity,
+      areaObservation: latest,
+      detail: entry.detail,
     };
   };
   const withUnit = (row: (typeof rows)[number], value: number) =>
@@ -896,11 +909,13 @@ export function ComparisonSection({
                             return (
                               <BenchmarkCells
                                 areaName={cell.areaName}
-                                areaValue={benchmarkCell?.areaValue ?? null}
+                                areaObservation={benchmarkCell?.areaObservation}
                                 benchmarkName={benchmarkNameFor(cell.areaCode) ?? ''}
                                 benchmarkValue={benchmarkCell?.value ?? null}
                                 format={(value) => withUnit(row, value)}
-                                polarity={benchmarkCell?.polarity ?? ''}
+                                indicator={
+                                  benchmarkCell?.detail ?? { polarity: '', comparatorMethod: null }
+                                }
                                 rangePeriod={benchmarkCell?.rangePeriod}
                                 showRange={options.range}
                               />
