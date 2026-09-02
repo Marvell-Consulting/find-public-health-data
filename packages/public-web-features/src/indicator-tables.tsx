@@ -92,8 +92,7 @@ export function SegmentationTable({
   );
 }
 
-// Fingertips' marker colours: significance for RAG comparisons, sides for BOB, and an
-// open ring where no honest comparison exists.
+// Fingertips' marker colours: RAG significance, BOB sides, an open ring for no comparison.
 const DOT_STYLES: Record<BenchmarkJudgement, { fill: string; stroke?: string }> = {
   better: { fill: '#8ED973' },
   similar: { fill: '#FFC000' },

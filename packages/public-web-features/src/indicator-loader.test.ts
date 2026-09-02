@@ -12,8 +12,12 @@ function api(get = vi.fn()) {
     get: get.getMockImplementation()
       ? get
       : get.mockImplementation((path: string) => {
-          if (path === '/api/indicators') {
-            return Promise.resolve({ indicators: [] });
+          if (path === '/api/indicators' || path.startsWith('/api/indicators?')) {
+            return Promise.resolve({
+              indicators: path.includes('q=')
+                ? [{ id: 'a', fingertipsId: 241, name: 'Diabetes: QOF prevalence' }]
+                : [],
+            });
           }
           if (path.startsWith('/api/areas/parents')) {
             return Promise.resolve([]);
@@ -66,6 +70,35 @@ describe('loadIndicator', () => {
     // the geography tree fetches its levels on demand.
     expect(get).not.toHaveBeenCalledWith('/api/indicators', expect.anything());
     expect(get.mock.calls.some(([path]) => String(path).startsWith('/api/areas?'))).toBe(false);
+  });
+
+  it('answers a no-script find search with the server matches, trimmed and encoded', async () => {
+    const { client, get } = api();
+
+    const result = await loadIndicator(
+      loaderArgs(client, {}, 'http://localhost/indicators?find=+diabetes+%26+obesity+'),
+    );
+
+    expect(get).toHaveBeenCalledWith(
+      '/api/indicators?q=diabetes%20%26%20obesity&limit=20',
+      expect.anything(),
+    );
+    expect(result.findSubject).toBe('diabetes & obesity');
+    expect(result.findResults).toEqual([
+      { id: 'a', fingertipsId: 241, name: 'Diabetes: QOF prevalence' },
+    ]);
+  });
+
+  it('skips the find search when the parameter is missing or blank', async () => {
+    const { client, get } = api();
+
+    const result = await loadIndicator(
+      loaderArgs(client, {}, 'http://localhost/indicators?find=++'),
+    );
+
+    expect(result.findSubject).toBe('');
+    expect(result.findResults).toEqual([]);
+    expect(get.mock.calls.some(([path]) => String(path).includes('q='))).toBe(false);
   });
 
   it('treats the route param as a single selection', async () => {
@@ -121,11 +154,7 @@ describe('loadIndicator', () => {
     const { client, get } = api();
 
     await loadIndicator(
-      loaderArgs(
-        client,
-        {},
-        'http://localhost/indicators?is=108&ats=Regions+(statistical)&as=E12000001&as=E12000002',
-      ),
+      loaderArgs(client, {}, 'http://localhost/indicators?is=108&as=E12000001&as=E12000002'),
     );
 
     // One call carrying both codes, not one call per code; England rides along last so

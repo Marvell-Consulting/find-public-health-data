@@ -30,7 +30,6 @@ export type {
 } from '@fphd/public-api-features/contract';
 
 export interface IndicatorSelection {
-  areaType: string;
   areaCodes: string[];
   /** Whole geography levels selected as one ("Local authorities"), kept as a single
    *  chip and query value rather than hundreds of individual area codes. */
@@ -64,7 +63,6 @@ export interface BenchmarkGeography {
   levelByCode: Record<string, string>;
 }
 
-const DEFAULT_AREA_TYPE = 'England';
 const DEFAULT_AREA_CODE = 'E92000001';
 
 // Charts and tables with dozens of series are unreadable long before they are slow, so the
@@ -106,7 +104,6 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
     throw new Response('Not Found', { status: 404 });
   }
 
-  const areaType = url.searchParams.get('ats') || DEFAULT_AREA_TYPE;
   // De-duplicated: a hand-edited URL repeating a code would otherwise fetch it twice and
   // render it twice.
   const areaCodes = [
@@ -176,8 +173,7 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
   const regionCodes = [...new Set(Object.values(regionByCode).map(({ code }) => code))];
 
   const fingertipsIds = selectedIndicatorIds(url, params.fingertipsId);
-  // The no-script search: the quicksearch form round-trips `find` and the card lists
-  // the server's matches as add links.
+  // `find` is the quicksearch form's no-script round trip; matches render as add links.
   const findSubject = url.searchParams.get('find')?.trim() ?? '';
   const findResults = findSubject
     ? (
@@ -235,6 +231,6 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
     benchmarkGeography: { regionByCode, levelByCode } satisfies BenchmarkGeography,
     findSubject,
     findResults,
-    selection: { areaType, areaCodes, areaLevels, fingertipsIds } satisfies IndicatorSelection,
+    selection: { areaCodes, areaLevels, fingertipsIds } satisfies IndicatorSelection,
   };
 }

@@ -30,9 +30,6 @@ export function selectionSearch({
   for (const id of fingertipsIds) {
     params.append('is', String(id));
   }
-  if (selection.areaType) {
-    params.set('ats', selection.areaType);
-  }
   for (const code of selection.areaCodes) {
     params.append('as', code);
   }

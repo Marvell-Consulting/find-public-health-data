@@ -61,12 +61,7 @@ export function polarityGoodDirection(polarity: string | null): 'high' | 'low' |
 
 export type BenchmarkJudgement = 'better' | 'similar' | 'worse' | 'lower' | 'higher' | 'none';
 
-/**
- * How an observation stands against a benchmark value, the Fingertips way: for RAG
- * polarities the observation's confidence interval is tested against the benchmark —
- * only where the indicator's comparator method sanctions it — and BOB polarities just
- * say which side. 'none' means no honest comparison exists.
- */
+/** Fingertips semantics: RAG compares confidence intervals where the comparator method sanctions it, BOB says which side. */
 export function benchmarkJudgement(
   observation:
     | Pick<IndicatorObservation, 'value' | 'lowerCi95' | 'upperCi95' | 'lowerCi998' | 'upperCi998'>
@@ -80,6 +75,10 @@ export function benchmarkJudgement(
   }
   const goodDirection = polarityGoodDirection(indicator.polarity);
   if (!goodDirection) {
+    // Only an actual BOB polarity gets side colours; "Not applicable" and the like get none.
+    if (!indicator.polarity?.toLowerCase().includes('bob')) {
+      return 'none';
+    }
     if (observation.value === benchmarkValue) {
       return 'similar';
     }

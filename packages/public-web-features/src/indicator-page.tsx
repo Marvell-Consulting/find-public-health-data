@@ -256,7 +256,7 @@ export function IndicatorPage({
       <GridRow>
         <GridColumn width="one-quarter">
           <FilterPane
-            key={`${selection.fingertipsIds.join(',')}|${selection.areaType}|${selection.areaCodes.join(',')}|${selection.areaLevels.join(',')}`}
+            key={`${selection.fingertipsIds.join(',')}|${selection.areaCodes.join(',')}|${selection.areaLevels.join(',')}`}
             selected={selected}
             selectedAreas={selectedAreas}
             findResults={findResults}

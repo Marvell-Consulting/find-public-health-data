@@ -76,11 +76,20 @@ export function GeographyTree({
     if (!loaded[level]) {
       setLoaded((current) => ({ ...current, [level]: 'loading' }));
       fetch(`/geographies?level=${encodeURIComponent(level)}`)
-        .then((response) => (response.ok ? response.json() : { areas: [] }))
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`geographies answered ${response.status}`);
+          }
+          return response.json();
+        })
         .then(({ areas }: { areas: GeographyArea[] }) =>
           setLoaded((current) => ({ ...current, [level]: areas })),
         )
-        .catch(() => setLoaded((current) => ({ ...current, [level]: [] })));
+        // A failed fetch collapses the level unloaded, so expanding again retries.
+        .catch(() => {
+          setLoaded(({ [level]: _, ...rest }) => rest);
+          setExpanded((current) => current.filter((value) => value !== level));
+        });
     }
   };
 

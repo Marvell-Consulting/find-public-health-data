@@ -337,10 +337,31 @@ describe('benchmarkJudgement', () => {
     ).toBe('none');
   });
 
+  it('inverts better and worse when high is good', () => {
+    const highGood = { ...ciIndicator, polarity: 'RAG - High is good' };
+    expect(
+      benchmarkJudgement(obs({ value: 110, lowerCi95: 105, upperCi95: 115 }), 100, highGood),
+    ).toBe('better');
+    expect(
+      benchmarkJudgement(obs({ value: 90, lowerCi95: 85, upperCi95: 95 }), 100, highGood),
+    ).toBe('worse');
+  });
+
   it('reports sides without judgement for BOB polarity', () => {
     const bob = { polarity: 'BOB - Blue orange blue', comparatorMethod: null };
     expect(benchmarkJudgement(obs({ value: 90 }), 100, bob)).toBe('lower');
     expect(benchmarkJudgement(obs({ value: 110 }), 100, bob)).toBe('higher');
+    expect(benchmarkJudgement(obs({ value: 100 }), 100, bob)).toBe('similar');
+  });
+
+  it('refuses to judge a polarity that is neither RAG nor BOB', () => {
+    const observation = obs({ value: 90, lowerCi95: 85, upperCi95: 95 });
+    expect(
+      benchmarkJudgement(observation, 100, { polarity: 'Not applicable', comparatorMethod: null }),
+    ).toBe('none');
+    expect(benchmarkJudgement(observation, 100, { polarity: '', comparatorMethod: null })).toBe(
+      'none',
+    );
   });
 });
 

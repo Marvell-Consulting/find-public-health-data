@@ -200,7 +200,7 @@ describe('public application routes', () => {
       },
     ];
     const areaData = [{ areaCode: 'E92000001', areaName: 'England', observations }];
-    const selection = { areaType: 'England', areaCodes: [], areaLevels: [], fingertipsIds: [108] };
+    const selection = { areaCodes: [], areaLevels: [], fingertipsIds: [108] };
     const Routes = createRoutesStub([
       {
         path: '/',
@@ -322,7 +322,7 @@ describe('public application routes', () => {
     );
     const loaderData = {
       selected: [],
-      selection: { areaType: 'England', areaCodes: [], areaLevels: [], fingertipsIds: [108] },
+      selection: { areaCodes: [], areaLevels: [], fingertipsIds: [108] },
     };
     const Routes = createRoutesStub([
       {
@@ -419,7 +419,6 @@ describe('public application routes', () => {
         },
       ],
       selection: {
-        areaType: 'Regions (statistical)',
         areaCodes: ['E12000001', 'E12000002'],
         areaLevels: [],
         fingertipsIds: [108],
@@ -440,11 +439,7 @@ describe('public application routes', () => {
       },
     ]);
 
-    render(
-      <Routes
-        initialEntries={['/indicators/108?ats=Regions+(statistical)&as=E12000001&as=E12000002']}
-      />,
-    );
+    render(<Routes initialEntries={['/indicators/108?as=E12000001&as=E12000002']} />);
 
     // Both selected areas appear as removable chips in the geography card.
     expect(await screen.findByRole('heading', { name: 'Geography filters' })).toBeTruthy();
@@ -519,7 +514,7 @@ describe('public application routes', () => {
 
     const OneIndicator = routesFor({
       selected: [{ detail: detailFor(108, 'Mortality'), areaData: areaDataFor(341.1) }],
-      selection: { areaType: 'England', areaCodes: [], areaLevels: [], fingertipsIds: [108] },
+      selection: { areaCodes: [], areaLevels: [], fingertipsIds: [108] },
     });
     render(<OneIndicator initialEntries={['/indicators?is=108']} />);
 
@@ -534,7 +529,6 @@ describe('public application routes', () => {
         { detail: detailFor(90366, 'Life expectancy'), areaData: areaDataFor(80.1) },
       ],
       selection: {
-        areaType: 'England',
         areaCodes: [],
         areaLevels: [],
         fingertipsIds: [108, 90366],
@@ -565,7 +559,7 @@ describe('public application routes', () => {
             Component: IndicatorRoute,
             loader: () => ({
               selected: [],
-              selection: { areaType: 'England', areaCodes: [], areaLevels: [], fingertipsIds: [] },
+              selection: { areaCodes: [], areaLevels: [], fingertipsIds: [] },
             }),
           },
         ],
@@ -607,7 +601,6 @@ describe('public application routes', () => {
               return {
                 selected: [],
                 selection: {
-                  areaType: 'England',
                   areaCodes: [],
                   areaLevels: [],
                   fingertipsIds: [],
@@ -720,7 +713,6 @@ describe('public application routes', () => {
                 },
               ],
               selection: {
-                areaType: 'England',
                 areaCodes: ['E06000052'],
                 areaLevels: [],
                 fingertipsIds: [93995],
@@ -837,7 +829,6 @@ describe('public application routes', () => {
                 },
               ],
               selection: {
-                areaType: 'England',
                 areaCodes: ['E06000052'],
                 areaLevels: [],
                 fingertipsIds: [108],
