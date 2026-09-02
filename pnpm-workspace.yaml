@@ -4,6 +4,16 @@ packages:
   - tools/*
   - e2e
 
+# Supply-chain guard: a version must be this old (minutes: 3 days) before pnpm resolves it or
+# installs it from the lockfile, transitive dependencies included. A deliberately fresh version is
+# listed below as name@version and removed once it has aged past the window (README, "Continuous
+# integration").
+minimumReleaseAge: 4320
+minimumReleaseAgeStrict: true
+minimumReleaseAgeExclude:
+  # Remove on or after 2026-09-03.
+  - electron-to-chromium@1.5.417
+
 overrides:
   # GHSA postcss <=8.5.17 source-map path traversal; transitive via vite.
   postcss: '>=8.5.18'

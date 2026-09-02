@@ -116,6 +116,14 @@ high and critical advisories, so a newly published advisory can redden a pull re
 nothing. Where a real advisory has no fix and blocks all work, `pnpm.auditConfig.ignoreGhsas` is the
 escape hatch; each entry is a reviewable decision.
 
+`pnpm install` also refuses any version published within the last three days, transitive
+dependencies included: `minimumReleaseAge` in `pnpm-workspace.yaml` is set explicitly so the
+policy is visible and does not move with pnpm's own default. It is enforced both when resolving a
+bump and when CI installs from the lockfile, so a too-new version fails locally rather than only in
+CI. To take a version that is still inside the window, add a `name@version` entry to
+`minimumReleaseAgeExclude` with a note of when it can go, and remove it once the version has aged
+out. Do not pass `--trust-lockfile`: it skips the verification entirely.
+
 Each tier is its own CI job, so the jobs run `pnpm test:unit`, `pnpm test:integration` and
 `pnpm test:e2e` individually rather than `pnpm test`.
 
