@@ -1,6 +1,7 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.js';
+import { signInAs } from '../support/sign-in.js';
 
 const signedOutPages = [
   { name: 'sign-in', path: '/sign-in', status: 200 },
@@ -18,13 +19,6 @@ const signedInPages = [
   { name: 'not found', path: '/no-such-page', status: 404 },
 ];
 
-async function signInAsPublisher(page: Page) {
-  await page.goto('/sign-in');
-  await page.getByRole('radio', { name: 'Riley Singh' }).check();
-  await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page).toHaveURL('/');
-}
-
 for (const { name, path, status } of signedOutPages) {
   test(`${name} page has no WCAG 2.2 AA violations`, async ({ page }, testInfo) => {
     const response = await page.goto(path);
@@ -35,7 +29,7 @@ for (const { name, path, status } of signedOutPages) {
 
 for (const { name, path, status = 200 } of signedInPages) {
   test(`${name} page has no WCAG 2.2 AA violations when signed in`, async ({ page }, testInfo) => {
-    await signInAsPublisher(page);
+    await signInAs(page, 'Riley Singh');
     const response = await page.goto(path);
     expect(response?.status()).toBe(status);
     await expectNoAccessibilityViolations(page, testInfo);
