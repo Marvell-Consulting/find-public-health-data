@@ -159,8 +159,8 @@ To add real ones:
 - E2e tests are Playwright specs in the top-level `e2e` workspace package (`@fphd/e2e`), not in
   `packages/*`: a package there is shared code the applications are built from, which an e2e suite
   is not. Specs drive the applications over HTTP and never import application code; the spec's
-  directory picks the target — `tests/public` uses `PUBLIC_WEB_URL` (default
-  `http://localhost:3000`), `tests/internal` uses `INTERNAL_WEB_URL` (default
+  directory picks the target — `e2e/tests/public` uses `PUBLIC_WEB_URL` (default
+  `http://localhost:3000`), `e2e/tests/internal` uses `INTERNAL_WEB_URL` (default
   `http://localhost:3001`). Nothing starts the stack for the suite: serve it in another terminal
   and seed the database, then run the tests —
 
@@ -174,6 +174,16 @@ To add real ones:
   filters pass through the same way. Specs run in parallel workers against the shared seed, so a
   spec never mutates data another spec reads — a test of a write flow creates its own rows and
   asserts on those.
+
+  Every page has a spec with a test that it renders and a separate test that it has no WCAG 2.2 AA
+  violations, scanned with axe-core through `expectNoAccessibilityViolations` from
+  `e2e/tests/support/accessibility.ts`; a new page gets a spec with both. A spec that drives a page
+  into a further state — a validation error, a selection — scans that state too. A ticketed defect
+  that is waiting on a fix goes in `KNOWN_VIOLATIONS` in the same file, scoped to one rule and one
+  selector so the rest of the page is still held to the bar; the scan also checks each entry is
+  still seen, so the fix landing without removing it goes red. Automated checks catch around a third
+  of WCAG issues, so this is a regression net rather than an audit: keyboard operation, zoom and
+  reflow, and screen-reader behaviour still need manual testing.
 
 Every job runs the whole workspace rather than only the changed packages. When CI wall-clock starts
 to hurt, `pnpm --filter "...[origin/main]"` selects changed packages plus their dependents, with no
