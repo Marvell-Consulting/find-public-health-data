@@ -20,12 +20,14 @@ test.describe('with nothing selected', () => {
 
 test.describe('searching', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/indicators?searchSubject=smoking');
+    await page.goto('/indicators?find=smoking');
   });
 
   test('lists the matching indicators', async ({ page }) => {
     await expect(
-      page.getByRole('heading', { level: 1, name: 'Search results for “smoking”' }),
+      page.getByRole('link', {
+        name: 'Smoking Prevalence in adults (aged 18 and over) - current smokers (APS)',
+      }),
     ).toBeVisible();
   });
 
