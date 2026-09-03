@@ -248,6 +248,55 @@ describe('loadIndicator', () => {
     );
   });
 
+  it('fetches region data for a region benchmark even without its comparison range', async () => {
+    const get = vi.fn().mockImplementation((path: string) => {
+      if (path.startsWith('/api/areas/parents')) {
+        return Promise.resolve([
+          { code: 'E06000052', parentCode: 'E12000009', parentName: 'South West' },
+        ]);
+      }
+      if (path.startsWith('/api/areas/lookup')) {
+        return Promise.resolve([{ code: 'E06000052', name: 'Cornwall', areaType: 'UA unchanged' }]);
+      }
+      return Promise.resolve(
+        path.includes('/data')
+          ? [{ areaCode: '', areaName: '', observations: [] }]
+          : { areaTypes: [] },
+      );
+    });
+    const { client } = api(get);
+
+    await loadIndicator(
+      loaderArgs(client, {}, 'http://localhost/indicators?is=108&as=E06000052&cmp-108=region'),
+    );
+
+    // The benchmark value column needs the region series; only the range stays unfetched.
+    expect(get.mock.calls.some(([path]) => String(path).includes('area_code=E12000009'))).toBe(
+      true,
+    );
+    expect(get.mock.calls.some(([path]) => String(path).includes('/range'))).toBe(false);
+  });
+
+  it('unions the england and compare-table region ranges in a mixed state', async () => {
+    const { client, get } = api();
+
+    await loadIndicator(
+      loaderArgs(
+        client,
+        {},
+        'http://localhost/indicators?is=108&as=E12000001&cmp-108=england&cr-108=yes&cmp-compare=region&cr-compare=yes',
+      ),
+    );
+
+    const rangeCalls = get.mock.calls
+      .map(([path]) => String(path))
+      .filter((path) => path.includes('/range'));
+    expect(rangeCalls).toHaveLength(2);
+    expect(
+      rangeCalls.some((path) => path.includes(encodeURIComponent('Regions (statistical)'))),
+    ).toBe(true);
+  });
+
   it('404s a non-numeric route param without calling the api for it', async () => {
     const { client } = api();
 

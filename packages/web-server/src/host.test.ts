@@ -12,7 +12,8 @@ const assetsDirectory = join(clientDirectory, 'assets');
 
 beforeAll(() => {
   mkdirSync(assetsDirectory);
-  writeFileSync(join(assetsDirectory, 'app-123.js'), 'console.log("loaded")');
+  // Over compression's 1KB threshold, so the gzip assertion below exercises it.
+  writeFileSync(join(assetsDirectory, 'app-123.js'), `console.log("${'loaded '.repeat(200)}")`);
 });
 
 afterAll(() => {
@@ -34,6 +35,13 @@ describe('React Router production host', () => {
     expect(response.status).toBe(200);
     expect(response.headers['cache-control']).toBe('public, max-age=31536000, immutable');
     expect(response.headers['x-powered-by']).toBeUndefined();
+  });
+
+  it('compresses assets for clients that accept gzip', async () => {
+    const response = await request(app).get('/assets/app-123.js').set('Accept-Encoding', 'gzip');
+
+    expect(response.status).toBe(200);
+    expect(response.headers['content-encoding']).toBe('gzip');
   });
 
   it('sets security headers on document responses', async () => {
