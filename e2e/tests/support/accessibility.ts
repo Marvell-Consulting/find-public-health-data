@@ -11,11 +11,12 @@ type ViolationNode = Violation['nodes'][number];
 
 /**
  * A ticketed defect the scan tolerates while its fix waits. Only that rule on elements matching
- * that selector is let through, so the rest of the page is still held to the bar. A page whose
- * path matches `on` must still show it: once the fix lands, its scan fails until the entry goes.
+ * that selector is let through, wherever the element appears, so the rest of the page is still
+ * held to the bar. A page whose path matches `expectedOn` must still show it: once the fix
+ * lands, that page's scan fails until the entry goes.
  */
 type KnownViolation = {
-  on: RegExp;
+  expectedOn: RegExp;
   rule: string;
   selector: string;
   ticket: string;
@@ -28,7 +29,7 @@ const KNOWN_VIOLATIONS: KnownViolation[] = [
     ticket: 'FPH-370',
     rule: 'color-contrast',
     selector: '.fphd-filter-card__header .govuk-link',
-    on: /^\/indicators\/\d+$/,
+    expectedOn: /^\/indicators\/\d+$/,
   },
 ];
 
@@ -90,7 +91,9 @@ export async function expectNoAccessibilityViolations(page: Page, testInfo: Test
   expect(unknown.map(describeViolation)).toEqual([]);
 
   const pathname = new URL(page.url()).pathname;
-  const fixed = KNOWN_VIOLATIONS.filter((known) => known.on.test(pathname) && !seen.has(known));
+  const fixed = KNOWN_VIOLATIONS.filter(
+    (known) => known.expectedOn.test(pathname) && !seen.has(known),
+  );
   expect(
     fixed.map((known) => known.ticket),
     'known violations no longer seen on this page: remove them from KNOWN_VIOLATIONS',
