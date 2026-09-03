@@ -449,40 +449,9 @@
   margin-bottom: 0;
 }
 
+// accessible-autocomplete brings its own menu styling; only the stacking context is ours.
 .fphd-autocomplete {
   position: relative;
-}
-
-.fphd-autocomplete__menu {
-  position: absolute;
-  z-index: 10;
-  width: 100%;
-  max-height: 240px;
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;
-  list-style: none;
-  background-color: govuk-colour("white");
-  border: 2px solid govuk-colour("black");
-  border-top: 0;
-}
-
-.fphd-autocomplete__option {
-  padding: govuk-spacing(1) govuk-spacing(2);
-  cursor: pointer;
-}
-
-.fphd-autocomplete__option--active {
-  background-color: govuk-colour("blue");
-  color: govuk-colour("white");
-}
-
-.fphd-autocomplete__group {
-  color: $govuk-secondary-text-colour;
-}
-
-.fphd-autocomplete__option--active .fphd-autocomplete__group {
-  color: govuk-colour("white");
 }
 
 // A value's magnitude relative to the largest in the comparison, so rows can be scanned
@@ -704,4 +673,44 @@
 .fphd-trend-table thead th,
 .fphd-compare-table thead th {
   white-space: normal;
+}
+
+// Every panel is in the document for no-script readers, but with scripting the selected
+// one must be the only one showing from first paint — hydration arrives too late to do
+// the hiding without a visible flash. The server marks the open panel (it knows the
+// tab param), the body's js-enabled class is set by an inline script before paint, and
+// React drops the --ssr class once mounted and takes over. A legacy #hash deep link
+// never reaches the server, so a targeted panel overrides the marked one.
+.js-enabled .fphd-tabs--ssr {
+  .govuk-tabs__panel:not(.fphd-tabs__panel--open) {
+    display: none;
+  }
+
+  &:has(.govuk-tabs__panel:target) {
+    .govuk-tabs__panel:not(:target) {
+      display: none;
+    }
+
+    .govuk-tabs__panel:target {
+      display: block;
+    }
+  }
+}
+
+.fphd-button--full-width {
+  width: 100%;
+}
+
+// The benchmark columns are shaded so a comparison reads as context, not more data: a
+// darker band on the group header, a lighter wash down its cells.
+.fphd-trend-table__benchmark-group {
+  background-color: govuk-colour("mid-grey");
+}
+
+.fphd-trend-table__benchmark-cell {
+  background-color: govuk-colour("light-grey");
+}
+
+.fphd-range-plot {
+  display: block;
 }

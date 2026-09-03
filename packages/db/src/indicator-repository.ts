@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, asc, eq, ilike, inArray, isNotNull, isNull, max, min, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import type { Database } from './client.js';
@@ -9,6 +9,7 @@ import {
 } from './indicator-topic-repository.js';
 import {
   area,
+  areaType,
   availableData,
   ciMethod,
   comparatorMethod,
@@ -48,6 +49,27 @@ export async function listApprovedIndicators(db: Database): Promise<ApprovedIndi
     .from(indicator)
     .where(eq(indicator.status, 'approved'))
     .orderBy(asc(indicator.name));
+}
+
+/** Case-insensitive name search, matches earliest in the name first. */
+export async function searchApprovedIndicators(
+  db: Database,
+  query: string,
+  limit: number,
+): Promise<ApprovedIndicator[]> {
+  // %, _ and \ are LIKE syntax, not search terms.
+  const escaped = query.replace(/[\\%_]/g, '\\$&');
+  return db
+    .select({
+      id: indicator.id,
+      fingertipsId: indicator.fingertipsId,
+      name: indicator.name,
+      status: indicator.status,
+    })
+    .from(indicator)
+    .where(and(eq(indicator.status, 'approved'), ilike(indicator.name, `%${escaped}%`)))
+    .orderBy(sql`position(lower(${query}) in lower(${indicator.name}))`, asc(indicator.name))
+    .limit(limit);
 }
 
 export interface IndicatorSource {
@@ -346,4 +368,90 @@ export async function getIndicatorObservations(
       notes: notesByObservation.get(obsId) ?? [],
     })),
   };
+}
+
+export interface ObservationRangePeriod {
+  fromDate: string;
+  toDate: string;
+  /** The segment's dimension values joined by '|' in dimension-type order, '' for the
+   *  fully-aggregate series — the same shape a client derives from an observation. */
+  segment: string;
+  min: number;
+  max: number;
+}
+
+/**
+ * Per-period min and max of an indicator's value across every area of the given types,
+ * for the same series the trend table shows: the least-disaggregated segment with the
+ * most published values. Mirrors the web app's trendSeries selection so the range always
+ * brackets the numbers it sits beside.
+ */
+export async function getObservationRange(
+  db: Database,
+  fingertipsId: number,
+  areaTypeNames: string[],
+): Promise<ObservationRangePeriod[]> {
+  if (areaTypeNames.length === 0) {
+    return [];
+  }
+
+  // Each observation with its dimension count and a stable label for its exact segment.
+  const observations = db.$with('range_observations').as(
+    db
+      .select({
+        fromDate: observation.fromDate,
+        toDate: observation.toDate,
+        value: observation.value,
+        dims: sql<number>`count(${observationDimension.observationId})::int`.as('dims'),
+        segment:
+          sql<string>`coalesce(string_agg(${dimensionValue.name}, '|' order by ${dimensionType.name} collate "C"), '')`.as(
+            'segment',
+          ),
+      })
+      .from(observation)
+      .innerJoin(
+        indicator,
+        and(
+          eq(observation.indicatorId, indicator.id),
+          eq(indicator.fingertipsId, fingertipsId),
+          eq(indicator.status, 'approved'),
+        ),
+      )
+      .innerJoin(area, eq(observation.areaId, area.id))
+      .innerJoin(
+        areaType,
+        and(eq(area.areaTypeId, areaType.id), inArray(areaType.name, areaTypeNames)),
+      )
+      .leftJoin(observationDimension, eq(observationDimension.observationId, observation.id))
+      .leftJoin(dimensionType, eq(observationDimension.dimensionTypeId, dimensionType.id))
+      .leftJoin(dimensionValue, eq(observationDimension.dimensionValueId, dimensionValue.id))
+      .where(and(isNull(observation.deletedAt), isNotNull(observation.value)))
+      .groupBy(observation.id, observation.fromDate, observation.toDate, observation.value),
+  );
+  const leastDisaggregated = db.$with('range_least_disaggregated').as(
+    db
+      .select()
+      .from(observations)
+      .where(eq(observations.dims, db.select({ dims: min(observations.dims) }).from(observations))),
+  );
+
+  // One range per segment — the caller picks the one it is displaying.
+  const rows = await db
+    .with(observations, leastDisaggregated)
+    .select({
+      fromDate: leastDisaggregated.fromDate,
+      toDate: leastDisaggregated.toDate,
+      segment: leastDisaggregated.segment,
+      min: min(leastDisaggregated.value),
+      max: max(leastDisaggregated.value),
+    })
+    .from(leastDisaggregated)
+    .groupBy(leastDisaggregated.fromDate, leastDisaggregated.toDate, leastDisaggregated.segment)
+    .orderBy(asc(leastDisaggregated.fromDate), asc(leastDisaggregated.toDate));
+
+  return rows.flatMap(({ fromDate, toDate, segment, min: minValue, max: maxValue }) =>
+    minValue === null || maxValue === null
+      ? []
+      : [{ fromDate, toDate, segment, min: minValue, max: maxValue }],
+  );
 }

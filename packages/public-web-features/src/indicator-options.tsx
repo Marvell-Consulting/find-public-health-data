@@ -1,7 +1,13 @@
-import { OptionsAccordion, Select } from '@fphd/ui';
+import { OptionsAccordion, Radios, Select } from '@fphd/ui';
 import { useId } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 
-import { type ConfidenceLevel, type PeriodType, periodTypeLabel } from './indicator-data';
+import {
+  type ConfidenceLevel,
+  inequalityCategoryOptions,
+  type PeriodType,
+  periodTypeLabel,
+} from './indicator-data';
 
 /** The confidence-interval choices, narrowed to what the indicator publishes. */
 export function confidenceOptions(levels: string[]) {
@@ -12,9 +18,33 @@ export function confidenceOptions(levels: string[]) {
   ];
 }
 
+/** What a picked area is compared against: nothing, England, or its statistical region. */
+export type BenchmarkChoice = 'none' | 'england' | 'region';
+
+/** Writes [key, value, default] option triples to the query string in place: router
+ *  navigation with replace + preventScrollReset, skipped by the route's revalidation. */
+export function useOptionParamNavigation() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  return (entries: readonly (readonly [string, string, string])[]) => {
+    const params = new URLSearchParams(location.search);
+    for (const [key, value, empty] of entries) {
+      if (value === empty) {
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
+    }
+    void navigate({ search: `?${params.toString()}` }, { replace: true, preventScrollReset: true });
+  };
+}
+
 export interface PanelOptions {
+  benchmark: BenchmarkChoice;
   confidence: ConfidenceLevel;
   periodType: PeriodType;
+  /** Whether the benchmark columns include the min/max spread and comparison plot. */
+  range: boolean;
   sex: string;
 }
 
@@ -24,6 +54,7 @@ export interface PanelOptions {
  * indicator reports those segments.
  */
 export function PanelOptionsPanel({
+  benchmarks,
   confidenceLevels,
   label,
   onChange,
@@ -32,6 +63,8 @@ export function PanelOptionsPanel({
   sexes,
   showConfidence,
 }: {
+  /** Which comparisons the shown areas support; absent when only England is shown. */
+  benchmarks?: { region: boolean } | undefined;
   confidenceLevels: string[];
   label: string;
   onChange: (options: PanelOptions) => void;
@@ -41,13 +74,48 @@ export function PanelOptionsPanel({
   showConfidence: boolean;
 }) {
   const ids = {
+    benchmark: useId(),
     confidence: useId(),
     period: useId(),
+    range: useId(),
     sex: useId(),
   };
 
   return (
     <OptionsAccordion label={label}>
+      {benchmarks ? (
+        <Select
+          id={ids.benchmark}
+          label="Select a geography or goal to compare with"
+          name="benchmark"
+          onChange={(event) =>
+            onChange({ ...options, benchmark: event.currentTarget.value as BenchmarkChoice })
+          }
+          options={[
+            { label: 'None', value: 'none' },
+            { label: 'England', value: 'england' },
+            ...(benchmarks.region ? [{ label: 'Statistical regions', value: 'region' }] : []),
+          ]}
+          value={options.benchmark}
+        />
+      ) : null}
+      {benchmarks && options.benchmark !== 'none' ? (
+        <Radios
+          classModifiers="inline"
+          // The component is uncontrolled: it only reads defaultValue (its `value` prop
+          // is discarded), and it remounts whenever the benchmark switches away from
+          // and back to a comparison, so the default always reflects current state.
+          defaultValue={options.range ? 'yes' : 'no'}
+          id={ids.range}
+          label="Show comparison range"
+          name={ids.range}
+          onChange={(event) => onChange({ ...options, range: event.currentTarget.value === 'yes' })}
+          options={[
+            { label: 'Yes', value: 'yes' },
+            { label: 'No', value: 'no' },
+          ]}
+        />
+      ) : null}
       <div className="fphd-segmentation-options__selects">
         {sexes.length > 0 ? (
           <Select
@@ -130,7 +198,7 @@ export function InequalityOptions({
           label="Select inequality category"
           name="inequalityCategory"
           onChange={(event) => onCategoryChange(event.currentTarget.value)}
-          options={categories.map((value) => ({ label: value, value }))}
+          options={inequalityCategoryOptions(categories)}
           value={category}
         />
         <Select

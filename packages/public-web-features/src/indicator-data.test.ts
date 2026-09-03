@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  alignedTrendSeries,
   availablePeriodTypes,
+  benchmarkJudgement,
   comparisonRows,
   confidenceInterval,
   dimensionValues,
@@ -10,6 +12,8 @@ import {
   formatValue,
   inequalityBreakdown,
   inequalityCategories,
+  inequalityCategoryLabel,
+  inequalityCategoryOptions,
   inequalityPeriods,
   inequalitySegments,
   latestCoreSegments,
@@ -91,6 +95,31 @@ describe('trendSeries', () => {
 
   it('returns empty for no observations', () => {
     expect(trendSeries([])).toEqual([]);
+  });
+});
+
+describe('alignedTrendSeries', () => {
+  it('follows the reference segment even when its own longest series differs', () => {
+    // One area's longest series is Female while the benchmark's is Male — left
+    // unaligned, the table would compare different sexes without saying so.
+    const reference = obs({ dimensions: [dim('Sex', 'Female')] });
+    const male2022 = obs({
+      fromDate: '2022-01-01',
+      toDate: '2022-12-31',
+      dimensions: [dim('Sex', 'Male')],
+    });
+    const male2023 = obs({ dimensions: [dim('Sex', 'Male')] });
+    const female2023 = obs({ dimensions: [dim('Sex', 'Female')] });
+
+    expect(alignedTrendSeries([male2023, female2023, male2022], reference)).toEqual([female2023]);
+  });
+
+  it('falls back to its own trend series when the reference segment is not published', () => {
+    const reference = obs({ dimensions: [dim('Sex', 'Female')] });
+    const male = obs({ dimensions: [dim('Sex', 'Male')] });
+
+    expect(alignedTrendSeries([male], reference)).toEqual([male]);
+    expect(alignedTrendSeries([male], undefined)).toEqual([male]);
   });
 });
 
@@ -273,6 +302,69 @@ describe('confidenceInterval', () => {
   });
 });
 
+describe('benchmarkJudgement', () => {
+  const ciIndicator = {
+    polarity: 'RAG - Low is good',
+    comparatorMethod: 'Confidence intervals overlapping reference value (95.0 & 99.8)',
+  };
+
+  it('judges significance from the confidence interval against the benchmark', () => {
+    expect(
+      benchmarkJudgement(obs({ value: 90, lowerCi95: 85, upperCi95: 95 }), 100, ciIndicator),
+    ).toBe('better');
+    expect(
+      benchmarkJudgement(obs({ value: 110, lowerCi95: 105, upperCi95: 115 }), 100, ciIndicator),
+    ).toBe('worse');
+    expect(
+      benchmarkJudgement(obs({ value: 99, lowerCi95: 95, upperCi95: 105 }), 100, ciIndicator),
+    ).toBe('similar');
+  });
+
+  it('uses the 99.8 interval when that level is selected', () => {
+    const wide = obs({ value: 90, lowerCi95: 85, upperCi95: 95, lowerCi998: 80, upperCi998: 105 });
+    expect(benchmarkJudgement(wide, 100, ciIndicator, '99.8')).toBe('similar');
+  });
+
+  it('refuses to judge without a sanctioned comparator or intervals', () => {
+    expect(
+      benchmarkJudgement(obs({ value: 90, lowerCi95: 85, upperCi95: 95 }), 100, {
+        polarity: 'RAG - Low is good',
+        comparatorMethod: 'No comparison',
+      }),
+    ).toBe('none');
+    expect(
+      benchmarkJudgement(obs({ value: 90, lowerCi95: null, upperCi95: null }), 100, ciIndicator),
+    ).toBe('none');
+  });
+
+  it('inverts better and worse when high is good', () => {
+    const highGood = { ...ciIndicator, polarity: 'RAG - High is good' };
+    expect(
+      benchmarkJudgement(obs({ value: 110, lowerCi95: 105, upperCi95: 115 }), 100, highGood),
+    ).toBe('better');
+    expect(
+      benchmarkJudgement(obs({ value: 90, lowerCi95: 85, upperCi95: 95 }), 100, highGood),
+    ).toBe('worse');
+  });
+
+  it('reports sides without judgement for BOB polarity', () => {
+    const bob = { polarity: 'BOB - Blue orange blue', comparatorMethod: null };
+    expect(benchmarkJudgement(obs({ value: 90 }), 100, bob)).toBe('lower');
+    expect(benchmarkJudgement(obs({ value: 110 }), 100, bob)).toBe('higher');
+    expect(benchmarkJudgement(obs({ value: 100 }), 100, bob)).toBe('similar');
+  });
+
+  it('refuses to judge a polarity that is neither RAG nor BOB', () => {
+    const observation = obs({ value: 90, lowerCi95: 85, upperCi95: 95 });
+    expect(
+      benchmarkJudgement(observation, 100, { polarity: 'Not applicable', comparatorMethod: null }),
+    ).toBe('none');
+    expect(benchmarkJudgement(observation, 100, { polarity: '', comparatorMethod: null })).toBe(
+      'none',
+    );
+  });
+});
+
 describe('inequality selection', () => {
   const deprivation = (name: string, period = ['2023-01-01', '2023-12-31']) =>
     obs({
@@ -284,6 +376,9 @@ describe('inequality selection', () => {
     dimensions: [dim('Ethnic group', 'White', { dimensionClass: 'inequality' })],
   });
   const all = [
+    // The headline series the reference segment comes from.
+    obs({ dimensions: [] }),
+    obs({ fromDate: '2022-01-01', toDate: '2022-12-31', dimensions: [] }),
     obs({ dimensions: [dim('Sex', 'Male')] }),
     ethnicity,
     deprivation('Most deprived'),
@@ -307,5 +402,73 @@ describe('inequality selection', () => {
 
     expect(rows).toHaveLength(2);
     expect(rows.every((row) => row.dimensions[0]?.type === 'Deprivation deciles')).toBe(true);
+  });
+
+  it('keeps only the pure category rows, never sexed sub-breakdowns', () => {
+    const sexedDecile = obs({
+      dimensions: [
+        dim('Deprivation deciles', 'Most deprived', { dimensionClass: 'inequality' }),
+        dim('Sex', 'Male'),
+      ],
+    });
+
+    const rows = inequalityBreakdown(
+      [...all, sexedDecile],
+      'Deprivation deciles',
+      '2023-01-01/2023-12-31',
+    );
+
+    expect(rows).toHaveLength(2);
+    expect(rows.every((row) => row.dimensions.length === 1)).toBe(true);
+  });
+
+  it('lets the headline series baseline dimensions ride on category rows', () => {
+    // QOF prevalence style: every observation carries Age 17+, deciles included.
+    const aged = (dimensions: ReturnType<typeof dim>[], period = ['2023-01-01', '2023-12-31']) =>
+      obs({
+        fromDate: period[0],
+        toDate: period[1],
+        dimensions: [dim('Age', '17+ yrs'), ...dimensions],
+      });
+    const observations = [
+      aged([]),
+      aged([], ['2022-01-01', '2022-12-31']),
+      aged([dim('Deprivation deciles', 'Most deprived', { dimensionClass: 'inequality' })]),
+      aged([dim('Deprivation deciles', 'Least deprived', { dimensionClass: 'inequality' })]),
+    ];
+
+    expect(inequalityPeriods(observations, 'Deprivation deciles').map((p) => p.label)).toEqual([
+      '2023',
+    ]);
+    expect(
+      inequalityBreakdown(observations, 'Deprivation deciles', '2023-01-01/2023-12-31'),
+    ).toHaveLength(2);
+  });
+});
+
+describe('inequalityCategoryOptions', () => {
+  it('shortens Pholio category names the way the prototype labels them', () => {
+    expect(
+      inequalityCategoryLabel(
+        'County & UA deprivation deciles in England (IMD2019, 4/23 geography)',
+      ),
+    ).toBe('County and unitary authority deprivation deciles (IMD2019)');
+    expect(inequalityCategoryLabel('LSOA21 deprivation deciles within area (IMD trend)')).toBe(
+      'LSOA21 deprivation deciles (IMD trend)',
+    );
+  });
+
+  it('keeps the geography qualifier only where shortened labels would collide', () => {
+    const options = inequalityCategoryOptions([
+      'County & UA deprivation deciles in England (IMD2019, 4/21 geography)',
+      'County & UA deprivation deciles in England (IMD2019, 4/23 geography)',
+      'District & UA deprivation deciles in England (IMD2025, 4/23 geography)',
+    ]);
+
+    expect(options.map(({ label }) => label)).toEqual([
+      'County and unitary authority deprivation deciles (IMD2019, 4/21 geography)',
+      'County and unitary authority deprivation deciles (IMD2019, 4/23 geography)',
+      'District and unitary authority deprivation deciles (IMD2025)',
+    ]);
   });
 });

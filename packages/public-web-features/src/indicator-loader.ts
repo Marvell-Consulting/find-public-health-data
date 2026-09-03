@@ -1,15 +1,23 @@
 import {
   areaGroupListSchema,
+  areaLookupListSchema,
+  areaParentListSchema,
   indicatorAreaDataListSchema,
   indicatorAreaDataSchema,
   indicatorDetailSchema,
   indicatorListResponseSchema,
+  indicatorRangeSchema,
 } from '@fphd/public-api-features/contract';
 import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
 
-import { cleanAreaName, DISPLAY_LEVEL_NAMES, levelAreaTypes } from './geography-display';
+import {
+  cleanAreaName,
+  DISPLAY_LEVEL_NAMES,
+  displayLevelOf,
+  levelAreaTypes,
+} from './geography-display';
 
 export type {
   AreaGroup,
@@ -17,11 +25,11 @@ export type {
   IndicatorAreaData,
   IndicatorDetail,
   IndicatorObservation,
+  IndicatorRangePeriod,
   IndicatorSummary,
 } from '@fphd/public-api-features/contract';
 
 export interface IndicatorSelection {
-  areaType: string;
   areaCodes: string[];
   /** Whole geography levels selected as one ("Local authorities"), kept as a single
    *  chip and query value rather than hundreds of individual area codes. */
@@ -33,9 +41,28 @@ export interface IndicatorSelection {
 export interface SelectedIndicator {
   detail: import('@fphd/public-api-features/contract').IndicatorDetail;
   areaData: import('@fphd/public-api-features/contract').IndicatorAreaData[];
+  /** The statistical regions the selected areas roll up to, for the region benchmark. */
+  regionData?: import('@fphd/public-api-features/contract').IndicatorAreaData[];
+  /** Per display level ('Local authorities', 'Statistical regions'…): min/max of the
+   *  value across every area of that level, per period — the comparison range. */
+  ranges?: Record<string, import('@fphd/public-api-features/contract').IndicatorRangePeriod[]>;
 }
 
-const DEFAULT_AREA_TYPE = 'England';
+/** A picked area resolved to its display name and level. */
+export interface SelectedArea {
+  code: string;
+  name: string;
+  level: string;
+}
+
+/** Which benchmark each selected area can be compared against. */
+export interface BenchmarkGeography {
+  /** Selected area code → its statistical region, where one exists. */
+  regionByCode: Record<string, { code: string; name: string }>;
+  /** Selected area code → its display level, for picking the England range. */
+  levelByCode: Record<string, string>;
+}
+
 const DEFAULT_AREA_CODE = 'E92000001';
 
 // Charts and tables with dozens of series are unreadable long before they are slow, so the
@@ -77,7 +104,6 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
     throw new Response('Not Found', { status: 404 });
   }
 
-  const areaType = url.searchParams.get('ats') || DEFAULT_AREA_TYPE;
   // De-duplicated: a hand-edited URL repeating a code would otherwise fetch it twice and
   // render it twice.
   const areaCodes = [
@@ -100,65 +126,111 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
     );
     levelCodes = levelGroups.flatMap(({ areas }) => areas.map(({ code }) => code));
   }
-  const codesToLoad =
-    areaCodes.length > 0 || levelCodes.length > 0
-      ? [...new Set([...areaCodes, ...levelCodes])].slice(0, MAX_SELECTED_AREAS)
-      : [DEFAULT_AREA_CODE];
+  // England rides along last for the benchmark; the first entry stays the area the page describes.
+  const pickedCodes = [...new Set([...areaCodes, ...levelCodes])]
+    .filter((code) => code !== DEFAULT_AREA_CODE)
+    .slice(0, MAX_SELECTED_AREAS - 1);
+  const codesToLoad = [...pickedCodes, DEFAULT_AREA_CODE];
 
-  const availableIndicators = await api.get('/api/indicators', indicatorListResponseSchema);
+  // Both benchmarks need each picked area's display level and statistical region up front.
+  const nonEnglandCodes = codesToLoad.filter((code) => code !== DEFAULT_AREA_CODE);
+
+  // Only the picked areas resolve to names and levels — the tree fetches its own
+  // catalogue on demand, keeping thousands of areas out of the page payload.
+  const codeQuery = nonEnglandCodes
+    .map((code) => `area_code=${encodeURIComponent(code)}`)
+    .join('&');
+  const [lookedUp, areaParents] = await Promise.all([
+    nonEnglandCodes.length > 0
+      ? api.get(`/api/areas/lookup?${codeQuery}`, areaLookupListSchema)
+      : Promise.resolve([]),
+    nonEnglandCodes.length > 0
+      ? api.get(
+          `/api/areas/parents?${codeQuery}&parent_type=${encodeURIComponent('Regions (statistical)')}`,
+          areaParentListSchema,
+        )
+      : Promise.resolve([]),
+  ]);
+
+  const selectedAreas = lookedUp.map(({ code, name, areaType: typeName }) => ({
+    code,
+    name: cleanAreaName(name),
+    level: displayLevelOf(typeName) ?? typeName,
+  }));
+  const levelByCode: Record<string, string> = {};
+  for (const { code, level } of selectedAreas) {
+    levelByCode[code] = level;
+  }
+  const regionByCode: Record<string, { code: string; name: string }> = {};
+  for (const { code, parentCode, parentName } of areaParents) {
+    regionByCode[code] = { code: parentCode, name: cleanAreaName(parentName) };
+  }
+
+  const rangeLevels = [...new Set(Object.values(levelByCode))];
+  if (Object.keys(regionByCode).length > 0 && !rangeLevels.includes('Statistical regions')) {
+    rangeLevels.push('Statistical regions');
+  }
+  const regionCodes = [...new Set(Object.values(regionByCode).map(({ code }) => code))];
 
   const fingertipsIds = selectedIndicatorIds(url, params.fingertipsId);
-  // The home page's search box lands here with only a subject: matches are offered as
-  // results to pick from, never selected on the user's behalf.
-  const searchSubject = url.searchParams.get('searchSubject')?.trim() ?? '';
-  const searchResults =
-    fingertipsIds.length === 0 && searchSubject
-      ? availableIndicators.indicators.filter(({ name }) =>
-          name.toLowerCase().includes(searchSubject.toLowerCase()),
+  // `find` is the quicksearch form's no-script round trip; matches render as add links.
+  const findSubject = url.searchParams.get('find')?.trim() ?? '';
+  const findResults = findSubject
+    ? (
+        await api.get(
+          `/api/indicators?q=${encodeURIComponent(findSubject)}&limit=20`,
+          indicatorListResponseSchema,
         )
-      : [];
-
+      ).indicators
+    : [];
   const selected = await Promise.all(
     fingertipsIds.map(async (id) => {
-      const [detail, areaData] = await Promise.all([
+      const dataFor = (codes: string[]) =>
+        api.get(
+          `${apiPath`/api/indicators/${String(id)}/data`}?${codes
+            .map((code) => `area_code=${encodeURIComponent(code)}`)
+            .join('&')}`,
+          codes.length === 1
+            ? indicatorAreaDataSchema.transform((one) => [one])
+            : indicatorAreaDataListSchema,
+        );
+      const [detail, areaData, regionData, rangeEntries] = await Promise.all([
         api.get(apiPath`/api/indicators/${String(id)}`, indicatorDetailSchema),
         // One request per indicator carrying every area, rather than one per pair: a
         // page comparing ten indicators across twenty areas would otherwise fire 200.
-        api.get(
-          `${apiPath`/api/indicators/${String(id)}/data`}?${codesToLoad
-            .map((code) => `area_code=${encodeURIComponent(code)}`)
-            .join('&')}`,
-          codesToLoad.length === 1
-            ? indicatorAreaDataSchema.transform((one) => [one])
-            : indicatorAreaDataListSchema,
+        dataFor(codesToLoad),
+        regionCodes.length > 0 ? dataFor(regionCodes) : Promise.resolve([]),
+        Promise.all(
+          rangeLevels.map(async (level) => {
+            const range = await api.get(
+              `${apiPath`/api/indicators/${String(id)}/range`}?${levelAreaTypes(level)
+                .map((name) => `area_type=${encodeURIComponent(name)}`)
+                .join('&')}`,
+              indicatorRangeSchema,
+            );
+            return [level, range.periods] as const;
+          }),
         ),
       ]);
       return {
         detail,
         // Pholio area names carry their level as a suffix; the tables show the bare name.
         areaData: areaData.map((data) => ({ ...data, areaName: cleanAreaName(data.areaName) })),
+        regionData: regionData.map((data) => ({
+          ...data,
+          areaName: cleanAreaName(data.areaName),
+        })),
+        ranges: Object.fromEntries(rangeEntries),
       };
     }),
   );
 
-  // Offer every area type the selection shares, so the tree can list them all as groups.
-  const areaTypeNames =
-    selected.length === 0
-      ? [DEFAULT_AREA_TYPE]
-      : selected
-          .map(({ detail }) => detail.areaTypes.map(({ name }) => name))
-          .reduce((shared, names) => shared.filter((name) => names.includes(name)));
-  const areaGroups = await api.get(
-    `/api/areas?${areaTypeNames.map((name) => `area_type=${encodeURIComponent(name)}`).join('&')}`,
-    areaGroupListSchema,
-  );
-
   return {
     selected,
-    areaGroups,
-    availableIndicators: availableIndicators.indicators,
-    searchResults,
-    searchSubject,
-    selection: { areaType, areaCodes, areaLevels, fingertipsIds } satisfies IndicatorSelection,
+    selectedAreas,
+    benchmarkGeography: { regionByCode, levelByCode } satisfies BenchmarkGeography,
+    findSubject,
+    findResults,
+    selection: { areaCodes, areaLevels, fingertipsIds } satisfies IndicatorSelection,
   };
 }

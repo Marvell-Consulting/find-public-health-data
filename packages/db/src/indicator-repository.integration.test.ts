@@ -1,13 +1,20 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { listAreasByType } from './area-repository.js';
+import {
+  listAreaParents,
+  listAreasByCodes,
+  listAreasByType,
+  searchAreas,
+} from './area-repository.js';
 import { createDb, type Database } from './client.js';
 import { dbEnvFields, resolveDbTls } from './env.js';
 import {
   getApprovedIndicatorByFingertipsId,
   getIndicatorObservations,
+  getObservationRange,
   listApprovedIndicators,
+  searchApprovedIndicators,
 } from './indicator-repository.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
 
@@ -36,6 +43,7 @@ function ownerConnection(database: string) {
 // single-year and rolling periods, and sex/age/deprivation breakdowns.
 const MORTALITY_UNDER_75 = 108;
 const DIABETES_QOF_PREVALENCE = 241;
+const LIFE_EXPECTANCY_AT_BIRTH = 90366;
 const ENGLAND = 'E92000001';
 const CORNWALL = 'E06000052';
 
@@ -60,6 +68,30 @@ describe('listApprovedIndicators', () => {
     const names = indicators.map(({ name }) => name);
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
     expect(indicators.every(({ status }) => status === 'approved')).toBe(true);
+  });
+});
+
+describe('searchApprovedIndicators', () => {
+  it('matches case-insensitively anywhere in the name', async () => {
+    const results = await searchApprovedIndicators(db, 'DIABETES', 20);
+
+    expect(results.length).toBeGreaterThanOrEqual(2);
+    expect(results.every(({ name }) => name.toLowerCase().includes('diabetes'))).toBe(true);
+  });
+
+  it('ranks a match earlier in the name above a later one', async () => {
+    const results = await searchApprovedIndicators(db, 'diabetes', 20);
+
+    expect(results[0]?.name).toBe('Diabetes: QOF prevalence');
+  });
+
+  it('respects the limit', async () => {
+    expect(await searchApprovedIndicators(db, 'a', 3)).toHaveLength(3);
+  });
+
+  it('treats LIKE syntax in the query as literal text', async () => {
+    expect(await searchApprovedIndicators(db, '%', 20)).toEqual([]);
+    expect(await searchApprovedIndicators(db, '_', 20)).toEqual([]);
   });
 });
 
@@ -159,6 +191,72 @@ describe('getIndicatorObservations', () => {
   });
 });
 
+describe('getObservationRange', () => {
+  const LOCAL_AUTHORITY_TYPES = [
+    'County unchanged',
+    'LA unchanged',
+    'UA unchanged',
+    'UA new 2020',
+    'UA new 2021',
+    'UA new 2023',
+  ];
+
+  it('brackets each period of the trend series across every area of the level', async () => {
+    const [range, cornwall] = await Promise.all([
+      getObservationRange(db, DIABETES_QOF_PREVALENCE, LOCAL_AUTHORITY_TYPES),
+      getIndicatorObservations(db, DIABETES_QOF_PREVALENCE, CORNWALL),
+    ]);
+
+    expect(range.length).toBeGreaterThan(0);
+    for (const period of range) {
+      expect(period.min).toBeLessThanOrEqual(period.max);
+      const observation = cornwall?.observations.find(
+        ({ fromDate, toDate, value }) =>
+          fromDate === period.fromDate && toDate === period.toDate && value !== null,
+      );
+      if (observation?.value != null) {
+        expect(observation.value).toBeGreaterThanOrEqual(period.min);
+        expect(observation.value).toBeLessThanOrEqual(period.max);
+      }
+    }
+  });
+
+  it('returns an empty range without area types or for an unknown indicator', async () => {
+    expect(await getObservationRange(db, DIABETES_QOF_PREVALENCE, [])).toEqual([]);
+    expect(await getObservationRange(db, 424242, LOCAL_AUTHORITY_TYPES)).toEqual([]);
+  });
+
+  it('returns one range per segment for an always-sexed indicator', async () => {
+    const range = await getObservationRange(db, LIFE_EXPECTANCY_AT_BIRTH, LOCAL_AUTHORITY_TYPES);
+
+    const segments = new Set(range.map(({ segment }) => segment));
+    expect(segments.has('Male')).toBe(true);
+    expect(segments.has('Female')).toBe(true);
+    for (const period of range) {
+      expect(period.min).toBeLessThanOrEqual(period.max);
+    }
+  });
+});
+
+describe('listAreaParents', () => {
+  it('maps each area to its parent of the requested type', async () => {
+    const parents = await listAreaParents(db, [CORNWALL], 'Regions (statistical)');
+
+    expect(parents).toEqual([
+      {
+        code: CORNWALL,
+        parentCode: 'E12000009',
+        parentName: 'South West region (statistical)',
+      },
+    ]);
+  });
+
+  it('returns nothing for empty input or a parent type the areas do not roll up to', async () => {
+    expect(await listAreaParents(db, [], 'Regions (statistical)')).toEqual([]);
+    expect(await listAreaParents(db, [CORNWALL], 'No Such Type')).toEqual([]);
+  });
+});
+
 describe('listAreasByType', () => {
   it('returns the current areas of the type in name order', async () => {
     const regions = await listAreasByType(db, 'Regions (statistical)');
@@ -171,5 +269,42 @@ describe('listAreasByType', () => {
 
   it('returns nothing for an area type that does not exist', async () => {
     expect(await listAreasByType(db, 'No Such Area Type')).toEqual([]);
+  });
+});
+
+describe('listAreasByCodes', () => {
+  it('resolves each code to its current name and area type', async () => {
+    expect(await listAreasByCodes(db, [CORNWALL, ENGLAND])).toEqual([
+      { code: CORNWALL, name: 'Cornwall', areaType: 'UA unchanged' },
+      { code: ENGLAND, name: 'England', areaType: 'England' },
+    ]);
+  });
+
+  it('returns nothing for empty input, silently skipping unknown codes', async () => {
+    expect(await listAreasByCodes(db, [])).toEqual([]);
+    expect(await listAreasByCodes(db, ['X99999999'])).toEqual([]);
+  });
+});
+
+describe('searchAreas', () => {
+  it('matches by name or exact code within the asked-for types only', async () => {
+    const cornwall = { code: CORNWALL, name: 'Cornwall', areaType: 'UA unchanged' };
+
+    expect(await searchAreas(db, 'corn', ['UA unchanged'], 10)).toEqual([cornwall]);
+    expect(await searchAreas(db, 'e06000052', ['UA unchanged'], 10)).toEqual([cornwall]);
+    expect(await searchAreas(db, 'corn', ['Regions (statistical)'], 10)).toEqual([]);
+  });
+
+  it('ranks earlier matches first and applies the limit', async () => {
+    const names = (await searchAreas(db, 'west', ['UA unchanged', 'Regions (statistical)'], 3)).map(
+      ({ name }) => name,
+    );
+
+    expect(names).toEqual(['West Berkshire', 'West Midlands region (statistical)', 'Westminster']);
+  });
+
+  it('treats pattern characters literally instead of as wildcards', async () => {
+    expect(await searchAreas(db, '%', ['UA unchanged'], 10)).toEqual([]);
+    expect(await searchAreas(db, '____', ['UA unchanged'], 10)).toEqual([]);
   });
 });

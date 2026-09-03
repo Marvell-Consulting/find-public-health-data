@@ -12,11 +12,27 @@ function api(get = vi.fn()) {
     get: get.getMockImplementation()
       ? get
       : get.mockImplementation((path: string) => {
-          if (path === '/api/indicators') {
-            return Promise.resolve({ indicators: [] });
+          if (path === '/api/indicators' || path.startsWith('/api/indicators?')) {
+            return Promise.resolve({
+              indicators: path.includes('q=')
+                ? [{ id: 'a', fingertipsId: 241, name: 'Diabetes: QOF prevalence' }]
+                : [],
+            });
+          }
+          if (path.startsWith('/api/areas/parents')) {
+            return Promise.resolve([]);
+          }
+          if (path.startsWith('/api/areas/lookup')) {
+            const codes = [...new URL(`http://x${path}`).searchParams.getAll('area_code')];
+            return Promise.resolve(
+              codes.map((code) => ({ code, name: `Area ${code}`, areaType: 'UA unchanged' })),
+            );
           }
           if (path.startsWith('/api/areas')) {
             return Promise.resolve([{ areaType: 'England', areas: [] }]);
+          }
+          if (path.includes('/range')) {
+            return Promise.resolve({ periods: [] });
           }
           // An indicator detail needs area types for the geography groups to be derived.
           // The data schema transforms a single-area response into an array, so the stub
@@ -50,9 +66,39 @@ describe('loadIndicator', () => {
 
     expect(result.selected).toEqual([]);
     expect(result.selection.fingertipsIds).toEqual([]);
-    // The area list and the pickable indicators are still needed to render the filters.
-    expect(get).toHaveBeenCalledWith('/api/areas?area_type=England', expect.anything());
-    expect(get).toHaveBeenCalledWith('/api/indicators', expect.anything());
+    // Neither catalogue ships with the page: indicators are searched per keystroke and
+    // the geography tree fetches its levels on demand.
+    expect(get).not.toHaveBeenCalledWith('/api/indicators', expect.anything());
+    expect(get.mock.calls.some(([path]) => String(path).startsWith('/api/areas?'))).toBe(false);
+  });
+
+  it('answers a no-script find search with the server matches, trimmed and encoded', async () => {
+    const { client, get } = api();
+
+    const result = await loadIndicator(
+      loaderArgs(client, {}, 'http://localhost/indicators?find=+diabetes+%26+obesity+'),
+    );
+
+    expect(get).toHaveBeenCalledWith(
+      '/api/indicators?q=diabetes%20%26%20obesity&limit=20',
+      expect.anything(),
+    );
+    expect(result.findSubject).toBe('diabetes & obesity');
+    expect(result.findResults).toEqual([
+      { id: 'a', fingertipsId: 241, name: 'Diabetes: QOF prevalence' },
+    ]);
+  });
+
+  it('skips the find search when the parameter is missing or blank', async () => {
+    const { client, get } = api();
+
+    const result = await loadIndicator(
+      loaderArgs(client, {}, 'http://localhost/indicators?find=++'),
+    );
+
+    expect(result.findSubject).toBe('');
+    expect(result.findResults).toEqual([]);
+    expect(get.mock.calls.some(([path]) => String(path).includes('q='))).toBe(false);
   });
 
   it('treats the route param as a single selection', async () => {
@@ -108,16 +154,13 @@ describe('loadIndicator', () => {
     const { client, get } = api();
 
     await loadIndicator(
-      loaderArgs(
-        client,
-        {},
-        'http://localhost/indicators?is=108&ats=Regions+(statistical)&as=E12000001&as=E12000002',
-      ),
+      loaderArgs(client, {}, 'http://localhost/indicators?is=108&as=E12000001&as=E12000002'),
     );
 
-    // One call carrying both codes, not one call per code.
+    // One call carrying both codes, not one call per code; England rides along last so
+    // the benchmark columns always have its series.
     expect(get).toHaveBeenCalledWith(
-      '/api/indicators/108/data?area_code=E12000001&area_code=E12000002',
+      '/api/indicators/108/data?area_code=E12000001&area_code=E12000002&area_code=E92000001',
       expect.anything(),
     );
     expect(get.mock.calls.filter(([path]) => String(path).includes('/data?'))).toHaveLength(1);
@@ -133,7 +176,9 @@ describe('loadIndicator', () => {
     expect(result.selection.areaCodes).toEqual(['E12000001']);
     const dataCalls = get.mock.calls.filter(([path]) => String(path).includes('/data?'));
     expect(dataCalls).toHaveLength(1);
-    expect(String(dataCalls[0]?.[0])).toBe('/api/indicators/108/data?area_code=E12000001');
+    expect(String(dataCalls[0]?.[0])).toBe(
+      '/api/indicators/108/data?area_code=E12000001&area_code=E92000001',
+    );
   });
 
   it('404s a non-numeric route param without calling the api for it', async () => {

@@ -6,13 +6,16 @@ import {
   TopicRoute,
   TopicsRoute,
 } from '@fphd/public-web-features';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import PublicApp, { ErrorBoundary } from './root';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 describe('public application routes', () => {
   it('renders the landing page introduction and shell navigation', async () => {
@@ -197,19 +200,7 @@ describe('public application routes', () => {
       },
     ];
     const areaData = [{ areaCode: 'E92000001', areaName: 'England', observations }];
-    const areaGroups = [
-      { areaType: 'England', areas: [{ code: 'E92000001', name: 'England' }] },
-      { areaType: 'UA unchanged', areas: [{ code: 'E06000052', name: 'Cornwall' }] },
-    ];
-    const availableIndicators = [
-      {
-        id: 'a',
-        fingertipsId: 108,
-        name: 'Under 75 mortality rate from all causes',
-        status: 'approved',
-      },
-    ];
-    const selection = { areaType: 'England', areaCodes: [], areaLevels: [], fingertipsIds: [108] };
+    const selection = { areaCodes: [], areaLevels: [], fingertipsIds: [108] };
     const Routes = createRoutesStub([
       {
         path: '/',
@@ -221,8 +212,6 @@ describe('public application routes', () => {
             Component: IndicatorRoute,
             loader: () => ({
               selected: [{ detail: indicator, areaData }],
-              areaGroups,
-              availableIndicators,
               selection,
             }),
           },
@@ -247,9 +236,13 @@ describe('public application routes', () => {
     // checkbox per area of the selected type wired into the GET form.
     expect(screen.getByRole('heading', { name: 'Selected indicators' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Geography filters' })).toBeTruthy();
-    // The name appears three times by design: the sidebar chip, the contents list and
-    // the block's own heading.
-    expect(screen.getAllByText('Under 75 mortality rate from all causes')).toHaveLength(3);
+    // The name appears twice by design: the sidebar chip and the block's own heading —
+    // a single indicator has no contents list, so its name is the page heading.
+    expect(screen.getAllByText('Under 75 mortality rate from all causes')).toHaveLength(2);
+    expect(screen.queryByRole('heading', { name: 'Contents' })).toBeNull();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Under 75 mortality rate from all causes' }),
+    ).toBeTruthy();
     expect(
       screen.getByRole('link', { name: 'Remove Under 75 mortality rate from all causes filter' }),
     ).toBeTruthy();
@@ -259,10 +252,20 @@ describe('public application routes', () => {
     // England never appears in the tree — it is the default selected area.
     expect(screen.getByText('Local authorities')).toBeTruthy();
     expect(screen.queryByRole('checkbox', { name: /^England/ })).toBeNull();
-    // The first level opens by default, so its areas are selectable straight away.
-    const areaCheckbox = screen
-      .getAllByRole('checkbox', { name: 'Cornwall' })
-      .find((box) => box.getAttribute('name') === 'as');
+    // Every level starts collapsed; expanding one fetches its areas on demand.
+    expect(screen.queryByRole('checkbox', { name: 'Cornwall' })).toBeNull();
+    const geographies = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ areas: [{ code: 'E06000052', name: 'Cornwall' }] }), {
+          headers: { 'content-type': 'application/json' },
+        }),
+    );
+    vi.stubGlobal('fetch', geographies);
+    fireEvent.click(screen.getByRole('button', { name: 'Expand Local authorities' }));
+    expect(geographies).toHaveBeenCalledWith('/geographies?level=Local%20authorities');
+    const areaCheckbox = (await screen.findAllByRole('checkbox', { name: 'Cornwall' })).find(
+      (box) => box.getAttribute('name') === 'as',
+    );
     expect(areaCheckbox?.getAttribute('value')).toBe('E06000052');
     // Controls apply on change; the submit button exists only for the no-script path.
 
@@ -302,19 +305,24 @@ describe('public application routes', () => {
   });
 
   it('gathers ticked areas and applies them in one step', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              areas: [
+                { code: 'E12000001', name: 'North East' },
+                { code: 'E12000002', name: 'North West' },
+              ],
+            }),
+            { headers: { 'content-type': 'application/json' } },
+          ),
+      ),
+    );
     const loaderData = {
       selected: [],
-      areaGroups: [
-        {
-          areaType: 'Statistical regions',
-          areas: [
-            { code: 'E12000001', name: 'North East' },
-            { code: 'E12000002', name: 'North West' },
-          ],
-        },
-      ],
-      availableIndicators: [],
-      selection: { areaType: 'England', areaCodes: [], areaLevels: [], fingertipsIds: [108] },
+      selection: { areaCodes: [], areaLevels: [], fingertipsIds: [108] },
     };
     const Routes = createRoutesStub([
       {
@@ -332,8 +340,15 @@ describe('public application routes', () => {
     expect(await screen.findByRole('searchbox', { name: 'Add geographies' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Add selected geographies' })).toBeTruthy();
 
-    // The group is collapsed, so its checkbox is what selects everything beneath it.
-    fireEvent.click(screen.getByRole('checkbox', { name: /^Statistical regions/ }));
+    // A level's own checkbox is a real form control, so whole-level selection still
+    // works when nothing beneath it has loaded.
+    const levelCheckbox = screen.getByRole('checkbox', { name: /^Statistical regions/ });
+    expect(levelCheckbox.getAttribute('name')).toBe('als');
+
+    // Areas arrive only when the level is expanded; ticking them builds the count.
+    fireEvent.click(screen.getByRole('button', { name: 'Expand Statistical regions' }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'North East' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'North West' }));
 
     expect(
       await screen.findByRole('button', { name: 'Add selected geographies (2)' }),
@@ -382,16 +397,10 @@ describe('public application routes', () => {
       classifications: [],
     };
     const loaderData = {
-      areaGroups: [
-        {
-          areaType: 'Regions (statistical)',
-          areas: [
-            { code: 'E12000001', name: 'North East' },
-            { code: 'E12000002', name: 'North West' },
-          ],
-        },
+      selectedAreas: [
+        { code: 'E12000001', name: 'North East', level: 'Statistical regions' },
+        { code: 'E12000002', name: 'North West', level: 'Statistical regions' },
       ],
-      availableIndicators: [],
       selected: [
         {
           detail: indicatorDetail,
@@ -410,7 +419,6 @@ describe('public application routes', () => {
         },
       ],
       selection: {
-        areaType: 'Regions (statistical)',
         areaCodes: ['E12000001', 'E12000002'],
         areaLevels: [],
         fingertipsIds: [108],
@@ -431,11 +439,7 @@ describe('public application routes', () => {
       },
     ]);
 
-    render(
-      <Routes
-        initialEntries={['/indicators/108?ats=Regions+(statistical)&as=E12000001&as=E12000002']}
-      />,
-    );
+    render(<Routes initialEntries={['/indicators/108?as=E12000001&as=E12000002']} />);
 
     // Both selected areas appear as removable chips in the geography card.
     expect(await screen.findByRole('heading', { name: 'Geography filters' })).toBeTruthy();
@@ -510,9 +514,7 @@ describe('public application routes', () => {
 
     const OneIndicator = routesFor({
       selected: [{ detail: detailFor(108, 'Mortality'), areaData: areaDataFor(341.1) }],
-      areaGroups: [{ areaType: 'England', areas: [{ code: 'E92000001', name: 'England' }] }],
-      availableIndicators: [],
-      selection: { areaType: 'England', areaCodes: [], areaLevels: [], fingertipsIds: [108] },
+      selection: { areaCodes: [], areaLevels: [], fingertipsIds: [108] },
     });
     render(<OneIndicator initialEntries={['/indicators?is=108']} />);
 
@@ -526,10 +528,7 @@ describe('public application routes', () => {
         { detail: detailFor(108, 'Mortality'), areaData: areaDataFor(341.1) },
         { detail: detailFor(90366, 'Life expectancy'), areaData: areaDataFor(80.1) },
       ],
-      areaGroups: [{ areaType: 'England', areas: [{ code: 'E92000001', name: 'England' }] }],
-      availableIndicators: [],
       selection: {
-        areaType: 'England',
         areaCodes: [],
         areaLevels: [],
         fingertipsIds: [108, 90366],
@@ -560,11 +559,7 @@ describe('public application routes', () => {
             Component: IndicatorRoute,
             loader: () => ({
               selected: [],
-              areaGroups: [],
-              availableIndicators: [
-                { id: 'a', fingertipsId: 108, name: 'Mortality', status: 'approved' },
-              ],
-              selection: { areaType: 'England', areaCodes: [], areaLevels: [], fingertipsIds: [] },
+              selection: { areaCodes: [], areaLevels: [], fingertipsIds: [] },
             }),
           },
         ],
@@ -574,8 +569,300 @@ describe('public application routes', () => {
     render(<Routes initialEntries={['/indicators']} />);
 
     expect(await screen.findByText('None selected')).toBeTruthy();
-    // Indicators are added through a type-ahead over the available list.
-    expect(screen.getByRole('combobox', { name: 'Search for an indicator' })).toBeTruthy();
+    // The main pane shows the prototype's inset-text empty state.
+    expect(screen.getByText('No indicators selected')).toBeTruthy();
+    // The search input arrives server-rendered and is replaced asynchronously by the
+    // accessible-autocomplete combobox, so the role must be awaited.
+    expect(await screen.findByRole('combobox', { name: 'Search for an indicator' })).toBeTruthy();
+  });
+
+  it('suggests server matches as you type and adds the picked indicator in two steps', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ indicators: [{ fingertipsId: 108, name: 'Mortality' }] }), {
+            headers: { 'content-type': 'application/json' },
+          }),
+      ),
+    );
+    const loaderUrls: string[] = [];
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        loader: () => ({ signedIn: false }),
+        children: [
+          {
+            path: 'indicators',
+            Component: IndicatorRoute,
+            loader: ({ request }: { request: Request }) => {
+              loaderUrls.push(request.url);
+              return {
+                selected: [],
+                selection: {
+                  areaCodes: [],
+                  areaLevels: [],
+                  fingertipsIds: [],
+                },
+              };
+            },
+          },
+        ],
+      },
+    ]);
+
+    try {
+      render(<Routes initialEntries={['/indicators']} />);
+
+      const combobox = await screen.findByRole('combobox', { name: 'Search for an indicator' });
+      // Picking a suggestion only readies it; the Add indicator button commits it.
+      expect(screen.queryByRole('button', { name: 'Add indicator' })).toBeNull();
+      fireEvent.input(combobox, { target: { value: 'mort' } });
+
+      // The debounce holds the request for 300ms; the suggestion appearing proves the
+      // server round-trip and the escape-safe template.
+      const option = await screen.findByRole('option', { name: 'Mortality' }, { timeout: 3000 });
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith('/indicators/search?q=mort', expect.anything());
+
+      fireEvent.click(option);
+      const addButton = await screen.findByRole('button', { name: 'Add indicator' });
+      fireEvent.click(addButton);
+      // Committing navigates: the loader re-runs with the picked indicator selected.
+      await waitFor(() => {
+        expect(loaderUrls.some((url) => url.includes('is=108'))).toBe(true);
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('offers only the period shapes the picked areas publish', async () => {
+    const observation = (fromDate: string, toDate: string, value: number) => ({
+      fromDate,
+      toDate,
+      value,
+      lowerCi95: null,
+      upperCi95: null,
+      lowerCi998: null,
+      upperCi998: null,
+      count: null,
+      denominator: null,
+      notes: [],
+      dimensions: [{ type: 'Age', value: 'All ages', dimensionClass: 'core', sortOrder: 1 }],
+    });
+    const detail = {
+      fingertipsId: 93995,
+      name: 'Mortality rate for deaths involving diabetes, all ages',
+      valueType: 'Directly standardised rate',
+      unit: { name: 'per 100,000', label: 'per 100,000' },
+      yearType: 'Calendar',
+      frequency: 'Annual',
+      polarity: 'RAG - Low is good',
+      ciMethod: null,
+      ciConfidenceLevel: null,
+      comparatorMethod: null,
+      dataUpdatedAt: null,
+      definition: null,
+      rationale: null,
+      methodology: null,
+      numeratorDefinition: null,
+      denominatorDefinition: null,
+      disclosureControl: null,
+      caveats: null,
+      notes: null,
+      dataSource: null,
+      numeratorSource: null,
+      denominatorSource: null,
+      areaTypes: [{ name: 'UA unchanged', areaCount: 125 }],
+      topics: [],
+      classifications: [],
+    };
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        loader: () => ({ signedIn: false }),
+        children: [
+          {
+            path: 'indicators/:fingertipsId',
+            Component: IndicatorRoute,
+            loader: () => ({
+              selectedAreas: [{ code: 'E06000052', name: 'Cornwall', level: 'Local authorities' }],
+              selected: [
+                {
+                  detail,
+                  areaData: [
+                    {
+                      areaCode: 'E06000052',
+                      areaName: 'Cornwall',
+                      // Rolling-only: no single-year series exists for the picked area.
+                      observations: [observation('2021-01-01', '2023-12-31', 10.2)],
+                    },
+                    {
+                      areaCode: 'E92000001',
+                      areaName: 'England',
+                      // England publishes both shapes, but must not put a period
+                      // choice on a page whose picked area cannot honour it.
+                      observations: [
+                        observation('2021-01-01', '2023-12-31', 11.4),
+                        observation('2023-01-01', '2023-12-31', 11.9),
+                      ],
+                    },
+                  ],
+                },
+              ],
+              selection: {
+                areaCodes: ['E06000052'],
+                areaLevels: [],
+                fingertipsIds: [93995],
+              },
+            }),
+          },
+        ],
+      },
+    ]);
+
+    // A stale pt param in the URL must fall back to All, not blank the table.
+    render(<Routes initialEntries={['/indicators/93995?as=E06000052&pt-93995=1-year']} />);
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Mortality rate for deaths involving diabetes, all ages',
+      }),
+    ).toBeTruthy();
+    expect(screen.queryByLabelText('Select time period type')).toBeNull();
+    expect(screen.getByRole('rowheader', { name: '2021 to 2023' })).toBeTruthy();
+  });
+
+  it('offers a benchmark beside each picked area with an optional comparison range', async () => {
+    const observationFor = (value: number) => ({
+      fromDate: '2023-01-01',
+      toDate: '2023-12-31',
+      value,
+      lowerCi95: null,
+      upperCi95: null,
+      lowerCi998: null,
+      upperCi998: null,
+      count: null,
+      denominator: null,
+      notes: [],
+      dimensions: [{ type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 }],
+    });
+    const detail = {
+      fingertipsId: 108,
+      name: 'Under 75 mortality rate from all causes',
+      valueType: 'Directly standardised rate',
+      unit: { name: 'per 100,000', label: 'per 100,000' },
+      yearType: 'Calendar',
+      frequency: 'Annual',
+      polarity: 'RAG - Low is good',
+      ciMethod: null,
+      ciConfidenceLevel: null,
+      comparatorMethod: null,
+      dataUpdatedAt: null,
+      definition: null,
+      rationale: null,
+      methodology: null,
+      numeratorDefinition: null,
+      denominatorDefinition: null,
+      disclosureControl: null,
+      caveats: null,
+      notes: null,
+      dataSource: null,
+      numeratorSource: null,
+      denominatorSource: null,
+      areaTypes: [{ name: 'UA unchanged', areaCount: 125 }],
+      topics: [],
+      classifications: [],
+    };
+    // The segment matches the fixture observations' dimension values, as the table only
+    // brackets a row with a range describing the same population.
+    const rangePeriod = {
+      fromDate: '2023-01-01',
+      toDate: '2023-12-31',
+      segment: '<75 yrs',
+      min: 300.1,
+      max: 500.9,
+    };
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        loader: () => ({ signedIn: false }),
+        children: [
+          {
+            path: 'indicators/:fingertipsId',
+            Component: IndicatorRoute,
+            loader: () => ({
+              selectedAreas: [{ code: 'E06000052', name: 'Cornwall', level: 'Local authorities' }],
+              benchmarkGeography: {
+                regionByCode: { E06000052: { code: 'E12000009', name: 'South West' } },
+                levelByCode: { E06000052: 'Local authorities' },
+              },
+              selected: [
+                {
+                  detail,
+                  areaData: [
+                    {
+                      areaCode: 'E06000052',
+                      areaName: 'Cornwall',
+                      observations: [observationFor(395.6)],
+                    },
+                    {
+                      areaCode: 'E92000001',
+                      areaName: 'England',
+                      observations: [observationFor(410.3)],
+                    },
+                  ],
+                  regionData: [
+                    {
+                      areaCode: 'E12000009',
+                      areaName: 'South West',
+                      observations: [observationFor(400.2)],
+                    },
+                  ],
+                  ranges: {
+                    'Local authorities': [rangePeriod],
+                    'Statistical regions': [rangePeriod],
+                  },
+                },
+              ],
+              selection: {
+                areaCodes: ['E06000052'],
+                areaLevels: [],
+                fingertipsIds: [108],
+              },
+            }),
+          },
+        ],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/indicators/108?as=E06000052']} />);
+
+    // England is not a column of its own while a real area is picked and no benchmark
+    // is chosen.
+    const select = await screen.findByLabelText('Select a geography or goal to compare with');
+    expect(screen.queryByRole('columnheader', { name: 'England' })).toBeNull();
+
+    fireEvent.change(select, { target: { value: 'england' } });
+    expect(screen.getByRole('columnheader', { name: 'England' })).toBeTruthy();
+
+    // Turning the range on adds the spread and the dot-and-whisker comparison.
+    fireEvent.click(screen.getByRole('radio', { name: 'Yes' }));
+    expect(screen.getByRole('columnheader', { name: 'Minimum' })).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: 'Maximum' })).toBeTruthy();
+    expect(screen.getByRole('cell', { name: '300.1' })).toBeTruthy();
+    expect(screen.getByRole('cell', { name: '500.9' })).toBeTruthy();
+    expect(screen.getByRole('img', { name: /Cornwall 395.6 against England 410.3/ })).toBeTruthy();
+
+    // The statistical-region benchmark takes the parent region's name and values.
+    fireEvent.change(select, { target: { value: 'region' } });
+    expect(
+      screen.getByRole('columnheader', { name: 'South West (Statistical region)' }),
+    ).toBeTruthy();
+    expect(screen.getByRole('cell', { name: '400.2' })).toBeTruthy();
   });
 
   it('renders the not-found page when the indicator loader throws a 404 response', async () => {

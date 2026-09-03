@@ -1,12 +1,20 @@
-import { Autocomplete, Button, FilterCard, FilterChip, FilterChips, GeographyTree } from '@fphd/ui';
-import { useState } from 'react';
-import { Form, useLocation, useNavigate } from 'react-router';
-import { cleanAreaName, displayGeographyGroups } from './geography-display';
+import {
+  Autocomplete,
+  type AutocompleteOption,
+  Button,
+  FilterCard,
+  FilterChip,
+  FilterChips,
+  GeographyTree,
+} from '@fphd/ui';
+import { useCallback, useState } from 'react';
+import { Form, Link, useLocation, useNavigate } from 'react-router';
+import { DISPLAY_LEVEL_NAMES } from './geography-display';
 
 import type {
-  AreaGroup,
   IndicatorSelection,
   IndicatorSummary,
+  SelectedArea,
   SelectedIndicator,
 } from './indicator-loader';
 
@@ -22,9 +30,6 @@ export function selectionSearch({
   for (const id of fingertipsIds) {
     params.append('is', String(id));
   }
-  if (selection.areaType) {
-    params.set('ats', selection.areaType);
-  }
   for (const code of selection.areaCodes) {
     params.append('as', code);
   }
@@ -36,51 +41,72 @@ export function selectionSearch({
 
 export function FilterPane({
   selected,
-  areaGroups,
-  availableIndicators,
+  selectedAreas = [],
+  findResults = [],
+  findSubject = '',
   selection,
 }: {
   selected: SelectedIndicator[];
-  areaGroups: AreaGroup[];
-  availableIndicators: IndicatorSummary[];
+  selectedAreas?: SelectedArea[];
+  findResults?: IndicatorSummary[];
+  findSubject?: string;
   selection: IndicatorSelection;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [pending, setPending] = useState<string[]>([]);
-  // Filter changes reload the page; carrying the hash and the option params keeps the
-  // open tab open and the chosen options chosen.
+  const [pendingLevels, setPendingLevels] = useState<string[]>(selection.areaLevels);
+  const [pendingIndicator, setPendingIndicator] = useState<AutocompleteOption | null>(null);
   const current = new URLSearchParams(location.search);
-  const searchOnly = (args: Parameters<typeof selectionSearch>[0]) => {
+  // Option params ride along only for tables the selection still shows — nothing lingers.
+  const optionEntriesFor = (keptIds: Set<string>) =>
+    [...current.entries()].filter(([key]) => {
+      const suffix = key.match(/^(?:ci|pt|sex|cmp|cr|tab)-(.+)$/)?.[1];
+      return suffix === 'compare' || (suffix !== undefined && keptIds.has(suffix));
+    });
+  const searchFor = (args: Parameters<typeof selectionSearch>[0]) => {
     const params = new URLSearchParams(selectionSearch(args));
-    for (const key of ['ci', 'pt', 'sex']) {
-      const value = current.get(key);
-      if (value) {
-        params.set(key, value);
-      }
+    const keptIds = new Set((args.fingertipsIds ?? args.selection.fingertipsIds).map(String));
+    for (const [key, value] of optionEntriesFor(keptIds)) {
+      params.set(key, value);
+    }
+    // An active no-script search rides along, so several matches can be added in a row.
+    if (findSubject) {
+      params.set('find', findSubject);
     }
     return `?${params.toString()}`;
   };
-  // Links take the full string; navigate() must get search and hash separately, or the
-  // hash is encoded into the last query value and the loader rejects it.
-  const searchWithTab = (args: Parameters<typeof selectionSearch>[0]) =>
-    `${searchOnly(args)}${location.hash}`;
-  const navigateWithTab = (args: Parameters<typeof selectionSearch>[0]) =>
-    navigate({ search: searchOnly(args), hash: location.hash.slice(1) });
+  // preventScrollReset: refreshing data in place must not lose the reader's position.
+  const navigateTo = (args: Parameters<typeof selectionSearch>[0]) =>
+    navigate({ search: searchFor(args) }, { preventScrollReset: true });
 
-  const unselected = availableIndicators.filter(
+  // Stable identity keeps the widget mounted; failures throw so they never read as
+  // empty results, and selected matches stay listed — the loader de-duplicates re-adds.
+  const searchIndicators = useCallback(async (query: string, signal: AbortSignal) => {
+    const response = await fetch(`/indicators/search?q=${encodeURIComponent(query)}`, {
+      signal,
+    });
+    if (!response.ok) {
+      throw new Error(`search failed: ${response.status}`);
+    }
+    const { indicators } = (await response.json()) as {
+      indicators: { fingertipsId: number; name: string }[];
+    };
+    return indicators.map(({ fingertipsId, name }) => ({
+      value: String(fingertipsId),
+      label: name,
+    }));
+  }, []);
+  const findMatches = findResults.filter(
     ({ fingertipsId }) => !selection.fingertipsIds.includes(fingertipsId),
   );
-  const areaName = (code: string) => {
-    const raw = areaGroups.flatMap(({ areas }) => areas).find((area) => area.code === code)?.name;
-    return raw ? cleanAreaName(raw) : code;
-  };
+  const areaName = (code: string) => selectedAreas.find((area) => area.code === code)?.name ?? code;
 
   return (
     <>
       <FilterCard
         title="Selected indicators"
-        onClear={selected.length > 0 ? searchWithTab({ selection, fingertipsIds: [] }) : undefined}
+        onClear={selected.length > 0 ? searchFor({ selection, fingertipsIds: [] }) : undefined}
         body={
           selected.length === 0 ? (
             <p className="govuk-body">None selected</p>
@@ -89,7 +115,7 @@ export function FilterPane({
               {selected.map(({ detail }) => (
                 <FilterChip
                   key={detail.fingertipsId}
-                  onRemove={searchWithTab({
+                  onRemove={searchFor({
                     selection,
                     fingertipsIds: selection.fingertipsIds.filter(
                       (id) => id !== detail.fingertipsId,
@@ -105,21 +131,79 @@ export function FilterPane({
           )
         }
         footer={
-          unselected.length > 0 ? (
-            <Autocomplete
-              label="Search for an indicator"
-              options={unselected.map(({ fingertipsId, name }) => ({
-                value: String(fingertipsId),
-                label: name,
-              }))}
-              onSelect={({ value }) =>
-                navigateWithTab({
-                  selection,
-                  fingertipsIds: [...selection.fingertipsIds, Number(value)],
-                })
-              }
-            />
-          ) : null
+          <>
+            <Form method="get">
+              {/* The whole selection rides in hidden inputs so a no-script search keeps it. */}
+              {selection.fingertipsIds.map((id) => (
+                <input key={id} name="is" type="hidden" value={id} />
+              ))}
+              {selection.areaCodes.map((code) => (
+                <input key={code} name="as" type="hidden" value={code} />
+              ))}
+              {selection.areaLevels.map((level) => (
+                <input key={level} name="als" type="hidden" value={level} />
+              ))}
+              {optionEntriesFor(new Set(selection.fingertipsIds.map(String))).map(
+                ([key, value]) => (
+                  <input key={key} name={key} type="hidden" value={value} />
+                ),
+              )}
+              <Autocomplete
+                defaultValue={findSubject}
+                label="Search for an indicator"
+                name="find"
+                source={searchIndicators}
+                onSelect={setPendingIndicator}
+              />
+              <noscript>
+                <Button className="govuk-button--secondary govuk-!-margin-bottom-0" type="submit">
+                  Search
+                </Button>
+              </noscript>
+            </Form>
+            {/* Two-step add: picking readies, the button commits — a misclick costs nothing. */}
+            {pendingIndicator ? (
+              <Button
+                className="fphd-button--full-width govuk-!-margin-bottom-0"
+                onClick={() => {
+                  setPendingIndicator(null);
+                  void navigateTo({
+                    selection,
+                    fingertipsIds: [...selection.fingertipsIds, Number(pendingIndicator.value)],
+                  });
+                }}
+                type="button"
+              >
+                Add indicator
+              </Button>
+            ) : null}
+            {findSubject ? (
+              findMatches.length === 0 ? (
+                <p className="govuk-body govuk-!-margin-top-3 govuk-!-margin-bottom-0">
+                  {findResults.length > 0
+                    ? 'All matching indicators are already selected'
+                    : 'No indicators found'}
+                </p>
+              ) : (
+                <ul className="govuk-list govuk-!-margin-top-3 govuk-!-margin-bottom-0">
+                  {findMatches.map(({ fingertipsId, name }) => (
+                    <li key={fingertipsId}>
+                      <Link
+                        className="govuk-link"
+                        preventScrollReset
+                        to={searchFor({
+                          selection,
+                          fingertipsIds: [...selection.fingertipsIds, fingertipsId],
+                        })}
+                      >
+                        {name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )
+            ) : null}
+          </>
         }
       />
 
@@ -127,7 +211,7 @@ export function FilterPane({
         title="Geography filters"
         onClear={
           selection.areaCodes.length > 0 || selection.areaLevels.length > 0
-            ? searchWithTab({ selection: { ...selection, areaCodes: [], areaLevels: [] } })
+            ? searchFor({ selection: { ...selection, areaCodes: [], areaLevels: [] } })
             : undefined
         }
         body={
@@ -142,7 +226,7 @@ export function FilterPane({
               {selection.areaLevels.map((level) => (
                 <FilterChip
                   key={level}
-                  onRemove={searchWithTab({
+                  onRemove={searchFor({
                     selection: {
                       ...selection,
                       areaLevels: selection.areaLevels.filter((value) => value !== level),
@@ -159,7 +243,7 @@ export function FilterPane({
                 .map((code) => (
                   <FilterChip
                     key={code}
-                    onRemove={searchWithTab({
+                    onRemove={searchFor({
                       selection: {
                         ...selection,
                         areaCodes: selection.areaCodes.filter((value) => value !== code),
@@ -176,63 +260,44 @@ export function FilterPane({
         }
         footer={
           <Form method="get">
-            {/* The current selection rides along so a submit adds to it rather than
-                replacing it — the tree only carries what is newly ticked. */}
+            {/* The current selection rides along so a submit adds to it; levels are the
+                tree's own checkboxes, so they are not doubled here. */}
             {selection.fingertipsIds.map((id) => (
               <input key={id} type="hidden" name="is" value={id} />
             ))}
             {selection.areaCodes.map((code) => (
               <input key={code} type="hidden" name="as" value={code} />
             ))}
-            {selection.areaLevels.map((level) => (
-              <input key={level} type="hidden" name="als" value={level} />
+            {optionEntriesFor(new Set(selection.fingertipsIds.map(String))).map(([key, value]) => (
+              <input key={key} type="hidden" name={key} value={value} />
             ))}
-            {['ci', 'pt', 'sex'].map((key) => {
-              const value = current.get(key);
-              return value ? <input key={key} type="hidden" name={key} value={value} /> : null;
-            })}
             <GeographyTree
-              groups={displayGeographyGroups(areaGroups)}
+              levels={DISPLAY_LEVEL_NAMES}
               name="as"
               onChange={setPending}
+              onLevelsChange={setPendingLevels}
               selected={pending}
+              selectedLevels={pendingLevels}
             />
-            {/* Ticking gathers a pending set; adding them is the deliberate second step, so
-                a long list can be built up without the page reloading between each tick.
-                The button is always rendered: hiding it until something is ticked would
-                leave the form unusable without scripting, since the count comes from state
-                the browser only has once hydrated. */}
+            {/* The button is always rendered: without scripting the tick count only
+                exists in the browser, and the form must stay submittable. */}
             <Button
               className="govuk-!-margin-top-3 govuk-!-margin-bottom-0"
               onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                if (pending.length === 0) {
+                const levelsChanged =
+                  pendingLevels.length !== selection.areaLevels.length ||
+                  pendingLevels.some((level) => !selection.areaLevels.includes(level));
+                if (pending.length === 0 && !levelsChanged) {
                   // Nothing gathered: let the form submit whatever is ticked in the DOM.
                   return;
                 }
                 event.preventDefault();
                 setPending([]);
-                // A group ticked in full collapses to its level name — one chip and one
-                // query value instead of hundreds of area codes.
-                const groups = displayGeographyGroups(areaGroups);
-                const fullLevels = groups.filter(
-                  ({ areas }) =>
-                    areas.length > 0 && areas.every(({ code }) => pending.includes(code)),
-                );
-                const levelled = new Set(
-                  fullLevels.flatMap(({ areas }) => areas.map(({ code }) => code)),
-                );
-                void navigateWithTab({
+                void navigateTo({
                   selection: {
                     ...selection,
-                    areaCodes: [
-                      ...new Set([
-                        ...selection.areaCodes,
-                        ...pending.filter((code) => !levelled.has(code)),
-                      ]),
-                    ],
-                    areaLevels: [
-                      ...new Set([...selection.areaLevels, ...fullLevels.map(({ name }) => name)]),
-                    ],
+                    areaCodes: [...new Set([...selection.areaCodes, ...pending])],
+                    areaLevels: pendingLevels,
                   },
                 });
               }}

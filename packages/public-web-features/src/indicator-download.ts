@@ -1,4 +1,4 @@
-import { periodLabel, segmentLabel, trendSeries } from './indicator-data';
+import { alignedTrendSeries, periodLabel, segmentLabel, trendSeries } from './indicator-data';
 import type { IndicatorAreaData, IndicatorDetail } from './indicator-loader';
 
 function csvField(value: string | number | null): string {
@@ -26,8 +26,11 @@ export function trendCsv(indicator: IndicatorDetail, areaData: IndicatorAreaData
       'Upper 95% CI',
     ],
   ];
+  // The same segment alignment as the table it mirrors: the first area's series sets
+  // the segment and every area follows it.
+  const reference = areaData[0] ? trendSeries(areaData[0].observations)[0] : undefined;
   for (const data of areaData) {
-    for (const observation of trendSeries(data.observations)) {
+    for (const observation of alignedTrendSeries(data.observations, reference)) {
       rows.push([
         indicator.name,
         data.areaName,
