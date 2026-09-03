@@ -22,6 +22,7 @@ type Step = {
 type Job = { env?: unknown; steps?: unknown };
 
 const WORKFLOW_EXTENSIONS = ['.yml', '.yaml'];
+const ACTION_FILENAMES = ['action.yml', 'action.yaml'];
 
 const IMAGE_BUILD_ACTION = /^docker\/build-push-action(?:@|$)/;
 // Where one command ends and the next may begin: a newline, `;`, `&`, `|` or `(`.
@@ -43,9 +44,11 @@ const SECRET_REFERENCE = /(?<![\w.'])secrets(?!\w)(?:\.[A-Za-z_][A-Za-z0-9_]*|\[
 /**
  * The images are public, so anything `docker build` can see may end up in a layer anyone can
  * pull. Inspects each build step's `run`, `with` and `env`, and the `env` it inherits from the
- * job and the workflow.
+ * job and the workflow. A step that `uses:` one of the repository's own actions counts as a build
+ * step when that action builds; otherwise moving a build behind one would hide it from this check.
  */
 export async function findSecretsReachingBuilds(repoRoot: string): Promise<ImageBuild[]> {
+  const buildActions = collectBuildActions(await readLocalActions(repoRoot));
   const dir = path.join(repoRoot, '.github', 'workflows');
   const files = (await readdir(dir))
     .filter((name) => WORKFLOW_EXTENSIONS.includes(path.extname(name)))
@@ -55,7 +58,11 @@ export async function findSecretsReachingBuilds(repoRoot: string): Promise<Image
     await Promise.all(
       files.map(async (name) => {
         const file = path.join(dir, name);
-        return collectImageBuilds(await readFile(file, 'utf8'), path.relative(repoRoot, file));
+        return collectImageBuilds(
+          await readFile(file, 'utf8'),
+          path.relative(repoRoot, file),
+          buildActions,
+        );
       }),
     )
   ).flat();
@@ -67,8 +74,62 @@ export async function findSecretsReachingBuilds(repoRoot: string): Promise<Image
   return builds.filter(({ references }) => references.length > 0);
 }
 
+/** Each local composite action's definition, keyed by the path a workflow would `uses:`. */
+async function readLocalActions(repoRoot: string): Promise<Map<string, string>> {
+  const dir = path.join(repoRoot, '.github', 'actions');
+  const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
+
+  const actions = new Map<string, string>();
+  for (const entry of entries.filter((candidate) => candidate.isDirectory())) {
+    for (const filename of ACTION_FILENAMES) {
+      const yaml = await readFile(path.join(dir, entry.name, filename), 'utf8').catch(() => null);
+      if (yaml !== null) {
+        actions.set(path.posix.join('.github', 'actions', entry.name), yaml);
+        break;
+      }
+    }
+  }
+  return actions;
+}
+
+/**
+ * The local actions that build an image, directly or by calling another that does. A composite
+ * action cannot read the `secrets` context, so a secret can only reach it through the calling
+ * step's `with` or `env`. The workflow scan already checks those, which is why the calling step
+ * has to count as a build.
+ */
+export function collectBuildActions(actions: ReadonlyMap<string, string>): Set<string> {
+  const steps = new Map<string, Step[]>();
+  for (const [action, yaml] of actions) {
+    const parsed: unknown = parse(yaml);
+    const runs = (parsed as { runs?: unknown } | null)?.runs;
+    const declared = (runs as { steps?: unknown } | undefined)?.steps;
+    steps.set(action, Array.isArray(declared) ? (declared as Step[]) : []);
+  }
+
+  // Iterate to a fixed point: an action that builds only by calling another is found once that
+  // other is in the set.
+  const building = new Set<string>();
+  let found: boolean;
+  do {
+    found = false;
+    for (const [action, actionSteps] of steps) {
+      if (!building.has(action) && actionSteps.some((step) => buildsAnImage(step, building))) {
+        building.add(action);
+        found = true;
+      }
+    }
+  } while (found);
+
+  return building;
+}
+
 /** Every image-build step in one workflow, each with the secret references that can reach it. */
-export function collectImageBuilds(yaml: string, file: string): ImageBuild[] {
+export function collectImageBuilds(
+  yaml: string,
+  file: string,
+  buildActions: ReadonlySet<string> = new Set(),
+): ImageBuild[] {
   const parsed: unknown = parse(yaml);
   if (typeof parsed !== 'object' || parsed === null) {
     throw new Error(`${file} is not a workflow; nothing can be checked.`);
@@ -88,7 +149,7 @@ export function collectImageBuilds(yaml: string, file: string): ImageBuild[] {
     const jobReferences = secretReferences(scalarsOf(definition.env), 'job env');
 
     return (definition.steps as Step[]).flatMap((step, index) => {
-      if (typeof step !== 'object' || step === null || !buildsAnImage(step)) {
+      if (typeof step !== 'object' || step === null || !buildsAnImage(step, buildActions)) {
         return [];
       }
       const references = [
@@ -103,9 +164,14 @@ export function collectImageBuilds(yaml: string, file: string): ImageBuild[] {
   });
 }
 
-function buildsAnImage(step: Step): boolean {
-  if (typeof step.uses === 'string' && IMAGE_BUILD_ACTION.test(step.uses)) {
-    return true;
+function buildsAnImage(step: Step, buildActions: ReadonlySet<string>): boolean {
+  if (typeof step.uses === 'string') {
+    if (IMAGE_BUILD_ACTION.test(step.uses)) {
+      return true;
+    }
+    if (step.uses.startsWith('./') && buildActions.has(step.uses.slice(2).replace(/\/+$/, ''))) {
+      return true;
+    }
   }
   return typeof step.run === 'string' && runsAnImageBuild(step.run);
 }

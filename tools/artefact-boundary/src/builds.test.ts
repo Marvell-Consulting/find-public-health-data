@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { collectImageBuilds } from './builds.js';
+import { collectBuildActions, collectImageBuilds } from './builds.js';
 
 const FILE = '.github/workflows/publish.yml';
 
@@ -219,11 +219,101 @@ jobs:
     ]);
   });
 
+  it('treats a step using a local action that builds as a build', () => {
+    const yaml = workflow(`
+jobs:
+  publish:
+    steps:
+      - name: Build the image
+        uses: ./.github/actions/build-image
+        with:
+          build-args: TOKEN=\${{ secrets.TOKEN }}
+`);
+    expect(collectImageBuilds(yaml, FILE, new Set(['.github/actions/build-image']))).toEqual([
+      {
+        file: FILE,
+        job: 'publish',
+        step: '"Build the image"',
+        references: ['secrets.TOKEN (step with)'],
+      },
+    ]);
+  });
+
+  it('ignores a step using a local action that does not build', () => {
+    const yaml = workflow(`
+jobs:
+  publish:
+    steps:
+      - uses: ./.github/actions/scan-image
+        with:
+          token: \${{ secrets.TOKEN }}
+`);
+    expect(collectImageBuilds(yaml, FILE, new Set(['.github/actions/build-image']))).toEqual([]);
+  });
+
   it('returns nothing for a workflow with no jobs', () => {
     expect(collectImageBuilds(workflow(''), FILE)).toEqual([]);
   });
 
   it('refuses a file that is not a workflow', () => {
     expect(() => collectImageBuilds('just a string', FILE)).toThrow(/not a workflow/);
+  });
+});
+
+describe('collectBuildActions', () => {
+  const action = (body: string) =>
+    `name: Build\ndescription: Builds.\nruns:\n  using: composite\n${body}`;
+
+  it('finds an action that builds directly', () => {
+    const actions = new Map([
+      [
+        '.github/actions/build-image',
+        action(`
+  steps:
+    - uses: docker/build-push-action@abc123
+`),
+      ],
+      [
+        '.github/actions/scan-image',
+        action(`
+  steps:
+    - uses: aquasecurity/trivy-action@abc123
+`),
+      ],
+    ]);
+    expect(collectBuildActions(actions)).toEqual(new Set(['.github/actions/build-image']));
+  });
+
+  it('finds an action that builds only by calling another', () => {
+    const actions = new Map([
+      [
+        '.github/actions/build-image',
+        action(`
+  steps:
+    - run: docker build .
+`),
+      ],
+      [
+        '.github/actions/build-and-scan',
+        action(`
+  steps:
+    - uses: ./.github/actions/build-image
+    - uses: ./.github/actions/scan-image
+`),
+      ],
+    ]);
+    expect(collectBuildActions(actions)).toEqual(
+      new Set(['.github/actions/build-image', '.github/actions/build-and-scan']),
+    );
+  });
+
+  it('ignores an action with no steps at all', () => {
+    const actions = new Map([
+      [
+        '.github/actions/setup-workspace',
+        'name: Setup\ndescription: Installs.\nruns:\n  using: node24\n  main: index.js\n',
+      ],
+    ]);
+    expect(collectBuildActions(actions)).toEqual(new Set());
   });
 });

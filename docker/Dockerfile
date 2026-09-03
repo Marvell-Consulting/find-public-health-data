@@ -11,8 +11,9 @@
 #   docker build -f docker/Dockerfile --target api --build-arg APP=internal-api  -t internal-api  .
 #   docker build -f docker/Dockerfile --target operations --build-arg APP=operations -t operations .
 #
-# Two workflows build exactly this list, one matrix job per row: ci.yml builds, smoke-tests and
-# scans them on every pull request, publish-images.yml scans and pushes them from main.
+# Two workflows build this list, one matrix job per row, both through .github/actions/build-image
+# so the flags live in one place: ci.yml on every pull request, publish-images.yml on main. Each
+# builds, smoke-tests and scans; only the second pushes.
 #
 # docker/app.Dockerfile is the separate development image (see scripts/dev.sh); it keeps the
 # whole workspace and devDependencies, which is exactly what these must not do.
@@ -41,11 +42,11 @@ RUN pnpm fetch
 COPY . .
 RUN pnpm install --frozen-lockfile --prefer-offline
 
+# Fail here on an unknown APP, not at runtime with an empty image. Checked against the workspace
+# so adding an app needs no edit to this file.
 ARG APP
-RUN case "${APP}" in \
-      public-web | internal-web | public-api | internal-api | operations) ;; \
-      *) echo "APP build arg must be one of: public-web internal-web public-api internal-api operations (got '${APP}')" >&2; exit 1 ;; \
-    esac
+RUN test -n "${APP}" && test -d "apps/${APP}" \
+      || { echo "APP build arg must name a directory in apps/ (got '${APP}')" >&2; exit 1; }
 
 # `...` builds the app's workspace dependencies first: the packages the Node runtime consumes
 # resolve to dist/ through their `default` export condition, so an unbuilt one is missing at

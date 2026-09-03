@@ -50,8 +50,9 @@ async function main(): Promise<void> {
 }
 
 /**
- * Workflow YAML only: refuses the route in, whatever the value looks like. Trivy, in CI, checks
- * the built bytes for the patterns it knows.
+ * Checks workflow YAML only, following a `uses:` into the repository's own composite actions. It
+ * refuses the route in, whatever the value looks like; Trivy, in CI, checks the built bytes for the
+ * patterns it knows.
  */
 async function checkImageBuildInputs(): Promise<Violation[]> {
   console.log('Checking the workflows’ image builds for secrets…');
