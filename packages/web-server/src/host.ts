@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { createBaseApp, type StartServerOptions, startServer } from '@fphd/express';
+import compression from 'compression';
 import express, { type Express, type RequestHandler } from 'express';
 import morgan from 'morgan';
 
@@ -14,6 +15,8 @@ function createHost({ development, serviceName }: { development: boolean; servic
 
   // After the base, so its JSON probe responses answer without a CSP.
   app.use(securityHeaders({ development }));
+  // At the host so static assets compress too; Front Door does not compress.
+  app.use(compression());
 
   return app;
 }

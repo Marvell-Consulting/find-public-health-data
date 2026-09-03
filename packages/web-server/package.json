@@ -57,6 +57,7 @@
     "@fphd/ui": "workspace:*",
     "@react-router/express": "catalog:",
     "@react-router/node": "catalog:",
+    "compression": "catalog:",
     "express": "catalog:",
     "isbot": "catalog:",
     "morgan": "catalog:",
@@ -65,6 +66,7 @@
     "react-router": "catalog:"
   },
   "devDependencies": {
+    "@types/compression": "catalog:",
     "@types/express": "catalog:",
     "@types/morgan": "catalog:",
     "@types/node": "catalog:",
