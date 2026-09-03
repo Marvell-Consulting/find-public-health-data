@@ -178,9 +178,12 @@ To add real ones:
   Every page has a spec with a test that it renders and a separate test that it has no WCAG 2.2 AA
   violations, scanned with axe-core through `expectNoAccessibilityViolations` from
   `e2e/tests/support/accessibility.ts`; a new page gets a spec with both. A spec that drives a page
-  into a further state — a validation error, a selection — scans that state too. Automated checks
-  catch around a third of WCAG issues, so this is a regression net rather than an audit: keyboard
-  operation, zoom and reflow, and screen-reader behaviour still need manual testing.
+  into a further state — a validation error, a selection — scans that state too. A ticketed defect
+  that is waiting on a fix goes in `KNOWN_VIOLATIONS` in the same file, scoped to one rule and one
+  selector so the rest of the page is still held to the bar; the scan also checks each entry is
+  still seen, so the fix landing without removing it goes red. Automated checks catch around a third
+  of WCAG issues, so this is a regression net rather than an audit: keyboard operation, zoom and
+  reflow, and screen-reader behaviour still need manual testing.
 
 Every job runs the whole workspace rather than only the changed packages. When CI wall-clock starts
 to hurt, `pnpm --filter "...[origin/main]"` selects changed packages plus their dependents, with no
