@@ -181,6 +181,73 @@ describe('loadIndicator', () => {
     );
   });
 
+  it('skips range and region requests when no benchmark option displays them', async () => {
+    const { client, get } = api();
+
+    await loadIndicator(
+      loaderArgs(client, {}, 'http://localhost/indicators?is=108&as=E12000001&cmp-108=england'),
+    );
+
+    // A benchmark value column needs only the England series already loaded; the
+    // expensive level range is fetched when the comparison range is switched on.
+    expect(get.mock.calls.some(([path]) => String(path).includes('/range'))).toBe(false);
+  });
+
+  it('fetches the picked levels ranges when the england comparison range is shown', async () => {
+    const { client, get } = api();
+
+    await loadIndicator(
+      loaderArgs(
+        client,
+        {},
+        'http://localhost/indicators?is=108&as=E12000001&cmp-108=england&cr-108=yes',
+      ),
+    );
+
+    const rangeCalls = get.mock.calls.filter(([path]) => String(path).includes('/range'));
+    expect(rangeCalls).toHaveLength(1);
+    expect(String(rangeCalls[0]?.[0])).toContain('area_type=');
+  });
+
+  it('fetches the statistical regions range and region data for a region benchmark', async () => {
+    const get = vi.fn().mockImplementation((path: string) => {
+      if (path.startsWith('/api/areas/parents')) {
+        return Promise.resolve([
+          { code: 'E06000052', parentCode: 'E12000009', parentName: 'South West' },
+        ]);
+      }
+      if (path.startsWith('/api/areas/lookup')) {
+        return Promise.resolve([{ code: 'E06000052', name: 'Cornwall', areaType: 'UA unchanged' }]);
+      }
+      if (path.includes('/range')) {
+        return Promise.resolve({ periods: [] });
+      }
+      return Promise.resolve(
+        path.includes('/data')
+          ? [{ areaCode: '', areaName: '', observations: [] }]
+          : { areaTypes: [] },
+      );
+    });
+    const { client } = api(get);
+
+    await loadIndicator(
+      loaderArgs(
+        client,
+        {},
+        'http://localhost/indicators?is=108&as=E06000052&cmp-108=region&cr-108=yes',
+      ),
+    );
+
+    const rangeCalls = get.mock.calls.filter(([path]) => String(path).includes('/range'));
+    expect(rangeCalls).toHaveLength(1);
+    expect(String(rangeCalls[0]?.[0])).toContain(
+      `area_type=${encodeURIComponent('Regions (statistical)')}`,
+    );
+    expect(get.mock.calls.some(([path]) => String(path).includes('area_code=E12000009'))).toBe(
+      true,
+    );
+  });
+
   it('404s a non-numeric route param without calling the api for it', async () => {
     const { client } = api();
 

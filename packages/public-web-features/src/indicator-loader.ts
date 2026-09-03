@@ -166,11 +166,36 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
     regionByCode[code] = { code: parentCode, name: cleanAreaName(parentName) };
   }
 
-  const rangeLevels = [...new Set(Object.values(levelByCode))];
-  if (Object.keys(regionByCode).length > 0 && !rangeLevels.includes('Statistical regions')) {
-    rangeLevels.push('Statistical regions');
-  }
+  const pickedLevels = [...new Set(Object.values(levelByCode))];
   const regionCodes = [...new Set(Object.values(regionByCode).map(({ code }) => code))];
+
+  // Benchmark data is expensive (a range query aggregates every observation of a level),
+  // so it is fetched only for indicators whose cmp/cr options actually display it.
+  const comparisonFor = (id: number) => {
+    const choices = [
+      url.searchParams.get(`cmp-${id}`) ?? 'none',
+      url.searchParams.get('cmp-compare') ?? 'none',
+    ];
+    const ranges = [
+      url.searchParams.get(`cr-${id}`) === 'yes',
+      url.searchParams.get('cr-compare') === 'yes',
+    ];
+    const rangeLevels = new Set<string>();
+    choices.forEach((choice, index) => {
+      if (!ranges[index]) {
+        return;
+      }
+      if (choice === 'england') {
+        for (const level of pickedLevels) {
+          rangeLevels.add(level);
+        }
+      }
+      if (choice === 'region') {
+        rangeLevels.add('Statistical regions');
+      }
+    });
+    return { region: choices.includes('region'), rangeLevels: [...rangeLevels] };
+  };
 
   const fingertipsIds = selectedIndicatorIds(url, params.fingertipsId);
   // `find` is the quicksearch form's no-script round trip; matches render as add links.
@@ -194,14 +219,15 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
             ? indicatorAreaDataSchema.transform((one) => [one])
             : indicatorAreaDataListSchema,
         );
+      const comparison = comparisonFor(id);
       const [detail, areaData, regionData, rangeEntries] = await Promise.all([
         api.get(apiPath`/api/indicators/${String(id)}`, indicatorDetailSchema),
         // One request per indicator carrying every area, rather than one per pair: a
         // page comparing ten indicators across twenty areas would otherwise fire 200.
         dataFor(codesToLoad),
-        regionCodes.length > 0 ? dataFor(regionCodes) : Promise.resolve([]),
+        comparison.region && regionCodes.length > 0 ? dataFor(regionCodes) : Promise.resolve([]),
         Promise.all(
-          rangeLevels.map(async (level) => {
+          comparison.rangeLevels.map(async (level) => {
             const range = await api.get(
               `${apiPath`/api/indicators/${String(id)}/range`}?${levelAreaTypes(level)
                 .map((name) => `area_type=${encodeURIComponent(name)}`)

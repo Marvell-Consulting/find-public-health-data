@@ -1,5 +1,6 @@
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { createRequestHandler } from '@react-router/express';
+import compression from 'compression';
 import express, { type Express, type RequestHandler } from 'express';
 import type { RouterContextProvider, ServerBuild } from 'react-router';
 
@@ -49,6 +50,8 @@ export function createReactRouterApp(
   const app = express();
 
   app.disable('x-powered-by');
+  // Indicator pages carry megabytes of observation data; Front Door does not compress.
+  app.use(compression());
   app.use((_request, response, next) => {
     response.setHeader('Cache-Control', 'private, no-store');
     next();
