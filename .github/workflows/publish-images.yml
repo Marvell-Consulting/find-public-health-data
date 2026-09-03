@@ -33,8 +33,11 @@ jobs:
     permissions:
       contents: read
       # The run's own GITHUB_TOKEN is the whole of the auth: no PAT, no stored secret,
-      # and the token expires with the run.
+      # and the token expires with the run. The same token signs the provenance, through
+      # the run's OIDC identity; no signing key exists anywhere.
       packages: write
+      id-token: write
+      attestations: write
     strategy:
       # One app failing to build must not stop the other four publishing.
       fail-fast: false
@@ -116,7 +119,20 @@ jobs:
             echo '::error::Could not read the pushed manifest digest'
             exit 1
           fi
+          echo "digest=${digest}" >> "${GITHUB_OUTPUT}"
           echo "reference=${REGISTRY}/${APP}@${digest}" >> "${GITHUB_OUTPUT}"
+
+      # Build provenance for the digest just pushed, signed with this run's OIDC identity and
+      # stored both in this repository's attestations and in the registry beside the image.
+      # The infrastructure repo's deploy and db-ops workflows verify it before pinning a digest,
+      # so an image without one does not deploy.
+      - name: Attest the image
+        id: attest
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ matrix.app }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
 
       # Deploys are manual for now; the run summary puts the digest where a person can find
       # it without digging through logs.
@@ -124,6 +140,7 @@ jobs:
         env:
           APP: ${{ matrix.app }}
           REFERENCE: ${{ steps.push.outputs.reference }}
+          ATTESTATION_URL: ${{ steps.attest.outputs.attestation-url }}
         run: |
           {
             echo "### ${APP}"
@@ -131,6 +148,8 @@ jobs:
             echo '```'
             echo "${REFERENCE}"
             echo '```'
+            echo
+            echo "[Build provenance](${ATTESTATION_URL})"
           } >> "${GITHUB_STEP_SUMMARY}"
 
   # One Slack message per run, never one per matrix leg. Per-app conclusions come
