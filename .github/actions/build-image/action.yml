@@ -1,9 +1,9 @@
 name: Build image
 description: Builds one app's production image into the local Docker daemon.
 
-# One definition for the two workflows that build: ci.yml for the pull request,
-# publish-images.yml for the push. Nothing here pushes — the image has to be started and
-# scanned first, so both callers load it and publishing pushes the tags this produced.
+# One build definition for both workflows: ci.yml on the pull request, publish-images.yml on
+# the push to main. It loads the image into the local daemon and never pushes, so the caller
+# can smoke-test and scan it first; publish-images.yml then pushes the tags this produced.
 
 inputs:
   app:
@@ -30,12 +30,11 @@ runs:
   steps:
     - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
 
-    # Scope the cache per app rather than sharing one: the matrix legs run concurrently, and a
-    # single scope would have them overwriting each other's manifest for no gain. Run-over-run is
-    # where the saving is — the install and workspace build restore from the previous run of the
-    # same app. `mode=max` keeps the builder stage's layers, which are the expensive ones; the
-    # cache is well within the repository limit at five scopes, and GitHub evicts
-    # least-recently-used beyond it.
+    # One cache scope per app: the matrix legs run concurrently and would overwrite a shared
+    # scope's manifest. The saving is run over run, where the install and workspace build restore
+    # from the previous run of the same app. `mode=max` keeps the builder stage's layers, which
+    # are the expensive ones. Five scopes fit within the repository cache limit; GitHub evicts
+    # least recently used beyond it.
     - name: Build ${{ inputs.app }}
       uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
       with:
@@ -48,8 +47,8 @@ runs:
         # Into the local daemon, not a registry.
         load: true
         push: false
-        # The docker exporter `load` uses cannot carry attestations, and buildx warns rather
-        # than failing if asked for them.
+        # The docker exporter that `load` uses cannot carry buildx attestations; if asked for
+        # them, buildx warns and drops them.
         provenance: false
         cache-from: ${{ inputs.cache-scope && format('type=gha,scope={0}', inputs.cache-scope) || '' }}
         cache-to: ${{ inputs.cache-scope && format('type=gha,mode=max,scope={0}', inputs.cache-scope) || '' }}

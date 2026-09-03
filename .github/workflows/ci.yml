@@ -217,9 +217,9 @@ jobs:
   # module imported at runtime but declared as a devDependency compiles here and is missing there.
   # Without this the first sign of that is a red publish after merge, or a crash-looping revision.
   #
-  # No registry login — the images are built into the local daemon and discarded. Build, smoke test
+  # No registry login: the images are built into the local daemon and discarded. Build, smoke test
   # and scan are the same three steps publish-images.yml runs, through the same action and script,
-  # so a regression reddens the pull request rather than the publish after it.
+  # so a regression fails the pull request instead of the publish after it.
   build-images:
     name: Build images (${{ matrix.app }})
     if: ${{ !github.event.pull_request.draft }}

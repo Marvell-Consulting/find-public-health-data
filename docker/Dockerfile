@@ -11,9 +11,9 @@
 #   docker build -f docker/Dockerfile --target api --build-arg APP=internal-api  -t internal-api  .
 #   docker build -f docker/Dockerfile --target operations --build-arg APP=operations -t operations .
 #
-# Two workflows build exactly this list, one matrix job per row, both through
-# .github/actions/build-image so the flags stay in one place: ci.yml on every pull request,
-# publish-images.yml from main. Each builds, smoke-tests and scans; only the second pushes.
+# Two workflows build this list, one matrix job per row, both through .github/actions/build-image
+# so the flags live in one place: ci.yml on every pull request, publish-images.yml on main. Each
+# builds, smoke-tests and scans; only the second pushes.
 #
 # docker/app.Dockerfile is the separate development image (see scripts/dev.sh); it keeps the
 # whole workspace and devDependencies, which is exactly what these must not do.
@@ -42,8 +42,8 @@ RUN pnpm fetch
 COPY . .
 RUN pnpm install --frozen-lockfile --prefer-offline
 
-# An unrecognised APP would otherwise build nothing and fail at runtime instead of here. Read
-# off the workspace rather than a list of apps, so adding one needs no edit to this file.
+# Fail here on an unknown APP, not at runtime with an empty image. Checked against the workspace
+# so adding an app needs no edit to this file.
 ARG APP
 RUN test -n "${APP}" && test -d "apps/${APP}" \
       || { echo "APP build arg must name a directory in apps/ (got '${APP}')" >&2; exit 1; }

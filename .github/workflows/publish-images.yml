@@ -2,8 +2,7 @@ name: Publish images
 
 # Only main, and only on push — these packages are what deployments pull, so only merged
 # code publishes to them. It doesn't wait on CI: build-images already gates image regressions
-# on the pull request, and this job proves its own artefact before pushing it rather than
-# trusting another run's.
+# on the pull request, and this job smoke-tests and scans the image it pushes itself.
 on:
   push:
     branches: [main]
@@ -61,15 +60,14 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: docker login ghcr.io --username "${GITHUB_ACTOR}" --password-stdin <<<"${GITHUB_TOKEN}"
 
-      # A label the build itself cannot produce; the rest come from the run's own context.
+      # The one label value the run's context cannot supply.
       - name: Read the build timestamp
         id: timestamp
         run: echo "created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "${GITHUB_OUTPUT}"
 
-      # Commit and build-time metadata go in the OCI labels, not the tags — a tag encoding
-      # them could drift from the truth the labels carry. No build cache: the pull request's
-      # is scoped to its own branch, and building cold costs less than reasoning about which
-      # run's layers a published image is made of.
+      # Commit and build-time metadata go in the OCI labels, not the tags: a tag encoding them
+      # could drift from what the labels say. No build cache, so a published image is made only
+      # of layers this run built; the pull request's cache is scoped to its branch anyway.
       - name: Build the image
         uses: ./.github/actions/build-image
         with:
@@ -85,9 +83,8 @@ jobs:
             org.opencontainers.image.created=${{ steps.timestamp.outputs.created }}
             org.opencontainers.image.licenses=MIT
 
-      # The image that is pushed below is the image started here — nothing rebuilds in between.
-      # Without this an image can reach the registry having never been run anywhere: the pull
-      # request's build proves a different artefact, from a different builder, with its own cache.
+      # Runs the image this job built and is about to push. The pull request's smoke test ran a
+      # different build, from a different builder with its own cache, so it does not cover this one.
       - name: Smoke test the image
         env:
           APP: ${{ matrix.app }}

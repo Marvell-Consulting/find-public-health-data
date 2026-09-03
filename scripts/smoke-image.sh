@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 # Starts a production image and checks it comes up: a server logs `Listening` once bound, the
-# operations CLI prints its usage and exits 2. Either outcome means every module the app imports
-# at runtime resolved out of the tree `pnpm deploy --prod` pruned — the failure this catches is a
-# runtime import declared as a devDependency, which compiles everywhere and is missing only here.
+# operations CLI prints its usage and exits 2. Either shows that every module the app imports at
+# runtime resolved from the tree `pnpm deploy --prod` pruned. The failure this catches is a runtime
+# import declared as a devDependency, which compiles everywhere and is missing only here.
 #
-# Both workflows run it: ci.yml against the image it builds for the pull request,
-# publish-images.yml against the exact image it is about to push. Runnable by hand against any
-# local tag, which is the point of it living here rather than inline in the YAML:
+# ci.yml runs it against the pull request's build and publish-images.yml against the image it is
+# about to push. It also runs by hand against any local tag:
 #
 #   scripts/smoke-image.sh public-web fphd-ci/public-web:ci
 set -euo pipefail
@@ -18,7 +17,7 @@ if [ -z "${app}" ] || [ -z "${image}" ]; then
   exit 1
 fi
 
-# GitHub renders `::error::` as an annotation on the job; running by hand, the prefix is noise.
+# GitHub renders `::error::` as a job annotation; by hand the prefix is noise.
 fail() {
   if [ -n "${GITHUB_ACTIONS:-}" ]; then
     echo "::error::${1}" >&2
@@ -28,9 +27,9 @@ fail() {
   exit 1
 }
 
-# Enough to satisfy every app's schema; unknown keys are ignored by the one reading it. DB_HOST is
-# deliberately unroutable — the servers connect lazily, so a reachable database would prove nothing
-# more and a service container would cost a minute an image.
+# The union of every app's required config; each app ignores the keys it does not read. DB_HOST
+# points at nothing: the servers connect lazily, and a service container would add a minute per
+# image for nothing this test checks.
 env_args=(
   -e APP_ENV=dev
   -e DB_HOST=127.0.0.1
@@ -44,10 +43,9 @@ env_args=(
 )
 
 if [ "${app}" = 'operations' ]; then
-  # Bare, the CLI prints its usage and exits 2. Reaching that means config.ts and every module
-  # behind it resolved out of the pruned tree. Detached and polled rather than run in the
-  # foreground: an image that starts something long-running instead would otherwise hang here
-  # until the job's own timeout, half an hour later.
+  # With no arguments the CLI prints its usage and exits 2, which means config.ts and every module
+  # behind it resolved. Detached and polled so that an image which starts something long-running
+  # fails in 30s instead of hanging until the job's 30-minute timeout.
   cid=$(docker run -d "${env_args[@]}" "${image}")
   status=''
   for _ in $(seq 1 30); do

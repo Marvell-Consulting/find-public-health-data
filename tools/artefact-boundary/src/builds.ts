@@ -44,8 +44,8 @@ const SECRET_REFERENCE = /(?<![\w.'])secrets(?!\w)(?:\.[A-Za-z_][A-Za-z0-9_]*|\[
 /**
  * The images are public, so anything `docker build` can see may end up in a layer anyone can
  * pull. Inspects each build step's `run`, `with` and `env`, and the `env` it inherits from the
- * job and the workflow. A step that `uses:` one of the repository's own actions is a build step
- * when that action builds — otherwise moving a build behind one would leave nothing to check.
+ * job and the workflow. A step that `uses:` one of the repository's own actions counts as a build
+ * step when that action builds; otherwise moving a build behind one would hide it from this check.
  */
 export async function findSecretsReachingBuilds(repoRoot: string): Promise<ImageBuild[]> {
   const buildActions = collectBuildActions(await readLocalActions(repoRoot));
@@ -93,10 +93,10 @@ async function readLocalActions(repoRoot: string): Promise<Map<string, string>> 
 }
 
 /**
- * Which of those actions build an image, directly or through another of them. A composite action
- * cannot read the `secrets` context itself, so what matters is that the step calling it counts as
- * a build: the secret can only arrive through the caller's `with` or `env`, which is where the
- * workflow scan already looks.
+ * The local actions that build an image, directly or by calling another that does. A composite
+ * action cannot read the `secrets` context, so a secret can only reach it through the calling
+ * step's `with` or `env`. The workflow scan already checks those, which is why the calling step
+ * has to count as a build.
  */
 export function collectBuildActions(actions: ReadonlyMap<string, string>): Set<string> {
   const steps = new Map<string, Step[]>();
@@ -107,8 +107,8 @@ export function collectBuildActions(actions: ReadonlyMap<string, string>): Set<s
     steps.set(action, Array.isArray(declared) ? (declared as Step[]) : []);
   }
 
-  // Repeated passes rather than one: an action that builds only by calling another is a build too,
-  // and the set it is tested against grows as they are found.
+  // Iterate to a fixed point: an action that builds only by calling another is found once that
+  // other is in the set.
   const building = new Set<string>();
   let found: boolean;
   do {
