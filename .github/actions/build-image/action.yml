@@ -1,0 +1,55 @@
+name: Build image
+description: Builds one app's production image into the local Docker daemon.
+
+# One definition for the two workflows that build: ci.yml for the pull request,
+# publish-images.yml for the push. Nothing here pushes — the image has to be started and
+# scanned first, so both callers load it and publishing pushes the tags this produced.
+
+inputs:
+  app:
+    description: The app to build; also the APP build arg.
+    required: true
+  target:
+    description: The Dockerfile stage — api, web or operations.
+    required: true
+  tags:
+    description: Tags to apply, one per line.
+    required: true
+  labels:
+    description: OCI labels, one per line. Only a published image carries them.
+    required: false
+    default: ''
+  cache-scope:
+    description: >-
+      GitHub Actions cache scope to read and write. Empty builds without a cache.
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+    # Scope the cache per app rather than sharing one: the matrix legs run concurrently, and a
+    # single scope would have them overwriting each other's manifest for no gain. Run-over-run is
+    # where the saving is — the install and workspace build restore from the previous run of the
+    # same app. `mode=max` keeps the builder stage's layers, which are the expensive ones; the
+    # cache is well within the repository limit at five scopes, and GitHub evicts
+    # least-recently-used beyond it.
+    - name: Build ${{ inputs.app }}
+      uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+      with:
+        context: .
+        file: docker/Dockerfile
+        target: ${{ inputs.target }}
+        build-args: APP=${{ inputs.app }}
+        tags: ${{ inputs.tags }}
+        labels: ${{ inputs.labels }}
+        # Into the local daemon, not a registry.
+        load: true
+        push: false
+        # The docker exporter `load` uses cannot carry attestations, and buildx warns rather
+        # than failing if asked for them.
+        provenance: false
+        cache-from: ${{ inputs.cache-scope && format('type=gha,scope={0}', inputs.cache-scope) || '' }}
+        cache-to: ${{ inputs.cache-scope && format('type=gha,mode=max,scope={0}', inputs.cache-scope) || '' }}

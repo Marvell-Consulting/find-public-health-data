@@ -217,10 +217,9 @@ jobs:
   # module imported at runtime but declared as a devDependency compiles here and is missing there.
   # Without this the first sign of that is a red publish after merge, or a crash-looping revision.
   #
-  # No registry login — the images are built into the local daemon and discarded. The Trivy scan
-  # mirrors the one in publish-images.yml, where the settings are explained: a failure means a
-  # vulnerability apt could not deliver, surfaced here before merge rather than as a red publish
-  # after it.
+  # No registry login — the images are built into the local daemon and discarded. Build, smoke test
+  # and scan are the same three steps publish-images.yml runs, through the same action and script,
+  # so a regression reddens the pull request rather than the publish after it.
   build-images:
     name: Build images (${{ matrix.app }})
     if: ${{ !github.event.pull_request.draft }}
@@ -229,8 +228,7 @@ jobs:
     strategy:
       # One image failing to build must not mask the state of the other four.
       fail-fast: false
-      # Mirrors the matrix in publish-images.yml; both need a row when an app is added, as does
-      # the `case` guard on APP in docker/Dockerfile.
+      # Mirrors the matrix in publish-images.yml; both need a row when an app is added.
       matrix:
         include:
           - app: public-web
@@ -248,84 +246,20 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
-
-      # Scoped per app rather than shared: the five jobs run concurrently, and one scope would have
-      # them overwriting each other's manifest for no gain. Run-over-run is where the saving is —
-      # the install and workspace build restore from the previous run of the same app. `mode=max`
-      # keeps the builder stage's layers, which are the expensive ones; the cache is well within
-      # the repository limit at five scopes, and GitHub evicts least-recently-used beyond it.
       - name: Build ${{ matrix.app }}
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: ./.github/actions/build-image
         with:
-          context: .
-          file: docker/Dockerfile
+          app: ${{ matrix.app }}
           target: ${{ matrix.target }}
-          build-args: APP=${{ matrix.app }}
           tags: fphd-ci/${{ matrix.app }}:ci
-          # Into the local daemon, not a registry — the smoke test below runs it.
-          load: true
-          push: false
-          # The docker exporter `load` uses cannot carry attestations, and buildx warns rather
-          # than failing if asked for them.
-          provenance: false
-          cache-from: type=gha,scope=images-${{ matrix.app }}
-          cache-to: type=gha,mode=max,scope=images-${{ matrix.app }}
+          cache-scope: images-${{ matrix.app }}
 
       - name: Smoke test ${{ matrix.app }}
         env:
           APP: ${{ matrix.app }}
-          IMAGE: fphd-ci/${{ matrix.app }}:ci
-        run: |
-          # Enough to satisfy every app's schema; unknown keys are ignored by the one reading it.
-          # DB_HOST is deliberately unroutable — the servers connect lazily, so a reachable
-          # database would prove nothing more and a service container would cost a minute an image.
-          env_args=(
-            -e APP_ENV=dev
-            -e DB_HOST=127.0.0.1
-            -e DB_TLS=false
-            -e POSTGRES_DB=fphd
-            -e POSTGRES_USER=fphd
-            -e POSTGRES_PASSWORD=smoke-test-only
-            -e PUBLIC_API_PASSWORD=smoke-test-only
-            -e INTERNAL_API_PASSWORD=smoke-test-only
-            -e SESSION_JWT_SECRET=smoke-test-only-jwt-secret-at-least-32-bytes
-          )
+        run: scripts/smoke-image.sh "${APP}" "fphd-ci/${APP}:ci"
 
-          if [ "${APP}" = 'operations' ]; then
-            # Bare, the CLI prints its usage and exits 2. Reaching that means config.ts and every
-            # module behind it resolved out of the pruned tree.
-            status=0
-            output=$(docker run --rm "${env_args[@]}" "${IMAGE}" 2>&1) || status=$?
-            echo "${output}"
-            if [ "${status}" -ne 2 ]; then
-              echo "::error::${APP} exited ${status}, expected 2 (usage)"
-              exit 1
-            fi
-            if ! grep -q 'Usage: operations' <<<"${output}"; then
-              echo "::error::${APP} did not print its usage"
-              exit 1
-            fi
-            exit 0
-          fi
-
-          # Every server logs `Listening` once bound. A module missing from the pruned tree fails
-          # well before that, with ERR_MODULE_NOT_FOUND.
-          cid=$(docker run -d "${env_args[@]}" "${IMAGE}")
-          for _ in $(seq 1 30); do
-            if docker logs "${cid}" 2>&1 | grep -q '"msg":"Listening"'; then break; fi
-            sleep 1
-          done
-          logs=$(docker logs "${cid}" 2>&1)
-          docker rm -f "${cid}" > /dev/null
-          echo "${logs}"
-          if ! grep -q '"msg":"Listening"' <<<"${logs}"; then
-            echo "::error::${APP} did not start"
-            exit 1
-          fi
-
-      # After the smoke test, so a scan finding never masks an image that fails to start. The
-      # same scan publish-images.yml runs before pushing; here the pull request goes red first.
+      # After the smoke test, so a scan finding never masks an image that fails to start.
       - name: Scan ${{ matrix.app }}
         uses: ./.github/actions/scan-image
         with:
