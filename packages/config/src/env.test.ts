@@ -205,6 +205,7 @@ describe('loadWebServerConfig', () => {
       host: '0.0.0.0',
       port: 3000,
       apiUrl: 'http://localhost:4000',
+      trustedProxyHops: 2,
       log: { level: 'info', pretty: true },
       shutdown: { drainDelayMs: 0, gracePeriodMs: 25_000 },
       session: { secret: sessionSecret, secure: false },
@@ -221,6 +222,7 @@ describe('loadWebServerConfig', () => {
           NODE_ENV: 'development',
           PORT: '8080',
           API_URL: 'http://api.internal:9000',
+          TRUSTED_PROXY_HOPS: '1',
           LOG_LEVEL: 'debug',
           LOG_PRETTY: '1',
           ...secrets,
@@ -232,6 +234,7 @@ describe('loadWebServerConfig', () => {
       host: '127.0.0.1',
       port: 8080,
       apiUrl: 'http://api.internal:9000',
+      trustedProxyHops: 1,
       log: { level: 'debug', pretty: false },
       shutdown: { drainDelayMs: 5_000, gracePeriodMs: 25_000 },
       session: { secret: sessionSecret, secure: true },
@@ -292,6 +295,12 @@ describe('loadWebServerConfig', () => {
         defaults,
       ).apiUrl,
     ).toBe('http://api.internal:9000');
+  });
+
+  it.each(['-1', '1.5', 'two'])('rejects %s trusted proxy hops', (value) => {
+    expect(() =>
+      loadWebServerConfig({ APP_ENV: 'local', TRUSTED_PROXY_HOPS: value, ...secrets }, defaults),
+    ).toThrow(/TRUSTED_PROXY_HOPS/);
   });
 
   it('rejects an invalid api url', () => {
