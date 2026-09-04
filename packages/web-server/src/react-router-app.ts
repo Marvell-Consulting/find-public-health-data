@@ -52,6 +52,9 @@ export function createReactRouterApp(
   const app = express();
 
   app.disable('x-powered-by');
+  // Front Door then Container Apps ingress sit in front: take host, protocol and client address
+  // from X-Forwarded-*, or React Router's action origin check rejects every form post.
+  app.set('trust proxy', 2);
   app.use((_request, response, next) => {
     response.setHeader('Cache-Control', 'private, no-store');
     next();

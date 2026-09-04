@@ -1,12 +1,20 @@
 import { createJwtSessionService } from '@fphd/auth/jwt-session';
-import type { Request, Response } from 'express';
+import express, { type Request, type Response } from 'express';
 import type { RouterContextProvider } from 'react-router';
+import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
+
+interface ForwardedView {
+  hostname: string;
+  ip: string | undefined;
+  protocol: string;
+}
 
 const captured = vi.hoisted(() => ({
   getLoadContext: undefined as
     | ((request: Request, response: Response) => RouterContextProvider)
     | undefined,
+  forwarded: undefined as ForwardedView | undefined,
 }));
 
 vi.mock('@react-router/express', () => ({
@@ -14,7 +22,16 @@ vi.mock('@react-router/express', () => ({
     getLoadContext: (request: Request, response: Response) => RouterContextProvider;
   }) => {
     captured.getLoadContext = options.getLoadContext;
-    return (_request: Request, _response: Response, next: () => void) => next();
+    // Read inside the handler: once the mounted app returns, the request reverts to the host's
+    // prototype and these getters would answer for the host's settings instead.
+    return (incoming: Request, _response: Response, next: () => void) => {
+      captured.forwarded = {
+        hostname: incoming.hostname,
+        ip: incoming.ip,
+        protocol: incoming.protocol,
+      };
+      next();
+    };
   },
 }));
 
@@ -77,5 +94,61 @@ describe('createReactRouterApp', () => {
     );
 
     expect(loadContext('test-nonce').get(nonceContext)).toBe('test-nonce-extended');
+  });
+
+  describe('behind Front Door and Container Apps ingress', () => {
+    const forwardedHeaders = {
+      'X-Forwarded-Host': 'example.azurefd.net',
+      'X-Forwarded-Proto': 'https',
+    };
+
+    /** Mounted in a plain host app, as the production host mounts it. */
+    async function forwardedView(headers: Record<string, string>): Promise<ForwardedView> {
+      const host = express();
+      host.use(
+        createReactRouterApp(
+          () => {
+            throw new Error('build should not load while asserting forwarded headers');
+          },
+          { session },
+        ),
+      );
+      host.use((_request, response) => {
+        response.sendStatus(204);
+      });
+      captured.forwarded = undefined;
+
+      await request(host).post('/manage/topics').set(headers).expect(204);
+
+      if (captured.forwarded === undefined) {
+        throw new Error('Expected the request handler to have seen the request');
+      }
+
+      return captured.forwarded;
+    }
+
+    it('sees the forwarded host and protocol, so actions pass the origin check', async () => {
+      const view = await forwardedView(forwardedHeaders);
+
+      expect(view).toMatchObject({ hostname: 'example.azurefd.net', protocol: 'https' });
+    });
+
+    it('takes the client address from behind two hops', async () => {
+      const view = await forwardedView({
+        ...forwardedHeaders,
+        'X-Forwarded-For': '203.0.113.5, 198.51.100.7',
+      });
+
+      expect(view.ip).toBe('203.0.113.5');
+    });
+
+    it('trusts no further hop than Front Door for the client address', async () => {
+      const view = await forwardedView({
+        ...forwardedHeaders,
+        'X-Forwarded-For': '192.0.2.9, 203.0.113.5, 198.51.100.7',
+      });
+
+      expect(view.ip).toBe('203.0.113.5');
+    });
   });
 });
