@@ -35,7 +35,12 @@ function labelOf(option: AutocompleteOption | string | null | undefined): string
 function isOption(
   option: AutocompleteOption | string | null | undefined,
 ): option is AutocompleteOption {
-  return typeof option === 'object' && option !== null;
+  return (
+    typeof option === 'object' &&
+    option !== null &&
+    typeof option.value === 'string' &&
+    typeof option.label === 'string'
+  );
 }
 
 function escapeHtml(text: string): string {
