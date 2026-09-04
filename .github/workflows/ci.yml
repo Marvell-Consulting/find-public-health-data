@@ -152,6 +152,7 @@ jobs:
           # internal-web and internal-api must share it for sessions to verify; CI-only
           # value, not a secret.
           SESSION_JWT_SECRET: ci-only-jwt-session-secret-at-least-32-bytes
+          WEB_SESSION_SECRET: ci-only-web-session-secret-at-least-32-bytes
         run: >
           docker compose
           --profile public-web --profile internal-web

@@ -106,6 +106,23 @@ describe('loadAdminTopics', () => {
     expect(get.mock.calls[0]?.[0]).toBe('/api/internal/topics');
     expect(outcome.topics).toEqual([topic]);
   });
+
+  it('leaves the flash for the next attempt when the API fails', async () => {
+    const { response: written } = await run(deleteTopic, {
+      context: createContext(fakeApi({ delete: () => Promise.resolve(undefined) })),
+      method: 'POST',
+      params: { id: topic.id },
+    });
+    const failing = fakeApi({
+      get: () => Promise.reject(new Response('Bad Gateway', { status: 502 })),
+    });
+
+    await expect(
+      run(loadAdminTopics, { context: createContext(failing), cookie: cookieFrom(written) }),
+    ).rejects.toSatisfy(
+      (error: unknown) => error instanceof Response && !error.headers.has('Set-Cookie'),
+    );
+  });
 });
 
 describe('loadAdminTopic', () => {

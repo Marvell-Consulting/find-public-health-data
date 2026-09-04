@@ -82,9 +82,7 @@ describe('internal API', () => {
   it('serves the public indicators surface', async () => {
     const repositories = createFakeRepositories({ indicators: { listApproved: async () => [] } });
 
-    const response = await request(createTestApp(repositories)).get(
-      '/api/indicators',
-    );
+    const response = await request(createTestApp(repositories)).get('/api/indicators');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ indicators: [] });
@@ -135,9 +133,7 @@ describe('internal API', () => {
       },
     });
 
-    const response = await request(createTestApp(repositories)).get(
-      '/api/topics',
-    );
+    const response = await request(createTestApp(repositories)).get('/api/topics');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual([

@@ -62,10 +62,14 @@ function requireTopicId(params: LoaderFunctionArgs['params']): string {
 }
 
 export async function loadAdminTopics({ context }: LoaderFunctionArgs) {
+  const topics = await context
+    .get(apiContext)
+    .get('/api/internal/topics', topicAdminSummaryListSchema);
+  // Taken after the fetch, so a failed page load does not consume the message it would show.
   const flash = takeFlash(context);
 
   return {
-    topics: await context.get(apiContext).get('/api/internal/topics', topicAdminSummaryListSchema),
+    topics,
     notification: isFlashKey(flash) ? FLASH_MESSAGES[flash] : undefined,
   };
 }
