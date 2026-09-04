@@ -1,7 +1,6 @@
 /**
- * Pinned rather than left to the runtime. The web apps render on the server in UTC and
- * hydrate in the browser in the user's local zone, so an unpinned formatter produces a
- * hydration mismatch and, for a late-evening timestamp, a different date on each side.
+ * Pinned: the server renders in UTC and the browser hydrates in the local zone, so an unpinned
+ * formatter mismatches on hydration and can disagree on the date.
  */
 export const DISPLAY_TIME_ZONE = 'Europe/London';
 

@@ -2,16 +2,10 @@ import { SLUG_PATTERN } from '@fphd/config/slug';
 import { z } from '@fphd/config/zod';
 
 /**
- * The wire contract for the internal API, defined once and imported by both sides: the
- * routers build responses to these shapes, and the internal web app's loaders and actions
- * parse against them.
- *
- * Like the public contract this module imports nothing but zod and the shared slug rule, and
- * is exposed on its own subpath, so the web app can depend on it without pulling Express or
- * the database package into its module graph.
- *
- * Ids appear here and nowhere in the public contract. A write has to address a topic by
- * something stable, and the slug is the thing being edited.
+ * The wire contract for the internal API, shared by its routers and the internal web app's
+ * loaders. Like the public contract it imports only zod and the slug rule, on its own subpath,
+ * so the web app takes no Express or database dependency. Ids appear here and nowhere in the
+ * public contract: a write needs a stable address, and the slug is editable.
  */
 export const topicIdSchema = z.uuid();
 
@@ -30,12 +24,8 @@ export const topicAdminDetailSchema = topicAdminSummarySchema.extend({
 });
 
 /**
- * The same rules the import path applies (`topicRecordSchema`, which shares `SLUG_PATTERN`),
- * plus the messages a form has to show. Values are trimmed before they are measured, so a
- * name of spaces is empty.
- *
- * Uniqueness is absent deliberately — only the database can settle it, and it comes back from
- * the write as a field error rather than being asked for in advance.
+ * The import rules (`topicRecordSchema`) plus the messages a form shows. Values are trimmed
+ * before they are measured. Uniqueness is left to the database, which reports it as a field error.
  */
 export const topicUpdateSchema = z.object({
   title: z.string().trim().min(1, 'Enter a topic name'),
@@ -51,11 +41,7 @@ export const topicFieldSchema = z.enum(['title', 'slug', 'description']);
 
 export const topicFieldErrorsSchema = z.partialRecord(topicFieldSchema, z.string());
 
-/**
- * One message per field: a slug that is both empty and malformed breaks two rules, and a
- * control shows one error. Defined once here because both sides of the contract render the
- * same validation — the API for any caller, the form action for a round-trip-free re-render.
- */
+/** One message per field: a control shows one error even when a value breaks two rules. */
 export function toFieldErrors(error: z.ZodError): TopicFieldErrors {
   const fieldErrors: TopicFieldErrors = {};
 
@@ -70,11 +56,6 @@ export function toFieldErrors(error: z.ZodError): TopicFieldErrors {
   return fieldErrors;
 }
 
-/**
- * A create and an update accept the same fields, so both validate against `topicUpdateSchema`
- * — the name reads oddly on the create path, but the shape is genuinely identical and a second
- * copy of the rules would be a copy to keep in step.
- */
 export const topicCreateResponseSchema = z.object({
   topic: topicAdminDetailSchema,
 });

@@ -1,8 +1,4 @@
-/**
- * `TextInput` and `Textarea` give the control itself an id of `<name>-input`, keeping the
- * form group's id free for the wrapper. An error summary link has to target the control, so
- * the convention lives here rather than being spelled out at every call site.
- */
+/** `TextInput` and `Textarea` give the control the id `<name>-input`; summary links target it. */
 export function fieldInputId(name: string): string {
   return `${name}-input`;
 }

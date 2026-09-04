@@ -20,14 +20,9 @@ export interface ApiClient {
   get<T>(path: string, schema: z.ZodType<T>): Promise<T>;
 
   /**
-   * PUT `body` to `path`. A rejected submission (400) and a conflict (409) come back as
-   * values parsed with `errorSchema`, because a form has to render them rather than replace
-   * the page with an error.
-   *
-   * Everything else still throws. A 404 means the thing being edited has gone, which is the
-   * not-found boundary's job; 401 and 403 mean the route middleware let through a request the
-   * API refused, which is a misconfiguration and not something a form can express, so they
-   * become a 502 alongside genuine API failures.
+   * PUT `body` to `path`. A 400 or 409 comes back as a value parsed with `errorSchema`, for a
+   * form to render. A 404 throws for the not-found boundary; anything else, including a 401 or
+   * 403 the route middleware should have refused first, is a 502.
    */
   put<T, E>(
     path: string,
@@ -36,11 +31,7 @@ export interface ApiClient {
     errorSchema: z.ZodType<E>,
   ): Promise<ApiWriteResult<T, E>>;
 
-  /**
-   * POST `body` to a collection to create a member. Like `put`, a rejected submission (400) and
-   * a conflict (409) come back as values for the form to render; a created resource (201) is
-   * parsed with `schema`. There is no 404 case — the collection always exists.
-   */
+  /** POST `body` to create. As `put`, minus the 404 case: the collection always exists. */
   post<T, E>(
     path: string,
     body: unknown,
@@ -48,21 +39,13 @@ export interface ApiClient {
     errorSchema: z.ZodType<E>,
   ): Promise<ApiWriteResult<T, E>>;
 
-  /**
-   * DELETE `path`. Success is a 204 with no body, so nothing is parsed. A 404 becomes a 404
-   * `Response` for the not-found boundary — the thing was already gone — and every other
-   * non-2xx a 502, matching `get`.
-   */
+  /** DELETE `path`. A 204 has no body; a 404 throws for the not-found boundary, the rest 502. */
   delete(path: string): Promise<void>;
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 
-/**
- * A `Cookie` header carrying one named cookie and nothing else. The browser's whole header
- * would hand the API every unrelated cookie the user happens to hold, so the caller names the
- * one the API is entitled to see.
- */
+/** A `Cookie` header carrying only the named cookie, so the API never sees the browser's others. */
 export function forwardedCookieHeaders(
   cookieHeader: string | null | undefined,
   cookieName: string,
@@ -114,11 +97,7 @@ function parseOrFail<T>(path: string, schema: z.ZodType<T>, body: unknown): T {
   return result.data;
 }
 
-/**
- * A body that is not JSON at all — an ingress error page, an empty 200 — is the same boundary
- * failure as a shape mismatch, so it becomes the same 502 rather than a raw `SyntaxError`
- * escaping to the error boundary.
- */
+/** A non-JSON body (an ingress error page, an empty 200) fails the same way as a shape mismatch. */
 async function readJson(path: string, response: Response): Promise<unknown> {
   try {
     return await response.json();

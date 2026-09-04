@@ -39,9 +39,8 @@ interface ReactRouterAppOptions {
   backendMiddleware?: readonly RequestHandler[];
   session: JwtSessionVerifier;
   /**
-   * Runs after the nonce is set, so it can add further values to the loader/action context.
-   * It is given the request so a value can be request-scoped — the internal app builds its
-   * API client here, carrying the caller's session on to the API.
+   * Runs after the nonce is set, so it can add further values to the loader/action context. The
+   * request lets a value be request-scoped, such as the internal app's API client.
    */
   extendContext?: (context: RouterContextProvider, request: Request) => void;
 }

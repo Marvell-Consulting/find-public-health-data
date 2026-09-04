@@ -91,7 +91,7 @@ export function internalTopicsRouter(
       return;
     }
 
-    // Validated here as well as at the form, for the same reason as the create above.
+    // Validated for the same reason as the create above.
     const submission = topicUpdateSchema.safeParse(request.body);
 
     if (!submission.success) {

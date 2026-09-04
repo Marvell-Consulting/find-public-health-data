@@ -11,8 +11,7 @@ export const meta = createDocumentMeta('Edit topic');
 
 export function EditTopicRoute() {
   const { topic, notification } = useLoaderData<typeof loader>();
-  // Present only when a save was rejected, and then it holds what the publisher typed —
-  // which is what the form must show, not the values still stored.
+  // Set only when a save was rejected; the form then shows what was typed, not what is stored.
   const rejected = useActionData<SaveTopicFailure | undefined>();
 
   return (

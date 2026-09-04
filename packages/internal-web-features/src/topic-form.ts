@@ -17,10 +17,7 @@ export type TopicFormResult =
 
 const EMPTY_FORM: TopicFormValues = { title: '', slug: '', description: '' };
 
-/**
- * What the publisher typed, exactly as typed. The form is re-rendered from this on a failed
- * save, so it keeps the raw strings rather than the trimmed values the API would store.
- */
+/** The raw strings as typed, so a failed save re-renders the form exactly as submitted. */
 export function readTopicForm(formData: FormData): TopicFormValues {
   const read = (name: keyof TopicFormValues) => {
     const value = formData.get(name);
@@ -30,11 +27,7 @@ export function readTopicForm(formData: FormData): TopicFormValues {
   return { title: read('title'), slug: read('slug'), description: read('description') };
 }
 
-/**
- * The same schema the API applies, run here first so an invalid submission re-renders the
- * form without a round trip — and, with JavaScript off, without one either. The API validates
- * again because it cannot trust a caller.
- */
+/** The API's schema, applied here first so an invalid submission re-renders with no round trip. */
 export function parseTopicForm(formData: FormData): TopicFormResult {
   const result = topicUpdateSchema.safeParse(readTopicForm(formData));
 

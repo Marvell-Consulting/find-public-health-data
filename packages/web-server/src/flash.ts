@@ -27,10 +27,9 @@ export interface FlashSessionOptions {
 export type FlashSessionStorage = ReturnType<typeof createFlashSessionStorage>;
 
 /**
- * A cookie-backed store, kept behind this module so the whole of it can be swapped for a
- * Redis-backed one (React Router's `createSessionStorage` takes a custom backend) without any
- * call site changing. The cookie name rides alongside so the middleware can tell whether a
- * request carries the cookie at all before paying to unsign it.
+ * Kept behind this module so the store can be swapped for a server-side one (React Router's
+ * `createSessionStorage` takes a custom backend) without call sites changing. The cookie name
+ * rides alongside so the middleware can skip unsigning a request that has no cookie.
  */
 export function createFlashSessionStorage({ audience, secret, secure }: FlashSessionOptions) {
   const cookieName = `fphd-${audience}-flash`;
@@ -96,8 +95,7 @@ export const flashMiddleware: MiddlewareFunction<Response> = async ({ context, r
       session.flash(MESSAGE, flash.write);
       response.headers.append('Set-Cookie', await sessions.commitSession(session));
     } else if (incoming !== undefined && flash.taken) {
-      // Destroyed rather than re-committed empty, so the browser stops sending a cookie
-      // there is nothing left to read from.
+      // Destroyed, so the browser stops sending a cookie with nothing left to read.
       response.headers.append('Set-Cookie', await sessions.destroySession(incoming));
     }
 

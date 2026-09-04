@@ -9,7 +9,6 @@ export const action = createTopic;
 export const meta = createDocumentMeta('Add a topic');
 
 export function NewTopicRoute() {
-  // Present only when a create was rejected, and then it holds what the publisher typed.
   const rejected = useActionData<SaveTopicFailure | undefined>();
 
   return <NewTopicPage fieldErrors={rejected?.fieldErrors} values={rejected?.values} />;

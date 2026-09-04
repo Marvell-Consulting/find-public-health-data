@@ -41,9 +41,8 @@ function matches(current: Topic, update: TopicUpdate): boolean {
 }
 
 /**
- * Apply an edit to one topic. Both failures come back as values because a form has to render
- * them. The row lock makes the unchanged check safe: without it two concurrent saves both read
- * the old row, and the later one overwrites the earlier having judged itself a change.
+ * The row lock makes the unchanged check safe: without it two concurrent saves both read the
+ * old row, and the later one overwrites the earlier as a change.
  */
 export async function updateTopic(
   db: Database,
@@ -79,10 +78,7 @@ export async function updateTopic(
   }
 }
 
-/**
- * Insert a topic, letting the database mint the id (UUIDv7) and both timestamps. A slug held
- * by another topic comes back as a value because a form has to render it against the field.
- */
+/** The database mints the id (UUIDv7) and both timestamps. */
 export async function createTopic(
   db: Database,
   { description, slug, title }: TopicUpdate,
@@ -99,10 +95,7 @@ export async function createTopic(
   }
 }
 
-/**
- * Delete a topic and the indicator_topic links that reference it, in one transaction. The
- * links go first or the foreign key refuses the topic delete; the indicators themselves stay.
- */
+/** The links go first or the foreign key refuses the delete; the indicators themselves stay. */
 export async function deleteTopic(db: Database, id: string): Promise<DeleteTopicResult> {
   return db.transaction(async (tx) => {
     await tx.delete(indicatorTopic).where(eq(indicatorTopic.topicId, id));

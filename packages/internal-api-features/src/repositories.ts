@@ -11,7 +11,7 @@ import {
   updateTopic,
 } from './topic-repository.js';
 
-/** The publisher's topic surface: the public listing plus the writes only `internal_api` may make. */
+/** The publisher's topic surface: the public listing plus the writes only `internal_api` makes. */
 export interface InternalTopicRepository {
   list(): Promise<Topic[]>;
   findById(id: string): Promise<Topic | undefined>;
@@ -22,7 +22,7 @@ export interface InternalTopicRepository {
 
 /**
  * Everything the internal-only routes read and write, mirroring `Repositories` in `@fphd/db`.
- * Queries live in this package rather than `@fphd/db` so they cannot reach the public image.
+ * Queries live here so the artefact-boundary check keeps them out of the public image.
  */
 export interface InternalRepositories {
   topics: InternalTopicRepository;

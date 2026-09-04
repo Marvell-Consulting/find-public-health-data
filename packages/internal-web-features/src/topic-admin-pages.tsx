@@ -73,11 +73,7 @@ interface TopicFieldsProps {
   submitLabel: string;
 }
 
-/**
- * The three topic fields and the submit button, shared by the create and edit pages. A plain
- * form, not React Router's: the page then behaves identically with and without JavaScript,
- * which is the guarantee this service makes. It posts back to the page it is on.
- */
+// A plain form posting back to its own page, so it behaves the same with and without JavaScript.
 function TopicFields({ fieldErrors, values, submitLabel }: TopicFieldsProps) {
   return (
     <form method="post">
