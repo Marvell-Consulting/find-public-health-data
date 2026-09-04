@@ -63,7 +63,7 @@ describe('createReactRouterApp', () => {
       () => {
         throw new Error('build should not load while asserting app settings');
       },
-      { session },
+      { session, trustedProxyHops: 2 },
     );
 
     expect(app.disabled('x-powered-by')).toBe(true);
@@ -74,7 +74,7 @@ describe('createReactRouterApp', () => {
       () => {
         throw new Error('build should not load while asserting context wiring');
       },
-      { session },
+      { session, trustedProxyHops: 2 },
     );
 
     expect(loadContext('test-nonce').get(nonceContext)).toBe('test-nonce');
@@ -87,6 +87,7 @@ describe('createReactRouterApp', () => {
       },
       {
         session,
+        trustedProxyHops: 2,
         extendContext: (context) => {
           context.set(nonceContext, `${context.get(nonceContext)}-extended`);
         },
@@ -103,14 +104,17 @@ describe('createReactRouterApp', () => {
     };
 
     /** Mounted in a plain host app, as the production host mounts it. */
-    async function forwardedView(headers: Record<string, string>): Promise<ForwardedView> {
+    async function forwardedView(
+      headers: Record<string, string>,
+      trustedProxyHops = 2,
+    ): Promise<ForwardedView> {
       const host = express();
       host.use(
         createReactRouterApp(
           () => {
             throw new Error('build should not load while asserting forwarded headers');
           },
-          { session },
+          { session, trustedProxyHops },
         ),
       );
       host.use((_request, response) => {
@@ -149,6 +153,16 @@ describe('createReactRouterApp', () => {
       });
 
       expect(view.ip).toBe('203.0.113.5');
+    });
+
+    it('ignores the forwarded headers with no trusted hops', async () => {
+      const view = await forwardedView(
+        { ...forwardedHeaders, 'X-Forwarded-For': '203.0.113.5' },
+        0,
+      );
+
+      expect(view).toMatchObject({ hostname: '127.0.0.1', protocol: 'http' });
+      expect(view.ip).not.toBe('203.0.113.5');
     });
   });
 });
