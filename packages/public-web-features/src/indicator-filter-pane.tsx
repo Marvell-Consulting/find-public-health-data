@@ -78,7 +78,8 @@ export function FilterPane({
     if (findSubject) {
       params.set('find', findSubject);
     }
-    return `${INDICATORS_PATH}?${params.toString()}`;
+    const search = params.toString();
+    return search ? `${INDICATORS_PATH}?${search}` : INDICATORS_PATH;
   };
   // preventScrollReset: refreshing data in place must not lose the reader's position.
   const navigateTo = (args: Parameters<typeof selectionSearch>[0]) =>
