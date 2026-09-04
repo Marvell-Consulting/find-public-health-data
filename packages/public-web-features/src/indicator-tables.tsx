@@ -153,6 +153,19 @@ function RangePlot({
   );
 }
 
+/**
+ * A wide table's sideways scroll, reachable from the keyboard: the wrapper is a labelled,
+ * focusable region, the pattern ChartSection uses, so the arrow keys can move it.
+ */
+function TableScrollRegion({ children, label }: { children: ReactNode; label: string }) {
+  return (
+    // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region needs focus to scroll by keyboard.
+    <section aria-label={label} className="fphd-table-scroll-wrapper" tabIndex={0}>
+      {children}
+    </section>
+  );
+}
+
 const BENCHMARK_HEADER = 'govuk-table__header fphd-trend-table__benchmark-cell';
 const BENCHMARK_CELL = 'govuk-table__cell fphd-trend-table__benchmark-cell';
 
@@ -350,7 +363,7 @@ export function TrendTable({
 
   return (
     <>
-      <div className="fphd-table-scroll-wrapper">
+      <TableScrollRegion label={`${indicator.name} trends over time`}>
         <table className="govuk-table fphd-trend-table">
           <caption className="govuk-table__caption govuk-visually-hidden">
             {indicator.name} trends over time, {segmentLabel(firstObservation)}
@@ -486,7 +499,7 @@ export function TrendTable({
             ))}
           </tbody>
         </table>
-      </div>
+      </TableScrollRegion>
       {noteTexts.map((text) => (
         <p className="govuk-body-s" key={text}>
           {markerFor(text)} {text}
@@ -814,7 +827,7 @@ export function ComparisonSection({
           showConfidence={false}
         />
       ) : null}
-      <div className="fphd-table-scroll-wrapper">
+      <TableScrollRegion label="Compare selected indicators">
         <table className="govuk-table fphd-compare-table">
           <caption className="govuk-table__caption govuk-visually-hidden">
             Compare selected indicators
@@ -928,7 +941,7 @@ export function ComparisonSection({
             ))}
           </tbody>
         </table>
-      </div>
+      </TableScrollRegion>
       {noteTexts.map((text) => (
         <p className="govuk-body-s" key={text}>
           {markerFor(text)} {text}
