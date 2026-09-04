@@ -1,5 +1,6 @@
 import { createJwtSessionService, createJwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { createFakeRepositories } from '@fphd/db/testing';
+import { createFakeInternalRepositories } from '@fphd/internal-api-features/testing';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
@@ -14,7 +15,15 @@ const session = createJwtSessionService({
   secure: false,
 });
 const verifier = createJwtSessionVerifier(session);
-const app = createApp({ repositories: createFakeRepositories(), session: verifier });
+
+function createTestApp(
+  repositories = createFakeRepositories(),
+  internalRepositories = createFakeInternalRepositories(),
+) {
+  return createApp({ repositories, internalRepositories, session: verifier });
+}
+
+const app = createTestApp();
 
 async function createCookie(roles: readonly string[]): Promise<string> {
   const token = await session.issueToken({
@@ -73,12 +82,39 @@ describe('internal API', () => {
   it('serves the public indicators surface', async () => {
     const repositories = createFakeRepositories({ indicators: { listApproved: async () => [] } });
 
-    const response = await request(createApp({ repositories, session: verifier })).get(
-      '/api/indicators',
-    );
+    const response = await request(createTestApp(repositories)).get('/api/indicators');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ indicators: [] });
+  });
+
+  it('mounts the internal topics surface behind the publisher role', async () => {
+    const internalRepositories = createFakeInternalRepositories({
+      topics: {
+        list: async () => [
+          {
+            id: '00000000-0000-7000-8000-000000000001',
+            slug: 'topic-a',
+            title: 'Topic A',
+            description: 'All about topic A.',
+            createdAt: new Date('2024-01-01T00:00:00.000Z'),
+            updatedAt: new Date('2024-01-02T00:00:00.000Z'),
+          },
+        ],
+      },
+    });
+    const app = createTestApp(createFakeRepositories(), internalRepositories);
+
+    const asPublisher = await request(app)
+      .get('/api/internal/topics')
+      .set('Cookie', await createCookie(['public', 'internal', 'publisher']));
+    const asViewer = await request(app)
+      .get('/api/internal/topics')
+      .set('Cookie', await createCookie(['public', 'internal']));
+
+    expect(asPublisher.status).toBe(200);
+    expect(asPublisher.body[0]).toMatchObject({ id: '00000000-0000-7000-8000-000000000001' });
+    expect(asViewer.status).toBe(403);
   });
 
   it('serves the public topics surface without a session', async () => {
@@ -97,9 +133,7 @@ describe('internal API', () => {
       },
     });
 
-    const response = await request(createApp({ repositories, session: verifier })).get(
-      '/api/topics',
-    );
+    const response = await request(createTestApp(repositories)).get('/api/topics');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual([

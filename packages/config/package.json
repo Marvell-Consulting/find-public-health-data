@@ -10,6 +10,11 @@
       "types": "./src/index.ts",
       "default": "./dist/index.js"
     },
+    "./slug": {
+      "development": "./src/slug.ts",
+      "types": "./src/slug.ts",
+      "default": "./dist/slug.js"
+    },
     "./zod": {
       "development": "./src/zod.ts",
       "types": "./src/zod.ts",

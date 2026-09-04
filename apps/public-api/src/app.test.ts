@@ -62,9 +62,18 @@ describe('public API', () => {
     expect(response.body).toEqual({ status: 'ok', service: 'public-api' });
   });
 
-  it('does not expose the internal surface', async () => {
-    const response = await request(createApp({ repositories: createFakeRepositories() })).get(
-      '/api/internal',
+  // Every internal path, not just the root one: `internal-api` mounts a router the public
+  // app must never gain, and a 404 here is the only mechanical check that it has not.
+  it.each([
+    ['get', '/api/internal'],
+    ['get', '/api/internal/topics'],
+    ['post', '/api/internal/topics'],
+    ['get', `/api/internal/topics/${topicA.id}`],
+    ['put', `/api/internal/topics/${topicA.id}`],
+    ['delete', `/api/internal/topics/${topicA.id}`],
+  ] as const)('does not expose the internal surface at %s %s', async (method, path) => {
+    const response = await request(createApp({ repositories: createFakeRepositories() }))[method](
+      path,
     );
 
     expect(response.status).toBe(404);

@@ -40,6 +40,7 @@ env_args=(
   -e PUBLIC_API_PASSWORD=smoke-test-only
   -e INTERNAL_API_PASSWORD=smoke-test-only
   -e SESSION_JWT_SECRET=smoke-test-only-jwt-secret-at-least-32-bytes
+  -e WEB_SESSION_SECRET=smoke-test-only-web-secret-at-least-32-bytes
 )
 
 if [ "${app}" = 'operations' ]; then

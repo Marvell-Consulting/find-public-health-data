@@ -14,3 +14,4 @@ export {
   resolveShutdown,
   serverEnvFields,
 } from './env.js';
+export { SLUG_PATTERN } from './slug.js';

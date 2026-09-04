@@ -1,0 +1,44 @@
+{
+  "name": "@fphd/internal-api-features",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./contract": {
+      "development": "./src/contract.ts",
+      "types": "./src/contract.ts",
+      "default": "./dist/contract.js"
+    },
+    "./testing": {
+      "development": "./src/testing.ts",
+      "types": "./src/testing.ts",
+      "default": "./dist/testing.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fphd/api-server": "workspace:*",
+    "@fphd/auth": "workspace:*",
+    "@fphd/config": "workspace:*",
+    "@fphd/db": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "express": "catalog:"
+  },
+  "devDependencies": {
+    "@types/express": "catalog:",
+    "@types/node": "catalog:",
+    "@types/supertest": "catalog:",
+    "supertest": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

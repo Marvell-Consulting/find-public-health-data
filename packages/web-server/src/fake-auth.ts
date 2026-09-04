@@ -47,10 +47,11 @@ export function createFakeAuthRouter({
 }: FakeAuthRouterOptions): Router {
   const pendingSignIns = new Map<string, PendingSignIn>();
   const router = express.Router();
+  // Per route: this router fronts the whole app, and a parser on all of it would leave every
+  // React Router action's `request.formData()` empty.
+  const parseForm = express.urlencoded({ extended: false });
 
-  router.use(express.urlencoded({ extended: false }));
-
-  router.post('/auth/sign-in', (request, response) => {
+  router.post('/auth/sign-in', parseForm, (request, response) => {
     const userId = readStringField(request.body, 'userId');
     const user = users.find((candidate) => candidate.id === userId);
 
@@ -95,7 +96,7 @@ export function createFakeAuthRouter({
     response.redirect(303, signIn.returnTo);
   });
 
-  router.post('/auth/sign-out', (request, response) => {
+  router.post('/auth/sign-out', parseForm, (request, response) => {
     response.setHeader('Set-Cookie', session.clearCookieHeader());
     response.redirect(
       303,

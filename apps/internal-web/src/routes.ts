@@ -18,7 +18,22 @@ export default [
       '../../../packages/public-web-features/src/routes/indicator.tsx',
       { id: 'indicator-detail' },
     ),
-    route('manage', './manage.tsx'),
+    layout('./publisher.tsx', [
+      route('manage', './manage.tsx'),
+      route('manage/topics', '../../../packages/internal-web-features/src/routes/admin-topics.tsx'),
+      route(
+        'manage/topics/new',
+        '../../../packages/internal-web-features/src/routes/new-topic.tsx',
+      ),
+      route(
+        'manage/topics/:id',
+        '../../../packages/internal-web-features/src/routes/edit-topic.tsx',
+      ),
+      route(
+        'manage/topics/:id/delete',
+        '../../../packages/internal-web-features/src/routes/delete-topic.tsx',
+      ),
+    ]),
   ]),
   route('*', '../../../packages/ui/src/not-found-route.tsx'),
 ] satisfies RouteConfig;

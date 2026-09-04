@@ -1,9 +1,11 @@
 import { z } from '@fphd/config/zod';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { apiPath, createApiClient } from './api-client.js';
+import { apiPath, createApiClient, forwardedCookieHeaders } from './api-client.js';
 
 const schema = z.array(z.object({ slug: z.string() }));
+const topicSchema = z.object({ slug: z.string() });
+const errorSchema = z.object({ error: z.string() });
 
 function respondWith(body: unknown, status = 200) {
   const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status }));
@@ -89,6 +91,19 @@ describe('createApiClient', () => {
     ).rejects.toMatchObject({ status: 502 });
   });
 
+  it('sends the configured headers with every request', async () => {
+    const fetchMock = respondWith([]);
+
+    await createApiClient({
+      baseUrl: 'http://api:4000',
+      headers: { cookie: 'fphd-internal-session=a-token' },
+    }).get('/api/topics', schema);
+
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      headers: { cookie: 'fphd-internal-session=a-token' },
+    });
+  });
+
   it('gives up on a request that never answers', async () => {
     vi.stubGlobal(
       'fetch',
@@ -102,5 +117,191 @@ describe('createApiClient', () => {
     await expect(
       createApiClient({ baseUrl: 'http://api:4000', timeoutMs: 5 }).get('/api/topics', schema),
     ).rejects.toThrow();
+  });
+});
+
+describe('ApiClient.put', () => {
+  function client(headers?: Record<string, string>) {
+    return createApiClient({
+      baseUrl: 'http://api:4000',
+      ...(headers === undefined ? {} : { headers }),
+    });
+  }
+
+  it('returns the parsed body on success', async () => {
+    respondWith({ slug: 'a-topic' });
+
+    const result = await client().put(
+      '/api/internal/topics/1',
+      { slug: 'a-topic' },
+      topicSchema,
+      errorSchema,
+    );
+
+    expect(result).toEqual({ ok: true, data: { slug: 'a-topic' } });
+  });
+
+  it('sends the body as JSON alongside the configured headers', async () => {
+    const fetchMock = respondWith({ slug: 'a-topic' });
+
+    await client({ cookie: 'fphd-internal-session=a-token' }).put(
+      '/api/internal/topics/1',
+      { slug: 'a-topic' },
+      topicSchema,
+      errorSchema,
+    );
+
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: 'PUT',
+      body: '{"slug":"a-topic"}',
+      headers: { 'content-type': 'application/json', cookie: 'fphd-internal-session=a-token' },
+    });
+  });
+
+  // A form has to render these against its fields; throwing would replace the page the
+  // publisher is filling in with an error.
+  it.each([400, 409])('returns a %s as a value rather than throwing', async (status) => {
+    respondWith({ error: 'validation_failed' }, status);
+
+    const result = await client().put('/api/internal/topics/1', {}, topicSchema, errorSchema);
+
+    expect(result).toEqual({ ok: false, status, error: { error: 'validation_failed' } });
+  });
+
+  it('passes a 404 through so a route can render its not-found boundary', async () => {
+    respondWith({}, 404);
+
+    await expect(
+      client().put('/api/internal/topics/1', {}, topicSchema, errorSchema),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  // The route middleware already guaranteed the role, so an auth failure here is a
+  // misconfiguration rather than something the form can express.
+  it.each([401, 403, 500])('turns a %s into a 502', async (status) => {
+    respondWith({}, status);
+
+    await expect(
+      client().put('/api/internal/topics/1', {}, topicSchema, errorSchema),
+    ).rejects.toMatchObject({ status: 502 });
+  });
+
+  it('rejects an error body that does not match the contract', async () => {
+    respondWith({ unexpected: true }, 400);
+
+    await expect(
+      client().put('/api/internal/topics/1', {}, topicSchema, errorSchema),
+    ).rejects.toMatchObject({ status: 502 });
+  });
+});
+
+describe('ApiClient.post', () => {
+  function client(headers?: Record<string, string>) {
+    return createApiClient({
+      baseUrl: 'http://api:4000',
+      ...(headers === undefined ? {} : { headers }),
+    });
+  }
+
+  it('returns the parsed body on a created resource', async () => {
+    respondWith({ slug: 'a-topic' }, 201);
+
+    const result = await client().post(
+      '/api/internal/topics',
+      { slug: 'a-topic' },
+      topicSchema,
+      errorSchema,
+    );
+
+    expect(result).toEqual({ ok: true, data: { slug: 'a-topic' } });
+  });
+
+  it('sends the body as JSON with the POST method and configured headers', async () => {
+    const fetchMock = respondWith({ slug: 'a-topic' }, 201);
+
+    await client({ cookie: 'fphd-internal-session=a-token' }).post(
+      '/api/internal/topics',
+      { slug: 'a-topic' },
+      topicSchema,
+      errorSchema,
+    );
+
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: 'POST',
+      body: '{"slug":"a-topic"}',
+      headers: { 'content-type': 'application/json', cookie: 'fphd-internal-session=a-token' },
+    });
+  });
+
+  it.each([400, 409])('returns a %s as a value for the form to render', async (status) => {
+    respondWith({ error: 'slug_taken' }, status);
+
+    const result = await client().post('/api/internal/topics', {}, topicSchema, errorSchema);
+
+    expect(result).toEqual({ ok: false, status, error: { error: 'slug_taken' } });
+  });
+
+  it.each([401, 403, 500])('turns a %s into a 502', async (status) => {
+    respondWith({}, status);
+
+    await expect(
+      client().post('/api/internal/topics', {}, topicSchema, errorSchema),
+    ).rejects.toMatchObject({ status: 502 });
+  });
+});
+
+describe('ApiClient.delete', () => {
+  function client(headers?: Record<string, string>) {
+    return createApiClient({
+      baseUrl: 'http://api:4000',
+      ...(headers === undefined ? {} : { headers }),
+    });
+  }
+
+  it('resolves without a body on a 204', async () => {
+    respondWith(undefined, 204);
+
+    await expect(client().delete('/api/internal/topics/1')).resolves.toBeUndefined();
+  });
+
+  it('sends the DELETE method with the configured headers', async () => {
+    const fetchMock = respondWith(undefined, 204);
+
+    await client({ cookie: 'fphd-internal-session=a-token' }).delete('/api/internal/topics/1');
+
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: 'DELETE',
+      headers: { cookie: 'fphd-internal-session=a-token' },
+    });
+  });
+
+  it('passes a 404 through so a route can render its not-found boundary', async () => {
+    respondWith({}, 404);
+
+    await expect(client().delete('/api/internal/topics/1')).rejects.toMatchObject({ status: 404 });
+  });
+
+  it.each([401, 403, 500])('turns a %s into a 502', async (status) => {
+    respondWith({}, status);
+
+    await expect(client().delete('/api/internal/topics/1')).rejects.toMatchObject({ status: 502 });
+  });
+});
+
+describe('forwardedCookieHeaders', () => {
+  it('carries only the named cookie, not the rest of the browser header', () => {
+    expect(
+      forwardedCookieHeaders(
+        'analytics=1; fphd-internal-session=a-token; other-service=secret',
+        'fphd-internal-session',
+      ),
+    ).toEqual({ cookie: 'fphd-internal-session=a-token' });
+  });
+
+  it.each([
+    ['no header', undefined],
+    ['a header without the cookie', 'analytics=1'],
+  ])('sends no cookie at all for %s', (_case, header) => {
+    expect(forwardedCookieHeaders(header, 'fphd-internal-session')).toEqual({});
   });
 });

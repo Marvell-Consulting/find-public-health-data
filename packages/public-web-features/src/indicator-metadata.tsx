@@ -1,4 +1,4 @@
-import { A, plainTextFromHtml, SectionBreak, SummaryList } from '@fphd/ui';
+import { A, formatDate, plainTextFromHtml, SectionBreak, SummaryList } from '@fphd/ui';
 import type { ReactNode } from 'react';
 
 import { periodCovered, recentTrend } from './indicator-data';
@@ -46,13 +46,6 @@ export function sourceLink(source: IndicatorDetail['dataSource']) {
   return source.url ? <A href={source.url}>{source.name}</A> : source.name;
 }
 
-const updatedFormat = new Intl.DateTimeFormat('en-GB', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-  timeZone: 'UTC',
-});
-
 /** The at-a-glance header the prototype puts above each indicator's charts. */
 export function IndicatorSummary({
   indicator,
@@ -71,9 +64,7 @@ export function IndicatorSummary({
         <TableRow label="Period covered" value={periodCovered(observations, indicator.yearType)} />
         <TableRow
           label="Last updated"
-          value={
-            indicator.dataUpdatedAt ? updatedFormat.format(new Date(indicator.dataUpdatedAt)) : null
-          }
+          value={indicator.dataUpdatedAt ? formatDate(indicator.dataUpdatedAt, 'long') : null}
         />
         <TableRow
           label="Most recent trend"

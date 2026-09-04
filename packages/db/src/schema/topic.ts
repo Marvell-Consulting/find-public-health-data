@@ -1,4 +1,4 @@
-import { z } from '@fphd/config';
+import { SLUG_PATTERN, z } from '@fphd/config';
 import { index, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
 
 import { timestamps, uuidPrimaryKey } from './helpers.js';
@@ -39,10 +39,7 @@ export const indicatorTopic = pgTable(
  */
 export const topicRecordSchema = z.object({
   id: z.uuidv7(),
-  slug: z
-    .string()
-    .min(1)
-    .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'slug must be lowercase, hyphen-separated words'),
+  slug: z.string().min(1).regex(SLUG_PATTERN, 'slug must be lowercase, hyphen-separated words'),
   title: z.string().min(1),
   description: z.string().min(1),
 });
