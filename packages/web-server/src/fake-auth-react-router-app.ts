@@ -14,12 +14,13 @@ import { createReactRouterApp, type ReactRouterBuildLoader } from './react-route
 interface FakeAuthReactRouterAppOptions {
   audience: AppAudience;
   session: Pick<JwtSessionServiceOptions, 'secret' | 'secure'>;
+  trustedProxyHops: number;
   extendContext?: (context: RouterContextProvider, request: Request) => void;
 }
 
 export function createFakeAuthReactRouterApp(
   loadBuild: ReactRouterBuildLoader,
-  { audience, session, extendContext }: FakeAuthReactRouterAppOptions,
+  { audience, session, trustedProxyHops, extendContext }: FakeAuthReactRouterAppOptions,
 ) {
   const sessionService = createJwtSessionService({
     audience: `fphd-${audience}`,
@@ -37,6 +38,7 @@ export function createFakeAuthReactRouterApp(
       }),
     ],
     session: createJwtSessionVerifier(sessionService),
+    trustedProxyHops,
     // Spread rather than passed directly: exactOptionalPropertyTypes rejects an explicit undefined.
     ...(extendContext === undefined ? {} : { extendContext }),
   });
