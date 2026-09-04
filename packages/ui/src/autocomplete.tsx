@@ -26,6 +26,18 @@ interface AutocompleteProps {
 // Long enough to spare the server a request per keystroke, short enough to feel live.
 const SEARCH_DEBOUNCE_MS = 300;
 
+// The library seeds its option list with the raw defaultValue and offers it on focus, so the
+// templates and onConfirm can be handed the typed string as well as an option.
+function labelOf(option: AutocompleteOption | string | null | undefined): string {
+  return typeof option === 'string' ? option : (option?.label ?? '');
+}
+
+function isOption(
+  option: AutocompleteOption | string | null | undefined,
+): option is AutocompleteOption {
+  return typeof option === 'object' && option !== null;
+}
+
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
@@ -140,11 +152,11 @@ export function Autocomplete({
         },
         templates: {
           // Suggestions inject as HTML, so names are escaped; the picked name stays visible for the confirm step.
-          suggestion: (option) => (option ? escapeHtml(option.label) : ''),
-          inputValue: (option) => option?.label ?? '',
+          suggestion: (option) => escapeHtml(labelOf(option)),
+          inputValue: (option) => labelOf(option),
         },
         onConfirm: (option) => {
-          if (option) {
+          if (isOption(option)) {
             callbacks.current.onSelect(option);
           }
         },
