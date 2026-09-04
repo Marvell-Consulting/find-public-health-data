@@ -115,14 +115,26 @@ export interface IndicatorDetail {
   classifications: IndicatorClassification[];
 }
 
-/**
- * Everything the indicator page needs in one round trip, keyed by the public Fingertips
- * number rather than the internal row id. Approved indicators only — an unpublished
- * indicator is indistinguishable from one that does not exist.
- */
-export async function getApprovedIndicatorByFingertipsId(
+/** The internal id behind a public Fingertips number — the one place the external id resolves. */
+export async function resolveApprovedIndicatorId(
   db: Database,
   fingertipsId: number,
+): Promise<string | undefined> {
+  const [row] = await db
+    .select({ id: indicator.id })
+    .from(indicator)
+    .where(and(eq(indicator.fingertipsId, fingertipsId), eq(indicator.status, 'approved')))
+    .limit(1);
+  return row?.id;
+}
+
+/**
+ * Everything the indicator page needs in one round trip. Approved indicators only — an
+ * unpublished indicator is indistinguishable from one that does not exist.
+ */
+export async function getApprovedIndicatorById(
+  db: Database,
+  indicatorId: string,
 ): Promise<IndicatorDetail | undefined> {
   const numeratorSource = alias(numeratorDenominatorSource, 'numerator_source');
   const denominatorSource = alias(numeratorDenominatorSource, 'denominator_source');
@@ -169,7 +181,7 @@ export async function getApprovedIndicatorByFingertipsId(
     .leftJoin(dataSource, eq(indicatorMetadata.dataSourceId, dataSource.id))
     .leftJoin(numeratorSource, eq(indicatorMetadata.numeratorSourceId, numeratorSource.id))
     .leftJoin(denominatorSource, eq(indicatorMetadata.denominatorSourceId, denominatorSource.id))
-    .where(and(eq(indicator.fingertipsId, fingertipsId), eq(indicator.status, 'approved')))
+    .where(and(eq(indicator.id, indicatorId), eq(indicator.status, 'approved')))
     .limit(1);
 
   if (!row) {
@@ -256,7 +268,7 @@ export interface IndicatorAreaData {
  */
 export async function getIndicatorObservations(
   db: Database,
-  fingertipsId: number,
+  indicatorId: string,
   areaCode: string,
 ): Promise<IndicatorAreaData | undefined> {
   const rows = await db
@@ -274,31 +286,19 @@ export async function getIndicatorObservations(
       areaName: area.name,
     })
     .from(observation)
-    .innerJoin(
-      indicator,
-      and(
-        eq(observation.indicatorId, indicator.id),
-        eq(indicator.fingertipsId, fingertipsId),
-        eq(indicator.status, 'approved'),
-      ),
-    )
     .innerJoin(area, and(eq(observation.areaId, area.id), eq(area.code, areaCode)))
-    .where(isNull(observation.deletedAt))
+    .where(and(eq(observation.indicatorId, indicatorId), isNull(observation.deletedAt)))
     .orderBy(asc(observation.fromDate), asc(observation.toDate));
 
   if (rows.length === 0) {
-    const [indicatorExists] = await db
-      .select({ id: indicator.id })
-      .from(indicator)
-      .where(and(eq(indicator.fingertipsId, fingertipsId), eq(indicator.status, 'approved')))
-      .limit(1);
+    // The id is already resolved, so an empty result distinguishes only the area.
     const [areaRow] = await db
       .select({ name: area.name })
       .from(area)
       .where(eq(area.code, areaCode))
       .limit(1);
 
-    if (!indicatorExists || !areaRow) {
+    if (!areaRow) {
       return undefined;
     }
 
@@ -388,7 +388,7 @@ export interface ObservationRangePeriod {
  */
 export async function getObservationRange(
   db: Database,
-  fingertipsId: number,
+  indicatorId: string,
   areaTypeNames: string[],
 ): Promise<ObservationRangePeriod[]> {
   if (areaTypeNames.length === 0) {
@@ -409,14 +409,6 @@ export async function getObservationRange(
           ),
       })
       .from(observation)
-      .innerJoin(
-        indicator,
-        and(
-          eq(observation.indicatorId, indicator.id),
-          eq(indicator.fingertipsId, fingertipsId),
-          eq(indicator.status, 'approved'),
-        ),
-      )
       .innerJoin(area, eq(observation.areaId, area.id))
       .innerJoin(
         areaType,
@@ -425,7 +417,13 @@ export async function getObservationRange(
       .leftJoin(observationDimension, eq(observationDimension.observationId, observation.id))
       .leftJoin(dimensionType, eq(observationDimension.dimensionTypeId, dimensionType.id))
       .leftJoin(dimensionValue, eq(observationDimension.dimensionValueId, dimensionValue.id))
-      .where(and(isNull(observation.deletedAt), isNotNull(observation.value)))
+      .where(
+        and(
+          eq(observation.indicatorId, indicatorId),
+          isNull(observation.deletedAt),
+          isNotNull(observation.value),
+        ),
+      )
       .groupBy(observation.id, observation.fromDate, observation.toDate, observation.value),
   );
   const leastDisaggregated = db.$with('range_least_disaggregated').as(

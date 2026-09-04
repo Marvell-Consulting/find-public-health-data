@@ -12,13 +12,14 @@ export { assertCoreDataPresent, importCoreData } from './core-data.js';
 export { dbEnvFields, resolveDbTls } from './env.js';
 export {
   type ApprovedIndicator,
-  getApprovedIndicatorByFingertipsId,
+  getApprovedIndicatorById,
   getIndicatorObservations,
   type IndicatorAreaData,
   type IndicatorDetail,
   type IndicatorObservation,
   type IndicatorSource,
   listApprovedIndicators,
+  resolveApprovedIndicatorId,
 } from './indicator-repository.js';
 export {
   type IndicatorClassification,

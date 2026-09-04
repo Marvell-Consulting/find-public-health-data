@@ -157,7 +157,7 @@ describe('public API', () => {
 
   it('finds an indicator by its fingertips id', async () => {
     const repositories = createFakeRepositories({
-      indicators: { findApprovedByFingertipsId: async () => indicatorDetail },
+      indicators: { resolveId: async () => 'ind-1', findApprovedById: async () => indicatorDetail },
     });
 
     const response = await request(createApp({ repositories })).get('/api/indicators/108');
@@ -168,7 +168,7 @@ describe('public API', () => {
 
   it('returns the standard not-found body for an unknown fingertips id', async () => {
     const repositories = createFakeRepositories({
-      indicators: { findApprovedByFingertipsId: async () => undefined },
+      indicators: { resolveId: async () => undefined },
     });
 
     const response = await request(createApp({ repositories })).get('/api/indicators/424242');
@@ -225,36 +225,42 @@ describe('public API', () => {
       ],
     };
     const findObservations = vi.fn().mockResolvedValue(data);
-    const repositories = createFakeRepositories({ indicators: { findObservations } });
+    const repositories = createFakeRepositories({
+      indicators: { resolveId: async () => 'ind-1', findObservations },
+    });
 
     const response = await request(createApp({ repositories })).get('/api/indicators/108/data');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual(data);
-    expect(findObservations).toHaveBeenCalledWith(108, 'E92000001');
+    expect(findObservations).toHaveBeenCalledWith('ind-1', 'E92000001');
   });
 
   it('passes an explicit area code through to the repository', async () => {
     const findObservations = vi
       .fn()
       .mockResolvedValue({ areaCode: 'E06000001', areaName: 'Hartlepool', observations: [] });
-    const repositories = createFakeRepositories({ indicators: { findObservations } });
+    const repositories = createFakeRepositories({
+      indicators: { resolveId: async () => 'ind-1', findObservations },
+    });
 
     const response = await request(createApp({ repositories })).get(
       '/api/indicators/108/data?area_code=E06000001',
     );
 
     expect(response.status).toBe(200);
-    expect(findObservations).toHaveBeenCalledWith(108, 'E06000001');
+    expect(findObservations).toHaveBeenCalledWith('ind-1', 'E06000001');
   });
 
   it('answers with a list when several areas are asked for', async () => {
-    const findObservations = vi.fn().mockImplementation(async (_id: number, areaCode: string) => ({
+    const findObservations = vi.fn().mockImplementation(async (_id: string, areaCode: string) => ({
       areaCode,
       areaName: areaCode,
       observations: [],
     }));
-    const repositories = createFakeRepositories({ indicators: { findObservations } });
+    const repositories = createFakeRepositories({
+      indicators: { resolveId: async () => 'ind-1', findObservations },
+    });
 
     const response = await request(createApp({ repositories })).get(
       '/api/indicators/108/data?area_code=E12000001&area_code=E12000002',
@@ -275,9 +281,9 @@ describe('public API', () => {
     expect(response.status).toBe(404);
   });
 
-  it('returns not-found for observations of an unknown indicator', async () => {
+  it('returns not-found when none of the requested areas exist', async () => {
     const repositories = createFakeRepositories({
-      indicators: { findObservations: async () => undefined },
+      indicators: { resolveId: async () => 'ind-1', findObservations: async () => undefined },
     });
 
     const response = await request(createApp({ repositories })).get('/api/indicators/424242/data');
@@ -336,7 +342,9 @@ describe('public API', () => {
     ];
     const findObservationRange = vi.fn().mockResolvedValue(periods);
     const app = createApp({
-      repositories: createFakeRepositories({ indicators: { findObservationRange } }),
+      repositories: createFakeRepositories({
+        indicators: { resolveId: async () => 'ind-1', findObservationRange },
+      }),
     });
 
     const response = await request(app).get(
@@ -345,7 +353,19 @@ describe('public API', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ periods });
-    expect(findObservationRange).toHaveBeenCalledWith(241, ['UA unchanged', 'LA unchanged']);
+    expect(findObservationRange).toHaveBeenCalledWith('ind-1', ['UA unchanged', 'LA unchanged']);
+  });
+
+  it('404s data and range requests when the fingertips id resolves to nothing', async () => {
+    const repositories = createFakeRepositories({
+      indicators: { resolveId: async () => undefined },
+    });
+    const app = createApp({ repositories });
+
+    expect((await request(app).get('/api/indicators/424242/data')).status).toBe(404);
+    expect(
+      (await request(app).get('/api/indicators/424242/range?area_type=UA%20unchanged')).status,
+    ).toBe(404);
   });
 
   it('rejects a range request without area types or with a non-numeric id', async () => {

@@ -10,13 +10,14 @@ import {
 import type { Database } from './client.js';
 import {
   type ApprovedIndicator,
-  getApprovedIndicatorByFingertipsId,
+  getApprovedIndicatorById,
   getIndicatorObservations,
   getObservationRange,
   type IndicatorAreaData,
   type IndicatorDetail,
   listApprovedIndicators,
   type ObservationRangePeriod,
+  resolveApprovedIndicatorId,
   searchApprovedIndicators,
 } from './indicator-repository.js';
 import { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';
@@ -24,10 +25,12 @@ import { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';
 export interface IndicatorRepository {
   listApproved(): Promise<ApprovedIndicator[]>;
   search(query: string, limit: number): Promise<ApprovedIndicator[]>;
-  findApprovedByFingertipsId(fingertipsId: number): Promise<IndicatorDetail | undefined>;
-  findObservations(fingertipsId: number, areaCode: string): Promise<IndicatorAreaData | undefined>;
+  /** The one place the public Fingertips number resolves to an internal id. */
+  resolveId(fingertipsId: number): Promise<string | undefined>;
+  findApprovedById(indicatorId: string): Promise<IndicatorDetail | undefined>;
+  findObservations(indicatorId: string, areaCode: string): Promise<IndicatorAreaData | undefined>;
   findObservationRange(
-    fingertipsId: number,
+    indicatorId: string,
     areaTypeNames: string[],
   ): Promise<ObservationRangePeriod[]>;
 }
@@ -66,12 +69,12 @@ export function createRepositories(db: Database): Repositories {
     indicators: {
       listApproved: () => listApprovedIndicators(db),
       search: (query, limit) => searchApprovedIndicators(db, query, limit),
-      findApprovedByFingertipsId: (fingertipsId) =>
-        getApprovedIndicatorByFingertipsId(db, fingertipsId),
-      findObservations: (fingertipsId, areaCode) =>
-        getIndicatorObservations(db, fingertipsId, areaCode),
-      findObservationRange: (fingertipsId, areaTypeNames) =>
-        getObservationRange(db, fingertipsId, areaTypeNames),
+      resolveId: (fingertipsId) => resolveApprovedIndicatorId(db, fingertipsId),
+      findApprovedById: (indicatorId) => getApprovedIndicatorById(db, indicatorId),
+      findObservations: (indicatorId, areaCode) =>
+        getIndicatorObservations(db, indicatorId, areaCode),
+      findObservationRange: (indicatorId, areaTypeNames) =>
+        getObservationRange(db, indicatorId, areaTypeNames),
     },
     topics: {
       list: () => listTopics(db),
