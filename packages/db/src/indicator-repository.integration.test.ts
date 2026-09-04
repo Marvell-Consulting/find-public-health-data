@@ -4,7 +4,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   listAreaParents,
   listAreasByCodes,
+  listAreasByGroup,
   listAreasByType,
+  listDisplayGroups,
   searchAreas,
 } from './area-repository.js';
 import { createDb, type Database } from './client.js';
@@ -192,18 +194,9 @@ describe('getIndicatorObservations', () => {
 });
 
 describe('getObservationRange', () => {
-  const LOCAL_AUTHORITY_TYPES = [
-    'County unchanged',
-    'LA unchanged',
-    'UA unchanged',
-    'UA new 2020',
-    'UA new 2021',
-    'UA new 2023',
-  ];
-
   it('brackets each period of the trend series across every area of the level', async () => {
     const [range, cornwall] = await Promise.all([
-      getObservationRange(db, DIABETES_QOF_PREVALENCE, LOCAL_AUTHORITY_TYPES),
+      getObservationRange(db, DIABETES_QOF_PREVALENCE, 'Local authorities'),
       getIndicatorObservations(db, DIABETES_QOF_PREVALENCE, CORNWALL),
     ]);
 
@@ -221,13 +214,13 @@ describe('getObservationRange', () => {
     }
   });
 
-  it('returns an empty range without area types or for an unknown indicator', async () => {
-    expect(await getObservationRange(db, DIABETES_QOF_PREVALENCE, [])).toEqual([]);
-    expect(await getObservationRange(db, 424242, LOCAL_AUTHORITY_TYPES)).toEqual([]);
+  it('returns an empty range for an unknown group or an unknown indicator', async () => {
+    expect(await getObservationRange(db, DIABETES_QOF_PREVALENCE, 'No Such Level')).toEqual([]);
+    expect(await getObservationRange(db, 424242, 'Local authorities')).toEqual([]);
   });
 
   it('returns one range per segment for an always-sexed indicator', async () => {
-    const range = await getObservationRange(db, LIFE_EXPECTANCY_AT_BIRTH, LOCAL_AUTHORITY_TYPES);
+    const range = await getObservationRange(db, LIFE_EXPECTANCY_AT_BIRTH, 'Local authorities');
 
     const segments = new Set(range.map(({ segment }) => segment));
     expect(segments.has('Male')).toBe(true);
@@ -246,7 +239,7 @@ describe('listAreaParents', () => {
       {
         code: CORNWALL,
         parentCode: 'E12000009',
-        parentName: 'South West region (statistical)',
+        parentName: 'South West',
       },
     ]);
   });
@@ -272,11 +265,51 @@ describe('listAreasByType', () => {
   });
 });
 
+describe('listDisplayGroups', () => {
+  it('returns the user-facing levels in display order', async () => {
+    expect(await listDisplayGroups(db)).toEqual([
+      'Local authorities',
+      'Statistical regions',
+      'NHS regions',
+      'Integrated care boards',
+      'Middle-layer super output areas',
+      'GP practices',
+    ]);
+  });
+});
+
+describe('listAreasByGroup', () => {
+  it('returns every current area across the group types, bare-named and ordered', async () => {
+    const regions = await listAreasByGroup(db, 'Statistical regions');
+
+    expect(regions.map(({ name }) => name)).toEqual([
+      'East Midlands',
+      'East of England',
+      'London',
+      'North East',
+      'North West',
+      'South East',
+      'South West',
+      'West Midlands',
+      'Yorkshire and the Humber',
+    ]);
+  });
+
+  it('returns nothing for an unknown group', async () => {
+    expect(await listAreasByGroup(db, 'No Such Level')).toEqual([]);
+  });
+});
+
 describe('listAreasByCodes', () => {
   it('resolves each code to its current name and area type', async () => {
     expect(await listAreasByCodes(db, [CORNWALL, ENGLAND])).toEqual([
-      { code: CORNWALL, name: 'Cornwall', areaType: 'UA unchanged' },
-      { code: ENGLAND, name: 'England', areaType: 'England' },
+      {
+        code: CORNWALL,
+        name: 'Cornwall',
+        areaType: 'UA unchanged',
+        displayGroup: 'Local authorities',
+      },
+      { code: ENGLAND, name: 'England', areaType: 'England', displayGroup: null },
     ]);
   });
 
@@ -287,24 +320,35 @@ describe('listAreasByCodes', () => {
 });
 
 describe('searchAreas', () => {
-  it('matches by name or exact code within the asked-for types only', async () => {
-    const cornwall = { code: CORNWALL, name: 'Cornwall', areaType: 'UA unchanged' };
+  it('matches by name or exact code across displayed types, carrying the display group', async () => {
+    const cornwall = {
+      code: CORNWALL,
+      name: 'Cornwall',
+      areaType: 'UA unchanged',
+      displayGroup: 'Local authorities',
+    };
+    const results = await searchAreas(db, 'cornwall', 10);
 
-    expect(await searchAreas(db, 'corn', ['UA unchanged'], 10)).toEqual([cornwall]);
-    expect(await searchAreas(db, 'e06000052', ['UA unchanged'], 10)).toEqual([cornwall]);
-    expect(await searchAreas(db, 'corn', ['Regions (statistical)'], 10)).toEqual([]);
+    // The council ranks above the ICB and practices that contain the same word.
+    expect(results[0]).toEqual(cornwall);
+    expect(results.every(({ name }) => name.toLowerCase().includes('cornwall'))).toBe(true);
+    expect(results.every(({ displayGroup }) => displayGroup !== null)).toBe(true);
+    expect((await searchAreas(db, 'e06000052', 10))[0]).toEqual(cornwall);
+  });
+
+  it('never surfaces an area whose type has no display group', async () => {
+    expect((await searchAreas(db, 'england', 20)).every(({ code }) => code !== ENGLAND)).toBe(true);
   });
 
   it('ranks earlier matches first and applies the limit', async () => {
-    const names = (await searchAreas(db, 'west', ['UA unchanged', 'Regions (statistical)'], 3)).map(
-      ({ name }) => name,
-    );
+    const names = (await searchAreas(db, 'west', 3)).map(({ name }) => name);
 
-    expect(names).toEqual(['West Berkshire', 'West Midlands region (statistical)', 'Westminster']);
+    expect(names).toHaveLength(3);
+    expect(names.every((name) => name.startsWith('West'))).toBe(true);
   });
 
   it('treats pattern characters literally instead of as wildcards', async () => {
-    expect(await searchAreas(db, '%', ['UA unchanged'], 10)).toEqual([]);
-    expect(await searchAreas(db, '____', ['UA unchanged'], 10)).toEqual([]);
+    expect(await searchAreas(db, '%', 10)).toEqual([]);
+    expect(await searchAreas(db, '____', 10)).toEqual([]);
   });
 });

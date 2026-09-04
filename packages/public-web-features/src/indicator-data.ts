@@ -4,8 +4,6 @@ import type {
   IndicatorObservation,
 } from '@fphd/public-api-features/contract';
 
-import { cleanAreaName } from './geography-display';
-
 export function periodLabel(
   { fromDate, toDate }: Pick<IndicatorObservation, 'fromDate' | 'toDate'>,
   yearType?: string,
@@ -297,7 +295,7 @@ export function comparisonRows(
       const latest = series.at(-1);
       return {
         areaCode: data.areaCode,
-        areaName: cleanAreaName(data.areaName),
+        areaName: data.areaName,
         value: latest?.value ?? null,
         count: latest?.count ?? null,
         series,

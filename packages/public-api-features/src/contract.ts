@@ -133,7 +133,14 @@ export const areaLookupListSchema = z.array(
     code: z.string().min(1),
     name: z.string().min(1),
     areaType: z.string().min(1),
+    displayGroup: z.string().min(1).nullable(),
   }),
+);
+
+export const displayGroupListSchema = z.array(z.string().min(1));
+
+export const areaDisplayGroupListSchema = z.array(
+  z.object({ displayGroup: z.string().min(1), areas: areaListSchema }),
 );
 
 export const areaParentListSchema = z.array(

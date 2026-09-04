@@ -56,7 +56,11 @@ scp export/export-seed.py fphd@<vm-ip>:/tmp/
 ssh fphd@<vm-ip> 'MSSQL_PASSWORD=<sa-password> python3 /tmp/export-seed.py /tmp/seed-out'
 scp 'fphd@<vm-ip>:/tmp/seed-out/*.csv.gz' .
 python3 export/transform-uuids.py .
+python3 export/enrich-area-display.py .
 ```
+
+`enrich-area-display.py` stamps each area type's display group and strips the level
+suffixes from area names; skipping it commits seeds the geography tree cannot group.
 
 The transform assigns sequential UUIDv7 ids in source-id order, remaps every foreign key,
 and keeps the public Fingertips indicator number in `indicator.fingertips_id`. Adjust the

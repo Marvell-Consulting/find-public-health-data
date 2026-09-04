@@ -1,7 +1,6 @@
 import { Button, ChartSection, Tabs } from '@fphd/ui';
 import { Fragment, type ReactNode, useState } from 'react';
 import { useLocation } from 'react-router';
-import { cleanAreaName } from './geography-display';
 import {
   alignedTrendSeries,
   type BenchmarkJudgement,
@@ -661,7 +660,7 @@ export function ComparisonSection({
   const rows = comparisonRows(selected);
   const areas = comparisonAreas(selected[0]?.areaData ?? []).map(({ areaCode, areaName }) => ({
     areaCode,
-    areaName: cleanAreaName(areaName),
+    areaName: areaName,
   }));
   const byId = new Map(selected.map((entry) => [entry.detail.fingertipsId, entry]));
   const polarities = new Map(selected.map(({ detail }) => [detail.fingertipsId, detail.polarity]));

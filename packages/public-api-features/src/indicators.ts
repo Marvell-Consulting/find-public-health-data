@@ -59,20 +59,22 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
 
   router.get('/api/indicators/:fingertipsId/range', async (request, response) => {
     const { fingertipsId } = request.params;
-    const requested = request.query.area_type;
-    const areaTypeNames = (Array.isArray(requested) ? requested : [requested]).filter(
-      (value): value is string => typeof value === 'string' && value !== '' && value.length <= 100,
-    );
+    const displayGroup = request.query.display_group;
 
-    if (!/^\d+$/.test(fingertipsId) || areaTypeNames.length === 0) {
+    if (
+      !/^\d+$/.test(fingertipsId) ||
+      typeof displayGroup !== 'string' ||
+      displayGroup === '' ||
+      displayGroup.length > 100
+    ) {
       response.status(404).json({ error: 'not_found' });
       return;
     }
 
-    // An indicator with no data for these area types answers with an empty range rather
-    // than an error, matching how /api/areas treats unknown types.
+    // An indicator with no data at this level answers with an empty range rather than an
+    // error, matching how /api/areas treats unknown groups.
     response.status(200).json({
-      periods: await indicators.findObservationRange(Number(fingertipsId), areaTypeNames),
+      periods: await indicators.findObservationRange(Number(fingertipsId), displayGroup),
     });
   });
 

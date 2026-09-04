@@ -4,7 +4,9 @@ import {
   type AreaSummary,
   listAreaParents,
   listAreasByCodes,
+  listAreasByGroup,
   listAreasByType,
+  listDisplayGroups,
   searchAreas,
 } from './area-repository.js';
 import type { Database } from './client.js';
@@ -28,14 +30,16 @@ export interface IndicatorRepository {
   findObservations(fingertipsId: number, areaCode: string): Promise<IndicatorAreaData | undefined>;
   findObservationRange(
     fingertipsId: number,
-    areaTypeNames: string[],
+    displayGroup: string,
   ): Promise<ObservationRangePeriod[]>;
 }
 
 export interface AreaRepository {
   listByType(areaTypeName: string): Promise<AreaSummary[]>;
+  listDisplayGroups(): Promise<string[]>;
+  listByGroup(displayGroup: string): Promise<AreaSummary[]>;
   listByCodes(codes: string[]): Promise<AreaLookup[]>;
-  search(query: string, areaTypeNames: string[], limit: number): Promise<AreaLookup[]>;
+  search(query: string, limit: number): Promise<AreaLookup[]>;
   listParents(childCodes: string[], parentTypeName: string): Promise<AreaParent[]>;
 }
 
@@ -59,8 +63,10 @@ export function createRepositories(db: Database): Repositories {
   return {
     areas: {
       listByType: (areaTypeName) => listAreasByType(db, areaTypeName),
+      listDisplayGroups: () => listDisplayGroups(db),
+      listByGroup: (displayGroup) => listAreasByGroup(db, displayGroup),
       listByCodes: (codes) => listAreasByCodes(db, codes),
-      search: (query, areaTypeNames, limit) => searchAreas(db, query, areaTypeNames, limit),
+      search: (query, limit) => searchAreas(db, query, limit),
       listParents: (childCodes, parentTypeName) => listAreaParents(db, childCodes, parentTypeName),
     },
     indicators: {
@@ -70,8 +76,8 @@ export function createRepositories(db: Database): Repositories {
         getApprovedIndicatorByFingertipsId(db, fingertipsId),
       findObservations: (fingertipsId, areaCode) =>
         getIndicatorObservations(db, fingertipsId, areaCode),
-      findObservationRange: (fingertipsId, areaTypeNames) =>
-        getObservationRange(db, fingertipsId, areaTypeNames),
+      findObservationRange: (fingertipsId, displayGroup) =>
+        getObservationRange(db, fingertipsId, displayGroup),
     },
     topics: {
       list: () => listTopics(db),

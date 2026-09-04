@@ -10,6 +10,9 @@ export const areaType = pgTable(
     name: text().notNull().unique(),
     hierarchyType: text().notNull(),
     level: integer().notNull(),
+    /** The user-facing level this type rolls into ("Local authorities"); null stays hidden. */
+    displayGroup: text(),
+    displayOrder: integer(),
   },
   (t) => [
     check('area_type_hierarchy_type_check', sql`${t.hierarchyType} IN ('NHS', 'Administrative')`),

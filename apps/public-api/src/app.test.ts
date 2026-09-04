@@ -330,7 +330,7 @@ describe('public API', () => {
     expect(listApproved).toHaveBeenCalled();
   });
 
-  it('serves a per-segment range for the requested area types', async () => {
+  it('serves a per-segment range for the requested display group', async () => {
     const periods = [
       { fromDate: '2023-01-01', toDate: '2023-12-31', segment: 'Male', min: 1, max: 2 },
     ];
@@ -340,12 +340,12 @@ describe('public API', () => {
     });
 
     const response = await request(app).get(
-      '/api/indicators/241/range?area_type=UA%20unchanged&area_type=LA%20unchanged',
+      '/api/indicators/241/range?display_group=Local%20authorities',
     );
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ periods });
-    expect(findObservationRange).toHaveBeenCalledWith(241, ['UA unchanged', 'LA unchanged']);
+    expect(findObservationRange).toHaveBeenCalledWith(241, 'Local authorities');
   });
 
   it('rejects a range request without area types or with a non-numeric id', async () => {
@@ -353,7 +353,9 @@ describe('public API', () => {
     const app = createApp({ repositories: createFakeRepositories() });
 
     expect((await request(app).get('/api/indicators/241/range')).status).toBe(404);
-    expect((await request(app).get('/api/indicators/nope/range?area_type=UA')).status).toBe(404);
+    expect(
+      (await request(app).get('/api/indicators/nope/range?display_group=Local+authorities')).status,
+    ).toBe(404);
   });
 
   it('resolves area parents of one type, filtering malformed codes', async () => {
@@ -392,29 +394,45 @@ describe('public API', () => {
     expect((await request(app).get('/api/areas/lookup?area_code=..%2Fbad')).status).toBe(400);
   });
 
-  it('searches areas within the asked-for types, trimming and capping the inputs', async () => {
+  it('searches areas, trimming and capping the inputs', async () => {
     const search = vi.fn().mockResolvedValue([]);
     const app = createApp({ repositories: createFakeRepositories({ areas: { search } }) });
 
     const response = await request(app).get(
-      `/api/areas/search?q=${encodeURIComponent(`  ${'corn'.padEnd(120, 'w')}  `)}&area_type=UA+unchanged&area_type=${'a'.repeat(101)}&limit=500`,
+      `/api/areas/search?q=${encodeURIComponent(`  ${'corn'.padEnd(120, 'w')}  `)}&limit=500`,
     );
 
     expect(response.status).toBe(200);
-    expect(search).toHaveBeenCalledWith('corn'.padEnd(100, 'w'), ['UA unchanged'], 100);
+    expect(search).toHaveBeenCalledWith('corn'.padEnd(100, 'w'), 100);
 
-    await request(app).get('/api/areas/search?q=corn&area_type=UA+unchanged');
-    expect(search).toHaveBeenLastCalledWith('corn', ['UA unchanged'], 50);
+    await request(app).get('/api/areas/search?q=corn');
+    expect(search).toHaveBeenLastCalledWith('corn', 50);
   });
 
-  it('rejects a search request missing its query or area types', async () => {
+  it('rejects a search request missing its query', async () => {
     const app = createApp({ repositories: createFakeRepositories() });
 
-    expect((await request(app).get('/api/areas/search?q=corn')).status).toBe(400);
-    expect((await request(app).get('/api/areas/search?area_type=UA+unchanged')).status).toBe(400);
-    expect(
-      (await request(app).get('/api/areas/search?q=%20%20&area_type=UA+unchanged')).status,
-    ).toBe(400);
+    expect((await request(app).get('/api/areas/search')).status).toBe(400);
+    expect((await request(app).get('/api/areas/search?q=%20%20')).status).toBe(400);
+  });
+
+  it('lists the display groups and answers a display-group areas request', async () => {
+    const listDisplayGroups = vi.fn().mockResolvedValue(['Local authorities', 'GP practices']);
+    const listByGroup = vi.fn().mockResolvedValue([{ code: 'E06000052', name: 'Cornwall' }]);
+    const app = createApp({
+      repositories: createFakeRepositories({ areas: { listDisplayGroups, listByGroup } }),
+    });
+
+    expect((await request(app).get('/api/areas/display-groups')).body).toEqual([
+      'Local authorities',
+      'GP practices',
+    ]);
+
+    const response = await request(app).get('/api/areas?display_group=Local+authorities');
+    expect(response.body).toEqual([
+      { displayGroup: 'Local authorities', areas: [{ code: 'E06000052', name: 'Cornwall' }] },
+    ]);
+    expect(listByGroup).toHaveBeenCalledWith('Local authorities');
   });
 
   it('rejects a parents request missing or overflowing parent_type', async () => {

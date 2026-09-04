@@ -13,13 +13,13 @@ function loaderArgs(get: ReturnType<typeof vi.fn>, url: string): LoaderFunctionA
 }
 
 describe('geography resource route', () => {
-  it('answers a level with its areas cleaned and sorted, asking for every backing type', async () => {
+  it('answers a level with its areas by display group', async () => {
     const get = vi.fn().mockResolvedValue([
       {
-        areaType: 'Regions (statistical)',
+        displayGroup: 'Statistical regions',
         areas: [
-          { code: 'E12000009', name: 'South West region (statistical)' },
-          { code: 'E12000001', name: 'North East region (statistical)' },
+          { code: 'E12000001', name: 'North East' },
+          { code: 'E12000009', name: 'South West' },
         ],
       },
     ]);
@@ -29,7 +29,7 @@ describe('geography resource route', () => {
     );
 
     expect(get).toHaveBeenCalledWith(
-      '/api/areas?area_type=Regions%20(statistical)',
+      '/api/areas?display_group=Statistical%20regions',
       expect.anything(),
     );
     expect(await response.json()).toEqual({
@@ -40,39 +40,34 @@ describe('geography resource route', () => {
     });
   });
 
-  it('asks for all six local authority types behind that one level', async () => {
-    const get = vi.fn().mockResolvedValue([]);
-
-    await loader(loaderArgs(get, 'http://localhost/geographies?level=Local%20authorities'));
-
-    const [path] = get.mock.calls[0] ?? [];
-    expect(String(path).match(/area_type=/g)).toHaveLength(6);
-  });
-
-  it('answers an unknown level with no areas and no api call', async () => {
-    const get = vi.fn();
+  it('answers an unknown level with no areas', async () => {
+    const get = vi.fn().mockResolvedValue([{ displayGroup: 'Nope', areas: [] }]);
 
     const response = await loader(loaderArgs(get, 'http://localhost/geographies?level=Nope'));
 
     expect(await response.json()).toEqual({ areas: [] });
-    expect(get).not.toHaveBeenCalled();
   });
 
-  it('groups search matches by display level, dropping unmapped types', async () => {
+  it('groups search matches by their display group, dropping ungrouped areas', async () => {
     const get = vi.fn().mockResolvedValue([
-      { code: 'E06000052', name: 'Cornwall', areaType: 'UA unchanged' },
+      {
+        code: 'E06000052',
+        name: 'Cornwall',
+        areaType: 'UA unchanged',
+        displayGroup: 'Local authorities',
+      },
       {
         code: 'E12000009',
-        name: 'South West region (statistical)',
+        name: 'South West',
         areaType: 'Regions (statistical)',
+        displayGroup: 'Statistical regions',
       },
-      { code: 'E92000001', name: 'England', areaType: 'England' },
+      { code: 'E92000001', name: 'England', areaType: 'England', displayGroup: null },
     ]);
 
     const response = await loader(loaderArgs(get, 'http://localhost/geographies?q=west'));
 
-    const [path] = get.mock.calls[0] ?? [];
-    expect(String(path)).toContain('/api/areas/search?q=west&limit=50');
+    expect(get).toHaveBeenCalledWith('/api/areas/search?q=west&limit=50', expect.anything());
     expect(await response.json()).toEqual({
       groups: [
         { name: 'Local authorities', areas: [{ code: 'E06000052', name: 'Cornwall' }] },
