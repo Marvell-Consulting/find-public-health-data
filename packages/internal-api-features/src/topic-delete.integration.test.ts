@@ -1,9 +1,8 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
+import { createDb, type Database, dbEnvFields, resolveDbTls } from '@fphd/db';
+import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createDb, type Database } from './client.js';
-import { dbEnvFields, resolveDbTls } from './env.js';
-import { createTestDatabase, type TestDatabase } from './testing.js';
 import { deleteTopic, getTopicById } from './topic-repository.js';
 
 // Seeded, because the cascade is only meaningful against real indicator_topic links, and

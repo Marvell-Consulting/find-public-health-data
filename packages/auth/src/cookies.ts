@@ -1,7 +1,4 @@
-/**
- * Its own module, with no Node imports, so a package that only needs to read a cookie does
- * not pull `jwt-session` — and `node:crypto` with it — into its module graph.
- */
+/** Kept free of Node imports so reading a cookie does not pull `jwt-session` into the graph. */
 export function readCookie(
   cookieHeader: string | null | undefined,
   cookieName: string,

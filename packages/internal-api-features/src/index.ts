@@ -1,13 +1,24 @@
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
-import type { Repositories } from '@fphd/db';
 import { Router } from 'express';
 
+import type { InternalRepositories } from './repositories.js';
 import { internalTopicsRouter } from './topics.js';
 
+export {
+  createInternalRepositories,
+  type InternalRepositories,
+  type InternalTopicRepository,
+} from './repositories.js';
+export type {
+  CreateTopicResult,
+  DeleteTopicResult,
+  TopicUpdate,
+  UpdateTopicResult,
+} from './topic-repository.js';
 export { internalTopicsRouter } from './topics.js';
 
 export interface InternalApiDependencies {
-  repositories: Repositories;
+  repositories: InternalRepositories;
   session: JwtSessionVerifier;
 }
 

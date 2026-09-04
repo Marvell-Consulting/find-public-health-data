@@ -19,10 +19,8 @@ interface ErrorSummaryProps {
 }
 
 /**
- * Plain GOV.UK Frontend markup rather than `@not-govuk/error-summary`: that component routes
- * its links through React Router, so clicking one would navigate, re-run the loader and
- * discard the values the publisher just submitted. A bare anchor jumps to the field and
- * leaves the page as the action rendered it.
+ * Plain GOV.UK Frontend markup with bare anchors: a link routed through React Router would
+ * re-run the loader and discard the values the publisher just submitted.
  */
 export function ErrorSummary({ errors, title = 'There is a problem' }: ErrorSummaryProps) {
   if (errors.length === 0) return null;

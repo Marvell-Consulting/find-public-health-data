@@ -160,7 +160,8 @@ export function createFakeRepositories(overrides: FakeRepositoryOverrides = {}):
   };
 }
 
-function withThrowingDefaults<T extends object>(name: string, stubs: Partial<T> = {}): T {
+/** Shared with `@fphd/internal-api-features/testing`, whose fakes throw the same way. */
+export function withThrowingDefaults<T extends object>(name: string, stubs: Partial<T> = {}): T {
   return new Proxy(stubs as T, {
     get(target, property, receiver) {
       // Symbols are left alone so an accidental await or console.log of the object behaves

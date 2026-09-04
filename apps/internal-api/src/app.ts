@@ -1,15 +1,16 @@
 import { addNotFoundHandler, createApiApp, requireJwtRole } from '@fphd/api-server';
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import type { Repositories } from '@fphd/db';
-import { internalApiRoutes } from '@fphd/internal-api-features';
+import { type InternalRepositories, internalApiRoutes } from '@fphd/internal-api-features';
 import { publicApiRoutes } from '@fphd/public-api-features';
 
 export interface AppDependencies {
   repositories: Repositories;
+  internalRepositories: InternalRepositories;
   session: JwtSessionVerifier;
 }
 
-export function createApp({ repositories, session }: AppDependencies) {
+export function createApp({ repositories, internalRepositories, session }: AppDependencies) {
   const app = createApiApp('internal-api');
 
   app.use(publicApiRoutes(repositories));
@@ -21,7 +22,7 @@ export function createApp({ repositories, session }: AppDependencies) {
     });
   });
 
-  app.use(internalApiRoutes({ repositories, session }));
+  app.use(internalApiRoutes({ repositories: internalRepositories, session }));
 
   addNotFoundHandler(app);
   return app;

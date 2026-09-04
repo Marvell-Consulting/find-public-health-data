@@ -1,5 +1,6 @@
 import { createJwtSessionService, createJwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { createFakeRepositories } from '@fphd/db/testing';
+import { createFakeInternalRepositories } from '@fphd/internal-api-features/testing';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
@@ -14,7 +15,15 @@ const session = createJwtSessionService({
   secure: false,
 });
 const verifier = createJwtSessionVerifier(session);
-const app = createApp({ repositories: createFakeRepositories(), session: verifier });
+
+function createTestApp(
+  repositories = createFakeRepositories(),
+  internalRepositories = createFakeInternalRepositories(),
+) {
+  return createApp({ repositories, internalRepositories, session: verifier });
+}
+
+const app = createTestApp();
 
 async function createCookie(roles: readonly string[]): Promise<string> {
   const token = await session.issueToken({
@@ -73,7 +82,7 @@ describe('internal API', () => {
   it('serves the public indicators surface', async () => {
     const repositories = createFakeRepositories({ indicators: { listApproved: async () => [] } });
 
-    const response = await request(createApp({ repositories, session: verifier })).get(
+    const response = await request(createTestApp(repositories)).get(
       '/api/indicators',
     );
 
@@ -82,7 +91,7 @@ describe('internal API', () => {
   });
 
   it('mounts the internal topics surface behind the publisher role', async () => {
-    const repositories = createFakeRepositories({
+    const internalRepositories = createFakeInternalRepositories({
       topics: {
         list: async () => [
           {
@@ -96,7 +105,7 @@ describe('internal API', () => {
         ],
       },
     });
-    const app = createApp({ repositories, session: verifier });
+    const app = createTestApp(createFakeRepositories(), internalRepositories);
 
     const asPublisher = await request(app)
       .get('/api/internal/topics')
@@ -126,7 +135,7 @@ describe('internal API', () => {
       },
     });
 
-    const response = await request(createApp({ repositories, session: verifier })).get(
+    const response = await request(createTestApp(repositories)).get(
       '/api/topics',
     );
 

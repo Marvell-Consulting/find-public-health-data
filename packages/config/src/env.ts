@@ -143,8 +143,7 @@ export function loadWebServerConfig(
       API_URL: apiUrlSchema.default(defaults.apiUrl),
       NODE_ENV: nodeEnvSchema,
       SESSION_JWT_SECRET: z.string().min(32),
-      // Separate from the JWT secret: this signs the web app's own cookie session, and the
-      // two are rotated independently.
+      // Signs the web app's own cookie session; rotates independently of the JWT secret.
       WEB_SESSION_SECRET: z.string().min(32),
     }),
     env,

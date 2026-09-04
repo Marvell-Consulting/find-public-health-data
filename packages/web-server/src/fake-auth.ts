@@ -47,9 +47,8 @@ export function createFakeAuthRouter({
 }: FakeAuthRouterOptions): Router {
   const pendingSignIns = new Map<string, PendingSignIn>();
   const router = express.Router();
-  // Applied per route, not with `router.use`: this router sits in front of the whole app, and
-  // a body parser there would read the stream of every request — leaving a React Router
-  // action's `request.formData()` empty for every form in the service.
+  // Per route: this router fronts the whole app, and a parser on all of it would leave every
+  // React Router action's `request.formData()` empty.
   const parseForm = express.urlencoded({ extended: false });
 
   router.post('/auth/sign-in', parseForm, (request, response) => {

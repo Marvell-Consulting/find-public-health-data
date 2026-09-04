@@ -1,20 +1,17 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
+import {
+  createDb,
+  createPostgresClient,
+  type Database,
+  dbEnvFields,
+  resolveDbTls,
+  schema,
+} from '@fphd/db';
+import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createDb, createPostgresClient, type Database } from './client.js';
-import { dbEnvFields, resolveDbTls } from './env.js';
-import type { TopicRecord } from './schema.js';
-import { createTestDatabase, type TestDatabase } from './testing.js';
-import {
-  createTopic,
-  deleteTopic,
-  getTopicById,
-  updateTopic,
-  upsertTopics,
-} from './topic-repository.js';
+import { createTopic, deleteTopic, getTopicById, updateTopic } from './topic-repository.js';
 
-// Its own file, and so its own database: these tests write, and the read-side fixtures in
-// topic-repository.integration.test.ts assert on the exact contents of the table.
 const env = parseEnv(
   z.object({
     ...dbEnvFields,
@@ -34,30 +31,34 @@ let topicCount = 0;
 const UNKNOWN_ID = '00000000-0000-7000-8000-0000000000ff';
 
 /** A distinct row per test, so no test depends on another having run (or not run) first. */
-async function givenTopic(): Promise<TopicRecord> {
+async function givenTopic() {
   topicCount += 1;
   const reference = topicCount.toString(16);
-  const record: TopicRecord = {
+  const record = {
     id: `00000000-0000-7000-8000-${reference.padStart(12, '0')}`,
     slug: `topic-${reference}`,
     title: `Topic ${reference}`,
     description: `About topic ${reference}.`,
   };
 
-  await upsertTopics(db, [record]);
+  await db.insert(schema.topic).values(record);
   return record;
+}
+
+function connectionTo(user: string, password: string) {
+  return {
+    host: env.DB_HOST,
+    port: env.DB_PORT,
+    database: testDb.name,
+    user,
+    password,
+    ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
+  };
 }
 
 beforeAll(async () => {
   testDb = await createTestDatabase();
-  db = createDb({
-    host: env.DB_HOST,
-    port: env.DB_PORT,
-    database: testDb.name,
-    user: env.POSTGRES_USER,
-    password: env.POSTGRES_PASSWORD,
-    ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
-  });
+  db = createDb(connectionTo(env.POSTGRES_USER, env.POSTGRES_PASSWORD));
 });
 
 afterAll(async () => {
@@ -65,8 +66,20 @@ afterAll(async () => {
   await testDb.drop();
 });
 
+describe('getTopicById', () => {
+  it('returns the topic matching the given id', async () => {
+    const topic = await givenTopic();
+
+    expect(await getTopicById(db, topic.id)).toMatchObject(topic);
+  });
+
+  it('returns undefined for an unknown id', async () => {
+    expect(await getTopicById(db, UNKNOWN_ID)).toBeUndefined();
+  });
+});
+
 describe('updateTopic', () => {
-  const editableFields: [string, Partial<TopicRecord>][] = [
+  const editableFields: [string, Partial<Awaited<ReturnType<typeof givenTopic>>>][] = [
     ['title', { title: 'A renamed topic' }],
     ['slug', { slug: 'a-renamed-topic' }],
     ['description', { description: 'A rewritten description.' }],
@@ -83,7 +96,6 @@ describe('updateTopic', () => {
     const after = await getTopicById(db, topic.id);
     expect(after).toMatchObject(change);
     expect(after?.updatedAt.getTime()).toBeGreaterThan(before?.updatedAt.getTime() ?? 0);
-    // The surrogate key and creation timestamp are the database's; an edit never moves them.
     expect(after?.id).toBe(topic.id);
     expect(after?.createdAt).toEqual(before?.createdAt);
   });
@@ -164,20 +176,9 @@ describe('deleteTopic', () => {
 });
 
 describe('the topic write surface', () => {
-  function connectAs(role: string, password: string) {
-    return createPostgresClient({
-      host: env.DB_HOST,
-      port: env.DB_PORT,
-      database: testDb.name,
-      user: role,
-      password,
-      ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
-    });
-  }
-
   it('lets internal_api update the editable columns', async () => {
     const topic = await givenTopic();
-    const client = connectAs('internal_api', env.INTERNAL_API_PASSWORD);
+    const client = createPostgresClient(connectionTo('internal_api', env.INTERNAL_API_PASSWORD));
 
     try {
       await expect(
@@ -189,7 +190,7 @@ describe('the topic write surface', () => {
   });
 
   it('lets internal_api insert and delete a topic', async () => {
-    const client = connectAs('internal_api', env.INTERNAL_API_PASSWORD);
+    const client = createPostgresClient(connectionTo('internal_api', env.INTERNAL_API_PASSWORD));
 
     try {
       await expect(
@@ -201,18 +202,10 @@ describe('the topic write surface', () => {
     }
   });
 
-  // The repository through a db connected as internal_api, not the owner: this is what proves
-  // the app's own write path works under the role's grants, which the owner-connected tests
-  // above cannot — the owner can write anything whatever the statement names.
+  // Connected as internal_api rather than the owner, which can write anything whatever the
+  // statement names: this is what proves the app's own write path works under the grants.
   it('creates and deletes through the repository connected as internal_api', async () => {
-    const apiDb = createDb({
-      host: env.DB_HOST,
-      port: env.DB_PORT,
-      database: testDb.name,
-      user: 'internal_api',
-      password: env.INTERNAL_API_PASSWORD,
-      ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
-    });
+    const apiDb = createDb(connectionTo('internal_api', env.INTERNAL_API_PASSWORD));
 
     try {
       const created = await createTopic(apiDb, {
@@ -235,7 +228,7 @@ describe('the topic write surface', () => {
 
   it('does not let public_api update, insert or delete topics at all', async () => {
     const topic = await givenTopic();
-    const client = connectAs('public_api', env.PUBLIC_API_PASSWORD);
+    const client = createPostgresClient(connectionTo('public_api', env.PUBLIC_API_PASSWORD));
 
     try {
       await expect(client`UPDATE topic SET title = 'Nope' WHERE id = ${topic.id}`).rejects.toThrow(

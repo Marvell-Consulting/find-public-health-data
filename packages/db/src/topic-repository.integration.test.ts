@@ -5,7 +5,7 @@ import { createDb, createPostgresClient, type Database } from './client.js';
 import { dbEnvFields, resolveDbTls } from './env.js';
 import type { TopicRecord } from './schema.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
-import { getTopicById, getTopicBySlug, listTopics, upsertTopics } from './topic-repository.js';
+import { getTopicBySlug, listTopics, upsertTopics } from './topic-repository.js';
 
 const env = parseEnv(
   z.object({
@@ -93,26 +93,9 @@ describe('getTopicBySlug', () => {
   });
 });
 
-describe('getTopicById', () => {
-  it('returns the topic matching the given id', async () => {
-    const found = await getTopicById(db, zebra.id);
-
-    expect(found).toMatchObject({
-      id: zebra.id,
-      slug: 'zebra-topic',
-      title: 'Zebra topic',
-      description: 'Should sort last.',
-    });
-  });
-
-  it('returns undefined for an unknown id', async () => {
-    expect(await getTopicById(db, '00000000-0000-7000-8000-00000000ffff')).toBeUndefined();
-  });
-});
-
 describe('the topic read surface', () => {
-  // Both roles read topics; their write privileges differ and are covered where the writes
-  // live (topic-update.integration.test.ts). Here only the shared read grant is asserted.
+  // Only the shared read grant: internal_api's write grants are asserted alongside the writes,
+  // in @fphd/internal-api-features.
   const apiRoles = [
     { role: 'public_api', password: env.PUBLIC_API_PASSWORD },
     { role: 'internal_api', password: env.INTERNAL_API_PASSWORD },

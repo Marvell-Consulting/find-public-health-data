@@ -13,9 +13,7 @@ export const app = createFakeAuthReactRouterApp(() => import('virtual:react-rout
   audience,
   session: config.session,
   extendContext: (context, request) => {
-    // Built per request rather than once at startup: the internal API authorises the
-    // publisher routes, so the client has to carry the caller's session — and only that
-    // cookie, not everything else the browser holds.
+    // Per request: the client carries the caller's session cookie, and only that, to the API.
     context.set(
       apiContext,
       createApiClient({

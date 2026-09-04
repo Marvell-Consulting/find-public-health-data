@@ -1,6 +1,6 @@
 import { requireJwtRole } from '@fphd/api-server';
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
-import type { Repositories, Topic } from '@fphd/db';
+import type { Topic } from '@fphd/db';
 import { Router } from 'express';
 
 import {
@@ -10,6 +10,7 @@ import {
   topicIdSchema,
   topicUpdateSchema,
 } from './contract.js';
+import type { InternalTopicRepository } from './repositories.js';
 
 function toSummary({ id, slug, title, createdAt, updatedAt }: Topic): TopicAdminSummary {
   return {
@@ -30,7 +31,7 @@ function toDetail(topic: Topic): TopicAdminDetail {
  * needs to address. Mounted only by `internal-api`; `public-api` must 404 every path here.
  */
 export function internalTopicsRouter(
-  topics: Repositories['topics'],
+  topics: InternalTopicRepository,
   session: JwtSessionVerifier,
 ): Router {
   const router = Router();
@@ -90,8 +91,7 @@ export function internalTopicsRouter(
       return;
     }
 
-    // Validated again here even though the web action has already done so: a route cannot
-    // trust its caller, and the API is reachable without going through the form.
+    // Validated here as well as at the form, for the same reason as the create above.
     const submission = topicUpdateSchema.safeParse(request.body);
 
     if (!submission.success) {

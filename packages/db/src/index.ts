@@ -57,16 +57,4 @@ export { resetDatabase } from './reset.js';
 export * as schema from './schema.js';
 export { createOwnerClient, loadOwnerEnv } from './scripts/owner-client.js';
 export { assertResetAllowed, assertSeedingAllowed, seedDummyTables } from './seeding.js';
-export {
-  type CreateTopicResult,
-  createTopic,
-  type DeleteTopicResult,
-  deleteTopic,
-  getTopicById,
-  getTopicBySlug,
-  listTopics,
-  type Topic,
-  type TopicUpdate,
-  type UpdateTopicResult,
-  updateTopic,
-} from './topic-repository.js';
+export { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';

@@ -36,8 +36,7 @@ function toErrorSummary(fieldErrors: TopicFieldErrors): FieldError[] {
   });
 }
 
-// A grid column, not PageIntro: the list is a table, so it wants the two-thirds measure rather
-// than the narrower reading measure PageIntro caps its content at.
+// Two-thirds width: the table needs more than PageIntro's reading measure.
 export function AdminTopicsPage({
   topics,
   notification,

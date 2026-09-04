@@ -601,6 +601,9 @@ importers:
       '@fphd/db':
         specifier: workspace:*
         version: link:../db
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.2(postgres@3.4.9)
       express:
         specifier: 'catalog:'
         version: 5.2.1

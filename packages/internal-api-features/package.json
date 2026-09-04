@@ -14,6 +14,11 @@
       "development": "./src/contract.ts",
       "types": "./src/contract.ts",
       "default": "./dist/contract.js"
+    },
+    "./testing": {
+      "development": "./src/testing.ts",
+      "types": "./src/testing.ts",
+      "default": "./dist/testing.js"
     }
   },
   "scripts": {
@@ -25,6 +30,7 @@
     "@fphd/auth": "workspace:*",
     "@fphd/config": "workspace:*",
     "@fphd/db": "workspace:*",
+    "drizzle-orm": "catalog:",
     "express": "catalog:"
   },
   "devDependencies": {

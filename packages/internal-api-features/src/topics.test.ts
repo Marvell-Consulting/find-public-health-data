@@ -1,10 +1,10 @@
 import { createJwtSessionService, createJwtSessionVerifier } from '@fphd/auth/jwt-session';
-import type { Repositories, Topic } from '@fphd/db';
-import { createFakeRepositories, type FakeRepositoryOverrides } from '@fphd/db/testing';
+import type { Topic } from '@fphd/db';
 import express, { type Express } from 'express';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
+import { createFakeInternalRepositories, type FakeInternalRepositoryOverrides } from './testing.js';
 import { internalTopicsRouter } from './topics.js';
 
 const session = createJwtSessionService({
@@ -28,10 +28,10 @@ const topic: Topic = {
 
 const validSubmission = { title: 'Topic A', slug: 'topic-a', description: 'All about topic A.' };
 
-// The router alone, on a bare Express app: these tests are about its status mapping, not
-// about the rate limiting and health route `createApiApp` wraps around it.
-function createTestApp(overrides: FakeRepositoryOverrides['topics'] = {}): Express {
-  const repositories: Repositories = createFakeRepositories({ topics: overrides });
+// The router alone, on a bare Express app: these tests cover its status mapping, not what
+// `createApiApp` wraps around it.
+function createTestApp(overrides: FakeInternalRepositoryOverrides['topics'] = {}): Express {
+  const repositories = createFakeInternalRepositories({ topics: overrides });
   const app = express();
 
   app.use(express.json());

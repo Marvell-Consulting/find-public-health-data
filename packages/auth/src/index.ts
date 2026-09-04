@@ -1,9 +1,6 @@
 export type AppAudience = 'internal' | 'public';
 
-/**
- * Defined here rather than at each call site: the web app sets this cookie, and its server
- * has to name it again when forwarding the session on to the API.
- */
+/** The web app sets this cookie, and its server forwards it to the API under the same name. */
 export function sessionCookieName(audience: AppAudience): string {
   return `fphd-${audience}-session`;
 }

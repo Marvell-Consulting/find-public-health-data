@@ -3,8 +3,7 @@ import { href, Outlet } from 'react-router';
 
 import type { Route } from './+types/publisher';
 
-// Declared once for every publisher route rather than on each of them: three routes each
-// repeating the same middleware is where that starts to drift.
+// The publisher role check, declared once for every route under this layout.
 export const middleware: Route.MiddlewareFunction[] = [
   createRequireSessionRoleMiddleware({
     forbiddenPath: href('/access-denied'),
