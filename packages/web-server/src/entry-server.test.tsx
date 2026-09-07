@@ -1,6 +1,6 @@
 import type { Logger } from '@fphd/logger';
 import type { RenderToPipeableStreamOptions } from 'react-dom/server';
-import { type EntryContext, RouterContextProvider, UNSAFE_ErrorResponseImpl } from 'react-router';
+import { type EntryContext, RouterContextProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { loggerContext } from './logger-context.js';
@@ -154,7 +154,14 @@ describe('handleError', () => {
 
   it('unwraps the error React Router wraps in a response', () => {
     const cause = new Error('action failed');
-    const wrapped = new UNSAFE_ErrorResponseImpl(500, 'Internal Server Error', cause);
+    // The shape isRouteErrorResponse detects, with the field React Router adds for a real error.
+    const wrapped = {
+      status: 500,
+      statusText: 'Internal Server Error',
+      internal: false,
+      data: null,
+      error: cause,
+    };
 
     report(wrapped);
 
