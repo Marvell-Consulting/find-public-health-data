@@ -107,23 +107,21 @@ describe('requestLogging', () => {
     expect(lines[0]?.req).toMatchObject({ azureRef: '0abc123==' });
   });
 
-  it('records the address that reached the ingress, and not the end user further left', async () => {
+  it('keeps every address out of the line, forwarded or not', async () => {
     const { app, lines } = createApp();
 
     await request(app).get('/topics').set('X-Forwarded-For', '203.0.113.5, 198.51.100.7');
     await settled(lines);
 
-    expect(lines[0]?.req).toMatchObject({ peer: '198.51.100.7' });
-    expect(JSON.stringify(lines[0])).not.toContain('203.0.113.5');
+    expect(JSON.stringify(lines[0])).not.toMatch(/203\.0\.113\.5|198\.51\.100\.7|127\.0\.0\.1|::1/);
   });
 
-  it('omits the peer and reference when no proxy set them', async () => {
+  it("omits Front Door's reference when no proxy set it", async () => {
     const { app, lines } = createApp();
 
     await request(app).get('/topics');
     await settled(lines);
 
-    expect(lines[0]?.req).not.toHaveProperty('peer');
     expect(lines[0]?.req).not.toHaveProperty('azureRef');
   });
 

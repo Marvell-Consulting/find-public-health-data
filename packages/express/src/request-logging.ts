@@ -24,20 +24,6 @@ function singleHeader(value: string | string[] | undefined): string | undefined 
   return Array.isArray(value) ? value[0] : value;
 }
 
-/**
- * The address that connected to the ingress proxy, which appends it as the last X-Forwarded-For
- * value: Front Door for traffic through the edge, a sibling app for a call inside the
- * environment. It answers routing and allow-list questions. It is not the end user's address,
- * which sits further left and stays out of the log; the edge access log already holds it.
- */
-function peerAddress(forwardedFor: string | string[] | undefined): string | undefined {
-  const last = (Array.isArray(forwardedFor) ? forwardedFor.at(-1) : forwardedFor)
-    ?.split(',')
-    .at(-1)
-    ?.trim();
-  return last === '' ? undefined : last;
-}
-
 /** One line per response through the shared logger, so requests filter and aggregate like every
  * other line. Probes are skipped: their traffic would otherwise dominate the log. */
 export function requestLogging(logger: Logger): RequestHandler {
@@ -50,7 +36,8 @@ export function requestLogging(logger: Logger): RequestHandler {
     // A 5xx with no error attached gets one invented by pino-http, whose stack points at itself.
     customErrorObject: (_request, response, _error, { err, ...rest }: ErrorObject) =>
       response.err === undefined ? rest : { err, ...rest },
-    // Headers stay out of the line, the session cookie being one, bar the two named here.
+    // Headers stay out of the line, the session cookie being one, bar the one named here. The
+    // client address stays out too: it is personal data, and the edge access log already has it.
     serializers: {
       req: (request: StdSerializedResults['req']) => ({
         id: request.id,
@@ -58,7 +45,6 @@ export function requestLogging(logger: Logger): RequestHandler {
         url: request.url,
         // Front Door's reference for the request, the same value its access log records.
         ...optional('azureRef', singleHeader(request.headers['x-azure-ref'])),
-        ...optional('peer', peerAddress(request.headers['x-forwarded-for'])),
       }),
       res: (response: StdSerializedResults['res']) => ({ statusCode: response.statusCode }),
     },
