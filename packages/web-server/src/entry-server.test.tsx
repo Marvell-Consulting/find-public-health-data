@@ -1,7 +1,9 @@
+import type { Logger } from '@fphd/logger';
 import type { RenderToPipeableStreamOptions } from 'react-dom/server';
-import { type EntryContext, RouterContextProvider } from 'react-router';
+import { type EntryContext, RouterContextProvider, UNSAFE_ErrorResponseImpl } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { loggerContext } from './logger-context.js';
 import { nonceContext } from './nonce-context.js';
 
 const renderer = vi.hoisted(() => ({
@@ -19,13 +21,15 @@ vi.mock('react-dom/server', () => ({
   ),
 }));
 
-import handleRequest, { streamTimeout } from './entry-server.js';
+import handleRequest, { handleError, streamTimeout } from './entry-server.js';
 
 const entryContext = { isSpaMode: false } as EntryContext;
+const logger = { error: vi.fn() };
 
 function loadContextWithNonce() {
   const context = new RouterContextProvider();
   context.set(nonceContext, 'test-nonce');
+  context.set(loggerContext, logger as unknown as Logger);
   return context;
 }
 
@@ -50,6 +54,7 @@ function startRequest() {
 describe('React Router server rendering', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    logger.error.mockReset();
     renderer.abort.mockReset();
     renderer.options = undefined;
     renderer.pipe.mockReset();
@@ -98,5 +103,73 @@ describe('React Router server rendering', () => {
     await expect(response).rejects.toBe(error);
     vi.advanceTimersByTime(streamTimeout + 1_000);
     expect(renderer.abort).not.toHaveBeenCalled();
+  });
+
+  it('reports a failure after the shell has gone out through the logger, with the request', async () => {
+    await startRequest();
+    const error = new Error('boundary failed');
+
+    renderer.options?.onError?.(error, {});
+
+    expect(logger.error).toHaveBeenCalledWith(
+      { err: error, req: { method: 'GET', url: '/' } },
+      'Streaming failed',
+    );
+  });
+
+  it('leaves a failure before the shell to onShellError, which React Router reports', () => {
+    void handleRequest(
+      new Request('https://example.com/'),
+      200,
+      new Headers(),
+      entryContext,
+      loadContextWithNonce(),
+    );
+
+    renderer.options?.onError?.(new Error('shell failed'), {});
+
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+});
+
+describe('handleError', () => {
+  beforeEach(() => {
+    logger.error.mockReset();
+  });
+
+  function report(error: unknown, request = new Request('https://example.com/topics?page=2')) {
+    handleError(error, { context: loadContextWithNonce(), params: {}, request });
+  }
+
+  it('logs the error with the request through the logger', () => {
+    const error = new Error('loader failed');
+
+    report(error);
+
+    expect(logger.error).toHaveBeenCalledWith(
+      { err: error, req: { method: 'GET', url: '/topics?page=2' } },
+      'Request failed',
+    );
+  });
+
+  it('unwraps the error React Router wraps in a response', () => {
+    const cause = new Error('action failed');
+    const wrapped = new UNSAFE_ErrorResponseImpl(500, 'Internal Server Error', cause);
+
+    report(wrapped);
+
+    expect(logger.error.mock.calls[0]?.[0]).toMatchObject({ err: cause });
+  });
+
+  it('stays quiet when the client has gone away', () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    report(
+      new Error('too late'),
+      new Request('https://example.com/', { signal: controller.signal }),
+    );
+
+    expect(logger.error).not.toHaveBeenCalled();
   });
 });

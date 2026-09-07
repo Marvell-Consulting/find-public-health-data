@@ -35,6 +35,7 @@ vi.mock('@react-router/express', () => ({
   },
 }));
 
+import { loggerContext } from './logger-context.js';
 import { nonceContext } from './nonce-context.js';
 import { createReactRouterApp } from './react-router-app.js';
 
@@ -46,8 +47,10 @@ const session = createJwtSessionService({
   secure: false,
 });
 
+const logger = { name: 'test-web' };
+
 function loadContext(nonce: string) {
-  const response = { locals: { nonce } } as unknown as Response;
+  const response = { locals: { logger, nonce } } as unknown as Response;
   const context = captured.getLoadContext?.({} as Request, response);
 
   if (context === undefined) {
@@ -78,6 +81,17 @@ describe('createReactRouterApp', () => {
     );
 
     expect(loadContext('test-nonce').get(nonceContext)).toBe('test-nonce');
+  });
+
+  it('passes the logger on from the host, so the server entry can report failures through it', () => {
+    createReactRouterApp(
+      () => {
+        throw new Error('build should not load while asserting context wiring');
+      },
+      { session, trustedProxyHops: 2 },
+    );
+
+    expect(loadContext('test-nonce').get(loggerContext)).toBe(logger);
   });
 
   it('runs extendContext after the nonce has been set, so it can add further values', () => {

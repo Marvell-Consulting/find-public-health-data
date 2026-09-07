@@ -3,6 +3,7 @@ import { createRequestHandler } from '@react-router/express';
 import express, { type Express, type Request, type RequestHandler } from 'express';
 import type { RouterContextProvider, ServerBuild } from 'react-router';
 
+import { loggerContext } from './logger-context.js';
 import { nonceContext } from './nonce-context.js';
 import { createSessionContext } from './session.js';
 
@@ -70,6 +71,7 @@ export function createReactRouterApp(
       getLoadContext: (request, response) => {
         const context = createSessionContext(session);
         context.set(nonceContext, response.locals.nonce);
+        context.set(loggerContext, response.locals.logger);
         extendContext?.(context, request);
         return context;
       },
