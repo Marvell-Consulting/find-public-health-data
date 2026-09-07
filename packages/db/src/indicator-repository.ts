@@ -264,7 +264,8 @@ export interface IndicatorAreaData {
 
 /**
  * All published observations for one indicator in one area, with their dimension labels.
- * An observation with no dimensions is the fully-aggregate value for its period.
+ * An observation with no dimensions is the fully-aggregate value for its period. The id
+ * must come from resolveApprovedIndicatorId — no status check happens here.
  */
 export async function getIndicatorObservations(
   db: Database,
@@ -384,7 +385,8 @@ export interface ObservationRangePeriod {
  * Per-period min and max of an indicator's value across every area of the given types,
  * for the same series the trend table shows: the least-disaggregated segment with the
  * most published values. Mirrors the web app's trendSeries selection so the range always
- * brackets the numbers it sits beside.
+ * brackets the numbers it sits beside. The id must come from resolveApprovedIndicatorId —
+ * no status check happens here.
  */
 export async function getObservationRange(
   db: Database,
