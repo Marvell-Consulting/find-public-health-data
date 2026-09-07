@@ -36,8 +36,8 @@ export function requestLogging(logger: Logger): RequestHandler {
     // A 5xx with no error attached gets one invented by pino-http, whose stack points at itself.
     customErrorObject: (_request, response, _error, { err, ...rest }: ErrorObject) =>
       response.err === undefined ? rest : { err, ...rest },
-    // Headers stay out of the line, the session cookie being one, bar the one named here. The
-    // client address stays out too: it is personal data, and the edge access log already has it.
+    // No headers (one is the session cookie) and no client address (personal data, and the edge
+    // access log already has it). Only the Front Door reference below is kept.
     serializers: {
       req: (request: StdSerializedResults['req']) => ({
         id: request.id,
