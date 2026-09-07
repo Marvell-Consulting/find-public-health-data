@@ -1,9 +1,9 @@
 import type { AreaGroup } from './indicator-loader';
 
 /**
- * The prototype's geography levels, in its fixed display order. Pholio stores area types
- * by boundary-revision status ("County unchanged", "UA new 2023"); the prototype groups
- * them into plain-English levels, so the raw names must never reach the screen.
+ * Geography levels in fixed display order. Pholio stores area types by boundary-revision
+ * status ("County unchanged", "UA new 2023"); these are grouped into plain-English levels,
+ * so the raw names must never reach the screen.
  */
 const DISPLAY_GROUPS: { label: string; areaTypes: string[] }[] = [
   {
@@ -24,7 +24,7 @@ const DISPLAY_GROUPS: { label: string; areaTypes: string[] }[] = [
   { label: 'GP practices', areaTypes: ['GPs'] },
 ];
 
-// England is the default selected area, so the prototype never offers it in the tree.
+// England is the default selected area and is excluded from the tree.
 const EXCLUDED = new Set(['England']);
 
 /** The display level names, for validating `als` query values. */
@@ -50,8 +50,8 @@ export interface DisplayGeographyGroup {
 
 /**
  * Pholio area names carry their level as a suffix ("East Midlands region (statistical)",
- * "NHS Dorset Integrated Care Board - QVV"); the prototype shows the bare place name and
- * lets the level heading carry that context.
+ * "NHS Dorset Integrated Care Board - QVV"); the suffix is stripped so the level heading
+ * alone carries that context.
  */
 export function cleanAreaName(name: string): string {
   return name

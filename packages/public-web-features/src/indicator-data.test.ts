@@ -447,7 +447,7 @@ describe('inequality selection', () => {
 });
 
 describe('inequalityCategoryOptions', () => {
-  it('shortens Pholio category names the way the prototype labels them', () => {
+  it('shortens Pholio category names to their display labels', () => {
     expect(
       inequalityCategoryLabel(
         'County & UA deprivation deciles in England (IMD2019, 4/23 geography)',

@@ -32,7 +32,7 @@ import { ComparisonSection, InequalitiesTable, TrendTable } from './indicator-ta
 
 /**
  * Everything shown for one selected indicator, repeated per selection: the summary
- * table, then the prototype's Chart / Table / Inequalities / About tab set.
+ * table, then the Chart / Table / Inequalities / About tab set.
  */
 function IndicatorBlock({
   detail,
@@ -267,7 +267,7 @@ export function IndicatorPage({
         <GridColumn width="three-quarters">
           {selected.length === 0 ? (
             <>
-              {/* The page's single h1; the prototype's empty state shows only the inset text. */}
+              {/* The page's single h1; visually hidden because the empty state shows only the inset text. */}
               <h1 className="govuk-visually-hidden">Selected indicators</h1>
               <InsetText className="govuk-!-margin-top-0">No indicators selected</InsetText>
             </>
