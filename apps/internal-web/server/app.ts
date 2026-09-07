@@ -15,8 +15,8 @@ export const app = createFakeAuthReactRouterApp(() => import('virtual:react-rout
   session: config.session,
   trustedProxyHops: config.trustedProxyHops,
   extendContext: (context, request) => {
-    // Per request: the client carries the caller's session cookie, and only that, to the API,
-    // plus the request id so the two logs read as one flow.
+    // Per request: the caller's session cookie, none of the browser's others, and the request
+    // id, so the API line and this one read as one flow.
     context.set(
       apiContext,
       createApiClient({
