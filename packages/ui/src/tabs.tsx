@@ -15,6 +15,9 @@ interface TabItem {
  * on one page, and a single hash cannot remember more than one of them — nor stay out
  * of the browser's scroll handling. The anchors keep their panel hrefs, so without
  * JavaScript the panels stack and the links jump to them.
+ *
+ * Not @not-govuk/tabs because that component always opens its first pane and knows
+ * nothing of query params.
  */
 export function Tabs({
   items,
