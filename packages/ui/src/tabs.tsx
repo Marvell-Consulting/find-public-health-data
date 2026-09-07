@@ -16,8 +16,9 @@ interface TabItem {
  * of the browser's scroll handling. The anchors keep their panel hrefs, so without
  * JavaScript the panels stack and the links jump to them.
  *
- * Not @not-govuk/tabs because that component always opens its first pane and knows
- * nothing of query params.
+ * This is not @not-govuk/tabs because that component offers no way to choose the
+ * initially-active tab, so a server-chosen pane would flash to the first tab on
+ * hydration and the query-param state above could not work.
  */
 export function Tabs({
   items,
