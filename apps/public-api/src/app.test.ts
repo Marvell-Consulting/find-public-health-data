@@ -197,6 +197,16 @@ describe('public API', () => {
     expect(listByType).toHaveBeenCalledWith('Regions (statistical)');
   });
 
+  it('de-duplicates and caps repeated area queries', async () => {
+    const listByGroup = vi.fn().mockResolvedValue([]);
+    const app = createApp({ repositories: createFakeRepositories({ areas: { listByGroup } }) });
+
+    const repeats = Array.from({ length: 30 }, (_, i) => `display_group=Group+${i % 25}`).join('&');
+    await request(app).get(`/api/areas?${repeats}`);
+
+    expect(listByGroup).toHaveBeenCalledTimes(20);
+  });
+
   it('rejects an areas request without an area type', async () => {
     const response = await request(createApp({ repositories: createFakeRepositories() })).get(
       '/api/areas',

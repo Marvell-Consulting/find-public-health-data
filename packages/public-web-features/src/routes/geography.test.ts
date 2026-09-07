@@ -76,6 +76,17 @@ describe('geography resource route', () => {
     });
   });
 
+  it('answers an overlong level with no areas and no api call', async () => {
+    const get = vi.fn();
+
+    const response = await loader(
+      loaderArgs(get, `http://localhost/geographies?level=${'a'.repeat(101)}`),
+    );
+
+    expect(await response.json()).toEqual({ areas: [] });
+    expect(get).not.toHaveBeenCalled();
+  });
+
   it('answers an empty query with no groups and no api call', async () => {
     const get = vi.fn();
 

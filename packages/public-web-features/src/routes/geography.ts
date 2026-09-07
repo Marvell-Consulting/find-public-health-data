@@ -15,6 +15,10 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
   const api = context.get(apiContext);
 
   const level = url.searchParams.get('level') ?? '';
+  if (level.length > 100) {
+    // The API would 400 an overlong name; an impossible level is just an empty one.
+    return Response.json({ areas: [] });
+  }
   if (level) {
     const groups = await api.get(
       `/api/areas?display_group=${encodeURIComponent(level)}`,

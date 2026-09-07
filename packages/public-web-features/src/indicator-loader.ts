@@ -105,7 +105,7 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
   ].slice(0, MAX_SELECTED_AREAS);
   const requestedLevels = [
     ...new Set(url.searchParams.getAll('als').filter((l) => l !== '' && l.length <= 100)),
-  ];
+  ].slice(0, 10);
 
   const api = context.get(apiContext);
 

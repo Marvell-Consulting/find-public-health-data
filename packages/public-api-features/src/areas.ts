@@ -58,11 +58,16 @@ export function areasRouter(areas: Repositories['areas']): Router {
   });
 
   router.get('/api/areas', async (request, response) => {
+    // De-duplicated and capped: each name costs a query, so the URL is not trusted.
     const pick = (value: unknown) =>
-      (Array.isArray(value) ? value : [value]).filter(
-        (entry): entry is string =>
-          typeof entry === 'string' && entry !== '' && entry.length <= 100,
-      );
+      [
+        ...new Set(
+          (Array.isArray(value) ? value : [value]).filter(
+            (entry): entry is string =>
+              typeof entry === 'string' && entry !== '' && entry.length <= 100,
+          ),
+        ),
+      ].slice(0, 20);
     const areaTypeNames = pick(request.query.area_type);
     const displayGroups = pick(request.query.display_group);
 
