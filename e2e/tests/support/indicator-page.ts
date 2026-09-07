@@ -2,7 +2,9 @@ import { expect, type Page } from '@playwright/test';
 
 /** One of the page's two sidebar cards, by its title. */
 export function filterCard(page: Page, title: string) {
-  return page.locator('.fphd-filter-card', { hasText: title });
+  return page.locator('.fphd-filter-card', {
+    has: page.getByRole('heading', { name: title, exact: true }),
+  });
 }
 
 /**
