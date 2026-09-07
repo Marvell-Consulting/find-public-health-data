@@ -1,6 +1,7 @@
 import { createJwtSessionService, createJwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { createFakeRepositories } from '@fphd/db/testing';
 import { createFakeInternalRepositories } from '@fphd/internal-api-features/testing';
+import { createLogger } from '@fphd/logger';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
@@ -15,12 +16,13 @@ const session = createJwtSessionService({
   secure: false,
 });
 const verifier = createJwtSessionVerifier(session);
+const logger = createLogger({ name: 'internal-api', level: 'silent' });
 
 function createTestApp(
   repositories = createFakeRepositories(),
   internalRepositories = createFakeInternalRepositories(),
 ) {
-  return createApp({ repositories, internalRepositories, session: verifier });
+  return createApp({ logger, repositories, internalRepositories, session: verifier });
 }
 
 const app = createTestApp();

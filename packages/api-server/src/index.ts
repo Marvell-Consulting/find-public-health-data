@@ -1,12 +1,28 @@
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { InvalidJwtSessionError } from '@fphd/auth/session-errors';
-import { createBaseApp, type StartServerOptions, serverLogging, startServer } from '@fphd/express';
+import {
+  createBaseApp,
+  requestLogging,
+  type StartServerOptions,
+  serverLogging,
+  startServer,
+} from '@fphd/express';
+import type { Logger } from '@fphd/logger';
 import type { Express, RequestHandler } from 'express';
 import { json } from 'express';
 
-export function createApiApp(serviceName: string): Express {
+export function createApiApp({
+  logger,
+  serviceName,
+}: {
+  logger: Logger;
+  serviceName: string;
+}): Express {
   const app = createBaseApp({ serviceName });
 
+  // Ahead of every route, so a miss is logged as well as a hit. The probes sit on the base app
+  // above and never reach it.
+  app.use(requestLogging(logger));
   app.use(json());
 
   app.get('/api', (_request, response) => {

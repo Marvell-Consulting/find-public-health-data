@@ -470,6 +470,9 @@ importers:
       '@fphd/express':
         specifier: workspace:*
         version: link:../express
+      '@fphd/logger':
+        specifier: workspace:*
+        version: link:../logger
       express:
         specifier: 'catalog:'
         version: 5.2.1
@@ -483,6 +486,9 @@ importers:
       '@types/supertest':
         specifier: 'catalog:'
         version: 7.2.0
+      pino:
+        specifier: 'catalog:'
+        version: 10.3.1
       supertest:
         specifier: 'catalog:'
         version: 7.2.2

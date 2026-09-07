@@ -1,8 +1,11 @@
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
+import { createLogger } from '@fphd/logger';
 import request from 'supertest';
 import { afterAll, describe, expect, it } from 'vitest';
+
+const logger = createLogger({ name: 'public-api', level: 'silent' });
 
 // config.ts parses the environment at import, so the repo .env must load first and
 // POSTGRES_DB must point at this file's own database before db.js is imported.
@@ -28,7 +31,7 @@ afterAll(async () => {
 
 describe('public API against the seeded database', () => {
   it('lists the seeded indicators', async () => {
-    const response = await request(createApp({ repositories })).get('/api/indicators');
+    const response = await request(createApp({ logger, repositories })).get('/api/indicators');
 
     expect(response.status).toBe(200);
     expect(response.body.indicators).toHaveLength(13);
@@ -53,7 +56,7 @@ describe('public API against the seeded database', () => {
       LIMIT 1
       RETURNING id
     `;
-    const response = await request(createApp({ repositories })).get('/api/indicators');
+    const response = await request(createApp({ logger, repositories })).get('/api/indicators');
     expect(response.status).toBe(200);
     expect(response.body.indicators).toHaveLength(13);
     const ids = response.body.indicators.map((i: { id: string }) => i.id);
@@ -63,7 +66,7 @@ describe('public API against the seeded database', () => {
   it('returns the full detail for a seeded indicator, matching the wire contract', async () => {
     const { indicatorDetailSchema } = await import('@fphd/public-api-features/contract');
 
-    const response = await request(createApp({ repositories })).get('/api/indicators/108');
+    const response = await request(createApp({ logger, repositories })).get('/api/indicators/108');
 
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
@@ -85,7 +88,9 @@ describe('public API against the seeded database', () => {
   it('serves the England observations for a seeded indicator, matching the wire contract', async () => {
     const { indicatorAreaDataSchema } = await import('@fphd/public-api-features/contract');
 
-    const response = await request(createApp({ repositories })).get('/api/indicators/108/data');
+    const response = await request(createApp({ logger, repositories })).get(
+      '/api/indicators/108/data',
+    );
 
     expect(response.status).toBe(200);
     expect(response.body.areaCode).toBe('E92000001');
@@ -102,7 +107,7 @@ describe('public API against the seeded database', () => {
   });
 
   it('serves the prototype diabetes indicator across GP, NHS and local geographies', async () => {
-    const detail = await request(createApp({ repositories })).get('/api/indicators/241');
+    const detail = await request(createApp({ logger, repositories })).get('/api/indicators/241');
 
     expect(detail.status).toBe(200);
     expect(detail.body).toMatchObject({
@@ -115,7 +120,7 @@ describe('public API against the seeded database', () => {
       expect.arrayContaining(['England', 'GPs', 'ICBs', 'NHS regions', 'Regions (statistical)']),
     );
 
-    const cornwall = await request(createApp({ repositories })).get(
+    const cornwall = await request(createApp({ logger, repositories })).get(
       '/api/indicators/241/data?area_code=E06000052',
     );
     expect(cornwall.status).toBe(200);
@@ -124,7 +129,7 @@ describe('public API against the seeded database', () => {
   });
 
   it('lists the current areas of a seeded area type', async () => {
-    const response = await request(createApp({ repositories })).get(
+    const response = await request(createApp({ logger, repositories })).get(
       `/api/areas?area_type=${encodeURIComponent('Regions (statistical)')}`,
     );
 
@@ -139,7 +144,9 @@ describe('public API against the seeded database', () => {
   });
 
   it('lists the current GP practices added for the prototype indicator', async () => {
-    const response = await request(createApp({ repositories })).get('/api/areas?area_type=GPs');
+    const response = await request(createApp({ logger, repositories })).get(
+      '/api/areas?area_type=GPs',
+    );
 
     expect(response.status).toBe(200);
     expect(response.body).toHaveLength(1);
@@ -148,7 +155,7 @@ describe('public API against the seeded database', () => {
   });
 
   it('returns an empty group for an unknown area type', async () => {
-    const response = await request(createApp({ repositories })).get(
+    const response = await request(createApp({ logger, repositories })).get(
       '/api/areas?area_type=No%20Such%20Type',
     );
 
@@ -157,7 +164,7 @@ describe('public API against the seeded database', () => {
   });
 
   it('answers with one group per area type requested', async () => {
-    const response = await request(createApp({ repositories })).get(
+    const response = await request(createApp({ logger, repositories })).get(
       `/api/areas?area_type=${encodeURIComponent('Regions (statistical)')}&area_type=England`,
     );
 
@@ -182,7 +189,7 @@ describe('public API against the seeded database', () => {
     const pair = rows[0];
     expect(pair).toBeTruthy();
 
-    const response = await request(createApp({ repositories })).get(
+    const response = await request(createApp({ logger, repositories })).get(
       `/api/indicators/${pair?.fingertips_id}/data?area_code=${pair?.code}`,
     );
 
@@ -191,7 +198,9 @@ describe('public API against the seeded database', () => {
   });
 
   it('returns 404 for a fingertips id with no indicator', async () => {
-    const response = await request(createApp({ repositories })).get('/api/indicators/424242');
+    const response = await request(createApp({ logger, repositories })).get(
+      '/api/indicators/424242',
+    );
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'not_found' });
@@ -208,7 +217,9 @@ describe('public API against the seeded database', () => {
       LIMIT 1
     `;
 
-    const response = await request(createApp({ repositories })).get('/api/indicators/999998');
+    const response = await request(createApp({ logger, repositories })).get(
+      '/api/indicators/999998',
+    );
 
     expect(response.status).toBe(404);
   });
