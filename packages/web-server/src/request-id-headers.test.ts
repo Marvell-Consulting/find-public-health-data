@@ -11,7 +11,7 @@ describe('forwardedRequestIdHeaders', () => {
     });
   });
 
-  it('sends nothing for a request no logger saw, as in development', () => {
+  it('sends nothing for a request no logger saw', () => {
     expect(forwardedRequestIdHeaders({} as never)).toEqual({});
   });
 });
