@@ -1,8 +1,5 @@
-import type { IncomingMessage } from 'node:http';
-
 import { readCookie } from '@fphd/auth/cookies';
 import type { z } from '@fphd/config/zod';
-import { REQUEST_ID_HEADER, requestId } from '@fphd/express';
 
 export interface ApiClientOptions {
   baseUrl: string;
@@ -47,13 +44,6 @@ export interface ApiClient {
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000;
-
-/** The page request's id, so the API logs its call under the same one. Empty when unlogged. */
-export function forwardedRequestIdHeaders(request: IncomingMessage): Record<string, string> {
-  const id = requestId(request);
-
-  return id === undefined ? {} : { [REQUEST_ID_HEADER]: id };
-}
 
 /** A `Cookie` header carrying only the named cookie, so the API never sees the browser's others. */
 export function forwardedCookieHeaders(

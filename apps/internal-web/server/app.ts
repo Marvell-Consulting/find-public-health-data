@@ -1,12 +1,9 @@
 import { sessionCookieName } from '@fphd/auth';
-import {
-  createApiClient,
-  forwardedCookieHeaders,
-  forwardedRequestIdHeaders,
-} from '@fphd/web-server/api-client';
+import { createApiClient, forwardedCookieHeaders } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import { createFakeAuthReactRouterApp } from '@fphd/web-server/fake-auth-react-router';
 import { createFlashSessionStorage, setFlashStorage } from '@fphd/web-server/flash';
+import { forwardedRequestIdHeaders } from '@fphd/web-server/request-id-headers';
 
 import * as config from './config.ts';
 

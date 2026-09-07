@@ -1,12 +1,7 @@
 import { z } from '@fphd/config/zod';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  apiPath,
-  createApiClient,
-  forwardedCookieHeaders,
-  forwardedRequestIdHeaders,
-} from './api-client.js';
+import { apiPath, createApiClient, forwardedCookieHeaders } from './api-client.js';
 
 const schema = z.array(z.object({ slug: z.string() }));
 const topicSchema = z.object({ slug: z.string() });
@@ -308,19 +303,5 @@ describe('forwardedCookieHeaders', () => {
     ['a header without the cookie', 'analytics=1'],
   ])('sends no cookie at all for %s', (_case, header) => {
     expect(forwardedCookieHeaders(header, 'fphd-internal-session')).toEqual({});
-  });
-});
-
-describe('forwardedRequestIdHeaders', () => {
-  it('carries the id the request logger assigned', () => {
-    const request = { id: '019924a1-2c40-7000-8000-000000000001' } as never;
-
-    expect(forwardedRequestIdHeaders(request)).toEqual({
-      'x-request-id': '019924a1-2c40-7000-8000-000000000001',
-    });
-  });
-
-  it('sends nothing for a request no logger saw, as in development', () => {
-    expect(forwardedRequestIdHeaders({} as never)).toEqual({});
   });
 });
