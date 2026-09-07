@@ -99,9 +99,13 @@ def plain_text_from_html(text):
 
 
 def strip_file(path):
-    with gzip.open(path, "rt") as f:
-        rows = list(csv.DictReader(f))
-    fieldnames = list(rows[0].keys())
+    with gzip.open(path, "rt", encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+        fieldnames = list(reader.fieldnames or [])
+    if not fieldnames:
+        print(f"{path}: no header, nothing to strip")
+        return
     changed = 0
     for row in rows:
         for column in PROSE_COLUMNS:
@@ -114,7 +118,7 @@ def strip_file(path):
     writer = csv.DictWriter(buf, fieldnames=fieldnames)
     writer.writeheader()
     writer.writerows(rows)
-    with gzip.open(path, "wt", newline="") as f:
+    with gzip.open(path, "wt", encoding="utf-8", newline="") as f:
         f.write(buf.getvalue())
     print(f"{path}: {changed} values stripped across {len(rows)} rows")
 
