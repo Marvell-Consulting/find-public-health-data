@@ -11,7 +11,6 @@ import {
   inequalityCategories,
   inequalityPeriods,
 } from './indicator-data';
-import { allDataCsv, downloadCsv, trendCsv } from './indicator-download';
 import { FilterPane } from './indicator-filter-pane';
 import type {
   BenchmarkGeography,
@@ -100,6 +99,23 @@ function IndicatorBlock({
     }),
   });
   const filtered = areaData.map(narrow);
+  // The download links carry the page's state so the server builds the same table.
+  const downloadSearch = (withOptions: boolean) => {
+    const params = new URLSearchParams();
+    for (const { areaCode } of pickedAreaData) {
+      params.append('as', areaCode);
+    }
+    if (withOptions) {
+      if (sexes.includes(options.sex) && options.sex !== '') {
+        params.set('sex', options.sex);
+      }
+      if (periodType !== 'all') {
+        params.set('pt', periodType);
+      }
+    }
+    const search = params.toString();
+    return search ? `?${search}` : '';
+  };
   const filteredRegions = regionData.map(narrow);
   // Comparison controls need a real geography picked — England against itself says nothing.
   const hasPickedAreas = pickedAreaData.length > 0;
@@ -147,23 +163,13 @@ function IndicatorBlock({
             content: (
               <>
                 <div className="fphd-download-buttons">
-                  <Button
-                    onClick={() =>
-                      downloadCsv(`${detail.fingertipsId}-table.csv`, trendCsv(detail, filtered))
-                    }
-                    type="button"
-                  >
+                  <Button download href={`/indicators/${id}/table.csv${downloadSearch(true)}`}>
                     Download this table
                   </Button>
                   <Button
                     className="govuk-button--secondary"
-                    onClick={() =>
-                      downloadCsv(
-                        `${detail.fingertipsId}-all-data.csv`,
-                        allDataCsv(detail, areaData),
-                      )
-                    }
-                    type="button"
+                    download
+                    href={`/indicators/${id}/all-data.csv${downloadSearch(false)}`}
                   >
                     Download all data for this indicator
                   </Button>

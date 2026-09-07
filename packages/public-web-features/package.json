@@ -15,6 +15,7 @@
     "@fphd/public-api-features": "workspace:*",
     "@fphd/ui": "workspace:*",
     "@fphd/web-server": "workspace:*",
+    "csv-stringify": "catalog:",
     "react": "catalog:",
     "react-router": "catalog:"
   },
@@ -23,6 +24,7 @@
     "@fphd/public-api-features": "workspace:*",
     "@fphd/web-server": "workspace:*",
     "@types/react": "catalog:",
+    "csv-stringify": "catalog:",
     "react": "catalog:",
     "react-router": "catalog:",
     "typescript": "catalog:"

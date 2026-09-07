@@ -1,17 +1,7 @@
+import { stringify } from 'csv-stringify/sync';
+
 import { alignedTrendSeries, periodLabel, segmentLabel, trendSeries } from './indicator-data';
 import type { IndicatorAreaData, IndicatorDetail } from './indicator-loader';
-
-function csvField(value: string | number | null): string {
-  if (value === null) {
-    return '';
-  }
-  const text = String(value);
-  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-}
-
-function toCsv(rows: (string | number | null)[][]): string {
-  return rows.map((row) => row.map(csvField).join(',')).join('\n');
-}
 
 /** The trend table as downloaded: one row per period and area with count and value. */
 export function trendCsv(indicator: IndicatorDetail, areaData: IndicatorAreaData[]): string {
@@ -42,7 +32,7 @@ export function trendCsv(indicator: IndicatorDetail, areaData: IndicatorAreaData
       ]);
     }
   }
-  return toCsv(rows);
+  return stringify(rows);
 }
 
 /** Every observation for the selected areas, segments and notes included. */
@@ -81,15 +71,5 @@ export function allDataCsv(indicator: IndicatorDetail, areaData: IndicatorAreaDa
       ]);
     }
   }
-  return toCsv(rows);
-}
-
-export function downloadCsv(filename: string, content: string) {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
+  return stringify(rows);
 }
