@@ -4,6 +4,10 @@ import { pinoHttp, type StdSerializedResults } from 'pino-http';
 
 const probePaths = new Set(['/livez', '/readyz']);
 
+function pathOf(url: string | undefined): string {
+  return url?.split('?', 1)[0] ?? '';
+}
+
 interface ErrorObject {
   err: unknown;
   res: unknown;
@@ -15,7 +19,7 @@ interface ErrorObject {
 export function requestLogging(logger: Logger): RequestHandler {
   return pinoHttp({
     logger,
-    autoLogging: { ignore: (request) => probePaths.has(request.url ?? '') },
+    autoLogging: { ignore: (request) => probePaths.has(pathOf(request.url)) },
     customLogLevel: (_request, response) => (response.statusCode >= 500 ? 'error' : 'info'),
     // A 5xx with no error attached gets one invented by pino-http, whose stack points at itself.
     customErrorObject: (_request, response, _error, { err, ...rest }: ErrorObject) =>

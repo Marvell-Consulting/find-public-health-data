@@ -81,8 +81,13 @@ describe('requestLogging', () => {
     ]);
   });
 
-  it.each(['/livez', '/readyz'])('skips the probe at %s', async (path) => {
-    const { app, lines } = createApp();
+  // Mounted ahead of the probes, unlike createBaseApp's, so the middleware sees them and the
+  // ignore is what keeps the log empty.
+  it.each(['/livez', '/readyz', '/readyz?full=1'])('skips the probe at %s', async (path) => {
+    const { logger, lines } = createCapturingLogger();
+    const app = express();
+    app.use(requestLogging(logger));
+    app.get(['/livez', '/readyz'], (_request, response) => response.json({}));
 
     await request(app).get(path);
 
