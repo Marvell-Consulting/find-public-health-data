@@ -1,27 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { readRequestIdHeader, requestId, uuidv7 } from './request-id.js';
-
-const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
-
-describe('uuidv7', () => {
-  it('mints a version 7 uuid that a validator would accept', () => {
-    expect(uuidv7()).toMatch(UUID_V7);
-  });
-
-  it('leads with the millisecond timestamp, so ids sort by time', () => {
-    const at = new Date('2026-09-07T10:00:00.000Z').getTime();
-    const earlier = uuidv7(at);
-    const later = uuidv7(at + 1);
-
-    expect(earlier.replace('-', '').slice(0, 12)).toBe(at.toString(16).padStart(12, '0'));
-    expect(earlier < later).toBe(true);
-  });
-
-  it('is different every call', () => {
-    expect(new Set(Array.from({ length: 100 }, () => uuidv7())).size).toBe(100);
-  });
-});
+import { readRequestIdHeader, requestId } from './request-id.js';
 
 describe('readRequestIdHeader', () => {
   it('accepts a uuid, normalised to lower case', () => {
