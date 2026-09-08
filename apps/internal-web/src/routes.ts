@@ -14,6 +14,14 @@ export default [
     ),
     route('geographies', '../../../packages/public-web-features/src/routes/geography.ts'),
     route(
+      'indicators/:fingertipsId/table.csv',
+      '../../../packages/public-web-features/src/routes/indicator-table-csv.ts',
+    ),
+    route(
+      'indicators/:fingertipsId/all-data.csv',
+      '../../../packages/public-web-features/src/routes/indicator-all-data-csv.ts',
+    ),
+    route(
       'indicators/:fingertipsId',
       '../../../packages/public-web-features/src/routes/indicator.tsx',
       { id: 'indicator-detail' },

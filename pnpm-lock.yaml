@@ -96,6 +96,9 @@ catalogs:
     cross-env:
       specifier: 10.1.0
       version: 10.1.0
+    csv-stringify:
+      specifier: 6.8.3
+      version: 6.8.3
     drizzle-kit:
       specifier: 0.31.10
       version: 0.31.10
@@ -274,6 +277,9 @@ importers:
       '@fphd/web-server':
         specifier: workspace:*
         version: link:../../packages/web-server
+      csv-stringify:
+        specifier: 'catalog:'
+        version: 6.8.3
       react:
         specifier: 'catalog:'
         version: 19.2.7
@@ -403,6 +409,9 @@ importers:
       '@fphd/web-server':
         specifier: workspace:*
         version: link:../../packages/web-server
+      csv-stringify:
+        specifier: 'catalog:'
+        version: 6.8.3
       react:
         specifier: 'catalog:'
         version: 19.2.7
@@ -726,6 +735,9 @@ importers:
       '@types/react':
         specifier: 'catalog:'
         version: 19.2.17
+      csv-stringify:
+        specifier: 'catalog:'
+        version: 6.8.3
       react:
         specifier: 'catalog:'
         version: 19.2.7
@@ -2522,6 +2534,9 @@ packages:
 
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
+
+  csv-stringify@6.8.3:
+    resolution: {integrity: sha512-gIeSCvq5F4VtXV3naV3VAewLhBkiZBz+PPhTOA8H3Y8h/ELa+R1ml0GZck/4/Nzo9ep2lvOluilJ6MJlbZsKMA==}
 
   data-urls@7.0.0:
     resolution: {integrity: sha512-23XHcCF+coGYevirZceTVD7NdJOqVn+49IHyxgszm+JIiHLoB2TkmPtsYkNWT1pvRSGkc35L6NHs0yHkN2SumA==}
@@ -4980,6 +4995,8 @@ snapshots:
       source-map-js: 1.2.1
 
   csstype@3.2.3: {}
+
+  csv-stringify@6.8.3: {}
 
   data-urls@7.0.0(@noble/hashes@1.8.0):
     dependencies:
