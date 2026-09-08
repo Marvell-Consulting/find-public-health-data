@@ -1,6 +1,6 @@
 import { type ReactNode, useId, useState } from 'react';
 
-/** The prototype's single-section GOV.UK accordion around a panel's option controls. */
+/** A single-section GOV.UK accordion around a panel's option controls. */
 export function OptionsAccordion({ label, children }: { label: string; children: ReactNode }) {
   const [open, setOpen] = useState(true);
   const contentId = useId();

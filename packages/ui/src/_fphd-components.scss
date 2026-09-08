@@ -249,7 +249,7 @@
   margin-bottom: 0;
 }
 
-// Chip-bearing summary rows sit at the prototype's tighter 8px vertical padding.
+// Chip-bearing summary rows compact to 8px vertical padding.
 .fphd-indicator-section .govuk-table td:has(.fphd-tag-list),
 .fphd-indicator-section .govuk-table td:has(.fphd-trend-tag) {
   padding-top: 8px;
@@ -349,7 +349,7 @@
   @include govuk-visually-hidden;
 }
 
-// Compact the rows to the prototype's 36px rhythm: sit the 44px touch target onto the
+// Compact the rows to a 36px rhythm: sit the 44px touch target onto the
 // 24px visual box (these offsets are govuk-frontend v5's small-checkbox geometry). The
 // selectors carry .govuk-checkboxes--small because @not-govuk/checkboxes injects its own
 // copy of the govuk checkbox CSS after this sheet — these must win on specificity, not
@@ -484,7 +484,7 @@
   font-weight: 400;
 }
 
-// The prototype's "Most recent trend" tag: an arrow glyph beside the label on one line.
+// "Most recent trend" tag: an arrow glyph beside the label on one line.
 // Selectors are tag-qualified because a second copy of the govuk tag base loads after
 // this sheet and must lose on specificity (same story as the checkboxes).
 .govuk-tag.fphd-trend-tag {
@@ -566,7 +566,7 @@
 }
 
 
-// The prototype's indicator page runs its data content at 16px with tighter cells.
+// The indicator page runs its data content at 16px with tighter cells.
 .fphd-indicator-section > .govuk-heading-l {
   margin-bottom: govuk-spacing(3);
 }
@@ -574,7 +574,7 @@
 .fphd-indicator-section .govuk-table,
 .fphd-chart-section .govuk-table {
   @include govuk-font-size($size: 16);
-  // The prototype's tables hug their columns; only the scroll wrapper limits them.
+  // Tables hug their columns; only the scroll wrapper limits them.
   width: auto;
 }
 
@@ -591,17 +591,17 @@
   padding-bottom: 8px;
 }
 
-// The accordion heading runs at 19px in the prototype, not the component's 24px.
+// The accordion heading runs at 19px, overriding the component's 24px.
 .fphd-options-accordion .govuk-accordion__section-button {
   @include govuk-font-size($size: 19);
 }
 
-// The trend table's period column is plain text in the prototype.
+// The trend table's period column is plain text, not bold like other th elements.
 .fphd-indicator-section .fphd-trend-table tbody th {
   font-weight: 400;
 }
 
-// Columns keep at least the prototype's natural width however few there are.
+// Columns keep a minimum 135px width however few there are.
 .fphd-trend-table th,
 .fphd-trend-table td,
 .fphd-compare-table th,
@@ -617,7 +617,7 @@
   margin-bottom: 17px;
 }
 
-// The prototype's option labels are bold.
+// Option labels are bold to distinguish them from the values below.
 .fphd-segmentation-options__selects .govuk-label {
   font-weight: 700;
 }
@@ -638,7 +638,7 @@
 }
 
 // Wide trend tables (one column group per area) scroll sideways inside their own
-// wrapper, the prototype's pattern, rather than pushing the whole page out.
+// wrapper rather than pushing the whole page out.
 .fphd-table-scroll-wrapper {
   overflow-x: auto;
   margin-bottom: govuk-spacing(3);
@@ -673,7 +673,7 @@
   min-width: 380px;
 }
 
-// Headers wrap within their column like the prototype; data cells stay on one line.
+// Headers wrap within their column; data cells stay on one line.
 .fphd-trend-table thead th,
 .fphd-compare-table thead th {
   white-space: normal;
