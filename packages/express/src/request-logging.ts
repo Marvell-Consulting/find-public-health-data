@@ -24,7 +24,7 @@ function singleHeader(value: string | string[] | undefined): string | undefined 
   return Array.isArray(value) ? value[0] : value;
 }
 
-interface RequestLoggingOptions {
+export interface RequestLoggingOptions {
   /** Keep the id a web app forwarded, so its line and this one share it. Off for the web apps
    * themselves: a browser's header is never trusted. */
   acceptsForwardedId?: boolean;
