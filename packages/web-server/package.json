@@ -59,13 +59,13 @@
     "@fphd/auth": "workspace:*",
     "@fphd/config": "workspace:*",
     "@fphd/express": "workspace:*",
+    "@fphd/logger": "workspace:*",
     "@fphd/ui": "workspace:*",
     "@react-router/express": "catalog:",
     "@react-router/node": "catalog:",
     "compression": "catalog:",
     "express": "catalog:",
     "isbot": "catalog:",
-    "morgan": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-router": "catalog:"
@@ -73,7 +73,6 @@
   "devDependencies": {
     "@types/compression": "catalog:",
     "@types/express": "catalog:",
-    "@types/morgan": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { createLogger } from '@fphd/logger';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -21,9 +22,13 @@ afterAll(() => {
 });
 
 describe('React Router production host', () => {
+  const logger = createLogger({ name: 'test-web', level: 'silent' });
+  let seenLogger: unknown;
   const app = createProductionHost({
     clientDirectory,
+    logger,
     requestHandler: (_request, response) => {
+      seenLogger = response.locals.logger;
       response.status(418).type('html').send('<html><main>Server rendered</main></html>');
     },
     serviceName: 'test-web',
@@ -84,5 +89,11 @@ describe('React Router production host', () => {
 
     expect(response.status).toBe(418);
     expect(response.text).toContain('Server rendered');
+  });
+
+  it('hands the logger to the React Router server build on the response', async () => {
+    await request(app).get('/topics').accept('text/html');
+
+    expect(seenLogger).toBe(logger);
   });
 });

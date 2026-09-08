@@ -1,17 +1,29 @@
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { createBaseApp, type StartServerOptions, startServer } from '@fphd/express';
+import { createBaseApp, requestLogging, type StartServerOptions, startServer } from '@fphd/express';
+import type { Logger } from '@fphd/logger';
 import compression from 'compression';
 import express, { type Express, type RequestHandler } from 'express';
-import morgan from 'morgan';
 
 import { securityHeaders } from './security-headers.js';
 
 export { serverLogging } from '@fphd/express';
 
-function createHost({ development, serviceName }: { development: boolean; serviceName: string }) {
+interface HostOptions {
+  development: boolean;
+  logger: Logger;
+  serviceName: string;
+}
+
+function createHost({ development, logger, serviceName }: HostOptions) {
   const app = createBaseApp({ serviceName });
+
+  // Handed to the React Router app on the response, as the nonce is.
+  app.use((_request, response, next) => {
+    response.locals.logger = logger;
+    next();
+  });
 
   // After the base, so its JSON probe responses answer without a CSP.
   app.use(securityHeaders({ development }));
@@ -23,23 +35,26 @@ function createHost({ development, serviceName }: { development: boolean; servic
 
 interface ProductionHostOptions {
   clientDirectory: string;
+  logger: Logger;
   requestHandler: RequestHandler;
   serviceName: string;
 }
 
 export function createProductionHost({
   clientDirectory,
+  logger,
   requestHandler,
   serviceName,
 }: ProductionHostOptions): Express {
-  const app = createHost({ development: false, serviceName });
+  const app = createHost({ development: false, logger, serviceName });
 
   app.use(
     '/assets',
     express.static(join(clientDirectory, 'assets'), { immutable: true, maxAge: '1y' }),
   );
   app.use(express.static(clientDirectory, { index: false, maxAge: '1h' }));
-  app.use(morgan('tiny'));
+  // After the static handlers, so asset hits stay out of the log.
+  app.use(requestLogging(logger));
   app.use(requestHandler);
 
   return app;
@@ -64,6 +79,7 @@ function readRequestHandler(serverModule: unknown): RequestHandler {
 
 interface ReactRouterServerOptions extends Omit<StartServerOptions, 'app'> {
   development: boolean;
+  logger: Logger;
   rootDirectory: string;
   /** Names this app in its health responses. */
   serviceName: string;
@@ -71,6 +87,7 @@ interface ReactRouterServerOptions extends Omit<StartServerOptions, 'app'> {
 
 export async function startReactRouterServer({
   development,
+  logger,
   onShutdown,
   rootDirectory,
   serviceName,
@@ -95,8 +112,10 @@ export async function startReactRouterServer({
     // watcher's own ignore list still excludes node_modules.
     vite.watcher.add(join(rootDirectory, '..', '..', 'packages'));
 
-    app = createHost({ development: true, serviceName });
+    app = createHost({ development: true, logger, serviceName });
     app.use(vite.middlewares);
+    // After Vite's handlers, as production sits after the static ones: page requests only.
+    app.use(requestLogging(logger));
     app.use(async (request, response, next) => {
       try {
         const serverModule: unknown = await vite.ssrLoadModule('./server/app.ts');
@@ -113,7 +132,7 @@ export async function startReactRouterServer({
     const serverModule: unknown = await import(buildUrl);
     const requestHandler = readRequestHandler(serverModule);
 
-    app = createProductionHost({ clientDirectory, requestHandler, serviceName });
+    app = createProductionHost({ clientDirectory, logger, requestHandler, serviceName });
   }
 
   return startServer({

@@ -1,1 +1,1 @@
-export { default, streamTimeout } from '@fphd/web-server/entry-server';
+export { default, handleError, streamTimeout } from '@fphd/web-server/entry-server';
