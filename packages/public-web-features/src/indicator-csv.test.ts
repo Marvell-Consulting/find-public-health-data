@@ -153,6 +153,30 @@ describe('loadIndicatorCsv', () => {
     expect(await response.text()).toContain(',7,');
   });
 
+  it('offers only the first area sexes, exactly as the page does', async () => {
+    const get = api([
+      { areaCode: 'E06000052', areaName: 'Cornwall', observations: [observation({ value: 9 })] },
+      {
+        areaCode: 'E92000001',
+        areaName: 'England',
+        observations: [
+          observation({
+            value: 5,
+            dimensions: [{ type: 'Sex', value: 'Male', dimensionClass: 'core', sortOrder: 1 }],
+          }),
+        ],
+      },
+    ]);
+
+    const response = await loadIndicatorCsv(
+      args(get, 'http://localhost/indicators/108/table.csv?as=E06000052&sex=Male'),
+      'table',
+    );
+
+    // Male exists only in England's series, so the filter is ignored, not applied.
+    expect(await response.text()).toContain(',9,');
+  });
+
   it('404s a non-numeric id without calling the api', async () => {
     const get = vi.fn();
 

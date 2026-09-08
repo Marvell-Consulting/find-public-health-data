@@ -50,12 +50,10 @@ export async function loadIndicatorCsv(
 
   let csv: string;
   if (kind === 'table') {
-    // A sex the data does not publish falls back to unfiltered, as the page does.
+    // Sex options mirror the page's: offered from the first area's series, and a value
+    // it does not publish falls back to unfiltered.
     const requestedSex = url.searchParams.get('sex') ?? '';
-    const sexes = dimensionValues(
-      areaData.flatMap(({ observations }) => observations),
-      'Sex',
-    );
+    const sexes = dimensionValues(areaData[0]?.observations ?? [], 'Sex');
     const sex = sexes.includes(requestedSex) ? requestedSex : '';
     const pt = url.searchParams.get('pt');
     const periodType: PeriodType = pt === '1-year' || pt === '3-year' ? pt : 'all';
