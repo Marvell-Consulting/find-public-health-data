@@ -1,13 +1,14 @@
+import type { Topic } from '@fphd/db';
 import { createFakeRepositories } from '@fphd/db/testing';
 import { createLogger } from '@fphd/logger';
 import request from 'supertest';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { createApp } from './app.js';
 
 const logger = createLogger({ name: 'public-api', level: 'silent' });
 
-const topicA = {
+const topic: Topic = {
   id: '00000000-0000-7000-8000-000000000001',
   slug: 'topic-a',
   title: 'Topic A',
@@ -16,53 +17,23 @@ const topicA = {
   updatedAt: new Date('2024-01-02T00:00:00.000Z'),
 };
 
-const topicB = {
-  id: '00000000-0000-7000-8000-000000000002',
-  slug: 'topic-b',
-  title: 'Topic B',
-  description: 'All about topic B.',
-  createdAt: new Date('2024-02-01T00:00:00.000Z'),
-  updatedAt: new Date('2024-02-02T00:00:00.000Z'),
-};
-
-const indicatorDetail = {
-  fingertipsId: 108,
-  name: 'Under 75 mortality rate from all causes',
-  valueType: 'Directly standardised rate',
-  unit: { name: 'per 100,000', label: 'per 100,000' },
-  yearType: 'Calendar',
-  frequency: 'Annual',
-  polarity: 'RAG - Low is good',
-  ciMethod: "Dobson & Byar's methods",
-  ciConfidenceLevel: '95',
-  comparatorMethod: null,
-  dataUpdatedAt: '2026-04-20T16:25:18.000Z',
-  definition: 'Directly age-standardised mortality rate for all deaths.',
-  rationale: null,
-  methodology: null,
-  numeratorDefinition: null,
-  denominatorDefinition: null,
-  disclosureControl: null,
-  caveats: null,
-  notes: null,
-  dataSource: { name: 'Office for National Statistics', url: null },
-  numeratorSource: null,
-  denominatorSource: null,
-  areaTypes: [{ name: 'Counties & UAs (from Apr 2023)', areaCount: 153 }],
-  topics: [{ slug: 'mortality-and-life-expectancy', title: 'Mortality and life expectancy' }],
-  classifications: [
-    { dimension: 'indicator_type', slug: 'indicator-type-outcome', name: 'Outcome' },
-  ],
-};
+function createTestApp(repositories = createFakeRepositories()) {
+  return createApp({ logger, repositories });
+}
 
 describe('public API', () => {
   it('reports its health', async () => {
-    const response = await request(
-      createApp({ logger, repositories: createFakeRepositories() }),
-    ).get('/livez');
+    const response = await request(createTestApp()).get('/livez');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ status: 'ok', service: 'public-api' });
+  });
+
+  it('describes itself as the public surface', async () => {
+    const response = await request(createTestApp()).get('/api');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ audience: 'public' });
   });
 
   // Every internal path, not just the root one: `internal-api` mounts a router the public
@@ -71,23 +42,21 @@ describe('public API', () => {
     ['get', '/api/internal'],
     ['get', '/api/internal/topics'],
     ['post', '/api/internal/topics'],
-    ['get', `/api/internal/topics/${topicA.id}`],
-    ['put', `/api/internal/topics/${topicA.id}`],
-    ['delete', `/api/internal/topics/${topicA.id}`],
+    ['get', `/api/internal/topics/${topic.id}`],
+    ['put', `/api/internal/topics/${topic.id}`],
+    ['delete', `/api/internal/topics/${topic.id}`],
   ] as const)('does not expose the internal surface at %s %s', async (method, path) => {
-    const response = await request(createApp({ logger, repositories: createFakeRepositories() }))[
-      method
-    ](path);
+    const response = await request(createTestApp())[method](path);
 
     expect(response.status).toBe(404);
   });
 
-  it('lists topics in the order the repository returns them, as ISO timestamps', async () => {
-    const repositories = createFakeRepositories({
-      topics: { list: async () => [topicA, topicB] },
-    });
+  // One request per resource: the routers' own behaviour is tested in
+  // `@fphd/public-api-features`, so these only pin that each is mounted.
+  it('mounts the public topics surface', async () => {
+    const repositories = createFakeRepositories({ topics: { list: async () => [topic] } });
 
-    const response = await request(createApp({ logger, repositories })).get('/api/topics');
+    const response = await request(createTestApp(repositories)).get('/api/topics');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual([
@@ -98,99 +67,24 @@ describe('public API', () => {
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-02T00:00:00.000Z',
       },
-      {
-        slug: 'topic-b',
-        title: 'Topic B',
-        description: 'All about topic B.',
-        createdAt: '2024-02-01T00:00:00.000Z',
-        updatedAt: '2024-02-02T00:00:00.000Z',
-      },
     ]);
   });
 
-  it('does not leak the internal row id in a topic listing', async () => {
-    const repositories = createFakeRepositories({ topics: { list: async () => [topicA] } });
+  it('mounts the public indicators surface', async () => {
+    const repositories = createFakeRepositories({ indicators: { listApproved: async () => [] } });
 
-    const response = await request(createApp({ logger, repositories })).get('/api/topics');
-
-    expect(response.body[0]).not.toHaveProperty('id');
-  });
-
-  it('returns a 500 when the repository fails', async () => {
-    const repositories = createFakeRepositories({
-      topics: { list: () => Promise.reject(new Error('database unavailable')) },
-    });
-
-    const response = await request(createApp({ logger, repositories })).get('/api/topics');
-
-    expect(response.status).toBe(500);
-  });
-
-  it('finds a topic by slug, as ISO timestamps', async () => {
-    const repositories = createFakeRepositories({ topics: { findBySlug: async () => topicA } });
-
-    const response = await request(createApp({ logger, repositories })).get('/api/topics/topic-a');
+    const response = await request(createTestApp(repositories)).get('/api/indicators');
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({
-      slug: 'topic-a',
-      title: 'Topic A',
-      description: 'All about topic A.',
-      createdAt: '2024-01-01T00:00:00.000Z',
-      updatedAt: '2024-01-02T00:00:00.000Z',
-    });
+    expect(response.body).toEqual({ indicators: [] });
   });
 
-  it('does not leak the internal row id in a topic detail', async () => {
-    const repositories = createFakeRepositories({ topics: { findBySlug: async () => topicA } });
-
-    const response = await request(createApp({ logger, repositories })).get('/api/topics/topic-a');
-
-    expect(response.body).not.toHaveProperty('id');
-  });
-
-  it('returns the standard not-found body for an unknown slug', async () => {
-    const repositories = createFakeRepositories({ topics: { findBySlug: async () => undefined } });
-
-    const response = await request(createApp({ logger, repositories })).get(
-      '/api/topics/no-such-topic',
-    );
-
-    expect(response.status).toBe(404);
-    expect(response.body).toEqual({ error: 'not_found' });
-  });
-
-  it('finds an indicator by its fingertips id', async () => {
+  it('mounts the public areas surface', async () => {
     const repositories = createFakeRepositories({
-      indicators: { resolveId: async () => 'ind-1', findApprovedById: async () => indicatorDetail },
+      areas: { listByType: async () => [{ code: 'E12000001', name: 'North East region' }] },
     });
 
-    const response = await request(createApp({ logger, repositories })).get('/api/indicators/108');
-
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual(indicatorDetail);
-  });
-
-  it('returns the standard not-found body for an unknown fingertips id', async () => {
-    const repositories = createFakeRepositories({
-      indicators: { resolveId: async () => undefined },
-    });
-
-    const response = await request(createApp({ logger, repositories })).get(
-      '/api/indicators/424242',
-    );
-
-    expect(response.status).toBe(404);
-    expect(response.body).toEqual({ error: 'not_found' });
-  });
-
-  it('lists current areas of a type', async () => {
-    const listByType = vi
-      .fn()
-      .mockResolvedValue([{ code: 'E12000001', name: 'North East region (statistical)' }]);
-    const repositories = createFakeRepositories({ areas: { listByType } });
-
-    const response = await request(createApp({ logger, repositories })).get(
+    const response = await request(createTestApp(repositories)).get(
       `/api/areas?area_type=${encodeURIComponent('Regions (statistical)')}`,
     );
 
@@ -198,320 +92,30 @@ describe('public API', () => {
     expect(response.body).toEqual([
       {
         areaType: 'Regions (statistical)',
-        areas: [{ code: 'E12000001', name: 'North East region (statistical)' }],
+        areas: [{ code: 'E12000001', name: 'North East region' }],
       },
     ]);
-    expect(listByType).toHaveBeenCalledWith('Regions (statistical)');
   });
 
-  it('de-duplicates and caps repeated area queries', async () => {
-    const listByGroup = vi.fn().mockResolvedValue([]);
-    const app = createApp({
-      logger,
-      repositories: createFakeRepositories({ areas: { listByGroup } }),
-    });
-
-    const repeats = Array.from({ length: 30 }, (_, i) => `display_group=Group+${i % 25}`).join('&');
-    await request(app).get(`/api/areas?${repeats}`);
-
-    expect(listByGroup).toHaveBeenCalledTimes(20);
-  });
-
-  it('rejects an areas request without an area type', async () => {
-    const response = await request(
-      createApp({ logger, repositories: createFakeRepositories() }),
-    ).get('/api/areas');
-
-    expect(response.status).toBe(400);
-  });
-
-  it('serves observations for an indicator, defaulting to England', async () => {
-    const data = {
-      areaCode: 'E92000001',
-      areaName: 'England',
-      observations: [
-        {
-          fromDate: '2023-01-01',
-          toDate: '2023-12-31',
-          value: 341.1,
-          lowerCi95: 339,
-          upperCi95: 343.2,
-          lowerCi998: null,
-          upperCi998: null,
-          count: 130000,
-          denominator: null,
-          dimensions: [{ type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 }],
-        },
-      ],
-    };
-    const findObservations = vi.fn().mockResolvedValue(data);
-    const repositories = createFakeRepositories({
-      indicators: { resolveId: async () => 'ind-1', findObservations },
-    });
-
-    const response = await request(createApp({ logger, repositories })).get(
-      '/api/indicators/108/data',
-    );
-
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual(data);
-    expect(findObservations).toHaveBeenCalledWith('ind-1', 'E92000001');
-  });
-
-  it('passes an explicit area code through to the repository', async () => {
-    const findObservations = vi
-      .fn()
-      .mockResolvedValue({ areaCode: 'E06000001', areaName: 'Hartlepool', observations: [] });
-    const repositories = createFakeRepositories({
-      indicators: { resolveId: async () => 'ind-1', findObservations },
-    });
-
-    const response = await request(createApp({ logger, repositories })).get(
-      '/api/indicators/108/data?area_code=E06000001',
-    );
-
-    expect(response.status).toBe(200);
-    expect(findObservations).toHaveBeenCalledWith('ind-1', 'E06000001');
-  });
-
-  it('answers with a list when several areas are asked for', async () => {
-    const findObservations = vi.fn().mockImplementation(async (_id: string, areaCode: string) => ({
-      areaCode,
-      areaName: areaCode,
-      observations: [],
-    }));
-    const repositories = createFakeRepositories({
-      indicators: { resolveId: async () => 'ind-1', findObservations },
-    });
-
-    const response = await request(createApp({ logger, repositories })).get(
-      '/api/indicators/108/data?area_code=E12000001&area_code=E12000002',
-    );
-
-    expect(response.status).toBe(200);
-    expect(response.body.map((entry: { areaCode: string }) => entry.areaCode)).toEqual([
-      'E12000001',
-      'E12000002',
-    ]);
-  });
-
-  it('rejects a malformed area code without touching the repository', async () => {
-    const response = await request(
-      createApp({ logger, repositories: createFakeRepositories() }),
-    ).get('/api/indicators/108/data?area_code=../nope');
-
-    expect(response.status).toBe(404);
-  });
-
-  it('returns not-found when none of the requested areas exist', async () => {
-    const repositories = createFakeRepositories({
-      indicators: { resolveId: async () => 'ind-1', findObservations: async () => undefined },
-    });
-
-    const response = await request(createApp({ logger, repositories })).get(
-      '/api/indicators/424242/data',
-    );
+  it('answers an unknown path with the standard not-found body', async () => {
+    const response = await request(createTestApp()).get('/api/nowhere');
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'not_found' });
   });
 
-  it('rejects a non-numeric indicator id without touching the repository', async () => {
-    // No stub: if the route reached the repository, the fake would throw and this would 500.
-    const response = await request(
-      createApp({ logger, repositories: createFakeRepositories() }),
-    ).get('/api/indicators/not-a-number');
-
-    expect(response.status).toBe(404);
-    expect(response.body).toEqual({ error: 'not_found' });
-  });
-
-  it('searches indicators when q is given, trimming and bounding the query', async () => {
-    const search = vi.fn().mockResolvedValue([]);
-    const app = createApp({
-      logger,
-      repositories: createFakeRepositories({ indicators: { search } }),
-    });
-
-    await request(app).get('/api/indicators?q=%20%20diabetes%20%20');
-    expect(search).toHaveBeenCalledWith('diabetes', 20);
-
-    await request(app).get(`/api/indicators?q=${'a'.repeat(300)}`);
-    expect(search).toHaveBeenLastCalledWith('a'.repeat(200), 20);
-  });
-
-  it('caps the search limit at 100 and ignores a malformed one', async () => {
-    const search = vi.fn().mockResolvedValue([]);
-    const app = createApp({
-      logger,
-      repositories: createFakeRepositories({ indicators: { search } }),
-    });
-
-    await request(app).get('/api/indicators?q=x&limit=500');
-    expect(search).toHaveBeenCalledWith('x', 100);
-
-    await request(app).get('/api/indicators?q=x&limit=nope');
-    expect(search).toHaveBeenLastCalledWith('x', 20);
-  });
-
-  it('lists every indicator when q is empty', async () => {
-    const listApproved = vi.fn().mockResolvedValue([]);
-    const app = createApp({
-      logger,
-      repositories: createFakeRepositories({ indicators: { listApproved } }),
-    });
-
-    const response = await request(app).get('/api/indicators?q=%20%20');
-
-    expect(response.status).toBe(200);
-    expect(listApproved).toHaveBeenCalled();
-  });
-
-  it('serves a per-segment range for the requested display group', async () => {
-    const periods = [
-      { fromDate: '2023-01-01', toDate: '2023-12-31', segment: 'Male', min: 1, max: 2 },
-    ];
-    const findObservationRange = vi.fn().mockResolvedValue(periods);
-    const app = createApp({
-      logger,
-      repositories: createFakeRepositories({
-        indicators: { resolveId: async () => 'ind-1', findObservationRange },
-      }),
-    });
-
-    const response = await request(app).get(
-      '/api/indicators/241/range?display_group=Local%20authorities',
-    );
-
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual({ periods });
-    expect(findObservationRange).toHaveBeenCalledWith('ind-1', 'Local authorities');
-  });
-
-  it('404s data and range requests when the fingertips id resolves to nothing', async () => {
+  it('returns a 500 when the repository fails', async () => {
     const repositories = createFakeRepositories({
-      indicators: { resolveId: async () => undefined },
-    });
-    const app = createApp({ logger, repositories });
-
-    expect((await request(app).get('/api/indicators/424242/data')).status).toBe(404);
-    expect(
-      (await request(app).get('/api/indicators/424242/range?display_group=Local+authorities'))
-        .status,
-    ).toBe(404);
-  });
-
-  it('rejects a range request without area types or with a non-numeric id', async () => {
-    // No stub: if either route reached the repository, the fake would throw and 500.
-    const app = createApp({ logger, repositories: createFakeRepositories() });
-
-    expect((await request(app).get('/api/indicators/241/range')).status).toBe(404);
-    expect(
-      (await request(app).get('/api/indicators/nope/range?display_group=Local+authorities')).status,
-    ).toBe(404);
-  });
-
-  it('resolves area parents of one type, filtering malformed codes', async () => {
-    const listParents = vi.fn().mockResolvedValue([]);
-    const app = createApp({
-      logger,
-      repositories: createFakeRepositories({ areas: { listParents } }),
+      topics: { list: () => Promise.reject(new Error('database unavailable')) },
     });
 
-    const response = await request(app).get(
-      '/api/areas/parents?area_code=E06000052&area_code=..%2Fbad&parent_type=Regions%20(statistical)',
-    );
+    const response = await request(createTestApp(repositories)).get('/api/topics');
 
-    expect(response.status).toBe(200);
-    expect(listParents).toHaveBeenCalledWith(['E06000052'], 'Regions (statistical)');
-  });
-
-  it('looks up areas by code, deduplicating and filtering malformed ones', async () => {
-    const listByCodes = vi
-      .fn()
-      .mockResolvedValue([{ code: 'E06000052', name: 'Cornwall', areaType: 'UA unchanged' }]);
-    const app = createApp({
-      logger,
-      repositories: createFakeRepositories({ areas: { listByCodes } }),
-    });
-
-    const response = await request(app).get(
-      '/api/areas/lookup?area_code=E06000052&area_code=E06000052&area_code=..%2Fbad',
-    );
-
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual([
-      { code: 'E06000052', name: 'Cornwall', areaType: 'UA unchanged' },
-    ]);
-    expect(listByCodes).toHaveBeenCalledWith(['E06000052']);
-  });
-
-  it('rejects a lookup request without any well-formed area code', async () => {
-    const app = createApp({ logger, repositories: createFakeRepositories() });
-
-    expect((await request(app).get('/api/areas/lookup')).status).toBe(400);
-    expect((await request(app).get('/api/areas/lookup?area_code=..%2Fbad')).status).toBe(400);
-  });
-
-  it('searches areas, trimming and capping the inputs', async () => {
-    const search = vi.fn().mockResolvedValue([]);
-    const app = createApp({ logger, repositories: createFakeRepositories({ areas: { search } }) });
-
-    const response = await request(app).get(
-      `/api/areas/search?q=${encodeURIComponent(`  ${'corn'.padEnd(120, 'w')}  `)}&limit=500`,
-    );
-
-    expect(response.status).toBe(200);
-    expect(search).toHaveBeenCalledWith('corn'.padEnd(100, 'w'), 100);
-
-    await request(app).get('/api/areas/search?q=corn');
-    expect(search).toHaveBeenLastCalledWith('corn', 50);
-  });
-
-  it('rejects a search request missing its query', async () => {
-    const app = createApp({ logger, repositories: createFakeRepositories() });
-
-    expect((await request(app).get('/api/areas/search')).status).toBe(400);
-    expect((await request(app).get('/api/areas/search?q=%20%20')).status).toBe(400);
-  });
-
-  it('lists the display groups and answers a display-group areas request', async () => {
-    const listDisplayGroups = vi.fn().mockResolvedValue(['Local authorities', 'GP practices']);
-    const listByGroup = vi.fn().mockResolvedValue([{ code: 'E06000052', name: 'Cornwall' }]);
-    const app = createApp({
-      logger,
-      repositories: createFakeRepositories({ areas: { listDisplayGroups, listByGroup } }),
-    });
-
-    expect((await request(app).get('/api/areas/display-groups')).body).toEqual([
-      'Local authorities',
-      'GP practices',
-    ]);
-
-    const response = await request(app).get('/api/areas?display_group=Local+authorities');
-    expect(response.body).toEqual([
-      { displayGroup: 'Local authorities', areas: [{ code: 'E06000052', name: 'Cornwall' }] },
-    ]);
-    expect(listByGroup).toHaveBeenCalledWith('Local authorities');
-  });
-
-  it('rejects a parents request missing or overflowing parent_type', async () => {
-    const app = createApp({ logger, repositories: createFakeRepositories() });
-
-    expect((await request(app).get('/api/areas/parents?area_code=E06000052')).status).toBe(400);
-    expect(
-      (
-        await request(app).get(
-          `/api/areas/parents?area_code=E06000052&parent_type=${'a'.repeat(101)}`,
-        )
-      ).status,
-    ).toBe(400);
+    expect(response.status).toBe(500);
   });
 
   it('fails loudly when a route reaches for a repository the test did not stub', async () => {
-    const response = await request(
-      createApp({ logger, repositories: createFakeRepositories() }),
-    ).get('/api/topics');
+    const response = await request(createTestApp()).get('/api/topics');
 
     expect(response.status).toBe(500);
   });
