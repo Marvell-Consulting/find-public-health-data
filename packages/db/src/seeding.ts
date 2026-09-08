@@ -132,6 +132,12 @@ function readDummyRelationships(): IndicatorTopicFile {
   return parseIndicatorTopicFile(merged);
 }
 
+export interface DummySeedSummary {
+  /** Rows loaded per seed table, in load order. */
+  tables: Record<string, number>;
+  relationships: IndicatorTopicImportSummary;
+}
+
 /**
  * Erase and reload every dummy table from the committed seed, inside the caller's
  * transaction: the CSV-backed canonical tables first, then the JSON-backed indicator
@@ -142,21 +148,21 @@ function readDummyRelationships(): IndicatorTopicFile {
  * assertSeedingAllowed, and the integration harness only ever targets its own disposable
  * databases.
  */
-export async function seedDummyTables(
-  tx: postgres.TransactionSql,
-): Promise<IndicatorTopicImportSummary> {
+export async function seedDummyTables(tx: postgres.TransactionSql): Promise<DummySeedSummary> {
   // Read before any database work, so a bad file fails while the transaction has done nothing.
-  const relationships = readDummyRelationships();
-  await seedTables(tx);
-  return applyIndicatorTopics(createDbFromTransaction(tx), relationships);
+  const relationshipFile = readDummyRelationships();
+  const tables = await seedTables(tx);
+  const relationships = await applyIndicatorTopics(createDbFromTransaction(tx), relationshipFile);
+  return { tables, relationships };
 }
 
-async function seedTables(tx: postgres.TransactionSql): Promise<void> {
+async function seedTables(tx: postgres.TransactionSql): Promise<Record<string, number>> {
   const allTables = [...SEED_TABLES, ...READ_MODEL_TABLES].map((t) => `"${t}"`).join(', ');
   await tx.unsafe(`TRUNCATE ${allTables} CASCADE`);
 
+  const counts: Record<string, number> = {};
   for (const table of SEED_TABLES) {
-    const count = await loadTable(tx, table);
-    console.log(`${table}: ${count} rows`);
+    counts[table] = await loadTable(tx, table);
   }
+  return counts;
 }

@@ -1,6 +1,5 @@
-import { randomUUID } from 'node:crypto';
-
 import { jwtVerify, SignJWT } from 'jose';
+import { v7 as uuidv7 } from 'uuid';
 
 import { readCookie } from './cookies.js';
 import { InvalidJwtSessionError } from './session-errors.js';
@@ -127,7 +126,7 @@ export function createJwtSessionService({
         .setIssuer(validatedIssuer)
         .setAudience(validatedAudience)
         .setSubject(validatedSubject)
-        .setJti(randomUUID())
+        .setJti(uuidv7())
         .setIssuedAt(issuedAt)
         .setExpirationTime(issuedAt + expiresInSeconds)
         .sign(key);

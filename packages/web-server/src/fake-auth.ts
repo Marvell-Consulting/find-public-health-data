@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto';
-
 import {
   type AppAudience,
   type FakeUser,
@@ -8,6 +6,7 @@ import {
 } from '@fphd/auth';
 import type { JwtSessionService } from '@fphd/auth/jwt-session';
 import express, { type Router } from 'express';
+import { v7 as uuidv7 } from 'uuid';
 
 interface PendingSignIn {
   readonly expiresAt: number;
@@ -65,7 +64,7 @@ export function createFakeAuthRouter({
       if (signIn.expiresAt <= now) pendingSignIns.delete(code);
     }
 
-    const code = randomUUID();
+    const code = uuidv7();
     pendingSignIns.set(code, {
       expiresAt: now + codeLifetimeSeconds * 1_000,
       returnTo: normalizeReturnTo(readStringField(request.body, 'returnTo'), defaultReturnTo),

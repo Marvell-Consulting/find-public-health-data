@@ -36,6 +36,7 @@
     "vitest": "catalog:"
   },
   "dependencies": {
-    "jose": "catalog:"
+    "jose": "catalog:",
+    "uuid": "catalog:"
   }
 }

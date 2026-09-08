@@ -9,7 +9,7 @@ interface PageIntroProps {
 
 export function PageIntro({ children, size = 'xl', title }: PageIntroProps) {
   return (
-    <section className={size === 'xl' ? 'page-intro' : undefined}>
+    <section className={size === 'xl' ? 'fphd-page-intro' : undefined}>
       <h1 className={`govuk-heading-${size}`}>{title}</h1>
       {children}
     </section>
