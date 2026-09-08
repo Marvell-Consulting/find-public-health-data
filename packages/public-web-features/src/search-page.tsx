@@ -37,11 +37,9 @@ export function SearchPage(data: SearchData) {
 
   return (
     <div className="fphd-wide-layout">
-      <GridRow>
-        <GridColumn width="full">
-          <h1 className="govuk-heading-xl govuk-!-margin-bottom-4">Search for data</h1>
-        </GridColumn>
-      </GridRow>
+      <div className="fphd-results-header">
+        <h1 className="govuk-heading-xl govuk-!-margin-bottom-0">Search for data</h1>
+      </div>
       <GridRow>
         <GridColumn width="one-third">
           <SearchFilterPane

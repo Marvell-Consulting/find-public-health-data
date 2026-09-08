@@ -75,7 +75,7 @@ function FilterDimensionBody({
           <p className="govuk-body-s govuk-!-margin-bottom-0">None selected</p>
         </div>
       ) : (
-        <FilterChips>
+        <FilterChips className="govuk-!-margin-bottom-4">
           {selected.map((v) => {
             const chipLabel = facetLabelOf(v);
             return (
@@ -108,6 +108,7 @@ interface FilterDimensionFooterProps {
   noResultsMessage: string;
   options: AutocompleteOption[];
   onAdd: (value: string) => void;
+  state: SearchState;
 }
 
 function FilterDimensionFooter({
@@ -117,20 +118,30 @@ function FilterDimensionFooter({
   noResultsMessage,
   options,
   onAdd,
+  state,
 }: FilterDimensionFooterProps) {
   const [pending, setPending] = useState<AutocompleteOption | null>(null);
 
   return (
-    <div className="govuk-!-margin-bottom-3">
-      <Autocomplete
-        label={autocompleteLabel}
-        noResultsMessage={noResultsMessage}
-        options={options}
-        onSelect={(opt) => setPending(opt)}
-      />
-      <noscript>
-        <input className="govuk-input govuk-!-margin-top-2" name={`${param}-add`} type="text" />
-      </noscript>
+    <div className="fphd-search-dimension govuk-!-margin-bottom-3">
+      <Form action="/search" method="get">
+        <HiddenFilters state={state} />
+        <Autocomplete
+          label={autocompleteLabel}
+          name={`${param}-add`}
+          noResultsMessage={noResultsMessage}
+          options={options}
+          onSelect={(opt) => setPending(opt)}
+        />
+        <noscript>
+          <Button
+            className="fphd-button--full-width govuk-!-margin-top-2 govuk-!-margin-bottom-0"
+            type="submit"
+          >
+            {addButtonLabel}
+          </Button>
+        </noscript>
+      </Form>
       {pending ? (
         <Button
           className="fphd-button--full-width govuk-!-margin-top-2 govuk-!-margin-bottom-0"
@@ -202,23 +213,14 @@ export function SearchFilterPane({
   const popActive = state.populations.length > 0 || state.inequalities.length > 0;
   const dataAttrActive =
     state.sources.length > 0 || state.valueTypes.length > 0 || state.yearTypes.length > 0;
-  const anyFilterActive = topicsActive || geoActive || fwActive || popActive || dataAttrActive;
 
-  const clearTopicsUrl = topicsActive
-    ? searchUrl({ ...state, topics: [], indicatorTypes: [], riskFactors: [] })
-    : undefined;
-  const clearGeoUrl = geoActive ? searchUrl({ ...state, geoLevels: [], gaCodes: [] }) : undefined;
-  const clearFwUrl = fwActive ? searchUrl({ ...state, frameworks: [] }) : undefined;
-  const clearPopUrl = popActive
-    ? searchUrl({ ...state, populations: [], inequalities: [] })
-    : undefined;
-  const clearDataAttrUrl = dataAttrActive
-    ? searchUrl({ ...state, sources: [], valueTypes: [], yearTypes: [] })
-    : undefined;
-  const clearAllFiltersUrl = anyFilterActive
-    ? `/search${state.q ? `?q=${encodeURIComponent(state.q)}` : ''}`
-    : undefined;
-  const clearQUrl = state.q ? searchUrl({ ...state, q: '' }) : undefined;
+  const clearTopicsUrl = searchUrl({ ...state, topics: [], indicatorTypes: [], riskFactors: [] });
+  const clearGeoUrl = searchUrl({ ...state, geoLevels: [], gaCodes: [] });
+  const clearFwUrl = searchUrl({ ...state, frameworks: [] });
+  const clearPopUrl = searchUrl({ ...state, populations: [], inequalities: [] });
+  const clearDataAttrUrl = searchUrl({ ...state, sources: [], valueTypes: [], yearTypes: [] });
+  const clearAllFiltersUrl = `/search${state.q ? `?q=${encodeURIComponent(state.q)}` : ''}`;
+  const clearQUrl = searchUrl({ ...state, q: '' });
 
   const topicsAndTypesDims = DIMENSIONS.filter((d) => ['t', 'it', 'rf'].includes(d.param));
   const fwDims = DIMENSIONS.filter((d) => d.param === 'fw');
@@ -248,6 +250,7 @@ export function SearchFilterPane({
         (o) => !(state[dim.stateKey] as string[]).includes(o.value),
       )}
       param={dim.param}
+      state={state}
     />
   );
 
@@ -263,11 +266,7 @@ export function SearchFilterPane({
             >
               Search by keywords
             </label>
-            <Link
-              className="govuk-link govuk-body-s"
-              preventScrollReset
-              to={clearQUrl ?? searchUrl({ ...state, q: '' })}
-            >
+            <Link className="govuk-link govuk-body-s" preventScrollReset to={clearQUrl}>
               Clear search
             </Link>
           </div>
@@ -306,11 +305,7 @@ export function SearchFilterPane({
 
       <div className="fphd-search-bar__filters-row">
         <h2 className="govuk-heading-m govuk-!-margin-bottom-0">Filters</h2>
-        <Link
-          className="govuk-link govuk-body-s"
-          preventScrollReset
-          to={clearAllFiltersUrl ?? '/search'}
-        >
+        <Link className="govuk-link govuk-body-s" preventScrollReset to={clearAllFiltersUrl}>
           Clear all filters
         </Link>
       </div>
@@ -340,7 +335,7 @@ export function SearchFilterPane({
               selectedLevels={pendingGeo}
             />
             <Button
-              className="govuk-!-margin-top-3 govuk-!-margin-bottom-0 fphd-button--full-width fphd-add-geo-button"
+              className="govuk-!-margin-bottom-0 fphd-button--full-width fphd-add-geo-button"
               data-empty={pendingCount === 0 ? '' : undefined}
               onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                 if (pendingCount === 0) {
@@ -371,7 +366,7 @@ export function SearchFilterPane({
             <p className="govuk-body-s govuk-!-margin-bottom-0">None selected</p>
           </div>
         ) : (
-          <FilterChips>
+          <FilterChips className="govuk-!-margin-bottom-4">
             {state.geoLevels.map((level) => (
               <FilterChip
                 key={level}

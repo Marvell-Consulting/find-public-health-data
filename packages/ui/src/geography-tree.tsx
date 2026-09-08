@@ -134,7 +134,7 @@ export function GeographyTree({
         autoComplete="off"
         className="fphd-geo-search govuk-!-margin-bottom-2"
         id={`${idPrefix}-search`}
-        label={<span className="govuk-label--s">Add geographies</span>}
+        label="Add geographies"
         name=""
         onChange={(event) => setQuery(event.currentTarget.value)}
         placeholder="Type to find geographies"

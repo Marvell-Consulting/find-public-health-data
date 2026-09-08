@@ -49,9 +49,11 @@ export function SearchResults({ searchResult, gaCodes }: SearchResultsProps) {
             <input key={code} name="as" type="hidden" value={code} />
           ))}
 
-          <Button className="govuk-!-margin-bottom-4" type="submit">
-            View selected indicators
-          </Button>
+          <div className="govuk-!-margin-bottom-2">
+            <Button className="govuk-!-margin-bottom-0 fphd-view-selected" type="submit">
+              View selected indicators
+            </Button>
+          </div>
 
           {ticked.length >= MAX_SELECTED ? (
             <p className="govuk-body govuk-!-margin-bottom-2">
@@ -75,7 +77,7 @@ export function SearchResults({ searchResult, gaCodes }: SearchResultsProps) {
 
               return (
                 <li className="fphd-indicator-item" key={indicator.fingertipsId}>
-                  <div className="govuk-checkboxes govuk-checkboxes--small">
+                  <div className="govuk-checkboxes">
                     <div className="govuk-checkboxes__item">
                       <input
                         checked={isSelected}
@@ -98,7 +100,7 @@ export function SearchResults({ searchResult, gaCodes }: SearchResultsProps) {
                           </Link>
                         </strong>
                         {hasMeta ? (
-                          <dl className="govuk-summary-list govuk-summary-list--no-border govuk-!-margin-bottom-0 govuk-!-margin-top-1">
+                          <dl className="govuk-summary-list govuk-!-margin-bottom-0 govuk-!-margin-top-1">
                             {topicChips.length > 0 ? (
                               <div className="govuk-summary-list__row">
                                 <dt className="govuk-summary-list__key">Topics</dt>

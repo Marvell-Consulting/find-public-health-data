@@ -174,20 +174,33 @@
 
 .fphd-filter-card {
   margin-bottom: govuk-spacing(4);
-  border: 1px solid #b1b4b6;
+  border: 1px solid govuk-colour("mid-grey");
 }
 
 .fphd-filter-card__header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  padding: 15px 20px;
-  background-color: #d1d2d3;
+  padding: govuk-spacing(3) govuk-spacing(4);
+  background-color: govuk-colour("mid-grey");
+
+  > .govuk-body,
+  > .govuk-body-s {
+    margin-bottom: 0;
+  }
+
+  .govuk-link {
+    color: #0f5a9b;
+
+    &:hover {
+      color: #0f5a9b;
+    }
+  }
 }
 
 .fphd-filter-card__body {
   padding: govuk-spacing(4);
-  background-color: #f3f2f1;
+  background-color: govuk-colour("light-grey");
 }
 
 // Show all collapsible bodies when JavaScript has not run, so every filter is reachable.
@@ -195,44 +208,65 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
   display: block;
 }
 
-
 .fphd-filter-card__footer {
-  padding: govuk-spacing(3);
+  padding: govuk-spacing(4);
   background-color: govuk-colour("white");
+
+  .govuk-select {
+    width: 100%;
+    @include govuk-font($size: 19);
+  }
 }
 
 // The sidebar's controls run at 16px, but card titles and body prose keep 19px.
-.fphd-filter-card .govuk-label,
-.fphd-filter-card .govuk-fieldset__legend,
-.fphd-filter-card .govuk-checkboxes__label,
-.fphd-filter-card .govuk-link {
-  font-size: 16px;
-}
 
 .fphd-filter-card .govuk-select,
 .fphd-filter-card .govuk-input {
   width: 100%;
 }
 
-.fphd-filter-chips--inline {
+.fphd-filter-chips {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: govuk-spacing(1);
 }
 
-.fphd-filter-chip {
-  display: flex;
-  gap: govuk-spacing(2);
-  align-items: center;
-  padding: 5px 10px;
-  background-color: govuk-colour("white");
-  border: 1px solid #b1b4b6;
-  font-size: 16px;
+.fphd-filter-chips--inline {
+  flex-direction: row;
+  flex-wrap: wrap;
 }
 
-.fphd-filter-chip__remove {
+.fphd-filter-chip {
+  @include govuk-font($size: 16);
+  display: flex;
+  align-items: center;
+  gap: govuk-spacing(2);
+  border: 1px solid govuk-colour("dark-grey");
+  background-color: govuk-colour("white");
+  padding: govuk-spacing(1) govuk-spacing(2);
+}
+
+.fphd-filter-chips--inline .fphd-filter-chip {
+  display: inline-flex;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.govuk-link.fphd-filter-chip__remove {
+  @include govuk-font($size: 16, $weight: bold);
   flex-shrink: 0;
+  align-self: center;
+  line-height: 1;
+  color: govuk-colour("black");
   text-decoration: none;
+
+  &:visited {
+    color: govuk-colour("black");
+  }
+
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 .fphd-filter-chip--tag {
@@ -247,8 +281,6 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
   padding: 0;
   border: 0;
   background: none;
-  color: govuk-colour("blue");
-  text-decoration: underline;
   cursor: pointer;
 }
 
@@ -301,15 +333,13 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: govuk-spacing(1);
 }
 
 .fphd-search-bar__filters-row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-top: govuk-spacing(5);
-  margin-bottom: govuk-spacing(4);
+  margin-top: govuk-spacing(4);
 }
 
 .fphd-search-bar {
@@ -420,6 +450,7 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
   overflow-y: auto;
   border: 1px solid govuk-colour("mid-grey");
   padding: govuk-spacing(2);
+  margin-bottom: govuk-spacing(3);
 }
 
 // The Checkboxes legends here only carry visually-hidden text, but the legend element
@@ -441,7 +472,8 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
 
 .fphd-geo-alt__tree .govuk-checkboxes--small .govuk-checkboxes__label {
   font-size: 1rem;
-  padding: 8px 15px 5px 6px;
+  padding-right: 0;
+  padding-left: 6px;
   margin-bottom: 0;
   // The injected checkbox styles reserve 74px for the full-size input; ours is 24px.
   max-width: calc(100% - 30px);
@@ -533,12 +565,65 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
   position: relative;
 }
 
+.autocomplete__wrapper {
+  width: 100%;
+}
+
+.autocomplete__dropdown-arrow-down {
+  display: none;
+}
+
+.autocomplete__wrapper:has(.autocomplete__input--show-all-values)::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 15px;
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 10px solid govuk-colour("black");
+  pointer-events: none;
+}
+
+.autocomplete__input {
+  @include govuk-font($size: 19);
+  border: 2px solid govuk-colour("black");
+  border-radius: 0;
+  width: 100%;
+
+  &.autocomplete__input--show-all-values {
+    padding-right: 35px;
+  }
+
+  &:focus {
+    outline: 3px solid govuk-colour("yellow");
+    outline-offset: 0;
+    box-shadow: inset 0 0 0 2px govuk-colour("black");
+  }
+}
+
+.autocomplete__menu {
+  @include govuk-font($size: 19);
+  border: 2px solid govuk-colour("black");
+  border-top: 0;
+  border-radius: 0;
+}
+
+.autocomplete__option {
+  @include govuk-font($size: 19);
+
+  &.autocomplete__option--focused,
+  &:hover {
+    background-color: govuk-colour("blue");
+    border-color: govuk-colour("blue");
+    color: govuk-colour("white");
+  }
+}
+
 // The library sets z-index:-1 on the arrow so it paints below the input without overlapping
 // its focus ring, but govuk-input's explicit position:relative creates a stacking context that
 // buries it entirely. Override to keep it visible above the input surface.
-.fphd-autocomplete .autocomplete__dropdown-arrow-down {
-  z-index: 1;
-}
 
 // A value's magnitude relative to the largest in the comparison, so rows can be scanned
 // without reading every number.
@@ -557,8 +642,6 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
 .fphd-segmentation-options__selects .govuk-form-group {
   margin-bottom: govuk-spacing(3);
 }
-
-
 
 .fphd-geo-alt__count {
   display: inline;
@@ -651,7 +734,6 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
   gap: govuk-spacing(3);
 }
 
-
 // The indicator page runs its data content at 16px with tighter cells.
 .fphd-indicator-section > .govuk-heading-l {
   margin-bottom: govuk-spacing(3);
@@ -708,7 +790,6 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
   font-weight: 700;
 }
 
-
 // A single-section accordion without the component's JS: no top border doubling and no
 // "show all" bar, just the section header and its content.
 .fphd-options-accordion {
@@ -738,7 +819,6 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
   white-space: nowrap;
 }
 
-
 // Inside tables the trend tag stays on one line — the scroll wrapper absorbs the width —
 // instead of stacking "Increasing and getting worse" over three lines.
 .fphd-indicator-section .govuk-table .fphd-trend-tag,
@@ -746,7 +826,6 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
   white-space: nowrap;
   min-width: 0;
 }
-
 
 // The compare table scrolls sideways rather than crushing its columns: everything stays
 // on one line except the indicator name, which wraps within a readable width.
@@ -787,8 +866,10 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
   }
 }
 
-.fphd-button--full-width {
+.govuk-button.fphd-button--full-width {
+  display: block;
   width: 100%;
+  text-align: center;
 }
 
 // Hide the "Add selected geographies" button with JS when nothing is pending.
@@ -800,9 +881,6 @@ body.js-enabled .fphd-add-geo-button[data-empty] {
 // The geography search input label should be govuk-label--s weight (bold, 16px)
 // to match the prototype. The TextInput component renders the label as
 // govuk-label; the --s modifier is added here rather than nesting a span.
-.fphd-geo-search.govuk-form-group label.govuk-label {
-  @include govuk-font($size: 16, $weight: bold);
-}
 
 // The benchmark columns are shaded so a comparison reads as context, not more data: a
 // darker band on the group header, a lighter wash down its cells.
@@ -825,18 +903,52 @@ body.js-enabled .fphd-add-geo-button[data-empty] {
   width: 100%;
 }
 
+.fphd-view-selected.govuk-button {
+  margin-top: 2px;
+}
+
+.fphd-search-dimension .govuk-form-group {
+  margin-bottom: 0;
+}
+
+.govuk-form-group:has(> .fphd-geo-search) {
+  margin-bottom: 0;
+
+  > .govuk-label {
+    @include govuk-font($size: 19, $weight: bold);
+  }
+}
+
+.fphd-results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: govuk-spacing(4);
+  margin-bottom: govuk-spacing(6);
+}
+
+.fphd-results-sort {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: govuk-spacing(4);
+  margin-bottom: govuk-spacing(4);
+}
+
 .fphd-search-results {
   list-style: none;
   padding: 0;
-  margin: 0;
+  margin: govuk-spacing(4) 0 0;
+
+  > li {
+    margin-bottom: 0;
+  }
 }
 
 .fphd-indicator-item {
+  display: flex;
+  align-items: flex-start;
   padding: govuk-spacing(3) 0;
-
-  & + & {
-    border-top: 1px solid govuk-colour("mid-grey");
-  }
 
   .govuk-checkboxes__item {
     padding-top: 0;
@@ -844,6 +956,8 @@ body.js-enabled .fphd-add-geo-button[data-empty] {
 
   .govuk-checkboxes__label {
     display: block;
+    max-width: calc(100% - 44px);
+    margin-bottom: 0;
   }
 
   .govuk-summary-list {

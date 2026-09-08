@@ -68,19 +68,18 @@ export function CollapsibleFilterCard({
   return (
     <div className="fphd-filter-card govuk-!-margin-bottom-4">
       <div className="fphd-filter-card__header">
-        <span className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-0">{title}</span>
+        <h2 className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-0">{title}</h2>
         <button
           aria-controls={bodyId}
           aria-expanded={open}
-          className="govuk-body-s fphd-link-button"
+          className="govuk-link govuk-body-s fphd-link-button"
           onClick={() => setOpen((v) => !v)}
           type="button"
         >
           {open ? 'Collapse' : 'Expand'}
         </button>
       </div>
-      {/* Body is always in the HTML so no-JS users can reach all filters.
-          CSS shows it when js-enabled is absent; JS toggles the hidden attribute. */}
+      {/* Always in the HTML: CSS reveals it without JavaScript, JS toggles hidden. */}
       <div className="fphd-filter-card__body fphd-collapsible-body" hidden={!open} id={bodyId}>
         {onClear ? (
           <Link
@@ -135,10 +134,14 @@ export function FilterChip({
   );
 }
 
-export function FilterChips({ children }: { children: ReactNode }) {
+export function FilterChips({
+  children,
+  className = 'govuk-!-margin-bottom-2',
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <div className="fphd-filter-chips fphd-filter-chips--inline govuk-!-margin-bottom-2">
-      {children}
-    </div>
+    <div className={`fphd-filter-chips fphd-filter-chips--inline ${className}`}>{children}</div>
   );
 }
