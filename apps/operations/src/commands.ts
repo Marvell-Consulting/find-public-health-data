@@ -1,4 +1,5 @@
-import { migrateToLatest, type SqlClient } from '@fphd/db';
+import type { SqlClient } from '@fphd/db';
+import { migrateToLatest } from '@fphd/db/operations';
 import type { Logger } from '@fphd/logger';
 
 import {

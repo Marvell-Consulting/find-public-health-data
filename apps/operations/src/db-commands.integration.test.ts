@@ -1,4 +1,5 @@
-import { createOwnerClient, loadOwnerEnv, type SqlClient } from '@fphd/db';
+import type { SqlClient } from '@fphd/db';
+import { createOwnerClient, loadOwnerEnv } from '@fphd/db/operations';
 import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
 import { createLogger } from '@fphd/logger';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

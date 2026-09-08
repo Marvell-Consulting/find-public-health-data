@@ -10,6 +10,11 @@
       "types": "./src/index.ts",
       "default": "./dist/index.js"
     },
+    "./operations": {
+      "development": "./src/operations.ts",
+      "types": "./src/operations.ts",
+      "default": "./dist/operations.js"
+    },
     "./testing": {
       "development": "./src/testing.ts",
       "types": "./src/testing.ts",

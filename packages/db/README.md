@@ -32,7 +32,9 @@ src/
   testing.ts          Integration-test database harness (@fphd/db/testing)
   schema.ts           Barrel re-exporting schema/index.ts; what drizzle.config.ts reads
   *-repository.ts     Query functions per aggregate: pure, take `db` as first argument
-  index.ts            Package surface
+  index.ts            The read surface the APIs consume (@fphd/db)
+  operations.ts       Bootstrap, migrate, import, seed, reset and rebuild (@fphd/db/operations),
+                      consumed only by apps/operations and the test harness
 ```
 
 ## Conventions
