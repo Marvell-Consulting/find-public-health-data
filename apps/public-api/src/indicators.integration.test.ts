@@ -217,11 +217,13 @@ describe('public API against the seeded database', () => {
       LIMIT 1
     `;
 
-    const response = await request(createApp({ logger, repositories })).get(
-      '/api/indicators/999998',
-    );
+    const app = createApp({ logger, repositories });
 
-    expect(response.status).toBe(404);
+    expect((await request(app).get('/api/indicators/999998')).status).toBe(404);
+    expect((await request(app).get('/api/indicators/999998/data')).status).toBe(404);
+    expect(
+      (await request(app).get('/api/indicators/999998/range?area_type=UA%20unchanged')).status,
+    ).toBe(404);
   });
 
   it('connects with a read-only role', async () => {

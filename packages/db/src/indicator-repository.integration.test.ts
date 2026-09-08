@@ -10,10 +10,11 @@ import {
 import { createDb, type Database } from './client.js';
 import { dbEnvFields, resolveDbTls } from './env.js';
 import {
-  getApprovedIndicatorByFingertipsId,
+  getApprovedIndicatorById,
   getIndicatorObservations,
   getObservationRange,
   listApprovedIndicators,
+  resolveApprovedIndicatorId,
   searchApprovedIndicators,
 } from './indicator-repository.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
@@ -47,12 +48,30 @@ const LIFE_EXPECTANCY_AT_BIRTH = 90366;
 const ENGLAND = 'E92000001';
 const CORNWALL = 'E06000052';
 
+const UNSEEDED_ID = '00000000-0000-7000-8000-000000000000';
+
 let testDb: TestDatabase;
 let db: Database;
+let mortalityId: string;
+let diabetesId: string;
+let lifeExpectancyId: string;
+
+async function resolvedId(fingertipsId: number): Promise<string> {
+  const id = await resolveApprovedIndicatorId(db, fingertipsId);
+  if (!id) {
+    throw new Error(`seed is missing indicator ${fingertipsId}`);
+  }
+  return id;
+}
 
 beforeAll(async () => {
   testDb = await createTestDatabase({ template: 'seeded' });
   db = createDb(ownerConnection(testDb.name));
+  [mortalityId, diabetesId, lifeExpectancyId] = await Promise.all([
+    resolvedId(MORTALITY_UNDER_75),
+    resolvedId(DIABETES_QOF_PREVALENCE),
+    resolvedId(LIFE_EXPECTANCY_AT_BIRTH),
+  ]);
 });
 
 afterAll(async () => {
@@ -95,9 +114,16 @@ describe('searchApprovedIndicators', () => {
   });
 });
 
-describe('getApprovedIndicatorByFingertipsId', () => {
+describe('resolveApprovedIndicatorId', () => {
+  it('answers the internal id for a seeded fingertips number and nothing otherwise', async () => {
+    expect(await resolveApprovedIndicatorId(db, MORTALITY_UNDER_75)).toMatch(/^[0-9a-f-]{36}$/);
+    expect(await resolveApprovedIndicatorId(db, 424242)).toBeUndefined();
+  });
+});
+
+describe('getApprovedIndicatorById', () => {
   it('resolves the lookups, metadata and available area types in one result', async () => {
-    const indicator = await getApprovedIndicatorByFingertipsId(db, MORTALITY_UNDER_75);
+    const indicator = await getApprovedIndicatorById(db, mortalityId);
 
     expect(indicator).toMatchObject({
       fingertipsId: MORTALITY_UNDER_75,
@@ -119,12 +145,12 @@ describe('getApprovedIndicatorByFingertipsId', () => {
     expect(areaTypeNames).toEqual([...areaTypeNames].sort((a, b) => a.localeCompare(b)));
   });
 
-  it('returns undefined for a fingertips id no indicator carries', async () => {
-    expect(await getApprovedIndicatorByFingertipsId(db, 424242)).toBeUndefined();
+  it('returns undefined for an id no indicator carries', async () => {
+    expect(await getApprovedIndicatorById(db, UNSEEDED_ID)).toBeUndefined();
   });
 
   it('includes the prototype diabetes indicator with its high-fidelity geography coverage', async () => {
-    const indicator = await getApprovedIndicatorByFingertipsId(db, DIABETES_QOF_PREVALENCE);
+    const indicator = await getApprovedIndicatorById(db, diabetesId);
 
     expect(indicator).toMatchObject({
       fingertipsId: DIABETES_QOF_PREVALENCE,
@@ -140,7 +166,7 @@ describe('getApprovedIndicatorByFingertipsId', () => {
 
 describe('getIndicatorObservations', () => {
   it('returns every published observation for the area with its dimension labels', async () => {
-    const data = await getIndicatorObservations(db, MORTALITY_UNDER_75, ENGLAND);
+    const data = await getIndicatorObservations(db, mortalityId, ENGLAND);
 
     expect(data?.areaName).toBe('England');
     expect(data?.observations.length).toBeGreaterThan(1000);
@@ -164,19 +190,20 @@ describe('getIndicatorObservations', () => {
     const [lowerTier] = await listAreasByType(db, 'LA unchanged');
     expect(lowerTier).toBeTruthy();
 
-    const data = await getIndicatorObservations(db, 93622, lowerTier?.code ?? '');
+    const data = await getIndicatorObservations(db, await resolvedId(93622), lowerTier?.code ?? '');
 
     expect(data?.observations).toEqual([]);
     expect(data?.areaName).toBe(lowerTier?.name);
   });
 
-  it('returns undefined when the indicator or the area does not exist', async () => {
-    expect(await getIndicatorObservations(db, 424242, ENGLAND)).toBeUndefined();
-    expect(await getIndicatorObservations(db, MORTALITY_UNDER_75, 'E00000000')).toBeUndefined();
+  it('returns undefined only for an unknown area, now the id arrives resolved', async () => {
+    expect(await getIndicatorObservations(db, mortalityId, 'E00000000')).toBeUndefined();
+    // An id that resolved but holds no rows is an empty series, not an error.
+    expect((await getIndicatorObservations(db, UNSEEDED_ID, ENGLAND))?.observations).toEqual([]);
   });
 
   it('returns the published Cornwall trend for the prototype diabetes indicator', async () => {
-    const data = await getIndicatorObservations(db, DIABETES_QOF_PREVALENCE, CORNWALL);
+    const data = await getIndicatorObservations(db, diabetesId, CORNWALL);
 
     expect(data?.areaName).toBe('Cornwall');
     expect(data?.observations).toHaveLength(13);
@@ -203,8 +230,8 @@ describe('getObservationRange', () => {
 
   it('brackets each period of the trend series across every area of the level', async () => {
     const [range, cornwall] = await Promise.all([
-      getObservationRange(db, DIABETES_QOF_PREVALENCE, LOCAL_AUTHORITY_TYPES),
-      getIndicatorObservations(db, DIABETES_QOF_PREVALENCE, CORNWALL),
+      getObservationRange(db, diabetesId, LOCAL_AUTHORITY_TYPES),
+      getIndicatorObservations(db, diabetesId, CORNWALL),
     ]);
 
     expect(range.length).toBeGreaterThan(0);
@@ -221,13 +248,13 @@ describe('getObservationRange', () => {
     }
   });
 
-  it('returns an empty range without area types or for an unknown indicator', async () => {
-    expect(await getObservationRange(db, DIABETES_QOF_PREVALENCE, [])).toEqual([]);
-    expect(await getObservationRange(db, 424242, LOCAL_AUTHORITY_TYPES)).toEqual([]);
+  it('returns an empty range without area types or for an id holding no data', async () => {
+    expect(await getObservationRange(db, diabetesId, [])).toEqual([]);
+    expect(await getObservationRange(db, UNSEEDED_ID, LOCAL_AUTHORITY_TYPES)).toEqual([]);
   });
 
   it('returns one range per segment for an always-sexed indicator', async () => {
-    const range = await getObservationRange(db, LIFE_EXPECTANCY_AT_BIRTH, LOCAL_AUTHORITY_TYPES);
+    const range = await getObservationRange(db, lifeExpectancyId, LOCAL_AUTHORITY_TYPES);
 
     const segments = new Set(range.map(({ segment }) => segment));
     expect(segments.has('Male')).toBe(true);
