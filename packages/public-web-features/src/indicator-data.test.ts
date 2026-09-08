@@ -16,7 +16,6 @@ import {
   inequalityCategoryOptions,
   inequalityPeriods,
   inequalitySegments,
-  latestCoreSegments,
   periodLabel,
   segmentLabel,
   trendSeries,
@@ -120,26 +119,6 @@ describe('alignedTrendSeries', () => {
 
     expect(alignedTrendSeries([male], reference)).toEqual([male]);
     expect(alignedTrendSeries([male], undefined)).toEqual([male]);
-  });
-});
-
-describe('latestCoreSegments', () => {
-  it('returns only core-dimension segments for the latest, shortest period', () => {
-    const oldPeriod = obs({
-      fromDate: '2022-01-01',
-      toDate: '2022-12-31',
-      dimensions: [dim('Sex', 'Male')],
-    });
-    const rollingPeriod = obs({ fromDate: '2021-01-01', dimensions: [dim('Sex', 'Male')] });
-    const latestMale = obs({ dimensions: [dim('Sex', 'Male')] });
-    const latestFemale = obs({ dimensions: [dim('Sex', 'Female'), dim('Age', '<75 yrs')] });
-    const deprivation = obs({
-      dimensions: [dim('Deprivation deciles', 'Most deprived', { dimensionClass: 'inequality' })],
-    });
-
-    expect(
-      latestCoreSegments([oldPeriod, rollingPeriod, latestMale, latestFemale, deprivation]),
-    ).toEqual([latestMale, latestFemale]);
   });
 });
 

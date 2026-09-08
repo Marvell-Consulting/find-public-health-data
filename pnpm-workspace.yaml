@@ -43,6 +43,8 @@ catalog:
   accessible-autocomplete: 3.0.1
   '@not-govuk/back-link': 0.18.1
   '@not-govuk/button': 0.18.1
+  '@not-govuk/checkboxes': 0.18.1
+  '@not-govuk/details': 0.18.1
   '@not-govuk/inset-text': 0.18.1
   '@not-govuk/link': 0.18.1
   '@not-govuk/notification-banner': 0.18.1
@@ -50,6 +52,8 @@ catalog:
   '@not-govuk/radios': 0.18.1
   '@not-govuk/sass-base': 0.18.1
   '@not-govuk/search-box': 0.18.1
+  '@not-govuk/select': 0.18.1
+  '@not-govuk/summary-list': 0.18.1
   '@not-govuk/table': 0.18.1
   '@not-govuk/text-input': 0.18.1
   '@not-govuk/textarea': 0.18.1
@@ -67,7 +71,6 @@ catalog:
   '@types/react-dom': 19.2.3
   '@types/compression': 1.8.1
   '@types/supertest': 7.2.0
-  '@vitejs/plugin-react': 6.0.3
   compression: 1.8.1
   cross-env: 10.1.0
   csv-stringify: 6.8.3

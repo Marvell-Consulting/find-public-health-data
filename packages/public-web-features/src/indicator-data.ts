@@ -99,10 +99,6 @@ export function benchmarkJudgement(
   return 'similar';
 }
 
-function sortOrderSum(observation: IndicatorObservation): number {
-  return observation.dimensions.reduce((sum, dimension) => sum + dimension.sortOrder, 0);
-}
-
 /**
  * The least-disaggregated segment's observations in period order — the closest thing the
  * data has to a headline series. Where several segments tie on dimension count, the one
@@ -148,39 +144,6 @@ export function alignedTrendSeries(
     .filter((observation) => segmentKey(observation) === key)
     .sort((a, b) => a.fromDate.localeCompare(b.fromDate) || a.toDate.localeCompare(b.toDate));
   return matching.length > 0 ? matching : trendSeries(observations);
-}
-
-/**
- * The latest period's breakdown across core segments (sex/age), for the segmentation
- * overview table. Where a single-year and a rolling period share the latest end date, the
- * shorter period wins.
- */
-export function latestCoreSegments(observations: IndicatorObservation[]): IndicatorObservation[] {
-  const core = observations.filter((observation) =>
-    observation.dimensions.every((dimension) => dimension.dimensionClass === 'core'),
-  );
-  if (core.length === 0) {
-    return [];
-  }
-
-  const latestToDate = core
-    .map((o) => o.toDate)
-    .sort()
-    .at(-1);
-  const endingLatest = core.filter((o) => o.toDate === latestToDate);
-  const latestFromDate = endingLatest
-    .map((o) => o.fromDate)
-    .sort()
-    .at(-1);
-
-  return endingLatest
-    .filter((o) => o.fromDate === latestFromDate)
-    .sort(
-      (a, b) =>
-        a.dimensions.length - b.dimensions.length ||
-        sortOrderSum(a) - sortOrderSum(b) ||
-        segmentLabel(a).localeCompare(segmentLabel(b)),
-    );
 }
 
 const valueFormat = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 1 });

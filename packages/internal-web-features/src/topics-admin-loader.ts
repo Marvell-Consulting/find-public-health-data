@@ -12,7 +12,7 @@ import { apiContext } from '@fphd/web-server/api-context';
 import { setFlash, takeFlash } from '@fphd/web-server/flash';
 import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from 'react-router';
 
-import { parseTopicForm, readTopicForm, type TopicFormValues } from './topic-form.js';
+import { parseTopicForm, readTopicForm, type TopicFormValues } from './topic-form';
 
 export type { TopicAdminDetail, TopicAdminSummary } from '@fphd/internal-api-features/contract';
 

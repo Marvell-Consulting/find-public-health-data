@@ -13,7 +13,6 @@ import {
   formatCalculatedValue,
   formatValue,
   inequalityCategoryLabel,
-  latestCoreSegments,
   periodLabel,
   recentTrend,
   segmentLabel,
@@ -34,62 +33,6 @@ import {
   PanelOptionsPanel,
   useOptionParamNavigation,
 } from './indicator-options';
-
-export function SegmentationTable({
-  confidence,
-  data,
-  indicator,
-}: {
-  confidence: ConfidenceLevel;
-  data: IndicatorAreaData;
-  indicator: IndicatorDetail;
-}) {
-  const segments = latestCoreSegments(data.observations);
-  const first = segments[0];
-  if (!first) {
-    return null;
-  }
-
-  return (
-    <table className="govuk-table">
-      <caption className="govuk-table__caption govuk-table__caption--s">
-        {data.areaName}, {periodLabel(first)}
-      </caption>
-      <thead className="govuk-table__head">
-        <tr className="govuk-table__row">
-          <th scope="col" className="govuk-table__header">
-            Segment
-          </th>
-          <th scope="col" className="govuk-table__header govuk-table__header--numeric">
-            Value ({indicator.unit.name})
-          </th>
-          {confidence === 'none' ? null : (
-            <th scope="col" className="govuk-table__header govuk-table__header--numeric">
-              {confidence}% confidence interval
-            </th>
-          )}
-        </tr>
-      </thead>
-      <tbody className="govuk-table__body">
-        {segments.map((observation) => (
-          <tr className="govuk-table__row" key={segmentLabel(observation)}>
-            <th scope="row" className="govuk-table__header">
-              {segmentLabel(observation)}
-            </th>
-            <td className="govuk-table__cell govuk-table__cell--numeric">
-              {formatValue(observation.value)}
-            </td>
-            {confidence === 'none' ? null : (
-              <td className="govuk-table__cell govuk-table__cell--numeric">
-                {confidenceInterval(observation, confidence)}
-              </td>
-            )}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
 
 // Fingertips' marker colours: RAG significance, BOB sides, an open ring for no comparison.
 const DOT_STYLES: Record<BenchmarkJudgement, { fill: string; stroke?: string }> = {
@@ -505,66 +448,6 @@ export function TrendTable({
         </p>
       ))}
     </>
-  );
-}
-
-export function CompareAreasTable({
-  areaData,
-  confidence,
-  indicator,
-}: {
-  areaData: IndicatorAreaData[];
-  confidence: ConfidenceLevel;
-  indicator: IndicatorDetail;
-}) {
-  const latestByArea = areaData
-    .map((data) => ({ data, latest: trendSeries(data.observations).at(-1) }))
-    .filter((entry): entry is { data: IndicatorAreaData; latest: IndicatorObservation } =>
-      Boolean(entry.latest),
-    );
-  const first = latestByArea[0];
-  if (!first) {
-    return null;
-  }
-
-  return (
-    <table className="govuk-table">
-      <caption className="govuk-table__caption govuk-table__caption--s">
-        {periodLabel(first.latest)}, {segmentLabel(first.latest)}
-      </caption>
-      <thead className="govuk-table__head">
-        <tr className="govuk-table__row">
-          <th scope="col" className="govuk-table__header">
-            Area
-          </th>
-          <th scope="col" className="govuk-table__header govuk-table__header--numeric">
-            Value ({indicator.unit.name})
-          </th>
-          {confidence === 'none' ? null : (
-            <th scope="col" className="govuk-table__header govuk-table__header--numeric">
-              {confidence}% confidence interval
-            </th>
-          )}
-        </tr>
-      </thead>
-      <tbody className="govuk-table__body">
-        {latestByArea.map(({ data, latest }) => (
-          <tr className="govuk-table__row" key={data.areaCode}>
-            <th scope="row" className="govuk-table__header">
-              {data.areaName}
-            </th>
-            <td className="govuk-table__cell govuk-table__cell--numeric">
-              {formatValue(latest.value)}
-            </td>
-            {confidence === 'none' ? null : (
-              <td className="govuk-table__cell govuk-table__cell--numeric">
-                {confidenceInterval(latest, confidence)}
-              </td>
-            )}
-          </tr>
-        ))}
-      </tbody>
-    </table>
   );
 }
 
