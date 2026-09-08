@@ -1,5 +1,7 @@
 import 'accessible-autocomplete/dist/accessible-autocomplete.min.css';
 
+import Input from '@not-govuk/input';
+import Label from '@not-govuk/label';
 import { useEffect, useId, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 
@@ -235,18 +237,12 @@ export function Autocomplete({
 
   return (
     <div className="govuk-form-group fphd-autocomplete">
-      <label className="govuk-label govuk-label--s" htmlFor={inputId}>
+      <Label classModifiers="s" htmlFor={inputId}>
         {label}
-      </label>
+      </Label>
       <div ref={containerRef} />
       {enhanced ? null : (
-        <input
-          className="govuk-input"
-          defaultValue={defaultValue}
-          id={inputId}
-          name={name}
-          type="search"
-        />
+        <Input defaultValue={defaultValue} id={inputId} name={name} type="search" />
       )}
     </div>
   );

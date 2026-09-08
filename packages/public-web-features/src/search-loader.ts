@@ -11,7 +11,11 @@ import { redirect } from 'react-router';
 
 import { DIMENSIONS } from './search-url.js';
 
-export type { IndicatorFacets, IndicatorSearchResult } from '@fphd/public-api-features/contract';
+export type {
+  IndicatorFacets,
+  IndicatorSearchResult,
+  IndicatorSearchRow,
+} from '@fphd/public-api-features/contract';
 
 const MAX_GA = 100;
 const AREA_CODE_RE = /^[A-Z0-9]+$/i;

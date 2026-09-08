@@ -1,8 +1,8 @@
-import { Button, InsetText } from '@fphd/ui';
+import { Button, Checkboxes, InsetText } from '@fphd/ui';
 import { useState } from 'react';
 import { Form, Link } from 'react-router';
 
-import type { IndicatorSearchResult } from './search-loader.js';
+import type { IndicatorSearchResult, IndicatorSearchRow } from './search-loader.js';
 
 const MAX_SELECTED = 10;
 const SEARCH_CAP = 200;
@@ -10,6 +10,53 @@ const SEARCH_CAP = 200;
 interface SearchResultsProps {
   searchResult: IndicatorSearchResult;
   gaCodes: string[];
+}
+
+function Tags({ items }: { items: { key: string; label: string }[] }) {
+  return (
+    <div className="fphd-filter-chips fphd-filter-chips--inline">
+      {items.map((item) => (
+        <div className="fphd-filter-chip fphd-filter-chip--tag" key={item.key}>
+          {item.label}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ResultLabel({ indicator }: { indicator: IndicatorSearchRow }) {
+  const classified = (dimension: string) =>
+    indicator.classifications
+      .filter((c) => c.dimension === dimension)
+      .map((c) => ({ key: c.slug, label: c.name }));
+  const rows = [
+    { key: 'Topics', items: indicator.topics.map((t) => ({ key: t.slug, label: t.title })) },
+    { key: 'Indicator types', items: classified('indicator_type') },
+    { key: 'Risk factors', items: classified('risk_factor') },
+  ].filter((row) => row.items.length > 0);
+
+  return (
+    <>
+      <span className="govuk-visually-hidden">{indicator.name}</span>
+      <strong>
+        <Link className="govuk-link" to={`/indicators/${indicator.fingertipsId}`}>
+          {indicator.name}
+        </Link>
+      </strong>
+      {rows.length > 0 ? (
+        <dl className="govuk-summary-list govuk-!-margin-bottom-0 govuk-!-margin-top-1">
+          {rows.map((row) => (
+            <div className="govuk-summary-list__row" key={row.key}>
+              <dt className="govuk-summary-list__key">{row.key}</dt>
+              <dd className="govuk-summary-list__value">
+                <Tags items={row.items} />
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+    </>
+  );
 }
 
 export function SearchResults({ searchResult, gaCodes }: SearchResultsProps) {
@@ -61,115 +108,22 @@ export function SearchResults({ searchResult, gaCodes }: SearchResultsProps) {
             </p>
           ) : null}
 
-          <ul className="govuk-list fphd-search-results">
-            {indicators.map((indicator) => {
+          <Checkboxes
+            className="fphd-search-results"
+            id="is"
+            label={<span className="govuk-visually-hidden">Indicators</span>}
+            name="is"
+            onChange={(event) => toggle(Number(event.target.value), event.target.checked)}
+            options={indicators.map((indicator) => {
               const isSelected = ticked.includes(indicator.fingertipsId);
-              const isDisabled = !isSelected && ticked.length >= MAX_SELECTED;
-              const topicChips = indicator.topics;
-              const itChips = indicator.classifications.filter(
-                (c) => c.dimension === 'indicator_type',
-              );
-              const rfChips = indicator.classifications.filter(
-                (c) => c.dimension === 'risk_factor',
-              );
-
-              const hasMeta = topicChips.length > 0 || itChips.length > 0 || rfChips.length > 0;
-
-              return (
-                <li className="fphd-indicator-item" key={indicator.fingertipsId}>
-                  <div className="govuk-checkboxes">
-                    <div className="govuk-checkboxes__item">
-                      <input
-                        checked={isSelected}
-                        className="govuk-checkboxes__input"
-                        disabled={isDisabled}
-                        id={`is-${indicator.fingertipsId}`}
-                        name="is"
-                        onChange={(e) => toggle(indicator.fingertipsId, e.target.checked)}
-                        type="checkbox"
-                        value={indicator.fingertipsId}
-                      />
-                      <label
-                        className="govuk-label govuk-checkboxes__label"
-                        htmlFor={`is-${indicator.fingertipsId}`}
-                      >
-                        <span className="govuk-visually-hidden">{indicator.name}</span>
-                        <strong>
-                          <Link className="govuk-link" to={`/indicators/${indicator.fingertipsId}`}>
-                            {indicator.name}
-                          </Link>
-                        </strong>
-                        {hasMeta ? (
-                          <dl className="govuk-summary-list govuk-!-margin-bottom-0 govuk-!-margin-top-1">
-                            {topicChips.length > 0 ? (
-                              <div className="govuk-summary-list__row">
-                                <dt className="govuk-summary-list__key">Topics</dt>
-                                <dd className="govuk-summary-list__value">
-                                  <div
-                                    className="fphd-filter-chips fphd-filter-chips--inline"
-                                    style={{ gap: '4px', marginTop: '2px' }}
-                                  >
-                                    {topicChips.map((t) => (
-                                      <div
-                                        className="fphd-filter-chip fphd-filter-chip--tag"
-                                        key={t.slug}
-                                      >
-                                        {t.title}
-                                      </div>
-                                    ))}
-                                  </div>
-                                </dd>
-                              </div>
-                            ) : null}
-                            {itChips.length > 0 ? (
-                              <div className="govuk-summary-list__row">
-                                <dt className="govuk-summary-list__key">Indicator types</dt>
-                                <dd className="govuk-summary-list__value">
-                                  <div
-                                    className="fphd-filter-chips fphd-filter-chips--inline"
-                                    style={{ gap: '4px', marginTop: '2px' }}
-                                  >
-                                    {itChips.map((c) => (
-                                      <div
-                                        className="fphd-filter-chip fphd-filter-chip--tag"
-                                        key={c.slug}
-                                      >
-                                        {c.name}
-                                      </div>
-                                    ))}
-                                  </div>
-                                </dd>
-                              </div>
-                            ) : null}
-                            {rfChips.length > 0 ? (
-                              <div className="govuk-summary-list__row">
-                                <dt className="govuk-summary-list__key">Risk factors</dt>
-                                <dd className="govuk-summary-list__value">
-                                  <div
-                                    className="fphd-filter-chips fphd-filter-chips--inline"
-                                    style={{ gap: '4px', marginTop: '2px' }}
-                                  >
-                                    {rfChips.map((c) => (
-                                      <div
-                                        className="fphd-filter-chip fphd-filter-chip--tag"
-                                        key={c.slug}
-                                      >
-                                        {c.name}
-                                      </div>
-                                    ))}
-                                  </div>
-                                </dd>
-                              </div>
-                            ) : null}
-                          </dl>
-                        ) : null}
-                      </label>
-                    </div>
-                  </div>
-                </li>
-              );
+              return {
+                checked: isSelected,
+                disabled: !isSelected && ticked.length >= MAX_SELECTED,
+                label: <ResultLabel indicator={indicator} />,
+                value: String(indicator.fingertipsId),
+              };
             })}
-          </ul>
+          />
 
           {capped ? (
             <p className="govuk-body govuk-!-margin-top-3">

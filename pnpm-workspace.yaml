@@ -55,6 +55,8 @@ catalog:
   '@not-govuk/select': 0.18.1
   '@not-govuk/summary-list': 0.18.1
   '@not-govuk/table': 0.18.1
+  '@not-govuk/input': 0.18.1
+  '@not-govuk/label': 0.18.1
   '@not-govuk/text-input': 0.18.1
   '@not-govuk/textarea': 0.18.1
   '@playwright/test': 1.62.1

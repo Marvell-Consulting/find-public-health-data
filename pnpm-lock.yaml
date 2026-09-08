@@ -24,7 +24,13 @@ catalogs:
     '@not-govuk/details':
       specifier: 0.18.1
       version: 0.18.1
+    '@not-govuk/input':
+      specifier: 0.18.1
+      version: 0.18.1
     '@not-govuk/inset-text':
+      specifier: 0.18.1
+      version: 0.18.1
+    '@not-govuk/label':
       specifier: 0.18.1
       version: 0.18.1
     '@not-govuk/link':
@@ -819,7 +825,13 @@ importers:
       '@not-govuk/details':
         specifier: 'catalog:'
         version: 0.18.1(react@19.2.7)
+      '@not-govuk/input':
+        specifier: 'catalog:'
+        version: 0.18.1(react@19.2.7)
       '@not-govuk/inset-text':
+        specifier: 'catalog:'
+        version: 0.18.1(react@19.2.7)
+      '@not-govuk/label':
         specifier: 'catalog:'
         version: 0.18.1(react@19.2.7)
       '@not-govuk/link':

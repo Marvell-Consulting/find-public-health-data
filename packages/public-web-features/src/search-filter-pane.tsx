@@ -6,6 +6,7 @@ import {
   FilterChip,
   FilterChips,
   GeographyTree,
+  SearchField,
 } from '@fphd/ui';
 import { useState } from 'react';
 import { Form, Link, useNavigate } from 'react-router';
@@ -258,48 +259,18 @@ export function SearchFilterPane({
     <>
       <Form action="/search" method="get" replace>
         <HiddenFilters except="q" state={state} />
-        <div className="govuk-form-group govuk-!-margin-top-4">
-          <div className="fphd-search-bar__label-row">
-            <label
-              className="govuk-label govuk-label--m govuk-!-margin-bottom-0"
-              htmlFor="search-q"
-            >
-              Search by keywords
-            </label>
-            <Link className="govuk-link govuk-body-s" preventScrollReset to={clearQUrl}>
-              Clear search
-            </Link>
-          </div>
-          <div className="fphd-search-bar">
-            <input
-              className="govuk-input fphd-search-bar__input"
-              defaultValue={state.q}
-              id="search-q"
-              name="q"
-              type="search"
-            />
-            <button aria-label="Search" className="fphd-search-bar__button" type="submit">
-              <svg
-                aria-hidden="true"
-                fill="none"
-                focusable="false"
-                height="20"
-                viewBox="0 0 27 27"
-                width="20"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <circle cx="12.0161" cy="11.0161" r="8.51613" stroke="white" strokeWidth="3" />
-                <line
-                  stroke="white"
-                  strokeWidth="3"
-                  x1="17.8668"
-                  x2="26.4475"
-                  y1="19.3587"
-                  y2="27.9393"
-                />
-              </svg>
-            </button>
-          </div>
+        <div className="govuk-!-margin-top-4">
+          <SearchField
+            action={
+              <Link className="govuk-link govuk-body-s" preventScrollReset to={clearQUrl}>
+                Clear search
+              </Link>
+            }
+            defaultValue={state.q}
+            id="search-q"
+            label="Search by keywords"
+            name="q"
+          />
         </div>
       </Form>
 

@@ -1,5 +1,6 @@
 import Checkboxes from '@not-govuk/checkboxes';
-import TextInput from '@not-govuk/text-input';
+import Input from '@not-govuk/input';
+import Label from '@not-govuk/label';
 import { useEffect, useId, useRef, useState } from 'react';
 
 export interface GeographyArea {
@@ -130,17 +131,21 @@ export function GeographyTree({
 
   return (
     <div>
-      <TextInput
-        autoComplete="off"
-        className="fphd-geo-search govuk-!-margin-bottom-2"
-        id={`${idPrefix}-search`}
-        label="Add geographies"
-        name=""
-        onChange={(event) => setQuery(event.currentTarget.value)}
-        placeholder="Type to find geographies"
-        type="search"
-        value={query}
-      />
+      <div className="govuk-form-group govuk-!-margin-bottom-2">
+        <Label classModifiers="s" htmlFor={`${idPrefix}-search`}>
+          Add geographies
+        </Label>
+        <Input
+          autoComplete="off"
+          className="fphd-geo-search"
+          id={`${idPrefix}-search`}
+          name=""
+          onChange={(event) => setQuery(event.currentTarget.value)}
+          placeholder="Type to find geographies"
+          type="search"
+          value={query}
+        />
+      </div>
       <fieldset className="fphd-geo-alt">
         <legend className="govuk-visually-hidden">Geographies grouped by level</legend>
         <div className="fphd-geo-alt__tree">
