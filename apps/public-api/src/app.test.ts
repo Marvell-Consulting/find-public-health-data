@@ -206,7 +206,10 @@ describe('public API', () => {
 
   it('de-duplicates and caps repeated area queries', async () => {
     const listByGroup = vi.fn().mockResolvedValue([]);
-    const app = createApp({ repositories: createFakeRepositories({ areas: { listByGroup } }) });
+    const app = createApp({
+      logger,
+      repositories: createFakeRepositories({ areas: { listByGroup } }),
+    });
 
     const repeats = Array.from({ length: 30 }, (_, i) => `display_group=Group+${i % 25}`).join('&');
     await request(app).get(`/api/areas?${repeats}`);
@@ -455,6 +458,7 @@ describe('public API', () => {
     const listDisplayGroups = vi.fn().mockResolvedValue(['Local authorities', 'GP practices']);
     const listByGroup = vi.fn().mockResolvedValue([{ code: 'E06000052', name: 'Cornwall' }]);
     const app = createApp({
+      logger,
       repositories: createFakeRepositories({ areas: { listDisplayGroups, listByGroup } }),
     });
 
