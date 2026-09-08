@@ -379,7 +379,7 @@ describe('public API', () => {
     const repositories = createFakeRepositories({
       indicators: { resolveId: async () => undefined },
     });
-    const app = createApp({ repositories });
+    const app = createApp({ logger, repositories });
 
     expect((await request(app).get('/api/indicators/424242/data')).status).toBe(404);
     expect(
