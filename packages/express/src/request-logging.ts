@@ -38,9 +38,14 @@ export function requestLogging(
 ): RequestHandler {
   return pinoHttp({
     logger,
-    genReqId: (request) =>
-      (acceptsForwardedId ? readRequestIdHeader(request.headers[REQUEST_ID_HEADER]) : undefined) ??
-      uuidv7(),
+    genReqId: (request, response) => {
+      const id =
+        (acceptsForwardedId ? readRequestIdHeader(request.headers[REQUEST_ID_HEADER]) : undefined) ??
+        uuidv7();
+      // Echoed to the caller, so whoever made the request can find its lines.
+      response.setHeader(REQUEST_ID_HEADER, id);
+      return id;
+    },
     autoLogging: { ignore: (request) => probePaths.has(pathOf(request.url)) },
     customLogLevel: (_request, response) => (response.statusCode >= 500 ? 'error' : 'info'),
     // A 5xx with no error attached gets one invented by pino-http, whose stack points at itself.

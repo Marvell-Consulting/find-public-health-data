@@ -79,6 +79,16 @@ describe('requestLogging', () => {
     expect(ids[0]).not.toBe(ids[1]);
   });
 
+  it('returns the id to the caller, so a tester can find their own lines', async () => {
+    const { app, lines } = createApp();
+
+    const response = await request(app).get('/topics');
+    await settled(lines);
+
+    expect(response.headers['x-fphd-request-id']).toMatch(UUID_V7);
+    expect(lines[0]?.req).toMatchObject({ id: response.headers['x-fphd-request-id'] });
+  });
+
   it('keeps a forwarded id when told to, so a web line and an API line read as one flow', async () => {
     const { app, lines } = createApp({ acceptsForwardedId: true });
 
