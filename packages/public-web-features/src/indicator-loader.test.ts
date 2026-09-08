@@ -19,13 +19,28 @@ function api(get = vi.fn()) {
                 : [],
             });
           }
+          if (path === '/api/areas/display-groups') {
+            return Promise.resolve([
+              'Local authorities',
+              'Statistical regions',
+              'NHS regions',
+              'Integrated care boards',
+              'Middle-layer super output areas',
+              'GP practices',
+            ]);
+          }
           if (path.startsWith('/api/areas/parents')) {
             return Promise.resolve([]);
           }
           if (path.startsWith('/api/areas/lookup')) {
             const codes = [...new URL(`http://x${path}`).searchParams.getAll('area_code')];
             return Promise.resolve(
-              codes.map((code) => ({ code, name: `Area ${code}`, areaType: 'UA unchanged' })),
+              codes.map((code) => ({
+                code,
+                name: `Area ${code}`,
+                areaType: 'UA unchanged',
+                displayGroup: 'Local authorities',
+              })),
             );
           }
           if (path.startsWith('/api/areas')) {
@@ -206,7 +221,9 @@ describe('loadIndicator', () => {
 
     const rangeCalls = get.mock.calls.filter(([path]) => String(path).includes('/range'));
     expect(rangeCalls).toHaveLength(1);
-    expect(String(rangeCalls[0]?.[0])).toContain('area_type=');
+    expect(String(rangeCalls[0]?.[0])).toContain(
+      `display_group=${encodeURIComponent('Local authorities')}`,
+    );
   });
 
   it('fetches the statistical regions range and region data for a region benchmark', async () => {
@@ -216,8 +233,18 @@ describe('loadIndicator', () => {
           { code: 'E06000052', parentCode: 'E12000009', parentName: 'South West' },
         ]);
       }
+      if (path === '/api/areas/display-groups') {
+        return Promise.resolve(['Local authorities', 'Statistical regions']);
+      }
       if (path.startsWith('/api/areas/lookup')) {
-        return Promise.resolve([{ code: 'E06000052', name: 'Cornwall', areaType: 'UA unchanged' }]);
+        return Promise.resolve([
+          {
+            code: 'E06000052',
+            name: 'Cornwall',
+            areaType: 'UA unchanged',
+            displayGroup: 'Local authorities',
+          },
+        ]);
       }
       if (path.includes('/range')) {
         return Promise.resolve({ periods: [] });
@@ -241,7 +268,7 @@ describe('loadIndicator', () => {
     const rangeCalls = get.mock.calls.filter(([path]) => String(path).includes('/range'));
     expect(rangeCalls).toHaveLength(1);
     expect(String(rangeCalls[0]?.[0])).toContain(
-      `area_type=${encodeURIComponent('Regions (statistical)')}`,
+      `display_group=${encodeURIComponent('Statistical regions')}`,
     );
     expect(get.mock.calls.some(([path]) => String(path).includes('area_code=E12000009'))).toBe(
       true,
@@ -293,7 +320,7 @@ describe('loadIndicator', () => {
       .filter((path) => path.includes('/range'));
     expect(rangeCalls).toHaveLength(2);
     expect(
-      rangeCalls.some((path) => path.includes(encodeURIComponent('Regions (statistical)'))),
+      rangeCalls.some((path) => path.includes(encodeURIComponent('Statistical regions'))),
     ).toBe(true);
   });
 

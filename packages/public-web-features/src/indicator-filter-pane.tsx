@@ -9,7 +9,6 @@ import {
 } from '@fphd/ui';
 import { useCallback, useState } from 'react';
 import { Form, Link, useLocation, useNavigate } from 'react-router';
-import { DISPLAY_LEVEL_NAMES } from './geography-display';
 
 import type {
   IndicatorSelection,
@@ -46,12 +45,14 @@ export function selectionSearch({
 export function FilterPane({
   selected,
   selectedAreas = [],
+  displayGroups = [],
   findResults = [],
   findSubject = '',
   selection,
 }: {
   selected: SelectedIndicator[];
   selectedAreas?: SelectedArea[];
+  displayGroups?: string[];
   findResults?: IndicatorSummary[];
   findSubject?: string;
   selection: IndicatorSelection;
@@ -277,7 +278,7 @@ export function FilterPane({
               <input key={key} type="hidden" name={key} value={value} />
             ))}
             <GeographyTree
-              levels={DISPLAY_LEVEL_NAMES}
+              levels={displayGroups}
               name="as"
               onChange={setPending}
               onLevelsChange={setPendingLevels}

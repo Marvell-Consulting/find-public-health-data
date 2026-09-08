@@ -4,6 +4,10 @@ import { Router } from 'express';
 export function areasRouter(areas: Repositories['areas']): Router {
   const router = Router();
 
+  router.get('/api/areas/display-groups', async (_request, response) => {
+    response.status(200).json(await areas.listDisplayGroups());
+  });
+
   router.get('/api/areas/lookup', async (request, response) => {
     const requestedCodes = request.query.area_code;
     const codes = [
@@ -21,21 +25,15 @@ export function areasRouter(areas: Repositories['areas']): Router {
   router.get('/api/areas/search', async (request, response) => {
     const { q, limit } = request.query;
     const query = typeof q === 'string' ? q.trim().slice(0, 100) : '';
-    const requestedTypes = request.query.area_type;
-    const areaTypeNames = (
-      Array.isArray(requestedTypes) ? requestedTypes : [requestedTypes]
-    ).filter(
-      (value): value is string => typeof value === 'string' && value !== '' && value.length <= 100,
-    );
 
-    if (!query || areaTypeNames.length === 0) {
-      response.status(400).json({ error: 'q_and_area_type_required' });
+    if (!query) {
+      response.status(400).json({ error: 'q_required' });
       return;
     }
 
     const capped =
       typeof limit === 'string' && /^[1-9]\d*$/.test(limit) ? Math.min(Number(limit), 100) : 50;
-    response.status(200).json(await areas.search(query, areaTypeNames, capped));
+    response.status(200).json(await areas.search(query, capped));
   });
 
   router.get('/api/areas/parents', async (request, response) => {
@@ -60,24 +58,38 @@ export function areasRouter(areas: Repositories['areas']): Router {
   });
 
   router.get('/api/areas', async (request, response) => {
-    const areaType = request.query.area_type;
-    const areaTypeNames = (Array.isArray(areaType) ? areaType : [areaType]).filter(
-      (value): value is string => typeof value === 'string' && value !== '' && value.length <= 100,
-    );
+    // De-duplicated and capped: each name costs a query, so the URL is not trusted.
+    const pick = (value: unknown) =>
+      [
+        ...new Set(
+          (Array.isArray(value) ? value : [value]).filter(
+            (entry): entry is string =>
+              typeof entry === 'string' && entry !== '' && entry.length <= 100,
+          ),
+        ),
+      ].slice(0, 20);
+    const areaTypeNames = pick(request.query.area_type);
+    const displayGroups = pick(request.query.display_group);
 
-    if (areaTypeNames.length === 0) {
-      response.status(400).json({ error: 'area_type_required' });
+    if (areaTypeNames.length === 0 && displayGroups.length === 0) {
+      response.status(400).json({ error: 'area_type_or_display_group_required' });
       return;
     }
 
-    // An unknown area type is an empty group, not an error — the caller cannot know which
-    // types exist without asking, and the indicator detail already scopes what it offers.
-    const groups = await Promise.all(
-      areaTypeNames.map(async (name) => ({ areaType: name, areas: await areas.listByType(name) })),
-    );
+    // An unknown type or group is an empty group, not an error — the caller cannot know
+    // which exist without asking. Asking by repeated parameter always answers with groups,
+    // so a caller's parsing does not change with how many it happened to ask for.
+    const groups = await Promise.all([
+      ...areaTypeNames.map(async (name) => ({
+        areaType: name,
+        areas: await areas.listByType(name),
+      })),
+      ...displayGroups.map(async (name) => ({
+        displayGroup: name,
+        areas: await areas.listByGroup(name),
+      })),
+    ]);
 
-    // Asking by repeated parameter always answers with groups, so a caller's parsing does
-    // not change with how many types it happened to ask for.
     response.status(200).json(groups);
   });
 

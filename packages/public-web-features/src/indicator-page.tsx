@@ -239,6 +239,7 @@ function IndicatorBlock({
 export function IndicatorPage({
   selected,
   selectedAreas = [],
+  displayGroups = [],
   benchmarkGeography = { regionByCode: {}, levelByCode: {} },
   findResults = [],
   findSubject = '',
@@ -246,6 +247,7 @@ export function IndicatorPage({
 }: {
   selected: SelectedIndicator[];
   selectedAreas?: SelectedArea[];
+  displayGroups?: string[];
   benchmarkGeography?: BenchmarkGeography;
   findResults?: IndicatorSummaryData[];
   findSubject?: string;
@@ -259,6 +261,7 @@ export function IndicatorPage({
             key={`${selection.fingertipsIds.join(',')}|${selection.areaCodes.join(',')}|${selection.areaLevels.join(',')}`}
             selected={selected}
             selectedAreas={selectedAreas}
+            displayGroups={displayGroups}
             findResults={findResults}
             findSubject={findSubject}
             selection={selection}

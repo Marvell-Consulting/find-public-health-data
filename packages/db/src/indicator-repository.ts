@@ -391,12 +391,8 @@ export interface ObservationRangePeriod {
 export async function getObservationRange(
   db: Database,
   indicatorId: string,
-  areaTypeNames: string[],
+  displayGroup: string,
 ): Promise<ObservationRangePeriod[]> {
-  if (areaTypeNames.length === 0) {
-    return [];
-  }
-
   // Each observation with its dimension count and a stable label for its exact segment.
   const observations = db.$with('range_observations').as(
     db
@@ -414,7 +410,7 @@ export async function getObservationRange(
       .innerJoin(area, eq(observation.areaId, area.id))
       .innerJoin(
         areaType,
-        and(eq(area.areaTypeId, areaType.id), inArray(areaType.name, areaTypeNames)),
+        and(eq(area.areaTypeId, areaType.id), eq(areaType.displayGroup, displayGroup)),
       )
       .leftJoin(observationDimension, eq(observationDimension.observationId, observation.id))
       .leftJoin(dimensionType, eq(observationDimension.dimensionTypeId, dimensionType.id))

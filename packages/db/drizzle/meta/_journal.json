@@ -78,6 +78,13 @@
       "when": 1787226456102,
       "tag": "0010_topic-write-grants",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788541667356,
+      "tag": "0011_area-type-display-groups",
+      "breakpoints": true
     }
   ]
 }

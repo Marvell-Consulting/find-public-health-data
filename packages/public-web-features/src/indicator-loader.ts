@@ -1,7 +1,8 @@
 import {
-  areaGroupListSchema,
+  areaDisplayGroupListSchema,
   areaLookupListSchema,
   areaParentListSchema,
+  displayGroupListSchema,
   indicatorAreaDataListSchema,
   indicatorAreaDataSchema,
   indicatorDetailSchema,
@@ -11,13 +12,6 @@ import {
 import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
-
-import {
-  cleanAreaName,
-  DISPLAY_LEVEL_NAMES,
-  displayLevelOf,
-  levelAreaTypes,
-} from './geography-display';
 
 export type {
   AreaGroup,
@@ -109,20 +103,21 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
   const areaCodes = [
     ...new Set(url.searchParams.getAll('as').filter((code) => /^[A-Z0-9]+$/i.test(code))),
   ].slice(0, MAX_SELECTED_AREAS);
-  const areaLevels = [
-    ...new Set(url.searchParams.getAll('als').filter((l) => DISPLAY_LEVEL_NAMES.includes(l))),
-  ];
+  const requestedLevels = [
+    ...new Set(url.searchParams.getAll('als').filter((l) => l !== '' && l.length <= 100)),
+  ].slice(0, 10);
 
   const api = context.get(apiContext);
 
   // A whole-level selection ("Local authorities") rides in the URL as its name; its
   // areas are resolved here, subject to the same cap as hand-picked codes.
   let levelCodes: string[] = [];
-  if (areaLevels.length > 0) {
-    const types = [...new Set(areaLevels.flatMap(levelAreaTypes))];
+  if (requestedLevels.length > 0) {
     const levelGroups = await api.get(
-      `/api/areas?${types.map((name) => `area_type=${encodeURIComponent(name)}`).join('&')}`,
-      areaGroupListSchema,
+      `/api/areas?${requestedLevels
+        .map((name) => `display_group=${encodeURIComponent(name)}`)
+        .join('&')}`,
+      areaDisplayGroupListSchema,
     );
     levelCodes = levelGroups.flatMap(({ areas }) => areas.map(({ code }) => code));
   }
@@ -140,7 +135,7 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
   const codeQuery = nonEnglandCodes
     .map((code) => `area_code=${encodeURIComponent(code)}`)
     .join('&');
-  const [lookedUp, areaParents] = await Promise.all([
+  const [lookedUp, areaParents, displayGroups] = await Promise.all([
     nonEnglandCodes.length > 0
       ? api.get(`/api/areas/lookup?${codeQuery}`, areaLookupListSchema)
       : Promise.resolve([]),
@@ -150,12 +145,16 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
           areaParentListSchema,
         )
       : Promise.resolve([]),
+    // The user-facing levels live on area_type now; the list validates `als` values after
+    // the fact (level expansion tolerates unknown groups) and feeds the tree.
+    api.get('/api/areas/display-groups', displayGroupListSchema),
   ]);
+  const areaLevels = requestedLevels.filter((level) => displayGroups.includes(level));
 
-  const selectedAreas = lookedUp.map(({ code, name, areaType: typeName }) => ({
+  const selectedAreas = lookedUp.map(({ code, name, areaType: typeName, displayGroup }) => ({
     code,
-    name: cleanAreaName(name),
-    level: displayLevelOf(typeName) ?? typeName,
+    name,
+    level: displayGroup ?? typeName,
   }));
   const levelByCode: Record<string, string> = {};
   for (const { code, level } of selectedAreas) {
@@ -163,7 +162,7 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
   }
   const regionByCode: Record<string, { code: string; name: string }> = {};
   for (const { code, parentCode, parentName } of areaParents) {
-    regionByCode[code] = { code: parentCode, name: cleanAreaName(parentName) };
+    regionByCode[code] = { code: parentCode, name: parentName };
   }
 
   const pickedLevels = [...new Set(Object.values(levelByCode))];
@@ -229,9 +228,7 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
         Promise.all(
           comparison.rangeLevels.map(async (level) => {
             const range = await api.get(
-              `${apiPath`/api/indicators/${String(id)}/range`}?${levelAreaTypes(level)
-                .map((name) => `area_type=${encodeURIComponent(name)}`)
-                .join('&')}`,
+              `${apiPath`/api/indicators/${String(id)}/range`}?display_group=${encodeURIComponent(level)}`,
               indicatorRangeSchema,
             );
             return [level, range.periods] as const;
@@ -240,12 +237,8 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
       ]);
       return {
         detail,
-        // Pholio area names carry their level as a suffix; the tables show the bare name.
-        areaData: areaData.map((data) => ({ ...data, areaName: cleanAreaName(data.areaName) })),
-        regionData: regionData.map((data) => ({
-          ...data,
-          areaName: cleanAreaName(data.areaName),
-        })),
+        areaData,
+        regionData,
         ranges: Object.fromEntries(rangeEntries),
       };
     }),
@@ -254,6 +247,7 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
   return {
     selected,
     selectedAreas,
+    displayGroups,
     benchmarkGeography: { regionByCode, levelByCode } satisfies BenchmarkGeography,
     findSubject,
     findResults,

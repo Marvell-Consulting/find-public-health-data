@@ -1,4 +1,4 @@
-import { and, asc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, eq, ilike, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import type { Database } from './client.js';
@@ -7,6 +7,26 @@ import { area, areaRelationship, areaType } from './schema/index.js';
 export interface AreaSummary {
   code: string;
   name: string;
+}
+
+/** The user-facing geography levels in display order, straight from area_type. */
+export async function listDisplayGroups(db: Database): Promise<string[]> {
+  const rows = await db
+    .selectDistinct({ name: areaType.displayGroup, order: areaType.displayOrder })
+    .from(areaType)
+    .where(isNotNull(areaType.displayGroup))
+    .orderBy(asc(areaType.displayOrder));
+  return rows.flatMap(({ name }) => (name === null ? [] : [name]));
+}
+
+/** Current areas across every type of one display group, ordered by name. */
+export async function listAreasByGroup(db: Database, displayGroup: string): Promise<AreaSummary[]> {
+  return db
+    .select({ code: area.code, name: area.name })
+    .from(area)
+    .innerJoin(areaType, eq(area.areaTypeId, areaType.id))
+    .where(and(eq(areaType.displayGroup, displayGroup), isNull(area.validTo)))
+    .orderBy(asc(area.name));
 }
 
 export interface AreaParent {
@@ -29,6 +49,7 @@ export interface AreaLookup {
   code: string;
   name: string;
   areaType: string;
+  displayGroup: string | null;
 }
 
 /** The given areas with their types, for resolving a selection without the full catalogue. */
@@ -37,31 +58,34 @@ export async function listAreasByCodes(db: Database, codes: string[]): Promise<A
     return [];
   }
   return db
-    .select({ code: area.code, name: area.name, areaType: areaType.name })
+    .select({
+      code: area.code,
+      name: area.name,
+      areaType: areaType.name,
+      displayGroup: areaType.displayGroup,
+    })
     .from(area)
     .innerJoin(areaType, eq(area.areaTypeId, areaType.id))
     .where(and(inArray(area.code, codes), isNull(area.validTo)))
     .orderBy(asc(area.name));
 }
 
-/** Case-insensitive search over current areas of the given types, matching name or code. */
+/** Case-insensitive search over current areas of displayed types, matching name or code. */
 export async function searchAreas(
   db: Database,
   query: string,
-  areaTypeNames: string[],
   limit: number,
 ): Promise<AreaLookup[]> {
-  if (areaTypeNames.length === 0) {
-    return [];
-  }
   const escaped = query.replace(/[\\%_]/g, '\\$&');
   return db
-    .select({ code: area.code, name: area.name, areaType: areaType.name })
+    .select({
+      code: area.code,
+      name: area.name,
+      areaType: areaType.name,
+      displayGroup: areaType.displayGroup,
+    })
     .from(area)
-    .innerJoin(
-      areaType,
-      and(eq(area.areaTypeId, areaType.id), inArray(areaType.name, areaTypeNames)),
-    )
+    .innerJoin(areaType, and(eq(area.areaTypeId, areaType.id), isNotNull(areaType.displayGroup)))
     .where(
       and(isNull(area.validTo), or(ilike(area.name, `%${escaped}%`), ilike(area.code, escaped))),
     )

@@ -212,6 +212,14 @@ describe('public application routes', () => {
             Component: IndicatorRoute,
             loader: () => ({
               selected: [{ detail: indicator, areaData }],
+              displayGroups: [
+                'Local authorities',
+                'Statistical regions',
+                'NHS regions',
+                'Integrated care boards',
+                'Middle-layer super output areas',
+                'GP practices',
+              ],
               selection,
             }),
           },
@@ -322,6 +330,14 @@ describe('public application routes', () => {
     );
     const loaderData = {
       selected: [],
+      displayGroups: [
+        'Local authorities',
+        'Statistical regions',
+        'NHS regions',
+        'Integrated care boards',
+        'Middle-layer super output areas',
+        'GP practices',
+      ],
       selection: { areaCodes: [], areaLevels: [], fingertipsIds: [108] },
     };
     const Routes = createRoutesStub([
