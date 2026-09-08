@@ -7,6 +7,8 @@ import { describe, expect, it } from 'vitest';
 
 import { createBaseApp, requestLogging } from './index.js';
 
+const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
 function createCapturingLogger() {
   const lines: Record<string, unknown>[] = [];
   const destination = new Writable({
@@ -60,8 +62,67 @@ describe('requestLogging', () => {
     await settled(lines);
 
     expect(JSON.stringify(lines[0])).not.toContain('secret');
-    expect(lines[0]?.req).toEqual({ method: 'GET', url: '/topics' });
+    expect(lines[0]?.req).toEqual({ id: expect.any(String), method: 'GET', url: '/topics' });
     expect(lines[0]?.res).toEqual({ statusCode: 200 });
+  });
+
+  it('gives every request its own id', async () => {
+    const { app, lines } = createApp();
+
+    await request(app).get('/topics');
+    await request(app).get('/topics');
+    await settled(lines);
+
+    const ids = lines.map((line) => (line.req as { id: string }).id);
+    expect(ids[0]).toMatch(UUID_V7);
+    expect(ids[1]).toMatch(UUID_V7);
+    expect(ids[0]).not.toBe(ids[1]);
+  });
+
+  it('keeps the id a caller sent, so its line and ours can be read as one flow', async () => {
+    const { app, lines } = createApp();
+
+    await request(app).get('/topics').set('X-Request-Id', '019924a1-2c40-7000-8000-000000000001');
+    await settled(lines);
+
+    expect(lines[0]?.req).toMatchObject({ id: '019924a1-2c40-7000-8000-000000000001' });
+  });
+
+  it('replaces a sent id that is not a uuid, rather than log what a stranger chose', async () => {
+    const { app, lines } = createApp();
+
+    await request(app).get('/topics').set('X-Request-Id', 'chosen-by-the-caller');
+    await settled(lines);
+
+    expect(lines[0]?.req).toMatchObject({ id: expect.stringMatching(UUID_V7) });
+    expect(JSON.stringify(lines[0])).not.toContain('chosen-by-the-caller');
+  });
+
+  it("records Front Door's reference when it forwarded the request", async () => {
+    const { app, lines } = createApp();
+
+    await request(app).get('/topics').set('X-Azure-Ref', '0abc123==');
+    await settled(lines);
+
+    expect(lines[0]?.req).toMatchObject({ azureRef: '0abc123==' });
+  });
+
+  it('keeps every address out of the line, forwarded or not', async () => {
+    const { app, lines } = createApp();
+
+    await request(app).get('/topics').set('X-Forwarded-For', '203.0.113.5, 198.51.100.7');
+    await settled(lines);
+
+    expect(JSON.stringify(lines[0])).not.toMatch(/203\.0\.113\.5|198\.51\.100\.7|127\.0\.0\.1|::1/);
+  });
+
+  it("omits Front Door's reference when no proxy set it", async () => {
+    const { app, lines } = createApp();
+
+    await request(app).get('/topics');
+    await settled(lines);
+
+    expect(lines[0]?.req).not.toHaveProperty('azureRef');
   });
 
   it('logs a server error response at error level, and a miss at info', async () => {
@@ -106,6 +167,6 @@ describe('requestLogging', () => {
     await request(app).get('/api/topics');
     await settled(lines);
 
-    expect(lines[0]?.req).toEqual({ method: 'GET', url: '/api/topics' });
+    expect(lines[0]?.req).toMatchObject({ method: 'GET', url: '/api/topics' });
   });
 });

@@ -1,8 +1,11 @@
 import { createFakeRepositories } from '@fphd/db/testing';
+import { createLogger } from '@fphd/logger';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createApp } from './app.js';
+
+const logger = createLogger({ name: 'public-api', level: 'silent' });
 
 const topicA = {
   id: '00000000-0000-7000-8000-000000000001',
@@ -54,9 +57,9 @@ const indicatorDetail = {
 
 describe('public API', () => {
   it('reports its health', async () => {
-    const response = await request(createApp({ repositories: createFakeRepositories() })).get(
-      '/livez',
-    );
+    const response = await request(
+      createApp({ logger, repositories: createFakeRepositories() }),
+    ).get('/livez');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ status: 'ok', service: 'public-api' });
@@ -72,9 +75,9 @@ describe('public API', () => {
     ['put', `/api/internal/topics/${topicA.id}`],
     ['delete', `/api/internal/topics/${topicA.id}`],
   ] as const)('does not expose the internal surface at %s %s', async (method, path) => {
-    const response = await request(createApp({ repositories: createFakeRepositories() }))[method](
-      path,
-    );
+    const response = await request(createApp({ logger, repositories: createFakeRepositories() }))[
+      method
+    ](path);
 
     expect(response.status).toBe(404);
   });
@@ -84,7 +87,7 @@ describe('public API', () => {
       topics: { list: async () => [topicA, topicB] },
     });
 
-    const response = await request(createApp({ repositories })).get('/api/topics');
+    const response = await request(createApp({ logger, repositories })).get('/api/topics');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual([
@@ -108,7 +111,7 @@ describe('public API', () => {
   it('does not leak the internal row id in a topic listing', async () => {
     const repositories = createFakeRepositories({ topics: { list: async () => [topicA] } });
 
-    const response = await request(createApp({ repositories })).get('/api/topics');
+    const response = await request(createApp({ logger, repositories })).get('/api/topics');
 
     expect(response.body[0]).not.toHaveProperty('id');
   });
@@ -118,7 +121,7 @@ describe('public API', () => {
       topics: { list: () => Promise.reject(new Error('database unavailable')) },
     });
 
-    const response = await request(createApp({ repositories })).get('/api/topics');
+    const response = await request(createApp({ logger, repositories })).get('/api/topics');
 
     expect(response.status).toBe(500);
   });
@@ -126,7 +129,7 @@ describe('public API', () => {
   it('finds a topic by slug, as ISO timestamps', async () => {
     const repositories = createFakeRepositories({ topics: { findBySlug: async () => topicA } });
 
-    const response = await request(createApp({ repositories })).get('/api/topics/topic-a');
+    const response = await request(createApp({ logger, repositories })).get('/api/topics/topic-a');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
@@ -141,7 +144,7 @@ describe('public API', () => {
   it('does not leak the internal row id in a topic detail', async () => {
     const repositories = createFakeRepositories({ topics: { findBySlug: async () => topicA } });
 
-    const response = await request(createApp({ repositories })).get('/api/topics/topic-a');
+    const response = await request(createApp({ logger, repositories })).get('/api/topics/topic-a');
 
     expect(response.body).not.toHaveProperty('id');
   });
@@ -149,7 +152,9 @@ describe('public API', () => {
   it('returns the standard not-found body for an unknown slug', async () => {
     const repositories = createFakeRepositories({ topics: { findBySlug: async () => undefined } });
 
-    const response = await request(createApp({ repositories })).get('/api/topics/no-such-topic');
+    const response = await request(createApp({ logger, repositories })).get(
+      '/api/topics/no-such-topic',
+    );
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'not_found' });
@@ -160,7 +165,7 @@ describe('public API', () => {
       indicators: { findApprovedByFingertipsId: async () => indicatorDetail },
     });
 
-    const response = await request(createApp({ repositories })).get('/api/indicators/108');
+    const response = await request(createApp({ logger, repositories })).get('/api/indicators/108');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual(indicatorDetail);
@@ -171,7 +176,9 @@ describe('public API', () => {
       indicators: { findApprovedByFingertipsId: async () => undefined },
     });
 
-    const response = await request(createApp({ repositories })).get('/api/indicators/424242');
+    const response = await request(createApp({ logger, repositories })).get(
+      '/api/indicators/424242',
+    );
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'not_found' });
@@ -183,7 +190,7 @@ describe('public API', () => {
       .mockResolvedValue([{ code: 'E12000001', name: 'North East region (statistical)' }]);
     const repositories = createFakeRepositories({ areas: { listByType } });
 
-    const response = await request(createApp({ repositories })).get(
+    const response = await request(createApp({ logger, repositories })).get(
       `/api/areas?area_type=${encodeURIComponent('Regions (statistical)')}`,
     );
 
@@ -198,9 +205,9 @@ describe('public API', () => {
   });
 
   it('rejects an areas request without an area type', async () => {
-    const response = await request(createApp({ repositories: createFakeRepositories() })).get(
-      '/api/areas',
-    );
+    const response = await request(
+      createApp({ logger, repositories: createFakeRepositories() }),
+    ).get('/api/areas');
 
     expect(response.status).toBe(400);
   });
@@ -227,7 +234,9 @@ describe('public API', () => {
     const findObservations = vi.fn().mockResolvedValue(data);
     const repositories = createFakeRepositories({ indicators: { findObservations } });
 
-    const response = await request(createApp({ repositories })).get('/api/indicators/108/data');
+    const response = await request(createApp({ logger, repositories })).get(
+      '/api/indicators/108/data',
+    );
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual(data);
@@ -240,7 +249,7 @@ describe('public API', () => {
       .mockResolvedValue({ areaCode: 'E06000001', areaName: 'Hartlepool', observations: [] });
     const repositories = createFakeRepositories({ indicators: { findObservations } });
 
-    const response = await request(createApp({ repositories })).get(
+    const response = await request(createApp({ logger, repositories })).get(
       '/api/indicators/108/data?area_code=E06000001',
     );
 
@@ -256,7 +265,7 @@ describe('public API', () => {
     }));
     const repositories = createFakeRepositories({ indicators: { findObservations } });
 
-    const response = await request(createApp({ repositories })).get(
+    const response = await request(createApp({ logger, repositories })).get(
       '/api/indicators/108/data?area_code=E12000001&area_code=E12000002',
     );
 
@@ -268,9 +277,9 @@ describe('public API', () => {
   });
 
   it('rejects a malformed area code without touching the repository', async () => {
-    const response = await request(createApp({ repositories: createFakeRepositories() })).get(
-      '/api/indicators/108/data?area_code=../nope',
-    );
+    const response = await request(
+      createApp({ logger, repositories: createFakeRepositories() }),
+    ).get('/api/indicators/108/data?area_code=../nope');
 
     expect(response.status).toBe(404);
   });
@@ -280,7 +289,9 @@ describe('public API', () => {
       indicators: { findObservations: async () => undefined },
     });
 
-    const response = await request(createApp({ repositories })).get('/api/indicators/424242/data');
+    const response = await request(createApp({ logger, repositories })).get(
+      '/api/indicators/424242/data',
+    );
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'not_found' });
@@ -288,9 +299,9 @@ describe('public API', () => {
 
   it('rejects a non-numeric indicator id without touching the repository', async () => {
     // No stub: if the route reached the repository, the fake would throw and this would 500.
-    const response = await request(createApp({ repositories: createFakeRepositories() })).get(
-      '/api/indicators/not-a-number',
-    );
+    const response = await request(
+      createApp({ logger, repositories: createFakeRepositories() }),
+    ).get('/api/indicators/not-a-number');
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'not_found' });
@@ -298,7 +309,10 @@ describe('public API', () => {
 
   it('searches indicators when q is given, trimming and bounding the query', async () => {
     const search = vi.fn().mockResolvedValue([]);
-    const app = createApp({ repositories: createFakeRepositories({ indicators: { search } }) });
+    const app = createApp({
+      logger,
+      repositories: createFakeRepositories({ indicators: { search } }),
+    });
 
     await request(app).get('/api/indicators?q=%20%20diabetes%20%20');
     expect(search).toHaveBeenCalledWith('diabetes', 20);
@@ -309,7 +323,10 @@ describe('public API', () => {
 
   it('caps the search limit at 100 and ignores a malformed one', async () => {
     const search = vi.fn().mockResolvedValue([]);
-    const app = createApp({ repositories: createFakeRepositories({ indicators: { search } }) });
+    const app = createApp({
+      logger,
+      repositories: createFakeRepositories({ indicators: { search } }),
+    });
 
     await request(app).get('/api/indicators?q=x&limit=500');
     expect(search).toHaveBeenCalledWith('x', 100);
@@ -321,6 +338,7 @@ describe('public API', () => {
   it('lists every indicator when q is empty', async () => {
     const listApproved = vi.fn().mockResolvedValue([]);
     const app = createApp({
+      logger,
       repositories: createFakeRepositories({ indicators: { listApproved } }),
     });
 
@@ -336,6 +354,7 @@ describe('public API', () => {
     ];
     const findObservationRange = vi.fn().mockResolvedValue(periods);
     const app = createApp({
+      logger,
       repositories: createFakeRepositories({ indicators: { findObservationRange } }),
     });
 
@@ -350,7 +369,7 @@ describe('public API', () => {
 
   it('rejects a range request without area types or with a non-numeric id', async () => {
     // No stub: if either route reached the repository, the fake would throw and 500.
-    const app = createApp({ repositories: createFakeRepositories() });
+    const app = createApp({ logger, repositories: createFakeRepositories() });
 
     expect((await request(app).get('/api/indicators/241/range')).status).toBe(404);
     expect((await request(app).get('/api/indicators/nope/range?area_type=UA')).status).toBe(404);
@@ -358,7 +377,10 @@ describe('public API', () => {
 
   it('resolves area parents of one type, filtering malformed codes', async () => {
     const listParents = vi.fn().mockResolvedValue([]);
-    const app = createApp({ repositories: createFakeRepositories({ areas: { listParents } }) });
+    const app = createApp({
+      logger,
+      repositories: createFakeRepositories({ areas: { listParents } }),
+    });
 
     const response = await request(app).get(
       '/api/areas/parents?area_code=E06000052&area_code=..%2Fbad&parent_type=Regions%20(statistical)',
@@ -372,7 +394,10 @@ describe('public API', () => {
     const listByCodes = vi
       .fn()
       .mockResolvedValue([{ code: 'E06000052', name: 'Cornwall', areaType: 'UA unchanged' }]);
-    const app = createApp({ repositories: createFakeRepositories({ areas: { listByCodes } }) });
+    const app = createApp({
+      logger,
+      repositories: createFakeRepositories({ areas: { listByCodes } }),
+    });
 
     const response = await request(app).get(
       '/api/areas/lookup?area_code=E06000052&area_code=E06000052&area_code=..%2Fbad',
@@ -386,7 +411,7 @@ describe('public API', () => {
   });
 
   it('rejects a lookup request without any well-formed area code', async () => {
-    const app = createApp({ repositories: createFakeRepositories() });
+    const app = createApp({ logger, repositories: createFakeRepositories() });
 
     expect((await request(app).get('/api/areas/lookup')).status).toBe(400);
     expect((await request(app).get('/api/areas/lookup?area_code=..%2Fbad')).status).toBe(400);
@@ -394,7 +419,7 @@ describe('public API', () => {
 
   it('searches areas within the asked-for types, trimming and capping the inputs', async () => {
     const search = vi.fn().mockResolvedValue([]);
-    const app = createApp({ repositories: createFakeRepositories({ areas: { search } }) });
+    const app = createApp({ logger, repositories: createFakeRepositories({ areas: { search } }) });
 
     const response = await request(app).get(
       `/api/areas/search?q=${encodeURIComponent(`  ${'corn'.padEnd(120, 'w')}  `)}&area_type=UA+unchanged&area_type=${'a'.repeat(101)}&limit=500`,
@@ -408,7 +433,7 @@ describe('public API', () => {
   });
 
   it('rejects a search request missing its query or area types', async () => {
-    const app = createApp({ repositories: createFakeRepositories() });
+    const app = createApp({ logger, repositories: createFakeRepositories() });
 
     expect((await request(app).get('/api/areas/search?q=corn')).status).toBe(400);
     expect((await request(app).get('/api/areas/search?area_type=UA+unchanged')).status).toBe(400);
@@ -418,7 +443,7 @@ describe('public API', () => {
   });
 
   it('rejects a parents request missing or overflowing parent_type', async () => {
-    const app = createApp({ repositories: createFakeRepositories() });
+    const app = createApp({ logger, repositories: createFakeRepositories() });
 
     expect((await request(app).get('/api/areas/parents?area_code=E06000052')).status).toBe(400);
     expect(
@@ -431,9 +456,9 @@ describe('public API', () => {
   });
 
   it('fails loudly when a route reaches for a repository the test did not stub', async () => {
-    const response = await request(createApp({ repositories: createFakeRepositories() })).get(
-      '/api/topics',
-    );
+    const response = await request(
+      createApp({ logger, repositories: createFakeRepositories() }),
+    ).get('/api/topics');
 
     expect(response.status).toBe(500);
   });
