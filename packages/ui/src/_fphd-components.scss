@@ -135,7 +135,7 @@
 .fphd-stat-card {
   padding: govuk-spacing(4);
   margin-bottom: govuk-spacing(4);
-  background-color: govuk-colour("light-grey");
+  background-color: govuk-colour("black", $variant: "tint-95");
 }
 
 .fphd-stat-card .fphd-stat-card__description {
@@ -188,7 +188,7 @@
 
 .fphd-filter-card {
   margin-bottom: govuk-spacing(4);
-  border: 1px solid govuk-colour("mid-grey");
+  border: 1px solid govuk-colour("black", $variant: "tint-80");
 }
 
 .fphd-filter-card__header {
@@ -198,8 +198,8 @@
   padding: govuk-spacing(3) govuk-spacing(4);
   // Light grey rather than mid: govuk-link on mid-grey measures 2.5:1, below AA's 4.5:1.
   // The border keeps the header separate from the body, which shares the colour.
-  border-bottom: 1px solid govuk-colour("mid-grey");
-  background-color: govuk-colour("light-grey");
+  border-bottom: 1px solid govuk-colour("black", $variant: "tint-80");
+  background-color: govuk-colour("black", $variant: "tint-95");
 
   > .govuk-body,
   > .govuk-body-s {
@@ -209,7 +209,7 @@
 
 .fphd-filter-card__body {
   padding: govuk-spacing(4);
-  background-color: govuk-colour("light-grey");
+  background-color: govuk-colour("black", $variant: "tint-95");
 }
 
 .fphd-filter-card__toggle {
@@ -225,16 +225,16 @@
   cursor: pointer;
 }
 
-body.js-enabled .fphd-filter-card__toggle {
+body.govuk-frontend-supported .fphd-filter-card__toggle {
   display: inline;
 }
 
 // Show all collapsible bodies when JavaScript has not run, so every filter is reachable.
-body:not(.js-enabled) .fphd-collapsible-body[hidden] {
+body:not(.govuk-frontend-supported) .fphd-collapsible-body[hidden] {
   display: block;
 }
 
-body:not(.js-enabled) .fphd-geo-alt__toggle {
+body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
   display: none;
 }
 
@@ -269,7 +269,7 @@ body:not(.js-enabled) .fphd-geo-alt__toggle {
   display: flex;
   align-items: center;
   gap: govuk-spacing(2);
-  border: 1px solid govuk-colour("dark-grey");
+  border: 1px solid govuk-colour("black", $variant: "tint-25");
   background-color: govuk-colour("white");
   padding: govuk-spacing(1) govuk-spacing(2);
 }
@@ -408,7 +408,7 @@ body:not(.js-enabled) .fphd-geo-alt__toggle {
   position: relative;
   max-height: 320px;
   overflow-y: auto;
-  border: 1px solid govuk-colour("mid-grey");
+  border: 1px solid govuk-colour("black", $variant: "tint-80");
   padding: govuk-spacing(2);
   margin-bottom: govuk-spacing(3);
 }
@@ -501,7 +501,7 @@ body:not(.js-enabled) .fphd-geo-alt__toggle {
 }
 
 .fphd-geo-alt__more {
-  color: govuk-colour("dark-grey");
+  color: govuk-colour("black", $variant: "tint-25");
   margin-bottom: 0;
 }
 
@@ -547,7 +547,7 @@ body:not(.js-enabled) .fphd-geo-alt__toggle {
 }
 
 .fphd-table-note {
-  color: govuk-colour("dark-grey");
+  color: govuk-colour("black", $variant: "tint-25");
   font-weight: 400;
 }
 
@@ -697,10 +697,10 @@ body:not(.js-enabled) .fphd-geo-alt__toggle {
 // Every panel is in the document for no-script readers, but with scripting the selected
 // one must be the only one showing from first paint — hydration arrives too late to do
 // the hiding without a visible flash. The server marks the open panel (it knows the
-// tab param), the body's js-enabled class is set by an inline script before paint, and
-// React drops the --ssr class once mounted and takes over. A legacy #hash deep link
-// never reaches the server, so a targeted panel overrides the marked one.
-.js-enabled .fphd-tabs--ssr {
+// tab param), the body's govuk-frontend-supported class is set by an inline script
+// before paint, and React drops the --ssr class once mounted and takes over. A legacy
+// #hash deep link never reaches the server, so a targeted panel overrides the marked one.
+.govuk-frontend-supported .fphd-tabs--ssr {
   .govuk-tabs__panel:not(.fphd-tabs__panel--open) {
     display: none;
   }
@@ -724,18 +724,18 @@ body:not(.js-enabled) .fphd-geo-alt__toggle {
 
 // Hide the "Add selected geographies" button with JS when nothing is pending.
 // Without JS the button is always visible so no-JS users can still submit.
-body.js-enabled .fphd-add-geo-button[data-empty] {
+body.govuk-frontend-supported .fphd-add-geo-button[data-empty] {
   display: none;
 }
 
 // The benchmark columns are shaded so a comparison reads as context, not more data: a
 // darker band on the group header, a lighter wash down its cells.
 .fphd-trend-table__benchmark-group {
-  background-color: govuk-colour("mid-grey");
+  background-color: govuk-colour("black", $variant: "tint-80");
 }
 
 .fphd-trend-table__benchmark-cell {
-  background-color: govuk-colour("light-grey");
+  background-color: govuk-colour("black", $variant: "tint-95");
 }
 
 .fphd-range-plot {

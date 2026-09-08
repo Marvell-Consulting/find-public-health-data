@@ -49,7 +49,6 @@ export function AppShell({ audience, children, navigation, serviceHref = '/' }: 
           </>
         )
       }
-      rebrand
       serviceHref={serviceHref}
       serviceName={serviceName}
     >
