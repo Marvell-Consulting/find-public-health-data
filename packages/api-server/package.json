@@ -18,12 +18,14 @@
   "dependencies": {
     "@fphd/auth": "workspace:*",
     "@fphd/express": "workspace:*",
+    "@fphd/logger": "workspace:*",
     "express": "catalog:"
   },
   "devDependencies": {
     "@types/express": "catalog:",
     "@types/node": "catalog:",
     "@types/supertest": "catalog:",
+    "pino": "catalog:",
     "supertest": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

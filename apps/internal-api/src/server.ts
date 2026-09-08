@@ -17,6 +17,7 @@ const logger = createLogger({
 
 startServer({
   app: createApp({
+    logger,
     repositories: createRepositories(db),
     internalRepositories: createInternalRepositories(db),
     session: createJwtSessionVerifier(

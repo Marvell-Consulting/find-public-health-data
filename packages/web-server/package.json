@@ -45,6 +45,11 @@
       "types": "./src/react-router-app.ts",
       "default": "./dist/react-router-app.js"
     },
+    "./request-id-headers": {
+      "development": "./src/request-id-headers.ts",
+      "types": "./src/request-id-headers.ts",
+      "default": "./dist/request-id-headers.js"
+    },
     "./session": {
       "development": "./src/session.ts",
       "types": "./src/session.ts",

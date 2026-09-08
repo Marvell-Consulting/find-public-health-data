@@ -18,7 +18,6 @@ export { Autocomplete, type AutocompleteOption } from './autocomplete';
 export { CardList, type CardListItem } from './card-list';
 export { ChartSection } from './chart-section';
 export { NotFoundPage, PageIntro } from './content-page';
-export { decodeEntities, plainTextFromHtml } from './decode-entities';
 export { createDocumentMeta, formatDocumentTitle } from './document-title';
 export { ErrorSummary, type FieldError, fieldInputId } from './error-summary';
 export { FilterCard, FilterChip, FilterChips } from './filter-card';

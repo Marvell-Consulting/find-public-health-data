@@ -15,6 +15,10 @@ interface TabItem {
  * on one page, and a single hash cannot remember more than one of them — nor stay out
  * of the browser's scroll handling. The anchors keep their panel hrefs, so without
  * JavaScript the panels stack and the links jump to them.
+ *
+ * This is not @not-govuk/tabs because that component offers no way to choose the
+ * initially-active tab, so a server-chosen pane would flash to the first tab on
+ * hydration and the query-param state above could not work.
  */
 export function Tabs({
   items,

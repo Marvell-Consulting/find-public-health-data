@@ -5,7 +5,8 @@ import express, { type Express } from 'express';
 import { universalSecurityHeaders } from './security-headers.js';
 import { installShutdownHandlers, type ShutdownOptions } from './shutdown.js';
 
-export { requestLogging } from './request-logging.js';
+export { REQUEST_ID_HEADER, requestId } from './request-id.js';
+export { type RequestLoggingOptions, requestLogging } from './request-logging.js';
 export { universalSecurityHeaders } from './security-headers.js';
 export { serverLogging } from './server-logging.js';
 
