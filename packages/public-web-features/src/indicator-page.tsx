@@ -1,4 +1,4 @@
-import { A, Button, ChartSection, GridColumn, GridRow, InsetText, Tabs } from '@fphd/ui';
+import { A, ChartSection, GridColumn, GridRow, InsetText, Tabs } from '@fphd/ui';
 import { useState } from 'react';
 import { useLocation } from 'react-router';
 
@@ -163,16 +163,28 @@ function IndicatorBlock({
             content: (
               <>
                 <div className="fphd-download-buttons">
-                  <Button download href={`/indicators/${id}/table.csv${downloadSearch(true)}`}>
-                    Download this table
-                  </Button>
-                  <Button
-                    className="govuk-button--secondary"
+                  {/* Plain GDS button-links: the component library's anchor computes
+                      active state and throws on repeated query params during SSR. */}
+                  <a
+                    className="govuk-button"
+                    data-module="govuk-button"
                     download
+                    draggable="false"
+                    href={`/indicators/${id}/table.csv${downloadSearch(true)}`}
+                    role="button"
+                  >
+                    Download this table
+                  </a>
+                  <a
+                    className="govuk-button govuk-button--secondary"
+                    data-module="govuk-button"
+                    download
+                    draggable="false"
                     href={`/indicators/${id}/all-data.csv${downloadSearch(false)}`}
+                    role="button"
                   >
                     Download all data for this indicator
-                  </Button>
+                  </a>
                 </div>
                 {panelOptions('Table options', true)}
                 <TrendTable
