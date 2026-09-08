@@ -102,9 +102,9 @@ const DOT_STYLES: Record<BenchmarkJudgement, { fill: string; stroke?: string }> 
 };
 
 /**
- * The prototype's dot-and-whisker comparison: the grey line spans the min–max range
- * across every area of the benchmark's level, the black tick is the benchmark's own
- * value, and the dot is this area's value.
+ * Dot-and-whisker comparison: the grey line spans the min–max range across every area
+ * of the benchmark's level, the black tick is the benchmark's own value, and the dot
+ * is this area's value.
  */
 function RangePlot({
   value,

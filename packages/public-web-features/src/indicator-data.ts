@@ -14,7 +14,7 @@ export function periodLabel(
     return fromYear;
   }
   // A financial year spans two calendar years but is one period: 2009/10, not
-  // "2009 to 2010" — which the prototype reserves for genuine ranges.
+  // "2009 to 2010" — that form is reserved for genuine multi-year ranges.
   const days = (Date.parse(toDate) - Date.parse(fromDate)) / 86_400_000;
   if (yearType === 'Financial' && days <= 400) {
     return `${fromYear}/${toYear.slice(2)}`;
@@ -255,8 +255,8 @@ const PERIOD_TYPE_SUFFIX: Record<Exclude<PeriodType, 'all'>, string> = {
 /**
  * The comparison table's rows: normally one per indicator (its least-disaggregated
  * series), but an indicator that is always sexed has no such aggregate, so it breaks out
- * one row per sex — and per period shape where it publishes both — as the prototype does
- * for life expectancy. Indicators with no data still get a row rather than vanishing.
+ * one row per sex — and per period shape where it publishes both, as life expectancy
+ * does. Indicators with no data still get a row rather than vanishing.
  */
 export function comparisonRows(
   selected: { detail: IndicatorDetail; areaData: IndicatorAreaData[] }[],
@@ -523,7 +523,7 @@ export function inequalityCategories(observations: IndicatorObservation[]): stri
  * Purely this category's breakdown of the indicator's own baseline segment: beyond the
  * category dimension, only the dimensions the headline series always carries (QOF
  * prevalence's "Age 17+", a wholly-sexed indicator's aligned sex) may appear. A decile
- * split further by sex belongs to a combined view the prototype does not offer.
+ * split further by sex belongs to a combined view not offered here.
  */
 function isPureCategory(
   observation: IndicatorObservation,
@@ -545,9 +545,9 @@ function isPureCategory(
 
 /**
  * Pholio's inequality dimension names carry internal qualifiers ("in England", "4/23
- * geography") the prototype's category labels drop. Where shortening makes two
- * categories collide (the same deciles across boundary revisions), the geography
- * qualifier stays as the differentiator.
+ * geography") that are stripped for display. Where shortening makes two categories
+ * collide (the same deciles across boundary revisions), the geography qualifier stays
+ * as the differentiator.
  */
 export function inequalityCategoryLabel(type: string, keepGeography = false): string {
   const label = type

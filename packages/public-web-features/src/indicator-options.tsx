@@ -49,9 +49,8 @@ export interface PanelOptions {
 }
 
 /**
- * The prototype's "Chart options" / "Table options" disclosure. Every panel offers the
- * confidence-interval choice; the sex and period controls appear only where the
- * indicator reports those segments.
+ * "Chart options" / "Table options" disclosure. Every panel offers the confidence-interval
+ * choice; the sex and period controls appear only where the indicator reports those segments.
  */
 export function PanelOptionsPanel({
   benchmarks,
@@ -164,7 +163,7 @@ export function PanelOptionsPanel({
   );
 }
 
-/** The prototype's Inequalities "Options" disclosure: category, period and intervals. */
+/** Inequalities "Options" disclosure: category, period and intervals. */
 export function InequalityOptions({
   categories,
   category,

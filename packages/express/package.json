@@ -19,7 +19,8 @@
     "@fphd/logger": "workspace:*",
     "express": "catalog:",
     "http-graceful-shutdown": "catalog:",
-    "pino-http": "catalog:"
+    "pino-http": "catalog:",
+    "uuid": "catalog:"
   },
   "devDependencies": {
     "@types/express": "catalog:",

@@ -1,4 +1,4 @@
-import { A, formatDate, plainTextFromHtml, SectionBreak, SummaryList } from '@fphd/ui';
+import { A, formatDate, SectionBreak, SummaryList } from '@fphd/ui';
 import type { ReactNode } from 'react';
 
 import { periodCovered, recentTrend } from './indicator-data';
@@ -18,7 +18,7 @@ export function DefinitionBlock({ title, text }: { title: string; text: string |
   return (
     <>
       <h4 className="govuk-heading-s">{title}</h4>
-      <p className="govuk-body fphd-metadata-text">{plainTextFromHtml(text)}</p>
+      <p className="govuk-body fphd-metadata-text">{text}</p>
     </>
   );
 }
@@ -46,7 +46,7 @@ export function sourceLink(source: IndicatorDetail['dataSource']) {
   return source.url ? <A href={source.url}>{source.name}</A> : source.name;
 }
 
-/** The at-a-glance header the prototype puts above each indicator's charts. */
+/** At-a-glance header above each indicator's charts. */
 export function IndicatorSummary({
   indicator,
   observations,
@@ -124,7 +124,11 @@ export function IndicatorSummary({
         />
         <TableRow
           label="Definition"
-          value={indicator.definition ? plainTextFromHtml(indicator.definition) : null}
+          value={
+            indicator.definition ? (
+              <span className="fphd-metadata-text">{indicator.definition}</span>
+            ) : null
+          }
         />
       </tbody>
     </table>
@@ -157,9 +161,7 @@ function CalculationPart({
             ? [
                 {
                   name: 'Definition',
-                  children: (
-                    <span className="fphd-metadata-text">{plainTextFromHtml(definition)}</span>
-                  ),
+                  children: <span className="fphd-metadata-text">{definition}</span>,
                 },
               ]
             : []),
@@ -169,7 +171,7 @@ function CalculationPart({
   );
 }
 
-/** The prototype's About tab: Overview, Data attributes, Calculation, Other notes. */
+/** About tab: Overview, Data attributes, Calculation, Other notes. */
 export function BackgroundInformation({ indicator }: { indicator: IndicatorDetail }) {
   const confidenceLevel = indicator.ciConfidenceLevel
     ? (CONFIDENCE_LEVEL_LABELS[indicator.ciConfidenceLevel] ?? indicator.ciConfidenceLevel)
@@ -187,11 +189,7 @@ export function BackgroundInformation({ indicator }: { indicator: IndicatorDetai
             ? [
                 {
                   name: 'Rationale',
-                  children: (
-                    <span className="fphd-metadata-text">
-                      {plainTextFromHtml(indicator.rationale)}
-                    </span>
-                  ),
+                  children: <span className="fphd-metadata-text">{indicator.rationale}</span>,
                 },
               ]
             : []),
@@ -232,9 +230,7 @@ export function BackgroundInformation({ indicator }: { indicator: IndicatorDetai
       {indicator.methodology ? (
         <>
           <h3 className="govuk-heading-s">Method</h3>
-          <p className="govuk-body fphd-metadata-text">
-            {plainTextFromHtml(indicator.methodology)}
-          </p>
+          <p className="govuk-body fphd-metadata-text">{indicator.methodology}</p>
         </>
       ) : null}
       {indicator.ciMethod || confidenceLevel || indicator.comparatorMethod ? (
