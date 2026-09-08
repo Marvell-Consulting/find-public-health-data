@@ -41,12 +41,14 @@ export function FilterCard({
 
 export function CollapsibleFilterCard({
   children,
+  footer,
   hint,
   active,
   onClear,
   title,
 }: {
   children: ReactNode;
+  footer?: ReactNode | undefined;
   hint?: string | undefined;
   active: boolean;
   onClear?: string | undefined;
@@ -67,33 +69,36 @@ export function CollapsibleFilterCard({
     <div className="fphd-filter-card govuk-!-margin-bottom-4">
       <div className="fphd-filter-card__header">
         <span className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-0">{title}</span>
-        <span>
-          {onClear ? (
-            <Link
-              className="govuk-link govuk-body-s govuk-!-margin-right-2"
-              preventScrollReset
-              to={onClear}
-            >
-              Clear filter
-            </Link>
-          ) : null}
-          <button
-            aria-controls={bodyId}
-            aria-expanded={open}
-            className="govuk-body-s fphd-link-button"
-            onClick={() => setOpen((v) => !v)}
-            type="button"
-          >
-            {open ? 'Collapse' : 'Expand'}
-          </button>
-        </span>
+        <button
+          aria-controls={bodyId}
+          aria-expanded={open}
+          className="govuk-body-s fphd-link-button"
+          onClick={() => setOpen((v) => !v)}
+          type="button"
+        >
+          {open ? 'Collapse' : 'Expand'}
+        </button>
       </div>
       {/* Body is always in the HTML so no-JS users can reach all filters.
           CSS shows it when js-enabled is absent; JS toggles the hidden attribute. */}
       <div className="fphd-filter-card__body fphd-collapsible-body" hidden={!open} id={bodyId}>
+        {onClear ? (
+          <Link
+            className="govuk-link govuk-body-s govuk-!-display-block govuk-!-margin-bottom-4"
+            preventScrollReset
+            to={onClear}
+          >
+            Clear filter
+          </Link>
+        ) : null}
         {hint ? <p className="govuk-hint govuk-!-margin-bottom-3">{hint}</p> : null}
         {children}
       </div>
+      {footer ? (
+        <div className="fphd-filter-card__footer fphd-collapsible-body" hidden={!open}>
+          {footer}
+        </div>
+      ) : null}
     </div>
   );
 }

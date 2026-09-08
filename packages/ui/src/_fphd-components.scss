@@ -195,6 +195,7 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
   display: block;
 }
 
+
 .fphd-filter-card__footer {
   padding: govuk-spacing(3);
   background-color: govuk-colour("white");
@@ -232,6 +233,14 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
 .fphd-filter-chip__remove {
   flex-shrink: 0;
   text-decoration: none;
+}
+
+.fphd-filter-chip--tag {
+  @include govuk-font($size: 16);
+  padding: 2px 8px 3px;
+  border-color: govuk-colour("black");
+  gap: 0;
+  background-color: govuk-colour("white");
 }
 
 .fphd-link-button {
@@ -288,12 +297,77 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
   margin-bottom: govuk-spacing(3);
 }
 
+.fphd-search-bar__label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: govuk-spacing(1);
+}
+
+.fphd-search-bar__filters-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: govuk-spacing(5);
+  margin-bottom: govuk-spacing(4);
+}
+
 .fphd-search-bar {
-  margin-bottom: govuk-spacing(6);
+  display: flex;
+  align-items: center;
+  margin-bottom: 0;
 }
 
 .fphd-search-bar .not-govuk-standalone-input__input {
   flex: 1;
+}
+
+.fphd-search-bar__input.govuk-input {
+  border-right: none;
+  flex: 1;
+  position: relative;
+  z-index: 1;
+
+  &:focus {
+    z-index: 2;
+  }
+
+  &::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 22px;
+    width: 22px;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpath d='M16 6L6 16M6 6l10 10' stroke='%230b0c0c' stroke-width='2.5' stroke-linecap='square'/%3E%3C/svg%3E");
+    background-size: 22px 22px;
+    background-repeat: no-repeat;
+    background-position: center;
+    opacity: 1;
+  }
+}
+
+.fphd-search-bar__button {
+  background-color: govuk-colour("blue");
+  border: 2px solid govuk-colour("blue");
+  color: govuk-colour("white");
+  padding: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background-color: #003078;
+    border-color: #003078;
+  }
+
+  &:focus {
+    outline: 3px solid $govuk-focus-colour;
+    outline-offset: 0;
+  }
 }
 
 .fphd-search-bar input[type="search"]::-webkit-search-cancel-button {
@@ -457,6 +531,13 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
 // accessible-autocomplete brings its own menu styling; only the stacking context is ours.
 .fphd-autocomplete {
   position: relative;
+}
+
+// The library sets z-index:-1 on the arrow so it paints below the input without overlapping
+// its focus ring, but govuk-input's explicit position:relative creates a stacking context that
+// buries it entirely. Override to keep it visible above the input surface.
+.fphd-autocomplete .autocomplete__dropdown-arrow-down {
+  z-index: 1;
 }
 
 // A value's magnitude relative to the largest in the comparison, so rows can be scanned
@@ -710,6 +791,19 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
   width: 100%;
 }
 
+// Hide the "Add selected geographies" button with JS when nothing is pending.
+// Without JS the button is always visible so no-JS users can still submit.
+body.js-enabled .fphd-add-geo-button[data-empty] {
+  display: none;
+}
+
+// The geography search input label should be govuk-label--s weight (bold, 16px)
+// to match the prototype. The TextInput component renders the label as
+// govuk-label; the --s modifier is added here rather than nesting a span.
+.fphd-geo-search.govuk-form-group label.govuk-label {
+  @include govuk-font($size: 16, $weight: bold);
+}
+
 // The benchmark columns are shaded so a comparison reads as context, not more data: a
 // darker band on the group header, a lighter wash down its cells.
 .fphd-trend-table__benchmark-group {
@@ -739,5 +833,32 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
 
 .fphd-indicator-item {
   padding: govuk-spacing(3) 0;
-  border-top: 1px solid govuk-colour("mid-grey");
+
+  & + & {
+    border-top: 1px solid govuk-colour("mid-grey");
+  }
+
+  .govuk-checkboxes__item {
+    padding-top: 0;
+  }
+
+  .govuk-checkboxes__label {
+    display: block;
+  }
+
+  .govuk-summary-list {
+    margin-top: govuk-spacing(2);
+  }
+
+  .govuk-summary-list__key {
+    @include govuk-font($size: 16, $weight: bold);
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .govuk-summary-list__value {
+    @include govuk-font($size: 16);
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
 }

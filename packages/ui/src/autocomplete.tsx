@@ -235,7 +235,7 @@ export function Autocomplete({
 
   return (
     <div className="govuk-form-group fphd-autocomplete">
-      <label className="govuk-label govuk-!-font-weight-bold" htmlFor={inputId}>
+      <label className="govuk-label govuk-label--s" htmlFor={inputId}>
         {label}
       </label>
       <div ref={containerRef} />

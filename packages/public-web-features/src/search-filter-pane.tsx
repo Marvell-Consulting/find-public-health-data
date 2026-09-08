@@ -50,43 +50,30 @@ function HiddenFilters({ state, except }: { state: SearchState; except?: keyof S
   );
 }
 
-interface FilterDimensionProps {
+interface FilterDimensionBodyProps {
   state: SearchState;
   stateKey: keyof SearchState;
-  param: string;
   selectedLabel: string;
-  autocompleteLabel: string;
-  addButtonLabel: string;
-  noResultsMessage: string;
-  options: AutocompleteOption[];
   selected: string[];
   facetLabelOf: (value: string) => string;
-  onAdd: (value: string) => void;
   isTopicDimension?: boolean | undefined;
 }
 
-function FilterDimension({
+function FilterDimensionBody({
   state,
   stateKey,
-  param,
   selectedLabel,
-  autocompleteLabel,
-  addButtonLabel,
-  noResultsMessage,
-  options,
   selected,
   facetLabelOf,
-  onAdd,
   isTopicDimension,
-}: FilterDimensionProps) {
-  const [pending, setPending] = useState<AutocompleteOption | null>(null);
-  const available = options.filter((o) => !selected.includes(o.value));
-
+}: FilterDimensionBodyProps) {
   return (
     <div className="govuk-!-margin-bottom-3">
-      <p className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-2">{selectedLabel}</p>
+      <p className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">{selectedLabel}</p>
       {selected.length === 0 ? (
-        <p className="govuk-body-s govuk-!-margin-bottom-2">None selected</p>
+        <div className="fphd-filter-chips fphd-filter-chips--inline govuk-!-margin-bottom-4">
+          <p className="govuk-body-s govuk-!-margin-bottom-0">None selected</p>
+        </div>
       ) : (
         <FilterChips>
           {selected.map((v) => {
@@ -110,10 +97,35 @@ function FilterDimension({
           })}
         </FilterChips>
       )}
+    </div>
+  );
+}
+
+interface FilterDimensionFooterProps {
+  param: string;
+  autocompleteLabel: string;
+  addButtonLabel: string;
+  noResultsMessage: string;
+  options: AutocompleteOption[];
+  onAdd: (value: string) => void;
+}
+
+function FilterDimensionFooter({
+  param,
+  autocompleteLabel,
+  addButtonLabel,
+  noResultsMessage,
+  options,
+  onAdd,
+}: FilterDimensionFooterProps) {
+  const [pending, setPending] = useState<AutocompleteOption | null>(null);
+
+  return (
+    <div className="govuk-!-margin-bottom-3">
       <Autocomplete
         label={autocompleteLabel}
         noResultsMessage={noResultsMessage}
-        options={available}
+        options={options}
         onSelect={(opt) => setPending(opt)}
       />
       <noscript>
@@ -144,6 +156,9 @@ export function SearchFilterPane({
   const navigate = useNavigate();
   const [pendingGa, setPendingGa] = useState<string[]>(state.gaCodes);
   const [pendingGeo, setPendingGeo] = useState<string[]>(state.geoLevels);
+  const pendingCount =
+    pendingGa.filter((code) => !state.gaCodes.includes(code)).length +
+    pendingGeo.filter((level) => !state.geoLevels.includes(level)).length;
 
   const nav = (next: SearchState) => {
     void navigate(searchUrl(next), { replace: true, preventScrollReset: true });
@@ -210,17 +225,11 @@ export function SearchFilterPane({
   const popDims = DIMENSIONS.filter((d) => ['pg', 'eq'].includes(d.param));
   const dataDims = DIMENSIONS.filter((d) => ['src', 'vt', 'per'].includes(d.param));
 
-  const renderDimension = (dim: (typeof DIMENSIONS)[number]) => (
-    <FilterDimension
+  const renderDimensionBody = (dim: (typeof DIMENSIONS)[number]) => (
+    <FilterDimensionBody
       key={dim.param}
-      addButtonLabel={dim.addButtonLabel}
-      autocompleteLabel={dim.autocompleteLabel}
       facetLabelOf={(v) => labelOf(dim, v)}
       isTopicDimension={dim.isTopicDimension}
-      noResultsMessage={dim.noResultsMessage}
-      onAdd={(v) => addToList(dim.stateKey, v)}
-      options={optionsForDimension(dim)}
-      param={dim.param}
       selected={state[dim.stateKey] as string[]}
       selectedLabel={dim.selectedLabel}
       state={state}
@@ -228,85 +237,139 @@ export function SearchFilterPane({
     />
   );
 
+  const renderDimensionFooter = (dim: (typeof DIMENSIONS)[number]) => (
+    <FilterDimensionFooter
+      key={dim.param}
+      addButtonLabel={dim.addButtonLabel}
+      autocompleteLabel={dim.autocompleteLabel}
+      noResultsMessage={dim.noResultsMessage}
+      onAdd={(v) => addToList(dim.stateKey, v)}
+      options={optionsForDimension(dim).filter(
+        (o) => !(state[dim.stateKey] as string[]).includes(o.value),
+      )}
+      param={dim.param}
+    />
+  );
+
   return (
     <>
       <Form action="/search" method="get" replace>
         <HiddenFilters except="q" state={state} />
-        <div className="govuk-form-group govuk-!-margin-bottom-2">
-          <label className="govuk-label govuk-label--m" htmlFor="search-q">
-            Search by keywords
-          </label>
-          <div style={{ display: 'flex' }}>
+        <div className="govuk-form-group govuk-!-margin-top-4">
+          <div className="fphd-search-bar__label-row">
+            <label
+              className="govuk-label govuk-label--m govuk-!-margin-bottom-0"
+              htmlFor="search-q"
+            >
+              Search by keywords
+            </label>
+            <Link
+              className="govuk-link govuk-body-s"
+              preventScrollReset
+              to={clearQUrl ?? searchUrl({ ...state, q: '' })}
+            >
+              Clear search
+            </Link>
+          </div>
+          <div className="fphd-search-bar">
             <input
-              className="govuk-input"
+              className="govuk-input fphd-search-bar__input"
               defaultValue={state.q}
               id="search-q"
               name="q"
-              style={{ flex: 1 }}
               type="search"
             />
-            <button
-              aria-label="Search"
-              className="govuk-button govuk-!-margin-bottom-0"
-              type="submit"
-            >
+            <button aria-label="Search" className="fphd-search-bar__button" type="submit">
               <svg
                 aria-hidden="true"
+                fill="none"
                 focusable="false"
                 height="20"
-                viewBox="0 0 20 20"
+                viewBox="0 0 27 27"
                 width="20"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <path
-                  d="M19.36 17.73l-5.13-5.13A7.49 7.49 0 0 0 7.5 0a7.5 7.5 0 1 0 0 15 7.49 7.49 0 0 0 4.6-1.59l5.13 5.13 2.13-1.81zM7.5 13a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"
-                  fill="currentColor"
+                <circle cx="12.0161" cy="11.0161" r="8.51613" stroke="white" strokeWidth="3" />
+                <line
+                  stroke="white"
+                  strokeWidth="3"
+                  x1="17.8668"
+                  x2="26.4475"
+                  y1="19.3587"
+                  y2="27.9393"
                 />
               </svg>
             </button>
           </div>
         </div>
       </Form>
-      {clearQUrl ? (
-        <Link
-          className="govuk-link govuk-body-s govuk-!-display-block govuk-!-margin-bottom-4"
-          preventScrollReset
-          to={clearQUrl}
-        >
-          Clear search
-        </Link>
-      ) : null}
 
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'baseline',
-          marginBottom: '16px',
-        }}
-      >
+      <div className="fphd-search-bar__filters-row">
         <h2 className="govuk-heading-m govuk-!-margin-bottom-0">Filters</h2>
-        {clearAllFiltersUrl ? (
-          <Link className="govuk-link govuk-body-s" preventScrollReset to={clearAllFiltersUrl}>
-            Clear all filters
-          </Link>
-        ) : null}
+        <Link
+          className="govuk-link govuk-body-s"
+          preventScrollReset
+          to={clearAllFiltersUrl ?? '/search'}
+        >
+          Clear all filters
+        </Link>
       </div>
 
       <CollapsibleFilterCard
         active={topicsActive}
+        footer={topicsAndTypesDims.map(renderDimensionFooter)}
         onClear={clearTopicsUrl}
         title="Topics and types"
       >
-        {topicsAndTypesDims.map(renderDimension)}
+        {topicsAndTypesDims.map(renderDimensionBody)}
       </CollapsibleFilterCard>
 
-      <CollapsibleFilterCard active={geoActive} onClear={clearGeoUrl} title="Geography">
-        <p className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-2">
+      <CollapsibleFilterCard
+        active={geoActive}
+        footer={
+          <Form action="/search" method="get">
+            <HiddenFilters except="geoLevels" state={state} />
+            <GeographyTree
+              levelName="geo"
+              levels={displayGroups}
+              maxAreaTicks={100}
+              name="ga"
+              onChange={setPendingGa}
+              onLevelsChange={setPendingGeo}
+              selected={pendingGa}
+              selectedLevels={pendingGeo}
+            />
+            <Button
+              className="govuk-!-margin-top-3 govuk-!-margin-bottom-0 fphd-button--full-width fphd-add-geo-button"
+              data-empty={pendingCount === 0 ? '' : undefined}
+              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                if (pendingCount === 0) {
+                  return;
+                }
+                event.preventDefault();
+                setPendingGa([]);
+                nav({
+                  ...state,
+                  geoLevels: pendingGeo,
+                  gaCodes: [...new Set([...state.gaCodes, ...pendingGa])].slice(0, 100),
+                });
+              }}
+              type="submit"
+            >
+              Add selected geographies ({pendingCount})
+            </Button>
+          </Form>
+        }
+        onClear={clearGeoUrl}
+        title="Geography"
+      >
+        <p className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">
           Selected geographies
         </p>
         {state.geoLevels.length === 0 && state.gaCodes.length === 0 ? (
-          <p className="govuk-body-s govuk-!-margin-bottom-2">None selected</p>
+          <div className="fphd-filter-chips fphd-filter-chips--inline govuk-!-margin-bottom-4">
+            <p className="govuk-body-s govuk-!-margin-bottom-0">None selected</p>
+          </div>
         ) : (
           <FilterChips>
             {state.geoLevels.map((level) => (
@@ -331,66 +394,34 @@ export function SearchFilterPane({
             ))}
           </FilterChips>
         )}
-        <Form action="/search" method="get">
-          <HiddenFilters except="geoLevels" state={state} />
-          <GeographyTree
-            levelName="geo"
-            levels={displayGroups}
-            maxAreaTicks={100}
-            name="ga"
-            onChange={setPendingGa}
-            onLevelsChange={setPendingGeo}
-            selected={pendingGa}
-            selectedLevels={pendingGeo}
-          />
-          <Button
-            className="govuk-!-margin-top-3 govuk-!-margin-bottom-0"
-            onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-              const levelsChanged =
-                pendingGeo.length !== state.geoLevels.length ||
-                pendingGeo.some((l) => !state.geoLevels.includes(l));
-              if (pendingGa.length === 0 && !levelsChanged) {
-                return;
-              }
-              event.preventDefault();
-              setPendingGa([]);
-              nav({
-                ...state,
-                geoLevels: pendingGeo,
-                gaCodes: [...new Set([...state.gaCodes, ...pendingGa])].slice(0, 100),
-              });
-            }}
-            type="submit"
-          >
-            Add selected geographies
-            {pendingGa.length > 0 ? ` (${pendingGa.length})` : ''}
-          </Button>
-        </Form>
       </CollapsibleFilterCard>
 
       <CollapsibleFilterCard
         active={fwActive}
+        footer={fwDims.map(renderDimensionFooter)}
         hint="Established frameworks used to group or report indicators."
         onClear={clearFwUrl}
         title="Frameworks"
       >
-        {fwDims.map(renderDimension)}
+        {fwDims.map(renderDimensionBody)}
       </CollapsibleFilterCard>
 
       <CollapsibleFilterCard
         active={popActive}
+        footer={popDims.map(renderDimensionFooter)}
         onClear={clearPopUrl}
         title="Populations and inequalities"
       >
-        {popDims.map(renderDimension)}
+        {popDims.map(renderDimensionBody)}
       </CollapsibleFilterCard>
 
       <CollapsibleFilterCard
         active={dataAttrActive}
+        footer={dataDims.map(renderDimensionFooter)}
         onClear={clearDataAttrUrl}
         title="Data attributes"
       >
-        {dataDims.map(renderDimension)}
+        {dataDims.map(renderDimensionBody)}
       </CollapsibleFilterCard>
     </>
   );

@@ -31,9 +31,15 @@ export function SearchResults({ searchResult, gaCodes }: SearchResultsProps) {
 
   return (
     <>
-      <h2 aria-live="polite" className="govuk-heading-m" id="results-heading">
-        {headingText}
-      </h2>
+      <div className="fphd-results-sort govuk-!-margin-top-4 govuk-!-margin-bottom-3">
+        <h2
+          aria-live="polite"
+          className="govuk-heading-m govuk-!-margin-bottom-0"
+          id="results-heading"
+        >
+          {headingText}
+        </h2>
+      </div>
 
       {indicators.length === 0 ? (
         <InsetText>No indicators match your selected filters or search terms.</InsetText>
@@ -65,6 +71,8 @@ export function SearchResults({ searchResult, gaCodes }: SearchResultsProps) {
                 (c) => c.dimension === 'risk_factor',
               );
 
+              const hasMeta = topicChips.length > 0 || itChips.length > 0 || rfChips.length > 0;
+
               return (
                 <li className="fphd-indicator-item" key={indicator.fingertipsId}>
                   <div className="govuk-checkboxes govuk-checkboxes--small">
@@ -83,61 +91,79 @@ export function SearchResults({ searchResult, gaCodes }: SearchResultsProps) {
                         className="govuk-label govuk-checkboxes__label"
                         htmlFor={`is-${indicator.fingertipsId}`}
                       >
-                        <Link className="govuk-link" to={`/indicators/${indicator.fingertipsId}`}>
-                          {indicator.name}
-                        </Link>
+                        <span className="govuk-visually-hidden">{indicator.name}</span>
+                        <strong>
+                          <Link className="govuk-link" to={`/indicators/${indicator.fingertipsId}`}>
+                            {indicator.name}
+                          </Link>
+                        </strong>
+                        {hasMeta ? (
+                          <dl className="govuk-summary-list govuk-summary-list--no-border govuk-!-margin-bottom-0 govuk-!-margin-top-1">
+                            {topicChips.length > 0 ? (
+                              <div className="govuk-summary-list__row">
+                                <dt className="govuk-summary-list__key">Topics</dt>
+                                <dd className="govuk-summary-list__value">
+                                  <div
+                                    className="fphd-filter-chips fphd-filter-chips--inline"
+                                    style={{ gap: '4px', marginTop: '2px' }}
+                                  >
+                                    {topicChips.map((t) => (
+                                      <div
+                                        className="fphd-filter-chip fphd-filter-chip--tag"
+                                        key={t.slug}
+                                      >
+                                        {t.title}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </dd>
+                              </div>
+                            ) : null}
+                            {itChips.length > 0 ? (
+                              <div className="govuk-summary-list__row">
+                                <dt className="govuk-summary-list__key">Indicator types</dt>
+                                <dd className="govuk-summary-list__value">
+                                  <div
+                                    className="fphd-filter-chips fphd-filter-chips--inline"
+                                    style={{ gap: '4px', marginTop: '2px' }}
+                                  >
+                                    {itChips.map((c) => (
+                                      <div
+                                        className="fphd-filter-chip fphd-filter-chip--tag"
+                                        key={c.slug}
+                                      >
+                                        {c.name}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </dd>
+                              </div>
+                            ) : null}
+                            {rfChips.length > 0 ? (
+                              <div className="govuk-summary-list__row">
+                                <dt className="govuk-summary-list__key">Risk factors</dt>
+                                <dd className="govuk-summary-list__value">
+                                  <div
+                                    className="fphd-filter-chips fphd-filter-chips--inline"
+                                    style={{ gap: '4px', marginTop: '2px' }}
+                                  >
+                                    {rfChips.map((c) => (
+                                      <div
+                                        className="fphd-filter-chip fphd-filter-chip--tag"
+                                        key={c.slug}
+                                      >
+                                        {c.name}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </dd>
+                              </div>
+                            ) : null}
+                          </dl>
+                        ) : null}
                       </label>
                     </div>
                   </div>
-
-                  {topicChips.length > 0 || itChips.length > 0 || rfChips.length > 0 ? (
-                    <dl className="govuk-summary-list govuk-summary-list--no-border govuk-!-margin-bottom-0 govuk-!-margin-top-1">
-                      {topicChips.length > 0 ? (
-                        <div className="govuk-summary-list__row">
-                          <dt className="govuk-summary-list__key">Topics</dt>
-                          <dd className="govuk-summary-list__value">
-                            <ul className="govuk-list fphd-tag-list">
-                              {topicChips.map((t) => (
-                                <li key={t.slug}>
-                                  <Link className="fphd-tag" to={`/topics/${t.slug}`}>
-                                    {t.title}
-                                  </Link>
-                                </li>
-                              ))}
-                            </ul>
-                          </dd>
-                        </div>
-                      ) : null}
-                      {itChips.length > 0 ? (
-                        <div className="govuk-summary-list__row">
-                          <dt className="govuk-summary-list__key">Indicator types</dt>
-                          <dd className="govuk-summary-list__value">
-                            <ul className="govuk-list fphd-tag-list">
-                              {itChips.map((c) => (
-                                <li key={c.slug}>
-                                  <span className="fphd-tag">{c.name}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </dd>
-                        </div>
-                      ) : null}
-                      {rfChips.length > 0 ? (
-                        <div className="govuk-summary-list__row">
-                          <dt className="govuk-summary-list__key">Risk factors</dt>
-                          <dd className="govuk-summary-list__value">
-                            <ul className="govuk-list fphd-tag-list">
-                              {rfChips.map((c) => (
-                                <li key={c.slug}>
-                                  <span className="fphd-tag">{c.name}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </dd>
-                        </div>
-                      ) : null}
-                    </dl>
-                  ) : null}
                 </li>
               );
             })}
