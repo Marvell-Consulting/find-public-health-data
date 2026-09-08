@@ -505,3 +505,20 @@ reach Postgres directly over the compose network via `DB_HOST=db`.)
 business and feature logic belongs in `packages/*`. `tools/*` holds workspace members that support
 the build rather than ship in it. `apps/operations` is the exception: an application like the other
 four, but it serves no traffic — see [Operational commands](#operational-commands).
+
+Each package has a README describing its purpose and entry points:
+
+| Package                                                          | Purpose                                                        |
+| ---------------------------------------------------------------- | -------------------------------------------------------------- |
+| [`@fphd/api-server`](packages/api-server/README.md)              | The Express app both APIs are built from                        |
+| [`@fphd/auth`](packages/auth/README.md)                          | Audiences, fake users and the JWT session cookie                |
+| [`@fphd/config`](packages/config/README.md)                      | Environment parsing fragments and the shared zod instance       |
+| [`@fphd/db`](packages/db/README.md)                              | Schema, migrations, repositories and database operations        |
+| [`@fphd/express`](packages/express/README.md)                    | The base Express app and middleware every server shares         |
+| [`@fphd/internal-api-features`](packages/internal-api-features/README.md) | Routes and queries only the internal API runs          |
+| [`@fphd/internal-web-features`](packages/internal-web-features/README.md) | Pages and loaders only the internal web app mounts     |
+| [`@fphd/logger`](packages/logger/README.md)                      | pino, configured once                                           |
+| [`@fphd/public-api-features`](packages/public-api-features/README.md) | The public API routes and their wire contract              |
+| [`@fphd/public-web-features`](packages/public-web-features/README.md) | The public site's pages and loaders                        |
+| [`@fphd/ui`](packages/ui/README.md)                              | Shared React components and styles                              |
+| [`@fphd/web-server`](packages/web-server/README.md)              | The Node host for the web apps and their server-side plumbing   |
