@@ -7,14 +7,14 @@ describe('collectSourcemapSources', () => {
     const map = JSON.stringify({
       version: 3,
       sources: [
-        '../../packages/public-web-features/src/routes/home.tsx',
+        '../../packages/public-web-features/src/home/route.tsx',
         '../../packages/ui/src/app-shell.tsx',
       ],
       mappings: 'AAAA',
     });
 
     expect(collectSourcemapSources(map, 'home-D8_noEmG.js.map')).toEqual([
-      '../../packages/public-web-features/src/routes/home.tsx',
+      '../../packages/public-web-features/src/home/route.tsx',
       '../../packages/ui/src/app-shell.tsx',
     ]);
   });
