@@ -6,6 +6,11 @@ const findDataCards = [
     href: '/topics',
     title: 'Browse by topics',
   },
+  {
+    description: 'Browse and filter all data, including by geographic area',
+    href: '/search',
+    title: 'See all data',
+  },
 ];
 
 export function PublicHomePage() {
@@ -40,6 +45,42 @@ export function PublicHomePage() {
         <InsetText>This service was previously known as Fingertips.</InsetText>
 
         <h2 className="govuk-heading-l">Find data</h2>
+        <form action="/search" method="get">
+          <div className="govuk-form-group fphd-search-bar govuk-!-margin-bottom-4">
+            <label className="govuk-label govuk-label--m" htmlFor="home-search-q">
+              Search for data
+            </label>
+            <div style={{ display: 'flex' }}>
+              <input
+                autoComplete="off"
+                className="govuk-input"
+                id="home-search-q"
+                name="q"
+                style={{ flex: 1 }}
+                type="search"
+              />
+              <button
+                aria-label="Search"
+                className="govuk-button govuk-!-margin-bottom-0"
+                type="submit"
+              >
+                <svg
+                  aria-hidden="true"
+                  focusable="false"
+                  height="20"
+                  viewBox="0 0 20 20"
+                  width="20"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M19.36 17.73l-5.13-5.13A7.49 7.49 0 0 0 7.5 0a7.5 7.5 0 1 0 0 15 7.49 7.49 0 0 0 4.6-1.59l5.13 5.13 2.13-1.81zM7.5 13a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </form>
         <CardList items={findDataCards} />
       </GridColumn>
     </GridRow>
