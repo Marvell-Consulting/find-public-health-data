@@ -4,11 +4,35 @@ import { createReadableStreamFromReadable } from '@react-router/node';
 import { isbot } from 'isbot';
 import type { RenderToPipeableStreamOptions } from 'react-dom/server';
 import { renderToPipeableStream } from 'react-dom/server';
-import { type EntryContext, type RouterContextProvider, ServerRouter } from 'react-router';
+import {
+  type EntryContext,
+  type HandleErrorFunction,
+  isRouteErrorResponse,
+  type RouterContextProvider,
+  ServerRouter,
+} from 'react-router';
 
+import { loggerContext } from './logger-context.js';
 import { nonceContext } from './nonce-context.js';
 
 export const streamTimeout = 5_000;
+
+function requestFields(request: Request) {
+  const { pathname, search } = new URL(request.url);
+  return { method: request.method, url: `${pathname}${search}` };
+}
+
+/** Loader, action and render failures. Thrown responses never arrive here, so a not-found page
+ * is not an error. */
+export const handleError: HandleErrorFunction = (error, { context, request }) => {
+  if (request.signal.aborted) return;
+
+  const err =
+    isRouteErrorResponse(error) && 'error' in error && error.error !== undefined
+      ? error.error
+      : error;
+  context.get(loggerContext).error({ err, req: requestFields(request) }, 'Request failed');
+};
 
 export default function handleRequest(
   request: Request,
@@ -18,6 +42,7 @@ export default function handleRequest(
   loadContext: RouterContextProvider,
 ) {
   const nonce = loadContext.get(nonceContext);
+  const logger = loadContext.get(loggerContext);
   return new Promise<Response>((resolve, reject) => {
     let abortTimeout: ReturnType<typeof setTimeout> | undefined;
     let shellRendered = false;
@@ -56,7 +81,10 @@ export default function handleRequest(
         },
         onError(error: unknown) {
           responseStatusCode = 500;
-          if (shellRendered) console.error(error);
+          // Before the shell is out, onShellError rejects and React Router reports it instead.
+          if (shellRendered) {
+            logger.error({ err: error, req: requestFields(request) }, 'Streaming failed');
+          }
         },
       },
     );

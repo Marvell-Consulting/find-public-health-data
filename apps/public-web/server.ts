@@ -12,6 +12,7 @@ const logger = createLogger({
 await startReactRouterServer({
   development: config.development,
   host: config.host,
+  logger,
   port: config.port,
   shutdown: config.shutdown,
   rootDirectory: import.meta.dirname,

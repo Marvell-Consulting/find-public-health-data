@@ -644,6 +644,10 @@
   margin-bottom: govuk-spacing(3);
 }
 
+.fphd-table-scroll-wrapper:focus-visible {
+  outline: 3px solid $govuk-focus-colour;
+}
+
 .fphd-table-scroll-wrapper .fphd-trend-table {
   white-space: nowrap;
 }

@@ -12,6 +12,7 @@ const flashStorage = createFlashSessionStorage({ audience, ...config.webSession 
 export const app = createFakeAuthReactRouterApp(() => import('virtual:react-router/server-build'), {
   audience,
   session: config.session,
+  trustedProxyHops: config.trustedProxyHops,
   extendContext: (context, request) => {
     // Per request: the client carries the caller's session cookie, and only that, to the API.
     context.set(

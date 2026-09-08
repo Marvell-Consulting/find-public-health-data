@@ -143,6 +143,9 @@ export function loadWebServerConfig(
       API_URL: apiUrlSchema.default(defaults.apiUrl),
       NODE_ENV: nodeEnvSchema,
       SESSION_JWT_SECRET: z.string().min(32),
+      // Proxies between the client and the app, whose X-Forwarded-* headers are trusted:
+      // Front Door then Container Apps ingress today. 0 trusts none.
+      TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).default(2),
       // Signs the web app's own cookie session; rotates independently of the JWT secret.
       WEB_SESSION_SECRET: z.string().min(32),
     }),
@@ -154,6 +157,7 @@ export function loadWebServerConfig(
     host: parsed.HOST,
     port: parsed.PORT,
     apiUrl: parsed.API_URL,
+    trustedProxyHops: parsed.TRUSTED_PROXY_HOPS,
     shutdown: resolveShutdown(parsed.APP_ENV, parsed),
     log: {
       level: parsed.LOG_LEVEL,
