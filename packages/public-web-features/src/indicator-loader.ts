@@ -109,11 +109,6 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
 
   const api = context.get(apiContext);
 
-  // The user-facing levels live on area_type now; the list validates `als` values and
-  // feeds the tree. Fetched alongside the level expansion — an unknown group in the URL
-  // costs an empty group in the answer, not a blocking validation round trip.
-  const displayGroupsPromise = api.get('/api/areas/display-groups', displayGroupListSchema);
-
   // A whole-level selection ("Local authorities") rides in the URL as its name; its
   // areas are resolved here, subject to the same cap as hand-picked codes.
   let levelCodes: string[] = [];
@@ -150,7 +145,9 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
           areaParentListSchema,
         )
       : Promise.resolve([]),
-    displayGroupsPromise,
+    // The user-facing levels live on area_type now; the list validates `als` values after
+    // the fact (level expansion tolerates unknown groups) and feeds the tree.
+    api.get('/api/areas/display-groups', displayGroupListSchema),
   ]);
   const areaLevels = requestedLevels.filter((level) => displayGroups.includes(level));
 
