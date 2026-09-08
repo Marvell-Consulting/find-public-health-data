@@ -1,4 +1,4 @@
-import type { Repositories } from '@fphd/db';
+import type { IndicatorSearchFilters, Repositories } from '@fphd/db';
 import { Router } from 'express';
 
 import type { IndicatorAreaData, IndicatorDetail } from './contract.js';
@@ -9,9 +9,47 @@ const DEFAULT_SEARCH_LIMIT = 20;
 const MAX_SEARCH_LIMIT = 100;
 // Longer than any indicator name, so truncation can never hide a legitimate match.
 const MAX_QUERY_LENGTH = 200;
+const SEARCH_PAGE_LIMIT = 200;
+
+function pickStrings(value: unknown): string[] {
+  return [
+    ...new Set(
+      (Array.isArray(value) ? value : [value]).filter(
+        (entry): entry is string =>
+          typeof entry === 'string' && entry !== '' && entry.length <= 100,
+      ),
+    ),
+  ].slice(0, 100);
+}
 
 export function indicatorsRouter(indicators: Repositories['indicators']): Router {
   const router = Router();
+
+  router.get('/api/indicators/facets', async (_request, response) => {
+    response.status(200).json(await indicators.listFacets());
+  });
+
+  router.get('/api/indicators/search', async (request, response) => {
+    const { q } = request.query;
+    const query = typeof q === 'string' ? q.trim().slice(0, MAX_QUERY_LENGTH) : '';
+
+    const filters: IndicatorSearchFilters = {
+      query,
+      topics: pickStrings(request.query.t),
+      indicatorTypes: pickStrings(request.query.it),
+      riskFactors: pickStrings(request.query.rf),
+      frameworks: pickStrings(request.query.fw),
+      populations: pickStrings(request.query.pg),
+      inequalities: pickStrings(request.query.eq),
+      displayGroups: pickStrings(request.query.display_group),
+      sources: pickStrings(request.query.src),
+      valueTypes: pickStrings(request.query.vt),
+      yearTypes: pickStrings(request.query.per),
+      limit: SEARCH_PAGE_LIMIT,
+    };
+
+    response.status(200).json(await indicators.searchWithFilters(filters));
+  });
 
   router.get('/api/indicators', async (request, response) => {
     const { q, limit } = request.query;
