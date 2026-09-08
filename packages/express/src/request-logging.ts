@@ -39,9 +39,10 @@ export function requestLogging(
   return pinoHttp({
     logger,
     genReqId: (request, response) => {
-      const id =
-        (acceptsForwardedId ? readRequestIdHeader(request.headers[REQUEST_ID_HEADER]) : undefined) ??
-        uuidv7();
+      const forwarded = acceptsForwardedId
+        ? readRequestIdHeader(request.headers[REQUEST_ID_HEADER])
+        : undefined;
+      const id = forwarded ?? uuidv7();
       // Echoed to the caller, so whoever made the request can find its lines.
       response.setHeader(REQUEST_ID_HEADER, id);
       return id;
