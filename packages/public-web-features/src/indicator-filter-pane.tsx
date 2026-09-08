@@ -18,6 +18,10 @@ import type {
   SelectedIndicator,
 } from './indicator-loader';
 
+// Every selection change lands here, off the deep-link route: with an empty query that
+// route's loader would fall back to the indicator in its address and re-select it.
+const INDICATORS_PATH = '/indicators';
+
 /** The query string for a selection, so every control links to a complete page state. */
 export function selectionSearch({
   selection,
@@ -74,11 +78,12 @@ export function FilterPane({
     if (findSubject) {
       params.set('find', findSubject);
     }
-    return `?${params.toString()}`;
+    const search = params.toString();
+    return search ? `${INDICATORS_PATH}?${search}` : INDICATORS_PATH;
   };
   // preventScrollReset: refreshing data in place must not lose the reader's position.
   const navigateTo = (args: Parameters<typeof selectionSearch>[0]) =>
-    navigate({ search: searchFor(args) }, { preventScrollReset: true });
+    navigate(searchFor(args), { preventScrollReset: true });
 
   // Stable identity keeps the widget mounted; failures throw so they never read as
   // empty results, and selected matches stay listed — the loader de-duplicates re-adds.
@@ -132,7 +137,7 @@ export function FilterPane({
         }
         footer={
           <>
-            <Form method="get">
+            <Form action={INDICATORS_PATH} method="get">
               {/* The whole selection rides in hidden inputs so a no-script search keeps it. */}
               {selection.fingertipsIds.map((id) => (
                 <input key={id} name="is" type="hidden" value={id} />
@@ -259,7 +264,7 @@ export function FilterPane({
           </>
         }
         footer={
-          <Form method="get">
+          <Form action={INDICATORS_PATH} method="get">
             {/* The current selection rides along so a submit adds to it; levels are the
                 tree's own checkboxes, so they are not doubled here. */}
             {selection.fingertipsIds.map((id) => (

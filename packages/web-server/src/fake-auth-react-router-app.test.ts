@@ -20,6 +20,7 @@ describe('fake-auth React Router application', () => {
       {
         audience: 'public',
         session: { secret, secure: false },
+        trustedProxyHops: 2,
       },
     );
     const session = createJwtSessionService({
