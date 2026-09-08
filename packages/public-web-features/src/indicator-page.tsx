@@ -165,6 +165,8 @@ function IndicatorBlock({
                 <div className="fphd-download-buttons">
                   {/* Plain GDS button-links: the component library's anchor computes
                       active state and throws on repeated query params during SSR. */}
+                  {/* biome-ignore lint/a11y/useSemanticElements: a download needs an
+                      href; GDS button-as-link markup carries role=button for it. */}
                   <a
                     className="govuk-button"
                     data-module="govuk-button"
@@ -175,6 +177,7 @@ function IndicatorBlock({
                   >
                     Download this table
                   </a>
+                  {/* biome-ignore lint/a11y/useSemanticElements: as above. */}
                   <a
                     className="govuk-button govuk-button--secondary"
                     data-module="govuk-button"
