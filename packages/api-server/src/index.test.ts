@@ -70,4 +70,23 @@ describe('API server', () => {
     expect(lines[0]).toMatchObject({ name: 'test-api', req: { method: 'GET', url: '/api' } });
     expect(lines[1]).toMatchObject({ res: { statusCode: 404 } });
   });
+
+  it('logs a call under the id the web app forwarded', async () => {
+    const lines: Record<string, unknown>[] = [];
+    const destination = new Writable({
+      write(chunk, _encoding, callback) {
+        lines.push(JSON.parse(String(chunk)));
+        callback();
+      },
+    });
+    const app = createApiApp({
+      logger: pino({ name: 'test-api' }, destination),
+      serviceName: 'test-api',
+    });
+
+    await request(app).get('/api').set('X-Fphd-Request-Id', '019924a1-2c40-7000-8000-000000000001');
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(lines[0]).toMatchObject({ req: { id: '019924a1-2c40-7000-8000-000000000001' } });
+  });
 });

@@ -7,7 +7,7 @@ describe('forwardedRequestIdHeaders', () => {
     const request = { id: '019924a1-2c40-7000-8000-000000000001' } as never;
 
     expect(forwardedRequestIdHeaders(request)).toEqual({
-      'x-request-id': '019924a1-2c40-7000-8000-000000000001',
+      'x-fphd-request-id': '019924a1-2c40-7000-8000-000000000001',
     });
   });
 

@@ -2,8 +2,9 @@ import type { IncomingMessage } from 'node:http';
 
 import { validate as isUuid, version as uuidVersion, v7 as uuidv7 } from 'uuid';
 
-/** Carried from a web app to the API it calls, so one page load is one id in both logs. */
-export const REQUEST_ID_HEADER = 'x-request-id';
+/** Carried from a web app to the API it calls, so one page load is one id in both logs. Not
+ * X-Request-Id: the Container Apps ingress replaces that one with an id of its own. */
+export const REQUEST_ID_HEADER = 'x-fphd-request-id';
 
 export { uuidv7 };
 
