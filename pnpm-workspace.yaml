@@ -41,22 +41,22 @@ catalog:
   '@axe-core/playwright': 4.13.0
   '@biomejs/biome': 2.5.9
   accessible-autocomplete: 3.0.1
-  '@not-govuk/back-link': 0.18.1
-  '@not-govuk/button': 0.18.1
-  '@not-govuk/checkboxes': 0.18.1
-  '@not-govuk/details': 0.18.1
-  '@not-govuk/inset-text': 0.18.1
-  '@not-govuk/link': 0.18.1
-  '@not-govuk/notification-banner': 0.18.1
-  '@not-govuk/page': 0.18.1
-  '@not-govuk/radios': 0.18.1
-  '@not-govuk/sass-base': 0.18.1
-  '@not-govuk/search-box': 0.18.1
-  '@not-govuk/select': 0.18.1
-  '@not-govuk/summary-list': 0.18.1
-  '@not-govuk/table': 0.18.1
-  '@not-govuk/text-input': 0.18.1
-  '@not-govuk/textarea': 0.18.1
+  '@not-govuk/back-link': 0.19.1
+  '@not-govuk/button': 0.19.1
+  '@not-govuk/checkboxes': 0.19.1
+  '@not-govuk/details': 0.19.1
+  '@not-govuk/inset-text': 0.19.1
+  '@not-govuk/link': 0.19.1
+  '@not-govuk/notification-banner': 0.19.1
+  '@not-govuk/page': 0.19.1
+  '@not-govuk/radios': 0.19.1
+  '@not-govuk/sass-base': 0.19.1
+  '@not-govuk/search-box': 0.19.1
+  '@not-govuk/select': 0.19.1
+  '@not-govuk/summary-list': 0.19.1
+  '@not-govuk/table': 0.19.1
+  '@not-govuk/text-input': 0.19.1
+  '@not-govuk/textarea': 0.19.1
   '@playwright/test': 1.62.1
   '@react-router/dev': 8.3.0
   '@react-router/express': 8.3.0
@@ -77,7 +77,7 @@ catalog:
   drizzle-kit: 0.31.10
   drizzle-orm: 0.45.2
   express: 5.2.1
-  govuk-frontend: 5.14.0
+  govuk-frontend: 6.5.0
   http-graceful-shutdown: 4.0.0
   isbot: 5.2.0
   jsdom: 29.1.1
