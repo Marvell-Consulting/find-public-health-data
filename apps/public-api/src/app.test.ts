@@ -396,9 +396,8 @@ describe('public API', () => {
 
     expect((await request(app).get('/api/indicators/424242/data')).status).toBe(404);
     expect(
-      (
-        await request(app).get('/api/indicators/424242/range?display_group=Local+authorities')
-      ).status,
+      (await request(app).get('/api/indicators/424242/range?display_group=Local+authorities'))
+        .status,
     ).toBe(404);
   });
 
