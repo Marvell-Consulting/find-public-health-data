@@ -20,7 +20,6 @@
   },
   "dependencies": {
     "@not-govuk/back-link": "catalog:",
-    "accessible-autocomplete": "catalog:",
     "@not-govuk/button": "catalog:",
     "@not-govuk/checkboxes": "catalog:",
     "@not-govuk/details": "catalog:",
@@ -36,6 +35,7 @@
     "@not-govuk/table": "catalog:",
     "@not-govuk/text-input": "catalog:",
     "@not-govuk/textarea": "catalog:",
+    "accessible-autocomplete": "catalog:",
     "govuk-frontend": "catalog:"
   },
   "devDependencies": {
@@ -45,6 +45,7 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-router": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

@@ -10,23 +10,22 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "peerDependencies": {
+  "dependencies": {
     "@fphd/auth": "workspace:*",
     "@fphd/public-api-features": "workspace:*",
     "@fphd/ui": "workspace:*",
     "@fphd/web-server": "workspace:*",
-    "csv-stringify": "catalog:",
+    "csv-stringify": "catalog:"
+  },
+  "peerDependencies": {
     "react": "catalog:",
     "react-router": "catalog:"
   },
   "devDependencies": {
-    "@fphd/auth": "workspace:*",
-    "@fphd/public-api-features": "workspace:*",
-    "@fphd/web-server": "workspace:*",
     "@types/react": "catalog:",
-    "csv-stringify": "catalog:",
     "react": "catalog:",
     "react-router": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
