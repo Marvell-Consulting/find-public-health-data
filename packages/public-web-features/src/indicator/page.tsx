@@ -277,61 +277,59 @@ export function IndicatorPage({
   selection: IndicatorSelection;
 }) {
   return (
-    <>
-      <GridRow>
-        <GridColumn width="one-quarter">
-          <FilterPane
-            key={`${selection.fingertipsIds.join(',')}|${selection.areaCodes.join(',')}|${selection.areaLevels.join(',')}`}
-            selected={selected}
-            selectedAreas={selectedAreas}
-            displayGroups={displayGroups}
-            findResults={findResults}
-            findSubject={findSubject}
-            selection={selection}
-          />
-        </GridColumn>
-        <GridColumn width="three-quarters">
-          {selected.length === 0 ? (
-            <>
-              {/* The page's single h1; visually hidden because the empty state shows only the inset text. */}
-              <h1 className="govuk-visually-hidden">Selected indicators</h1>
-              <InsetText className="govuk-!-margin-top-0">No indicators selected</InsetText>
-            </>
-          ) : (
-            <>
-              {/* One indicator needs no contents list; its own name is the page heading. */}
-              {selected.length > 1 ? (
-                <nav className="govuk-!-margin-bottom-6">
-                  <h1 className="govuk-heading-m">Contents</h1>
-                  <ul className="govuk-list">
-                    <li>
-                      <A href="#compare-indicators">Compare selected indicators</A>
+    <GridRow>
+      <GridColumn width="one-quarter">
+        <FilterPane
+          key={`${selection.fingertipsIds.join(',')}|${selection.areaCodes.join(',')}|${selection.areaLevels.join(',')}`}
+          selected={selected}
+          selectedAreas={selectedAreas}
+          displayGroups={displayGroups}
+          findResults={findResults}
+          findSubject={findSubject}
+          selection={selection}
+        />
+      </GridColumn>
+      <GridColumn width="three-quarters">
+        {selected.length === 0 ? (
+          <>
+            {/* The page's single h1; visually hidden because the empty state shows only the inset text. */}
+            <h1 className="govuk-visually-hidden">Selected indicators</h1>
+            <InsetText className="govuk-!-margin-top-0">No indicators selected</InsetText>
+          </>
+        ) : (
+          <>
+            {/* One indicator needs no contents list; its own name is the page heading. */}
+            {selected.length > 1 ? (
+              <nav className="govuk-!-margin-bottom-6">
+                <h1 className="govuk-heading-m">Contents</h1>
+                <ul className="govuk-list">
+                  <li>
+                    <A href="#compare-indicators">Compare selected indicators</A>
+                  </li>
+                  {selected.map(({ detail }) => (
+                    <li key={detail.fingertipsId}>
+                      <A href={`#indicator-${detail.fingertipsId}`}>{detail.name}</A>
                     </li>
-                    {selected.map(({ detail }) => (
-                      <li key={detail.fingertipsId}>
-                        <A href={`#indicator-${detail.fingertipsId}`}>{detail.name}</A>
-                      </li>
-                    ))}
-                  </ul>
-                </nav>
-              ) : null}
+                  ))}
+                </ul>
+              </nav>
+            ) : null}
 
-              {selected.length > 1 ? (
-                <ComparisonSection selected={selected} geography={benchmarkGeography} />
-              ) : null}
+            {selected.length > 1 ? (
+              <ComparisonSection selected={selected} geography={benchmarkGeography} />
+            ) : null}
 
-              {selected.map((entry) => (
-                <IndicatorBlock
-                  key={entry.detail.fingertipsId}
-                  {...entry}
-                  geography={benchmarkGeography}
-                  headingLevel={selected.length === 1 ? 'h1' : 'h2'}
-                />
-              ))}
-            </>
-          )}
-        </GridColumn>
-      </GridRow>
-    </>
+            {selected.map((entry) => (
+              <IndicatorBlock
+                key={entry.detail.fingertipsId}
+                {...entry}
+                geography={benchmarkGeography}
+                headingLevel={selected.length === 1 ? 'h1' : 'h2'}
+              />
+            ))}
+          </>
+        )}
+      </GridColumn>
+    </GridRow>
   );
 }
