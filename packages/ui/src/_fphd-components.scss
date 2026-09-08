@@ -8,33 +8,6 @@
   max-width: none;
 }
 
-// @react-foundry/anchor-list marks a navigation item active when its href is a *prefix* of the
-// current path. Every path starts with '/', so the Home item is active on every page. The
-// anchor's own aria-current is an exact match, so where the two disagree on the root item, undo
-// the class's styling — the values here are the inactive ones from govuk-frontend's
-// service-navigation.
-//
-// Fixed upstream in @react-foundry/anchor-list 0.5.3 (react-foundry#301): a '/' href now
-// defaults to exact matching. That version only reaches us with NotGovUk 0.19+, which also
-// moves to govuk-frontend 6 — delete this whole block when that upgrade lands.
-//
-// Scoped to the root item deliberately: prefix matching is right for real sections, and keeping
-// it means '/topics/alcohol' still highlights Topics.
-.govuk-service-navigation__list__item--active:has(> a[href='/']):not(
-    :has(> a[aria-current='page'])
-  ) {
-  @include govuk-media-query($until: tablet) {
-    margin-left: 0;
-    padding-left: 0;
-    border-left-width: 0;
-  }
-
-  @include govuk-media-query($from: tablet) {
-    padding-bottom: govuk-spacing(3);
-    border-bottom-width: 0;
-  }
-}
-
 .fphd-card-list {
   display: grid;
   column-gap: govuk-spacing(6);
