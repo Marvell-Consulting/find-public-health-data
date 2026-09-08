@@ -2,9 +2,8 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 
 /**
- * The sidebar card the prototype uses for each filter dimension: a grey header carrying
- * the title and a Clear all link, a body listing what is selected, and a footer holding
- * the control that adds more.
+ * Sidebar card for a filter dimension: a grey header carrying the title and a Clear all
+ * link, a body listing what is selected, and a footer holding the control that adds more.
  */
 export function FilterCard({
   body,
@@ -40,8 +39,8 @@ export function FilterCard({
 }
 
 /**
- * A selected value. Without `onRemove` the chip is fixed — the prototype shows the default
- * area this way, since removing it would leave nothing to compare against.
+ * A selected value. Without `onRemove` the chip is fixed — the default area cannot be
+ * removed since that would leave nothing to compare against.
  */
 export function FilterChip({
   children,

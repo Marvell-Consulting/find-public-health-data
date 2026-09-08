@@ -24,10 +24,10 @@ const CHILD_CAP = 100;
 const SEARCH_DEBOUNCE_MS = 300;
 
 /**
- * The prototype's geography picker, fed on demand: a level's areas load when it first
- * expands and the search asks the server, so the catalogue never ships with the page.
- * A level's own checkbox is a real `als` form control, which also makes whole-level
- * selection work without scripting.
+ * Geography picker fed on demand: a level's areas load when it first expands and the
+ * search asks the server, so the catalogue never ships with the page. A level's own
+ * checkbox is a real `als` form control, which also makes whole-level selection work
+ * without scripting.
  */
 export function GeographyTree({
   levels,

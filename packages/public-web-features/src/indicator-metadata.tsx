@@ -46,7 +46,7 @@ export function sourceLink(source: IndicatorDetail['dataSource']) {
   return source.url ? <A href={source.url}>{source.name}</A> : source.name;
 }
 
-/** The at-a-glance header the prototype puts above each indicator's charts. */
+/** At-a-glance header above each indicator's charts. */
 export function IndicatorSummary({
   indicator,
   observations,
@@ -169,7 +169,7 @@ function CalculationPart({
   );
 }
 
-/** The prototype's About tab: Overview, Data attributes, Calculation, Other notes. */
+/** About tab: Overview, Data attributes, Calculation, Other notes. */
 export function BackgroundInformation({ indicator }: { indicator: IndicatorDetail }) {
   const confidenceLevel = indicator.ciConfidenceLevel
     ? (CONFIDENCE_LEVEL_LABELS[indicator.ciConfidenceLevel] ?? indicator.ciConfidenceLevel)
