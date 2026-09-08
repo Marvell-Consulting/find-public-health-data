@@ -4,7 +4,7 @@ import type { LoaderFunctionArgs } from 'react-router';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { loader } from './search-route';
+import { loadIndicatorSearch } from './search-loader';
 
 function loaderArgs(get: ReturnType<typeof vi.fn>, url: string): LoaderFunctionArgs {
   const context = new RouterContextProvider();
@@ -12,11 +12,13 @@ function loaderArgs(get: ReturnType<typeof vi.fn>, url: string): LoaderFunctionA
   return { context, params: {}, request: new Request(url) } as unknown as LoaderFunctionArgs;
 }
 
-describe('indicator search resource route', () => {
+describe('indicator search loader', () => {
   it('answers an empty query with no results and no api call', async () => {
     const get = vi.fn();
 
-    const response = await loader(loaderArgs(get, 'http://localhost/indicators/search?q=+'));
+    const response = await loadIndicatorSearch(
+      loaderArgs(get, 'http://localhost/indicators/search?q=+'),
+    );
 
     expect(await response.json()).toEqual({ indicators: [] });
     expect(get).not.toHaveBeenCalled();
@@ -28,7 +30,7 @@ describe('indicator search resource route', () => {
     ];
     const get = vi.fn().mockResolvedValue({ indicators });
 
-    const response = await loader(
+    const response = await loadIndicatorSearch(
       loaderArgs(get, 'http://localhost/indicators/search?q=diabetes+%26+obesity'),
     );
 

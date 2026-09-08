@@ -12,9 +12,9 @@ import {
   createTopic,
   deleteTopic,
   editTopicPath,
-  loadAdminTopic,
   loadAdminTopics,
-  loadTopicToDelete,
+  loadAdminTopicToDelete,
+  loadAdminTopicToEdit,
   saveTopic,
   TOPICS_ADMIN_PATH,
 } from './loader';
@@ -125,11 +125,11 @@ describe('loadAdminTopics', () => {
   });
 });
 
-describe('loadAdminTopic', () => {
+describe('loadAdminTopicToEdit', () => {
   it('fetches the topic by id', async () => {
     const get = vi.fn().mockResolvedValue(topic);
 
-    const { outcome } = await run(loadAdminTopic, {
+    const { outcome } = await run(loadAdminTopicToEdit, {
       context: createContext(fakeApi({ get })),
       params: { id: topic.id },
     });
@@ -146,7 +146,7 @@ describe('loadAdminTopic', () => {
     ['no segment at all', {}],
   ])('answers %s with a 404 rather than calling the API', async (_case, params) => {
     await expect(
-      run(loadAdminTopic, { context: createContext(fakeApi()), params }),
+      run(loadAdminTopicToEdit, { context: createContext(fakeApi()), params }),
     ).rejects.toMatchObject({ status: 404 });
   });
 });
@@ -274,11 +274,11 @@ describe('createTopic', () => {
   });
 });
 
-describe('loadTopicToDelete', () => {
+describe('loadAdminTopicToDelete', () => {
   it('fetches the topic by id so the page can name what will go', async () => {
     const get = vi.fn().mockResolvedValue(topic);
 
-    const { outcome } = await run(loadTopicToDelete, {
+    const { outcome } = await run(loadAdminTopicToDelete, {
       context: createContext(fakeApi({ get })),
       params: { id: topic.id },
     });
@@ -289,7 +289,10 @@ describe('loadTopicToDelete', () => {
 
   it('answers a malformed id with a 404 rather than calling the API', async () => {
     await expect(
-      run(loadTopicToDelete, { context: createContext(fakeApi()), params: { id: 'not-a-uuid' } }),
+      run(loadAdminTopicToDelete, {
+        context: createContext(fakeApi()),
+        params: { id: 'not-a-uuid' },
+      }),
     ).rejects.toMatchObject({ status: 404 });
   });
 });
@@ -330,7 +333,7 @@ describe('the message a create or delete leaves for the page it redirects to', (
       body: valid,
     });
 
-    const { outcome } = await run(loadAdminTopic, {
+    const { outcome } = await run(loadAdminTopicToEdit, {
       context: createContext(fakeApi({ get: () => Promise.resolve(topic) })),
       cookie: cookieFrom(response),
       params: { id: topic.id },
@@ -365,7 +368,7 @@ describe('the message a save leaves for the page it redirects to', () => {
       params: { id: topic.id },
     });
 
-    const { outcome } = await run(loadAdminTopic, {
+    const { outcome } = await run(loadAdminTopicToEdit, {
       context: createContext(fakeApi({ get: () => Promise.resolve(topic) })),
       cookie: cookieFrom(response),
       params: { id: topic.id },

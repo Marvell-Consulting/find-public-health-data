@@ -4,7 +4,7 @@ import type { LoaderFunctionArgs } from 'react-router';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { loader } from './geography-route';
+import { loadGeography } from './geography-loader';
 
 function loaderArgs(get: ReturnType<typeof vi.fn>, url: string): LoaderFunctionArgs {
   const context = new RouterContextProvider();
@@ -12,7 +12,7 @@ function loaderArgs(get: ReturnType<typeof vi.fn>, url: string): LoaderFunctionA
   return { context, params: {}, request: new Request(url) } as unknown as LoaderFunctionArgs;
 }
 
-describe('geography resource route', () => {
+describe('geography loader', () => {
   it('answers a level with its areas by display group', async () => {
     const get = vi.fn().mockResolvedValue([
       {
@@ -24,7 +24,7 @@ describe('geography resource route', () => {
       },
     ]);
 
-    const response = await loader(
+    const response = await loadGeography(
       loaderArgs(get, 'http://localhost/geographies?level=Statistical%20regions'),
     );
 
@@ -43,7 +43,9 @@ describe('geography resource route', () => {
   it('answers an unknown level with no areas', async () => {
     const get = vi.fn().mockResolvedValue([{ displayGroup: 'Nope', areas: [] }]);
 
-    const response = await loader(loaderArgs(get, 'http://localhost/geographies?level=Nope'));
+    const response = await loadGeography(
+      loaderArgs(get, 'http://localhost/geographies?level=Nope'),
+    );
 
     expect(await response.json()).toEqual({ areas: [] });
   });
@@ -65,7 +67,7 @@ describe('geography resource route', () => {
       { code: 'E92000001', name: 'England', areaType: 'England', displayGroup: null },
     ]);
 
-    const response = await loader(loaderArgs(get, 'http://localhost/geographies?q=west'));
+    const response = await loadGeography(loaderArgs(get, 'http://localhost/geographies?q=west'));
 
     expect(get).toHaveBeenCalledWith('/api/areas/search?q=west&limit=50', expect.anything());
     expect(await response.json()).toEqual({
@@ -79,7 +81,7 @@ describe('geography resource route', () => {
   it('answers an overlong level with no areas and no api call', async () => {
     const get = vi.fn();
 
-    const response = await loader(
+    const response = await loadGeography(
       loaderArgs(get, `http://localhost/geographies?level=${'a'.repeat(101)}`),
     );
 
@@ -90,7 +92,7 @@ describe('geography resource route', () => {
   it('answers an empty query with no groups and no api call', async () => {
     const get = vi.fn();
 
-    const response = await loader(loaderArgs(get, 'http://localhost/geographies?q=++'));
+    const response = await loadGeography(loaderArgs(get, 'http://localhost/geographies?q=++'));
 
     expect(await response.json()).toEqual({ groups: [] });
     expect(get).not.toHaveBeenCalled();

@@ -1,9 +1,9 @@
 import { createDocumentMeta } from '@fphd/ui';
 import { useLoaderData } from 'react-router';
-import { deleteTopic, loadTopicToDelete } from './loader';
+import { deleteTopic, loadAdminTopicToDelete } from './loader';
 import { DeleteTopicPage } from './pages';
 
-export const loader = loadTopicToDelete;
+export const loader = loadAdminTopicToDelete;
 export const action = deleteTopic;
 
 export const meta = createDocumentMeta('Delete topic');

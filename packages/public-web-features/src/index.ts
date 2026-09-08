@@ -1,4 +1,5 @@
 export { PublicHomePage } from './home/page';
+export { HomeRoute } from './home/route';
 export type {
   AreaSummary,
   IndicatorAreaData,
