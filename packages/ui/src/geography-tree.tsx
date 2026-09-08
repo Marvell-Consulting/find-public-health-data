@@ -12,6 +12,10 @@ interface GeographyTreeProps {
   levels: string[];
   /** Field name for each area checkbox, so the tree works inside a plain form. */
   name: string;
+  /** Field name for each level checkbox. Defaults to 'als'. */
+  levelName?: string;
+  /** Maximum number of area ticks allowed. Stops accepting new ticks at the cap. */
+  maxAreaTicks?: number;
   onChange: (selected: string[]) => void;
   onLevelsChange: (levels: string[]) => void;
   selected: string[];
@@ -32,6 +36,8 @@ const SEARCH_DEBOUNCE_MS = 300;
 export function GeographyTree({
   levels,
   name,
+  levelName = 'als',
+  maxAreaTicks,
   onChange,
   onLevelsChange,
   selected,
@@ -93,8 +99,12 @@ export function GeographyTree({
     }
   };
 
-  const toggleArea = (code: string, checked: boolean) =>
+  const atCap = maxAreaTicks !== undefined && selected.length >= maxAreaTicks;
+
+  const toggleArea = (code: string, checked: boolean) => {
+    if (checked && atCap) return;
     onChange(checked ? [...selected, code] : selected.filter((value) => value !== code));
+  };
 
   const toggleLevel = (level: string, checked: boolean) =>
     onLevelsChange(
@@ -168,7 +178,7 @@ export function GeographyTree({
                     classModifiers="small"
                     id={groupId}
                     label={<span className="govuk-visually-hidden">All of {group.name}</span>}
-                    name="als"
+                    name={levelName}
                     onChange={(event) => toggleLevel(group.name, event.currentTarget.checked)}
                     options={[levelOption]}
                   />
@@ -192,11 +202,17 @@ export function GeographyTree({
                             label: area.name,
                             checked: selected.includes(area.code),
                             value: area.code,
+                            disabled: !selected.includes(area.code) && atCap,
                           }))}
                         />
                         {group.areas.length > shown.length ? (
                           <p className="govuk-body-s fphd-geo-alt__more">
                             Showing {shown.length} of {group.areas.length} — search to find the rest
+                          </p>
+                        ) : null}
+                        {atCap ? (
+                          <p className="govuk-body-s fphd-geo-alt__more">
+                            You have selected the maximum number of areas.
                           </p>
                         ) : null}
                       </>

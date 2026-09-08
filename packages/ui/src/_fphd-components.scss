@@ -190,6 +190,11 @@
   background-color: #f3f2f1;
 }
 
+// Show all collapsible bodies when JavaScript has not run, so every filter is reachable.
+body:not(.js-enabled) .fphd-collapsible-body[hidden] {
+  display: block;
+}
+
 .fphd-filter-card__footer {
   padding: govuk-spacing(3);
   background-color: govuk-colour("white");
@@ -717,4 +722,22 @@
 
 .fphd-range-plot {
   display: block;
+}
+
+// Search page and other pages that benefit from the full 1400px container.
+// The container is already 1400px via .not-govuk-page; this class documents the intent
+// and matches the prototype's .fphd-wide-layout body class behaviour.
+.fphd-wide-layout {
+  width: 100%;
+}
+
+.fphd-search-results {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.fphd-indicator-item {
+  padding: govuk-spacing(3) 0;
+  border-top: 1px solid govuk-colour("mid-grey");
 }

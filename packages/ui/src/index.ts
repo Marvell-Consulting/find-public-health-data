@@ -20,7 +20,7 @@ export { ChartSection } from './chart-section';
 export { NotFoundPage, PageIntro } from './content-page';
 export { createDocumentMeta, formatDocumentTitle } from './document-title';
 export { ErrorSummary, type FieldError, fieldInputId } from './error-summary';
-export { FilterCard, FilterChip, FilterChips } from './filter-card';
+export { CollapsibleFilterCard, FilterCard, FilterChip, FilterChips } from './filter-card';
 export { type DateFormat, DISPLAY_TIME_ZONE, formatDate } from './format-date';
 export { type GeographyArea, GeographyTree } from './geography-tree';
 export { GridColumn, GridRow, SectionBreak } from './layout';

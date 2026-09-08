@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router';
 
 /**
@@ -34,6 +35,65 @@ export function FilterCard({
       </div>
       <div className="fphd-filter-card__body">{body}</div>
       {footer ? <div className="fphd-filter-card__footer">{footer}</div> : null}
+    </div>
+  );
+}
+
+export function CollapsibleFilterCard({
+  children,
+  hint,
+  active,
+  onClear,
+  title,
+}: {
+  children: ReactNode;
+  hint?: string | undefined;
+  active: boolean;
+  onClear?: string | undefined;
+  title: string;
+}) {
+  const bodyId = useId();
+  const [open, setOpen] = useState(active);
+  const didMount = useRef(false);
+  useEffect(() => {
+    if (!didMount.current) {
+      didMount.current = true;
+      return;
+    }
+    if (active) setOpen(true);
+  }, [active]);
+
+  return (
+    <div className="fphd-filter-card govuk-!-margin-bottom-4">
+      <div className="fphd-filter-card__header">
+        <span className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-0">{title}</span>
+        <span>
+          {onClear ? (
+            <Link
+              className="govuk-link govuk-body-s govuk-!-margin-right-2"
+              preventScrollReset
+              to={onClear}
+            >
+              Clear filter
+            </Link>
+          ) : null}
+          <button
+            aria-controls={bodyId}
+            aria-expanded={open}
+            className="govuk-body-s fphd-link-button"
+            onClick={() => setOpen((v) => !v)}
+            type="button"
+          >
+            {open ? 'Collapse' : 'Expand'}
+          </button>
+        </span>
+      </div>
+      {/* Body is always in the HTML so no-JS users can reach all filters.
+          CSS shows it when js-enabled is absent; JS toggles the hidden attribute. */}
+      <div className="fphd-filter-card__body fphd-collapsible-body" hidden={!open} id={bodyId}>
+        {hint ? <p className="govuk-hint govuk-!-margin-bottom-3">{hint}</p> : null}
+        {children}
+      </div>
     </div>
   );
 }
