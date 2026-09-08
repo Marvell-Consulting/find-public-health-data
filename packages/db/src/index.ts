@@ -14,10 +14,16 @@ export {
   getIndicatorObservations,
   type IndicatorAreaData,
   type IndicatorDetail,
+  type IndicatorFacets,
   type IndicatorObservation,
+  type IndicatorSearchFilters,
+  type IndicatorSearchResult,
+  type IndicatorSearchRow,
   type IndicatorSource,
   listApprovedIndicators,
+  listIndicatorFacets,
   resolveApprovedIndicatorId,
+  searchIndicators,
 } from './indicator-repository.js';
 export {
   type IndicatorClassification,

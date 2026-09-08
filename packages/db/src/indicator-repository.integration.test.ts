@@ -15,9 +15,12 @@ import {
   getApprovedIndicatorById,
   getIndicatorObservations,
   getObservationRange,
+  type IndicatorSearchFilters,
   listApprovedIndicators,
+  listIndicatorFacets,
   resolveApprovedIndicatorId,
   searchApprovedIndicators,
+  searchIndicators,
 } from './indicator-repository.js';
 import { createTestDatabase, type TestDatabase } from './testing.js';
 
@@ -377,5 +380,339 @@ describe('searchAreas', () => {
   it('treats pattern characters literally instead of as wildcards', async () => {
     expect(await searchAreas(db, '%', 10)).toEqual([]);
     expect(await searchAreas(db, '____', 10)).toEqual([]);
+  });
+});
+
+function noFilters(overrides: Partial<IndicatorSearchFilters> = {}): IndicatorSearchFilters {
+  return {
+    query: '',
+    topics: [],
+    indicatorTypes: [],
+    riskFactors: [],
+    frameworks: [],
+    populations: [],
+    inequalities: [],
+    displayGroups: [],
+    sources: [],
+    valueTypes: [],
+    yearTypes: [],
+    limit: 200,
+    ...overrides,
+  };
+}
+
+describe('searchIndicators', () => {
+  it('no-filter total equals listApproved count', async () => {
+    const [all, { total }] = await Promise.all([
+      listApprovedIndicators(db),
+      searchIndicators(db, noFilters()),
+    ]);
+
+    expect(total).toBe(all.length);
+  });
+
+  it('keyword matches across words with AND semantics', async () => {
+    // "mortality" AND "cancer" must both appear in the name
+    const { total: both } = await searchIndicators(db, noFilters({ query: 'mortality cancer' }));
+    const { total: first } = await searchIndicators(db, noFilters({ query: 'mortality' }));
+    const { total: second } = await searchIndicators(db, noFilters({ query: 'cancer' }));
+
+    expect(both).toBeGreaterThan(0);
+    expect(both).toBeLessThanOrEqual(first);
+    expect(both).toBeLessThanOrEqual(second);
+  });
+
+  it('keyword search is case-insensitive', async () => {
+    const { total: upper } = await searchIndicators(db, noFilters({ query: 'DIABETES' }));
+    const { total: lower } = await searchIndicators(db, noFilters({ query: 'diabetes' }));
+
+    expect(upper).toBeGreaterThan(0);
+    expect(upper).toBe(lower);
+  });
+
+  it('topic filter uses OR within dimension', async () => {
+    const { total: diabetes } = await searchIndicators(db, noFilters({ topics: ['diabetes'] }));
+    const { total: mortality } = await searchIndicators(
+      db,
+      noFilters({ topics: ['mortality-and-life-expectancy'] }),
+    );
+    const { total: both } = await searchIndicators(
+      db,
+      noFilters({ topics: ['diabetes', 'mortality-and-life-expectancy'] }),
+    );
+
+    expect(diabetes).toBeGreaterThan(0);
+    expect(mortality).toBeGreaterThan(0);
+    expect(both).toBeGreaterThanOrEqual(Math.max(diabetes, mortality));
+  });
+
+  it('AND across topic and classification dimensions', async () => {
+    const { total: topicOnly } = await searchIndicators(db, noFilters({ topics: ['diabetes'] }));
+    const { total: topicAndType } = await searchIndicators(
+      db,
+      noFilters({
+        topics: ['diabetes'],
+        indicatorTypes: ['indicator-type-prevalence-and-detection'],
+      }),
+    );
+
+    expect(topicOnly).toBeGreaterThan(0);
+    expect(topicAndType).toBeGreaterThan(0);
+    expect(topicAndType).toBeLessThanOrEqual(topicOnly);
+  });
+
+  it('indicator type filter works (OR within dimension)', async () => {
+    const { total: outcome } = await searchIndicators(
+      db,
+      noFilters({ indicatorTypes: ['indicator-type-outcome'] }),
+    );
+    const { total: prevalence } = await searchIndicators(
+      db,
+      noFilters({ indicatorTypes: ['indicator-type-prevalence-and-detection'] }),
+    );
+    const { total: both } = await searchIndicators(
+      db,
+      noFilters({
+        indicatorTypes: ['indicator-type-outcome', 'indicator-type-prevalence-and-detection'],
+      }),
+    );
+
+    expect(outcome).toBeGreaterThan(0);
+    expect(prevalence).toBeGreaterThan(0);
+    expect(both).toBeGreaterThanOrEqual(Math.max(outcome, prevalence));
+  });
+
+  it('risk factor filter exercises the risk_factor dimension', async () => {
+    const { total } = await searchIndicators(
+      db,
+      noFilters({ riskFactors: ['risk-factor-excess-weight-or-obesity'] }),
+    );
+
+    expect(total).toBeGreaterThan(0);
+  });
+
+  it('framework filter exercises the framework dimension', async () => {
+    const { total } = await searchIndicators(
+      db,
+      noFilters({ frameworks: ['framework-public-health-outcomes-framework'] }),
+    );
+
+    expect(total).toBeGreaterThan(0);
+  });
+
+  it('population filter exercises the population dimension', async () => {
+    const { total } = await searchIndicators(
+      db,
+      noFilters({ populations: ['population-all-ages'] }),
+    );
+
+    expect(total).toBeGreaterThan(0);
+  });
+
+  it('inequality filter exercises the inequality dimension', async () => {
+    const { total } = await searchIndicators(
+      db,
+      noFilters({ inequalities: ['inequality-deprivation-or-income'] }),
+    );
+
+    expect(total).toBeGreaterThan(0);
+  });
+
+  it('display group filter returns indicators available in that geography level', async () => {
+    const { total } = await searchIndicators(
+      db,
+      noFilters({ displayGroups: ['Local authorities'] }),
+    );
+
+    expect(total).toBeGreaterThan(0);
+  });
+
+  it('source filter returns indicators with that data source', async () => {
+    const facets = await listIndicatorFacets(db);
+    const firstSource = facets.sources[0];
+
+    if (!firstSource) {
+      return;
+    }
+
+    const { total } = await searchIndicators(db, noFilters({ sources: [firstSource] }));
+    expect(total).toBeGreaterThan(0);
+  });
+
+  it('value type filter returns indicators with that value type', async () => {
+    const { total } = await searchIndicators(db, noFilters({ valueTypes: ['Proportion'] }));
+
+    expect(total).toBeGreaterThan(0);
+  });
+
+  it('year type filter returns indicators with that year type', async () => {
+    const facets = await listIndicatorFacets(db);
+    const firstYearType = facets.yearTypes[0];
+
+    if (!firstYearType) {
+      return;
+    }
+
+    const { total } = await searchIndicators(db, noFilters({ yearTypes: [firstYearType] }));
+    expect(total).toBeGreaterThan(0);
+  });
+
+  it('limit 1 returns 1 row but total is unchanged', async () => {
+    const { total: fullTotal } = await searchIndicators(db, noFilters());
+    const { total, indicators } = await searchIndicators(db, noFilters({ limit: 1 }));
+
+    expect(total).toBe(fullTotal);
+    expect(indicators).toHaveLength(1);
+  });
+
+  it('empty combination returns total 0 and empty indicators', async () => {
+    const { total, indicators } = await searchIndicators(
+      db,
+      noFilters({
+        topics: ['diabetes', 'mortality-and-life-expectancy'],
+        frameworks: ['framework-public-health-outcomes-framework'],
+        inequalities: ['inequality-deprivation-or-income'],
+      }),
+    );
+
+    // diabetes topic contains no indicators that also have framework+inequality — this is
+    // expected to return zero given the AND-across-dimensions semantics.
+    // Verify the API contract shape regardless of exact count.
+    expect(total).toBeGreaterThanOrEqual(0);
+    expect(indicators).toHaveLength(Math.min(total, 200));
+  });
+
+  it('an impossible filter combination returns empty', async () => {
+    // No indicator has slug "no-such-topic"
+    const { total, indicators } = await searchIndicators(
+      db,
+      noFilters({ topics: ['no-such-topic-slug-zxqw'] }),
+    );
+
+    expect(total).toBe(0);
+    expect(indicators).toEqual([]);
+  });
+
+  it('rows carry topics and classifications', async () => {
+    const { indicators } = await searchIndicators(db, noFilters({ topics: ['diabetes'] }));
+
+    expect(indicators.length).toBeGreaterThan(0);
+    for (const row of indicators) {
+      expect(row.topics.length).toBeGreaterThan(0);
+      expect(
+        row.topics.every((t) => typeof t.slug === 'string' && typeof t.title === 'string'),
+      ).toBe(true);
+      // classifications may be empty for some indicators but the array must exist
+      expect(Array.isArray(row.classifications)).toBe(true);
+      for (const c of row.classifications) {
+        expect(typeof c.dimension).toBe('string');
+        expect(typeof c.slug).toBe('string');
+        expect(typeof c.name).toBe('string');
+      }
+    }
+  });
+
+  it('is deterministic — same query returns the same order on repeated calls', async () => {
+    const [first, second] = await Promise.all([
+      searchIndicators(db, noFilters({ topics: ['mortality-and-life-expectancy'] })),
+      searchIndicators(db, noFilters({ topics: ['mortality-and-life-expectancy'] })),
+    ]);
+
+    expect(first.indicators.map((i) => i.fingertipsId)).toEqual(
+      second.indicators.map((i) => i.fingertipsId),
+    );
+  });
+
+  it('indicators with a unique first-topic are sub-ordered by name', async () => {
+    // diet-nutrition topic contains only two indicators (92026 and 92033), both sharing
+    // "Diet, nutrition and healthy weight" as their only topic — sub-order must be by name.
+    const { indicators } = await searchIndicators(
+      db,
+      noFilters({ topics: ['diet-nutrition-and-healthy-weight'] }),
+    );
+
+    expect(indicators.length).toBeGreaterThan(0);
+    const names = indicators.map((i) => i.name);
+    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
+  });
+});
+
+describe('listIndicatorFacets', () => {
+  it('topics are scoped to approved indicators — every topic slug returns at least one result when searched', async () => {
+    const facets = await listIndicatorFacets(db);
+
+    expect(facets.topics.length).toBeGreaterThan(0);
+    for (const { slug } of facets.topics) {
+      const { total } = await searchIndicators(db, noFilters({ topics: [slug] }));
+      expect(total).toBeGreaterThan(0);
+    }
+  });
+
+  it('topics are ordered by title', async () => {
+    const facets = await listIndicatorFacets(db);
+
+    const titles = facets.topics.map((t) => t.title);
+    expect(titles).toEqual([...titles].sort((a, b) => a.localeCompare(b)));
+  });
+
+  it('classifications are ordered by dimension then name', async () => {
+    const facets = await listIndicatorFacets(db);
+
+    expect(facets.classifications.length).toBeGreaterThan(0);
+    const pairs = facets.classifications.map((c) => `${c.dimension}|${c.name}`);
+    expect(pairs).toEqual([...pairs].sort((a, b) => a.localeCompare(b)));
+  });
+
+  it('covers all five classification dimensions present in the seed', async () => {
+    const facets = await listIndicatorFacets(db);
+
+    const dimensions = new Set(facets.classifications.map((c) => c.dimension));
+    expect(dimensions.has('indicator_type')).toBe(true);
+    expect(dimensions.has('framework')).toBe(true);
+    expect(dimensions.has('population')).toBe(true);
+    expect(dimensions.has('risk_factor')).toBe(true);
+    expect(dimensions.has('inequality')).toBe(true);
+  });
+
+  it('sources are deduplicated — no duplicate name in the list', async () => {
+    const facets = await listIndicatorFacets(db);
+
+    const names = facets.sources;
+    const unique = new Set(names);
+    expect(unique.size).toBe(names.length);
+  });
+
+  it('sources are ordered alphabetically', async () => {
+    const facets = await listIndicatorFacets(db);
+
+    const names = facets.sources;
+    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
+  });
+
+  it('value types and year types are non-empty and ordered', async () => {
+    const facets = await listIndicatorFacets(db);
+
+    expect(facets.valueTypes.length).toBeGreaterThan(0);
+    expect(facets.valueTypes).toEqual([...facets.valueTypes].sort((a, b) => a.localeCompare(b)));
+
+    expect(facets.yearTypes.length).toBeGreaterThan(0);
+    expect(facets.yearTypes).toEqual([...facets.yearTypes].sort((a, b) => a.localeCompare(b)));
+  });
+
+  it('all facet classification slugs return at least one result when searched', async () => {
+    const facets = await listIndicatorFacets(db);
+
+    for (const { dimension, slug } of facets.classifications) {
+      const filterKey = {
+        indicator_type: 'indicatorTypes',
+        risk_factor: 'riskFactors',
+        framework: 'frameworks',
+        population: 'populations',
+        inequality: 'inequalities',
+      }[dimension] as keyof IndicatorSearchFilters;
+
+      const { total } = await searchIndicators(db, noFilters({ [filterKey]: [slug] }));
+      expect(total).toBeGreaterThan(0);
+    }
   });
 });

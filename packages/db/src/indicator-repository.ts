@@ -1,4 +1,17 @@
-import { and, asc, eq, ilike, inArray, isNotNull, isNull, max, min, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  countDistinct,
+  eq,
+  exists,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  max,
+  min,
+  sql,
+} from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import type { Database } from './client.js';
@@ -12,23 +25,62 @@ import {
   areaType,
   availableData,
   ciMethod,
+  classification,
   comparatorMethod,
   dataSource,
   dimensionType,
   dimensionValue,
   frequency,
   indicator,
+  indicatorClassification,
   indicatorMetadata,
+  indicatorTopic,
   noteType,
   numeratorDenominatorSource,
   observation,
   observationDimension,
   observationNote,
   polarity,
+  topic,
   unit,
   valueType,
   yearType,
 } from './schema/index.js';
+
+export interface IndicatorSearchFilters {
+  query: string;
+  topics: string[];
+  indicatorTypes: string[];
+  riskFactors: string[];
+  frameworks: string[];
+  populations: string[];
+  inequalities: string[];
+  displayGroups: string[];
+  sources: string[];
+  valueTypes: string[];
+  yearTypes: string[];
+  limit: number;
+}
+
+export interface IndicatorSearchRow {
+  fingertipsId: number;
+  name: string;
+  topics: { slug: string; title: string }[];
+  classifications: { dimension: string; slug: string; name: string }[];
+}
+
+export interface IndicatorSearchResult {
+  total: number;
+  indicators: IndicatorSearchRow[];
+}
+
+export interface IndicatorFacets {
+  topics: { slug: string; title: string }[];
+  classifications: { dimension: string; slug: string; name: string }[];
+  sources: string[];
+  valueTypes: string[];
+  yearTypes: string[];
+}
 
 export interface ApprovedIndicator {
   id: string;
@@ -450,4 +502,267 @@ export async function getObservationRange(
       ? []
       : [{ fromDate, toDate, segment, min: minValue, max: maxValue }],
   );
+}
+
+export async function searchIndicators(
+  db: Database,
+  filters: IndicatorSearchFilters,
+): Promise<IndicatorSearchResult> {
+  const escaped = (w: string) => w.replace(/[\\%_]/g, '\\$&');
+
+  const classificationExists = (dimension: string, slugs: string[]) =>
+    exists(
+      db
+        .select({ one: sql`1` })
+        .from(indicatorClassification)
+        .innerJoin(
+          classification,
+          and(
+            eq(indicatorClassification.classificationId, classification.id),
+            eq(classification.dimension, dimension),
+            inArray(classification.slug, slugs),
+          ),
+        )
+        .where(eq(indicatorClassification.indicatorId, indicator.id)),
+    );
+
+  const conditions = [eq(indicator.status, 'approved')];
+
+  if (filters.query.trim()) {
+    for (const word of filters.query.trim().split(/\s+/)) {
+      conditions.push(ilike(indicator.name, `%${escaped(word)}%`));
+    }
+  }
+
+  if (filters.topics.length > 0) {
+    conditions.push(
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(indicatorTopic)
+          .innerJoin(
+            topic,
+            and(eq(indicatorTopic.topicId, topic.id), inArray(topic.slug, filters.topics)),
+          )
+          .where(eq(indicatorTopic.indicatorId, indicator.id)),
+      ),
+    );
+  }
+
+  if (filters.indicatorTypes.length > 0) {
+    conditions.push(classificationExists('indicator_type', filters.indicatorTypes));
+  }
+  if (filters.riskFactors.length > 0) {
+    conditions.push(classificationExists('risk_factor', filters.riskFactors));
+  }
+  if (filters.frameworks.length > 0) {
+    conditions.push(classificationExists('framework', filters.frameworks));
+  }
+  if (filters.populations.length > 0) {
+    conditions.push(classificationExists('population', filters.populations));
+  }
+  if (filters.inequalities.length > 0) {
+    conditions.push(classificationExists('inequality', filters.inequalities));
+  }
+
+  if (filters.displayGroups.length > 0) {
+    conditions.push(
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(availableData)
+          .innerJoin(
+            areaType,
+            and(
+              eq(availableData.areaTypeId, areaType.id),
+              inArray(areaType.displayGroup, filters.displayGroups),
+            ),
+          )
+          .where(eq(availableData.indicatorId, indicator.id)),
+      ),
+    );
+  }
+
+  if (filters.sources.length > 0) {
+    conditions.push(
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(indicatorMetadata)
+          .innerJoin(
+            dataSource,
+            and(
+              eq(indicatorMetadata.dataSourceId, dataSource.id),
+              inArray(dataSource.name, filters.sources),
+            ),
+          )
+          .where(eq(indicatorMetadata.indicatorId, indicator.id)),
+      ),
+    );
+  }
+
+  if (filters.valueTypes.length > 0) {
+    conditions.push(
+      inArray(
+        indicator.valueTypeId,
+        db
+          .select({ id: valueType.id })
+          .from(valueType)
+          .where(inArray(valueType.name, filters.valueTypes)),
+      ),
+    );
+  }
+
+  if (filters.yearTypes.length > 0) {
+    conditions.push(
+      inArray(
+        indicator.yearTypeId,
+        db
+          .select({ id: yearType.id })
+          .from(yearType)
+          .where(inArray(yearType.name, filters.yearTypes)),
+      ),
+    );
+  }
+
+  const where = and(...conditions);
+
+  const firstTopicTitle = db
+    .select({ t: min(topic.title) })
+    .from(indicatorTopic)
+    .innerJoin(topic, eq(indicatorTopic.topicId, topic.id))
+    .where(eq(indicatorTopic.indicatorId, indicator.id));
+
+  const [countResult, rows] = await Promise.all([
+    db
+      .select({ total: countDistinct(indicator.id) })
+      .from(indicator)
+      .where(where),
+    db
+      .select({ id: indicator.id, fingertipsId: indicator.fingertipsId, name: indicator.name })
+      .from(indicator)
+      .where(where)
+      .orderBy(sql`(${firstTopicTitle}) nulls last`, asc(indicator.name))
+      .limit(filters.limit),
+  ]);
+
+  const total = countResult[0]?.total ?? 0;
+
+  if (rows.length === 0) {
+    return { total, indicators: [] };
+  }
+
+  const ids = rows.map((r) => r.id);
+
+  const [topicRows, classificationRows] = await Promise.all([
+    db
+      .select({
+        indicatorId: indicatorTopic.indicatorId,
+        slug: topic.slug,
+        title: topic.title,
+      })
+      .from(indicatorTopic)
+      .innerJoin(topic, eq(indicatorTopic.topicId, topic.id))
+      .where(inArray(indicatorTopic.indicatorId, ids))
+      .orderBy(asc(topic.title)),
+    db
+      .select({
+        indicatorId: indicatorClassification.indicatorId,
+        dimension: classification.dimension,
+        slug: classification.slug,
+        name: classification.name,
+      })
+      .from(indicatorClassification)
+      .innerJoin(classification, eq(indicatorClassification.classificationId, classification.id))
+      .where(inArray(indicatorClassification.indicatorId, ids))
+      .orderBy(asc(classification.dimension), asc(classification.name)),
+  ]);
+
+  const topicsByIndicator = new Map<string, { slug: string; title: string }[]>();
+  for (const { indicatorId, slug, title } of topicRows) {
+    const existing = topicsByIndicator.get(indicatorId);
+    if (existing) {
+      existing.push({ slug, title });
+    } else {
+      topicsByIndicator.set(indicatorId, [{ slug, title }]);
+    }
+  }
+
+  const classificationsByIndicator = new Map<
+    string,
+    { dimension: string; slug: string; name: string }[]
+  >();
+  for (const { indicatorId, dimension, slug, name } of classificationRows) {
+    const existing = classificationsByIndicator.get(indicatorId);
+    if (existing) {
+      existing.push({ dimension, slug, name });
+    } else {
+      classificationsByIndicator.set(indicatorId, [{ dimension, slug, name }]);
+    }
+  }
+
+  return {
+    total,
+    indicators: rows.map((r) => ({
+      fingertipsId: r.fingertipsId,
+      name: r.name,
+      topics: topicsByIndicator.get(r.id) ?? [],
+      classifications: classificationsByIndicator.get(r.id) ?? [],
+    })),
+  };
+}
+
+export async function listIndicatorFacets(db: Database): Promise<IndicatorFacets> {
+  const approvedIds = db
+    .select({ id: indicator.id })
+    .from(indicator)
+    .where(eq(indicator.status, 'approved'));
+
+  const [topics, classifications, sources, valueTypes, yearTypes] = await Promise.all([
+    db
+      .selectDistinct({ slug: topic.slug, title: topic.title })
+      .from(topic)
+      .innerJoin(indicatorTopic, eq(indicatorTopic.topicId, topic.id))
+      .where(inArray(indicatorTopic.indicatorId, approvedIds))
+      .orderBy(asc(topic.title)),
+    db
+      .selectDistinct({
+        dimension: classification.dimension,
+        slug: classification.slug,
+        name: classification.name,
+      })
+      .from(classification)
+      .innerJoin(
+        indicatorClassification,
+        eq(indicatorClassification.classificationId, classification.id),
+      )
+      .where(inArray(indicatorClassification.indicatorId, approvedIds))
+      .orderBy(asc(classification.dimension), asc(classification.name)),
+    db
+      .selectDistinct({ name: dataSource.name })
+      .from(dataSource)
+      .innerJoin(indicatorMetadata, eq(indicatorMetadata.dataSourceId, dataSource.id))
+      .where(inArray(indicatorMetadata.indicatorId, approvedIds))
+      .orderBy(asc(dataSource.name)),
+    db
+      .selectDistinct({ name: valueType.name })
+      .from(valueType)
+      .innerJoin(indicator, eq(indicator.valueTypeId, valueType.id))
+      .where(eq(indicator.status, 'approved'))
+      .orderBy(asc(valueType.name)),
+    db
+      .selectDistinct({ name: yearType.name })
+      .from(yearType)
+      .innerJoin(indicator, eq(indicator.yearTypeId, yearType.id))
+      .where(eq(indicator.status, 'approved'))
+      .orderBy(asc(yearType.name)),
+  ]);
+
+  return {
+    topics,
+    classifications,
+    sources: sources.map((s) => s.name),
+    valueTypes: valueTypes.map((v) => v.name),
+    yearTypes: yearTypes.map((y) => y.name),
+  };
 }
