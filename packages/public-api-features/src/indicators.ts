@@ -40,14 +40,20 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
       return;
     }
 
+    const indicatorId = await indicators.resolveId(Number(fingertipsId));
+    if (!indicatorId) {
+      response.status(404).json({ error: 'not_found' });
+      return;
+    }
+
     const found = await Promise.all(
-      areaCodes.map((code) => indicators.findObservations(Number(fingertipsId), code)),
+      areaCodes.map((code) => indicators.findObservations(indicatorId, code)),
     );
     const data: IndicatorAreaData[] = found.filter(
       (entry): entry is IndicatorAreaData => entry !== undefined,
     );
 
-    // Every requested area missing means the indicator itself is unknown.
+    // The indicator is known, so every requested area missing means unknown areas.
     if (data.length === 0) {
       response.status(404).json({ error: 'not_found' });
       return;
@@ -71,10 +77,16 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
       return;
     }
 
+    const indicatorId = await indicators.resolveId(Number(fingertipsId));
+    if (!indicatorId) {
+      response.status(404).json({ error: 'not_found' });
+      return;
+    }
+
     // An indicator with no data at this level answers with an empty range rather than an
     // error, matching how /api/areas treats unknown groups.
     response.status(200).json({
-      periods: await indicators.findObservationRange(Number(fingertipsId), displayGroup),
+      periods: await indicators.findObservationRange(indicatorId, displayGroup),
     });
   });
 
@@ -88,10 +100,14 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
       return;
     }
 
+    const indicatorId = await indicators.resolveId(Number(fingertipsId));
+    if (!indicatorId) {
+      response.status(404).json({ error: 'not_found' });
+      return;
+    }
+
     // The annotation binds the repository's shape to the wire contract at compile time.
-    const detail: IndicatorDetail | undefined = await indicators.findApprovedByFingertipsId(
-      Number(fingertipsId),
-    );
+    const detail: IndicatorDetail | undefined = await indicators.findApprovedById(indicatorId);
 
     if (!detail) {
       response.status(404).json({ error: 'not_found' });
