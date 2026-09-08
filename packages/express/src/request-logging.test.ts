@@ -21,10 +21,10 @@ function createCapturingLogger() {
   return { logger: pino({ name: 'public-web' }, destination), lines };
 }
 
-function createApp() {
+function createApp(options?: Parameters<typeof requestLogging>[1]) {
   const { logger, lines } = createCapturingLogger();
   const app = createBaseApp({ serviceName: 'public-web' });
-  app.use(requestLogging(logger));
+  app.use(requestLogging(logger, options));
   app.get('/topics', (_request, response) => response.json({}));
   app.get('/broken', (_request, response) => response.status(500).send('no'));
   app.use((_request, response) => response.status(404).send('missing'));
@@ -79,19 +79,43 @@ describe('requestLogging', () => {
     expect(ids[0]).not.toBe(ids[1]);
   });
 
-  it('keeps the id a caller sent, so its line and ours can be read as one flow', async () => {
+  it('returns the id to the caller, so a tester can find their own lines', async () => {
     const { app, lines } = createApp();
 
-    await request(app).get('/topics').set('X-Request-Id', '019924a1-2c40-7000-8000-000000000001');
+    const response = await request(app).get('/topics');
+    await settled(lines);
+
+    expect(response.headers['x-fphd-request-id']).toMatch(UUID_V7);
+    expect(lines[0]?.req).toMatchObject({ id: response.headers['x-fphd-request-id'] });
+  });
+
+  it('keeps a forwarded id when told to, so a web line and an API line read as one flow', async () => {
+    const { app, lines } = createApp({ acceptsForwardedId: true });
+
+    await request(app)
+      .get('/topics')
+      .set('X-Fphd-Request-Id', '019924a1-2c40-7000-8000-000000000001');
     await settled(lines);
 
     expect(lines[0]?.req).toMatchObject({ id: '019924a1-2c40-7000-8000-000000000001' });
   });
 
-  it('replaces a sent id that is not a uuid, rather than log what a stranger chose', async () => {
+  it('ignores a forwarded id by default, since a browser can send the header too', async () => {
     const { app, lines } = createApp();
 
-    await request(app).get('/topics').set('X-Request-Id', 'chosen-by-the-caller');
+    await request(app)
+      .get('/topics')
+      .set('X-Fphd-Request-Id', '019924a1-2c40-7000-8000-000000000001');
+    await settled(lines);
+
+    expect(lines[0]?.req).toMatchObject({ id: expect.stringMatching(UUID_V7) });
+    expect(JSON.stringify(lines[0])).not.toContain('019924a1-2c40-7000-8000-000000000001');
+  });
+
+  it('replaces a forwarded id that is not a uuid, rather than log what a stranger chose', async () => {
+    const { app, lines } = createApp({ acceptsForwardedId: true });
+
+    await request(app).get('/topics').set('X-Fphd-Request-Id', 'chosen-by-the-caller');
     await settled(lines);
 
     expect(lines[0]?.req).toMatchObject({ id: expect.stringMatching(UUID_V7) });

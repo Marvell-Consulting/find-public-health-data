@@ -24,13 +24,29 @@ function singleHeader(value: string | string[] | undefined): string | undefined 
   return Array.isArray(value) ? value[0] : value;
 }
 
+export interface RequestLoggingOptions {
+  /** Keep the id a web app forwarded, so its line and this one share it. Off for the web apps
+   * themselves: a browser's header is never trusted. */
+  acceptsForwardedId?: boolean;
+}
+
 /** One line per response through the shared logger, so requests filter and aggregate like every
  * other line. Probes are skipped: their traffic would otherwise dominate the log. */
-export function requestLogging(logger: Logger): RequestHandler {
+export function requestLogging(
+  logger: Logger,
+  { acceptsForwardedId = false }: RequestLoggingOptions = {},
+): RequestHandler {
   return pinoHttp({
     logger,
-    // A caller's id is kept so a web line and its API line share one; anything else is minted.
-    genReqId: (request) => readRequestIdHeader(request.headers[REQUEST_ID_HEADER]) ?? uuidv7(),
+    genReqId: (request, response) => {
+      const forwarded = acceptsForwardedId
+        ? readRequestIdHeader(request.headers[REQUEST_ID_HEADER])
+        : undefined;
+      const id = forwarded ?? uuidv7();
+      // Echoed to the caller, so whoever made the request can find its lines.
+      response.setHeader(REQUEST_ID_HEADER, id);
+      return id;
+    },
     autoLogging: { ignore: (request) => probePaths.has(pathOf(request.url)) },
     customLogLevel: (_request, response) => (response.statusCode >= 500 ? 'error' : 'info'),
     // A 5xx with no error attached gets one invented by pino-http, whose stack points at itself.
