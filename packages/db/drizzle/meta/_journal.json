@@ -13,14 +13,14 @@
       "idx": 1,
       "version": "7",
       "when": 1785155447035,
-      "tag": "0001_core_schema",
+      "tag": "0001_core-schema",
       "breakpoints": true
     },
     {
       "idx": 2,
       "version": "7",
       "when": 1785155447794,
-      "tag": "0002_area_exclusion_constraint",
+      "tag": "0002_area-exclusion-constraint",
       "breakpoints": true
     },
     {

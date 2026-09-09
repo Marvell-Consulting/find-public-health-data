@@ -528,6 +528,9 @@ importers:
       jose:
         specifier: 'catalog:'
         version: 6.2.4
+      uuid:
+        specifier: 'catalog:'
+        version: 14.0.2
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -880,6 +883,9 @@ importers:
       react-router:
         specifier: 'catalog:'
         version: 8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      uuid:
+        specifier: 'catalog:'
+        version: 14.0.2
     devDependencies:
       '@types/compression':
         specifier: 'catalog:'

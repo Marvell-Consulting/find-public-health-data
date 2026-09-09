@@ -4,6 +4,10 @@ import type {
   IndicatorObservation,
 } from '@fphd/public-api-features/contract';
 
+function daysBetween(fromDate: string, toDate: string): number {
+  return (Date.parse(toDate) - Date.parse(fromDate)) / 86_400_000;
+}
+
 export function periodLabel(
   { fromDate, toDate }: Pick<IndicatorObservation, 'fromDate' | 'toDate'>,
   yearType?: string,
@@ -15,7 +19,7 @@ export function periodLabel(
   }
   // A financial year spans two calendar years but is one period: 2009/10, not
   // "2009 to 2010" — that form is reserved for genuine multi-year ranges.
-  const days = (Date.parse(toDate) - Date.parse(fromDate)) / 86_400_000;
+  const days = daysBetween(fromDate, toDate);
   if (yearType === 'Financial' && days <= 400) {
     return `${fromYear}/${toYear.slice(2)}`;
   }
@@ -369,7 +373,7 @@ export type PeriodType = 'all' | '1-year' | '3-year';
 
 /** A period spanning appreciably more than a year is a rolling average. */
 function isRolling({ fromDate, toDate }: IndicatorObservation): boolean {
-  const days = (Date.parse(toDate) - Date.parse(fromDate)) / 86_400_000;
+  const days = daysBetween(fromDate, toDate);
   return days > 400;
 }
 

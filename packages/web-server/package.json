@@ -73,7 +73,8 @@
     "isbot": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "react-router": "catalog:"
+    "react-router": "catalog:",
+    "uuid": "catalog:"
   },
   "devDependencies": {
     "@types/compression": "catalog:",

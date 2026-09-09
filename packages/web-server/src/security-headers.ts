@@ -32,7 +32,7 @@ function contentSecurityPolicy({ development, nonce }: SecurityHeaderOptions): s
  * response from any host — HSTS, `nosniff`, `Referrer-Policy` — are `@fphd/express`'s, so the
  * APIs get them too; neither of these two would do anything on a JSON response.
  */
-export function buildSecurityHeaders(options: SecurityHeaderOptions): Record<string, string> {
+export function securityHeaderValues(options: SecurityHeaderOptions): Record<string, string> {
   return {
     'Content-Security-Policy': contentSecurityPolicy(options),
     // frame-ancestors covers modern browsers; X-Frame-Options covers the ones that ignore it.
@@ -45,7 +45,7 @@ export function securityHeaders({ development }: { development: boolean }): Requ
     const nonce = randomBytes(16).toString('base64');
     response.locals.nonce = nonce;
 
-    for (const [header, value] of Object.entries(buildSecurityHeaders({ development, nonce }))) {
+    for (const [header, value] of Object.entries(securityHeaderValues({ development, nonce }))) {
       response.setHeader(header, value);
     }
 

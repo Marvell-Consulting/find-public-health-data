@@ -85,14 +85,17 @@ export async function seedDummyData({ sql, config, logger }: CommandContext): Pr
   assertSeedingAllowed(config.appEnv);
   await assertCoreDataPresent(sql);
 
-  const summary = await sql.begin(async (tx) => {
-    const applied = await seedDummyTables(tx);
+  const { tables, relationships } = await sql.begin(async (tx) => {
+    const seeded = await seedDummyTables(tx);
     await rebuildReadModelTables(tx);
-    return applied;
+    return seeded;
   });
   await analyzeReadModels(sql);
 
-  const { unknownTopics, unknownIndicators, ...counts } = summary;
+  for (const [table, rows] of Object.entries(tables)) {
+    logger.info({ table, rows }, 'Dummy table seeded');
+  }
+  const { unknownTopics, unknownIndicators, ...counts } = relationships;
   logger.info(counts, 'Indicator relationships imported');
   if (unknownTopics.length > 0) {
     logger.warn({ topics: unknownTopics }, 'Topic ids in the file not in this database; skipped');

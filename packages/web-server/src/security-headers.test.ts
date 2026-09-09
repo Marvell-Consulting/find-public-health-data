@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildSecurityHeaders } from './security-headers.js';
+import { securityHeaderValues } from './security-headers.js';
 
 function cspDirectives(headers: Record<string, string>): string[] {
   return headers['Content-Security-Policy']?.split('; ') ?? [];
 }
 
-describe('buildSecurityHeaders', () => {
-  const prod = buildSecurityHeaders({ development: false, nonce: 'test-nonce' });
-  const dev = buildSecurityHeaders({ development: true, nonce: 'test-nonce' });
+describe('securityHeaderValues', () => {
+  const prod = securityHeaderValues({ development: false, nonce: 'test-nonce' });
+  const dev = securityHeaderValues({ development: true, nonce: 'test-nonce' });
 
   it('sets the headers that need a document to mean anything, and only those', () => {
     expect(prod['X-Frame-Options']).toBe('DENY');
