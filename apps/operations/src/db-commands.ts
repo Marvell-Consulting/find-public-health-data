@@ -16,7 +16,7 @@ import {
   rebuildReadModelTables,
   resetDatabase,
   seedDummyTables,
-} from '@fphd/db';
+} from '@fphd/db/operations';
 
 import type { CommandContext } from './commands.js';
 import type { Config } from './load-config.js';

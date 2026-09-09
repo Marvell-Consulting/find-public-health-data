@@ -19,7 +19,8 @@ process.env.POSTGRES_DB = testDb.name;
 
 const { db } = await import('./db.js');
 const { createApp } = await import('./app.js');
-const { createOwnerClient, createRepositories, schema } = await import('@fphd/db');
+const { createRepositories, schema } = await import('@fphd/db');
+const { createOwnerClient } = await import('@fphd/db/operations');
 
 const owner = createOwnerClient(testDb.name);
 const repositories = createRepositories(db);
