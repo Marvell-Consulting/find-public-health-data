@@ -18,6 +18,12 @@ catalogs:
     '@not-govuk/button':
       specifier: 0.18.1
       version: 0.18.1
+    '@not-govuk/checkboxes':
+      specifier: 0.18.1
+      version: 0.18.1
+    '@not-govuk/details':
+      specifier: 0.18.1
+      version: 0.18.1
     '@not-govuk/inset-text':
       specifier: 0.18.1
       version: 0.18.1
@@ -37,6 +43,12 @@ catalogs:
       specifier: 0.18.1
       version: 0.18.1
     '@not-govuk/search-box':
+      specifier: 0.18.1
+      version: 0.18.1
+    '@not-govuk/select':
+      specifier: 0.18.1
+      version: 0.18.1
+    '@not-govuk/summary-list':
       specifier: 0.18.1
       version: 0.18.1
     '@not-govuk/table':
@@ -757,10 +769,10 @@ importers:
         specifier: 'catalog:'
         version: 0.18.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
       '@not-govuk/checkboxes':
-        specifier: 0.18.1
+        specifier: 'catalog:'
         version: 0.18.1(react@19.2.7)
       '@not-govuk/details':
-        specifier: 0.18.1
+        specifier: 'catalog:'
         version: 0.18.1(react@19.2.7)
       '@not-govuk/inset-text':
         specifier: 'catalog:'
@@ -784,16 +796,13 @@ importers:
         specifier: 'catalog:'
         version: 0.18.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
       '@not-govuk/select':
-        specifier: 0.18.1
+        specifier: 'catalog:'
         version: 0.18.1(react@19.2.7)
       '@not-govuk/summary-list':
-        specifier: 0.18.1
+        specifier: 'catalog:'
         version: 0.18.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
       '@not-govuk/table':
         specifier: 'catalog:'
-        version: 0.18.1(react@19.2.7)
-      '@not-govuk/tabs':
-        specifier: 0.18.1
         version: 0.18.1(react@19.2.7)
       '@not-govuk/text-input':
         specifier: 'catalog:'
@@ -1848,18 +1857,6 @@ packages:
 
   '@not-govuk/table@0.18.1':
     resolution: {integrity: sha512-FYW9WUxXx/7lXmgMU988dMZf2JveqE06Rngs8WmopIg4+Ru4tkIb8uRMwjC7CZf3KcIH5eRkgCTlBZkrXrqpxg==}
-    peerDependencies:
-      '@react-foundry/docs-components': ^0.3.0
-      '@storybook/addon-docs': ^10.3.5
-      react: ^19.2.5
-    peerDependenciesMeta:
-      '@react-foundry/docs-components':
-        optional: true
-      '@storybook/addon-docs':
-        optional: true
-
-  '@not-govuk/tabs@0.18.1':
-    resolution: {integrity: sha512-JPftNmLgusHAsFUVY4pTGVMlgSW786iSkiiDNsBJivhpW/zXprmvAkd8UCeV+QumhOE62azsX8KOumEazxouyg==}
     peerDependencies:
       '@react-foundry/docs-components': ^0.3.0
       '@storybook/addon-docs': ^10.3.5
@@ -4406,14 +4403,6 @@ snapshots:
       '@not-govuk/sass-base': 0.18.1
       '@react-foundry/component-helpers': 0.3.0
       '@react-foundry/simple-table': 0.3.0(react@19.2.7)
-      govuk-frontend: 5.14.0
-      react: 19.2.7
-
-  '@not-govuk/tabs@0.18.1(react@19.2.7)':
-    dependencies:
-      '@not-govuk/sass-base': 0.18.1
-      '@react-foundry/client-component-helpers': 0.3.0(react@19.2.7)
-      '@react-foundry/component-helpers': 0.3.0
       govuk-frontend: 5.14.0
       react: 19.2.7
 
