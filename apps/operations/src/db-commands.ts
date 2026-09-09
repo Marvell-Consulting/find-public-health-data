@@ -92,7 +92,9 @@ export async function seedDummyData({ sql, config, logger }: CommandContext): Pr
   });
   await analyzeReadModels(sql);
 
-  logger.info(tables, 'Dummy tables seeded');
+  for (const [table, rows] of Object.entries(tables)) {
+    logger.info({ table, rows }, 'Dummy table seeded');
+  }
   const { unknownTopics, unknownIndicators, ...counts } = relationships;
   logger.info(counts, 'Indicator relationships imported');
   if (unknownTopics.length > 0) {
