@@ -182,19 +182,14 @@
   align-items: center;
   justify-content: space-between;
   padding: govuk-spacing(3) govuk-spacing(4);
-  background-color: govuk-colour("mid-grey");
+  // Light grey rather than mid: govuk-link on mid-grey measures 2.5:1, below AA's 4.5:1.
+  // The border keeps the header separate from the body, which shares the colour.
+  border-bottom: 1px solid govuk-colour("mid-grey");
+  background-color: govuk-colour("light-grey");
 
   > .govuk-body,
   > .govuk-body-s {
     margin-bottom: 0;
-  }
-
-  .govuk-link {
-    color: #0f5a9b;
-
-    &:hover {
-      color: #0f5a9b;
-    }
   }
 }
 
@@ -217,8 +212,6 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
     @include govuk-font($size: 19);
   }
 }
-
-// The sidebar's controls run at 16px, but card titles and body prose keep 19px.
 
 .fphd-filter-card .govuk-select,
 .fphd-filter-card .govuk-input {
@@ -267,14 +260,6 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
   &:hover {
     text-decoration: underline;
   }
-}
-
-.fphd-filter-chip--tag {
-  @include govuk-font($size: 16);
-  padding: 2px 8px 3px;
-  border-color: govuk-colour("black");
-  gap: 0;
-  background-color: govuk-colour("white");
 }
 
 .fphd-link-button {
@@ -573,10 +558,6 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
   }
 }
 
-// The library sets z-index:-1 on the arrow so it paints below the input without overlapping
-// its focus ring, but govuk-input's explicit position:relative creates a stacking context that
-// buries it entirely. Override to keep it visible above the input surface.
-
 // A value's magnitude relative to the largest in the comparison, so rows can be scanned
 // without reading every number.
 .fphd-bar-container {
@@ -829,10 +810,6 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
 body.js-enabled .fphd-add-geo-button[data-empty] {
   display: none;
 }
-
-// The geography search input label should be govuk-label--s weight (bold, 16px)
-// to match the prototype. The TextInput component renders the label as
-// govuk-label; the --s modifier is added here rather than nesting a span.
 
 // The benchmark columns are shaded so a comparison reads as context, not more data: a
 // darker band on the group header, a lighter wash down its cells.
