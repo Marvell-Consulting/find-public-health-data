@@ -25,9 +25,9 @@ export const latestHeadline = pgTable(
     upperCi95: doublePrecision('upper_ci_95'),
   },
   (t) => [
-    index('lh_area').on(t.areaId),
-    index('lh_indicator').on(t.indicatorId),
-    uniqueIndex('lh_unique').on(t.indicatorId, t.areaId),
+    index('idx_latest_headline_area').on(t.areaId),
+    index('idx_latest_headline_indicator').on(t.indicatorId),
+    uniqueIndex('idx_latest_headline_indicator_area').on(t.indicatorId, t.areaId),
   ],
 );
 
