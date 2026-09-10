@@ -1,15 +1,8 @@
-export { ManageDataPage } from './manage-data-page';
-export { AdminTopicsRoute } from './routes/admin-topics';
-export { DeleteTopicRoute } from './routes/delete-topic';
-export { EditTopicRoute } from './routes/edit-topic';
-export { NewTopicRoute } from './routes/new-topic';
-export {
-  AdminTopicsPage,
-  DeleteTopicPage,
-  EditTopicPage,
-  NewTopicPage,
-} from './topic-admin-pages';
-export { parseTopicForm, readTopicForm, type TopicFormValues } from './topic-form';
+export { ManageDataPage } from './manage-data/page';
+export { DeleteTopicRoute } from './topic-admin/delete-route';
+export { EditTopicRoute } from './topic-admin/edit-route';
+export { parseTopicForm, readTopicForm, type TopicFormValues } from './topic-admin/form';
+export { AdminTopicsRoute } from './topic-admin/list-route';
 export {
   createTopic,
   deleteTopic,
@@ -24,4 +17,11 @@ export {
   TOPICS_ADMIN_PATH,
   type TopicAdminDetail,
   type TopicAdminSummary,
-} from './topics-admin-loader';
+} from './topic-admin/loader';
+export { NewTopicRoute } from './topic-admin/new-route';
+export {
+  AdminTopicsPage,
+  DeleteTopicPage,
+  EditTopicPage,
+  NewTopicPage,
+} from './topic-admin/pages';

@@ -1,5 +1,4 @@
-export { SignInPage } from './content-pages';
-export { PublicHomePage } from './home-page';
+export { PublicHomePage } from './home/page';
 export type {
   AreaSummary,
   IndicatorAreaData,
@@ -8,11 +7,12 @@ export type {
   IndicatorSelection,
   IndicatorSummary,
   SelectedIndicator,
-} from './indicator-loader';
-export { IndicatorPage } from './indicator-page';
-export { IndicatorRoute } from './routes/indicator';
-export { createSignInRoute } from './routes/sign-in';
-export { TopicRoute } from './routes/topic';
-export { TopicsRoute } from './routes/topics';
-export { TopicPage, TopicsPage } from './topic-pages';
-export type { TopicDetail, TopicSummary } from './topics-loader';
+} from './indicator/loader';
+export { IndicatorPage } from './indicator/page';
+export { IndicatorRoute } from './indicator/route';
+export { SignInPage } from './sign-in/page';
+export { createSignInRoute } from './sign-in/route';
+export { TopicsRoute } from './topic/list-route';
+export type { TopicDetail, TopicSummary } from './topic/loader';
+export { TopicPage, TopicsPage } from './topic/pages';
+export { TopicRoute } from './topic/route';

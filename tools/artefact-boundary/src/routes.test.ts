@@ -11,7 +11,7 @@ const routeTable = JSON.stringify([
       {
         id: 'home',
         index: true,
-        file: '../../../packages/public-web-features/src/routes/home.tsx',
+        file: '../../../packages/public-web-features/src/home/route.tsx',
       },
       {
         id: 'manage',
@@ -27,7 +27,7 @@ describe('collectRouteFiles', () => {
   it('collects every route module path, nested routes included', () => {
     expect(collectRouteFiles(routeTable)).toEqual([
       'root.tsx',
-      '../../../packages/public-web-features/src/routes/home.tsx',
+      '../../../packages/public-web-features/src/home/route.tsx',
       '../../../packages/internal-web-features/src/manage-route.tsx',
       '../../../packages/ui/src/not-found-route.tsx',
     ]);
