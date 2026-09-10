@@ -1,7 +1,7 @@
 import { fakeUsersForAudience } from '@fphd/auth';
 import {
+  HomeRoute,
   IndicatorRoute,
-  PublicHomePage,
   SignInPage,
   TopicRoute,
   TopicsRoute,
@@ -24,7 +24,7 @@ describe('public application routes', () => {
         path: '/',
         Component: PublicApp,
         loader: () => ({ signedIn: false }),
-        children: [{ index: true, Component: PublicHomePage }],
+        children: [{ index: true, Component: HomeRoute }],
       },
     ]);
 
@@ -57,7 +57,7 @@ describe('public application routes', () => {
         path: '/',
         Component: PublicApp,
         loader: () => ({ signedIn: true }),
-        children: [{ index: true, Component: PublicHomePage }],
+        children: [{ index: true, Component: HomeRoute }],
       },
     ]);
 

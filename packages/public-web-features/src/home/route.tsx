@@ -4,4 +4,8 @@ import { PublicHomePage } from './page';
 
 export const meta = createDocumentMeta('Home');
 
-export default PublicHomePage;
+export function HomeRoute() {
+  return <PublicHomePage />;
+}
+
+export default HomeRoute;

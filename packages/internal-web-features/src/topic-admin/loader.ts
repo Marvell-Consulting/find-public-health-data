@@ -65,7 +65,7 @@ export async function loadAdminTopics({ context }: LoaderFunctionArgs) {
   };
 }
 
-export async function loadAdminTopic({ context, params }: LoaderFunctionArgs) {
+export async function loadAdminTopicToEdit({ context, params }: LoaderFunctionArgs) {
   const id = requireTopicId(params);
   const topic = await context
     .get(apiContext)
@@ -148,7 +148,7 @@ export async function createTopic({
   return redirect(editTopicPath(result.data.topic.id));
 }
 
-export async function loadTopicToDelete({ context, params }: LoaderFunctionArgs) {
+export async function loadAdminTopicToDelete({ context, params }: LoaderFunctionArgs) {
   const id = requireTopicId(params);
 
   return {
