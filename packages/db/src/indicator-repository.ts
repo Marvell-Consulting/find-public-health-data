@@ -71,6 +71,7 @@ export interface IndicatorSearchRow {
 
 export interface IndicatorSearchResult {
   total: number;
+  limit: number;
   indicators: IndicatorSearchRow[];
 }
 
@@ -649,7 +650,7 @@ export async function searchIndicators(
   const total = countResult[0]?.total ?? 0;
 
   if (rows.length === 0) {
-    return { total, indicators: [] };
+    return { total, limit: filters.limit, indicators: [] };
   }
 
   const ids = rows.map((r) => r.id);
@@ -703,6 +704,7 @@ export async function searchIndicators(
 
   return {
     total,
+    limit: filters.limit,
     indicators: rows.map((r) => ({
       fingertipsId: r.fingertipsId,
       name: r.name,

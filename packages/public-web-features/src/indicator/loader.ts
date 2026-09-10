@@ -62,7 +62,7 @@ const DEFAULT_AREA_CODE = 'E92000001';
 // Charts and tables with dozens of series are unreadable long before they are slow, so the
 // selection is capped rather than the URL trusted.
 const MAX_SELECTED_AREAS = 20;
-const MAX_SELECTED_INDICATORS = 10;
+export const MAX_SELECTED_INDICATORS = 10;
 
 function selectedIndicatorIds(url: URL, routeParam: string | undefined): number[] {
   const fromQuery = url.searchParams

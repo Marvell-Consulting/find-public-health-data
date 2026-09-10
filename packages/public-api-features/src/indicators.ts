@@ -1,7 +1,12 @@
 import type { IndicatorSearchFilters, Repositories } from '@fphd/db';
 import { Router } from 'express';
 
-import type { IndicatorAreaData, IndicatorDetail } from './contract.js';
+import type {
+  IndicatorAreaData,
+  IndicatorDetail,
+  IndicatorFacets,
+  IndicatorSearchResult,
+} from './contract.js';
 
 const DEFAULT_AREA_CODE = 'E92000001';
 
@@ -26,7 +31,8 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
   const router = Router();
 
   router.get('/api/indicators/facets', async (_request, response) => {
-    response.status(200).json(await indicators.listFacets());
+    const facets: IndicatorFacets = await indicators.listFacets();
+    response.status(200).json(facets);
   });
 
   router.get('/api/indicators/search', async (request, response) => {
@@ -48,7 +54,8 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
       limit: SEARCH_PAGE_LIMIT,
     };
 
-    response.status(200).json(await indicators.searchWithFilters(filters));
+    const result: IndicatorSearchResult = await indicators.searchWithFilters(filters);
+    response.status(200).json(result);
   });
 
   router.get('/api/indicators', async (request, response) => {

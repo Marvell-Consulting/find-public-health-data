@@ -987,7 +987,7 @@ describe('public application routes', () => {
       valueTypes: ['Proportion'],
       yearTypes: ['Calendar'],
     },
-    searchResult: { total: 0, indicators: [] },
+    searchResult: { total: 0, limit: 200, indicators: [] },
   };
 
   it('renders the search page skeleton with h1 and filters heading', async () => {
@@ -1040,6 +1040,7 @@ describe('public application routes', () => {
       ...searchLoaderData,
       searchResult: {
         total: 5,
+        limit: 200,
         indicators: [
           {
             fingertipsId: 108,
@@ -1153,6 +1154,7 @@ describe('public application routes', () => {
       ...searchLoaderData,
       searchResult: {
         total: 350,
+        limit: 200,
         indicators: Array.from({ length: 200 }, (_, i) => ({
           fingertipsId: 100 + i,
           name: `Indicator ${i}`,

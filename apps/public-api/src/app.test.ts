@@ -142,7 +142,7 @@ describe('public API', () => {
   });
 
   it('passes q and every dimension param to searchWithFilters with limit 200', async () => {
-    const result = { total: 0, indicators: [] };
+    const result = { total: 0, limit: 200, indicators: [] };
     const searchWithFilters = vi.fn().mockResolvedValue(result);
     const app = createApp({
       logger,
@@ -170,7 +170,7 @@ describe('public API', () => {
   });
 
   it('deduplicates repeated search filter values', async () => {
-    const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, indicators: [] });
+    const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, limit: 200, indicators: [] });
     const app = createApp({
       logger,
       repositories: createFakeRepositories({ indicators: { searchWithFilters } }),
@@ -184,7 +184,7 @@ describe('public API', () => {
   });
 
   it('drops empty and over-100-char search filter values', async () => {
-    const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, indicators: [] });
+    const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, limit: 200, indicators: [] });
     const app = createApp({
       logger,
       repositories: createFakeRepositories({ indicators: { searchWithFilters } }),
@@ -197,7 +197,7 @@ describe('public API', () => {
   });
 
   it('caps each filter list at 100 entries', async () => {
-    const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, indicators: [] });
+    const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, limit: 200, indicators: [] });
     const app = createApp({
       logger,
       repositories: createFakeRepositories({ indicators: { searchWithFilters } }),
@@ -215,7 +215,7 @@ describe('public API', () => {
 
   it('does not route /api/indicators/search to the :fingertipsId handler', async () => {
     // Without a stub, reaching the :fingertipsId route would 500; it must 200 instead.
-    const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, indicators: [] });
+    const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, limit: 200, indicators: [] });
     const app = createApp({
       logger,
       repositories: createFakeRepositories({ indicators: { searchWithFilters } }),

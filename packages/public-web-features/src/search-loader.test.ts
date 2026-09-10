@@ -23,7 +23,7 @@ const EMPTY_FACETS = {
   yearTypes: [],
 };
 
-const EMPTY_RESULT = { total: 0, indicators: [] };
+const EMPTY_RESULT = { total: 0, limit: 200, indicators: [] };
 
 function api(get = vi.fn()) {
   const client = {
@@ -194,42 +194,6 @@ describe('loadSearch', () => {
     expect(searchIdx).toBeGreaterThanOrEqual(0);
   });
 
-  it('resolves ?topic= deep link to t param and redirects', async () => {
-    const get = vi.fn().mockImplementation((path: string) => {
-      if (path === '/api/areas/display-groups') return Promise.resolve(DISPLAY_GROUPS);
-      if (path === '/api/indicators/facets') {
-        return Promise.resolve({
-          ...EMPTY_FACETS,
-          topics: [{ slug: 'mortality', title: 'Mortality' }],
-        });
-      }
-      return Promise.resolve([]);
-    });
-    const { client } = api(get);
-
-    await expect(
-      loadSearch(loaderArgs(client, 'http://localhost/search?topic=mortality')),
-    ).rejects.toMatchObject({ status: 302 });
-  });
-
-  it('resolves ?type= deep link to it param and redirects', async () => {
-    const get = vi.fn().mockImplementation((path: string) => {
-      if (path === '/api/areas/display-groups') return Promise.resolve(DISPLAY_GROUPS);
-      if (path === '/api/indicators/facets') {
-        return Promise.resolve({
-          ...EMPTY_FACETS,
-          classifications: [{ dimension: 'indicator_type', slug: 'rate', name: 'Rate' }],
-        });
-      }
-      return Promise.resolve([]);
-    });
-    const { client } = api(get);
-
-    await expect(
-      loadSearch(loaderArgs(client, 'http://localhost/search?type=rate')),
-    ).rejects.toMatchObject({ status: 302 });
-  });
-
   it('resolves no-JS t-add text to slug by case-insensitive name match and redirects', async () => {
     const get = vi.fn().mockImplementation((path: string) => {
       if (path === '/api/areas/display-groups') return Promise.resolve(DISPLAY_GROUPS);
@@ -248,44 +212,6 @@ describe('loadSearch', () => {
     await expect(
       loadSearch(loaderArgs(client, 'http://localhost/search?t-add=MORTALITY+AND+LIFE+EXPECTANCY')),
     ).rejects.toMatchObject({ status: 302 });
-  });
-
-  it('redirects but does not append unknown ?topic= slug', async () => {
-    const get = vi.fn().mockImplementation((path: string) => {
-      if (path === '/api/areas/display-groups') return Promise.resolve(DISPLAY_GROUPS);
-      if (path === '/api/indicators/facets') {
-        return Promise.resolve({ ...EMPTY_FACETS, topics: [] });
-      }
-      return Promise.resolve([]);
-    });
-    const { client } = api(get);
-
-    const err: unknown = await loadSearch(
-      loaderArgs(client, 'http://localhost/search?topic=unknown-slug'),
-    ).catch((r) => r);
-
-    expect(err).toMatchObject({ status: 302 });
-    const location = (err as Response).headers?.get('Location') ?? '';
-    expect(location).not.toContain('t=unknown-slug');
-  });
-
-  it('redirects but does not append unknown ?type= slug', async () => {
-    const get = vi.fn().mockImplementation((path: string) => {
-      if (path === '/api/areas/display-groups') return Promise.resolve(DISPLAY_GROUPS);
-      if (path === '/api/indicators/facets') {
-        return Promise.resolve({ ...EMPTY_FACETS, classifications: [] });
-      }
-      return Promise.resolve([]);
-    });
-    const { client } = api(get);
-
-    const err: unknown = await loadSearch(
-      loaderArgs(client, 'http://localhost/search?type=unknown-type'),
-    ).catch((r) => r);
-
-    expect(err).toMatchObject({ status: 302 });
-    const location = (err as Response).headers?.get('Location') ?? '';
-    expect(location).not.toContain('it=unknown-type');
   });
 
   it('fetches display-groups and area lookup in parallel (both called without awaiting)', async () => {

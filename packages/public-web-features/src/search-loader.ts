@@ -58,8 +58,6 @@ export async function loadSearch({ context, request }: LoaderFunctionArgs) {
 
   const addParams = DIMENSIONS.map((d) => d.param);
   const hasAddControl = addParams.some((p) => params.has(`${p}-add`));
-  const hasTopicDeepLink = params.has('topic');
-  const hasTypeDeepLink = params.has('type');
 
   const rawGa = pickStrings(params, 'ga')
     .filter((code) => AREA_CODE_RE.test(code))
@@ -84,30 +82,10 @@ export async function loadSearch({ context, request }: LoaderFunctionArgs) {
   );
   const resolvedGaGroups = [...new Set(resolved.map((a) => a.displayGroup))];
 
-  if (hasAddControl || hasTopicDeepLink || hasTypeDeepLink) {
+  if (hasAddControl) {
     const facets = await api.get('/api/indicators/facets', indicatorFacetsSchema);
 
     const next = new URLSearchParams(params);
-
-    if (hasTopicDeepLink) {
-      const slug = params.get('topic') ?? '';
-      next.delete('topic');
-      const exists = facets.topics.some((t) => t.slug === slug);
-      if (slug && exists && !next.getAll('t').includes(slug)) {
-        next.append('t', slug);
-      }
-    }
-
-    if (hasTypeDeepLink) {
-      const slug = params.get('type') ?? '';
-      next.delete('type');
-      const exists = facets.classifications.some(
-        (c) => c.dimension === 'indicator_type' && c.slug === slug,
-      );
-      if (slug && exists && !next.getAll('it').includes(slug)) {
-        next.append('it', slug);
-      }
-    }
 
     for (const dim of DIMENSIONS) {
       const addKey = `${dim.param}-add`;

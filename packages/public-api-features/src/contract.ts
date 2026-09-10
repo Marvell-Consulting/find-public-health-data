@@ -176,6 +176,8 @@ export const indicatorSearchRowSchema = z.object({
 
 export const indicatorSearchResultSchema = z.object({
   total: z.number().int(),
+  // The cap the server applied, so the page can say how many of the total it is showing.
+  limit: z.number().int(),
   indicators: z.array(indicatorSearchRowSchema),
 });
 

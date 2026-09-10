@@ -12,7 +12,14 @@ import { useState } from 'react';
 import { Form, Link, useNavigate } from 'react-router';
 
 import type { IndicatorFacets } from './search-loader.js';
-import { DIMENSIONS, removeFrom, type SearchState, searchUrl } from './search-url.js';
+import {
+  DIMENSIONS,
+  EMPTY_SEARCH_STATE,
+  LIST_PARAMS,
+  removeFrom,
+  type SearchState,
+  searchUrl,
+} from './search-url.js';
 
 interface SearchFilterPaneProps {
   state: SearchState;
@@ -25,28 +32,11 @@ function HiddenFilters({ state, except }: { state: SearchState; except?: keyof S
   return (
     <>
       {except !== 'q' && state.q ? <input name="q" type="hidden" value={state.q} /> : null}
-      {except !== 'topics' &&
-        state.topics.map((v) => <input key={v} name="t" type="hidden" value={v} />)}
-      {except !== 'indicatorTypes' &&
-        state.indicatorTypes.map((v) => <input key={v} name="it" type="hidden" value={v} />)}
-      {except !== 'riskFactors' &&
-        state.riskFactors.map((v) => <input key={v} name="rf" type="hidden" value={v} />)}
-      {except !== 'frameworks' &&
-        state.frameworks.map((v) => <input key={v} name="fw" type="hidden" value={v} />)}
-      {except !== 'populations' &&
-        state.populations.map((v) => <input key={v} name="pg" type="hidden" value={v} />)}
-      {except !== 'inequalities' &&
-        state.inequalities.map((v) => <input key={v} name="eq" type="hidden" value={v} />)}
-      {except !== 'sources' &&
-        state.sources.map((v) => <input key={v} name="src" type="hidden" value={v} />)}
-      {except !== 'valueTypes' &&
-        state.valueTypes.map((v) => <input key={v} name="vt" type="hidden" value={v} />)}
-      {except !== 'yearTypes' &&
-        state.yearTypes.map((v) => <input key={v} name="per" type="hidden" value={v} />)}
-      {except !== 'geoLevels' &&
-        state.geoLevels.map((v) => <input key={v} name="geo" type="hidden" value={v} />)}
-      {except !== 'gaCodes' &&
-        state.gaCodes.map((v) => <input key={v} name="ga" type="hidden" value={v} />)}
+      {LIST_PARAMS.filter(({ stateKey }) => stateKey !== except).map(({ param, stateKey }) =>
+        (state[stateKey] as string[]).map((v) => (
+          <input key={`${param}-${v}`} name={param} type="hidden" value={v} />
+        )),
+      )}
     </>
   );
 }
@@ -220,7 +210,7 @@ export function SearchFilterPane({
   const clearFwUrl = searchUrl({ ...state, frameworks: [] });
   const clearPopUrl = searchUrl({ ...state, populations: [], inequalities: [] });
   const clearDataAttrUrl = searchUrl({ ...state, sources: [], valueTypes: [], yearTypes: [] });
-  const clearAllFiltersUrl = `/search${state.q ? `?q=${encodeURIComponent(state.q)}` : ''}`;
+  const clearAllFiltersUrl = searchUrl({ ...EMPTY_SEARCH_STATE, q: state.q });
   const clearQUrl = searchUrl({ ...state, q: '' });
 
   const topicsAndTypesDims = DIMENSIONS.filter((d) => ['t', 'it', 'rf'].includes(d.param));

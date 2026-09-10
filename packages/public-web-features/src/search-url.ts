@@ -109,23 +109,41 @@ export const DIMENSIONS: DimensionConfig[] = [
   },
 ];
 
+/**
+ * Every list-valued param, in URL order: the nine filter dimensions plus the two geography
+ * ones, which have no autocomplete of their own and so are absent from DIMENSIONS. Deriving
+ * both the URL and the hidden form fields from this keeps a new dimension to a single edit.
+ */
+export const LIST_PARAMS: { param: string; stateKey: keyof SearchState }[] = [
+  ...DIMENSIONS.map(({ param, stateKey }) => ({ param, stateKey })),
+  { param: 'geo', stateKey: 'geoLevels' },
+  { param: 'ga', stateKey: 'gaCodes' },
+];
+
 export function searchUrl(state: SearchState): string {
   const p = new URLSearchParams();
   if (state.q) p.set('q', state.q);
-  for (const v of state.topics) p.append('t', v);
-  for (const v of state.indicatorTypes) p.append('it', v);
-  for (const v of state.riskFactors) p.append('rf', v);
-  for (const v of state.frameworks) p.append('fw', v);
-  for (const v of state.populations) p.append('pg', v);
-  for (const v of state.inequalities) p.append('eq', v);
-  for (const v of state.sources) p.append('src', v);
-  for (const v of state.valueTypes) p.append('vt', v);
-  for (const v of state.yearTypes) p.append('per', v);
-  for (const v of state.geoLevels) p.append('geo', v);
-  for (const v of state.gaCodes) p.append('ga', v);
+  for (const { param, stateKey } of LIST_PARAMS) {
+    for (const v of state[stateKey] as string[]) p.append(param, v);
+  }
   const s = p.toString();
   return `/search${s ? `?${s}` : ''}`;
 }
+
+export const EMPTY_SEARCH_STATE: SearchState = {
+  q: '',
+  topics: [],
+  indicatorTypes: [],
+  riskFactors: [],
+  frameworks: [],
+  populations: [],
+  inequalities: [],
+  sources: [],
+  valueTypes: [],
+  yearTypes: [],
+  geoLevels: [],
+  gaCodes: [],
+};
 
 export function removeFrom(state: SearchState, key: keyof SearchState, value: string): SearchState {
   const list = state[key] as string[];
