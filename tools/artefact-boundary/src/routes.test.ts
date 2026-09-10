@@ -14,9 +14,9 @@ const routeTable = JSON.stringify([
         file: '../../../packages/public-web-features/src/home/route.tsx',
       },
       {
-        id: 'manage',
-        path: 'manage',
-        file: '../../../packages/internal-web-features/src/manage-route.tsx',
+        id: 'manage-topics',
+        path: 'manage/topics',
+        file: '../../../packages/internal-web-features/src/topic-admin/list-route.tsx',
       },
       { id: 'catch-all', path: '*', file: '../../../packages/ui/src/not-found-route.tsx' },
     ],
@@ -28,7 +28,7 @@ describe('collectRouteFiles', () => {
     expect(collectRouteFiles(routeTable)).toEqual([
       'root.tsx',
       '../../../packages/public-web-features/src/home/route.tsx',
-      '../../../packages/internal-web-features/src/manage-route.tsx',
+      '../../../packages/internal-web-features/src/topic-admin/list-route.tsx',
       '../../../packages/ui/src/not-found-route.tsx',
     ]);
   });
