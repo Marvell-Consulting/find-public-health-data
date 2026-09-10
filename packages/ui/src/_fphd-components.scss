@@ -262,6 +262,14 @@ body:not(.js-enabled) .fphd-collapsible-body[hidden] {
   }
 }
 
+.fphd-filter-chip--tag {
+  @include govuk-font($size: 16);
+  padding: 2px 8px 3px;
+  border-color: govuk-colour("black");
+  gap: 0;
+  background-color: govuk-colour("white");
+}
+
 .fphd-link-button {
   padding: 0;
   border: 0;
@@ -856,37 +864,46 @@ body.js-enabled .fphd-add-geo-button[data-empty] {
   margin-bottom: govuk-spacing(4);
 }
 
-// The results are one checkbox group; each option is a result row.
-.govuk-form-group:has(> .govuk-fieldset > .fphd-search-results) {
-  margin-bottom: 0;
-
-  .govuk-fieldset__legend {
-    @include govuk-visually-hidden;
-  }
-}
-
-.fphd-search-results.govuk-checkboxes {
-  margin-top: govuk-spacing(2);
-
-  > .govuk-checkboxes__item {
-    display: flex;
-    align-items: flex-start;
-    padding: govuk-spacing(3) 0;
-    margin-bottom: 0;
-  }
-}
-
-.fphd-search-results .fphd-filter-chips {
-  gap: 4px;
-  margin-top: 2px;
-}
-
+// The fieldset wrapping the result rows; its legend names the set.
 .fphd-search-results {
-  .govuk-checkboxes__label {
-    display: block;
-    max-width: calc(100% - 44px);
+  margin-top: govuk-spacing(2);
+  border: 0;
+  padding: 0;
+}
+
+// One checkbox per result, its visible title the link in the body beside it.
+.fphd-search-result {
+  display: flex;
+  align-items: flex-start;
+  gap: govuk-spacing(2);
+  padding: govuk-spacing(3) 0;
+  border-bottom: 1px solid govuk-colour("mid-grey");
+
+  .govuk-form-group,
+  .govuk-checkboxes__item {
     margin-bottom: 0;
   }
+
+  // govuk paints the checkbox with ::before on the label, so the label keeps a box
+  // the size of the touch target with its text clipped away. Left to itself govuk
+  // centres it against the whole row; top-aligning and pulling up by half the
+  // target's height lands the box on the title's first line.
+  .govuk-checkboxes__label {
+    align-self: flex-start;
+    flex: 0 0 44px;
+    width: 44px;
+    max-width: 44px;
+    height: 44px;
+    margin-top: -22px;
+    padding: 0;
+    overflow: hidden;
+    text-indent: -999em;
+  }
+}
+
+.fphd-search-result__body {
+  flex: 1;
+  min-width: 0;
 
   .govuk-summary-list {
     margin-top: govuk-spacing(2);

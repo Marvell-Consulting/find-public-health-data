@@ -1,4 +1,4 @@
-import { Button, Checkboxes, InsetText, SummaryList, Tag } from '@fphd/ui';
+import { Button, Checkboxes, InsetText, SummaryList } from '@fphd/ui';
 import { useState } from 'react';
 import { Form, Link } from 'react-router';
 
@@ -12,17 +12,17 @@ interface SearchResultsProps {
 
 function Tags({ items }: { items: { key: string; label: string }[] }) {
   return (
-    <div className="fphd-tag-list">
+    <div className="fphd-filter-chips fphd-filter-chips--inline">
       {items.map((item) => (
-        <Tag classModifiers="grey" key={item.key}>
+        <div className="fphd-filter-chip fphd-filter-chip--tag" key={item.key}>
           {item.label}
-        </Tag>
+        </div>
       ))}
     </div>
   );
 }
 
-function ResultLabel({ indicator }: { indicator: IndicatorSearchRow }) {
+function ResultMeta({ indicator }: { indicator: IndicatorSearchRow }) {
   const classified = (dimension: string) =>
     indicator.classifications
       .filter((c) => c.dimension === dimension)
@@ -33,24 +33,16 @@ function ResultLabel({ indicator }: { indicator: IndicatorSearchRow }) {
     { key: 'Risk factors', items: classified('risk_factor') },
   ].filter((row) => row.items.length > 0);
 
+  if (rows.length === 0) return null;
+
   return (
-    <>
-      <span className="govuk-visually-hidden">{indicator.name}</span>
-      <strong>
-        <Link className="govuk-link" to={`/indicators/${indicator.fingertipsId}`}>
-          {indicator.name}
-        </Link>
-      </strong>
-      {rows.length > 0 ? (
-        <SummaryList
-          className="govuk-!-margin-bottom-0 govuk-!-margin-top-1"
-          items={rows.map((row) => ({
-            children: <Tags items={row.items} />,
-            name: row.key,
-          }))}
-        />
-      ) : null}
-    </>
+    <SummaryList
+      className="govuk-!-margin-bottom-0 govuk-!-margin-top-1"
+      items={rows.map((row) => ({
+        children: <Tags items={row.items} />,
+        name: row.key,
+      }))}
+    />
   );
 }
 
@@ -103,22 +95,41 @@ export function SearchResults({ searchResult, gaCodes }: SearchResultsProps) {
             </p>
           ) : null}
 
-          <Checkboxes
-            className="fphd-search-results"
-            id="is"
-            label={<span className="govuk-visually-hidden">Indicators</span>}
-            name="is"
-            onChange={(event) => toggle(Number(event.target.value), event.target.checked)}
-            options={indicators.map((indicator) => {
+          {/* A label holds phrasing content only, so the metadata is a sibling of it and
+              the fieldset names the set — hence each group's own label being empty. */}
+          <fieldset className="govuk-fieldset fphd-search-results">
+            <legend className="govuk-visually-hidden">Indicators</legend>
+            {indicators.map((indicator) => {
               const isSelected = ticked.includes(indicator.fingertipsId);
-              return {
-                checked: isSelected,
-                disabled: !isSelected && ticked.length >= MAX_SELECTED_INDICATORS,
-                label: <ResultLabel indicator={indicator} />,
-                value: String(indicator.fingertipsId),
-              };
+              return (
+                <div className="fphd-search-result" key={indicator.fingertipsId}>
+                  <Checkboxes
+                    checked={isSelected}
+                    id={`is-${indicator.fingertipsId}`}
+                    label=""
+                    name="is"
+                    onChange={(event) => toggle(Number(event.target.value), event.target.checked)}
+                    options={[
+                      {
+                        disabled: !isSelected && ticked.length >= MAX_SELECTED_INDICATORS,
+                        label: indicator.name,
+                        value: String(indicator.fingertipsId),
+                      },
+                    ]}
+                  />
+                  <div className="fphd-search-result__body">
+                    <Link
+                      className="govuk-link govuk-!-display-block govuk-!-font-weight-bold"
+                      to={`/indicators/${indicator.fingertipsId}`}
+                    >
+                      {indicator.name}
+                    </Link>
+                    <ResultMeta indicator={indicator} />
+                  </div>
+                </div>
+              );
             })}
-          />
+          </fieldset>
 
           {capped ? (
             <p className="govuk-body govuk-!-margin-top-3">
