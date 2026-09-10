@@ -35,9 +35,10 @@ WORKDIR /repo
 
 FROM base AS builder
 
-# Deps layer keyed on the lockfile alone, so source edits don't re-download packages. Both
+# Deps layer keyed on the lockfile and patches alone, so source edits don't re-download packages. Both
 # this and the install below sit before `ARG APP`, so all five images share them.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches ./patches/
 RUN pnpm fetch
 
 COPY . .
