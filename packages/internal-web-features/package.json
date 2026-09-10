@@ -10,19 +10,20 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "peerDependencies": {
+  "dependencies": {
     "@fphd/internal-api-features": "workspace:*",
     "@fphd/ui": "workspace:*",
-    "@fphd/web-server": "workspace:*",
+    "@fphd/web-server": "workspace:*"
+  },
+  "peerDependencies": {
     "react": "catalog:",
     "react-router": "catalog:"
   },
   "devDependencies": {
-    "@fphd/internal-api-features": "workspace:*",
-    "@fphd/web-server": "workspace:*",
     "@types/react": "catalog:",
     "react": "catalog:",
     "react-router": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
