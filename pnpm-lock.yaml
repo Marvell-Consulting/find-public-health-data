@@ -728,6 +728,12 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 24.13.3
+      '@types/supertest':
+        specifier: 'catalog:'
+        version: 7.2.0
+      supertest:
+        specifier: 'catalog:'
+        version: 7.2.2
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
