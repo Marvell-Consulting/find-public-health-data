@@ -5,7 +5,8 @@
 FROM node:26-alpine3.24
 
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-RUN corepack enable
+# Node 25+ no longer bundles corepack, so install it before enabling the pinned pnpm.
+RUN npm install -g corepack@0.36.0 && corepack enable
 WORKDIR /repo
 
 # Deps layer keyed on the lockfile alone, so source edits don't re-download packages.

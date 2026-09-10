@@ -29,7 +29,8 @@
 # not upstream rebuild lag. The builder stage skips it; nothing in it ships.
 FROM node:26-alpine3.24@sha256:ef24c5053d50fdc3e4e56eb4e7ddb7861874ab0fdc797046ba897581deb8e868 AS base
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-RUN corepack enable
+# Node 25+ no longer bundles corepack, so install it before enabling the pinned pnpm.
+RUN npm install -g corepack@0.36.0 && corepack enable
 WORKDIR /repo
 
 FROM base AS builder
