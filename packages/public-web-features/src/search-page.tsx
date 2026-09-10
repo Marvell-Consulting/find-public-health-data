@@ -1,6 +1,4 @@
 import { GridColumn, GridRow } from '@fphd/ui';
-import { useRef } from 'react';
-import { useLocation } from 'react-router';
 import { SearchFilterPane } from './search-filter-pane.js';
 import type { loadSearch } from './search-loader.js';
 import { SearchResults } from './search-results.js';
@@ -26,13 +24,6 @@ function stateFrom(data: SearchData): SearchState {
 }
 
 export function SearchPage(data: SearchData) {
-  const location = useLocation();
-  const prevKey = useRef(location.key);
-  const stateRef = useRef<SearchState>(stateFrom(data));
-  if (prevKey.current !== location.key) {
-    prevKey.current = location.key;
-    stateRef.current = stateFrom(data);
-  }
   const state = stateFrom(data);
 
   return (
