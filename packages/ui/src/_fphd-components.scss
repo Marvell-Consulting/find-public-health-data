@@ -473,8 +473,8 @@
 }
 
 .govuk-tag--grey.fphd-trend-tag {
-  color: govuk-colour("black");
-  background-color: govuk-colour("black", $variant: "tint-80");
+  color: govuk-colour("black", $variant: "tint-25");
+  background-color: govuk-colour("black", $variant: "tint-95");
 }
 
 .govuk-tag--blue.fphd-trend-tag {
@@ -484,7 +484,7 @@
 
 .govuk-tag--yellow.fphd-trend-tag {
   color: govuk-colour("yellow", $variant: "shade-50");
-  background-color: govuk-colour("yellow", $variant: "tint-50");
+  background-color: govuk-colour("yellow", $variant: "tint-80");
 }
 
 .govuk-tag--red.fphd-trend-tag {
