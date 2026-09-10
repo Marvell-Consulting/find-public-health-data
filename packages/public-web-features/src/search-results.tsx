@@ -1,11 +1,9 @@
-import { Button, Checkboxes, InsetText } from '@fphd/ui';
+import { Button, Checkboxes, InsetText, SummaryList, Tag } from '@fphd/ui';
 import { useState } from 'react';
 import { Form, Link } from 'react-router';
 
+import { MAX_SELECTED_INDICATORS } from './indicator-loader.js';
 import type { IndicatorSearchResult, IndicatorSearchRow } from './search-loader.js';
-
-const MAX_SELECTED = 10;
-const SEARCH_CAP = 200;
 
 interface SearchResultsProps {
   searchResult: IndicatorSearchResult;
@@ -14,11 +12,11 @@ interface SearchResultsProps {
 
 function Tags({ items }: { items: { key: string; label: string }[] }) {
   return (
-    <div className="fphd-filter-chips fphd-filter-chips--inline">
+    <div className="fphd-tag-list">
       {items.map((item) => (
-        <div className="fphd-filter-chip fphd-filter-chip--tag" key={item.key}>
+        <Tag classModifiers="grey" key={item.key}>
           {item.label}
-        </div>
+        </Tag>
       ))}
     </div>
   );
@@ -44,16 +42,13 @@ function ResultLabel({ indicator }: { indicator: IndicatorSearchRow }) {
         </Link>
       </strong>
       {rows.length > 0 ? (
-        <dl className="govuk-summary-list govuk-!-margin-bottom-0 govuk-!-margin-top-1">
-          {rows.map((row) => (
-            <div className="govuk-summary-list__row" key={row.key}>
-              <dt className="govuk-summary-list__key">{row.key}</dt>
-              <dd className="govuk-summary-list__value">
-                <Tags items={row.items} />
-              </dd>
-            </div>
-          ))}
-        </dl>
+        <SummaryList
+          className="govuk-!-margin-bottom-0 govuk-!-margin-top-1"
+          items={rows.map((row) => ({
+            children: <Tags items={row.items} />,
+            name: row.key,
+          }))}
+        />
       ) : null}
     </>
   );
@@ -61,12 +56,12 @@ function ResultLabel({ indicator }: { indicator: IndicatorSearchRow }) {
 
 export function SearchResults({ searchResult, gaCodes }: SearchResultsProps) {
   const [ticked, setTicked] = useState<number[]>([]);
-  const { total, indicators } = searchResult;
-  const capped = total > SEARCH_CAP;
+  const { total, limit, indicators } = searchResult;
+  const capped = total > limit;
 
   const toggle = (id: number, checked: boolean) => {
     setTicked((prev) => {
-      if (checked && prev.length >= MAX_SELECTED) return prev;
+      if (checked && prev.length >= MAX_SELECTED_INDICATORS) return prev;
       return checked ? [...prev, id] : prev.filter((v) => v !== id);
     });
   };
@@ -102,9 +97,9 @@ export function SearchResults({ searchResult, gaCodes }: SearchResultsProps) {
             </Button>
           </div>
 
-          {ticked.length >= MAX_SELECTED ? (
+          {ticked.length >= MAX_SELECTED_INDICATORS ? (
             <p className="govuk-body govuk-!-margin-bottom-2">
-              You can select up to 10 indicators.
+              You can select up to {MAX_SELECTED_INDICATORS} indicators.
             </p>
           ) : null}
 
@@ -118,7 +113,7 @@ export function SearchResults({ searchResult, gaCodes }: SearchResultsProps) {
               const isSelected = ticked.includes(indicator.fingertipsId);
               return {
                 checked: isSelected,
-                disabled: !isSelected && ticked.length >= MAX_SELECTED,
+                disabled: !isSelected && ticked.length >= MAX_SELECTED_INDICATORS,
                 label: <ResultLabel indicator={indicator} />,
                 value: String(indicator.fingertipsId),
               };
@@ -127,8 +122,8 @@ export function SearchResults({ searchResult, gaCodes }: SearchResultsProps) {
 
           {capped ? (
             <p className="govuk-body govuk-!-margin-top-3">
-              Showing the first {SEARCH_CAP.toLocaleString()} of {total.toLocaleString()}. Add a
-              filter to narrow the list.
+              Showing the first {limit.toLocaleString()} of {total.toLocaleString()}. Add a filter
+              to narrow the list.
             </p>
           ) : null}
         </Form>

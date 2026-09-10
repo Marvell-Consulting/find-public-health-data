@@ -12,6 +12,7 @@ export { default as SearchBox } from '@not-govuk/search-box';
 export { default as Select } from '@not-govuk/select';
 export { default as SummaryList } from '@not-govuk/summary-list';
 export { default as Table } from '@not-govuk/table';
+export { default as Tag } from '@not-govuk/tag';
 export { default as TextInput } from '@not-govuk/text-input';
 export { default as Textarea } from '@not-govuk/textarea';
 export { AppDocument } from './app-document';
