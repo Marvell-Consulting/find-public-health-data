@@ -1,3 +1,4 @@
+// No @fphd/ui imports here, so the loaders unit-test without the jsdom the components need.
 import {
   type TopicFieldErrors,
   topicAdminDetailSchema,
@@ -13,11 +14,9 @@ import { setFlash, takeFlash } from '@fphd/web-server/flash';
 import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from 'react-router';
 
 import { parseTopicForm, readTopicForm, type TopicFormValues } from './form';
+import { editTopicPath, TOPICS_ADMIN_PATH } from './paths';
 
 export type { TopicAdminDetail, TopicAdminSummary } from '@fphd/internal-api-features/contract';
-
-// No @fphd/ui imports here, so the loaders unit-test without the jsdom the components need.
-export const TOPICS_ADMIN_PATH = '/manage/topics';
 
 /** Resolved on the server so a cookie value is only ever a key into copy written here. */
 const FLASH_MESSAGES = {
@@ -32,16 +31,6 @@ type FlashKey = keyof typeof FLASH_MESSAGES;
 // `in` would also admit inherited keys like 'constructor', turning the lookup into a function.
 function isFlashKey(value: string | undefined): value is FlashKey {
   return value !== undefined && Object.hasOwn(FLASH_MESSAGES, value);
-}
-
-export const NEW_TOPIC_PATH = `${TOPICS_ADMIN_PATH}/new`;
-
-export function editTopicPath(id: string): string {
-  return `${TOPICS_ADMIN_PATH}/${encodeURIComponent(id)}`;
-}
-
-export function deleteTopicPath(id: string): string {
-  return `${editTopicPath(id)}/delete`;
 }
 
 function requireTopicId(params: LoaderFunctionArgs['params']): string {
