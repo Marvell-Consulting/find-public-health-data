@@ -90,6 +90,24 @@ describe('internal API', () => {
     expect(response.body).toEqual({ indicators: [] });
   });
 
+  it('mounts the internal indicators surface behind the publisher role', async () => {
+    const internalRepositories = createFakeInternalRepositories({
+      indicators: { listPage: async () => ({ indicators: [], total: 0 }) },
+    });
+    const app = createTestApp(createFakeRepositories(), internalRepositories);
+
+    const asPublisher = await request(app)
+      .get('/api/internal/indicators')
+      .set('Cookie', await createCookie(['public', 'internal', 'publisher']));
+    const asViewer = await request(app)
+      .get('/api/internal/indicators')
+      .set('Cookie', await createCookie(['public', 'internal']));
+
+    expect(asPublisher.status).toBe(200);
+    expect(asPublisher.body).toEqual({ indicators: [], page: 1, pageSize: 10, total: 0 });
+    expect(asViewer.status).toBe(403);
+  });
+
   it('mounts the internal topics surface behind the publisher role', async () => {
     const internalRepositories = createFakeInternalRepositories({
       topics: {

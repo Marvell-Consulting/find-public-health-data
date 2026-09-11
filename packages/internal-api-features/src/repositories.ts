@@ -1,5 +1,6 @@
 import { type Database, listTopics, type Topic } from '@fphd/db';
 
+import { type IndicatorAdminRows, listIndicatorsPage } from './indicator-repository.js';
 import {
   type CreateTopicResult,
   createTopic,
@@ -20,16 +21,25 @@ export interface InternalTopicRepository {
   delete(id: string): Promise<DeleteTopicResult>;
 }
 
+/** The dashboard's view of indicators: every status, unlike the public repository. */
+export interface InternalIndicatorRepository {
+  listPage(page: number, pageSize: number): Promise<IndicatorAdminRows>;
+}
+
 /**
  * Everything the internal-only routes read and write, mirroring `Repositories` in `@fphd/db`.
  * Queries live here so the artefact-boundary check keeps them out of the public image.
  */
 export interface InternalRepositories {
+  indicators: InternalIndicatorRepository;
   topics: InternalTopicRepository;
 }
 
 export function createInternalRepositories(db: Database): InternalRepositories {
   return {
+    indicators: {
+      listPage: (page, pageSize) => listIndicatorsPage(db, page, pageSize),
+    },
     topics: {
       list: () => listTopics(db),
       findById: (id) => getTopicById(db, id),

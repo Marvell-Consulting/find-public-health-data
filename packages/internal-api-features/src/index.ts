@@ -1,11 +1,15 @@
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { Router } from 'express';
 
+import { internalIndicatorsRouter } from './indicators.js';
 import type { InternalRepositories } from './repositories.js';
 import { internalTopicsRouter } from './topics.js';
 
+export type { IndicatorAdminRow, IndicatorAdminRows } from './indicator-repository.js';
+export { INDICATORS_PAGE_SIZE, internalIndicatorsRouter } from './indicators.js';
 export {
   createInternalRepositories,
+  type InternalIndicatorRepository,
   type InternalRepositories,
   type InternalTopicRepository,
 } from './repositories.js';
@@ -29,6 +33,7 @@ export interface InternalApiDependencies {
 export function internalApiRoutes({ repositories, session }: InternalApiDependencies): Router {
   const router = Router();
 
+  router.use(internalIndicatorsRouter(repositories.indicators, session));
   router.use(internalTopicsRouter(repositories.topics, session));
 
   return router;
