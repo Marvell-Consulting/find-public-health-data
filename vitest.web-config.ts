@@ -5,8 +5,10 @@ import type { ViteUserConfig as VitestUserConfig } from 'vitest/config';
  * packages that own the components. Vitest does not pass the root config's `test` options
  * down to projects, so each of them re-exports this as its own config.
  *
- * `@not-govuk` and `@react-foundry` ship as ESM that Node cannot load directly, so they are
- * inlined for Vite to transform; the sass-base alias matches the one in the apps' Vite config.
+ * The environment stays Node so loader and data tests run without a DOM; a component test
+ * opts in with `// @vitest-environment jsdom` at the top of the file. `@not-govuk` and
+ * `@react-foundry` ship as ESM that Node cannot load directly, so they are inlined for Vite
+ * to transform; the sass-base alias matches the one in the apps' Vite config.
  */
 export const webVitestConfig = {
   resolve: {
@@ -15,7 +17,6 @@ export const webVitestConfig = {
     },
   },
   test: {
-    environment: 'jsdom',
     server: {
       deps: {
         inline: [/@not-govuk/, /@react-foundry/],
