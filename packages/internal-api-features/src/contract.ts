@@ -79,3 +79,24 @@ export type TopicUpdate = z.infer<typeof topicUpdateSchema>;
 export type TopicCreateResponse = z.infer<typeof topicCreateResponseSchema>;
 export type TopicUpdateResponse = z.infer<typeof topicUpdateResponseSchema>;
 export type TopicUpdateError = z.infer<typeof topicUpdateErrorSchema>;
+
+export const indicatorAdminSummarySchema = z.object({
+  id: z.uuid(),
+  name: z.string().min(1),
+  updatedAt: z.iso.datetime(),
+});
+
+/** Parsed from a query string, so the page arrives as text; absent means the first page. */
+export const indicatorPageQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+});
+
+export const indicatorAdminPageSchema = z.object({
+  indicators: z.array(indicatorAdminSummarySchema),
+  page: z.number().int().min(1),
+  pageSize: z.number().int().min(1),
+  total: z.number().int().min(0),
+});
+
+export type IndicatorAdminSummary = z.infer<typeof indicatorAdminSummarySchema>;
+export type IndicatorAdminPage = z.infer<typeof indicatorAdminPageSchema>;
