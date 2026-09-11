@@ -18,6 +18,16 @@ test('bounces to sign-in and returns a publisher to the manage page', async ({ p
   ).toBeVisible();
 });
 
+test('links to the indicators dashboard', async ({ page }) => {
+  await signInAs(page, 'Riley Singh');
+  await page.goto('/manage');
+
+  await page.getByRole('link', { name: 'Indicators' }).click();
+
+  await expect(page).toHaveURL('/dashboard');
+  await expect(page.getByRole('heading', { level: 1, name: 'Indicators' })).toBeVisible();
+});
+
 test('links to topic administration', async ({ page }) => {
   await signInAs(page, 'Riley Singh');
   await page.goto('/manage');

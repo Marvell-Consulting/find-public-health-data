@@ -36,6 +36,9 @@ catalogs:
     '@not-govuk/page':
       specifier: 0.18.1
       version: 0.18.1
+    '@not-govuk/pagination':
+      specifier: 0.18.1
+      version: 0.18.1
     '@not-govuk/radios':
       specifier: 0.18.1
       version: 0.18.1
@@ -829,6 +832,9 @@ importers:
         specifier: 'catalog:'
         version: 0.18.1(react@19.2.7)
       '@not-govuk/page':
+        specifier: 'catalog:'
+        version: 0.18.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@not-govuk/pagination':
         specifier: 'catalog:'
         version: 0.18.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
       '@not-govuk/radios':
@@ -1806,6 +1812,18 @@ packages:
 
   '@not-govuk/page@0.18.1':
     resolution: {integrity: sha512-T1it9YOvkL4nsePlQvs98+Dyk2QrYVYkIjSoQ9GLOnWXIbpnRJequf/c554K0DxGAMVdnRe20hec+ZwBwtJsIQ==}
+    peerDependencies:
+      '@react-foundry/docs-components': ^0.3.0
+      '@storybook/addon-docs': ^10.3.5
+      react: ^19.2.5
+    peerDependenciesMeta:
+      '@react-foundry/docs-components':
+        optional: true
+      '@storybook/addon-docs':
+        optional: true
+
+  '@not-govuk/pagination@0.18.1':
+    resolution: {integrity: sha512-Tp9tQ7btxeR1nWCu8AU+NG2V4msRI0Q0HmiGh2mFq6qGb6vcabBGYHiZcEWswl4m5EZaRBL9l9N/ppuu1xu12A==}
     peerDependencies:
       '@react-foundry/docs-components': ^0.3.0
       '@storybook/addon-docs': ^10.3.5
@@ -4363,6 +4381,20 @@ snapshots:
       '@not-govuk/skip-link': 0.18.1(react@19.2.7)
       '@not-govuk/width-container': 0.18.1(react@19.2.7)
       '@react-foundry/component-helpers': 0.3.0
+      govuk-frontend: 5.14.0
+      react: 19.2.7
+    transitivePeerDependencies:
+      - '@remix-run/react'
+      - next
+      - react-router
+
+  '@not-govuk/pagination@0.18.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+    dependencies:
+      '@not-govuk/link': 0.18.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@not-govuk/sass-base': 0.18.1
+      '@not-govuk/visually-hidden': 0.18.1(react@19.2.7)
+      '@react-foundry/component-helpers': 0.3.0
+      '@react-foundry/uri': 0.3.0
       govuk-frontend: 5.14.0
       react: 19.2.7
     transitivePeerDependencies:

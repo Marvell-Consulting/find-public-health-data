@@ -5,6 +5,7 @@ export { default as Details } from '@not-govuk/details';
 export { default as InsetText } from '@not-govuk/inset-text';
 export { default as A } from '@not-govuk/link';
 export { default as NotificationBanner } from '@not-govuk/notification-banner';
+export { default as Pagination } from '@not-govuk/pagination';
 export { default as Radios } from '@not-govuk/radios';
 export { default as SearchBox } from '@not-govuk/search-box';
 export { default as Select } from '@not-govuk/select';

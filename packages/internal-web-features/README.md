@@ -1,7 +1,7 @@
 # @fphd/internal-web-features
 
-The pages, route modules and loaders only `internal-web` mounts: topic administration and the
-manage-data landing page. Loaders call the internal API through the `ApiClient` in
+The pages, route modules and loaders only `internal-web` mounts: the indicators dashboard, topic
+administration and the manage-data landing page. Loaders call the internal API through the `ApiClient` in
 `@fphd/web-server/api-context` and validate responses against
 `@fphd/internal-api-features/contract`.
 

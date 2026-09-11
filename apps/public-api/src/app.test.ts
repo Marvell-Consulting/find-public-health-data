@@ -40,6 +40,7 @@ describe('public API', () => {
   // app must never gain, and a 404 here is the only mechanical check that it has not.
   it.each([
     ['get', '/api/internal'],
+    ['get', '/api/internal/indicators'],
     ['get', '/api/internal/topics'],
     ['post', '/api/internal/topics'],
     ['get', `/api/internal/topics/${topic.id}`],
