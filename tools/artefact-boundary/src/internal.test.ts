@@ -22,7 +22,9 @@ describe('isInternalReference', () => {
     '@fphd/ui',
     'react-router',
     '../../packages/ui/src/app-shell.tsx',
-    // Neither is internal code: the match is on a directory named `internal-…`.
+    // Invented paths, deliberately: neither file exists. They pin the rule to a *directory* named
+    // `internal-…`, so a file called `internal-helpers.ts` and a directory called plain `internal`
+    // both stay allowed.
     '../../packages/ui/src/internal-helpers.ts',
     '../../packages/public-web-features/src/internal/util.ts',
   ])('allows %s', (reference) => {
