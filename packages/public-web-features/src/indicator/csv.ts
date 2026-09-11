@@ -40,7 +40,7 @@ export async function loadIndicatorCsv(
     api.get(apiPath`/api/indicators/${fingertipsId}`, indicatorDetailSchema),
     api.get(
       `${apiPath`/api/indicators/${fingertipsId}/data`}?${codesToLoad
-        .map((code) => `area_code=${encodeURIComponent(code)}`)
+        .map((code) => `areaCode=${encodeURIComponent(code)}`)
         .join('&')}`,
       codesToLoad.length === 1
         ? indicatorAreaDataSchema.transform((one) => [one])

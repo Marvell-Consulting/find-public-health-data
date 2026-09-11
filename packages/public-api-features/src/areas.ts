@@ -9,7 +9,7 @@ export function areasRouter(areas: Repositories['areas']): Router {
   });
 
   router.get('/api/areas/lookup', async (request, response) => {
-    const requestedCodes = request.query.area_code;
+    const requestedCodes = request.query.areaCode;
     const codes = [
       ...new Set(Array.isArray(requestedCodes) ? requestedCodes : [requestedCodes]),
     ].filter((code): code is string => typeof code === 'string' && /^[A-Z0-9]+$/i.test(code));
@@ -37,11 +37,11 @@ export function areasRouter(areas: Repositories['areas']): Router {
   });
 
   router.get('/api/areas/parents', async (request, response) => {
-    const requestedCodes = request.query.area_code;
+    const requestedCodes = request.query.areaCode;
     const codes = [
       ...new Set(Array.isArray(requestedCodes) ? requestedCodes : [requestedCodes]),
     ].filter((code): code is string => typeof code === 'string' && /^[A-Z0-9]+$/i.test(code));
-    const parentType = request.query.parent_type;
+    const parentType = request.query.parentType;
 
     if (
       codes.length === 0 ||
@@ -68,8 +68,8 @@ export function areasRouter(areas: Repositories['areas']): Router {
           ),
         ),
       ].slice(0, 20);
-    const areaTypeNames = pick(request.query.area_type);
-    const displayGroups = pick(request.query.display_group);
+    const areaTypeNames = pick(request.query.areaType);
+    const displayGroups = pick(request.query.displayGroup);
 
     if (areaTypeNames.length === 0 && displayGroups.length === 0) {
       response.status(400).json({ error: 'area_type_or_display_group_required' });

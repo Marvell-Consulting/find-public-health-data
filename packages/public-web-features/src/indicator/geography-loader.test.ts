@@ -29,7 +29,7 @@ describe('geography loader', () => {
     );
 
     expect(get).toHaveBeenCalledWith(
-      '/api/areas?display_group=Statistical%20regions',
+      '/api/areas?displayGroup=Statistical%20regions',
       expect.anything(),
     );
     expect(await response.json()).toEqual({

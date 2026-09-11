@@ -85,7 +85,7 @@ describe('public API', () => {
     });
 
     const response = await request(createTestApp(repositories)).get(
-      `/api/areas?area_type=${encodeURIComponent('Regions (statistical)')}`,
+      `/api/areas?areaType=${encodeURIComponent('Regions (statistical)')}`,
     );
 
     expect(response.status).toBe(200);

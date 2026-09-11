@@ -115,7 +115,7 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
   if (requestedLevels.length > 0) {
     const levelGroups = await api.get(
       `/api/areas?${requestedLevels
-        .map((name) => `display_group=${encodeURIComponent(name)}`)
+        .map((name) => `displayGroup=${encodeURIComponent(name)}`)
         .join('&')}`,
       areaDisplayGroupListSchema,
     );
@@ -132,16 +132,14 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
 
   // Only the picked areas resolve to names and levels — the tree fetches its own
   // catalogue on demand, keeping thousands of areas out of the page payload.
-  const codeQuery = nonEnglandCodes
-    .map((code) => `area_code=${encodeURIComponent(code)}`)
-    .join('&');
+  const codeQuery = nonEnglandCodes.map((code) => `areaCode=${encodeURIComponent(code)}`).join('&');
   const [lookedUp, areaParents, displayGroups] = await Promise.all([
     nonEnglandCodes.length > 0
       ? api.get(`/api/areas/lookup?${codeQuery}`, areaLookupListSchema)
       : Promise.resolve([]),
     nonEnglandCodes.length > 0
       ? api.get(
-          `/api/areas/parents?${codeQuery}&parent_type=${encodeURIComponent('Regions (statistical)')}`,
+          `/api/areas/parents?${codeQuery}&parentType=${encodeURIComponent('Regions (statistical)')}`,
           areaParentListSchema,
         )
       : Promise.resolve([]),
@@ -212,7 +210,7 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
       const dataFor = (codes: string[]) =>
         api.get(
           `${apiPath`/api/indicators/${String(id)}/data`}?${codes
-            .map((code) => `area_code=${encodeURIComponent(code)}`)
+            .map((code) => `areaCode=${encodeURIComponent(code)}`)
             .join('&')}`,
           codes.length === 1
             ? indicatorAreaDataSchema.transform((one) => [one])
@@ -228,7 +226,7 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
         Promise.all(
           comparison.rangeLevels.map(async (level) => {
             const range = await api.get(
-              `${apiPath`/api/indicators/${String(id)}/range`}?display_group=${encodeURIComponent(level)}`,
+              `${apiPath`/api/indicators/${String(id)}/range`}?displayGroup=${encodeURIComponent(level)}`,
               indicatorRangeSchema,
             );
             return [level, range.periods] as const;

@@ -21,7 +21,7 @@ describe('GET /api/areas/lookup', () => {
     const app = createTestApp({ listByCodes });
 
     const response = await request(app).get(
-      '/api/areas/lookup?area_code=E06000052&area_code=E06000052&area_code=..%2Fbad',
+      '/api/areas/lookup?areaCode=E06000052&areaCode=E06000052&areaCode=..%2Fbad',
     );
 
     expect(response.status).toBe(200);
@@ -35,7 +35,7 @@ describe('GET /api/areas/lookup', () => {
     const app = createTestApp();
 
     expect((await request(app).get('/api/areas/lookup')).status).toBe(400);
-    expect((await request(app).get('/api/areas/lookup?area_code=..%2Fbad')).status).toBe(400);
+    expect((await request(app).get('/api/areas/lookup?areaCode=..%2Fbad')).status).toBe(400);
   });
 });
 
@@ -69,21 +69,21 @@ describe('GET /api/areas/parents', () => {
     const app = createTestApp({ listParents });
 
     const response = await request(app).get(
-      '/api/areas/parents?area_code=E06000052&area_code=..%2Fbad&parent_type=Regions%20(statistical)',
+      '/api/areas/parents?areaCode=E06000052&areaCode=..%2Fbad&parentType=Regions%20(statistical)',
     );
 
     expect(response.status).toBe(200);
     expect(listParents).toHaveBeenCalledWith(['E06000052'], 'Regions (statistical)');
   });
 
-  it('rejects a parents request missing or overflowing parent_type', async () => {
+  it('rejects a parents request missing or overflowing parentType', async () => {
     const app = createTestApp();
 
-    expect((await request(app).get('/api/areas/parents?area_code=E06000052')).status).toBe(400);
+    expect((await request(app).get('/api/areas/parents?areaCode=E06000052')).status).toBe(400);
     expect(
       (
         await request(app).get(
-          `/api/areas/parents?area_code=E06000052&parent_type=${'a'.repeat(101)}`,
+          `/api/areas/parents?areaCode=E06000052&parentType=${'a'.repeat(101)}`,
         )
       ).status,
     ).toBe(400);
@@ -98,7 +98,7 @@ describe('GET /api/areas', () => {
     const app = createTestApp({ listByType });
 
     const response = await request(app).get(
-      `/api/areas?area_type=${encodeURIComponent('Regions (statistical)')}`,
+      `/api/areas?areaType=${encodeURIComponent('Regions (statistical)')}`,
     );
 
     expect(response.status).toBe(200);
@@ -121,7 +121,7 @@ describe('GET /api/areas', () => {
       'GP practices',
     ]);
 
-    const response = await request(app).get('/api/areas?display_group=Local+authorities');
+    const response = await request(app).get('/api/areas?displayGroup=Local+authorities');
     expect(response.body).toEqual([
       { displayGroup: 'Local authorities', areas: [{ code: 'E06000052', name: 'Cornwall' }] },
     ]);
@@ -132,7 +132,7 @@ describe('GET /api/areas', () => {
     const listByGroup = vi.fn().mockResolvedValue([]);
     const app = createTestApp({ listByGroup });
 
-    const repeats = Array.from({ length: 30 }, (_, i) => `display_group=Group+${i % 25}`).join('&');
+    const repeats = Array.from({ length: 30 }, (_, i) => `displayGroup=Group+${i % 25}`).join('&');
     await request(app).get(`/api/areas?${repeats}`);
 
     expect(listByGroup).toHaveBeenCalledTimes(20);

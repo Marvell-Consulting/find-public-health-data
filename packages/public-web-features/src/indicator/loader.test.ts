@@ -33,7 +33,7 @@ function api(get = vi.fn()) {
             return Promise.resolve([]);
           }
           if (path.startsWith('/api/areas/lookup')) {
-            const codes = [...new URL(`http://x${path}`).searchParams.getAll('area_code')];
+            const codes = [...new URL(`http://x${path}`).searchParams.getAll('areaCode')];
             return Promise.resolve(
               codes.map((code) => ({
                 code,
@@ -126,7 +126,7 @@ describe('loadIndicator', () => {
     expect(result.selection.fingertipsIds).toEqual([108]);
     expect(get).toHaveBeenCalledWith('/api/indicators/108', expect.anything());
     expect(get).toHaveBeenCalledWith(
-      '/api/indicators/108/data?area_code=E92000001',
+      '/api/indicators/108/data?areaCode=E92000001',
       expect.anything(),
     );
   });
@@ -175,7 +175,7 @@ describe('loadIndicator', () => {
     // One call carrying both codes, not one call per code; England rides along last so
     // the benchmark columns always have its series.
     expect(get).toHaveBeenCalledWith(
-      '/api/indicators/108/data?area_code=E12000001&area_code=E12000002&area_code=E92000001',
+      '/api/indicators/108/data?areaCode=E12000001&areaCode=E12000002&areaCode=E92000001',
       expect.anything(),
     );
     expect(get.mock.calls.filter(([path]) => String(path).includes('/data?'))).toHaveLength(1);
@@ -192,7 +192,7 @@ describe('loadIndicator', () => {
     const dataCalls = get.mock.calls.filter(([path]) => String(path).includes('/data?'));
     expect(dataCalls).toHaveLength(1);
     expect(String(dataCalls[0]?.[0])).toBe(
-      '/api/indicators/108/data?area_code=E12000001&area_code=E92000001',
+      '/api/indicators/108/data?areaCode=E12000001&areaCode=E92000001',
     );
   });
 
@@ -222,7 +222,7 @@ describe('loadIndicator', () => {
     const rangeCalls = get.mock.calls.filter(([path]) => String(path).includes('/range'));
     expect(rangeCalls).toHaveLength(1);
     expect(String(rangeCalls[0]?.[0])).toContain(
-      `display_group=${encodeURIComponent('Local authorities')}`,
+      `displayGroup=${encodeURIComponent('Local authorities')}`,
     );
   });
 
@@ -268,11 +268,9 @@ describe('loadIndicator', () => {
     const rangeCalls = get.mock.calls.filter(([path]) => String(path).includes('/range'));
     expect(rangeCalls).toHaveLength(1);
     expect(String(rangeCalls[0]?.[0])).toContain(
-      `display_group=${encodeURIComponent('Statistical regions')}`,
+      `displayGroup=${encodeURIComponent('Statistical regions')}`,
     );
-    expect(get.mock.calls.some(([path]) => String(path).includes('area_code=E12000009'))).toBe(
-      true,
-    );
+    expect(get.mock.calls.some(([path]) => String(path).includes('areaCode=E12000009'))).toBe(true);
   });
 
   it('fetches region data for a region benchmark even without its comparison range', async () => {
@@ -298,9 +296,7 @@ describe('loadIndicator', () => {
     );
 
     // The benchmark value column needs the region series; only the range stays unfetched.
-    expect(get.mock.calls.some(([path]) => String(path).includes('area_code=E12000009'))).toBe(
-      true,
-    );
+    expect(get.mock.calls.some(([path]) => String(path).includes('areaCode=E12000009'))).toBe(true);
     expect(get.mock.calls.some(([path]) => String(path).includes('/range'))).toBe(false);
   });
 

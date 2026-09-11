@@ -136,7 +136,7 @@ describe('public routers against the seeded database', () => {
       expect.arrayContaining(['England', 'GPs', 'ICBs', 'NHS regions', 'Regions (statistical)']),
     );
 
-    const cornwall = await request(app).get('/api/indicators/241/data?area_code=E06000052');
+    const cornwall = await request(app).get('/api/indicators/241/data?areaCode=E06000052');
     expect(cornwall.status).toBe(200);
     expect(cornwall.body.areaName).toBe('Cornwall');
     expect(cornwall.body.observations).toHaveLength(13);
@@ -144,7 +144,7 @@ describe('public routers against the seeded database', () => {
 
   it('lists the current areas of a seeded area type', async () => {
     const response = await request(app).get(
-      `/api/areas?area_type=${encodeURIComponent('Regions (statistical)')}`,
+      `/api/areas?areaType=${encodeURIComponent('Regions (statistical)')}`,
     );
 
     expect(response.status).toBe(200);
@@ -158,7 +158,7 @@ describe('public routers against the seeded database', () => {
   });
 
   it('lists the current GP practices added for the prototype indicator', async () => {
-    const response = await request(app).get('/api/areas?area_type=GPs');
+    const response = await request(app).get('/api/areas?areaType=GPs');
 
     expect(response.status).toBe(200);
     expect(response.body).toHaveLength(1);
@@ -167,7 +167,7 @@ describe('public routers against the seeded database', () => {
   });
 
   it('returns an empty group for an unknown area type', async () => {
-    const response = await request(app).get('/api/areas?area_type=No%20Such%20Type');
+    const response = await request(app).get('/api/areas?areaType=No%20Such%20Type');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual([{ areaType: 'No Such Type', areas: [] }]);
@@ -175,7 +175,7 @@ describe('public routers against the seeded database', () => {
 
   it('answers with one group per area type requested', async () => {
     const response = await request(app).get(
-      `/api/areas?area_type=${encodeURIComponent('Regions (statistical)')}&area_type=England`,
+      `/api/areas?areaType=${encodeURIComponent('Regions (statistical)')}&areaType=England`,
     );
 
     expect(response.status).toBe(200);
@@ -200,7 +200,7 @@ describe('public routers against the seeded database', () => {
     expect(pair).toBeTruthy();
 
     const response = await request(app).get(
-      `/api/indicators/${pair?.fingertips_id}/data?area_code=${pair?.code}`,
+      `/api/indicators/${pair?.fingertips_id}/data?areaCode=${pair?.code}`,
     );
 
     expect(response.status).toBe(200);
@@ -228,7 +228,7 @@ describe('public routers against the seeded database', () => {
     expect((await request(app).get('/api/indicators/999998')).status).toBe(404);
     expect((await request(app).get('/api/indicators/999998/data')).status).toBe(404);
     expect(
-      (await request(app).get('/api/indicators/999998/range?area_type=UA%20unchanged')).status,
+      (await request(app).get('/api/indicators/999998/range?areaType=UA%20unchanged')).status,
     ).toBe(404);
   });
 

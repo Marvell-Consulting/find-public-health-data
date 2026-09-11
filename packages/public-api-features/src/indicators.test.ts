@@ -49,7 +49,7 @@ describe('the public indicators surface', () => {
 
     expect((await request(app).get('/api/indicators/424242/data')).status).toBe(404);
     expect(
-      (await request(app).get('/api/indicators/424242/range?display_group=Local+authorities'))
+      (await request(app).get('/api/indicators/424242/range?displayGroup=Local+authorities'))
         .status,
     ).toBe(404);
   });
@@ -156,7 +156,7 @@ describe('GET /api/indicators/:fingertipsId/data', () => {
       .mockResolvedValue({ areaCode: 'E06000001', areaName: 'Hartlepool', observations: [] });
     const app = createTestApp({ resolveId: async () => 'ind-1', findObservations });
 
-    const response = await request(app).get('/api/indicators/108/data?area_code=E06000001');
+    const response = await request(app).get('/api/indicators/108/data?areaCode=E06000001');
 
     expect(response.status).toBe(200);
     expect(findObservations).toHaveBeenCalledWith('ind-1', 'E06000001');
@@ -171,7 +171,7 @@ describe('GET /api/indicators/:fingertipsId/data', () => {
     const app = createTestApp({ resolveId: async () => 'ind-1', findObservations });
 
     const response = await request(app).get(
-      '/api/indicators/108/data?area_code=E12000001&area_code=E12000002',
+      '/api/indicators/108/data?areaCode=E12000001&areaCode=E12000002',
     );
 
     expect(response.status).toBe(200);
@@ -183,7 +183,7 @@ describe('GET /api/indicators/:fingertipsId/data', () => {
 
   it('rejects a malformed area code without touching the repository', async () => {
     const response = await request(createTestApp()).get(
-      '/api/indicators/108/data?area_code=../nope',
+      '/api/indicators/108/data?areaCode=../nope',
     );
 
     expect(response.status).toBe(404);
@@ -211,7 +211,7 @@ describe('GET /api/indicators/:fingertipsId/range', () => {
     const app = createTestApp({ resolveId: async () => 'ind-1', findObservationRange });
 
     const response = await request(app).get(
-      '/api/indicators/241/range?display_group=Local%20authorities',
+      '/api/indicators/241/range?displayGroup=Local%20authorities',
     );
 
     expect(response.status).toBe(200);
@@ -225,7 +225,7 @@ describe('GET /api/indicators/:fingertipsId/range', () => {
 
     expect((await request(app).get('/api/indicators/241/range')).status).toBe(404);
     expect(
-      (await request(app).get('/api/indicators/nope/range?display_group=Local+authorities')).status,
+      (await request(app).get('/api/indicators/nope/range?displayGroup=Local+authorities')).status,
     ).toBe(404);
   });
 });
