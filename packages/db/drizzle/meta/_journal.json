@@ -85,6 +85,13 @@
       "when": 1788541667356,
       "tag": "0011_area-type-display-groups",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1789055470204,
+      "tag": "0012_latest-headline-index-names",
+      "breakpoints": true
     }
   ]
 }
