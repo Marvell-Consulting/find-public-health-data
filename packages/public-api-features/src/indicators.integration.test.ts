@@ -228,7 +228,8 @@ describe('public routers against the seeded database', () => {
     expect((await request(app).get('/api/indicators/999998')).status).toBe(404);
     expect((await request(app).get('/api/indicators/999998/data')).status).toBe(404);
     expect(
-      (await request(app).get('/api/indicators/999998/range?areaType=UA%20unchanged')).status,
+      (await request(app).get('/api/indicators/999998/range?displayGroup=Local%20authorities'))
+        .status,
     ).toBe(404);
   });
 

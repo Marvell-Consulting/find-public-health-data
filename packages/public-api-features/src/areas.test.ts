@@ -143,4 +143,13 @@ describe('GET /api/areas', () => {
 
     expect(response.status).toBe(400);
   });
+
+  it('ignores query parameters it does not know', async () => {
+    const listByType = vi.fn().mockResolvedValue([]);
+    const app = createTestApp({ listByType });
+
+    expect((await request(app).get('/api/areas?areaType=GPs&colour=teal')).status).toBe(200);
+    expect(listByType).toHaveBeenCalledWith('GPs');
+    expect((await request(app).get('/api/areas?colour=teal')).status).toBe(400);
+  });
 });
