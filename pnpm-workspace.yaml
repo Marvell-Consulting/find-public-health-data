@@ -49,6 +49,7 @@ catalog:
   '@not-govuk/link': 0.18.1
   '@not-govuk/notification-banner': 0.18.1
   '@not-govuk/page': 0.18.1
+  '@not-govuk/pagination': 0.18.1
   '@not-govuk/radios': 0.18.1
   '@not-govuk/sass-base': 0.18.1
   '@not-govuk/search-box': 0.18.1
