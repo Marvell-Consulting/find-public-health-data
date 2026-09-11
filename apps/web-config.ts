@@ -1,7 +1,6 @@
 import type { Config } from '@react-router/dev/config';
 import { reactRouter } from '@react-router/dev/vite';
 import type { UserConfig } from 'vite';
-import type { ViteUserConfig as VitestUserConfig } from 'vitest/config';
 
 interface WebViteConfigOptions {
   apiPort: number;
@@ -62,19 +61,3 @@ export const reactRouterConfig = {
   buildDirectory: 'dist',
   ssr: true,
 } satisfies Config;
-
-export const webVitestConfig = {
-  resolve: {
-    alias: {
-      '@not-govuk/sass-base': '@not-govuk/sass-base/vite',
-    },
-  },
-  test: {
-    environment: 'jsdom',
-    server: {
-      deps: {
-        inline: [/@not-govuk/, /@react-foundry/],
-      },
-    },
-  },
-} satisfies VitestUserConfig;
