@@ -1,5 +1,6 @@
 import { A, InsetText, PageIntro } from '@fphd/ui';
 
+import { DASHBOARD_PATH } from '../dashboard/paths';
 import { TOPICS_ADMIN_PATH } from '../topic-admin/paths';
 
 export function ManageDataPage() {
@@ -10,6 +11,9 @@ export function ManageDataPage() {
         will be composed here.
       </p>
       <ul className="govuk-list">
+        <li>
+          <A href={DASHBOARD_PATH}>Indicators</A>
+        </li>
         <li>
           <A href={TOPICS_ADMIN_PATH}>Manage topics</A>
         </li>

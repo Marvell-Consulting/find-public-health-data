@@ -118,6 +118,7 @@ describe('the publisher route table', () => {
     const publisher = findLayout(routes, 'publisher.tsx');
 
     expect(publisher?.children?.map((child) => child.path)).toEqual([
+      'dashboard',
       'manage',
       'manage/topics',
       'manage/topics/new',

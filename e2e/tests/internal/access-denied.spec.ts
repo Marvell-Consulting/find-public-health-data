@@ -14,8 +14,8 @@ test('turns a viewer away from the manage page', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: 'Access denied' })).toBeVisible();
 });
 
-test('turns a viewer away from topic administration', async ({ page }) => {
-  for (const path of ['/manage/topics', '/manage/topics/new']) {
+test('turns a viewer away from the publisher pages', async ({ page }) => {
+  for (const path of ['/dashboard', '/manage/topics', '/manage/topics/new']) {
     const response = await page.goto(path);
     await expect(page, path).toHaveURL('/access-denied');
     expect(response?.status(), path).toBe(403);

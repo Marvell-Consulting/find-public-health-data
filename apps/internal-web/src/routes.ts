@@ -32,6 +32,7 @@ export default [
       { id: 'indicator-detail' },
     ),
     layout('./publisher.tsx', [
+      route('dashboard', '../../../packages/internal-web-features/src/dashboard/route.tsx'),
       route('manage', './manage.tsx'),
       route(
         'manage/topics',
