@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { fakeUsersForAudience } from '@fphd/auth';
 import {
   HomeRoute,
