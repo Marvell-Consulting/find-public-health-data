@@ -1,38 +1,59 @@
-import { existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-
-import { createLogger } from '@fphd/logger';
+import { appEnvFields, parseEnv, z } from '@fphd/config';
+import {
+  createDb,
+  createRepositories,
+  type Database,
+  dbEnvFields,
+  resolveDbTls,
+  schema,
+} from '@fphd/db';
+import { createOwnerClient } from '@fphd/db/operations';
+import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
+import express from 'express';
 import request from 'supertest';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-const logger = createLogger({ name: 'public-api', level: 'silent' });
+import { indicatorAreaDataSchema, indicatorDetailSchema } from './contract.js';
+import { publicApiRoutes } from './index.js';
 
-// config.ts parses the environment at import, so the repo .env must load first and
-// POSTGRES_DB must point at this file's own database before db.js is imported.
-const envFile = fileURLToPath(new URL('../../../.env', import.meta.url));
-if (existsSync(envFile)) {
-  process.loadEnvFile(envFile);
-}
-const { createTestDatabase } = await import('@fphd/db/testing');
-const testDb = await createTestDatabase({ template: 'seeded' });
-process.env.POSTGRES_DB = testDb.name;
+const env = parseEnv(
+  z.object({
+    ...dbEnvFields,
+    ...appEnvFields,
+    PUBLIC_API_PASSWORD: z.string().default('public_api'),
+  }),
+  process.env,
+);
 
-const { db } = await import('./db.js');
-const { createApp } = await import('./app.js');
-const { createRepositories, schema } = await import('@fphd/db');
-const { createOwnerClient } = await import('@fphd/db/operations');
+let testDb: TestDatabase;
+let db: Database;
+let owner: ReturnType<typeof createOwnerClient>;
+let app: express.Express;
 
-const owner = createOwnerClient(testDb.name);
-const repositories = createRepositories(db);
+beforeAll(async () => {
+  testDb = await createTestDatabase({ template: 'seeded' });
+  // The public_api role, as the deployed app connects: the grant tests below depend on it.
+  db = createDb({
+    host: env.DB_HOST,
+    port: env.DB_PORT,
+    database: testDb.name,
+    user: 'public_api',
+    password: env.PUBLIC_API_PASSWORD,
+    ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
+  });
+  owner = createOwnerClient(testDb.name);
+  app = express().use(publicApiRoutes(createRepositories(db)));
+});
 
 afterAll(async () => {
+  await db.$client.end();
   await owner.end();
   await testDb.drop();
 });
 
-describe('public API against the seeded database', () => {
+describe('public routers against the seeded database', () => {
   it('lists the seeded indicators', async () => {
-    const response = await request(createApp({ logger, repositories })).get('/api/indicators');
+    const response = await request(app).get('/api/indicators');
 
     expect(response.status).toBe(200);
     expect(response.body.indicators).toHaveLength(13);
@@ -57,7 +78,7 @@ describe('public API against the seeded database', () => {
       LIMIT 1
       RETURNING id
     `;
-    const response = await request(createApp({ logger, repositories })).get('/api/indicators');
+    const response = await request(app).get('/api/indicators');
     expect(response.status).toBe(200);
     expect(response.body.indicators).toHaveLength(13);
     const ids = response.body.indicators.map((i: { id: string }) => i.id);
@@ -65,9 +86,7 @@ describe('public API against the seeded database', () => {
   });
 
   it('returns the full detail for a seeded indicator, matching the wire contract', async () => {
-    const { indicatorDetailSchema } = await import('@fphd/public-api-features/contract');
-
-    const response = await request(createApp({ logger, repositories })).get('/api/indicators/108');
+    const response = await request(app).get('/api/indicators/108');
 
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
@@ -87,11 +106,7 @@ describe('public API against the seeded database', () => {
   });
 
   it('serves the England observations for a seeded indicator, matching the wire contract', async () => {
-    const { indicatorAreaDataSchema } = await import('@fphd/public-api-features/contract');
-
-    const response = await request(createApp({ logger, repositories })).get(
-      '/api/indicators/108/data',
-    );
+    const response = await request(app).get('/api/indicators/108/data');
 
     expect(response.status).toBe(200);
     expect(response.body.areaCode).toBe('E92000001');
@@ -108,7 +123,7 @@ describe('public API against the seeded database', () => {
   });
 
   it('serves the prototype diabetes indicator across GP, NHS and local geographies', async () => {
-    const detail = await request(createApp({ logger, repositories })).get('/api/indicators/241');
+    const detail = await request(app).get('/api/indicators/241');
 
     expect(detail.status).toBe(200);
     expect(detail.body).toMatchObject({
@@ -121,16 +136,14 @@ describe('public API against the seeded database', () => {
       expect.arrayContaining(['England', 'GPs', 'ICBs', 'NHS regions', 'Regions (statistical)']),
     );
 
-    const cornwall = await request(createApp({ logger, repositories })).get(
-      '/api/indicators/241/data?area_code=E06000052',
-    );
+    const cornwall = await request(app).get('/api/indicators/241/data?area_code=E06000052');
     expect(cornwall.status).toBe(200);
     expect(cornwall.body.areaName).toBe('Cornwall');
     expect(cornwall.body.observations).toHaveLength(13);
   });
 
   it('lists the current areas of a seeded area type', async () => {
-    const response = await request(createApp({ logger, repositories })).get(
+    const response = await request(app).get(
       `/api/areas?area_type=${encodeURIComponent('Regions (statistical)')}`,
     );
 
@@ -145,9 +158,7 @@ describe('public API against the seeded database', () => {
   });
 
   it('lists the current GP practices added for the prototype indicator', async () => {
-    const response = await request(createApp({ logger, repositories })).get(
-      '/api/areas?area_type=GPs',
-    );
+    const response = await request(app).get('/api/areas?area_type=GPs');
 
     expect(response.status).toBe(200);
     expect(response.body).toHaveLength(1);
@@ -156,16 +167,14 @@ describe('public API against the seeded database', () => {
   });
 
   it('returns an empty group for an unknown area type', async () => {
-    const response = await request(createApp({ logger, repositories })).get(
-      '/api/areas?area_type=No%20Such%20Type',
-    );
+    const response = await request(app).get('/api/areas?area_type=No%20Such%20Type');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual([{ areaType: 'No Such Type', areas: [] }]);
   });
 
   it('answers with one group per area type requested', async () => {
-    const response = await request(createApp({ logger, repositories })).get(
+    const response = await request(app).get(
       `/api/areas?area_type=${encodeURIComponent('Regions (statistical)')}&area_type=England`,
     );
 
@@ -190,7 +199,7 @@ describe('public API against the seeded database', () => {
     const pair = rows[0];
     expect(pair).toBeTruthy();
 
-    const response = await request(createApp({ logger, repositories })).get(
+    const response = await request(app).get(
       `/api/indicators/${pair?.fingertips_id}/data?area_code=${pair?.code}`,
     );
 
@@ -199,9 +208,7 @@ describe('public API against the seeded database', () => {
   });
 
   it('returns 404 for a fingertips id with no indicator', async () => {
-    const response = await request(createApp({ logger, repositories })).get(
-      '/api/indicators/424242',
-    );
+    const response = await request(app).get('/api/indicators/424242');
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'not_found' });
@@ -217,8 +224,6 @@ describe('public API against the seeded database', () => {
       FROM value_type vt, unit u, year_type yt, polarity p, frequency f
       LIMIT 1
     `;
-
-    const app = createApp({ logger, repositories });
 
     expect((await request(app).get('/api/indicators/999998')).status).toBe(404);
     expect((await request(app).get('/api/indicators/999998/data')).status).toBe(404);
