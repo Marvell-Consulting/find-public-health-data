@@ -6,15 +6,11 @@ export { AdminTopicsRoute } from './topic-admin/list-route';
 export {
   createTopic,
   deleteTopic,
-  deleteTopicPath,
-  editTopicPath,
   loadAdminTopics,
   loadAdminTopicToDelete,
   loadAdminTopicToEdit,
-  NEW_TOPIC_PATH,
   type SaveTopicFailure,
   saveTopic,
-  TOPICS_ADMIN_PATH,
   type TopicAdminDetail,
   type TopicAdminSummary,
 } from './topic-admin/loader';
@@ -25,3 +21,9 @@ export {
   EditTopicPage,
   NewTopicPage,
 } from './topic-admin/pages';
+export {
+  deleteTopicPath,
+  editTopicPath,
+  NEW_TOPIC_PATH,
+  TOPICS_ADMIN_PATH,
+} from './topic-admin/paths';

@@ -11,13 +11,12 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   createTopic,
   deleteTopic,
-  editTopicPath,
   loadAdminTopics,
   loadAdminTopicToDelete,
   loadAdminTopicToEdit,
   saveTopic,
-  TOPICS_ADMIN_PATH,
 } from './loader';
+import { editTopicPath, TOPICS_ADMIN_PATH } from './paths';
 
 const flashStorage = createFlashSessionStorage({
   audience: 'internal',
