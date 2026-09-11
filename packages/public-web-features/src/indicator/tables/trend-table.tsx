@@ -18,6 +18,7 @@ import type {
 } from '../loader';
 import type { BenchmarkChoice } from '../options';
 import { BenchmarkCells, BenchmarkHeaderCells } from './benchmark-cells';
+import { NoteFootnotes, noteMarker } from './note-markers';
 import { TableScrollRegion } from './table-scroll-region';
 
 interface AreaBenchmark {
@@ -125,8 +126,6 @@ export function TrendTable({
         .map(({ text }) => text),
     ),
   ];
-  const markers = ['*', '**', '***', '****'];
-  const markerFor = (text: string) => markers[noteTexts.indexOf(text)] ?? '*';
 
   return (
     <>
@@ -221,7 +220,9 @@ export function TrendTable({
                             {formatCalculatedValue(observation.value)}
                             {/* The suffix belongs to a number, not to 'No data'. */}
                             {observation.value === null ? '' : valueSuffix}
-                            {observation.notes.map(({ text }) => markerFor(text)).join('')}
+                            {observation.notes
+                              .map(({ text }) => noteMarker(noteTexts, text))
+                              .join('')}
                           </>
                         ) : (
                           '-'
@@ -267,11 +268,7 @@ export function TrendTable({
           </tbody>
         </table>
       </TableScrollRegion>
-      {noteTexts.map((text) => (
-        <p className="govuk-body-s" key={text}>
-          {markerFor(text)} {text}
-        </p>
-      ))}
+      <NoteFootnotes noteTexts={noteTexts} />
     </>
   );
 }

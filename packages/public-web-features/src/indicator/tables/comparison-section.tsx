@@ -14,6 +14,7 @@ import {
 import type { BenchmarkGeography, SelectedIndicator } from '../loader';
 import { type PanelOptions, PanelOptionsPanel, useOptionParamNavigation } from '../options';
 import { BenchmarkCells, BenchmarkHeaderCells } from './benchmark-cells';
+import { NoteFootnotes, noteMarker } from './note-markers';
 import { TableScrollRegion } from './table-scroll-region';
 
 /** Only shown for two or more indicators: their latest values side by side. */
@@ -57,8 +58,6 @@ export function ComparisonSection({
     recentTrend(cell.series, polarities.get(row.fingertipsId) ?? null);
   // Distinct value notes get sequential markers, listed once under the table.
   const noteTexts = [...new Set(rows.flatMap(({ cells }) => cells.flatMap(({ notes }) => notes)))];
-  const markers = ['*', '**', '***', '****'];
-  const markerFor = (text: string) => markers[noteTexts.indexOf(text)] ?? '*';
 
   const hasPickedAreas = areas.some(({ areaCode }) => areaCode !== 'E92000001');
   const regionAvailable = areas.some(({ areaCode }) => geography.regionByCode[areaCode]);
@@ -285,7 +284,7 @@ export function ComparisonSection({
                           <>
                             {withUnit(row, cell.value)}
                             {cell.notes.map((text) => (
-                              <sup key={text}>{markerFor(text)}</sup>
+                              <sup key={text}>{noteMarker(noteTexts, text)}</sup>
                             ))}
                           </>
                         )}
@@ -317,11 +316,7 @@ export function ComparisonSection({
           </tbody>
         </table>
       </TableScrollRegion>
-      {noteTexts.map((text) => (
-        <p className="govuk-body-s" key={text}>
-          {markerFor(text)} {text}
-        </p>
-      ))}
+      <NoteFootnotes noteTexts={noteTexts} />
     </>
   );
 

@@ -7,6 +7,7 @@ import {
   segmentLabel,
 } from '../data';
 import type { IndicatorDetail, IndicatorObservation } from '../loader';
+import { NoteFootnotes, noteMarker } from './note-markers';
 
 export function InequalitiesTable({
   confidence,
@@ -26,8 +27,6 @@ export function InequalitiesTable({
   const noteTexts = [
     ...new Set(observations.flatMap(({ notes }) => notes.map(({ text }) => text))),
   ];
-  const markers = ['*', '**', '***', '****'];
-  const markerFor = (text: string) => markers[noteTexts.indexOf(text)] ?? '*';
 
   return (
     <>
@@ -60,7 +59,7 @@ export function InequalitiesTable({
               </th>
               <td className="govuk-table__cell govuk-table__cell--numeric">
                 {formatCalculatedValue(observation.value)}
-                {observation.notes.map(({ text }) => markerFor(text)).join('')}
+                {observation.notes.map(({ text }) => noteMarker(noteTexts, text)).join('')}
               </td>
               {confidence === 'none' ? null : (
                 <td className="govuk-table__cell govuk-table__cell--numeric">
@@ -71,11 +70,7 @@ export function InequalitiesTable({
           ))}
         </tbody>
       </table>
-      {noteTexts.map((text) => (
-        <p className="govuk-body-s" key={text}>
-          {markerFor(text)} {text}
-        </p>
-      ))}
+      <NoteFootnotes noteTexts={noteTexts} />
     </>
   );
 }
