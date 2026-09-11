@@ -66,7 +66,7 @@ catalog:
   '@types/express': 5.0.6
   '@types/govuk-frontend': 5.11.0
   # Match the minimum supported Node runtime; newer Node APIs must not enter accidentally.
-  '@types/node': 24.13.3
+  '@types/node': 26.4.1
   '@types/react': 19.2.17
   '@types/react-dom': 19.2.3
   '@types/compression': 1.8.1
@@ -99,3 +99,8 @@ catalog:
   vitest: 4.1.10
   yaml: 2.9.0
   zod: 4.4.3
+
+# @types/node 26 renamed worker_threads.TransferListItem to Transferable. Remove once thread-stream
+# ships pinojs/thread-stream#233.
+patchedDependencies:
+  thread-stream@4.2.0: patches/thread-stream@4.2.0.patch

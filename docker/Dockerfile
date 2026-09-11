@@ -27,16 +27,18 @@
 # The runtime stage runs `apk upgrade` so security fixes apply at build time rather than waiting
 # for the base image to be rebuilt with them — a red scan means a fix apk could not deliver,
 # not upstream rebuild lag. The builder stage skips it; nothing in it ships.
-FROM node:24-alpine3.24@sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf AS base
+FROM node:26-alpine3.24@sha256:ef24c5053d50fdc3e4e56eb4e7ddb7861874ab0fdc797046ba897581deb8e868 AS base
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-RUN corepack enable
+# Node 25+ no longer bundles corepack, so install it before enabling the pinned pnpm.
+RUN npm install -g corepack@0.36.0 && corepack enable
 WORKDIR /repo
 
 FROM base AS builder
 
-# Deps layer keyed on the lockfile alone, so source edits don't re-download packages. Both
+# Deps layer keyed on the lockfile and patches alone, so source edits don't re-download packages. Both
 # this and the install below sit before `ARG APP`, so all five images share them.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches ./patches/
 RUN pnpm fetch
 
 COPY . .
@@ -58,7 +60,7 @@ RUN pnpm --filter "@fphd/${APP}..." build
 # injected workspace packages, which this workspace does not use.
 RUN pnpm deploy --filter "@fphd/${APP}" --prod --legacy /out
 
-FROM node:24-alpine3.24@sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf AS runtime
+FROM node:26-alpine3.24@sha256:ef24c5053d50fdc3e4e56eb4e7ddb7861874ab0fdc797046ba897581deb8e868 AS runtime
 ENV NODE_ENV=production
 # Container Apps stops a revision with SIGTERM, and the kernel discards a default-action
 # signal sent to PID 1 unless that process installed a handler — which Node does not do for
