@@ -105,16 +105,13 @@ describe('React Router server rendering', () => {
     expect(renderer.abort).not.toHaveBeenCalled();
   });
 
-  it('reports a failure after the shell has gone out through the logger, with the request', async () => {
+  it('reports a failure after the shell has gone out through the logger', async () => {
     await startRequest();
     const error = new Error('boundary failed');
 
     renderer.options?.onError?.(error, {});
 
-    expect(logger.error).toHaveBeenCalledWith(
-      { err: error, req: { method: 'GET', url: '/' } },
-      'Streaming failed',
-    );
+    expect(logger.error).toHaveBeenCalledWith({ err: error }, 'Streaming failed');
   });
 
   it('leaves a failure before the shell to onShellError, which React Router reports', () => {
@@ -141,15 +138,12 @@ describe('handleError', () => {
     handleError(error, { context: loadContextWithNonce(), params: {}, request });
   }
 
-  it('logs the error with the request through the logger', () => {
+  it('logs the error through the logger, which carries the request id', () => {
     const error = new Error('loader failed');
 
     report(error);
 
-    expect(logger.error).toHaveBeenCalledWith(
-      { err: error, req: { method: 'GET', url: '/topics?page=2' } },
-      'Request failed',
-    );
+    expect(logger.error).toHaveBeenCalledWith({ err: error }, 'Request failed');
   });
 
   it('unwraps the error React Router wraps in a response', () => {

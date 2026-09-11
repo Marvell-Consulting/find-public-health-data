@@ -17,13 +17,8 @@ import { nonceContext } from './nonce-context.js';
 
 export const streamTimeout = 5_000;
 
-function requestFields(request: Request) {
-  const { pathname, search } = new URL(request.url);
-  return { method: request.method, url: `${pathname}${search}` };
-}
-
 /** Loader, action and render failures. Thrown responses never arrive here, so a not-found page
- * is not an error. */
+ * is not an error. The method, url and status are on the request line, under the same `req.id`. */
 export const handleError: HandleErrorFunction = (error, { context, request }) => {
   if (request.signal.aborted) return;
 
@@ -31,7 +26,7 @@ export const handleError: HandleErrorFunction = (error, { context, request }) =>
     isRouteErrorResponse(error) && 'error' in error && error.error !== undefined
       ? error.error
       : error;
-  context.get(loggerContext).error({ err, req: requestFields(request) }, 'Request failed');
+  context.get(loggerContext).error({ err }, 'Request failed');
 };
 
 export default function handleRequest(
@@ -83,7 +78,7 @@ export default function handleRequest(
           responseStatusCode = 500;
           // Before the shell is out, onShellError rejects and React Router reports it instead.
           if (shellRendered) {
-            logger.error({ err: error, req: requestFields(request) }, 'Streaming failed');
+            logger.error({ err: error }, 'Streaming failed');
           }
         },
       },

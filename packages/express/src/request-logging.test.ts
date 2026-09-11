@@ -5,7 +5,7 @@ import { pino } from 'pino';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
-import { createBaseApp, requestLogging } from './index.js';
+import { createBaseApp, requestLogger, requestLogging } from './index.js';
 
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
@@ -192,5 +192,46 @@ describe('requestLogging', () => {
     await settled(lines);
 
     expect(lines[0]?.req).toMatchObject({ method: 'GET', url: '/api/topics' });
+  });
+});
+
+describe('requestLogger', () => {
+  it("gives a handler's line the request line's id, under the same field and nothing more", async () => {
+    const { logger, lines } = createCapturingLogger();
+    const app = express();
+    app.use(requestLogging(logger));
+    app.get('/topics', (request, response) => {
+      requestLogger(logger, request).info({ count: 3 }, 'Topics loaded');
+      response.json({});
+    });
+
+    await request(app).get('/topics?page=2').set('Cookie', 'session=secret');
+    await settled(lines);
+
+    const [handlerLine, requestLine] = lines as [{ req: { id: string } }, Record<string, unknown>];
+    expect(handlerLine).toMatchObject({ count: 3, msg: 'Topics loaded' });
+    expect(handlerLine.req).toEqual({ id: expect.stringMatching(UUID_V7) });
+    expect(requestLine.req).toEqual({
+      id: handlerLine.req.id,
+      method: 'GET',
+      url: '/topics?page=2',
+    });
+    expect(requestLine.res).toEqual({ statusCode: 200 });
+    expect(JSON.stringify(handlerLine)).not.toContain('secret');
+  });
+
+  it('is the logger itself for a request the middleware never saw', async () => {
+    const { logger, lines } = createCapturingLogger();
+    let seen: unknown;
+    const app = express();
+    app.get('/topics', (request, response) => {
+      seen = requestLogger(logger, request);
+      response.json({});
+    });
+
+    await request(app).get('/topics');
+
+    expect(seen).toBe(logger);
+    expect(await settled(lines)).toHaveLength(0);
   });
 });

@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { createLogger } from '@fphd/logger';
+import { createLogger, type Logger } from '@fphd/logger';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -23,12 +23,12 @@ afterAll(() => {
 
 describe('React Router production host', () => {
   const logger = createLogger({ name: 'test-web', level: 'silent' });
-  let seenLogger: unknown;
+  let seenLogger: Logger | undefined;
   const app = createProductionHost({
     clientDirectory,
     logger,
     requestHandler: (_request, response) => {
-      seenLogger = response.locals.logger;
+      seenLogger = response.locals.logger as Logger;
       response.status(418).type('html').send('<html><main>Server rendered</main></html>');
     },
     serviceName: 'test-web',
@@ -91,9 +91,13 @@ describe('React Router production host', () => {
     expect(response.text).toContain('Server rendered');
   });
 
-  it('hands the logger to the React Router server build on the response', async () => {
-    await request(app).get('/topics').accept('text/html');
+  it('hands the React Router server build a logger carrying the request id, on the response', async () => {
+    const response = await request(app).get('/topics').accept('text/html');
 
-    expect(seenLogger).toBe(logger);
+    expect(response.headers['x-fphd-request-id']).toEqual(expect.any(String));
+    expect(seenLogger?.bindings()).toEqual({
+      name: 'test-web',
+      req: { id: response.headers['x-fphd-request-id'] },
+    });
   });
 });

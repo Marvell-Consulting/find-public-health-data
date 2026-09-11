@@ -1,8 +1,10 @@
+import type { IncomingMessage } from 'node:http';
+
 import type { Logger } from '@fphd/logger';
 import type { RequestHandler } from 'express';
 import { pinoHttp, type StdSerializedResults } from 'pino-http';
 
-import { REQUEST_ID_HEADER, readRequestIdHeader, uuidv7 } from './request-id.js';
+import { REQUEST_ID_HEADER, readRequestIdHeader, requestId, uuidv7 } from './request-id.js';
 
 const probePaths = new Set(['/livez', '/readyz']);
 
@@ -65,4 +67,12 @@ export function requestLogging(
       res: (response: StdSerializedResults['res']) => ({ statusCode: response.statusCode }),
     },
   });
+}
+
+/** The logger for lines about one request: the request line's id under the same field, `req.id`,
+ * and nothing else of the request. Lines through it must not add a `req` of their own. */
+export function requestLogger(logger: Logger, request: IncomingMessage): Logger {
+  const id = requestId(request);
+
+  return id === undefined ? logger : logger.child({ req: { id } });
 }
