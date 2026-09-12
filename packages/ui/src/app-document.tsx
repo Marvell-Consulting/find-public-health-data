@@ -24,10 +24,9 @@ export function AppDocument({ children }: AppDocumentProps) {
           // The CSP blanks the nonce attribute in the DOM, so hydration can never see it
           // match the real value both renders agree on.
           suppressHydrationWarning
-          // GOV.UK Frontend uses these classes to progressively enhance interactive components.
+          // GOV.UK Frontend enhances interactive components when this class is present.
           dangerouslySetInnerHTML={{
             __html:
-              "document.body.classList.add('js-enabled');" +
               "if ('noModule' in HTMLScriptElement.prototype) document.body.classList.add('govuk-frontend-supported');",
           }}
         />

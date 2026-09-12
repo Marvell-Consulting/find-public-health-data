@@ -8,33 +8,6 @@
   max-width: none;
 }
 
-// @react-foundry/anchor-list marks a navigation item active when its href is a *prefix* of the
-// current path. Every path starts with '/', so the Home item is active on every page. The
-// anchor's own aria-current is an exact match, so where the two disagree on the root item, undo
-// the class's styling — the values here are the inactive ones from govuk-frontend's
-// service-navigation.
-//
-// Fixed upstream in @react-foundry/anchor-list 0.5.3 (react-foundry#301): a '/' href now
-// defaults to exact matching. That version only reaches us with NotGovUk 0.19+, which also
-// moves to govuk-frontend 6 — delete this whole block when that upgrade lands.
-//
-// Scoped to the root item deliberately: prefix matching is right for real sections, and keeping
-// it means '/topics/alcohol' still highlights Topics.
-.govuk-service-navigation__list__item--active:has(> a[href='/']):not(
-    :has(> a[aria-current='page'])
-  ) {
-  @include govuk-media-query($until: tablet) {
-    margin-left: 0;
-    padding-left: 0;
-    border-left-width: 0;
-  }
-
-  @include govuk-media-query($from: tablet) {
-    padding-bottom: govuk-spacing(3);
-    border-bottom-width: 0;
-  }
-}
-
 .fphd-card-list {
   display: grid;
   column-gap: govuk-spacing(6);
@@ -121,7 +94,7 @@
 .fphd-stat-card {
   padding: govuk-spacing(4);
   margin-bottom: govuk-spacing(4);
-  background-color: govuk-colour("light-grey");
+  background-color: govuk-colour("black", $variant: "tint-95");
 }
 
 .fphd-stat-card .fphd-stat-card__description {
@@ -339,7 +312,7 @@
   position: relative;
   max-height: 320px;
   overflow-y: auto;
-  border: 1px solid govuk-colour("mid-grey");
+  border: 1px solid govuk-colour("black", $variant: "tint-80");
   padding: govuk-spacing(2);
 }
 
@@ -445,7 +418,7 @@
 }
 
 .fphd-geo-alt__more {
-  color: govuk-colour("dark-grey");
+  color: govuk-colour("black", $variant: "tint-25");
   margin-bottom: 0;
 }
 
@@ -480,7 +453,7 @@
 }
 
 .fphd-table-note {
-  color: govuk-colour("dark-grey");
+  color: govuk-colour("black", $variant: "tint-25");
   font-weight: 400;
 }
 
@@ -500,28 +473,28 @@
 }
 
 .govuk-tag--grey.fphd-trend-tag {
-  color: govuk-shade(govuk-colour("dark-grey"), 50%);
-  background-color: govuk-tint(govuk-colour("dark-grey"), 85%);
+  color: govuk-colour("black", $variant: "tint-25");
+  background-color: govuk-colour("black", $variant: "tint-95");
 }
 
 .govuk-tag--blue.fphd-trend-tag {
-  color: govuk-shade(govuk-colour("blue"), 60%);
-  background-color: govuk-tint(govuk-colour("blue"), 70%);
+  color: govuk-colour("blue", $variant: "shade-50");
+  background-color: govuk-colour("blue", $variant: "tint-80");
 }
 
 .govuk-tag--yellow.fphd-trend-tag {
-  color: govuk-shade(govuk-colour("yellow"), 65%);
-  background-color: govuk-tint(govuk-colour("yellow"), 75%);
+  color: govuk-colour("yellow", $variant: "shade-50");
+  background-color: govuk-colour("yellow", $variant: "tint-80");
 }
 
 .govuk-tag--red.fphd-trend-tag {
-  color: govuk-shade(govuk-colour("red"), 80%);
-  background-color: govuk-tint(govuk-colour("red"), 75%);
+  color: govuk-colour("red", $variant: "shade-50");
+  background-color: govuk-colour("red", $variant: "tint-80");
 }
 
 .govuk-tag--green.fphd-trend-tag {
-  color: govuk-shade(govuk-colour("green"), 20%);
-  background-color: govuk-tint(govuk-colour("green"), 80%);
+  color: govuk-colour("green", $variant: "shade-25");
+  background-color: govuk-colour("green", $variant: "tint-80");
 }
 
 .fphd-trend-tag__arrow {
@@ -682,10 +655,10 @@
 // Every panel is in the document for no-script readers, but with scripting the selected
 // one must be the only one showing from first paint — hydration arrives too late to do
 // the hiding without a visible flash. The server marks the open panel (it knows the
-// tab param), the body's js-enabled class is set by an inline script before paint, and
-// React drops the --ssr class once mounted and takes over. A legacy #hash deep link
-// never reaches the server, so a targeted panel overrides the marked one.
-.js-enabled .fphd-tabs--ssr {
+// tab param), the body's govuk-frontend-supported class is set by an inline script
+// before paint, and React drops the --ssr class once mounted and takes over. A legacy
+// #hash deep link never reaches the server, so a targeted panel overrides the marked one.
+.govuk-frontend-supported .fphd-tabs--ssr {
   .govuk-tabs__panel:not(.fphd-tabs__panel--open) {
     display: none;
   }
@@ -708,11 +681,11 @@
 // The benchmark columns are shaded so a comparison reads as context, not more data: a
 // darker band on the group header, a lighter wash down its cells.
 .fphd-trend-table__benchmark-group {
-  background-color: govuk-colour("mid-grey");
+  background-color: govuk-colour("black", $variant: "tint-80");
 }
 
 .fphd-trend-table__benchmark-cell {
-  background-color: govuk-colour("light-grey");
+  background-color: govuk-colour("black", $variant: "tint-95");
 }
 
 .fphd-range-plot {
