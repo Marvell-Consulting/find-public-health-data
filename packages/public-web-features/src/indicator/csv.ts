@@ -89,14 +89,14 @@ export async function loadIndicatorCsv(
         : 'none';
     const showRange = benchmark !== 'none' && url.searchParams.get(`cr-${fingertipsId}`) === 'yes';
 
-    const codeQuery = pickedCodes.map((code) => `area_code=${encodeURIComponent(code)}`).join('&');
+    const codeQuery = pickedCodes.map((code) => `areaCode=${encodeURIComponent(code)}`).join('&');
     const [lookedUp, parents] = await Promise.all([
       benchmark === 'england' && showRange
         ? api.get(`/api/areas/lookup?${codeQuery}`, areaLookupListSchema)
         : Promise.resolve([]),
       benchmark === 'region'
         ? api.get(
-            `/api/areas/parents?${codeQuery}&parent_type=${encodeURIComponent('Regions (statistical)')}`,
+            `/api/areas/parents?${codeQuery}&parentType=${encodeURIComponent('Regions (statistical)')}`,
             areaParentListSchema,
           )
         : Promise.resolve([]),
@@ -121,7 +121,7 @@ export async function loadIndicatorCsv(
         ? Promise.all(
             rangeLevels.map(async (level) => {
               const range = await api.get(
-                `${apiPath`/api/indicators/${fingertipsId}/range`}?display_group=${encodeURIComponent(level)}`,
+                `${apiPath`/api/indicators/${fingertipsId}/range`}?displayGroup=${encodeURIComponent(level)}`,
                 indicatorRangeSchema,
               );
               return [level, range.periods] as const;

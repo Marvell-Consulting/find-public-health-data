@@ -132,7 +132,7 @@ describe('GET /api/areas', () => {
     const listByGroup = vi.fn().mockResolvedValue([]);
     const app = createTestApp({ listByGroup });
 
-    await request(app).get('/api/areas?display_group=GP+practices&limit=500');
+    await request(app).get('/api/areas?displayGroup=GP+practices&limit=500');
 
     expect(listByGroup).toHaveBeenCalledWith('GP practices', 101);
   });

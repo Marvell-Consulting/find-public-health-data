@@ -85,7 +85,7 @@ describe('loadIndicator', () => {
     expect(result.selectedAreas.map(({ code }) => code)).toEqual(codes.slice(0, 19));
     expect(result.areasLimited).toBe(true);
     const [path] = get.mock.calls.find(([path]) => String(path).includes('/108/data')) ?? [];
-    expect(new URL(`http://localhost${path}`).searchParams.getAll('area_code')).toEqual([
+    expect(new URL(`http://localhost${path}`).searchParams.getAll('areaCode')).toEqual([
       ...codes.slice(0, 19),
       'E92000001',
     ]);
@@ -103,7 +103,7 @@ describe('loadIndicator', () => {
     expect(get).not.toHaveBeenCalledWith('/api/indicators', expect.anything());
     const [previewPath] = get.mock.calls.find(([path]) => String(path).includes('limit=101')) ?? [];
     expect(
-      new URL(`http://localhost${previewPath}`).searchParams.getAll('display_group'),
+      new URL(`http://localhost${previewPath}`).searchParams.getAll('displayGroup'),
     ).toHaveLength(6);
   });
 

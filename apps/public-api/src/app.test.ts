@@ -150,7 +150,7 @@ describe('public API', () => {
     });
 
     await request(app).get(
-      '/api/indicators/search?q=diabetes&t=cancer&it=outcome&rf=smoking&fw=nof&pg=adults&eq=deprivation&display_group=Local+authorities&area_code=E07000223&src=ONS&vt=Proportion&per=Calendar',
+      '/api/indicators/search?q=diabetes&t=cancer&it=outcome&rf=smoking&fw=nof&pg=adults&eq=deprivation&displayGroup=Local+authorities&areaCode=E07000223&src=ONS&vt=Proportion&per=Calendar',
     );
 
     expect(searchWithFilters).toHaveBeenCalledWith({
@@ -193,7 +193,7 @@ describe('public API', () => {
 
     const long = 'a'.repeat(101);
     await request(app).get(
-      `/api/indicators/search?t=&t=${long}&t=valid&area_code=not-valid&area_code=E07000223`,
+      `/api/indicators/search?t=&t=${long}&t=valid&areaCode=not-valid&areaCode=E07000223`,
     );
 
     expect(searchWithFilters).toHaveBeenCalledWith(

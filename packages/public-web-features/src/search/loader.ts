@@ -50,10 +50,10 @@ function buildSearchQuery(
 
   const validatedGeo = pickStrings(params, 'geo').filter((g) => displayGroups.includes(g));
   for (const g of validatedGeo) {
-    parts.push(`display_group=${encodeURIComponent(g)}`);
+    parts.push(`displayGroup=${encodeURIComponent(g)}`);
   }
   for (const code of areaCodes) {
-    parts.push(`area_code=${encodeURIComponent(code)}`);
+    parts.push(`areaCode=${encodeURIComponent(code)}`);
   }
 
   return parts.join('&');
@@ -76,7 +76,7 @@ export async function loadSearch({ context, request }: LoaderFunctionArgs) {
     api.get('/api/areas/display-groups', displayGroupListSchema),
     rawGa.length > 0
       ? api.get(
-          `/api/areas/lookup?${rawGa.map((code) => `area_code=${encodeURIComponent(code)}`).join('&')}`,
+          `/api/areas/lookup?${rawGa.map((code) => `areaCode=${encodeURIComponent(code)}`).join('&')}`,
           areaLookupListSchema,
         )
       : Promise.resolve<AreaLookup[]>([]),

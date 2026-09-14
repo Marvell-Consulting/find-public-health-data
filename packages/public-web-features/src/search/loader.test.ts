@@ -34,7 +34,7 @@ function api(get = vi.fn()) {
             return Promise.resolve(DISPLAY_GROUPS);
           }
           if (path.startsWith('/api/areas/lookup')) {
-            const codes = [...new URL(`http://x${path}`).searchParams.getAll('area_code')];
+            const codes = [...new URL(`http://x${path}`).searchParams.getAll('areaCode')];
             return Promise.resolve(
               codes.map((code) => ({
                 code,
@@ -147,7 +147,7 @@ describe('loadSearch', () => {
     ).toBe(true);
   });
 
-  it('strips invalid geo values and passes validated ones as display_group', async () => {
+  it('strips invalid geo values and passes validated ones as displayGroup', async () => {
     const { client, get } = api();
 
     await loadSearch(
@@ -158,7 +158,7 @@ describe('loadSearch', () => {
       String(path).startsWith('/api/indicators/search'),
     );
     expect(String(searchCall?.[0])).toContain(
-      `display_group=${encodeURIComponent('Local authorities')}`,
+      `displayGroup=${encodeURIComponent('Local authorities')}`,
     );
     expect(String(searchCall?.[0])).not.toContain('Not+A+Real+Level');
   });
@@ -180,14 +180,14 @@ describe('loadSearch', () => {
     await loadSearch(loaderArgs(client, 'http://localhost/search?ga=E12000001'));
 
     expect(get).toHaveBeenCalledWith(
-      expect.stringContaining('area_code=E12000001'),
+      expect.stringContaining('areaCode=E12000001'),
       expect.anything(),
     );
     const searchCall = get.mock.calls.find(([path]) =>
       String(path).startsWith('/api/indicators/search'),
     );
-    expect(String(searchCall?.[0])).toContain('area_code=E12000001');
-    expect(String(searchCall?.[0])).not.toContain('display_group=Local');
+    expect(String(searchCall?.[0])).toContain('areaCode=E12000001');
+    expect(String(searchCall?.[0])).not.toContain('displayGroup=Local');
   });
 
   it('drops ga codes that do not resolve (unknown areas)', async () => {

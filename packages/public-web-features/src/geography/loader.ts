@@ -19,7 +19,7 @@ async function loadGeographyPreviews(
   levels: string[],
 ): Promise<NonNullable<GeographyOptions['previews']>> {
   if (levels.length === 0) return [];
-  const query = levels.map((name) => `display_group=${encodeURIComponent(name)}`).join('&');
+  const query = levels.map((name) => `displayGroup=${encodeURIComponent(name)}`).join('&');
   const groups = await api.get(
     `/api/areas?${query}&limit=${PREVIEW_LIMIT}`,
     areaDisplayGroupListSchema,
