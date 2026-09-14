@@ -44,10 +44,18 @@ describe('DashboardPage', () => {
     }
   });
 
+  it('links each indicator to its overview page', () => {
+    renderPage();
+
+    const link = screen.getByRole('link', { name: 'Life expectancy at birth' });
+
+    expect(link.getAttribute('href')).toBe(`/dashboard/indicators/${indicator.id}`);
+    expect(screen.getByRole('rowheader', { name: 'Life expectancy at birth' })).toBeTruthy();
+  });
+
   it('shows when each indicator was last edited, in the display time zone', () => {
     renderPage();
 
-    expect(screen.getByRole('rowheader', { name: 'Life expectancy at birth' })).toBeTruthy();
     // 23:30 UTC on the 4th is 00:30 on the 5th in London.
     expect(screen.getByText('5 Aug 2026').getAttribute('datetime')).toBe(indicator.updatedAt);
   });

@@ -1,5 +1,6 @@
-import { formatDate, GridColumn, GridRow, Pagination, Table } from '@fphd/ui';
+import { A, formatDate, GridColumn, GridRow, Pagination, Table } from '@fphd/ui';
 
+import { indicatorOverviewPath } from '../indicator-overview/paths';
 import type { IndicatorAdminSummary } from './loader';
 import { dashboardPath } from './paths';
 
@@ -38,7 +39,11 @@ export function DashboardPage({ indicators, page, totalPages }: DashboardPagePro
             data={indicators.map((indicator) => ({
               // The first column is a row header, which GOV.UK sets bold; the names read as
               // plain text.
-              name: <span className="govuk-!-font-weight-regular">{indicator.name}</span>,
+              name: (
+                <span className="govuk-!-font-weight-regular">
+                  <A href={indicatorOverviewPath(indicator.id)}>{indicator.name}</A>
+                </span>
+              ),
               updatedAt: (
                 <time dateTime={indicator.updatedAt}>{formatDate(indicator.updatedAt)}</time>
               ),

@@ -127,6 +127,7 @@ describe('the publisher route table', () => {
 
     expect(publisher?.children?.map((child) => child.path)).toEqual([
       'dashboard',
+      'dashboard/indicators/:id',
       'manage',
       'manage/topics',
       'manage/topics/new',
