@@ -1,9 +1,8 @@
-import { SubmitButton } from '@not-govuk/button';
-import Input from '@not-govuk/input';
 import Label from '@not-govuk/label';
+import SearchBox from '@not-govuk/search-box';
 import type { ReactNode } from 'react';
 
-// Keeps a visible label while composing NotGovUK's input and submit button.
+// SearchBox hides its own label, so render the page's heading-style label alongside it.
 export function SearchField({
   action,
   defaultValue,
@@ -28,40 +27,16 @@ export function SearchField({
         </Label>
         {action}
       </div>
-      <div className="not-govuk-standalone-input not-govuk-search-box fphd-search-bar">
-        <Input
-          autoComplete="off"
-          className="not-govuk-standalone-input__input"
-          defaultValue={defaultValue}
-          id={inputId}
-          maxLength={200}
-          name={name}
-          type="search"
-        />
-        <SubmitButton className="not-govuk-standalone-input__button">
-          Search
-          <svg
-            aria-hidden="true"
-            className="not-govuk-search-box__icon"
-            fill="none"
-            focusable="false"
-            height="27"
-            viewBox="0 0 27 27"
-            width="27"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <circle cx="12.0161" cy="11.0161" r="8.51613" stroke="currentColor" strokeWidth="3" />
-            <line
-              stroke="currentColor"
-              strokeWidth="3"
-              x1="17.8668"
-              x2="26.4475"
-              y1="17.3587"
-              y2="25.9393"
-            />
-          </svg>
-        </SubmitButton>
-      </div>
+      <SearchBox
+        autoComplete="off"
+        className="fphd-search-bar"
+        defaultValue={defaultValue}
+        id={id}
+        label=""
+        maxLength={200}
+        name={name}
+        type="search"
+      />
     </div>
   );
 }

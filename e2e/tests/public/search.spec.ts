@@ -19,6 +19,18 @@ test('loads the search page with h1', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: 'Search for data' })).toBeVisible();
 });
 
+test('uses the compact NotGovUK search box', async ({ page }) => {
+  await page.goto('/search');
+
+  const input = page.getByRole('searchbox', { name: 'Search by keywords' });
+  const button = page.getByRole('button', { name: 'Search', exact: true });
+
+  await expect(input.locator('..')).toHaveClass(/not-govuk-search-box/);
+  await expect(button).toHaveCSS('background-color', 'rgb(29, 112, 184)');
+  await expect(button).toHaveCSS('height', '40px');
+  await expect(button).toHaveCSS('width', '40px');
+});
+
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
   await page.goto('/search');
 

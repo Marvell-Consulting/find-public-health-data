@@ -54,6 +54,7 @@ catalog:
   '@not-govuk/page': 0.18.1
   '@not-govuk/radios': 0.18.1
   '@not-govuk/sass-base': 0.18.1
+  '@not-govuk/search-box': 0.18.1
   '@not-govuk/select': 0.18.1
   '@not-govuk/summary-list': 0.18.1
   '@not-govuk/table': 0.18.1

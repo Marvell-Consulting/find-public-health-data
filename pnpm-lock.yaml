@@ -51,6 +51,9 @@ catalogs:
     '@not-govuk/sass-base':
       specifier: 0.18.1
       version: 0.18.1
+    '@not-govuk/search-box':
+      specifier: 0.18.1
+      version: 0.18.1
     '@not-govuk/select':
       specifier: 0.18.1
       version: 0.18.1
@@ -855,6 +858,9 @@ importers:
       '@not-govuk/sass-base':
         specifier: 'catalog:'
         version: 0.18.1
+      '@not-govuk/search-box':
+        specifier: 'catalog:'
+        version: 0.18.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
       '@not-govuk/select':
         specifier: 'catalog:'
         version: 0.18.1(react@19.2.7)
@@ -1873,6 +1879,18 @@ packages:
   '@not-govuk/sass-base@0.18.1':
     resolution: {integrity: sha512-vmXoeySWAWyEI30tvaCAtdzJ/wIMa148/4gsEVWsCz0nrinGGEv7nCbfEb8o76Jup4eRvyzb/aEw66Yj2iOjzQ==}
 
+  '@not-govuk/search-box@0.18.1':
+    resolution: {integrity: sha512-HMDJouTpasPnuQO1tm1+TsLGAlO+lk1mAzv8r6PhqXOw7R6rzNSQ3AzWeLoLQ8WGNjt5oy5p6Kbek27/C2FtvQ==}
+    peerDependencies:
+      '@react-foundry/docs-components': ^0.3.0
+      '@storybook/addon-docs': ^10.3.5
+      react: ^19.2.5
+    peerDependenciesMeta:
+      '@react-foundry/docs-components':
+        optional: true
+      '@storybook/addon-docs':
+        optional: true
+
   '@not-govuk/select@0.18.1':
     resolution: {integrity: sha512-iVz7K3KizSszW4QKosl0r6IAzHOuyokyARFgm7Y2Fc5P5DbbmfDAiewMmNiIU57TK3OlrkRFrHrvBT/eW+zMvA==}
     peerDependencies:
@@ -1899,6 +1917,18 @@ packages:
 
   '@not-govuk/skip-link@0.18.1':
     resolution: {integrity: sha512-m/tYKMMURr/dNXwXaiEcsH0fXAUUIT+VS7yjKLlSBJ5MmREKWGQx5s3FLFETw49X6H3ZX62MnFsBltSGviGdzw==}
+    peerDependencies:
+      '@react-foundry/docs-components': ^0.3.0
+      '@storybook/addon-docs': ^10.3.5
+      react: ^19.2.5
+    peerDependenciesMeta:
+      '@react-foundry/docs-components':
+        optional: true
+      '@storybook/addon-docs':
+        optional: true
+
+  '@not-govuk/standalone-input@0.18.1':
+    resolution: {integrity: sha512-esufbPqJMcYr2RUiU0ENlPjkWx9jggJPN1xOJXEEcNotGLfaBrDw5A+kihyYB3mPUuSjRbPEJnNB3ncUOTUhZg==}
     peerDependencies:
       '@react-foundry/docs-components': ^0.3.0
       '@storybook/addon-docs': ^10.3.5
@@ -4410,6 +4440,17 @@ snapshots:
     dependencies:
       govuk-frontend: 5.14.0
 
+  '@not-govuk/search-box@0.18.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+    dependencies:
+      '@not-govuk/sass-base': 0.18.1
+      '@not-govuk/standalone-input': 0.18.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@react-foundry/component-helpers': 0.3.0
+      react: 19.2.7
+    transitivePeerDependencies:
+      - '@remix-run/react'
+      - next
+      - react-router
+
   '@not-govuk/select@0.18.1(react@19.2.7)':
     dependencies:
       '@not-govuk/form-group': 0.18.1(react@19.2.7)
@@ -4438,6 +4479,19 @@ snapshots:
       '@react-foundry/component-helpers': 0.3.0
       govuk-frontend: 5.14.0
       react: 19.2.7
+
+  '@not-govuk/standalone-input@0.18.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+    dependencies:
+      '@not-govuk/button': 0.18.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@not-govuk/form-group': 0.18.1(react@19.2.7)
+      '@not-govuk/input': 0.18.1(react@19.2.7)
+      '@not-govuk/sass-base': 0.18.1
+      '@react-foundry/component-helpers': 0.3.0
+      react: 19.2.7
+    transitivePeerDependencies:
+      - '@remix-run/react'
+      - next
+      - react-router
 
   '@not-govuk/summary-list@0.18.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
     dependencies:
