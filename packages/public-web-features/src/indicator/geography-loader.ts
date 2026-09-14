@@ -21,7 +21,7 @@ export async function loadGeography({ context, request }: LoaderFunctionArgs) {
   }
   if (level) {
     const groups = await api.get(
-      `/api/areas?display_group=${encodeURIComponent(level)}`,
+      `/api/areas?displayGroup=${encodeURIComponent(level)}`,
       areaDisplayGroupListSchema,
     );
     return Response.json({ areas: groups.flatMap(({ areas }) => areas) });

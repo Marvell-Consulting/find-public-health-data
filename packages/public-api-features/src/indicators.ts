@@ -30,7 +30,7 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
   router.get('/api/indicators/:fingertipsId/data', async (request, response) => {
     const { fingertipsId } = request.params;
     // Repeatable, so a page comparing many areas asks once rather than once per area.
-    const requested = request.query.area_code ?? DEFAULT_AREA_CODE;
+    const requested = request.query.areaCode ?? DEFAULT_AREA_CODE;
     const areaCodes = [...new Set(Array.isArray(requested) ? requested : [requested])].filter(
       (code): code is string => typeof code === 'string' && /^[A-Z0-9]+$/i.test(code),
     );
@@ -65,7 +65,7 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
 
   router.get('/api/indicators/:fingertipsId/range', async (request, response) => {
     const { fingertipsId } = request.params;
-    const displayGroup = request.query.display_group;
+    const displayGroup = request.query.displayGroup;
 
     if (
       !/^\d+$/.test(fingertipsId) ||

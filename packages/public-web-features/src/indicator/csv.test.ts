@@ -95,7 +95,7 @@ describe('loadIndicatorCsv', () => {
 
     expect(
       get.mock.calls.some(([path]) =>
-        String(path).endsWith('/data?area_code=E06000052&area_code=E92000001'),
+        String(path).endsWith('/data?areaCode=E06000052&areaCode=E92000001'),
       ),
     ).toBe(true);
     const body = await response.text();
