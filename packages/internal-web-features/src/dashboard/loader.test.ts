@@ -64,4 +64,13 @@ describe('loadDashboard', () => {
       expect(get).not.toHaveBeenCalled();
     },
   );
+
+  it('responds 404 when the address names a page twice, as the API would refuse it', async () => {
+    const get = vi.fn();
+
+    await expect(load('https://internal.test/dashboard?page=1&page=2', get)).rejects.toSatisfy(
+      (error: unknown) => error instanceof Response && error.status === 404,
+    );
+    expect(get).not.toHaveBeenCalled();
+  });
 });
