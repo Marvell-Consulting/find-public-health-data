@@ -516,6 +516,12 @@ body:not(.js-enabled) .fphd-geo-alt__toggle {
   isolation: isolate;
 }
 
+// NotGovUK's input[type] rule is more specific than this modifier in the library's CSS.
+// Restore the library spacing that keeps the value clear of its dropdown arrow.
+.fphd-autocomplete .autocomplete__input--show-all-values {
+  padding: 5px 35px 5px 5px;
+}
+
 // A value's magnitude relative to the largest in the comparison, so rows can be scanned
 // without reading every number.
 .fphd-bar-container {

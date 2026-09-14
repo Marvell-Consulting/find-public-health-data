@@ -259,6 +259,14 @@ test('editing an autocomplete choice cancels it and adding resets the field', as
   await expect(topics.getByRole('link', { name: 'Remove Diabetes filter' })).toBeVisible();
 });
 
+test('keeps long autocomplete values clear of the dropdown arrow', async ({ page }) => {
+  await ready(page, '/search?pg=population-infants-and-early-years-aged-4-years-and-under');
+
+  const input = page.getByRole('combobox', { name: 'Search for a population group' });
+  await expect(input).toBeVisible();
+  await expect(input).toHaveCSS('padding-right', '35px');
+});
+
 test('a complete long data source remains selected and narrows results', async ({ page }) => {
   await ready(page);
   const attributes = card(page, 'Data attributes');
