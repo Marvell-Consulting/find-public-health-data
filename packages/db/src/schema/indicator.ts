@@ -25,6 +25,10 @@ import {
   yearType,
 } from './lookup.js';
 
+export const INDICATOR_STATUSES = ['draft', 'in_review', 'approved', 'archived'] as const;
+
+export type IndicatorStatus = (typeof INDICATOR_STATUSES)[number];
+
 export const indicator = pgTable(
   'indicator',
   {
@@ -56,7 +60,7 @@ export const indicator = pgTable(
     // When the source system last published data for this indicator. Distinct from the
     // audit timestamps, which record when our own row changed.
     dataUpdatedAt: timestamp({ withTimezone: true }),
-    status: text().notNull().default('approved'),
+    status: text({ enum: INDICATOR_STATUSES }).notNull().default('approved'),
     reviewedAt: timestamp({ withTimezone: true }),
     reviewedBy: text(),
     config: jsonb(),

@@ -4,7 +4,7 @@ import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
 import { asc, desc, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { listIndicatorsPage } from './indicator-repository.js';
+import { getIndicatorById, listIndicatorsPage } from './indicator-repository.js';
 
 const env = parseEnv(
   z.object({
@@ -79,5 +79,32 @@ describe('listIndicatorsPage', () => {
     const page = await listIndicatorsPage(db, 1, 1);
 
     expect(page.indicators[0]?.id).toBe(target);
+  });
+});
+
+describe('getIndicatorById', () => {
+  // The last row: the tests above and below change the status of the first two.
+  it('returns the indicator with its public number and status', async () => {
+    const target = (await seededIdsNewestFirst()).at(-1);
+    if (target === undefined) throw new Error('The seed holds no indicators');
+
+    const found = await getIndicatorById(db, target);
+
+    expect(found).toMatchObject({ id: target, status: 'approved' });
+    expect(found?.fingertipsId).toEqual(expect.any(Number));
+    expect(found?.name).not.toBe('');
+  });
+
+  it('finds an indicator the public API would hide', async () => {
+    const [, target] = await seededIdsNewestFirst();
+    if (target === undefined) throw new Error('The seed holds fewer than two indicators');
+
+    await db.update(indicator).set({ status: 'draft' }).where(eq(indicator.id, target));
+
+    expect((await getIndicatorById(db, target))?.status).toBe('draft');
+  });
+
+  it('returns nothing for an id no indicator has', async () => {
+    expect(await getIndicatorById(db, '00000000-0000-7000-8000-000000000000')).toBeUndefined();
   });
 });

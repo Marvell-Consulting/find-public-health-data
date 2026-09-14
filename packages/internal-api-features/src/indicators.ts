@@ -3,11 +3,13 @@ import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { Router } from 'express';
 
 import {
+  type IndicatorAdminDetail,
   type IndicatorAdminPage,
   type IndicatorAdminSummary,
+  indicatorIdSchema,
   indicatorPageQuerySchema,
 } from './contract.js';
-import type { IndicatorAdminRow } from './indicator-repository.js';
+import type { IndicatorAdminDetailRow, IndicatorAdminRow } from './indicator-repository.js';
 import type { InternalIndicatorRepository } from './repositories.js';
 
 export const INDICATORS_PAGE_SIZE = 10;
@@ -16,9 +18,13 @@ function toSummary({ id, name, updatedAt }: IndicatorAdminRow): IndicatorAdminSu
   return { id, name, updatedAt: updatedAt.toISOString() };
 }
 
+function toDetail(row: IndicatorAdminDetailRow): IndicatorAdminDetail {
+  return { ...toSummary(row), fingertipsId: row.fingertipsId, status: row.status };
+}
+
 /**
- * The publisher's dashboard listing: every indicator, including the unapproved ones the
- * public API never serves. Mounted only by `internal-api`; `public-api` must 404 every path.
+ * The publisher's view of indicators: every one, including the unapproved ones the public
+ * API never serves. Mounted only by `internal-api`; `public-api` must 404 every path.
  */
 export function internalIndicatorsRouter(
   indicators: InternalIndicatorRepository,
@@ -45,6 +51,25 @@ export function internalIndicatorsRouter(
     };
 
     response.status(200).json(body);
+  });
+
+  router.get('/api/internal/indicators/:id', requirePublisher, async (request, response) => {
+    const id = indicatorIdSchema.safeParse(request.params.id);
+
+    // Handing an unparseable id to the database would surface as a 500; it is a bad request.
+    if (!id.success) {
+      response.status(400).json({ error: 'invalid_id' });
+      return;
+    }
+
+    const row = await indicators.findById(id.data);
+
+    if (!row) {
+      response.status(404).json({ error: 'not_found' });
+      return;
+    }
+
+    response.status(200).json(toDetail(row));
   });
 
   return router;

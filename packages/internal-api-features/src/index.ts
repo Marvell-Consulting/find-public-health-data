@@ -5,7 +5,11 @@ import { internalIndicatorsRouter } from './indicators.js';
 import type { InternalRepositories } from './repositories.js';
 import { internalTopicsRouter } from './topics.js';
 
-export type { IndicatorAdminRow, IndicatorAdminRows } from './indicator-repository.js';
+export type {
+  IndicatorAdminDetailRow,
+  IndicatorAdminRow,
+  IndicatorAdminRows,
+} from './indicator-repository.js';
 export { INDICATORS_PAGE_SIZE, internalIndicatorsRouter } from './indicators.js';
 export {
   createInternalRepositories,

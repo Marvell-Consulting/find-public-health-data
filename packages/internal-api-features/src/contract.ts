@@ -98,5 +98,21 @@ export const indicatorAdminPageSchema = z.object({
   total: z.number().int().min(0),
 });
 
+export const indicatorIdSchema = z.uuid();
+
+/** The stored vocabulary, as the `indicator_status_check` constraint in `@fphd/db` allows it. */
+export const indicatorStatusSchema = z.enum(['draft', 'in_review', 'approved', 'archived']);
+
+export const indicatorAdminDetailSchema = z.object({
+  id: indicatorIdSchema,
+  /** The public indicator number, which is what a publisher knows an indicator by. */
+  fingertipsId: z.number().int(),
+  name: z.string().min(1),
+  status: indicatorStatusSchema,
+  updatedAt: z.iso.datetime(),
+});
+
 export type IndicatorAdminSummary = z.infer<typeof indicatorAdminSummarySchema>;
 export type IndicatorAdminPage = z.infer<typeof indicatorAdminPageSchema>;
+export type IndicatorStatus = z.infer<typeof indicatorStatusSchema>;
+export type IndicatorAdminDetail = z.infer<typeof indicatorAdminDetailSchema>;

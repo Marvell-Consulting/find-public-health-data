@@ -1,7 +1,8 @@
 # @fphd/internal-api-features
 
 Routes and repository functions only `internal_api` may run: today, topic administration and the
-indicators dashboard listing. The
+publisher's view of indicators, listed for the dashboard and read one at a time for the overview
+page. The
 `internal-` prefix is what `tools/artefact-boundary` keys on, so nothing here can reach a public
 image.
 
