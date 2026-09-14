@@ -16,6 +16,7 @@ interface GeographyTreeProps {
         query: string;
         level: string;
         groups: { name: string; areas: GeographyArea[] }[];
+        previews?: { name: string; areas: GeographyArea[] }[];
         error: boolean;
       }
     | undefined;
@@ -33,16 +34,16 @@ interface GeographyTreeProps {
   selectedLevels: string[];
 }
 
-// Caps rendered checkboxes per level so thousands of GP practices cannot flood the DOM;
-// the search reaches everything server-side regardless.
+// The page preloads one extra row to tell us whether a level exceeds the rendered cap;
+// search reaches everything server-side regardless.
 const CHILD_CAP = 100;
 const SEARCH_DEBOUNCE_MS = 300;
 
 /**
- * Geography picker fed on demand: a level's areas load when it first expands and the
- * search asks the server, so the catalogue never ships with the page. A level's own
- * checkbox is a real `als` form control, which also makes whole-level selection work
- * without scripting.
+ * Geography picker with bounded server-loaded previews, so normal expansion is instant
+ * without putting whole GP and MSOA catalogues in the page. Search asks the server for
+ * everything beyond those previews. A level's own checkbox is a real `als` form control,
+ * which also makes whole-level selection work without scripting.
  */
 export function GeographyTree({
   levels,
@@ -58,9 +59,11 @@ export function GeographyTree({
   const idPrefix = useId();
   const [query, setQuery] = useState(fallback?.query ?? '');
   const [expanded, setExpanded] = useState<string[]>(fallback?.level ? [fallback.level] : []);
-  const [loaded, setLoaded] = useState<Record<string, GeographyArea[] | 'loading'>>(
+  const [loaded, setLoaded] = useState<Record<string, GeographyArea[] | 'loading'>>(() =>
     Object.fromEntries(
-      (fallback?.level ? fallback.groups : []).map(({ name, areas }) => [name, areas]),
+      [...(fallback?.previews ?? []), ...(fallback?.level ? fallback.groups : [])].map(
+        ({ name, areas }) => [name, areas],
+      ),
     ),
   );
   const [searchGroups, setSearchGroups] = useState(fallback?.groups ?? []);
@@ -294,9 +297,7 @@ export function GeographyTree({
 
                 {isOpen ? (
                   <div className="fphd-geo-alt__children">
-                    {isLoading ? (
-                      <p className="govuk-body-s fphd-geo-alt__more">Loading…</p>
-                    ) : (
+                    {isLoading ? null : (
                       <>
                         <Checkboxes
                           id={`${groupId}-areas`}
@@ -313,9 +314,9 @@ export function GeographyTree({
                             disabled: !selected.includes(area.code) && atCap,
                           }))}
                         />
-                        {group.areas.length > shown.length ? (
+                        {group.areas.length > CHILD_CAP ? (
                           <p className="govuk-body-s fphd-geo-alt__more">
-                            Showing {shown.length} of {group.areas.length} — search to find the rest
+                            Showing the first {CHILD_CAP} — search to find the rest
                           </p>
                         ) : null}
                         {atCap ? (

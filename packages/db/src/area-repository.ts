@@ -20,13 +20,18 @@ export async function listDisplayGroups(db: Database): Promise<string[]> {
 }
 
 /** Current areas across every type of one display group, ordered by name. */
-export async function listAreasByGroup(db: Database, displayGroup: string): Promise<AreaSummary[]> {
-  return db
+export async function listAreasByGroup(
+  db: Database,
+  displayGroup: string,
+  limit?: number,
+): Promise<AreaSummary[]> {
+  const query = db
     .select({ code: area.code, name: area.name })
     .from(area)
     .innerJoin(areaType, eq(area.areaTypeId, areaType.id))
     .where(and(eq(areaType.displayGroup, displayGroup), isNull(area.validTo)))
     .orderBy(asc(area.name));
+  return limit === undefined ? query : query.limit(limit);
 }
 
 export interface AreaParent {

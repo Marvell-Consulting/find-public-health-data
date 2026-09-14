@@ -337,6 +337,13 @@ describe('listAreasByGroup', () => {
   it('returns nothing for an unknown group', async () => {
     expect(await listAreasByGroup(db, 'No Such Level')).toEqual([]);
   });
+
+  it('limits a group preview without changing its order', async () => {
+    expect((await listAreasByGroup(db, 'Statistical regions', 2)).map(({ name }) => name)).toEqual([
+      'East Midlands',
+      'East of England',
+    ]);
+  });
 });
 
 describe('listAreasByCodes', () => {

@@ -125,7 +125,16 @@ describe('GET /api/areas', () => {
     expect(response.body).toEqual([
       { displayGroup: 'Local authorities', areas: [{ code: 'E06000052', name: 'Cornwall' }] },
     ]);
-    expect(listByGroup).toHaveBeenCalledWith('Local authorities');
+    expect(listByGroup).toHaveBeenCalledWith('Local authorities', undefined);
+  });
+
+  it('caps a display-group preview request', async () => {
+    const listByGroup = vi.fn().mockResolvedValue([]);
+    const app = createTestApp({ listByGroup });
+
+    await request(app).get('/api/areas?display_group=GP+practices&limit=500');
+
+    expect(listByGroup).toHaveBeenCalledWith('GP practices', 101);
   });
 
   it('de-duplicates and caps repeated area queries', async () => {

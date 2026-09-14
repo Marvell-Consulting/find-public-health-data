@@ -285,6 +285,10 @@ test('geography levels and areas match the compact prototype tree', async ({ pag
   await ready(page);
   const geography = card(page, 'Geography');
   await geography.getByRole('button', { name: /Expand$/ }).click();
+  const levelRequests: string[] = [];
+  page.on('request', (request) => {
+    if (request.url().includes('/geographies?level=')) levelRequests.push(request.url());
+  });
   await geography.getByRole('button', { name: 'Expand Local authorities' }).click();
 
   const level = geography.getByText('Local authorities', { exact: true });
@@ -293,6 +297,12 @@ test('geography levels and areas match the compact prototype tree', async ({ pag
   const levelInput = geography.getByRole('checkbox', { name: 'Local authorities', exact: true });
   const toggle = geography.getByRole('button', { name: 'Collapse Local authorities' });
   await expect(area).toBeVisible();
+  await expect(geography.getByText('Loading…')).toHaveCount(0);
+  await expect(
+    geography.getByText('Showing the first 100 — search to find the rest'),
+  ).toBeVisible();
+  await expect(geography.locator('.fphd-geo-alt__children').getByRole('checkbox')).toHaveCount(100);
+  expect(levelRequests).toEqual([]);
   await expect(level).toHaveCSS('font-size', '16px');
   await expect(levelInput).toHaveCSS('width', '24px');
   await expect(levelInput).toHaveCSS('height', '36px');

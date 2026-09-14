@@ -8,7 +8,27 @@ export interface GeographyOptions {
   query: string;
   level: string;
   groups: { name: string; areas: { code: string; name: string }[] }[];
+  previews?: { name: string; areas: { code: string; name: string }[] }[];
   error: boolean;
+}
+
+const PREVIEW_LIMIT = 101;
+
+async function loadGeographyPreviews(
+  api: ApiClient,
+  levels: string[],
+): Promise<NonNullable<GeographyOptions['previews']>> {
+  if (levels.length === 0) return [];
+  const query = levels.map((name) => `display_group=${encodeURIComponent(name)}`).join('&');
+  const groups = await api.get(
+    `/api/areas?${query}&limit=${PREVIEW_LIMIT}`,
+    areaDisplayGroupListSchema,
+  );
+  return levels.flatMap((name) =>
+    groups
+      .filter((group) => group.displayGroup === name)
+      .map(({ displayGroup, areas }) => ({ name: displayGroup, areas })),
+  );
 }
 
 export async function findGeographyGroups(
@@ -18,7 +38,7 @@ export async function findGeographyGroups(
   if (level.length > 100) return [];
   if (level) {
     const groups = await api.get(
-      `/api/areas?displayGroup=${encodeURIComponent(level)}`,
+      `/api/areas?displayGroup=${encodeURIComponent(level)}&limit=${PREVIEW_LIMIT}`,
       areaDisplayGroupListSchema,
     );
     return groups.map(({ displayGroup, areas }) => ({ name: displayGroup, areas }));
@@ -49,12 +69,24 @@ export async function loadGeographyOptions(
   const level = levels.includes(requestedLevel) ? requestedLevel : '';
   const query = level ? '' : (params.get('geo-q')?.trim().slice(0, 100) ?? '');
   const result: GeographyOptions = { query, level, groups: [], error: false };
-  if (!query && !level) return result;
+  const previews = loadGeographyPreviews(api, levels).catch(() => {
+    // The picker can still fetch a level when it expands if its page preview failed.
+    return [];
+  });
+  if (!query && !level) {
+    result.previews = await previews;
+    return result;
+  }
 
   try {
-    const groups = await findGeographyGroups(api, { query, level });
+    const [loadedPreviews, groups] = await Promise.all([
+      previews,
+      findGeographyGroups(api, { query, level }),
+    ]);
+    result.previews = loadedPreviews;
     result.groups = levels.flatMap((name) => groups.filter((group) => group.name === name));
   } catch {
+    result.previews = await previews;
     result.error = true;
   }
   return result;

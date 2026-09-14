@@ -98,10 +98,13 @@ describe('loadIndicator', () => {
 
     expect(result.selected).toEqual([]);
     expect(result.selection.fingertipsIds).toEqual([]);
-    // Neither catalogue ships with the page: indicators are searched per keystroke and
-    // the geography tree fetches its levels on demand.
+    // The indicator catalogue stays server-side, while the geography tree receives only
+    // its bounded first-page previews.
     expect(get).not.toHaveBeenCalledWith('/api/indicators', expect.anything());
-    expect(get.mock.calls.some(([path]) => String(path).startsWith('/api/areas?'))).toBe(false);
+    const [previewPath] = get.mock.calls.find(([path]) => String(path).includes('limit=101')) ?? [];
+    expect(
+      new URL(`http://localhost${previewPath}`).searchParams.getAll('display_group'),
+    ).toHaveLength(6);
   });
 
   it('answers a no-script find search with the server matches, trimmed and encoded', async () => {
