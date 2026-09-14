@@ -40,7 +40,7 @@ test('shows the account and signs out', async ({ page }) => {
   await expect(page).toHaveURL('/sign-in');
   await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
   await page.goto('/');
-  await expect(page).toHaveURL('/sign-in?returnTo=%2F');
+  await expect(page).toHaveURL('/sign-in?returnTo=%2Fdashboard');
 });
 
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {

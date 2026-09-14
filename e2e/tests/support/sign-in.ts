@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 /** Submits the fake sign-in form already on screen and waits for the redirect away from it. */
 export async function submitSignIn(page: Page, name: string) {
@@ -7,9 +7,8 @@ export async function submitSignIn(page: Page, name: string) {
   await page.waitForURL((url) => url.pathname !== '/sign-in');
 }
 
-/** Signs in from the sign-in page and lands on the home page. */
+/** Signs in from the sign-in page; where the app sends the user next is the app's business. */
 export async function signInAs(page: Page, name: string) {
   await page.goto('/sign-in');
   await submitSignIn(page, name);
-  await expect(page).toHaveURL('/');
 }

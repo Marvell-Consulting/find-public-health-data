@@ -27,9 +27,11 @@ interface AppShellProps {
   audience: 'Public' | 'Internal';
   children: ReactNode;
   navigation: AppNavigationItem[];
+  /** Where the service name in the header links to. */
+  serviceHref?: string | undefined;
 }
 
-export function AppShell({ audience, children, navigation }: AppShellProps) {
+export function AppShell({ audience, children, navigation, serviceHref = '/' }: AppShellProps) {
   const isInternal = audience === 'Internal';
 
   return (
@@ -48,7 +50,7 @@ export function AppShell({ audience, children, navigation }: AppShellProps) {
         )
       }
       rebrand
-      serviceHref="/"
+      serviceHref={serviceHref}
       serviceName={serviceName}
     >
       {children}
