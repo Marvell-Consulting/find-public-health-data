@@ -3,8 +3,7 @@ import Input from '@not-govuk/input';
 import Label from '@not-govuk/label';
 import type { ReactNode } from 'react';
 
-// The search-box component hides its label; this keeps the same input and button styling
-// under a visible one, with an optional action on the label's line.
+// Keeps a visible label while composing NotGovUK's input and submit button.
 export function SearchField({
   action,
   defaultValue,
@@ -35,6 +34,7 @@ export function SearchField({
           className="not-govuk-standalone-input__input"
           defaultValue={defaultValue}
           id={inputId}
+          maxLength={200}
           name={name}
           type="search"
         />

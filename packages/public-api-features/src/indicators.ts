@@ -14,14 +14,16 @@ const DEFAULT_SEARCH_LIMIT = 20;
 const MAX_SEARCH_LIMIT = 100;
 // Longer than any indicator name, so truncation can never hide a legitimate match.
 const MAX_QUERY_LENGTH = 200;
+// Source values are labels rather than slugs, but still need a finite request boundary.
+const MAX_FILTER_LABEL_LENGTH = 500;
 const SEARCH_PAGE_LIMIT = 200;
 
-function pickStrings(value: unknown): string[] {
+function pickStrings(value: unknown, maxLength = 100): string[] {
   return [
     ...new Set(
       (Array.isArray(value) ? value : [value]).filter(
         (entry): entry is string =>
-          typeof entry === 'string' && entry !== '' && entry.length <= 100,
+          typeof entry === 'string' && entry !== '' && entry.length <= maxLength,
       ),
     ),
   ].slice(0, 100);
@@ -48,7 +50,7 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
       populations: pickStrings(request.query.pg),
       inequalities: pickStrings(request.query.eq),
       displayGroups: pickStrings(request.query.display_group),
-      sources: pickStrings(request.query.src),
+      sources: pickStrings(request.query.src, MAX_FILTER_LABEL_LENGTH),
       valueTypes: pickStrings(request.query.vt),
       yearTypes: pickStrings(request.query.per),
       limit: SEARCH_PAGE_LIMIT,

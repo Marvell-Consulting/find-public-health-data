@@ -10,7 +10,9 @@ export interface AutocompleteOption {
   label: string;
 }
 
-type AutocompleteProps =
+type AutocompleteProps = {
+  onInputChange?: () => void;
+} & (
   | {
       label: string;
       onSelect: (option: AutocompleteOption) => void;
@@ -33,7 +35,8 @@ type AutocompleteProps =
       name?: string;
       defaultValue?: string;
       limit?: number;
-    };
+    }
+);
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -79,14 +82,15 @@ export function Autocomplete({
   name,
   defaultValue = '',
   limit = 10,
+  onInputChange,
 }: AutocompleteProps) {
   // Colons from useId would break the CSS selectors the library builds from this id.
   const inputId = `fphd-autocomplete-${useId().replace(/[^a-zA-Z0-9-]/g, '')}`;
   const containerRef = useRef<HTMLDivElement>(null);
   const [enhanced, setEnhanced] = useState(false);
   // Kept current so the mount-once effect never holds stale props.
-  const callbacks = useRef({ onSelect, source, options });
-  callbacks.current = { onSelect, source, options };
+  const callbacks = useRef({ onSelect, source, options, onInputChange });
+  callbacks.current = { onSelect, source, options, onInputChange };
   // Init-only: a defaultValue change must not tear down the live widget.
   const initialValue = useRef(defaultValue);
   const isLocalMode = options !== undefined;
@@ -110,6 +114,7 @@ export function Autocomplete({
       searching = false;
     };
     const onInput = (event: Event) => {
+      callbacks.current.onInputChange?.();
       const target = event.target as HTMLInputElement;
       if (!isLocalMode && target.value.trim().length < 2) {
         cancelPending();

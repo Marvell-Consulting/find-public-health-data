@@ -2,7 +2,7 @@ import type { Topic } from '@fphd/db';
 import { createFakeRepositories } from '@fphd/db/testing';
 import { createLogger } from '@fphd/logger';
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createApp } from './app.js';
 
@@ -194,6 +194,29 @@ describe('public API', () => {
     await request(app).get(`/api/indicators/search?t=&t=${long}&t=valid`);
 
     expect(searchWithFilters).toHaveBeenCalledWith(expect.objectContaining({ topics: ['valid'] }));
+  });
+
+  it('accepts source names longer than the slug limit without truncation', async () => {
+    const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, limit: 200, indicators: [] });
+    const app = createApp({
+      logger,
+      repositories: createFakeRepositories({ indicators: { searchWithFilters } }),
+    });
+    const source = 'A data source with a full attribution '.repeat(6);
+    await request(app).get('/api/indicators/search').query({ src: source });
+    expect(searchWithFilters).toHaveBeenCalledWith(expect.objectContaining({ sources: [source] }));
+  });
+
+  it('drops source names beyond the filter label limit', async () => {
+    const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, limit: 200, indicators: [] });
+    const app = createApp({
+      logger,
+      repositories: createFakeRepositories({ indicators: { searchWithFilters } }),
+    });
+    await request(app)
+      .get('/api/indicators/search')
+      .query({ src: 's'.repeat(501) });
+    expect(searchWithFilters).toHaveBeenCalledWith(expect.objectContaining({ sources: [] }));
   });
 
   it('caps each filter list at 100 entries', async () => {

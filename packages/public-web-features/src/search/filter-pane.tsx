@@ -5,13 +5,14 @@ import {
   CollapsibleFilterCard,
   FilterChip,
   FilterChips,
-  GeographyTree,
   SearchField,
 } from '@fphd/ui';
 import { useState } from 'react';
-import { Form, Link, useNavigate } from 'react-router';
-
-import type { IndicatorFacets } from './search-loader.js';
+import { Form, Link, useLocation, useNavigate } from 'react-router';
+import type { GeographyOptions } from '../geography/loader.js';
+import { MAX_SELECTED_AREAS } from '../selection-limits.js';
+import { SearchGeographyPicker } from './geography-picker.js';
+import type { IndicatorFacets } from './loader.js';
 import {
   DIMENSIONS,
   EMPTY_SEARCH_STATE,
@@ -19,13 +20,15 @@ import {
   removeFrom,
   type SearchState,
   searchUrl,
-} from './search-url.js';
+} from './url.js';
 
 interface SearchFilterPaneProps {
   state: SearchState;
   facets: IndicatorFacets;
   displayGroups: string[];
   gaAreaNames: Record<string, string>;
+  geographyOptions?: GeographyOptions | undefined;
+  areasLimited?: boolean | undefined;
 }
 
 function HiddenFilters({ state, except }: { state: SearchState; except?: keyof SearchState }) {
@@ -74,6 +77,7 @@ function FilterDimensionBody({
                 key={v}
                 onRemove={searchUrl(removeFrom(state, stateKey, v))}
                 removeLabel={chipLabel}
+                replace
                 value={v}
               >
                 {isTopicDimension ? (
@@ -115,7 +119,7 @@ function FilterDimensionFooter({
 
   return (
     <div className="fphd-search-dimension govuk-!-margin-bottom-3">
-      <Form action="/search" method="get">
+      <Form action="/search" method="get" replace preventScrollReset>
         <HiddenFilters state={state} />
         <Autocomplete
           label={autocompleteLabel}
@@ -123,6 +127,7 @@ function FilterDimensionFooter({
           noResultsMessage={noResultsMessage}
           options={options}
           onSelect={(opt) => setPending(opt)}
+          onInputChange={() => setPending(null)}
         />
         <noscript>
           <Button
@@ -154,13 +159,11 @@ export function SearchFilterPane({
   facets,
   displayGroups,
   gaAreaNames,
+  geographyOptions,
+  areasLimited,
 }: SearchFilterPaneProps) {
   const navigate = useNavigate();
-  const [pendingGa, setPendingGa] = useState<string[]>(state.gaCodes);
-  const [pendingGeo, setPendingGeo] = useState<string[]>(state.geoLevels);
-  const pendingCount =
-    pendingGa.filter((code) => !state.gaCodes.includes(code)).length +
-    pendingGeo.filter((level) => !state.geoLevels.includes(level)).length;
+  const location = useLocation();
 
   const nav = (next: SearchState) => {
     void navigate(searchUrl(next), { replace: true, preventScrollReset: true });
@@ -232,7 +235,7 @@ export function SearchFilterPane({
 
   const renderDimensionFooter = (dim: (typeof DIMENSIONS)[number]) => (
     <FilterDimensionFooter
-      key={dim.param}
+      key={`${dim.param}-${location.key}`}
       addButtonLabel={dim.addButtonLabel}
       autocompleteLabel={dim.autocompleteLabel}
       noResultsMessage={dim.noResultsMessage}
@@ -251,8 +254,9 @@ export function SearchFilterPane({
         <HiddenFilters except="q" state={state} />
         <div className="govuk-!-margin-top-4">
           <SearchField
+            key={location.key}
             action={
-              <Link className="govuk-link govuk-body-s" preventScrollReset to={clearQUrl}>
+              <Link className="govuk-link govuk-body-s" preventScrollReset replace to={clearQUrl}>
                 Clear search
               </Link>
             }
@@ -266,7 +270,12 @@ export function SearchFilterPane({
 
       <div className="fphd-search-bar__filters-row">
         <h2 className="govuk-heading-m govuk-!-margin-bottom-0">Filters</h2>
-        <Link className="govuk-link govuk-body-s" preventScrollReset to={clearAllFiltersUrl}>
+        <Link
+          className="govuk-link govuk-body-s"
+          preventScrollReset
+          replace
+          to={clearAllFiltersUrl}
+        >
           Clear all filters
         </Link>
       </div>
@@ -281,44 +290,25 @@ export function SearchFilterPane({
       </CollapsibleFilterCard>
 
       <CollapsibleFilterCard
-        active={geoActive}
+        active={geoActive || Boolean(geographyOptions?.query || geographyOptions?.level)}
         footer={
-          <Form action="/search" method="get">
-            <HiddenFilters except="geoLevels" state={state} />
-            <GeographyTree
-              levelName="geo"
-              levels={displayGroups}
-              maxAreaTicks={100}
-              name="ga"
-              onChange={setPendingGa}
-              onLevelsChange={setPendingGeo}
-              selected={pendingGa}
-              selectedLevels={pendingGeo}
-            />
-            <Button
-              className="govuk-!-margin-bottom-0 fphd-button--full-width fphd-add-geo-button"
-              data-empty={pendingCount === 0 ? '' : undefined}
-              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                if (pendingCount === 0) {
-                  return;
-                }
-                event.preventDefault();
-                setPendingGa([]);
-                nav({
-                  ...state,
-                  geoLevels: pendingGeo,
-                  gaCodes: [...new Set([...state.gaCodes, ...pendingGa])].slice(0, 100),
-                });
-              }}
-              type="submit"
-            >
-              Add selected geographies ({pendingCount})
-            </Button>
-          </Form>
+          <SearchGeographyPicker
+            key={location.key}
+            state={state}
+            displayGroups={displayGroups}
+            geographyOptions={geographyOptions}
+            onApply={nav}
+          />
         }
         onClear={clearGeoUrl}
         title="Geography"
       >
+        {areasLimited ? (
+          <p className="govuk-body-s">
+            You can select up to {MAX_SELECTED_AREAS} areas. Only the first {MAX_SELECTED_AREAS}{' '}
+            have been selected.
+          </p>
+        ) : null}
         <p className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">
           Selected geographies
         </p>
@@ -333,6 +323,7 @@ export function SearchFilterPane({
                 key={level}
                 onRemove={searchUrl(removeFrom(state, 'geoLevels', level))}
                 removeLabel={level}
+                replace
                 value={level}
               >
                 {level}
@@ -343,6 +334,7 @@ export function SearchFilterPane({
                 key={code}
                 onRemove={searchUrl(removeFrom(state, 'gaCodes', code))}
                 removeLabel={gaAreaNames[code] ?? code}
+                replace
                 value={code}
               >
                 {gaAreaNames[code] ?? code}

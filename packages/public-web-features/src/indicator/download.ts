@@ -1,38 +1,79 @@
 import { stringify } from 'csv-stringify/sync';
 
-import { alignedTrendSeries, periodLabel, segmentLabel, trendSeries } from './data';
+import type { comparisonTable } from './comparison';
+import { type ConfidenceLevel, periodLabel, segmentLabel } from './data';
 import type { IndicatorAreaData, IndicatorDetail } from './loader';
+import type { trendTableModel } from './trend';
 
-/** The trend table as downloaded: one row per period and area with count and value. */
-export function trendCsv(indicator: IndicatorDetail, areaData: IndicatorAreaData[]): string {
-  const rows: (string | number | null)[][] = [
-    [
-      'Indicator',
-      'Area',
-      'Period',
-      'Count',
-      `Calculated value (${indicator.unit.label})`,
-      'Lower 95% CI',
-      'Upper 95% CI',
-    ],
+/** The trend table as displayed, including its selected intervals and benchmarks. */
+export function trendCsv(
+  indicator: IndicatorDetail,
+  model: ReturnType<typeof trendTableModel>,
+  confidence: ConfidenceLevel,
+  showRange: boolean,
+): string {
+  const {
+    benchmarks,
+    hasCounts,
+    inPeriod,
+    lowerOf,
+    periods,
+    referenceSegment,
+    seriesByArea,
+    upperOf,
+  } = model;
+  const headers = [
+    'Period',
+    ...seriesByArea.flatMap(({ data }) => {
+      const benchmark = benchmarks.get(data.areaCode);
+      return [
+        ...(hasCounts ? [`${data.areaName} count`] : []),
+        `${data.areaName} calculated value (${indicator.unit.label})`,
+        ...(confidence === 'none'
+          ? []
+          : [
+              `${data.areaName} lower ${confidence}% CI`,
+              `${data.areaName} upper ${confidence}% CI`,
+            ]),
+        ...(benchmark
+          ? [
+              `${data.areaName} ${benchmark.name} calculated value (${indicator.unit.label})`,
+              ...(showRange
+                ? [
+                    `${data.areaName} ${benchmark.name} minimum`,
+                    `${data.areaName} ${benchmark.name} maximum`,
+                  ]
+                : []),
+            ]
+          : []),
+      ];
+    }),
   ];
-  // The same segment alignment as the table it mirrors: the first area's series sets
-  // the segment and every area follows it.
-  const reference = areaData[0] ? trendSeries(areaData[0].observations)[0] : undefined;
-  for (const data of areaData) {
-    for (const observation of alignedTrendSeries(data.observations, reference)) {
-      rows.push([
-        indicator.name,
-        data.areaName,
-        periodLabel(observation, indicator.yearType),
-        observation.count,
-        observation.value,
-        observation.lowerCi95,
-        observation.upperCi95,
-      ]);
-    }
-  }
-  return stringify(rows);
+  const rows = periods.map((period) => [
+    periodLabel(period, indicator.yearType),
+    ...seriesByArea.flatMap(({ data, series }) => {
+      const observation = series.find(inPeriod(period));
+      const benchmark = benchmarks.get(data.areaCode);
+      const benchmarkObservation = benchmark?.series.find(inPeriod(period));
+      const range = benchmark?.rangePeriods.find(
+        (candidate) => inPeriod(period)(candidate) && candidate.segment === referenceSegment,
+      );
+      return [
+        ...(hasCounts ? [observation?.count ?? null] : []),
+        observation?.value ?? null,
+        ...(confidence === 'none'
+          ? []
+          : [observation ? lowerOf(observation) : null, observation ? upperOf(observation) : null]),
+        ...(benchmark
+          ? [
+              benchmarkObservation?.value ?? null,
+              ...(showRange ? [range?.min ?? null, range?.max ?? null] : []),
+            ]
+          : []),
+      ];
+    }),
+  ]);
+  return stringify([headers, ...rows]);
 }
 
 /** Every observation for the selected areas, segments and notes included. */
@@ -72,4 +113,58 @@ export function allDataCsv(indicator: IndicatorDetail, areaData: IndicatorAreaDa
     }
   }
   return stringify(rows);
+}
+
+export function comparisonCsv(
+  comparison: ReturnType<typeof comparisonTable>,
+  range: boolean,
+): string {
+  const { areas, rows, trendOf, benchmarkNameFor, benchmarkCellFor } = comparison;
+  return stringify([
+    [
+      'Indicator',
+      'Most recent period',
+      ...areas.flatMap(({ areaCode, areaName }) => [
+        `${areaName} recent trend`,
+        `${areaName} count`,
+        `${areaName} calculated value`,
+        ...(benchmarkNameFor(areaCode)
+          ? [
+              `${areaName} ${benchmarkNameFor(areaCode)} calculated value`,
+              ...(range
+                ? [
+                    `${areaName} ${benchmarkNameFor(areaCode)} minimum`,
+                    `${areaName} ${benchmarkNameFor(areaCode)} maximum`,
+                  ]
+                : []),
+            ]
+          : []),
+      ]),
+    ],
+    ...rows.map((row) => [
+      `${row.name}${row.suffix ? ` ${row.suffix}` : ''}`,
+      row.period,
+      ...row.cells.flatMap((cell) => {
+        const benchmarkCell = benchmarkNameFor(cell.areaCode)
+          ? benchmarkCellFor(row, cell)
+          : undefined;
+        return [
+          trendOf(row, cell).label,
+          cell.count === null ? '' : String(cell.count),
+          cell.value === null ? '' : `${cell.value} ${row.unit}`,
+          ...(benchmarkNameFor(cell.areaCode)
+            ? [
+                benchmarkCell?.value == null ? '' : `${benchmarkCell.value} ${row.unit}`,
+                ...(range
+                  ? [
+                      benchmarkCell?.rangePeriod ? String(benchmarkCell.rangePeriod.min) : '',
+                      benchmarkCell?.rangePeriod ? String(benchmarkCell.rangePeriod.max) : '',
+                    ]
+                  : []),
+              ]
+            : []),
+        ];
+      }),
+    ]),
+  ]);
 }

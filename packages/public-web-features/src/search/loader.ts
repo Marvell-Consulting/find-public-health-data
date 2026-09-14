@@ -8,8 +8,9 @@ import {
 import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
 import { redirect } from 'react-router';
-
-import { DIMENSIONS } from './search-url.js';
+import { loadGeographyOptions } from '../geography/loader.js';
+import { MAX_SELECTED_AREAS } from '../selection-limits.js';
+import { DIMENSIONS } from './url.js';
 
 export type {
   IndicatorFacets,
@@ -17,23 +18,28 @@ export type {
   IndicatorSearchRow,
 } from '@fphd/public-api-features/contract';
 
-const MAX_GA = 100;
 const AREA_CODE_RE = /^[A-Z0-9]+$/i;
+const MAX_QUERY_LENGTH = 200;
+const MAX_FILTER_LABEL_LENGTH = 500;
 
 function pickStrings(params: URLSearchParams, key: string): string[] {
-  return [...new Set(params.getAll(key).filter((v) => v !== '' && v.length <= 100))].slice(0, 100);
+  const maxLength = key === 'src' ? MAX_FILTER_LABEL_LENGTH : 100;
+  return [...new Set(params.getAll(key).filter((v) => v !== '' && v.length <= maxLength))].slice(
+    0,
+    100,
+  );
 }
 
 function buildSearchQuery(
+  query: string,
   params: URLSearchParams,
   displayGroups: string[],
   resolvedGaGroups: string[],
 ): string {
   const parts: string[] = [];
 
-  const q = params.get('q')?.trim() ?? '';
-  if (q) {
-    parts.push(`q=${encodeURIComponent(q.slice(0, 200))}`);
+  if (query) {
+    parts.push(`q=${encodeURIComponent(query)}`);
   }
 
   for (const dim of DIMENSIONS) {
@@ -55,13 +61,14 @@ export async function loadSearch({ context, request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const params = url.searchParams;
   const api = context.get(apiContext);
+  const query = params.get('q')?.trim().slice(0, MAX_QUERY_LENGTH) ?? '';
 
   const addParams = DIMENSIONS.map((d) => d.param);
   const hasAddControl = addParams.some((p) => params.has(`${p}-add`));
 
   const rawGa = pickStrings(params, 'ga')
     .filter((code) => AREA_CODE_RE.test(code))
-    .slice(0, MAX_GA);
+    .slice(0, MAX_SELECTED_AREAS);
 
   const [displayGroups, lookedUp] = await Promise.all([
     api.get('/api/areas/display-groups', displayGroupListSchema),
@@ -121,20 +128,21 @@ export async function loadSearch({ context, request }: LoaderFunctionArgs) {
     throw redirect(`/search${search ? `?${search}` : ''}`, { status: 302 });
   }
 
-  const searchQuery = buildSearchQuery(params, displayGroups, resolvedGaGroups);
+  const searchQuery = buildSearchQuery(query, params, displayGroups, resolvedGaGroups);
 
-  const [facets, searchResult] = await Promise.all([
+  const [facets, searchResult, geographyOptions] = await Promise.all([
     api.get('/api/indicators/facets', indicatorFacetsSchema),
     api.get(
       `/api/indicators/search${searchQuery ? `?${searchQuery}` : ''}`,
       indicatorSearchResultSchema,
     ),
+    loadGeographyOptions(api, params, displayGroups),
   ]);
 
   const validatedGeo = pickStrings(params, 'geo').filter((g) => displayGroups.includes(g));
 
   return {
-    q: params.get('q')?.trim() ?? '',
+    q: query,
     topics: pickStrings(params, 't'),
     indicatorTypes: pickStrings(params, 'it'),
     riskFactors: pickStrings(params, 'rf'),
@@ -150,5 +158,9 @@ export async function loadSearch({ context, request }: LoaderFunctionArgs) {
     displayGroups,
     facets,
     searchResult,
+    geographyOptions,
+    areasLimited:
+      pickStrings(params, 'ga').filter((code) => AREA_CODE_RE.test(code)).length >
+      MAX_SELECTED_AREAS,
   };
 }

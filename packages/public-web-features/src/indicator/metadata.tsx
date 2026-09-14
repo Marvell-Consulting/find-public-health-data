@@ -1,8 +1,8 @@
 import { A, formatDate, SectionBreak, SummaryList } from '@fphd/ui';
 import type { ReactNode } from 'react';
-
 import { periodCovered, recentTrend } from './data';
 import type { IndicatorDetail, IndicatorObservation } from './loader';
+import { TrendTag } from './trend-tag';
 
 const CONFIDENCE_LEVEL_LABELS: Record<string, string> = {
   '95': '95%',
@@ -66,20 +66,7 @@ export function IndicatorSummary({
           label="Last updated"
           value={indicator.dataUpdatedAt ? formatDate(indicator.dataUpdatedAt, 'long') : null}
         />
-        <TableRow
-          label="Most recent trend"
-          value={
-            <strong className={`govuk-tag govuk-tag--${trend.tone} fphd-trend-tag`}>
-              {trend.direction ? (
-                <span
-                  className={`fphd-trend-tag__arrow fphd-trend-tag__arrow--${trend.direction}`}
-                  aria-hidden="true"
-                />
-              ) : null}
-              <span className="fphd-trend-tag__text">{trend.label}</span>
-            </strong>
-          }
-        />
+        <TableRow label="Most recent trend" value={<TrendTag trend={trend} />} />
         <TableRow
           label="Topics"
           value={

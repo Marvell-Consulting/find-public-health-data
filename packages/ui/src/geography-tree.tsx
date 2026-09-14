@@ -1,3 +1,4 @@
+import Button from '@not-govuk/button';
 import Checkboxes from '@not-govuk/checkboxes';
 import Input from '@not-govuk/input';
 import Label from '@not-govuk/label';
@@ -9,6 +10,14 @@ export interface GeographyArea {
 }
 
 interface GeographyTreeProps {
+  fallback?:
+    | {
+        query: string;
+        level: string;
+        groups: { name: string; areas: GeographyArea[] }[];
+        error: boolean;
+      }
+    | undefined;
   /** The display level names, offered whether or not their areas are loaded yet. */
   levels: string[];
   /** Field name for each area checkbox, so the tree works inside a plain form. */
@@ -43,13 +52,26 @@ export function GeographyTree({
   onLevelsChange,
   selected,
   selectedLevels,
+  fallback,
 }: GeographyTreeProps) {
   const idPrefix = useId();
-  const [query, setQuery] = useState('');
-  const [expanded, setExpanded] = useState<string[]>([]);
-  const [loaded, setLoaded] = useState<Record<string, GeographyArea[] | 'loading'>>({});
-  const [searchGroups, setSearchGroups] = useState<{ name: string; areas: GeographyArea[] }[]>([]);
+  const [query, setQuery] = useState(fallback?.query ?? '');
+  const [expanded, setExpanded] = useState<string[]>(fallback?.level ? [fallback.level] : []);
+  const [loaded, setLoaded] = useState<Record<string, GeographyArea[] | 'loading'>>(
+    Object.fromEntries(
+      (fallback?.level ? fallback.groups : []).map(({ name, areas }) => [name, areas]),
+    ),
+  );
+  const [searchGroups, setSearchGroups] = useState(fallback?.groups ?? []);
+  const [searchStatus, setSearchStatus] = useState<'idle' | 'loading' | 'error'>(
+    fallback?.error ? 'error' : 'idle',
+  );
+  const [failedLevels, setFailedLevels] = useState<string[]>(
+    fallback?.error && fallback.level ? [fallback.level] : [],
+  );
+  const [retry, setRetry] = useState(0);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const levelRequests = useRef(new Map<string, AbortController>());
 
   const searching = query.trim() !== '';
 
@@ -57,45 +79,72 @@ export function GeographyTree({
     clearTimeout(searchTimer.current);
     if (!searching) {
       setSearchGroups([]);
+      setSearchStatus('idle');
       return;
     }
+    setSearchGroups([]);
+    setSearchStatus('loading');
     const controller = new AbortController();
     searchTimer.current = setTimeout(() => {
       fetch(`/geographies?q=${encodeURIComponent(query.trim())}`, { signal: controller.signal })
-        .then((response) => (response.ok ? response.json() : { groups: [] }))
+        .then((response) => {
+          if (!response.ok) throw new Error(`geographies answered ${response.status}`);
+          return response.json();
+        })
         .then(({ groups }: { groups: { name: string; areas: GeographyArea[] }[] }) => {
           if (!controller.signal.aborted) {
             setSearchGroups(groups);
+            setSearchStatus('idle');
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          if (!controller.signal.aborted) setSearchStatus('error');
+        });
     }, SEARCH_DEBOUNCE_MS);
     return () => {
       clearTimeout(searchTimer.current);
       controller.abort();
     };
-  }, [query, searching]);
+  }, [query, searching, retry]);
+
+  useEffect(
+    () => () => {
+      for (const controller of levelRequests.current.values()) controller.abort();
+      levelRequests.current.clear();
+    },
+    [],
+  );
 
   const toggleExpanded = (level: string) => {
     setExpanded((current) =>
       current.includes(level) ? current.filter((value) => value !== level) : [...current, level],
     );
     if (!loaded[level]) {
+      const controller = new AbortController();
+      levelRequests.current.set(level, controller);
+      setFailedLevels((current) => current.filter((value) => value !== level));
       setLoaded((current) => ({ ...current, [level]: 'loading' }));
-      fetch(`/geographies?level=${encodeURIComponent(level)}`)
+      fetch(`/geographies?level=${encodeURIComponent(level)}`, { signal: controller.signal })
         .then((response) => {
           if (!response.ok) {
             throw new Error(`geographies answered ${response.status}`);
           }
           return response.json();
         })
-        .then(({ areas }: { areas: GeographyArea[] }) =>
-          setLoaded((current) => ({ ...current, [level]: areas })),
-        )
+        .then(({ areas }: { areas: GeographyArea[] }) => {
+          if (!controller.signal.aborted) {
+            setLoaded((current) => ({ ...current, [level]: areas }));
+          }
+        })
         // A failed fetch collapses the level unloaded, so expanding again retries.
         .catch(() => {
+          if (controller.signal.aborted) return;
           setLoaded(({ [level]: _, ...rest }) => rest);
           setExpanded((current) => current.filter((value) => value !== level));
+          setFailedLevels((current) => [...new Set([...current, level])]);
+        })
+        .finally(() => {
+          if (levelRequests.current.get(level) === controller) levelRequests.current.delete(level);
         });
     }
   };
@@ -104,12 +153,16 @@ export function GeographyTree({
 
   const toggleArea = (code: string, checked: boolean) => {
     if (checked && atCap) return;
-    onChange(checked ? [...selected, code] : selected.filter((value) => value !== code));
+    onChange(
+      checked ? [...new Set([...selected, code])] : selected.filter((value) => value !== code),
+    );
   };
 
   const toggleLevel = (level: string, checked: boolean) =>
     onLevelsChange(
-      checked ? [...selectedLevels, level] : selectedLevels.filter((value) => value !== level),
+      checked
+        ? [...new Set([...selectedLevels, level])]
+        : selectedLevels.filter((value) => value !== level),
     );
 
   const groups = searching
@@ -139,13 +192,45 @@ export function GeographyTree({
           autoComplete="off"
           className="fphd-geo-search"
           id={`${idPrefix}-search`}
-          name=""
+          name="geo-q"
+          maxLength={100}
           onChange={(event) => setQuery(event.currentTarget.value)}
           placeholder="Type to find geographies"
           type="search"
           value={query}
         />
       </div>
+      <noscript>
+        <Button classModifiers="secondary" type="submit">
+          Find geographies
+        </Button>
+      </noscript>
+      {maxAreaTicks !== undefined ? (
+        <p className="govuk-hint govuk-body-s">
+          Select up to {maxAreaTicks} areas. England is included for comparison.
+        </p>
+      ) : null}
+      <div role="status">
+        {searchStatus === 'loading' ? <p className="govuk-body-s">Finding geographies…</p> : null}
+        {searchStatus === 'error' ? (
+          <p className="govuk-body-s">Geography search is not working right now. Try again.</p>
+        ) : null}
+        {searching && searchStatus === 'idle' && searchGroups.length === 0 ? (
+          <p className="govuk-body-s">No geographies found. Try a different name or area code.</p>
+        ) : null}
+      </div>
+      {searchStatus === 'error' ? (
+        <Button
+          classModifiers="secondary"
+          type="submit"
+          onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+            event.preventDefault();
+            setRetry((value) => value + 1);
+          }}
+        >
+          Try again
+        </Button>
+      ) : null}
       <fieldset className="fphd-geo-alt">
         <legend className="govuk-visually-hidden">Geographies grouped by level</legend>
         <div className="fphd-geo-alt__tree">
@@ -189,6 +274,23 @@ export function GeographyTree({
                   />
                 </div>
 
+                <noscript>
+                  <Button
+                    className="govuk-!-margin-bottom-2"
+                    classModifiers="secondary"
+                    name="geo-level"
+                    type="submit"
+                    value={group.name}
+                  >
+                    Show areas in {group.name}
+                  </Button>
+                </noscript>
+                {failedLevels.includes(group.name) ? (
+                  <p className="govuk-body-s" role="status">
+                    Could not load {group.name}. Expand it to try again.
+                  </p>
+                ) : null}
+
                 {isOpen ? (
                   <div className="fphd-geo-alt__children">
                     {isLoading ? (
@@ -230,6 +332,11 @@ export function GeographyTree({
         </div>
       </fieldset>
       {/* Ticks hidden by collapse, a search, or the cap must still submit. */}
+      {selectedLevels
+        .filter((level) => !groups.some(({ name }) => name === level))
+        .map((level) => (
+          <input key={level} name={levelName} type="hidden" value={level} />
+        ))}
       {selected
         .filter((code) => !visibleCodes.has(code))
         .map((code) => (

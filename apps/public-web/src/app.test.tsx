@@ -273,7 +273,9 @@ describe('public application routes', () => {
     );
     vi.stubGlobal('fetch', geographies);
     fireEvent.click(screen.getByRole('button', { name: 'Expand Local authorities' }));
-    expect(geographies).toHaveBeenCalledWith('/geographies?level=Local%20authorities');
+    expect(geographies).toHaveBeenCalledWith('/geographies?level=Local%20authorities', {
+      signal: expect.any(AbortSignal),
+    });
     const areaCheckbox = (await screen.findAllByRole('checkbox', { name: 'Cornwall' })).find(
       (box) => box.getAttribute('name') === 'as',
     );
@@ -866,11 +868,11 @@ describe('public application routes', () => {
     expect(screen.queryByRole('columnheader', { name: 'England' })).toBeNull();
 
     fireEvent.change(select, { target: { value: 'england' } });
-    expect(screen.getByRole('columnheader', { name: 'England' })).toBeTruthy();
+    expect(await screen.findByRole('columnheader', { name: 'England' })).toBeTruthy();
 
     // Turning the range on adds the spread and the dot-and-whisker comparison.
     fireEvent.click(screen.getByRole('radio', { name: 'Yes' }));
-    expect(screen.getByRole('columnheader', { name: 'Minimum' })).toBeTruthy();
+    expect(await screen.findByRole('columnheader', { name: 'Minimum' })).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: 'Maximum' })).toBeTruthy();
     expect(screen.getByRole('cell', { name: '300.1' })).toBeTruthy();
     expect(screen.getByRole('cell', { name: '500.9' })).toBeTruthy();
@@ -879,7 +881,7 @@ describe('public application routes', () => {
     // The statistical-region benchmark takes the parent region's name and values.
     fireEvent.change(select, { target: { value: 'region' } });
     expect(
-      screen.getByRole('columnheader', { name: 'South West (Statistical region)' }),
+      await screen.findByRole('columnheader', { name: 'South West (Statistical region)' }),
     ).toBeTruthy();
     expect(screen.getByRole('cell', { name: '400.2' })).toBeTruthy();
   });

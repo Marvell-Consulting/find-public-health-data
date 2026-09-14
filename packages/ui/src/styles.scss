@@ -1,10 +1,5 @@
 @use "./govuk-core";
-@use "./not-govuk-overrides";
 @use "./fphd-components";
-
-* {
-  box-sizing: border-box;
-}
 
 body.govuk-template__body {
   min-width: 320px;

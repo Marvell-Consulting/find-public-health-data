@@ -1,8 +1,9 @@
 import { GridColumn, GridRow } from '@fphd/ui';
-import { SearchFilterPane } from './search-filter-pane.js';
-import type { loadSearch } from './search-loader.js';
-import { SearchResults } from './search-results.js';
-import type { SearchState } from './search-url.js';
+import { useLocation } from 'react-router';
+import { SearchFilterPane } from './filter-pane.js';
+import type { loadSearch } from './loader.js';
+import { SearchResults } from './results.js';
+import type { SearchState } from './url.js';
 
 type SearchData = Awaited<ReturnType<typeof loadSearch>>;
 
@@ -25,6 +26,7 @@ function stateFrom(data: SearchData): SearchState {
 
 export function SearchPage(data: SearchData) {
   const state = stateFrom(data);
+  const location = useLocation();
 
   return (
     <div className="fphd-wide-layout">
@@ -37,11 +39,18 @@ export function SearchPage(data: SearchData) {
             displayGroups={data.displayGroups}
             facets={data.facets}
             gaAreaNames={data.gaAreaNames}
+            geographyOptions={data.geographyOptions}
+            areasLimited={data.areasLimited}
             state={state}
           />
         </GridColumn>
         <GridColumn width="two-thirds">
-          <SearchResults gaCodes={state.gaCodes} searchResult={data.searchResult} />
+          <SearchResults
+            navigationKey={location.key}
+            gaCodes={state.gaCodes}
+            geoLevels={state.geoLevels}
+            searchResult={data.searchResult}
+          />
         </GridColumn>
       </GridRow>
     </div>

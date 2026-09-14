@@ -248,9 +248,7 @@ describe('public routers against the seeded database', () => {
   it('returns facets matching the wire contract shape', async () => {
     const { indicatorFacetsSchema } = await import('@fphd/public-api-features/contract');
 
-    const response = await request(createApp({ logger, repositories })).get(
-      '/api/indicators/facets',
-    );
+    const response = await request(app).get('/api/indicators/facets');
 
     expect(response.status).toBe(200);
     expect(() => indicatorFacetsSchema.parse(response.body)).not.toThrow();
@@ -264,9 +262,7 @@ describe('public routers against the seeded database', () => {
   it('returns search results matching the wire contract shape', async () => {
     const { indicatorSearchResultSchema } = await import('@fphd/public-api-features/contract');
 
-    const response = await request(createApp({ logger, repositories })).get(
-      '/api/indicators/search?q=mortality',
-    );
+    const response = await request(app).get('/api/indicators/search?q=mortality');
 
     expect(response.status).toBe(200);
     expect(() => indicatorSearchResultSchema.parse(response.body)).not.toThrow();

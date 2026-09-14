@@ -10,6 +10,7 @@ import {
   isNull,
   max,
   min,
+  or,
   sql,
 } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
@@ -90,6 +91,28 @@ export interface ApprovedIndicator {
   status: string;
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const MAX_POSTGRES_INTEGER = 2_147_483_647;
+
+function exactIndicatorIdentifier(query: string) {
+  const fingertipsId = /^\d+$/.test(query) ? Number(query) : Number.NaN;
+  return (
+    or(
+      UUID_PATTERN.test(query) ? eq(indicator.id, query) : undefined,
+      Number.isSafeInteger(fingertipsId) && fingertipsId <= MAX_POSTGRES_INTEGER
+        ? eq(indicator.fingertipsId, fingertipsId)
+        : undefined,
+    ) ?? sql<boolean>`false`
+  );
+}
+
+function escapedSearchTerms(query: string): string[] {
+  return query
+    .trim()
+    .split(/\s+/)
+    .map((word) => word.replace(/[\\%_]/g, '\\$&'));
+}
+
 /** The published indicator surface: approved rows only, ordered by name. */
 export async function listApprovedIndicators(db: Database): Promise<ApprovedIndicator[]> {
   return db
@@ -104,14 +127,14 @@ export async function listApprovedIndicators(db: Database): Promise<ApprovedIndi
     .orderBy(asc(indicator.name));
 }
 
-/** Case-insensitive name search, matches earliest in the name first. */
+/** Case-insensitive indicator lookup by name or exact identifier. */
 export async function searchApprovedIndicators(
   db: Database,
   query: string,
   limit: number,
 ): Promise<ApprovedIndicator[]> {
-  // %, _ and \ are LIKE syntax, not search terms.
-  const escaped = query.replace(/[\\%_]/g, '\\$&');
+  const terms = escapedSearchTerms(query);
+  const identifierMatch = exactIndicatorIdentifier(query.trim());
   return db
     .select({
       id: indicator.id,
@@ -120,8 +143,17 @@ export async function searchApprovedIndicators(
       status: indicator.status,
     })
     .from(indicator)
-    .where(and(eq(indicator.status, 'approved'), ilike(indicator.name, `%${escaped}%`)))
-    .orderBy(sql`position(lower(${query}) in lower(${indicator.name}))`, asc(indicator.name))
+    .where(
+      and(
+        eq(indicator.status, 'approved'),
+        or(identifierMatch, and(...terms.map((term) => ilike(indicator.name, `%${term}%`)))),
+      ),
+    )
+    .orderBy(
+      sql`case when ${identifierMatch} then 0 when lower(${indicator.name}) = lower(${query}) then 1 when ${indicator.name} ilike ${`${query.replace(/[\\%_]/g, '\\$&')}%`} then 2 else 3 end`,
+      sql`position(lower(${query}) in lower(${indicator.name}))`,
+      asc(indicator.name),
+    )
     .limit(limit);
 }
 
@@ -509,8 +541,6 @@ export async function searchIndicators(
   db: Database,
   filters: IndicatorSearchFilters,
 ): Promise<IndicatorSearchResult> {
-  const escaped = (w: string) => w.replace(/[\\%_]/g, '\\$&');
-
   const classificationExists = (dimension: string, slugs: string[]) =>
     exists(
       db
@@ -529,10 +559,45 @@ export async function searchIndicators(
 
   const conditions = [eq(indicator.status, 'approved')];
 
-  if (filters.query.trim()) {
-    for (const word of filters.query.trim().split(/\s+/)) {
-      conditions.push(ilike(indicator.name, `%${escaped(word)}%`));
-    }
+  const query = filters.query.trim();
+  const identifierMatch = exactIndicatorIdentifier(query);
+  const topicQueryMatch = (term: string) =>
+    exists(
+      db
+        .select({ one: sql`1` })
+        .from(indicatorTopic)
+        .innerJoin(topic, eq(indicatorTopic.topicId, topic.id))
+        .where(
+          and(
+            eq(indicatorTopic.indicatorId, indicator.id),
+            or(ilike(topic.title, `%${term}%`), ilike(topic.slug, `%${term}%`)),
+          ),
+        ),
+    );
+  const classificationQueryMatch = (term: string) =>
+    exists(
+      db
+        .select({ one: sql`1` })
+        .from(indicatorClassification)
+        .innerJoin(classification, eq(indicatorClassification.classificationId, classification.id))
+        .where(
+          and(
+            eq(indicatorClassification.indicatorId, indicator.id),
+            or(ilike(classification.name, `%${term}%`), ilike(classification.slug, `%${term}%`)),
+          ),
+        ),
+    );
+
+  if (query) {
+    const termMatches = escapedSearchTerms(query).map(
+      (term) =>
+        or(
+          ilike(indicator.name, `%${term}%`),
+          topicQueryMatch(term),
+          classificationQueryMatch(term),
+        ) ?? sql<boolean>`false`,
+    );
+    conditions.push(or(identifierMatch, and(...termMatches)) ?? sql<boolean>`false`);
   }
 
   if (filters.topics.length > 0) {
@@ -634,6 +699,8 @@ export async function searchIndicators(
     .innerJoin(topic, eq(indicatorTopic.topicId, topic.id))
     .where(eq(indicatorTopic.indicatorId, indicator.id));
 
+  const escapedQuery = query.replace(/[\\%_]/g, '\\$&');
+  const relevance = sql`case when ${identifierMatch} then 0 when lower(${indicator.name}) = lower(${query}) then 1 when ${indicator.name} ilike ${`${escapedQuery}%`} then 2 when ${indicator.name} ilike ${`%${escapedQuery}%`} then 3 else 4 end`;
   const [countResult, rows] = await Promise.all([
     db
       .select({ total: countDistinct(indicator.id) })
@@ -643,7 +710,15 @@ export async function searchIndicators(
       .select({ id: indicator.id, fingertipsId: indicator.fingertipsId, name: indicator.name })
       .from(indicator)
       .where(where)
-      .orderBy(sql`(${firstTopicTitle}) nulls last`, asc(indicator.name))
+      .orderBy(
+        ...(query
+          ? [
+              relevance,
+              sql`position(lower(${query}) in lower(${indicator.name}))`,
+              asc(indicator.name),
+            ]
+          : [sql`(${firstTopicTitle}) nulls last`, asc(indicator.name)]),
+      )
       .limit(filters.limit),
   ]);
 

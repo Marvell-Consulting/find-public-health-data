@@ -8,7 +8,7 @@ export const loader = loadIndicator;
 
 // Changing a display option only re-renders with data the page already has; benchmark
 // options (`cmp-`, `cr-`) are not listed because they decide what the loader fetches.
-const DISPLAY_OPTION_PARAM = /^(ci|pt|sex|tab)-/;
+const DISPLAY_OPTION_PARAM = /^(ci|pt|sex|tab|ic|ip)-/;
 
 export function shouldRevalidate({ currentUrl, nextUrl }: ShouldRevalidateFunctionArgs) {
   const strip = (url: URL) => {
@@ -33,6 +33,9 @@ export function IndicatorRoute() {
     benchmarkGeography,
     findResults,
     findSubject,
+    geographyOptions,
+    areasLimited,
+    indicatorsLimited,
     selection,
   } = useLoaderData<typeof loader>();
   return (
@@ -43,6 +46,9 @@ export function IndicatorRoute() {
       benchmarkGeography={benchmarkGeography}
       findResults={findResults}
       findSubject={findSubject}
+      geographyOptions={geographyOptions}
+      areasLimited={areasLimited}
+      indicatorsLimited={indicatorsLimited}
       selection={selection}
     />
   );

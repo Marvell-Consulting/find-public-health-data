@@ -4,7 +4,7 @@ import type { LoaderFunctionArgs } from 'react-router';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { loadSearch } from './search-loader.js';
+import { loadSearch } from './loader.js';
 
 const DISPLAY_GROUPS = [
   'Local authorities',
@@ -63,6 +63,52 @@ function loaderArgs(client: ApiClient, url = 'http://localhost/search'): LoaderF
 }
 
 describe('loadSearch', () => {
+  it('preserves full source names through the loader and API query', async () => {
+    const { client, get } = api();
+    const source = 'A data source with a full attribution '.repeat(6);
+    const result = await loadSearch(
+      loaderArgs(client, `http://localhost/search?${new URLSearchParams({ src: source })}`),
+    );
+    expect(result.sources).toEqual([source]);
+    const [path] =
+      get.mock.calls.find(([path]) => String(path).startsWith('/api/indicators/search')) ?? [];
+    expect(new URL(`http://localhost${path}`).searchParams.getAll('src')).toEqual([source]);
+  });
+
+  it('drops oversized source labels and uses the same bounded query in the page and API', async () => {
+    const { client, get } = api();
+    const query = `  ${'q'.repeat(220)}  `;
+    const result = await loadSearch(
+      loaderArgs(
+        client,
+        `http://localhost/search?${new URLSearchParams({ q: query, src: 's'.repeat(501) })}`,
+      ),
+    );
+
+    expect(result.q).toBe('q'.repeat(200));
+    expect(result.sources).toEqual([]);
+    const [path] =
+      get.mock.calls.find(([candidate]) =>
+        String(candidate).startsWith('/api/indicators/search'),
+      ) ?? [];
+    const sent = new URL(`http://localhost${path}`).searchParams;
+    expect(sent.get('q')).toBe(result.q);
+    expect(sent.has('src')).toBe(false);
+  });
+
+  it('caps selected areas at 19 and tells the page when a URL exceeds the limit', async () => {
+    const { client } = api();
+    const codes = Array.from({ length: 21 }, (_, i) => `E${String(i).padStart(8, '0')}`);
+    const result = await loadSearch(
+      loaderArgs(
+        client,
+        `http://localhost/search?${new URLSearchParams(codes.map((code) => ['ga', code]))}`,
+      ),
+    );
+    expect(result.gaCodes).toEqual(codes.slice(0, 19));
+    expect(result.areasLimited).toBe(true);
+  });
+
   it('returns empty filters when no params are given', async () => {
     const { client, get } = api();
 

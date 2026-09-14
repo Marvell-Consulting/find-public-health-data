@@ -15,6 +15,10 @@ export default [
     ),
     route('geographies', '../../../packages/public-web-features/src/indicator/geography-route.ts'),
     route(
+      'indicators/compare.csv',
+      '../../../packages/public-web-features/src/indicator/comparison-csv-route.ts',
+    ),
+    route(
       'indicators/:fingertipsId/table.csv',
       '../../../packages/public-web-features/src/indicator/table-csv-route.ts',
     ),

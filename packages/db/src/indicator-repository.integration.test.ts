@@ -109,6 +109,15 @@ describe('searchApprovedIndicators', () => {
     expect(results[0]?.name).toBe('Diabetes: QOF prevalence');
   });
 
+  it('matches exact Fingertips and internal indicator ids', async () => {
+    await expect(searchApprovedIndicators(db, String(MORTALITY_UNDER_75), 20)).resolves.toEqual([
+      expect.objectContaining({ fingertipsId: MORTALITY_UNDER_75 }),
+    ]);
+    await expect(searchApprovedIndicators(db, mortalityId, 20)).resolves.toEqual([
+      expect.objectContaining({ fingertipsId: MORTALITY_UNDER_75 }),
+    ]);
+  });
+
   it('respects the limit', async () => {
     expect(await searchApprovedIndicators(db, 'a', 3)).toHaveLength(3);
   });
@@ -412,7 +421,6 @@ describe('searchIndicators', () => {
   });
 
   it('keyword matches across words with AND semantics', async () => {
-    // "mortality" AND "cancer" must both appear in the name
     const { total: both } = await searchIndicators(db, noFilters({ query: 'mortality cancer' }));
     const { total: first } = await searchIndicators(db, noFilters({ query: 'mortality' }));
     const { total: second } = await searchIndicators(db, noFilters({ query: 'cancer' }));
@@ -420,6 +428,57 @@ describe('searchIndicators', () => {
     expect(both).toBeGreaterThan(0);
     expect(both).toBeLessThanOrEqual(first);
     expect(both).toBeLessThanOrEqual(second);
+  });
+
+  it('matches exact Fingertips and internal indicator ids without exposing the internal id', async () => {
+    for (const query of [String(MORTALITY_UNDER_75), mortalityId]) {
+      const result = await searchIndicators(db, noFilters({ query }));
+
+      expect(result.total).toBe(1);
+      expect(result.indicators).toEqual([
+        expect.objectContaining({ fingertipsId: MORTALITY_UNDER_75 }),
+      ]);
+      expect(result.indicators[0]).not.toHaveProperty('id');
+    }
+  });
+
+  it('matches associated topic and classification slugs', async () => {
+    const [topicResult, topicFilter, classificationResult, classificationFilter] =
+      await Promise.all([
+        searchIndicators(db, noFilters({ query: 'mortality-and-life-expectancy' })),
+        searchIndicators(db, noFilters({ topics: ['mortality-and-life-expectancy'] })),
+        searchIndicators(db, noFilters({ query: 'indicator-type-outcome' })),
+        searchIndicators(db, noFilters({ indicatorTypes: ['indicator-type-outcome'] })),
+      ]);
+
+    expect(topicResult.total).toBe(topicFilter.total);
+    expect(topicResult.total).toBeGreaterThan(0);
+    expect(classificationResult.total).toBe(classificationFilter.total);
+    expect(classificationResult.total).toBeGreaterThan(0);
+  });
+
+  it('lets words match across the indicator name and its taxonomy', async () => {
+    const result = await searchIndicators(db, noFilters({ query: 'diabetes prevalence' }));
+
+    expect(result.total).toBeGreaterThan(0);
+    expect(result.indicators[0]?.name).toContain('Diabetes');
+  });
+
+  it('ranks direct name matches ahead of taxonomy-only matches', async () => {
+    const { indicators } = await searchIndicators(db, noFilters({ query: 'diabetes' }));
+
+    expect(indicators[0]?.name).toBe('Diabetes: QOF prevalence');
+  });
+
+  it('treats LIKE syntax in the keyword query as literal text', async () => {
+    await expect(searchIndicators(db, noFilters({ query: '%' }))).resolves.toMatchObject({
+      total: 0,
+      indicators: [],
+    });
+    await expect(searchIndicators(db, noFilters({ query: '_' }))).resolves.toMatchObject({
+      total: 0,
+      indicators: [],
+    });
   });
 
   it('keyword search is case-insensitive', async () => {

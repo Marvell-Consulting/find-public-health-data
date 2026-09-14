@@ -22,8 +22,6 @@ export function FilterCard({
       <div className="fphd-filter-card__header">
         <h2 className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-0">{title}</h2>
         {onClear ? (
-          // A router Link, so clearing is a push-state navigation with the plain
-          // anchor as the no-script fallback.
           <Link
             className="govuk-link govuk-body-s govuk-!-margin-bottom-0"
             preventScrollReset
@@ -71,32 +69,40 @@ export function CollapsibleFilterCard({
 
   return (
     <div className="fphd-filter-card govuk-!-margin-bottom-4">
-      <div className="fphd-filter-card__header">
-        <h2 className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-0">{title}</h2>
+      <h2
+        aria-label={title}
+        className="fphd-filter-card__header govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-0"
+      >
         {enhanced ? (
           <button
             aria-controls={bodyId}
             aria-expanded={open}
-            className="govuk-link govuk-body-s fphd-link-button"
+            className="fphd-filter-card__toggle"
             onClick={() => setOpen((v) => !v)}
             type="button"
           >
-            {open ? 'Collapse' : 'Expand'}
+            <span>{title}</span>
+            <span className="govuk-body-s govuk-!-margin-bottom-0">
+              {open ? 'Collapse' : 'Expand'}
+            </span>
           </button>
-        ) : null}
-      </div>
+        ) : (
+          title
+        )}
+      </h2>
       {/* Always in the HTML: CSS reveals it without JavaScript, JS toggles hidden. */}
       <div className="fphd-filter-card__body fphd-collapsible-body" hidden={!open} id={bodyId}>
+        {hint ? <p className="govuk-hint govuk-body-s govuk-!-margin-bottom-3">{hint}</p> : null}
         {onClear ? (
           <Link
             className="govuk-link govuk-body-s govuk-!-display-block govuk-!-margin-bottom-4"
             preventScrollReset
+            replace
             to={onClear}
           >
             Clear filter
           </Link>
         ) : null}
-        {hint ? <p className="govuk-hint govuk-!-margin-bottom-3">{hint}</p> : null}
         {children}
       </div>
       {footer ? (
@@ -117,19 +123,22 @@ export function FilterChip({
   onRemove,
   removeLabel,
   value,
+  replace = false,
 }: {
   children: ReactNode;
   onRemove?: string | undefined;
   removeLabel?: string | undefined;
   value: string;
+  replace?: boolean;
 }) {
   return (
     <div className="fphd-filter-chip" data-value={value}>
       {onRemove ? (
         <Link
           aria-label={`Remove ${removeLabel} filter`}
-          className="fphd-filter-chip__remove govuk-link"
+          className="fphd-filter-chip__remove govuk-link govuk-link--no-visited-state govuk-link--no-underline govuk-!-font-size-16 govuk-!-font-weight-bold"
           preventScrollReset
+          replace={replace}
           to={onRemove}
         >
           ×

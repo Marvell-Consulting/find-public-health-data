@@ -97,4 +97,21 @@ describe('geography loader', () => {
     expect(await response.json()).toEqual({ groups: [] });
     expect(get).not.toHaveBeenCalled();
   });
+
+  it('bounds geography searches to the same length as the page form', async () => {
+    const get = vi.fn().mockResolvedValue([]);
+    await loadGeography(loaderArgs(get, `http://localhost/geographies?q=++${'a'.repeat(101)}++`));
+    expect(get).toHaveBeenCalledWith(
+      `/api/areas/search?q=${'a'.repeat(100)}&limit=50`,
+      expect.anything(),
+    );
+  });
+
+  it('propagates failures so the picker can offer a retry', async () => {
+    const failure = new Response(null, { status: 502 });
+    const get = vi.fn().mockRejectedValue(failure);
+    await expect(
+      loadGeography(loaderArgs(get, 'http://localhost/geographies?q=Cornwall')),
+    ).rejects.toBe(failure);
+  });
 });

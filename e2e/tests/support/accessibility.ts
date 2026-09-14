@@ -22,16 +22,7 @@ type KnownViolation = {
   ticket: string;
 };
 
-const KNOWN_VIOLATIONS: KnownViolation[] = [
-  {
-    // The filter card's Clear all link is blue on the card's grey header: 3.4:1 against the 4.5:1
-    // WCAG 1.4.3 needs. Awaiting a design decision on the link colour or the header colour.
-    ticket: 'FPH-370',
-    rule: 'color-contrast',
-    selector: '.fphd-filter-card__header .govuk-link',
-    expectedOn: /^\/indicators\/\d+$/,
-  },
-];
+const KNOWN_VIOLATIONS: KnownViolation[] = [];
 
 function describeViolation(violation: Violation): string {
   const targets = violation.nodes.map((node) => node.target.join(' ')).join(', ');
@@ -44,7 +35,7 @@ async function findKnown(
   node: ViolationNode,
 ): Promise<KnownViolation | undefined> {
   for (const known of KNOWN_VIOLATIONS) {
-    if (known.rule !== violation.id) {
+    if (known.rule !== violation.id || !known.expectedOn.test(new URL(page.url()).pathname)) {
       continue;
     }
     const element = page.locator(node.target.join(' ')).first();
