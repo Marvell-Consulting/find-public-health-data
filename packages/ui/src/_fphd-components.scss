@@ -4,10 +4,6 @@
   max-width: 44rem;
 }
 
-.not-govuk-page__main .govuk-body {
-  max-width: none;
-}
-
 // @react-foundry/anchor-list marks a navigation item active when its href is a *prefix* of the
 // current path. Every path starts with '/', so the Home item is active on every page. The
 // anchor's own aria-current is an exact match, so where the two disagree on the root item, undo
