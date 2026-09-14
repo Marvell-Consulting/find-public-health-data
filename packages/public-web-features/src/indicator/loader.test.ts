@@ -265,6 +265,13 @@ describe('loadIndicator', () => {
       ),
     );
 
+    const parentsCalls = get.mock.calls.filter(([path]) =>
+      String(path).startsWith('/api/areas/parents'),
+    );
+    expect(parentsCalls).toHaveLength(1);
+    expect(String(parentsCalls[0]?.[0])).toBe(
+      `/api/areas/parents?areaCode=E06000052&parentType=${encodeURIComponent('Regions (statistical)')}`,
+    );
     const rangeCalls = get.mock.calls.filter(([path]) => String(path).includes('/range'));
     expect(rangeCalls).toHaveLength(1);
     expect(String(rangeCalls[0]?.[0])).toContain(
