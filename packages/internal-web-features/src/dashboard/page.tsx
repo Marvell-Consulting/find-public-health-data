@@ -27,7 +27,6 @@ export function DashboardPage({ indicators, page, totalPages }: DashboardPagePro
           <p className="govuk-body">There are no indicators yet.</p>
         ) : (
           <Table
-            caption="All indicators, most recently edited first"
             headings={{
               name: 'Indicator name',
               updatedAt: 'Last edited',
@@ -36,7 +35,9 @@ export function DashboardPage({ indicators, page, totalPages }: DashboardPagePro
             }}
             keys={['name', 'updatedAt', 'indicatorStatus', 'publishingStatus']}
             data={indicators.map((indicator) => ({
-              name: indicator.name,
+              // The first column is a row header, which GOV.UK sets bold; the names read as
+              // plain text.
+              name: <span className="govuk-!-font-weight-regular">{indicator.name}</span>,
               updatedAt: (
                 <time dateTime={indicator.updatedAt}>{formatDate(indicator.updatedAt)}</time>
               ),
