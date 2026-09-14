@@ -1,3 +1,4 @@
+import Hint from '@not-govuk/hint';
 import type { ReactNode } from 'react';
 
 interface ChartSectionProps {
@@ -21,7 +22,7 @@ export function ChartSection({ children, description, id, title }: ChartSectionP
       {/* biome-ignore lint/a11y/noNoninteractiveTabindex: see the note above — the region is deliberately focusable. */}
       <section aria-label={title} className="fphd-chart-placeholder" tabIndex={0}>
         <p className="govuk-body">{description}</p>
-        <p className="govuk-hint">Data visualisation to follow</p>
+        <Hint>Data visualisation to follow</Hint>
         {children}
       </section>
     </div>

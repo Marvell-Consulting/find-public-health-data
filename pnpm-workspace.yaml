@@ -45,7 +45,9 @@ catalog:
   '@not-govuk/button': 0.18.1
   '@not-govuk/checkboxes': 0.18.1
   '@not-govuk/details': 0.18.1
+  '@not-govuk/error-message': 0.18.1
   '@not-govuk/error-summary': 0.18.1
+  '@not-govuk/hint': 0.18.1
   '@not-govuk/input': 0.18.1
   '@not-govuk/inset-text': 0.18.1
   '@not-govuk/label': 0.18.1

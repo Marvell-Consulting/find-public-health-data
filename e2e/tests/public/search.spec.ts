@@ -161,7 +161,7 @@ test('filtering a capped selection resets ticks, count and disabled results', as
   await expect(results(page).locator('input:checked')).toHaveCount(0);
   await expect(results(page).getByRole('checkbox')).toBeEnabled();
   await page.getByRole('button', { name: 'View selected indicators' }).click();
-  await expect(page.getByRole('alert')).toHaveText('Select at least one indicator to view.');
+  await expect(page.getByRole('alert')).toHaveText('Error: Select at least one indicator to view.');
   await expect(page).toHaveURL(/\/search\?q=cancer/);
   await results(page).getByRole('checkbox').check();
   await page.getByRole('button', { name: 'View selected indicators' }).click();

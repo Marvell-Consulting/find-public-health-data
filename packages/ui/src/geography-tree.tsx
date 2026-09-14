@@ -1,5 +1,6 @@
 import Button from '@not-govuk/button';
 import Checkboxes from '@not-govuk/checkboxes';
+import Hint from '@not-govuk/hint';
 import Input from '@not-govuk/input';
 import Label from '@not-govuk/label';
 import { useEffect, useId, useRef, useState } from 'react';
@@ -206,9 +207,9 @@ export function GeographyTree({
         </Button>
       </noscript>
       {maxAreaTicks !== undefined ? (
-        <p className="govuk-hint govuk-body-s">
+        <Hint className="govuk-body-s">
           Select up to {maxAreaTicks} areas. England is included for comparison.
-        </p>
+        </Hint>
       ) : null}
       <div role="status">
         {searchStatus === 'loading' ? <p className="govuk-body-s">Finding geographies…</p> : null}

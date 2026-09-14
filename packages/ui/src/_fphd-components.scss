@@ -731,8 +731,9 @@ body.js-enabled .fphd-add-geo-button[data-empty] {
 }
 
 // The fieldset wrapping the result rows; its legend names the set.
-.fphd-search-results.govuk-fieldset {
-  margin-top: govuk-spacing(4);
+.fphd-search-results {
+  min-width: 0;
+  margin: govuk-spacing(4) 0 0;
   border: 0;
   padding: 0;
 }

@@ -2,6 +2,8 @@ export { default as BackLink } from '@not-govuk/back-link';
 export { default as Button } from '@not-govuk/button';
 export { default as Checkboxes } from '@not-govuk/checkboxes';
 export { default as Details } from '@not-govuk/details';
+export { default as ErrorMessage } from '@not-govuk/error-message';
+export { default as Hint } from '@not-govuk/hint';
 export { default as Input } from '@not-govuk/input';
 export { default as InsetText } from '@not-govuk/inset-text';
 export { default as Label } from '@not-govuk/label';

@@ -1,4 +1,4 @@
-import { Button, Checkboxes, InsetText, SummaryList } from '@fphd/ui';
+import { Button, Checkboxes, ErrorMessage, InsetText, SummaryList } from '@fphd/ui';
 import { useEffect, useState } from 'react';
 import { Form, Link } from 'react-router';
 import { MAX_SELECTED_INDICATORS } from '../selection-limits.js';
@@ -123,9 +123,7 @@ export function SearchResults({
           </div>
 
           {selectionError ? (
-            <p className="govuk-error-message" role="alert">
-              Select at least one indicator to view.
-            </p>
+            <ErrorMessage role="alert">Select at least one indicator to view.</ErrorMessage>
           ) : null}
 
           {ticked.length >= MAX_SELECTED_INDICATORS ? (
@@ -135,7 +133,7 @@ export function SearchResults({
           ) : null}
 
           {/* Metadata sits outside the checkbox label so the label contains phrasing content only. */}
-          <fieldset className="govuk-fieldset fphd-search-results">
+          <fieldset className="fphd-search-results">
             <legend className="govuk-visually-hidden">Indicators</legend>
             {indicators.map((indicator) => {
               const isSelected = ticked.includes(indicator.fingertipsId);

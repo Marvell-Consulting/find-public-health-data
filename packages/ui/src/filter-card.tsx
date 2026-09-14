@@ -1,3 +1,4 @@
+import Hint from '@not-govuk/hint';
 import type { ReactNode } from 'react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router';
@@ -92,7 +93,7 @@ export function CollapsibleFilterCard({
       </h2>
       {/* Always in the HTML: CSS reveals it without JavaScript, JS toggles hidden. */}
       <div className="fphd-filter-card__body fphd-collapsible-body" hidden={!open} id={bodyId}>
-        {hint ? <p className="govuk-hint govuk-body-s govuk-!-margin-bottom-3">{hint}</p> : null}
+        {hint ? <Hint className="govuk-body-s govuk-!-margin-bottom-3">{hint}</Hint> : null}
         {onClear ? (
           <Link
             className="govuk-link govuk-body-s govuk-!-display-block govuk-!-margin-bottom-4"
