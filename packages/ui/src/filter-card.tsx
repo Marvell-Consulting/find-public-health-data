@@ -1,6 +1,6 @@
 import Hint from '@not-govuk/hint';
 import type { ReactNode } from 'react';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { Link } from 'react-router';
 
 /**
@@ -55,16 +55,7 @@ export function CollapsibleFilterCard({
 }) {
   const bodyId = useId();
   const [open, setOpen] = useState(active);
-  // Rendered only once mounted: without scripting the toggle cannot do anything, and CSS
-  // reveals every body instead.
-  const [enhanced, setEnhanced] = useState(false);
-  const didMount = useRef(false);
   useEffect(() => {
-    setEnhanced(true);
-    if (!didMount.current) {
-      didMount.current = true;
-      return;
-    }
     if (active) setOpen(true);
   }, [active]);
 
@@ -74,22 +65,19 @@ export function CollapsibleFilterCard({
         aria-label={title}
         className="fphd-filter-card__header govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-0"
       >
-        {enhanced ? (
-          <button
-            aria-controls={bodyId}
-            aria-expanded={open}
-            className="fphd-filter-card__toggle"
-            onClick={() => setOpen((v) => !v)}
-            type="button"
-          >
-            <span>{title}</span>
-            <span className="govuk-body-s govuk-!-margin-bottom-0">
-              {open ? 'Collapse' : 'Expand'}
-            </span>
-          </button>
-        ) : (
-          title
-        )}
+        <span className="fphd-filter-card__title">{title}</span>
+        <button
+          aria-controls={bodyId}
+          aria-expanded={open}
+          className="fphd-filter-card__toggle"
+          onClick={() => setOpen((v) => !v)}
+          type="button"
+        >
+          <span>{title}</span>{' '}
+          <span className="govuk-link govuk-link--no-visited-state govuk-body-s govuk-!-margin-bottom-0">
+            {open ? 'Collapse' : 'Expand'}
+          </span>
+        </button>
       </h2>
       {/* Always in the HTML: CSS reveals it without JavaScript, JS toggles hidden. */}
       <div className="fphd-filter-card__body fphd-collapsible-body" hidden={!open} id={bodyId}>

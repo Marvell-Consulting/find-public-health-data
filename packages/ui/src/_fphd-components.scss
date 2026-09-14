@@ -198,9 +198,15 @@
   padding: 0;
 }
 
+.fphd-filter-card__title {
+  display: block;
+  width: 100%;
+  padding: govuk-spacing(3) govuk-spacing(4);
+}
+
 .fphd-filter-card__toggle {
   box-sizing: border-box;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: space-between;
   gap: govuk-spacing(2);
@@ -215,6 +221,16 @@
 
   &:focus {
     @include govuk-focused-text;
+  }
+}
+
+body.js-enabled {
+  .fphd-filter-card__title {
+    display: none;
+  }
+
+  .fphd-filter-card__toggle {
+    display: flex;
   }
 }
 
