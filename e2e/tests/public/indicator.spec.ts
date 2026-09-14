@@ -200,6 +200,20 @@ test.describe('about this indicator', () => {
 });
 
 test.describe('the geography filter', () => {
+  test('uses the shared compact geography tree', async ({ page }) => {
+    const card = filterCard(page, 'Geography filters');
+    const tree = card.locator('.fphd-geo-alt__tree');
+    const level = card.getByRole('checkbox', { name: 'Local authorities', exact: true });
+
+    await expect(tree).toHaveCount(1);
+    await expect(level).toHaveCSS('width', '24px');
+    await expect(level).toHaveCSS('height', '36px');
+    await expect(card.getByText('Local authorities', { exact: true })).toHaveCSS(
+      'font-size',
+      '16px',
+    );
+  });
+
   test('adds an area found by search and compares it against England', async ({ page }) => {
     const card = filterCard(page, 'Geography filters');
     await expect(card.getByRole('link', { name: 'Clear all' })).toHaveCount(0);

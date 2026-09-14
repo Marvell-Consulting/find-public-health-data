@@ -1,5 +1,22 @@
 @use "@not-govuk/sass-base" as *;
 
+.not-govuk-page .govuk-width-container {
+  width: calc(100% - 30px);
+  max-width: 1400px;
+  margin-right: auto;
+  margin-left: auto;
+
+  @media (min-width: 40.0625em) {
+    width: calc(100% - 60px);
+  }
+
+  // Once GOV.UK centres width containers, retain enough inset for grid gutters
+  // until the 1400px maximum takes over.
+  @media (min-width: 63.75em) {
+    width: calc(100% - 30px);
+  }
+}
+
 .fphd-page-intro {
   max-width: 44rem;
 }
@@ -395,6 +412,31 @@ body:not(.js-enabled) .fphd-geo-alt__toggle {
   margin-bottom: govuk-spacing(3);
 }
 
+// Match the prototype's compact geography rows while retaining the standard
+// NotGovUK checkbox component and its semantics.
+.fphd-geo-alt__tree .govuk-checkboxes--small .govuk-checkboxes__input {
+  width: 24px;
+  height: 36px;
+  margin: 0;
+}
+
+.fphd-geo-alt__tree .govuk-checkboxes--small .govuk-checkboxes__label {
+  max-width: calc(100% - 30px);
+  margin-bottom: 0;
+  padding-right: 0;
+  padding-left: 6px;
+  font-size: 1rem;
+}
+
+.fphd-geo-alt__tree .govuk-checkboxes--small .govuk-checkboxes__label::before {
+  top: 6px;
+  left: 0;
+}
+
+.fphd-geo-alt__tree .govuk-checkboxes--small .govuk-checkboxes__label::after {
+  top: 13px;
+}
+
 // The Checkboxes legends here only carry visually-hidden text, but the legend element
 // itself still takes margin; collapse it so rows sit at their natural height.
 .fphd-geo-alt__tree .govuk-fieldset__legend {
@@ -407,26 +449,24 @@ body:not(.js-enabled) .fphd-geo-alt__toggle {
 }
 
 .fphd-geo-alt__group .govuk-form-group,
+.fphd-geo-alt__group .govuk-checkboxes__item,
 .fphd-geo-alt__children .govuk-form-group {
   margin-bottom: 0;
 }
 
 .fphd-geo-alt__toggle {
-  padding: 0;
-  margin-right: govuk-spacing(2);
+  padding: 0 8px 0 0;
   border: 0;
   background: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
+  height: 36px;
 }
 
-.fphd-geo-alt__toggle:focus {
-  @include govuk-focused-text;
+.fphd-geo-alt__toggle:focus-visible {
+  outline: 3px solid $govuk-focus-colour;
 }
 
 .fphd-geo-alt__chevron {
@@ -455,13 +495,20 @@ body:not(.js-enabled) .fphd-geo-alt__toggle {
 }
 
 .fphd-geo-alt__children {
-  margin-left: 54px;
-  margin-bottom: govuk-spacing(2);
+  margin-left: 45px;
+  margin-bottom: 6px;
 }
 
 .fphd-geo-alt__more {
   color: govuk-colour("dark-grey");
   margin-bottom: 0;
+}
+
+.fphd-geo-alt__tree
+  .govuk-checkboxes__item:hover
+  .govuk-checkboxes__input:not(:disabled):not(:focus)
+  + .govuk-checkboxes__label::before {
+  box-shadow: none;
 }
 
 // Keep the library's negative-z-index arrow above the filter background.
@@ -686,17 +733,6 @@ body.js-enabled .fphd-add-geo-button[data-empty] {
 
 .fphd-range-plot {
   display: block;
-}
-
-.not-govuk-page__container:has(.fphd-wide-layout) {
-  width: calc(100% - 30px);
-  max-width: 1400px;
-  margin-right: auto;
-  margin-left: auto;
-
-  @media (min-width: 40.0625em) {
-    width: calc(100% - 60px);
-  }
 }
 
 .fphd-view-selected.govuk-button {

@@ -281,6 +281,31 @@ test('a complete long data source remains selected and narrows results', async (
   ).toBeVisible();
 });
 
+test('geography levels and areas match the compact prototype tree', async ({ page }) => {
+  await ready(page);
+  const geography = card(page, 'Geography');
+  await geography.getByRole('button', { name: /Expand$/ }).click();
+  await geography.getByRole('button', { name: 'Expand Local authorities' }).click();
+
+  const level = geography.getByText('Local authorities', { exact: true });
+  const longLevel = geography.getByText('Middle-layer super output areas', { exact: true });
+  const area = geography.getByText('County Durham', { exact: true });
+  const levelInput = geography.getByRole('checkbox', { name: 'Local authorities', exact: true });
+  const toggle = geography.getByRole('button', { name: 'Collapse Local authorities' });
+  await expect(area).toBeVisible();
+  await expect(level).toHaveCSS('font-size', '16px');
+  await expect(levelInput).toHaveCSS('width', '24px');
+  await expect(levelInput).toHaveCSS('height', '36px');
+  await expect(toggle).toHaveCSS('height', '36px');
+
+  const levelBox = await level.boundingBox();
+  const longLevelBox = await longLevel.boundingBox();
+  const areaBox = await area.boundingBox();
+  expect(levelBox).not.toBeNull();
+  expect(longLevelBox?.height).toBe(levelBox?.height);
+  expect((areaBox?.x ?? 0) - (levelBox?.x ?? 0)).toBe(26);
+});
+
 test('geography can be unchecked or cleared without leaving pending ticks', async ({ page }) => {
   await ready(page, '/search?geo=Statistical+regions');
   const geography = card(page, 'Geography');
