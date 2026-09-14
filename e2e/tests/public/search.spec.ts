@@ -10,7 +10,7 @@ const results = (page: Page) => page.locator('.fphd-search-results');
 
 async function ready(page: Page, path = '/search') {
   await page.goto(path);
-  await page.getByRole('button', { name: /Topics and types (Expand|Collapse)/ }).waitFor();
+  await page.locator('.autocomplete__wrapper').first().waitFor({ state: 'attached' });
 }
 
 test('loads the search page with h1', async ({ page }) => {
@@ -29,6 +29,45 @@ test('uses the compact NotGovUK search box', async ({ page }) => {
   await expect(button).toHaveCSS('background-color', 'rgb(29, 112, 184)');
   await expect(button).toHaveCSS('height', '40px');
   await expect(button).toHaveCSS('width', '40px');
+});
+
+test('keeps filter card geometry stable through hydration', async ({ page }) => {
+  const geometry = async () =>
+    page.locator('.govuk-grid-column-one-third').evaluate((column) => {
+      const box = (element: Element) => {
+        const { x, y, width, height } = element.getBoundingClientRect();
+        return { x, y, width, height };
+      };
+      const searchBox = column.querySelector('.fphd-search-bar');
+      if (!searchBox) throw new Error('Search box is missing');
+      return {
+        column: box(column),
+        searchBox: box(searchBox),
+        cards: [...column.querySelectorAll('.fphd-filter-card')].map(box),
+      };
+    });
+
+  await page.route('**/*', async (route) => {
+    if (route.request().resourceType() === 'script') await route.abort();
+    else await route.continue();
+  });
+  await page.goto('/search');
+
+  const serverGeometry = await geometry();
+
+  await page.unroute('**/*');
+  await page.reload();
+  await ready(page);
+
+  expect(await geometry()).toEqual(serverGeometry);
+});
+
+test('styles filter card toggles as links', async ({ page }) => {
+  await ready(page);
+
+  const toggle = page.getByRole('button', { name: 'Topics and types Expand' });
+  await expect(toggle).toHaveCSS('color', 'rgb(29, 112, 184)');
+  await expect(toggle).toHaveCSS('text-decoration-line', 'underline');
 });
 
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
@@ -182,14 +221,14 @@ test('keeps the results live region while searches update its count', async ({ p
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await expect(page).toHaveURL(/q=cancer/);
   expect(await liveRegion.evaluate((element) => element.isConnected)).toBe(true);
-  expect(await liveRegion.textContent()).toBe('Select from 1 indicator');
+  await expect.poll(() => liveRegion.textContent()).toBe('Select from 1 indicator');
   await expect(results(page).getByRole('checkbox')).not.toBeChecked();
 
   await input.fill('zzzzzzzzzzzz');
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await expect(page).toHaveURL(/q=zzzzzzzzzzzz/);
   expect(await liveRegion.evaluate((element) => element.isConnected)).toBe(true);
-  expect(await liveRegion.textContent()).toBe('Select from 0 indicators');
+  await expect.poll(() => liveRegion.textContent()).toBe('Select from 0 indicators');
   await expect(
     page.getByText('No indicators match your selected filters or search terms.'),
   ).toBeVisible();

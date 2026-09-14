@@ -194,44 +194,21 @@
   background-color: govuk-colour("light-grey");
 }
 
-.fphd-filter-card__header:has(.fphd-filter-card__toggle) {
-  padding: 0;
-}
-
-.fphd-filter-card__title {
-  display: block;
-  width: 100%;
-  padding: govuk-spacing(3) govuk-spacing(4);
-}
-
 .fphd-filter-card__toggle {
-  box-sizing: border-box;
+  @include govuk-link-common;
+  @include govuk-link-style-default;
+  @include govuk-font($size: 16);
+
   display: none;
-  align-items: center;
-  justify-content: space-between;
-  gap: govuk-spacing(2);
-  width: 100%;
-  padding: govuk-spacing(3) govuk-spacing(4);
+  padding: 0;
   border: 0;
   background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
+  color: $govuk-link-colour;
   cursor: pointer;
-
-  &:focus {
-    @include govuk-focused-text;
-  }
 }
 
-body.js-enabled {
-  .fphd-filter-card__title {
-    display: none;
-  }
-
-  .fphd-filter-card__toggle {
-    display: flex;
-  }
+body.js-enabled .fphd-filter-card__toggle {
+  display: inline;
 }
 
 // Show all collapsible bodies when JavaScript has not run, so every filter is reachable.
@@ -371,6 +348,10 @@ body:not(.js-enabled) .fphd-geo-alt__toggle {
 
 .fphd-search-bar .not-govuk-standalone-input__input {
   flex: 1;
+}
+
+.fphd-search-bar .not-govuk-standalone-input__button.govuk-button {
+  margin-bottom: 0;
 }
 
 @include govuk-media-query($until: tablet) {

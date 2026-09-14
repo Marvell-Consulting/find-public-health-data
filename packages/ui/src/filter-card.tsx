@@ -65,18 +65,16 @@ export function CollapsibleFilterCard({
         aria-label={title}
         className="fphd-filter-card__header govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-0"
       >
-        <span className="fphd-filter-card__title">{title}</span>
+        <span>{title}</span>
         <button
           aria-controls={bodyId}
           aria-expanded={open}
+          aria-label={`${title} ${open ? 'Collapse' : 'Expand'}`}
           className="fphd-filter-card__toggle"
           onClick={() => setOpen((v) => !v)}
           type="button"
         >
-          <span>{title}</span>{' '}
-          <span className="govuk-link govuk-link--no-visited-state govuk-body-s govuk-!-margin-bottom-0">
-            {open ? 'Collapse' : 'Expand'}
-          </span>
+          {open ? 'Collapse' : 'Expand'}
         </button>
       </h2>
       {/* Always in the HTML: CSS reveals it without JavaScript, JS toggles hidden. */}
