@@ -17,6 +17,7 @@ const MAX_QUERY_LENGTH = 200;
 // Source values are labels rather than slugs, but still need a finite request boundary.
 const MAX_FILTER_LABEL_LENGTH = 500;
 const SEARCH_PAGE_LIMIT = 200;
+const AREA_CODE_RE = /^[A-Z0-9]+$/i;
 
 function pickStrings(value: unknown, maxLength = 100): string[] {
   return [
@@ -50,6 +51,7 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
       populations: pickStrings(request.query.pg),
       inequalities: pickStrings(request.query.eq),
       displayGroups: pickStrings(request.query.display_group),
+      areaCodes: pickStrings(request.query.area_code).filter((code) => AREA_CODE_RE.test(code)),
       sources: pickStrings(request.query.src, MAX_FILTER_LABEL_LENGTH),
       valueTypes: pickStrings(request.query.vt),
       yearTypes: pickStrings(request.query.per),

@@ -150,7 +150,7 @@ describe('public API', () => {
     });
 
     await request(app).get(
-      '/api/indicators/search?q=diabetes&t=cancer&it=outcome&rf=smoking&fw=nof&pg=adults&eq=deprivation&display_group=Local+authorities&src=ONS&vt=Proportion&per=Calendar',
+      '/api/indicators/search?q=diabetes&t=cancer&it=outcome&rf=smoking&fw=nof&pg=adults&eq=deprivation&display_group=Local+authorities&area_code=E07000223&src=ONS&vt=Proportion&per=Calendar',
     );
 
     expect(searchWithFilters).toHaveBeenCalledWith({
@@ -162,6 +162,7 @@ describe('public API', () => {
       populations: ['adults'],
       inequalities: ['deprivation'],
       displayGroups: ['Local authorities'],
+      areaCodes: ['E07000223'],
       sources: ['ONS'],
       valueTypes: ['Proportion'],
       yearTypes: ['Calendar'],
@@ -183,7 +184,7 @@ describe('public API', () => {
     );
   });
 
-  it('drops empty and over-100-char search filter values', async () => {
+  it('drops invalid search filter values', async () => {
     const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, limit: 200, indicators: [] });
     const app = createApp({
       logger,
@@ -191,9 +192,13 @@ describe('public API', () => {
     });
 
     const long = 'a'.repeat(101);
-    await request(app).get(`/api/indicators/search?t=&t=${long}&t=valid`);
+    await request(app).get(
+      `/api/indicators/search?t=&t=${long}&t=valid&area_code=not-valid&area_code=E07000223`,
+    );
 
-    expect(searchWithFilters).toHaveBeenCalledWith(expect.objectContaining({ topics: ['valid'] }));
+    expect(searchWithFilters).toHaveBeenCalledWith(
+      expect.objectContaining({ topics: ['valid'], areaCodes: ['E07000223'] }),
+    );
   });
 
   it('accepts source names longer than the slug limit without truncation', async () => {

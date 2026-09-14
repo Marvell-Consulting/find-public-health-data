@@ -6,6 +6,7 @@ import {
   exists,
   ilike,
   inArray,
+  isNotNull,
   isNull,
   min,
   or,
@@ -56,6 +57,7 @@ export interface IndicatorSearchFilters {
   populations: string[];
   inequalities: string[];
   displayGroups: string[];
+  areaCodes: string[];
   sources: string[];
   valueTypes: string[];
   yearTypes: string[];
@@ -597,6 +599,27 @@ export async function searchIndicators(
             ),
           )
           .where(eq(availableData.indicatorId, indicator.id)),
+      ),
+    );
+  }
+
+  if (filters.areaCodes.length > 0) {
+    conditions.push(
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(observation)
+          .innerJoin(area, eq(observation.areaId, area.id))
+          .where(
+            and(
+              eq(observation.indicatorId, indicator.id),
+              inArray(area.code, filters.areaCodes),
+              isNull(observation.deletedAt),
+              isNotNull(observation.value),
+            ),
+          )
+          .groupBy(observation.indicatorId)
+          .having(eq(countDistinct(area.code), filters.areaCodes.length)),
       ),
     );
   }

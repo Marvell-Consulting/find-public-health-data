@@ -174,7 +174,7 @@ describe('loadSearch', () => {
     expect(result.gaCodes).toContain('E12000001');
   });
 
-  it('resolves ga codes to display groups via lookup and unions with geo', async () => {
+  it('passes resolved ga codes as exact area filters', async () => {
     const { client, get } = api();
 
     await loadSearch(loaderArgs(client, 'http://localhost/search?ga=E12000001'));
@@ -183,13 +183,11 @@ describe('loadSearch', () => {
       expect.stringContaining('area_code=E12000001'),
       expect.anything(),
     );
-    // Display group from lookup appears in search query.
     const searchCall = get.mock.calls.find(([path]) =>
       String(path).startsWith('/api/indicators/search'),
     );
-    expect(String(searchCall?.[0])).toContain(
-      `display_group=${encodeURIComponent('Local authorities')}`,
-    );
+    expect(String(searchCall?.[0])).toContain('area_code=E12000001');
+    expect(String(searchCall?.[0])).not.toContain('display_group=Local');
   });
 
   it('drops ga codes that do not resolve (unknown areas)', async () => {

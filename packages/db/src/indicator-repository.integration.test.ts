@@ -409,6 +409,7 @@ function noFilters(overrides: Partial<IndicatorSearchFilters> = {}): IndicatorSe
     populations: [],
     inequalities: [],
     displayGroups: [],
+    areaCodes: [],
     sources: [],
     valueTypes: [],
     yearTypes: [],
@@ -591,6 +592,17 @@ describe('searchIndicators', () => {
     );
 
     expect(total).toBeGreaterThan(0);
+  });
+
+  it('area filters require usable data for every selected area', async () => {
+    const { indicators } = await searchIndicators(
+      db,
+      noFilters({ areaCodes: ['E07000223', 'E07000032'] }),
+    );
+    const ids = indicators.map(({ fingertipsId }) => fingertipsId);
+
+    expect(ids).toContain(92443);
+    expect(ids).not.toContain(93622);
   });
 
   it('source filter returns indicators with that data source', async () => {

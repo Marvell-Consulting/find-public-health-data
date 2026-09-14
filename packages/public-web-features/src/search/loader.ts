@@ -34,7 +34,7 @@ function buildSearchQuery(
   query: string,
   params: URLSearchParams,
   displayGroups: string[],
-  resolvedGaGroups: string[],
+  areaCodes: string[],
 ): string {
   const parts: string[] = [];
 
@@ -49,9 +49,11 @@ function buildSearchQuery(
   }
 
   const validatedGeo = pickStrings(params, 'geo').filter((g) => displayGroups.includes(g));
-  const allDisplayGroups = [...new Set([...validatedGeo, ...resolvedGaGroups])];
-  for (const g of allDisplayGroups) {
+  for (const g of validatedGeo) {
     parts.push(`display_group=${encodeURIComponent(g)}`);
+  }
+  for (const code of areaCodes) {
+    parts.push(`area_code=${encodeURIComponent(code)}`);
   }
 
   return parts.join('&');
@@ -87,7 +89,6 @@ export async function loadSearch({ context, request }: LoaderFunctionArgs) {
   const gaAreaNames: Record<string, string> = Object.fromEntries(
     resolved.map((a) => [a.code, a.name]),
   );
-  const resolvedGaGroups = [...new Set(resolved.map((a) => a.displayGroup))];
 
   if (hasAddControl) {
     const facets = await api.get('/api/indicators/facets', indicatorFacetsSchema);
@@ -128,7 +129,7 @@ export async function loadSearch({ context, request }: LoaderFunctionArgs) {
     throw redirect(`/search${search ? `?${search}` : ''}`, { status: 302 });
   }
 
-  const searchQuery = buildSearchQuery(query, params, displayGroups, resolvedGaGroups);
+  const searchQuery = buildSearchQuery(query, params, displayGroups, gaCodes);
 
   const [facets, searchResult, geographyOptions] = await Promise.all([
     api.get('/api/indicators/facets', indicatorFacetsSchema),

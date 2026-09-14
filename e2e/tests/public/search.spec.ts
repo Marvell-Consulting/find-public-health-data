@@ -340,6 +340,21 @@ test('geography can be unchecked or cleared without leaving pending ticks', asyn
   await expect(geography.getByRole('button', { name: /Add selected geographies/ })).toBeHidden();
 });
 
+test('selected areas return only indicators with data for every area', async ({ page }) => {
+  await ready(page, '/search?ga=E07000223&ga=E07000032');
+
+  await expect(
+    results(page).getByRole('checkbox', {
+      name: /Smoking Prevalence in adults .* current smokers \(APS\)/,
+    }),
+  ).toBeVisible();
+  await expect(
+    results(page).getByRole('checkbox', {
+      name: /Attended contacts with community and outpatient mental health services/,
+    }),
+  ).toHaveCount(0);
+});
+
 test('clear and remove links replace the current filter history entry', async ({ page }) => {
   await ready(page, '/search?t=diabetes&geo=Statistical+regions');
   const before = await page.evaluate(() => history.length);
