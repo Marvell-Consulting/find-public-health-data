@@ -1,5 +1,5 @@
-import { type Database, schema } from '@fphd/db';
-import { asc, count, desc } from 'drizzle-orm';
+import { type Database, type IndicatorStatus, schema } from '@fphd/db';
+import { asc, count, desc, eq } from 'drizzle-orm';
 
 const { indicator } = schema;
 
@@ -12,6 +12,11 @@ export interface IndicatorAdminRow {
 export interface IndicatorAdminRows {
   indicators: IndicatorAdminRow[];
   total: number;
+}
+
+export interface IndicatorAdminDetailRow extends IndicatorAdminRow {
+  fingertipsId: number;
+  status: IndicatorStatus;
 }
 
 /** Every indicator whatever its status, newest edit first; the id breaks any remaining tie. */
@@ -31,4 +36,23 @@ export async function listIndicatorsPage(
   ]);
 
   return { indicators, total: counted?.total ?? 0 };
+}
+
+/** One indicator by its row id, whatever its status. */
+export async function getIndicatorById(
+  db: Database,
+  id: string,
+): Promise<IndicatorAdminDetailRow | undefined> {
+  const rows = await db
+    .select({
+      id: indicator.id,
+      fingertipsId: indicator.fingertipsId,
+      name: indicator.name,
+      status: indicator.status,
+      updatedAt: indicator.updatedAt,
+    })
+    .from(indicator)
+    .where(eq(indicator.id, id));
+
+  return rows[0];
 }

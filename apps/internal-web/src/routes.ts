@@ -33,6 +33,10 @@ export default [
     ),
     layout('./publisher.tsx', [
       route('dashboard', '../../../packages/internal-web-features/src/dashboard/route.tsx'),
+      route(
+        'dashboard/indicators/:id',
+        '../../../packages/internal-web-features/src/indicator-overview/route.tsx',
+      ),
       route('manage', './manage.tsx'),
       route(
         'manage/topics',

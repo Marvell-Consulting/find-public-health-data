@@ -38,5 +38,6 @@ export {
   type Repositories,
   type TopicRepository,
 } from './repositories.js';
+export type { IndicatorStatus } from './schema/indicator.js';
 export * as schema from './schema.js';
 export { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';

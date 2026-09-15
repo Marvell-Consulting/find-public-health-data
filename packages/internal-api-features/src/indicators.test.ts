@@ -3,7 +3,7 @@ import express, { type Express } from 'express';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { IndicatorAdminRow } from './indicator-repository.js';
+import type { IndicatorAdminDetailRow, IndicatorAdminRow } from './indicator-repository.js';
 import { INDICATORS_PAGE_SIZE, internalIndicatorsRouter } from './indicators.js';
 import { createFakeInternalRepositories, type FakeInternalRepositoryOverrides } from './testing.js';
 
@@ -22,6 +22,8 @@ const row: IndicatorAdminRow = {
   name: 'Life expectancy at birth',
   updatedAt: new Date('2026-01-02T00:00:00.000Z'),
 };
+
+const detailRow: IndicatorAdminDetailRow = { ...row, fingertipsId: 90366, status: 'approved' };
 
 // The router alone, on a bare Express app: these tests cover its status mapping, not what
 // `createApiApp` wraps around it.
@@ -102,4 +104,63 @@ describe('GET /api/internal/indicators', () => {
       expect(response.body).toEqual({ error: 'invalid_page' });
     },
   );
+});
+
+describe('GET /api/internal/indicators/:id', () => {
+  it('rejects an anonymous request', async () => {
+    const response = await request(createTestApp()).get(`/api/internal/indicators/${row.id}`);
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({ error: 'authentication_required' });
+  });
+
+  it('rejects a signed-in non-publisher', async () => {
+    const response = await request(createTestApp())
+      .get(`/api/internal/indicators/${row.id}`)
+      .set('Cookie', await publisherCookie(['internal']));
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({ error: 'forbidden' });
+  });
+
+  it('serves the indicator with its public number and stored status', async () => {
+    const findById = vi.fn().mockResolvedValue(detailRow);
+
+    const response = await request(createTestApp({ findById }))
+      .get(`/api/internal/indicators/${row.id}`)
+      .set('Cookie', await publisherCookie());
+
+    expect(response.status).toBe(200);
+    expect(findById).toHaveBeenCalledWith(row.id);
+    expect(response.body).toEqual({
+      id: row.id,
+      fingertipsId: 90366,
+      name: 'Life expectancy at birth',
+      status: 'approved',
+      updatedAt: '2026-01-02T00:00:00.000Z',
+    });
+  });
+
+  it('answers 404 for an indicator that does not exist', async () => {
+    const findById = vi.fn().mockResolvedValue(undefined);
+
+    const response = await request(createTestApp({ findById }))
+      .get('/api/internal/indicators/00000000-0000-7000-8000-000000000000')
+      .set('Cookie', await publisherCookie());
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: 'not_found' });
+  });
+
+  it('rejects an id that is not a UUID without asking the repository', async () => {
+    const findById = vi.fn();
+
+    const response = await request(createTestApp({ findById }))
+      .get('/api/internal/indicators/108')
+      .set('Cookie', await publisherCookie());
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'invalid_id' });
+    expect(findById).not.toHaveBeenCalled();
+  });
 });

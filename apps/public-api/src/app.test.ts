@@ -41,6 +41,7 @@ describe('public API', () => {
   it.each([
     ['get', '/api/internal'],
     ['get', '/api/internal/indicators'],
+    ['get', `/api/internal/indicators/${topic.id}`],
     ['get', '/api/internal/topics'],
     ['post', '/api/internal/topics'],
     ['get', `/api/internal/topics/${topic.id}`],

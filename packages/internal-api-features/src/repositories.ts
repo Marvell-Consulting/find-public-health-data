@@ -1,6 +1,11 @@
 import { type Database, listTopics, type Topic } from '@fphd/db';
 
-import { type IndicatorAdminRows, listIndicatorsPage } from './indicator-repository.js';
+import {
+  getIndicatorById,
+  type IndicatorAdminDetailRow,
+  type IndicatorAdminRows,
+  listIndicatorsPage,
+} from './indicator-repository.js';
 import {
   type CreateTopicResult,
   createTopic,
@@ -21,9 +26,10 @@ export interface InternalTopicRepository {
   delete(id: string): Promise<DeleteTopicResult>;
 }
 
-/** The dashboard's view of indicators: every status, unlike the public repository. */
+/** The publisher's view of indicators: every status, unlike the public repository. */
 export interface InternalIndicatorRepository {
   listPage(page: number, pageSize: number): Promise<IndicatorAdminRows>;
+  findById(id: string): Promise<IndicatorAdminDetailRow | undefined>;
 }
 
 /**
@@ -39,6 +45,7 @@ export function createInternalRepositories(db: Database): InternalRepositories {
   return {
     indicators: {
       listPage: (page, pageSize) => listIndicatorsPage(db, page, pageSize),
+      findById: (id) => getIndicatorById(db, id),
     },
     topics: {
       list: () => listTopics(db),
