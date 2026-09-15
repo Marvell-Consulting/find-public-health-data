@@ -741,6 +741,12 @@ body.js-enabled .fphd-add-geo-button[data-empty] {
   display: block;
 }
 
+// Fit the range plot within a normal text-height row so toggling it does not resize rows.
+.fphd-compare-table td:has(.fphd-range-plot) {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
 .fphd-view-selected.govuk-button {
   margin-top: 2px;
 }

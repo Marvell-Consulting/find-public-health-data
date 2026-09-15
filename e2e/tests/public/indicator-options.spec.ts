@@ -1,6 +1,21 @@
 import { readFile } from 'node:fs/promises';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
+test('comparison rows stay the same height when the range is shown', async ({ page }) => {
+  await page.goto(
+    '/indicators?as=E07000223&as=E07000032&is=92443&is=241&cmp-compare=england&cr-compare=no',
+  );
+  await expect(page.getByRole('combobox', { name: 'Search for an indicator' })).toBeVisible();
+  const table = page.locator('#compare-table .fphd-compare-table');
+  const lastRow = table.locator('tbody tr').last();
+  const before = await lastRow.evaluate((row) => row.getBoundingClientRect().height);
+
+  await page.locator('#compare-table').getByRole('radio', { name: 'Yes' }).click();
+  await expect(table.getByRole('columnheader', { name: 'Comparison' }).first()).toBeVisible();
+
+  expect(await lastRow.evaluate((row) => row.getBoundingClientRect().height)).toBe(before);
+});
+
 for (const javaScriptEnabled of [true, false]) {
   test.describe(`indicator options with JavaScript ${javaScriptEnabled ? 'enabled' : 'disabled'}`, () => {
     test.use({ javaScriptEnabled });
