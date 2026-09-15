@@ -325,7 +325,7 @@ jobs:
             echo '::error::Web code changed without any change under e2e/. Add or extend a spec, or label the pull request no-e2e-needed, add a "No e2e needed: <reason>" line to its body, and re-run this job.'
             exit 1
           fi
-          reason=$(jq -r '.body // ""' <<<"${pr}" | tr -d '\r' | grep -E '^No e2e needed: *[^[:space:]]' | head -1)
+          reason=$(jq -r '.body // ""' <<<"${pr}" | tr -d '\r' | grep -E '^No e2e needed: *[^[:space:]]' | head -1 || true)
           if [ -z "${reason}" ]; then
             echo '::error::The no-e2e-needed label needs a "No e2e needed: <reason>" line in the pull request body.'
             exit 1
