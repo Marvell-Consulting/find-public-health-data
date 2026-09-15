@@ -1,3 +1,7 @@
+export { loadDashboard } from './dashboard/loader';
+export { DashboardPage } from './dashboard/page';
+export { DASHBOARD_PATH, dashboardPath } from './dashboard/paths';
+export { DashboardRoute } from './dashboard/route';
 export { ManageDataPage } from './manage-data/page';
 export { DeleteTopicRoute } from './topic-admin/delete-route';
 export { EditTopicRoute } from './topic-admin/edit-route';

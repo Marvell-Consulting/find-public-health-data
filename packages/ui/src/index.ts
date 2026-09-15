@@ -9,6 +9,7 @@ export { default as InsetText } from '@not-govuk/inset-text';
 export { default as Label } from '@not-govuk/label';
 export { default as A } from '@not-govuk/link';
 export { default as NotificationBanner } from '@not-govuk/notification-banner';
+export { default as Pagination } from '@not-govuk/pagination';
 export { default as Radios } from '@not-govuk/radios';
 export { default as Select } from '@not-govuk/select';
 export { default as SummaryList } from '@not-govuk/summary-list';

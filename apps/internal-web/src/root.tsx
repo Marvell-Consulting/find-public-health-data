@@ -17,10 +17,7 @@ export function loader({ context }: Route.LoaderArgs) {
 
 function navigationFor(canManage: boolean) {
   return [
-    { href: href('/'), text: 'Home' },
-    { href: href('/search'), text: 'Search' },
-    { href: href('/topics'), text: 'Topics' },
-    ...(canManage ? [{ href: href('/manage'), text: 'Manage data' }] : []),
+    ...(canManage ? [{ href: href('/manage'), text: 'Manage' }] : []),
     { href: href('/sign-in'), text: 'Account' },
   ];
 }
@@ -29,7 +26,11 @@ export default function InternalApp() {
   const { canManage } = useLoaderData<typeof loader>();
 
   return (
-    <AppShell audience="Internal" navigation={navigationFor(canManage)}>
+    <AppShell
+      audience="Internal"
+      navigation={navigationFor(canManage)}
+      serviceHref={href('/dashboard')}
+    >
       <Outlet />
     </AppShell>
   );
@@ -38,5 +39,11 @@ export default function InternalApp() {
 export function ErrorBoundary() {
   // The root loader may not have run, or may be what failed, so there is no session to read
   // here — the error page omits the publisher-only link rather than guessing.
-  return <RootErrorBoundary audience="Internal" navigation={navigationFor(false)} />;
+  return (
+    <RootErrorBoundary
+      audience="Internal"
+      navigation={navigationFor(false)}
+      serviceHref={href('/dashboard')}
+    />
+  );
 }

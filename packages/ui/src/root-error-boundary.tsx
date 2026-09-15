@@ -6,6 +6,7 @@ import { NotFoundPage, PageIntro } from './content-page';
 interface RootErrorBoundaryProps {
   audience: 'Public' | 'Internal';
   navigation: AppNavigationItem[];
+  serviceHref?: string | undefined;
 }
 
 /**
@@ -13,12 +14,12 @@ interface RootErrorBoundaryProps {
  * AppShell normally comes from) whenever a route error bubbles up with nothing closer to
  * catch it — the root's `Layout` export still wraps it in the HTML document shell.
  */
-export function RootErrorBoundary({ audience, navigation }: RootErrorBoundaryProps) {
+export function RootErrorBoundary({ audience, navigation, serviceHref }: RootErrorBoundaryProps) {
   const error = useRouteError();
   const isNotFound = isRouteErrorResponse(error) && error.status === 404;
 
   return (
-    <AppShell audience={audience} navigation={navigation}>
+    <AppShell audience={audience} navigation={navigation} serviceHref={serviceHref}>
       {isNotFound ? (
         <NotFoundPage />
       ) : (

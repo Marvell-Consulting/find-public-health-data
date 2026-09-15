@@ -14,6 +14,7 @@ import type { ReactNode } from 'react';
 import { createRoutesStub } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { loader as homeLoader } from './home';
 import InternalApp from './root';
 import routes from './routes';
 
@@ -22,6 +23,13 @@ afterEach(cleanup);
 const topics = [{ slug: 'topic-a', title: 'Topic A', description: 'All about topic A.' }];
 
 describe('internal application routes', () => {
+  it('sends the root to the dashboard', () => {
+    const response = homeLoader();
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get('Location')).toBe('/dashboard');
+  });
+
   it('includes the shared public routes', async () => {
     const Routes = createRoutesStub([
       {
@@ -81,7 +89,7 @@ describe('internal application routes', () => {
     render(<Routes initialEntries={['/topics']} />);
 
     expect(await screen.findByRole('heading', { name: 'Public health topics' })).toBeTruthy();
-    expect(screen.queryByRole('link', { name: 'Manage data' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Manage' })).toBeNull();
   });
 
   it('shows data management to internal publishers', async () => {
@@ -96,7 +104,7 @@ describe('internal application routes', () => {
 
     render(<Routes initialEntries={['/topics']} />);
 
-    expect(await screen.findByRole('link', { name: 'Manage data' })).toBeTruthy();
+    expect(await screen.findByRole('link', { name: 'Manage' })).toBeTruthy();
   });
 });
 
@@ -118,6 +126,7 @@ describe('the publisher route table', () => {
     const publisher = findLayout(routes, 'publisher.tsx');
 
     expect(publisher?.children?.map((child) => child.path)).toEqual([
+      'dashboard',
       'manage',
       'manage/topics',
       'manage/topics/new',

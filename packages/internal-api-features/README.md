@@ -1,6 +1,7 @@
 # @fphd/internal-api-features
 
-Routes and repository functions only `internal_api` may run: today, topic administration. The
+Routes and repository functions only `internal_api` may run: today, topic administration and the
+indicators dashboard listing. The
 `internal-` prefix is what `tools/artefact-boundary` keys on, so nothing here can reach a public
 image.
 

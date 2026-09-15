@@ -11,6 +11,7 @@ export function createFakeInternalRepositories(
   overrides: FakeInternalRepositoryOverrides = {},
 ): InternalRepositories {
   return {
+    indicators: withThrowingDefaults('indicators', overrides.indicators),
     topics: withThrowingDefaults('topics', overrides.topics),
   };
 }

@@ -1,7 +1,41 @@
 import { expect, test } from '@playwright/test';
 
-import { expectNoAccessibilityViolations } from '../support/accessibility.js';
 import { signInAs } from '../support/sign-in.js';
+
+test.describe('as a publisher', () => {
+  test.beforeEach(async ({ page }) => {
+    await signInAs(page, 'Riley Singh');
+    await page.goto('/');
+  });
+
+  test('lands on the dashboard', async ({ page }) => {
+    await expect(page).toHaveURL('/dashboard');
+    await expect(page.getByRole('heading', { level: 1, name: 'Indicators' })).toBeVisible();
+  });
+
+  test('links the service name straight to the dashboard', async ({ page }) => {
+    await page.goto('/manage');
+    const serviceLink = page.getByRole('link', { name: 'Find public health data' });
+
+    await expect(serviceLink).toHaveAttribute('href', '/dashboard');
+    await serviceLink.click();
+
+    await expect(page).toHaveURL('/dashboard');
+  });
+
+  test('offers the internal navigation', async ({ page }) => {
+    const navigation = page.getByRole('navigation', { name: 'Menu' });
+
+    await expect(navigation.getByRole('link')).toHaveText(['Manage', 'Account']);
+
+    await navigation.getByRole('link', { name: 'Manage' }).click();
+
+    await expect(page).toHaveURL('/manage');
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Manage public health data' }),
+    ).toBeVisible();
+  });
+});
 
 test.describe('as a viewer', () => {
   test.beforeEach(async ({ page }) => {
@@ -9,30 +43,19 @@ test.describe('as a viewer', () => {
     await page.goto('/');
   });
 
-  test('serves the home page without the manage link', async ({ page }) => {
-    await expect(
-      page.getByRole('heading', { level: 1, name: 'Find public health data' }),
-    ).toBeVisible();
-    const navigation = page.getByRole('navigation', { name: 'Menu' });
-    await expect(navigation.getByRole('link', { name: 'Topics' })).toBeVisible();
-    await expect(navigation.getByRole('link', { name: 'Manage data' })).toHaveCount(0);
+  test('is turned away from the dashboard', async ({ page }) => {
+    await expect(page).toHaveURL('/access-denied');
   });
 
-  test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
-    await expectNoAccessibilityViolations(page, testInfo);
+  test('hides the manage link', async ({ page }) => {
+    const navigation = page.getByRole('navigation', { name: 'Menu' });
+
+    await expect(navigation.getByRole('link')).toHaveText(['Account']);
   });
 });
 
-test.describe('as a publisher', () => {
-  test('offers the manage link in the navigation', async ({ page }) => {
-    await signInAs(page, 'Riley Singh');
-    const navigation = page.getByRole('navigation', { name: 'Menu' });
+test('sends a visitor without a session on to sign in for the dashboard', async ({ page }) => {
+  await page.goto('/');
 
-    await navigation.getByRole('link', { name: 'Manage data' }).click();
-
-    await expect(page).toHaveURL('/manage');
-    await expect(
-      page.getByRole('heading', { level: 1, name: 'Manage public health data' }),
-    ).toBeVisible();
-  });
+  await expect(page).toHaveURL('/sign-in?returnTo=%2Fdashboard');
 });
