@@ -4,12 +4,18 @@ import { DASHBOARD_PATH } from '../dashboard/paths';
 import type { IndicatorAdminDetail, IndicatorStatus } from './loader';
 import { publishedIndicatorPath } from './paths';
 
-const STATUS_LABELS: Record<IndicatorStatus, string> = {
-  draft: 'Draft',
-  in_review: 'In review',
-  approved: 'Approved',
-  archived: 'Archived',
+const STATUS_TAGS: Record<IndicatorStatus, { label: string; colour: string }> = {
+  draft: { label: 'Draft', colour: 'grey' },
+  in_review: { label: 'In review', colour: 'yellow' },
+  approved: { label: 'Approved', colour: 'green' },
+  archived: { label: 'Archived', colour: 'grey' },
 };
+
+function StatusTag({ status }: { status: IndicatorStatus }) {
+  const { label, colour } = STATUS_TAGS[status];
+
+  return <Tag classModifiers={colour} text={label} />;
+}
 
 // Only an approved indicator has a public page; the rest have nothing to act on yet.
 function Actions({ indicator }: { indicator: IndicatorAdminDetail }) {
@@ -39,7 +45,7 @@ export function IndicatorOverviewPage({ indicator }: { indicator: IndicatorAdmin
           <SummaryList
             items={[
               { name: 'Indicator ID', children: String(indicator.fingertipsId) },
-              { name: 'Status', children: <Tag text={STATUS_LABELS[indicator.status]} /> },
+              { name: 'Status', children: <StatusTag status={indicator.status} /> },
             ]}
           />
           <Tabs

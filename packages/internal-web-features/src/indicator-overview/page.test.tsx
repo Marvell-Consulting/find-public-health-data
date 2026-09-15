@@ -37,14 +37,17 @@ describe('IndicatorOverviewPage', () => {
   });
 
   it.each([
-    ['draft', 'Draft'],
-    ['in_review', 'In review'],
-    ['approved', 'Approved'],
-    ['archived', 'Archived'],
-  ] as const)('labels a status of %s as a %s tag', (status, label) => {
+    ['draft', 'Draft', 'grey'],
+    ['in_review', 'In review', 'yellow'],
+    ['approved', 'Approved', 'green'],
+    ['archived', 'Archived', 'grey'],
+  ] as const)('labels a status of %s as a %s tag', (status, label, colour) => {
     renderPage({ status });
 
-    expect(screen.getByText(label).className).toContain('govuk-tag');
+    const tag = screen.getByText(label);
+
+    expect(tag.className).toContain('govuk-tag');
+    expect(tag.className).toContain(`govuk-tag--${colour}`);
   });
 
   it('offers the published page as an action for an approved indicator', () => {
