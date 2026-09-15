@@ -29,6 +29,15 @@ test('sends a visitor without a session to sign in, then back to the page they w
   await expect(page.getByRole('heading', { level: 1, name: 'Public health topics' })).toBeVisible();
 });
 
+test('ignores a return address that is not a page', async ({ page }) => {
+  await page.goto('/sign-in?returnTo=%2Fauth%2Fsign-out');
+
+  await submitSignIn(page, 'Sam Taylor');
+
+  await expect(page).toHaveURL('/dashboard');
+  await expect(page.getByRole('heading', { level: 1, name: 'Indicators' })).toBeVisible();
+});
+
 test('shows the account and signs out', async ({ page }) => {
   await signInAs(page, 'Sam Taylor');
   const navigation = page.getByRole('navigation', { name: 'Menu' });

@@ -20,6 +20,7 @@ function createTestApp() {
   app.use(
     createFakeAuthRouter({
       audience: 'internal',
+      isPagePath: (path) => !path.startsWith('/auth/'),
       session,
       users: fakeUsersForAudience('internal'),
     }),
@@ -67,6 +68,17 @@ describe('fake authentication backend', () => {
     expect(response.text).toBe('This user cannot access this service.');
   });
 
+  it('ignores a return address that is not one of the pages', async () => {
+    const app = createTestApp();
+    const start = await request(app).post('/auth/sign-in').type('form').send({
+      returnTo: '/auth/sign-out',
+      userId: 'internal-publisher',
+    });
+    const callback = await request(app).get(requireHeader(start.get('Location'), 'Location'));
+
+    expect(callback.get('Location')).toBe('/');
+  });
+
   it('does not redirect to an external return URL', async () => {
     const app = createTestApp();
     const start = await request(app).post('/auth/sign-in').type('form').send({
@@ -94,6 +106,7 @@ describe('fake authentication backend', () => {
     app.use(
       createFakeAuthRouter({
         audience: 'internal',
+        isPagePath: () => true,
         session,
         users: fakeUsersForAudience('internal'),
       }),
