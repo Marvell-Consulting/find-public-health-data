@@ -34,6 +34,12 @@ describe('findUncoveredRoutes', () => {
     ]);
   });
 
+  it('requires the spec a resource route is mapped to, since it exempts that spec from scanning', () => {
+    expect(findUncoveredRoutes([resource('/')], ['topic.spec.ts'], mapping)).toEqual([
+      { route: '/', problem: 'is mapped to home.spec.ts, which does not exist' },
+    ]);
+  });
+
   it('lets several routes share one spec', () => {
     expect(
       findUncoveredRoutes(

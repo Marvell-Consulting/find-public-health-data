@@ -40,7 +40,8 @@ export type Finding = {
 
 /**
  * Each of one app's page routes must map to a spec that exists among `specs`, the spec paths
- * relative to the app's spec directory.
+ * relative to the app's spec directory. A resource route needs no entry, but one it has must
+ * exist too: that entry is what exempts the spec from scanning.
  */
 export function findUncoveredRoutes(
   routes: readonly ClassifiedRoute[],
@@ -49,10 +50,9 @@ export function findUncoveredRoutes(
 ): Finding[] {
   const present = new Set(specs);
   return routes.flatMap(({ path, page }) => {
-    if (!page) return [];
     const spec = mapping[path];
     if (spec === undefined) {
-      return [{ route: path, problem: 'is mapped to no spec' }];
+      return page ? [{ route: path, problem: 'is mapped to no spec' }] : [];
     }
     if (!present.has(spec)) {
       return [{ route: path, problem: `is mapped to ${spec}, which does not exist` }];
@@ -74,8 +74,9 @@ export function findStaleEntries(
 }
 
 /**
- * Specs that never scan for accessibility violations, by name. A spec only resource routes map
- * to has no page to scan and is exempt; every other spec, mapped or not, drives some page state.
+ * Specs that never scan for accessibility violations, by name. A spec that only resource routes
+ * map to has no page to scan and is exempt; every other spec, mapped or not, drives some page
+ * state.
  */
 export function findSpecsWithoutScan(
   specs: ReadonlyArray<{ name: string; source: string }>,

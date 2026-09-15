@@ -210,8 +210,9 @@ has no default export is a resource route by React Router's own definition — a
 download, a redirect — and needs no spec, since it has no page; the check reads each route module
 to tell the two apart. It also fails a mapping entry no app declares any more, and a spec file
 that never calls `expectNoAccessibilityViolations`, since one axe scan per page state is the
-convention above. A spec only resource routes map to, such as one covering where a redirect
-lands, is exempt from the scan.
+convention above. A spec that only resource routes map to, such as one covering where a redirect
+lands, is exempt from the scan; the mapped spec must still exist, since the entry is what
+exempts it.
 
 The `Web changes carry e2e changes` CI job covers the gap the route check cannot see: new behaviour
 on an existing page. A pull request that changes `apps/*-web`, `packages/*-web-features` or
