@@ -1,0 +1,5 @@
+# Rate limiting is Azure Front Door's job, not the app's, so the query that wants it in every
+# authorising handler is off. Everything else is the default suite.
+query-filters:
+  - exclude:
+      id: js/missing-rate-limiting
