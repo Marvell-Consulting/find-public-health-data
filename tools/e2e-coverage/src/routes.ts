@@ -1,22 +1,30 @@
 type RouteNode = {
   path: string | undefined;
   index: boolean;
+  file: string | undefined;
   children: RouteNode[];
 };
 
+/** A URL pattern a request can match, with the module that answers it. */
+export type Route = {
+  path: string;
+  file: string;
+};
+
 /**
- * Every URL pattern in `react-router routes --json` output that a request can match: pathful
- * routes and index routes, at any depth, with their parents' paths prefixed. A pathless layout
- * contributes nothing of its own but its children are still walked.
+ * Every matchable route in `react-router routes --json` output: pathful routes and index routes,
+ * at any depth, with their parents' paths prefixed. A pathless layout contributes nothing of its
+ * own but its children are still walked. Module paths are as written in `routes.ts`, relative to
+ * the app directory.
  */
-export function collectRoutePaths(json: string): string[] {
+export function collectRoutes(json: string): Route[] {
   let parsed: unknown;
   try {
     parsed = JSON.parse(json);
   } catch (cause) {
     throw new Error(`Could not parse the route table as JSON:\n${json}`, { cause });
   }
-  return collectPaths(asRouteNodes(parsed, json), '');
+  return collect(asRouteNodes(parsed, json), '', json);
 }
 
 /**
@@ -30,13 +38,14 @@ function asRouteNodes(value: unknown, json: string): RouteNode[] {
   }
 
   return value.map((entry) => {
-    if (typeof entry !== 'object' || entry === null) {
+    if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
       throw new Error(`The route table holds a route that is not an object:\n${json}`);
     }
 
-    const { path, index, children } = entry as {
+    const { path, index, file, children } = entry as {
       path?: unknown;
       index?: unknown;
+      file?: unknown;
       children?: unknown;
     };
     if (path !== undefined && typeof path !== 'string') {
@@ -45,21 +54,31 @@ function asRouteNodes(value: unknown, json: string): RouteNode[] {
     if (index !== undefined && typeof index !== 'boolean') {
       throw new Error(`The route table holds a route whose index flag is not a boolean:\n${json}`);
     }
+    if (file !== undefined && typeof file !== 'string') {
+      throw new Error(`The route table holds a route whose file is not a string:\n${json}`);
+    }
 
     return {
       path,
       index: index === true,
+      file,
       children: children === undefined ? [] : asRouteNodes(children, json),
     };
   });
 }
 
 // A root `path: ""` is a layout in all but name: it matches nothing by itself.
-function collectPaths(nodes: RouteNode[], parent: string): string[] {
+function collect(nodes: RouteNode[], parent: string, json: string): Route[] {
   return nodes.flatMap((node) => {
     const segment = (node.path ?? '').replace(/^\/+|\/+$/g, '');
     const own = segment === '' ? parent : `${parent}/${segment}`;
     const matches = node.index || segment !== '';
-    return [...(matches ? [own || '/'] : []), ...collectPaths(node.children, own)];
+    if (matches && node.file === undefined) {
+      throw new Error(`The route table holds a matchable route with no module:\n${json}`);
+    }
+    return [
+      ...(matches && node.file !== undefined ? [{ path: own || '/', file: node.file }] : []),
+      ...collect(node.children, own, json),
+    ];
   });
 }

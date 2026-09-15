@@ -205,11 +205,13 @@ is met by visiting pages without asserting anything.
 the route, when a page route has no spec. The route-to-spec mapping is spelt out in
 `tools/e2e-coverage/src/specs.ts` rather than derived from the path, so adding a page means adding
 the route there and the spec under `e2e/tests/public` or `e2e/tests/internal`; a group of routes
-that make one journey can share a spec, as the `manage/topics/*` routes do. Resource routes — the
-indicator search and geography lookups, the CSV downloads — serve no page and sit on a short
-allowlist in the same file, exercised through the pages that call them. The check also fails a
-mapping entry no app declares any more, and a spec file that never calls
-`expectNoAccessibilityViolations`, since one axe scan per page state is the convention above.
+that make one journey can share a spec, as the `manage/topics/*` routes do. A route whose module
+has no default export is a resource route by React Router's own definition — a data lookup, a CSV
+download, a redirect — and needs no spec, since it has no page; the check reads each route module
+to tell the two apart. It also fails a mapping entry no app declares any more, and a spec file
+that never calls `expectNoAccessibilityViolations`, since one axe scan per page state is the
+convention above. A spec only resource routes map to, such as one covering where a redirect
+lands, is exempt from the scan.
 
 The `Web changes carry e2e changes` CI job covers the gap the route check cannot see: new behaviour
 on an existing page. A pull request that changes `apps/*-web` or `packages/*-web-features` without

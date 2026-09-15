@@ -2,18 +2,24 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { capture } from './exec.js';
-import { collectRoutePaths } from './routes.js';
-import { findSpecsWithoutScan, findStaleEntries, findUncoveredRoutes } from './specs.js';
+import { isPageModule } from './modules.js';
+import { collectRoutes } from './routes.js';
+import {
+  type ClassifiedRoute,
+  findSpecsWithoutScan,
+  findStaleEntries,
+  findUncoveredRoutes,
+} from './specs.js';
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
 const specsRoot = path.join(repoRoot, 'e2e', 'tests');
 
-/** A web app and the Playwright project directory holding its specs. */
-type WebApp = { pkg: string; specDir: string };
+/** A web app, its React Router app directory, and the Playwright project directory holding its specs. */
+type WebApp = { pkg: string; appDir: string; specDir: string };
 
 const WEB_APPS: WebApp[] = [
-  { pkg: '@fphd/public-web', specDir: 'public' },
-  { pkg: '@fphd/internal-web', specDir: 'internal' },
+  { pkg: '@fphd/public-web', appDir: 'apps/public-web/src', specDir: 'public' },
+  { pkg: '@fphd/internal-web', appDir: 'apps/internal-web/src', specDir: 'internal' },
 ];
 
 async function main(): Promise<void> {
@@ -22,29 +28,27 @@ async function main(): Promise<void> {
 
   for (const app of WEB_APPS) {
     console.log(`Checking ${app.pkg}’s routes against e2e/tests/${app.specDir}…`);
-    const routes = readRoutes(app);
-    declared.push(...routes);
+    const routes = await readRoutes(app);
+    declared.push(...routes.map((route) => route.path));
     const specs = await listSpecs(app.specDir);
+
     for (const { route, problem } of findUncoveredRoutes(routes, specs)) {
       problems.push(`${app.pkg} ${route} ${problem}`);
+    }
+
+    const sources = await Promise.all(
+      specs.map(async (name) => ({
+        name,
+        source: await readFile(path.join(specsRoot, app.specDir, name), 'utf8'),
+      })),
+    );
+    for (const name of findSpecsWithoutScan(sources, routes)) {
+      problems.push(`e2e/tests/${app.specDir}/${name} never calls expectNoAccessibilityViolations`);
     }
   }
 
   for (const route of findStaleEntries(declared)) {
     problems.push(`tools/e2e-coverage/src/specs.ts lists ${route}, which neither app declares`);
-  }
-
-  console.log('Checking every spec scans for accessibility violations…');
-  for (const app of WEB_APPS) {
-    const specs = await Promise.all(
-      (await listSpecs(app.specDir)).map(async (name) => ({
-        name: `e2e/tests/${app.specDir}/${name}`,
-        source: await readFile(path.join(specsRoot, app.specDir, name), 'utf8'),
-      })),
-    );
-    for (const name of findSpecsWithoutScan(specs)) {
-      problems.push(`${name} never calls expectNoAccessibilityViolations`);
-    }
   }
 
   if (problems.length === 0) {
@@ -61,17 +65,23 @@ async function main(): Promise<void> {
   process.exitCode = 1;
 }
 
-function readRoutes(app: WebApp): string[] {
+/** The app's routes, each classified by reading the module React Router would render it with. */
+async function readRoutes(app: WebApp): Promise<ClassifiedRoute[]> {
   const output = capture(
     'pnpm',
     ['--filter', app.pkg, 'exec', 'react-router', 'routes', '--json'],
     repoRoot,
   );
-  const routes = collectRoutePaths(output);
+  const routes = collectRoutes(output);
   if (routes.length === 0) {
     throw new Error(`No routes were found in ${app.pkg}’s route table:\n${output}`);
   }
-  return routes;
+  return Promise.all(
+    routes.map(async ({ path: routePath, file }) => ({
+      path: routePath,
+      page: isPageModule(await readFile(path.join(repoRoot, app.appDir, file), 'utf8')),
+    })),
+  );
 }
 
 /** Spec files under one Playwright project directory, relative to it. */

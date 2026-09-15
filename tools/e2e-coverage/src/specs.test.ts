@@ -8,28 +8,28 @@ const mapping = {
   '/manage/topics': 'manage-topics.spec.ts',
   '/manage/topics/new': 'manage-topics.spec.ts',
 };
-const resources = ['/geographies'];
+const page = (path: string) => ({ path, page: true });
+const resource = (path: string) => ({ path, page: false });
 
 describe('findUncoveredRoutes', () => {
-  it('passes routes whose mapped spec exists and resource routes', () => {
+  it('passes page routes whose mapped spec exists and ignores resource routes', () => {
     expect(
       findUncoveredRoutes(
-        ['/', '/topics/:slug', '/geographies'],
+        [page('/'), page('/topics/:slug'), resource('/geographies')],
         ['home.spec.ts', 'topic.spec.ts'],
         mapping,
-        resources,
       ),
     ).toEqual([]);
   });
 
-  it('names a route no spec is mapped to', () => {
-    expect(findUncoveredRoutes(['/dashboard'], ['home.spec.ts'], mapping, resources)).toEqual([
-      { route: '/dashboard', problem: 'is mapped to no spec and is not a resource route' },
+  it('names a page route no spec is mapped to', () => {
+    expect(findUncoveredRoutes([page('/dashboard')], ['home.spec.ts'], mapping)).toEqual([
+      { route: '/dashboard', problem: 'is mapped to no spec' },
     ]);
   });
 
-  it('names a route whose mapped spec does not exist', () => {
-    expect(findUncoveredRoutes(['/topics/:slug'], ['home.spec.ts'], mapping, resources)).toEqual([
+  it('names a page route whose mapped spec does not exist', () => {
+    expect(findUncoveredRoutes([page('/topics/:slug')], ['home.spec.ts'], mapping)).toEqual([
       { route: '/topics/:slug', problem: 'is mapped to topic.spec.ts, which does not exist' },
     ]);
   });
@@ -37,45 +37,65 @@ describe('findUncoveredRoutes', () => {
   it('lets several routes share one spec', () => {
     expect(
       findUncoveredRoutes(
-        ['/manage/topics', '/manage/topics/new'],
+        [page('/manage/topics'), page('/manage/topics/new')],
         ['manage-topics.spec.ts'],
         mapping,
-        resources,
       ),
     ).toEqual([]);
   });
 });
 
 describe('findStaleEntries', () => {
-  it('names mapped and resource routes no app declares', () => {
-    expect(findStaleEntries(['/', '/topics/:slug'], mapping, resources)).toEqual([
+  it('names mapped routes no app declares', () => {
+    expect(findStaleEntries(['/', '/topics/:slug'], mapping)).toEqual([
       '/manage/topics',
       '/manage/topics/new',
-      '/geographies',
     ]);
   });
 
   it('is empty when every entry is declared', () => {
-    expect(findStaleEntries([...Object.keys(mapping), ...resources], mapping, resources)).toEqual(
-      [],
-    );
+    expect(findStaleEntries(Object.keys(mapping), mapping)).toEqual([]);
   });
 });
 
 describe('findSpecsWithoutScan', () => {
+  const scanned = {
+    name: 'home.spec.ts',
+    source: 'await expectNoAccessibilityViolations(page, testInfo);',
+  };
+  const unscanned = { name: 'home.spec.ts', source: "test('redirects', async () => {});" };
+
   it('names a spec that never calls the scan, even one that imports it', () => {
     expect(
-      findSpecsWithoutScan([
-        {
-          name: 'scanned.spec.ts',
-          source: 'await expectNoAccessibilityViolations(page, testInfo);',
-        },
-        {
-          name: 'imported.spec.ts',
-          source: "import { expectNoAccessibilityViolations } from '../support/accessibility.js';",
-        },
-        { name: 'bare.spec.ts', source: "test('renders', async () => {});" },
-      ]),
+      findSpecsWithoutScan(
+        [
+          scanned,
+          {
+            name: 'imported.spec.ts',
+            source:
+              "import { expectNoAccessibilityViolations } from '../support/accessibility.js';",
+          },
+          { name: 'bare.spec.ts', source: "test('renders', async () => {});" },
+        ],
+        [page('/')],
+        mapping,
+      ),
     ).toEqual(['imported.spec.ts', 'bare.spec.ts']);
+  });
+
+  it('exempts a spec only resource routes map to', () => {
+    expect(findSpecsWithoutScan([unscanned], [resource('/')], mapping)).toEqual([]);
+  });
+
+  it('holds a spec to the scan when any page route maps to it', () => {
+    expect(findSpecsWithoutScan([unscanned], [resource('/'), page('/')], mapping)).toEqual([
+      'home.spec.ts',
+    ]);
+  });
+
+  it('holds a spec nothing maps to, since it drives some page state', () => {
+    expect(findSpecsWithoutScan([{ ...unscanned, name: 'extra.spec.ts' }], [], mapping)).toEqual([
+      'extra.spec.ts',
+    ]);
   });
 });
