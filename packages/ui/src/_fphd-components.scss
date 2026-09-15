@@ -1,7 +1,9 @@
 @use "@not-govuk/sass-base" as *;
 
-// When NotGovUK is updated to v0.19, this will need to be updated. Try `.govuk-template` in place of `.not-govuk-page`
-.not-govuk-page .govuk-width-container {
+// Every width container — header, service nav, phase banner, main and footer
+// — sits at 1400px on wide screens, so the whole page frames the same width.
+// Doubled selector to beat govuk-frontend's own `.govuk-width-container` cap.
+.govuk-width-container.govuk-width-container {
   width: calc(100% - 30px);
   max-width: 1400px;
   margin-right: auto;
@@ -22,32 +24,6 @@
   max-width: 44rem;
 }
 
-// @react-foundry/anchor-list marks a navigation item active when its href is a *prefix* of the
-// current path. Every path starts with '/', so the Home item is active on every page. The
-// anchor's own aria-current is an exact match, so where the two disagree on the root item, undo
-// the class's styling — the values here are the inactive ones from govuk-frontend's
-// service-navigation.
-//
-// Fixed upstream in @react-foundry/anchor-list 0.5.3 (react-foundry#301): a '/' href now
-// defaults to exact matching. That version only reaches us with NotGovUk 0.19+, which also
-// moves to govuk-frontend 6 — delete this whole block when that upgrade lands.
-//
-// Scoped to the root item deliberately: prefix matching is right for real sections, and keeping
-// it means '/topics/alcohol' still highlights Topics.
-.govuk-service-navigation__list__item--active:has(> a[href='/']):not(
-    :has(> a[aria-current='page'])
-  ) {
-  @include govuk-media-query($until: tablet) {
-    margin-left: 0;
-    padding-left: 0;
-    border-left-width: 0;
-  }
-
-  @include govuk-media-query($from: tablet) {
-    padding-bottom: govuk-spacing(3);
-    border-bottom-width: 0;
-  }
-}
 
 .fphd-card-list {
   display: grid;
@@ -135,7 +111,7 @@
 .fphd-stat-card {
   padding: govuk-spacing(4);
   margin-bottom: govuk-spacing(4);
-  background-color: govuk-colour("light-grey");
+  background-color: govuk-colour("black", $variant: "tint-95");
 }
 
 .fphd-stat-card .fphd-stat-card__description {
@@ -188,7 +164,7 @@
 
 .fphd-filter-card {
   margin-bottom: govuk-spacing(4);
-  border: 1px solid govuk-colour("mid-grey");
+  border: 1px solid govuk-colour("black", $variant: "tint-80");
 }
 
 .fphd-filter-card__header {
@@ -198,8 +174,8 @@
   padding: govuk-spacing(3) govuk-spacing(4);
   // Light grey rather than mid: govuk-link on mid-grey measures 2.5:1, below AA's 4.5:1.
   // The border keeps the header separate from the body, which shares the colour.
-  border-bottom: 1px solid govuk-colour("mid-grey");
-  background-color: govuk-colour("light-grey");
+  border-bottom: 1px solid govuk-colour("black", $variant: "tint-80");
+  background-color: govuk-colour("black", $variant: "tint-95");
 
   > .govuk-body,
   > .govuk-body-s {
@@ -209,10 +185,14 @@
 
 .fphd-filter-card__body {
   padding: govuk-spacing(4);
-  background-color: govuk-colour("light-grey");
+  background-color: govuk-colour("black", $variant: "tint-95");
 }
 
-.fphd-filter-card__toggle {
+// The class is repeated to lift specificity above @not-govuk/button@0.19's
+// `:where(.govuk-template__page) button:not([type=submit])` extension into
+// govuk-button--secondary — which otherwise wraps this toggle in secondary-
+// button styling. Same reason for the width/box-shadow/decoration resets.
+.fphd-filter-card__toggle.fphd-filter-card__toggle {
   @include govuk-link-common;
   @include govuk-link-style-default;
   @include govuk-font($size: 16);
@@ -223,18 +203,21 @@
   background: transparent;
   color: $govuk-link-colour;
   cursor: pointer;
+  box-shadow: none;
+  width: auto;
+  text-decoration: underline;
 }
 
-body.js-enabled .fphd-filter-card__toggle {
+body.govuk-frontend-supported .fphd-filter-card__toggle {
   display: inline;
 }
 
 // Show all collapsible bodies when JavaScript has not run, so every filter is reachable.
-body:not(.js-enabled) .fphd-collapsible-body[hidden] {
+body:not(.govuk-frontend-supported) .fphd-collapsible-body[hidden] {
   display: block;
 }
 
-body:not(.js-enabled) .fphd-geo-alt__toggle {
+body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
   display: none;
 }
 
@@ -269,7 +252,7 @@ body:not(.js-enabled) .fphd-geo-alt__toggle {
   display: flex;
   align-items: center;
   gap: govuk-spacing(2);
-  border: 1px solid govuk-colour("dark-grey");
+  border: 1px solid govuk-colour("black", $variant: "tint-25");
   background-color: govuk-colour("white");
   padding: govuk-spacing(1) govuk-spacing(2);
 }
@@ -408,7 +391,7 @@ body:not(.js-enabled) .fphd-geo-alt__toggle {
   position: relative;
   max-height: 320px;
   overflow-y: auto;
-  border: 1px solid govuk-colour("mid-grey");
+  border: 1px solid govuk-colour("black", $variant: "tint-80");
   padding: govuk-spacing(2);
   margin-bottom: govuk-spacing(3);
 }
@@ -455,7 +438,8 @@ body:not(.js-enabled) .fphd-geo-alt__toggle {
   margin-bottom: 0;
 }
 
-.fphd-geo-alt__toggle {
+// Doubled selector — see `.fphd-filter-card__toggle` above for the rationale.
+.fphd-geo-alt__toggle.fphd-geo-alt__toggle {
   padding: 0 8px 0 0;
   border: 0;
   background: none;
@@ -464,6 +448,10 @@ body:not(.js-enabled) .fphd-geo-alt__toggle {
   align-items: center;
   flex-shrink: 0;
   height: 36px;
+  box-shadow: none;
+  width: auto;
+  color: inherit;
+  text-decoration: none;
 }
 
 .fphd-geo-alt__toggle:focus-visible {
@@ -501,7 +489,7 @@ body:not(.js-enabled) .fphd-geo-alt__toggle {
 }
 
 .fphd-geo-alt__more {
-  color: govuk-colour("dark-grey");
+  color: govuk-colour("black", $variant: "tint-25");
   margin-bottom: 0;
 }
 
@@ -547,7 +535,7 @@ body:not(.js-enabled) .fphd-geo-alt__toggle {
 }
 
 .fphd-table-note {
-  color: govuk-colour("dark-grey");
+  color: govuk-colour("black", $variant: "tint-25");
   font-weight: 400;
 }
 
@@ -697,10 +685,10 @@ body:not(.js-enabled) .fphd-geo-alt__toggle {
 // Every panel is in the document for no-script readers, but with scripting the selected
 // one must be the only one showing from first paint — hydration arrives too late to do
 // the hiding without a visible flash. The server marks the open panel (it knows the
-// tab param), the body's js-enabled class is set by an inline script before paint, and
-// React drops the --ssr class once mounted and takes over. A legacy #hash deep link
-// never reaches the server, so a targeted panel overrides the marked one.
-.js-enabled .fphd-tabs--ssr {
+// tab param), the body's govuk-frontend-supported class is set by an inline script
+// before paint, and React drops the --ssr class once mounted and takes over. A legacy
+// #hash deep link never reaches the server, so a targeted panel overrides the marked one.
+.govuk-frontend-supported .fphd-tabs--ssr {
   .govuk-tabs__panel:not(.fphd-tabs__panel--open) {
     display: none;
   }
@@ -724,18 +712,18 @@ body:not(.js-enabled) .fphd-geo-alt__toggle {
 
 // Hide the "Add selected geographies" button with JS when nothing is pending.
 // Without JS the button is always visible so no-JS users can still submit.
-body.js-enabled .fphd-add-geo-button[data-empty] {
+body.govuk-frontend-supported .fphd-add-geo-button[data-empty] {
   display: none;
 }
 
 // The benchmark columns are shaded so a comparison reads as context, not more data: a
 // darker band on the group header, a lighter wash down its cells.
 .fphd-trend-table__benchmark-group {
-  background-color: govuk-colour("mid-grey");
+  background-color: govuk-colour("black", $variant: "tint-80");
 }
 
 .fphd-trend-table__benchmark-cell {
-  background-color: govuk-colour("light-grey");
+  background-color: govuk-colour("black", $variant: "tint-95");
 }
 
 .fphd-range-plot {

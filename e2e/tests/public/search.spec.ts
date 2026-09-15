@@ -66,7 +66,7 @@ test('styles filter card toggles as links', async ({ page }) => {
   await ready(page);
 
   const toggle = page.getByRole('button', { name: 'Topics and types Expand' });
-  await expect(toggle).toHaveCSS('color', 'rgb(29, 112, 184)');
+  await expect(toggle).toHaveCSS('color', 'rgb(26, 101, 166)');
   await expect(toggle).toHaveCSS('text-decoration-line', 'underline');
 });
 
