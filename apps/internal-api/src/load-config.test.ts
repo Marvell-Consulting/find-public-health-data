@@ -15,7 +15,7 @@ describe('loadConfig', () => {
       appEnv: 'local',
       host: '0.0.0.0',
       port: 4001,
-      log: { level: 'info', pretty: true },
+      log: { level: 'debug', pretty: true },
       shutdown: { drainDelayMs: 0, gracePeriodMs: 25_000 },
       session: { secret: sessionSecret, secure: false },
       db: {

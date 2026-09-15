@@ -2,6 +2,7 @@ import {
   isDeployedEnv,
   logEnvFields,
   parseEnv,
+  resolveLog,
   resolveShutdown,
   serverEnvFields,
   z,
@@ -28,10 +29,7 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
     appEnv: parsed.APP_ENV,
     host: parsed.HOST,
     port: parsed.PORT,
-    log: {
-      level: parsed.LOG_LEVEL,
-      pretty: parsed.APP_ENV === 'local' && (parsed.LOG_PRETTY ?? true),
-    },
+    log: resolveLog(parsed.APP_ENV, parsed),
     shutdown: resolveShutdown(parsed.APP_ENV, parsed),
     session: {
       secret: parsed.SESSION_JWT_SECRET,

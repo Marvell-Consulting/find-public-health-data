@@ -89,13 +89,30 @@ export function resolveShutdown(
 
 /**
  * The level names mirror pino's, kept as a plain enum so this package carries no pino
- * dependency. LOG_PRETTY has no default here — apps derive one from APP_ENV when it is
- * unset.
+ * dependency. Neither field has a default here: both depend on APP_ENV, which a shared
+ * fragment cannot see, so `resolveLog` derives them.
  */
 export const logEnvFields = {
-  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).optional(),
   LOG_PRETTY: boolSchema.optional(),
 };
+
+/**
+ * Production and preview log at `info`; every other environment at `debug`, so the lines
+ * beneath each action show wherever a developer is looking. Pretty output only under `local`;
+ * every other runtime wants JSON.
+ */
+export function resolveLog(
+  appEnv: AppEnv,
+  env: { LOG_LEVEL?: z.infer<typeof logEnvFields.LOG_LEVEL>; LOG_PRETTY?: boolean | undefined },
+) {
+  const productionLike = appEnv === 'production' || appEnv === 'preview';
+
+  return {
+    level: env.LOG_LEVEL ?? (productionLike ? 'info' : 'debug'),
+    pretty: appEnv === 'local' && (env.LOG_PRETTY ?? true),
+  } as const;
+}
 
 const nodeEnvSchema = z.enum(['development', 'production', 'test']).default('production');
 
@@ -159,10 +176,7 @@ export function loadWebServerConfig(
     apiUrl: parsed.API_URL,
     trustedProxyHops: parsed.TRUSTED_PROXY_HOPS,
     shutdown: resolveShutdown(parsed.APP_ENV, parsed),
-    log: {
-      level: parsed.LOG_LEVEL,
-      pretty: parsed.APP_ENV === 'local' && (parsed.LOG_PRETTY ?? true),
-    },
+    log: resolveLog(parsed.APP_ENV, parsed),
     session: {
       secret: parsed.SESSION_JWT_SECRET,
       secure: isDeployedEnv(parsed.APP_ENV),

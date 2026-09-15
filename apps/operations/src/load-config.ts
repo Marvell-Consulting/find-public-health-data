@@ -1,4 +1,4 @@
-import { appEnvFields, isDeployedEnv, logEnvFields, parseEnv, z } from '@fphd/config';
+import { appEnvFields, isDeployedEnv, logEnvFields, parseEnv, resolveLog, z } from '@fphd/config';
 import { dbEnvFields, resolveDbTls } from '@fphd/db';
 
 const envSchema = z
@@ -39,10 +39,7 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
 
   return {
     appEnv: parsed.APP_ENV,
-    log: {
-      level: parsed.LOG_LEVEL,
-      pretty: parsed.APP_ENV === 'local' && (parsed.LOG_PRETTY ?? true),
-    },
+    log: resolveLog(parsed.APP_ENV, parsed),
     db: {
       host: parsed.DB_HOST,
       port: parsed.DB_PORT,
