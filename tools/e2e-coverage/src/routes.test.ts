@@ -58,6 +58,12 @@ describe('collectRoutes', () => {
     expect(collectRoutes(JSON.stringify([{ path: '', file: 'root.tsx' }]))).toEqual([]);
   });
 
+  it('keeps a bare slash as the root route', () => {
+    expect(collectRoutes(JSON.stringify([{ path: '/', file: 'home.tsx' }]))).toEqual([
+      { path: '/', file: 'home.tsx' },
+    ]);
+  });
+
   it('normalises stray slashes in a segment', () => {
     expect(collectRoutes(JSON.stringify([{ path: '/topics/', file: 'a.tsx' }]))).toEqual([
       { path: '/topics', file: 'a.tsx' },

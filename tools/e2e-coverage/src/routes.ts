@@ -67,12 +67,12 @@ function asRouteNodes(value: unknown, json: string): RouteNode[] {
   });
 }
 
-// A root `path: ""` is a layout in all but name: it matches nothing by itself.
+// A root `path: ""` is a layout in all but name: it matches nothing by itself. A bare `/` does.
 function collect(nodes: RouteNode[], parent: string, json: string): Route[] {
   return nodes.flatMap((node) => {
     const segment = (node.path ?? '').replace(/^\/+|\/+$/g, '');
     const own = segment === '' ? parent : `${parent}/${segment}`;
-    const matches = node.index || segment !== '';
+    const matches = node.index || (node.path !== undefined && node.path !== '');
     if (matches && node.file === undefined) {
       throw new Error(`The route table holds a matchable route with no module:\n${json}`);
     }
