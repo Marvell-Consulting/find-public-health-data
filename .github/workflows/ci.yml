@@ -292,7 +292,8 @@ jobs:
       - run: pnpm check:e2e-coverage
 
   # The gap the route check cannot see is new behaviour on an existing page, so a pull request
-  # that changes web code without touching a spec fails here until it is labelled
+  # that changes web code (the web apps, their feature packages, or the shared UI package)
+  # without touching a spec fails here until it is labelled
   # `no-e2e-needed` with a "No e2e needed: <reason>" line in its body. Blunt by design: the
   # override is cheap, and the reason sits in front of the reviewer. Labels and body are read
   # live rather than from the event payload, so adding them and re-running this job is enough.
@@ -313,7 +314,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           files=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" --jq '.[].filename')
-          if ! grep -Eq '^(apps/[^/]+-web|packages/[^/]+-web-features)/' <<<"${files}"; then
+          if ! grep -Eq '^(apps/[^/]+-web|packages/[^/]+-web-features|packages/ui)/' <<<"${files}"; then
             echo 'No web code changed.'
             exit 0
           fi

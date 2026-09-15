@@ -214,8 +214,8 @@ convention above. A spec only resource routes map to, such as one covering where
 lands, is exempt from the scan.
 
 The `Web changes carry e2e changes` CI job covers the gap the route check cannot see: new behaviour
-on an existing page. A pull request that changes `apps/*-web` or `packages/*-web-features` without
-touching `e2e/` fails until it carries the `no-e2e-needed` label and a line in its body reading
+on an existing page. A pull request that changes `apps/*-web`, `packages/*-web-features` or
+`packages/ui` without touching `e2e/` fails until it carries the `no-e2e-needed` label and a line in its body reading
 `No e2e needed: <reason>`. The job reads the label and body live rather than from the event that
 started the run, so adding them and re-running the failed job is enough. It is blunt by design — a
 copy change earns the label with a one-line reason — because the point is that the reviewer sees
