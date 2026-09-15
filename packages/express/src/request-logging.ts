@@ -70,7 +70,8 @@ export function requestLogging(
 }
 
 /** The logger for lines about one request: the request line's id under the same field, `req.id`,
- * and nothing else of the request. Lines through it must not add a `req` of their own. */
+ * and nothing else of the request. When using it, don't pass a `req`: pino writes the key twice
+ * and the existing `req.id` is lost. */
 export function requestLogger(logger: Logger, request: IncomingMessage): Logger {
   const id = requestId(request);
 
