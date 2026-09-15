@@ -43,7 +43,9 @@ export function AdminTopicsPage({
     <GridRow>
       <GridColumn width="two-thirds">
         {notification === undefined ? null : (
-          <NotificationBanner type="success">{notification}</NotificationBanner>
+          <NotificationBanner disableAutoFocus type="success">
+            {notification}
+          </NotificationBanner>
         )}
         <h1 className="govuk-heading-xl">Manage topics</h1>
         <Table
@@ -133,7 +135,9 @@ export function EditTopicPage({
     <>
       <BackLink href={TOPICS_ADMIN_PATH}>Back to topics</BackLink>
       {notification === undefined ? null : (
-        <NotificationBanner type="success">{notification}</NotificationBanner>
+        <NotificationBanner disableAutoFocus type="success">
+          {notification}
+        </NotificationBanner>
       )}
       <ErrorSummary errors={toErrorSummary(fieldErrors)} />
       <PageIntro title="Edit topic">

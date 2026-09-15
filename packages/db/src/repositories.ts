@@ -17,10 +17,15 @@ import {
   getObservationRange,
   type IndicatorAreaData,
   type IndicatorDetail,
+  type IndicatorFacets,
+  type IndicatorSearchFilters,
+  type IndicatorSearchResult,
   listApprovedIndicators,
+  listIndicatorFacets,
   type ObservationRangePeriod,
   resolveApprovedIndicatorId,
   searchApprovedIndicators,
+  searchIndicators,
 } from './indicator-repository.js';
 import { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';
 
@@ -35,12 +40,14 @@ export interface IndicatorRepository {
     indicatorId: string,
     displayGroup: string,
   ): Promise<ObservationRangePeriod[]>;
+  searchWithFilters(filters: IndicatorSearchFilters): Promise<IndicatorSearchResult>;
+  listFacets(): Promise<IndicatorFacets>;
 }
 
 export interface AreaRepository {
   listByType(areaTypeName: string): Promise<AreaSummary[]>;
   listDisplayGroups(): Promise<string[]>;
-  listByGroup(displayGroup: string): Promise<AreaSummary[]>;
+  listByGroup(displayGroup: string, limit?: number): Promise<AreaSummary[]>;
   listByCodes(codes: string[]): Promise<AreaLookup[]>;
   search(query: string, limit: number): Promise<AreaLookup[]>;
   listParents(childCodes: string[], parentTypeName: string): Promise<AreaParent[]>;
@@ -67,7 +74,7 @@ export function createRepositories(db: Database): Repositories {
     areas: {
       listByType: (areaTypeName) => listAreasByType(db, areaTypeName),
       listDisplayGroups: () => listDisplayGroups(db),
-      listByGroup: (displayGroup) => listAreasByGroup(db, displayGroup),
+      listByGroup: (displayGroup, limit) => listAreasByGroup(db, displayGroup, limit),
       listByCodes: (codes) => listAreasByCodes(db, codes),
       search: (query, limit) => searchAreas(db, query, limit),
       listParents: (childCodes, parentTypeName) => listAreaParents(db, childCodes, parentTypeName),
@@ -81,6 +88,8 @@ export function createRepositories(db: Database): Repositories {
         getIndicatorObservations(db, indicatorId, areaCode),
       findObservationRange: (indicatorId, displayGroup) =>
         getObservationRange(db, indicatorId, displayGroup),
+      searchWithFilters: (filters) => searchIndicators(db, filters),
+      listFacets: () => listIndicatorFacets(db),
     },
     topics: {
       list: () => listTopics(db),

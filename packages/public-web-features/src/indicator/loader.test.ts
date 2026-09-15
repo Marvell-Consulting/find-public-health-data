@@ -74,6 +74,23 @@ function loaderArgs(
 }
 
 describe('loadIndicator', () => {
+  it('loads exactly the areas represented by the selection, plus England, at the cap', async () => {
+    const { client, get } = api();
+    const codes = Array.from({ length: 21 }, (_, i) => `E${String(i).padStart(8, '0')}`);
+    const params = new URLSearchParams([['is', '108'], ...codes.map((code) => ['as', code])]);
+    const result = await loadIndicator(
+      loaderArgs(client, {}, `http://localhost/indicators?${params}`),
+    );
+    expect(result.selection.areaCodes).toEqual(codes.slice(0, 19));
+    expect(result.selectedAreas.map(({ code }) => code)).toEqual(codes.slice(0, 19));
+    expect(result.areasLimited).toBe(true);
+    const [path] = get.mock.calls.find(([path]) => String(path).includes('/108/data')) ?? [];
+    expect(new URL(`http://localhost${path}`).searchParams.getAll('areaCode')).toEqual([
+      ...codes.slice(0, 19),
+      'E92000001',
+    ]);
+  });
+
   it('selects nothing when neither the route nor the query names an indicator', async () => {
     const { client, get } = api();
 
@@ -81,10 +98,13 @@ describe('loadIndicator', () => {
 
     expect(result.selected).toEqual([]);
     expect(result.selection.fingertipsIds).toEqual([]);
-    // Neither catalogue ships with the page: indicators are searched per keystroke and
-    // the geography tree fetches its levels on demand.
+    // The indicator catalogue stays server-side, while the geography tree receives only
+    // its bounded first-page previews.
     expect(get).not.toHaveBeenCalledWith('/api/indicators', expect.anything());
-    expect(get.mock.calls.some(([path]) => String(path).startsWith('/api/areas?'))).toBe(false);
+    const [previewPath] = get.mock.calls.find(([path]) => String(path).includes('limit=101')) ?? [];
+    expect(
+      new URL(`http://localhost${previewPath}`).searchParams.getAll('displayGroup'),
+    ).toHaveLength(6);
   });
 
   it('answers a no-script find search with the server matches, trimmed and encoded', async () => {
@@ -163,6 +183,7 @@ describe('loadIndicator', () => {
 
     expect(result.selection.fingertipsIds).toHaveLength(10);
     expect(result.selection.fingertipsIds.filter((id) => id === 108)).toHaveLength(1);
+    expect(result.indicatorsLimited).toBe(true);
   });
 
   it('asks for every selected area in one request per indicator', async () => {
@@ -282,6 +303,7 @@ describe('loadIndicator', () => {
 
   it('fetches region data for a region benchmark even without its comparison range', async () => {
     const get = vi.fn().mockImplementation((path: string) => {
+      if (path === '/api/areas/display-groups') return Promise.resolve(['Local authorities']);
       if (path.startsWith('/api/areas/parents')) {
         return Promise.resolve([
           { code: 'E06000052', parentCode: 'E12000009', parentName: 'South West' },

@@ -12,6 +12,8 @@ import {
 import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
+import { loadGeographyOptions } from '../geography/loader.js';
+import { MAX_SELECTED_AREAS, MAX_SELECTED_INDICATORS } from '../selection-limits.js';
 
 export type {
   AreaGroup,
@@ -61,8 +63,7 @@ const DEFAULT_AREA_CODE = 'E92000001';
 
 // Charts and tables with dozens of series are unreadable long before they are slow, so the
 // selection is capped rather than the URL trusted.
-const MAX_SELECTED_AREAS = 20;
-const MAX_SELECTED_INDICATORS = 10;
+export { MAX_SELECTED_INDICATORS } from '../selection-limits.js';
 
 function selectedIndicatorIds(url: URL, routeParam: string | undefined): number[] {
   const fromQuery = url.searchParams
@@ -100,9 +101,14 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
 
   // De-duplicated: a hand-edited URL repeating a code would otherwise fetch it twice and
   // render it twice.
-  const areaCodes = [
-    ...new Set(url.searchParams.getAll('as').filter((code) => /^[A-Z0-9]+$/i.test(code))),
-  ].slice(0, MAX_SELECTED_AREAS);
+  const requestedAreaCodes = [
+    ...new Set(
+      url.searchParams
+        .getAll('as')
+        .filter((code) => /^[A-Z0-9]+$/i.test(code) && code !== DEFAULT_AREA_CODE),
+    ),
+  ];
+  const areaCodes = requestedAreaCodes.slice(0, MAX_SELECTED_AREAS);
   const requestedLevels = [
     ...new Set(url.searchParams.getAll('als').filter((l) => l !== '' && l.length <= 100)),
   ].slice(0, 10);
@@ -124,8 +130,11 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
   // England rides along last for the benchmark; the first entry stays the area the page describes.
   const pickedCodes = [...new Set([...areaCodes, ...levelCodes])]
     .filter((code) => code !== DEFAULT_AREA_CODE)
-    .slice(0, MAX_SELECTED_AREAS - 1);
+    .slice(0, MAX_SELECTED_AREAS);
   const codesToLoad = [...pickedCodes, DEFAULT_AREA_CODE];
+  const areasLimited =
+    new Set([...requestedAreaCodes, ...levelCodes].filter((code) => code !== DEFAULT_AREA_CODE))
+      .size > MAX_SELECTED_AREAS;
 
   // Both benchmarks need each picked area's display level and statistical region up front.
   const nonEnglandCodes = codesToLoad.filter((code) => code !== DEFAULT_AREA_CODE);
@@ -148,6 +157,7 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
     api.get('/api/areas/display-groups', displayGroupListSchema),
   ]);
   const areaLevels = requestedLevels.filter((level) => displayGroups.includes(level));
+  const geographyOptions = await loadGeographyOptions(api, url.searchParams, displayGroups);
 
   const selectedAreas = lookedUp.map(({ code, name, areaType: typeName, displayGroup }) => ({
     code,
@@ -195,8 +205,11 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
   };
 
   const fingertipsIds = selectedIndicatorIds(url, params.fingertipsId);
+  const requestedIndicatorCount = new Set(
+    url.searchParams.getAll('is').filter((value) => /^\d+$/.test(value)),
+  ).size;
   // `find` is the quicksearch form's no-script round trip; matches render as add links.
-  const findSubject = url.searchParams.get('find')?.trim() ?? '';
+  const findSubject = url.searchParams.get('find')?.trim().slice(0, 200) ?? '';
   const findResults = findSubject
     ? (
         await api.get(
@@ -249,6 +262,9 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
     benchmarkGeography: { regionByCode, levelByCode } satisfies BenchmarkGeography,
     findSubject,
     findResults,
+    geographyOptions,
+    areasLimited,
+    indicatorsLimited: requestedIndicatorCount > MAX_SELECTED_INDICATORS,
     selection: { areaCodes, areaLevels, fingertipsIds } satisfies IndicatorSelection,
   };
 }

@@ -17,6 +17,7 @@ export function loader({ context }: Route.LoaderArgs) {
 function navigationFor(signedIn: boolean) {
   return [
     { href: href('/'), text: 'Home' },
+    { href: href('/search'), text: 'Search' },
     { href: href('/topics'), text: 'Topics' },
     { href: href('/sign-in'), text: signedIn ? 'Account' : 'Sign in' },
   ];

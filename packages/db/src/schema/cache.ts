@@ -60,3 +60,21 @@ export const indicatorDimensionValues = pgTable(
     index('idx_indicator_dimension_values_type_indicator').on(t.dimensionTypeId, t.indicatorId),
   ],
 );
+
+export const observationRange = pgTable(
+  'observation_range',
+  {
+    indicatorId: uuid().notNull(),
+    displayGroup: text().notNull(),
+    fromDate: date().notNull(),
+    toDate: date().notNull(),
+    segment: text().notNull(),
+    min: doublePrecision().notNull(),
+    max: doublePrecision().notNull(),
+  },
+  (t) => [
+    primaryKey({
+      columns: [t.indicatorId, t.displayGroup, t.fromDate, t.toDate, t.segment],
+    }),
+  ],
+);

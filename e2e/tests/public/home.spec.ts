@@ -21,3 +21,11 @@ test('serves the home page and renders core-data topics', async ({ page }) => {
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
   await expectNoAccessibilityViolations(page, testInfo);
 });
+
+test('uses the application-wide content width', async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+
+  // In the next version of NotGovUK (v0.19) this will break. When upgrading try `.govuk-template__container` instead.
+  await expect(page.locator('.not-govuk-page__container')).toHaveCSS('max-width', '1400px');
+  await expect(page.locator('.not-govuk-page__container')).toHaveCSS('width', '1400px');
+});

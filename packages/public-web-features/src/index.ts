@@ -11,6 +11,7 @@ export type {
 } from './indicator/loader';
 export { IndicatorPage } from './indicator/page';
 export { IndicatorRoute } from './indicator/route';
+export { SearchRoute } from './search/route';
 export { SignInPage } from './sign-in/page';
 export { createSignInRoute } from './sign-in/route';
 export { TopicsRoute } from './topic/list-route';

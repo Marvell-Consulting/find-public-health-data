@@ -1,7 +1,7 @@
-import { A, ChartSection, GridColumn, GridRow, InsetText, Tabs } from '@fphd/ui';
-import { useState } from 'react';
-import { useLocation } from 'react-router';
-
+import { A, Button, ChartSection, GridColumn, GridRow, InsetText, Tabs } from '@fphd/ui';
+import { Form, useLocation } from 'react-router';
+import type { GeographyOptions } from '../geography/loader';
+import { MAX_SELECTED_AREAS, MAX_SELECTED_INDICATORS } from '../selection-limits';
 import {
   availableConfidenceLevels,
   availablePeriodTypes,
@@ -21,11 +21,10 @@ import type {
 } from './loader';
 import { BackgroundInformation, IndicatorSummary } from './metadata';
 import {
-  type BenchmarkChoice,
   InequalityOptions,
-  type PanelOptions,
   PanelOptionsPanel,
   useOptionParamNavigation,
+  usePanelOptions,
 } from './options';
 import { ComparisonSection } from './tables/comparison-section';
 import { InequalitiesTable } from './tables/inequalities-table';
@@ -46,30 +45,8 @@ function IndicatorBlock({
   const id = detail.fingertipsId;
   const location = useLocation();
   const applyOptionParams = useOptionParamNavigation();
-  // Suffixed option params (`ci-241`) keep each table's choices its own in a shareable URL.
   const params = new URLSearchParams(location.search);
-  const [options, setOptions] = useState<PanelOptions>(() => {
-    const ci = params.get(`ci-${id}`);
-    const pt = params.get(`pt-${id}`);
-    const cmp = params.get(`cmp-${id}`);
-    return {
-      benchmark: cmp === 'england' || cmp === 'region' ? (cmp as BenchmarkChoice) : 'none',
-      confidence: ci === '95' || ci === '99.8' ? ci : 'none',
-      periodType: pt === '1-year' || pt === '3-year' ? pt : 'all',
-      range: params.get(`cr-${id}`) === 'yes',
-      sex: params.get(`sex-${id}`) ?? '',
-    };
-  });
-  const applyOptions = (next: PanelOptions) => {
-    setOptions(next);
-    applyOptionParams([
-      [`ci-${id}`, next.confidence, 'none'],
-      [`pt-${id}`, next.periodType, 'all'],
-      [`sex-${id}`, next.sex, ''],
-      [`cmp-${id}`, next.benchmark, 'none'],
-      [`cr-${id}`, next.range ? 'yes' : '', ''],
-    ]);
-  };
+  const [options, applyOptions] = usePanelOptions(id);
 
   const allObservations = areaData[0]?.observations ?? [];
   const sexes = dimensionValues(allObservations, 'Sex');
@@ -88,9 +65,15 @@ function IndicatorBlock({
     ? options.periodType
     : 'all';
   const categories = inequalityCategories(allObservations);
-  const [category, setCategory] = useState(categories[0] ?? '');
+  const requestedCategory = params.get(`ic-${id}`) ?? '';
+  const category = categories.includes(requestedCategory)
+    ? requestedCategory
+    : (categories[0] ?? '');
   const periods = inequalityPeriods(allObservations, category, detail.yearType);
-  const [period, setPeriod] = useState(periods.at(-1)?.value ?? '');
+  const requestedPeriod = params.get(`ip-${id}`) ?? '';
+  const period = periods.some(({ value }) => value === requestedPeriod)
+    ? requestedPeriod
+    : (periods.at(-1)?.value ?? '');
 
   const narrow = (data: (typeof areaData)[number]) => ({
     ...data,
@@ -101,22 +84,24 @@ function IndicatorBlock({
     }),
   });
   const filtered = areaData.map(narrow);
-  // The download links carry the page's state so the server builds the same table.
-  const downloadSearch = (withOptions: boolean) => {
+  // The download forms carry the page's state so the server builds the same table.
+  const downloadParams = (withOptions: boolean) => {
     const params = new URLSearchParams();
     for (const { areaCode } of pickedAreaData) {
       params.append('as', areaCode);
     }
     if (withOptions) {
       if (sexes.includes(options.sex) && options.sex !== '') {
-        params.set('sex', options.sex);
+        params.set(`sex-${id}`, options.sex);
       }
       if (periodType !== 'all') {
-        params.set('pt', periodType);
+        params.set(`pt-${id}`, periodType);
       }
+      if (confidence !== 'none') params.set(`ci-${id}`, confidence);
+      if (options.benchmark !== 'none') params.set(`cmp-${id}`, options.benchmark);
+      if (options.range) params.set(`cr-${id}`, 'yes');
     }
-    const search = params.toString();
-    return search ? `?${search}` : '';
+    return [...params];
   };
   const filteredRegions = regionData.map(narrow);
   // Comparison controls need a real geography picked — England against itself says nothing.
@@ -130,6 +115,7 @@ function IndicatorBlock({
       onChange={applyOptions}
       options={options}
       periodTypes={periodTypes}
+      scope={id}
       sexes={sexes}
       showConfidence={showConfidence}
     />
@@ -165,31 +151,20 @@ function IndicatorBlock({
             content: (
               <>
                 <div className="fphd-download-buttons">
-                  {/* Plain GDS button-links: the component library's anchor computes
-                      active state and throws on repeated query params during SSR. */}
-                  {/* biome-ignore lint/a11y/useSemanticElements: a download needs an
-                      href; GDS button-as-link markup carries role=button for it. */}
-                  <a
-                    className="govuk-button"
-                    data-module="govuk-button"
-                    download
-                    draggable="false"
-                    href={`/indicators/${id}/table.csv${downloadSearch(true)}`}
-                    role="button"
-                  >
-                    Download this table
-                  </a>
-                  {/* biome-ignore lint/a11y/useSemanticElements: as above. */}
-                  <a
-                    className="govuk-button govuk-button--secondary"
-                    data-module="govuk-button"
-                    download
-                    draggable="false"
-                    href={`/indicators/${id}/all-data.csv${downloadSearch(false)}`}
-                    role="button"
-                  >
-                    Download all data for this indicator
-                  </a>
+                  <Form action={`/indicators/${id}/table.csv`} method="get" reloadDocument>
+                    {downloadParams(true).map(([name, value], index) => (
+                      <input key={`${name}-${index}`} name={name} type="hidden" value={value} />
+                    ))}
+                    <Button type="submit">Download this table</Button>
+                  </Form>
+                  <Form action={`/indicators/${id}/all-data.csv`} method="get" reloadDocument>
+                    {downloadParams(false).map(([name, value], index) => (
+                      <input key={`${name}-${index}`} name={name} type="hidden" value={value} />
+                    ))}
+                    <Button classModifiers="secondary" type="submit">
+                      Download all data for this indicator
+                    </Button>
+                  </Form>
                 </div>
                 {panelOptions('Table options', true)}
                 <TrendTable
@@ -221,18 +196,19 @@ function IndicatorBlock({
                     category={category}
                     confidence={confidence}
                     confidenceLevels={confidenceLevels}
-                    onCategoryChange={(value) => {
-                      setCategory(value);
-                      // The chosen period may not exist for the new category.
-                      setPeriod(
-                        inequalityPeriods(allObservations, value, detail.yearType).at(-1)?.value ??
-                          '',
-                      );
-                    }}
+                    onCategoryChange={(value) =>
+                      applyOptionParams([
+                        [`ic-${id}`, value, categories[0] ?? ''],
+                        [`ip-${id}`, '', ''],
+                      ])
+                    }
                     onConfidenceChange={(confidence) => applyOptions({ ...options, confidence })}
-                    onPeriodChange={setPeriod}
+                    onPeriodChange={(value) =>
+                      applyOptionParams([[`ip-${id}`, value, periods.at(-1)?.value ?? '']])
+                    }
                     period={period}
                     periods={periods}
+                    scope={id}
                   />
                   <ChartSection
                     id={`inequalities-chart-${id}`}
@@ -266,6 +242,9 @@ export function IndicatorPage({
   benchmarkGeography = { regionByCode: {}, levelByCode: {} },
   findResults = [],
   findSubject = '',
+  geographyOptions,
+  areasLimited = false,
+  indicatorsLimited = false,
   selection,
 }: {
   selected: SelectedIndicator[];
@@ -274,64 +253,79 @@ export function IndicatorPage({
   benchmarkGeography?: BenchmarkGeography;
   findResults?: IndicatorSummaryData[];
   findSubject?: string;
+  geographyOptions?: GeographyOptions | undefined;
+  areasLimited?: boolean;
+  indicatorsLimited?: boolean;
   selection: IndicatorSelection;
 }) {
+  const location = useLocation();
   return (
-    <>
-      <GridRow>
-        <GridColumn width="one-quarter">
-          <FilterPane
-            key={`${selection.fingertipsIds.join(',')}|${selection.areaCodes.join(',')}|${selection.areaLevels.join(',')}`}
-            selected={selected}
-            selectedAreas={selectedAreas}
-            displayGroups={displayGroups}
-            findResults={findResults}
-            findSubject={findSubject}
-            selection={selection}
-          />
-        </GridColumn>
-        <GridColumn width="three-quarters">
-          {selected.length === 0 ? (
-            <>
-              {/* The page's single h1; visually hidden because the empty state shows only the inset text. */}
-              <h1 className="govuk-visually-hidden">Selected indicators</h1>
-              <InsetText className="govuk-!-margin-top-0">No indicators selected</InsetText>
-            </>
-          ) : (
-            <>
-              {/* One indicator needs no contents list; its own name is the page heading. */}
-              {selected.length > 1 ? (
-                <nav className="govuk-!-margin-bottom-6">
-                  <h1 className="govuk-heading-m">Contents</h1>
-                  <ul className="govuk-list">
-                    <li>
-                      <A href="#compare-indicators">Compare selected indicators</A>
+    <GridRow>
+      <GridColumn width="one-quarter">
+        <FilterPane
+          key={location.key}
+          selected={selected}
+          selectedAreas={selectedAreas}
+          displayGroups={displayGroups}
+          findResults={findResults}
+          findSubject={findSubject}
+          geographyOptions={geographyOptions}
+          selection={selection}
+        />
+      </GridColumn>
+      <GridColumn width="three-quarters">
+        {indicatorsLimited ? (
+          <InsetText>
+            Showing the first {MAX_SELECTED_INDICATORS} selected indicators. Select fewer indicators
+            to change which ones are shown.
+          </InsetText>
+        ) : null}
+        {areasLimited ? (
+          <InsetText>
+            Showing the first {MAX_SELECTED_AREAS} selected areas, with England for comparison.
+            Select fewer areas to change which ones are shown.
+          </InsetText>
+        ) : null}
+        {selected.length === 0 ? (
+          <>
+            {/* The page's single h1; visually hidden because the empty state shows only the inset text. */}
+            <h1 className="govuk-visually-hidden">Selected indicators</h1>
+            <InsetText className="govuk-!-margin-top-0">No indicators selected</InsetText>
+          </>
+        ) : (
+          <>
+            {/* One indicator needs no contents list; its own name is the page heading. */}
+            {selected.length > 1 ? (
+              <nav className="govuk-!-margin-bottom-6">
+                <h1 className="govuk-heading-m">Contents</h1>
+                <ul className="govuk-list">
+                  <li>
+                    <A href="#compare-indicators">Compare selected indicators</A>
+                  </li>
+                  {selected.map(({ detail }) => (
+                    <li key={detail.fingertipsId}>
+                      <A href={`#indicator-${detail.fingertipsId}`}>{detail.name}</A>
                     </li>
-                    {selected.map(({ detail }) => (
-                      <li key={detail.fingertipsId}>
-                        <A href={`#indicator-${detail.fingertipsId}`}>{detail.name}</A>
-                      </li>
-                    ))}
-                  </ul>
-                </nav>
-              ) : null}
+                  ))}
+                </ul>
+              </nav>
+            ) : null}
 
-              {selected.length > 1 ? (
-                <ComparisonSection selected={selected} geography={benchmarkGeography} />
-              ) : null}
+            {selected.length > 1 ? (
+              <ComparisonSection selected={selected} geography={benchmarkGeography} />
+            ) : null}
 
-              {selected.map((entry) => (
-                <IndicatorBlock
-                  key={entry.detail.fingertipsId}
-                  {...entry}
-                  geography={benchmarkGeography}
-                  headingLevel={selected.length === 1 ? 'h1' : 'h2'}
-                />
-              ))}
-            </>
-          )}
-        </GridColumn>
-      </GridRow>
-    </>
+            {selected.map((entry) => (
+              <IndicatorBlock
+                key={entry.detail.fingertipsId}
+                {...entry}
+                geography={benchmarkGeography}
+                headingLevel={selected.length === 1 ? 'h1' : 'h2'}
+              />
+            ))}
+          </>
+        )}
+      </GridColumn>
+    </GridRow>
   );
 }

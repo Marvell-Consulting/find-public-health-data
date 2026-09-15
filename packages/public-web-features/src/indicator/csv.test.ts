@@ -65,8 +65,8 @@ describe('loadIndicatorCsv', () => {
       'attachment; filename="108-table.csv"',
     );
     const body = await response.text();
-    expect(body).toContain('Indicator,Area,Period,Count,"Calculated value (per 100,000)"');
-    expect(body).toContain('"Mortality, ""all causes""",England,2023,130000,341.1');
+    expect(body).toContain('Period,England count,"England calculated value (per 100,000)"');
+    expect(body).toContain('2023,130000,341.1');
   });
 
   it('loads the linked areas with England riding along and filters the trend by options', async () => {
@@ -89,7 +89,7 @@ describe('loadIndicatorCsv', () => {
     ]);
 
     const response = await loadIndicatorCsv(
-      args(get, 'http://localhost/indicators/108/table.csv?as=E06000052&sex=Male'),
+      args(get, 'http://localhost/indicators/108/table.csv?as=E06000052&sex-108=Male'),
       'table',
     );
 
@@ -99,8 +99,8 @@ describe('loadIndicatorCsv', () => {
       ),
     ).toBe(true);
     const body = await response.text();
-    expect(body).toContain(',1,');
-    expect(body).not.toContain(',2,');
+    expect(body).toContain('2023,130000,1');
+    expect(body).not.toContain('2023,130000,2');
   });
 
   it('serves every observation with segments and notes in the all-data download', async () => {
@@ -146,11 +146,11 @@ describe('loadIndicatorCsv', () => {
     ]);
 
     const response = await loadIndicatorCsv(
-      args(get, 'http://localhost/indicators/108/table.csv?sex=Unpublished'),
+      args(get, 'http://localhost/indicators/108/table.csv?sex-108=Unpublished'),
       'table',
     );
 
-    expect(await response.text()).toContain(',7,');
+    expect(await response.text()).toContain('2023,130000,7');
   });
 
   it('offers only the first area sexes, exactly as the page does', async () => {
@@ -169,12 +169,12 @@ describe('loadIndicatorCsv', () => {
     ]);
 
     const response = await loadIndicatorCsv(
-      args(get, 'http://localhost/indicators/108/table.csv?as=E06000052&sex=Male'),
+      args(get, 'http://localhost/indicators/108/table.csv?as=E06000052&sex-108=Male'),
       'table',
     );
 
     // Male exists only in England's series, so the filter is ignored, not applied.
-    expect(await response.text()).toContain(',9,');
+    expect(await response.text()).toContain('2023,130000,9');
   });
 
   it('404s a non-numeric id without calling the api', async () => {

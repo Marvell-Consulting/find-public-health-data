@@ -1,7 +1,12 @@
-import type { Repositories } from '@fphd/db';
+import type { IndicatorSearchFilters, Repositories } from '@fphd/db';
 import { Router } from 'express';
 
-import type { IndicatorAreaData, IndicatorDetail } from './contract.js';
+import type {
+  IndicatorAreaData,
+  IndicatorDetail,
+  IndicatorFacets,
+  IndicatorSearchResult,
+} from './contract.js';
 
 const DEFAULT_AREA_CODE = 'E92000001';
 
@@ -9,9 +14,53 @@ const DEFAULT_SEARCH_LIMIT = 20;
 const MAX_SEARCH_LIMIT = 100;
 // Longer than any indicator name, so truncation can never hide a legitimate match.
 const MAX_QUERY_LENGTH = 200;
+// Source values are labels rather than slugs, but still need a finite request boundary.
+const MAX_FILTER_LABEL_LENGTH = 500;
+const SEARCH_PAGE_LIMIT = 200;
+const AREA_CODE_RE = /^[A-Z0-9]+$/i;
+
+function pickStrings(value: unknown, maxLength = 100): string[] {
+  return [
+    ...new Set(
+      (Array.isArray(value) ? value : [value]).filter(
+        (entry): entry is string =>
+          typeof entry === 'string' && entry !== '' && entry.length <= maxLength,
+      ),
+    ),
+  ].slice(0, 100);
+}
 
 export function indicatorsRouter(indicators: Repositories['indicators']): Router {
   const router = Router();
+
+  router.get('/api/indicators/facets', async (_request, response) => {
+    const facets: IndicatorFacets = await indicators.listFacets();
+    response.status(200).json(facets);
+  });
+
+  router.get('/api/indicators/search', async (request, response) => {
+    const { q } = request.query;
+    const query = typeof q === 'string' ? q.trim().slice(0, MAX_QUERY_LENGTH) : '';
+
+    const filters: IndicatorSearchFilters = {
+      query,
+      topics: pickStrings(request.query.t),
+      indicatorTypes: pickStrings(request.query.it),
+      riskFactors: pickStrings(request.query.rf),
+      frameworks: pickStrings(request.query.fw),
+      populations: pickStrings(request.query.pg),
+      inequalities: pickStrings(request.query.eq),
+      displayGroups: pickStrings(request.query.displayGroup),
+      areaCodes: pickStrings(request.query.areaCode).filter((code) => AREA_CODE_RE.test(code)),
+      sources: pickStrings(request.query.src, MAX_FILTER_LABEL_LENGTH),
+      valueTypes: pickStrings(request.query.vt),
+      yearTypes: pickStrings(request.query.per),
+      limit: SEARCH_PAGE_LIMIT,
+    };
+
+    const result: IndicatorSearchResult = await indicators.searchWithFilters(filters);
+    response.status(200).json(result);
+  });
 
   router.get('/api/indicators', async (request, response) => {
     const { q, limit } = request.query;

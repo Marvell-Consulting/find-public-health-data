@@ -2,7 +2,7 @@ import type { Topic } from '@fphd/db';
 import { createFakeRepositories } from '@fphd/db/testing';
 import { createLogger } from '@fphd/logger';
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createApp } from './app.js';
 
@@ -118,5 +118,156 @@ describe('public API', () => {
     const response = await request(createTestApp()).get('/api/topics');
 
     expect(response.status).toBe(500);
+  });
+
+  it('returns facets from the repository passthrough', async () => {
+    const facets = {
+      topics: [{ slug: 'cancer', title: 'Cancer' }],
+      classifications: [{ dimension: 'indicator_type', slug: 'outcome', name: 'Outcome' }],
+      sources: ['ONS'],
+      valueTypes: ['Proportion'],
+      yearTypes: ['Calendar'],
+    };
+    const listFacets = vi.fn().mockResolvedValue(facets);
+    const app = createApp({
+      logger,
+      repositories: createFakeRepositories({ indicators: { listFacets } }),
+    });
+
+    const response = await request(app).get('/api/indicators/facets');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(facets);
+    expect(listFacets).toHaveBeenCalledOnce();
+  });
+
+  it('passes q and every dimension param to searchWithFilters with limit 200', async () => {
+    const result = { total: 0, limit: 200, indicators: [] };
+    const searchWithFilters = vi.fn().mockResolvedValue(result);
+    const app = createApp({
+      logger,
+      repositories: createFakeRepositories({ indicators: { searchWithFilters } }),
+    });
+
+    await request(app).get(
+      '/api/indicators/search?q=diabetes&t=cancer&it=outcome&rf=smoking&fw=nof&pg=adults&eq=deprivation&displayGroup=Local+authorities&areaCode=E07000223&src=ONS&vt=Proportion&per=Calendar',
+    );
+
+    expect(searchWithFilters).toHaveBeenCalledWith({
+      query: 'diabetes',
+      topics: ['cancer'],
+      indicatorTypes: ['outcome'],
+      riskFactors: ['smoking'],
+      frameworks: ['nof'],
+      populations: ['adults'],
+      inequalities: ['deprivation'],
+      displayGroups: ['Local authorities'],
+      areaCodes: ['E07000223'],
+      sources: ['ONS'],
+      valueTypes: ['Proportion'],
+      yearTypes: ['Calendar'],
+      limit: 200,
+    });
+  });
+
+  it('deduplicates repeated search filter values', async () => {
+    const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, limit: 200, indicators: [] });
+    const app = createApp({
+      logger,
+      repositories: createFakeRepositories({ indicators: { searchWithFilters } }),
+    });
+
+    await request(app).get('/api/indicators/search?t=cancer&t=cancer&t=diabetes');
+
+    expect(searchWithFilters).toHaveBeenCalledWith(
+      expect.objectContaining({ topics: ['cancer', 'diabetes'] }),
+    );
+  });
+
+  it('drops invalid search filter values', async () => {
+    const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, limit: 200, indicators: [] });
+    const app = createApp({
+      logger,
+      repositories: createFakeRepositories({ indicators: { searchWithFilters } }),
+    });
+
+    const long = 'a'.repeat(101);
+    await request(app).get(
+      `/api/indicators/search?t=&t=${long}&t=valid&areaCode=not-valid&areaCode=E07000223`,
+    );
+
+    expect(searchWithFilters).toHaveBeenCalledWith(
+      expect.objectContaining({ topics: ['valid'], areaCodes: ['E07000223'] }),
+    );
+  });
+
+  it('accepts source names longer than the slug limit without truncation', async () => {
+    const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, limit: 200, indicators: [] });
+    const app = createApp({
+      logger,
+      repositories: createFakeRepositories({ indicators: { searchWithFilters } }),
+    });
+    const source = 'A data source with a full attribution '.repeat(6);
+    await request(app).get('/api/indicators/search').query({ src: source });
+    expect(searchWithFilters).toHaveBeenCalledWith(expect.objectContaining({ sources: [source] }));
+  });
+
+  it('drops source names beyond the filter label limit', async () => {
+    const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, limit: 200, indicators: [] });
+    const app = createApp({
+      logger,
+      repositories: createFakeRepositories({ indicators: { searchWithFilters } }),
+    });
+    await request(app)
+      .get('/api/indicators/search')
+      .query({ src: 's'.repeat(501) });
+    expect(searchWithFilters).toHaveBeenCalledWith(expect.objectContaining({ sources: [] }));
+  });
+
+  it('caps each filter list at 100 entries', async () => {
+    const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, limit: 200, indicators: [] });
+    const app = createApp({
+      logger,
+      repositories: createFakeRepositories({ indicators: { searchWithFilters } }),
+    });
+
+    const many = Array.from({ length: 110 }, (_, i) => `t=topic-${i}`).join('&');
+    await request(app).get(`/api/indicators/search?${many}`);
+
+    expect(searchWithFilters).toHaveBeenCalledWith(
+      expect.objectContaining({ topics: expect.arrayContaining([]) }),
+    );
+    const [firstCall] = searchWithFilters.mock.calls;
+    expect(firstCall?.[0].topics).toHaveLength(100);
+  });
+
+  it('does not route /api/indicators/search to the :fingertipsId handler', async () => {
+    // Without a stub, reaching the :fingertipsId route would 500; it must 200 instead.
+    const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, limit: 200, indicators: [] });
+    const app = createApp({
+      logger,
+      repositories: createFakeRepositories({ indicators: { searchWithFilters } }),
+    });
+
+    const response = await request(app).get('/api/indicators/search');
+    expect(response.status).not.toBe(404);
+  });
+
+  it('does not route /api/indicators/facets to the :fingertipsId handler', async () => {
+    const listFacets = vi.fn().mockResolvedValue({
+      topics: [],
+      classifications: [],
+      sources: [],
+      valueTypes: [],
+      yearTypes: [],
+    });
+    const app = createApp({
+      logger,
+      repositories: createFakeRepositories({ indicators: { listFacets } }),
+    });
+
+    const response = await request(app).get('/api/indicators/facets');
+    expect(response.status).not.toBe(404);
+    expect(response.status).toBe(200);
   });
 });

@@ -135,10 +135,8 @@ test.describe('the table', () => {
 
     expect(filename).toBe('108-table.csv');
     const [header, first] = text.split('\n');
-    expect(header).toBe(
-      'Indicator,Area,Period,Count,"Calculated value (per 100,000)",Lower 95% CI,Upper 95% CI',
-    );
-    expect(first).toContain(`${INDICATOR},England,2015,153839,`);
+    expect(header).toBe('Period,England count,"England calculated value (per 100,000)"');
+    expect(first).toBe('2015,153839,334.7766');
   });
 
   test('downloads every observation as CSV', async ({ page }) => {
@@ -202,6 +200,20 @@ test.describe('about this indicator', () => {
 });
 
 test.describe('the geography filter', () => {
+  test('uses the shared compact geography tree', async ({ page }) => {
+    const card = filterCard(page, 'Geography filters');
+    const tree = card.locator('.fphd-geo-alt__tree');
+    const level = card.getByRole('checkbox', { name: 'Local authorities', exact: true });
+
+    await expect(tree).toHaveCount(1);
+    await expect(level).toHaveCSS('width', '24px');
+    await expect(level).toHaveCSS('height', '36px');
+    await expect(card.getByText('Local authorities', { exact: true })).toHaveCSS(
+      'font-size',
+      '16px',
+    );
+  });
+
   test('adds an area found by search and compares it against England', async ({ page }) => {
     const card = filterCard(page, 'Geography filters');
     await expect(card.getByRole('link', { name: 'Clear all' })).toHaveCount(0);
@@ -226,8 +238,9 @@ test.describe('the geography filter', () => {
     await expect(trendTable(page).getByRole('columnheader', { name: 'England' })).toBeVisible();
     await expect(cellsFor(page, '2015')).toHaveText(['1,510', '518.1', '334.8']);
 
-    await tableOptions(page).getByRole('radio', { name: 'Yes' }).check();
+    await tableOptions(page).getByRole('radio', { name: 'Yes' }).click();
     await expect(page).toHaveURL(/cr-108=yes/);
+    await expect(tableOptions(page).getByRole('radio', { name: 'Yes' })).toBeChecked();
     await expect(trendTable(page).getByRole('columnheader', { name: 'Minimum' })).toBeVisible();
     await expect(cellsFor(page, '2015')).toHaveText([
       '1,510',
@@ -242,6 +255,13 @@ test.describe('the geography filter', () => {
         name: 'Manchester 518.1 against England 334.8, range 223.3 to 595.5',
       }),
     ).toBeVisible();
+
+    const { text } = await downloadFrom(page, 'Download this table');
+    const header = text.split('\n')[0];
+    expect(header).toContain('Manchester England calculated value (per 100,000)');
+    expect(header).toContain('Manchester England minimum');
+    expect(header).toContain('Manchester England maximum');
+    expect(text).toContain('2015,1510,518.08261,334.7766,223.28385,595.46714');
   });
 
   test('offers the statistical region as a comparison', async ({ page }) => {
@@ -292,7 +312,7 @@ test.describe('the geography filter', () => {
     await card.getByRole('link', { name: 'Clear all' }).click();
     await expect(page).not.toHaveURL(/as=/);
     await expect(card.getByRole('link', { name: /^Remove/ })).toHaveCount(0);
-    await expect(card.getByText('England')).toBeVisible();
+    await expect(card.getByText('England', { exact: true })).toBeVisible();
   });
 
   test('has no WCAG 2.2 AA violations with a comparison shown', async ({ page }, testInfo) => {

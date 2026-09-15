@@ -70,6 +70,11 @@ export function areasRouter(areas: Repositories['areas']): Router {
       ].slice(0, 20);
     const areaTypeNames = pick(request.query.areaType);
     const displayGroups = pick(request.query.displayGroup);
+    const requestedLimit = request.query.limit;
+    const limit =
+      typeof requestedLimit === 'string' && /^[1-9]\d*$/.test(requestedLimit)
+        ? Math.min(Number(requestedLimit), 101)
+        : undefined;
 
     if (areaTypeNames.length === 0 && displayGroups.length === 0) {
       response.status(400).json({ error: 'area_type_or_display_group_required' });
@@ -86,7 +91,7 @@ export function areasRouter(areas: Repositories['areas']): Router {
       })),
       ...displayGroups.map(async (name) => ({
         displayGroup: name,
-        areas: await areas.listByGroup(name),
+        areas: await areas.listByGroup(name, limit),
       })),
     ]);
 

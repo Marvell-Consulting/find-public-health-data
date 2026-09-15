@@ -5,11 +5,11 @@ import {
   FilterCard,
   FilterChip,
   FilterChips,
-  GeographyTree,
 } from '@fphd/ui';
 import { useCallback, useState } from 'react';
 import { Form, Link, useLocation, useNavigate } from 'react-router';
-
+import type { GeographyOptions } from '../geography/loader';
+import { GeographyPicker } from '../geography/picker';
 import type {
   IndicatorSelection,
   IndicatorSummary,
@@ -48,6 +48,7 @@ export function FilterPane({
   displayGroups = [],
   findResults = [],
   findSubject = '',
+  geographyOptions,
   selection,
 }: {
   selected: SelectedIndicator[];
@@ -55,18 +56,17 @@ export function FilterPane({
   displayGroups?: string[];
   findResults?: IndicatorSummary[];
   findSubject?: string;
+  geographyOptions?: GeographyOptions | undefined;
   selection: IndicatorSelection;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [pending, setPending] = useState<string[]>([]);
-  const [pendingLevels, setPendingLevels] = useState<string[]>(selection.areaLevels);
   const [pendingIndicator, setPendingIndicator] = useState<AutocompleteOption | null>(null);
   const current = new URLSearchParams(location.search);
   // Option params ride along only for tables the selection still shows — nothing lingers.
   const optionEntriesFor = (keptIds: Set<string>) =>
     [...current.entries()].filter(([key]) => {
-      const suffix = key.match(/^(?:ci|pt|sex|cmp|cr|tab)-(.+)$/)?.[1];
+      const suffix = key.match(/^(?:ci|pt|sex|cmp|cr|tab|ic|ip)-(.+)$/)?.[1];
       return suffix === 'compare' || (suffix !== undefined && keptIds.has(suffix));
     });
   const searchFor = (args: Parameters<typeof selectionSearch>[0]) => {
@@ -160,9 +160,14 @@ export function FilterPane({
                 name="find"
                 source={searchIndicators}
                 onSelect={setPendingIndicator}
+                onInputChange={() => setPendingIndicator(null)}
               />
               <noscript>
-                <Button className="govuk-button--secondary govuk-!-margin-bottom-0" type="submit">
+                <Button
+                  classModifiers="secondary"
+                  className="govuk-!-margin-bottom-0"
+                  type="submit"
+                >
                   Search
                 </Button>
               </noscript>
@@ -265,53 +270,25 @@ export function FilterPane({
           </>
         }
         footer={
-          <Form action={INDICATORS_PATH} method="get">
+          <GeographyPicker
+            action={INDICATORS_PATH}
+            buttonClassName="govuk-!-margin-top-3 govuk-!-margin-bottom-0"
+            displayGroups={displayGroups}
+            geographyOptions={geographyOptions}
+            levelName="als"
+            name="as"
+            onApply={(geography) => void navigateTo({ selection: { ...selection, ...geography } })}
+            selection={selection}
+          >
             {/* The current selection rides along so a submit adds to it; levels are the
                 tree's own checkboxes, so they are not doubled here. */}
             {selection.fingertipsIds.map((id) => (
               <input key={id} type="hidden" name="is" value={id} />
             ))}
-            {selection.areaCodes.map((code) => (
-              <input key={code} type="hidden" name="as" value={code} />
-            ))}
             {optionEntriesFor(new Set(selection.fingertipsIds.map(String))).map(([key, value]) => (
               <input key={key} type="hidden" name={key} value={value} />
             ))}
-            <GeographyTree
-              levels={displayGroups}
-              name="as"
-              onChange={setPending}
-              onLevelsChange={setPendingLevels}
-              selected={pending}
-              selectedLevels={pendingLevels}
-            />
-            {/* The button is always rendered: without scripting the tick count only
-                exists in the browser, and the form must stay submittable. */}
-            <Button
-              className="govuk-!-margin-top-3 govuk-!-margin-bottom-0"
-              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                const levelsChanged =
-                  pendingLevels.length !== selection.areaLevels.length ||
-                  pendingLevels.some((level) => !selection.areaLevels.includes(level));
-                if (pending.length === 0 && !levelsChanged) {
-                  // Nothing gathered: let the form submit whatever is ticked in the DOM.
-                  return;
-                }
-                event.preventDefault();
-                setPending([]);
-                void navigateTo({
-                  selection: {
-                    ...selection,
-                    areaCodes: [...new Set([...selection.areaCodes, ...pending])],
-                    areaLevels: pendingLevels,
-                  },
-                });
-              }}
-              type="submit"
-            >
-              Add selected geographies{pending.length > 0 ? ` (${pending.length})` : ''}
-            </Button>
-          </Form>
+          </GeographyPicker>
         }
       />
     </>

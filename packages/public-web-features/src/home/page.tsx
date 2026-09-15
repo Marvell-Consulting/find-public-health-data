@@ -1,10 +1,15 @@
-import { CardList, GridColumn, GridRow, InsetText } from '@fphd/ui';
+import { CardList, GridColumn, GridRow, InsetText, SearchField } from '@fphd/ui';
 
 const findDataCards = [
   {
     description: 'Browse data grouped by health topics',
     href: '/topics',
     title: 'Browse by topics',
+  },
+  {
+    description: 'Browse and filter all data, including by geographic area',
+    href: '/search',
+    title: 'See all data',
   },
 ];
 
@@ -40,6 +45,9 @@ export function PublicHomePage() {
         <InsetText>This service was previously known as Fingertips.</InsetText>
 
         <h2 className="govuk-heading-l">Find data</h2>
+        <form action="/search" method="get">
+          <SearchField id="home-search" label="Search for data" name="q" />
+        </form>
         <CardList items={findDataCards} />
       </GridColumn>
     </GridRow>

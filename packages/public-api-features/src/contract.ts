@@ -164,3 +164,33 @@ export type AreaSummary = z.infer<typeof areaSummarySchema>;
 export type AreaGroup = z.infer<typeof areaGroupListSchema>[number];
 export type AreaLookup = z.infer<typeof areaLookupListSchema>[number];
 export type AreaParent = z.infer<typeof areaParentListSchema>[number];
+
+export const indicatorSearchRowSchema = z.object({
+  fingertipsId: z.number().int(),
+  name: z.string().min(1),
+  topics: z.array(z.object({ slug: z.string().min(1), title: z.string().min(1) })),
+  classifications: z.array(
+    z.object({ dimension: z.string().min(1), slug: z.string().min(1), name: z.string().min(1) }),
+  ),
+});
+
+export const indicatorSearchResultSchema = z.object({
+  total: z.number().int(),
+  // The cap the server applied, so the page can say how many of the total it is showing.
+  limit: z.number().int(),
+  indicators: z.array(indicatorSearchRowSchema),
+});
+
+export const indicatorFacetsSchema = z.object({
+  topics: z.array(z.object({ slug: z.string().min(1), title: z.string().min(1) })),
+  classifications: z.array(
+    z.object({ dimension: z.string().min(1), slug: z.string().min(1), name: z.string().min(1) }),
+  ),
+  sources: z.array(z.string().min(1)),
+  valueTypes: z.array(z.string().min(1)),
+  yearTypes: z.array(z.string().min(1)),
+});
+
+export type IndicatorSearchRow = z.infer<typeof indicatorSearchRowSchema>;
+export type IndicatorSearchResult = z.infer<typeof indicatorSearchResultSchema>;
+export type IndicatorFacets = z.infer<typeof indicatorFacetsSchema>;

@@ -3,6 +3,8 @@ import { fakeUsersForAudience } from '@fphd/auth';
 import {
   HomeRoute,
   IndicatorRoute,
+  PublicHomePage,
+  SearchRoute,
   SignInPage,
   TopicRoute,
   TopicsRoute,
@@ -271,7 +273,9 @@ describe('public application routes', () => {
     );
     vi.stubGlobal('fetch', geographies);
     fireEvent.click(screen.getByRole('button', { name: 'Expand Local authorities' }));
-    expect(geographies).toHaveBeenCalledWith('/geographies?level=Local%20authorities');
+    expect(geographies).toHaveBeenCalledWith('/geographies?level=Local%20authorities', {
+      signal: expect.any(AbortSignal),
+    });
     const areaCheckbox = (await screen.findAllByRole('checkbox', { name: 'Cornwall' })).find(
       (box) => box.getAttribute('name') === 'as',
     );
@@ -864,11 +868,11 @@ describe('public application routes', () => {
     expect(screen.queryByRole('columnheader', { name: 'England' })).toBeNull();
 
     fireEvent.change(select, { target: { value: 'england' } });
-    expect(screen.getByRole('columnheader', { name: 'England' })).toBeTruthy();
+    expect(await screen.findByRole('columnheader', { name: 'England' })).toBeTruthy();
 
     // Turning the range on adds the spread and the dot-and-whisker comparison.
     fireEvent.click(screen.getByRole('radio', { name: 'Yes' }));
-    expect(screen.getByRole('columnheader', { name: 'Minimum' })).toBeTruthy();
+    expect(await screen.findByRole('columnheader', { name: 'Minimum' })).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: 'Maximum' })).toBeTruthy();
     expect(screen.getByRole('cell', { name: '300.1' })).toBeTruthy();
     expect(screen.getByRole('cell', { name: '500.9' })).toBeTruthy();
@@ -877,7 +881,7 @@ describe('public application routes', () => {
     // The statistical-region benchmark takes the parent region's name and values.
     fireEvent.change(select, { target: { value: 'region' } });
     expect(
-      screen.getByRole('columnheader', { name: 'South West (Statistical region)' }),
+      await screen.findByRole('columnheader', { name: 'South West (Statistical region)' }),
     ).toBeTruthy();
     expect(screen.getByRole('cell', { name: '400.2' })).toBeTruthy();
   });
@@ -928,5 +932,257 @@ describe('public application routes', () => {
     render(<Routes initialEntries={['/topics/no-such-topic']} />);
 
     expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeTruthy();
+  });
+
+  it('nav includes Search between Home and Topics', async () => {
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        loader: () => ({ signedIn: false }),
+        children: [{ index: true, Component: PublicHomePage }],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/']} />);
+
+    await screen.findByRole('heading', { name: 'Find public health data' });
+    expect(screen.getByRole('link', { name: 'Search' }).getAttribute('href')).toBe('/search');
+  });
+
+  it('home page renders search form and See all data card', async () => {
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        loader: () => ({ signedIn: false }),
+        children: [{ index: true, Component: PublicHomePage }],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/']} />);
+
+    await screen.findByRole('heading', { name: 'Find public health data' });
+    expect(screen.getByLabelText('Search for data')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'See all data' }).getAttribute('href')).toBe('/search');
+  });
+
+  const searchLoaderData = {
+    q: '',
+    topics: [],
+    indicatorTypes: [],
+    riskFactors: [],
+    frameworks: [],
+    populations: [],
+    inequalities: [],
+    sources: [],
+    valueTypes: [],
+    yearTypes: [],
+    geoLevels: [],
+    gaCodes: [],
+    gaAreaNames: {},
+    displayGroups: ['Local authorities', 'Statistical regions'],
+    facets: {
+      topics: [{ slug: 'mortality', title: 'Mortality' }],
+      classifications: [{ dimension: 'indicator_type', slug: 'rate', name: 'Rate' }],
+      sources: ['ONS'],
+      valueTypes: ['Proportion'],
+      yearTypes: ['Calendar'],
+    },
+    searchResult: { total: 0, limit: 200, indicators: [] },
+  };
+
+  it('renders the search page skeleton with h1 and filters heading', async () => {
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        loader: () => ({ signedIn: false }),
+        children: [
+          {
+            path: 'search',
+            Component: SearchRoute,
+            loader: () => searchLoaderData,
+          },
+        ],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/search']} />);
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Search for data' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Filters' })).toBeTruthy();
+  });
+
+  it('renders empty state inset text when there are no results', async () => {
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        loader: () => ({ signedIn: false }),
+        children: [
+          {
+            path: 'search',
+            Component: SearchRoute,
+            loader: () => searchLoaderData,
+          },
+        ],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/search']} />);
+
+    expect(
+      await screen.findByText('No indicators match your selected filters or search terms.'),
+    ).toBeTruthy();
+  });
+
+  it('shows results heading with total count', async () => {
+    const dataWithResults = {
+      ...searchLoaderData,
+      searchResult: {
+        total: 5,
+        limit: 200,
+        indicators: [
+          {
+            fingertipsId: 108,
+            name: 'Under 75 mortality rate from all causes',
+            topics: [{ slug: 'mortality', title: 'Mortality' }],
+            classifications: [],
+          },
+        ],
+      },
+    };
+
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        loader: () => ({ signedIn: false }),
+        children: [
+          {
+            path: 'search',
+            Component: SearchRoute,
+            loader: () => dataWithResults,
+          },
+        ],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/search']} />);
+
+    expect(await screen.findByText(/Select from 5 indicators/)).toBeTruthy();
+  });
+
+  it('prefills keyword input from loader data', async () => {
+    const dataWithQ = { ...searchLoaderData, q: 'mortality' };
+
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        loader: () => ({ signedIn: false }),
+        children: [
+          {
+            path: 'search',
+            Component: SearchRoute,
+            loader: () => dataWithQ,
+          },
+        ],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/search?q=mortality']} />);
+
+    await screen.findByRole('heading', { level: 1, name: 'Search for data' });
+    const input = screen.getByRole('searchbox', { name: 'Search by keywords' });
+    expect((input as HTMLInputElement).defaultValue).toBe('mortality');
+  });
+
+  it('renders filter card bodies in the DOM (always present for no-JS)', async () => {
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        loader: () => ({ signedIn: false }),
+        children: [
+          {
+            path: 'search',
+            Component: SearchRoute,
+            loader: () => searchLoaderData,
+          },
+        ],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/search']} />);
+
+    await screen.findByRole('heading', { level: 1, name: 'Search for data' });
+    // Bodies are always in the DOM so no-JS users can reach every filter.
+    // Closed cards carry the hidden attribute; open cards do not.
+    const noneSelected = document.querySelector('.fphd-collapsible-body');
+    expect(noneSelected).toBeTruthy();
+    expect(noneSelected?.textContent).toContain('None selected');
+  });
+
+  it('opens a card automatically when it has an active filter (body not hidden)', async () => {
+    const dataWithTopic = { ...searchLoaderData, topics: ['mortality'] };
+
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        loader: () => ({ signedIn: false }),
+        children: [
+          {
+            path: 'search',
+            Component: SearchRoute,
+            loader: () => dataWithTopic,
+          },
+        ],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/search?t=mortality']} />);
+
+    await screen.findByRole('heading', { level: 1, name: 'Search for data' });
+    const selectedTopicsEl = screen.getByText('Selected topics');
+    // The card body must not have the hidden attribute when a filter is active.
+    expect(selectedTopicsEl.closest('.fphd-collapsible-body')?.hasAttribute('hidden')).toBe(false);
+  });
+
+  it('shows cap message when total exceeds 200', async () => {
+    const cappedData = {
+      ...searchLoaderData,
+      searchResult: {
+        total: 350,
+        limit: 200,
+        indicators: Array.from({ length: 200 }, (_, i) => ({
+          fingertipsId: 100 + i,
+          name: `Indicator ${i}`,
+          topics: [],
+          classifications: [],
+        })),
+      },
+    };
+
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: PublicApp,
+        loader: () => ({ signedIn: false }),
+        children: [
+          {
+            path: 'search',
+            Component: SearchRoute,
+            loader: () => cappedData,
+          },
+        ],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/search']} />);
+
+    expect(await screen.findByText(/Showing the first 200 of 350/)).toBeTruthy();
   });
 });

@@ -78,6 +78,14 @@ test.describe('adding a topic', () => {
     await expect(page.getByRole('alert')).toContainText(
       'Slug must be lowercase letters or numbers, separated by hyphens',
     );
+    await page
+      .getByRole('alert')
+      .getByRole('link', {
+        name: 'Slug must be lowercase letters or numbers, separated by hyphens',
+      })
+      .click();
+    await expect(page.getByLabel('Slug')).toBeFocused();
+    await expect(page.getByRole('alert')).toBeVisible();
     await expect(page.getByLabel('Topic name')).toHaveValue('Bad slug');
     await expect(page.getByLabel('Slug')).toHaveValue('Not A Slug');
     await expect(page.getByLabel('Description')).toHaveValue('A topic whose slug has spaces.');
