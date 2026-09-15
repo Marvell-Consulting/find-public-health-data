@@ -10,8 +10,9 @@
   },
   "scripts": {
     "build": "pnpm --recursive run build",
-    "check": "biome check . && pnpm typecheck && pnpm test && pnpm build && pnpm check:artefacts",
+    "check": "biome check . && pnpm typecheck && pnpm test && pnpm build && pnpm check:artefacts && pnpm check:e2e-coverage",
     "check:artefacts": "pnpm --filter @fphd/artefact-boundary run check:artefacts",
+    "check:e2e-coverage": "pnpm --filter @fphd/e2e-coverage run check:e2e-coverage",
     "check:write": "biome check --write .",
     "db:bootstrap": "pnpm --filter @fphd/operations cli db bootstrap",
     "db:generate": "pnpm --filter @fphd/config build && pnpm --filter @fphd/db db:generate",

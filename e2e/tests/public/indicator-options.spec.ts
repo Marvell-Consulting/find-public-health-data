@@ -1,6 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
+import { expectNoAccessibilityViolations } from '../support/accessibility.js';
+
 test('comparison rows stay the same height when the range is shown', async ({ page }) => {
   await page.goto(
     '/indicators?as=E07000223&as=E07000032&is=92443&is=241&cmp-compare=england&cr-compare=no',
@@ -33,7 +35,9 @@ for (const javaScriptEnabled of [true, false]) {
       }
     }
 
-    test('applies sex, period and confidence choices to the actual table', async ({ page }) => {
+    test('applies sex, period and confidence choices to the actual table', async ({
+      page,
+    }, testInfo) => {
       await open(page, '/indicators/108?tab-108=table');
       const options = page.locator('#table-108 details');
       const table = page.getByRole('table', { name: /trends over time/ });
@@ -61,6 +65,8 @@ for (const javaScriptEnabled of [true, false]) {
         table.getByRole('columnheader', { name: '99.8% lower confidence interval' }),
       ).toBeVisible();
       await expect(cells).toHaveCount(4);
+      // axe runs in the page, so it cannot scan the variant with scripting off.
+      if (javaScriptEnabled) await expectNoAccessibilityViolations(page, testInfo);
       const downloading = page.waitForEvent('download');
       await page.locator('#table-108').getByRole('button', { name: 'Download this table' }).click();
       const download = await downloading;

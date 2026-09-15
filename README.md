@@ -87,6 +87,7 @@ pnpm dev:public
 pnpm dev:internal
 pnpm check
 pnpm check:artefacts   # assert no internal code or secret reaches the public artifacts
+pnpm check:e2e-coverage # assert every page route has an e2e spec and every spec scans with axe
 pnpm build
 pnpm test              # all three tiers below, in order
 pnpm test:unit         # unit tests
@@ -100,10 +101,10 @@ unambiguous artifacts.
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs lint, typecheck, unit tests, integration tests, e2e tests,
-`pnpm audit`, build and the public artifact boundary check as parallel jobs. A final `All checks
-pass` job aggregates them and is the single required status check for merging, so the required-check
-list does not need editing whenever a job is added — but a new job must be added to that job's
-`needs` list, or it gates nothing.
+`pnpm audit`, build, the public artifact boundary check and the e2e coverage checks as parallel
+jobs. A final `All checks pass` job aggregates them and is the single required status check for
+merging, so the required-check list does not need editing whenever a job is added — but a new job
+must be added to that job's `needs` list, or it gates nothing.
 
 Runs are triggered on every non-draft pull request (on open, on every push to the branch, and when a
 draft is marked ready for review) and on every push to `main`. **Draft pull requests run nothing.**
@@ -177,7 +178,8 @@ To add real ones:
 
   Every page has a spec with a test that it renders and a separate test that it has no WCAG 2.2 AA
   violations, scanned with axe-core through `expectNoAccessibilityViolations` from
-  `e2e/tests/support/accessibility.ts`; a new page gets a spec with both. A spec that drives a page
+  `e2e/tests/support/accessibility.ts`; a new page gets a spec with both, and
+  `pnpm check:e2e-coverage` (below) fails until it does. A spec that drives a page
   into a further state — a validation error, a selection — scans that state too. A ticketed defect
   that is waiting on a fix goes in `KNOWN_VIOLATIONS` in the same file, scoped to one rule and one
   selector so the rest of the page is still held to the bar; the scan also checks each entry is
@@ -192,6 +194,37 @@ dependency graph — a change to a root file such as `tsconfig.base.json` or `bi
 nothing, so it needs a full-run fallback. Filter inside the job with pnpm rather than with
 workflow-level `paths:` filters, which produce skipped jobs that branch protection reads as
 satisfied.
+
+## E2e coverage of new work
+
+Two checks keep the e2e tier growing with the apps. Neither is a coverage percentage: a threshold
+is met by visiting pages without asserting anything.
+
+`pnpm check:e2e-coverage` (`tools/e2e-coverage`, also its own CI job and the last step of
+`pnpm check`) reads both apps' route tables through `react-router routes --json` and fails, naming
+the route, when a page route has no spec. The route-to-spec mapping is spelt out in
+`tools/e2e-coverage/src/specs.ts` rather than derived from the path, so adding a page means adding
+the route there and the spec under `e2e/tests/public` or `e2e/tests/internal`; a group of routes
+that make one journey can share a spec, as the `manage/topics/*` routes do. A route whose module
+has no default export is a resource route by React Router's own definition — a data lookup, a CSV
+download, a redirect — and needs no spec, since it has no page; the check reads each route module
+to tell the two apart. It also fails a mapping entry no app declares any more, and a spec file
+that never calls `expectNoAccessibilityViolations`, since one axe scan per page state is the
+convention above. A spec that only resource routes map to, such as one covering where a redirect
+lands, is exempt from the scan; the mapped spec must still exist, since the entry is what
+exempts it.
+
+The `Web changes carry e2e changes` CI job covers the gap the route check cannot see: new behaviour
+on an existing page. A pull request that changes `apps/*-web`, `packages/*-web-features` or
+`packages/ui` without touching `e2e/` fails until it carries the `no-e2e-needed` label and a line in its body reading
+`No e2e needed: <reason>`. The job reads the label and body live rather than from the event that
+started the run, so adding them and re-running the failed job is enough. It is blunt by design — a
+copy change earns the label with a one-line reason — because the point is that the reviewer sees
+the "why not".
+
+Behaviour rather than pages is covered by convention, not tooling: the pull request for a story adds
+one e2e test per acceptance criterion, titled in the criterion's words, and the reviewer checks the
+story against the spec titles.
 
 ## The public artifact boundary
 
