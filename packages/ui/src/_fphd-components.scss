@@ -1,7 +1,8 @@
 @use "@not-govuk/sass-base" as *;
 
-// When NotGovUK is updated to v0.19, this will need to be updated. Try `.govuk-template` in place of `.not-govuk-page`
-.not-govuk-page .govuk-width-container {
+// Doubled selector to beat the width-container width govuk-frontend applies to
+// the same element via `.govuk-width-container`.
+.govuk-template__container.govuk-template__container {
   width: calc(100% - 30px);
   max-width: 1400px;
   margin-right: auto;
@@ -186,7 +187,11 @@
   background-color: govuk-colour("black", $variant: "tint-95");
 }
 
-.fphd-filter-card__toggle {
+// The class is repeated to lift specificity above @not-govuk/button@0.19's
+// `:where(.govuk-template__page) button:not([type=submit])` extension into
+// govuk-button--secondary — which otherwise wraps this toggle in secondary-
+// button styling. Same reason for the width/box-shadow/decoration resets.
+.fphd-filter-card__toggle.fphd-filter-card__toggle {
   @include govuk-link-common;
   @include govuk-link-style-default;
   @include govuk-font($size: 16);
@@ -197,6 +202,9 @@
   background: transparent;
   color: $govuk-link-colour;
   cursor: pointer;
+  box-shadow: none;
+  width: auto;
+  text-decoration: underline;
 }
 
 body.govuk-frontend-supported .fphd-filter-card__toggle {
@@ -429,7 +437,8 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
   margin-bottom: 0;
 }
 
-.fphd-geo-alt__toggle {
+// Doubled selector — see `.fphd-filter-card__toggle` above for the rationale.
+.fphd-geo-alt__toggle.fphd-geo-alt__toggle {
   padding: 0 8px 0 0;
   border: 0;
   background: none;
@@ -438,6 +447,10 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
   align-items: center;
   flex-shrink: 0;
   height: 36px;
+  box-shadow: none;
+  width: auto;
+  color: inherit;
+  text-decoration: none;
 }
 
 .fphd-geo-alt__toggle:focus-visible {
