@@ -54,7 +54,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  console.error('\nThe e2e suite does not cover the routes:\n');
+  console.error('\nThe e2e coverage checks failed:\n');
   for (const problem of problems) {
     console.error(`  ${problem}`);
   }
