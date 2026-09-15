@@ -106,7 +106,7 @@ export function createFakeAuthRouter({
 
   router.post('/auth/sign-out', parseForm, async (request, response) => {
     response.setHeader('Set-Cookie', session.clearCookieHeader());
-    response.redirect(303, await returnToFrom(request.body, '/sign-in'));
+    response.redirect(303, await returnToFrom(request.body, defaultReturnTo));
   });
 
   return router;

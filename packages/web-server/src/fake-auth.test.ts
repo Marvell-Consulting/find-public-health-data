@@ -99,6 +99,14 @@ describe('fake authentication backend', () => {
     expect(response.get('Location')).toBe('/sign-in');
     expect(response.get('Set-Cookie')?.[0]).toContain('Max-Age=0');
   });
+
+  it('sends a sign-out that names no page to the root', async () => {
+    const response = await request(createTestApp()).post('/auth/sign-out').type('form').send({
+      returnTo: '/auth/sign-in',
+    });
+
+    expect(response.get('Location')).toBe('/');
+  });
   // This router sits in front of the whole app, so anything it reads is gone before React
   // Router sees it — and a form action's request.formData() would come back empty.
   it('leaves the body of a request it does not handle for whatever comes next', async () => {
