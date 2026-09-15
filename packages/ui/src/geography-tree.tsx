@@ -67,6 +67,7 @@ export function GeographyTree({
     ),
   );
   const [searchGroups, setSearchGroups] = useState(fallback?.groups ?? []);
+  const [hasSearchResults, setHasSearchResults] = useState(Boolean(fallback?.query.trim()));
   const [searchStatus, setSearchStatus] = useState<'idle' | 'loading' | 'error'>(
     fallback?.error ? 'error' : 'idle',
   );
@@ -83,10 +84,10 @@ export function GeographyTree({
     clearTimeout(searchTimer.current);
     if (!searching) {
       setSearchGroups([]);
+      setHasSearchResults(false);
       setSearchStatus('idle');
       return;
     }
-    setSearchGroups([]);
     setSearchStatus('loading');
     const controller = new AbortController();
     searchTimer.current = setTimeout(() => {
@@ -98,6 +99,7 @@ export function GeographyTree({
         .then(({ groups }: { groups: { name: string; areas: GeographyArea[] }[] }) => {
           if (!controller.signal.aborted) {
             setSearchGroups(groups);
+            setHasSearchResults(true);
             setSearchStatus('idle');
           }
         })
@@ -169,12 +171,12 @@ export function GeographyTree({
         : selectedLevels.filter((value) => value !== level),
     );
 
-  const groups = searching
-    ? searchGroups
-    : levels.map((level) => ({
-        name: level,
-        areas: Array.isArray(loaded[level]) ? (loaded[level] as GeographyArea[]) : [],
-      }));
+  const browseGroups = levels.map((level) => ({
+    name: level,
+    areas: Array.isArray(loaded[level]) ? (loaded[level] as GeographyArea[]) : [],
+  }));
+  const showingSearchResults = searching && hasSearchResults;
+  const groups = showingSearchResults ? searchGroups : browseGroups;
   const shownFor = (group: { name: string; areas: GeographyArea[] }) =>
     // Ticked areas stay rendered past the cap, so their state remains visible.
     group.areas
@@ -182,7 +184,7 @@ export function GeographyTree({
       .concat(group.areas.slice(CHILD_CAP).filter(({ code }) => selected.includes(code)));
   const visibleCodes = new Set(
     groups
-      .filter(({ name: groupName }) => searching || expanded.includes(groupName))
+      .filter(({ name: groupName }) => showingSearchResults || expanded.includes(groupName))
       .flatMap((group) => shownFor(group).map(({ code }) => code)),
   );
 
@@ -215,7 +217,9 @@ export function GeographyTree({
         </Hint>
       ) : null}
       <div role="status">
-        {searchStatus === 'loading' ? <p className="govuk-body-s">Finding geographies…</p> : null}
+        {searchStatus === 'loading' ? (
+          <p className="govuk-visually-hidden">Finding geographies…</p>
+        ) : null}
         {searchStatus === 'error' ? (
           <p className="govuk-body-s">Geography search is not working right now. Try again.</p>
         ) : null}
@@ -239,7 +243,7 @@ export function GeographyTree({
         <legend className="govuk-visually-hidden">Geographies grouped by level</legend>
         <div className="fphd-geo-alt__tree">
           {groups.map((group) => {
-            const isOpen = searching || expanded.includes(group.name);
+            const isOpen = showingSearchResults || expanded.includes(group.name);
             const isLoading = !searching && loaded[group.name] === 'loading';
             const groupId = `${idPrefix}-grp-${group.name.toLowerCase().replace(/\W+/g, '-')}`;
             const shown = shownFor(group);

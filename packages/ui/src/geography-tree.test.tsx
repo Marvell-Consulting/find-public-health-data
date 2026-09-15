@@ -27,4 +27,25 @@ describe('GeographyTree', () => {
 
     expect(screen.getByText('Loading Local authorities…').getAttribute('role')).toBe('status');
   });
+
+  it('keeps the tree visible while a search is pending', () => {
+    vi.stubGlobal('fetch', () => new Promise(() => undefined));
+    render(
+      <GeographyTree
+        levels={['Local authorities']}
+        name="areas"
+        onChange={() => undefined}
+        onLevelsChange={() => undefined}
+        selected={[]}
+        selectedLevels={[]}
+      />,
+    );
+
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Add geographies' }), {
+      target: { value: 'Manchester' },
+    });
+
+    expect(screen.getByText('Local authorities')).toBeTruthy();
+    expect(screen.getByText('Finding geographies…').className).toContain('govuk-visually-hidden');
+  });
 });
