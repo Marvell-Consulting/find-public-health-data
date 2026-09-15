@@ -1,5 +1,6 @@
 @use "@not-govuk/sass-base" as *;
 
+// When NotGovUK is updated to v0.19, this will need to be updated. Try `.govuk-template` in place of `.not-govuk-page`
 .not-govuk-page .govuk-width-container {
   width: calc(100% - 30px);
   max-width: 1400px;
