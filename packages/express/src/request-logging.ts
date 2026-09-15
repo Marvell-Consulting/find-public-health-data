@@ -1,8 +1,10 @@
+import type { IncomingMessage } from 'node:http';
+
 import type { Logger } from '@fphd/logger';
 import type { RequestHandler } from 'express';
 import { pinoHttp, type StdSerializedResults } from 'pino-http';
 
-import { REQUEST_ID_HEADER, readRequestIdHeader, uuidv7 } from './request-id.js';
+import { REQUEST_ID_HEADER, readRequestIdHeader, requestId, uuidv7 } from './request-id.js';
 
 const probePaths = new Set(['/livez', '/readyz']);
 
@@ -65,4 +67,12 @@ export function requestLogging(
       res: (response: StdSerializedResults['res']) => ({ statusCode: response.statusCode }),
     },
   });
+}
+
+/** A logger with the request id populated, so a request can be traced through every line that
+ * uses it. Don't pass a `req` to it: pino writes the key twice and the existing `req.id` is lost. */
+export function requestAwareLogger(logger: Logger, request: IncomingMessage): Logger {
+  const id = requestId(request);
+
+  return id === undefined ? logger : logger.child({ req: { id } });
 }

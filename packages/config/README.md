@@ -8,7 +8,7 @@ Built package.
 
 | Entry     | Purpose                                                                                            |
 | --------- | -------------------------------------------------------------------------------------------------- |
-| `.`       | `z` (the single zod instance every schema is built with), the env fragments (`appEnvFields`, `serverEnvFields`, `logEnvFields`), the value schemas (`appEnvSchema`, `boolSchema`, `portSchema`), `parseEnv`, `loadWebServerConfig`, `resolveShutdown`, `isDeployedEnv` |
+| `.`       | `z` (the single zod instance every schema is built with), the env fragments (`appEnvFields`, `serverEnvFields`, `logEnvFields`), the value schemas (`appEnvSchema`, `boolSchema`, `portSchema`), `parseEnv`, `loadWebServerConfig`, `resolveLog`, `resolveShutdown`, `isDeployedEnv` |
 | `./slug`  | `SLUG_PATTERN`, the one definition of a URL slug                                                   |
 | `./zod`   | The same `z` for code that wants zod and nothing else                                              |
 

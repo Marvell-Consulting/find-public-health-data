@@ -25,6 +25,6 @@ export function serverLogging(
       logger.info({ signal }, 'Stopped');
     },
     onForcedClose: () => logger.warn('Ran out of time to close, so requests were cut short'),
-    onError: (error) => logger.error({ err: error }, 'Did not stop cleanly'),
+    onError: (error) => logger.fatal({ err: error }, 'Did not stop cleanly'),
   };
 }

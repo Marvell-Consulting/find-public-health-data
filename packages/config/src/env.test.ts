@@ -8,6 +8,7 @@ import {
   logEnvFields,
   parseEnv,
   portSchema,
+  resolveLog,
   resolveShutdown,
   serverEnvFields,
 } from './env.js';
@@ -133,10 +134,8 @@ describe('resolveShutdown', () => {
 describe('logEnvFields', () => {
   const schema = z.object(logEnvFields);
 
-  it('defaults to info level, leaving LOG_PRETTY for the app to derive', () => {
-    const parsed = schema.parse({});
-    expect(parsed.LOG_LEVEL).toBe('info');
-    expect(parsed.LOG_PRETTY).toBeUndefined();
+  it('leaves both fields for resolveLog to derive', () => {
+    expect(schema.parse({})).toEqual({});
   });
 
   it('accepts pino level names and boolean text', () => {
@@ -148,6 +147,27 @@ describe('logEnvFields', () => {
 
   it('rejects unknown level names', () => {
     expect(() => schema.parse({ LOG_LEVEL: 'verbose' })).toThrow();
+  });
+});
+
+describe('resolveLog', () => {
+  it.each(['production', 'preview'] as const)('defaults to info under %s', (appEnv) => {
+    expect(resolveLog(appEnv, {})).toEqual({ level: 'info', pretty: false });
+  });
+
+  it.each(['local', 'test', 'dev'] as const)('defaults to debug under %s', (appEnv) => {
+    expect(resolveLog(appEnv, {}).level).toBe('debug');
+  });
+
+  it('takes LOG_LEVEL over the default', () => {
+    expect(resolveLog('production', { LOG_LEVEL: 'trace' }).level).toBe('trace');
+    expect(resolveLog('local', { LOG_LEVEL: 'warn' }).level).toBe('warn');
+  });
+
+  it('pretty-prints only under local, and only unless LOG_PRETTY turns it off', () => {
+    expect(resolveLog('local', {}).pretty).toBe(true);
+    expect(resolveLog('local', { LOG_PRETTY: false }).pretty).toBe(false);
+    expect(resolveLog('dev', { LOG_PRETTY: true }).pretty).toBe(false);
   });
 });
 
@@ -206,7 +226,7 @@ describe('loadWebServerConfig', () => {
       port: 3000,
       apiUrl: 'http://localhost:4000',
       trustedProxyHops: 2,
-      log: { level: 'info', pretty: true },
+      log: { level: 'debug', pretty: true },
       shutdown: { drainDelayMs: 0, gracePeriodMs: 25_000 },
       session: { secret: sessionSecret, secure: false },
       webSession: { secret: webSessionSecret, secure: false },
