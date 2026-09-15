@@ -31,7 +31,7 @@ async function main(): Promise<void> {
   }
 
   for (const route of findStaleEntries(declared)) {
-    problems.push(`tools/e2e-coverage/src/specs.ts lists ${route}, which neither app routes`);
+    problems.push(`tools/e2e-coverage/src/specs.ts lists ${route}, which neither app declares`);
   }
 
   console.log('Checking every spec scans for accessibility violations…');
