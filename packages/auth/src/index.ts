@@ -20,16 +20,16 @@ export const fakeUsers: readonly FakeUser[] = Object.freeze([
     roles: Object.freeze(['public']),
   }),
   Object.freeze({
-    description: 'Can view the internal service',
-    id: 'internal-viewer',
+    description: 'Can manage indicators in the internal service',
+    id: 'internal-publisher',
     name: 'Sam Taylor',
-    roles: Object.freeze(['public', 'internal']),
+    roles: Object.freeze(['public', 'internal', 'publisher']),
   }),
   Object.freeze({
-    description: 'Can manage data in the internal service',
-    id: 'internal-publisher',
+    description: 'Can manage indicators and administer the internal service',
+    id: 'internal-admin',
     name: 'Riley Singh',
-    roles: Object.freeze(['public', 'internal', 'publisher']),
+    roles: Object.freeze(['public', 'internal', 'publisher', 'admin']),
   }),
 ]);
 

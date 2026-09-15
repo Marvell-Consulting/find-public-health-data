@@ -71,12 +71,12 @@ non-cacheable.
 
 Authentication currently uses fixed fake users. The sign-in form posts to the web backend, which
 creates a one-use authorization code; its callback exchanges that code for an eight-hour JWT
-cookie. Public routes remain available anonymously. Internal routes redirect to sign in and accept
-only fake users carrying the `internal` role. Public-service sessions contain public roles only,
-even when the selected fake identity also has internal permissions. Internal viewers can use the
-internal service, while the management navigation and `/manage` route require the `publisher` role.
-The public surface of the internal API remains open, but `/api/internal` independently validates
-the JWT and requires the internal role. Sign-out clears the JWT cookie.
+cookie. Public routes remain available anonymously. Internal routes send a signed-out visitor to a
+landing page that leads to sign-in, and accept only fake users carrying the `internal` role. Both
+internal users are publishers, which the dashboard requires; the management navigation, the
+`/manage` routes and the topics API require the `admin` role, which only one of them holds. The
+public surface of the internal API remains open, but `/api/internal` independently validates the
+JWT and requires the role each route names. Sign-out clears the JWT cookie.
 
 ## Commands
 

@@ -7,7 +7,7 @@ export const middleware: Route.MiddlewareFunction[] = [
   createRequireSessionRoleMiddleware({
     forbiddenPath: href('/access-denied'),
     role: 'internal',
-    signInPath: href('/sign-in'),
+    signInPath: href('/'),
   }),
 ];
 

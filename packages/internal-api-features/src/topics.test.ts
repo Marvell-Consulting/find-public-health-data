@@ -40,7 +40,7 @@ function createTestApp(overrides: FakeInternalRepositoryOverrides['topics'] = {}
   return app;
 }
 
-async function publisherCookie(roles: readonly string[] = ['internal', 'publisher']) {
+async function adminCookie(roles: readonly string[] = ['internal', 'publisher', 'admin']) {
   const token = await session.issueToken({ expiresInSeconds: 900, roles, subject: 'test-user' });
   return session.createCookieHeader(token, 900);
 }
@@ -61,10 +61,10 @@ describe('the internal topics surface', () => {
     expect(response.body).toEqual({ error: 'authentication_required' });
   });
 
-  it.each(paths)('rejects a signed-in non-publisher %s %s', async (method, path) => {
+  it.each(paths)('rejects a signed-in non-admin %s %s', async (method, path) => {
     const response = await request(createTestApp())
       [method](path)
-      .set('Cookie', await publisherCookie(['internal']));
+      .set('Cookie', await adminCookie(['internal', 'publisher']));
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({ error: 'forbidden' });
@@ -75,7 +75,7 @@ describe('GET /api/internal/topics', () => {
   it('lists topics with their ids, as ISO timestamps', async () => {
     const response = await request(createTestApp({ list: async () => [topic] }))
       .get('/api/internal/topics')
-      .set('Cookie', await publisherCookie());
+      .set('Cookie', await adminCookie());
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual([
@@ -94,7 +94,7 @@ describe('POST /api/internal/topics', () => {
   async function post(app: Express, body: unknown) {
     return request(app)
       .post('/api/internal/topics')
-      .set('Cookie', await publisherCookie())
+      .set('Cookie', await adminCookie())
       .send(body as object);
   }
 
@@ -164,7 +164,7 @@ describe('GET /api/internal/topics/:id', () => {
   it('returns the topic with its description', async () => {
     const response = await request(createTestApp({ findById: async () => topic }))
       .get(`/api/internal/topics/${topic.id}`)
-      .set('Cookie', await publisherCookie());
+      .set('Cookie', await adminCookie());
 
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({ id: topic.id, description: 'All about topic A.' });
@@ -173,7 +173,7 @@ describe('GET /api/internal/topics/:id', () => {
   it('returns the standard not-found body for an unknown id', async () => {
     const response = await request(createTestApp({ findById: async () => undefined }))
       .get('/api/internal/topics/00000000-0000-7000-8000-0000000000ff')
-      .set('Cookie', await publisherCookie());
+      .set('Cookie', await adminCookie());
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'not_found' });
@@ -182,7 +182,7 @@ describe('GET /api/internal/topics/:id', () => {
   it('refuses a malformed id rather than handing it to the database', async () => {
     const response = await request(createTestApp())
       .get('/api/internal/topics/not-a-uuid')
-      .set('Cookie', await publisherCookie());
+      .set('Cookie', await adminCookie());
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({ error: 'invalid_id' });
@@ -193,7 +193,7 @@ describe('PUT /api/internal/topics/:id', () => {
   async function put(app: Express, body: unknown, id: string = topic.id) {
     return request(app)
       .put(`/api/internal/topics/${id}`)
-      .set('Cookie', await publisherCookie())
+      .set('Cookie', await adminCookie())
       .send(body as object);
   }
 
@@ -305,7 +305,7 @@ describe('DELETE /api/internal/topics/:id', () => {
   async function del(app: Express, id: string = topic.id) {
     return request(app)
       .delete(`/api/internal/topics/${id}`)
-      .set('Cookie', await publisherCookie());
+      .set('Cookie', await adminCookie());
   }
 
   it('deletes the topic and answers with an empty 204', async () => {

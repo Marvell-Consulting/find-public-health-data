@@ -17,22 +17,27 @@ describe('fake users', () => {
     expect(canAccessAudience(publicUser, 'public')).toBe(true);
     expect(canAccessAudience(publicUser, 'internal')).toBe(false);
     expect(fakeUsersForAudience('internal').map((user) => user.id)).toEqual([
-      'internal-viewer',
       'internal-publisher',
+      'internal-admin',
     ]);
     expect(fakeUsersForAudience('public')).toEqual(fakeUsers);
   });
 
   it('scopes public sessions to public roles', () => {
-    const publisher = findFakeUser('internal-publisher');
-    if (publisher === undefined) throw new Error('Missing publisher fake user');
+    const admin = findFakeUser('internal-admin');
+    if (admin === undefined) throw new Error('Missing admin fake user');
 
-    expect(sessionRolesForAudience(publisher, 'public')).toEqual(['public']);
-    expect(sessionRolesForAudience(publisher, 'internal')).toEqual([
+    expect(sessionRolesForAudience(admin, 'public')).toEqual(['public']);
+    expect(sessionRolesForAudience(admin, 'internal')).toEqual([
       'public',
       'internal',
       'publisher',
+      'admin',
     ]);
+  });
+
+  it('keeps admin off the publisher user', () => {
+    expect(findFakeUser('internal-publisher')?.roles).toEqual(['public', 'internal', 'publisher']);
   });
 });
 
@@ -41,10 +46,7 @@ describe('normalizeReturnTo', () => {
     expect(normalizeReturnTo('/manage?view=drafts#latest')).toBe('/manage?view=drafts#latest');
   });
 
-  it.each(['https://example.com', '//example.com/path', '', undefined, null])(
-    'rejects an external or invalid target',
-    (target) => {
-      expect(normalizeReturnTo(target, '/fallback')).toBe('/fallback');
-    },
-  );
+  it.each(['https://example.com', '//example.com/path', '', undefined, null])('rejects an external or invalid target', (target) => {
+    expect(normalizeReturnTo(target, '/fallback')).toBe('/fallback');
+  });
 });

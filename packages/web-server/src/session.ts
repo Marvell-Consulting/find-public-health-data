@@ -18,11 +18,11 @@ const requestSessionContext = createContext<JwtSessionClaims | undefined>();
 export function createRequireSessionRoleMiddleware({
   forbiddenPath,
   role,
-  signInPath = '/sign-in',
+  signInPath,
 }: {
   forbiddenPath: string;
   role: string;
-  signInPath?: string;
+  signInPath: string;
 }): MiddlewareFunction<Response> {
   return async ({ context, request }, next) => {
     const session = getSession(context);

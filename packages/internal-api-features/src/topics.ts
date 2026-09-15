@@ -27,7 +27,7 @@ function toDetail(topic: Topic): TopicAdminDetail {
 }
 
 /**
- * The publisher's view of topics: the same rows the public API serves, plus the ids a write
+ * The admin's view of topics: the same rows the public API serves, plus the ids a write
  * needs to address. Mounted only by `internal-api`; `public-api` must 404 every path here.
  */
 export function internalTopicsRouter(
@@ -35,13 +35,13 @@ export function internalTopicsRouter(
   session: JwtSessionVerifier,
 ): Router {
   const router = Router();
-  const requirePublisher = requireJwtRole(session, 'publisher');
+  const requireAdmin = requireJwtRole(session, 'admin');
 
-  router.get('/api/internal/topics', requirePublisher, async (_request, response) => {
+  router.get('/api/internal/topics', requireAdmin, async (_request, response) => {
     response.status(200).json((await topics.list()).map(toSummary));
   });
 
-  router.post('/api/internal/topics', requirePublisher, async (request, response) => {
+  router.post('/api/internal/topics', requireAdmin, async (request, response) => {
     // Validated here as well as at the form: the API is reachable without going through it.
     const submission = topicUpdateSchema.safeParse(request.body);
 
@@ -64,7 +64,7 @@ export function internalTopicsRouter(
     response.status(201).json({ topic: toDetail(result.topic) });
   });
 
-  router.get('/api/internal/topics/:id', requirePublisher, async (request, response) => {
+  router.get('/api/internal/topics/:id', requireAdmin, async (request, response) => {
     const id = topicIdSchema.safeParse(request.params.id);
 
     // Handing an unparseable id to the database would surface as a 500; it is a bad request.
@@ -83,7 +83,7 @@ export function internalTopicsRouter(
     response.status(200).json(toDetail(topic));
   });
 
-  router.put('/api/internal/topics/:id', requirePublisher, async (request, response) => {
+  router.put('/api/internal/topics/:id', requireAdmin, async (request, response) => {
     const id = topicIdSchema.safeParse(request.params.id);
 
     if (!id.success) {
@@ -118,7 +118,7 @@ export function internalTopicsRouter(
     response.status(200).json({ changed: result.changed, topic: toDetail(result.topic) });
   });
 
-  router.delete('/api/internal/topics/:id', requirePublisher, async (request, response) => {
+  router.delete('/api/internal/topics/:id', requireAdmin, async (request, response) => {
     const id = topicIdSchema.safeParse(request.params.id);
 
     if (!id.success) {

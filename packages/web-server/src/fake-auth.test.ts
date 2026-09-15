@@ -37,7 +37,7 @@ describe('fake authentication backend', () => {
     const app = createTestApp();
     const start = await request(app).post('/auth/sign-in').type('form').send({
       returnTo: '/manage?view=drafts',
-      userId: 'internal-viewer',
+      userId: 'internal-publisher',
     });
 
     expect(start.status).toBe(303);
@@ -52,8 +52,8 @@ describe('fake authentication backend', () => {
     if (token === undefined) throw new Error('Session cookie did not contain a token');
 
     await expect(session.verifyToken(token)).resolves.toMatchObject({
-      roles: ['public', 'internal'],
-      sub: 'internal-viewer',
+      roles: ['public', 'internal', 'publisher'],
+      sub: 'internal-publisher',
     });
     expect((await request(app).get(callbackPath)).status).toBe(400);
   });
@@ -71,7 +71,7 @@ describe('fake authentication backend', () => {
     const app = createTestApp();
     const start = await request(app).post('/auth/sign-in').type('form').send({
       returnTo: '//example.com/steal-session',
-      userId: 'internal-viewer',
+      userId: 'internal-publisher',
     });
     const callback = await request(app).get(requireHeader(start.get('Location'), 'Location'));
 

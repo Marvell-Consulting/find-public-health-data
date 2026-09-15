@@ -18,6 +18,9 @@ test('sends a visitor without a session to sign in, then back to the page they w
   page,
 }) => {
   await page.goto('/topics');
+  await expect(page).toHaveURL('/?returnTo=%2Ftopics');
+
+  await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page).toHaveURL('/sign-in?returnTo=%2Ftopics');
 
   await submitSignIn(page, 'Sam Taylor');
@@ -40,7 +43,9 @@ test('shows the account and signs out', async ({ page }) => {
   await expect(page).toHaveURL('/sign-in');
   await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
   await page.goto('/');
-  await expect(page).toHaveURL('/sign-in?returnTo=%2Fdashboard');
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Sign in to manage indicators' }),
+  ).toBeVisible();
 });
 
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {

@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
   await signInAs(page, 'Sam Taylor');
 });
 
-test('answers an unknown path with the not-found page for a viewer', async ({ page }) => {
+test('answers an unknown path with the not-found page for a publisher', async ({ page }) => {
   const response = await page.goto('/no-such-page');
   expect(response?.status()).toBe(404);
   await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();

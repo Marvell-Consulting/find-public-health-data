@@ -188,6 +188,7 @@ describe('session role middleware', () => {
     const requireInternal = createRequireSessionRoleMiddleware({
       forbiddenPath: '/access-denied',
       role: 'internal',
+      signInPath: '/sign-in',
     });
 
     const result = await sessionMiddleware(args, async () => {
