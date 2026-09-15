@@ -1,3 +1,5 @@
+import { callsScan } from './scans.js';
+
 /**
  * Page routes, as `react-router routes` reports them, to the spec covering them. The mapping is
  * spelt out rather than derived from the path so a new route is a deliberate entry here and a
@@ -70,8 +72,6 @@ export function findStaleEntries(
   return Object.keys(mapping).filter((route) => !declared.has(route));
 }
 
-const SCAN_CALL = /\bexpectNoAccessibilityViolations\s*\(/;
-
 /**
  * Specs that never scan for accessibility violations, by name. A spec only resource routes map
  * to has no page to scan and is exempt; every other spec, mapped or not, drives some page state.
@@ -89,6 +89,6 @@ export function findSpecsWithoutScan(
   }
   return specs
     .filter(({ name }) => pageSpecs.has(name) || !resourceSpecs.has(name))
-    .filter(({ source }) => !SCAN_CALL.test(source))
+    .filter(({ source }) => !callsScan(source))
     .map(({ name }) => name);
 }

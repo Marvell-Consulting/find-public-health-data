@@ -65,7 +65,7 @@ describe('findSpecsWithoutScan', () => {
   };
   const unscanned = { name: 'home.spec.ts', source: "test('redirects', async () => {});" };
 
-  it('names a spec that never calls the scan, even one that imports it', () => {
+  it('names a spec that never calls the scan, even one that only mentions it', () => {
     expect(
       findSpecsWithoutScan(
         [
@@ -75,12 +75,16 @@ describe('findSpecsWithoutScan', () => {
             source:
               "import { expectNoAccessibilityViolations } from '../support/accessibility.js';",
           },
+          {
+            name: 'commented.spec.ts',
+            source: '// expectNoAccessibilityViolations(page, testInfo)',
+          },
           { name: 'bare.spec.ts', source: "test('renders', async () => {});" },
         ],
         [page('/')],
         mapping,
       ),
-    ).toEqual(['imported.spec.ts', 'bare.spec.ts']);
+    ).toEqual(['imported.spec.ts', 'commented.spec.ts', 'bare.spec.ts']);
   });
 
   it('exempts a spec only resource routes map to', () => {
