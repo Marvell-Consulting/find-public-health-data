@@ -298,6 +298,7 @@ jobs:
   # live rather than from the event payload, so adding them and re-running this job is enough.
   web-changes-need-e2e:
     name: Web changes carry e2e changes
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
