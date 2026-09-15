@@ -13,6 +13,7 @@ export const PAGE_SPECS: Readonly<Record<string, string>> = {
   '/topics/:slug': 'topic.spec.ts',
   '/indicators': 'indicators.spec.ts',
   '/indicators/:fingertipsId': 'indicator.spec.ts',
+  '/dashboard': 'dashboard.spec.ts',
   '/manage': 'manage.spec.ts',
   '/manage/topics': 'manage-topics.spec.ts',
   '/manage/topics/new': 'manage-topics.spec.ts',

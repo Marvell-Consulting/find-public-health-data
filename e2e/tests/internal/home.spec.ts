@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 
+import { expectNoAccessibilityViolations } from '../support/accessibility.js';
 import { signInAs } from '../support/sign-in.js';
 
 test.describe('as a publisher', () => {
@@ -34,6 +35,11 @@ test.describe('as a publisher', () => {
     await expect(
       page.getByRole('heading', { level: 1, name: 'Manage public health data' }),
     ).toBeVisible();
+  });
+
+  test('has no WCAG 2.2 AA violations where it lands', async ({ page }, testInfo) => {
+    await expect(page).toHaveURL('/dashboard');
+    await expectNoAccessibilityViolations(page, testInfo);
   });
 });
 
