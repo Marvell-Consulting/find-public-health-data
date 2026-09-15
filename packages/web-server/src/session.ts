@@ -15,6 +15,19 @@ type SessionContextReader = {
 const sessionServiceContext = createContext<JwtSessionVerifier>();
 const requestSessionContext = createContext<JwtSessionClaims | undefined>();
 
+// A client-side navigation arrives as a data request, `/manage.data?_routes=…` or `/_.data` for
+// the root; the return address must be the page the visitor was after, not its data endpoint.
+function pagePathFrom(requestUrl: URL): string {
+  const pathname = requestUrl.pathname.endsWith('/_.data')
+    ? requestUrl.pathname.replace(/_\.data$/, '')
+    : requestUrl.pathname.replace(/\.data$/, '');
+  const searchParams = new URLSearchParams(requestUrl.search);
+  searchParams.delete('_routes');
+  const search = searchParams.toString();
+
+  return search === '' ? pathname : `${pathname}?${search}`;
+}
+
 export function createRequireSessionRoleMiddleware({
   forbiddenPath,
   role,
@@ -30,7 +43,7 @@ export function createRequireSessionRoleMiddleware({
     if (session === undefined) {
       const requestUrl = new URL(request.url);
       const signInUrl = new URL(signInPath, requestUrl);
-      signInUrl.searchParams.set('returnTo', `${requestUrl.pathname}${requestUrl.search}`);
+      signInUrl.searchParams.set('returnTo', pagePathFrom(requestUrl));
       throw redirect(`${signInUrl.pathname}${signInUrl.search}`);
     }
 

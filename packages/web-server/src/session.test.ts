@@ -177,10 +177,13 @@ describe('JWT session service', () => {
 });
 
 describe('session role middleware', () => {
-  async function runProtectedRequest(cookie?: string): Promise<Response> {
+  async function runProtectedRequest(
+    cookie?: string,
+    requestUrl = 'https://example.test/manage?view=drafts',
+  ): Promise<Response> {
     const service = createTestService();
     const context = createSessionContext(service);
-    const request = new Request('https://example.test/manage?view=drafts', {
+    const request = new Request(requestUrl, {
       ...(cookie === undefined ? {} : { headers: { Cookie: cookie } }),
     });
     const url = new URL(request.url);
@@ -208,9 +211,9 @@ describe('session role middleware', () => {
     return result;
   }
 
-  async function getRedirect(cookie?: string): Promise<Response> {
+  async function getRedirect(cookie?: string, requestUrl?: string): Promise<Response> {
     try {
-      await runProtectedRequest(cookie);
+      await runProtectedRequest(cookie, requestUrl);
     } catch (error) {
       if (error instanceof Response) return error;
       throw error;
@@ -225,6 +228,21 @@ describe('session role middleware', () => {
     expect(response.status).toBe(302);
     expect(response.headers.get('Location')).toBe('/sign-in?returnTo=%2Fmanage%3Fview%3Ddrafts');
   });
+
+  it.each([
+    [
+      'https://example.test/manage.data?view=drafts&_routes=routes%2Fmanage',
+      '%2Fmanage%3Fview%3Ddrafts',
+    ],
+    ['https://example.test/_.data', '%2F'],
+  ])(
+    'sends a client-side navigation back to its page, not its data request: %s',
+    async (url, returnTo) => {
+      const response = await getRedirect(undefined, url);
+
+      expect(response.headers.get('Location')).toBe(`/sign-in?returnTo=${returnTo}`);
+    },
+  );
 
   it('clears an invalid session when redirecting to sign in', async () => {
     const response = await getRedirect('fphd-test-session=not-a-jwt');

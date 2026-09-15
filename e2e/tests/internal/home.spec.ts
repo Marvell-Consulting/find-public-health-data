@@ -35,6 +35,20 @@ test.describe('signed out', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Indicators' })).toBeVisible();
   });
 
+  // A click is a client-side navigation, which asks the server for the page's data rather than
+  // the page; the return address must still be the page.
+  test('returns a visitor to the page they clicked through to', async ({ page }) => {
+    await page.goto('/sign-in');
+    await page.getByRole('link', { name: 'Find public health data' }).click();
+    await expect(page).toHaveURL('/?returnTo=%2Fdashboard');
+
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await submitSignIn(page, 'Sam Taylor');
+
+    await expect(page).toHaveURL('/dashboard');
+    await expect(page.getByRole('heading', { level: 1, name: 'Indicators' })).toBeVisible();
+  });
+
   test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
     await page.goto('/');
     await expectNoAccessibilityViolations(page, testInfo);
