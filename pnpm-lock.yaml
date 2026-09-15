@@ -169,11 +169,11 @@ catalogs:
       specifier: 3.4.9
       version: 3.4.9
     react:
-      specifier: 19.2.7
-      version: 19.2.7
+      specifier: 19.2.8
+      version: 19.2.8
     react-dom:
-      specifier: 19.2.7
-      version: 19.2.7
+      specifier: 19.2.8
+      version: 19.2.8
     react-router:
       specifier: 8.3.0
       version: 8.3.0
@@ -224,7 +224,7 @@ importers:
         version: link:packages/db
       '@react-router/dev':
         specifier: 'catalog:'
-        version: 8.3.0(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(typescript@6.0.3)(vite@8.1.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0)(yaml@2.9.0))
+        version: 8.3.0(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(typescript@6.0.3)(vite@8.1.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0)(yaml@2.9.0))
       '@types/node':
         specifier: 'catalog:'
         version: 24.13.3
@@ -315,23 +315,23 @@ importers:
         version: 6.8.3
       react:
         specifier: 'catalog:'
-        version: 19.2.7
+        version: 19.2.8
       react-dom:
         specifier: 'catalog:'
-        version: 19.2.7(react@19.2.7)
+        version: 19.2.8(react@19.2.8)
       react-router:
         specifier: 'catalog:'
-        version: 8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
     devDependencies:
       '@react-router/dev':
         specifier: 'catalog:'
-        version: 8.3.0(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(typescript@6.0.3)(vite@8.1.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0)(yaml@2.9.0))
+        version: 8.3.0(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(typescript@6.0.3)(vite@8.1.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0)(yaml@2.9.0))
       '@testing-library/dom':
         specifier: 'catalog:'
         version: 10.4.1
       '@testing-library/react':
         specifier: 'catalog:'
-        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@types/node':
         specifier: 'catalog:'
         version: 24.13.3
@@ -447,23 +447,23 @@ importers:
         version: 6.8.3
       react:
         specifier: 'catalog:'
-        version: 19.2.7
+        version: 19.2.8
       react-dom:
         specifier: 'catalog:'
-        version: 19.2.7(react@19.2.7)
+        version: 19.2.8(react@19.2.8)
       react-router:
         specifier: 'catalog:'
-        version: 8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
     devDependencies:
       '@react-router/dev':
         specifier: 'catalog:'
-        version: 8.3.0(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(typescript@6.0.3)(vite@8.1.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0)(yaml@2.9.0))
+        version: 8.3.0(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(typescript@6.0.3)(vite@8.1.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0)(yaml@2.9.0))
       '@testing-library/dom':
         specifier: 'catalog:'
         version: 10.4.1
       '@testing-library/react':
         specifier: 'catalog:'
-        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@types/node':
         specifier: 'catalog:'
         version: 24.13.3
@@ -704,7 +704,7 @@ importers:
         version: 10.4.1
       '@testing-library/react':
         specifier: 'catalog:'
-        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@types/react':
         specifier: 'catalog:'
         version: 19.2.17
@@ -716,13 +716,13 @@ importers:
         version: 29.1.1(@noble/hashes@1.8.0)
       react:
         specifier: 'catalog:'
-        version: 19.2.7
+        version: 19.2.8
       react-dom:
         specifier: 'catalog:'
-        version: 19.2.7(react@19.2.7)
+        version: 19.2.8(react@19.2.8)
       react-router:
         specifier: 'catalog:'
-        version: 8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -800,7 +800,7 @@ importers:
         version: 10.4.1
       '@testing-library/react':
         specifier: 'catalog:'
-        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@types/react':
         specifier: 'catalog:'
         version: 19.2.17
@@ -812,13 +812,13 @@ importers:
         version: 29.1.1(@noble/hashes@1.8.0)
       react:
         specifier: 'catalog:'
-        version: 19.2.7
+        version: 19.2.8
       react-dom:
         specifier: 'catalog:'
-        version: 19.2.7(react@19.2.7)
+        version: 19.2.8(react@19.2.8)
       react-router:
         specifier: 'catalog:'
-        version: 8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -830,73 +830,73 @@ importers:
     dependencies:
       '@not-govuk/back-link':
         specifier: 'catalog:'
-        version: 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+        version: 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@not-govuk/button':
         specifier: 'catalog:'
-        version: 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+        version: 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@not-govuk/checkboxes':
         specifier: 'catalog:'
-        version: 0.19.1(react@19.2.7)
+        version: 0.19.1(react@19.2.8)
       '@not-govuk/details':
         specifier: 'catalog:'
-        version: 0.19.1(react@19.2.7)
+        version: 0.19.1(react@19.2.8)
       '@not-govuk/error-message':
         specifier: 'catalog:'
-        version: 0.19.1(react@19.2.7)
+        version: 0.19.1(react@19.2.8)
       '@not-govuk/error-summary':
         specifier: 'catalog:'
-        version: 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+        version: 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@not-govuk/hint':
         specifier: 'catalog:'
-        version: 0.19.1(react@19.2.7)
+        version: 0.19.1(react@19.2.8)
       '@not-govuk/input':
         specifier: 'catalog:'
-        version: 0.19.1(react@19.2.7)
+        version: 0.19.1(react@19.2.8)
       '@not-govuk/inset-text':
         specifier: 'catalog:'
-        version: 0.19.1(react@19.2.7)
+        version: 0.19.1(react@19.2.8)
       '@not-govuk/label':
         specifier: 'catalog:'
-        version: 0.19.1(react@19.2.7)
+        version: 0.19.1(react@19.2.8)
       '@not-govuk/link':
         specifier: 'catalog:'
-        version: 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+        version: 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@not-govuk/notification-banner':
         specifier: 'catalog:'
-        version: 0.19.1(react@19.2.7)
+        version: 0.19.1(react@19.2.8)
       '@not-govuk/page':
         specifier: 'catalog:'
-        version: 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+        version: 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@not-govuk/pagination':
         specifier: 'catalog:'
-        version: 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+        version: 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@not-govuk/radios':
         specifier: 'catalog:'
-        version: 0.19.1(react@19.2.7)
+        version: 0.19.1(react@19.2.8)
       '@not-govuk/sass-base':
         specifier: 'catalog:'
         version: 0.19.1
       '@not-govuk/search-box':
         specifier: 'catalog:'
-        version: 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+        version: 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@not-govuk/select':
         specifier: 'catalog:'
-        version: 0.19.1(react@19.2.7)
+        version: 0.19.1(react@19.2.8)
       '@not-govuk/summary-list':
         specifier: 'catalog:'
-        version: 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+        version: 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@not-govuk/table':
         specifier: 'catalog:'
-        version: 0.19.1(react@19.2.7)
+        version: 0.19.1(react@19.2.8)
       '@not-govuk/tag':
         specifier: 'catalog:'
-        version: 0.19.1(react@19.2.7)
+        version: 0.19.1(react@19.2.8)
       '@not-govuk/text-input':
         specifier: 'catalog:'
-        version: 0.19.1(react@19.2.7)
+        version: 0.19.1(react@19.2.8)
       '@not-govuk/textarea':
         specifier: 'catalog:'
-        version: 0.19.1(react@19.2.7)
+        version: 0.19.1(react@19.2.8)
       accessible-autocomplete:
         specifier: 'catalog:'
         version: 3.0.1
@@ -909,7 +909,7 @@ importers:
         version: 10.4.1
       '@testing-library/react':
         specifier: 'catalog:'
-        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@types/govuk-frontend':
         specifier: 'catalog:'
         version: 5.11.0
@@ -924,13 +924,13 @@ importers:
         version: 29.1.1(@noble/hashes@1.8.0)
       react:
         specifier: 'catalog:'
-        version: 19.2.7
+        version: 19.2.8
       react-dom:
         specifier: 'catalog:'
-        version: 19.2.7(react@19.2.7)
+        version: 19.2.8(react@19.2.8)
       react-router:
         specifier: 'catalog:'
-        version: 8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -957,10 +957,10 @@ importers:
         version: link:../ui
       '@react-router/express':
         specifier: 'catalog:'
-        version: 8.3.0(express@5.2.1)(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(typescript@6.0.3)
+        version: 8.3.0(express@5.2.1)(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(typescript@6.0.3)
       '@react-router/node':
         specifier: 'catalog:'
-        version: 8.3.0(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(typescript@6.0.3)
+        version: 8.3.0(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(typescript@6.0.3)
       compression:
         specifier: 'catalog:'
         version: 1.8.1
@@ -972,13 +972,13 @@ importers:
         version: 5.2.0
       react:
         specifier: 'catalog:'
-        version: 19.2.7
+        version: 19.2.8
       react-dom:
         specifier: 'catalog:'
-        version: 19.2.7(react@19.2.7)
+        version: 19.2.8(react@19.2.8)
       react-router:
         specifier: 'catalog:'
-        version: 8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       uuid:
         specifier: 'catalog:'
         version: 14.0.2
@@ -3382,10 +3382,10 @@ packages:
     resolution: {integrity: sha512-K5zQjDllxWkf7Z5xJdV0/B0WTNqx6vxG70zJE4N0kBs4LovmEYWJzQGxC9bS9RAKu3bgM40lrd5zoLJ12MQ5BA==}
     engines: {node: '>= 0.10'}
 
-  react-dom@19.2.7:
-    resolution: {integrity: sha512-t0BRVXvbiE/o20Hfw669rLbMCDWtYZLvmJigy2f0MxsXF+71pxhR3xOkspmsO8h3ZlNzyibAmtCa3l4lYKk6gQ==}
+  react-dom@19.2.8:
+    resolution: {integrity: sha512-rVprimfGBG3DR+Tq0IQG2DT5PxKth1WIGDmj5yPmlzr4YBe7uyE+Du4oVqTDXZSHGGGXRtTJEGSSePyQCMBglQ==}
     peerDependencies:
-      react: ^19.2.7
+      react: ^19.2.8
 
   react-is@17.0.2:
     resolution: {integrity: sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w==}
@@ -3404,8 +3404,8 @@ packages:
       react-dom:
         optional: true
 
-  react@19.2.7:
-    resolution: {integrity: sha512-HNe9WslTbXmFK8o8cmwgAeJFSBvt1bPdHCVKtaaV+WlAN36mpT4hcRpwbf3fY56ar2oIXzsBpOAiIRHAdY0OlQ==}
+  react@19.2.8:
+    resolution: {integrity: sha512-PWaYA1L/q9u2u7xYQi+Y3L3Yfnie7XyLeaJICV1MGD6LprsBxcAqGjYyr0eY3p+QdsA+x/Irkt4Qif8D63+Sbw==}
     engines: {node: '>=0.10.0'}
 
   readdirp@3.6.0:
@@ -4276,350 +4276,350 @@ snapshots:
 
   '@noble/hashes@1.8.0': {}
 
-  '@not-govuk/back-link@0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+  '@not-govuk/back-link@0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
     dependencies:
-      '@not-govuk/link': 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@not-govuk/link': 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@not-govuk/sass-base': 0.19.1
       '@react-foundry/component-helpers': 0.5.4
-      '@react-foundry/router': 0.5.4(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))
+      '@react-foundry/router': 0.5.4(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
     transitivePeerDependencies:
       - '@remix-run/react'
       - next
       - react-router
 
-  '@not-govuk/breadcrumbs@0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+  '@not-govuk/breadcrumbs@0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@not-govuk/sass-base': 0.19.1
-      '@react-foundry/anchor-list': 0.5.4(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@react-foundry/anchor-list': 0.5.4(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
     transitivePeerDependencies:
       - '@remix-run/react'
       - next
       - react-router
 
-  '@not-govuk/button@0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+  '@not-govuk/button@0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
     dependencies:
-      '@not-govuk/link': 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@not-govuk/link': 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@not-govuk/sass-base': 0.19.1
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
     transitivePeerDependencies:
       - '@remix-run/react'
       - next
       - react-router
 
-  '@not-govuk/checkboxes@0.19.1(react@19.2.7)':
+  '@not-govuk/checkboxes@0.19.1(react@19.2.8)':
     dependencies:
-      '@not-govuk/form-group': 0.19.1(react@19.2.7)
-      '@not-govuk/hint': 0.19.1(react@19.2.7)
-      '@not-govuk/label': 0.19.1(react@19.2.7)
+      '@not-govuk/form-group': 0.19.1(react@19.2.8)
+      '@not-govuk/hint': 0.19.1(react@19.2.8)
+      '@not-govuk/label': 0.19.1(react@19.2.8)
       '@not-govuk/sass-base': 0.19.1
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
 
-  '@not-govuk/details@0.19.1(react@19.2.7)':
+  '@not-govuk/details@0.19.1(react@19.2.8)':
     dependencies:
       '@not-govuk/sass-base': 0.19.1
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
 
-  '@not-govuk/error-message@0.19.1(react@19.2.7)':
+  '@not-govuk/error-message@0.19.1(react@19.2.8)':
     dependencies:
       '@not-govuk/sass-base': 0.19.1
-      '@not-govuk/visually-hidden': 0.19.1(react@19.2.7)
+      '@not-govuk/visually-hidden': 0.19.1(react@19.2.8)
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
 
-  '@not-govuk/error-summary@0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+  '@not-govuk/error-summary@0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@not-govuk/sass-base': 0.19.1
-      '@react-foundry/anchor-list': 0.5.4(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@react-foundry/anchor-list': 0.5.4(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
     transitivePeerDependencies:
       - '@remix-run/react'
       - next
       - react-router
 
-  '@not-govuk/fieldset@0.19.1(react@19.2.7)':
+  '@not-govuk/fieldset@0.19.1(react@19.2.8)':
     dependencies:
       '@not-govuk/sass-base': 0.19.1
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
 
-  '@not-govuk/footer@0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+  '@not-govuk/footer@0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
     dependencies:
-      '@not-govuk/link': 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@not-govuk/link': 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@not-govuk/sass-base': 0.19.1
-      '@not-govuk/width-container': 0.19.1(react@19.2.7)
+      '@not-govuk/width-container': 0.19.1(react@19.2.8)
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
     transitivePeerDependencies:
       - '@remix-run/react'
       - next
       - react-router
 
-  '@not-govuk/form-group@0.19.1(react@19.2.7)':
+  '@not-govuk/form-group@0.19.1(react@19.2.8)':
     dependencies:
-      '@not-govuk/error-message': 0.19.1(react@19.2.7)
-      '@not-govuk/fieldset': 0.19.1(react@19.2.7)
-      '@not-govuk/hint': 0.19.1(react@19.2.7)
-      '@not-govuk/label': 0.19.1(react@19.2.7)
+      '@not-govuk/error-message': 0.19.1(react@19.2.8)
+      '@not-govuk/fieldset': 0.19.1(react@19.2.8)
+      '@not-govuk/hint': 0.19.1(react@19.2.8)
+      '@not-govuk/label': 0.19.1(react@19.2.8)
       '@not-govuk/sass-base': 0.19.1
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
 
-  '@not-govuk/generic-header@0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+  '@not-govuk/generic-header@0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
     dependencies:
-      '@not-govuk/link': 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@not-govuk/link': 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@not-govuk/sass-base': 0.19.1
-      '@not-govuk/width-container': 0.19.1(react@19.2.7)
+      '@not-govuk/width-container': 0.19.1(react@19.2.8)
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
     transitivePeerDependencies:
       - '@remix-run/react'
       - next
       - react-router
 
-  '@not-govuk/header@0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+  '@not-govuk/header@0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
     dependencies:
-      '@not-govuk/link': 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@not-govuk/link': 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@not-govuk/sass-base': 0.19.1
-      '@not-govuk/width-container': 0.19.1(react@19.2.7)
+      '@not-govuk/width-container': 0.19.1(react@19.2.8)
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
     transitivePeerDependencies:
       - '@remix-run/react'
       - next
       - react-router
 
-  '@not-govuk/hint@0.19.1(react@19.2.7)':
+  '@not-govuk/hint@0.19.1(react@19.2.8)':
     dependencies:
       '@not-govuk/sass-base': 0.19.1
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
 
-  '@not-govuk/input@0.19.1(react@19.2.7)':
+  '@not-govuk/input@0.19.1(react@19.2.8)':
     dependencies:
       '@not-govuk/sass-base': 0.19.1
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
 
-  '@not-govuk/inset-text@0.19.1(react@19.2.7)':
+  '@not-govuk/inset-text@0.19.1(react@19.2.8)':
     dependencies:
       '@not-govuk/sass-base': 0.19.1
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
 
-  '@not-govuk/label@0.19.1(react@19.2.7)':
+  '@not-govuk/label@0.19.1(react@19.2.8)':
     dependencies:
       '@not-govuk/sass-base': 0.19.1
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
 
-  '@not-govuk/link@0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+  '@not-govuk/link@0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@not-govuk/sass-base': 0.19.1
-      '@react-foundry/anchor': 0.5.4(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@react-foundry/anchor': 0.5.4(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
     transitivePeerDependencies:
       - '@remix-run/react'
       - next
       - react-router
 
-  '@not-govuk/notification-banner@0.19.1(react@19.2.7)':
+  '@not-govuk/notification-banner@0.19.1(react@19.2.8)':
     dependencies:
       '@not-govuk/sass-base': 0.19.1
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
 
-  '@not-govuk/page@0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+  '@not-govuk/page@0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
     dependencies:
-      '@not-govuk/back-link': 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
-      '@not-govuk/breadcrumbs': 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
-      '@not-govuk/footer': 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
-      '@not-govuk/generic-header': 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
-      '@not-govuk/header': 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
-      '@not-govuk/link': 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
-      '@not-govuk/phase-banner': 0.19.1(react@19.2.7)
+      '@not-govuk/back-link': 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
+      '@not-govuk/breadcrumbs': 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
+      '@not-govuk/footer': 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
+      '@not-govuk/generic-header': 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
+      '@not-govuk/header': 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
+      '@not-govuk/link': 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
+      '@not-govuk/phase-banner': 0.19.1(react@19.2.8)
       '@not-govuk/sass-base': 0.19.1
-      '@not-govuk/service-navigation': 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
-      '@not-govuk/skip-link': 0.19.1(react@19.2.7)
-      '@not-govuk/width-container': 0.19.1(react@19.2.7)
-      '@react-foundry/client-component-helpers': 0.5.4(react@19.2.7)
+      '@not-govuk/service-navigation': 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
+      '@not-govuk/skip-link': 0.19.1(react@19.2.8)
+      '@not-govuk/width-container': 0.19.1(react@19.2.8)
+      '@react-foundry/client-component-helpers': 0.5.4(react@19.2.8)
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
     transitivePeerDependencies:
       - '@remix-run/react'
       - next
       - react-router
 
-  '@not-govuk/pagination@0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+  '@not-govuk/pagination@0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
     dependencies:
-      '@not-govuk/link': 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@not-govuk/link': 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@not-govuk/sass-base': 0.19.1
-      '@not-govuk/visually-hidden': 0.19.1(react@19.2.7)
+      '@not-govuk/visually-hidden': 0.19.1(react@19.2.8)
       '@react-foundry/component-helpers': 0.5.4
       '@react-foundry/uri': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
     transitivePeerDependencies:
       - '@remix-run/react'
       - next
       - react-router
 
-  '@not-govuk/phase-banner@0.19.1(react@19.2.7)':
+  '@not-govuk/phase-banner@0.19.1(react@19.2.8)':
     dependencies:
       '@not-govuk/sass-base': 0.19.1
-      '@not-govuk/tag': 0.19.1(react@19.2.7)
-      '@not-govuk/width-container': 0.19.1(react@19.2.7)
+      '@not-govuk/tag': 0.19.1(react@19.2.8)
+      '@not-govuk/width-container': 0.19.1(react@19.2.8)
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
 
-  '@not-govuk/radios@0.19.1(react@19.2.7)':
+  '@not-govuk/radios@0.19.1(react@19.2.8)':
     dependencies:
-      '@not-govuk/form-group': 0.19.1(react@19.2.7)
-      '@not-govuk/hint': 0.19.1(react@19.2.7)
-      '@not-govuk/label': 0.19.1(react@19.2.7)
+      '@not-govuk/form-group': 0.19.1(react@19.2.8)
+      '@not-govuk/hint': 0.19.1(react@19.2.8)
+      '@not-govuk/label': 0.19.1(react@19.2.8)
       '@not-govuk/sass-base': 0.19.1
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
 
   '@not-govuk/sass-base@0.19.1':
     dependencies:
       govuk-frontend: 6.5.0
 
-  '@not-govuk/search-box@0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+  '@not-govuk/search-box@0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@not-govuk/sass-base': 0.19.1
-      '@not-govuk/standalone-input': 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@not-govuk/standalone-input': 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@react-foundry/component-helpers': 0.5.4
-      react: 19.2.7
+      react: 19.2.8
     transitivePeerDependencies:
       - '@remix-run/react'
       - next
       - react-router
 
-  '@not-govuk/select@0.19.1(react@19.2.7)':
+  '@not-govuk/select@0.19.1(react@19.2.8)':
     dependencies:
-      '@not-govuk/form-group': 0.19.1(react@19.2.7)
+      '@not-govuk/form-group': 0.19.1(react@19.2.8)
       '@not-govuk/sass-base': 0.19.1
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
 
-  '@not-govuk/service-navigation@0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+  '@not-govuk/service-navigation@0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
     dependencies:
-      '@not-govuk/link': 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@not-govuk/link': 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@not-govuk/sass-base': 0.19.1
-      '@not-govuk/width-container': 0.19.1(react@19.2.7)
-      '@react-foundry/anchor-list': 0.5.4(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@not-govuk/width-container': 0.19.1(react@19.2.8)
+      '@react-foundry/anchor-list': 0.5.4(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
     transitivePeerDependencies:
       - '@remix-run/react'
       - next
       - react-router
 
-  '@not-govuk/skip-link@0.19.1(react@19.2.7)':
+  '@not-govuk/skip-link@0.19.1(react@19.2.8)':
     dependencies:
       '@not-govuk/sass-base': 0.19.1
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
 
-  '@not-govuk/standalone-input@0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+  '@not-govuk/standalone-input@0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
     dependencies:
-      '@not-govuk/button': 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
-      '@not-govuk/form-group': 0.19.1(react@19.2.7)
-      '@not-govuk/input': 0.19.1(react@19.2.7)
+      '@not-govuk/button': 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
+      '@not-govuk/form-group': 0.19.1(react@19.2.8)
+      '@not-govuk/input': 0.19.1(react@19.2.8)
       '@not-govuk/sass-base': 0.19.1
       '@react-foundry/component-helpers': 0.5.4
-      react: 19.2.7
+      react: 19.2.8
     transitivePeerDependencies:
       - '@remix-run/react'
       - next
       - react-router
 
-  '@not-govuk/summary-list@0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+  '@not-govuk/summary-list@0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
     dependencies:
-      '@not-govuk/link': 0.19.1(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@not-govuk/link': 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@not-govuk/sass-base': 0.19.1
-      '@react-foundry/anchor-list': 0.5.4(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@react-foundry/anchor-list': 0.5.4(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
     transitivePeerDependencies:
       - '@remix-run/react'
       - next
       - react-router
 
-  '@not-govuk/table@0.19.1(react@19.2.7)':
+  '@not-govuk/table@0.19.1(react@19.2.8)':
     dependencies:
       '@not-govuk/sass-base': 0.19.1
       '@react-foundry/component-helpers': 0.5.4
-      '@react-foundry/simple-table': 0.5.4(react@19.2.7)
+      '@react-foundry/simple-table': 0.5.4(react@19.2.8)
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
 
-  '@not-govuk/tag@0.19.1(react@19.2.7)':
-    dependencies:
-      '@not-govuk/sass-base': 0.19.1
-      '@react-foundry/component-helpers': 0.5.4
-      govuk-frontend: 6.5.0
-      react: 19.2.7
-
-  '@not-govuk/text-input@0.19.1(react@19.2.7)':
-    dependencies:
-      '@not-govuk/form-group': 0.19.1(react@19.2.7)
-      '@not-govuk/input': 0.19.1(react@19.2.7)
-      react: 19.2.7
-
-  '@not-govuk/textarea@0.19.1(react@19.2.7)':
-    dependencies:
-      '@not-govuk/form-group': 0.19.1(react@19.2.7)
-      '@not-govuk/sass-base': 0.19.1
-      '@react-foundry/component-helpers': 0.5.4
-      govuk-frontend: 6.5.0
-      react: 19.2.7
-
-  '@not-govuk/visually-hidden@0.19.1(react@19.2.7)':
+  '@not-govuk/tag@0.19.1(react@19.2.8)':
     dependencies:
       '@not-govuk/sass-base': 0.19.1
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
 
-  '@not-govuk/width-container@0.19.1(react@19.2.7)':
+  '@not-govuk/text-input@0.19.1(react@19.2.8)':
+    dependencies:
+      '@not-govuk/form-group': 0.19.1(react@19.2.8)
+      '@not-govuk/input': 0.19.1(react@19.2.8)
+      react: 19.2.8
+
+  '@not-govuk/textarea@0.19.1(react@19.2.8)':
+    dependencies:
+      '@not-govuk/form-group': 0.19.1(react@19.2.8)
+      '@not-govuk/sass-base': 0.19.1
+      '@react-foundry/component-helpers': 0.5.4
+      govuk-frontend: 6.5.0
+      react: 19.2.8
+
+  '@not-govuk/visually-hidden@0.19.1(react@19.2.8)':
     dependencies:
       '@not-govuk/sass-base': 0.19.1
       '@react-foundry/component-helpers': 0.5.4
       govuk-frontend: 6.5.0
-      react: 19.2.7
+      react: 19.2.8
+
+  '@not-govuk/width-container@0.19.1(react@19.2.8)':
+    dependencies:
+      '@not-govuk/sass-base': 0.19.1
+      '@react-foundry/component-helpers': 0.5.4
+      govuk-frontend: 6.5.0
+      react: 19.2.8
 
   '@oxc-project/types@0.139.0': {}
 
@@ -4694,51 +4694,51 @@ snapshots:
     dependencies:
       playwright: 1.62.1
 
-  '@react-foundry/anchor-list@0.5.4(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+  '@react-foundry/anchor-list@0.5.4(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
     dependencies:
-      '@react-foundry/anchor': 0.5.4(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      '@react-foundry/anchor': 0.5.4(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@react-foundry/component-helpers': 0.5.4
-      '@react-foundry/router': 0.5.4(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))
-      react: 19.2.7
+      '@react-foundry/router': 0.5.4(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))
+      react: 19.2.8
     transitivePeerDependencies:
       - '@remix-run/react'
       - next
       - react-router
 
-  '@react-foundry/anchor@0.5.4(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
+  '@react-foundry/anchor@0.5.4(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
     dependencies:
-      '@react-foundry/client-component-helpers': 0.5.4(react@19.2.7)
+      '@react-foundry/client-component-helpers': 0.5.4(react@19.2.8)
       '@react-foundry/component-helpers': 0.5.4
-      '@react-foundry/router': 0.5.4(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))
+      '@react-foundry/router': 0.5.4(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))
       '@react-foundry/uri': 0.5.4
-      react: 19.2.7
+      react: 19.2.8
     transitivePeerDependencies:
       - '@remix-run/react'
       - next
       - react-router
 
-  '@react-foundry/client-component-helpers@0.5.4(react@19.2.7)':
+  '@react-foundry/client-component-helpers@0.5.4(react@19.2.8)':
     dependencies:
-      react: 19.2.7
+      react: 19.2.8
 
   '@react-foundry/component-helpers@0.5.4': {}
 
-  '@react-foundry/router@0.5.4(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))':
+  '@react-foundry/router@0.5.4(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))':
     dependencies:
       '@react-foundry/uri': 0.5.4
     optionalDependencies:
-      react-router: 8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react-router: 8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
 
-  '@react-foundry/simple-table@0.5.4(react@19.2.7)':
+  '@react-foundry/simple-table@0.5.4(react@19.2.8)':
     dependencies:
       '@react-foundry/component-helpers': 0.5.4
-      react: 19.2.7
+      react: 19.2.8
 
   '@react-foundry/uri@0.5.4':
     dependencies:
       qs: 6.15.3
 
-  '@react-router/dev@8.3.0(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(typescript@6.0.3)(vite@8.1.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0)(yaml@2.9.0))':
+  '@react-router/dev@8.3.0(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(typescript@6.0.3)(vite@8.1.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0)(yaml@2.9.0))':
     dependencies:
       '@babel/core': 7.29.7
       '@babel/generator': 7.29.7
@@ -4747,7 +4747,7 @@ snapshots:
       '@babel/preset-typescript': 7.29.7(@babel/core@7.29.7)
       '@babel/traverse': 7.29.7
       '@babel/types': 7.29.7
-      '@react-router/node': 8.3.0(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(typescript@6.0.3)
+      '@react-router/node': 8.3.0(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(typescript@6.0.3)
       '@remix-run/node-fetch-server': 0.13.3
       babel-dead-code-elimination: 1.0.12
       chokidar: 3.6.0
@@ -4763,7 +4763,7 @@ snapshots:
       pkg-types: 2.3.1
       prettier: 3.9.5
       react-refresh: 0.18.0
-      react-router: 8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react-router: 8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       semver: 7.8.5
       tinyglobby: 0.2.17
       valibot: 1.4.2(typescript@6.0.3)
@@ -4774,18 +4774,18 @@ snapshots:
       - babel-plugin-macros
       - supports-color
 
-  '@react-router/express@8.3.0(express@5.2.1)(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(typescript@6.0.3)':
+  '@react-router/express@8.3.0(express@5.2.1)(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(typescript@6.0.3)':
     dependencies:
-      '@react-router/node': 8.3.0(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(typescript@6.0.3)
+      '@react-router/node': 8.3.0(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(typescript@6.0.3)
       express: 5.2.1
-      react-router: 8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react-router: 8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
     optionalDependencies:
       typescript: 6.0.3
 
-  '@react-router/node@8.3.0(react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(typescript@6.0.3)':
+  '@react-router/node@8.3.0(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(typescript@6.0.3)':
     dependencies:
       '@remix-run/node-fetch-server': 0.13.3
-      react-router: 8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react-router: 8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
     optionalDependencies:
       typescript: 6.0.3
 
@@ -4855,12 +4855,12 @@ snapshots:
       picocolors: 1.1.1
       pretty-format: 27.5.1
 
-  '@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@babel/runtime': 7.29.7
       '@testing-library/dom': 10.4.1
-      react: 19.2.7
-      react-dom: 19.2.7(react@19.2.7)
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
     optionalDependencies:
       '@types/react': 19.2.17
       '@types/react-dom': 19.2.3(@types/react@19.2.17)
@@ -5782,23 +5782,23 @@ snapshots:
       iconv-lite: 0.7.3
       unpipe: 1.0.0
 
-  react-dom@19.2.7(react@19.2.7):
+  react-dom@19.2.8(react@19.2.8):
     dependencies:
-      react: 19.2.7
+      react: 19.2.8
       scheduler: 0.27.0
 
   react-is@17.0.2: {}
 
   react-refresh@0.18.0: {}
 
-  react-router@8.3.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
+  react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
     dependencies:
       cookie-es: 3.1.1
-      react: 19.2.7
+      react: 19.2.8
     optionalDependencies:
-      react-dom: 19.2.7(react@19.2.7)
+      react-dom: 19.2.8(react@19.2.8)
 
-  react@19.2.7: {}
+  react@19.2.8: {}
 
   readdirp@3.6.0:
     dependencies:
