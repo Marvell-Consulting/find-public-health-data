@@ -18,7 +18,6 @@ WITH range_observations AS (
     o.from_date,
     o.to_date,
     o.value,
-    count(od.observation_id)::int AS dimension_count,
     coalesce(
       string_agg(dv.name, '|' ORDER BY dt.name COLLATE "C"),
       ''
@@ -33,10 +32,6 @@ WITH range_observations AS (
     AND o.value IS NOT NULL
     AND at.display_group IS NOT NULL
   GROUP BY o.id, o.indicator_id, at.display_group, o.from_date, o.to_date, o.value
-), minimum_dimensions AS (
-  SELECT indicator_id, display_group, min(dimension_count) AS dimension_count
-  FROM range_observations
-  GROUP BY indicator_id, display_group
 )
 SELECT
   ro.indicator_id,
@@ -47,10 +42,6 @@ SELECT
   min(ro.value),
   max(ro.value)
 FROM range_observations ro
-JOIN minimum_dimensions md
-  ON md.indicator_id = ro.indicator_id
-  AND md.display_group = ro.display_group
-  AND md.dimension_count = ro.dimension_count
 GROUP BY ro.indicator_id, ro.display_group, ro.from_date, ro.to_date, ro.segment;
 --> statement-breakpoint
 GRANT SELECT ON observation_range TO public_api, internal_api;

@@ -297,7 +297,11 @@ export function GeographyTree({
 
                 {isOpen ? (
                   <div className="fphd-geo-alt__children">
-                    {isLoading ? null : (
+                    {isLoading ? (
+                      <p className="govuk-body-s" role="status">
+                        Loading {group.name}…
+                      </p>
+                    ) : (
                       <>
                         <Checkboxes
                           id={`${groupId}-areas`}

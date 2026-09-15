@@ -268,6 +268,15 @@ describe('getObservationRange', () => {
       expect(period.min).toBeLessThanOrEqual(period.max);
     }
   });
+
+  it('includes selectable segments when an aggregate series also exists', async () => {
+    const range = await getObservationRange(db, mortalityId, 'Local authorities');
+    const segments = new Set(range.map(({ segment }) => segment));
+
+    expect(segments.has('<75 yrs')).toBe(true);
+    expect(segments.has('<75 yrs|Male')).toBe(true);
+    expect(segments.has('<75 yrs|Female')).toBe(true);
+  });
 });
 
 describe('listAreaParents', () => {
