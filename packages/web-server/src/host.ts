@@ -3,7 +3,7 @@ import { pathToFileURL } from 'node:url';
 
 import {
   createBaseApp,
-  requestLogger,
+  requestAwareLogger,
   requestLogging,
   type StartServerOptions,
   startServer,
@@ -36,7 +36,7 @@ function createHost({ development, serviceName }: HostOptions) {
  * requestLogging, so loaders and actions log under the request line's id. */
 function loggerLocals(logger: Logger): RequestHandler {
   return (request, response, next) => {
-    response.locals.logger = requestLogger(logger, request);
+    response.locals.logger = requestAwareLogger(logger, request);
     next();
   };
 }

@@ -5,7 +5,7 @@ import { pino } from 'pino';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
-import { createBaseApp, requestLogger, requestLogging } from './index.js';
+import { createBaseApp, requestAwareLogger, requestLogging } from './index.js';
 
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
@@ -195,13 +195,13 @@ describe('requestLogging', () => {
   });
 });
 
-describe('requestLogger', () => {
+describe('requestAwareLogger', () => {
   it("gives a handler's line the request line's id, under the same field and nothing more", async () => {
     const { logger, lines } = createCapturingLogger();
     const app = express();
     app.use(requestLogging(logger));
     app.get('/topics', (request, response) => {
-      requestLogger(logger, request).info({ count: 3 }, 'Topics loaded');
+      requestAwareLogger(logger, request).info({ count: 3 }, 'Topics loaded');
       response.json({});
     });
 
@@ -225,7 +225,7 @@ describe('requestLogger', () => {
     let seen: unknown;
     const app = express();
     app.get('/topics', (request, response) => {
-      seen = requestLogger(logger, request);
+      seen = requestAwareLogger(logger, request);
       response.json({});
     });
 

@@ -72,7 +72,7 @@ export function requestLogging(
 /** The logger for lines about one request: the request line's id under the same field, `req.id`,
  * and nothing else of the request. When using it, don't pass a `req`: pino writes the key twice
  * and the existing `req.id` is lost. */
-export function requestLogger(logger: Logger, request: IncomingMessage): Logger {
+export function requestAwareLogger(logger: Logger, request: IncomingMessage): Logger {
   const id = requestId(request);
 
   return id === undefined ? logger : logger.child({ req: { id } });

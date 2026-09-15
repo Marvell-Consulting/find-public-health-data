@@ -8,7 +8,7 @@ import { installShutdownHandlers, type ShutdownOptions } from './shutdown.js';
 export { REQUEST_ID_HEADER, requestId } from './request-id.js';
 export {
   type RequestLoggingOptions,
-  requestLogger,
+  requestAwareLogger,
   requestLogging,
 } from './request-logging.js';
 export { universalSecurityHeaders } from './security-headers.js';
