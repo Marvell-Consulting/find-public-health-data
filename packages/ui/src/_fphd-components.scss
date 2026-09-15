@@ -1,8 +1,9 @@
 @use "@not-govuk/sass-base" as *;
 
-// Doubled selector to beat the width-container width govuk-frontend applies to
-// the same element via `.govuk-width-container`.
-.govuk-template__container.govuk-template__container {
+// Every width container — header, service nav, phase banner, main and footer
+// — sits at 1400px on wide screens, so the whole page frames the same width.
+// Doubled selector to beat govuk-frontend's own `.govuk-width-container` cap.
+.govuk-width-container.govuk-width-container {
   width: calc(100% - 30px);
   max-width: 1400px;
   margin-right: auto;
