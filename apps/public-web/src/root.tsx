@@ -1,8 +1,8 @@
 import '@fphd/ui/styles.scss';
 
 import { AppDocument, AppShell, createDocumentMeta, RootErrorBoundary } from '@fphd/ui';
-import { getSession, sessionMiddleware } from '@fphd/web-server/session';
-import { href, Outlet, useLoaderData } from 'react-router';
+import { sessionMiddleware } from '@fphd/web-server/session';
+import { href, Outlet } from 'react-router';
 
 import type { Route } from './+types/root';
 
@@ -10,31 +10,20 @@ export const Layout = AppDocument;
 export const meta = createDocumentMeta();
 export const middleware: Route.MiddlewareFunction[] = [sessionMiddleware];
 
-export function loader({ context }: Route.LoaderArgs) {
-  return { signedIn: getSession(context) !== undefined };
-}
-
-function navigationFor(signedIn: boolean) {
-  return [
-    { href: href('/'), text: 'Home' },
-    { href: href('/search'), text: 'Search' },
-    { href: href('/topics'), text: 'Topics' },
-    { href: href('/sign-in'), text: signedIn ? 'Account' : 'Sign in' },
-  ];
-}
+const navigation = [
+  { href: href('/'), text: 'Home' },
+  { href: href('/search'), text: 'Search' },
+  { href: href('/topics'), text: 'Topics' },
+];
 
 export default function PublicApp() {
-  const { signedIn } = useLoaderData<typeof loader>();
-
   return (
-    <AppShell audience="Public" navigation={navigationFor(signedIn)}>
+    <AppShell audience="Public" navigation={navigation}>
       <Outlet />
     </AppShell>
   );
 }
 
 export function ErrorBoundary() {
-  // The root loader may not have run, or may be what failed, so there is no session to read
-  // here — the error page shows the signed-out navigation rather than guessing.
-  return <RootErrorBoundary audience="Public" navigation={navigationFor(false)} />;
+  return <RootErrorBoundary audience="Public" navigation={navigation} />;
 }
