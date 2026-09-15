@@ -38,7 +38,7 @@ async function main(argv: readonly string[]): Promise<number> {
     logger.info({ command: name }, 'Command complete');
     return 0;
   } catch (error) {
-    logger.error({ command: name, err: error }, 'Command failed');
+    logger.fatal({ command: name, err: error }, 'Command failed');
     return EXIT_FAILURE;
   } finally {
     await sql.end();
