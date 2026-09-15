@@ -23,6 +23,14 @@ function renderPage(props: Partial<Parameters<typeof DashboardPage>[0]> = {}, ur
 }
 
 describe('DashboardPage', () => {
+  it('names the table for assistive technology, as there is no visible caption', () => {
+    renderPage();
+
+    expect(
+      screen.getByRole('table', { name: 'Every indicator, most recently edited first' }),
+    ).toBeTruthy();
+  });
+
   it('names the columns of the prototype that have data behind them', () => {
     renderPage();
 

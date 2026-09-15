@@ -27,6 +27,7 @@ export function DashboardPage({ indicators, page, totalPages }: DashboardPagePro
           <p className="govuk-body">There are no indicators yet.</p>
         ) : (
           <Table
+            aria-label="Every indicator, most recently edited first"
             headings={{
               name: 'Indicator name',
               updatedAt: 'Last edited',
