@@ -176,7 +176,9 @@ export function SearchFilterPane({
   };
 
   const topicLabels = new Map(facets.topics.map((t) => [t.slug, t.title]));
-  const classifLabels = new Map(facets.classifications.map((c) => [c.slug, c.name]));
+  const classifLabels = new Map(
+    facets.classifications.map((c) => [`${c.dimension}:${c.slug}`, c.name]),
+  );
 
   const optionsForDimension = (dim: (typeof DIMENSIONS)[number]): AutocompleteOption[] => {
     if (dim.isTopicDimension) {
@@ -196,7 +198,8 @@ export function SearchFilterPane({
 
   const labelOf = (dim: (typeof DIMENSIONS)[number], value: string): string => {
     if (dim.isTopicDimension) return topicLabels.get(value) ?? value;
-    if (dim.classificationDimension) return classifLabels.get(value) ?? value;
+    if (dim.classificationDimension)
+      return classifLabels.get(`${dim.classificationDimension}:${value}`) ?? value;
     return value;
   };
 
@@ -260,10 +263,10 @@ export function SearchFilterPane({
                 Clear search
               </Link>
             }
-            defaultValue={state.q}
             id="search-q"
             label="Search by keywords"
             name="q"
+            defaultValue={state.q}
           />
         </div>
       </Form>
@@ -293,7 +296,7 @@ export function SearchFilterPane({
         active={geoActive || Boolean(geographyOptions?.query || geographyOptions?.level)}
         footer={
           <SearchGeographyPicker
-            key={location.key}
+            key={JSON.stringify([state.gaCodes, state.geoLevels])}
             state={state}
             displayGroups={displayGroups}
             geographyOptions={geographyOptions}

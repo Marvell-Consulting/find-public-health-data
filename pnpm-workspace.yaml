@@ -106,3 +106,7 @@ catalog:
   vitest: 4.1.10
   yaml: 2.9.0
   zod: 4.4.3
+
+patchedDependencies:
+  # FIXME: Remove after NotGovUK publishes renderOption (upstream PR 2042).
+  '@not-govuk/checkboxes@0.19.1': patches/@not-govuk__checkboxes@0.19.1.patch

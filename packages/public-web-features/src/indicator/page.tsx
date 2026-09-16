@@ -1,7 +1,7 @@
 import { A, Button, ChartSection, GridColumn, GridRow, InsetText, Tabs } from '@fphd/ui';
 import { Form, useLocation } from 'react-router';
-import type { GeographyOptions } from '../geography/loader';
-import { MAX_SELECTED_AREAS, MAX_SELECTED_INDICATORS } from '../selection-limits';
+import type { GeographyOptions } from '../geography/loader.js';
+import { MAX_SELECTED_AREAS, MAX_SELECTED_INDICATORS } from '../selection-limits.js';
 import {
   availableConfidenceLevels,
   availablePeriodTypes,
@@ -10,25 +10,25 @@ import {
   inequalityBreakdown,
   inequalityCategories,
   inequalityPeriods,
-} from './data';
-import { FilterPane } from './filter-pane';
+} from './data.js';
+import { FilterPane } from './filter-pane.js';
 import type {
   BenchmarkGeography,
   IndicatorSelection,
   IndicatorSummary as IndicatorSummaryData,
   SelectedArea,
   SelectedIndicator,
-} from './loader';
-import { BackgroundInformation, IndicatorSummary } from './metadata';
+} from './loader.js';
+import { BackgroundInformation, IndicatorSummary } from './metadata.js';
 import {
   InequalityOptions,
   PanelOptionsPanel,
   useOptionParamNavigation,
   usePanelOptions,
-} from './options';
-import { ComparisonSection } from './tables/comparison-section';
-import { InequalitiesTable } from './tables/inequalities-table';
-import { TrendTable } from './tables/trend-table';
+} from './options.js';
+import { ComparisonSection } from './tables/comparison-section.js';
+import { InequalitiesTable } from './tables/inequalities-table.js';
+import { TrendTable } from './tables/trend-table.js';
 
 /**
  * Everything shown for one selected indicator, repeated per selection: the summary
@@ -258,12 +258,12 @@ export function IndicatorPage({
   indicatorsLimited?: boolean;
   selection: IndicatorSelection;
 }) {
-  const location = useLocation();
+  const selectionKey = JSON.stringify(selection);
   return (
     <GridRow>
       <GridColumn width="one-quarter">
         <FilterPane
-          key={location.key}
+          key={selectionKey}
           selected={selected}
           selectedAreas={selectedAreas}
           displayGroups={displayGroups}

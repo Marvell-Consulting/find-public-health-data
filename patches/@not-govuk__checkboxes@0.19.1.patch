@@ -1,0 +1,42 @@
+diff --git a/dist/Checkboxes.d.ts b/dist/Checkboxes.d.ts
+index e16c4b0950f60d7a09ae3e7990aa792f7e2a1369..af8ee92ae670ff2bbaf0cba4c062cdbf8dedb62f 100644
+--- a/dist/Checkboxes.d.ts
++++ b/dist/Checkboxes.d.ts
+@@ -33,6 +33,8 @@ export type CheckboxesProps = StandardProps & Omit<InputHTMLAttributes<HTMLInput
+     name: string;
+     /** List of options to select from */
+     options: OptionOrSeperator[];
++    /** Render content alongside an option without putting it inside the checkbox label */
++    renderOption?: (checkbox: ReactNode, option: Option, index: number) => ReactNode;
+ };
+ export declare const Checkboxes: FC<CheckboxesProps>;
+ export default Checkboxes;
+diff --git a/dist/Checkboxes.js b/dist/Checkboxes.js
+index 58e0026ed5e8f081348d6242bf022a142debff4f..bb636002502c959f39564148e082f9ccddd5f893 100644
+--- a/dist/Checkboxes.js
++++ b/dist/Checkboxes.js
+@@ -1,12 +1,12 @@
+ import { jsx as _jsx } from "react/jsx-runtime";
+-import { createElement as _createElement } from "react";
++import { Fragment } from 'react';
+ import { classBuilder } from '@react-foundry/component-helpers';
+ import { FormGroup } from '@not-govuk/form-group';
+ import { Checkbox } from './Checkbox';
+ import '../assets/Checkboxes.scss';
+ export const isSeperator = (v) => (typeof v === 'string');
+ export const isOption = (v) => !isSeperator(v);
+-export const Checkboxes = ({ classBlock, classModifiers, className, defaultValue, error, hint, id: _id, label, options, value, ...attrs }) => {
++export const Checkboxes = ({ classBlock, classModifiers, className, defaultValue, error, hint, id: _id, label, options, renderOption, value, ...attrs }) => {
+     const classes = classBuilder('govuk-checkboxes', classBlock, classModifiers, className);
+     const id = _id || attrs.name;
+     const hintId = `${id}-hint`;
+@@ -19,7 +19,8 @@ export const Checkboxes = ({ classBlock, classModifiers, className, defaultValue
+                         : (Array.isArray(defaultValue)
+                             ? defaultValue.includes(v.value)
+                             : defaultValue === v.value));
+-                    return (_createElement(Checkbox, { ...rest, ...attrs, classes: classes, defaultChecked: defaultChecked, id: optionId, key: i }));
++                    const checkbox = (_jsx(Checkbox, { ...rest, ...attrs, classes: classes, defaultChecked: defaultChecked, id: optionId }));
++                    return (_jsx(Fragment, { children: renderOption ? renderOption(checkbox, v, i) : checkbox }, i));
+                 }
+                 else {
+                     return (_jsx("div", { className: classes('divider'), children: v }, i));

@@ -124,6 +124,19 @@ test('ticking a result and clicking View selected indicators lands on /indicator
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 });
 
+test('search results have one meaningful checkbox group, no empty legends and no links inside checkbox labels', async ({
+  page,
+}, testInfo) => {
+  await ready(page);
+  const group = page.getByRole('group', { name: 'Indicators', exact: true });
+  await expect(group).toHaveCount(1);
+  await expect(group.locator('fieldset')).toHaveCount(0);
+  await expect(group.locator('legend')).toHaveText('Indicators');
+  await expect(results(page).locator('label a')).toHaveCount(0);
+  await expect(group.getByRole('checkbox').first()).toHaveAccessibleName(/.+/);
+  await expectNoAccessibilityViolations(page, testInfo);
+});
+
 test.describe('indicator selection without scripting', () => {
   test.use({ javaScriptEnabled: false });
 
@@ -397,12 +410,41 @@ test('geography search reports failures, retries and empty results', async ({ pa
   );
   const input = geography.getByRole('searchbox', { name: 'Add geographies' });
   await input.fill('Cornwall');
-  await expect(geography.getByRole('status')).toContainText('Geography search is not working');
+  await expect(geography.locator('.fphd-geo-alt__tree').getByRole('status')).toContainText(
+    'Geography search is not working',
+  );
   await page.unroute('**/geographies?*');
   await geography.getByRole('button', { name: 'Try again', exact: true }).click();
   await expect(geography.getByRole('checkbox', { name: 'Cornwall', exact: true })).toBeVisible();
   await input.fill('zzzzzzzzzzzz');
-  await expect(geography.getByRole('status')).toContainText('No geographies found');
+  await expect(geography.locator('.fphd-geo-alt__tree').getByRole('status')).toContainText(
+    'No geographies found',
+  );
+});
+
+test('geography searches keep existing areas visible while loading', async ({ page }, testInfo) => {
+  await ready(page);
+  const geography = card(page, 'Geography');
+  await geography.getByRole('button', { name: /Expand$/ }).click();
+  await geography.getByRole('button', { name: 'Expand Local authorities' }).click();
+  await expect(geography.getByRole('checkbox', { name: 'County Durham' })).toBeVisible();
+  let finishSearch: (() => Promise<void>) | undefined;
+  await page.route('**/geographies?*', (route) => {
+    finishSearch = () => route.fulfill({ json: { groups: [] } });
+  });
+  const requested = page.waitForRequest('**/geographies?*');
+  await geography.getByRole('searchbox', { name: 'Add geographies' }).fill('missing-place');
+  await requested;
+
+  await expect(geography.getByRole('checkbox', { name: 'County Durham' })).toBeVisible();
+  await expect(geography.locator('.fphd-geo-alt__tree').getByRole('status')).toContainText(
+    'Finding geographies',
+  );
+  await finishSearch?.();
+  await expect(geography.locator('.fphd-geo-alt__tree').getByRole('status')).toContainText(
+    'No geographies found',
+  );
+  await expectNoAccessibilityViolations(page, testInfo);
 });
 
 test('a whole level exceeding the area limit shows a notice on the indicator view', async ({

@@ -214,6 +214,25 @@ test.describe('the geography filter', () => {
     );
   });
 
+  test('indicator geography search shows empty and retry states inside the results box', async ({
+    page,
+  }, testInfo) => {
+    const card = filterCard(page, 'Geography filters');
+    const tree = card.locator('.fphd-geo-alt__tree');
+    await page.route('**/geographies?*', (route) =>
+      route.fulfill({ status: 502, body: 'Unavailable' }),
+    );
+    const input = card.getByRole('searchbox', { name: 'Add geographies' });
+    await input.fill('Cornwall');
+    await expect(tree.getByRole('status')).toContainText('Geography search is not working');
+    await page.unroute('**/geographies?*');
+    await tree.getByRole('button', { name: 'Try again' }).click();
+    await expect(card.getByRole('checkbox', { name: 'Cornwall', exact: true })).toBeVisible();
+    await input.fill('zzzzzzzzzzzz');
+    await expect(tree.getByRole('status')).toContainText('No geographies found');
+    await expectNoAccessibilityViolations(page, testInfo);
+  });
+
   test('adds an area found by search and compares it against England', async ({ page }) => {
     const card = filterCard(page, 'Geography filters');
     await expect(card.getByRole('link', { name: 'Clear all' })).toHaveCount(0);

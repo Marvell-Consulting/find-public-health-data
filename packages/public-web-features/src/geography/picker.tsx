@@ -1,8 +1,8 @@
 import { Button, GeographyTree } from '@fphd/ui';
 import { type ReactNode, useState } from 'react';
 import { Form } from 'react-router';
-import { MAX_SELECTED_AREAS } from '../selection-limits';
-import type { GeographyOptions } from './loader';
+import { MAX_SELECTED_AREAS } from '../selection-limits.js';
+import type { GeographyOptions } from './loader.js';
 
 interface GeographySelection {
   areaCodes: string[];

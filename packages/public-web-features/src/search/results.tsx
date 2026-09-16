@@ -27,7 +27,7 @@ function ResultMeta({ indicator }: { indicator: IndicatorSearchRow }) {
   const classified = (dimension: string) =>
     indicator.classifications
       .filter((c) => c.dimension === dimension)
-      .map((c) => ({ key: c.slug, label: c.name }));
+      .map((c) => ({ key: `${c.dimension}:${c.slug}`, label: c.name }));
   const rows = [
     { key: 'Topics', items: indicator.topics.map((t) => ({ key: t.slug, label: t.title })) },
     { key: 'Indicator types', items: classified('indicator_type') },
@@ -132,26 +132,27 @@ export function SearchResults({
             </p>
           ) : null}
 
-          {/* Metadata sits outside the checkbox label so the label contains phrasing content only. */}
-          <fieldset className="fphd-search-results">
-            <legend className="govuk-visually-hidden">Indicators</legend>
-            {indicators.map((indicator) => {
+          <Checkboxes
+            className="fphd-search-results"
+            id="search-indicators"
+            label={<span className="govuk-visually-hidden">Indicators</span>}
+            name="is"
+            onChange={(event) => toggle(Number(event.target.value), event.target.checked)}
+            options={indicators.map((indicator) => {
               const isSelected = ticked.includes(indicator.fingertipsId);
-              const option = {
+              return {
                 checked: isSelected,
                 disabled: !isSelected && ticked.length >= MAX_SELECTED_INDICATORS,
                 label: <span className="govuk-visually-hidden">{indicator.name}</span>,
                 value: String(indicator.fingertipsId),
               };
+            })}
+            renderOption={(checkbox, _option, index) => {
+              const indicator = indicators[index];
+              if (!indicator) return checkbox;
               return (
-                <div className="fphd-search-result" key={indicator.fingertipsId}>
-                  <Checkboxes
-                    id={`is-${indicator.fingertipsId}`}
-                    label=""
-                    name="is"
-                    onChange={(event) => toggle(Number(event.target.value), event.target.checked)}
-                    options={[option]}
-                  />
+                <div className="fphd-search-result">
+                  {checkbox}
                   <div className="fphd-search-result__body">
                     <Link
                       className="govuk-link fphd-search-result__title"
@@ -163,8 +164,8 @@ export function SearchResults({
                   </div>
                 </div>
               );
-            })}
-          </fieldset>
+            }}
+          />
 
           {capped ? (
             <p className="govuk-body govuk-!-margin-top-3">
