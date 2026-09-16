@@ -1,5 +1,13 @@
 import type { Repositories } from '@fphd/db';
 import { Router } from 'express';
+import {
+  DEFAULT_AREA_SEARCH_RESULTS,
+  MAX_AREA_GROUPS_PER_REQUEST,
+  MAX_AREA_NAME_LENGTH,
+  MAX_AREA_PREVIEW,
+  MAX_AREA_SEARCH_RESULTS,
+  pickAreaCodes,
+} from './contract.js';
 
 export function areasRouter(areas: Repositories['areas']): Router {
   const router = Router();
@@ -9,10 +17,7 @@ export function areasRouter(areas: Repositories['areas']): Router {
   });
 
   router.get('/api/areas/lookup', async (request, response) => {
-    const requestedCodes = request.query.areaCode;
-    const codes = [
-      ...new Set(Array.isArray(requestedCodes) ? requestedCodes : [requestedCodes]),
-    ].filter((code): code is string => typeof code === 'string' && /^[A-Z0-9]+$/i.test(code));
+    const codes = pickAreaCodes(request.query.areaCode);
 
     if (codes.length === 0) {
       response.status(400).json({ error: 'area_code_required' });
@@ -24,7 +29,7 @@ export function areasRouter(areas: Repositories['areas']): Router {
 
   router.get('/api/areas/search', async (request, response) => {
     const { q, limit } = request.query;
-    const query = typeof q === 'string' ? q.trim().slice(0, 100) : '';
+    const query = typeof q === 'string' ? q.trim().slice(0, MAX_AREA_NAME_LENGTH) : '';
 
     if (!query) {
       response.status(400).json({ error: 'q_required' });
@@ -32,22 +37,21 @@ export function areasRouter(areas: Repositories['areas']): Router {
     }
 
     const capped =
-      typeof limit === 'string' && /^[1-9]\d*$/.test(limit) ? Math.min(Number(limit), 100) : 50;
+      typeof limit === 'string' && /^[1-9]\d*$/.test(limit)
+        ? Math.min(Number(limit), MAX_AREA_SEARCH_RESULTS)
+        : DEFAULT_AREA_SEARCH_RESULTS;
     response.status(200).json(await areas.search(query, capped));
   });
 
   router.get('/api/areas/parents', async (request, response) => {
-    const requestedCodes = request.query.areaCode;
-    const codes = [
-      ...new Set(Array.isArray(requestedCodes) ? requestedCodes : [requestedCodes]),
-    ].filter((code): code is string => typeof code === 'string' && /^[A-Z0-9]+$/i.test(code));
+    const codes = pickAreaCodes(request.query.areaCode);
     const parentType = request.query.parentType;
 
     if (
       codes.length === 0 ||
       typeof parentType !== 'string' ||
       parentType === '' ||
-      parentType.length > 100
+      parentType.length > MAX_AREA_NAME_LENGTH
     ) {
       response.status(400).json({ error: 'area_code_and_parent_type_required' });
       return;
@@ -64,16 +68,16 @@ export function areasRouter(areas: Repositories['areas']): Router {
         ...new Set(
           (Array.isArray(value) ? value : [value]).filter(
             (entry): entry is string =>
-              typeof entry === 'string' && entry !== '' && entry.length <= 100,
+              typeof entry === 'string' && entry !== '' && entry.length <= MAX_AREA_NAME_LENGTH,
           ),
         ),
-      ].slice(0, 20);
+      ].slice(0, MAX_AREA_GROUPS_PER_REQUEST);
     const areaTypeNames = pick(request.query.areaType);
     const displayGroups = pick(request.query.displayGroup);
     const requestedLimit = request.query.limit;
     const limit =
       typeof requestedLimit === 'string' && /^[1-9]\d*$/.test(requestedLimit)
-        ? Math.min(Number(requestedLimit), 101)
+        ? Math.min(Number(requestedLimit), MAX_AREA_PREVIEW)
         : undefined;
 
     if (areaTypeNames.length === 0 && displayGroups.length === 0) {
@@ -89,10 +93,7 @@ export function areasRouter(areas: Repositories['areas']): Router {
         areaType: name,
         areas: await areas.listByType(name),
       })),
-      ...displayGroups.map(async (name) => ({
-        displayGroup: name,
-        areas: await areas.listByGroup(name, limit),
-      })),
+      ...(displayGroups.length > 0 ? await areas.listByGroups(displayGroups, limit) : []),
     ]);
 
     response.status(200).json(groups);

@@ -113,8 +113,12 @@ describe('GET /api/areas', () => {
 
   it('lists the display groups and answers a display-group areas request', async () => {
     const listDisplayGroups = vi.fn().mockResolvedValue(['Local authorities', 'GP practices']);
-    const listByGroup = vi.fn().mockResolvedValue([{ code: 'E06000052', name: 'Cornwall' }]);
-    const app = createTestApp({ listDisplayGroups, listByGroup });
+    const listByGroups = vi
+      .fn()
+      .mockResolvedValue([
+        { displayGroup: 'Local authorities', areas: [{ code: 'E06000052', name: 'Cornwall' }] },
+      ]);
+    const app = createTestApp({ listDisplayGroups, listByGroups });
 
     expect((await request(app).get('/api/areas/display-groups')).body).toEqual([
       'Local authorities',
@@ -125,26 +129,30 @@ describe('GET /api/areas', () => {
     expect(response.body).toEqual([
       { displayGroup: 'Local authorities', areas: [{ code: 'E06000052', name: 'Cornwall' }] },
     ]);
-    expect(listByGroup).toHaveBeenCalledWith('Local authorities', undefined);
+    expect(listByGroups).toHaveBeenCalledWith(['Local authorities'], undefined);
   });
 
   it('caps a display-group preview request', async () => {
-    const listByGroup = vi.fn().mockResolvedValue([]);
-    const app = createTestApp({ listByGroup });
+    const listByGroups = vi.fn().mockResolvedValue([]);
+    const app = createTestApp({ listByGroups });
 
     await request(app).get('/api/areas?displayGroup=GP+practices&limit=500');
 
-    expect(listByGroup).toHaveBeenCalledWith('GP practices', 101);
+    expect(listByGroups).toHaveBeenCalledWith(['GP practices'], 101);
   });
 
   it('de-duplicates and caps repeated area queries', async () => {
-    const listByGroup = vi.fn().mockResolvedValue([]);
-    const app = createTestApp({ listByGroup });
+    const listByGroups = vi.fn().mockResolvedValue([]);
+    const app = createTestApp({ listByGroups });
 
     const repeats = Array.from({ length: 30 }, (_, i) => `displayGroup=Group+${i % 25}`).join('&');
     await request(app).get(`/api/areas?${repeats}`);
 
-    expect(listByGroup).toHaveBeenCalledTimes(20);
+    expect(listByGroups).toHaveBeenCalledOnce();
+    expect(listByGroups).toHaveBeenCalledWith(
+      Array.from({ length: 20 }, (_, i) => `Group ${i}`),
+      undefined,
+    );
   });
 
   it('rejects an areas request without an area type', async () => {

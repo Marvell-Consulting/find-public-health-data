@@ -1,3 +1,3 @@
 // England is always included alongside the selected areas.
-export const MAX_SELECTED_AREAS = 19;
+export { MAX_SELECTED_AREAS } from '@fphd/public-api-features/contract';
 export const MAX_SELECTED_INDICATORS = 10;

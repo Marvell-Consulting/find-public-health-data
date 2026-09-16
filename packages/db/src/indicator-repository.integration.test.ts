@@ -5,6 +5,7 @@ import {
   listAreaParents,
   listAreasByCodes,
   listAreasByGroup,
+  listAreasByGroups,
   listAreasByType,
   listDisplayGroups,
   searchAreas,
@@ -351,6 +352,24 @@ describe('listAreasByGroup', () => {
     expect((await listAreasByGroup(db, 'Statistical regions', 2)).map(({ name }) => name)).toEqual([
       'East Midlands',
       'East of England',
+    ]);
+  });
+});
+
+describe('listAreasByGroups', () => {
+  it('limits each display group independently and keeps requested order', async () => {
+    expect(
+      await listAreasByGroups(db, ['Statistical regions', 'No Such Level', 'NHS regions'], 2),
+    ).toEqual([
+      {
+        displayGroup: 'Statistical regions',
+        areas: await listAreasByGroup(db, 'Statistical regions', 2),
+      },
+      { displayGroup: 'No Such Level', areas: [] },
+      {
+        displayGroup: 'NHS regions',
+        areas: await listAreasByGroup(db, 'NHS regions', 2),
+      },
     ]);
   });
 });

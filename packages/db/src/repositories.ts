@@ -5,6 +5,7 @@ import {
   listAreaParents,
   listAreasByCodes,
   listAreasByGroup,
+  listAreasByGroups,
   listAreasByType,
   listDisplayGroups,
   searchAreas,
@@ -48,6 +49,10 @@ export interface AreaRepository {
   listByType(areaTypeName: string): Promise<AreaSummary[]>;
   listDisplayGroups(): Promise<string[]>;
   listByGroup(displayGroup: string, limit?: number): Promise<AreaSummary[]>;
+  listByGroups(
+    displayGroups: string[],
+    limit?: number,
+  ): Promise<{ displayGroup: string; areas: AreaSummary[] }[]>;
   listByCodes(codes: string[]): Promise<AreaLookup[]>;
   search(query: string, limit: number): Promise<AreaLookup[]>;
   listParents(childCodes: string[], parentTypeName: string): Promise<AreaParent[]>;
@@ -75,6 +80,7 @@ export function createRepositories(db: Database): Repositories {
       listByType: (areaTypeName) => listAreasByType(db, areaTypeName),
       listDisplayGroups: () => listDisplayGroups(db),
       listByGroup: (displayGroup, limit) => listAreasByGroup(db, displayGroup, limit),
+      listByGroups: (displayGroups, limit) => listAreasByGroups(db, displayGroups, limit),
       listByCodes: (codes) => listAreasByCodes(db, codes),
       search: (query, limit) => searchAreas(db, query, limit),
       listParents: (childCodes, parentTypeName) => listAreaParents(db, childCodes, parentTypeName),
