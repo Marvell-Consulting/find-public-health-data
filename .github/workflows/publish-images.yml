@@ -16,15 +16,6 @@ concurrency:
   group: publish-images
   cancel-in-progress: false
 
-# Repo-prefixed so a generic name like `operations` isn't loose in the organisation namespace;
-# lowercase because image references must be. The packages are linked to this repository and
-# inherit its permissions because their first push comes from this workflow's token — the
-# prefix alone does nothing. They are public, so deployments pull anonymously, but GHCR
-# creates each package private: a new one must be flipped to public by hand before anything
-# can pull it.
-env:
-  REGISTRY: ghcr.io/marvell-consulting/find-public-health-data
-
 jobs:
   publish:
     name: Publish ${{ matrix.app }}
@@ -54,6 +45,16 @@ jobs:
           - app: operations
             target: operations
     steps:
+      # Derived from the run so the workflow publishes under whichever repository it is in.
+      # Repo-prefixed so a generic name like `operations` isn't loose in the organisation
+      # namespace; lowercased because image references must be and an owner or repository name
+      # need not be. The packages are linked to that repository and inherit its permissions
+      # because their first push comes from this workflow's token — the prefix alone does
+      # nothing. They are public, so deployments pull anonymously, but GHCR creates each package
+      # private: a new one must be flipped to public by hand before anything can pull it.
+      - name: Derive the registry from this repository
+        run: echo "REGISTRY=ghcr.io/${GITHUB_REPOSITORY,,}" >> "${GITHUB_ENV}"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
