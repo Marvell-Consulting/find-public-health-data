@@ -25,7 +25,9 @@ describe('GeographyTree', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Expand Local authorities' }));
 
-    expect(screen.getByText('Loading Local authorities…').getAttribute('role')).toBe('status');
+    const loading = screen.getByText('Loading Local authorities…');
+    expect(loading.getAttribute('role')).toBe('status');
+    expect(loading.className).toContain('govuk-visually-hidden');
   });
 
   it('keeps the tree visible while a search is pending', () => {

@@ -67,7 +67,9 @@ export function GeographyTree({
     ),
   );
   const [searchGroups, setSearchGroups] = useState(fallback?.groups ?? []);
-  const [hasSearchResults, setHasSearchResults] = useState(Boolean(fallback?.query.trim()));
+  const [completedQuery, setCompletedQuery] = useState<string | null>(
+    fallback?.query.trim() && !fallback.error ? fallback.query.trim() : null,
+  );
   const [searchStatus, setSearchStatus] = useState<'idle' | 'loading' | 'error'>(
     fallback?.error ? 'error' : 'idle',
   );
@@ -84,7 +86,7 @@ export function GeographyTree({
     clearTimeout(searchTimer.current);
     if (!searching) {
       setSearchGroups([]);
-      setHasSearchResults(false);
+      setCompletedQuery(null);
       setSearchStatus('idle');
       return;
     }
@@ -99,7 +101,7 @@ export function GeographyTree({
         .then(({ groups }: { groups: { name: string; areas: GeographyArea[] }[] }) => {
           if (!controller.signal.aborted) {
             setSearchGroups(groups);
-            setHasSearchResults(true);
+            setCompletedQuery(query.trim());
             setSearchStatus('idle');
           }
         })
@@ -175,7 +177,10 @@ export function GeographyTree({
     name: level,
     areas: Array.isArray(loaded[level]) ? (loaded[level] as GeographyArea[]) : [],
   }));
-  const showingSearchResults = searching && hasSearchResults;
+  const showingSearchResults =
+    searching &&
+    completedQuery !== null &&
+    (searchGroups.length > 0 || (completedQuery === query.trim() && searchStatus === 'idle'));
   const groups = showingSearchResults ? searchGroups : browseGroups;
   const shownFor = (group: { name: string; areas: GeographyArea[] }) =>
     // Ticked areas stay rendered past the cap, so their state remains visible.
@@ -226,7 +231,7 @@ export function GeographyTree({
             {searchStatus === 'error' ? (
               <p className="govuk-body-s">Geography search is not working right now. Try again.</p>
             ) : null}
-            {searching && searchStatus === 'idle' && searchGroups.length === 0 ? (
+            {showingSearchResults && searchGroups.length === 0 ? (
               <p className="govuk-body-s">
                 No geographies found. Try a different name or area code.
               </p>
@@ -304,7 +309,7 @@ export function GeographyTree({
                 {isOpen ? (
                   <div className="fphd-geo-alt__children">
                     {isLoading ? (
-                      <p className="govuk-body-s" role="status">
+                      <p className="govuk-visually-hidden" role="status">
                         Loading {group.name}…
                       </p>
                     ) : (
