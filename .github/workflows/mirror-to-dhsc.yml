@@ -1,0 +1,45 @@
+name: Mirror to DHSC
+
+# Keeps the DHSC repository's main a copy of this one's while development happens here.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never cancels: two quick merges must queue rather than race, or the mirror can end up
+# pointing at the older of the two.
+concurrency:
+  group: mirror-to-dhsc
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    name: Mirror main
+    # Inert in the mirror, which receives this file along with everything else.
+    if: github.repository == 'Marvell-Consulting/find-public-health-data'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # main whichever branch a manual run was started from, with the whole history the
+          # push needs. The mirror token below is the only credential; this run's is not it.
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      # The token goes in a header on the one command rather than in the remote URL, which git
+      # echoes back in its own output; the encoded form is masked because only the raw secret is
+      # masked for us. No `--force`: a rejected push means someone has committed to the mirror
+      # directly, and failing says so where erasing it would not. No tags — there are none.
+      - name: Push main to the DHSC repository
+        env:
+          DHSC_MIRROR_TOKEN: ${{ secrets.DHSC_MIRROR_TOKEN }}
+        run: |
+          header=$(printf 'x-access-token:%s' "${DHSC_MIRROR_TOKEN}" | base64 | tr -d '\n')
+          echo "::add-mask::${header}"
+          git -c "http.extraheader=Authorization: Basic ${header}" \
+            push https://github.com/dhsc-govuk/find-public-health-data.git HEAD:refs/heads/main
