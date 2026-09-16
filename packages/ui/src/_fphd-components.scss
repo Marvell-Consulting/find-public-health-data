@@ -391,6 +391,7 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
   position: relative;
   max-height: 320px;
   overflow-y: auto;
+  overflow-anchor: none;
   border: 1px solid govuk-colour("black", $variant: "tint-80");
   padding: govuk-spacing(2);
   margin-bottom: govuk-spacing(3);

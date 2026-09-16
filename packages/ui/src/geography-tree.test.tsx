@@ -12,7 +12,7 @@ afterEach(() => {
 describe('GeographyTree', () => {
   it('announces a level while its areas load', () => {
     vi.stubGlobal('fetch', () => new Promise(() => undefined));
-    render(
+    const { container } = render(
       <GeographyTree
         levels={['Local authorities']}
         name="areas"
@@ -23,11 +23,12 @@ describe('GeographyTree', () => {
       />,
     );
 
+    const status = container.querySelector('p[aria-live="polite"]');
+    expect(status?.textContent).toBe('');
     fireEvent.click(screen.getByRole('button', { name: 'Expand Local authorities' }));
 
-    const loading = screen.getByText('Loading Local authorities…');
-    expect(loading.getAttribute('role')).toBe('status');
-    expect(loading.className).toContain('govuk-visually-hidden');
+    expect(status?.textContent).toBe('Loading Local authorities…');
+    expect(status?.className).toContain('govuk-visually-hidden');
   });
 
   it('keeps the tree visible while a search is pending', () => {

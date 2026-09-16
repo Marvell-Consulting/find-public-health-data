@@ -79,6 +79,7 @@ export function GeographyTree({
   const [retry, setRetry] = useState(0);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const levelRequests = useRef(new Map<string, AbortController>());
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   const searching = query.trim() !== '';
 
@@ -122,6 +123,10 @@ export function GeographyTree({
     },
     [],
   );
+
+  useEffect(() => {
+    if (searchStatus === 'error' && resultsRef.current) resultsRef.current.scrollTop = 0;
+  }, [searchStatus]);
 
   const toggleExpanded = (level: string) => {
     setExpanded((current) =>
@@ -223,7 +228,7 @@ export function GeographyTree({
       ) : null}
       <fieldset className="fphd-geo-alt">
         <legend className="govuk-visually-hidden">Geographies grouped by level</legend>
-        <div className="fphd-geo-alt__tree">
+        <div className="fphd-geo-alt__tree" ref={resultsRef}>
           <div role="status">
             {searchStatus === 'loading' ? (
               <p className="govuk-visually-hidden">Finding geographies…</p>
@@ -306,13 +311,12 @@ export function GeographyTree({
                   </p>
                 ) : null}
 
+                <p aria-live="polite" className="govuk-visually-hidden">
+                  {isLoading ? `Loading ${group.name}…` : ''}
+                </p>
                 {isOpen ? (
                   <div className="fphd-geo-alt__children">
-                    {isLoading ? (
-                      <p className="govuk-visually-hidden" role="status">
-                        Loading {group.name}…
-                      </p>
-                    ) : (
+                    {isLoading ? null : (
                       <>
                         <Checkboxes
                           id={`${groupId}-areas`}

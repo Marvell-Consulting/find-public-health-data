@@ -56,12 +56,11 @@ export function GeographyPicker({
       <Button
         className={buttonClassName}
         data-empty={changes === 0 ? '' : undefined}
-        onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+        onClick={() => {
           if (changes === 0) return;
-          event.preventDefault();
           onApply(pending);
         }}
-        type="submit"
+        type={changes === 0 ? 'submit' : 'button'}
       >
         {removed > 0 ? 'Update' : 'Add'} selected geographies
         {changes > 0 ? ` (${changes})` : ''}
