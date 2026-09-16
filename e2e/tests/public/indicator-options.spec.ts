@@ -30,10 +30,17 @@ test('option-only indicator-page changes preserve transient filter state', async
   await quicksearch.fill('diabet');
 
   await page.getByRole('tab', { name: 'Table' }).click();
+  await expect(page).toHaveURL(/tab-108=table/);
 
   await expect(quicksearch).toHaveValue('diabet');
   await expect(geography.getByRole('button', { name: 'Collapse Local authorities' })).toBeVisible();
   await expectNoAccessibilityViolations(page, testInfo);
+
+  await geography.getByRole('checkbox', { name: 'County Durham' }).check();
+  await page.getByRole('button', { name: 'Add selected geographies (1)' }).click();
+  await expect(page).toHaveURL(/as=E06000047/);
+  await expect(quicksearch).toHaveValue('');
+  await expect(geography.getByRole('button', { name: 'Expand Local authorities' })).toBeVisible();
 });
 
 for (const javaScriptEnabled of [true, false]) {
