@@ -37,6 +37,8 @@ export default [
         'dashboard/indicators/:id',
         '../../../packages/internal-web-features/src/indicator-overview/route.tsx',
       ),
+    ]),
+    layout('./admin.tsx', [
       route('manage', './manage.tsx'),
       route(
         'manage/topics',

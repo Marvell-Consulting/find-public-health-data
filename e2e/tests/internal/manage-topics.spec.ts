@@ -24,7 +24,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('the topic list', () => {
-  test('lists topics for a publisher', async ({ page }) => {
+  test('lists topics for an admin', async ({ page }) => {
     await page.goto('/manage/topics');
     await expect(page.getByRole('heading', { level: 1, name: 'Manage topics' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Alcohol', exact: true })).toBeVisible();

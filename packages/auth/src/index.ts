@@ -20,16 +20,16 @@ export const fakeUsers: readonly FakeUser[] = Object.freeze([
     roles: Object.freeze(['public']),
   }),
   Object.freeze({
-    description: 'Can view the internal service',
-    id: 'internal-viewer',
+    description: 'Can manage indicators in the internal service',
+    id: 'internal-publisher',
     name: 'Sam Taylor',
-    roles: Object.freeze(['public', 'internal']),
+    roles: Object.freeze(['public', 'internal', 'publisher']),
   }),
   Object.freeze({
-    description: 'Can manage data in the internal service',
-    id: 'internal-publisher',
+    description: 'Can manage indicators and administer the internal service',
+    id: 'internal-admin',
     name: 'Riley Singh',
-    roles: Object.freeze(['public', 'internal', 'publisher']),
+    roles: Object.freeze(['public', 'internal', 'publisher', 'admin']),
   }),
 ]);
 
@@ -59,7 +59,8 @@ export function normalizeReturnTo(value: unknown, fallback = '/'): string {
   const base = new URL('https://local.invalid');
   const target = new URL(value, base);
 
-  if (target.origin !== base.origin) return fallback;
+  // Dot segments can collapse a local path into a protocol-relative URL: '/..//evil.com'.
+  if (target.origin !== base.origin || target.pathname.startsWith('//')) return fallback;
 
   return `${target.pathname}${target.search}${target.hash}`;
 }

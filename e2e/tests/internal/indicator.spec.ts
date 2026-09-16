@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/indicators/108');
 });
 
-test('shows an indicator to a viewer', async ({ page }) => {
+test('shows an indicator to a publisher', async ({ page }) => {
   await expect(
     page.getByRole('heading', { level: 1, name: 'Under 75 mortality rate from all causes' }),
   ).toBeVisible();

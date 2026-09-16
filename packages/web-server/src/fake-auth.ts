@@ -19,6 +19,8 @@ export interface FakeAuthRouterOptions {
   clock?: () => Date;
   codeLifetimeSeconds?: number;
   defaultReturnTo?: string;
+  /** Whether a return address is one of the app's pages; anything else falls back to the default. */
+  isPagePath: (path: string) => boolean | Promise<boolean>;
   session: JwtSessionService;
   sessionLifetimeSeconds?: number;
   users: readonly FakeUser[];
@@ -40,6 +42,7 @@ export function createFakeAuthRouter({
   clock = () => new Date(),
   codeLifetimeSeconds = 300,
   defaultReturnTo = '/',
+  isPagePath,
   session,
   sessionLifetimeSeconds = 8 * 60 * 60,
   users,
@@ -50,7 +53,13 @@ export function createFakeAuthRouter({
   // React Router action's `request.formData()` empty.
   const parseForm = express.urlencoded({ extended: false });
 
-  router.post('/auth/sign-in', parseForm, (request, response) => {
+  async function returnToFrom(body: unknown, fallback: string): Promise<string> {
+    const returnTo = normalizeReturnTo(readStringField(body, 'returnTo'), fallback);
+
+    return (await isPagePath(returnTo)) ? returnTo : fallback;
+  }
+
+  router.post('/auth/sign-in', parseForm, async (request, response) => {
     const userId = readStringField(request.body, 'userId');
     const user = users.find((candidate) => candidate.id === userId);
 
@@ -67,7 +76,7 @@ export function createFakeAuthRouter({
     const code = uuidv7();
     pendingSignIns.set(code, {
       expiresAt: now + codeLifetimeSeconds * 1_000,
-      returnTo: normalizeReturnTo(readStringField(request.body, 'returnTo'), defaultReturnTo),
+      returnTo: await returnToFrom(request.body, defaultReturnTo),
       user,
     });
 
@@ -95,12 +104,9 @@ export function createFakeAuthRouter({
     response.redirect(303, signIn.returnTo);
   });
 
-  router.post('/auth/sign-out', parseForm, (request, response) => {
+  router.post('/auth/sign-out', parseForm, async (request, response) => {
     response.setHeader('Set-Cookie', session.clearCookieHeader());
-    response.redirect(
-      303,
-      normalizeReturnTo(readStringField(request.body, 'returnTo'), '/sign-in'),
-    );
+    response.redirect(303, await returnToFrom(request.body, defaultReturnTo));
   });
 
   return router;

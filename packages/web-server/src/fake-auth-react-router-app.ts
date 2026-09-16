@@ -9,6 +9,7 @@ import type { Request } from 'express';
 import type { RouterContextProvider } from 'react-router';
 
 import { createFakeAuthRouter } from './fake-auth.js';
+import { createPagePathCheck } from './page-paths.js';
 import { createReactRouterApp, type ReactRouterBuildLoader } from './react-router-app.js';
 
 interface FakeAuthReactRouterAppOptions {
@@ -33,6 +34,8 @@ export function createFakeAuthReactRouterApp(
     backendMiddleware: [
       createFakeAuthRouter({
         audience,
+        // Per call rather than once: in development the build is reloaded as routes change.
+        isPagePath: async (path) => createPagePathCheck(await loadBuild())(path),
         session: sessionService,
         users: fakeUsersForAudience(audience),
       }),

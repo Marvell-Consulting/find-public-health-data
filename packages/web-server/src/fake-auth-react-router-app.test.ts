@@ -13,16 +13,15 @@ function requireHeader(value: string | undefined, name: string): string {
 
 describe('fake-auth React Router application', () => {
   it('issues audience-scoped sessions and prevents personalized responses being cached', async () => {
-    const app = createFakeAuthReactRouterApp(
-      async () => {
-        throw new Error('React Router handler should not run for authentication routes');
-      },
-      {
-        audience: 'public',
-        session: { secret, secure: false },
-        trustedProxyHops: 2,
-      },
-    );
+    // Only the route table is read, to vet the return address; no route ever renders here.
+    const build = {
+      routes: { root: { id: 'root', path: '', module: { default: () => null } } },
+    } as unknown as Awaited<ReturnType<Parameters<typeof createFakeAuthReactRouterApp>[0]>>;
+    const app = createFakeAuthReactRouterApp(async () => build, {
+      audience: 'public',
+      session: { secret, secure: false },
+      trustedProxyHops: 2,
+    });
     const session = createJwtSessionService({
       audience: 'fphd-public',
       cookieName: 'fphd-public-session',

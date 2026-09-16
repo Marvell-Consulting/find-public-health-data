@@ -1,10 +1,63 @@
 import { expect, test } from '@playwright/test';
 
-import { signInAs } from '../support/sign-in.js';
+import { expectNoAccessibilityViolations } from '../support/accessibility.js';
+import { signInAs, submitSignIn } from '../support/sign-in.js';
+
+test.describe('signed out', () => {
+  test('offers to sign in to manage indicators', async ({ page }) => {
+    await page.goto('/');
+
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Sign in to manage indicators' }),
+    ).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Menu' }).getByRole('link')).toHaveText([
+      'Sign in',
+    ]);
+
+    await page.getByRole('button', { name: 'Sign in' }).click();
+
+    await expect(page).toHaveURL('/sign-in');
+    await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
+  });
+
+  test('lands a visitor here from the page they wanted, and returns them to it once signed in', async ({
+    page,
+  }) => {
+    await page.goto('/dashboard');
+    await expect(page).toHaveURL('/?returnTo=%2Fdashboard');
+
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await expect(page).toHaveURL('/sign-in?returnTo=%2Fdashboard');
+
+    await submitSignIn(page, 'Sam Taylor');
+
+    await expect(page).toHaveURL('/dashboard');
+    await expect(page.getByRole('heading', { level: 1, name: 'Indicators' })).toBeVisible();
+  });
+
+  // A click is a client-side navigation, which asks the server for the page's data rather than
+  // the page; the return address must still be the page.
+  test('returns a visitor to the page they clicked through to', async ({ page }) => {
+    await page.goto('/sign-in');
+    await page.getByRole('link', { name: 'Find public health data' }).click();
+    await expect(page).toHaveURL('/?returnTo=%2Fdashboard');
+
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await submitSignIn(page, 'Sam Taylor');
+
+    await expect(page).toHaveURL('/dashboard');
+    await expect(page.getByRole('heading', { level: 1, name: 'Indicators' })).toBeVisible();
+  });
+
+  test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
+    await page.goto('/');
+    await expectNoAccessibilityViolations(page, testInfo);
+  });
+});
 
 test.describe('as a publisher', () => {
   test.beforeEach(async ({ page }) => {
-    await signInAs(page, 'Riley Singh');
+    await signInAs(page, 'Sam Taylor');
     await page.goto('/');
   });
 
@@ -14,7 +67,7 @@ test.describe('as a publisher', () => {
   });
 
   test('links the service name straight to the dashboard', async ({ page }) => {
-    await page.goto('/manage');
+    await page.goto('/search');
     const serviceLink = page.getByRole('link', { name: 'Find public health data' });
 
     await expect(serviceLink).toHaveAttribute('href', '/dashboard');
@@ -23,7 +76,24 @@ test.describe('as a publisher', () => {
     await expect(page).toHaveURL('/dashboard');
   });
 
-  test('offers the internal navigation', async ({ page }) => {
+  test('hides the manage link', async ({ page }) => {
+    const navigation = page.getByRole('navigation', { name: 'Menu' });
+
+    await expect(navigation.getByRole('link')).toHaveText(['Account']);
+  });
+});
+
+test.describe('as an admin', () => {
+  test.beforeEach(async ({ page }) => {
+    await signInAs(page, 'Riley Singh');
+    await page.goto('/');
+  });
+
+  test('lands on the dashboard', async ({ page }) => {
+    await expect(page).toHaveURL('/dashboard');
+  });
+
+  test('offers the manage link as well', async ({ page }) => {
     const navigation = page.getByRole('navigation', { name: 'Menu' });
 
     await expect(navigation.getByRole('link')).toHaveText(['Manage', 'Account']);
@@ -35,27 +105,4 @@ test.describe('as a publisher', () => {
       page.getByRole('heading', { level: 1, name: 'Manage public health data' }),
     ).toBeVisible();
   });
-});
-
-test.describe('as a viewer', () => {
-  test.beforeEach(async ({ page }) => {
-    await signInAs(page, 'Sam Taylor');
-    await page.goto('/');
-  });
-
-  test('is turned away from the dashboard', async ({ page }) => {
-    await expect(page).toHaveURL('/access-denied');
-  });
-
-  test('hides the manage link', async ({ page }) => {
-    const navigation = page.getByRole('navigation', { name: 'Menu' });
-
-    await expect(navigation.getByRole('link')).toHaveText(['Account']);
-  });
-});
-
-test('sends a visitor without a session on to sign in for the dashboard', async ({ page }) => {
-  await page.goto('/');
-
-  await expect(page).toHaveURL('/sign-in?returnTo=%2Fdashboard');
 });

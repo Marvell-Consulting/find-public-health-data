@@ -99,16 +99,16 @@ describe('internal API', () => {
     const asPublisher = await request(app)
       .get('/api/internal/indicators')
       .set('Cookie', await createCookie(['public', 'internal', 'publisher']));
-    const asViewer = await request(app)
+    const asInternal = await request(app)
       .get('/api/internal/indicators')
       .set('Cookie', await createCookie(['public', 'internal']));
 
     expect(asPublisher.status).toBe(200);
     expect(asPublisher.body).toEqual({ indicators: [], page: 1, pageSize: 10, total: 0 });
-    expect(asViewer.status).toBe(403);
+    expect(asInternal.status).toBe(403);
   });
 
-  it('mounts the internal topics surface behind the publisher role', async () => {
+  it('mounts the internal topics surface behind the admin role', async () => {
     const internalRepositories = createFakeInternalRepositories({
       topics: {
         list: async () => [
@@ -125,16 +125,16 @@ describe('internal API', () => {
     });
     const app = createTestApp(createFakeRepositories(), internalRepositories);
 
+    const asAdmin = await request(app)
+      .get('/api/internal/topics')
+      .set('Cookie', await createCookie(['public', 'internal', 'publisher', 'admin']));
     const asPublisher = await request(app)
       .get('/api/internal/topics')
       .set('Cookie', await createCookie(['public', 'internal', 'publisher']));
-    const asViewer = await request(app)
-      .get('/api/internal/topics')
-      .set('Cookie', await createCookie(['public', 'internal']));
 
-    expect(asPublisher.status).toBe(200);
-    expect(asPublisher.body[0]).toMatchObject({ id: '00000000-0000-7000-8000-000000000001' });
-    expect(asViewer.status).toBe(403);
+    expect(asAdmin.status).toBe(200);
+    expect(asAdmin.body[0]).toMatchObject({ id: '00000000-0000-7000-8000-000000000001' });
+    expect(asPublisher.status).toBe(403);
   });
 
   it('serves the public topics surface without a session', async () => {

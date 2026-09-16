@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/indicators');
 });
 
-test('shows the indicator selection to a viewer', async ({ page }) => {
+test('shows the indicator selection to a publisher', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: 'Selected indicators' })).toBeVisible();
 });
 

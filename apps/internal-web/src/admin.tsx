@@ -1,16 +1,16 @@
 import { createRequireSessionRoleMiddleware } from '@fphd/web-server/session';
 import { href, Outlet } from 'react-router';
 
-import type { Route } from './+types/publisher';
+import type { Route } from './+types/admin';
 
 export const middleware: Route.MiddlewareFunction[] = [
   createRequireSessionRoleMiddleware({
     forbiddenPath: href('/access-denied'),
-    role: 'publisher',
+    role: 'admin',
     signInPath: href('/'),
   }),
 ];
 
-export default function PublisherRoutes() {
+export default function AdminRoutes() {
   return <Outlet />;
 }

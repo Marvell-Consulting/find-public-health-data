@@ -1,11 +1,9 @@
 // @vitest-environment jsdom
-import { fakeUsersForAudience } from '@fphd/auth';
 import {
   HomeRoute,
   IndicatorRoute,
   PublicHomePage,
   SearchRoute,
-  SignInPage,
   TopicRoute,
   TopicsRoute,
 } from '@fphd/public-web-features';
@@ -26,7 +24,6 @@ describe('public application routes', () => {
       {
         path: '/',
         Component: PublicApp,
-        loader: () => ({ signedIn: false }),
         children: [{ index: true, Component: HomeRoute }],
       },
     ]);
@@ -41,35 +38,9 @@ describe('public application routes', () => {
       '/topics',
     );
     expect(screen.getByRole('link', { name: 'Topics' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Sign in' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Skip to main content' })).toBeTruthy();
     expect(screen.getByText('Alpha')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'GOV.UK' })).toBeTruthy();
-  });
-
-  it('offers all fake users on the public sign-in page', () => {
-    render(<SignInPage audience="public" returnTo="/" users={fakeUsersForAudience('public')} />);
-
-    expect(screen.getAllByRole('radio')).toHaveLength(3);
-    expect(screen.getByRole('button', { name: 'Sign in' })).toBeTruthy();
-  });
-
-  it('links to the account when a user is signed in', async () => {
-    const Routes = createRoutesStub([
-      {
-        path: '/',
-        Component: PublicApp,
-        loader: () => ({ signedIn: true }),
-        children: [{ index: true, Component: HomeRoute }],
-      },
-    ]);
-
-    render(<Routes initialEntries={['/']} />);
-
-    expect((await screen.findByRole('link', { name: 'Account' })).getAttribute('href')).toBe(
-      '/sign-in',
-    );
-    expect(screen.queryByRole('link', { name: 'Sign in' })).toBeNull();
   });
 
   it('renders the topics page as an alphabetical list of links from loader data', async () => {
@@ -83,7 +54,6 @@ describe('public application routes', () => {
       {
         path: '/',
         Component: PublicApp,
-        loader: () => ({ signedIn: false }),
         children: [{ path: 'topics', Component: TopicsRoute, loader: () => topics }],
       },
     ]);
@@ -114,7 +84,6 @@ describe('public application routes', () => {
       {
         path: '/',
         Component: PublicApp,
-        loader: () => ({ signedIn: false }),
         children: [{ path: 'topics/:slug', Component: TopicRoute, loader: () => topic }],
       },
     ]);
@@ -208,7 +177,6 @@ describe('public application routes', () => {
       {
         path: '/',
         Component: PublicApp,
-        loader: () => ({ signedIn: false }),
         children: [
           {
             path: 'indicators/:fingertipsId',
@@ -349,7 +317,6 @@ describe('public application routes', () => {
       {
         path: '/',
         Component: PublicApp,
-        loader: () => ({ signedIn: false }),
         children: [{ path: 'indicators', Component: IndicatorRoute, loader: () => loaderData }],
       },
     ]);
@@ -449,7 +416,6 @@ describe('public application routes', () => {
       {
         path: '/',
         Component: PublicApp,
-        loader: () => ({ signedIn: false }),
         children: [
           {
             path: 'indicators/:fingertipsId',
@@ -528,7 +494,6 @@ describe('public application routes', () => {
         {
           path: '/',
           Component: PublicApp,
-          loader: () => ({ signedIn: false }),
           children: [{ path: 'indicators', Component: IndicatorRoute, loader: () => loaderData }],
         },
       ]);
@@ -573,7 +538,6 @@ describe('public application routes', () => {
       {
         path: '/',
         Component: PublicApp,
-        loader: () => ({ signedIn: false }),
         children: [
           {
             path: 'indicators',
@@ -612,7 +576,6 @@ describe('public application routes', () => {
       {
         path: '/',
         Component: PublicApp,
-        loader: () => ({ signedIn: false }),
         children: [
           {
             path: 'indicators',
@@ -703,7 +666,6 @@ describe('public application routes', () => {
       {
         path: '/',
         Component: PublicApp,
-        loader: () => ({ signedIn: false }),
         children: [
           {
             path: 'indicators/:fingertipsId',
@@ -810,7 +772,6 @@ describe('public application routes', () => {
       {
         path: '/',
         Component: PublicApp,
-        loader: () => ({ signedIn: false }),
         children: [
           {
             path: 'indicators/:fingertipsId',
@@ -892,7 +853,6 @@ describe('public application routes', () => {
         path: '/',
         Component: PublicApp,
         ErrorBoundary,
-        loader: () => ({ signedIn: false }),
         children: [
           {
             path: 'indicators/:fingertipsId',
@@ -916,7 +876,6 @@ describe('public application routes', () => {
         path: '/',
         Component: PublicApp,
         ErrorBoundary,
-        loader: () => ({ signedIn: false }),
         children: [
           {
             path: 'topics/:slug',
@@ -939,7 +898,6 @@ describe('public application routes', () => {
       {
         path: '/',
         Component: PublicApp,
-        loader: () => ({ signedIn: false }),
         children: [{ index: true, Component: PublicHomePage }],
       },
     ]);
@@ -955,7 +913,6 @@ describe('public application routes', () => {
       {
         path: '/',
         Component: PublicApp,
-        loader: () => ({ signedIn: false }),
         children: [{ index: true, Component: PublicHomePage }],
       },
     ]);
@@ -997,7 +954,6 @@ describe('public application routes', () => {
       {
         path: '/',
         Component: PublicApp,
-        loader: () => ({ signedIn: false }),
         children: [
           {
             path: 'search',
@@ -1019,7 +975,6 @@ describe('public application routes', () => {
       {
         path: '/',
         Component: PublicApp,
-        loader: () => ({ signedIn: false }),
         children: [
           {
             path: 'search',
@@ -1058,7 +1013,6 @@ describe('public application routes', () => {
       {
         path: '/',
         Component: PublicApp,
-        loader: () => ({ signedIn: false }),
         children: [
           {
             path: 'search',
@@ -1081,7 +1035,6 @@ describe('public application routes', () => {
       {
         path: '/',
         Component: PublicApp,
-        loader: () => ({ signedIn: false }),
         children: [
           {
             path: 'search',
@@ -1104,7 +1057,6 @@ describe('public application routes', () => {
       {
         path: '/',
         Component: PublicApp,
-        loader: () => ({ signedIn: false }),
         children: [
           {
             path: 'search',
@@ -1132,7 +1084,6 @@ describe('public application routes', () => {
       {
         path: '/',
         Component: PublicApp,
-        loader: () => ({ signedIn: false }),
         children: [
           {
             path: 'search',
@@ -1170,7 +1121,6 @@ describe('public application routes', () => {
       {
         path: '/',
         Component: PublicApp,
-        loader: () => ({ signedIn: false }),
         children: [
           {
             path: 'search',

@@ -6,6 +6,7 @@ import {
   EditTopicPage,
   ManageDataPage,
   NewTopicPage,
+  SignInLandingPage,
 } from '@fphd/internal-web-features';
 import { SignInPage, TopicsRoute } from '@fphd/public-web-features';
 import type { RouteConfigEntry } from '@react-router/dev/routes';
@@ -14,7 +15,6 @@ import type { ReactNode } from 'react';
 import { createRoutesStub } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { loader as homeLoader } from './home';
 import InternalApp from './root';
 import routes from './routes';
 
@@ -22,20 +22,17 @@ afterEach(cleanup);
 
 const topics = [{ slug: 'topic-a', title: 'Topic A', description: 'All about topic A.' }];
 
+const signedOut = { canManage: false, signedIn: false };
+const publisher = { canManage: false, signedIn: true };
+const admin = { canManage: true, signedIn: true };
+
 describe('internal application routes', () => {
-  it('sends the root to the dashboard', () => {
-    const response = homeLoader();
-
-    expect(response.status).toBe(302);
-    expect(response.headers.get('Location')).toBe('/dashboard');
-  });
-
   it('includes the shared public routes', async () => {
     const Routes = createRoutesStub([
       {
         path: '/',
         Component: InternalApp,
-        loader: () => ({ canManage: false }),
+        loader: () => publisher,
         children: [{ path: 'topics', Component: TopicsRoute, loader: () => topics }],
       },
     ]);
@@ -50,7 +47,7 @@ describe('internal application routes', () => {
       {
         path: '/',
         Component: InternalApp,
-        loader: () => ({ canManage: true }),
+        loader: () => admin,
         children: [{ path: 'manage', Component: ManageDataPage }],
       },
     ]);
@@ -76,12 +73,12 @@ describe('internal application routes', () => {
     expect(screen.getByText('Riley Singh')).toBeTruthy();
   });
 
-  it('hides data management from internal viewers', async () => {
+  it('hides data management from publishers', async () => {
     const Routes = createRoutesStub([
       {
         path: '/',
         Component: InternalApp,
-        loader: () => ({ canManage: false }),
+        loader: () => publisher,
         children: [{ path: 'topics', Component: TopicsRoute, loader: () => topics }],
       },
     ]);
@@ -90,14 +87,15 @@ describe('internal application routes', () => {
 
     expect(await screen.findByRole('heading', { name: 'Public health topics' })).toBeTruthy();
     expect(screen.queryByRole('link', { name: 'Manage' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Account' })).toBeTruthy();
   });
 
-  it('shows data management to internal publishers', async () => {
+  it('shows data management to admins', async () => {
     const Routes = createRoutesStub([
       {
         path: '/',
         Component: InternalApp,
-        loader: () => ({ canManage: true }),
+        loader: () => admin,
         children: [{ path: 'topics', Component: TopicsRoute, loader: () => topics }],
       },
     ]);
@@ -106,9 +104,26 @@ describe('internal application routes', () => {
 
     expect(await screen.findByRole('link', { name: 'Manage' })).toBeTruthy();
   });
+
+  it('offers a signed-out visitor sign in rather than an account', async () => {
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: InternalApp,
+        loader: () => signedOut,
+        children: [{ path: '/', Component: () => <SignInLandingPage signInHref="/sign-in" /> }],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/']} />);
+
+    expect(await screen.findByRole('link', { name: 'Sign in' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Account' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Manage' })).toBeNull();
+  });
 });
 
-describe('the publisher route table', () => {
+describe('the role-gated route tables', () => {
   function findLayout(entries: RouteConfigEntry[], file: string): RouteConfigEntry | undefined {
     for (const entry of entries) {
       if (entry.file.endsWith(file)) return entry;
@@ -120,14 +135,21 @@ describe('the publisher route table', () => {
     return undefined;
   }
 
-  // The role middleware is declared once, on the layout. If a route escapes it the page is
+  // Each role middleware is declared once, on its layout. If a route escapes it the page is
   // reachable by any internal user, and nothing else in the app would say so.
-  it('keeps every manage route under the publisher layout', () => {
+  it('keeps every dashboard route under the publisher layout', () => {
     const publisher = findLayout(routes, 'publisher.tsx');
 
     expect(publisher?.children?.map((child) => child.path)).toEqual([
       'dashboard',
       'dashboard/indicators/:id',
+    ]);
+  });
+
+  it('keeps every manage route under the admin layout', () => {
+    const admin = findLayout(routes, 'admin.tsx');
+
+    expect(admin?.children?.map((child) => child.path)).toEqual([
       'manage',
       'manage/topics',
       'manage/topics/new',
@@ -136,10 +158,11 @@ describe('the publisher route table', () => {
     ]);
   });
 
-  it('nests the publisher layout inside the authenticated one', () => {
+  it('nests both role layouts inside the authenticated one', () => {
     const authenticated = findLayout(routes, 'authenticated.tsx');
 
     expect(findLayout(authenticated?.children ?? [], 'publisher.tsx')).toBeDefined();
+    expect(findLayout(authenticated?.children ?? [], 'admin.tsx')).toBeDefined();
   });
 });
 

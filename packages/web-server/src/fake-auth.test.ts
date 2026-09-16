@@ -20,6 +20,7 @@ function createTestApp() {
   app.use(
     createFakeAuthRouter({
       audience: 'internal',
+      isPagePath: (path) => !path.startsWith('/auth/'),
       session,
       users: fakeUsersForAudience('internal'),
     }),
@@ -37,7 +38,7 @@ describe('fake authentication backend', () => {
     const app = createTestApp();
     const start = await request(app).post('/auth/sign-in').type('form').send({
       returnTo: '/manage?view=drafts',
-      userId: 'internal-viewer',
+      userId: 'internal-publisher',
     });
 
     expect(start.status).toBe(303);
@@ -52,8 +53,8 @@ describe('fake authentication backend', () => {
     if (token === undefined) throw new Error('Session cookie did not contain a token');
 
     await expect(session.verifyToken(token)).resolves.toMatchObject({
-      roles: ['public', 'internal'],
-      sub: 'internal-viewer',
+      roles: ['public', 'internal', 'publisher'],
+      sub: 'internal-publisher',
     });
     expect((await request(app).get(callbackPath)).status).toBe(400);
   });
@@ -67,11 +68,22 @@ describe('fake authentication backend', () => {
     expect(response.text).toBe('This user cannot access this service.');
   });
 
+  it('ignores a return address that is not one of the pages', async () => {
+    const app = createTestApp();
+    const start = await request(app).post('/auth/sign-in').type('form').send({
+      returnTo: '/auth/sign-out',
+      userId: 'internal-publisher',
+    });
+    const callback = await request(app).get(requireHeader(start.get('Location'), 'Location'));
+
+    expect(callback.get('Location')).toBe('/');
+  });
+
   it('does not redirect to an external return URL', async () => {
     const app = createTestApp();
     const start = await request(app).post('/auth/sign-in').type('form').send({
       returnTo: '//example.com/steal-session',
-      userId: 'internal-viewer',
+      userId: 'internal-publisher',
     });
     const callback = await request(app).get(requireHeader(start.get('Location'), 'Location'));
 
@@ -87,6 +99,14 @@ describe('fake authentication backend', () => {
     expect(response.get('Location')).toBe('/sign-in');
     expect(response.get('Set-Cookie')?.[0]).toContain('Max-Age=0');
   });
+
+  it('sends a sign-out that names no page to the root', async () => {
+    const response = await request(createTestApp()).post('/auth/sign-out').type('form').send({
+      returnTo: '/auth/sign-in',
+    });
+
+    expect(response.get('Location')).toBe('/');
+  });
   // This router sits in front of the whole app, so anything it reads is gone before React
   // Router sees it — and a form action's request.formData() would come back empty.
   it('leaves the body of a request it does not handle for whatever comes next', async () => {
@@ -94,6 +114,7 @@ describe('fake authentication backend', () => {
     app.use(
       createFakeAuthRouter({
         audience: 'internal',
+        isPagePath: () => true,
         session,
         users: fakeUsersForAudience('internal'),
       }),

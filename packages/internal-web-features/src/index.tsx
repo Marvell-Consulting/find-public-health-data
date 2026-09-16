@@ -7,6 +7,7 @@ export { IndicatorOverviewPage } from './indicator-overview/page';
 export { indicatorOverviewPath, publishedIndicatorPath } from './indicator-overview/paths';
 export { IndicatorOverviewRoute } from './indicator-overview/route';
 export { ManageDataPage } from './manage-data/page';
+export { SignInLandingPage } from './sign-in/page';
 export { DeleteTopicRoute } from './topic-admin/delete-route';
 export { EditTopicRoute } from './topic-admin/edit-route';
 export { parseTopicForm, readTopicForm, type TopicFormValues } from './topic-admin/form';

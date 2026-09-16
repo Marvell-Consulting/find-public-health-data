@@ -12,23 +12,28 @@ export const meta = createDocumentMeta();
 export const middleware: Route.MiddlewareFunction[] = [sessionMiddleware, flashMiddleware];
 
 export function loader({ context }: Route.LoaderArgs) {
-  return { canManage: getSession(context)?.roles.includes('publisher') === true };
+  const session = getSession(context);
+
+  return {
+    canManage: session?.roles.includes('admin') === true,
+    signedIn: session !== undefined,
+  };
 }
 
-function navigationFor(canManage: boolean) {
+function navigationFor({ canManage, signedIn }: { canManage: boolean; signedIn: boolean }) {
   return [
     ...(canManage ? [{ href: href('/manage'), text: 'Manage' }] : []),
-    { href: href('/sign-in'), text: 'Account' },
+    { href: href('/sign-in'), text: signedIn ? 'Account' : 'Sign in' },
   ];
 }
 
 export default function InternalApp() {
-  const { canManage } = useLoaderData<typeof loader>();
+  const { canManage, signedIn } = useLoaderData<typeof loader>();
 
   return (
     <AppShell
       audience="Internal"
-      navigation={navigationFor(canManage)}
+      navigation={navigationFor({ canManage, signedIn })}
       serviceHref={href('/dashboard')}
     >
       <Outlet />
@@ -38,11 +43,11 @@ export default function InternalApp() {
 
 export function ErrorBoundary() {
   // The root loader may not have run, or may be what failed, so there is no session to read
-  // here — the error page omits the publisher-only link rather than guessing.
+  // here — the error page shows the signed-out navigation rather than guessing.
   return (
     <RootErrorBoundary
       audience="Internal"
-      navigation={navigationFor(false)}
+      navigation={navigationFor({ canManage: false, signedIn: false })}
       serviceHref={href('/dashboard')}
     />
   );

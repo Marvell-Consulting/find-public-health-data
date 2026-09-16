@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/topics');
 });
 
-test('lists the public health topics to a viewer', async ({ page }) => {
+test('lists the public health topics to a publisher', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: 'Public health topics' })).toBeVisible();
 });
 

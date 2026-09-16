@@ -7,15 +7,15 @@ test.beforeEach(async ({ page }) => {
   await signInAs(page, 'Sam Taylor');
 });
 
-test('turns a viewer away from the manage page', async ({ page }) => {
+test('turns a publisher away from the manage page', async ({ page }) => {
   const response = await page.goto('/manage');
   await expect(page).toHaveURL('/access-denied');
   expect(response?.status()).toBe(403);
   await expect(page.getByRole('heading', { level: 1, name: 'Access denied' })).toBeVisible();
 });
 
-test('turns a viewer away from the publisher pages', async ({ page }) => {
-  for (const path of ['/dashboard', '/manage/topics', '/manage/topics/new']) {
+test('turns a publisher away from the admin pages', async ({ page }) => {
+  for (const path of ['/manage/topics', '/manage/topics/new']) {
     const response = await page.goto(path);
     await expect(page, path).toHaveURL('/access-denied');
     expect(response?.status(), path).toBe(403);
