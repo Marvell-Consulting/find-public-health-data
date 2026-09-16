@@ -60,4 +60,8 @@ export const reactRouterConfig = {
   appDirectory: 'src',
   buildDirectory: 'dist',
   ssr: true,
+  future: {
+    // Hands Vite the client entry and route modules, so a cold dev server pre-bundles their dependencies.
+    unstable_optimizeDeps: true,
+  },
 } satisfies Config;
