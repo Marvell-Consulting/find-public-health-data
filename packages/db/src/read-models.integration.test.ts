@@ -144,17 +144,27 @@ describe('bridge/registry schema', () => {
 
   it('produces the same observation ranges as the migration query', async () => {
     await rebuildReadModels(sql);
-    const migration = readFileSync(
-      new URL('../drizzle/0013_observation-range-read-model.sql', import.meta.url),
-      'utf8',
-    );
-    const insert = migration.split('--> statement-breakpoint')[1];
-    if (!insert) throw new Error('Observation-range migration insert is missing');
+    const journal = JSON.parse(
+      readFileSync(new URL('../drizzle/meta/_journal.json', import.meta.url), 'utf8'),
+    ) as { entries: { tag: string }[] };
+    const insert = journal.entries
+      .slice()
+      .reverse()
+      .flatMap(({ tag }) =>
+        readFileSync(new URL(`../drizzle/${tag}.sql`, import.meta.url), 'utf8').split(
+          '--> statement-breakpoint',
+        ),
+      )
+      .find((statement) => /INSERT INTO ["']?observation_range["']?\s/i.test(statement));
+    if (!insert) throw new Error('No observation-range migration insert found');
 
     await sql.begin(async (tx) => {
       await tx`CREATE TEMP TABLE migration_observation_range (LIKE observation_range INCLUDING ALL) ON COMMIT DROP`;
       await tx.unsafe(
-        insert.replace('INSERT INTO observation_range', 'INSERT INTO migration_observation_range'),
+        insert.replace(
+          /INSERT INTO ["']?observation_range["']?/i,
+          'INSERT INTO migration_observation_range',
+        ),
       );
       const differences = await tx`
         (SELECT * FROM observation_range EXCEPT ALL SELECT * FROM migration_observation_range)
