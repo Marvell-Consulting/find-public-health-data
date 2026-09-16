@@ -8,14 +8,14 @@ import {
 } from '@fphd/ui';
 import { useCallback, useState } from 'react';
 import { Form, Link, useLocation, useNavigate } from 'react-router';
-import type { GeographyOptions } from '../geography/loader';
-import { GeographyPicker } from '../geography/picker';
+import type { GeographyOptions } from '../geography/loader.js';
+import { GeographyPicker } from '../geography/picker.js';
 import type {
   IndicatorSelection,
   IndicatorSummary,
   SelectedArea,
   SelectedIndicator,
-} from './loader';
+} from './loader.js';
 
 // Every selection change lands here, off the deep-link route: with an empty query that
 // route's loader would fall back to the indicator in its address and re-select it.

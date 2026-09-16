@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { type BenchmarkJudgement, benchmarkJudgement, formatCalculatedValue } from '../data';
-import type { IndicatorDetail, IndicatorObservation, IndicatorRangePeriod } from '../loader';
+import { type BenchmarkJudgement, benchmarkJudgement, formatCalculatedValue } from '../data.js';
+import type { IndicatorDetail, IndicatorObservation, IndicatorRangePeriod } from '../loader.js';
 
 // Fingertips' marker colours: RAG significance, BOB sides, an open ring for no comparison.
 const DOT_STYLES: Record<BenchmarkJudgement, { fill: string; stroke?: string }> = {

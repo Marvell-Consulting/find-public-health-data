@@ -1,11 +1,11 @@
 import type { LoaderFunctionArgs } from 'react-router';
 
-import { comparisonTable } from './comparison';
-import { comparisonCsv } from './download';
-import { loadIndicator } from './loader';
+import { comparisonTable } from './comparison.js';
+import { comparisonCsv } from './download.js';
+import { loadComparisonData } from './loader.js';
 
 export async function loader(args: LoaderFunctionArgs) {
-  const { selected, benchmarkGeography } = await loadIndicator(args);
+  const { selected, benchmarkGeography } = await loadComparisonData(args);
   const params = new URL(args.request.url).searchParams;
   const choice = params.get('cmp-compare');
   const benchmark = choice === 'england' || choice === 'region' ? choice : 'none';

@@ -1,6 +1,6 @@
 import { CardList, GridColumn, GridRow, PageIntro } from '@fphd/ui';
 
-import type { TopicDetail, TopicSummary } from './loader';
+import type { TopicDetail, TopicSummary } from './loader.js';
 
 /**
  * Full width rather than PageIntro's reading measure, because the cards need the whole grid to

@@ -1,14 +1,14 @@
 import { Button, ChartSection, Tabs } from '@fphd/ui';
 import { Fragment } from 'react';
 import { Form } from 'react-router';
-import { comparisonTable } from '../comparison';
-import { formatCalculatedValue, formatValue } from '../data';
-import type { BenchmarkGeography, SelectedIndicator } from '../loader';
-import { PanelOptionsPanel, usePanelOptions } from '../options';
-import { TrendTag } from '../trend-tag';
-import { BenchmarkCells, BenchmarkHeaderCells } from './benchmark-cells';
-import { NoteFootnotes, noteMarker } from './note-markers';
-import { TableScrollRegion } from './table-scroll-region';
+import { comparisonTable } from '../comparison.js';
+import { formatCalculatedValue, formatValue } from '../data.js';
+import type { BenchmarkGeography, SelectedIndicator } from '../loader.js';
+import { PanelOptionsPanel, usePanelOptions } from '../options.js';
+import { TrendTag } from '../trend-tag.js';
+import { BenchmarkCells, BenchmarkHeaderCells } from './benchmark-cells.js';
+import { NoteFootnotes, noteMarker } from './note-markers.js';
+import { TableScrollRegion } from './table-scroll-region.js';
 
 /** Only shown for two or more indicators: their latest values side by side. */
 export function ComparisonSection({
