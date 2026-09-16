@@ -19,7 +19,7 @@ export async function listDisplayGroups(db: Database): Promise<string[]> {
   return rows.flatMap(({ name }) => (name === null ? [] : [name]));
 }
 
-/** Current areas across every type of one display group, ordered by name. */
+/** Current areas across every type of one display group, ordered by name and code. */
 export async function listAreasByGroup(
   db: Database,
   displayGroup: string,
@@ -30,7 +30,7 @@ export async function listAreasByGroup(
     .from(area)
     .innerJoin(areaType, eq(area.areaTypeId, areaType.id))
     .where(and(eq(areaType.displayGroup, displayGroup), isNull(area.validTo)))
-    .orderBy(asc(area.name));
+    .orderBy(asc(area.name), asc(area.code));
   return limit === undefined ? query : query.limit(limit);
 }
 
@@ -46,7 +46,7 @@ export async function listAreasByGroups(
       displayGroup: areaType.displayGroup,
       code: area.code,
       name: area.name,
-      rank: sql<number>`row_number() over (partition by ${areaType.displayGroup} order by ${area.name})`.as(
+      rank: sql<number>`row_number() over (partition by ${areaType.displayGroup} order by ${area.name}, ${area.code})`.as(
         'rank',
       ),
     })
@@ -58,7 +58,7 @@ export async function listAreasByGroups(
     .select({ displayGroup: ranked.displayGroup, code: ranked.code, name: ranked.name })
     .from(ranked)
     .where(limit === undefined ? undefined : lte(ranked.rank, limit))
-    .orderBy(asc(ranked.displayGroup), asc(ranked.name));
+    .orderBy(asc(ranked.displayGroup), asc(ranked.name), asc(ranked.code));
   const groups = new Map(displayGroups.map((displayGroup) => [displayGroup, [] as AreaSummary[]]));
   for (const row of rows) {
     if (row.displayGroup) groups.get(row.displayGroup)?.push({ code: row.code, name: row.name });

@@ -2,12 +2,16 @@ import {
   areaDisplayGroupListSchema,
   areaLookupListSchema,
   areaParentListSchema,
+  DEFAULT_INDICATOR_SEARCH_RESULTS,
   displayGroupListSchema,
   indicatorAreaDataListSchema,
   indicatorAreaDataSchema,
   indicatorDetailSchema,
   indicatorListResponseSchema,
   indicatorRangeSchema,
+  MAX_AREA_GROUPS_PER_REQUEST,
+  MAX_AREA_NAME_LENGTH,
+  MAX_INDICATOR_QUERY_LENGTH,
   pickAreaCodes,
 } from '@fphd/public-api-features/contract';
 import { apiPath } from '@fphd/web-server/api-client';
@@ -111,8 +115,12 @@ async function loadIndicatorData(
   ).filter((code) => code !== DEFAULT_AREA_CODE);
   const areaCodes = requestedAreaCodes.slice(0, MAX_SELECTED_AREAS);
   const requestedLevels = [
-    ...new Set(url.searchParams.getAll('als').filter((l) => l !== '' && l.length <= 100)),
-  ].slice(0, 10);
+    ...new Set(
+      url.searchParams
+        .getAll('als')
+        .filter((level) => level !== '' && level.length <= MAX_AREA_NAME_LENGTH),
+    ),
+  ].slice(0, MAX_AREA_GROUPS_PER_REQUEST);
 
   const api = context.get(apiContext);
 
@@ -214,12 +222,13 @@ async function loadIndicatorData(
     url.searchParams.getAll('is').filter((value) => /^\d+$/.test(value)),
   ).size;
   // `find` is the quicksearch form's no-script round trip; matches render as add links.
-  const findSubject = url.searchParams.get('find')?.trim().slice(0, 200) ?? '';
+  const findSubject =
+    url.searchParams.get('find')?.trim().slice(0, MAX_INDICATOR_QUERY_LENGTH) ?? '';
   const findResults =
     includePageData && findSubject
       ? (
           await api.get(
-            `/api/indicators?q=${encodeURIComponent(findSubject)}&limit=20`,
+            `/api/indicators?q=${encodeURIComponent(findSubject)}&limit=${DEFAULT_INDICATOR_SEARCH_RESULTS}`,
             indicatorListResponseSchema,
           )
         ).indicators

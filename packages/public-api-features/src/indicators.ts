@@ -8,20 +8,18 @@ import type {
   IndicatorSearchResult,
 } from './contract.js';
 import {
+  DEFAULT_INDICATOR_SEARCH_RESULTS,
   MAX_FILTER_LABEL_LENGTH,
   MAX_FILTER_VALUE_LENGTH,
   MAX_FILTER_VALUES,
+  MAX_INDICATOR_FILTER_RESULTS,
   MAX_INDICATOR_QUERY_LENGTH,
+  MAX_INDICATOR_SEARCH_RESULTS,
   MAX_SELECTED_AREAS,
   pickAreaCodes,
 } from './contract.js';
 
 const DEFAULT_AREA_CODE = 'E92000001';
-
-const DEFAULT_SEARCH_LIMIT = 20;
-const MAX_SEARCH_LIMIT = 100;
-// Longer than any indicator name, so truncation can never hide a legitimate match.
-const SEARCH_PAGE_LIMIT = 200;
 
 function pickStrings(value: unknown, maxLength = MAX_FILTER_VALUE_LENGTH): string[] {
   return [
@@ -59,7 +57,7 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
       sources: pickStrings(request.query.src, MAX_FILTER_LABEL_LENGTH),
       valueTypes: pickStrings(request.query.vt),
       yearTypes: pickStrings(request.query.per),
-      limit: SEARCH_PAGE_LIMIT,
+      limit: MAX_INDICATOR_FILTER_RESULTS,
     };
 
     const result: IndicatorSearchResult = await indicators.searchWithFilters(filters);
@@ -72,8 +70,8 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
     if (query) {
       const capped =
         typeof limit === 'string' && /^[1-9]\d*$/.test(limit)
-          ? Math.min(Number(limit), MAX_SEARCH_LIMIT)
-          : DEFAULT_SEARCH_LIMIT;
+          ? Math.min(Number(limit), MAX_INDICATOR_SEARCH_RESULTS)
+          : DEFAULT_INDICATOR_SEARCH_RESULTS;
       response.status(200).json({ indicators: await indicators.search(query, capped) });
       return;
     }

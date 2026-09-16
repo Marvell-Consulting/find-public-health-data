@@ -62,7 +62,7 @@ export function areasRouter(areas: Repositories['areas']): Router {
   });
 
   router.get('/api/areas', async (request, response) => {
-    // De-duplicated and capped: each name costs a query, so the URL is not trusted.
+    // De-duplicate and cap names before querying or expanding groups.
     const pick = (value: unknown) =>
       [
         ...new Set(

@@ -40,4 +40,13 @@ describe('indicator search loader', () => {
     );
     expect(await response.json()).toEqual({ indicators });
   });
+
+  it('uses the API query length limit', async () => {
+    const get = vi.fn().mockResolvedValue({ indicators: [] });
+    await loadIndicatorSearch(
+      loaderArgs(get, `http://localhost/indicators/search?q=${'a'.repeat(300)}`),
+    );
+
+    expect(get).toHaveBeenCalledWith(`/api/indicators?q=${'a'.repeat(200)}`, expect.anything());
+  });
 });

@@ -372,6 +372,16 @@ describe('listAreasByGroups', () => {
       },
     ]);
   });
+
+  it('orders areas with the same name consistently by code', async () => {
+    const [group] = await listAreasByGroups(db, ['GP practices']);
+    expect(group?.areas).toEqual(await listAreasByGroup(db, 'GP practices'));
+    const duplicateNames = group?.areas.filter(({ name }) => name === 'High Street Surgery') ?? [];
+    expect(duplicateNames.length).toBeGreaterThan(1);
+    expect(duplicateNames.map(({ code }) => code)).toEqual(
+      duplicateNames.map(({ code }) => code).sort(),
+    );
+  });
 });
 
 describe('listAreasByCodes', () => {
