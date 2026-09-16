@@ -8,8 +8,9 @@ ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable
 WORKDIR /repo
 
-# Deps layer keyed on the lockfile alone, so source edits don't re-download packages.
+# Deps layer keyed on the lockfile and patches, so source edits don't re-download packages.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches/ patches/
 RUN pnpm fetch
 
 COPY . .
