@@ -67,6 +67,7 @@ export async function rebuildReadModelTables(tx: postgres.TransactionSql): Promi
       WHERE o.deleted_at IS NULL
     `;
 
+  // Keep this query aligned with drizzle/0013_observation-range-read-model.sql; the parity test runs both.
   await tx`
       INSERT INTO observation_range
         (indicator_id, display_group, from_date, to_date, segment, min, max)

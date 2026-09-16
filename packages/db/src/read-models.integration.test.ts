@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import type postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -139,5 +140,28 @@ describe('bridge/registry schema', () => {
       const rows = await sql.unsafe(`SELECT count(*)::int AS count FROM "${table}"`);
       expect(Number(rows[0]?.count), table).toBeGreaterThan(0);
     }
+  });
+
+  it('produces the same observation ranges as the migration query', async () => {
+    await rebuildReadModels(sql);
+    const migration = readFileSync(
+      new URL('../drizzle/0013_observation-range-read-model.sql', import.meta.url),
+      'utf8',
+    );
+    const insert = migration.split('--> statement-breakpoint')[1];
+    if (!insert) throw new Error('Observation-range migration insert is missing');
+
+    await sql.begin(async (tx) => {
+      await tx`CREATE TEMP TABLE migration_observation_range (LIKE observation_range INCLUDING ALL) ON COMMIT DROP`;
+      await tx.unsafe(
+        insert.replace('INSERT INTO observation_range', 'INSERT INTO migration_observation_range'),
+      );
+      const differences = await tx`
+        (SELECT * FROM observation_range EXCEPT ALL SELECT * FROM migration_observation_range)
+        UNION ALL
+        (SELECT * FROM migration_observation_range EXCEPT ALL SELECT * FROM observation_range)
+      `;
+      expect(differences).toHaveLength(0);
+    });
   });
 });
