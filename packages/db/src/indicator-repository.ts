@@ -605,14 +605,14 @@ export async function searchIndicators(
 
   if (filters.areaCodes.length > 0) {
     conditions.push(
-      exists(
+      inArray(
+        indicator.id,
         db
-          .select({ one: sql`1` })
+          .select({ id: observation.indicatorId })
           .from(observation)
           .innerJoin(area, eq(observation.areaId, area.id))
           .where(
             and(
-              eq(observation.indicatorId, indicator.id),
               inArray(area.code, filters.areaCodes),
               isNull(observation.deletedAt),
               isNotNull(observation.value),
