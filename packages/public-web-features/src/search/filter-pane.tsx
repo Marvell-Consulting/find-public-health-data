@@ -176,6 +176,23 @@ export function SearchFilterPane({
   const drafts = useRef<Record<string, string>>(
     (location.state as { searchDrafts?: Record<string, string> } | null)?.searchDrafts ?? {},
   );
+  const committed = useRef<Record<string, string>>({
+    q: state.q,
+    ...Object.fromEntries(
+      DIMENSIONS.map((dim) => [dim.param, JSON.stringify(state[dim.stateKey])]),
+    ),
+  });
+  if (committed.current.q !== state.q) {
+    delete drafts.current.q;
+    committed.current.q = state.q;
+  }
+  for (const dim of DIMENSIONS) {
+    const selected = JSON.stringify(state[dim.stateKey]);
+    if (committed.current[dim.param] !== selected) {
+      delete drafts.current[dim.param];
+      committed.current[dim.param] = selected;
+    }
+  }
 
   const nav = (next: SearchState) => {
     const searchDrafts = { ...drafts.current };
