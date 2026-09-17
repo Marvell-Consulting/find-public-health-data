@@ -9,9 +9,10 @@ import {
   indicatorListResponseSchema,
   indicatorRangeSchema,
 } from '@fphd/public-api-features/contract';
+import type { ApiClient } from '@fphd/web-server/api-client';
 import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
-import type { LoaderFunctionArgs } from 'react-router';
+import { type LoaderFunctionArgs, redirect } from 'react-router';
 import { loadGeographyOptions } from '../geography/loader.js';
 import { MAX_SELECTED_AREAS, MAX_SELECTED_INDICATORS } from '../selection-limits.js';
 
@@ -30,7 +31,8 @@ export interface IndicatorSelection {
   /** Whole geography levels selected as one ("Local authorities"), kept as a single
    *  chip and query value rather than hundreds of individual area codes. */
   areaLevels: string[];
-  fingertipsIds: number[];
+  /** The selected indicators as their numbers, which is what `is` carries. */
+  numbers: number[];
 }
 
 /** One selected indicator with the area data backing its charts. */
@@ -65,18 +67,43 @@ const DEFAULT_AREA_CODE = 'E92000001';
 // selection is capped rather than the URL trusted.
 export { MAX_SELECTED_INDICATORS } from '../selection-limits.js';
 
-function selectedIndicatorIds(url: URL, routeParam: string | undefined): number[] {
-  const fromQuery = url.searchParams
-    .getAll('is')
-    .filter((value) => /^\d+$/.test(value))
-    .map(Number);
+/**
+ * The query selection, as numbers: a slug is too long to compose several of, so `is` takes
+ * digit strings only and anything else is dropped rather than answered with an error.
+ */
+function selectedNumbers(url: URL): string[] {
+  return [...new Set(url.searchParams.getAll('is').filter((value) => /^\d+$/.test(value)))];
+}
 
-  // The route param is the deep link into a single indicator; a query selection replaces
-  // it, so a link out of the page never silently re-adds where the user arrived from.
-  // Callers validate the param's shape before this point.
-  const ids = fromQuery.length > 0 ? fromQuery : routeParam ? [Number(routeParam)] : [];
+/** The API redirects within its own indicator collection, so the alias is its first segment. */
+function canonicalAliasOf(location: string): string {
+  const [, alias] = /^\/api\/indicators\/([^/?#]+)/.exec(location) ?? [];
 
-  return [...new Set(ids)].slice(0, MAX_SELECTED_INDICATORS);
+  if (alias === undefined) {
+    throw new Response('Bad Gateway', { status: 502 });
+  }
+
+  return decodeURIComponent(alias);
+}
+
+/**
+ * The indicator a route's alias names. An indicator answers to its number and to every
+ * slug it has been published under, but its page is served at one canonical address, so
+ * the API answers the others with a redirect and the browser is sent there rather than the
+ * page rendering the same content under a second URL.
+ */
+export async function loadIndicatorByAlias(
+  api: ApiClient,
+  alias: string,
+  canonicalPath: (canonical: string) => string,
+): Promise<import('@fphd/public-api-features/contract').IndicatorDetail> {
+  const result = await api.getOrRedirect(apiPath`/api/indicators/${alias}`, indicatorDetailSchema);
+
+  if (result.redirected) {
+    throw redirect(canonicalPath(canonicalAliasOf(result.location)), 301);
+  }
+
+  return result.data;
 }
 
 /**
@@ -87,17 +114,11 @@ function selectedIndicatorIds(url: URL, routeParam: string | undefined): number[
  *
  * The client turns the API's 404 into a thrown 404 Response, so React Router renders the
  * nearest not-found boundary instead of the page component. It also encodes the path
- * segment — React Router decodes %2F inside a single dynamic segment, so an un-encoded id
- * of '../topics' would normalise the request onto a different API route entirely.
+ * segment — React Router decodes %2F inside a single dynamic segment, so an un-encoded
+ * alias of '../topics' would normalise the request onto a different API route entirely.
  */
 export async function loadIndicator({ context, params, request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
-
-  if (params.fingertipsId !== undefined && !/^\d+$/.test(params.fingertipsId)) {
-    // `indicators/:fingertipsId` matched but the segment is not a number, which the API
-    // would answer with a 404 anyway. Failing here keeps the request off the API.
-    throw new Response('Not Found', { status: 404 });
-  }
 
   // De-duplicated: a hand-edited URL repeating a code would otherwise fetch it twice and
   // render it twice.
@@ -114,6 +135,15 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
   ].slice(0, 10);
 
   const api = context.get(apiContext);
+
+  const routeDetail =
+    params.alias === undefined
+      ? undefined
+      : await loadIndicatorByAlias(
+          api,
+          params.alias,
+          (canonical) => `/indicators/${encodeURIComponent(canonical)}${url.search}`,
+        );
 
   // A whole-level selection ("Local authorities") rides in the URL as its name; its
   // areas are resolved here, subject to the same cap as hand-picked codes.
@@ -204,10 +234,19 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
     return { region: choices.includes('region'), rangeLevels: [...rangeLevels] };
   };
 
-  const fingertipsIds = selectedIndicatorIds(url, params.fingertipsId);
-  const requestedIndicatorCount = new Set(
-    url.searchParams.getAll('is').filter((value) => /^\d+$/.test(value)),
-  ).size;
+  // A query selection replaces the route's indicator, so a link out of the page never
+  // silently re-adds where the user arrived from.
+  const requestedNumbers = selectedNumbers(url);
+  const details =
+    requestedNumbers.length > 0
+      ? await Promise.all(
+          requestedNumbers
+            .slice(0, MAX_SELECTED_INDICATORS)
+            .map((number) => api.get(apiPath`/api/indicators/${number}`, indicatorDetailSchema)),
+        )
+      : routeDetail
+        ? [routeDetail]
+        : [];
   // `find` is the quicksearch form's no-script round trip; matches render as add links.
   const findSubject = url.searchParams.get('find')?.trim().slice(0, 200) ?? '';
   const findResults = findSubject
@@ -219,19 +258,18 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
       ).indicators
     : [];
   const selected = await Promise.all(
-    fingertipsIds.map(async (id) => {
+    details.map(async (detail) => {
       const dataFor = (codes: string[]) =>
         api.get(
-          `${apiPath`/api/indicators/${String(id)}/data`}?${codes
+          `${apiPath`/api/indicators/${detail.slug}/data`}?${codes
             .map((code) => `areaCode=${encodeURIComponent(code)}`)
             .join('&')}`,
           codes.length === 1
             ? indicatorAreaDataSchema.transform((one) => [one])
             : indicatorAreaDataListSchema,
         );
-      const comparison = comparisonFor(id);
-      const [detail, areaData, regionData, rangeEntries] = await Promise.all([
-        api.get(apiPath`/api/indicators/${String(id)}`, indicatorDetailSchema),
+      const comparison = comparisonFor(detail.number);
+      const [areaData, regionData, rangeEntries] = await Promise.all([
         // One request per indicator carrying every area, rather than one per pair: a
         // page comparing ten indicators across twenty areas would otherwise fire 200.
         dataFor(codesToLoad),
@@ -239,7 +277,7 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
         Promise.all(
           comparison.rangeLevels.map(async (level) => {
             const range = await api.get(
-              `${apiPath`/api/indicators/${String(id)}/range`}?displayGroup=${encodeURIComponent(level)}`,
+              `${apiPath`/api/indicators/${detail.slug}/range`}?displayGroup=${encodeURIComponent(level)}`,
               indicatorRangeSchema,
             );
             return [level, range.periods] as const;
@@ -264,7 +302,11 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
     findResults,
     geographyOptions,
     areasLimited,
-    indicatorsLimited: requestedIndicatorCount > MAX_SELECTED_INDICATORS,
-    selection: { areaCodes, areaLevels, fingertipsIds } satisfies IndicatorSelection,
+    indicatorsLimited: requestedNumbers.length > MAX_SELECTED_INDICATORS,
+    selection: {
+      areaCodes,
+      areaLevels,
+      numbers: details.map(({ number }) => number),
+    } satisfies IndicatorSelection,
   };
 }

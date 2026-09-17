@@ -9,9 +9,11 @@ additions come from the public Fingertips API and are imported through local Pos
 Reference and registry tables (lookups, dimension types and values, area types, note
 types) are complete. Areas, observations and bridge rows contain:
 
-- **13 indicators**, combining broad schema coverage with the prototype's showcase data:
+- **13 indicators**, combining broad schema coverage with the prototype's showcase data.
+  Each has two published aliases in `indicator_alias`: its Fingertips number, and a
+  canonical slug of its name.
 
-  | ID | Indicator | Why |
+  | Number | Indicator | Why |
   |---|---|---|
   | 108 | Under 75 mortality rate from all causes | DSR; sex, age, deprivation deciles |
   | 241 | Diabetes: QOF prevalence | Prototype showcase; GP, NHS and local-authority trends from 2009/10 |
@@ -66,8 +68,9 @@ group and strips the level suffixes from area names. Skipping either commits see
 site would show wrong.
 
 The transform assigns sequential UUIDv7 ids in source-id order, remaps every foreign key,
-and keeps the public Fingertips indicator number in `indicator.fingertips_id`. Adjust the
-indicator list, geography set or year floors at the top of `export-seed.py`.
+and writes `indicator_alias.csv.gz`: the public Fingertips number and a canonical slug of
+the name, for each indicator. Adjust the indicator list, geography set or year floors at
+the top of `export-seed.py`.
 
 ## Refreshing the prototype showcase locally
 
@@ -91,7 +94,7 @@ python3 export/import-prototype-indicators.py \
   --out-dir /tmp/fphd-seed-expanded
 ```
 
-Validate the staging output before copying its nine `.csv.gz` files into this directory.
+Validate the staging output before copying its ten `.csv.gz` files into this directory.
 Then run `pnpm db:seed-dummy-data` — it imports the indicator relationships and rebuilds
 the read models in the same command — to prove the committed files reproduce the local
 database.

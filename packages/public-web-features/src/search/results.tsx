@@ -136,17 +136,17 @@ export function SearchResults({
           <fieldset className="fphd-search-results">
             <legend className="govuk-visually-hidden">Indicators</legend>
             {indicators.map((indicator) => {
-              const isSelected = ticked.includes(indicator.fingertipsId);
+              const isSelected = ticked.includes(indicator.number);
               const option = {
                 checked: isSelected,
                 disabled: !isSelected && ticked.length >= MAX_SELECTED_INDICATORS,
                 label: <span className="govuk-visually-hidden">{indicator.name}</span>,
-                value: String(indicator.fingertipsId),
+                value: String(indicator.number),
               };
               return (
-                <div className="fphd-search-result" key={indicator.fingertipsId}>
+                <div className="fphd-search-result" key={indicator.number}>
                   <Checkboxes
-                    id={`is-${indicator.fingertipsId}`}
+                    id={`is-${indicator.number}`}
                     label=""
                     name="is"
                     onChange={(event) => toggle(Number(event.target.value), event.target.checked)}
@@ -155,7 +155,7 @@ export function SearchResults({
                   <div className="fphd-search-result__body">
                     <Link
                       className="govuk-link fphd-search-result__title"
-                      to={`/indicators/${indicator.fingertipsId}${geography ? `?${geography}` : ''}`}
+                      to={`/indicators/${indicator.slug}${geography ? `?${geography}` : ''}`}
                     >
                       {indicator.name}
                     </Link>

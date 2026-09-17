@@ -42,7 +42,7 @@ function IndicatorBlock({
   geography,
   headingLevel: Heading = 'h2',
 }: SelectedIndicator & { geography: BenchmarkGeography; headingLevel?: 'h1' | 'h2' }) {
-  const id = detail.fingertipsId;
+  const id = detail.number;
   const location = useLocation();
   const applyOptionParams = useOptionParamNavigation();
   const params = new URLSearchParams(location.search);
@@ -303,8 +303,8 @@ export function IndicatorPage({
                     <A href="#compare-indicators">Compare selected indicators</A>
                   </li>
                   {selected.map(({ detail }) => (
-                    <li key={detail.fingertipsId}>
-                      <A href={`#indicator-${detail.fingertipsId}`}>{detail.name}</A>
+                    <li key={detail.number}>
+                      <A href={`#indicator-${detail.number}`}>{detail.name}</A>
                     </li>
                   ))}
                 </ul>
@@ -317,7 +317,7 @@ export function IndicatorPage({
 
             {selected.map((entry) => (
               <IndicatorBlock
-                key={entry.detail.fingertipsId}
+                key={entry.detail.number}
                 {...entry}
                 geography={benchmarkGeography}
                 headingLevel={selected.length === 1 ? 'h1' : 'h2'}

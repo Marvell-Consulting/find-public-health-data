@@ -185,7 +185,7 @@ export interface ComparisonCell {
 }
 
 export interface ComparisonRow {
-  fingertipsId: number;
+  number: number;
   /** Distinguishes breakout rows of one indicator ("Female, 1 year"). */
   key: string;
   name: string;
@@ -279,8 +279,8 @@ export function comparisonRows(
       }
       return [
         {
-          fingertipsId: detail.fingertipsId,
-          key: `${detail.fingertipsId}|${variant.suffix}`,
+          number: detail.number,
+          key: `${detail.number}|${variant.suffix}`,
           name: detail.name,
           suffix: variant.suffix,
           unit: detail.unit.name,
@@ -302,8 +302,8 @@ export function comparisonRows(
       ? rows
       : [
           {
-            fingertipsId: detail.fingertipsId,
-            key: String(detail.fingertipsId),
+            number: detail.number,
+            key: String(detail.number),
             name: detail.name,
             suffix: '',
             unit: detail.unit.name,

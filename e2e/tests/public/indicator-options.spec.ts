@@ -3,6 +3,8 @@ import { expect, type Locator, type Page, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.js';
 
+const INDICATOR_PATH = '/indicators/under-75-mortality-rate-from-all-causes';
+
 test('comparison rows stay the same height when the range is shown', async ({ page }) => {
   await page.goto(
     '/indicators?as=E07000223&as=E07000032&is=92443&is=241&cmp-compare=england&cr-compare=no',
@@ -38,7 +40,7 @@ for (const javaScriptEnabled of [true, false]) {
     test('applies sex, period and confidence choices to the actual table', async ({
       page,
     }, testInfo) => {
-      await open(page, '/indicators/108?tab-108=table');
+      await open(page, `${INDICATOR_PATH}?tab-108=table`);
       const options = page.locator('#table-108 details');
       const table = page.getByRole('table', { name: /trends over time/ });
       const cells = table
@@ -131,7 +133,7 @@ for (const javaScriptEnabled of [true, false]) {
     test('applies inequality category and period choices and restores them on reload', async ({
       page,
     }) => {
-      await open(page, '/indicators/108?tab-108=inequalities');
+      await open(page, `${INDICATOR_PATH}?tab-108=inequalities`);
       const options = page.locator('#inequalities-108 details');
       const table = page.getByRole('table', { name: /deprivation deciles/ });
       await options
@@ -159,7 +161,7 @@ for (const javaScriptEnabled of [true, false]) {
     });
 
     test('can be collapsed by keyboard without losing selected options', async ({ page }) => {
-      await page.goto('/indicators/108?tab-108=table');
+      await page.goto(`${INDICATOR_PATH}?tab-108=table`);
       if (javaScriptEnabled) {
         await expect(page.getByRole('combobox', { name: 'Search for an indicator' })).toBeVisible();
       }

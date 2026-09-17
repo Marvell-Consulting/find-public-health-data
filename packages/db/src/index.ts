@@ -22,7 +22,8 @@ export {
   type IndicatorSource,
   listApprovedIndicators,
   listIndicatorFacets,
-  resolveApprovedIndicatorId,
+  type ResolvedIndicator,
+  resolveApprovedIndicatorAlias,
   searchIndicators,
 } from './indicator-repository.js';
 export {

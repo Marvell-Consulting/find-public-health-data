@@ -8,6 +8,8 @@ import { createApp } from './app.js';
 
 const logger = createLogger({ name: 'public-api', level: 'silent' });
 
+const indicatorId = '00000000-0000-7000-8000-000000000002';
+
 const topic: Topic = {
   id: '00000000-0000-7000-8000-000000000001',
   slug: 'topic-a',
@@ -79,6 +81,39 @@ describe('public API', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ indicators: [] });
+  });
+
+  // The internal id is the internal app's address; a public response names an indicator by
+  // its aliases and nothing else.
+  it('serves an indicator addressed by alias without exposing its internal id', async () => {
+    const repositories = createFakeRepositories({
+      indicators: {
+        resolveAlias: async () => ({ id: indicatorId, slug: 'an-indicator', number: 1000001 }),
+        findApprovedById: async () => ({ slug: 'an-indicator', number: 1000001 }) as never,
+      },
+    });
+
+    const response = await request(createTestApp(repositories)).get('/api/indicators/an-indicator');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ slug: 'an-indicator', number: 1000001 });
+  });
+
+  it.each([
+    '/api/indicators/1000001',
+    '/api/indicators/1000001/data',
+    '/api/indicators/1000001/range?displayGroup=Local+authorities',
+  ])('redirects %s to the canonical alias', async (path) => {
+    const repositories = createFakeRepositories({
+      indicators: {
+        resolveAlias: async () => ({ id: indicatorId, slug: 'an-indicator', number: 1000001 }),
+      },
+    });
+
+    const response = await request(createTestApp(repositories)).get(path);
+
+    expect(response.status).toBe(301);
+    expect(response.headers.location).toMatch(/^\/api\/indicators\/an-indicator/);
   });
 
   it('mounts the public areas surface', async () => {
@@ -243,8 +278,8 @@ describe('public API', () => {
     expect(firstCall?.[0].topics).toHaveLength(100);
   });
 
-  it('does not route /api/indicators/search to the :fingertipsId handler', async () => {
-    // Without a stub, reaching the :fingertipsId route would 500; it must 200 instead.
+  it('does not route /api/indicators/search to the :alias handler', async () => {
+    // Without a stub, reaching the :alias route would 500; it must 200 instead.
     const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, limit: 200, indicators: [] });
     const app = createApp({
       logger,
@@ -255,7 +290,7 @@ describe('public API', () => {
     expect(response.status).not.toBe(404);
   });
 
-  it('does not route /api/indicators/facets to the :fingertipsId handler', async () => {
+  it('does not route /api/indicators/facets to the :alias handler', async () => {
     const listFacets = vi.fn().mockResolvedValue({
       topics: [],
       classifications: [],

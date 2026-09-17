@@ -5,6 +5,8 @@ import { downloadFrom } from '../support/downloads.js';
 import { filterCard, openIndicatorPage } from '../support/indicator-page.js';
 
 const INDICATOR = 'Under 75 mortality rate from all causes';
+const SLUG = 'under-75-mortality-rate-from-all-causes';
+const INDICATOR_PATH = `/indicators/${SLUG}`;
 
 function trendTable(page: Page) {
   return page.getByRole('table', { name: /trends over time/ });
@@ -23,7 +25,7 @@ function tableOptions(page: Page) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await openIndicatorPage(page, '/indicators/108');
+  await openIndicatorPage(page, INDICATOR_PATH);
 });
 
 test('shows an indicator', async ({ page }) => {
@@ -34,8 +36,16 @@ test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
   await expectNoAccessibilityViolations(page, testInfo);
 });
 
+// The number is a published alias of the same indicator, as every Fingertips-era link uses.
+test('sends an indicator number to the page the indicator is published at', async ({ page }) => {
+  await openIndicatorPage(page, '/indicators/108?tab-108=table');
+
+  await expect(page).toHaveURL(`${INDICATOR_PATH}?tab-108=table`);
+  await expect(page.getByRole('heading', { level: 1, name: INDICATOR })).toBeVisible();
+});
+
 test('answers an indicator that does not exist with the not-found page', async ({ page }) => {
-  for (const path of ['/indicators/999999', '/indicators/not-a-number']) {
+  for (const path of ['/indicators/999999', '/indicators/no-such-indicator']) {
     const response = await page.goto(path);
     expect(response?.status(), path).toBe(404);
     await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
@@ -76,7 +86,7 @@ test.describe('the tabs', () => {
   });
 
   test('open the tab the address names', async ({ page }) => {
-    await openIndicatorPage(page, '/indicators/108?tab-108=about');
+    await openIndicatorPage(page, `${INDICATOR_PATH}?tab-108=about`);
     await expect(page.getByRole('tab', { name: 'About this indicator' })).toHaveAttribute(
       'aria-selected',
       'true',
@@ -133,7 +143,7 @@ test.describe('the table', () => {
   test('downloads the table as CSV', async ({ page }) => {
     const { filename, text } = await downloadFrom(page, 'Download this table');
 
-    expect(filename).toBe('108-table.csv');
+    expect(filename).toBe(`${SLUG}-table.csv`);
     const [header, first] = text.split('\n');
     expect(header).toBe('Period,England count,"England calculated value (per 100,000)"');
     expect(first).toBe('2015,153839,334.7766');
@@ -142,7 +152,7 @@ test.describe('the table', () => {
   test('downloads every observation as CSV', async ({ page }) => {
     const { filename, text } = await downloadFrom(page, 'Download all data for this indicator');
 
-    expect(filename).toBe('108-all-data.csv');
+    expect(filename).toBe(`${SLUG}-all-data.csv`);
     expect(text.split('\n')[0]).toContain('Indicator,Area,Period,Segment,Count,Denominator');
     expect(text).toContain('<75 yrs, Male');
   });
@@ -187,7 +197,7 @@ test.describe('about this indicator', () => {
   test('describes how the indicator is made', async ({ page }) => {
     const panel = page.getByRole('tabpanel', { name: 'About this indicator' });
     await expect(panel.getByRole('heading', { name: 'Overview' })).toBeVisible();
-    await expect(panel.getByText('Indicator ID')).toBeVisible();
+    await expect(panel.getByText('Indicator number')).toBeVisible();
     await expect(panel.getByText('108', { exact: true })).toBeVisible();
     await expect(panel.getByRole('heading', { name: 'Data attributes' })).toBeVisible();
     await expect(panel.getByText('Directly standardised rate', { exact: true })).toBeVisible();
@@ -265,7 +275,7 @@ test.describe('the geography filter', () => {
   });
 
   test('offers the statistical region as a comparison', async ({ page }) => {
-    await openIndicatorPage(page, '/indicators/108?as=E08000003&tab-108=table');
+    await openIndicatorPage(page, `${INDICATOR_PATH}?as=E08000003&tab-108=table`);
     await tableOptions(page)
       .getByLabel('Select a geography or goal to compare with')
       .selectOption('Statistical regions');
@@ -301,7 +311,7 @@ test.describe('the geography filter', () => {
   });
 
   test('removes one area, then clears the rest', async ({ page }) => {
-    await openIndicatorPage(page, '/indicators/108?as=E08000003&as=E07000223');
+    await openIndicatorPage(page, `${INDICATOR_PATH}?as=E08000003&as=E07000223`);
     const card = filterCard(page, 'Geography filters');
 
     await card.getByRole('link', { name: 'Remove Manchester filter' }).click();
@@ -318,7 +328,7 @@ test.describe('the geography filter', () => {
   test('has no WCAG 2.2 AA violations with a comparison shown', async ({ page }, testInfo) => {
     await openIndicatorPage(
       page,
-      '/indicators/108?as=E08000003&tab-108=table&cmp-108=england&cr-108=yes',
+      `${INDICATOR_PATH}?as=E08000003&tab-108=table&cmp-108=england&cr-108=yes`,
     );
     await expect(trendTable(page).getByRole('columnheader', { name: 'Comparison' })).toBeVisible();
     await expectNoAccessibilityViolations(page, testInfo);

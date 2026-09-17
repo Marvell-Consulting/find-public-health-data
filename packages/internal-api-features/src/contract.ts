@@ -105,8 +105,10 @@ export const indicatorStatusSchema = z.enum(['draft', 'in_review', 'approved', '
 
 export const indicatorAdminDetailSchema = z.object({
   id: indicatorIdSchema,
-  /** The public indicator number, which is what a publisher knows an indicator by. */
-  fingertipsId: z.number().int(),
+  /** The indicator's number, which is what a publisher knows an indicator by. */
+  number: z.number().int(),
+  /** The canonical slug, null until the indicator has a published address. */
+  slug: z.string().min(1).nullable(),
   name: z.string().min(1),
   status: indicatorStatusSchema,
   updatedAt: z.iso.datetime(),

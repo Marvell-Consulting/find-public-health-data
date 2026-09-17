@@ -3,7 +3,6 @@ import {
   areaParentListSchema,
   indicatorAreaDataListSchema,
   indicatorAreaDataSchema,
-  indicatorDetailSchema,
   indicatorRangeSchema,
 } from '@fphd/public-api-features/contract';
 import { apiPath } from '@fphd/web-server/api-client';
@@ -19,7 +18,7 @@ import {
   type PeriodType,
 } from './data';
 import { allDataCsv, trendCsv } from './download';
-import type { BenchmarkGeography, IndicatorAreaData } from './loader';
+import { type BenchmarkGeography, type IndicatorAreaData, loadIndicatorByAlias } from './loader';
 import { trendTableModel } from './trend';
 
 const ENGLAND = 'E92000001';
@@ -32,12 +31,13 @@ export async function loadIndicatorCsv(
   { context, params, request }: LoaderFunctionArgs,
   kind: 'table' | 'all-data',
 ): Promise<Response> {
-  const { fingertipsId } = params;
-  if (fingertipsId === undefined || !/^\d+$/.test(fingertipsId)) {
+  const { alias } = params;
+  if (alias === undefined) {
     throw new Response('Not Found', { status: 404 });
   }
 
   const url = new URL(request.url);
+  const file = kind === 'table' ? 'table.csv' : 'all-data.csv';
   const pickedCodes = [
     ...new Set(
       url.searchParams.getAll('as').filter((code) => /^[A-Z0-9]+$/i.test(code) && code !== ENGLAND),
@@ -45,49 +45,51 @@ export async function loadIndicatorCsv(
   ].slice(0, MAX_SELECTED_AREAS);
   const codesToLoad = [...pickedCodes, ENGLAND];
   const api = context.get(apiContext);
+  const detail = await loadIndicatorByAlias(
+    api,
+    alias,
+    (canonical) => `/indicators/${encodeURIComponent(canonical)}/${file}${url.search}`,
+  );
   const dataFor = (codes: string[]) =>
     api.get(
-      `${apiPath`/api/indicators/${fingertipsId}/data`}?${codes
+      `${apiPath`/api/indicators/${detail.slug}/data`}?${codes
         .map((code) => `areaCode=${encodeURIComponent(code)}`)
         .join('&')}`,
       codes.length === 1
         ? indicatorAreaDataSchema.transform((one) => [one])
         : indicatorAreaDataListSchema,
     );
-  const [detail, areaData] = await Promise.all([
-    api.get(apiPath`/api/indicators/${fingertipsId}`, indicatorDetailSchema),
-    dataFor(codesToLoad),
-  ]);
+  const areaData = await dataFor(codesToLoad);
 
   let csv: string;
   if (kind === 'table') {
     // These validations exactly mirror the controls on the rendered page. A stale or
     // hand-edited URL therefore downloads the table the user can actually see.
-    const requestedSex = url.searchParams.get(`sex-${fingertipsId}`) ?? '';
+    const requestedSex = url.searchParams.get(`sex-${detail.number}`) ?? '';
     const sexes = dimensionValues(areaData[0]?.observations ?? [], 'Sex');
     const sex = sexes.includes(requestedSex) ? requestedSex : '';
     const shownObservations = (
       pickedCodes.length > 0 ? areaData.filter(({ areaCode }) => areaCode !== ENGLAND) : areaData
     ).flatMap(({ observations }) => observations);
-    const requestedPeriod = url.searchParams.get(`pt-${fingertipsId}`);
+    const requestedPeriod = url.searchParams.get(`pt-${detail.number}`);
     const periodType: PeriodType = availablePeriodTypes(shownObservations).includes(
       requestedPeriod as '1-year' | '3-year',
     )
       ? (requestedPeriod as '1-year' | '3-year')
       : 'all';
-    const requestedConfidence = url.searchParams.get(`ci-${fingertipsId}`);
+    const requestedConfidence = url.searchParams.get(`ci-${detail.number}`);
     const confidence: ConfidenceLevel = availableConfidenceLevels(shownObservations).includes(
       requestedConfidence as '95' | '99.8',
     )
       ? (requestedConfidence as '95' | '99.8')
       : 'none';
-    const requestedBenchmark = url.searchParams.get(`cmp-${fingertipsId}`);
+    const requestedBenchmark = url.searchParams.get(`cmp-${detail.number}`);
     const benchmark =
       pickedCodes.length > 0 &&
       (requestedBenchmark === 'england' || requestedBenchmark === 'region')
         ? requestedBenchmark
         : 'none';
-    const showRange = benchmark !== 'none' && url.searchParams.get(`cr-${fingertipsId}`) === 'yes';
+    const showRange = benchmark !== 'none' && url.searchParams.get(`cr-${detail.number}`) === 'yes';
 
     const codeQuery = pickedCodes.map((code) => `areaCode=${encodeURIComponent(code)}`).join('&');
     const [lookedUp, parents] = await Promise.all([
@@ -121,7 +123,7 @@ export async function loadIndicatorCsv(
         ? Promise.all(
             rangeLevels.map(async (level) => {
               const range = await api.get(
-                `${apiPath`/api/indicators/${fingertipsId}/range`}?displayGroup=${encodeURIComponent(level)}`,
+                `${apiPath`/api/indicators/${detail.slug}/range`}?displayGroup=${encodeURIComponent(level)}`,
                 indicatorRangeSchema,
               );
               return [level, range.periods] as const;
@@ -153,7 +155,7 @@ export async function loadIndicatorCsv(
   return new Response(csv, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="${fingertipsId}-${kind}.csv"`,
+      'Content-Disposition': `attachment; filename="${detail.slug}-${kind}.csv"`,
     },
   });
 }

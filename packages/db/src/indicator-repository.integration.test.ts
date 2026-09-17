@@ -1,4 +1,5 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
+import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
@@ -18,7 +19,7 @@ import {
   type IndicatorSearchFilters,
   listApprovedIndicators,
   listIndicatorFacets,
-  resolveApprovedIndicatorId,
+  resolveApprovedIndicatorAlias,
   searchApprovedIndicators,
   searchIndicators,
 } from './indicator-repository.js';
@@ -48,6 +49,7 @@ function ownerConnection(database: string) {
 // Under 75 mortality rate from all causes: a seeded indicator with full metadata, both
 // single-year and rolling periods, and sex/age/deprivation breakdowns.
 const MORTALITY_UNDER_75 = 108;
+const MORTALITY_UNDER_75_SLUG = 'under-75-mortality-rate-from-all-causes';
 const DIABETES_QOF_PREVALENCE = 241;
 const LIFE_EXPECTANCY_AT_BIRTH = 90366;
 const ENGLAND = 'E92000001';
@@ -61,12 +63,12 @@ let mortalityId: string;
 let diabetesId: string;
 let lifeExpectancyId: string;
 
-async function resolvedId(fingertipsId: number): Promise<string> {
-  const id = await resolveApprovedIndicatorId(db, fingertipsId);
-  if (!id) {
-    throw new Error(`seed is missing indicator ${fingertipsId}`);
+async function resolvedId(number: number): Promise<string> {
+  const resolved = await resolveApprovedIndicatorAlias(db, String(number));
+  if (!resolved) {
+    throw new Error(`seed is missing indicator ${number}`);
   }
-  return id;
+  return resolved.id;
 }
 
 beforeAll(async () => {
@@ -109,13 +111,12 @@ describe('searchApprovedIndicators', () => {
     expect(results[0]?.name).toBe('Diabetes: QOF prevalence');
   });
 
-  it('matches exact Fingertips and internal indicator ids', async () => {
-    await expect(searchApprovedIndicators(db, String(MORTALITY_UNDER_75), 20)).resolves.toEqual([
-      expect.objectContaining({ fingertipsId: MORTALITY_UNDER_75 }),
-    ]);
-    await expect(searchApprovedIndicators(db, mortalityId, 20)).resolves.toEqual([
-      expect.objectContaining({ fingertipsId: MORTALITY_UNDER_75 }),
-    ]);
+  it('matches an exact alias and an exact internal id', async () => {
+    for (const query of [String(MORTALITY_UNDER_75), MORTALITY_UNDER_75_SLUG, mortalityId]) {
+      await expect(searchApprovedIndicators(db, query, 20)).resolves.toEqual([
+        expect.objectContaining({ number: MORTALITY_UNDER_75, slug: MORTALITY_UNDER_75_SLUG }),
+      ]);
+    }
   });
 
   it('respects the limit', async () => {
@@ -128,10 +129,33 @@ describe('searchApprovedIndicators', () => {
   });
 });
 
-describe('resolveApprovedIndicatorId', () => {
-  it('answers the internal id for a seeded fingertips number and nothing otherwise', async () => {
-    expect(await resolveApprovedIndicatorId(db, MORTALITY_UNDER_75)).toMatch(/^[0-9a-f-]{36}$/);
-    expect(await resolveApprovedIndicatorId(db, 424242)).toBeUndefined();
+describe('resolveApprovedIndicatorAlias', () => {
+  it('answers the same indicator for the number and the canonical slug', async () => {
+    const byNumber = await resolveApprovedIndicatorAlias(db, String(MORTALITY_UNDER_75));
+    const bySlug = await resolveApprovedIndicatorAlias(db, MORTALITY_UNDER_75_SLUG);
+
+    expect(byNumber).toEqual({
+      id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+      slug: MORTALITY_UNDER_75_SLUG,
+      number: MORTALITY_UNDER_75,
+    });
+    expect(bySlug).toEqual(byNumber);
+  });
+
+  it('answers nothing for an address no indicator carries', async () => {
+    expect(await resolveApprovedIndicatorAlias(db, '424242')).toBeUndefined();
+    expect(await resolveApprovedIndicatorAlias(db, 'no-such-indicator')).toBeUndefined();
+  });
+
+  it('answers nothing for an unpublished alias', async () => {
+    await db.execute(
+      sql`INSERT INTO indicator_alias (indicator_id, slug, is_published, is_canonical)
+          VALUES (${mortalityId}, 'a-pending-rename', false, false)`,
+    );
+
+    expect(await resolveApprovedIndicatorAlias(db, 'a-pending-rename')).toBeUndefined();
+
+    await db.execute(sql`DELETE FROM indicator_alias WHERE slug = 'a-pending-rename'`);
   });
 });
 
@@ -140,7 +164,8 @@ describe('getApprovedIndicatorById', () => {
     const indicator = await getApprovedIndicatorById(db, mortalityId);
 
     expect(indicator).toMatchObject({
-      fingertipsId: MORTALITY_UNDER_75,
+      number: MORTALITY_UNDER_75,
+      slug: MORTALITY_UNDER_75_SLUG,
       name: expect.stringContaining('Under 75 mortality rate'),
       valueType: expect.any(String),
       unit: { name: expect.any(String), label: expect.any(String) },
@@ -167,7 +192,8 @@ describe('getApprovedIndicatorById', () => {
     const indicator = await getApprovedIndicatorById(db, diabetesId);
 
     expect(indicator).toMatchObject({
-      fingertipsId: DIABETES_QOF_PREVALENCE,
+      number: DIABETES_QOF_PREVALENCE,
+      slug: 'diabetes-qof-prevalence',
       name: 'Diabetes: QOF prevalence',
       valueType: 'Proportion',
       unit: { label: '%' },
@@ -447,14 +473,12 @@ describe('searchIndicators', () => {
     expect(both).toBeLessThanOrEqual(second);
   });
 
-  it('matches exact Fingertips and internal indicator ids without exposing the internal id', async () => {
-    for (const query of [String(MORTALITY_UNDER_75), mortalityId]) {
+  it('matches an exact alias and an exact internal id without exposing the internal id', async () => {
+    for (const query of [String(MORTALITY_UNDER_75), MORTALITY_UNDER_75_SLUG, mortalityId]) {
       const result = await searchIndicators(db, noFilters({ query }));
 
       expect(result.total).toBe(1);
-      expect(result.indicators).toEqual([
-        expect.objectContaining({ fingertipsId: MORTALITY_UNDER_75 }),
-      ]);
+      expect(result.indicators).toEqual([expect.objectContaining({ number: MORTALITY_UNDER_75 })]);
       expect(result.indicators[0]).not.toHaveProperty('id');
     }
   });
@@ -608,7 +632,7 @@ describe('searchIndicators', () => {
       db,
       noFilters({ areaCodes: ['E07000223', 'E07000032'] }),
     );
-    const ids = indicators.map(({ fingertipsId }) => fingertipsId);
+    const ids = indicators.map(({ number }) => number);
 
     expect(ids).toContain(92443);
     expect(ids).not.toContain(93622);
@@ -705,9 +729,7 @@ describe('searchIndicators', () => {
       searchIndicators(db, noFilters({ topics: ['mortality-and-life-expectancy'] })),
     ]);
 
-    expect(first.indicators.map((i) => i.fingertipsId)).toEqual(
-      second.indicators.map((i) => i.fingertipsId),
-    );
+    expect(first.indicators.map((i) => i.number)).toEqual(second.indicators.map((i) => i.number));
   });
 
   it('indicators with a unique first-topic are sub-ordered by name', async () => {

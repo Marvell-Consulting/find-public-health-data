@@ -6,16 +6,42 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { loadIndicator } from './loader';
 
+/** The seed's aliases in miniature: every indicator answers to its number and to a slug. */
+function slugFor(number: string): string {
+  return `indicator-${number}`;
+}
+
+function detailFor(alias: string) {
+  const number = /^\d+$/.test(alias) ? Number(alias) : Number(alias.replace('indicator-', ''));
+  return { slug: slugFor(String(number)), number, areaTypes: [] };
+}
+
 // The loader asks for several shapes; one stub serves whichever the path implies.
 function api(get = vi.fn()) {
   const client = {
+    getOrRedirect: vi.fn((path: string) => {
+      const alias = path.slice('/api/indicators/'.length);
+      const detail = detailFor(alias);
+
+      return Promise.resolve(
+        alias === detail.slug
+          ? { redirected: false, data: detail }
+          : { redirected: true, location: `/api/indicators/${detail.slug}` },
+      );
+    }),
     get: get.getMockImplementation()
       ? get
       : get.mockImplementation((path: string) => {
           if (path === '/api/indicators' || path.startsWith('/api/indicators?')) {
             return Promise.resolve({
               indicators: path.includes('q=')
-                ? [{ id: 'a', fingertipsId: 241, name: 'Diabetes: QOF prevalence' }]
+                ? [
+                    {
+                      slug: 'diabetes-qof-prevalence',
+                      number: 241,
+                      name: 'Diabetes: QOF prevalence',
+                    },
+                  ]
                 : [],
             });
           }
@@ -55,7 +81,7 @@ function api(get = vi.fn()) {
           return Promise.resolve(
             path.includes('/data')
               ? [{ areaCode: '', areaName: '', observations: [] }]
-              : { areaTypes: [] },
+              : detailFor(path.slice('/api/indicators/'.length)),
           );
         }),
   } as unknown as ApiClient;
@@ -84,7 +110,7 @@ describe('loadIndicator', () => {
     expect(result.selection.areaCodes).toEqual(codes.slice(0, 19));
     expect(result.selectedAreas.map(({ code }) => code)).toEqual(codes.slice(0, 19));
     expect(result.areasLimited).toBe(true);
-    const [path] = get.mock.calls.find(([path]) => String(path).includes('/108/data')) ?? [];
+    const [path] = get.mock.calls.find(([path]) => String(path).includes('/data')) ?? [];
     expect(new URL(`http://localhost${path}`).searchParams.getAll('areaCode')).toEqual([
       ...codes.slice(0, 19),
       'E92000001',
@@ -97,7 +123,7 @@ describe('loadIndicator', () => {
     const result = await loadIndicator(loaderArgs(client));
 
     expect(result.selected).toEqual([]);
-    expect(result.selection.fingertipsIds).toEqual([]);
+    expect(result.selection.numbers).toEqual([]);
     // The indicator catalogue stays server-side, while the geography tree receives only
     // its bounded first-page previews.
     expect(get).not.toHaveBeenCalledWith('/api/indicators', expect.anything());
@@ -120,7 +146,7 @@ describe('loadIndicator', () => {
     );
     expect(result.findSubject).toBe('diabetes & obesity');
     expect(result.findResults).toEqual([
-      { id: 'a', fingertipsId: 241, name: 'Diabetes: QOF prevalence' },
+      { slug: 'diabetes-qof-prevalence', number: 241, name: 'Diabetes: QOF prevalence' },
     ]);
   });
 
@@ -140,15 +166,33 @@ describe('loadIndicator', () => {
     const { client, get } = api();
 
     const result = await loadIndicator(
-      loaderArgs(client, { fingertipsId: '108' }, 'http://localhost/indicators/108'),
+      loaderArgs(client, { alias: 'indicator-108' }, 'http://localhost/indicators/indicator-108'),
     );
 
-    expect(result.selection.fingertipsIds).toEqual([108]);
-    expect(get).toHaveBeenCalledWith('/api/indicators/108', expect.anything());
-    expect(get).toHaveBeenCalledWith(
-      '/api/indicators/108/data?areaCode=E92000001',
+    expect(result.selection.numbers).toEqual([108]);
+    expect(client.getOrRedirect).toHaveBeenCalledWith(
+      '/api/indicators/indicator-108',
       expect.anything(),
     );
+    expect(get).toHaveBeenCalledWith(
+      '/api/indicators/indicator-108/data?areaCode=E92000001',
+      expect.anything(),
+    );
+  });
+
+  // A Fingertips-era link arrives on the number; the page lives at the canonical slug.
+  it('redirects an alias that is not canonical, keeping the query string', async () => {
+    const { client } = api();
+
+    const thrown = await loadIndicator(
+      loaderArgs(client, { alias: '108' }, 'http://localhost/indicators/108?as=E12000001'),
+    ).then(
+      () => undefined,
+      (error: Response) => error,
+    );
+
+    expect(thrown?.status).toBe(301);
+    expect(thrown?.headers.get('location')).toBe('/indicators/indicator-108?as=E12000001');
   });
 
   it('loads every indicator named in the query string', async () => {
@@ -158,7 +202,7 @@ describe('loadIndicator', () => {
       loaderArgs(client, {}, 'http://localhost/indicators?is=108&is=90366'),
     );
 
-    expect(result.selection.fingertipsIds).toEqual([108, 90366]);
+    expect(result.selection.numbers).toEqual([108, 90366]);
     expect(get).toHaveBeenCalledWith('/api/indicators/108', expect.anything());
     expect(get).toHaveBeenCalledWith('/api/indicators/90366', expect.anything());
   });
@@ -167,10 +211,14 @@ describe('loadIndicator', () => {
     const { client } = api();
 
     const result = await loadIndicator(
-      loaderArgs(client, { fingertipsId: '108' }, 'http://localhost/indicators/108?is=90366'),
+      loaderArgs(
+        client,
+        { alias: 'indicator-108' },
+        'http://localhost/indicators/indicator-108?is=90366',
+      ),
     );
 
-    expect(result.selection.fingertipsIds).toEqual([90366]);
+    expect(result.selection.numbers).toEqual([90366]);
   });
 
   it('drops duplicate and malformed ids and caps the selection', async () => {
@@ -181,8 +229,8 @@ describe('loadIndicator', () => {
       loaderArgs(client, {}, `http://localhost/indicators?is=108&is=108&is=abc&${many}`),
     );
 
-    expect(result.selection.fingertipsIds).toHaveLength(10);
-    expect(result.selection.fingertipsIds.filter((id) => id === 108)).toHaveLength(1);
+    expect(result.selection.numbers).toHaveLength(10);
+    expect(result.selection.numbers.filter((number) => number === 108)).toHaveLength(1);
     expect(result.indicatorsLimited).toBe(true);
   });
 
@@ -196,7 +244,7 @@ describe('loadIndicator', () => {
     // One call carrying both codes, not one call per code; England rides along last so
     // the benchmark columns always have its series.
     expect(get).toHaveBeenCalledWith(
-      '/api/indicators/108/data?areaCode=E12000001&areaCode=E12000002&areaCode=E92000001',
+      '/api/indicators/indicator-108/data?areaCode=E12000001&areaCode=E12000002&areaCode=E92000001',
       expect.anything(),
     );
     expect(get.mock.calls.filter(([path]) => String(path).includes('/data?'))).toHaveLength(1);
@@ -213,7 +261,7 @@ describe('loadIndicator', () => {
     const dataCalls = get.mock.calls.filter(([path]) => String(path).includes('/data?'));
     expect(dataCalls).toHaveLength(1);
     expect(String(dataCalls[0]?.[0])).toBe(
-      '/api/indicators/108/data?areaCode=E12000001&areaCode=E92000001',
+      '/api/indicators/indicator-108/data?areaCode=E12000001&areaCode=E92000001',
     );
   });
 
@@ -273,7 +321,7 @@ describe('loadIndicator', () => {
       return Promise.resolve(
         path.includes('/data')
           ? [{ areaCode: '', areaName: '', observations: [] }]
-          : { areaTypes: [] },
+          : detailFor(path.slice('/api/indicators/'.length)),
       );
     });
     const { client } = api(get);
@@ -315,7 +363,7 @@ describe('loadIndicator', () => {
       return Promise.resolve(
         path.includes('/data')
           ? [{ areaCode: '', areaName: '', observations: [] }]
-          : { areaTypes: [] },
+          : detailFor(path.slice('/api/indicators/'.length)),
       );
     });
     const { client } = api(get);
@@ -349,31 +397,14 @@ describe('loadIndicator', () => {
     ).toBe(true);
   });
 
-  it('404s a non-numeric route param without calling the api for it', async () => {
-    const { client } = api();
-
-    await expect(
-      loadIndicator(
-        loaderArgs(
-          client,
-          { fingertipsId: '../topics' },
-          'http://localhost/indicators/..%2Ftopics',
-        ),
-      ),
-    ).rejects.toMatchObject({ status: 404 });
-  });
-
   it('lets the client 404 through so the not-found boundary renders', async () => {
-    const get = vi
+    const { client } = api();
+    client.getOrRedirect = vi
       .fn()
-      .mockImplementation((path: string) =>
-        path.startsWith('/api/indicators/')
-          ? Promise.reject(new Response('Not Found', { status: 404 }))
-          : Promise.resolve(path === '/api/indicators' ? { indicators: [] } : []),
-      );
+      .mockRejectedValue(new Response('Not Found', { status: 404 })) as ApiClient['getOrRedirect'];
 
     await expect(
-      loadIndicator(loaderArgs(api(get).client, { fingertipsId: '424242' })),
+      loadIndicator(loaderArgs(client, { alias: 'no-such-indicator' })),
     ).rejects.toMatchObject({ status: 404 });
   });
 });

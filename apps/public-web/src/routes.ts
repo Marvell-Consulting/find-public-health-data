@@ -13,17 +13,15 @@ export default [
     '../../../packages/public-web-features/src/indicator/comparison-csv-route.ts',
   ),
   route(
-    'indicators/:fingertipsId/table.csv',
+    'indicators/:alias/table.csv',
     '../../../packages/public-web-features/src/indicator/table-csv-route.ts',
   ),
   route(
-    'indicators/:fingertipsId/all-data.csv',
+    'indicators/:alias/all-data.csv',
     '../../../packages/public-web-features/src/indicator/all-data-csv-route.ts',
   ),
-  route(
-    'indicators/:fingertipsId',
-    '../../../packages/public-web-features/src/indicator/route.tsx',
-    { id: 'indicator-detail' },
-  ),
+  route('indicators/:alias', '../../../packages/public-web-features/src/indicator/route.tsx', {
+    id: 'indicator-detail',
+  }),
   route('*', '../../../packages/ui/src/not-found-route.tsx'),
 ] satisfies RouteConfig;

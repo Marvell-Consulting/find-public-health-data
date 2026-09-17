@@ -16,6 +16,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { indicatorAreaDataSchema, indicatorDetailSchema } from './contract.js';
 import { publicApiRoutes } from './index.js';
 
+const MORTALITY_UNDER_75 = 'under-75-mortality-rate-from-all-causes';
+const DIABETES_QOF_PREVALENCE = 'diabetes-qof-prevalence';
+
 const env = parseEnv(
   z.object({
     ...dbEnvFields,
@@ -51,15 +54,40 @@ afterAll(async () => {
   await testDb.drop();
 });
 
+/** An indicator with both its aliases, as the migration and the seed give every indicator. */
+async function insertIndicator(
+  status: string,
+  number: number,
+  slug: string,
+  published: boolean,
+): Promise<void> {
+  const inserted = await owner`
+    INSERT INTO indicator
+      (name, value_type_id, unit_id, year_type_id, polarity_id, frequency_id,
+       status, created_by, updated_by)
+    SELECT ${slug}, vt.id, u.id, yt.id, p.id, f.id,
+           ${status}, 'integration-test', 'integration-test'
+    FROM value_type vt, unit u, year_type yt, polarity p, frequency f
+    LIMIT 1
+    RETURNING id
+  `;
+  const indicatorId = inserted[0]?.id;
+  await owner`
+    INSERT INTO indicator_alias (indicator_id, slug, is_published, is_canonical)
+    VALUES (${indicatorId}, ${String(number)}, ${published}, false),
+           (${indicatorId}, ${slug}, ${published}, ${published})
+  `;
+}
+
 describe('public routers against the seeded database', () => {
   it('lists the seeded indicators', async () => {
     const response = await request(app).get('/api/indicators');
 
     expect(response.status).toBe(200);
     expect(response.body.indicators).toHaveLength(13);
-    expect(response.body.indicators[0]).toMatchObject({
-      id: expect.stringMatching(/^[0-9a-f-]{36}$/),
-      fingertipsId: expect.any(Number),
+    expect(response.body.indicators[0]).toEqual({
+      slug: expect.any(String),
+      number: expect.any(Number),
       name: expect.any(String),
       status: 'approved',
     });
@@ -68,29 +96,38 @@ describe('public routers against the seeded database', () => {
   });
 
   it('does not list indicators that are not approved', async () => {
-    const inserted = await owner`
-      INSERT INTO indicator
-        (fingertips_id, name, value_type_id, unit_id, year_type_id, polarity_id, frequency_id,
-         status, created_by, updated_by)
-      SELECT 999999, 'integration-test draft indicator', vt.id, u.id, yt.id, p.id, f.id,
-             'draft', 'integration-test', 'integration-test'
-      FROM value_type vt, unit u, year_type yt, polarity p, frequency f
-      LIMIT 1
-      RETURNING id
-    `;
+    await insertIndicator('draft', 999999, 'integration-test-draft-indicator', true);
+
     const response = await request(app).get('/api/indicators');
+
     expect(response.status).toBe(200);
     expect(response.body.indicators).toHaveLength(13);
-    const ids = response.body.indicators.map((i: { id: string }) => i.id);
-    expect(ids).not.toContain(inserted[0]?.id);
+  });
+
+  it('does not serve a draft indicator under an unpublished alias', async () => {
+    await insertIndicator('draft', 999997, 'integration-test-pending-indicator', false);
+
+    expect((await request(app).get('/api/indicators/999997')).status).toBe(404);
+    expect(
+      (await request(app).get('/api/indicators/integration-test-pending-indicator')).status,
+    ).toBe(404);
+  });
+
+  // A Fingertips-era link still arrives, at the address the page is published under.
+  it('redirects an indicator number to the canonical slug', async () => {
+    const response = await request(app).get('/api/indicators/108?ignored=1');
+
+    expect(response.status).toBe(301);
+    expect(response.headers.location).toBe(`/api/indicators/${MORTALITY_UNDER_75}?ignored=1`);
   });
 
   it('returns the full detail for a seeded indicator, matching the wire contract', async () => {
-    const response = await request(app).get('/api/indicators/108');
+    const response = await request(app).get(`/api/indicators/${MORTALITY_UNDER_75}`);
 
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
-      fingertipsId: 108,
+      slug: MORTALITY_UNDER_75,
+      number: 108,
       name: expect.stringContaining('Under 75 mortality rate'),
       valueType: expect.any(String),
       unit: { name: expect.any(String), label: expect.any(String) },
@@ -106,7 +143,7 @@ describe('public routers against the seeded database', () => {
   });
 
   it('serves the England observations for a seeded indicator, matching the wire contract', async () => {
-    const response = await request(app).get('/api/indicators/108/data');
+    const response = await request(app).get(`/api/indicators/${MORTALITY_UNDER_75}/data`);
 
     expect(response.status).toBe(200);
     expect(response.body.areaCode).toBe('E92000001');
@@ -123,11 +160,12 @@ describe('public routers against the seeded database', () => {
   });
 
   it('serves the prototype diabetes indicator across GP, NHS and local geographies', async () => {
-    const detail = await request(app).get('/api/indicators/241');
+    const detail = await request(app).get(`/api/indicators/${DIABETES_QOF_PREVALENCE}`);
 
     expect(detail.status).toBe(200);
     expect(detail.body).toMatchObject({
-      fingertipsId: 241,
+      slug: DIABETES_QOF_PREVALENCE,
+      number: 241,
       name: 'Diabetes: QOF prevalence',
       valueType: 'Proportion',
       unit: { label: '%' },
@@ -136,7 +174,9 @@ describe('public routers against the seeded database', () => {
       expect.arrayContaining(['England', 'GPs', 'ICBs', 'NHS regions', 'Regions (statistical)']),
     );
 
-    const cornwall = await request(app).get('/api/indicators/241/data?areaCode=E06000052');
+    const cornwall = await request(app).get(
+      `/api/indicators/${DIABETES_QOF_PREVALENCE}/data?areaCode=E06000052`,
+    );
     expect(cornwall.status).toBe(200);
     expect(cornwall.body.areaName).toBe('Cornwall');
     expect(cornwall.body.observations).toHaveLength(13);
@@ -188,7 +228,9 @@ describe('public routers against the seeded database', () => {
 
   it('returns an empty observation list for an area with no data', async () => {
     const rows = await owner`
-      SELECT i.fingertips_id, a.code FROM indicator i CROSS JOIN area a
+      SELECT ia.slug, a.code FROM indicator i
+      JOIN indicator_alias ia ON ia.indicator_id = i.id AND ia.is_canonical
+      CROSS JOIN area a
       WHERE i.status = 'approved'
       AND NOT EXISTS (
         SELECT 1 FROM observation o
@@ -200,14 +242,14 @@ describe('public routers against the seeded database', () => {
     expect(pair).toBeTruthy();
 
     const response = await request(app).get(
-      `/api/indicators/${pair?.fingertips_id}/data?areaCode=${pair?.code}`,
+      `/api/indicators/${pair?.slug}/data?areaCode=${pair?.code}`,
     );
 
     expect(response.status).toBe(200);
     expect(response.body.observations).toEqual([]);
   });
 
-  it('returns 404 for a fingertips id with no indicator', async () => {
+  it('returns 404 for an alias no indicator answers to', async () => {
     const response = await request(app).get('/api/indicators/424242');
 
     expect(response.status).toBe(404);
@@ -215,20 +257,13 @@ describe('public routers against the seeded database', () => {
   });
 
   it('does not serve an indicator that is not approved', async () => {
-    await owner`
-      INSERT INTO indicator
-        (fingertips_id, name, value_type_id, unit_id, year_type_id, polarity_id, frequency_id,
-         status, created_by, updated_by)
-      SELECT 999998, 'integration-test archived indicator', vt.id, u.id, yt.id, p.id, f.id,
-             'archived', 'integration-test', 'integration-test'
-      FROM value_type vt, unit u, year_type yt, polarity p, frequency f
-      LIMIT 1
-    `;
+    const slug = 'integration-test-archived-indicator';
+    await insertIndicator('archived', 999998, slug, true);
 
-    expect((await request(app).get('/api/indicators/999998')).status).toBe(404);
-    expect((await request(app).get('/api/indicators/999998/data')).status).toBe(404);
+    expect((await request(app).get(`/api/indicators/${slug}`)).status).toBe(404);
+    expect((await request(app).get(`/api/indicators/${slug}/data`)).status).toBe(404);
     expect(
-      (await request(app).get('/api/indicators/999998/range?displayGroup=Local%20authorities'))
+      (await request(app).get(`/api/indicators/${slug}/range?displayGroup=Local%20authorities`))
         .status,
     ).toBe(404);
   });

@@ -5,8 +5,14 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { indicatorsRouter } from './indicators.js';
 
+const CANONICAL_SLUG = 'under-75-mortality-rate-from-all-causes';
+
+// What every alias of indicator 108 resolves to: the row, its canonical address, its number.
+const resolved = { id: 'ind-1', slug: CANONICAL_SLUG, number: 108 };
+
 const indicatorDetail = {
-  fingertipsId: 108,
+  slug: CANONICAL_SLUG,
+  number: 108,
   name: 'Under 75 mortality rate from all causes',
   valueType: 'Directly standardised rate',
   unit: { name: 'per 100,000', label: 'per 100,000' },
@@ -44,14 +50,47 @@ function createTestApp(overrides: FakeRepositoryOverrides['indicators'] = {}): E
 }
 
 describe('the public indicators surface', () => {
-  it('404s data and range requests when the fingertips id resolves to nothing', async () => {
-    const app = createTestApp({ resolveId: async () => undefined });
+  it('404s data and range requests when the alias resolves to nothing', async () => {
+    const app = createTestApp({ resolveAlias: async () => undefined });
 
     expect((await request(app).get('/api/indicators/424242/data')).status).toBe(404);
     expect(
       (await request(app).get('/api/indicators/424242/range?displayGroup=Local+authorities'))
         .status,
     ).toBe(404);
+  });
+
+  // The number and any superseded slug stay valid addresses, so years of published links
+  // and API calls keep working — they just name one canonical page.
+  it.each([
+    ['/api/indicators/108', `/api/indicators/${CANONICAL_SLUG}`],
+    [
+      '/api/indicators/108/data?areaCode=E06000001',
+      `/api/indicators/${CANONICAL_SLUG}/data?areaCode=E06000001`,
+    ],
+    [
+      '/api/indicators/108/range?displayGroup=Local+authorities',
+      `/api/indicators/${CANONICAL_SLUG}/range?displayGroup=Local+authorities`,
+    ],
+  ])('redirects %s to the canonical alias, query string and all', async (path, expected) => {
+    // No data stubs: a redirect answers before the repository is asked for anything.
+    const app = createTestApp({ resolveAlias: async () => resolved });
+
+    const response = await request(app).get(path);
+
+    expect(response.status).toBe(301);
+    expect(response.headers.location).toBe(expected);
+  });
+
+  it('serves an alias that is already canonical rather than redirecting to itself', async () => {
+    const app = createTestApp({
+      resolveAlias: async () => resolved,
+      findApprovedById: async () => indicatorDetail,
+    });
+
+    const response = await request(app).get(`/api/indicators/${CANONICAL_SLUG}`);
+
+    expect(response.status).toBe(200);
   });
 });
 
@@ -89,38 +128,29 @@ describe('GET /api/indicators', () => {
   });
 });
 
-describe('GET /api/indicators/:fingertipsId', () => {
-  it('finds an indicator by its fingertips id', async () => {
-    const app = createTestApp({
-      resolveId: async () => 'ind-1',
-      findApprovedById: async () => indicatorDetail,
-    });
+describe('GET /api/indicators/:alias', () => {
+  it('finds an indicator by its canonical slug', async () => {
+    const resolveAlias = vi.fn().mockResolvedValue(resolved);
+    const app = createTestApp({ resolveAlias, findApprovedById: async () => indicatorDetail });
 
-    const response = await request(app).get('/api/indicators/108');
+    const response = await request(app).get(`/api/indicators/${CANONICAL_SLUG}`);
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual(indicatorDetail);
+    expect(resolveAlias).toHaveBeenCalledWith(CANONICAL_SLUG);
   });
 
-  it('returns the standard not-found body for an unknown fingertips id', async () => {
-    const app = createTestApp({ resolveId: async () => undefined });
+  it('returns the standard not-found body for an alias no indicator answers to', async () => {
+    const app = createTestApp({ resolveAlias: async () => undefined });
 
-    const response = await request(app).get('/api/indicators/424242');
-
-    expect(response.status).toBe(404);
-    expect(response.body).toEqual({ error: 'not_found' });
-  });
-
-  it('rejects a non-numeric indicator id without touching the repository', async () => {
-    // No stub: if the route reached the repository, the fake would throw and this would 500.
-    const response = await request(createTestApp()).get('/api/indicators/not-a-number');
+    const response = await request(app).get('/api/indicators/no-such-indicator');
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'not_found' });
   });
 });
 
-describe('GET /api/indicators/:fingertipsId/data', () => {
+describe('GET /api/indicators/:alias/data', () => {
   it('serves observations for an indicator, defaulting to England', async () => {
     const data = {
       areaCode: 'E92000001',
@@ -141,9 +171,9 @@ describe('GET /api/indicators/:fingertipsId/data', () => {
       ],
     };
     const findObservations = vi.fn().mockResolvedValue(data);
-    const app = createTestApp({ resolveId: async () => 'ind-1', findObservations });
+    const app = createTestApp({ resolveAlias: async () => resolved, findObservations });
 
-    const response = await request(app).get('/api/indicators/108/data');
+    const response = await request(app).get(`/api/indicators/${CANONICAL_SLUG}/data`);
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual(data);
@@ -154,9 +184,11 @@ describe('GET /api/indicators/:fingertipsId/data', () => {
     const findObservations = vi
       .fn()
       .mockResolvedValue({ areaCode: 'E06000001', areaName: 'Hartlepool', observations: [] });
-    const app = createTestApp({ resolveId: async () => 'ind-1', findObservations });
+    const app = createTestApp({ resolveAlias: async () => resolved, findObservations });
 
-    const response = await request(app).get('/api/indicators/108/data?areaCode=E06000001');
+    const response = await request(app).get(
+      `/api/indicators/${CANONICAL_SLUG}/data?areaCode=E06000001`,
+    );
 
     expect(response.status).toBe(200);
     expect(findObservations).toHaveBeenCalledWith('ind-1', 'E06000001');
@@ -168,10 +200,10 @@ describe('GET /api/indicators/:fingertipsId/data', () => {
       areaName: areaCode,
       observations: [],
     }));
-    const app = createTestApp({ resolveId: async () => 'ind-1', findObservations });
+    const app = createTestApp({ resolveAlias: async () => resolved, findObservations });
 
     const response = await request(app).get(
-      '/api/indicators/108/data?areaCode=E12000001&areaCode=E12000002',
+      `/api/indicators/${CANONICAL_SLUG}/data?areaCode=E12000001&areaCode=E12000002`,
     );
 
     expect(response.status).toBe(200);
@@ -183,7 +215,7 @@ describe('GET /api/indicators/:fingertipsId/data', () => {
 
   it('rejects a malformed area code without touching the repository', async () => {
     const response = await request(createTestApp()).get(
-      '/api/indicators/108/data?areaCode=../nope',
+      `/api/indicators/${CANONICAL_SLUG}/data?areaCode=../nope`,
     );
 
     expect(response.status).toBe(404);
@@ -191,27 +223,27 @@ describe('GET /api/indicators/:fingertipsId/data', () => {
 
   it('returns not-found when none of the requested areas exist', async () => {
     const app = createTestApp({
-      resolveId: async () => 'ind-1',
+      resolveAlias: async () => resolved,
       findObservations: async () => undefined,
     });
 
-    const response = await request(app).get('/api/indicators/424242/data');
+    const response = await request(app).get(`/api/indicators/${CANONICAL_SLUG}/data`);
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'not_found' });
   });
 });
 
-describe('GET /api/indicators/:fingertipsId/range', () => {
+describe('GET /api/indicators/:alias/range', () => {
   it('serves a per-segment range for the requested display group', async () => {
     const periods = [
       { fromDate: '2023-01-01', toDate: '2023-12-31', segment: 'Male', min: 1, max: 2 },
     ];
     const findObservationRange = vi.fn().mockResolvedValue(periods);
-    const app = createTestApp({ resolveId: async () => 'ind-1', findObservationRange });
+    const app = createTestApp({ resolveAlias: async () => resolved, findObservationRange });
 
     const response = await request(app).get(
-      '/api/indicators/241/range?displayGroup=Local%20authorities',
+      `/api/indicators/${CANONICAL_SLUG}/range?displayGroup=Local%20authorities`,
     );
 
     expect(response.status).toBe(200);
@@ -219,13 +251,10 @@ describe('GET /api/indicators/:fingertipsId/range', () => {
     expect(findObservationRange).toHaveBeenCalledWith('ind-1', 'Local authorities');
   });
 
-  it('rejects a range request without area types or with a non-numeric id', async () => {
-    // No stub: if either route reached the repository, the fake would throw and 500.
+  it('rejects a range request naming no display group, without touching the repository', async () => {
+    // No stub: if the route reached the repository, the fake would throw and this would 500.
     const app = createTestApp();
 
-    expect((await request(app).get('/api/indicators/241/range')).status).toBe(404);
-    expect(
-      (await request(app).get('/api/indicators/nope/range?displayGroup=Local+authorities')).status,
-    ).toBe(404);
+    expect((await request(app).get(`/api/indicators/${CANONICAL_SLUG}/range`)).status).toBe(404);
   });
 });

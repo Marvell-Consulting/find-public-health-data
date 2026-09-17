@@ -17,19 +17,22 @@ function StatusTag({ status }: { status: IndicatorStatus }) {
   return <Tag classModifiers={colour} text={label} />;
 }
 
-// Only an approved indicator has a public page; the rest have nothing to act on yet.
+// Only an approved indicator with a published address has a public page; the rest have
+// nothing to act on yet.
 function Actions({ indicator }: { indicator: IndicatorAdminDetail }) {
+  const slug = indicator.status === 'approved' ? indicator.slug : null;
+
   return (
     <>
       <h2 className="govuk-heading-m">Actions</h2>
-      {indicator.status === 'approved' ? (
+      {slug === null ? (
+        <p className="govuk-body">There are no actions available for this indicator yet.</p>
+      ) : (
         <ul className="govuk-list">
           <li>
-            <A href={publishedIndicatorPath(indicator.fingertipsId)}>View published indicator</A>
+            <A href={publishedIndicatorPath(slug)}>View published indicator</A>
           </li>
         </ul>
-      ) : (
-        <p className="govuk-body">There are no actions available for this indicator yet.</p>
       )}
     </>
   );
@@ -44,7 +47,11 @@ export function IndicatorOverviewPage({ indicator }: { indicator: IndicatorAdmin
           <h1 className="govuk-heading-xl">{indicator.name}</h1>
           <SummaryList
             items={[
-              { name: 'Indicator ID', children: String(indicator.fingertipsId) },
+              { name: 'Indicator number', children: String(indicator.number) },
+              {
+                name: 'Web address',
+                children: indicator.slug ?? 'Not published yet',
+              },
               { name: 'Status', children: <StatusTag status={indicator.status} /> },
             ]}
           />

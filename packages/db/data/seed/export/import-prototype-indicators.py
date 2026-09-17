@@ -12,6 +12,7 @@ import csv
 import gzip
 import json
 import os
+import re
 import secrets
 import time
 from datetime import date
@@ -66,6 +67,7 @@ EXPORT_TABLES = [
     "dimension_value",
     "area",
     "indicator",
+    "indicator_alias",
     "indicator_metadata",
     "upload_batch",
     "observation",
@@ -74,6 +76,14 @@ EXPORT_TABLES = [
 ]
 
 LOCAL_DB_HOSTS = {"localhost", "127.0.0.1", "::1"}
+
+
+def slugify(title):
+    """slugify() in @fphd/config: the rule the canonical alias is derived by."""
+    slug = re.sub(r"\s+", "-", title.lower())
+    slug = re.sub(r"[^a-z0-9-]", "", slug)
+    slug = re.sub(r"-{2,}", "-", slug).strip("-")
+    return f"{slug}-indicator" if re.fullmatch(r"[0-9]+", slug) else slug
 
 
 def uuid7():
@@ -255,8 +265,8 @@ def add_areas(cur, registry):
 
 def add_indicators(cur, metadata):
     cur.execute(
-        "SELECT fingertips_id FROM indicator WHERE fingertips_id = ANY(%s)",
-        (list(INDICATOR_CONFIG),),
+        "SELECT slug FROM indicator_alias WHERE slug = ANY(%s)",
+        ([str(number) for number in INDICATOR_CONFIG],),
     )
     existing = [row[0] for row in cur.fetchall()]
     if existing:
@@ -277,18 +287,17 @@ def add_indicators(cur, metadata):
         cur.execute(
             """
             INSERT INTO indicator
-              (id, fingertips_id, name, value_type_id, unit_id, year_type_id,
+              (id, name, value_type_id, unit_id, year_type_id,
                ci_method_id, polarity_id, frequency_id, comparator_method_id,
                ci_confidence_level, data_updated_at, status, reviewed_at, reviewed_by,
                config, created_at, created_by, updated_at, updated_by)
             VALUES
-              (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+              (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                'approved', %s, 'fingertips-api-seed', %s, %s,
                'fingertips-api-seed', %s, 'fingertips-api-seed')
             """,
             (
                 indicator_id,
-                fingertips_id,
                 descriptive["Name"],
                 one_id(cur, "value_type", item["ValueType"]["Name"]),
                 one_id(cur, "unit", unit_name),
@@ -303,6 +312,24 @@ def add_indicators(cur, metadata):
                 Json({}),
                 updated_at,
                 updated_at,
+            ),
+        )
+
+        # The Fingertips number and the title slug, both published, as the migration
+        # backfilled them for the indicators that came from the base snapshot.
+        cur.execute(
+            """
+            INSERT INTO indicator_alias
+              (id, indicator_id, slug, is_published, is_canonical)
+            VALUES (%s, %s, %s, true, false), (%s, %s, %s, true, true)
+            """,
+            (
+                uuid7(),
+                indicator_id,
+                str(fingertips_id),
+                uuid7(),
+                indicator_id,
+                slugify(descriptive["Name"]),
             ),
         )
 
@@ -468,17 +495,17 @@ def add_observations(cur, csv_path, registry, area_ids, metadata, indicator_ids,
 def validate(cur):
     cur.execute(
         """
-        SELECT i.fingertips_id, count(o.id), count(DISTINCT a.code),
+        SELECT ia.slug::int, count(o.id), count(DISTINCT a.code),
                count(DISTINCT at.name)
-        FROM indicator i
-        JOIN observation o ON o.indicator_id = i.id
+        FROM indicator_alias ia
+        JOIN observation o ON o.indicator_id = ia.indicator_id
         JOIN area a ON a.id = o.area_id
         JOIN area_type at ON at.id = a.area_type_id
-        WHERE i.fingertips_id = ANY(%s)
-        GROUP BY i.fingertips_id
-        ORDER BY i.fingertips_id
+        WHERE ia.slug = ANY(%s)
+        GROUP BY ia.slug
+        ORDER BY ia.slug::int
         """,
-        (list(INDICATOR_CONFIG),),
+        ([str(number) for number in INDICATOR_CONFIG],),
     )
     rows = cur.fetchall()
     if [row[0] for row in rows] != sorted(INDICATOR_CONFIG):

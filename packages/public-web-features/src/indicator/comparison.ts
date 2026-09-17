@@ -20,10 +20,10 @@ export function comparisonTable(
     areaCode,
     areaName: areaName,
   }));
-  const byId = new Map(selected.map((entry) => [entry.detail.fingertipsId, entry]));
-  const polarities = new Map(selected.map(({ detail }) => [detail.fingertipsId, detail.polarity]));
+  const byNumber = new Map(selected.map((entry) => [entry.detail.number, entry]));
+  const polarities = new Map(selected.map(({ detail }) => [detail.number, detail.polarity]));
   const trendOf = (row: (typeof rows)[number], cell: { series: (typeof rows)[number]['series'] }) =>
-    recentTrend(cell.series, polarities.get(row.fingertipsId) ?? null);
+    recentTrend(cell.series, polarities.get(row.number) ?? null);
   const hasPickedAreas = areas.some(({ areaCode }) => areaCode !== 'E92000001');
   const regionAvailable = areas.some(({ areaCode }) => geography.regionByCode[areaCode]);
   const benchmark = hasPickedAreas ? choice : 'none';
@@ -43,7 +43,7 @@ export function comparisonTable(
     row: (typeof rows)[number],
     cell: (typeof rows)[number]['cells'][number],
   ) => {
-    const entry = byId.get(row.fingertipsId);
+    const entry = byNumber.get(row.number);
     const latest = cell.series.at(-1);
     if (!entry || !latest || !benchmarkNameFor(cell.areaCode)) {
       return undefined;

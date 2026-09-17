@@ -96,7 +96,8 @@ describe('public application routes', () => {
 
   it('renders the indicator page skeleton from loader data', async () => {
     const indicator = {
-      fingertipsId: 108,
+      slug: 'under-75-mortality-rate-from-all-causes',
+      number: 108,
       name: 'Under 75 mortality rate from all causes',
       valueType: 'Directly standardised rate',
       unit: { name: 'per 100,000', label: 'per 100,000' },
@@ -172,14 +173,14 @@ describe('public application routes', () => {
       },
     ];
     const areaData = [{ areaCode: 'E92000001', areaName: 'England', observations }];
-    const selection = { areaCodes: [], areaLevels: [], fingertipsIds: [108] };
+    const selection = { areaCodes: [], areaLevels: [], numbers: [108] };
     const Routes = createRoutesStub([
       {
         path: '/',
         Component: PublicApp,
         children: [
           {
-            path: 'indicators/:fingertipsId',
+            path: 'indicators/:alias',
             Component: IndicatorRoute,
             loader: () => ({
               selected: [{ detail: indicator, areaData }],
@@ -198,7 +199,7 @@ describe('public application routes', () => {
       },
     ]);
 
-    render(<Routes initialEntries={['/indicators/108']} />);
+    render(<Routes initialEntries={['/indicators/under-75-mortality-rate-from-all-causes']} />);
 
     expect(
       await screen.findByRole('heading', { name: 'Under 75 mortality rate from all causes' }),
@@ -311,7 +312,7 @@ describe('public application routes', () => {
         'Middle-layer super output areas',
         'GP practices',
       ],
-      selection: { areaCodes: [], areaLevels: [], fingertipsIds: [108] },
+      selection: { areaCodes: [], areaLevels: [], numbers: [108] },
     };
     const Routes = createRoutesStub([
       {
@@ -358,7 +359,8 @@ describe('public application routes', () => {
       dimensions: [{ type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 }],
     });
     const indicatorDetail = {
-      fingertipsId: 108,
+      slug: 'under-75-mortality-rate-from-all-causes',
+      number: 108,
       name: 'Under 75 mortality rate from all causes',
       valueType: 'Directly standardised rate',
       unit: { name: 'per 100,000', label: 'per 100,000' },
@@ -409,7 +411,7 @@ describe('public application routes', () => {
       selection: {
         areaCodes: ['E12000001', 'E12000002'],
         areaLevels: [],
-        fingertipsIds: [108],
+        numbers: [108],
       },
     };
     const Routes = createRoutesStub([
@@ -418,7 +420,7 @@ describe('public application routes', () => {
         Component: PublicApp,
         children: [
           {
-            path: 'indicators/:fingertipsId',
+            path: 'indicators/:alias',
             Component: IndicatorRoute,
             loader: () => loaderData,
           },
@@ -426,7 +428,13 @@ describe('public application routes', () => {
       },
     ]);
 
-    render(<Routes initialEntries={['/indicators/108?as=E12000001&as=E12000002']} />);
+    render(
+      <Routes
+        initialEntries={[
+          '/indicators/under-75-mortality-rate-from-all-causes?as=E12000001&as=E12000002',
+        ]}
+      />,
+    );
 
     // Both selected areas appear as removable chips in the geography card.
     expect(await screen.findByRole('heading', { name: 'Geography filters' })).toBeTruthy();
@@ -441,8 +449,9 @@ describe('public application routes', () => {
   });
 
   it('adds a comparison section only when more than one indicator is selected', async () => {
-    const detailFor = (fingertipsId: number, name: string) => ({
-      fingertipsId,
+    const detailFor = (number: number, name: string) => ({
+      slug: `indicator-${number}`,
+      number,
       name,
       valueType: 'Directly standardised rate',
       unit: { name: 'per 100,000', label: 'per 100,000' },
@@ -500,7 +509,7 @@ describe('public application routes', () => {
 
     const OneIndicator = routesFor({
       selected: [{ detail: detailFor(108, 'Mortality'), areaData: areaDataFor(341.1) }],
-      selection: { areaCodes: [], areaLevels: [], fingertipsIds: [108] },
+      selection: { areaCodes: [], areaLevels: [], numbers: [108] },
     });
     render(<OneIndicator initialEntries={['/indicators?is=108']} />);
 
@@ -517,7 +526,7 @@ describe('public application routes', () => {
       selection: {
         areaCodes: [],
         areaLevels: [],
-        fingertipsIds: [108, 90366],
+        numbers: [108, 90366],
       },
     });
     render(<TwoIndicators initialEntries={['/indicators?is=108&is=90366']} />);
@@ -544,7 +553,7 @@ describe('public application routes', () => {
             Component: IndicatorRoute,
             loader: () => ({
               selected: [],
-              selection: { areaCodes: [], areaLevels: [], fingertipsIds: [] },
+              selection: { areaCodes: [], areaLevels: [], numbers: [] },
             }),
           },
         ],
@@ -566,9 +575,14 @@ describe('public application routes', () => {
       'fetch',
       vi.fn(
         async () =>
-          new Response(JSON.stringify({ indicators: [{ fingertipsId: 108, name: 'Mortality' }] }), {
-            headers: { 'content-type': 'application/json' },
-          }),
+          new Response(
+            JSON.stringify({
+              indicators: [{ slug: 'mortality', number: 108, name: 'Mortality' }],
+            }),
+            {
+              headers: { 'content-type': 'application/json' },
+            },
+          ),
       ),
     );
     const loaderUrls: string[] = [];
@@ -587,7 +601,7 @@ describe('public application routes', () => {
                 selection: {
                   areaCodes: [],
                   areaLevels: [],
-                  fingertipsIds: [],
+                  numbers: [],
                 },
               };
             },
@@ -636,7 +650,8 @@ describe('public application routes', () => {
       dimensions: [{ type: 'Age', value: 'All ages', dimensionClass: 'core', sortOrder: 1 }],
     });
     const detail = {
-      fingertipsId: 93995,
+      slug: 'mortality-rate-for-deaths-involving-diabetes-all-ages',
+      number: 93995,
       name: 'Mortality rate for deaths involving diabetes, all ages',
       valueType: 'Directly standardised rate',
       unit: { name: 'per 100,000', label: 'per 100,000' },
@@ -668,7 +683,7 @@ describe('public application routes', () => {
         Component: PublicApp,
         children: [
           {
-            path: 'indicators/:fingertipsId',
+            path: 'indicators/:alias',
             Component: IndicatorRoute,
             loader: () => ({
               selectedAreas: [{ code: 'E06000052', name: 'Cornwall', level: 'Local authorities' }],
@@ -698,7 +713,7 @@ describe('public application routes', () => {
               selection: {
                 areaCodes: ['E06000052'],
                 areaLevels: [],
-                fingertipsIds: [93995],
+                numbers: [93995],
               },
             }),
           },
@@ -707,7 +722,13 @@ describe('public application routes', () => {
     ]);
 
     // A stale pt param in the URL must fall back to All, not blank the table.
-    render(<Routes initialEntries={['/indicators/93995?as=E06000052&pt-93995=1-year']} />);
+    render(
+      <Routes
+        initialEntries={[
+          '/indicators/mortality-rate-for-deaths-involving-diabetes-all-ages?as=E06000052&pt-93995=1-year',
+        ]}
+      />,
+    );
 
     expect(
       await screen.findByRole('heading', {
@@ -733,7 +754,8 @@ describe('public application routes', () => {
       dimensions: [{ type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 }],
     });
     const detail = {
-      fingertipsId: 108,
+      slug: 'under-75-mortality-rate-from-all-causes',
+      number: 108,
       name: 'Under 75 mortality rate from all causes',
       valueType: 'Directly standardised rate',
       unit: { name: 'per 100,000', label: 'per 100,000' },
@@ -774,7 +796,7 @@ describe('public application routes', () => {
         Component: PublicApp,
         children: [
           {
-            path: 'indicators/:fingertipsId',
+            path: 'indicators/:alias',
             Component: IndicatorRoute,
             loader: () => ({
               selectedAreas: [{ code: 'E06000052', name: 'Cornwall', level: 'Local authorities' }],
@@ -813,7 +835,7 @@ describe('public application routes', () => {
               selection: {
                 areaCodes: ['E06000052'],
                 areaLevels: [],
-                fingertipsIds: [108],
+                numbers: [108],
               },
             }),
           },
@@ -821,7 +843,11 @@ describe('public application routes', () => {
       },
     ]);
 
-    render(<Routes initialEntries={['/indicators/108?as=E06000052']} />);
+    render(
+      <Routes
+        initialEntries={['/indicators/under-75-mortality-rate-from-all-causes?as=E06000052']}
+      />,
+    );
 
     // England is not a column of its own while a real area is picked and no benchmark
     // is chosen.
@@ -855,7 +881,7 @@ describe('public application routes', () => {
         ErrorBoundary,
         children: [
           {
-            path: 'indicators/:fingertipsId',
+            path: 'indicators/:alias',
             Component: IndicatorRoute,
             loader: () => {
               throw new Response('Not Found', { status: 404 });
@@ -865,7 +891,7 @@ describe('public application routes', () => {
       },
     ]);
 
-    render(<Routes initialEntries={['/indicators/424242']} />);
+    render(<Routes initialEntries={['/indicators/no-such-indicator']} />);
 
     expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeTruthy();
   });
@@ -1000,7 +1026,8 @@ describe('public application routes', () => {
         limit: 200,
         indicators: [
           {
-            fingertipsId: 108,
+            slug: 'under-75-mortality-rate-from-all-causes',
+            number: 108,
             name: 'Under 75 mortality rate from all causes',
             topics: [{ slug: 'mortality', title: 'Mortality' }],
             classifications: [],
@@ -1109,7 +1136,8 @@ describe('public application routes', () => {
         total: 350,
         limit: 200,
         indicators: Array.from({ length: 200 }, (_, i) => ({
-          fingertipsId: 100 + i,
+          slug: `indicator-${i}`,
+          number: 100 + i,
           name: `Indicator ${i}`,
           topics: [],
           classifications: [],

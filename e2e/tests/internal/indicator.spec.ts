@@ -5,7 +5,7 @@ import { signInAs } from '../support/sign-in.js';
 
 test.beforeEach(async ({ page }) => {
   await signInAs(page, 'Sam Taylor');
-  await page.goto('/indicators/108');
+  await page.goto('/indicators/under-75-mortality-rate-from-all-causes');
 });
 
 test('shows an indicator to a publisher', async ({ page }) => {

@@ -1,5 +1,5 @@
 import type { IndicatorSearchFilters, Repositories } from '@fphd/db';
-import { Router } from 'express';
+import { type Request, type Response, Router } from 'express';
 
 import type {
   IndicatorAreaData,
@@ -28,6 +28,29 @@ function pickStrings(value: unknown, maxLength = 100): string[] {
       ),
     ),
   ].slice(0, 100);
+}
+
+/**
+ * An indicator answers to its number and to every slug it has been published under, but it
+ * has one canonical address. Anything else redirects rather than serving the same body at
+ * two URLs, so a link shared from a Fingertips-era URL still arrives.
+ */
+function redirectToCanonical(
+  request: Request,
+  response: Response,
+  alias: string,
+  canonical: string,
+  suffix: string,
+): boolean {
+  if (alias === canonical) {
+    return false;
+  }
+
+  const queryIndex = request.originalUrl.indexOf('?');
+  const search = queryIndex === -1 ? '' : request.originalUrl.slice(queryIndex);
+  response.redirect(301, `/api/indicators/${encodeURIComponent(canonical)}${suffix}${search}`);
+
+  return true;
 }
 
 export function indicatorsRouter(indicators: Repositories['indicators']): Router {
@@ -76,27 +99,30 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
     response.status(200).json({ indicators: await indicators.listApproved() });
   });
 
-  router.get('/api/indicators/:fingertipsId/data', async (request, response) => {
-    const { fingertipsId } = request.params;
+  router.get('/api/indicators/:alias/data', async (request, response) => {
+    const { alias } = request.params;
     // Repeatable, so a page comparing many areas asks once rather than once per area.
     const requested = request.query.areaCode ?? DEFAULT_AREA_CODE;
     const areaCodes = [...new Set(Array.isArray(requested) ? requested : [requested])].filter(
       (code): code is string => typeof code === 'string' && /^[A-Z0-9]+$/i.test(code),
     );
 
-    if (!/^\d+$/.test(fingertipsId) || areaCodes.length === 0) {
+    if (areaCodes.length === 0) {
       response.status(404).json({ error: 'not_found' });
       return;
     }
 
-    const indicatorId = await indicators.resolveId(Number(fingertipsId));
-    if (!indicatorId) {
+    const resolved = await indicators.resolveAlias(alias);
+    if (!resolved) {
       response.status(404).json({ error: 'not_found' });
+      return;
+    }
+    if (redirectToCanonical(request, response, alias, resolved.slug, '/data')) {
       return;
     }
 
     const found = await Promise.all(
-      areaCodes.map((code) => indicators.findObservations(indicatorId, code)),
+      areaCodes.map((code) => indicators.findObservations(resolved.id, code)),
     );
     const data: IndicatorAreaData[] = found.filter(
       (entry): entry is IndicatorAreaData => entry !== undefined,
@@ -112,51 +138,45 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
     response.status(200).json(areaCodes.length === 1 ? data[0] : data);
   });
 
-  router.get('/api/indicators/:fingertipsId/range', async (request, response) => {
-    const { fingertipsId } = request.params;
+  router.get('/api/indicators/:alias/range', async (request, response) => {
+    const { alias } = request.params;
     const displayGroup = request.query.displayGroup;
 
-    if (
-      !/^\d+$/.test(fingertipsId) ||
-      typeof displayGroup !== 'string' ||
-      displayGroup === '' ||
-      displayGroup.length > 100
-    ) {
+    if (typeof displayGroup !== 'string' || displayGroup === '' || displayGroup.length > 100) {
       response.status(404).json({ error: 'not_found' });
       return;
     }
 
-    const indicatorId = await indicators.resolveId(Number(fingertipsId));
-    if (!indicatorId) {
+    const resolved = await indicators.resolveAlias(alias);
+    if (!resolved) {
       response.status(404).json({ error: 'not_found' });
+      return;
+    }
+    if (redirectToCanonical(request, response, alias, resolved.slug, '/range')) {
       return;
     }
 
     // An indicator with no data at this level answers with an empty range rather than an
     // error, matching how /api/areas treats unknown groups.
     response.status(200).json({
-      periods: await indicators.findObservationRange(indicatorId, displayGroup),
+      periods: await indicators.findObservationRange(resolved.id, displayGroup),
     });
   });
 
-  router.get('/api/indicators/:fingertipsId', async (request, response) => {
-    const { fingertipsId } = request.params;
+  router.get('/api/indicators/:alias', async (request, response) => {
+    const { alias } = request.params;
 
-    // The public identifier is a plain integer; anything else can only be a probe or a
-    // typo, and answering 404 keeps both indistinguishable from an unknown indicator.
-    if (!/^\d+$/.test(fingertipsId)) {
+    const resolved = await indicators.resolveAlias(alias);
+    if (!resolved) {
       response.status(404).json({ error: 'not_found' });
       return;
     }
-
-    const indicatorId = await indicators.resolveId(Number(fingertipsId));
-    if (!indicatorId) {
-      response.status(404).json({ error: 'not_found' });
+    if (redirectToCanonical(request, response, alias, resolved.slug, '')) {
       return;
     }
 
     // The annotation binds the repository's shape to the wire contract at compile time.
-    const detail: IndicatorDetail | undefined = await indicators.findApprovedById(indicatorId);
+    const detail: IndicatorDetail | undefined = await indicators.findApprovedById(resolved.id);
 
     if (!detail) {
       response.status(404).json({ error: 'not_found' });

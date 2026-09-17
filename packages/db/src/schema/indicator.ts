@@ -1,18 +1,20 @@
 import { sql } from 'drizzle-orm';
 import {
   type AnyPgColumn,
+  boolean,
   check,
   index,
-  integer,
   jsonb,
+  pgSequence,
   pgTable,
   smallint,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import { audit, uuidPrimaryKey } from './helpers.js';
+import { audit, timestamps, uuidPrimaryKey } from './helpers.js';
 import {
   ciMethod,
   comparatorMethod,
@@ -33,9 +35,6 @@ export const indicator = pgTable(
   'indicator',
   {
     id: uuidPrimaryKey(),
-    // The public Fingertips indicator number (e.g. 108, 92443), referenced in years
-    // of published URLs and documents; preserved as a stable domain identifier.
-    fingertipsId: integer().notNull().unique(),
     name: text().notNull(),
     valueTypeId: uuid()
       .notNull()
@@ -76,6 +75,53 @@ export const indicator = pgTable(
       sql`${t.status} IN ('draft', 'in_review', 'approved', 'archived')`,
     ),
     index('idx_indicator_name_trgm').using('gin', t.name.op('gin_trgm_ops')),
+  ],
+);
+
+/**
+ * New indicators take their number from here. It starts high enough that a Fingertips
+ * number imported later can never collide with one this service minted.
+ */
+export const indicatorNumberSequence = pgSequence('indicator_number_seq', {
+  startWith: 1000000,
+  minValue: 1000000,
+});
+
+/**
+ * Every public address an indicator answers to: its number, and one or more slugs derived
+ * from titles it has had. A slug of nothing but digits is the number — there is no column
+ * for the distinction because the slug already says. The invariants are indexes and checks
+ * rather than repository code, so a second writer cannot break them.
+ */
+export const indicatorAlias = pgTable(
+  'indicator_alias',
+  {
+    id: uuidPrimaryKey(),
+    indicatorId: uuid()
+      .notNull()
+      .references(() => indicator.id),
+    slug: text().notNull().unique(),
+    isPublished: boolean().notNull().default(false),
+    isCanonical: boolean().notNull().default(false),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex('idx_indicator_alias_number').on(t.indicatorId).where(sql`${t.slug} ~ '^[0-9]+$'`),
+    uniqueIndex('idx_indicator_alias_canonical').on(t.indicatorId).where(sql`${t.isCanonical}`),
+    // One pending title slug: a draft's title change rewrites its slug rather than adding one.
+    uniqueIndex('idx_indicator_alias_pending')
+      .on(t.indicatorId)
+      .where(sql`${t.slug} !~ '^[0-9]+$' AND NOT ${t.isPublished}`),
+    check(
+      'indicator_alias_canonical_published_check',
+      sql`NOT ${t.isCanonical} OR ${t.isPublished}`,
+    ),
+    check(
+      'indicator_alias_canonical_slug_check',
+      sql`NOT ${t.isCanonical} OR ${t.slug} !~ '^[0-9]+$'`,
+    ),
+    // SLUG_PATTERN in @fphd/config, which slugify is written against.
+    check('indicator_alias_slug_check', sql`${t.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`),
   ],
 );
 

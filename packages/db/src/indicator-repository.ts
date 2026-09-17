@@ -32,6 +32,7 @@ import {
   dimensionValue,
   frequency,
   indicator,
+  indicatorAlias,
   indicatorClassification,
   indicatorMetadata,
   indicatorTopic,
@@ -65,7 +66,8 @@ export interface IndicatorSearchFilters {
 }
 
 export interface IndicatorSearchRow {
-  fingertipsId: number;
+  slug: string;
+  number: number;
   name: string;
   topics: { slug: string; title: string }[];
   classifications: { dimension: string; slug: string; name: string }[];
@@ -86,23 +88,55 @@ export interface IndicatorFacets {
 }
 
 export interface ApprovedIndicator {
-  id: string;
-  fingertipsId: number;
+  slug: string;
+  number: number;
   name: string;
   status: string;
 }
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const MAX_POSTGRES_INTEGER = 2_147_483_647;
+/** What a public address resolves to: the row behind it and the two aliases every page needs. */
+export interface ResolvedIndicator {
+  id: string;
+  /** The canonical slug, which every other alias redirects to. */
+  slug: string;
+  number: number;
+}
 
-function exactIndicatorIdentifier(query: string) {
-  const fingertipsId = /^\d+$/.test(query) ? Number(query) : Number.NaN;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+// One alias per role, joined by name: the canonical slug a page links to, the number a
+// query string composes with, and the address a request arrived under.
+const canonicalAlias = alias(indicatorAlias, 'canonical_alias');
+const numberAlias = alias(indicatorAlias, 'number_alias');
+const requestedAlias = alias(indicatorAlias, 'requested_alias');
+
+const canonicalJoin = and(
+  eq(canonicalAlias.indicatorId, indicator.id),
+  eq(canonicalAlias.isCanonical, true),
+);
+const numberJoin = and(
+  eq(numberAlias.indicatorId, indicator.id),
+  sql`${numberAlias.slug} ~ '^[0-9]+$'`,
+);
+const indicatorNumber = sql<number>`${numberAlias.slug}::int`;
+
+/** An address typed into the search box: the row id, or any published alias of it. */
+function exactIndicatorIdentifier(db: Database, query: string) {
   return (
     or(
       UUID_PATTERN.test(query) ? eq(indicator.id, query) : undefined,
-      Number.isSafeInteger(fingertipsId) && fingertipsId <= MAX_POSTGRES_INTEGER
-        ? eq(indicator.fingertipsId, fingertipsId)
-        : undefined,
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(indicatorAlias)
+          .where(
+            and(
+              eq(indicatorAlias.indicatorId, indicator.id),
+              eq(indicatorAlias.isPublished, true),
+              eq(indicatorAlias.slug, query),
+            ),
+          ),
+      ),
     ) ?? sql<boolean>`false`
   );
 }
@@ -118,12 +152,14 @@ function escapedSearchTerms(query: string): string[] {
 export async function listApprovedIndicators(db: Database): Promise<ApprovedIndicator[]> {
   return db
     .select({
-      id: indicator.id,
-      fingertipsId: indicator.fingertipsId,
+      slug: canonicalAlias.slug,
+      number: indicatorNumber,
       name: indicator.name,
       status: indicator.status,
     })
     .from(indicator)
+    .innerJoin(canonicalAlias, canonicalJoin)
+    .innerJoin(numberAlias, numberJoin)
     .where(eq(indicator.status, 'approved'))
     .orderBy(asc(indicator.name));
 }
@@ -135,15 +171,17 @@ export async function searchApprovedIndicators(
   limit: number,
 ): Promise<ApprovedIndicator[]> {
   const terms = escapedSearchTerms(query);
-  const identifierMatch = exactIndicatorIdentifier(query.trim());
+  const identifierMatch = exactIndicatorIdentifier(db, query.trim());
   return db
     .select({
-      id: indicator.id,
-      fingertipsId: indicator.fingertipsId,
+      slug: canonicalAlias.slug,
+      number: indicatorNumber,
       name: indicator.name,
       status: indicator.status,
     })
     .from(indicator)
+    .innerJoin(canonicalAlias, canonicalJoin)
+    .innerJoin(numberAlias, numberJoin)
     .where(
       and(
         eq(indicator.status, 'approved'),
@@ -174,7 +212,10 @@ export interface IndicatorTopic {
 }
 
 export interface IndicatorDetail {
-  fingertipsId: number;
+  /** The canonical slug: the address this indicator's page is served under. */
+  slug: string;
+  /** The number, which is what a query string selecting several indicators carries. */
+  number: number;
   name: string;
   valueType: string;
   unit: { name: string; label: string };
@@ -201,17 +242,27 @@ export interface IndicatorDetail {
   classifications: IndicatorClassification[];
 }
 
-/** The internal id behind a public Fingertips number — the one place the external id resolves. */
-export async function resolveApprovedIndicatorId(
+/**
+ * The one place a public address resolves to a row. Published aliases only, so an
+ * indicator's drafts are indistinguishable from an address that names nothing; the
+ * canonical slug comes back with it, because a caller given a different alias redirects.
+ */
+export async function resolveApprovedIndicatorAlias(
   db: Database,
-  fingertipsId: number,
-): Promise<string | undefined> {
+  address: string,
+): Promise<ResolvedIndicator | undefined> {
   const [row] = await db
-    .select({ id: indicator.id })
-    .from(indicator)
-    .where(and(eq(indicator.fingertipsId, fingertipsId), eq(indicator.status, 'approved')))
+    .select({ id: indicator.id, slug: canonicalAlias.slug, number: indicatorNumber })
+    .from(requestedAlias)
+    .innerJoin(
+      indicator,
+      and(eq(indicator.id, requestedAlias.indicatorId), eq(indicator.status, 'approved')),
+    )
+    .innerJoin(canonicalAlias, canonicalJoin)
+    .innerJoin(numberAlias, numberJoin)
+    .where(and(eq(requestedAlias.slug, address), eq(requestedAlias.isPublished, true)))
     .limit(1);
-  return row?.id;
+  return row;
 }
 
 /**
@@ -228,7 +279,8 @@ export async function getApprovedIndicatorById(
   const [row] = await db
     .select({
       id: indicator.id,
-      fingertipsId: indicator.fingertipsId,
+      slug: canonicalAlias.slug,
+      number: indicatorNumber,
       name: indicator.name,
       valueType: valueType.name,
       unitName: unit.name,
@@ -256,6 +308,8 @@ export async function getApprovedIndicatorById(
       denominatorSourceUrl: denominatorSource.url,
     })
     .from(indicator)
+    .innerJoin(canonicalAlias, canonicalJoin)
+    .innerJoin(numberAlias, numberJoin)
     .innerJoin(valueType, eq(indicator.valueTypeId, valueType.id))
     .innerJoin(unit, eq(indicator.unitId, unit.id))
     .innerJoin(yearType, eq(indicator.yearTypeId, yearType.id))
@@ -285,7 +339,8 @@ export async function getApprovedIndicatorById(
   ]);
 
   return {
-    fingertipsId: row.fingertipsId,
+    slug: row.slug,
+    number: row.number,
     name: row.name,
     valueType: row.valueType,
     unit: { name: row.unitName, label: row.unitLabel },
@@ -514,7 +569,7 @@ export async function searchIndicators(
   const conditions = [eq(indicator.status, 'approved')];
 
   const query = filters.query.trim();
-  const identifierMatch = exactIndicatorIdentifier(query);
+  const identifierMatch = exactIndicatorIdentifier(db, query);
   const topicQueryMatch = (term: string) =>
     exists(
       db
@@ -680,10 +735,19 @@ export async function searchIndicators(
     db
       .select({ total: countDistinct(indicator.id) })
       .from(indicator)
+      .innerJoin(canonicalAlias, canonicalJoin)
+      .innerJoin(numberAlias, numberJoin)
       .where(where),
     db
-      .select({ id: indicator.id, fingertipsId: indicator.fingertipsId, name: indicator.name })
+      .select({
+        id: indicator.id,
+        slug: canonicalAlias.slug,
+        number: indicatorNumber,
+        name: indicator.name,
+      })
       .from(indicator)
+      .innerJoin(canonicalAlias, canonicalJoin)
+      .innerJoin(numberAlias, numberJoin)
       .where(where)
       .orderBy(
         ...(query
@@ -756,7 +820,8 @@ export async function searchIndicators(
     total,
     limit: filters.limit,
     indicators: rows.map((r) => ({
-      fingertipsId: r.fingertipsId,
+      slug: r.slug,
+      number: r.number,
       name: r.name,
       topics: topicsByIndicator.get(r.id) ?? [],
       classifications: classificationsByIndicator.get(r.id) ?? [],

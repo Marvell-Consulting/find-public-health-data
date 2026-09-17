@@ -92,10 +92,15 @@ test('a keyword narrows the result count', async ({ page }) => {
   expect(narrowed).toMatch(/Select from \d+ indicators?/);
 });
 
-test('search matches a Fingertips ID and taxonomy slugs', async ({ page }) => {
-  await page.goto('/search?q=108');
-  await expect(page.getByRole('heading', { name: 'Select from 1 indicator' })).toBeVisible();
-  await expect(results(page).getByRole('link')).toHaveAttribute('href', '/indicators/108');
+test('search matches an indicator number, its slug and taxonomy slugs', async ({ page }) => {
+  for (const query of ['108', 'under-75-mortality-rate-from-all-causes']) {
+    await page.goto(`/search?q=${query}`);
+    await expect(page.getByRole('heading', { name: 'Select from 1 indicator' })).toBeVisible();
+    await expect(results(page).getByRole('link')).toHaveAttribute(
+      'href',
+      '/indicators/under-75-mortality-rate-from-all-causes',
+    );
+  }
 
   await page.goto('/search?q=mortality-and-life-expectancy');
   await expect(results(page).locator('.fphd-search-result').first()).toContainText(

@@ -6,14 +6,15 @@ Run locally after downloading the export:
     python3 transform-uuids.py ..
 
 Each table's rows get sequential UUIDv7 ids following source-id order (so v7
-time-ordering mirrors the original insert order), every foreign-key column is
-remapped, and the indicator table keeps its public Fingertips number in a new
-fingertips_id column.
+time-ordering mirrors the original insert order) and every foreign-key column is
+remapped. The indicator's public Fingertips number becomes its number alias in a
+generated indicator_alias.csv.gz, alongside a canonical slug of its name.
 """
 
 import csv
 import gzip
 import os
+import re
 import secrets
 import sys
 import time
@@ -77,6 +78,14 @@ FOREIGN_KEYS = {
 }
 
 
+def slugify(title):
+    """slugify() in @fphd/config: the rule the canonical alias is derived by."""
+    slug = re.sub(r"\s+", "-", title.lower())
+    slug = re.sub(r"[^a-z0-9-]", "", slug)
+    slug = re.sub(r"-{2,}", "-", slug).strip("-")
+    return f"{slug}-indicator" if re.fullmatch(r"[0-9]+", slug) else slug
+
+
 def uuid7(ts_ms):
     rand_a = secrets.randbits(12)
     rand_b = secrets.randbits(62)
@@ -85,8 +94,32 @@ def uuid7(ts_ms):
     return f"{hexed[:8]}-{hexed[8:12]}-{hexed[12:16]}-{hexed[16:20]}-{hexed[20:]}"
 
 
+def write_aliases(seed_dir, indicators, base_ms):
+    """Both published aliases for every indicator: its number, and a canonical slug of its
+    name, suffixed with the number where two names slugify alike. The same rows the
+    0014 migration backfills."""
+    aliases = []
+    taken = set()
+    for number, indicator_id, name in sorted(indicators):
+        slug = slugify(name)
+        if slug in taken:
+            slug = f"{slug}-{number}"
+        taken.add(slug)
+        aliases.append((indicator_id, str(number), "false"))
+        aliases.append((indicator_id, slug, "true"))
+
+    path = os.path.join(seed_dir, "indicator_alias.csv.gz")
+    with gzip.open(path, "wt", newline="") as dst:
+        writer = csv.writer(dst)
+        writer.writerow(["id", "indicator_id", "slug", "is_published", "is_canonical"])
+        for offset, (indicator_id, slug, canonical) in enumerate(aliases):
+            writer.writerow([uuid7(base_ms + offset), indicator_id, slug, "true", canonical])
+    print(f"indicator_alias: {len(aliases)} rows written")
+
+
 def main(seed_dir):
     base_ms = int(time.time() * 1000)
+    indicators = []
     id_maps = {}
     for table in TABLES:
         path = os.path.join(seed_dir, f"{table}.csv.gz")
@@ -110,10 +143,8 @@ def main(seed_dir):
             header = next(reader)
             id_index = header.index("id")
             fk_indexes = {header.index(col): id_maps[ref] for col, ref in fks.items()}
-            if table == "indicator":
-                writer.writerow([*header[: id_index + 1], "fingertips_id", *header[id_index + 1 :]])
-            else:
-                writer.writerow(header)
+            writer.writerow(header)
+            name_index = header.index("name") if table == "indicator" else None
             rows = 0
             for row in reader:
                 old_id = row[id_index]
@@ -121,12 +152,14 @@ def main(seed_dir):
                 for i, ref_map in fk_indexes.items():
                     if row[i] != "":
                         row[i] = ref_map[row[i]]
-                if table == "indicator":
-                    row = [*row[: id_index + 1], old_id, *row[id_index + 1 :]]
+                if name_index is not None:
+                    indicators.append((int(old_id), row[id_index], row[name_index]))
                 writer.writerow(row)
                 rows += 1
         os.replace(tmp, path)
         print(f"{table}: {rows} rows rekeyed")
+
+    write_aliases(seed_dir, indicators, base_ms)
 
 
 if __name__ == "__main__":

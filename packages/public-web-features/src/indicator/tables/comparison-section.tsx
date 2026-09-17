@@ -38,7 +38,7 @@ export function ComparisonSection({
       : `${formatCalculatedValue(value)} ${row.unit}`;
 
   const downloadParams = new URLSearchParams();
-  for (const { detail } of selected) downloadParams.append('is', String(detail.fingertipsId));
+  for (const { detail } of selected) downloadParams.append('is', String(detail.number));
   for (const { areaCode } of areas) downloadParams.append('as', areaCode);
   downloadParams.set('cmp-compare', options.benchmark);
   downloadParams.set('cr-compare', options.range ? 'yes' : 'no');

@@ -10,7 +10,8 @@ afterEach(cleanup);
 
 const indicator: IndicatorAdminDetail = {
   id: '019a1b2c-3d4e-7f60-8a9b-0c1d2e3f4a5b',
-  fingertipsId: 90366,
+  number: 90366,
+  slug: 'life-expectancy-at-birth',
   name: 'Life expectancy at birth',
   status: 'approved',
   updatedAt: '2026-08-04T23:30:00.000Z',
@@ -26,14 +27,22 @@ function renderPage(overrides: Partial<IndicatorAdminDetail> = {}) {
 }
 
 describe('IndicatorOverviewPage', () => {
-  it('names the indicator and shows its public number', () => {
+  it('names the indicator and shows the addresses it answers to', () => {
     renderPage();
 
     expect(
       screen.getByRole('heading', { level: 1, name: 'Life expectancy at birth' }),
     ).toBeTruthy();
-    expect(screen.getByText('Indicator ID')).toBeTruthy();
+    expect(screen.getByText('Indicator number')).toBeTruthy();
     expect(screen.getByText('90366')).toBeTruthy();
+    expect(screen.getByText('Web address')).toBeTruthy();
+    expect(screen.getByText('life-expectancy-at-birth')).toBeTruthy();
+  });
+
+  it('says so when the indicator has no published address yet', () => {
+    renderPage({ slug: null, status: 'draft' });
+
+    expect(screen.getByText('Not published yet')).toBeTruthy();
   });
 
   it.each([
@@ -56,7 +65,7 @@ describe('IndicatorOverviewPage', () => {
     expect(screen.getByRole('tab', { name: 'Actions' })).toBeTruthy();
     expect(
       screen.getByRole('link', { name: 'View published indicator' }).getAttribute('href'),
-    ).toBe('/indicators/90366');
+    ).toBe('/indicators/life-expectancy-at-birth');
   });
 
   it.each(['draft', 'in_review', 'archived'] as const)(

@@ -26,8 +26,10 @@ export const topicSummaryListSchema = z.array(topicSummarySchema);
 export const topicDetailSchema = topicSummarySchema;
 
 export const indicatorSummarySchema = z.object({
-  id: z.uuid(),
-  fingertipsId: z.number().int(),
+  /** The canonical address of the indicator's page. */
+  slug: z.string().min(1),
+  /** The address a query string selecting several indicators carries. */
+  number: z.number().int(),
   name: z.string().min(1),
   status: z.string().min(1),
 });
@@ -42,7 +44,8 @@ export const indicatorSourceSchema = z.object({
 });
 
 export const indicatorDetailSchema = z.object({
-  fingertipsId: z.number().int(),
+  slug: z.string().min(1),
+  number: z.number().int(),
   name: z.string().min(1),
   valueType: z.string().min(1),
   unit: z.object({ name: z.string().min(1), label: z.string().min(1) }),
@@ -166,7 +169,8 @@ export type AreaLookup = z.infer<typeof areaLookupListSchema>[number];
 export type AreaParent = z.infer<typeof areaParentListSchema>[number];
 
 export const indicatorSearchRowSchema = z.object({
-  fingertipsId: z.number().int(),
+  slug: z.string().min(1),
+  number: z.number().int(),
   name: z.string().min(1),
   topics: z.array(z.object({ slug: z.string().min(1), title: z.string().min(1) })),
   classifications: z.array(

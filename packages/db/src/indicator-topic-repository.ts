@@ -5,6 +5,7 @@ import type { Database } from './client.js';
 import {
   classification,
   indicator,
+  indicatorAlias,
   indicatorClassification,
   indicatorTopic,
   topic,
@@ -14,6 +15,8 @@ import {
  * Three files rather than one, because they are three unrelated concerns: which topics an
  * indicator sits under, how it is classified, and when its data was last published. Topics
  * are referenced by id — a slug is a label that may be rewritten, the id is the row.
+ * Indicators are referenced by their Fingertips number, which resolves through the number
+ * alias; the files predate the alias table and keep the key name they were written with.
  */
 export const indicatorTopicFileSchema = z.object({
   indicatorTopics: z
@@ -103,9 +106,12 @@ export async function applyIndicatorTopics(
       : Promise.resolve([]),
     fingertipsIds.length > 0
       ? db
-          .select({ id: indicator.id, fingertipsId: indicator.fingertipsId })
-          .from(indicator)
-          .where(inArray(indicator.fingertipsId, fingertipsIds))
+          .select({
+            id: indicatorAlias.indicatorId,
+            fingertipsId: sql<number>`${indicatorAlias.slug}::int`,
+          })
+          .from(indicatorAlias)
+          .where(inArray(indicatorAlias.slug, fingertipsIds.map(String)))
       : Promise.resolve([]),
   ]);
 

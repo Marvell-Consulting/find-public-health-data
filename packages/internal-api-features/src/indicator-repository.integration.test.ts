@@ -37,7 +37,7 @@ afterAll(async () => {
   await testDb.drop();
 });
 
-const { indicator } = schema;
+const { indicator, indicatorAlias } = schema;
 
 async function seededIdsNewestFirst(): Promise<string[]> {
   const rows = await db
@@ -84,15 +84,30 @@ describe('listIndicatorsPage', () => {
 
 describe('getIndicatorById', () => {
   // The last row: the tests above and below change the status of the first two.
-  it('returns the indicator with its public number and status', async () => {
+  it('returns the indicator with its aliases and status', async () => {
     const target = (await seededIdsNewestFirst()).at(-1);
     if (target === undefined) throw new Error('The seed holds no indicators');
 
     const found = await getIndicatorById(db, target);
 
     expect(found).toMatchObject({ id: target, status: 'approved' });
-    expect(found?.fingertipsId).toEqual(expect.any(Number));
+    expect(found?.number).toEqual(expect.any(Number));
+    expect(found?.slug).toEqual(expect.any(String));
     expect(found?.name).not.toBe('');
+  });
+
+  it('returns an indicator whose aliases are all still pending, with no address', async () => {
+    const [target] = await seededIdsNewestFirst();
+    if (target === undefined) throw new Error('The seed holds no indicators');
+
+    await db
+      .update(indicatorAlias)
+      .set({ isCanonical: false, isPublished: false })
+      .where(eq(indicatorAlias.indicatorId, target));
+
+    const found = await getIndicatorById(db, target);
+
+    expect(found).toMatchObject({ id: target, number: expect.any(Number), slug: null });
   });
 
   it('finds an indicator the public API would hide', async () => {

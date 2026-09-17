@@ -1,7 +1,11 @@
 import { type Database, type IndicatorStatus, schema } from '@fphd/db';
-import { asc, count, desc, eq } from 'drizzle-orm';
+import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 
-const { indicator } = schema;
+const { indicator, indicatorAlias } = schema;
+
+const canonicalAlias = alias(indicatorAlias, 'canonical_alias');
+const numberAlias = alias(indicatorAlias, 'number_alias');
 
 export interface IndicatorAdminRow {
   id: string;
@@ -15,7 +19,10 @@ export interface IndicatorAdminRows {
 }
 
 export interface IndicatorAdminDetailRow extends IndicatorAdminRow {
-  fingertipsId: number;
+  /** The indicator's number, which it has from the moment it is created. */
+  number: number;
+  /** The address the public site serves it at, null until something is published. */
+  slug: string | null;
   status: IndicatorStatus;
 }
 
@@ -38,7 +45,7 @@ export async function listIndicatorsPage(
   return { indicators, total: counted?.total ?? 0 };
 }
 
-/** One indicator by its row id, whatever its status. */
+/** One indicator by its row id, whatever its status, with the aliases it answers to. */
 export async function getIndicatorById(
   db: Database,
   id: string,
@@ -46,12 +53,21 @@ export async function getIndicatorById(
   const rows = await db
     .select({
       id: indicator.id,
-      fingertipsId: indicator.fingertipsId,
+      number: sql<number>`${numberAlias.slug}::int`,
+      slug: canonicalAlias.slug,
       name: indicator.name,
       status: indicator.status,
       updatedAt: indicator.updatedAt,
     })
     .from(indicator)
+    .innerJoin(
+      numberAlias,
+      and(eq(numberAlias.indicatorId, indicator.id), sql`${numberAlias.slug} ~ '^[0-9]+$'`),
+    )
+    .leftJoin(
+      canonicalAlias,
+      and(eq(canonicalAlias.indicatorId, indicator.id), eq(canonicalAlias.isCanonical, true)),
+    )
     .where(eq(indicator.id, id));
 
   return rows[0];
