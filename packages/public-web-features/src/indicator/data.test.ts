@@ -135,9 +135,9 @@ describe('formatting', () => {
 });
 
 describe('comparisonRows', () => {
-  const detail = (fingertipsId: number, name: string) =>
+  const detail = (number: number, name: string) =>
     ({
-      fingertipsId,
+      number,
       name,
       unit: { name: 'per 100,000', label: 'per 100,000' },
     }) as never;

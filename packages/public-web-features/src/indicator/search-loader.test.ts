@@ -26,7 +26,12 @@ describe('indicator search loader', () => {
 
   it('passes the query through to the api, encoded', async () => {
     const indicators = [
-      { id: 'a', fingertipsId: 241, name: 'Diabetes: QOF prevalence', status: 'approved' },
+      {
+        slug: 'diabetes-qof-prevalence',
+        number: 241,
+        name: 'Diabetes: QOF prevalence',
+        status: 'approved',
+      },
     ];
     const get = vi.fn().mockResolvedValue({ indicators });
 
