@@ -50,6 +50,52 @@ describe('apiPath', () => {
   });
 });
 
+describe('createApiClient.getOrRedirect', () => {
+  function redirectTo(location: string | null, status = 301) {
+    const headers = location === null ? {} : { location };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status, headers }));
+    vi.stubGlobal('fetch', fetchMock);
+    return fetchMock;
+  }
+
+  it('returns the location of a 301 rather than following it', async () => {
+    const fetchMock = redirectTo('/api/topics/a-topic');
+
+    const result = await createApiClient({ baseUrl: 'http://api:4000' }).getOrRedirect(
+      '/api/topics/1',
+      topicSchema,
+    );
+
+    expect(result).toEqual({ redirected: true, location: '/api/topics/a-topic' });
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ redirect: 'manual' });
+  });
+
+  it('returns the parsed body when there is no redirect', async () => {
+    respondWith({ slug: 'a-topic' });
+
+    await expect(
+      createApiClient({ baseUrl: 'http://api:4000' }).getOrRedirect('/api/topics/1', topicSchema),
+    ).resolves.toEqual({ redirected: false, data: { slug: 'a-topic' } });
+  });
+
+  it('passes a 404 through so a route can render its not-found boundary', async () => {
+    respondWith({}, 404);
+
+    await expect(
+      createApiClient({ baseUrl: 'http://api:4000' }).getOrRedirect('/api/topics/1', topicSchema),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('turns a redirect naming nowhere into a 502', async () => {
+    redirectTo(null);
+
+    await expect(
+      createApiClient({ baseUrl: 'http://api:4000' }).getOrRedirect('/api/topics/1', topicSchema),
+    ).rejects.toMatchObject({ status: 502 });
+  });
+});
+
 describe('createApiClient', () => {
   it('returns the parsed body on success', async () => {
     respondWith([{ slug: 'a-topic' }]);

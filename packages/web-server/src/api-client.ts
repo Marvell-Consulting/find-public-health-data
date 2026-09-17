@@ -11,6 +11,10 @@ export interface ApiClientOptions {
 
 export type ApiWriteResult<T, E> = { ok: true; data: T } | { ok: false; status: number; error: E };
 
+export type ApiGetResult<T> =
+  | { redirected: false; data: T }
+  | { redirected: true; location: string };
+
 export interface ApiClient {
   /**
    * GET `path`, parse the body with `schema`, and return the result. A 404 is rethrown as a
@@ -18,6 +22,13 @@ export interface ApiClient {
    * because a failure inside the API is not the browser's fault.
    */
   get<T>(path: string, schema: z.ZodType<T>): Promise<T>;
+
+  /**
+   * GET `path` without following a redirect: a 301 comes back as the location it names.
+   * A loader addressing a page by one of several public aliases sends the browser to the
+   * canonical address rather than fetching data behind a URL it is about to leave.
+   */
+  getOrRedirect<T>(path: string, schema: z.ZodType<T>): Promise<ApiGetResult<T>>;
 
   /**
    * PUT `body` to `path`. A 400 or 409 comes back as a value parsed with `errorSchema`, for a
@@ -127,6 +138,30 @@ export function createApiClient({
       }
 
       return parseOrFail(path, schema, await readJson(path, response));
+    },
+
+    async getOrRedirect(path, schema) {
+      const response = await fetch(`${baseUrl}${path}`, {
+        headers,
+        redirect: 'manual',
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      const location = response.headers.get('location');
+
+      if (response.status === 301 && location !== null) {
+        return { redirected: true, location };
+      }
+
+      if (response.status === 404) {
+        throw new Response('Not Found', { status: 404 });
+      }
+
+      // A redirect with nowhere to go is as unusable as any other broken response.
+      if (!response.ok) {
+        throw new Response('Bad Gateway', { status: 502 });
+      }
+
+      return { redirected: false, data: parseOrFail(path, schema, await readJson(path, response)) };
     },
 
     async put(path, body, schema, errorSchema) {
