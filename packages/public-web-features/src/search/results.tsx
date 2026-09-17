@@ -132,27 +132,26 @@ export function SearchResults({
             </p>
           ) : null}
 
-          <Checkboxes
-            className="fphd-search-results"
-            id="search-indicators"
-            label={<span className="govuk-visually-hidden">Indicators</span>}
-            name="is"
-            onChange={(event) => toggle(Number(event.target.value), event.target.checked)}
-            options={indicators.map((indicator) => {
+          {/* Metadata sits outside the checkbox label so the label contains phrasing content only. */}
+          <fieldset className="fphd-search-results">
+            <legend className="govuk-visually-hidden">Indicators</legend>
+            {indicators.map((indicator) => {
               const isSelected = ticked.includes(indicator.fingertipsId);
-              return {
+              const option = {
                 checked: isSelected,
                 disabled: !isSelected && ticked.length >= MAX_SELECTED_INDICATORS,
                 label: <span className="govuk-visually-hidden">{indicator.name}</span>,
                 value: String(indicator.fingertipsId),
               };
-            })}
-            renderOption={(checkbox, _option, index) => {
-              const indicator = indicators[index];
-              if (!indicator) return checkbox;
               return (
-                <div className="fphd-search-result">
-                  {checkbox}
+                <div className="fphd-search-result" key={indicator.fingertipsId}>
+                  <Checkboxes
+                    id={`is-${indicator.fingertipsId}`}
+                    label=""
+                    name="is"
+                    onChange={(event) => toggle(Number(event.target.value), event.target.checked)}
+                    options={[option]}
+                  />
                   <div className="fphd-search-result__body">
                     <Link
                       className="govuk-link fphd-search-result__title"
@@ -164,8 +163,8 @@ export function SearchResults({
                   </div>
                 </div>
               );
-            }}
-          />
+            })}
+          </fieldset>
 
           {capped ? (
             <p className="govuk-body govuk-!-margin-top-3">

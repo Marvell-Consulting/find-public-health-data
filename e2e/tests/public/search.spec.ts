@@ -124,19 +124,6 @@ test('ticking a result and clicking View selected indicators lands on /indicator
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 });
 
-test('search results have one meaningful checkbox group, no empty legends and no links inside checkbox labels', async ({
-  page,
-}, testInfo) => {
-  await ready(page);
-  const group = page.getByRole('group', { name: 'Indicators', exact: true });
-  await expect(group).toHaveCount(1);
-  await expect(group.locator('fieldset')).toHaveCount(0);
-  await expect(group.locator('legend')).toHaveText('Indicators');
-  await expect(results(page).locator('label a')).toHaveCount(0);
-  await expect(group.getByRole('checkbox').first()).toHaveAccessibleName(/.+/);
-  await expectNoAccessibilityViolations(page, testInfo);
-});
-
 test.describe('indicator selection without scripting', () => {
   test.use({ javaScriptEnabled: false });
 

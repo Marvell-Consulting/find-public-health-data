@@ -761,7 +761,7 @@ body.govuk-frontend-supported .fphd-add-geo-button[data-empty] {
   margin-bottom: govuk-spacing(4);
 }
 
-// The checkbox group wrapping the result rows; its legend names the set.
+// The fieldset wrapping the result rows; its legend names the set.
 .fphd-search-results {
   min-width: 0;
   margin: govuk-spacing(4) 0 0;
@@ -776,7 +776,7 @@ body.govuk-frontend-supported .fphd-add-geo-button[data-empty] {
   gap: govuk-spacing(3);
   padding: govuk-spacing(3) 0;
 
-  > .govuk-checkboxes__item {
+  > .govuk-form-group {
     flex: 0 0 44px;
     width: 44px;
   }
