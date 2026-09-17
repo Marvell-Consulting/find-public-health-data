@@ -1,6 +1,8 @@
 import { type Database, schema, type Topic } from '@fphd/db';
 import { eq, sql } from 'drizzle-orm';
 
+import { isUniqueViolation } from './unique-violation.js';
+
 const { indicatorTopic, topic } = schema;
 
 /** Writes address a topic by id rather than slug, because the slug is itself editable. */
@@ -18,19 +20,6 @@ export type UpdateTopicResult =
   | { ok: false; reason: 'not_found' | 'slug_taken' };
 
 export type DeleteTopicResult = { ok: true } | { ok: false; reason: 'not_found' };
-
-const UNIQUE_VIOLATION = '23505';
-
-/** Drizzle wraps the driver error, so the SQLSTATE is on a `cause` rather than the error thrown. */
-function isUniqueViolation(error: unknown): boolean {
-  for (let current = error; current !== null && current !== undefined; ) {
-    if (typeof current !== 'object') return false;
-    if ('code' in current && (current as { code?: unknown }).code === UNIQUE_VIOLATION) return true;
-    current = (current as { cause?: unknown }).cause;
-  }
-
-  return false;
-}
 
 function matches(current: Topic, update: TopicUpdate): boolean {
   return (

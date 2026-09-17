@@ -5,6 +5,11 @@ import { internalIndicatorsRouter } from './indicators.js';
 import type { InternalRepositories } from './repositories.js';
 import { internalTopicsRouter } from './topics.js';
 
+export {
+  createIndicatorAliases,
+  type IndicatorAliasResult,
+  renamePendingIndicatorSlug,
+} from './indicator-alias-repository.js';
 export type {
   IndicatorAdminDetailRow,
   IndicatorAdminRow,
