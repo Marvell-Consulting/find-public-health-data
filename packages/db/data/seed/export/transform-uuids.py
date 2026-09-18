@@ -7,8 +7,8 @@ Run locally after downloading the export:
 
 Each table's rows get sequential UUIDv7 ids following source-id order (so v7
 time-ordering mirrors the original insert order), every foreign-key column is
-remapped, and the indicator table keeps its public Fingertips number in a new
-fingertips_id column.
+remapped, and the indicator table keeps its public Fingertips number as its
+short_id.
 """
 
 import csv
@@ -111,7 +111,7 @@ def main(seed_dir):
             id_index = header.index("id")
             fk_indexes = {header.index(col): id_maps[ref] for col, ref in fks.items()}
             if table == "indicator":
-                writer.writerow([*header[: id_index + 1], "fingertips_id", *header[id_index + 1 :]])
+                writer.writerow([*header[: id_index + 1], "short_id", *header[id_index + 1 :]])
             else:
                 writer.writerow(header)
             rows = 0

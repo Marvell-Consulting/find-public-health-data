@@ -66,7 +66,7 @@ group and strips the level suffixes from area names. Skipping either commits see
 site would show wrong.
 
 The transform assigns sequential UUIDv7 ids in source-id order, remaps every foreign key,
-and keeps the public Fingertips indicator number in `indicator.fingertips_id`. Adjust the
+and keeps the public Fingertips indicator number in `indicator.short_id`. Adjust the
 indicator list, geography set or year floors at the top of `export-seed.py`.
 
 ## Refreshing the prototype showcase locally
