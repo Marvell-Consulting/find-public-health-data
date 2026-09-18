@@ -193,6 +193,9 @@ export async function seedDummyTables(
   const relationshipFile = readDummyRelationships();
   const tables = await seedTables(tx, directory);
   const relationships = await applyIndicatorTopics(createDbFromTransaction(tx), relationshipFile);
+  // Freshly loaded tables have no statistics, and the planner's guesses are wrong by enough
+  // to turn an indexed observation lookup into a sequential scan over the whole table.
+  await tx.unsafe(`ANALYZE ${analyzableTables()}`);
   return { tables, relationships };
 }
 
@@ -213,6 +216,12 @@ export async function seedPublishedTables(
     throw new Error('Published topic mapping did not match the imported indicators and topics');
   }
   return { tables, relationships };
+}
+
+function analyzableTables(): string {
+  return [...SEED_TABLES, 'indicator_topic', 'indicator_classification']
+    .map((table) => `"${table}"`)
+    .join(', ');
 }
 
 async function seedTables(
