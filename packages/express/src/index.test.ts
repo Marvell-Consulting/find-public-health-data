@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
-import { createBaseApp } from './index.js';
+import { createBaseApp } from './index.ts';
 
 describe('createBaseApp', () => {
   it('answers both probes while it is serving normally', async () => {

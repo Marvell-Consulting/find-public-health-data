@@ -4,7 +4,7 @@ import type { LoaderFunctionArgs } from 'react-router';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { loadTopic, loadTopics } from './loader.js';
+import { loadTopic, loadTopics } from './loader.ts';
 
 function loaderArgs(api: ApiClient, params: Record<string, string> = {}): LoaderFunctionArgs {
   const context = new RouterContextProvider();

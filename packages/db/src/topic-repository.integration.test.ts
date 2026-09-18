@@ -1,11 +1,11 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createDb, createPostgresClient, type Database } from './client.js';
-import { dbEnvFields, resolveDbTls } from './env.js';
-import type { TopicRecord } from './schema.js';
-import { createTestDatabase, type TestDatabase } from './testing.js';
-import { getTopicBySlug, listTopics, upsertTopics } from './topic-repository.js';
+import { createDb, createPostgresClient, type Database } from './client.ts';
+import { dbEnvFields, resolveDbTls } from './env.ts';
+import type { TopicRecord } from './schema.ts';
+import { createTestDatabase, type TestDatabase } from './testing.ts';
+import { getTopicBySlug, listTopics, upsertTopics } from './topic-repository.ts';
 
 const env = parseEnv(
   z.object({

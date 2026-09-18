@@ -1,1 +1,1 @@
-export { webVitestConfig as default } from '../../vitest.web-config';
+export { webVitestConfig as default } from '../../vitest.web-config.ts';

@@ -1,22 +1,22 @@
 import { Fragment } from 'react';
-import type { BenchmarkChoice } from '../comparison.js';
+import type { BenchmarkChoice } from '../comparison.ts';
 import {
   type ConfidenceLevel,
   formatCalculatedValue,
   formatValue,
   periodLabel,
   segmentLabel,
-} from '../data.js';
+} from '../data.ts';
 import type {
   BenchmarkGeography,
   IndicatorAreaData,
   IndicatorDetail,
   IndicatorRangePeriod,
-} from '../loader.js';
-import { trendTableModel } from '../trend.js';
-import { BenchmarkCells, BenchmarkHeaderCells } from './benchmark-cells.js';
-import { NoteFootnotes, noteMarker } from './note-markers.js';
-import { TableScrollRegion } from './table-scroll-region.js';
+} from '../loader.ts';
+import { trendTableModel } from '../trend.ts';
+import { BenchmarkCells, BenchmarkHeaderCells } from './benchmark-cells.tsx';
+import { NoteFootnotes, noteMarker } from './note-markers.tsx';
+import { TableScrollRegion } from './table-scroll-region.tsx';
 
 export function TrendTable({
   areaData,

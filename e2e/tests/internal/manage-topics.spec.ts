@@ -1,7 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
-import { expectNoAccessibilityViolations } from '../support/accessibility.js';
-import { signInAs } from '../support/sign-in.js';
+import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
+import { signInAs } from '../support/sign-in.ts';
 
 // Every write here creates its own topic under a slug no other spec or run can hold, so the
 // shared seeded database is only ever added to and the seeded topics stay as other specs expect.

@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { check, date, index, integer, pgTable, text, uuid } from 'drizzle-orm/pg-core';
 
-import { uuidPrimaryKey } from './helpers.js';
+import { uuidPrimaryKey } from './helpers.ts';
 
 export const areaType = pgTable(
   'area_type',

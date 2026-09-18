@@ -3,7 +3,7 @@ import express, { type Express } from 'express';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 
-import { areasRouter } from './areas.js';
+import { areasRouter } from './areas.ts';
 
 function createTestApp(overrides: FakeRepositoryOverrides['areas'] = {}): Express {
   const app = express();

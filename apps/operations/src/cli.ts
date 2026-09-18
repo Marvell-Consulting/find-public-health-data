@@ -1,8 +1,8 @@
 import { createPostgresClient } from '@fphd/db';
 import { createLogger } from '@fphd/logger';
 
-import { resolveCommand, UsageError, usage } from './commands.js';
-import * as config from './config.js';
+import { resolveCommand, UsageError, usage } from './commands.ts';
+import * as config from './config.ts';
 
 const logger = createLogger({
   name: 'operations',

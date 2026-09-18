@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { securityHeaderValues } from './security-headers.js';
+import { securityHeaderValues } from './security-headers.ts';
 
 function cspDirectives(headers: Record<string, string>): string[] {
   return headers['Content-Security-Policy']?.split('; ') ?? [];

@@ -8,9 +8,9 @@ import {
 import type { Request } from 'express';
 import type { RouterContextProvider } from 'react-router';
 
-import { createFakeAuthRouter } from './fake-auth.js';
-import { createPagePathCheck } from './page-paths.js';
-import { createReactRouterApp, type ReactRouterBuildLoader } from './react-router-app.js';
+import { createFakeAuthRouter } from './fake-auth.ts';
+import { createPagePathCheck } from './page-paths.ts';
+import { createReactRouterApp, type ReactRouterBuildLoader } from './react-router-app.ts';
 
 interface FakeAuthReactRouterAppOptions {
   audience: AppAudience;

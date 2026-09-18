@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createPostgresClient, type DbConnection } from './client.js';
+import { createPostgresClient, type DbConnection } from './client.ts';
 
 // postgres.js connects lazily, so building a client touches no database.
 const connection: DbConnection = {

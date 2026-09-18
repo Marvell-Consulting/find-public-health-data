@@ -10,7 +10,7 @@ import {
   createSessionContext,
   getSession,
   sessionMiddleware,
-} from './session.js';
+} from './session.ts';
 
 const sessionSecret = 'a-jwt-session-secret-that-is-long-enough-for-tests';
 const currentTime = new Date('2026-07-23T10:00:00.000Z');

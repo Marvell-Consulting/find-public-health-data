@@ -4,9 +4,9 @@ import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
 import { createLogger } from '@fphd/logger';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { resolveCommand } from './commands.js';
-import { importCoreData, reset, seedDummyData } from './db-commands.js';
-import { type Config, loadConfig } from './load-config.js';
+import { resolveCommand } from './commands.ts';
+import { importCoreData, reset, seedDummyData } from './db-commands.ts';
+import { type Config, loadConfig } from './load-config.ts';
 
 // The same settings the createOwnerClient connections below use, so the configs built
 // here point at the same database.

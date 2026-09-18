@@ -2,12 +2,12 @@ import { appEnvFields, parseEnv, z } from '@fphd/config';
 import type postgres from 'postgres';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { createPostgresClient } from './client.js';
-import { dbEnvFields, resolveDbTls } from './env.js';
-import { readAppliedMigrations, readLocalMigrations } from './migration-status.js';
-import { migrateToLatest } from './migrations.js';
-import { createOwnerClient } from './scripts/owner-client.js';
-import { createTestDatabase, type TestDatabase } from './testing.js';
+import { createPostgresClient } from './client.ts';
+import { dbEnvFields, resolveDbTls } from './env.ts';
+import { readAppliedMigrations, readLocalMigrations } from './migration-status.ts';
+import { migrateToLatest } from './migrations.ts';
+import { createOwnerClient } from './scripts/owner-client.ts';
+import { createTestDatabase, type TestDatabase } from './testing.ts';
 
 // Must match MIGRATION_LOCK_KEY in migrations.ts. If it drifts, the lock test stops blocking
 // and fails, rather than passing while asserting nothing.

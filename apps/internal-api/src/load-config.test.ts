@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { loadConfig } from './load-config.js';
+import { loadConfig } from './load-config.ts';
 
 describe('loadConfig', () => {
   const sessionSecret = 'a-jwt-session-secret-that-is-long-enough';

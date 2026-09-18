@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 
-import { expectNoAccessibilityViolations } from '../support/accessibility.js';
-import { downloadFrom } from '../support/downloads.js';
-import { filterCard, openIndicatorPage } from '../support/indicator-page.js';
+import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
+import { downloadFrom } from '../support/downloads.ts';
+import { filterCard, openIndicatorPage } from '../support/indicator-page.ts';
 
 const MORTALITY = 'Under 75 mortality rate from all causes';
 const SMOKING = 'Smoking Prevalence in adults (aged 18 and over) - current smokers (APS)';

@@ -1,8 +1,8 @@
 import { and, asc, eq, ilike, inArray, isNotNull, isNull, lte, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
-import type { Database } from './client.js';
-import { area, areaRelationship, areaType } from './schema/index.js';
+import type { Database } from './client.ts';
+import { area, areaRelationship, areaType } from './schema/index.ts';
 
 export interface AreaSummary {
   code: string;

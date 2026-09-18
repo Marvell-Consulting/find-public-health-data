@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
-import { expectNoAccessibilityViolations } from '../support/accessibility.js';
-import { signInAs, submitSignIn } from '../support/sign-in.js';
+import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
+import { signInAs, submitSignIn } from '../support/sign-in.ts';
 
 // Proof of life for internal-web: the fake sign-in is drivable, the session survives the
 // redirect back, and the admin-gated route renders — the wiring every internal test needs.

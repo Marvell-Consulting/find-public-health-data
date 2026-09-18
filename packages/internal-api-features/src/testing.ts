@@ -1,6 +1,6 @@
 import { withThrowingDefaults } from '@fphd/db/testing';
 
-import type { InternalRepositories } from './repositories.js';
+import type { InternalRepositories } from './repositories.ts';
 
 /** Per-method stubs; anything unstubbed throws, as with `createFakeRepositories` in `@fphd/db`. */
 export type FakeInternalRepositoryOverrides = {

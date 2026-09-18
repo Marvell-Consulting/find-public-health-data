@@ -1,14 +1,14 @@
 import { z } from '@fphd/config';
 import { asc, eq, inArray, sql } from 'drizzle-orm';
 
-import type { Database } from './client.js';
+import type { Database } from './client.ts';
 import {
   classification,
   indicator,
   indicatorClassification,
   indicatorTopic,
   topic,
-} from './schema/index.js';
+} from './schema/index.ts';
 
 /**
  * Three files rather than one, because they are three unrelated concerns: which topics an

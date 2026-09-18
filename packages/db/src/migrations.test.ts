@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { withTeardown } from './migrations.js';
+import { withTeardown } from './migrations.ts';
 
 describe('withTeardown', () => {
   it('returns the result and runs the teardown', async () => {

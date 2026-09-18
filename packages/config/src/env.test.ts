@@ -11,7 +11,7 @@ import {
   resolveLog,
   resolveShutdown,
   serverEnvFields,
-} from './env.js';
+} from './env.ts';
 
 describe('portSchema', () => {
   it('parses a valid port from env text', () => {

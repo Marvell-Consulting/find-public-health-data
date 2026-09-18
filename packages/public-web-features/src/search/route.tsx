@@ -1,8 +1,8 @@
 import { createDocumentMeta } from '@fphd/ui';
 import { useLoaderData } from 'react-router';
 
-import { loadSearch } from './loader.js';
-import { SearchPage } from './page.js';
+import { loadSearch } from './loader.ts';
+import { SearchPage } from './page.tsx';
 
 export const loader = loadSearch;
 

@@ -4,7 +4,7 @@ import express from 'express';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
-import { createFakeAuthRouter } from './fake-auth.js';
+import { createFakeAuthRouter } from './fake-auth.ts';
 
 const session = createJwtSessionService({
   audience: 'fphd-internal',

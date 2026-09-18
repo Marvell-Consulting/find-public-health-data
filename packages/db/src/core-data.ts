@@ -3,9 +3,9 @@ import { fileURLToPath } from 'node:url';
 
 import type postgres from 'postgres';
 
-import { createDbFromClient } from './client.js';
-import { parseTopicsFile } from './parse-topics-file.js';
-import { type UpsertResult, upsertTopics } from './topic-repository.js';
+import { createDbFromClient } from './client.ts';
+import { parseTopicsFile } from './parse-topics-file.ts';
+import { type UpsertResult, upsertTopics } from './topic-repository.ts';
 
 // Resolves identically from src/ and from dist/, both of which sit one level under the
 // package root alongside data/.

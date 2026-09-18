@@ -1,8 +1,8 @@
 import { Button, Checkboxes, ErrorMessage, InsetText, SummaryList } from '@fphd/ui';
 import { useEffect, useState } from 'react';
 import { Form, Link } from 'react-router';
-import { MAX_SELECTED_INDICATORS } from '../selection-limits.js';
-import type { IndicatorSearchResult, IndicatorSearchRow } from './loader.js';
+import { MAX_SELECTED_INDICATORS } from '../selection-limits.ts';
+import type { IndicatorSearchResult, IndicatorSearchRow } from './loader.ts';
 
 interface SearchResultsProps {
   navigationKey: string;

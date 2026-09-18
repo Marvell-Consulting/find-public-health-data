@@ -10,8 +10,8 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import { uuidPrimaryKey } from './helpers.js';
-import { indicator } from './indicator.js';
+import { uuidPrimaryKey } from './helpers.ts';
+import { indicator } from './indicator.ts';
 
 export const uploadBatch = pgTable(
   'upload_batch',

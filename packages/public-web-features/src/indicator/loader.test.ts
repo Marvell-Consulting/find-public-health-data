@@ -4,7 +4,7 @@ import type { LoaderFunctionArgs } from 'react-router';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { loadComparisonData, loadIndicator } from './loader.js';
+import { loadComparisonData, loadIndicator } from './loader.ts';
 
 // The loader asks for several shapes; one stub serves whichever the path implies.
 function api(get = vi.fn()) {

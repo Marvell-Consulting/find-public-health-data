@@ -7,7 +7,7 @@ import {
   findFakeUser,
   normalizeReturnTo,
   sessionRolesForAudience,
-} from './index.js';
+} from './index.ts';
 
 describe('fake users', () => {
   it('keeps public-only users out of the internal audience', () => {

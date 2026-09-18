@@ -1,13 +1,13 @@
 import { readdir, readFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
 
-import { findSecretsReachingBuilds } from './builds.js';
-import { capture, run } from './exec.js';
-import { findInternalReferences } from './internal.js';
-import { collectRouteFiles } from './routes.js';
-import { collectSourcemapSources } from './sourcemaps.js';
-import { extractImportSpecifiers } from './specifiers.js';
-import { collectDependencyClosure, readWorkspacePackages } from './workspace.js';
+import { findSecretsReachingBuilds } from './builds.ts';
+import { capture, run } from './exec.ts';
+import { findInternalReferences } from './internal.ts';
+import { collectRouteFiles } from './routes.ts';
+import { collectSourcemapSources } from './sourcemaps.ts';
+import { extractImportSpecifiers } from './specifiers.ts';
+import { collectDependencyClosure, readWorkspacePackages } from './workspace.ts';
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
 

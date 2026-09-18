@@ -1,8 +1,8 @@
 import { SLUG_PATTERN, z } from '@fphd/config';
 import { index, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
 
-import { timestamps, uuidPrimaryKey } from './helpers.js';
-import { indicator } from './indicator.js';
+import { timestamps, uuidPrimaryKey } from './helpers.ts';
+import { indicator } from './indicator.ts';
 
 export const topic = pgTable('topic', {
   id: uuidPrimaryKey(),

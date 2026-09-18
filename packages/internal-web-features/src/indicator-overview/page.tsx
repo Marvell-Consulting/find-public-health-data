@@ -1,8 +1,8 @@
 import { A, BackLink, GridColumn, GridRow, SummaryList, Tabs, Tag } from '@fphd/ui';
 
-import { DASHBOARD_PATH } from '../dashboard/paths';
-import type { IndicatorAdminDetail, IndicatorStatus } from './loader';
-import { publishedIndicatorPath } from './paths';
+import { DASHBOARD_PATH } from '../dashboard/paths.ts';
+import type { IndicatorAdminDetail, IndicatorStatus } from './loader.ts';
+import { publishedIndicatorPath } from './paths.ts';
 
 const STATUS_TAGS: Record<IndicatorStatus, { label: string; colour: string }> = {
   draft: { label: 'Draft', colour: 'grey' },

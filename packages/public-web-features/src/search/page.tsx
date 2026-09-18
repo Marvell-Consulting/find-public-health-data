@@ -1,9 +1,9 @@
 import { GridColumn, GridRow } from '@fphd/ui';
 import { useLocation } from 'react-router';
-import { SearchFilterPane } from './filter-pane.js';
-import type { loadSearch } from './loader.js';
-import { SearchResults } from './results.js';
-import type { SearchState } from './url.js';
+import { SearchFilterPane } from './filter-pane.tsx';
+import type { loadSearch } from './loader.ts';
+import { SearchResults } from './results.tsx';
+import type { SearchState } from './url.ts';
 
 type SearchData = Awaited<ReturnType<typeof loadSearch>>;
 

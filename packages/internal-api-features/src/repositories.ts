@@ -5,7 +5,7 @@ import {
   type IndicatorAdminDetailRow,
   type IndicatorAdminRows,
   listIndicatorsPage,
-} from './indicator-repository.js';
+} from './indicator-repository.ts';
 import {
   type CreateTopicResult,
   createTopic,
@@ -15,7 +15,7 @@ import {
   type TopicUpdate,
   type UpdateTopicResult,
   updateTopic,
-} from './topic-repository.js';
+} from './topic-repository.ts';
 
 /** The publisher's topic surface: the public listing plus the writes only `internal_api` makes. */
 export interface InternalTopicRepository {

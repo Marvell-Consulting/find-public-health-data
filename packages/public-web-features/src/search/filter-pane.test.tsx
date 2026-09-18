@@ -3,8 +3,8 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, expect, it } from 'vitest';
 
-import { SearchFilterPane } from './filter-pane.js';
-import { EMPTY_SEARCH_STATE } from './url.js';
+import { SearchFilterPane } from './filter-pane.tsx';
+import { EMPTY_SEARCH_STATE } from './url.ts';
 
 afterEach(cleanup);
 

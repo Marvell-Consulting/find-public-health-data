@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { findSpecsWithoutScan, findStaleEntries, findUncoveredRoutes } from './specs.js';
+import { findSpecsWithoutScan, findStaleEntries, findUncoveredRoutes } from './specs.ts';
 
 const mapping = {
   '/': 'home.spec.ts',
@@ -79,7 +79,7 @@ describe('findSpecsWithoutScan', () => {
           {
             name: 'imported.spec.ts',
             source:
-              "import { expectNoAccessibilityViolations } from '../support/accessibility.js';",
+              "import { expectNoAccessibilityViolations } from '../support/accessibility.ts';",
           },
           {
             name: 'commented.spec.ts',

@@ -2,12 +2,12 @@ import { randomBytes } from 'node:crypto';
 
 import type postgres from 'postgres';
 
-import { importCoreData } from './core-data.js';
-import { migrateToLatest } from './migrations.js';
-import { rebuildReadModels } from './read-models.js';
-import type { Repositories } from './repositories.js';
-import { createOwnerClient } from './scripts/owner-client.js';
-import { seedDummyTables } from './seeding.js';
+import { importCoreData } from './core-data.ts';
+import { migrateToLatest } from './migrations.ts';
+import { rebuildReadModels } from './read-models.ts';
+import type { Repositories } from './repositories.ts';
+import { createOwnerClient } from './scripts/owner-client.ts';
+import { seedDummyTables } from './seeding.ts';
 
 /**
  * Two templates, because most integration tests do not want the seed. Copying `seeded`

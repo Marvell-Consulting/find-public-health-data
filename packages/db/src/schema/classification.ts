@@ -1,8 +1,8 @@
 import { sql } from 'drizzle-orm';
 import { check, index, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
 
-import { timestamps, uuidPrimaryKey } from './helpers.js';
-import { indicator } from './indicator.js';
+import { timestamps, uuidPrimaryKey } from './helpers.ts';
+import { indicator } from './indicator.ts';
 
 /**
  * The ways an indicator is classified beyond its topic: what kind of measure it is, the

@@ -1,6 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 
-import { expectNoAccessibilityViolations } from '../support/accessibility.js';
+import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 
 const card = (page: Page, title: string) =>
   page

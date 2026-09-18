@@ -1,6 +1,6 @@
 import { doublePrecision, pgTable, text } from 'drizzle-orm/pg-core';
 
-import { uuidPrimaryKey } from './helpers.js';
+import { uuidPrimaryKey } from './helpers.ts';
 
 export const valueType = pgTable('value_type', {
   id: uuidPrimaryKey(),

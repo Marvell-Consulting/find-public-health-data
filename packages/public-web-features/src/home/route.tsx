@@ -1,6 +1,6 @@
 import { createDocumentMeta } from '@fphd/ui';
 
-import { PublicHomePage } from './page.js';
+import { PublicHomePage } from './page.tsx';
 
 export const meta = createDocumentMeta('Home');
 

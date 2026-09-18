@@ -11,7 +11,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import { uuidPrimaryKey } from './helpers.js';
+import { uuidPrimaryKey } from './helpers.ts';
 
 export const dimensionType = pgTable(
   'dimension_type',

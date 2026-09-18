@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatDate } from './format-date';
+import { formatDate } from './format-date.ts';
 
 describe('formatDate', () => {
   it.each([

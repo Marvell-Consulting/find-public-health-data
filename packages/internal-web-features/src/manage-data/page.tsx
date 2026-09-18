@@ -1,6 +1,6 @@
 import { A, InsetText, PageIntro } from '@fphd/ui';
 
-import { TOPICS_ADMIN_PATH } from '../topic-admin/paths';
+import { TOPICS_ADMIN_PATH } from '../topic-admin/paths.ts';
 
 export function ManageDataPage() {
   return (

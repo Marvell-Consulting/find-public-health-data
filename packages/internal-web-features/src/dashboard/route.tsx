@@ -1,7 +1,7 @@
 import { createDocumentMeta } from '@fphd/ui';
 import { useLoaderData } from 'react-router';
-import { loadDashboard } from './loader';
-import { DashboardPage } from './page';
+import { loadDashboard } from './loader.ts';
+import { DashboardPage } from './page.tsx';
 
 export const loader = loadDashboard;
 

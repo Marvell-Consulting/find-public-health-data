@@ -1,8 +1,8 @@
 import { expect, type Page, test } from '@playwright/test';
 
-import { expectNoAccessibilityViolations } from '../support/accessibility.js';
-import { downloadFrom } from '../support/downloads.js';
-import { filterCard, openIndicatorPage } from '../support/indicator-page.js';
+import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
+import { downloadFrom } from '../support/downloads.ts';
+import { filterCard, openIndicatorPage } from '../support/indicator-page.ts';
 
 const INDICATOR = 'Under 75 mortality rate from all causes';
 

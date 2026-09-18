@@ -6,7 +6,7 @@ import type {
   IndicatorDetail,
   IndicatorFacets,
   IndicatorSearchResult,
-} from './contract.js';
+} from './contract.ts';
 import {
   DEFAULT_INDICATOR_SEARCH_RESULTS,
   MAX_FILTER_LABEL_LENGTH,
@@ -17,7 +17,7 @@ import {
   MAX_INDICATOR_SEARCH_RESULTS,
   MAX_SELECTED_AREAS,
   pickAreaCodes,
-} from './contract.js';
+} from './contract.ts';
 
 const DEFAULT_AREA_CODE = 'E92000001';
 

@@ -35,9 +35,9 @@ vi.mock('@react-router/express', () => ({
   },
 }));
 
-import { loggerContext } from './logger-context.js';
-import { nonceContext } from './nonce-context.js';
-import { createReactRouterApp } from './react-router-app.js';
+import { loggerContext } from './logger-context.ts';
+import { nonceContext } from './nonce-context.ts';
+import { createReactRouterApp } from './react-router-app.ts';
 
 const session = createJwtSessionService({
   audience: 'fphd-public',

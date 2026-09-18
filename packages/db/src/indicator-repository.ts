@@ -14,12 +14,12 @@ import {
 } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
-import type { Database } from './client.js';
+import type { Database } from './client.ts';
 import {
   type IndicatorClassification,
   listClassificationsForIndicator,
   listTopicsForIndicator,
-} from './indicator-topic-repository.js';
+} from './indicator-topic-repository.ts';
 import {
   area,
   areaType,
@@ -46,7 +46,7 @@ import {
   unit,
   valueType,
   yearType,
-} from './schema/index.js';
+} from './schema/index.ts';
 
 export interface IndicatorSearchFilters {
   query: string;

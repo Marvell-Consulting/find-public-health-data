@@ -9,8 +9,8 @@ import {
   toFieldErrors,
   topicIdSchema,
   topicUpdateSchema,
-} from './contract.js';
-import type { InternalTopicRepository } from './repositories.js';
+} from './contract.ts';
+import type { InternalTopicRepository } from './repositories.ts';
 
 function toSummary({ id, slug, title, createdAt, updatedAt }: Topic): TopicAdminSummary {
   return {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { rolesToBootstrap } from './db-commands.js';
+import { rolesToBootstrap } from './db-commands.ts';
 
 describe('rolesToBootstrap', () => {
   it('pairs each fixed role name with its injected password', () => {

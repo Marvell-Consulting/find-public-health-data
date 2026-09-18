@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createShutdownHandler, phaseBudgets, type ShutdownOptions } from './shutdown.js';
+import { createShutdownHandler, phaseBudgets, type ShutdownOptions } from './shutdown.ts';
 
 const defaults = { gracePeriodMs: 5_000, drainDelayMs: 0 };
 

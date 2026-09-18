@@ -1,6 +1,6 @@
-import type { GeographyOptions } from '../geography/loader.js';
-import { GeographyPicker } from '../geography/picker.js';
-import { LIST_PARAMS, type SearchState } from './url.js';
+import type { GeographyOptions } from '../geography/loader.ts';
+import { GeographyPicker } from '../geography/picker.tsx';
+import { LIST_PARAMS, type SearchState } from './url.ts';
 
 export function SearchGeographyPicker({
   state,

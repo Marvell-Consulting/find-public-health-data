@@ -1,11 +1,11 @@
-import type { BenchmarkChoice } from './comparison.js';
-import { alignedTrendSeries, type ConfidenceLevel, segmentValuesKey, trendSeries } from './data.js';
+import type { BenchmarkChoice } from './comparison.ts';
+import { alignedTrendSeries, type ConfidenceLevel, segmentValuesKey, trendSeries } from './data.ts';
 import type {
   BenchmarkGeography,
   IndicatorAreaData,
   IndicatorObservation,
   IndicatorRangePeriod,
-} from './loader.js';
+} from './loader.ts';
 
 export interface AreaBenchmark {
   name: string;

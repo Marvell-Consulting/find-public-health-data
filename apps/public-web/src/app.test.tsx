@@ -11,7 +11,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { createRoutesStub } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import PublicApp, { ErrorBoundary } from './root';
+import PublicApp, { ErrorBoundary } from './root.tsx';
 
 afterEach(() => {
   cleanup();

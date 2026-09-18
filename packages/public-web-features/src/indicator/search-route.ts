@@ -1,3 +1,3 @@
-import { loadIndicatorSearch } from './search-loader.js';
+import { loadIndicatorSearch } from './search-loader.ts';
 
 export const loader = loadIndicatorSearch;

@@ -1,7 +1,7 @@
 import type { Logger } from '@fphd/logger';
 import { describe, expect, it, vi } from 'vitest';
 
-import { serverLogging } from './server-logging.js';
+import { serverLogging } from './server-logging.ts';
 
 function stubLogger() {
   return { info: vi.fn(), warn: vi.fn(), error: vi.fn(), fatal: vi.fn() } as unknown as Logger;

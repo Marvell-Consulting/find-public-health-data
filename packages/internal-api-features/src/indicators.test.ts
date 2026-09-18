@@ -3,9 +3,9 @@ import express, { type Express } from 'express';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { IndicatorAdminDetailRow, IndicatorAdminRow } from './indicator-repository.js';
-import { INDICATORS_PAGE_SIZE, internalIndicatorsRouter } from './indicators.js';
-import { createFakeInternalRepositories, type FakeInternalRepositoryOverrides } from './testing.js';
+import type { IndicatorAdminDetailRow, IndicatorAdminRow } from './indicator-repository.ts';
+import { INDICATORS_PAGE_SIZE, internalIndicatorsRouter } from './indicators.ts';
+import { createFakeInternalRepositories, type FakeInternalRepositoryOverrides } from './testing.ts';
 
 const session = createJwtSessionService({
   audience: 'fphd-internal',

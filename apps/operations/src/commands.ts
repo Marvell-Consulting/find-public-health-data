@@ -9,8 +9,8 @@ import {
   reset,
   seedDummyData,
   status,
-} from './db-commands.js';
-import type { Config } from './load-config.js';
+} from './db-commands.ts';
+import type { Config } from './load-config.ts';
 
 /**
  * The capabilities a command may use, passed whole rather than as positional arguments, so

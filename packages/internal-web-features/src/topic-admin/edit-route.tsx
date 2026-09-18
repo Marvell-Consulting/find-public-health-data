@@ -1,7 +1,7 @@
 import { createDocumentMeta } from '@fphd/ui';
 import { useActionData, useLoaderData } from 'react-router';
-import { loadAdminTopicToEdit, type SaveTopicFailure, saveTopic } from './loader';
-import { EditTopicPage } from './pages';
+import { loadAdminTopicToEdit, type SaveTopicFailure, saveTopic } from './loader.ts';
+import { EditTopicPage } from './pages.tsx';
 
 export const loader = loadAdminTopicToEdit;
 export const action = saveTopic;

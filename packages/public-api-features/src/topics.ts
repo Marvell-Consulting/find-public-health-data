@@ -1,7 +1,7 @@
 import type { Repositories, Topic } from '@fphd/db';
 import { Router } from 'express';
 
-import type { TopicSummary } from './contract.js';
+import type { TopicSummary } from './contract.ts';
 
 function toSummary({ slug, title, description, createdAt, updatedAt }: Topic): TopicSummary {
   return {

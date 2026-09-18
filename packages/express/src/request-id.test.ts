@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { readRequestIdHeader, requestId } from './request-id.js';
+import { readRequestIdHeader, requestId } from './request-id.ts';
 
 describe('readRequestIdHeader', () => {
   it('accepts a version 7 uuid, normalised to lower case', () => {

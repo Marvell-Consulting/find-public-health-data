@@ -9,8 +9,8 @@ import {
   listAreasByType,
   listDisplayGroups,
   searchAreas,
-} from './area-repository.js';
-import type { Database } from './client.js';
+} from './area-repository.ts';
+import type { Database } from './client.ts';
 import {
   type ApprovedIndicator,
   getApprovedIndicatorById,
@@ -27,8 +27,8 @@ import {
   resolveApprovedIndicatorId,
   searchApprovedIndicators,
   searchIndicators,
-} from './indicator-repository.js';
-import { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';
+} from './indicator-repository.ts';
+import { getTopicBySlug, listTopics, type Topic } from './topic-repository.ts';
 
 export interface IndicatorRepository {
   listApproved(): Promise<ApprovedIndicator[]>;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseTopicForm, readTopicForm } from './form';
+import { parseTopicForm, readTopicForm } from './form.ts';
 
 function formData(values: Record<string, string>): FormData {
   const data = new FormData();

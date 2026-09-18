@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { callsScan } from './scans.js';
+import { callsScan } from './scans.ts';
 
 describe('callsScan', () => {
   it.each([
@@ -12,7 +12,7 @@ describe('callsScan', () => {
   });
 
   it.each([
-    "import { expectNoAccessibilityViolations } from '../support/accessibility.js';",
+    "import { expectNoAccessibilityViolations } from '../support/accessibility.ts';",
     '// await expectNoAccessibilityViolations(page, testInfo);',
     '/* expectNoAccessibilityViolations(page, testInfo) */',
     "const note = 'expectNoAccessibilityViolations(page, testInfo)';",

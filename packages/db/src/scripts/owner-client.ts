@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { appEnvFields, parseEnv, z } from '@fphd/config';
 import type postgres from 'postgres';
 
-import { createPostgresClient } from '../client.js';
-import { dbEnvFields, resolveDbTls } from '../env.js';
+import { createPostgresClient } from '../client.ts';
+import { dbEnvFields, resolveDbTls } from '../env.ts';
 
 const repoEnvFile = fileURLToPath(new URL('../../../../.env', import.meta.url));
 

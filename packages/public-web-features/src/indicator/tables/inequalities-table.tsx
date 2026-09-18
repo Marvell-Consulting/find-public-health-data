@@ -5,9 +5,9 @@ import {
   inequalityCategoryLabel,
   periodLabel,
   segmentLabel,
-} from '../data.js';
-import type { IndicatorDetail, IndicatorObservation } from '../loader.js';
-import { NoteFootnotes, noteMarker } from './note-markers.js';
+} from '../data.ts';
+import type { IndicatorDetail, IndicatorObservation } from '../loader.ts';
+import { NoteFootnotes, noteMarker } from './note-markers.tsx';
 
 export function InequalitiesTable({
   confidence,

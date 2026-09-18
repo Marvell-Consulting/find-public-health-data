@@ -1,7 +1,7 @@
 import { isRouteErrorResponse, useRouteError } from 'react-router';
 
-import { type AppNavigationItem, AppShell } from './app-shell';
-import { NotFoundPage, PageIntro } from './content-page';
+import { type AppNavigationItem, AppShell } from './app-shell.tsx';
+import { NotFoundPage, PageIntro } from './content-page.tsx';
 
 interface RootErrorBoundaryProps {
   audience: 'Public' | 'Internal';

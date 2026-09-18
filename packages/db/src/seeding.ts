@@ -6,14 +6,14 @@ import { createGunzip } from 'node:zlib';
 
 import type postgres from 'postgres';
 
-import { createDbFromTransaction } from './client.js';
+import { createDbFromTransaction } from './client.ts';
 import {
   applyIndicatorTopics,
   type IndicatorTopicFile,
   type IndicatorTopicImportSummary,
   parseIndicatorTopicFile,
-} from './indicator-topic-repository.js';
-import { READ_MODEL_TABLES } from './read-models.js';
+} from './indicator-topic-repository.ts';
+import { READ_MODEL_TABLES } from './read-models.ts';
 
 // Topological FK order: every table loads after the tables it references.
 // Self-references (dimension_value.parent_id etc.) resolve within a single COPY

@@ -1,5 +1,5 @@
 import { Tag } from '@fphd/ui';
-import type { RecentTrend } from './data.js';
+import type { RecentTrend } from './data.ts';
 
 export function TrendTag({ trend }: { trend: RecentTrend }) {
   return (

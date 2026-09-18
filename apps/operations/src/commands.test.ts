@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { commands, resolveCommand, UsageError, usage } from './commands.js';
+import { commands, resolveCommand, UsageError, usage } from './commands.ts';
 
 describe('resolveCommand', () => {
   it('resolves a command from its words', () => {

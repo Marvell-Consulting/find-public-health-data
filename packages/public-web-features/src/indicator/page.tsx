@@ -1,7 +1,7 @@
 import { A, Button, ChartSection, GridColumn, GridRow, InsetText, Tabs } from '@fphd/ui';
 import { Form, useLocation } from 'react-router';
-import type { GeographyOptions } from '../geography/loader.js';
-import { MAX_SELECTED_AREAS, MAX_SELECTED_INDICATORS } from '../selection-limits.js';
+import type { GeographyOptions } from '../geography/loader.ts';
+import { MAX_SELECTED_AREAS, MAX_SELECTED_INDICATORS } from '../selection-limits.ts';
 import {
   availableConfidenceLevels,
   availablePeriodTypes,
@@ -10,25 +10,25 @@ import {
   inequalityBreakdown,
   inequalityCategories,
   inequalityPeriods,
-} from './data.js';
-import { FilterPane } from './filter-pane.js';
+} from './data.ts';
+import { FilterPane } from './filter-pane.tsx';
 import type {
   BenchmarkGeography,
   IndicatorSelection,
   IndicatorSummary as IndicatorSummaryData,
   SelectedArea,
   SelectedIndicator,
-} from './loader.js';
-import { BackgroundInformation, IndicatorSummary } from './metadata.js';
+} from './loader.ts';
+import { BackgroundInformation, IndicatorSummary } from './metadata.tsx';
 import {
   InequalityOptions,
   PanelOptionsPanel,
   useOptionParamNavigation,
   usePanelOptions,
-} from './options.js';
-import { ComparisonSection } from './tables/comparison-section.js';
-import { InequalitiesTable } from './tables/inequalities-table.js';
-import { TrendTable } from './tables/trend-table.js';
+} from './options.tsx';
+import { ComparisonSection } from './tables/comparison-section.tsx';
+import { InequalitiesTable } from './tables/inequalities-table.tsx';
+import { TrendTable } from './tables/trend-table.tsx';
 
 /**
  * Everything shown for one selected indicator, repeated per selection: the summary

@@ -1,8 +1,8 @@
 import { A, formatDate, GridColumn, GridRow, Pagination, Table } from '@fphd/ui';
 
-import { indicatorOverviewPath } from '../indicator-overview/paths';
-import type { IndicatorAdminSummary } from './loader';
-import { dashboardPath } from './paths';
+import { indicatorOverviewPath } from '../indicator-overview/paths.ts';
+import type { IndicatorAdminSummary } from './loader.ts';
+import { dashboardPath } from './paths.ts';
 
 // Plain anchors: the router-aware link would also mark every link to the bare path as current.
 function pageLink(number: number, current: number) {

@@ -1,4 +1,4 @@
-import { callsScan } from './scans.js';
+import { callsScan } from './scans.ts';
 
 /**
  * Page routes, as `react-router routes` reports them, to the spec covering them. The mapping is

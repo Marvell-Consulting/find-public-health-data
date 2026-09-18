@@ -1,7 +1,7 @@
 import { parseEnv, z } from '@fphd/config';
 import { describe, expect, it } from 'vitest';
 
-import { dbEnvFields, resolveDbTls } from './env.js';
+import { dbEnvFields, resolveDbTls } from './env.ts';
 
 describe('dbEnvFields', () => {
   const schema = z.object(dbEnvFields);

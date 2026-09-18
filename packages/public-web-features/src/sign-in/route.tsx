@@ -2,7 +2,7 @@ import { type AppAudience, fakeUsersForAudience, normalizeReturnTo } from '@fphd
 import { createDocumentMeta } from '@fphd/ui';
 import { type LoaderFunctionArgs, type RouterContext, useLoaderData } from 'react-router';
 
-import { SignInPage } from './page.js';
+import { SignInPage } from './page.tsx';
 
 type SessionReader = (context: { get<T>(context: RouterContext<T>): T }) =>
   | {
