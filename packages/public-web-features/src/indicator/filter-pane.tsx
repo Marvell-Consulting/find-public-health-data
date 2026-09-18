@@ -24,13 +24,13 @@ const INDICATORS_PATH = '/indicators';
 /** The query string for a selection, so every control links to a complete page state. */
 export function selectionSearch({
   selection,
-  fingertipsIds = selection.fingertipsIds,
+  shortIds = selection.shortIds,
 }: {
   selection: IndicatorSelection;
-  fingertipsIds?: number[];
+  shortIds?: number[];
 }) {
   const params = new URLSearchParams();
-  for (const id of fingertipsIds) {
+  for (const id of shortIds) {
     params.append('is', String(id));
   }
   for (const code of selection.areaCodes) {
@@ -71,7 +71,7 @@ export function FilterPane({
     });
   const searchFor = (args: Parameters<typeof selectionSearch>[0]) => {
     const params = new URLSearchParams(selectionSearch(args));
-    const keptIds = new Set((args.fingertipsIds ?? args.selection.fingertipsIds).map(String));
+    const keptIds = new Set((args.shortIds ?? args.selection.shortIds).map(String));
     for (const [key, value] of optionEntriesFor(keptIds)) {
       params.set(key, value);
     }
@@ -96,23 +96,21 @@ export function FilterPane({
       throw new Error(`search failed: ${response.status}`);
     }
     const { indicators } = (await response.json()) as {
-      indicators: { fingertipsId: number; name: string }[];
+      indicators: { shortId: number; name: string }[];
     };
-    return indicators.map(({ fingertipsId, name }) => ({
-      value: String(fingertipsId),
+    return indicators.map(({ shortId, name }) => ({
+      value: String(shortId),
       label: name,
     }));
   }, []);
-  const findMatches = findResults.filter(
-    ({ fingertipsId }) => !selection.fingertipsIds.includes(fingertipsId),
-  );
+  const findMatches = findResults.filter(({ shortId }) => !selection.shortIds.includes(shortId));
   const areaName = (code: string) => selectedAreas.find((area) => area.code === code)?.name ?? code;
 
   return (
     <>
       <FilterCard
         title="Selected indicators"
-        onClear={selected.length > 0 ? searchFor({ selection, fingertipsIds: [] }) : undefined}
+        onClear={selected.length > 0 ? searchFor({ selection, shortIds: [] }) : undefined}
         body={
           selected.length === 0 ? (
             <p className="govuk-body">None selected</p>
@@ -120,15 +118,13 @@ export function FilterPane({
             <FilterChips>
               {selected.map(({ detail }) => (
                 <FilterChip
-                  key={detail.fingertipsId}
+                  key={detail.shortId}
                   onRemove={searchFor({
                     selection,
-                    fingertipsIds: selection.fingertipsIds.filter(
-                      (id) => id !== detail.fingertipsId,
-                    ),
+                    shortIds: selection.shortIds.filter((id) => id !== detail.shortId),
                   })}
                   removeLabel={detail.name}
-                  value={String(detail.fingertipsId)}
+                  value={String(detail.shortId)}
                 >
                   {detail.name}
                 </FilterChip>
@@ -140,7 +136,7 @@ export function FilterPane({
           <>
             <Form action={INDICATORS_PATH} method="get">
               {/* The whole selection rides in hidden inputs so a no-script search keeps it. */}
-              {selection.fingertipsIds.map((id) => (
+              {selection.shortIds.map((id) => (
                 <input key={id} name="is" type="hidden" value={id} />
               ))}
               {selection.areaCodes.map((code) => (
@@ -149,11 +145,9 @@ export function FilterPane({
               {selection.areaLevels.map((level) => (
                 <input key={level} name="als" type="hidden" value={level} />
               ))}
-              {optionEntriesFor(new Set(selection.fingertipsIds.map(String))).map(
-                ([key, value]) => (
-                  <input key={key} name={key} type="hidden" value={value} />
-                ),
-              )}
+              {optionEntriesFor(new Set(selection.shortIds.map(String))).map(([key, value]) => (
+                <input key={key} name={key} type="hidden" value={value} />
+              ))}
               <Autocomplete
                 defaultValue={findSubject}
                 label="Search for an indicator"
@@ -180,7 +174,7 @@ export function FilterPane({
                   setPendingIndicator(null);
                   void navigateTo({
                     selection,
-                    fingertipsIds: [...selection.fingertipsIds, Number(pendingIndicator.value)],
+                    shortIds: [...selection.shortIds, Number(pendingIndicator.value)],
                   });
                 }}
                 type="button"
@@ -197,14 +191,14 @@ export function FilterPane({
                 </p>
               ) : (
                 <ul className="govuk-list govuk-!-margin-top-3 govuk-!-margin-bottom-0">
-                  {findMatches.map(({ fingertipsId, name }) => (
-                    <li key={fingertipsId}>
+                  {findMatches.map(({ shortId, name }) => (
+                    <li key={shortId}>
                       <Link
                         className="govuk-link"
                         preventScrollReset
                         to={searchFor({
                           selection,
-                          fingertipsIds: [...selection.fingertipsIds, fingertipsId],
+                          shortIds: [...selection.shortIds, shortId],
                         })}
                       >
                         {name}
@@ -282,10 +276,10 @@ export function FilterPane({
           >
             {/* The current selection rides along so a submit adds to it; levels are the
                 tree's own checkboxes, so they are not doubled here. */}
-            {selection.fingertipsIds.map((id) => (
+            {selection.shortIds.map((id) => (
               <input key={id} type="hidden" name="is" value={id} />
             ))}
-            {optionEntriesFor(new Set(selection.fingertipsIds.map(String))).map(([key, value]) => (
+            {optionEntriesFor(new Set(selection.shortIds.map(String))).map(([key, value]) => (
               <input key={key} type="hidden" name={key} value={value} />
             ))}
           </GeographyPicker>

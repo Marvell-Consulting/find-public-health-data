@@ -5,6 +5,7 @@ import {
   index,
   integer,
   jsonb,
+  pgSequence,
   pgTable,
   smallint,
   text,
@@ -29,30 +30,26 @@ export const INDICATOR_STATUSES = ['draft', 'in_review', 'approved', 'archived']
 
 export type IndicatorStatus = (typeof INDICATOR_STATUSES)[number];
 
+// Starts above every Fingertips number carried over in the seed, so this service's own
+// numbering is visible at a glance.
+export const indicatorShortIdSeq = pgSequence('indicator_short_id_seq', { startWith: 100000 });
+
 export const indicator = pgTable(
   'indicator',
   {
     id: uuidPrimaryKey(),
-    // The public Fingertips indicator number (e.g. 108, 92443), referenced in years
-    // of published URLs and documents; preserved as a stable domain identifier.
-    fingertipsId: integer().notNull().unique(),
+    // The public indicator number, carried over from Fingertips where there was one and
+    // minted here otherwise; it appears in published URLs, so it never changes.
+    shortId: integer().notNull().unique().default(sql`nextval('indicator_short_id_seq')`),
     name: text().notNull(),
-    valueTypeId: uuid()
-      .notNull()
-      .references(() => valueType.id),
-    unitId: uuid()
-      .notNull()
-      .references(() => unit.id),
-    yearTypeId: uuid()
-      .notNull()
-      .references(() => yearType.id),
+    // Everything below is empty on a stub created from a name alone and filled before the
+    // indicator is approved.
+    valueTypeId: uuid().references(() => valueType.id),
+    unitId: uuid().references(() => unit.id),
+    yearTypeId: uuid().references(() => yearType.id),
     ciMethodId: uuid().references(() => ciMethod.id),
-    polarityId: uuid()
-      .notNull()
-      .references(() => polarity.id),
-    frequencyId: uuid()
-      .notNull()
-      .references(() => frequency.id),
+    polarityId: uuid().references(() => polarity.id),
+    frequencyId: uuid().references(() => frequency.id),
     comparatorMethodId: uuid().references(() => comparatorMethod.id),
     disclosureThreshold: smallint(),
     ciConfidenceLevel: text(),
@@ -60,7 +57,7 @@ export const indicator = pgTable(
     // When the source system last published data for this indicator. Distinct from the
     // audit timestamps, which record when our own row changed.
     dataUpdatedAt: timestamp({ withTimezone: true }),
-    status: text({ enum: INDICATOR_STATUSES }).notNull().default('approved'),
+    status: text({ enum: INDICATOR_STATUSES }).notNull().default('draft'),
     reviewedAt: timestamp({ withTimezone: true }),
     reviewedBy: text(),
     config: jsonb(),

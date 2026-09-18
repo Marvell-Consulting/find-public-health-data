@@ -65,7 +65,7 @@ export interface IndicatorSearchFilters {
 }
 
 export interface IndicatorSearchRow {
-  fingertipsId: number;
+  shortId: number;
   name: string;
   topics: { slug: string; title: string }[];
   classifications: { dimension: string; slug: string; name: string }[];
@@ -86,25 +86,19 @@ export interface IndicatorFacets {
 }
 
 export interface ApprovedIndicator {
-  id: string;
-  fingertipsId: number;
+  shortId: number;
   name: string;
   status: string;
 }
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_POSTGRES_INTEGER = 2_147_483_647;
 
-function exactIndicatorIdentifier(query: string) {
-  const fingertipsId = /^\d+$/.test(query) ? Number(query) : Number.NaN;
-  return (
-    or(
-      UUID_PATTERN.test(query) ? eq(indicator.id, query) : undefined,
-      Number.isSafeInteger(fingertipsId) && fingertipsId <= MAX_POSTGRES_INTEGER
-        ? eq(indicator.fingertipsId, fingertipsId)
-        : undefined,
-    ) ?? sql<boolean>`false`
-  );
+/** A query that is a whole number matches that short id exactly; anything else matches nothing. */
+function exactShortIdMatch(query: string) {
+  const shortId = /^\d+$/.test(query) ? Number(query) : Number.NaN;
+  return Number.isSafeInteger(shortId) && shortId <= MAX_POSTGRES_INTEGER
+    ? eq(indicator.shortId, shortId)
+    : sql<boolean>`false`;
 }
 
 function escapedSearchTerms(query: string): string[] {
@@ -118,8 +112,7 @@ function escapedSearchTerms(query: string): string[] {
 export async function listApprovedIndicators(db: Database): Promise<ApprovedIndicator[]> {
   return db
     .select({
-      id: indicator.id,
-      fingertipsId: indicator.fingertipsId,
+      shortId: indicator.shortId,
       name: indicator.name,
       status: indicator.status,
     })
@@ -135,11 +128,10 @@ export async function searchApprovedIndicators(
   limit: number,
 ): Promise<ApprovedIndicator[]> {
   const terms = escapedSearchTerms(query);
-  const identifierMatch = exactIndicatorIdentifier(query.trim());
+  const identifierMatch = exactShortIdMatch(query.trim());
   return db
     .select({
-      id: indicator.id,
-      fingertipsId: indicator.fingertipsId,
+      shortId: indicator.shortId,
       name: indicator.name,
       status: indicator.status,
     })
@@ -174,7 +166,7 @@ export interface IndicatorTopic {
 }
 
 export interface IndicatorDetail {
-  fingertipsId: number;
+  shortId: number;
   name: string;
   valueType: string;
   unit: { name: string; label: string };
@@ -201,15 +193,15 @@ export interface IndicatorDetail {
   classifications: IndicatorClassification[];
 }
 
-/** The internal id behind a public Fingertips number — the one place the external id resolves. */
+/** The internal id behind a public short id — the one place the external id resolves. */
 export async function resolveApprovedIndicatorId(
   db: Database,
-  fingertipsId: number,
+  shortId: number,
 ): Promise<string | undefined> {
   const [row] = await db
     .select({ id: indicator.id })
     .from(indicator)
-    .where(and(eq(indicator.fingertipsId, fingertipsId), eq(indicator.status, 'approved')))
+    .where(and(eq(indicator.shortId, shortId), eq(indicator.status, 'approved')))
     .limit(1);
   return row?.id;
 }
@@ -228,7 +220,7 @@ export async function getApprovedIndicatorById(
   const [row] = await db
     .select({
       id: indicator.id,
-      fingertipsId: indicator.fingertipsId,
+      shortId: indicator.shortId,
       name: indicator.name,
       valueType: valueType.name,
       unitName: unit.name,
@@ -285,7 +277,7 @@ export async function getApprovedIndicatorById(
   ]);
 
   return {
-    fingertipsId: row.fingertipsId,
+    shortId: row.shortId,
     name: row.name,
     valueType: row.valueType,
     unit: { name: row.unitName, label: row.unitLabel },
@@ -514,7 +506,7 @@ export async function searchIndicators(
   const conditions = [eq(indicator.status, 'approved')];
 
   const query = filters.query.trim();
-  const identifierMatch = exactIndicatorIdentifier(query);
+  const identifierMatch = exactShortIdMatch(query);
   const topicQueryMatch = (term: string) =>
     exists(
       db
@@ -682,7 +674,7 @@ export async function searchIndicators(
       .from(indicator)
       .where(where),
     db
-      .select({ id: indicator.id, fingertipsId: indicator.fingertipsId, name: indicator.name })
+      .select({ id: indicator.id, shortId: indicator.shortId, name: indicator.name })
       .from(indicator)
       .where(where)
       .orderBy(
@@ -756,7 +748,7 @@ export async function searchIndicators(
     total,
     limit: filters.limit,
     indicators: rows.map((r) => ({
-      fingertipsId: r.fingertipsId,
+      shortId: r.shortId,
       name: r.name,
       topics: topicsByIndicator.get(r.id) ?? [],
       classifications: classificationsByIndicator.get(r.id) ?? [],

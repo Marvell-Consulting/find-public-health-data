@@ -10,7 +10,7 @@ afterEach(cleanup);
 
 const indicator: IndicatorAdminDetail = {
   id: '019a1b2c-3d4e-7f60-8a9b-0c1d2e3f4a5b',
-  fingertipsId: 90366,
+  shortId: 90366,
   name: 'Life expectancy at birth',
   status: 'approved',
   updatedAt: '2026-08-04T23:30:00.000Z',
@@ -32,7 +32,7 @@ describe('IndicatorOverviewPage', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'Life expectancy at birth' }),
     ).toBeTruthy();
-    expect(screen.getByText('Indicator ID')).toBeTruthy();
+    expect(screen.getByText('Indicator number')).toBeTruthy();
     expect(screen.getByText('90366')).toBeTruthy();
   });
 

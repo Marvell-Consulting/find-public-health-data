@@ -255,7 +255,7 @@ def add_areas(cur, registry):
 
 def add_indicators(cur, metadata):
     cur.execute(
-        "SELECT fingertips_id FROM indicator WHERE fingertips_id = ANY(%s)",
+        "SELECT short_id FROM indicator WHERE short_id = ANY(%s)",
         (list(INDICATOR_CONFIG),),
     )
     existing = [row[0] for row in cur.fetchall()]
@@ -277,7 +277,7 @@ def add_indicators(cur, metadata):
         cur.execute(
             """
             INSERT INTO indicator
-              (id, fingertips_id, name, value_type_id, unit_id, year_type_id,
+              (id, short_id, name, value_type_id, unit_id, year_type_id,
                ci_method_id, polarity_id, frequency_id, comparator_method_id,
                ci_confidence_level, data_updated_at, status, reviewed_at, reviewed_by,
                config, created_at, created_by, updated_at, updated_by)
@@ -468,15 +468,15 @@ def add_observations(cur, csv_path, registry, area_ids, metadata, indicator_ids,
 def validate(cur):
     cur.execute(
         """
-        SELECT i.fingertips_id, count(o.id), count(DISTINCT a.code),
+        SELECT i.short_id, count(o.id), count(DISTINCT a.code),
                count(DISTINCT at.name)
         FROM indicator i
         JOIN observation o ON o.indicator_id = i.id
         JOIN area a ON a.id = o.area_id
         JOIN area_type at ON at.id = a.area_type_id
-        WHERE i.fingertips_id = ANY(%s)
-        GROUP BY i.fingertips_id
-        ORDER BY i.fingertips_id
+        WHERE i.short_id = ANY(%s)
+        GROUP BY i.short_id
+        ORDER BY i.short_id
         """,
         (list(INDICATOR_CONFIG),),
     )

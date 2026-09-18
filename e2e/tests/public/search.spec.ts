@@ -92,7 +92,7 @@ test('a keyword narrows the result count', async ({ page }) => {
   expect(narrowed).toMatch(/Select from \d+ indicators?/);
 });
 
-test('search matches a Fingertips ID and taxonomy slugs', async ({ page }) => {
+test('search matches an indicator number and taxonomy slugs', async ({ page }) => {
   await page.goto('/search?q=108');
   await expect(page.getByRole('heading', { name: 'Select from 1 indicator' })).toBeVisible();
   await expect(results(page).getByRole('link')).toHaveAttribute('href', '/indicators/108');

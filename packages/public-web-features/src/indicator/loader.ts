@@ -35,7 +35,7 @@ export interface IndicatorSelection {
   /** Whole geography levels selected as one ("Local authorities"), kept as a single
    *  chip and query value rather than hundreds of individual area codes. */
   areaLevels: string[];
-  fingertipsIds: number[];
+  shortIds: number[];
 }
 
 /** One selected indicator with the area data backing its charts. */
@@ -101,8 +101,8 @@ async function loadIndicatorData(
 ) {
   const url = new URL(request.url);
 
-  if (params.fingertipsId !== undefined && !/^\d+$/.test(params.fingertipsId)) {
-    // `indicators/:fingertipsId` matched but the segment is not a number, which the API
+  if (params.shortId !== undefined && !/^\d+$/.test(params.shortId)) {
+    // `indicators/:shortId` matched but the segment is not a number, which the API
     // would answer with a 404 anyway. Failing here keeps the request off the API.
     throw new Response('Not Found', { status: 404 });
   }
@@ -217,7 +217,7 @@ async function loadIndicatorData(
     return { region: choices.includes('region'), rangeLevels: [...rangeLevels] };
   };
 
-  const fingertipsIds = selectedIndicatorIds(url, params.fingertipsId);
+  const shortIds = selectedIndicatorIds(url, params.shortId);
   const requestedIndicatorCount = new Set(
     url.searchParams.getAll('is').filter((value) => /^\d+$/.test(value)),
   ).size;
@@ -234,7 +234,7 @@ async function loadIndicatorData(
         ).indicators
       : [];
   const selected = await Promise.all(
-    fingertipsIds.map(async (id) => {
+    shortIds.map(async (id) => {
       const dataFor = (codes: string[]) =>
         api.get(
           `${apiPath`/api/indicators/${String(id)}/data`}?${codes
@@ -280,7 +280,7 @@ async function loadIndicatorData(
     geographyOptions,
     areasLimited,
     indicatorsLimited: requestedIndicatorCount > MAX_SELECTED_INDICATORS,
-    selection: { areaCodes, areaLevels, fingertipsIds } satisfies IndicatorSelection,
+    selection: { areaCodes, areaLevels, shortIds } satisfies IndicatorSelection,
   };
 }
 

@@ -14,6 +14,6 @@ export const timestamps = {
 // 'pholio-migration'.
 export const audit = {
   ...timestamps,
-  createdBy: text().notNull(),
-  updatedBy: text().notNull(),
+  createdBy: text(),
+  updatedBy: text(),
 };

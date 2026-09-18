@@ -57,9 +57,8 @@ describe('public routers against the seeded database', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.indicators).toHaveLength(13);
-    expect(response.body.indicators[0]).toMatchObject({
-      id: expect.stringMatching(/^[0-9a-f-]{36}$/),
-      fingertipsId: expect.any(Number),
+    expect(response.body.indicators[0]).toEqual({
+      shortId: expect.any(Number),
       name: expect.any(String),
       status: 'approved',
     });
@@ -70,19 +69,19 @@ describe('public routers against the seeded database', () => {
   it('does not list indicators that are not approved', async () => {
     const inserted = await owner`
       INSERT INTO indicator
-        (fingertips_id, name, value_type_id, unit_id, year_type_id, polarity_id, frequency_id,
+        (short_id, name, value_type_id, unit_id, year_type_id, polarity_id, frequency_id,
          status, created_by, updated_by)
       SELECT 999999, 'integration-test draft indicator', vt.id, u.id, yt.id, p.id, f.id,
              'draft', 'integration-test', 'integration-test'
       FROM value_type vt, unit u, year_type yt, polarity p, frequency f
       LIMIT 1
-      RETURNING id
+      RETURNING short_id
     `;
     const response = await request(app).get('/api/indicators');
     expect(response.status).toBe(200);
     expect(response.body.indicators).toHaveLength(13);
-    const ids = response.body.indicators.map((i: { id: string }) => i.id);
-    expect(ids).not.toContain(inserted[0]?.id);
+    const shortIds = response.body.indicators.map((i: { shortId: number }) => i.shortId);
+    expect(shortIds).not.toContain(inserted[0]?.short_id);
   });
 
   it('returns the full detail for a seeded indicator, matching the wire contract', async () => {
@@ -90,7 +89,7 @@ describe('public routers against the seeded database', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
-      fingertipsId: 108,
+      shortId: 108,
       name: expect.stringContaining('Under 75 mortality rate'),
       valueType: expect.any(String),
       unit: { name: expect.any(String), label: expect.any(String) },
@@ -127,7 +126,7 @@ describe('public routers against the seeded database', () => {
 
     expect(detail.status).toBe(200);
     expect(detail.body).toMatchObject({
-      fingertipsId: 241,
+      shortId: 241,
       name: 'Diabetes: QOF prevalence',
       valueType: 'Proportion',
       unit: { label: '%' },
@@ -188,7 +187,7 @@ describe('public routers against the seeded database', () => {
 
   it('returns an empty observation list for an area with no data', async () => {
     const rows = await owner`
-      SELECT i.fingertips_id, a.code FROM indicator i CROSS JOIN area a
+      SELECT i.short_id, a.code FROM indicator i CROSS JOIN area a
       WHERE i.status = 'approved'
       AND NOT EXISTS (
         SELECT 1 FROM observation o
@@ -200,14 +199,14 @@ describe('public routers against the seeded database', () => {
     expect(pair).toBeTruthy();
 
     const response = await request(app).get(
-      `/api/indicators/${pair?.fingertips_id}/data?areaCode=${pair?.code}`,
+      `/api/indicators/${pair?.short_id}/data?areaCode=${pair?.code}`,
     );
 
     expect(response.status).toBe(200);
     expect(response.body.observations).toEqual([]);
   });
 
-  it('returns 404 for a fingertips id with no indicator', async () => {
+  it('returns 404 for a short id with no indicator', async () => {
     const response = await request(app).get('/api/indicators/424242');
 
     expect(response.status).toBe(404);
@@ -217,7 +216,7 @@ describe('public routers against the seeded database', () => {
   it('does not serve an indicator that is not approved', async () => {
     await owner`
       INSERT INTO indicator
-        (fingertips_id, name, value_type_id, unit_id, year_type_id, polarity_id, frequency_id,
+        (short_id, name, value_type_id, unit_id, year_type_id, polarity_id, frequency_id,
          status, created_by, updated_by)
       SELECT 999998, 'integration-test archived indicator', vt.id, u.id, yt.id, p.id, f.id,
              'archived', 'integration-test', 'integration-test'

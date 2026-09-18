@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { loadIndicatorCsv } from './csv.js';
 
 const detail = {
-  fingertipsId: 108,
+  shortId: 108,
   name: 'Mortality, "all causes"',
   unit: { name: 'per 100,000', label: 'per 100,000' },
   yearType: 'Calendar',
@@ -30,12 +30,12 @@ function observation(overrides = {}) {
   };
 }
 
-function args(get: ReturnType<typeof vi.fn>, url: string, fingertipsId = '108') {
+function args(get: ReturnType<typeof vi.fn>, url: string, shortId = '108') {
   const context = new RouterContextProvider();
   context.set(apiContext, { get } as unknown as ApiClient);
   return {
     context,
-    params: { fingertipsId },
+    params: { shortId },
     request: new Request(url),
   } as unknown as LoaderFunctionArgs;
 }

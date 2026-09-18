@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { indicatorsRouter } from './indicators.js';
 
 const indicatorDetail = {
-  fingertipsId: 108,
+  shortId: 108,
   name: 'Under 75 mortality rate from all causes',
   valueType: 'Directly standardised rate',
   unit: { name: 'per 100,000', label: 'per 100,000' },
@@ -44,7 +44,7 @@ function createTestApp(overrides: FakeRepositoryOverrides['indicators'] = {}): E
 }
 
 describe('the public indicators surface', () => {
-  it('404s data and range requests when the fingertips id resolves to nothing', async () => {
+  it('404s data and range requests when the short id resolves to nothing', async () => {
     const app = createTestApp({ resolveId: async () => undefined });
 
     expect((await request(app).get('/api/indicators/424242/data')).status).toBe(404);
@@ -89,8 +89,8 @@ describe('GET /api/indicators', () => {
   });
 });
 
-describe('GET /api/indicators/:fingertipsId', () => {
-  it('finds an indicator by its fingertips id', async () => {
+describe('GET /api/indicators/:shortId', () => {
+  it('finds an indicator by its short id', async () => {
     const app = createTestApp({
       resolveId: async () => 'ind-1',
       findApprovedById: async () => indicatorDetail,
@@ -102,7 +102,7 @@ describe('GET /api/indicators/:fingertipsId', () => {
     expect(response.body).toEqual(indicatorDetail);
   });
 
-  it('returns the standard not-found body for an unknown fingertips id', async () => {
+  it('returns the standard not-found body for an unknown short id', async () => {
     const app = createTestApp({ resolveId: async () => undefined });
 
     const response = await request(app).get('/api/indicators/424242');
@@ -120,7 +120,7 @@ describe('GET /api/indicators/:fingertipsId', () => {
   });
 });
 
-describe('GET /api/indicators/:fingertipsId/data', () => {
+describe('GET /api/indicators/:shortId/data', () => {
   it('serves observations for an indicator, defaulting to England', async () => {
     const data = {
       areaCode: 'E92000001',
@@ -202,7 +202,7 @@ describe('GET /api/indicators/:fingertipsId/data', () => {
   });
 });
 
-describe('GET /api/indicators/:fingertipsId/range', () => {
+describe('GET /api/indicators/:shortId/range', () => {
   it('serves a per-segment range for the requested display group', async () => {
     const periods = [
       { fromDate: '2023-01-01', toDate: '2023-12-31', segment: 'Male', min: 1, max: 2 },

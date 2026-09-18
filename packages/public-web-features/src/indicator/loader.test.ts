@@ -15,7 +15,7 @@ function api(get = vi.fn()) {
           if (path === '/api/indicators' || path.startsWith('/api/indicators?')) {
             return Promise.resolve({
               indicators: path.includes('q=')
-                ? [{ id: 'a', fingertipsId: 241, name: 'Diabetes: QOF prevalence' }]
+                ? [{ shortId: 241, name: 'Diabetes: QOF prevalence' }]
                 : [],
             });
           }
@@ -109,7 +109,7 @@ describe('loadIndicator', () => {
     const result = await loadIndicator(loaderArgs(client));
 
     expect(result.selected).toEqual([]);
-    expect(result.selection.fingertipsIds).toEqual([]);
+    expect(result.selection.shortIds).toEqual([]);
     // The indicator catalogue stays server-side, while the geography tree receives only
     // its bounded first-page previews.
     expect(get).not.toHaveBeenCalledWith('/api/indicators', expect.anything());
@@ -131,9 +131,7 @@ describe('loadIndicator', () => {
       expect.anything(),
     );
     expect(result.findSubject).toBe('diabetes & obesity');
-    expect(result.findResults).toEqual([
-      { id: 'a', fingertipsId: 241, name: 'Diabetes: QOF prevalence' },
-    ]);
+    expect(result.findResults).toEqual([{ shortId: 241, name: 'Diabetes: QOF prevalence' }]);
   });
 
   it('skips the find search when the parameter is missing or blank', async () => {
@@ -152,10 +150,10 @@ describe('loadIndicator', () => {
     const { client, get } = api();
 
     const result = await loadIndicator(
-      loaderArgs(client, { fingertipsId: '108' }, 'http://localhost/indicators/108'),
+      loaderArgs(client, { shortId: '108' }, 'http://localhost/indicators/108'),
     );
 
-    expect(result.selection.fingertipsIds).toEqual([108]);
+    expect(result.selection.shortIds).toEqual([108]);
     expect(get).toHaveBeenCalledWith('/api/indicators/108', expect.anything());
     expect(get).toHaveBeenCalledWith(
       '/api/indicators/108/data?areaCode=E92000001',
@@ -170,7 +168,7 @@ describe('loadIndicator', () => {
       loaderArgs(client, {}, 'http://localhost/indicators?is=108&is=90366'),
     );
 
-    expect(result.selection.fingertipsIds).toEqual([108, 90366]);
+    expect(result.selection.shortIds).toEqual([108, 90366]);
     expect(get).toHaveBeenCalledWith('/api/indicators/108', expect.anything());
     expect(get).toHaveBeenCalledWith('/api/indicators/90366', expect.anything());
   });
@@ -179,10 +177,10 @@ describe('loadIndicator', () => {
     const { client } = api();
 
     const result = await loadIndicator(
-      loaderArgs(client, { fingertipsId: '108' }, 'http://localhost/indicators/108?is=90366'),
+      loaderArgs(client, { shortId: '108' }, 'http://localhost/indicators/108?is=90366'),
     );
 
-    expect(result.selection.fingertipsIds).toEqual([90366]);
+    expect(result.selection.shortIds).toEqual([90366]);
   });
 
   it('drops duplicate and malformed ids and caps the selection', async () => {
@@ -193,8 +191,8 @@ describe('loadIndicator', () => {
       loaderArgs(client, {}, `http://localhost/indicators?is=108&is=108&is=abc&${many}`),
     );
 
-    expect(result.selection.fingertipsIds).toHaveLength(10);
-    expect(result.selection.fingertipsIds.filter((id) => id === 108)).toHaveLength(1);
+    expect(result.selection.shortIds).toHaveLength(10);
+    expect(result.selection.shortIds.filter((id) => id === 108)).toHaveLength(1);
     expect(result.indicatorsLimited).toBe(true);
   });
 
@@ -366,11 +364,7 @@ describe('loadIndicator', () => {
 
     await expect(
       loadIndicator(
-        loaderArgs(
-          client,
-          { fingertipsId: '../topics' },
-          'http://localhost/indicators/..%2Ftopics',
-        ),
+        loaderArgs(client, { shortId: '../topics' }, 'http://localhost/indicators/..%2Ftopics'),
       ),
     ).rejects.toMatchObject({ status: 404 });
   });
@@ -385,7 +379,7 @@ describe('loadIndicator', () => {
       );
 
     await expect(
-      loadIndicator(loaderArgs(api(get).client, { fingertipsId: '424242' })),
+      loadIndicator(loaderArgs(api(get).client, { shortId: '424242' })),
     ).rejects.toMatchObject({ status: 404 });
   });
 });

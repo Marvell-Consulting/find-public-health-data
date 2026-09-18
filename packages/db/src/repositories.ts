@@ -33,8 +33,8 @@ import { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';
 export interface IndicatorRepository {
   listApproved(): Promise<ApprovedIndicator[]>;
   search(query: string, limit: number): Promise<ApprovedIndicator[]>;
-  /** The one place the public Fingertips number resolves to an internal id. */
-  resolveId(fingertipsId: number): Promise<string | undefined>;
+  /** The one place the public short id resolves to an internal id. */
+  resolveId(shortId: number): Promise<string | undefined>;
   findApprovedById(indicatorId: string): Promise<IndicatorDetail | undefined>;
   findObservations(indicatorId: string, areaCode: string): Promise<IndicatorAreaData | undefined>;
   findObservationRange(
@@ -88,7 +88,7 @@ export function createRepositories(db: Database): Repositories {
     indicators: {
       listApproved: () => listApprovedIndicators(db),
       search: (query, limit) => searchApprovedIndicators(db, query, limit),
-      resolveId: (fingertipsId) => resolveApprovedIndicatorId(db, fingertipsId),
+      resolveId: (shortId) => resolveApprovedIndicatorId(db, shortId),
       findApprovedById: (indicatorId) => getApprovedIndicatorById(db, indicatorId),
       findObservations: (indicatorId, areaCode) =>
         getIndicatorObservations(db, indicatorId, areaCode),
