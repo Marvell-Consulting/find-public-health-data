@@ -15,11 +15,13 @@ import {
   rebuildReadModels as rebuildReadModelsFromCanonical,
   rebuildReadModelTables,
   resetDatabase,
+  SEED_TABLES,
   seedDummyTables,
 } from '@fphd/db/operations';
 
 import type { CommandContext } from './commands.ts';
 import type { Config } from './load-config.ts';
+import { downloadPublishedSnapshot } from './published-snapshot.ts';
 
 /**
  * The role names are fixed — the APIs connect as `public_api` and `internal_api`, and only
@@ -105,6 +107,40 @@ export async function seedDummyData({ sql, config, logger }: CommandContext): Pr
       { indicators: unknownIndicators },
       'Indicators in the file not in this database; skipped',
     );
+  }
+}
+
+/** Replaces dev seed data with the approved-only published benchmark snapshot. */
+export async function importPublishedSnapshot({
+  sql,
+  config,
+  logger,
+}: CommandContext): Promise<void> {
+  assertSeedingAllowed(config.appEnv, 'import published snapshot');
+  await assertCoreDataPresent(sql);
+  const { url, sha256 } = config.publishedSnapshot;
+  if (!url || !sha256) {
+    throw new Error(
+      'db import-published-snapshot needs PUBLISHED_SNAPSHOT_URL and PUBLISHED_SNAPSHOT_SHA256',
+    );
+  }
+
+  const snapshot = await downloadPublishedSnapshot(url, sha256);
+  try {
+    const seeded = await sql.begin(async (tx) => {
+      const result = await seedDummyTables(tx, snapshot.directory);
+      for (const table of SEED_TABLES) {
+        if (result.tables[table] !== snapshot.manifest.tables[table]?.rows) {
+          throw new Error(`Published snapshot row count failed for ${table}`);
+        }
+      }
+      await rebuildReadModelTables(tx);
+      return result;
+    });
+    await analyzeReadModels(sql);
+    logger.info({ tables: seeded.tables }, 'Published snapshot imported');
+  } finally {
+    await snapshot.cleanup();
   }
 }
 

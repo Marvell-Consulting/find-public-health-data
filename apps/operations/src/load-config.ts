@@ -17,6 +17,11 @@ const envSchema = z
     // so the command that uses them asserts them instead.
     PUBLIC_API_PASSWORD: z.string().min(1).optional(),
     INTERNAL_API_PASSWORD: z.string().min(1).optional(),
+    PUBLISHED_SNAPSHOT_URL: z.url().optional(),
+    PUBLISHED_SNAPSHOT_SHA256: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
   })
   .superRefine((env, ctx) => {
     if (isDeployedEnv(env.APP_ENV) && env.POSTGRES_USER === undefined) {
@@ -51,6 +56,10 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
     roles: {
       publicApiPassword: parsed.PUBLIC_API_PASSWORD,
       internalApiPassword: parsed.INTERNAL_API_PASSWORD,
+    },
+    publishedSnapshot: {
+      url: parsed.PUBLISHED_SNAPSHOT_URL,
+      sha256: parsed.PUBLISHED_SNAPSHOT_SHA256,
     },
   } as const;
 }

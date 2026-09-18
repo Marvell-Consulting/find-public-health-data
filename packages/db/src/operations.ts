@@ -33,5 +33,6 @@ export {
   assertResetAllowed,
   assertSeedingAllowed,
   type DummySeedSummary,
+  SEED_TABLES,
   seedDummyTables,
 } from './seeding.ts';

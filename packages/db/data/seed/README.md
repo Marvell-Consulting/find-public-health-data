@@ -47,6 +47,16 @@ That yields 489,998 observations, 758,989 bridge rows and 74,755 observation not
 
 ## Regenerating the base snapshot
 
+For a full-volume dev import, `export/export-published-snapshot.py` streams the
+`PHOLIO_LIVE_A`-derived `fphd_new` database on the benchmark VM. It refuses a
+source containing unapproved indicators. Run `strip-metadata-html.py` and
+`enrich-area-display.py` against its output, then run
+`transform-uuids.py --deterministic` to rekey all tables with bounded memory.
+The resulting `manifest.json`, `source-manifest.json` and 21 CSV files form the
+private archive consumed by `db import-published-snapshot`; do not commit it.
+The source clone is a published snapshot from May/June 2026, so refresh it from
+the published source when more recent content is required.
+
 `export/export-seed.py` runs on the benchmark VM (`fphd-benchmark`, resource group
 `find-public-health-data-alpha` — deallocated when idle; its public IP changes on start),
 then `export/transform-uuids.py` rekeys the integer-keyed export to UUIDv7 locally:

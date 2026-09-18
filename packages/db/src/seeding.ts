@@ -18,7 +18,7 @@ import { READ_MODEL_TABLES } from './read-models.ts';
 // Topological FK order: every table loads after the tables it references.
 // Self-references (dimension_value.parent_id etc.) resolve within a single COPY
 // because FK checks run at end of statement.
-const SEED_TABLES = [
+export const SEED_TABLES = [
   'value_type',
   'unit',
   'year_type',
@@ -61,8 +61,9 @@ async function readCsvHeader(file: string): Promise<string[]> {
 async function loadTable(
   sql: postgres.Sql | postgres.TransactionSql,
   table: string,
+  directory: string,
 ): Promise<number> {
-  const file = `${seedDir}${table}.csv.gz`;
+  const file = `${directory}/${table}.csv.gz`;
   const columns = await readCsvHeader(file);
   const columnList = columns.map((c) => `"${c}"`).join(', ');
   const writable = await sql
@@ -73,12 +74,20 @@ async function loadTable(
   // ended (the stream is nulled before the server responds), leaving 'finish'
   // unemitted and pipeline() hanging forever. Stream the data without awaiting
   // completion, wait for finish/error with a timeout, then verify the row count.
-  const streamed = pipeline(createReadStream(file), createGunzip(), writable, { end: true });
+  const decompressed = createGunzip();
+  const streamed = pipeline(createReadStream(file), decompressed, writable, { end: true });
+  let timeout: NodeJS.Timeout | undefined;
+  const afterSourceEnds = once(decompressed, 'end').then(
+    () =>
+      new Promise<'timeout'>((resolve) => {
+        timeout = setTimeout(() => resolve('timeout'), 300_000).unref();
+      }),
+  );
   const outcome = await Promise.race([
     streamed.then(() => 'finished' as const),
     once(writable, 'error').then(([err]) => Promise.reject(err)),
-    new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 120_000).unref()),
-  ]);
+    afterSourceEnds,
+  ]).finally(() => clearTimeout(timeout));
   if (outcome === 'timeout') {
     throw new Error(`COPY into "${table}" did not complete — likely rejected by Postgres`);
   }
@@ -107,8 +116,8 @@ function assertDevClassEnv(action: string, appEnv: string | undefined): void {
 }
 
 /** The seed erases and replaces every dummy table. */
-export function assertSeedingAllowed(appEnv: string | undefined): void {
-  assertDevClassEnv('seed dummy data', appEnv);
+export function assertSeedingAllowed(appEnv: string | undefined, action = 'seed dummy data'): void {
+  assertDevClassEnv(action, appEnv);
 }
 
 /** A reset erases the whole application schema. Same gate as seeding, deliberately. */
@@ -148,21 +157,27 @@ export interface DummySeedSummary {
  * assertSeedingAllowed, and the integration harness only ever targets its own disposable
  * databases.
  */
-export async function seedDummyTables(tx: postgres.TransactionSql): Promise<DummySeedSummary> {
+export async function seedDummyTables(
+  tx: postgres.TransactionSql,
+  directory = seedDir,
+): Promise<DummySeedSummary> {
   // Read before any database work, so a bad file fails while the transaction has done nothing.
   const relationshipFile = readDummyRelationships();
-  const tables = await seedTables(tx);
+  const tables = await seedTables(tx, directory);
   const relationships = await applyIndicatorTopics(createDbFromTransaction(tx), relationshipFile);
   return { tables, relationships };
 }
 
-async function seedTables(tx: postgres.TransactionSql): Promise<Record<string, number>> {
+async function seedTables(
+  tx: postgres.TransactionSql,
+  directory: string,
+): Promise<Record<string, number>> {
   const allTables = [...SEED_TABLES, ...READ_MODEL_TABLES].map((t) => `"${t}"`).join(', ');
   await tx.unsafe(`TRUNCATE ${allTables} CASCADE`);
 
   const counts: Record<string, number> = {};
   for (const table of SEED_TABLES) {
-    counts[table] = await loadTable(tx, table);
+    counts[table] = await loadTable(tx, table, directory);
   }
   return counts;
 }

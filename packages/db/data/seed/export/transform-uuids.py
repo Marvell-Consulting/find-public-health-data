@@ -5,18 +5,21 @@ Run locally after downloading the export:
 
     python3 transform-uuids.py ..
 
-Each table's rows get sequential UUIDv7 ids following source-id order (so v7
-time-ordering mirrors the original insert order), every foreign-key column is
-remapped, and the indicator table keeps its public Fingertips number as its
-short_id.
+The default mode assigns sequential UUIDv7 ids following source-id order.
+`--deterministic` maps table and source ID directly to UUIDv7 so a full
+published snapshot can be converted with bounded memory. Every foreign key is
+remapped, and the indicator keeps its public Fingertips number as `short_id`.
 """
 
+import argparse
 import csv
 import gzip
+import hashlib
+import json
 import os
 import secrets
-import sys
 import time
+from pathlib import Path
 
 TABLES = [
     "value_type",
@@ -41,6 +44,7 @@ TABLES = [
     "observation_dimension",
     "observation_note",
 ]
+TABLE_TAGS = {table: index + 1 for index, table in enumerate(TABLES)}
 
 FOREIGN_KEYS = {
     "dimension_value": {"dimension_type_id": "dimension_type", "parent_id": "dimension_value"},
@@ -85,31 +89,69 @@ def uuid7(ts_ms):
     return f"{hexed[:8]}-{hexed[8:12]}-{hexed[12:16]}-{hexed[16:20]}-{hexed[20:]}"
 
 
-def main(seed_dir):
-    base_ms = int(time.time() * 1000)
-    id_maps = {}
-    for table in TABLES:
-        path = os.path.join(seed_dir, f"{table}.csv.gz")
-        with gzip.open(path, "rt", newline="") as f:
-            reader = csv.reader(f)
-            header = next(reader)
-            id_index = header.index("id")
-            old_ids = sorted((int(row[id_index]) for row in reader))
-        id_maps[table] = {
-            str(old): uuid7(base_ms + offset) for offset, old in enumerate(old_ids)
-        }
-        base_ms += len(old_ids)
+def deterministic_uuid7(table, old_id):
+    numeric_id = int(old_id)
+    encoded_id = 2 * numeric_id if numeric_id >= 0 else -2 * numeric_id - 1
+    if encoded_id >= 1 << 62:
+        raise ValueError(f"{table} id is outside the supported range: {old_id}")
+    table_tag = TABLE_TAGS[table]
+    timestamp_ms = 1777593600000  # 2026-05-01, before the published benchmark snapshot.
+    value = (timestamp_ms << 80) | (0x7 << 76) | (table_tag << 64) | (0x2 << 62) | encoded_id
+    hexed = f"{value:032x}"
+    return f"{hexed[:8]}-{hexed[8:12]}-{hexed[12:16]}-{hexed[16:20]}-{hexed[20:]}"
+
+
+def normalize_published_config(value):
+    """The benchmark clone stores some Pholio configs as JSON strings."""
+    if not value:
+        return value
+    parsed = json.loads(value)
+    if not isinstance(parsed, str):
+        return value
+    config = {}
+    for pair in parsed.split(","):
+        key, _, raw = pair.partition(":")
+        raw = raw.strip()
+        config[key.strip()] = int(raw) if raw.lstrip("-").isdigit() else raw
+    return json.dumps(config)
+
+
+def main(seed_dir, deterministic=False):
+    if deterministic:
+        source_manifest = json.loads(Path(seed_dir, "source-manifest.json").read_text())
+        if source_manifest["source"] != "PHOLIO_LIVE_A-derived fphd_new benchmark clone":
+            raise ValueError("Deterministic transform requires the published benchmark export")
+        if set(source_manifest["tables"]) != set(TABLES):
+            raise ValueError("The published export is missing one or more tables")
+        convert = deterministic_uuid7
+    else:
+        base_ms = int(time.time() * 1000)
+        id_maps = {}
+        for table in TABLES:
+            path = os.path.join(seed_dir, f"{table}.csv.gz")
+            with gzip.open(path, "rt", newline="") as f:
+                reader = csv.reader(f)
+                header = next(reader)
+                id_index = header.index("id")
+                old_ids = sorted((int(row[id_index]) for row in reader))
+            id_maps[table] = {
+                str(old): uuid7(base_ms + offset) for offset, old in enumerate(old_ids)
+            }
+            base_ms += len(old_ids)
+
+        def convert(table, old_id):
+            return id_maps[table][old_id]
 
     for table in TABLES:
         path = os.path.join(seed_dir, f"{table}.csv.gz")
         tmp = f"{path}.tmp"
         fks = FOREIGN_KEYS.get(table, {})
-        own = id_maps[table]
         with gzip.open(path, "rt", newline="") as src, gzip.open(tmp, "wt", newline="") as dst:
             reader, writer = csv.reader(src), csv.writer(dst)
             header = next(reader)
             id_index = header.index("id")
-            fk_indexes = {header.index(col): id_maps[ref] for col, ref in fks.items()}
+            config_index = header.index("config") if deterministic and table == "indicator" else None
+            fk_indexes = {header.index(col): ref for col, ref in fks.items()}
             if table == "indicator":
                 writer.writerow([*header[: id_index + 1], "short_id", *header[id_index + 1 :]])
             else:
@@ -117,17 +159,40 @@ def main(seed_dir):
             rows = 0
             for row in reader:
                 old_id = row[id_index]
-                row[id_index] = own[old_id]
-                for i, ref_map in fk_indexes.items():
+                row[id_index] = convert(table, old_id)
+                for i, ref_table in fk_indexes.items():
                     if row[i] != "":
-                        row[i] = ref_map[row[i]]
+                        row[i] = convert(ref_table, row[i])
                 if table == "indicator":
+                    if config_index is not None:
+                        row[config_index] = normalize_published_config(row[config_index])
                     row = [*row[: id_index + 1], old_id, *row[id_index + 1 :]]
                 writer.writerow(row)
                 rows += 1
         os.replace(tmp, path)
         print(f"{table}: {rows} rows rekeyed")
 
+    if deterministic:
+        manifest = {**source_manifest, "id_mapping": "deterministic-uuidv7-v1"}
+        for table in TABLES:
+            path = Path(seed_dir, f"{table}.csv.gz")
+            digest = hashlib.sha256()
+            with path.open("rb") as file:
+                while chunk := file.read(1024 * 1024):
+                    digest.update(chunk)
+            source = source_manifest["tables"][table]
+            manifest["tables"][table] = {
+                "rows": source["rows"],
+                "bytes": path.stat().st_size,
+                "sha256": digest.hexdigest(),
+            }
+        manifest_path = Path(seed_dir, "manifest.json")
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "..")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("seed_dir", nargs="?", default="..")
+    parser.add_argument("--deterministic", action="store_true")
+    args = parser.parse_args()
+    main(args.seed_dir, deterministic=args.deterministic)
