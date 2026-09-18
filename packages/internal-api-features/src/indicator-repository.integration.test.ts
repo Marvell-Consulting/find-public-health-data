@@ -1,5 +1,12 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
-import { createDb, type Database, dbEnvFields, resolveDbTls, schema } from '@fphd/db';
+import {
+  createDb,
+  type Database,
+  dbEnvFields,
+  listIndicatorFacets,
+  resolveDbTls,
+  schema,
+} from '@fphd/db';
 import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
 import { and, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -94,6 +101,8 @@ describe('listIndicatorsPage', () => {
     expect(first.total).toBe(expected.length);
     expect(second.total).toBe(expected.length);
     expect([...first.indicators, ...second.indicators].map((row) => row.id)).toEqual(expected);
+    // The API serialises this, so a driver string rather than a Date is a 500.
+    expect(first.indicators[0]?.updatedAt).toBeInstanceOf(Date);
   });
 
   it('returns an empty page past the end, still reporting the total', async () => {
@@ -125,6 +134,7 @@ describe('getIndicatorById', () => {
     const found = await getIndicatorById(db, target);
 
     expect(found).toMatchObject({ id: target, status: 'published' });
+    expect(found?.updatedAt).toBeInstanceOf(Date);
     expect(found?.shortId).toEqual(expect.any(Number));
     expect(found?.name).not.toBe('');
   });
@@ -290,5 +300,18 @@ describe('indicator_classification', () => {
       .where(eq(indicatorClassification.indicatorVersionId, created.versionId));
 
     expect(rows).toEqual([{ versionId: created.versionId }]);
+  });
+});
+
+describe('sharing one connection with the public repositories', () => {
+  // internal-api serves both surfaces from one connection, and drizzle keys its column-name
+  // cache on the unqualified relation name: the indicator table must not shadow the view.
+  it('reads the indicator table and the published indicator view in one process', async () => {
+    await listIndicatorsPage(db, 1, 1);
+
+    await expect(listIndicatorFacets(db)).resolves.toMatchObject({
+      sources: expect.any(Array),
+      valueTypes: expect.any(Array),
+    });
   });
 });
