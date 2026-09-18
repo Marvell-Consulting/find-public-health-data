@@ -393,7 +393,9 @@ Four commands are worth noting:
   archive and `PUBLISHED_SNAPSHOT_SHA256` to its checksum. The command checks the source,
   archive and every table checksum, loads all canonical tables, rebuilds the read models,
   and verifies row counts in one transaction. It has the same dev-only gate as seeding.
-  The benchmark clone is a historical published snapshot, not a live Pholio feed.
+  The transaction holds table locks during the load, so beta requests may time out until
+  it commits. Run it when an interruption to the beta site is acceptable. The benchmark
+  clone is a historical published snapshot, not a live Pholio feed.
 - `db reset` returns the database to its freshly created state (recreating the `public` schema
   and dropping the migration watermark) so `db migrate` rebuilds from empty — recreate rather than
   truncate, so it also recovers from a broken migration state. It refuses outside
