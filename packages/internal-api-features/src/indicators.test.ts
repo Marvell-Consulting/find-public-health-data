@@ -23,7 +23,7 @@ const row: IndicatorAdminRow = {
   updatedAt: new Date('2026-01-02T00:00:00.000Z'),
 };
 
-const detailRow: IndicatorAdminDetailRow = { ...row, shortId: 90366, status: 'approved' };
+const detailRow: IndicatorAdminDetailRow = { ...row, shortId: 90366, status: 'published' };
 
 // The router alone, on a bare Express app: these tests cover its status mapping, not what
 // `createApiApp` wraps around it.
@@ -136,7 +136,7 @@ describe('GET /api/internal/indicators/:id', () => {
       id: row.id,
       shortId: 90366,
       name: 'Life expectancy at birth',
-      status: 'approved',
+      status: 'published',
       updatedAt: '2026-01-02T00:00:00.000Z',
     });
   });

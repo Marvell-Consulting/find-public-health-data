@@ -25,7 +25,7 @@ describe('indicator search loader', () => {
   });
 
   it('passes the query through to the api, encoded', async () => {
-    const indicators = [{ shortId: 241, name: 'Diabetes: QOF prevalence', status: 'approved' }];
+    const indicators = [{ shortId: 241, name: 'Diabetes: QOF prevalence' }];
     const get = vi.fn().mockResolvedValue({ indicators });
 
     const response = await loadIndicatorSearch(

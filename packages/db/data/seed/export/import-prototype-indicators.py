@@ -66,7 +66,7 @@ EXPORT_TABLES = [
     "dimension_value",
     "area",
     "indicator",
-    "indicator_metadata",
+    "indicator_version",
     "upload_batch",
     "observation",
     "observation_dimension",
@@ -276,19 +276,30 @@ def add_indicators(cur, metadata):
         updated_at = item["DataChange"]["LastUploadedAt"]
         cur.execute(
             """
-            INSERT INTO indicator
-              (id, short_id, name, value_type_id, unit_id, year_type_id,
-               ci_method_id, polarity_id, frequency_id, comparator_method_id,
-               ci_confidence_level, data_updated_at, status, reviewed_at, reviewed_by,
-               config, created_at, created_by, updated_at, updated_by)
+            INSERT INTO indicator (id, short_id, data_updated_at, created_at)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (indicator_id, fingertips_id, updated_at, updated_at),
+        )
+
+        cur.execute(
+            """
+            INSERT INTO indicator_version
+              (id, indicator_id, status, published_at, name, value_type_id, unit_id,
+               year_type_id, ci_method_id, polarity_id, frequency_id, comparator_method_id,
+               ci_confidence_level, config, definition, rationale, methodology,
+               numerator_definition, denominator_definition, disclosure_control,
+               caveats, notes, data_source_id, numerator_source_id, denominator_source_id,
+               created_at, created_by, updated_at, updated_by)
             VALUES
-              (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-               'approved', %s, 'fingertips-api-seed', %s, %s,
-               'fingertips-api-seed', %s, 'fingertips-api-seed')
+              (%s, %s, 'published', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+               %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+               %s, 'fingertips-api-seed', %s, 'fingertips-api-seed')
             """,
             (
+                uuid7(),
                 indicator_id,
-                fingertips_id,
+                updated_at,
                 descriptive["Name"],
                 one_id(cur, "value_type", item["ValueType"]["Name"]),
                 one_id(cur, "unit", unit_name),
@@ -298,25 +309,7 @@ def add_indicators(cur, metadata):
                 one_id(cur, "frequency", "Annual"),
                 one_id(cur, "comparator_method", config["comparator"]),
                 config["confidence"],
-                updated_at,
-                updated_at,
                 Json({}),
-                updated_at,
-                updated_at,
-            ),
-        )
-
-        cur.execute(
-            """
-            INSERT INTO indicator_metadata
-              (id, indicator_id, definition, rationale, methodology,
-               numerator_definition, denominator_definition, disclosure_control,
-               caveats, notes, data_source_id, numerator_source_id, denominator_source_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """,
-            (
-                uuid7(),
-                indicator_id,
                 descriptive.get("Definition"),
                 descriptive.get("Rationale"),
                 descriptive.get("IndMethod"),
@@ -332,6 +325,8 @@ def add_indicators(cur, metadata):
                 optional_id(
                     cur, "numerator_denominator_source", descriptive.get("DenomSource")
                 ),
+                updated_at,
+                updated_at,
             ),
         )
 

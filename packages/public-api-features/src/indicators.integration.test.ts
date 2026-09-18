@@ -51,6 +51,25 @@ afterAll(async () => {
   await testDb.drop();
 });
 
+/** An identity whose only version is a draft: complete, but nothing the public may see. */
+async function insertDraftOnlyIndicator(shortId: number, name: string): Promise<number> {
+  const [inserted] = await owner`
+    WITH new_indicator AS (
+      INSERT INTO indicator (short_id) VALUES (${shortId}) RETURNING id, short_id
+    )
+    INSERT INTO indicator_version
+      (indicator_id, status, name, value_type_id, unit_id, year_type_id, polarity_id,
+       frequency_id, created_by, updated_by)
+    SELECT i.id, 'draft', ${name}, vt.id, u.id, yt.id, p.id, f.id,
+           'integration-test', 'integration-test'
+    FROM new_indicator i, value_type vt, unit u, year_type yt, polarity p, frequency f
+    LIMIT 1
+    RETURNING (SELECT short_id FROM new_indicator) AS short_id
+  `;
+
+  return Number(inserted?.short_id);
+}
+
 describe('public routers against the seeded database', () => {
   it('lists the seeded indicators', async () => {
     const response = await request(app).get('/api/indicators');
@@ -60,28 +79,18 @@ describe('public routers against the seeded database', () => {
     expect(response.body.indicators[0]).toEqual({
       shortId: expect.any(Number),
       name: expect.any(String),
-      status: 'approved',
     });
     const names = response.body.indicators.map((i: { name: string }) => i.name);
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
   });
 
-  it('does not list indicators that are not approved', async () => {
-    const inserted = await owner`
-      INSERT INTO indicator
-        (short_id, name, value_type_id, unit_id, year_type_id, polarity_id, frequency_id,
-         status, created_by, updated_by)
-      SELECT 999999, 'integration-test draft indicator', vt.id, u.id, yt.id, p.id, f.id,
-             'draft', 'integration-test', 'integration-test'
-      FROM value_type vt, unit u, year_type yt, polarity p, frequency f
-      LIMIT 1
-      RETURNING short_id
-    `;
+  it('does not list an indicator whose only version is a draft', async () => {
+    const inserted = await insertDraftOnlyIndicator(999999, 'integration-test draft indicator');
     const response = await request(app).get('/api/indicators');
     expect(response.status).toBe(200);
     expect(response.body.indicators).toHaveLength(13);
     const shortIds = response.body.indicators.map((i: { shortId: number }) => i.shortId);
-    expect(shortIds).not.toContain(inserted[0]?.short_id);
+    expect(shortIds).not.toContain(inserted);
   });
 
   it('returns the full detail for a seeded indicator, matching the wire contract', async () => {
@@ -188,7 +197,10 @@ describe('public routers against the seeded database', () => {
   it('returns an empty observation list for an area with no data', async () => {
     const rows = await owner`
       SELECT i.short_id, a.code FROM indicator i CROSS JOIN area a
-      WHERE i.status = 'approved'
+      WHERE EXISTS (
+        SELECT 1 FROM indicator_version v
+        WHERE v.indicator_id = i.id AND v.status = 'published'
+      )
       AND NOT EXISTS (
         SELECT 1 FROM observation o
         WHERE o.indicator_id = i.id AND o.area_id = a.id AND o.deleted_at IS NULL
@@ -213,16 +225,8 @@ describe('public routers against the seeded database', () => {
     expect(response.body).toEqual({ error: 'not_found' });
   });
 
-  it('does not serve an indicator that is not approved', async () => {
-    await owner`
-      INSERT INTO indicator
-        (short_id, name, value_type_id, unit_id, year_type_id, polarity_id, frequency_id,
-         status, created_by, updated_by)
-      SELECT 999998, 'integration-test archived indicator', vt.id, u.id, yt.id, p.id, f.id,
-             'archived', 'integration-test', 'integration-test'
-      FROM value_type vt, unit u, year_type yt, polarity p, frequency f
-      LIMIT 1
-    `;
+  it('does not serve an indicator that is not published', async () => {
+    await insertDraftOnlyIndicator(999998, 'integration-test unpublished indicator');
 
     expect((await request(app).get('/api/indicators/999998')).status).toBe(404);
     expect((await request(app).get('/api/indicators/999998/data')).status).toBe(404);

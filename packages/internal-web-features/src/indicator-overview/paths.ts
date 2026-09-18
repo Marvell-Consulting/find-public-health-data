@@ -4,7 +4,7 @@ export function indicatorOverviewPath(id: string): string {
   return `${DASHBOARD_PATH}/indicators/${encodeURIComponent(id)}`;
 }
 
-/** The public page for an approved indicator, which the internal app serves too. */
+/** The public page for a published indicator, which the internal app serves too. */
 export function publishedIndicatorPath(shortId: number): string {
   return `/indicators/${shortId}`;
 }

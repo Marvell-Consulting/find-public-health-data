@@ -34,7 +34,7 @@ const SEED_TABLES = [
   'area',
   'area_relationship',
   'indicator',
-  'indicator_metadata',
+  'indicator_version',
   'upload_batch',
   'note_type',
   'observation',
@@ -153,7 +153,16 @@ export async function seedDummyTables(tx: postgres.TransactionSql): Promise<Dumm
   const relationshipFile = readDummyRelationships();
   const tables = await seedTables(tx);
   const relationships = await applyIndicatorTopics(createDbFromTransaction(tx), relationshipFile);
+  // Freshly loaded tables have no statistics, and the planner's guesses are wrong by enough
+  // to turn an indexed observation lookup into a sequential scan over the whole table.
+  await tx.unsafe(`ANALYZE ${analyzableTables()}`);
   return { tables, relationships };
+}
+
+function analyzableTables(): string {
+  return [...SEED_TABLES, 'indicator_topic', 'indicator_classification']
+    .map((table) => `"${table}"`)
+    .join(', ');
 }
 
 async function seedTables(tx: postgres.TransactionSql): Promise<Record<string, number>> {

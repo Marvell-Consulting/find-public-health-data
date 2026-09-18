@@ -92,7 +92,6 @@ describe('listApprovedIndicators', () => {
     expect(indicators).toHaveLength(13);
     const names = indicators.map(({ name }) => name);
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
-    expect(indicators.every(({ status }) => status === 'approved')).toBe(true);
   });
 });
 
