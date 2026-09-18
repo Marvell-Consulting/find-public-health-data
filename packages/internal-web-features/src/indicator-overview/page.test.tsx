@@ -32,7 +32,7 @@ describe('IndicatorOverviewPage', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'Life expectancy at birth' }),
     ).toBeTruthy();
-    expect(screen.getByText('Indicator ID')).toBeTruthy();
+    expect(screen.getByText('Indicator number')).toBeTruthy();
     expect(screen.getByText('90366')).toBeTruthy();
   });
 

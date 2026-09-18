@@ -44,7 +44,7 @@ export function IndicatorOverviewPage({ indicator }: { indicator: IndicatorAdmin
           <h1 className="govuk-heading-xl">{indicator.name}</h1>
           <SummaryList
             items={[
-              { name: 'Indicator ID', children: String(indicator.shortId) },
+              { name: 'Indicator number', children: String(indicator.shortId) },
               { name: 'Status', children: <StatusTag status={indicator.status} /> },
             ]}
           />

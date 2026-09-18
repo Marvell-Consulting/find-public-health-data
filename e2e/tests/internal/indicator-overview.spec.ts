@@ -24,7 +24,7 @@ test('shows the indicator a publisher picked from the dashboard', async ({ page 
   const name = await openFirstIndicator(page);
 
   await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
-  await expect(page.getByText('Indicator ID')).toBeVisible();
+  await expect(page.getByText('Indicator number')).toBeVisible();
   await expect(page.getByText('Approved')).toBeVisible();
 });
 
