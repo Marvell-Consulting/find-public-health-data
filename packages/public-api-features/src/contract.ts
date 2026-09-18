@@ -55,8 +55,8 @@ export const topicSummaryListSchema = z.array(topicSummarySchema);
 // detail response can grow (indicators, related links) without touching the list contract.
 export const topicDetailSchema = topicSummarySchema;
 
+// No row id: the UUID is internal, and a caller addresses an indicator by its short id.
 export const indicatorSummarySchema = z.object({
-  id: z.uuid(),
   shortId: z.number().int(),
   name: z.string().min(1),
   status: z.string().min(1),

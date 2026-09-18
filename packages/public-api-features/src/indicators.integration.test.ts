@@ -57,8 +57,7 @@ describe('public routers against the seeded database', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.indicators).toHaveLength(13);
-    expect(response.body.indicators[0]).toMatchObject({
-      id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+    expect(response.body.indicators[0]).toEqual({
       shortId: expect.any(Number),
       name: expect.any(String),
       status: 'approved',
@@ -76,13 +75,13 @@ describe('public routers against the seeded database', () => {
              'draft', 'integration-test', 'integration-test'
       FROM value_type vt, unit u, year_type yt, polarity p, frequency f
       LIMIT 1
-      RETURNING id
+      RETURNING short_id
     `;
     const response = await request(app).get('/api/indicators');
     expect(response.status).toBe(200);
     expect(response.body.indicators).toHaveLength(13);
-    const ids = response.body.indicators.map((i: { id: string }) => i.id);
-    expect(ids).not.toContain(inserted[0]?.id);
+    const shortIds = response.body.indicators.map((i: { shortId: number }) => i.shortId);
+    expect(shortIds).not.toContain(inserted[0]?.short_id);
   });
 
   it('returns the full detail for a seeded indicator, matching the wire contract', async () => {

@@ -15,7 +15,7 @@ function api(get = vi.fn()) {
           if (path === '/api/indicators' || path.startsWith('/api/indicators?')) {
             return Promise.resolve({
               indicators: path.includes('q=')
-                ? [{ id: 'a', shortId: 241, name: 'Diabetes: QOF prevalence' }]
+                ? [{ shortId: 241, name: 'Diabetes: QOF prevalence' }]
                 : [],
             });
           }
@@ -131,9 +131,7 @@ describe('loadIndicator', () => {
       expect.anything(),
     );
     expect(result.findSubject).toBe('diabetes & obesity');
-    expect(result.findResults).toEqual([
-      { id: 'a', shortId: 241, name: 'Diabetes: QOF prevalence' },
-    ]);
+    expect(result.findResults).toEqual([{ shortId: 241, name: 'Diabetes: QOF prevalence' }]);
   });
 
   it('skips the find search when the parameter is missing or blank', async () => {

@@ -81,6 +81,37 @@ describe('public API', () => {
     expect(response.body).toEqual({ indicators: [] });
   });
 
+  // The UUID is internal: the list is the one public response that ever carried it.
+  it('lists an indicator by its short id alone, without the row id', async () => {
+    const repositories = createFakeRepositories({
+      indicators: {
+        listApproved: async () => [{ shortId: 108, name: 'Mortality', status: 'approved' }],
+      },
+    });
+
+    const response = await request(createTestApp(repositories)).get('/api/indicators');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      indicators: [{ shortId: 108, name: 'Mortality', status: 'approved' }],
+    });
+  });
+
+  it('omits the row id from a filtered indicator list too', async () => {
+    const repositories = createFakeRepositories({
+      indicators: {
+        search: async () => [{ shortId: 108, name: 'Mortality', status: 'approved' }],
+      },
+    });
+
+    const response = await request(createTestApp(repositories)).get('/api/indicators?q=mortality');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      indicators: [{ shortId: 108, name: 'Mortality', status: 'approved' }],
+    });
+  });
+
   it('mounts the public areas surface', async () => {
     const repositories = createFakeRepositories({
       areas: { listByType: async () => [{ code: 'E12000001', name: 'North East region' }] },

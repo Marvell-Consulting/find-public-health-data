@@ -86,7 +86,6 @@ export interface IndicatorFacets {
 }
 
 export interface ApprovedIndicator {
-  id: string;
   shortId: number;
   name: string;
   status: string;
@@ -118,7 +117,6 @@ function escapedSearchTerms(query: string): string[] {
 export async function listApprovedIndicators(db: Database): Promise<ApprovedIndicator[]> {
   return db
     .select({
-      id: indicator.id,
       shortId: indicator.shortId,
       name: indicator.name,
       status: indicator.status,
@@ -138,7 +136,6 @@ export async function searchApprovedIndicators(
   const identifierMatch = exactIndicatorIdentifier(query.trim());
   return db
     .select({
-      id: indicator.id,
       shortId: indicator.shortId,
       name: indicator.name,
       status: indicator.status,
