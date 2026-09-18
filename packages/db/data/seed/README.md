@@ -58,6 +58,13 @@ source. Run `strip-metadata-html.py` and
 `transform-uuids.py --deterministic` to rekey all tables with bounded memory.
 The resulting `manifest.json`, `source-manifest.json` and 21 CSV files form the
 private archive consumed by `db import-published-snapshot`; do not commit it.
+The command also applies `published-indicator-topics.json`, a provisional demo
+mapping from the public Fingertips profile and group membership APIs, plus
+narrow indicator-name matches, to the 33 service topics. Regenerate it with
+`export/generate-demo-topic-links.py` when public profile membership changes.
+It retains the curated links from `indicator-topics.json`; only links for
+indicators in the imported snapshot are inserted. These topic assignments are
+for the demo, not editorially approved classification.
 The source clone is a published snapshot from May/June 2026, so refresh it from
 the published source when more recent content is required.
 

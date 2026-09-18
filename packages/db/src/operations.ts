@@ -32,8 +32,8 @@ export { createOwnerClient, loadOwnerEnv } from './scripts/owner-client.ts';
 export {
   assertResetAllowed,
   assertSeedingAllowed,
-  type DummySeedSummary,
   SEED_TABLES,
+  type SeedSummary,
   seedDummyTables,
   seedPublishedTables,
 } from './seeding.ts';

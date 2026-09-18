@@ -61,6 +61,13 @@ function publishedManifest(): PublishedManifest {
   };
 }
 
+function seededTables(count: (table: string) => number) {
+  return {
+    tables: Object.fromEntries(SEED_TABLES.map((table) => [table, count(table)])),
+    relationships: { links: 1 },
+  };
+}
+
 describe('rolesToBootstrap', () => {
   it('pairs each fixed role name with its injected password', () => {
     expect(
@@ -94,7 +101,7 @@ describe('importPublishedSnapshot', () => {
       cleanup,
     });
     mocks.seedPublished.mockResolvedValue(
-      Object.fromEntries(SEED_TABLES.map((table) => [table, table === 'observation' ? 2 : 1])),
+      seededTables((table) => (table === 'observation' ? 2 : 1)),
     );
 
     await expect(importPublishedSnapshot(context)).rejects.toThrow(
@@ -114,9 +121,7 @@ describe('importPublishedSnapshot', () => {
       manifest: publishedManifest(),
       cleanup,
     });
-    mocks.seedPublished.mockResolvedValue(
-      Object.fromEntries(SEED_TABLES.map((table) => [table, 1])),
-    );
+    mocks.seedPublished.mockResolvedValue(seededTables(() => 1));
 
     await importPublishedSnapshot(context);
 

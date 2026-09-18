@@ -138,6 +138,9 @@ const dummyRelationshipFiles = [
   '../data/indicator-classifications.json',
   '../data/indicator-data-updated.json',
 ].map((path) => fileURLToPath(new URL(path, import.meta.url)));
+const publishedTopicFile = fileURLToPath(
+  new URL('../data/published-indicator-topics.json', import.meta.url),
+);
 
 function readDummyRelationships(): IndicatorTopicFile {
   const merged: Record<string, unknown> = {};
@@ -147,7 +150,7 @@ function readDummyRelationships(): IndicatorTopicFile {
   return parseIndicatorTopicFile(merged);
 }
 
-export interface DummySeedSummary {
+export interface SeedSummary {
   /** Rows loaded per seed table, in load order. */
   tables: Record<string, number>;
   relationships: IndicatorTopicImportSummary;
@@ -166,7 +169,7 @@ export interface DummySeedSummary {
 export async function seedDummyTables(
   tx: postgres.TransactionSql,
   directory = seedDir,
-): Promise<DummySeedSummary> {
+): Promise<SeedSummary> {
   // Read before any database work, so a bad file fails while the transaction has done nothing.
   const relationshipFile = readDummyRelationships();
   const tables = await seedTables(tx, directory);
@@ -174,12 +177,18 @@ export async function seedDummyTables(
   return { tables, relationships };
 }
 
-/** Load only snapshot CSVs; published data has no dummy JSON relationships. */
+/** Load the snapshot CSVs and public-profile-derived demo topic links. */
 export async function seedPublishedTables(
   tx: postgres.TransactionSql,
   directory: string,
-): Promise<Record<string, number>> {
-  return seedTables(tx, directory);
+): Promise<SeedSummary> {
+  const topicFile = parseIndicatorTopicFile(JSON.parse(readFileSync(publishedTopicFile, 'utf-8')));
+  const tables = await seedTables(tx, directory);
+  const relationships = await applyIndicatorTopics(createDbFromTransaction(tx), topicFile);
+  if (relationships.links === 0 || relationships.unknownTopics.length > 0) {
+    throw new Error('Published topic mapping did not match the imported indicators and topics');
+  }
+  return { tables, relationships };
 }
 
 async function seedTables(

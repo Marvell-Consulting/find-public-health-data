@@ -128,10 +128,10 @@ export async function importPublishedSnapshot({
 
   const snapshot = await downloadPublishedSnapshot(url, sha256);
   try {
-    const tables = await sql.begin(async (tx) => {
+    const seeded = await sql.begin(async (tx) => {
       const result = await seedPublishedTables(tx, snapshot.directory);
       for (const table of SEED_TABLES) {
-        if (result[table] !== snapshot.manifest.tables[table]?.rows) {
+        if (result.tables[table] !== snapshot.manifest.tables[table]?.rows) {
           throw new Error(`Published snapshot row count failed for ${table}`);
         }
       }
@@ -142,7 +142,10 @@ export async function importPublishedSnapshot({
       return result;
     });
     await analyzeReadModels(sql);
-    logger.info({ tables }, 'Published snapshot imported');
+    logger.info(
+      { tables: seeded.tables, topicLinks: seeded.relationships.links },
+      'Published snapshot imported',
+    );
   } finally {
     await snapshot.cleanup();
   }
