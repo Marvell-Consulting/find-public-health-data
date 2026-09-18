@@ -25,7 +25,8 @@ test('shows the indicator a publisher picked from the dashboard', async ({ page 
 
   await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
   await expect(page.getByText('Indicator number')).toBeVisible();
-  await expect(page.getByText('Published')).toBeVisible();
+  // Exact, or the "View published indicator" link matches as well.
+  await expect(page.getByText('Published', { exact: true })).toBeVisible();
 });
 
 test('opens the published indicator from the actions tab', async ({ page }) => {

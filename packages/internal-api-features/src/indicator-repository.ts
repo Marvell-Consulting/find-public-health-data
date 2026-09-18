@@ -38,7 +38,11 @@ const publishedJoin = and(
 // The draft is what a publisher is working on, so it names the indicator while it exists.
 const currentName = sql<string>`coalesce(${draftVersion.name}, ${publishedVersion.name})`;
 // greatest() ignores nulls, so an indicator with only one version still reports its date.
-const latestUpdatedAt = sql<Date>`greatest(${draftVersion.updatedAt}, ${publishedVersion.updatedAt})`;
+// mapWith, because a bare sql fragment arrives as the driver's string, not a Date.
+const latestUpdatedAt =
+  sql`greatest(${draftVersion.updatedAt}, ${publishedVersion.updatedAt})`.mapWith(
+    indicatorVersion.updatedAt,
+  );
 const derivedStatus = sql<IndicatorStatus>`case when ${draftVersion.id} is not null then 'draft' else 'published' end`;
 
 /** Every indicator whatever its status, newest edit first; the id breaks any remaining tie. */
