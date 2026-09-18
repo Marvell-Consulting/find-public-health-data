@@ -39,6 +39,8 @@ TABLES = [
 ]
 
 DATABASE = "fphd_new"
+EXPECTED_INDICATORS = 1290
+EXPECTED_OBSERVATIONS = 29380899
 
 
 def psql(query):
@@ -93,7 +95,13 @@ def main():
         "SELECT current_database(), count(*) FILTER (WHERE status = 'approved'), "
         "count(*) FILTER (WHERE status IS DISTINCT FROM 'approved') FROM indicator"
     ).split("|")
-    if database != DATABASE or int(approved) == 0 or int(other) != 0:
+    observations = int(psql("SELECT count(*) FROM observation"))
+    if (
+        database != DATABASE
+        or int(approved) != EXPECTED_INDICATORS
+        or int(other) != 0
+        or observations != EXPECTED_OBSERVATIONS
+    ):
         raise RuntimeError("Source must be the approved-only published benchmark clone")
 
     args.out_dir.mkdir(parents=True, exist_ok=True)

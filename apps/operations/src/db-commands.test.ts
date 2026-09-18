@@ -1,6 +1,65 @@
-import { describe, expect, it } from 'vitest';
+import type { SqlClient } from '@fphd/db';
+import { SEED_TABLES } from '@fphd/db/operations';
+import { createLogger } from '@fphd/logger';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { CommandContext } from './commands.ts';
+import { importPublishedSnapshot, rolesToBootstrap } from './db-commands.ts';
+import type { Config } from './load-config.ts';
+import type { PublishedManifest } from './published-snapshot.ts';
 
-import { rolesToBootstrap } from './db-commands.ts';
+const mocks = vi.hoisted(() => ({
+  download: vi.fn(),
+  assertCoreData: vi.fn(),
+  seedPublished: vi.fn(),
+  rebuild: vi.fn(),
+  analyze: vi.fn(),
+}));
+
+vi.mock('./published-snapshot.ts', () => ({ downloadPublishedSnapshot: mocks.download }));
+vi.mock('@fphd/db/operations', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@fphd/db/operations')>()),
+  assertCoreDataPresent: mocks.assertCoreData,
+  seedPublishedTables: mocks.seedPublished,
+  rebuildReadModelTables: mocks.rebuild,
+  analyzeReadModels: mocks.analyze,
+}));
+
+afterEach(() => vi.clearAllMocks());
+
+const logger = createLogger({ name: 'operations-test', level: 'silent' });
+
+function publishedContext() {
+  let committed = false;
+  const tx = { unsafe: vi.fn(async () => []) };
+  const sql = {
+    begin: vi.fn(async (run: (transaction: typeof tx) => Promise<unknown>) => {
+      const result = await run(tx);
+      committed = true;
+      return result;
+    }),
+  } as unknown as SqlClient;
+  const config = {
+    appEnv: 'dev',
+    publishedSnapshot: { url: 'https://example.test/snapshot.tar', sha256: 'a'.repeat(64) },
+  } as Config;
+  return {
+    context: { sql, config, logger } satisfies CommandContext,
+    tx,
+    wasCommitted: () => committed,
+  };
+}
+
+function publishedManifest(): PublishedManifest {
+  return {
+    source: 'PHOLIO_LIVE_A-derived fphd_new benchmark clone',
+    source_database: 'fphd_new',
+    approved_indicators: 1,
+    id_mapping: 'deterministic-uuidv7-v1',
+    tables: Object.fromEntries(
+      SEED_TABLES.map((table) => [table, { rows: 1, bytes: 1, sha256: 'a'.repeat(64) }]),
+    ),
+  };
+}
 
 describe('rolesToBootstrap', () => {
   it('pairs each fixed role name with its injected password', () => {
@@ -22,5 +81,50 @@ describe('rolesToBootstrap', () => {
     expect(() =>
       rolesToBootstrap({ publicApiPassword: 'public-pw', internalApiPassword: undefined }),
     ).toThrow(/INTERNAL_API_PASSWORD/);
+  });
+});
+
+describe('importPublishedSnapshot', () => {
+  it('rejects a row count mismatch inside the transaction and cleans up', async () => {
+    const { context, tx, wasCommitted } = publishedContext();
+    const cleanup = vi.fn(async () => {});
+    mocks.download.mockResolvedValue({
+      directory: '/tmp/fixture',
+      manifest: publishedManifest(),
+      cleanup,
+    });
+    mocks.seedPublished.mockResolvedValue(
+      Object.fromEntries(SEED_TABLES.map((table) => [table, table === 'observation' ? 2 : 1])),
+    );
+
+    await expect(importPublishedSnapshot(context)).rejects.toThrow(
+      'Published snapshot row count failed for observation',
+    );
+    expect(wasCommitted()).toBe(false);
+    expect(tx.unsafe).not.toHaveBeenCalled();
+    expect(mocks.rebuild).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it('loads published tables, rebuilds read models and cleans up', async () => {
+    const { context, tx, wasCommitted } = publishedContext();
+    const cleanup = vi.fn(async () => {});
+    mocks.download.mockResolvedValue({
+      directory: '/tmp/fixture',
+      manifest: publishedManifest(),
+      cleanup,
+    });
+    mocks.seedPublished.mockResolvedValue(
+      Object.fromEntries(SEED_TABLES.map((table) => [table, 1])),
+    );
+
+    await importPublishedSnapshot(context);
+
+    expect(mocks.seedPublished).toHaveBeenCalledWith(tx, '/tmp/fixture');
+    expect(tx.unsafe).toHaveBeenCalledTimes(SEED_TABLES.length);
+    expect(mocks.rebuild).toHaveBeenCalledWith(tx);
+    expect(wasCommitted()).toBe(true);
+    expect(mocks.analyze).toHaveBeenCalledWith(context.sql);
+    expect(cleanup).toHaveBeenCalledOnce();
   });
 });

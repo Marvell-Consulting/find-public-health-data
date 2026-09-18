@@ -49,7 +49,11 @@ That yields 489,998 observations, 758,989 bridge rows and 74,755 observation not
 
 For a full-volume dev import, `export/export-published-snapshot.py` streams the
 `PHOLIO_LIVE_A`-derived `fphd_new` database on the benchmark VM. It refuses a
-source containing unapproved indicators. Run `strip-metadata-html.py` and
+source containing unapproved indicators or one whose 1,290 indicators and
+29,380,899 observations differ from the independently recorded benchmark
+clone. This fingerprint distinguishes the intended clone from the larger
+`PHOLIO_STAGING` corpus; update it only after verifying a refreshed published
+source. Run `strip-metadata-html.py` and
 `enrich-area-display.py` against its output, then run
 `transform-uuids.py --deterministic` to rekey all tables with bounded memory.
 The resulting `manifest.json`, `source-manifest.json` and 21 CSV files form the

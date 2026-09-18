@@ -75,7 +75,11 @@ async function loadTable(
   // unemitted and pipeline() hanging forever. Stream the data without awaiting
   // completion, wait for finish/error with a timeout, then verify the row count.
   const decompressed = createGunzip();
-  const streamed = pipeline(createReadStream(file), decompressed, writable, { end: true });
+  const abort = new AbortController();
+  const streamed = pipeline(createReadStream(file), decompressed, writable, {
+    end: true,
+    signal: abort.signal,
+  });
   let timeout: NodeJS.Timeout | undefined;
   const afterSourceEnds = once(decompressed, 'end').then(
     () =>
@@ -89,6 +93,8 @@ async function loadTable(
     afterSourceEnds,
   ]).finally(() => clearTimeout(timeout));
   if (outcome === 'timeout') {
+    abort.abort();
+    await streamed.catch(() => undefined);
     throw new Error(`COPY into "${table}" did not complete — likely rejected by Postgres`);
   }
   const rows = await sql.unsafe(`SELECT count(*)::int AS count FROM "${table}"`);
@@ -166,6 +172,14 @@ export async function seedDummyTables(
   const tables = await seedTables(tx, directory);
   const relationships = await applyIndicatorTopics(createDbFromTransaction(tx), relationshipFile);
   return { tables, relationships };
+}
+
+/** Load only snapshot CSVs; published data has no dummy JSON relationships. */
+export async function seedPublishedTables(
+  tx: postgres.TransactionSql,
+  directory: string,
+): Promise<Record<string, number>> {
+  return seedTables(tx, directory);
 }
 
 async function seedTables(

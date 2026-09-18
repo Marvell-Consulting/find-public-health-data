@@ -35,4 +35,5 @@ export {
   type DummySeedSummary,
   SEED_TABLES,
   seedDummyTables,
+  seedPublishedTables,
 } from './seeding.ts';
