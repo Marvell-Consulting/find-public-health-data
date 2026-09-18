@@ -59,7 +59,6 @@ export const topicDetailSchema = topicSummarySchema;
 export const indicatorSummarySchema = z.object({
   shortId: z.number().int(),
   name: z.string().min(1),
-  status: z.string().min(1),
 });
 
 export const indicatorListResponseSchema = z.object({

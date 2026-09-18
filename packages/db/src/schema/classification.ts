@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm';
 import { check, index, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
 
 import { timestamps, uuidPrimaryKey } from './helpers.ts';
-import { indicator } from './indicator.ts';
+import { indicatorVersion } from './indicator.ts';
 
 /**
  * The ways an indicator is classified beyond its topic: what kind of measure it is, the
@@ -33,16 +33,16 @@ export const classification = pgTable(
 export const indicatorClassification = pgTable(
   'indicator_classification',
   {
-    indicatorId: uuid()
+    indicatorVersionId: uuid()
       .notNull()
-      .references(() => indicator.id),
+      .references(() => indicatorVersion.id),
     classificationId: uuid()
       .notNull()
       .references(() => classification.id),
     ...timestamps,
   },
   (t) => [
-    primaryKey({ columns: [t.indicatorId, t.classificationId] }),
+    primaryKey({ columns: [t.indicatorVersionId, t.classificationId] }),
     index('idx_indicator_classification_classification').on(t.classificationId),
   ],
 );

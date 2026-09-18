@@ -45,7 +45,10 @@ describe('deleteTopic with linked indicators', () => {
     if (linked === undefined) throw new Error('the seed has no indicator_topic links to exercise');
 
     const links = await db.$client<{ indicatorId: string }[]>`
-      SELECT indicator_id AS "indicatorId" FROM indicator_topic WHERE topic_id = ${linked.topicId}
+      SELECT v.indicator_id AS "indicatorId"
+      FROM indicator_topic it
+      JOIN indicator_version v ON v.id = it.indicator_version_id
+      WHERE it.topic_id = ${linked.topicId}
     `;
     expect(links.length).toBeGreaterThan(0);
 

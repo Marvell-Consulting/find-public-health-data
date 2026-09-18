@@ -34,7 +34,7 @@ const SEED_TABLES = [
   'area',
   'area_relationship',
   'indicator',
-  'indicator_metadata',
+  'indicator_version',
   'upload_batch',
   'note_type',
   'observation',

@@ -1,8 +1,11 @@
 import { and, asc, eq, ilike, inArray, isNotNull, isNull, lte, or, sql } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
 
 import type { Database } from './client.ts';
-import { area, areaRelationship, areaType } from './schema/index.ts';
+import {
+  publishedArea as area,
+  publishedAreaRelationship as areaRelationship,
+  publishedAreaType as areaType,
+} from './schema/index.ts';
 
 export interface AreaSummary {
   code: string;
@@ -139,7 +142,8 @@ export async function listAreaParents(
   if (childCodes.length === 0) {
     return [];
   }
-  const parent = alias(area, 'parent');
+  // A subquery rather than alias(): drizzle's table alias cannot carry a view's columns.
+  const parent = db.select().from(area).as('parent');
   return db
     .select({ code: area.code, parentCode: parent.code, parentName: parent.name })
     .from(areaRelationship)
