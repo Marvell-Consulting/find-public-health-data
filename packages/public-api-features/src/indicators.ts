@@ -78,18 +78,18 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
     response.status(200).json({ indicators: await indicators.listApproved() });
   });
 
-  router.get('/api/indicators/:fingertipsId/data', async (request, response) => {
-    const { fingertipsId } = request.params;
+  router.get('/api/indicators/:shortId/data', async (request, response) => {
+    const { shortId } = request.params;
     // Repeatable, so a page comparing many areas asks once rather than once per area.
     const requested = request.query.areaCode ?? DEFAULT_AREA_CODE;
     const areaCodes = pickAreaCodes(requested);
 
-    if (!/^\d+$/.test(fingertipsId) || areaCodes.length === 0) {
+    if (!/^\d+$/.test(shortId) || areaCodes.length === 0) {
       response.status(404).json({ error: 'not_found' });
       return;
     }
 
-    const indicatorId = await indicators.resolveId(Number(fingertipsId));
+    const indicatorId = await indicators.resolveId(Number(shortId));
     if (!indicatorId) {
       response.status(404).json({ error: 'not_found' });
       return;
@@ -112,12 +112,12 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
     response.status(200).json(areaCodes.length === 1 ? data[0] : data);
   });
 
-  router.get('/api/indicators/:fingertipsId/range', async (request, response) => {
-    const { fingertipsId } = request.params;
+  router.get('/api/indicators/:shortId/range', async (request, response) => {
+    const { shortId } = request.params;
     const displayGroup = request.query.displayGroup;
 
     if (
-      !/^\d+$/.test(fingertipsId) ||
+      !/^\d+$/.test(shortId) ||
       typeof displayGroup !== 'string' ||
       displayGroup === '' ||
       displayGroup.length > 100
@@ -126,7 +126,7 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
       return;
     }
 
-    const indicatorId = await indicators.resolveId(Number(fingertipsId));
+    const indicatorId = await indicators.resolveId(Number(shortId));
     if (!indicatorId) {
       response.status(404).json({ error: 'not_found' });
       return;
@@ -139,17 +139,17 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
     });
   });
 
-  router.get('/api/indicators/:fingertipsId', async (request, response) => {
-    const { fingertipsId } = request.params;
+  router.get('/api/indicators/:shortId', async (request, response) => {
+    const { shortId } = request.params;
 
     // The public identifier is a plain integer; anything else can only be a probe or a
     // typo, and answering 404 keeps both indistinguishable from an unknown indicator.
-    if (!/^\d+$/.test(fingertipsId)) {
+    if (!/^\d+$/.test(shortId)) {
       response.status(404).json({ error: 'not_found' });
       return;
     }
 
-    const indicatorId = await indicators.resolveId(Number(fingertipsId));
+    const indicatorId = await indicators.resolveId(Number(shortId));
     if (!indicatorId) {
       response.status(404).json({ error: 'not_found' });
       return;

@@ -15,7 +15,7 @@ export interface IndicatorAdminRows {
 }
 
 export interface IndicatorAdminDetailRow extends IndicatorAdminRow {
-  fingertipsId: number;
+  shortId: number;
   status: IndicatorStatus;
 }
 
@@ -46,7 +46,7 @@ export async function getIndicatorById(
   const rows = await db
     .select({
       id: indicator.id,
-      fingertipsId: indicator.fingertipsId,
+      shortId: indicator.shortId,
       name: indicator.name,
       status: indicator.status,
       updatedAt: indicator.updatedAt,

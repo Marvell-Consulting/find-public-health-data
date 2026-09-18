@@ -33,8 +33,8 @@ export async function loadIndicatorCsv(
   { context, params, request }: LoaderFunctionArgs,
   kind: 'table' | 'all-data',
 ): Promise<Response> {
-  const { fingertipsId } = params;
-  if (fingertipsId === undefined || !/^\d+$/.test(fingertipsId)) {
+  const { shortId } = params;
+  if (shortId === undefined || !/^\d+$/.test(shortId)) {
     throw new Response('Not Found', { status: 404 });
   }
 
@@ -46,7 +46,7 @@ export async function loadIndicatorCsv(
   const api = context.get(apiContext);
   const dataFor = (codes: string[]) =>
     api.get(
-      `${apiPath`/api/indicators/${fingertipsId}/data`}?${codes
+      `${apiPath`/api/indicators/${shortId}/data`}?${codes
         .map((code) => `areaCode=${encodeURIComponent(code)}`)
         .join('&')}`,
       codes.length === 1
@@ -54,7 +54,7 @@ export async function loadIndicatorCsv(
         : indicatorAreaDataListSchema,
     );
   const [detail, areaData] = await Promise.all([
-    api.get(apiPath`/api/indicators/${fingertipsId}`, indicatorDetailSchema),
+    api.get(apiPath`/api/indicators/${shortId}`, indicatorDetailSchema),
     dataFor(codesToLoad),
   ]);
 
@@ -62,31 +62,31 @@ export async function loadIndicatorCsv(
   if (kind === 'table') {
     // These validations exactly mirror the controls on the rendered page. A stale or
     // hand-edited URL therefore downloads the table the user can actually see.
-    const requestedSex = url.searchParams.get(`sex-${fingertipsId}`) ?? '';
+    const requestedSex = url.searchParams.get(`sex-${shortId}`) ?? '';
     const sexes = dimensionValues(areaData[0]?.observations ?? [], 'Sex');
     const sex = sexes.includes(requestedSex) ? requestedSex : '';
     const shownObservations = (
       pickedCodes.length > 0 ? areaData.filter(({ areaCode }) => areaCode !== ENGLAND) : areaData
     ).flatMap(({ observations }) => observations);
-    const requestedPeriod = url.searchParams.get(`pt-${fingertipsId}`);
+    const requestedPeriod = url.searchParams.get(`pt-${shortId}`);
     const periodType: PeriodType = availablePeriodTypes(shownObservations).includes(
       requestedPeriod as '1-year' | '3-year',
     )
       ? (requestedPeriod as '1-year' | '3-year')
       : 'all';
-    const requestedConfidence = url.searchParams.get(`ci-${fingertipsId}`);
+    const requestedConfidence = url.searchParams.get(`ci-${shortId}`);
     const confidence: ConfidenceLevel = availableConfidenceLevels(shownObservations).includes(
       requestedConfidence as '95' | '99.8',
     )
       ? (requestedConfidence as '95' | '99.8')
       : 'none';
-    const requestedBenchmark = url.searchParams.get(`cmp-${fingertipsId}`);
+    const requestedBenchmark = url.searchParams.get(`cmp-${shortId}`);
     const benchmark =
       pickedCodes.length > 0 &&
       (requestedBenchmark === 'england' || requestedBenchmark === 'region')
         ? requestedBenchmark
         : 'none';
-    const showRange = benchmark !== 'none' && url.searchParams.get(`cr-${fingertipsId}`) === 'yes';
+    const showRange = benchmark !== 'none' && url.searchParams.get(`cr-${shortId}`) === 'yes';
 
     const codeQuery = pickedCodes.map((code) => `areaCode=${encodeURIComponent(code)}`).join('&');
     const [lookedUp, parents] = await Promise.all([
@@ -120,7 +120,7 @@ export async function loadIndicatorCsv(
         ? Promise.all(
             rangeLevels.map(async (level) => {
               const range = await api.get(
-                `${apiPath`/api/indicators/${fingertipsId}/range`}?displayGroup=${encodeURIComponent(level)}`,
+                `${apiPath`/api/indicators/${shortId}/range`}?displayGroup=${encodeURIComponent(level)}`,
                 indicatorRangeSchema,
               );
               return [level, range.periods] as const;
@@ -152,7 +152,7 @@ export async function loadIndicatorCsv(
   return new Response(csv, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="${fingertipsId}-${kind}.csv"`,
+      'Content-Disposition': `attachment; filename="${shortId}-${kind}.csv"`,
     },
   });
 }

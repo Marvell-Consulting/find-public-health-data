@@ -5,6 +5,6 @@ export function indicatorOverviewPath(id: string): string {
 }
 
 /** The public page for an approved indicator, which the internal app serves too. */
-export function publishedIndicatorPath(fingertipsId: number): string {
-  return `/indicators/${fingertipsId}`;
+export function publishedIndicatorPath(shortId: number): string {
+  return `/indicators/${shortId}`;
 }

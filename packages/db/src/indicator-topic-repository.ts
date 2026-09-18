@@ -14,6 +14,8 @@ import {
  * Three files rather than one, because they are three unrelated concerns: which topics an
  * indicator sits under, how it is classified, and when its data was last published. Topics
  * are referenced by id — a slug is a label that may be rewritten, the id is the row.
+ * Indicators are referenced by their Fingertips number, which these exports carry and which
+ * resolves against short_id.
  */
 export const indicatorTopicFileSchema = z.object({
   indicatorTopics: z
@@ -90,7 +92,7 @@ export async function applyIndicatorTopics(
   file: IndicatorTopicFile,
 ): Promise<IndicatorTopicImportSummary> {
   const topicIds = [...new Set(file.indicatorTopics.map(({ topicId }) => topicId))];
-  const fingertipsIds = [
+  const shortIds = [
     ...new Set([
       ...file.indicatorTopics.map(({ fingertipsId }) => fingertipsId),
       ...Object.keys(file.indicatorDataUpdatedAt).map(Number),
@@ -101,19 +103,19 @@ export async function applyIndicatorTopics(
     topicIds.length > 0
       ? db.select({ id: topic.id }).from(topic).where(inArray(topic.id, topicIds))
       : Promise.resolve([]),
-    fingertipsIds.length > 0
+    shortIds.length > 0
       ? db
-          .select({ id: indicator.id, fingertipsId: indicator.fingertipsId })
+          .select({ id: indicator.id, shortId: indicator.shortId })
           .from(indicator)
-          .where(inArray(indicator.fingertipsId, fingertipsIds))
+          .where(inArray(indicator.shortId, shortIds))
       : Promise.resolve([]),
   ]);
 
   const knownTopicIds = new Set(topics.map((row) => row.id));
-  const indicatorIdByFingertipsId = new Map(indicators.map((row) => [row.fingertipsId, row.id]));
+  const indicatorIdByShortId = new Map(indicators.map((row) => [row.shortId, row.id]));
 
   const links = file.indicatorTopics.flatMap(({ topicId, fingertipsId }) => {
-    const indicatorId = indicatorIdByFingertipsId.get(fingertipsId);
+    const indicatorId = indicatorIdByShortId.get(fingertipsId);
     return knownTopicIds.has(topicId) && indicatorId ? [{ topicId, indicatorId }] : [];
   });
 
@@ -125,7 +127,7 @@ export async function applyIndicatorTopics(
 
   let timestamps = 0;
   for (const [fingertipsId, updatedAt] of Object.entries(file.indicatorDataUpdatedAt)) {
-    const indicatorId = indicatorIdByFingertipsId.get(Number(fingertipsId));
+    const indicatorId = indicatorIdByShortId.get(Number(fingertipsId));
     if (!indicatorId || !updatedAt) {
       continue;
     }
@@ -155,7 +157,7 @@ export async function applyIndicatorTopics(
     const idBySlug = new Map(stored.map((row) => [row.slug, row.id]));
 
     const rows = file.indicatorClassifications.flatMap(({ fingertipsId, classificationSlug }) => {
-      const indicatorId = indicatorIdByFingertipsId.get(fingertipsId);
+      const indicatorId = indicatorIdByShortId.get(fingertipsId);
       const classificationId = idBySlug.get(classificationSlug);
       return indicatorId && classificationId ? [{ indicatorId, classificationId }] : [];
     });
@@ -175,7 +177,7 @@ export async function applyIndicatorTopics(
     links: links.length,
     timestamps,
     unknownTopics: topicIds.filter((id) => !knownTopicIds.has(id)),
-    unknownIndicators: fingertipsIds.filter((id) => !indicatorIdByFingertipsId.has(id)),
+    unknownIndicators: shortIds.filter((id) => !indicatorIdByShortId.has(id)),
   };
 }
 

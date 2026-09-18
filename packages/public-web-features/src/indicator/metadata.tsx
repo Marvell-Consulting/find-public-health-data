@@ -167,11 +167,11 @@ export function BackgroundInformation({ indicator }: { indicator: IndicatorDetai
     value ? [{ name, children: value }] : [];
 
   return (
-    <section id={`background-${indicator.fingertipsId}`}>
+    <section id={`background-${indicator.shortId}`}>
       <h2 className="govuk-heading-l">Overview</h2>
       <SummaryList
         items={[
-          { name: 'Indicator ID', children: String(indicator.fingertipsId) },
+          { name: 'Indicator ID', children: String(indicator.shortId) },
           ...(indicator.rationale
             ? [
                 {

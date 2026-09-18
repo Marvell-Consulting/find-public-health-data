@@ -96,7 +96,7 @@ describe('public application routes', () => {
 
   it('renders the indicator page skeleton from loader data', async () => {
     const indicator = {
-      fingertipsId: 108,
+      shortId: 108,
       name: 'Under 75 mortality rate from all causes',
       valueType: 'Directly standardised rate',
       unit: { name: 'per 100,000', label: 'per 100,000' },
@@ -172,14 +172,14 @@ describe('public application routes', () => {
       },
     ];
     const areaData = [{ areaCode: 'E92000001', areaName: 'England', observations }];
-    const selection = { areaCodes: [], areaLevels: [], fingertipsIds: [108] };
+    const selection = { areaCodes: [], areaLevels: [], shortIds: [108] };
     const Routes = createRoutesStub([
       {
         path: '/',
         Component: PublicApp,
         children: [
           {
-            path: 'indicators/:fingertipsId',
+            path: 'indicators/:shortId',
             Component: IndicatorRoute,
             loader: () => ({
               selected: [{ detail: indicator, areaData }],
@@ -311,7 +311,7 @@ describe('public application routes', () => {
         'Middle-layer super output areas',
         'GP practices',
       ],
-      selection: { areaCodes: [], areaLevels: [], fingertipsIds: [108] },
+      selection: { areaCodes: [], areaLevels: [], shortIds: [108] },
     };
     const Routes = createRoutesStub([
       {
@@ -358,7 +358,7 @@ describe('public application routes', () => {
       dimensions: [{ type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 }],
     });
     const indicatorDetail = {
-      fingertipsId: 108,
+      shortId: 108,
       name: 'Under 75 mortality rate from all causes',
       valueType: 'Directly standardised rate',
       unit: { name: 'per 100,000', label: 'per 100,000' },
@@ -409,7 +409,7 @@ describe('public application routes', () => {
       selection: {
         areaCodes: ['E12000001', 'E12000002'],
         areaLevels: [],
-        fingertipsIds: [108],
+        shortIds: [108],
       },
     };
     const Routes = createRoutesStub([
@@ -418,7 +418,7 @@ describe('public application routes', () => {
         Component: PublicApp,
         children: [
           {
-            path: 'indicators/:fingertipsId',
+            path: 'indicators/:shortId',
             Component: IndicatorRoute,
             loader: () => loaderData,
           },
@@ -441,8 +441,8 @@ describe('public application routes', () => {
   });
 
   it('adds a comparison section only when more than one indicator is selected', async () => {
-    const detailFor = (fingertipsId: number, name: string) => ({
-      fingertipsId,
+    const detailFor = (shortId: number, name: string) => ({
+      shortId,
       name,
       valueType: 'Directly standardised rate',
       unit: { name: 'per 100,000', label: 'per 100,000' },
@@ -500,7 +500,7 @@ describe('public application routes', () => {
 
     const OneIndicator = routesFor({
       selected: [{ detail: detailFor(108, 'Mortality'), areaData: areaDataFor(341.1) }],
-      selection: { areaCodes: [], areaLevels: [], fingertipsIds: [108] },
+      selection: { areaCodes: [], areaLevels: [], shortIds: [108] },
     });
     render(<OneIndicator initialEntries={['/indicators?is=108']} />);
 
@@ -517,7 +517,7 @@ describe('public application routes', () => {
       selection: {
         areaCodes: [],
         areaLevels: [],
-        fingertipsIds: [108, 90366],
+        shortIds: [108, 90366],
       },
     });
     render(<TwoIndicators initialEntries={['/indicators?is=108&is=90366']} />);
@@ -544,7 +544,7 @@ describe('public application routes', () => {
             Component: IndicatorRoute,
             loader: () => ({
               selected: [],
-              selection: { areaCodes: [], areaLevels: [], fingertipsIds: [] },
+              selection: { areaCodes: [], areaLevels: [], shortIds: [] },
             }),
           },
         ],
@@ -566,7 +566,7 @@ describe('public application routes', () => {
       'fetch',
       vi.fn(
         async () =>
-          new Response(JSON.stringify({ indicators: [{ fingertipsId: 108, name: 'Mortality' }] }), {
+          new Response(JSON.stringify({ indicators: [{ shortId: 108, name: 'Mortality' }] }), {
             headers: { 'content-type': 'application/json' },
           }),
       ),
@@ -587,7 +587,7 @@ describe('public application routes', () => {
                 selection: {
                   areaCodes: [],
                   areaLevels: [],
-                  fingertipsIds: [],
+                  shortIds: [],
                 },
               };
             },
@@ -636,7 +636,7 @@ describe('public application routes', () => {
       dimensions: [{ type: 'Age', value: 'All ages', dimensionClass: 'core', sortOrder: 1 }],
     });
     const detail = {
-      fingertipsId: 93995,
+      shortId: 93995,
       name: 'Mortality rate for deaths involving diabetes, all ages',
       valueType: 'Directly standardised rate',
       unit: { name: 'per 100,000', label: 'per 100,000' },
@@ -668,7 +668,7 @@ describe('public application routes', () => {
         Component: PublicApp,
         children: [
           {
-            path: 'indicators/:fingertipsId',
+            path: 'indicators/:shortId',
             Component: IndicatorRoute,
             loader: () => ({
               selectedAreas: [{ code: 'E06000052', name: 'Cornwall', level: 'Local authorities' }],
@@ -698,7 +698,7 @@ describe('public application routes', () => {
               selection: {
                 areaCodes: ['E06000052'],
                 areaLevels: [],
-                fingertipsIds: [93995],
+                shortIds: [93995],
               },
             }),
           },
@@ -733,7 +733,7 @@ describe('public application routes', () => {
       dimensions: [{ type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 }],
     });
     const detail = {
-      fingertipsId: 108,
+      shortId: 108,
       name: 'Under 75 mortality rate from all causes',
       valueType: 'Directly standardised rate',
       unit: { name: 'per 100,000', label: 'per 100,000' },
@@ -774,7 +774,7 @@ describe('public application routes', () => {
         Component: PublicApp,
         children: [
           {
-            path: 'indicators/:fingertipsId',
+            path: 'indicators/:shortId',
             Component: IndicatorRoute,
             loader: () => ({
               selectedAreas: [{ code: 'E06000052', name: 'Cornwall', level: 'Local authorities' }],
@@ -813,7 +813,7 @@ describe('public application routes', () => {
               selection: {
                 areaCodes: ['E06000052'],
                 areaLevels: [],
-                fingertipsIds: [108],
+                shortIds: [108],
               },
             }),
           },
@@ -855,7 +855,7 @@ describe('public application routes', () => {
         ErrorBoundary,
         children: [
           {
-            path: 'indicators/:fingertipsId',
+            path: 'indicators/:shortId',
             Component: IndicatorRoute,
             loader: () => {
               throw new Response('Not Found', { status: 404 });
@@ -1000,7 +1000,7 @@ describe('public application routes', () => {
         limit: 200,
         indicators: [
           {
-            fingertipsId: 108,
+            shortId: 108,
             name: 'Under 75 mortality rate from all causes',
             topics: [{ slug: 'mortality', title: 'Mortality' }],
             classifications: [],
@@ -1109,7 +1109,7 @@ describe('public application routes', () => {
         total: 350,
         limit: 200,
         indicators: Array.from({ length: 200 }, (_, i) => ({
-          fingertipsId: 100 + i,
+          shortId: 100 + i,
           name: `Indicator ${i}`,
           topics: [],
           classifications: [],

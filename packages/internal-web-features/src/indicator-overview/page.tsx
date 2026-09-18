@@ -25,7 +25,7 @@ function Actions({ indicator }: { indicator: IndicatorAdminDetail }) {
       {indicator.status === 'approved' ? (
         <ul className="govuk-list">
           <li>
-            <A href={publishedIndicatorPath(indicator.fingertipsId)}>View published indicator</A>
+            <A href={publishedIndicatorPath(indicator.shortId)}>View published indicator</A>
           </li>
         </ul>
       ) : (
@@ -44,7 +44,7 @@ export function IndicatorOverviewPage({ indicator }: { indicator: IndicatorAdmin
           <h1 className="govuk-heading-xl">{indicator.name}</h1>
           <SummaryList
             items={[
-              { name: 'Indicator ID', children: String(indicator.fingertipsId) },
+              { name: 'Indicator ID', children: String(indicator.shortId) },
               { name: 'Status', children: <StatusTag status={indicator.status} /> },
             ]}
           />

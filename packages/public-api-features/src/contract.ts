@@ -57,7 +57,7 @@ export const topicDetailSchema = topicSummarySchema;
 
 export const indicatorSummarySchema = z.object({
   id: z.uuid(),
-  fingertipsId: z.number().int(),
+  shortId: z.number().int(),
   name: z.string().min(1),
   status: z.string().min(1),
 });
@@ -72,7 +72,7 @@ export const indicatorSourceSchema = z.object({
 });
 
 export const indicatorDetailSchema = z.object({
-  fingertipsId: z.number().int(),
+  shortId: z.number().int(),
   name: z.string().min(1),
   valueType: z.string().min(1),
   unit: z.object({ name: z.string().min(1), label: z.string().min(1) }),
@@ -196,7 +196,7 @@ export type AreaLookup = z.infer<typeof areaLookupListSchema>[number];
 export type AreaParent = z.infer<typeof areaParentListSchema>[number];
 
 export const indicatorSearchRowSchema = z.object({
-  fingertipsId: z.number().int(),
+  shortId: z.number().int(),
   name: z.string().min(1),
   topics: z.array(z.object({ slug: z.string().min(1), title: z.string().min(1) })),
   classifications: z.array(

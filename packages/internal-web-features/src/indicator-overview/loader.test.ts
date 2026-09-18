@@ -7,7 +7,7 @@ import { loadIndicatorOverview } from './loader';
 
 const indicator = {
   id: '00000000-0000-7000-8000-000000000001',
-  fingertipsId: 90366,
+  shortId: 90366,
   name: 'Life expectancy at birth',
   status: 'approved',
   updatedAt: '2026-01-02T00:00:00.000Z',

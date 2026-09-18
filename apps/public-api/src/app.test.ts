@@ -243,8 +243,8 @@ describe('public API', () => {
     expect(firstCall?.[0].topics).toHaveLength(100);
   });
 
-  it('does not route /api/indicators/search to the :fingertipsId handler', async () => {
-    // Without a stub, reaching the :fingertipsId route would 500; it must 200 instead.
+  it('does not route /api/indicators/search to the :shortId handler', async () => {
+    // Without a stub, reaching the :shortId route would 500; it must 200 instead.
     const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, limit: 200, indicators: [] });
     const app = createApp({
       logger,
@@ -255,7 +255,7 @@ describe('public API', () => {
     expect(response.status).not.toBe(404);
   });
 
-  it('does not route /api/indicators/facets to the :fingertipsId handler', async () => {
+  it('does not route /api/indicators/facets to the :shortId handler', async () => {
     const listFacets = vi.fn().mockResolvedValue({
       topics: [],
       classifications: [],

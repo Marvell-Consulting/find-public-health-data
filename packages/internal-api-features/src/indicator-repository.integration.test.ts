@@ -91,7 +91,7 @@ describe('getIndicatorById', () => {
     const found = await getIndicatorById(db, target);
 
     expect(found).toMatchObject({ id: target, status: 'approved' });
-    expect(found?.fingertipsId).toEqual(expect.any(Number));
+    expect(found?.shortId).toEqual(expect.any(Number));
     expect(found?.name).not.toBe('');
   });
 

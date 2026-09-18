@@ -62,10 +62,10 @@ let mortalityId: string;
 let diabetesId: string;
 let lifeExpectancyId: string;
 
-async function resolvedId(fingertipsId: number): Promise<string> {
-  const id = await resolveApprovedIndicatorId(db, fingertipsId);
+async function resolvedId(shortId: number): Promise<string> {
+  const id = await resolveApprovedIndicatorId(db, shortId);
   if (!id) {
-    throw new Error(`seed is missing indicator ${fingertipsId}`);
+    throw new Error(`seed is missing indicator ${shortId}`);
   }
   return id;
 }
@@ -110,12 +110,12 @@ describe('searchApprovedIndicators', () => {
     expect(results[0]?.name).toBe('Diabetes: QOF prevalence');
   });
 
-  it('matches exact Fingertips and internal indicator ids', async () => {
+  it('matches exact short and internal indicator ids', async () => {
     await expect(searchApprovedIndicators(db, String(MORTALITY_UNDER_75), 20)).resolves.toEqual([
-      expect.objectContaining({ fingertipsId: MORTALITY_UNDER_75 }),
+      expect.objectContaining({ shortId: MORTALITY_UNDER_75 }),
     ]);
     await expect(searchApprovedIndicators(db, mortalityId, 20)).resolves.toEqual([
-      expect.objectContaining({ fingertipsId: MORTALITY_UNDER_75 }),
+      expect.objectContaining({ shortId: MORTALITY_UNDER_75 }),
     ]);
   });
 
@@ -130,7 +130,7 @@ describe('searchApprovedIndicators', () => {
 });
 
 describe('resolveApprovedIndicatorId', () => {
-  it('answers the internal id for a seeded fingertips number and nothing otherwise', async () => {
+  it('answers the internal id for a seeded short id and nothing otherwise', async () => {
     expect(await resolveApprovedIndicatorId(db, MORTALITY_UNDER_75)).toMatch(/^[0-9a-f-]{36}$/);
     expect(await resolveApprovedIndicatorId(db, 424242)).toBeUndefined();
   });
@@ -141,7 +141,7 @@ describe('getApprovedIndicatorById', () => {
     const indicator = await getApprovedIndicatorById(db, mortalityId);
 
     expect(indicator).toMatchObject({
-      fingertipsId: MORTALITY_UNDER_75,
+      shortId: MORTALITY_UNDER_75,
       name: expect.stringContaining('Under 75 mortality rate'),
       valueType: expect.any(String),
       unit: { name: expect.any(String), label: expect.any(String) },
@@ -168,7 +168,7 @@ describe('getApprovedIndicatorById', () => {
     const indicator = await getApprovedIndicatorById(db, diabetesId);
 
     expect(indicator).toMatchObject({
-      fingertipsId: DIABETES_QOF_PREVALENCE,
+      shortId: DIABETES_QOF_PREVALENCE,
       name: 'Diabetes: QOF prevalence',
       valueType: 'Proportion',
       unit: { label: '%' },
@@ -476,14 +476,12 @@ describe('searchIndicators', () => {
     expect(both).toBeLessThanOrEqual(second);
   });
 
-  it('matches exact Fingertips and internal indicator ids without exposing the internal id', async () => {
+  it('matches exact short and internal indicator ids without exposing the internal id', async () => {
     for (const query of [String(MORTALITY_UNDER_75), mortalityId]) {
       const result = await searchIndicators(db, noFilters({ query }));
 
       expect(result.total).toBe(1);
-      expect(result.indicators).toEqual([
-        expect.objectContaining({ fingertipsId: MORTALITY_UNDER_75 }),
-      ]);
+      expect(result.indicators).toEqual([expect.objectContaining({ shortId: MORTALITY_UNDER_75 })]);
       expect(result.indicators[0]).not.toHaveProperty('id');
     }
   });
@@ -637,7 +635,7 @@ describe('searchIndicators', () => {
       db,
       noFilters({ areaCodes: ['E07000223', 'E07000032'] }),
     );
-    const ids = indicators.map(({ fingertipsId }) => fingertipsId);
+    const ids = indicators.map(({ shortId }) => shortId);
 
     expect(ids).toContain(92443);
     expect(ids).not.toContain(93622);
@@ -734,9 +732,7 @@ describe('searchIndicators', () => {
       searchIndicators(db, noFilters({ topics: ['mortality-and-life-expectancy'] })),
     ]);
 
-    expect(first.indicators.map((i) => i.fingertipsId)).toEqual(
-      second.indicators.map((i) => i.fingertipsId),
-    );
+    expect(first.indicators.map((i) => i.shortId)).toEqual(second.indicators.map((i) => i.shortId));
   });
 
   it('indicators with a unique first-topic are sub-ordered by name', async () => {
