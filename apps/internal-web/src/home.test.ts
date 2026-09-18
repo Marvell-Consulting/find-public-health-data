@@ -2,7 +2,7 @@ import { createJwtSessionService } from '@fphd/auth/jwt-session';
 import { createSessionContext, sessionMiddleware } from '@fphd/web-server/session';
 import { describe, expect, it } from 'vitest';
 
-import { loader } from './home';
+import { loader } from './home.tsx';
 
 const session = createJwtSessionService({
   audience: 'fphd-internal',

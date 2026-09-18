@@ -4,7 +4,7 @@ import type { Logger } from '@fphd/logger';
 import type { RequestHandler } from 'express';
 import { pinoHttp, type StdSerializedResults } from 'pino-http';
 
-import { REQUEST_ID_HEADER, readRequestIdHeader, requestId, uuidv7 } from './request-id.js';
+import { REQUEST_ID_HEADER, readRequestIdHeader, requestId, uuidv7 } from './request-id.ts';
 
 const probePaths = new Set(['/livez', '/readyz']);
 

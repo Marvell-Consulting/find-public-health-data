@@ -9,9 +9,9 @@ import {
   listAreasByType,
   listDisplayGroups,
   searchAreas,
-} from './area-repository.js';
-import { createDb, type Database } from './client.js';
-import { dbEnvFields, resolveDbTls } from './env.js';
+} from './area-repository.ts';
+import { createDb, type Database } from './client.ts';
+import { dbEnvFields, resolveDbTls } from './env.ts';
 import {
   getApprovedIndicatorById,
   getIndicatorObservations,
@@ -22,8 +22,8 @@ import {
   resolveApprovedIndicatorId,
   searchApprovedIndicators,
   searchIndicators,
-} from './indicator-repository.js';
-import { createTestDatabase, type TestDatabase } from './testing.js';
+} from './indicator-repository.ts';
+import { createTestDatabase, type TestDatabase } from './testing.ts';
 
 const env = parseEnv(
   z.object({

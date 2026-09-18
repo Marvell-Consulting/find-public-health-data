@@ -5,7 +5,7 @@ import { pino } from 'pino';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
-import { addNotFoundHandler, createApiApp } from './index.js';
+import { addNotFoundHandler, createApiApp } from './index.ts';
 
 const logger = createLogger({ name: 'test-api', level: 'silent' });
 

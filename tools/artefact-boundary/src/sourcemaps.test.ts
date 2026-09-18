@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { collectSourcemapSources } from './sourcemaps.js';
+import { collectSourcemapSources } from './sourcemaps.ts';
 
 describe('collectSourcemapSources', () => {
   it('collects the modules a chunk was built from', () => {

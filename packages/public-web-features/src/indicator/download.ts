@@ -1,9 +1,9 @@
 import { stringify } from 'csv-stringify/sync';
 
-import type { comparisonTable } from './comparison.js';
-import { type ConfidenceLevel, periodLabel, segmentLabel } from './data.js';
-import type { IndicatorAreaData, IndicatorDetail } from './loader.js';
-import type { trendTableModel } from './trend.js';
+import type { comparisonTable } from './comparison.ts';
+import { type ConfidenceLevel, periodLabel, segmentLabel } from './data.ts';
+import type { IndicatorAreaData, IndicatorDetail } from './loader.ts';
+import type { trendTableModel } from './trend.ts';
 
 /** The trend table as displayed, including its selected intervals and benchmarks. */
 export function trendCsv(

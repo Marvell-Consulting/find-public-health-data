@@ -15,8 +15,8 @@ import {
   loadAdminTopicToDelete,
   loadAdminTopicToEdit,
   saveTopic,
-} from './loader';
-import { editTopicPath, TOPICS_ADMIN_PATH } from './paths';
+} from './loader.ts';
+import { editTopicPath, TOPICS_ADMIN_PATH } from './paths.ts';
 
 const flashStorage = createFlashSessionStorage({
   audience: 'internal',

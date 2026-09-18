@@ -7,7 +7,7 @@ import {
   setFlash,
   setFlashStorage,
   takeFlash,
-} from './flash.js';
+} from './flash.ts';
 
 const storage = createFlashSessionStorage({
   audience: 'internal',

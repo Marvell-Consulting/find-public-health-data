@@ -7,7 +7,7 @@ import {
   MAX_AREA_PREVIEW,
   MAX_AREA_SEARCH_RESULTS,
   pickAreaCodes,
-} from './contract.js';
+} from './contract.ts';
 
 export function areasRouter(areas: Repositories['areas']): Router {
   const router = Router();

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { loadConfig } from './load-config.js';
+import { loadConfig } from './load-config.ts';
 
 describe('loadConfig', () => {
   const local = { APP_ENV: 'local', POSTGRES_PASSWORD: 'owner-pw' };

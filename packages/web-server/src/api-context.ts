@@ -1,6 +1,6 @@
 import { createContext } from 'react-router';
 
-import type { ApiClient } from './api-client.js';
+import type { ApiClient } from './api-client.ts';
 
 /**
  * The API client a loader should use. Holding the client rather than a base URL means no

@@ -4,7 +4,7 @@ import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
 import { asc, desc, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { getIndicatorById, listIndicatorsPage } from './indicator-repository.js';
+import { getIndicatorById, listIndicatorsPage } from './indicator-repository.ts';
 
 const env = parseEnv(
   z.object({

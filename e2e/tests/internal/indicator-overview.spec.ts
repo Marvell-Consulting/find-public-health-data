@@ -1,7 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
-import { expectNoAccessibilityViolations } from '../support/accessibility.js';
-import { signInAs } from '../support/sign-in.js';
+import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
+import { signInAs } from '../support/sign-in.ts';
 
 // The dashboard orders by last edit, so the first row is whichever indicator that is; the
 // overview is reached the way a publisher reaches it, and its name read off the link.

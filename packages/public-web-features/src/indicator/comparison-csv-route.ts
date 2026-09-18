@@ -1,8 +1,8 @@
 import type { LoaderFunctionArgs } from 'react-router';
 
-import { comparisonTable } from './comparison.js';
-import { comparisonCsv } from './download.js';
-import { loadComparisonData } from './loader.js';
+import { comparisonTable } from './comparison.ts';
+import { comparisonCsv } from './download.ts';
+import { loadComparisonData } from './loader.ts';
 
 export async function loader(args: LoaderFunctionArgs) {
   const { selected, benchmarkGeography } = await loadComparisonData(args);

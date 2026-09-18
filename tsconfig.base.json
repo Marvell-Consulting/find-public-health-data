@@ -4,6 +4,8 @@
     "target": "ES2024",
     "strict": true,
     "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
     "isolatedModules": true,
     "moduleDetection": "force",
     "erasableSyntaxOnly": true,

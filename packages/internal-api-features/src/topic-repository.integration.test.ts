@@ -10,7 +10,7 @@ import {
 import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createTopic, deleteTopic, getTopicById, updateTopic } from './topic-repository.js';
+import { createTopic, deleteTopic, getTopicById, updateTopic } from './topic-repository.ts';
 
 const env = parseEnv(
   z.object({

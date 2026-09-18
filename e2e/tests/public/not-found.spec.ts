@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { expectNoAccessibilityViolations } from '../support/accessibility.js';
+import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 
 test('answers an unknown path with the not-found page', async ({ page }) => {
   const response = await page.goto('/no-such-page');

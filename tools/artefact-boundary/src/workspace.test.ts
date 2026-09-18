@@ -4,7 +4,7 @@ import {
   collectDependencyClosure,
   parseWorkspaceDirs,
   type WorkspacePackage,
-} from './workspace.js';
+} from './workspace.ts';
 
 function workspace(...packages: Array<[string, string[]]>): Map<string, WorkspacePackage> {
   return new Map(

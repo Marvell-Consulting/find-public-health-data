@@ -1,13 +1,13 @@
 import type { Repositories } from '@fphd/db';
 import { Router } from 'express';
 
-import { areasRouter } from './areas.js';
-import { indicatorsRouter } from './indicators.js';
-import { topicsRouter } from './topics.js';
+import { areasRouter } from './areas.ts';
+import { indicatorsRouter } from './indicators.ts';
+import { topicsRouter } from './topics.ts';
 
-export { areasRouter } from './areas.js';
-export { indicatorsRouter } from './indicators.js';
-export { topicsRouter } from './topics.js';
+export { areasRouter } from './areas.ts';
+export { indicatorsRouter } from './indicators.ts';
+export { topicsRouter } from './topics.ts';
 
 /**
  * Every route on the public API surface, in one router. `internal-api` mounts this too, so

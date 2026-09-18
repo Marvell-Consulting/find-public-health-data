@@ -5,7 +5,7 @@ import { createLogger } from '@fphd/logger';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
-import { createApp } from './app.js';
+import { createApp } from './app.ts';
 
 const session = createJwtSessionService({
   audience: 'fphd-internal',

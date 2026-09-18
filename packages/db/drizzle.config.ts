@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import { appEnvFields, parseEnv, z } from '@fphd/config';
 import { defineConfig } from 'drizzle-kit';
 
-import { dbEnvFields, resolveDbTls } from './src/env.js';
+import { dbEnvFields, resolveDbTls } from './src/env.ts';
 
 // Load the repo-root .env when running drizzle-kit from this package (cwd = packages/db).
 // drizzle-kit runs migrations as the owner role.

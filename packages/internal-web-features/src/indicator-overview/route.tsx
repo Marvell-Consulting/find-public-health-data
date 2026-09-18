@@ -1,7 +1,7 @@
 import { createDocumentMeta } from '@fphd/ui';
 import { useLoaderData } from 'react-router';
-import { loadIndicatorOverview } from './loader';
-import { IndicatorOverviewPage } from './page';
+import { loadIndicatorOverview } from './loader.ts';
+import { IndicatorOverviewPage } from './page.tsx';
 
 export const loader = loadIndicatorOverview;
 

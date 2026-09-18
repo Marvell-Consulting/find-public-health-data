@@ -4,7 +4,7 @@ import type { LoaderFunctionArgs } from 'react-router';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { loadSearch } from './loader.js';
+import { loadSearch } from './loader.ts';
 
 const DISPLAY_GROUPS = [
   'Local authorities',

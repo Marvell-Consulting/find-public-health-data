@@ -1,10 +1,10 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createDb, type Database } from './client.js';
-import { dbEnvFields, resolveDbTls } from './env.js';
-import { indicator } from './schema/index.js';
-import { createTestDatabase, type TestDatabase } from './testing.js';
+import { createDb, type Database } from './client.ts';
+import { dbEnvFields, resolveDbTls } from './env.ts';
+import { indicator } from './schema/index.ts';
+import { createTestDatabase, type TestDatabase } from './testing.ts';
 
 const env = parseEnv(
   z.object({

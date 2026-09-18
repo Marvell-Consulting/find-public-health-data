@@ -5,8 +5,8 @@ import {
   recentTrend,
   segmentValuesKey,
   trendSeries,
-} from './data.js';
-import type { BenchmarkGeography, SelectedIndicator } from './loader.js';
+} from './data.ts';
+import type { BenchmarkGeography, SelectedIndicator } from './loader.ts';
 
 export type BenchmarkChoice = 'none' | 'england' | 'region';
 

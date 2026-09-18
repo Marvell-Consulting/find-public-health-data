@@ -15,8 +15,8 @@ import type { ReactNode } from 'react';
 import { createRoutesStub } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import InternalApp from './root';
-import routes from './routes';
+import InternalApp from './root.tsx';
+import routes from './routes.ts';
 
 afterEach(cleanup);
 

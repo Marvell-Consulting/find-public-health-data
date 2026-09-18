@@ -1,8 +1,8 @@
 import { A, formatDate, SectionBreak, SummaryList } from '@fphd/ui';
 import type { ReactNode } from 'react';
-import { periodCovered, recentTrend } from './data.js';
-import type { IndicatorDetail, IndicatorObservation } from './loader.js';
-import { TrendTag } from './trend-tag.js';
+import { periodCovered, recentTrend } from './data.ts';
+import type { IndicatorDetail, IndicatorObservation } from './loader.ts';
+import { TrendTag } from './trend-tag.tsx';
 
 const CONFIDENCE_LEVEL_LABELS: Record<string, string> = {
   '95': '95%',

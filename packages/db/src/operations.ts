@@ -3,12 +3,12 @@
  * migrate, import, seed, reset and rebuild. Kept off the package's default export so the
  * deployed APIs cannot reach it by accident.
  */
-export { API_ROLES, bootstrapRoles, type DatabaseRole } from './bootstrap.js';
-export { assertCoreDataPresent, importCoreData } from './core-data.js';
+export { API_ROLES, bootstrapRoles, type DatabaseRole } from './bootstrap.ts';
+export { assertCoreDataPresent, importCoreData } from './core-data.ts';
 export type {
   IndicatorTopicFile,
   IndicatorTopicImportSummary,
-} from './indicator-topic-repository.js';
+} from './indicator-topic-repository.ts';
 export {
   type AppliedMigration,
   assertMigratable,
@@ -19,19 +19,19 @@ export {
   type MigrationState,
   readAppliedMigrations,
   readLocalMigrations,
-} from './migration-status.js';
-export { migrateToLatest } from './migrations.js';
+} from './migration-status.ts';
+export { migrateToLatest } from './migrations.ts';
 export {
   analyzeReadModels,
   READ_MODEL_TABLES,
   rebuildReadModels,
   rebuildReadModelTables,
-} from './read-models.js';
-export { resetDatabase } from './reset.js';
-export { createOwnerClient, loadOwnerEnv } from './scripts/owner-client.js';
+} from './read-models.ts';
+export { resetDatabase } from './reset.ts';
+export { createOwnerClient, loadOwnerEnv } from './scripts/owner-client.ts';
 export {
   assertResetAllowed,
   assertSeedingAllowed,
   type DummySeedSummary,
   seedDummyTables,
-} from './seeding.js';
+} from './seeding.ts';

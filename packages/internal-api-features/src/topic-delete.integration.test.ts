@@ -3,7 +3,7 @@ import { createDb, type Database, dbEnvFields, resolveDbTls } from '@fphd/db';
 import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { deleteTopic, getTopicById } from './topic-repository.js';
+import { deleteTopic, getTopicById } from './topic-repository.ts';
 
 // Seeded, because the cascade is only meaningful against real indicator_topic links, and
 // building an indicator by hand would mean seeding the whole lookup graph it references.

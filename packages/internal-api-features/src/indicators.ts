@@ -8,9 +8,9 @@ import {
   type IndicatorAdminSummary,
   indicatorIdSchema,
   indicatorPageQuerySchema,
-} from './contract.js';
-import type { IndicatorAdminDetailRow, IndicatorAdminRow } from './indicator-repository.js';
-import type { InternalIndicatorRepository } from './repositories.js';
+} from './contract.ts';
+import type { IndicatorAdminDetailRow, IndicatorAdminRow } from './indicator-repository.ts';
+import type { InternalIndicatorRepository } from './repositories.ts';
 
 export const INDICATORS_PAGE_SIZE = 10;
 

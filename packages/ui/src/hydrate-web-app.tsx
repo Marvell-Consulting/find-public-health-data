@@ -2,8 +2,8 @@ import { type ReactNode, StrictMode, startTransition, useEffect } from 'react';
 import { hydrateRoot } from 'react-dom/client';
 import { HydratedRouter } from 'react-router/dom';
 
-import { initNotGovuk } from './init-not-govuk';
-import { NonceProvider } from './nonce';
+import { initNotGovuk } from './init-not-govuk.ts';
+import { NonceProvider } from './nonce.tsx';
 
 /**
  * A wrapper rather than a sibling of the router: an extra child at the root gives every

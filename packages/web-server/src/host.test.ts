@@ -6,7 +6,7 @@ import { createLogger, type Logger } from '@fphd/logger';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createProductionHost } from './host.js';
+import { createProductionHost } from './host.ts';
 
 const clientDirectory = mkdtempSync(join(tmpdir(), 'fphd-web-server-'));
 const assetsDirectory = join(clientDirectory, 'assets');

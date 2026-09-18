@@ -4,8 +4,8 @@ import express, { type Express } from 'express';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
-import { createFakeInternalRepositories, type FakeInternalRepositoryOverrides } from './testing.js';
-import { internalTopicsRouter } from './topics.js';
+import { createFakeInternalRepositories, type FakeInternalRepositoryOverrides } from './testing.ts';
+import { internalTopicsRouter } from './topics.ts';
 
 const session = createJwtSessionService({
   audience: 'fphd-internal',

@@ -13,7 +13,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import { audit, uuidPrimaryKey } from './helpers.js';
+import { audit, uuidPrimaryKey } from './helpers.ts';
 import {
   ciMethod,
   comparatorMethod,
@@ -24,7 +24,7 @@ import {
   unit,
   valueType,
   yearType,
-} from './lookup.js';
+} from './lookup.ts';
 
 export const INDICATOR_STATUSES = ['draft', 'in_review', 'approved', 'archived'] as const;
 

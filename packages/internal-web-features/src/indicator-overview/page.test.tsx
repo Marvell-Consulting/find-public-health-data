@@ -3,8 +3,8 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import type { IndicatorAdminDetail } from './loader';
-import { IndicatorOverviewPage } from './page';
+import type { IndicatorAdminDetail } from './loader.ts';
+import { IndicatorOverviewPage } from './page.tsx';
 
 afterEach(cleanup);
 

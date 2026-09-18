@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { expectNoAccessibilityViolations } from '../support/accessibility.js';
+import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/topics/alcohol');

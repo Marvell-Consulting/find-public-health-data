@@ -17,8 +17,8 @@ import {
 import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
-import { loadGeographyOptions } from '../geography/loader.js';
-import { MAX_SELECTED_AREAS, MAX_SELECTED_INDICATORS } from '../selection-limits.js';
+import { loadGeographyOptions } from '../geography/loader.ts';
+import { MAX_SELECTED_AREAS, MAX_SELECTED_INDICATORS } from '../selection-limits.ts';
 
 export type {
   AreaGroup,
@@ -68,7 +68,7 @@ const DEFAULT_AREA_CODE = 'E92000001';
 
 // Charts and tables with dozens of series are unreadable long before they are slow, so the
 // selection is capped rather than the URL trusted.
-export { MAX_SELECTED_INDICATORS } from '../selection-limits.js';
+export { MAX_SELECTED_INDICATORS } from '../selection-limits.ts';
 
 function selectedIndicatorIds(url: URL, routeParam: string | undefined): number[] {
   const fromQuery = url.searchParams

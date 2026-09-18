@@ -4,7 +4,7 @@ import express, { type Express } from 'express';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
-import { topicsRouter } from './topics.js';
+import { topicsRouter } from './topics.ts';
 
 const topicA: Topic = {
   id: '00000000-0000-7000-8000-000000000001',

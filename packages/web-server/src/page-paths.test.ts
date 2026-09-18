@@ -1,7 +1,7 @@
 import type { ServerBuild } from 'react-router';
 import { describe, expect, it } from 'vitest';
 
-import { createPagePathCheck } from './page-paths.js';
+import { createPagePathCheck } from './page-paths.ts';
 
 // The shape of an app's route table, as the server build carries it: only the fields the check
 // reads. A resource route is one whose module has no component.

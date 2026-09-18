@@ -13,11 +13,11 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import { dimensionValue } from './dimension.js';
-import { area } from './geography.js';
-import { uuidPrimaryKey } from './helpers.js';
-import { indicator } from './indicator.js';
-import { uploadBatch } from './upload.js';
+import { dimensionValue } from './dimension.ts';
+import { area } from './geography.ts';
+import { uuidPrimaryKey } from './helpers.ts';
+import { indicator } from './indicator.ts';
+import { uploadBatch } from './upload.ts';
 
 export const noteType = pgTable(
   'note_type',

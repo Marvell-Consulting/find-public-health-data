@@ -13,7 +13,7 @@ const { createTestDatabase } = await import('@fphd/db/testing');
 const testDb = await createTestDatabase({ template: 'seeded' });
 process.env.POSTGRES_DB = testDb.name;
 
-const { db } = await import('./db.js');
+const { db } = await import('./db.ts');
 const { schema } = await import('@fphd/db');
 
 afterAll(async () => {

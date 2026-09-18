@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
-import { expectNoAccessibilityViolations } from '../support/accessibility.js';
+import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 
 test('comparison rows stay the same height when the range is shown', async ({ page }) => {
   await page.goto(

@@ -4,7 +4,7 @@ import type { LoaderFunctionArgs } from 'react-router';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { loadGeography } from './geography-loader.js';
+import { loadGeography } from './geography-loader.ts';
 
 function loaderArgs(get: ReturnType<typeof vi.fn>, url: string): LoaderFunctionArgs {
   const context = new RouterContextProvider();

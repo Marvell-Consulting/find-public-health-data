@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { extractImportSpecifiers } from './specifiers.js';
+import { extractImportSpecifiers } from './specifiers.ts';
 
 describe('extractImportSpecifiers', () => {
   it('extracts static, side-effect, dynamic and require specifiers', () => {

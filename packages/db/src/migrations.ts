@@ -8,7 +8,7 @@ import {
   migrationsFolder,
   readAppliedMigrations,
   readLocalMigrations,
-} from './migration-status.js';
+} from './migration-status.ts';
 
 export { migrationsFolder };
 

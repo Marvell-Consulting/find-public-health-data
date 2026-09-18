@@ -14,5 +14,5 @@ export {
   resolveLog,
   resolveShutdown,
   serverEnvFields,
-} from './env.js';
-export { SLUG_PATTERN } from './slug.js';
+} from './env.ts';
+export { SLUG_PATTERN } from './slug.ts';

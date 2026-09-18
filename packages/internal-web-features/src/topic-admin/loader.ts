@@ -13,8 +13,8 @@ import { apiContext } from '@fphd/web-server/api-context';
 import { setFlash, takeFlash } from '@fphd/web-server/flash';
 import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from 'react-router';
 
-import { parseTopicForm, readTopicForm, type TopicFormValues } from './form';
-import { editTopicPath, TOPICS_ADMIN_PATH } from './paths';
+import { parseTopicForm, readTopicForm, type TopicFormValues } from './form.ts';
+import { editTopicPath, TOPICS_ADMIN_PATH } from './paths.ts';
 
 export type { TopicAdminDetail, TopicAdminSummary } from '@fphd/internal-api-features/contract';
 

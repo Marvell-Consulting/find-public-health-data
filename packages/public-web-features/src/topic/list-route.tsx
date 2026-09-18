@@ -1,7 +1,7 @@
 import { createDocumentMeta } from '@fphd/ui';
 import { useLoaderData } from 'react-router';
-import { loadTopics } from './loader.js';
-import { TopicsPage } from './pages.js';
+import { loadTopics } from './loader.ts';
+import { TopicsPage } from './pages.tsx';
 
 export const loader = loadTopics;
 

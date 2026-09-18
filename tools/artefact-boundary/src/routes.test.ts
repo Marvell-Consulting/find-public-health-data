@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { collectRouteFiles } from './routes.js';
+import { collectRouteFiles } from './routes.ts';
 
 const routeTable = JSON.stringify([
   {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { collectBuildActions, collectImageBuilds } from './builds.js';
+import { collectBuildActions, collectImageBuilds } from './builds.ts';
 
 const FILE = '.github/workflows/publish.yml';
 

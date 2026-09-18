@@ -3,9 +3,9 @@ import { createRequestHandler } from '@react-router/express';
 import express, { type Express, type Request, type RequestHandler } from 'express';
 import type { RouterContextProvider, ServerBuild } from 'react-router';
 
-import { loggerContext } from './logger-context.js';
-import { nonceContext } from './nonce-context.js';
-import { createSessionContext } from './session.js';
+import { loggerContext } from './logger-context.ts';
+import { nonceContext } from './nonce-context.ts';
+import { createSessionContext } from './session.ts';
 
 type OptionalServerBuildKey = 'allowedActionOrigins' | 'basename' | 'unstable_getCriticalCss';
 

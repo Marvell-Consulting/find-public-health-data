@@ -5,9 +5,9 @@ import { createRepositories } from '@fphd/db';
 import { createInternalRepositories } from '@fphd/internal-api-features';
 import { createLogger } from '@fphd/logger';
 
-import { createApp } from './app.js';
-import * as config from './config.js';
-import { db } from './db.js';
+import { createApp } from './app.ts';
+import * as config from './config.ts';
+import { db } from './db.ts';
 
 const logger = createLogger({
   name: 'internal-api',

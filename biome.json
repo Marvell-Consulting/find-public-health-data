@@ -21,6 +21,9 @@
       "nursery": {
         "noFloatingPromises": "error"
       },
+      "correctness": {
+        "useImportExtensions": "error"
+      },
       "style": {
         "noRestrictedImports": {
           "level": "error",

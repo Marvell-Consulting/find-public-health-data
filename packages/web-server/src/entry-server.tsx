@@ -12,8 +12,8 @@ import {
   ServerRouter,
 } from 'react-router';
 
-import { loggerContext } from './logger-context.js';
-import { nonceContext } from './nonce-context.js';
+import { loggerContext } from './logger-context.ts';
+import { nonceContext } from './nonce-context.ts';
 
 export const streamTimeout = 5_000;
 

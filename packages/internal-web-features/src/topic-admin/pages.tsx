@@ -15,9 +15,9 @@ import {
   TextInput,
 } from '@fphd/ui';
 
-import type { TopicFormValues } from './form';
-import type { TopicAdminSummary } from './loader';
-import { deleteTopicPath, editTopicPath, NEW_TOPIC_PATH, TOPICS_ADMIN_PATH } from './paths';
+import type { TopicFormValues } from './form.ts';
+import type { TopicAdminSummary } from './loader.ts';
+import { deleteTopicPath, editTopicPath, NEW_TOPIC_PATH, TOPICS_ADMIN_PATH } from './paths.ts';
 
 /** Summary order follows the form, so an error summary reads in the order the fields do. */
 const FIELD_ORDER = ['title', 'slug', 'description'] as const;

@@ -4,7 +4,7 @@ import { createLogger } from '@fphd/logger';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createApp } from './app.js';
+import { createApp } from './app.ts';
 
 const logger = createLogger({ name: 'public-api', level: 'silent' });
 

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Links, Meta, Scripts, ScrollRestoration } from 'react-router';
 
-import { useNonce } from './nonce';
+import { useNonce } from './nonce.tsx';
 
 interface AppDocumentProps {
   children: ReactNode;

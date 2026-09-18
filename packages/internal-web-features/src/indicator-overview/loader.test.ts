@@ -3,7 +3,7 @@ import { apiContext } from '@fphd/web-server/api-context';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { loadIndicatorOverview } from './loader';
+import { loadIndicatorOverview } from './loader.ts';
 
 const indicator = {
   id: '00000000-0000-7000-8000-000000000001',

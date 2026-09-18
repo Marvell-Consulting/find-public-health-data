@@ -9,10 +9,10 @@ import {
 } from '@fphd/ui';
 import { useRef, useState } from 'react';
 import { Form, Link, useLocation, useNavigate } from 'react-router';
-import type { GeographyOptions } from '../geography/loader.js';
-import { MAX_SELECTED_AREAS } from '../selection-limits.js';
-import { SearchGeographyPicker } from './geography-picker.js';
-import type { IndicatorFacets } from './loader.js';
+import type { GeographyOptions } from '../geography/loader.ts';
+import { MAX_SELECTED_AREAS } from '../selection-limits.ts';
+import { SearchGeographyPicker } from './geography-picker.tsx';
+import type { IndicatorFacets } from './loader.ts';
 import {
   DIMENSIONS,
   EMPTY_SEARCH_STATE,
@@ -20,7 +20,7 @@ import {
   removeFrom,
   type SearchState,
   searchUrl,
-} from './url.js';
+} from './url.ts';
 
 interface SearchFilterPaneProps {
   state: SearchState;

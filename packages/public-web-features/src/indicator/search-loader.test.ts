@@ -4,7 +4,7 @@ import type { LoaderFunctionArgs } from 'react-router';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { loadIndicatorSearch } from './search-loader.js';
+import { loadIndicatorSearch } from './search-loader.ts';
 
 function loaderArgs(get: ReturnType<typeof vi.fn>, url: string): LoaderFunctionArgs {
   const context = new RouterContextProvider();

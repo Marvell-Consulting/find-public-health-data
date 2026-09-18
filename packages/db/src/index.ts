@@ -1,4 +1,4 @@
-export { type AreaSummary, listAreasByType } from './area-repository.js';
+export { type AreaSummary, listAreasByType } from './area-repository.ts';
 export {
   createDb,
   createPostgresClient,
@@ -6,8 +6,8 @@ export {
   type DbConnection,
   type Schema,
   type SqlClient,
-} from './client.js';
-export { dbEnvFields, resolveDbTls } from './env.js';
+} from './client.ts';
+export { dbEnvFields, resolveDbTls } from './env.ts';
 export {
   type ApprovedIndicator,
   getApprovedIndicatorById,
@@ -24,20 +24,20 @@ export {
   listIndicatorFacets,
   resolveApprovedIndicatorId,
   searchIndicators,
-} from './indicator-repository.js';
+} from './indicator-repository.ts';
 export {
   type IndicatorClassification,
   listClassificationsForIndicator,
   listTopicsForIndicator,
   type TopicSummaryForIndicator,
-} from './indicator-topic-repository.js';
+} from './indicator-topic-repository.ts';
 export {
   type AreaRepository,
   createRepositories,
   type IndicatorRepository,
   type Repositories,
   type TopicRepository,
-} from './repositories.js';
-export type { IndicatorStatus } from './schema/indicator.js';
-export * as schema from './schema.js';
-export { getTopicBySlug, listTopics, type Topic } from './topic-repository.js';
+} from './repositories.ts';
+export type { IndicatorStatus } from './schema/indicator.ts';
+export * as schema from './schema.ts';
+export { getTopicBySlug, listTopics, type Topic } from './topic-repository.ts';

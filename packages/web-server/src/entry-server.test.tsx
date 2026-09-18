@@ -3,8 +3,8 @@ import type { RenderToPipeableStreamOptions } from 'react-dom/server';
 import { type EntryContext, RouterContextProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { loggerContext } from './logger-context.js';
-import { nonceContext } from './nonce-context.js';
+import { loggerContext } from './logger-context.ts';
+import { nonceContext } from './nonce-context.ts';
 
 const renderer = vi.hoisted(() => ({
   abort: vi.fn(),
@@ -21,7 +21,7 @@ vi.mock('react-dom/server', () => ({
   ),
 }));
 
-import handleRequest, { handleError, streamTimeout } from './entry-server.js';
+import handleRequest, { handleError, streamTimeout } from './entry-server.tsx';
 
 const entryContext = { isSpaMode: false } as EntryContext;
 const logger = { error: vi.fn() };

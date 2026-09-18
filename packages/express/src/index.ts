@@ -2,17 +2,17 @@ import type { Server } from 'node:http';
 
 import express, { type Express } from 'express';
 
-import { universalSecurityHeaders } from './security-headers.js';
-import { installShutdownHandlers, type ShutdownOptions } from './shutdown.js';
+import { universalSecurityHeaders } from './security-headers.ts';
+import { installShutdownHandlers, type ShutdownOptions } from './shutdown.ts';
 
-export { REQUEST_ID_HEADER, requestId } from './request-id.js';
+export { REQUEST_ID_HEADER, requestId } from './request-id.ts';
 export {
   type RequestLoggingOptions,
   requestAwareLogger,
   requestLogging,
-} from './request-logging.js';
-export { universalSecurityHeaders } from './security-headers.js';
-export { serverLogging } from './server-logging.js';
+} from './request-logging.ts';
+export { universalSecurityHeaders } from './security-headers.ts';
+export { serverLogging } from './server-logging.ts';
 
 /** Base app for all four servers: shared configuration and routes go here. */
 export function createBaseApp({ serviceName }: { serviceName: string }): Express {

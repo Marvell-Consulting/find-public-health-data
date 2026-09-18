@@ -1,15 +1,15 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { capture } from './exec.js';
-import { isPageModule } from './modules.js';
-import { collectRoutes } from './routes.js';
+import { capture } from './exec.ts';
+import { isPageModule } from './modules.ts';
+import { collectRoutes } from './routes.ts';
 import {
   type ClassifiedRoute,
   findSpecsWithoutScan,
   findStaleEntries,
   findUncoveredRoutes,
-} from './specs.js';
+} from './specs.ts';
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
 const specsRoot = path.join(repoRoot, 'e2e', 'tests');

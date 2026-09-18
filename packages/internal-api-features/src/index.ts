@@ -1,29 +1,29 @@
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { Router } from 'express';
 
-import { internalIndicatorsRouter } from './indicators.js';
-import type { InternalRepositories } from './repositories.js';
-import { internalTopicsRouter } from './topics.js';
+import { internalIndicatorsRouter } from './indicators.ts';
+import type { InternalRepositories } from './repositories.ts';
+import { internalTopicsRouter } from './topics.ts';
 
 export type {
   IndicatorAdminDetailRow,
   IndicatorAdminRow,
   IndicatorAdminRows,
-} from './indicator-repository.js';
-export { INDICATORS_PAGE_SIZE, internalIndicatorsRouter } from './indicators.js';
+} from './indicator-repository.ts';
+export { INDICATORS_PAGE_SIZE, internalIndicatorsRouter } from './indicators.ts';
 export {
   createInternalRepositories,
   type InternalIndicatorRepository,
   type InternalRepositories,
   type InternalTopicRepository,
-} from './repositories.js';
+} from './repositories.ts';
 export type {
   CreateTopicResult,
   DeleteTopicResult,
   TopicUpdate,
   UpdateTopicResult,
-} from './topic-repository.js';
-export { internalTopicsRouter } from './topics.js';
+} from './topic-repository.ts';
+export { internalTopicsRouter } from './topics.ts';
 
 export interface InternalApiDependencies {
   repositories: InternalRepositories;

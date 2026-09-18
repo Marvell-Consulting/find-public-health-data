@@ -1,8 +1,8 @@
 import { jwtVerify, SignJWT } from 'jose';
 import { v7 as uuidv7 } from 'uuid';
 
-import { readCookie } from './cookies.js';
-import { InvalidJwtSessionError } from './session-errors.js';
+import { readCookie } from './cookies.ts';
+import { InvalidJwtSessionError } from './session-errors.ts';
 
 export interface JwtSessionClaims {
   readonly aud: string;

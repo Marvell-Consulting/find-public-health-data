@@ -11,7 +11,7 @@ import {
   compareMigrations,
   type LocalMigration,
   readLocalMigrations,
-} from './migration-status.js';
+} from './migration-status.ts';
 
 function local(tag: string, folderMillis: number, hash = `hash-${tag}`): LocalMigration {
   return { tag, folderMillis, hash };

@@ -3,8 +3,8 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { DeleteTopicPage } from './pages';
-import { editTopicPath } from './paths';
+import { DeleteTopicPage } from './pages.tsx';
+import { editTopicPath } from './paths.ts';
 
 afterEach(cleanup);
 

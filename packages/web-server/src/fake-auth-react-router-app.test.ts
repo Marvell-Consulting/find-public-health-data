@@ -2,7 +2,7 @@ import { createJwtSessionService } from '@fphd/auth/jwt-session';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
-import { createFakeAuthReactRouterApp } from './fake-auth-react-router-app.js';
+import { createFakeAuthReactRouterApp } from './fake-auth-react-router-app.ts';
 
 const secret = 'a-jwt-session-secret-that-is-long-enough-for-tests';
 

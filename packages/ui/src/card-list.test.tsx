@@ -4,7 +4,7 @@ import type { ComponentProps } from 'react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { CardList } from './card-list';
+import { CardList } from './card-list.tsx';
 
 afterEach(cleanup);
 

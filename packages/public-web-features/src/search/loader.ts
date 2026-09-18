@@ -13,9 +13,9 @@ import {
 import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
 import { redirect } from 'react-router';
-import { loadGeographyOptions } from '../geography/loader.js';
-import { MAX_SELECTED_AREAS } from '../selection-limits.js';
-import { DIMENSIONS } from './url.js';
+import { loadGeographyOptions } from '../geography/loader.ts';
+import { MAX_SELECTED_AREAS } from '../selection-limits.ts';
+import { DIMENSIONS } from './url.ts';
 
 export type {
   IndicatorFacets,

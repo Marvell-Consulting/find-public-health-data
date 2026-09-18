@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { forwardedRequestIdHeaders } from './request-id-headers.js';
+import { forwardedRequestIdHeaders } from './request-id-headers.ts';
 
 describe('forwardedRequestIdHeaders', () => {
   it('carries the id the request logger assigned', () => {

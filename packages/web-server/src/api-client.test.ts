@@ -1,7 +1,7 @@
 import { z } from '@fphd/config/zod';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { apiPath, createApiClient, forwardedCookieHeaders } from './api-client.js';
+import { apiPath, createApiClient, forwardedCookieHeaders } from './api-client.ts';
 
 const schema = z.array(z.object({ slug: z.string() }));
 const topicSchema = z.object({ slug: z.string() });

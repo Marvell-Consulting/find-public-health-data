@@ -1,7 +1,7 @@
 import { asc, eq, sql } from 'drizzle-orm';
 
-import type { Database } from './client.js';
-import { type TopicRecord, topic } from './schema/index.js';
+import type { Database } from './client.ts';
+import { type TopicRecord, topic } from './schema/index.ts';
 
 export interface ExistingTopic {
   id: string;

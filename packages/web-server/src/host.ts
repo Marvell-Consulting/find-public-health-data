@@ -12,7 +12,7 @@ import type { Logger } from '@fphd/logger';
 import compression from 'compression';
 import express, { type Express, type RequestHandler } from 'express';
 
-import { securityHeaders } from './security-headers.js';
+import { securityHeaders } from './security-headers.ts';
 
 export { serverLogging } from '@fphd/express';
 

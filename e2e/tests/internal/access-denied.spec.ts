@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
-import { expectNoAccessibilityViolations } from '../support/accessibility.js';
-import { signInAs } from '../support/sign-in.js';
+import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
+import { signInAs } from '../support/sign-in.ts';
 
 test.beforeEach(async ({ page }) => {
   await signInAs(page, 'Sam Taylor');

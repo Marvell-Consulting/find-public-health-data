@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { findInternalReferences, isInternalReference } from './internal.js';
+import { findInternalReferences, isInternalReference } from './internal.ts';
 
 describe('isInternalReference', () => {
   it.each([

@@ -13,8 +13,8 @@ import express from 'express';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { indicatorAreaDataSchema, indicatorDetailSchema } from './contract.js';
-import { publicApiRoutes } from './index.js';
+import { indicatorAreaDataSchema, indicatorDetailSchema } from './contract.ts';
+import { publicApiRoutes } from './index.ts';
 
 const env = parseEnv(
   z.object({

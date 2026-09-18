@@ -10,7 +10,7 @@ import {
 import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
-import { MAX_SELECTED_AREAS } from '../selection-limits.js';
+import { MAX_SELECTED_AREAS } from '../selection-limits.ts';
 import {
   availableConfidenceLevels,
   availablePeriodTypes,
@@ -18,10 +18,10 @@ import {
   dimensionValues,
   filterObservations,
   type PeriodType,
-} from './data.js';
-import { allDataCsv, trendCsv } from './download.js';
-import type { BenchmarkGeography, IndicatorAreaData } from './loader.js';
-import { trendTableModel } from './trend.js';
+} from './data.ts';
+import { allDataCsv, trendCsv } from './download.ts';
+import type { BenchmarkGeography, IndicatorAreaData } from './loader.ts';
+import { trendTableModel } from './trend.ts';
 
 const ENGLAND = 'E92000001';
 

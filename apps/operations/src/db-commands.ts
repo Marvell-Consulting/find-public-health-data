@@ -18,8 +18,8 @@ import {
   seedDummyTables,
 } from '@fphd/db/operations';
 
-import type { CommandContext } from './commands.js';
-import type { Config } from './load-config.js';
+import type { CommandContext } from './commands.ts';
+import type { Config } from './load-config.ts';
 
 /**
  * The role names are fixed — the APIs connect as `public_api` and `internal_api`, and only

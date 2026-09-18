@@ -19,7 +19,7 @@ import {
   periodLabel,
   segmentLabel,
   trendSeries,
-} from './data.js';
+} from './data.ts';
 
 function obs(overrides = {}) {
   return {
