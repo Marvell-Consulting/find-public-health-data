@@ -4,7 +4,7 @@ import type { LoaderFunctionArgs } from 'react-router';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { loadIndicatorSearch } from './search-loader';
+import { loadIndicatorSearch } from './search-loader.js';
 
 function loaderArgs(get: ReturnType<typeof vi.fn>, url: string): LoaderFunctionArgs {
   const context = new RouterContextProvider();
@@ -39,5 +39,14 @@ describe('indicator search loader', () => {
       expect.anything(),
     );
     expect(await response.json()).toEqual({ indicators });
+  });
+
+  it('uses the API query length limit', async () => {
+    const get = vi.fn().mockResolvedValue({ indicators: [] });
+    await loadIndicatorSearch(
+      loaderArgs(get, `http://localhost/indicators/search?q=${'a'.repeat(300)}`),
+    );
+
+    expect(get).toHaveBeenCalledWith(`/api/indicators?q=${'a'.repeat(200)}`, expect.anything());
   });
 });

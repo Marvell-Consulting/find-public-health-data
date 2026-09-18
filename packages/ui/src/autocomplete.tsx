@@ -11,7 +11,7 @@ export interface AutocompleteOption {
 }
 
 type AutocompleteProps = {
-  onInputChange?: () => void;
+  onInputChange?: (value: string) => void;
 } & (
   | {
       label: string;
@@ -114,8 +114,8 @@ export function Autocomplete({
       searching = false;
     };
     const onInput = (event: Event) => {
-      callbacks.current.onInputChange?.();
       const target = event.target as HTMLInputElement;
+      callbacks.current.onInputChange?.(target.value);
       if (!isLocalMode && target.value.trim().length < 2) {
         cancelPending();
       }

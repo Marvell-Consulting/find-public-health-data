@@ -1,6 +1,9 @@
 import {
   areaDisplayGroupListSchema,
   areaLookupListSchema,
+  DEFAULT_AREA_SEARCH_RESULTS,
+  MAX_AREA_NAME_LENGTH,
+  MAX_AREA_PREVIEW,
 } from '@fphd/public-api-features/contract';
 import type { ApiClient } from '@fphd/web-server/api-client';
 
@@ -12,8 +15,6 @@ export interface GeographyOptions {
   error: boolean;
 }
 
-const PREVIEW_LIMIT = 101;
-
 async function loadGeographyPreviews(
   api: ApiClient,
   levels: string[],
@@ -21,7 +22,7 @@ async function loadGeographyPreviews(
   if (levels.length === 0) return [];
   const query = levels.map((name) => `displayGroup=${encodeURIComponent(name)}`).join('&');
   const groups = await api.get(
-    `/api/areas?${query}&limit=${PREVIEW_LIMIT}`,
+    `/api/areas?${query}&limit=${MAX_AREA_PREVIEW}`,
     areaDisplayGroupListSchema,
   );
   return levels.flatMap((name) =>
@@ -35,19 +36,19 @@ export async function findGeographyGroups(
   api: ApiClient,
   { query = '', level = '' }: { query?: string; level?: string },
 ): Promise<GeographyOptions['groups']> {
-  if (level.length > 100) return [];
+  if (level.length > MAX_AREA_NAME_LENGTH) return [];
   if (level) {
     const groups = await api.get(
-      `/api/areas?displayGroup=${encodeURIComponent(level)}&limit=${PREVIEW_LIMIT}`,
+      `/api/areas?displayGroup=${encodeURIComponent(level)}&limit=${MAX_AREA_PREVIEW}`,
       areaDisplayGroupListSchema,
     );
     return groups.map(({ displayGroup, areas }) => ({ name: displayGroup, areas }));
   }
 
-  const search = query.trim().slice(0, 100);
+  const search = query.trim().slice(0, MAX_AREA_NAME_LENGTH);
   if (!search) return [];
   const matches = await api.get(
-    `/api/areas/search?q=${encodeURIComponent(search)}&limit=50`,
+    `/api/areas/search?q=${encodeURIComponent(search)}&limit=${DEFAULT_AREA_SEARCH_RESULTS}`,
     areaLookupListSchema,
   );
   const byLevel = new Map<string, { code: string; name: string }[]>();
@@ -67,7 +68,7 @@ export async function loadGeographyOptions(
 ): Promise<GeographyOptions> {
   const requestedLevel = params.get('geo-level') ?? '';
   const level = levels.includes(requestedLevel) ? requestedLevel : '';
-  const query = level ? '' : (params.get('geo-q')?.trim().slice(0, 100) ?? '');
+  const query = level ? '' : (params.get('geo-q')?.trim().slice(0, MAX_AREA_NAME_LENGTH) ?? '');
   const result: GeographyOptions = { query, level, groups: [], error: false };
   const previews = loadGeographyPreviews(api, levels).catch(() => {
     // The picker can still fetch a level when it expands if its page preview failed.

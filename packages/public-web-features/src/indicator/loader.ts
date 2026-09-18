@@ -2,12 +2,17 @@ import {
   areaDisplayGroupListSchema,
   areaLookupListSchema,
   areaParentListSchema,
+  DEFAULT_INDICATOR_SEARCH_RESULTS,
   displayGroupListSchema,
   indicatorAreaDataListSchema,
   indicatorAreaDataSchema,
   indicatorDetailSchema,
   indicatorListResponseSchema,
   indicatorRangeSchema,
+  MAX_AREA_GROUPS_PER_REQUEST,
+  MAX_AREA_NAME_LENGTH,
+  MAX_INDICATOR_QUERY_LENGTH,
+  pickAreaCodes,
 } from '@fphd/public-api-features/contract';
 import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
@@ -90,7 +95,10 @@ function selectedIndicatorIds(url: URL, routeParam: string | undefined): number[
  * segment — React Router decodes %2F inside a single dynamic segment, so an un-encoded id
  * of '../topics' would normalise the request onto a different API route entirely.
  */
-export async function loadIndicator({ context, params, request }: LoaderFunctionArgs) {
+async function loadIndicatorData(
+  { context, params, request }: LoaderFunctionArgs,
+  includePageData: boolean,
+) {
   const url = new URL(request.url);
 
   if (params.fingertipsId !== undefined && !/^\d+$/.test(params.fingertipsId)) {
@@ -101,17 +109,18 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
 
   // De-duplicated: a hand-edited URL repeating a code would otherwise fetch it twice and
   // render it twice.
-  const requestedAreaCodes = [
-    ...new Set(
-      url.searchParams
-        .getAll('as')
-        .filter((code) => /^[A-Z0-9]+$/i.test(code) && code !== DEFAULT_AREA_CODE),
-    ),
-  ];
+  const requestedAreaCodes = pickAreaCodes(
+    url.searchParams.getAll('as'),
+    Number.POSITIVE_INFINITY,
+  ).filter((code) => code !== DEFAULT_AREA_CODE);
   const areaCodes = requestedAreaCodes.slice(0, MAX_SELECTED_AREAS);
   const requestedLevels = [
-    ...new Set(url.searchParams.getAll('als').filter((l) => l !== '' && l.length <= 100)),
-  ].slice(0, 10);
+    ...new Set(
+      url.searchParams
+        .getAll('als')
+        .filter((level) => level !== '' && level.length <= MAX_AREA_NAME_LENGTH),
+    ),
+  ].slice(0, MAX_AREA_GROUPS_PER_REQUEST);
 
   const api = context.get(apiContext);
 
@@ -154,10 +163,14 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
       : Promise.resolve([]),
     // The user-facing levels live on area_type now; the list validates `als` values after
     // the fact (level expansion tolerates unknown groups) and feeds the tree.
-    api.get('/api/areas/display-groups', displayGroupListSchema),
+    includePageData
+      ? api.get('/api/areas/display-groups', displayGroupListSchema)
+      : Promise.resolve([]),
   ]);
   const areaLevels = requestedLevels.filter((level) => displayGroups.includes(level));
-  const geographyOptions = await loadGeographyOptions(api, url.searchParams, displayGroups);
+  const geographyOptions = includePageData
+    ? await loadGeographyOptions(api, url.searchParams, displayGroups)
+    : undefined;
 
   const selectedAreas = lookedUp.map(({ code, name, areaType: typeName, displayGroup }) => ({
     code,
@@ -209,15 +222,17 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
     url.searchParams.getAll('is').filter((value) => /^\d+$/.test(value)),
   ).size;
   // `find` is the quicksearch form's no-script round trip; matches render as add links.
-  const findSubject = url.searchParams.get('find')?.trim().slice(0, 200) ?? '';
-  const findResults = findSubject
-    ? (
-        await api.get(
-          `/api/indicators?q=${encodeURIComponent(findSubject)}&limit=20`,
-          indicatorListResponseSchema,
-        )
-      ).indicators
-    : [];
+  const findSubject =
+    url.searchParams.get('find')?.trim().slice(0, MAX_INDICATOR_QUERY_LENGTH) ?? '';
+  const findResults =
+    includePageData && findSubject
+      ? (
+          await api.get(
+            `/api/indicators?q=${encodeURIComponent(findSubject)}&limit=${DEFAULT_INDICATOR_SEARCH_RESULTS}`,
+            indicatorListResponseSchema,
+          )
+        ).indicators
+      : [];
   const selected = await Promise.all(
     fingertipsIds.map(async (id) => {
       const dataFor = (codes: string[]) =>
@@ -267,4 +282,13 @@ export async function loadIndicator({ context, params, request }: LoaderFunction
     indicatorsLimited: requestedIndicatorCount > MAX_SELECTED_INDICATORS,
     selection: { areaCodes, areaLevels, fingertipsIds } satisfies IndicatorSelection,
   };
+}
+
+export async function loadIndicator(args: LoaderFunctionArgs) {
+  return loadIndicatorData(args, true);
+}
+
+export async function loadComparisonData(args: LoaderFunctionArgs) {
+  const { selected, benchmarkGeography } = await loadIndicatorData(args, false);
+  return { selected, benchmarkGeography };
 }

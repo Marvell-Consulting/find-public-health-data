@@ -18,6 +18,31 @@ test('comparison rows stay the same height when the range is shown', async ({ pa
   expect(await lastRow.evaluate((row) => row.getBoundingClientRect().height)).toBe(before);
 });
 
+test('option-only indicator-page changes preserve transient filter state', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/indicators/108');
+  await page.locator('.autocomplete__wrapper').first().waitFor({ state: 'attached' });
+  const geography = page.locator('.fphd-geo-alt');
+  await geography.getByRole('button', { name: 'Expand Local authorities' }).click();
+  await expect(geography.getByRole('button', { name: 'Collapse Local authorities' })).toBeVisible();
+  const quicksearch = page.getByRole('combobox', { name: 'Search for an indicator' });
+  await quicksearch.fill('diabet');
+
+  await page.getByRole('tab', { name: 'Table' }).click();
+  await expect(page).toHaveURL(/tab-108=table/);
+
+  await expect(quicksearch).toHaveValue('diabet');
+  await expect(geography.getByRole('button', { name: 'Collapse Local authorities' })).toBeVisible();
+  await expectNoAccessibilityViolations(page, testInfo);
+
+  await geography.getByRole('checkbox', { name: 'County Durham' }).check();
+  await page.getByRole('button', { name: 'Add selected geographies (1)' }).click();
+  await expect(page).toHaveURL(/as=E06000047/);
+  await expect(quicksearch).toHaveValue('');
+  await expect(geography.getByRole('button', { name: 'Expand Local authorities' })).toBeVisible();
+});
+
 for (const javaScriptEnabled of [true, false]) {
   test.describe(`indicator options with JavaScript ${javaScriptEnabled ? 'enabled' : 'disabled'}`, () => {
     test.use({ javaScriptEnabled });

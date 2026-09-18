@@ -1,4 +1,4 @@
-import { and, asc, eq, ilike, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, eq, ilike, inArray, isNotNull, isNull, lte, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import type { Database } from './client.js';
@@ -19,7 +19,7 @@ export async function listDisplayGroups(db: Database): Promise<string[]> {
   return rows.flatMap(({ name }) => (name === null ? [] : [name]));
 }
 
-/** Current areas across every type of one display group, ordered by name. */
+/** Current areas across every type of one display group, ordered by name and code. */
 export async function listAreasByGroup(
   db: Database,
   displayGroup: string,
@@ -30,8 +30,40 @@ export async function listAreasByGroup(
     .from(area)
     .innerJoin(areaType, eq(area.areaTypeId, areaType.id))
     .where(and(eq(areaType.displayGroup, displayGroup), isNull(area.validTo)))
-    .orderBy(asc(area.name));
+    .orderBy(asc(area.name), asc(area.code));
   return limit === undefined ? query : query.limit(limit);
+}
+
+/** Bounded previews for several display groups in one repository query. */
+export async function listAreasByGroups(
+  db: Database,
+  displayGroups: string[],
+  limit?: number,
+): Promise<{ displayGroup: string; areas: AreaSummary[] }[]> {
+  if (displayGroups.length === 0) return [];
+  const ranked = db
+    .select({
+      displayGroup: areaType.displayGroup,
+      code: area.code,
+      name: area.name,
+      rank: sql<number>`row_number() over (partition by ${areaType.displayGroup} order by ${area.name}, ${area.code})`.as(
+        'rank',
+      ),
+    })
+    .from(area)
+    .innerJoin(areaType, eq(area.areaTypeId, areaType.id))
+    .where(and(inArray(areaType.displayGroup, displayGroups), isNull(area.validTo)))
+    .as('ranked_areas');
+  const rows = await db
+    .select({ displayGroup: ranked.displayGroup, code: ranked.code, name: ranked.name })
+    .from(ranked)
+    .where(limit === undefined ? undefined : lte(ranked.rank, limit))
+    .orderBy(asc(ranked.displayGroup), asc(ranked.name), asc(ranked.code));
+  const groups = new Map(displayGroups.map((displayGroup) => [displayGroup, [] as AreaSummary[]]));
+  for (const row of rows) {
+    if (row.displayGroup) groups.get(row.displayGroup)?.push({ code: row.code, name: row.name });
+  }
+  return [...groups].map(([displayGroup, areas]) => ({ displayGroup, areas }));
 }
 
 export interface AreaParent {

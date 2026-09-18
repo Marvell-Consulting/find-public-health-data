@@ -1,7 +1,7 @@
 import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
 
-import { findGeographyGroups } from '../geography/loader';
+import { findGeographyGroups } from '../geography/loader.js';
 
 export async function loadGeography({ context, request }: LoaderFunctionArgs) {
   const url = new URL(request.url);

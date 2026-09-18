@@ -2,13 +2,13 @@ import { Button, Details, Radios, Select } from '@fphd/ui';
 import { type ReactNode, useId } from 'react';
 import { Form, useLocation, useNavigate } from 'react-router';
 
-import type { BenchmarkChoice } from './comparison';
+import type { BenchmarkChoice } from './comparison.js';
 import {
   type ConfidenceLevel,
   inequalityCategoryOptions,
   type PeriodType,
   periodTypeLabel,
-} from './data';
+} from './data.js';
 
 /** The confidence-interval choices, narrowed to what the indicator publishes. */
 export function confidenceOptions(levels: string[]) {

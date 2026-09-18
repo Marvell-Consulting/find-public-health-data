@@ -1,8 +1,8 @@
 import { createDocumentMeta } from '@fphd/ui';
 import { type ShouldRevalidateFunctionArgs, useLoaderData } from 'react-router';
 
-import { loadIndicator } from './loader';
-import { IndicatorPage } from './page';
+import { loadIndicator } from './loader.js';
+import { IndicatorPage } from './page.js';
 
 export const loader = loadIndicator;
 

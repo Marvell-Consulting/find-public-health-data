@@ -109,7 +109,7 @@ test('search matches a Fingertips ID and taxonomy slugs', async ({ page }) => {
 test('ticking a result and clicking View selected indicators lands on /indicators?is=...', async ({
   page,
 }) => {
-  await page.goto('/search');
+  await ready(page);
 
   await page.getByRole('heading', { name: /Select from/ }).waitFor();
 
@@ -397,12 +397,120 @@ test('geography search reports failures, retries and empty results', async ({ pa
   );
   const input = geography.getByRole('searchbox', { name: 'Add geographies' });
   await input.fill('Cornwall');
-  await expect(geography.getByRole('status')).toContainText('Geography search is not working');
+  await expect(geography.locator('.fphd-geo-alt__tree').getByRole('status')).toContainText(
+    'Geography search is not working',
+  );
   await page.unroute('**/geographies?*');
   await geography.getByRole('button', { name: 'Try again', exact: true }).click();
   await expect(geography.getByRole('checkbox', { name: 'Cornwall', exact: true })).toBeVisible();
   await input.fill('zzzzzzzzzzzz');
-  await expect(geography.getByRole('status')).toContainText('No geographies found');
+  await expect(geography.locator('.fphd-geo-alt__tree').getByRole('status')).toContainText(
+    'No geographies found',
+  );
+});
+
+test('geography failure stays visible after scrolling previous results', async ({ page }) => {
+  await ready(page);
+  const geography = card(page, 'Geography');
+  await geography.getByRole('button', { name: /Expand$/ }).click();
+  const tree = geography.locator('.fphd-geo-alt__tree');
+  const input = geography.getByRole('searchbox', { name: 'Add geographies' });
+  await input.fill('E');
+  await expect(tree.getByRole('checkbox').first()).toBeVisible();
+  await tree.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect.poll(() => tree.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  await page.route('**/geographies?*', (route) =>
+    route.fulfill({ status: 502, body: 'Unavailable' }),
+  );
+  await input.fill('Cornwall');
+  await expect(tree.getByRole('status').first()).toContainText('Geography search is not working');
+  await expect.poll(() => tree.evaluate((element) => element.scrollTop)).toBe(0);
+  const retry = tree.getByRole('button', { name: 'Try again' });
+  expect(
+    await retry.evaluate((button) => {
+      const tree = button.closest('.fphd-geo-alt__tree');
+      if (!tree) return false;
+      return button.getBoundingClientRect().bottom <= tree.getBoundingClientRect().bottom;
+    }),
+  ).toBe(true);
+});
+
+test('filter navigation preserves unsubmitted search text', async ({ page }) => {
+  await ready(page);
+  const keyword = page.getByRole('searchbox', { name: 'Search by keywords' });
+  await keyword.fill('unfinished keyword');
+  const frameworks = card(page, 'Frameworks');
+  await frameworks.getByRole('button', { name: /Expand$/ }).click();
+  const framework = frameworks.getByRole('combobox', { name: 'Search for a framework' });
+  await framework.fill('unfinished framework');
+  const geography = card(page, 'Geography');
+  await geography.getByRole('button', { name: /Expand$/ }).click();
+  await geography.getByRole('button', { name: 'Expand Local authorities' }).click();
+  await geography.getByRole('checkbox', { name: 'County Durham' }).check();
+  await geography.getByRole('button', { name: 'Add selected geographies (1)' }).click();
+  await expect(page).toHaveURL(/ga=E06000047/);
+  await expect(keyword).toHaveValue('unfinished keyword');
+  await expect(framework).toHaveValue('unfinished framework');
+});
+
+test('geography searches keep existing areas visible while loading', async ({ page }, testInfo) => {
+  await ready(page);
+  const geography = card(page, 'Geography');
+  await geography.getByRole('button', { name: /Expand$/ }).click();
+  await geography.getByRole('button', { name: 'Expand Local authorities' }).click();
+  await expect(geography.getByRole('checkbox', { name: 'County Durham' })).toBeVisible();
+  let finishSearch: (() => Promise<void>) | undefined;
+  await page.route('**/geographies?*', (route) => {
+    finishSearch = () => route.fulfill({ json: { groups: [] } });
+  });
+  const requested = page.waitForRequest('**/geographies?*');
+  await geography.getByRole('searchbox', { name: 'Add geographies' }).fill('missing-place');
+  await requested;
+
+  await expect(geography.getByRole('checkbox', { name: 'County Durham' })).toBeVisible();
+  await expect(geography.locator('.fphd-geo-alt__tree').getByRole('status')).toContainText(
+    'Finding geographies',
+  );
+  await expect(
+    geography.locator('.fphd-geo-alt__tree').getByRole('status').locator('p'),
+  ).toHaveClass(/govuk-visually-hidden/);
+  await expect(geography.getByText('No geographies found')).toHaveCount(0);
+  await finishSearch?.();
+  await expect(geography.locator('.fphd-geo-alt__tree').getByRole('status')).toContainText(
+    'No geographies found',
+  );
+  await expectNoAccessibilityViolations(page, testInfo);
+});
+
+test('geography searches keep previous results visible while loading', async ({ page }) => {
+  await ready(page);
+  const geography = card(page, 'Geography');
+  await geography.getByRole('button', { name: /Expand$/ }).click();
+  const input = geography.getByRole('searchbox', { name: 'Add geographies' });
+  await input.fill('Cornwall');
+  await expect(geography.getByRole('checkbox', { name: 'Cornwall', exact: true })).toBeVisible();
+
+  let finishSearch: (() => Promise<void>) | undefined;
+  await page.route('**/geographies?*', (route) => {
+    finishSearch = () => route.fulfill({ json: { groups: [] } });
+  });
+  const requested = page.waitForRequest('**/geographies?*');
+  await input.fill('missing-place');
+  await requested;
+
+  await expect(geography.getByRole('checkbox', { name: 'Cornwall', exact: true })).toBeVisible();
+  await finishSearch?.();
+  await expect(geography.locator('.fphd-geo-alt__tree').getByRole('status')).toContainText(
+    'No geographies found',
+  );
+
+  const nextRequest = page.waitForRequest('**/geographies?*');
+  await input.fill('another-place');
+  await nextRequest;
+  await expect(geography.getByRole('button', { name: 'Expand Local authorities' })).toBeVisible();
+  await finishSearch?.();
 });
 
 test('a whole level exceeding the area limit shows a notice on the indicator view', async ({

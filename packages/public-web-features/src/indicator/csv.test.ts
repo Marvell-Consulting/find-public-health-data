@@ -4,7 +4,7 @@ import type { LoaderFunctionArgs } from 'react-router';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { loadIndicatorCsv } from './csv';
+import { loadIndicatorCsv } from './csv.js';
 
 const detail = {
   fingertipsId: 108,

@@ -4,7 +4,7 @@ import type { LoaderFunctionArgs } from 'react-router';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { loadIndicator } from './loader';
+import { loadComparisonData, loadIndicator } from './loader.js';
 
 // The loader asks for several shapes; one stub serves whichever the path implies.
 function api(get = vi.fn()) {
@@ -74,6 +74,18 @@ function loaderArgs(
 }
 
 describe('loadIndicator', () => {
+  it('loads comparison CSV data without quicksearch or geography picker requests', async () => {
+    const { client, get } = api();
+    const result = await loadComparisonData(
+      loaderArgs(client, {}, 'http://localhost/indicators/108/compare.csv?is=108&find=diabetes'),
+    );
+
+    expect(result.selected).toHaveLength(1);
+    expect(get.mock.calls.map(([path]) => path)).not.toContain('/api/areas/display-groups');
+    expect(get.mock.calls.some(([path]) => String(path).includes('limit=101'))).toBe(false);
+    expect(get.mock.calls.some(([path]) => String(path).includes('q=diabetes'))).toBe(false);
+  });
+
   it('loads exactly the areas represented by the selection, plus England, at the cap', async () => {
     const { client, get } = api();
     const codes = Array.from({ length: 21 }, (_, i) => `E${String(i).padStart(8, '0')}`);

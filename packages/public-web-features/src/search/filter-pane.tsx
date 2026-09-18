@@ -7,7 +7,7 @@ import {
   FilterChips,
   SearchField,
 } from '@fphd/ui';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Form, Link, useLocation, useNavigate } from 'react-router';
 import type { GeographyOptions } from '../geography/loader.js';
 import { MAX_SELECTED_AREAS } from '../selection-limits.js';
@@ -104,6 +104,8 @@ interface FilterDimensionFooterProps {
   options: AutocompleteOption[];
   onAdd: (value: string) => void;
   state: SearchState;
+  draftValue: string | undefined;
+  onDraftChange: (value: string) => void;
 }
 
 function FilterDimensionFooter({
@@ -114,6 +116,8 @@ function FilterDimensionFooter({
   options,
   onAdd,
   state,
+  draftValue,
+  onDraftChange,
 }: FilterDimensionFooterProps) {
   const [pending, setPending] = useState<AutocompleteOption | null>(null);
 
@@ -122,12 +126,16 @@ function FilterDimensionFooter({
       <Form action="/search" method="get" replace preventScrollReset>
         <HiddenFilters state={state} />
         <Autocomplete
+          defaultValue={draftValue ?? ''}
           label={autocompleteLabel}
           name={`${param}-add`}
           noResultsMessage={noResultsMessage}
           options={options}
           onSelect={(opt) => setPending(opt)}
-          onInputChange={() => setPending(null)}
+          onInputChange={(value) => {
+            setPending(null);
+            onDraftChange(value);
+          }}
         />
         <noscript>
           <Button
@@ -164,9 +172,41 @@ export function SearchFilterPane({
 }: SearchFilterPaneProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [keywordReset, setKeywordReset] = useState(0);
+  const drafts = useRef<Record<string, string>>(
+    (location.state as { searchDrafts?: Record<string, string> } | null)?.searchDrafts ?? {},
+  );
+  const committed = useRef<Record<string, string>>({
+    q: state.q,
+    ...Object.fromEntries(
+      DIMENSIONS.map((dim) => [dim.param, JSON.stringify(state[dim.stateKey])]),
+    ),
+  });
+  if (committed.current.q !== state.q) {
+    delete drafts.current.q;
+    committed.current.q = state.q;
+  }
+  for (const dim of DIMENSIONS) {
+    const selected = JSON.stringify(state[dim.stateKey]);
+    if (committed.current[dim.param] !== selected) {
+      delete drafts.current[dim.param];
+      committed.current[dim.param] = selected;
+    }
+  }
 
   const nav = (next: SearchState) => {
-    void navigate(searchUrl(next), { replace: true, preventScrollReset: true });
+    const searchDrafts = { ...drafts.current };
+    for (const dim of DIMENSIONS) {
+      if (JSON.stringify(state[dim.stateKey]) !== JSON.stringify(next[dim.stateKey])) {
+        delete searchDrafts[dim.param];
+      }
+    }
+    drafts.current = searchDrafts;
+    void navigate(searchUrl(next), {
+      replace: true,
+      preventScrollReset: true,
+      state: { searchDrafts },
+    });
   };
 
   const addToList = (key: keyof SearchState, value: string) => {
@@ -176,7 +216,9 @@ export function SearchFilterPane({
   };
 
   const topicLabels = new Map(facets.topics.map((t) => [t.slug, t.title]));
-  const classifLabels = new Map(facets.classifications.map((c) => [c.slug, c.name]));
+  const classifLabels = new Map(
+    facets.classifications.map((c) => [`${c.dimension}:${c.slug}`, c.name]),
+  );
 
   const optionsForDimension = (dim: (typeof DIMENSIONS)[number]): AutocompleteOption[] => {
     if (dim.isTopicDimension) {
@@ -196,7 +238,8 @@ export function SearchFilterPane({
 
   const labelOf = (dim: (typeof DIMENSIONS)[number], value: string): string => {
     if (dim.isTopicDimension) return topicLabels.get(value) ?? value;
-    if (dim.classificationDimension) return classifLabels.get(value) ?? value;
+    if (dim.classificationDimension)
+      return classifLabels.get(`${dim.classificationDimension}:${value}`) ?? value;
     return value;
   };
 
@@ -235,7 +278,11 @@ export function SearchFilterPane({
 
   const renderDimensionFooter = (dim: (typeof DIMENSIONS)[number]) => (
     <FilterDimensionFooter
-      key={`${dim.param}-${location.key}`}
+      key={`${dim.param}-${JSON.stringify(state[dim.stateKey])}`}
+      draftValue={drafts.current[dim.param]}
+      onDraftChange={(value) => {
+        drafts.current[dim.param] = value;
+      }}
       addButtonLabel={dim.addButtonLabel}
       autocompleteLabel={dim.autocompleteLabel}
       noResultsMessage={dim.noResultsMessage}
@@ -250,20 +297,38 @@ export function SearchFilterPane({
 
   return (
     <>
-      <Form action="/search" method="get" replace>
+      <Form
+        action="/search"
+        method="get"
+        replace
+        onChangeCapture={(event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLInputElement)) return;
+          if (target.name === 'q') drafts.current.q = target.value;
+        }}
+      >
         <HiddenFilters except="q" state={state} />
         <div className="govuk-!-margin-top-4">
           <SearchField
-            key={location.key}
+            key={`${state.q}-${keywordReset}`}
             action={
-              <Link className="govuk-link govuk-body-s" preventScrollReset replace to={clearQUrl}>
+              <Link
+                className="govuk-link govuk-body-s"
+                onClick={() => {
+                  delete drafts.current.q;
+                  setKeywordReset((value) => value + 1);
+                }}
+                preventScrollReset
+                replace
+                to={clearQUrl}
+              >
                 Clear search
               </Link>
             }
-            defaultValue={state.q}
             id="search-q"
             label="Search by keywords"
             name="q"
+            defaultValue={drafts.current.q ?? state.q}
           />
         </div>
       </Form>
@@ -293,7 +358,7 @@ export function SearchFilterPane({
         active={geoActive || Boolean(geographyOptions?.query || geographyOptions?.level)}
         footer={
           <SearchGeographyPicker
-            key={location.key}
+            key={JSON.stringify([state.gaCodes, state.geoLevels])}
             state={state}
             displayGroups={displayGroups}
             geographyOptions={geographyOptions}

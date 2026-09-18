@@ -4,6 +4,11 @@ import {
   displayGroupListSchema,
   indicatorFacetsSchema,
   indicatorSearchResultSchema,
+  MAX_FILTER_LABEL_LENGTH,
+  MAX_FILTER_VALUE_LENGTH,
+  MAX_FILTER_VALUES,
+  MAX_INDICATOR_QUERY_LENGTH,
+  pickAreaCodes,
 } from '@fphd/public-api-features/contract';
 import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
@@ -18,15 +23,11 @@ export type {
   IndicatorSearchRow,
 } from '@fphd/public-api-features/contract';
 
-const AREA_CODE_RE = /^[A-Z0-9]+$/i;
-const MAX_QUERY_LENGTH = 200;
-const MAX_FILTER_LABEL_LENGTH = 500;
-
 function pickStrings(params: URLSearchParams, key: string): string[] {
-  const maxLength = key === 'src' ? MAX_FILTER_LABEL_LENGTH : 100;
+  const maxLength = key === 'src' ? MAX_FILTER_LABEL_LENGTH : MAX_FILTER_VALUE_LENGTH;
   return [...new Set(params.getAll(key).filter((v) => v !== '' && v.length <= maxLength))].slice(
     0,
-    100,
+    MAX_FILTER_VALUES,
   );
 }
 
@@ -63,14 +64,12 @@ export async function loadSearch({ context, request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const params = url.searchParams;
   const api = context.get(apiContext);
-  const query = params.get('q')?.trim().slice(0, MAX_QUERY_LENGTH) ?? '';
+  const query = params.get('q')?.trim().slice(0, MAX_INDICATOR_QUERY_LENGTH) ?? '';
 
   const addParams = DIMENSIONS.map((d) => d.param);
   const hasAddControl = addParams.some((p) => params.has(`${p}-add`));
 
-  const rawGa = pickStrings(params, 'ga')
-    .filter((code) => AREA_CODE_RE.test(code))
-    .slice(0, MAX_SELECTED_AREAS);
+  const rawGa = pickAreaCodes(params.getAll('ga'), MAX_SELECTED_AREAS);
 
   const [displayGroups, lookedUp] = await Promise.all([
     api.get('/api/areas/display-groups', displayGroupListSchema),
@@ -161,7 +160,6 @@ export async function loadSearch({ context, request }: LoaderFunctionArgs) {
     searchResult,
     geographyOptions,
     areasLimited:
-      pickStrings(params, 'ga').filter((code) => AREA_CODE_RE.test(code)).length >
-      MAX_SELECTED_AREAS,
+      pickAreaCodes(params.getAll('ga'), Number.POSITIVE_INFINITY).length > MAX_SELECTED_AREAS,
   };
 }

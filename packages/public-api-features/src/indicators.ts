@@ -7,19 +7,21 @@ import type {
   IndicatorFacets,
   IndicatorSearchResult,
 } from './contract.js';
+import {
+  DEFAULT_INDICATOR_SEARCH_RESULTS,
+  MAX_FILTER_LABEL_LENGTH,
+  MAX_FILTER_VALUE_LENGTH,
+  MAX_FILTER_VALUES,
+  MAX_INDICATOR_FILTER_RESULTS,
+  MAX_INDICATOR_QUERY_LENGTH,
+  MAX_INDICATOR_SEARCH_RESULTS,
+  MAX_SELECTED_AREAS,
+  pickAreaCodes,
+} from './contract.js';
 
 const DEFAULT_AREA_CODE = 'E92000001';
 
-const DEFAULT_SEARCH_LIMIT = 20;
-const MAX_SEARCH_LIMIT = 100;
-// Longer than any indicator name, so truncation can never hide a legitimate match.
-const MAX_QUERY_LENGTH = 200;
-// Source values are labels rather than slugs, but still need a finite request boundary.
-const MAX_FILTER_LABEL_LENGTH = 500;
-const SEARCH_PAGE_LIMIT = 200;
-const AREA_CODE_RE = /^[A-Z0-9]+$/i;
-
-function pickStrings(value: unknown, maxLength = 100): string[] {
+function pickStrings(value: unknown, maxLength = MAX_FILTER_VALUE_LENGTH): string[] {
   return [
     ...new Set(
       (Array.isArray(value) ? value : [value]).filter(
@@ -27,7 +29,7 @@ function pickStrings(value: unknown, maxLength = 100): string[] {
           typeof entry === 'string' && entry !== '' && entry.length <= maxLength,
       ),
     ),
-  ].slice(0, 100);
+  ].slice(0, MAX_FILTER_VALUES);
 }
 
 export function indicatorsRouter(indicators: Repositories['indicators']): Router {
@@ -40,7 +42,7 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
 
   router.get('/api/indicators/search', async (request, response) => {
     const { q } = request.query;
-    const query = typeof q === 'string' ? q.trim().slice(0, MAX_QUERY_LENGTH) : '';
+    const query = typeof q === 'string' ? q.trim().slice(0, MAX_INDICATOR_QUERY_LENGTH) : '';
 
     const filters: IndicatorSearchFilters = {
       query,
@@ -51,11 +53,11 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
       populations: pickStrings(request.query.pg),
       inequalities: pickStrings(request.query.eq),
       displayGroups: pickStrings(request.query.displayGroup),
-      areaCodes: pickStrings(request.query.areaCode).filter((code) => AREA_CODE_RE.test(code)),
+      areaCodes: pickAreaCodes(request.query.areaCode, MAX_SELECTED_AREAS),
       sources: pickStrings(request.query.src, MAX_FILTER_LABEL_LENGTH),
       valueTypes: pickStrings(request.query.vt),
       yearTypes: pickStrings(request.query.per),
-      limit: SEARCH_PAGE_LIMIT,
+      limit: MAX_INDICATOR_FILTER_RESULTS,
     };
 
     const result: IndicatorSearchResult = await indicators.searchWithFilters(filters);
@@ -64,12 +66,12 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
 
   router.get('/api/indicators', async (request, response) => {
     const { q, limit } = request.query;
-    const query = typeof q === 'string' ? q.trim().slice(0, MAX_QUERY_LENGTH) : '';
+    const query = typeof q === 'string' ? q.trim().slice(0, MAX_INDICATOR_QUERY_LENGTH) : '';
     if (query) {
       const capped =
         typeof limit === 'string' && /^[1-9]\d*$/.test(limit)
-          ? Math.min(Number(limit), MAX_SEARCH_LIMIT)
-          : DEFAULT_SEARCH_LIMIT;
+          ? Math.min(Number(limit), MAX_INDICATOR_SEARCH_RESULTS)
+          : DEFAULT_INDICATOR_SEARCH_RESULTS;
       response.status(200).json({ indicators: await indicators.search(query, capped) });
       return;
     }
@@ -80,9 +82,7 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
     const { fingertipsId } = request.params;
     // Repeatable, so a page comparing many areas asks once rather than once per area.
     const requested = request.query.areaCode ?? DEFAULT_AREA_CODE;
-    const areaCodes = [...new Set(Array.isArray(requested) ? requested : [requested])].filter(
-      (code): code is string => typeof code === 'string' && /^[A-Z0-9]+$/i.test(code),
-    );
+    const areaCodes = pickAreaCodes(requested);
 
     if (!/^\d+$/.test(fingertipsId) || areaCodes.length === 0) {
       response.status(404).json({ error: 'not_found' });

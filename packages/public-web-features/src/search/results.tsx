@@ -27,7 +27,7 @@ function ResultMeta({ indicator }: { indicator: IndicatorSearchRow }) {
   const classified = (dimension: string) =>
     indicator.classifications
       .filter((c) => c.dimension === dimension)
-      .map((c) => ({ key: c.slug, label: c.name }));
+      .map((c) => ({ key: `${c.dimension}:${c.slug}`, label: c.name }));
   const rows = [
     { key: 'Topics', items: indicator.topics.map((t) => ({ key: t.slug, label: t.title })) },
     { key: 'Indicator types', items: classified('indicator_type') },

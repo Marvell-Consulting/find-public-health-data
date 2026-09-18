@@ -5,11 +5,12 @@ import {
   indicatorAreaDataSchema,
   indicatorDetailSchema,
   indicatorRangeSchema,
+  pickAreaCodes,
 } from '@fphd/public-api-features/contract';
 import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
-import { MAX_SELECTED_AREAS } from '../selection-limits';
+import { MAX_SELECTED_AREAS } from '../selection-limits.js';
 import {
   availableConfidenceLevels,
   availablePeriodTypes,
@@ -17,10 +18,10 @@ import {
   dimensionValues,
   filterObservations,
   type PeriodType,
-} from './data';
-import { allDataCsv, trendCsv } from './download';
-import type { BenchmarkGeography, IndicatorAreaData } from './loader';
-import { trendTableModel } from './trend';
+} from './data.js';
+import { allDataCsv, trendCsv } from './download.js';
+import type { BenchmarkGeography, IndicatorAreaData } from './loader.js';
+import { trendTableModel } from './trend.js';
 
 const ENGLAND = 'E92000001';
 
@@ -38,11 +39,9 @@ export async function loadIndicatorCsv(
   }
 
   const url = new URL(request.url);
-  const pickedCodes = [
-    ...new Set(
-      url.searchParams.getAll('as').filter((code) => /^[A-Z0-9]+$/i.test(code) && code !== ENGLAND),
-    ),
-  ].slice(0, MAX_SELECTED_AREAS);
+  const pickedCodes = pickAreaCodes(url.searchParams.getAll('as'), Number.POSITIVE_INFINITY)
+    .filter((code) => code !== ENGLAND)
+    .slice(0, MAX_SELECTED_AREAS);
   const codesToLoad = [...pickedCodes, ENGLAND];
   const api = context.get(apiContext);
   const dataFor = (codes: string[]) =>

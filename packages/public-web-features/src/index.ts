@@ -1,5 +1,5 @@
-export { PublicHomePage } from './home/page';
-export { HomeRoute } from './home/route';
+export { PublicHomePage } from './home/page.js';
+export { HomeRoute } from './home/route.js';
 export type {
   AreaSummary,
   IndicatorAreaData,
@@ -8,13 +8,13 @@ export type {
   IndicatorSelection,
   IndicatorSummary,
   SelectedIndicator,
-} from './indicator/loader';
-export { IndicatorPage } from './indicator/page';
-export { IndicatorRoute } from './indicator/route';
-export { SearchRoute } from './search/route';
-export { SignInPage } from './sign-in/page';
-export { createSignInRoute } from './sign-in/route';
-export { TopicsRoute } from './topic/list-route';
-export type { TopicDetail, TopicSummary } from './topic/loader';
-export { TopicPage, TopicsPage } from './topic/pages';
-export { TopicRoute } from './topic/route';
+} from './indicator/loader.js';
+export { IndicatorPage } from './indicator/page.js';
+export { IndicatorRoute } from './indicator/route.js';
+export { SearchRoute } from './search/route.js';
+export { SignInPage } from './sign-in/page.js';
+export { createSignInRoute } from './sign-in/route.js';
+export { TopicsRoute } from './topic/list-route.js';
+export type { TopicDetail, TopicSummary } from './topic/loader.js';
+export { TopicPage, TopicsPage } from './topic/pages.js';
+export { TopicRoute } from './topic/route.js';

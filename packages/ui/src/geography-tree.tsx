@@ -67,7 +67,9 @@ export function GeographyTree({
     ),
   );
   const [searchGroups, setSearchGroups] = useState(fallback?.groups ?? []);
-  const [hasSearchResults, setHasSearchResults] = useState(Boolean(fallback?.query.trim()));
+  const [completedQuery, setCompletedQuery] = useState<string | null>(
+    fallback?.query.trim() && !fallback.error ? fallback.query.trim() : null,
+  );
   const [searchStatus, setSearchStatus] = useState<'idle' | 'loading' | 'error'>(
     fallback?.error ? 'error' : 'idle',
   );
@@ -77,6 +79,7 @@ export function GeographyTree({
   const [retry, setRetry] = useState(0);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const levelRequests = useRef(new Map<string, AbortController>());
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   const searching = query.trim() !== '';
 
@@ -84,7 +87,7 @@ export function GeographyTree({
     clearTimeout(searchTimer.current);
     if (!searching) {
       setSearchGroups([]);
-      setHasSearchResults(false);
+      setCompletedQuery(null);
       setSearchStatus('idle');
       return;
     }
@@ -99,7 +102,7 @@ export function GeographyTree({
         .then(({ groups }: { groups: { name: string; areas: GeographyArea[] }[] }) => {
           if (!controller.signal.aborted) {
             setSearchGroups(groups);
-            setHasSearchResults(true);
+            setCompletedQuery(query.trim());
             setSearchStatus('idle');
           }
         })
@@ -120,6 +123,10 @@ export function GeographyTree({
     },
     [],
   );
+
+  useEffect(() => {
+    if (searchStatus === 'error' && resultsRef.current) resultsRef.current.scrollTop = 0;
+  }, [searchStatus]);
 
   const toggleExpanded = (level: string) => {
     setExpanded((current) =>
@@ -175,7 +182,10 @@ export function GeographyTree({
     name: level,
     areas: Array.isArray(loaded[level]) ? (loaded[level] as GeographyArea[]) : [],
   }));
-  const showingSearchResults = searching && hasSearchResults;
+  const showingSearchResults =
+    searching &&
+    completedQuery !== null &&
+    (searchGroups.length > 0 || (completedQuery === query.trim() && searchStatus === 'idle'));
   const groups = showingSearchResults ? searchGroups : browseGroups;
   const shownFor = (group: { name: string; areas: GeographyArea[] }) =>
     // Ticked areas stay rendered past the cap, so their state remains visible.
@@ -216,35 +226,37 @@ export function GeographyTree({
           Select up to {maxAreaTicks} areas. England is included for comparison.
         </Hint>
       ) : null}
-      <div role="status">
-        {searchStatus === 'loading' ? (
-          <p className="govuk-visually-hidden">Finding geographies…</p>
-        ) : null}
-        {searchStatus === 'error' ? (
-          <p className="govuk-body-s">Geography search is not working right now. Try again.</p>
-        ) : null}
-        {searching && searchStatus === 'idle' && searchGroups.length === 0 ? (
-          <p className="govuk-body-s">No geographies found. Try a different name or area code.</p>
-        ) : null}
-      </div>
-      {searchStatus === 'error' ? (
-        <Button
-          classModifiers="secondary"
-          type="submit"
-          onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-            event.preventDefault();
-            setRetry((value) => value + 1);
-          }}
-        >
-          Try again
-        </Button>
-      ) : null}
       <fieldset className="fphd-geo-alt">
         <legend className="govuk-visually-hidden">Geographies grouped by level</legend>
-        <div className="fphd-geo-alt__tree">
+        <div className="fphd-geo-alt__tree" ref={resultsRef}>
+          <div role="status">
+            {searchStatus === 'loading' ? (
+              <p className="govuk-visually-hidden">Finding geographies…</p>
+            ) : null}
+            {searchStatus === 'error' ? (
+              <p className="govuk-body-s">Geography search is not working right now. Try again.</p>
+            ) : null}
+            {showingSearchResults && searchGroups.length === 0 ? (
+              <p className="govuk-body-s">
+                No geographies found. Try a different name or area code.
+              </p>
+            ) : null}
+          </div>
+          {searchStatus === 'error' ? (
+            <Button
+              classModifiers="secondary"
+              type="submit"
+              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                event.preventDefault();
+                setRetry((value) => value + 1);
+              }}
+            >
+              Try again
+            </Button>
+          ) : null}
           {groups.map((group) => {
             const isOpen = showingSearchResults || expanded.includes(group.name);
-            const isLoading = !searching && loaded[group.name] === 'loading';
+            const isLoading = !showingSearchResults && loaded[group.name] === 'loading';
             const groupId = `${idPrefix}-grp-${group.name.toLowerCase().replace(/\W+/g, '-')}`;
             const shown = shownFor(group);
             // The component's own `selected` is uncontrolled; `checked` rides the option
@@ -258,7 +270,7 @@ export function GeographyTree({
             return (
               <div key={group.name}>
                 <div className="fphd-geo-alt__group">
-                  {searching ? null : (
+                  {showingSearchResults ? null : (
                     <button
                       aria-expanded={isOpen}
                       className={`fphd-geo-alt__toggle${isOpen ? ' fphd-geo-alt__toggle--open' : ''}`}
@@ -299,13 +311,12 @@ export function GeographyTree({
                   </p>
                 ) : null}
 
+                <p aria-live="polite" className="govuk-visually-hidden">
+                  {isLoading ? `Loading ${group.name}…` : ''}
+                </p>
                 {isOpen ? (
                   <div className="fphd-geo-alt__children">
-                    {isLoading ? (
-                      <p className="govuk-body-s" role="status">
-                        Loading {group.name}…
-                      </p>
-                    ) : (
+                    {isLoading ? null : (
                       <>
                         <Checkboxes
                           id={`${groupId}-areas`}

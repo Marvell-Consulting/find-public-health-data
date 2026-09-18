@@ -1,5 +1,35 @@
 import { z } from '@fphd/config/zod';
 
+// One selection contains up to 19 picked areas and England for comparison.
+export const MAX_SELECTED_AREAS = 19;
+export const MAX_AREA_CODES_PER_REQUEST = MAX_SELECTED_AREAS + 1;
+export const MAX_AREA_GROUPS_PER_REQUEST = 20;
+export const MAX_AREA_NAME_LENGTH = 100;
+export const MAX_AREA_PREVIEW = 101;
+export const DEFAULT_AREA_SEARCH_RESULTS = 50;
+export const MAX_AREA_SEARCH_RESULTS = 100;
+export const AREA_CODE_RE = /^[A-Z0-9]+$/i;
+export const MAX_INDICATOR_QUERY_LENGTH = 200;
+export const DEFAULT_INDICATOR_SEARCH_RESULTS = 20;
+export const MAX_INDICATOR_SEARCH_RESULTS = 100;
+export const MAX_INDICATOR_FILTER_RESULTS = 200;
+export const MAX_FILTER_LABEL_LENGTH = 500;
+export const MAX_FILTER_VALUE_LENGTH = 100;
+export const MAX_FILTER_VALUES = 100;
+
+export function pickAreaCodes(value: unknown, limit = MAX_AREA_CODES_PER_REQUEST): string[] {
+  return [
+    ...new Set(
+      (Array.isArray(value) ? value : [value]).filter(
+        (code): code is string =>
+          typeof code === 'string' &&
+          code.length <= MAX_AREA_NAME_LENGTH &&
+          AREA_CODE_RE.test(code),
+      ),
+    ),
+  ].slice(0, limit);
+}
+
 /**
  * The wire contract for the public API, defined once and imported by both sides: the
  * routers build responses to these shapes, and the web app's loaders parse against them.

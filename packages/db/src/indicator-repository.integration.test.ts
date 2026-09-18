@@ -5,6 +5,7 @@ import {
   listAreaParents,
   listAreasByCodes,
   listAreasByGroup,
+  listAreasByGroups,
   listAreasByType,
   listDisplayGroups,
   searchAreas,
@@ -352,6 +353,34 @@ describe('listAreasByGroup', () => {
       'East Midlands',
       'East of England',
     ]);
+  });
+});
+
+describe('listAreasByGroups', () => {
+  it('limits each display group independently and keeps requested order', async () => {
+    expect(
+      await listAreasByGroups(db, ['Statistical regions', 'No Such Level', 'NHS regions'], 2),
+    ).toEqual([
+      {
+        displayGroup: 'Statistical regions',
+        areas: await listAreasByGroup(db, 'Statistical regions', 2),
+      },
+      { displayGroup: 'No Such Level', areas: [] },
+      {
+        displayGroup: 'NHS regions',
+        areas: await listAreasByGroup(db, 'NHS regions', 2),
+      },
+    ]);
+  });
+
+  it('orders areas with the same name consistently by code', async () => {
+    const [group] = await listAreasByGroups(db, ['GP practices']);
+    expect(group?.areas).toEqual(await listAreasByGroup(db, 'GP practices'));
+    const duplicateNames = group?.areas.filter(({ name }) => name === 'High Street Surgery') ?? [];
+    expect(duplicateNames.length).toBeGreaterThan(1);
+    expect(duplicateNames.map(({ code }) => code)).toEqual(
+      duplicateNames.map(({ code }) => code).sort(),
+    );
   });
 });
 
