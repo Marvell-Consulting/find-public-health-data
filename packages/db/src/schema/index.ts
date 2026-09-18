@@ -6,5 +6,6 @@ export * from './helpers.ts';
 export * from './indicator.ts';
 export * from './lookup.ts';
 export * from './observation.ts';
+export * from './published.ts';
 export * from './topic.ts';
 export * from './upload.ts';

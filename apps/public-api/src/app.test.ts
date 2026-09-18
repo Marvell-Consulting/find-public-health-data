@@ -85,7 +85,7 @@ describe('public API', () => {
   it('lists an indicator by its short id alone, without the row id', async () => {
     const repositories = createFakeRepositories({
       indicators: {
-        listApproved: async () => [{ shortId: 108, name: 'Mortality', status: 'approved' }],
+        listApproved: async () => [{ shortId: 108, name: 'Mortality' }],
       },
     });
 
@@ -93,14 +93,14 @@ describe('public API', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
-      indicators: [{ shortId: 108, name: 'Mortality', status: 'approved' }],
+      indicators: [{ shortId: 108, name: 'Mortality' }],
     });
   });
 
   it('omits the row id from a filtered indicator list too', async () => {
     const repositories = createFakeRepositories({
       indicators: {
-        search: async () => [{ shortId: 108, name: 'Mortality', status: 'approved' }],
+        search: async () => [{ shortId: 108, name: 'Mortality' }],
       },
     });
 
@@ -108,7 +108,7 @@ describe('public API', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
-      indicators: [{ shortId: 108, name: 'Mortality', status: 'approved' }],
+      indicators: [{ shortId: 108, name: 'Mortality' }],
     });
   });
 

@@ -6,9 +6,14 @@ import type { InternalRepositories } from './repositories.ts';
 import { internalTopicsRouter } from './topics.ts';
 
 export type {
+  CreateDraftFromPublishedResult,
+  CreatedIndicatorDraft,
   IndicatorAdminDetailRow,
   IndicatorAdminRow,
   IndicatorAdminRows,
+  IndicatorDraftAttributes,
+  IndicatorDraftMemberships,
+  UpdateIndicatorDraftResult,
 } from './indicator-repository.ts';
 export { INDICATORS_PAGE_SIZE, internalIndicatorsRouter } from './indicators.ts';
 export {

@@ -2,7 +2,7 @@ import { SLUG_PATTERN, z } from '@fphd/config';
 import { index, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
 
 import { timestamps, uuidPrimaryKey } from './helpers.ts';
-import { indicator } from './indicator.ts';
+import { indicatorVersion } from './indicator.ts';
 
 export const topic = pgTable('topic', {
   id: uuidPrimaryKey(),
@@ -13,8 +13,8 @@ export const topic = pgTable('topic', {
 });
 
 /**
- * Which topics an indicator belongs to. Many-to-many in both directions: an indicator is
- * reachable from several topics, and a topic lists many indicators.
+ * Which topics an indicator version belongs to. Many-to-many in both directions: an
+ * indicator is reachable from several topics, and a topic lists many indicators.
  */
 export const indicatorTopic = pgTable(
   'indicator_topic',
@@ -22,14 +22,14 @@ export const indicatorTopic = pgTable(
     topicId: uuid()
       .notNull()
       .references(() => topic.id),
-    indicatorId: uuid()
+    indicatorVersionId: uuid()
       .notNull()
-      .references(() => indicator.id),
+      .references(() => indicatorVersion.id),
     ...timestamps,
   },
   (t) => [
-    primaryKey({ columns: [t.topicId, t.indicatorId] }),
-    index('idx_indicator_topic_indicator').on(t.indicatorId),
+    primaryKey({ columns: [t.topicId, t.indicatorVersionId] }),
+    index('idx_indicator_topic_indicator_version').on(t.indicatorVersionId),
   ],
 );
 

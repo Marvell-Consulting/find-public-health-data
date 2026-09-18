@@ -38,6 +38,5 @@ export {
   type Repositories,
   type TopicRepository,
 } from './repositories.ts';
-export type { IndicatorStatus } from './schema/indicator.ts';
 export * as schema from './schema.ts';
 export { getTopicBySlug, listTopics, type Topic } from './topic-repository.ts';

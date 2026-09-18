@@ -6,9 +6,7 @@ import { publishedIndicatorPath } from './paths.ts';
 
 const STATUS_TAGS: Record<IndicatorStatus, { label: string; colour: string }> = {
   draft: { label: 'Draft', colour: 'grey' },
-  in_review: { label: 'In review', colour: 'yellow' },
-  approved: { label: 'Approved', colour: 'green' },
-  archived: { label: 'Archived', colour: 'grey' },
+  published: { label: 'Published', colour: 'green' },
 };
 
 function StatusTag({ status }: { status: IndicatorStatus }) {
@@ -17,12 +15,12 @@ function StatusTag({ status }: { status: IndicatorStatus }) {
   return <Tag classModifiers={colour} text={label} />;
 }
 
-// Only an approved indicator has a public page; the rest have nothing to act on yet.
+// Only a published indicator has a public page; a draft has nothing to act on yet.
 function Actions({ indicator }: { indicator: IndicatorAdminDetail }) {
   return (
     <>
       <h2 className="govuk-heading-m">Actions</h2>
-      {indicator.status === 'approved' ? (
+      {indicator.status === 'published' ? (
         <ul className="govuk-list">
           <li>
             <A href={publishedIndicatorPath(indicator.shortId)}>View published indicator</A>

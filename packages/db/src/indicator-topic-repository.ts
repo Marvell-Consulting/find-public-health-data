@@ -1,5 +1,5 @@
 import { z } from '@fphd/config';
-import { asc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 
 import type { Database } from './client.ts';
 import {
@@ -7,6 +7,11 @@ import {
   indicator,
   indicatorClassification,
   indicatorTopic,
+  indicatorVersion,
+  publishedClassification,
+  publishedIndicatorClassification,
+  publishedIndicatorTopic,
+  publishedTopic,
   topic,
 } from './schema/index.ts';
 
@@ -78,7 +83,8 @@ export function parseIndicatorTopicFile(data: unknown): IndicatorTopicFile {
 
 /**
  * Replaces topic membership for the indicators named in the file, and records when the
- * source system last published their data. Membership is replaced rather than merged: the
+ * source system last published their data. Memberships attach to a version, so each
+ * indicator resolves to its published one. Membership is replaced rather than merged: the
  * file states what is true now, so a link it no longer carries should not survive.
  *
  * Rows naming a topic or indicator this database does not hold are reported rather than
@@ -105,23 +111,37 @@ export async function applyIndicatorTopics(
       : Promise.resolve([]),
     shortIds.length > 0
       ? db
-          .select({ id: indicator.id, shortId: indicator.shortId })
+          .select({
+            id: indicator.id,
+            shortId: indicator.shortId,
+            versionId: indicatorVersion.id,
+          })
           .from(indicator)
+          .innerJoin(
+            indicatorVersion,
+            and(
+              eq(indicatorVersion.indicatorId, indicator.id),
+              eq(indicatorVersion.status, 'published'),
+            ),
+          )
           .where(inArray(indicator.shortId, shortIds))
       : Promise.resolve([]),
   ]);
 
   const knownTopicIds = new Set(topics.map((row) => row.id));
   const indicatorIdByShortId = new Map(indicators.map((row) => [row.shortId, row.id]));
+  const versionIdByShortId = new Map(indicators.map((row) => [row.shortId, row.versionId]));
 
   const links = file.indicatorTopics.flatMap(({ topicId, fingertipsId }) => {
-    const indicatorId = indicatorIdByShortId.get(fingertipsId);
-    return knownTopicIds.has(topicId) && indicatorId ? [{ topicId, indicatorId }] : [];
+    const indicatorVersionId = versionIdByShortId.get(fingertipsId);
+    return knownTopicIds.has(topicId) && indicatorVersionId
+      ? [{ topicId, indicatorVersionId }]
+      : [];
   });
 
-  const indicatorIds = [...new Set(links.map(({ indicatorId }) => indicatorId))];
-  if (indicatorIds.length > 0) {
-    await db.delete(indicatorTopic).where(inArray(indicatorTopic.indicatorId, indicatorIds));
+  const versionIds = [...new Set(links.map(({ indicatorVersionId }) => indicatorVersionId))];
+  if (versionIds.length > 0) {
+    await db.delete(indicatorTopic).where(inArray(indicatorTopic.indicatorVersionId, versionIds));
     await db.insert(indicatorTopic).values(links);
   }
 
@@ -157,15 +177,17 @@ export async function applyIndicatorTopics(
     const idBySlug = new Map(stored.map((row) => [row.slug, row.id]));
 
     const rows = file.indicatorClassifications.flatMap(({ fingertipsId, classificationSlug }) => {
-      const indicatorId = indicatorIdByShortId.get(fingertipsId);
+      const indicatorVersionId = versionIdByShortId.get(fingertipsId);
       const classificationId = idBySlug.get(classificationSlug);
-      return indicatorId && classificationId ? [{ indicatorId, classificationId }] : [];
+      return indicatorVersionId && classificationId
+        ? [{ indicatorVersionId, classificationId }]
+        : [];
     });
-    const classified = [...new Set(rows.map(({ indicatorId }) => indicatorId))];
+    const classified = [...new Set(rows.map(({ indicatorVersionId }) => indicatorVersionId))];
     if (classified.length > 0) {
       await db
         .delete(indicatorClassification)
-        .where(inArray(indicatorClassification.indicatorId, classified));
+        .where(inArray(indicatorClassification.indicatorVersionId, classified));
       await db.insert(indicatorClassification).values(rows);
     }
     classificationLinks = rows.length;
@@ -181,32 +203,35 @@ export async function applyIndicatorTopics(
   };
 }
 
-/** The topics an indicator belongs to, ordered by title. */
+/** The topics a published indicator belongs to, ordered by title. */
 export async function listTopicsForIndicator(
   db: Database,
   indicatorId: string,
 ): Promise<TopicSummaryForIndicator[]> {
   return db
-    .select({ slug: topic.slug, title: topic.title })
-    .from(indicatorTopic)
-    .innerJoin(topic, eq(indicatorTopic.topicId, topic.id))
-    .where(eq(indicatorTopic.indicatorId, indicatorId))
-    .orderBy(asc(topic.title));
+    .select({ slug: publishedTopic.slug, title: publishedTopic.title })
+    .from(publishedIndicatorTopic)
+    .innerJoin(publishedTopic, eq(publishedIndicatorTopic.topicId, publishedTopic.id))
+    .where(eq(publishedIndicatorTopic.indicatorId, indicatorId))
+    .orderBy(asc(publishedTopic.title));
 }
 
-/** An indicator's classifications, grouped ready for the summary table. */
+/** A published indicator's classifications, grouped ready for the summary table. */
 export async function listClassificationsForIndicator(
   db: Database,
   indicatorId: string,
 ): Promise<IndicatorClassification[]> {
   return db
     .select({
-      dimension: classification.dimension,
-      slug: classification.slug,
-      name: classification.name,
+      dimension: publishedClassification.dimension,
+      slug: publishedClassification.slug,
+      name: publishedClassification.name,
     })
-    .from(indicatorClassification)
-    .innerJoin(classification, eq(indicatorClassification.classificationId, classification.id))
-    .where(eq(indicatorClassification.indicatorId, indicatorId))
-    .orderBy(asc(classification.dimension), asc(classification.name));
+    .from(publishedIndicatorClassification)
+    .innerJoin(
+      publishedClassification,
+      eq(publishedIndicatorClassification.classificationId, publishedClassification.id),
+    )
+    .where(eq(publishedIndicatorClassification.indicatorId, indicatorId))
+    .orderBy(asc(publishedClassification.dimension), asc(publishedClassification.name));
 }

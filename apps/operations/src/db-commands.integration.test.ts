@@ -131,10 +131,14 @@ describe('db reset (integration)', () => {
       );
       expect(await sql`SELECT 1 FROM pg_proc WHERE proname LIKE 'reset_probe%'`).toHaveLength(0);
       expect(await sql`SELECT 1 FROM pg_type WHERE typname LIKE 'reset_probe%'`).toHaveLength(0);
-      const [drizzleSchema] = await sql<{ present: boolean }[]>`
-          SELECT to_regnamespace('drizzle') IS NOT NULL AS present
+      // Both extra schemas go: a published schema left behind fails the next CREATE SCHEMA.
+      const [schemas] = await sql<{ drizzle: boolean; published: boolean }[]>`
+          SELECT
+            to_regnamespace('drizzle') IS NOT NULL AS drizzle,
+            to_regnamespace('published') IS NOT NULL AS published
         `;
-      expect(drizzleSchema?.present).toBe(false);
+      expect(schemas?.drizzle).toBe(false);
+      expect(schemas?.published).toBe(false);
 
       // The recreated public schema must match a freshly created database's: owned by
       // pg_database_owner, USAGE granted to PUBLIC (grantee 0) — the APIs connect through
@@ -158,6 +162,7 @@ describe('db reset (integration)', () => {
 
       expect(await count(sql, 'topic')).toBeGreaterThan(0);
       expect(await count(sql, 'indicator')).toBeGreaterThan(0);
+      expect(await count(sql, 'indicator_version')).toBeGreaterThan(0);
       expect(await count(sql, 'indicator_topic')).toBeGreaterThan(0);
       expect(await count(sql, 'latest_headline')).toBeGreaterThan(0);
     } finally {

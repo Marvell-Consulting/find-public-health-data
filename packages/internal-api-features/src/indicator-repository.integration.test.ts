@@ -1,10 +1,16 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
 import { createDb, type Database, dbEnvFields, resolveDbTls, schema } from '@fphd/db';
 import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
-import { asc, desc, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { getIndicatorById, listIndicatorsPage } from './indicator-repository.ts';
+import {
+  createDraftFromPublished,
+  createIndicatorDraft,
+  getIndicatorById,
+  listIndicatorsPage,
+  updateIndicatorDraft,
+} from './indicator-repository.ts';
 
 const env = parseEnv(
   z.object({
@@ -18,6 +24,8 @@ const env = parseEnv(
 
 let testDb: TestDatabase;
 let db: Database;
+// Captured before any test writes, so the later cases still know what the seed held.
+let seededIds: string[];
 
 // The seed carries the lookup rows an indicator references, which the schema template lacks.
 beforeAll(async () => {
@@ -30,6 +38,7 @@ beforeAll(async () => {
     password: env.POSTGRES_PASSWORD,
     ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
   });
+  seededIds = await idsNewestFirst();
 });
 
 afterAll(async () => {
@@ -37,20 +46,46 @@ afterAll(async () => {
   await testDb.drop();
 });
 
-const { indicator } = schema;
+const { classification, indicator, indicatorClassification, indicatorTopic, indicatorVersion } =
+  schema;
 
-async function seededIdsNewestFirst(): Promise<string[]> {
-  const rows = await db
-    .select({ id: indicator.id })
-    .from(indicator)
-    .orderBy(desc(indicator.updatedAt), asc(indicator.name), asc(indicator.id));
+const ACTOR = 'integration-test';
+
+/** The dashboard's order, stated in SQL so the test does not lean on the code it checks. */
+async function idsNewestFirst(): Promise<string[]> {
+  const rows = (await db.execute(sql`
+    SELECT i.id
+    FROM indicator i
+    LEFT JOIN indicator_version d ON d.indicator_id = i.id AND d.status = 'draft'
+    LEFT JOIN indicator_version p ON p.indicator_id = i.id AND p.status = 'published'
+    ORDER BY greatest(d.updated_at, p.updated_at) DESC, coalesce(d.name, p.name), i.id
+  `)) as unknown as { id: string }[];
 
   return rows.map((row) => row.id);
 }
 
+async function publishedVersionId(indicatorId: string): Promise<string> {
+  const [row] = await db
+    .select({ id: indicatorVersion.id })
+    .from(indicatorVersion)
+    .where(
+      and(eq(indicatorVersion.indicatorId, indicatorId), eq(indicatorVersion.status, 'published')),
+    );
+  if (!row) throw new Error(`indicator ${indicatorId} has no published version`);
+  return row.id;
+}
+
+async function topicIdsOf(versionId: string): Promise<string[]> {
+  const rows = await db
+    .select({ topicId: indicatorTopic.topicId })
+    .from(indicatorTopic)
+    .where(eq(indicatorTopic.indicatorVersionId, versionId));
+  return rows.map(({ topicId }) => topicId).sort();
+}
+
 describe('listIndicatorsPage', () => {
   it('pages through every indicator, most recently edited first', async () => {
-    const expected = await seededIdsNewestFirst();
+    const expected = await idsNewestFirst();
     const pageSize = Math.ceil(expected.length / 2);
 
     const first = await listIndicatorsPage(db, 1, pageSize);
@@ -62,7 +97,7 @@ describe('listIndicatorsPage', () => {
   });
 
   it('returns an empty page past the end, still reporting the total', async () => {
-    const expected = await seededIdsNewestFirst();
+    const expected = await idsNewestFirst();
 
     const page = await listIndicatorsPage(db, 2, expected.length);
 
@@ -70,41 +105,190 @@ describe('listIndicatorsPage', () => {
     expect(page.total).toBe(expected.length);
   });
 
-  it('includes indicators the public listing would hide', async () => {
-    const [target] = await seededIdsNewestFirst();
-    if (target === undefined) throw new Error('The seed holds no indicators');
-
-    await db.update(indicator).set({ status: 'draft' }).where(eq(indicator.id, target));
+  it('includes an indicator with no published version, which the public listing hides', async () => {
+    const created = await createIndicatorDraft(db, { name: 'A draft-only indicator' }, ACTOR);
 
     const page = await listIndicatorsPage(db, 1, 1);
 
-    expect(page.indicators[0]?.id).toBe(target);
+    expect(page.indicators[0]).toMatchObject({
+      id: created.indicatorId,
+      name: 'A draft-only indicator',
+    });
   });
 });
 
 describe('getIndicatorById', () => {
-  // The last row: the tests above and below change the status of the first two.
-  it('returns the indicator with its public number and status', async () => {
-    const target = (await seededIdsNewestFirst()).at(-1);
+  it('derives published from the versions, with the public number', async () => {
+    const target = seededIds[0];
     if (target === undefined) throw new Error('The seed holds no indicators');
 
     const found = await getIndicatorById(db, target);
 
-    expect(found).toMatchObject({ id: target, status: 'approved' });
+    expect(found).toMatchObject({ id: target, status: 'published' });
     expect(found?.shortId).toEqual(expect.any(Number));
     expect(found?.name).not.toBe('');
   });
 
-  it('finds an indicator the public API would hide', async () => {
-    const [, target] = await seededIdsNewestFirst();
-    if (target === undefined) throw new Error('The seed holds fewer than two indicators');
+  it('derives draft once a draft version exists, and prefers its name', async () => {
+    const target = seededIds.at(-1);
+    if (target === undefined) throw new Error('The seed holds no indicators');
 
-    await db.update(indicator).set({ status: 'draft' }).where(eq(indicator.id, target));
+    await createDraftFromPublished(db, target, ACTOR);
+    await updateIndicatorDraft(db, target, { name: 'Edited in a draft' }, {}, ACTOR);
 
-    expect((await getIndicatorById(db, target))?.status).toBe('draft');
+    expect(await getIndicatorById(db, target)).toMatchObject({
+      status: 'draft',
+      name: 'Edited in a draft',
+    });
   });
 
   it('returns nothing for an id no indicator has', async () => {
     expect(await getIndicatorById(db, '00000000-0000-7000-8000-000000000000')).toBeUndefined();
+  });
+});
+
+describe('createIndicatorDraft', () => {
+  it('mints an identity with a short id and one draft version', async () => {
+    const created = await createIndicatorDraft(db, { name: 'A brand new indicator' }, ACTOR);
+
+    const [identity] = await db
+      .select()
+      .from(indicator)
+      .where(eq(indicator.id, created.indicatorId));
+    const versions = await db
+      .select()
+      .from(indicatorVersion)
+      .where(eq(indicatorVersion.indicatorId, created.indicatorId));
+
+    expect(identity?.shortId).toBe(created.shortId);
+    expect(versions).toHaveLength(1);
+    expect(versions[0]).toMatchObject({
+      id: created.versionId,
+      status: 'draft',
+      name: 'A brand new indicator',
+      createdBy: ACTOR,
+      updatedBy: ACTOR,
+    });
+  });
+});
+
+describe('updateIndicatorDraft', () => {
+  it('rewrites the draft columns and replaces its memberships', async () => {
+    const created = await createIndicatorDraft(db, { name: 'Before' }, ACTOR);
+    const [topic] = await db.select({ id: schema.topic.id }).from(schema.topic).limit(1);
+    const [classified] = await db.select({ id: classification.id }).from(classification).limit(1);
+    if (!topic || !classified) throw new Error('The seed holds no topics or classifications');
+
+    const result = await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      { name: 'After', definition: 'A definition' },
+      { topicIds: [topic.id], classificationIds: [classified.id] },
+      'someone-else',
+    );
+
+    expect(result).toEqual({ ok: true });
+    const [version] = await db
+      .select()
+      .from(indicatorVersion)
+      .where(eq(indicatorVersion.id, created.versionId));
+    expect(version).toMatchObject({
+      name: 'After',
+      definition: 'A definition',
+      createdBy: ACTOR,
+      updatedBy: 'someone-else',
+    });
+    expect(await topicIdsOf(created.versionId)).toEqual([topic.id]);
+
+    await updateIndicatorDraft(db, created.indicatorId, {}, { topicIds: [] }, ACTOR);
+
+    expect(await topicIdsOf(created.versionId)).toEqual([]);
+  });
+
+  it('refuses an indicator with no draft', async () => {
+    const created = await createIndicatorDraft(db, { name: 'Draftless' }, ACTOR);
+    await db.delete(indicatorVersion).where(eq(indicatorVersion.indicatorId, created.indicatorId));
+
+    await expect(updateIndicatorDraft(db, created.indicatorId, {}, {}, ACTOR)).resolves.toEqual({
+      ok: false,
+      reason: 'no_draft',
+    });
+  });
+});
+
+describe('createDraftFromPublished', () => {
+  it('copies the published version columns and memberships into a new draft', async () => {
+    const target = seededIds[0];
+    if (target === undefined) throw new Error('The seed holds no indicators');
+    const publishedId = await publishedVersionId(target);
+    const publishedTopics = await topicIdsOf(publishedId);
+    expect(publishedTopics.length).toBeGreaterThan(0);
+
+    const result = await createDraftFromPublished(db, target, ACTOR);
+
+    expect(result).toMatchObject({ ok: true });
+    if (!result.ok) throw new Error('expected a draft');
+
+    const [published] = await db
+      .select()
+      .from(indicatorVersion)
+      .where(eq(indicatorVersion.id, publishedId));
+    const [draft] = await db
+      .select()
+      .from(indicatorVersion)
+      .where(eq(indicatorVersion.id, result.versionId));
+
+    expect(draft).toMatchObject({
+      indicatorId: target,
+      status: 'draft',
+      publishedAt: null,
+      name: published?.name,
+      definition: published?.definition,
+      valueTypeId: published?.valueTypeId,
+      createdBy: ACTOR,
+    });
+    expect(await topicIdsOf(result.versionId)).toEqual(publishedTopics);
+  });
+
+  it('refuses a second draft for the same indicator', async () => {
+    const target = seededIds[0];
+    if (target === undefined) throw new Error('The seed holds no indicators');
+
+    await expect(createDraftFromPublished(db, target, ACTOR)).resolves.toEqual({
+      ok: false,
+      reason: 'draft_exists',
+    });
+  });
+
+  it('refuses an indicator with nothing published', async () => {
+    const created = await createIndicatorDraft(db, { name: 'Never published' }, ACTOR);
+
+    await expect(createDraftFromPublished(db, created.indicatorId, ACTOR)).resolves.toEqual({
+      ok: false,
+      reason: 'not_published',
+    });
+  });
+});
+
+describe('indicator_classification', () => {
+  it('follows the draft rather than the indicator', async () => {
+    const created = await createIndicatorDraft(db, { name: 'Classified' }, ACTOR);
+    const [classified] = await db.select({ id: classification.id }).from(classification).limit(1);
+    if (!classified) throw new Error('The seed holds no classifications');
+
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      {},
+      { classificationIds: [classified.id] },
+      ACTOR,
+    );
+
+    const rows = await db
+      .select({ versionId: indicatorClassification.indicatorVersionId })
+      .from(indicatorClassification)
+      .where(eq(indicatorClassification.indicatorVersionId, created.versionId));
+
+    expect(rows).toEqual([{ versionId: created.versionId }]);
   });
 });
