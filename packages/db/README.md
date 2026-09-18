@@ -21,6 +21,7 @@ src/
                       holds the reference tables, observation.ts the observation family,
                       cache.ts the derived read models
     helpers.ts        Column helpers shared across tables (uuidPrimaryKey, timestamps, audit)
+    published.ts      The public read surface: views declared as already existing
   scripts/            owner-client.ts — the owner-role connection helper the test harness
                       uses; the runnable commands live in apps/operations
   client.ts           createDb + Database/Schema types
@@ -49,11 +50,23 @@ src/
   exception: they are keyed by the columns they aggregate and carry no surrogate id.
 - **Timestamps**: opt-in, not universal. Spread `timestamps` from `schema/helpers.ts`
   (`created_at` / `updated_at`, timestamptz) on a table whose rows are updated in place,
-  as `topic` does, or `audit` where the actor columns matter too, as `indicator` does.
+  as `topic` does, or `audit` where the actor columns matter too, as `indicator_version`
+  does.
   `observation` records only creation, since a correction supersedes a row rather than
   editing it. Reference tables carry neither. `updated_at` is app-maintained on writes;
   see the topics import's conditional upsert for the pattern.
 - **Repository functions**: pure, `db` first argument, one file per aggregate.
+
+## The `published` schema
+
+`public_api` holds no privilege on any table in `public`. It reads the views in the
+`published` schema and nothing else, so every predicate that hides an unpublished
+indicator lives in a view definition rather than in each query — `@fphd/db`'s public
+repositories select from the views, name for name. The definitions are a custom migration;
+`src/schema/published.ts` declares them with `pgSchema('published').view(...).existing()`
+so drizzle-kit gives the repositories typed columns without generating a second
+`CREATE VIEW`. Exports are prefixed (`publishedIndicator`) because the table names are
+taken. `@fphd/internal-api-features` reads the tables directly, every status.
 
 ## Adding a table
 
@@ -65,8 +78,13 @@ src/
    been granted, nothing implicitly. Add a custom migration:
    `pnpm --filter @fphd/db exec drizzle-kit generate --custom --name=<table>-grants`
    with the `GRANT` statements the roles need.
-4. `pnpm db:migrate`.
-5. Add repository functions and tests, including an integration assertion that the
+4. If the public site reads the table, that same custom migration adds a
+   `published.<table>` view carrying the predicates that keep unpublished rows out, and
+   grants `SELECT` on the view to `public_api` and `internal_api` — never on the table.
+   Declare the view in `src/schema/published.ts` as `.existing()`. The grants integration
+   test fails a table in `public` that `public_api` can reach.
+5. `pnpm db:migrate`.
+6. Add repository functions and tests, including an integration assertion that the
    granted role can do what it needs and no more.
 
 ## Core data import

@@ -43,7 +43,10 @@ That yields 489,998 observations, 758,989 bridge rows and 74,755 observation not
   observation with zero bridge rows — only has rows for 92708 and 93622. Refining
   headline semantics is ISS106 read-model design work.
 - `indicator.config` was converted from Pholio's `key:value,key:value` text to JSON at
-  export time.
+  export time, and now sits on the version.
+- Every seeded indicator loads as a single `published` version, under the system actor the
+  export carries (`pholio-migration` or `fingertips-api-seed`). There are no draft rows in
+  the seed.
 
 ## Regenerating the base snapshot
 
@@ -58,12 +61,16 @@ scp 'fphd@<vm-ip>:/tmp/seed-out/*.csv.gz' .
 python3 export/transform-uuids.py .
 python3 export/strip-metadata-html.py .
 python3 export/enrich-area-display.py .
+python3 export/reshape-indicator-versions.py .
 ```
 
 `strip-metadata-html.py` converts the metadata prose from Pholio's HTML to the plain
 text the pages store and render; `enrich-area-display.py` stamps each area type's display
 group and strips the level suffixes from area names. Skipping either commits seeds the
-site would show wrong.
+site would show wrong. `reshape-indicator-versions.py` runs last and splits the Pholio
+shape into the identity and version tables this service holds: `indicator.csv.gz` keeps
+only the identity columns, `indicator_version.csv.gz` carries one published version per
+indicator, and `indicator_metadata.csv.gz` is folded into it and removed.
 
 The transform assigns sequential UUIDv7 ids in source-id order, remaps every foreign key,
 and keeps the public Fingertips indicator number in `indicator.short_id`. Adjust the
