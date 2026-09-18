@@ -110,13 +110,11 @@ describe('searchApprovedIndicators', () => {
     expect(results[0]?.name).toBe('Diabetes: QOF prevalence');
   });
 
-  it('matches exact short and internal indicator ids', async () => {
+  it('matches an exact short id but not the internal id', async () => {
     await expect(searchApprovedIndicators(db, String(MORTALITY_UNDER_75), 20)).resolves.toEqual([
       expect.objectContaining({ shortId: MORTALITY_UNDER_75 }),
     ]);
-    await expect(searchApprovedIndicators(db, mortalityId, 20)).resolves.toEqual([
-      expect.objectContaining({ shortId: MORTALITY_UNDER_75 }),
-    ]);
+    await expect(searchApprovedIndicators(db, mortalityId, 20)).resolves.toEqual([]);
   });
 
   it('respects the limit', async () => {
@@ -476,14 +474,18 @@ describe('searchIndicators', () => {
     expect(both).toBeLessThanOrEqual(second);
   });
 
-  it('matches exact short and internal indicator ids without exposing the internal id', async () => {
-    for (const query of [String(MORTALITY_UNDER_75), mortalityId]) {
-      const result = await searchIndicators(db, noFilters({ query }));
+  it('matches an exact short id but not the internal id', async () => {
+    const byShortId = await searchIndicators(db, noFilters({ query: String(MORTALITY_UNDER_75) }));
 
-      expect(result.total).toBe(1);
-      expect(result.indicators).toEqual([expect.objectContaining({ shortId: MORTALITY_UNDER_75 })]);
-      expect(result.indicators[0]).not.toHaveProperty('id');
-    }
+    expect(byShortId.total).toBe(1);
+    expect(byShortId.indicators).toEqual([
+      expect.objectContaining({ shortId: MORTALITY_UNDER_75 }),
+    ]);
+    expect(byShortId.indicators[0]).not.toHaveProperty('id');
+
+    const byInternalId = await searchIndicators(db, noFilters({ query: mortalityId }));
+
+    expect(byInternalId.total).toBe(0);
   });
 
   it('matches associated topic and classification slugs', async () => {

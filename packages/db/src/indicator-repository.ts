@@ -91,19 +91,14 @@ export interface ApprovedIndicator {
   status: string;
 }
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_POSTGRES_INTEGER = 2_147_483_647;
 
-function exactIndicatorIdentifier(query: string) {
+/** A query that is a whole number matches that short id exactly; anything else matches nothing. */
+function exactShortIdMatch(query: string) {
   const shortId = /^\d+$/.test(query) ? Number(query) : Number.NaN;
-  return (
-    or(
-      UUID_PATTERN.test(query) ? eq(indicator.id, query) : undefined,
-      Number.isSafeInteger(shortId) && shortId <= MAX_POSTGRES_INTEGER
-        ? eq(indicator.shortId, shortId)
-        : undefined,
-    ) ?? sql<boolean>`false`
-  );
+  return Number.isSafeInteger(shortId) && shortId <= MAX_POSTGRES_INTEGER
+    ? eq(indicator.shortId, shortId)
+    : sql<boolean>`false`;
 }
 
 function escapedSearchTerms(query: string): string[] {
@@ -133,7 +128,7 @@ export async function searchApprovedIndicators(
   limit: number,
 ): Promise<ApprovedIndicator[]> {
   const terms = escapedSearchTerms(query);
-  const identifierMatch = exactIndicatorIdentifier(query.trim());
+  const identifierMatch = exactShortIdMatch(query.trim());
   return db
     .select({
       shortId: indicator.shortId,
@@ -511,7 +506,7 @@ export async function searchIndicators(
   const conditions = [eq(indicator.status, 'approved')];
 
   const query = filters.query.trim();
-  const identifierMatch = exactIndicatorIdentifier(query);
+  const identifierMatch = exactShortIdMatch(query);
   const topicQueryMatch = (term: string) =>
     exists(
       db
