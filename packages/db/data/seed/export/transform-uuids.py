@@ -176,6 +176,8 @@ def main(seed_dir, deterministic=False):
                 else:
                     writer.writerow(row)
                 rows += 1
+        if deterministic and rows != source_manifest["tables"][table]["rows"]:
+            raise ValueError(f"{table} row count changed during UUID conversion")
         os.replace(tmp, path)
         print(f"{table}: {rows} rows rekeyed")
 
