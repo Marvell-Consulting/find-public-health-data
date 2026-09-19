@@ -21,6 +21,8 @@ import secrets
 import time
 from pathlib import Path
 
+from published_csv import NULL_MARKER, write_published_row
+
 TABLES = [
     "value_type",
     "unit",
@@ -103,7 +105,7 @@ def deterministic_uuid7(table, old_id):
 
 def normalize_published_config(value):
     """The benchmark clone stores some Pholio configs as JSON strings."""
-    if not value:
+    if not value or value == NULL_MARKER:
         return value
     parsed = json.loads(value)
     if not isinstance(parsed, str):
@@ -121,6 +123,8 @@ def main(seed_dir, deterministic=False):
         source_manifest = json.loads(Path(seed_dir, "source-manifest.json").read_text())
         if source_manifest["source"] != "PHOLIO_LIVE_A-derived fphd_new benchmark clone":
             raise ValueError("Deterministic transform requires the published benchmark export")
+        if source_manifest.get("source_csv_null") != NULL_MARKER:
+            raise ValueError("Published export must distinguish NULL from empty strings")
         if set(source_manifest["tables"]) != set(TABLES):
             raise ValueError("The published export is missing one or more tables")
         convert = deterministic_uuid7
@@ -161,13 +165,16 @@ def main(seed_dir, deterministic=False):
                 old_id = row[id_index]
                 row[id_index] = convert(table, old_id)
                 for i, ref_table in fk_indexes.items():
-                    if row[i] != "":
+                    if row[i] not in ("", NULL_MARKER):
                         row[i] = convert(ref_table, row[i])
                 if table == "indicator":
                     if config_index is not None:
                         row[config_index] = normalize_published_config(row[config_index])
                     row = [*row[: id_index + 1], old_id, *row[id_index + 1 :]]
-                writer.writerow(row)
+                if deterministic:
+                    write_published_row(dst, row, final=True)
+                else:
+                    writer.writerow(row)
                 rows += 1
         os.replace(tmp, path)
         print(f"{table}: {rows} rows rekeyed")

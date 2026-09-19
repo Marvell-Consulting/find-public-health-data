@@ -1,5 +1,5 @@
-import { once } from 'node:events';
 import { createReadStream, readFileSync } from 'node:fs';
+import type { Writable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { fileURLToPath } from 'node:url';
 import { createGunzip } from 'node:zlib';
@@ -70,39 +70,46 @@ async function loadTable(
     .unsafe(`COPY "${table}" (${columnList}) FROM STDIN WITH (FORMAT csv, HEADER true)`)
     .writable();
 
-  // postgres.js drops a COPY error that arrives after the input stream has already
-  // ended (the stream is nulled before the server responds), leaving 'finish'
-  // unemitted and pipeline() hanging forever. Stream the data without awaiting
-  // completion, wait for finish/error with a timeout, then verify the row count.
-  const decompressed = createGunzip();
-  const abort = new AbortController();
-  const streamed = pipeline(createReadStream(file), decompressed, writable, {
-    end: true,
-    signal: abort.signal,
-  });
-  let timeout: NodeJS.Timeout | undefined;
-  const afterSourceEnds = once(decompressed, 'end').then(
-    () =>
-      new Promise<'timeout'>((resolve) => {
-        timeout = setTimeout(() => resolve('timeout'), 300_000).unref();
-      }),
-  );
-  const outcome = await Promise.race([
-    streamed.then(() => 'finished' as const),
-    once(writable, 'error').then(([err]) => Promise.reject(err)),
-    afterSourceEnds,
-  ]).finally(() => clearTimeout(timeout));
-  if (outcome === 'timeout') {
-    abort.abort();
-    await streamed.catch(() => undefined);
-    throw new Error(`COPY into "${table}" did not complete — likely rejected by Postgres`);
-  }
+  await streamSeedCsv(file, writable, table);
   const rows = await sql.unsafe(`SELECT count(*)::int AS count FROM "${table}"`);
   const count = Number(rows[0]?.count ?? 0);
   if (count === 0) {
     throw new Error(`COPY into "${table}" loaded no rows — check the seed CSV`);
   }
   return count;
+}
+
+/** Abort a COPY that stops making progress, including before its input reaches EOF. */
+export async function streamSeedCsv(
+  file: string,
+  writable: Writable,
+  table: string,
+  idleTimeoutMs = 300_000,
+): Promise<void> {
+  const decompressed = createGunzip();
+  const abort = new AbortController();
+  // postgres.js can leave finish unemitted if Postgres rejects COPY after the
+  // stream ends. Refreshing on decompressed chunks also catches mid-stream stalls.
+  let timeout: NodeJS.Timeout | undefined;
+  const stalled = new Promise<'stalled'>((resolve) => {
+    timeout = setTimeout(() => resolve('stalled'), idleTimeoutMs).unref();
+  });
+  const onProgress = () => timeout?.refresh();
+  decompressed.on('data', onProgress);
+  const streamed = pipeline(createReadStream(file), decompressed, writable, {
+    end: true,
+    signal: abort.signal,
+  });
+  try {
+    if ((await Promise.race([streamed.then(() => 'finished' as const), stalled])) === 'stalled') {
+      abort.abort();
+      await streamed.catch(() => undefined);
+      throw new Error(`COPY into "${table}" stopped making progress`);
+    }
+  } finally {
+    clearTimeout(timeout);
+    decompressed.off('data', onProgress);
+  }
 }
 
 // Its own list rather than isDeployedEnv: 'dev' is deployed but is populated by running the

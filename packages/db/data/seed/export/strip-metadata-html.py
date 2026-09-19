@@ -12,6 +12,9 @@ import gzip
 import io
 import re
 import sys
+from pathlib import Path
+
+from published_csv import published_null_marker, write_published_row
 
 NAMED_ENTITIES = {
     "amp": "&",
@@ -99,6 +102,7 @@ def plain_text_from_html(text):
 
 
 def strip_file(path):
+    null_marker = published_null_marker(Path(path).parent)
     with gzip.open(path, "rt", encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
@@ -110,14 +114,19 @@ def strip_file(path):
     for row in rows:
         for column in PROSE_COLUMNS:
             value = row.get(column) or ""
-            stripped = plain_text_from_html(value) if value else value
+            stripped = plain_text_from_html(value) if value and value != null_marker else value
             if stripped != value:
                 row[column] = stripped
                 changed += 1
     buf = io.StringIO()
-    writer = csv.DictWriter(buf, fieldnames=fieldnames)
-    writer.writeheader()
-    writer.writerows(rows)
+    if null_marker:
+        csv.writer(buf).writerow(fieldnames)
+        for row in rows:
+            write_published_row(buf, [row[field] for field in fieldnames])
+    else:
+        writer = csv.DictWriter(buf, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
     with gzip.open(path, "wt", encoding="utf-8", newline="") as f:
         f.write(buf.getvalue())
     print(f"{path}: {changed} values stripped across {len(rows)} rows")

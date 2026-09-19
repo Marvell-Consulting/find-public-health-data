@@ -14,6 +14,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from published_csv import NULL_MARKER
+
 TABLES = [
     "value_type",
     "unit",
@@ -58,9 +60,9 @@ def copy_query(table):
             "COPY (SELECT od.id, od.observation_id, od.dimension_value_id, "
             "dv.dimension_type_id FROM observation_dimension od "
             "JOIN dimension_value dv ON dv.id = od.dimension_value_id) "
-            "TO STDOUT WITH (FORMAT csv, HEADER true)"
+            f"TO STDOUT WITH (FORMAT csv, HEADER true, NULL '{NULL_MARKER}')"
         )
-    return f"COPY {table} TO STDOUT WITH (FORMAT csv, HEADER true)"
+    return f"COPY {table} TO STDOUT WITH (FORMAT csv, HEADER true, NULL '{NULL_MARKER}')"
 
 
 def export_table(table, out_dir):
@@ -110,6 +112,7 @@ def main():
         "source": "PHOLIO_LIVE_A-derived fphd_new benchmark clone",
         "source_database": database,
         "approved_indicators": int(approved),
+        "source_csv_null": NULL_MARKER,
         "tables": tables,
     }
     (args.out_dir / "source-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")

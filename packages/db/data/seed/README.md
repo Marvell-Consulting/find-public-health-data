@@ -56,6 +56,8 @@ clone. This fingerprint distinguishes the intended clone from the larger
 source. Run `strip-metadata-html.py` and
 `enrich-area-display.py` against its output, then run
 `transform-uuids.py --deterministic` to rekey all tables with bounded memory.
+The published export uses an explicit CSV NULL marker so the transform keeps
+empty metadata strings distinct from database NULLs; the manifest records it.
 The resulting `manifest.json`, `source-manifest.json` and 21 CSV files form the
 private archive consumed by `db import-published-snapshot`; do not commit it.
 The command also applies `published-indicator-topics.json`, a provisional demo

@@ -11,6 +11,9 @@ import gzip
 import io
 import re
 import sys
+from pathlib import Path
+
+from published_csv import published_null_marker, write_published_row
 
 DISPLAY_GROUPS = {
     "County unchanged": ("Local authorities", 1),
@@ -36,23 +39,32 @@ def strip_name(name: str) -> str:
 
 
 def enrich_area_types(path: str) -> None:
+    null_marker = published_null_marker(Path(path).parent)
     with gzip.open(path, "rt") as f:
         rows = list(csv.DictReader(f))
     for row in rows:
-        group, order = DISPLAY_GROUPS.get(row["name"], ("", ""))
+        group, order = DISPLAY_GROUPS.get(
+            row["name"], (null_marker, null_marker) if null_marker else ("", "")
+        )
         row["display_group"], row["display_order"] = group, order
     buf = io.StringIO()
-    writer = csv.DictWriter(
-        buf, fieldnames=["id", "name", "hierarchy_type", "level", "display_group", "display_order"]
-    )
-    writer.writeheader()
-    writer.writerows(rows)
+    fieldnames = ["id", "name", "hierarchy_type", "level", "display_group", "display_order"]
+    if null_marker:
+        csv.writer(buf).writerow(fieldnames)
+        for row in rows:
+            write_published_row(buf, [row[field] for field in fieldnames])
+    else:
+        writer = csv.DictWriter(buf, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
     with gzip.open(path, "wt", newline="") as f:
         f.write(buf.getvalue())
-    print(f"{path}: {sum(1 for r in rows if r['display_group'])} of {len(rows)} types grouped")
+    grouped = sum(1 for row in rows if row["display_group"] not in ("", null_marker))
+    print(f"{path}: {grouped} of {len(rows)} types grouped")
 
 
 def strip_area_names(path: str) -> None:
+    null_marker = published_null_marker(Path(path).parent)
     with gzip.open(path, "rt") as f:
         reader = csv.reader(f)
         header = next(reader)
@@ -67,7 +79,11 @@ def strip_area_names(path: str) -> None:
     buf = io.StringIO()
     writer = csv.writer(buf)
     writer.writerow(header)
-    writer.writerows(rows)
+    if null_marker:
+        for row in rows:
+            write_published_row(buf, row)
+    else:
+        writer.writerows(rows)
     with gzip.open(path, "wt", newline="") as f:
         f.write(buf.getvalue())
     print(f"{path}: {changed} of {len(rows)} names stripped")

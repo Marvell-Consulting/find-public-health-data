@@ -54,6 +54,7 @@ function publishedManifest(): PublishedManifest {
     source: 'PHOLIO_LIVE_A-derived fphd_new benchmark clone',
     source_database: 'fphd_new',
     approved_indicators: 1_290,
+    source_csv_null: '__FPHD_NULL_5f92c66de4b849b4a717c23f5cbdb8a1__',
     id_mapping: 'deterministic-uuidv7-v1',
     tables: Object.fromEntries(
       SEED_TABLES.map((table) => [table, { rows: 1, bytes: 1, sha256: 'a'.repeat(64) }]),

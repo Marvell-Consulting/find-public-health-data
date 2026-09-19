@@ -34,6 +34,7 @@ async function snapshot(source = 'PHOLIO_LIVE_A-derived fphd_new benchmark clone
     source,
     source_database: 'fphd_new',
     approved_indicators: 1_290,
+    source_csv_null: '__FPHD_NULL_5f92c66de4b849b4a717c23f5cbdb8a1__',
     tables,
   };
   await writeFile(join(directory, 'source-manifest.json'), JSON.stringify(sourceManifest));
