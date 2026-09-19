@@ -13,9 +13,8 @@ import { SEED_TABLES } from '@fphd/db/operations';
 const runFile = promisify(execFile);
 const publishedSource = 'PHOLIO_LIVE_A-derived fphd_new benchmark clone';
 const publishedCsvNull = '__FPHD_NULL_5f92c66de4b849b4a717c23f5cbdb8a1__';
-// This import is for one independently measured historical published clone. Keep its
-// fingerprint here as well as in the exporter so a mislabeled archive cannot bypass
-// the approved-only source check by supplying a self-consistent manifest.
+// These independently recorded benchmark counts reject accidental source mix-ups.
+// The benchmark setup establishes lineage; these counts are not a provenance signature.
 const expectedApprovedIndicators = 1_290;
 const expectedObservations = 29_380_899;
 
