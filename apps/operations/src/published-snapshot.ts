@@ -12,12 +12,16 @@ import { SEED_TABLES } from '@fphd/db/operations';
 
 const runFile = promisify(execFile);
 const publishedSource = 'PHOLIO_LIVE_A-derived fphd_new benchmark clone';
+// This import is for one independently measured historical published clone. Keep its
+// fingerprint here as well as in the exporter so a mislabeled archive cannot bypass
+// the approved-only source check by supplying a self-consistent manifest.
+const expectedApprovedIndicators = 1_290;
+const expectedObservations = 29_380_899;
 
-const manifestSchema = z.object({
+const sourceManifestSchema = z.object({
   source: z.literal(publishedSource),
   source_database: z.literal('fphd_new'),
-  approved_indicators: z.number().int().positive(),
-  id_mapping: z.literal('deterministic-uuidv7-v1'),
+  approved_indicators: z.literal(expectedApprovedIndicators),
   tables: z.record(
     z.string(),
     z.object({
@@ -26,6 +30,9 @@ const manifestSchema = z.object({
       sha256: z.string().regex(/^[a-f0-9]{64}$/),
     }),
   ),
+});
+const manifestSchema = sourceManifestSchema.extend({
+  id_mapping: z.literal('deterministic-uuidv7-v1'),
 });
 
 export type PublishedManifest = z.infer<typeof manifestSchema>;
@@ -40,17 +47,30 @@ export async function verifyPublishedSnapshot(directory: string): Promise<Publis
   const manifest = manifestSchema.parse(
     JSON.parse(await readFile(join(directory, 'manifest.json'), 'utf8')),
   );
+  const sourceManifest = sourceManifestSchema.parse(
+    JSON.parse(await readFile(join(directory, 'source-manifest.json'), 'utf8')),
+  );
   const actualTables = Object.keys(manifest.tables).sort();
-  if (actualTables.join(',') !== [...SEED_TABLES].sort().join(',')) {
+  const expectedTables = [...SEED_TABLES].sort().join(',');
+  if (
+    actualTables.join(',') !== expectedTables ||
+    Object.keys(sourceManifest.tables).sort().join(',') !== expectedTables
+  ) {
     throw new Error('Published snapshot table list does not match the seed schema');
   }
-  if (manifest.tables.indicator?.rows !== manifest.approved_indicators) {
-    throw new Error('Published snapshot indicator count does not match its approval count');
+  if (
+    manifest.tables.indicator?.rows !== expectedApprovedIndicators ||
+    manifest.tables.observation?.rows !== expectedObservations
+  ) {
+    throw new Error('Published snapshot row counts do not match the published benchmark clone');
   }
   for (const table of SEED_TABLES) {
     const expected = manifest.tables[table];
     if (!expected || expected.rows === 0)
       throw new Error(`Published snapshot has no ${table} rows`);
+    if (expected.rows !== sourceManifest.tables[table]?.rows) {
+      throw new Error(`Published snapshot source row count differs for ${table}`);
+    }
     const file = join(directory, `${table}.csv.gz`);
     if ((await sha256(file)) !== expected.sha256) {
       throw new Error(`Published snapshot checksum failed for ${table}`);

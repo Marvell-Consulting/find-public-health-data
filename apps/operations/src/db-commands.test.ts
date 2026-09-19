@@ -30,7 +30,7 @@ const logger = createLogger({ name: 'operations-test', level: 'silent' });
 
 function publishedContext() {
   let committed = false;
-  const tx = { unsafe: vi.fn(async () => []) };
+  const tx = { unsafe: vi.fn(async () => [{ count: 0 }]) };
   const sql = {
     begin: vi.fn(async (run: (transaction: typeof tx) => Promise<unknown>) => {
       const result = await run(tx);
@@ -53,7 +53,7 @@ function publishedManifest(): PublishedManifest {
   return {
     source: 'PHOLIO_LIVE_A-derived fphd_new benchmark clone',
     source_database: 'fphd_new',
-    approved_indicators: 1,
+    approved_indicators: 1_290,
     id_mapping: 'deterministic-uuidv7-v1',
     tables: Object.fromEntries(
       SEED_TABLES.map((table) => [table, { rows: 1, bytes: 1, sha256: 'a'.repeat(64) }]),
@@ -126,10 +126,29 @@ describe('importPublishedSnapshot', () => {
     await importPublishedSnapshot(context);
 
     expect(mocks.seedPublished).toHaveBeenCalledWith(tx, '/tmp/fixture');
-    expect(tx.unsafe).toHaveBeenCalledTimes(SEED_TABLES.length);
+    expect(tx.unsafe).toHaveBeenCalledTimes(SEED_TABLES.length + 1);
     expect(mocks.rebuild).toHaveBeenCalledWith(tx);
     expect(wasCommitted()).toBe(true);
     expect(mocks.analyze).toHaveBeenCalledWith(context.sql);
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it('rejects unapproved indicators before committing the imported snapshot', async () => {
+    const { context, tx, wasCommitted } = publishedContext();
+    const cleanup = vi.fn(async () => {});
+    mocks.download.mockResolvedValue({
+      directory: '/tmp/fixture',
+      manifest: publishedManifest(),
+      cleanup,
+    });
+    mocks.seedPublished.mockResolvedValue(seededTables(() => 1));
+    tx.unsafe.mockResolvedValueOnce([{ count: 1 }]);
+
+    await expect(importPublishedSnapshot(context)).rejects.toThrow(
+      'Published snapshot contains an unapproved indicator',
+    );
+    expect(wasCommitted()).toBe(false);
+    expect(mocks.rebuild).not.toHaveBeenCalled();
     expect(cleanup).toHaveBeenCalledOnce();
   });
 });

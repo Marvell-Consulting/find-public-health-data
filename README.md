@@ -391,7 +391,8 @@ Four commands are worth noting:
 - `db import-published-snapshot` replaces the dev seed with the approved-only
   `PHOLIO_LIVE_A`-derived benchmark clone. Set `PUBLISHED_SNAPSHOT_URL` to a private HTTPS
   archive and `PUBLISHED_SNAPSHOT_SHA256` to its checksum. The command checks the source,
-  archive and every table checksum, loads all canonical tables, applies provisional
+  archive and every table checksum, requires the published clone's known counts
+  and approved indicator status, loads all canonical tables, applies provisional
   topic links derived from public Fingertips profiles and groups, rebuilds the read
   models, and verifies row counts in one transaction. It has the same dev-only gate as seeding.
   The transaction holds table locks during the load, so beta requests may time out until
