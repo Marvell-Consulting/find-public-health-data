@@ -357,6 +357,7 @@ pnpm --filter @fphd/operations cli db migrate               # apply pending migr
 pnpm --filter @fphd/operations cli db status                # report migration state; non-zero if blocked
 pnpm --filter @fphd/operations cli db import-core-data      # load required core data (topics)
 pnpm --filter @fphd/operations cli db seed-dummy-data       # replace all dummy data with the seed
+pnpm --filter @fphd/operations cli db import-published-snapshot # dev only: load a verified published benchmark archive
 pnpm --filter @fphd/operations cli db rebuild-read-models
 pnpm --filter @fphd/operations cli db reset                 # dev-class only: drop all schema objects
 ```
@@ -387,6 +388,16 @@ Four commands are worth noting:
   serves an empty site. It refuses to run unless `APP_ENV` is `local`, `test` or `dev`, and fails
   if topics have not been imported yet: dummy data may depend on core data, never the reverse. The
   core-data tables are left alone.
+- `db import-published-snapshot` replaces the dev seed with the approved-only
+  `PHOLIO_LIVE_A`-derived benchmark clone. Set `PUBLISHED_SNAPSHOT_URL` to a private HTTPS
+  archive and `PUBLISHED_SNAPSHOT_SHA256` to its checksum. The command checks the source,
+  archive and every table checksum, requires the published clone's known counts
+  and approved indicator status, loads all canonical tables, applies provisional
+  topic links derived from public Fingertips profiles and groups, rebuilds the read
+  models, and verifies row counts in one transaction. It has the same dev-only gate as seeding.
+  The transaction holds table locks during the load, so beta requests may time out until
+  it commits. Run it when an interruption to the beta site is acceptable. The benchmark
+  clone is a historical published snapshot, not a live Pholio feed.
 - `db reset` returns the database to its freshly created state (recreating the `public` schema
   and dropping the migration watermark) so `db migrate` rebuilds from empty — recreate rather than
   truncate, so it also recovers from a broken migration state. It refuses outside
@@ -407,6 +418,7 @@ db migrate
 db status
 db import-core-data
 db seed-dummy-data
+db import-published-snapshot # dev only; requires the two PUBLISHED_SNAPSHOT_* values
 db rebuild-read-models
 db reset
 ```

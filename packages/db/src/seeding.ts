@@ -1,5 +1,5 @@
-import { once } from 'node:events';
 import { createReadStream, readFileSync } from 'node:fs';
+import type { Writable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { fileURLToPath } from 'node:url';
 import { createGunzip } from 'node:zlib';
@@ -18,7 +18,7 @@ import { READ_MODEL_TABLES } from './read-models.ts';
 // Topological FK order: every table loads after the tables it references.
 // Self-references (dimension_value.parent_id etc.) resolve within a single COPY
 // because FK checks run at end of statement.
-const SEED_TABLES = [
+export const SEED_TABLES = [
   'value_type',
   'unit',
   'year_type',
@@ -61,33 +61,55 @@ async function readCsvHeader(file: string): Promise<string[]> {
 async function loadTable(
   sql: postgres.Sql | postgres.TransactionSql,
   table: string,
+  directory: string,
 ): Promise<number> {
-  const file = `${seedDir}${table}.csv.gz`;
+  const file = `${directory}/${table}.csv.gz`;
   const columns = await readCsvHeader(file);
   const columnList = columns.map((c) => `"${c}"`).join(', ');
   const writable = await sql
     .unsafe(`COPY "${table}" (${columnList}) FROM STDIN WITH (FORMAT csv, HEADER true)`)
     .writable();
 
-  // postgres.js drops a COPY error that arrives after the input stream has already
-  // ended (the stream is nulled before the server responds), leaving 'finish'
-  // unemitted and pipeline() hanging forever. Stream the data without awaiting
-  // completion, wait for finish/error with a timeout, then verify the row count.
-  const streamed = pipeline(createReadStream(file), createGunzip(), writable, { end: true });
-  const outcome = await Promise.race([
-    streamed.then(() => 'finished' as const),
-    once(writable, 'error').then(([err]) => Promise.reject(err)),
-    new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 120_000).unref()),
-  ]);
-  if (outcome === 'timeout') {
-    throw new Error(`COPY into "${table}" did not complete — likely rejected by Postgres`);
-  }
+  await streamSeedCsv(file, writable, table);
   const rows = await sql.unsafe(`SELECT count(*)::int AS count FROM "${table}"`);
   const count = Number(rows[0]?.count ?? 0);
   if (count === 0) {
     throw new Error(`COPY into "${table}" loaded no rows — check the seed CSV`);
   }
   return count;
+}
+
+/** Abort a COPY that stops making progress, including before its input reaches EOF. */
+export async function streamSeedCsv(
+  file: string,
+  writable: Writable,
+  table: string,
+  idleTimeoutMs = 300_000,
+): Promise<void> {
+  const decompressed = createGunzip();
+  const abort = new AbortController();
+  // postgres.js can leave finish unemitted if Postgres rejects COPY after the
+  // stream ends. Refreshing on decompressed chunks also catches mid-stream stalls.
+  let timeout: NodeJS.Timeout | undefined;
+  const stalled = new Promise<'stalled'>((resolve) => {
+    timeout = setTimeout(() => resolve('stalled'), idleTimeoutMs).unref();
+  });
+  const onProgress = () => timeout?.refresh();
+  decompressed.on('data', onProgress);
+  const streamed = pipeline(createReadStream(file), decompressed, writable, {
+    end: true,
+    signal: abort.signal,
+  });
+  try {
+    if ((await Promise.race([streamed.then(() => 'finished' as const), stalled])) === 'stalled') {
+      abort.abort();
+      await streamed.catch(() => undefined);
+      throw new Error(`COPY into "${table}" stopped making progress`);
+    }
+  } finally {
+    clearTimeout(timeout);
+    decompressed.off('data', onProgress);
+  }
 }
 
 // Its own list rather than isDeployedEnv: 'dev' is deployed but is populated by running the
@@ -107,8 +129,8 @@ function assertDevClassEnv(action: string, appEnv: string | undefined): void {
 }
 
 /** The seed erases and replaces every dummy table. */
-export function assertSeedingAllowed(appEnv: string | undefined): void {
-  assertDevClassEnv('seed dummy data', appEnv);
+export function assertSeedingAllowed(appEnv: string | undefined, action = 'seed dummy data'): void {
+  assertDevClassEnv(action, appEnv);
 }
 
 /** A reset erases the whole application schema. Same gate as seeding, deliberately. */
@@ -123,6 +145,9 @@ const dummyRelationshipFiles = [
   '../data/indicator-classifications.json',
   '../data/indicator-data-updated.json',
 ].map((path) => fileURLToPath(new URL(path, import.meta.url)));
+const publishedTopicFile = fileURLToPath(
+  new URL('../data/published-indicator-topics.json', import.meta.url),
+);
 
 function readDummyRelationships(): IndicatorTopicFile {
   const merged: Record<string, unknown> = {};
@@ -132,7 +157,7 @@ function readDummyRelationships(): IndicatorTopicFile {
   return parseIndicatorTopicFile(merged);
 }
 
-export interface DummySeedSummary {
+export interface SeedSummary {
   /** Rows loaded per seed table, in load order. */
   tables: Record<string, number>;
   relationships: IndicatorTopicImportSummary;
@@ -148,21 +173,41 @@ export interface DummySeedSummary {
  * assertSeedingAllowed, and the integration harness only ever targets its own disposable
  * databases.
  */
-export async function seedDummyTables(tx: postgres.TransactionSql): Promise<DummySeedSummary> {
+export async function seedDummyTables(
+  tx: postgres.TransactionSql,
+  directory = seedDir,
+): Promise<SeedSummary> {
   // Read before any database work, so a bad file fails while the transaction has done nothing.
   const relationshipFile = readDummyRelationships();
-  const tables = await seedTables(tx);
+  const tables = await seedTables(tx, directory);
   const relationships = await applyIndicatorTopics(createDbFromTransaction(tx), relationshipFile);
   return { tables, relationships };
 }
 
-async function seedTables(tx: postgres.TransactionSql): Promise<Record<string, number>> {
+/** Load the snapshot CSVs and public-profile-derived demo topic links. */
+export async function seedPublishedTables(
+  tx: postgres.TransactionSql,
+  directory: string,
+): Promise<SeedSummary> {
+  const topicFile = parseIndicatorTopicFile(JSON.parse(readFileSync(publishedTopicFile, 'utf-8')));
+  const tables = await seedTables(tx, directory);
+  const relationships = await applyIndicatorTopics(createDbFromTransaction(tx), topicFile);
+  if (relationships.links === 0 || relationships.unknownTopics.length > 0) {
+    throw new Error('Published topic mapping did not match the imported indicators and topics');
+  }
+  return { tables, relationships };
+}
+
+async function seedTables(
+  tx: postgres.TransactionSql,
+  directory: string,
+): Promise<Record<string, number>> {
   const allTables = [...SEED_TABLES, ...READ_MODEL_TABLES].map((t) => `"${t}"`).join(', ');
   await tx.unsafe(`TRUNCATE ${allTables} CASCADE`);
 
   const counts: Record<string, number> = {};
   for (const table of SEED_TABLES) {
-    counts[table] = await loadTable(tx, table);
+    counts[table] = await loadTable(tx, table, directory);
   }
   return counts;
 }

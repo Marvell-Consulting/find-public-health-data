@@ -5,6 +5,7 @@ import type { Logger } from '@fphd/logger';
 import {
   bootstrap,
   importCoreData,
+  importPublishedSnapshot,
   rebuildReadModels,
   reset,
   seedDummyData,
@@ -52,6 +53,10 @@ export const commands: Record<string, Command> = {
   'db seed-dummy-data': {
     description: 'Replace all dummy data with the committed seed, then rebuild the read models',
     run: seedDummyData,
+  },
+  'db import-published-snapshot': {
+    description: 'Replace dev data with the approved-only published benchmark snapshot',
+    run: importPublishedSnapshot,
   },
   'db rebuild-read-models': {
     description: 'Rebuild the read models from the canonical tables',
