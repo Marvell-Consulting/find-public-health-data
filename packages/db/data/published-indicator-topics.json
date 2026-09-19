@@ -1,0 +1,6866 @@
+{
+  "source": "https://fingertips.phe.org.uk/api/",
+  "generatedOn": "2026-09-18",
+  "indicatorTopics": [
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 108
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 113
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edca5f2e1820",
+      "fingertipsId": 114
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc1bf5f41c1",
+      "fingertipsId": 200
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 200
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 200
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 212
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 212
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 212
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 219
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 219
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 219
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 219
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 241
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 241
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 241
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 241
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 247
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 247
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 247
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 253
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 258
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 258
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc04a410071",
+      "fingertipsId": 258
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 262
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 262
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 273
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 273
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 273
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 276
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edca5f2e1820",
+      "fingertipsId": 276
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 280
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 280
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 294
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 295
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edca5f2e1820",
+      "fingertipsId": 337
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 342
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 352
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 352
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 354
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 355
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 356
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 359
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 359
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 383
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 383
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 384
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 650
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 811
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 811
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 848
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 848
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 848
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 848
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 849
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 1179
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 1179
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 1180
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 1180
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 1201
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 1203
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 1203
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 1203
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 1204
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 1204
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 1204
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 1205
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 1206
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 1207
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 1207
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 1208
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 1208
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 1210
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 1211
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 1212
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edca5f2e1820",
+      "fingertipsId": 1679
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 1730
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 1942
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2000
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2001
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2002
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2003
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2004
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2005
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2006
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2007
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2008
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2009
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc911ef103a",
+      "fingertipsId": 2010
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2010
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc911ef103a",
+      "fingertipsId": 2011
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2011
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 2012
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2012
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 2013
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2013
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 2014
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2014
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 2015
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2015
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 2016
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2016
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2017
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 2017
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2018
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 2018
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2019
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2020
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2021
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2023
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2024
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2025
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 2026
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2026
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2027
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2028
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2029
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2030
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2031
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 2040
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2040
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2041
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2042
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2043
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2044
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2045
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2046
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2047
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2048
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2051
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2052
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2054
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2055
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2057
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2059
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2060
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2062
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2064
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 2065
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2065
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2066
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 2067
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2067
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2069
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 2070
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2070
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2071
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 2072
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2072
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2076
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 2077
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2077
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 2078
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2078
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2079
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2080
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2081
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2084
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2085
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2086
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2087
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 2088
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2088
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2090
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 2091
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2091
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 2093
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2093
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 2113
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2113
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2114
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 2115
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2115
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2116
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2122
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2123
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2124
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2125
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2126
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2127
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 2128
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2128
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2129
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2130
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2131
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2132
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2133
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2134
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2135
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2136
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2137
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2138
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2139
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2140
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2141
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2142
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2143
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2144
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2145
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2146
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2147
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2148
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2149
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2150
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2151
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2152
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2153
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2154
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2157
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2158
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2159
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2160
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2161
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2162
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2163
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2164
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2166
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2168
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2177
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2178
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2179
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2180
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 2181
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2181
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2182
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2185
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2186
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2189
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2190
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2191
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2192
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2194
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2195
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2196
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2205
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2206
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2207
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2208
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2209
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2212
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2214
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2217
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2218
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2224
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2228
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2229
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2230
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2231
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2232
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2234
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2235
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcb84edc7ef",
+      "fingertipsId": 2236
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 2500
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc898dc2b10",
+      "fingertipsId": 2501
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 2509
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 2512
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc898dc2b10",
+      "fingertipsId": 2512
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 2513
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 2514
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 2516
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc898dc2b10",
+      "fingertipsId": 2519
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 2522
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 2531
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 2533
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 2542
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 2544
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 2549
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 2550
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 2554
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 2564
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 2565
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 2569
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 2618
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 2619
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 2626
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 2627
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 2673
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 10301
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 10301
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 10301
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 10401
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb6f0e97c04",
+      "fingertipsId": 10401
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 10401
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 10401
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc1bf5f41c1",
+      "fingertipsId": 10601
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 10602
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb6f0e97c04",
+      "fingertipsId": 11201
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 11201
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb6f0e97c04",
+      "fingertipsId": 11202
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 11202
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 11401
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 11601
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 20101
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 20101
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 20101
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 20101
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 20401
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 20401
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 20401
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 20401
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 20601
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 20601
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 20602
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+      "fingertipsId": 20602
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 20602
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 21001
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 21001
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 21001
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 22301
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 22302
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 22302
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 22303
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 22304
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 22401
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 22401
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 22401
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 22402
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 22402
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 22403
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 22403
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 30101
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 30301
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+      "fingertipsId": 30302
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 30302
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 30303
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 30304
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 30304
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 30306
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 30307
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 30308
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 30309
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 30309
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 30310
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 30311
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 30311
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 30313
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 30314
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 30314
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 30315
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 40401
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 40401
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 40401
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 40501
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 40501
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+      "fingertipsId": 40601
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 40601
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 40701
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 40701
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 41001
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 41001
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 41001
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 41201
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 41202
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 41203
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 41203
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 41204
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 41401
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 41401
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 41402
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 90244
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90244
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 90244
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 90245
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90245
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 90245
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 90280
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd2bfad0915",
+      "fingertipsId": 90282
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd2bfad0915",
+      "fingertipsId": 90283
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 90284
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 90284
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 90285
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 90285
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd2bfad0915",
+      "fingertipsId": 90286
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 90316
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 90317
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 90319
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 90319
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 90320
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 90321
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 90323
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 90323
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 90357
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 90358
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 90360
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90362
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 90366
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90400
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 90402
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90413
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 90414
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 90443
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 90452
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 90452
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 90452
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 90453
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 90453
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 90453
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 90510
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90530
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90535
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90552
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 90581
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90581
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 90581
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90586
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc1bf5f41c1",
+      "fingertipsId": 90589
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90589
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90592
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 90592
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90593
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 90593
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90600
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 90600
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90603
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 90616
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 90616
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 90616
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90617
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 90617
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 90617
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 90619
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 90619
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 90619
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 90631
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 90631
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90631
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 90632
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 90632
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 90633
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 90633
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 90634
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 90634
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90635
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd2bfad0915",
+      "fingertipsId": 90635
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb6f0e97c04",
+      "fingertipsId": 90637
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 90637
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 90638
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 90639
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 90639
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 90639
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 90646
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90646
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 90646
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90669
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 90694
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 90700
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 90729
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 90729
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 90731
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 90731
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 90731
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 90739
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 90740
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90740
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 90740
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 90741
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 90742
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 90742
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90747
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90748
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 90754
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 90759
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 90759
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 90776
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 90776
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 90776
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 90777
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 90777
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 90784
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 90790
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 90790
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 90791
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 90791
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90799
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 90801
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 90801
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 90803
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90803
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 90803
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 90804
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 90808
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 90808
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 90808
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90808
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 90810
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 90810
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 90810
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 90810
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 90811
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 90811
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90811
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 90811
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 90812
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 90812
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 90813
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 90813
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90813
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 90813
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 90832
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 90832
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 90848
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 90861
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+      "fingertipsId": 90861
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 90861
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+      "fingertipsId": 90875
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+      "fingertipsId": 90878
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 90878
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+      "fingertipsId": 90879
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 90879
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90886
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 90892
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+      "fingertipsId": 90892
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 90898
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 90898
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90898
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 90903
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc1bf5f41c1",
+      "fingertipsId": 90903
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90903
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90916
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 90922
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 90922
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 90922
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 90929
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+      "fingertipsId": 90929
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 90931
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+      "fingertipsId": 90931
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 90932
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+      "fingertipsId": 90932
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 90932
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 90933
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 90938
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+      "fingertipsId": 90938
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 90938
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 90986
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 90986
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 90987
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 90987
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 90988
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 90988
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 90999
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 91005
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 91013
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 91020
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc04a410071",
+      "fingertipsId": 91020
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 91021
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc04a410071",
+      "fingertipsId": 91021
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 91022
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc04a410071",
+      "fingertipsId": 91022
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 91023
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc04a410071",
+      "fingertipsId": 91023
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 91025
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc04a410071",
+      "fingertipsId": 91025
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 91029
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc04a410071",
+      "fingertipsId": 91029
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 91030
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 91040
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 91041
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 91046
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91046
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 91058
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 91102
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 91106
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 91111
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 91112
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 91116
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 91117
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 91117
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 91123
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 91125
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd2bfad0915",
+      "fingertipsId": 91125
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 91126
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd2bfad0915",
+      "fingertipsId": 91126
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 91127
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd2bfad0915",
+      "fingertipsId": 91127
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 91133
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd2bfad0915",
+      "fingertipsId": 91133
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 91161
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 91161
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 91162
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 91162
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 91163
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 91163
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 91164
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 91164
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 91165
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 91166
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 91166
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 91167
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 91167
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 91182
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 91183
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 91184
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 91215
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 91215
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 91238
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 91238
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 91243
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 91262
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 91269
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 91280
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 91280
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 91280
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 91281
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 91281
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 91306
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91306
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 91307
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91307
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 91308
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91308
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 91321
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91321
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 91337
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 91340
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 91344
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 91347
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 91348
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 91349
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 91350
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 91351
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 91355
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 91356
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 91357
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91359
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91361
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91367
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 91373
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91373
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 91380
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 91380
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 91381
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 91404
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91451
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 91456
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 91456
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 91458
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 91458
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 91458
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 91458
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 91462
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 91468
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 91469
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 91486
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc04a410071",
+      "fingertipsId": 91486
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 91487
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc04a410071",
+      "fingertipsId": 91487
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 91514
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91514
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 91521
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91521
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 91522
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91522
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 91523
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91523
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 91546
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 91547
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 91733
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 91734
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 91734
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 91734
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 91734
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 91735
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 91736
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 91743
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 91743
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 91743
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 91743
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 91743
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 91745
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 91745
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 91818
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91818
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 91819
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 91845
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 91871
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 91871
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 91871
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 91882
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 91884
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 91884
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 91884
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 91891
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 91891
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 91891
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 91893
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 91893
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 91893
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 91894
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 91894
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 91894
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 91895
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 91895
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 91895
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91898
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91900
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91902
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91904
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91909
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91913
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91915
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 91920
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91933
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 91970
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92010
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92019
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92021
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 92026
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 92033
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92039
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92040
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92041
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92081
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92084
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92089
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc1bf5f41c1",
+      "fingertipsId": 92127
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92127
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc1bf5f41c1",
+      "fingertipsId": 92129
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92129
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc1bf5f41c1",
+      "fingertipsId": 92135
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92135
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 92135
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92151
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92163
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92165
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92167
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92168
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92169
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92171
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92176
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92178
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92193
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92196
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 92196
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 92196
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92220
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92240
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 92240
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92240
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92244
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 92244
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92250
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 92250
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 92254
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 92255
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92266
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 92266
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92275
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92280
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92287
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 92293
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 92294
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 92297
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 92298
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 92300
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 92302
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 92302
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 92304
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 92304
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 92306
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 92308
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92310
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 92310
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd2bfad0915",
+      "fingertipsId": 92313
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92315
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92315
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92319
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 92319
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92319
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 92323
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92324
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92326
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92329
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92331
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 92339
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92339
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92344
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92350
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92368
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92377
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 92407
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92411
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92413
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92415
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92417
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92420
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 92432
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 92432
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 92443
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92443
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 92443
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92443
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 92443
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 92443
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 92443
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 92443
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 92445
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 92447
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92447
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 92447
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 92453
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 92454
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 92454
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 92455
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb6f0e97c04",
+      "fingertipsId": 92456
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 92461
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92461
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 92464
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 92465
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92466
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92477
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 92477
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92477
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 92489
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 92490
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92511
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92517
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 92517
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92517
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92518
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92519
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92520
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92521
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92523
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92530
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 92530
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92530
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 92530
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 92530
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92531
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 92531
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92532
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 92532
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 92532
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 92534
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 92536
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 92538
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92543
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 92544
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92552
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 92552
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92552
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92557
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92558
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92559
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92563
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 92563
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92563
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92564
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 92564
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92564
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 92594
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 92600
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 92601
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92602
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92603
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 92604
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 92605
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 92608
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 92609
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 92610
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 92611
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 92612
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 92613
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92616
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92617
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92622
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 92622
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92623
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 92623
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92644
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92665
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92666
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92667
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92668
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92669
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92670
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92702
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92705
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 92705
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 92705
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92706
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 92706
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edca5f2e1820",
+      "fingertipsId": 92708
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 92763
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 92765
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 92768
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 92770
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 92772
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 92772
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 92774
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 92776
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 92778
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92818
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92819
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92820
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92821
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92822
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92828
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92829
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92830
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92831
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92832
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92833
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92834
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92835
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92836
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92837
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92838
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92841
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92842
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92843
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92852
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92853
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92856
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92857
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 92860
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb6f0e97c04",
+      "fingertipsId": 92863
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 92863
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92863
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 92863
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbfb7ac2bd3",
+      "fingertipsId": 92868
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92870
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 92870
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92871
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 92871
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 92872
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92872
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 92873
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92873
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 92878
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92878
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 92879
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92879
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 92882
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92882
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 92883
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92883
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92896
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92897
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd2bfad0915",
+      "fingertipsId": 92899
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 92904
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92904
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92904
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 92904
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 92906
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+      "fingertipsId": 92906
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 92946
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92946
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 92949
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 92949
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92950
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 92951
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 92953
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 92955
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 92973
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 92973
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 92973
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 93000
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 93000
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 93001
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 93001
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 93002
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 93002
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 93003
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 93003
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93004
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93005
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93006
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93007
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 93012
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93014
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 93014
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc911ef103a",
+      "fingertipsId": 93014
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93014
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 93014
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 93015
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 93015
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 93015
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93015
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 93015
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc911ef103a",
+      "fingertipsId": 93015
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 93015
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 93026
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 93027
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93037
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93038
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 93040
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 93040
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 93040
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 93041
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 93041
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 93043
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 93043
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 93047
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 93049
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 93051
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93058
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93059
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93060
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93061
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93062
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93063
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93064
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93065
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93066
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93067
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93068
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93069
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 93074
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 93074
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93074
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 93077
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc911ef103a",
+      "fingertipsId": 93077
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 93081
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 93081
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edca5f2e1820",
+      "fingertipsId": 93081
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edca5f2e1820",
+      "fingertipsId": 93084
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93085
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 93085
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93085
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93085
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 93085
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 93085
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 93086
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 93088
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 93088
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 93088
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93088
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+      "fingertipsId": 93088
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93088
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 93088
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93088
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 93088
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 93090
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 93091
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 93093
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edca5f2e1820",
+      "fingertipsId": 93094
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 93095
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 93096
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93097
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edca5f2e1820",
+      "fingertipsId": 93097
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 93097
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edca5f2e1820",
+      "fingertipsId": 93098
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 93098
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 93105
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 93106
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 93107
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 93108
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 93110
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 93111
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 93111
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93111
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93114
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93115
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93119
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93120
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+      "fingertipsId": 93124
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93124
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+      "fingertipsId": 93177
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93177
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc1bf5f41c1",
+      "fingertipsId": 93183
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93184
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93186
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93187
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93188
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 93193
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93193
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 93194
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 93195
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93203
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 93203
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93203
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93219
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93224
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 93226
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 93226
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edca5f2e1820",
+      "fingertipsId": 93226
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93227
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93229
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93231
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93232
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93233
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93239
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93240
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93241
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 93241
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edca5f2e1820",
+      "fingertipsId": 93268
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 93275
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edca5f2e1820",
+      "fingertipsId": 93275
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 93279
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 93279
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edca5f2e1820",
+      "fingertipsId": 93279
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 93280
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edca5f2e1820",
+      "fingertipsId": 93280
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 93305
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 93305
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 93306
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 93306
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93310
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93311
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93312
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93315
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93316
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbfb7ac2bd3",
+      "fingertipsId": 93350
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbfb7ac2bd3",
+      "fingertipsId": 93351
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbfb7ac2bd3",
+      "fingertipsId": 93352
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93355
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93356
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93357
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93358
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93361
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93364
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93365
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93368
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93369
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 93372
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93373
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93374
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 93375
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 93376
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 93377
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93378
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 93378
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93378
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93378
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93379
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93380
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93381
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 93381
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 93382
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 93383
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93386
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93388
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93389
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93391
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93392
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93393
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93395
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93396
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93397
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93399
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93402
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93403
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93404
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93405
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93410
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93410
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93415
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93415
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93420
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93427
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93427
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93431
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93432
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93433
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93434
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93435
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93436
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93436
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93438
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 93438
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93438
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc911ef103a",
+      "fingertipsId": 93439
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc911ef103a",
+      "fingertipsId": 93440
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93443
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93444
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93444
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 93453
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93454
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 93454
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 93455
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93456
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93463
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93466
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93467
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 93468
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93468
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93469
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93469
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93470
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93470
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93471
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93471
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93472
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93472
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 93474
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 93475
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 93476
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 93477
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 93478
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93479
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93479
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc898dc2b10",
+      "fingertipsId": 93479
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93491
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93494
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 93494
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93495
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 93495
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93496
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 93496
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 93496
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93513
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93515
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93536
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93536
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93537
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93540
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93540
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93541
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93541
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93542
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93542
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93543
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93543
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93544
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93544
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 93545
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93545
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93545
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93546
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93546
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93550
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93550
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 93553
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edca5f2e1820",
+      "fingertipsId": 93553
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93555
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93556
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93557
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93563
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc898dc2b10",
+      "fingertipsId": 93563
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 93568
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93569
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 93569
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93570
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93570
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc911ef103a",
+      "fingertipsId": 93570
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93573
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93573
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93574
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93574
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93575
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93575
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93576
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93576
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93577
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93577
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93581
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93581
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93582
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93582
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93587
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93596
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93597
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 93601
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93604
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93605
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93606
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93607
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93608
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 93613
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93622
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93622
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93623
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93624
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93632
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93633
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93644
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93644
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93648
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93648
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93661
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93662
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93663
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 93670
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 93672
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 93672
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 93673
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 93673
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 93674
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 93674
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 93674
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 93675
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 93675
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 93691
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93691
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93697
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93700
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbfb7ac2bd3",
+      "fingertipsId": 93700
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93700
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93701
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbfb7ac2bd3",
+      "fingertipsId": 93701
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93701
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93701
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 93705
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 93706
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 93707
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 93708
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 93709
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 93710
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 93711
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 93712
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 93712
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 93713
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 93713
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 93714
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 93715
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93716
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 93717
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 93718
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93719
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93720
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93721
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93722
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93723
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93724
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93724
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 93725
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 93726
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93727
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93728
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93729
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93730
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93731
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93732
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93733
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93734
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbfb7ac2bd3",
+      "fingertipsId": 93735
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93735
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 93735
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbfb7ac2bd3",
+      "fingertipsId": 93736
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93736
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93737
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbfb7ac2bd3",
+      "fingertipsId": 93737
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbfb7ac2bd3",
+      "fingertipsId": 93738
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93739
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbfb7ac2bd3",
+      "fingertipsId": 93739
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93739
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 93742
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edca5f2e1820",
+      "fingertipsId": 93747
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93748
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 93748
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93749
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 93749
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93750
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 93750
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93751
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 93751
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 93753
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 93753
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 93754
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93754
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 93759
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbfb7ac2bd3",
+      "fingertipsId": 93759
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93759
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93759
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93760
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93761
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 93763
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93763
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 93764
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 93765
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 93766
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 93767
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93767
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 93768
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 93769
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 93770
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 93771
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+      "fingertipsId": 93771
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 93772
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 93773
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 93773
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 93774
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 93777
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 93778
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93786
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93786
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93787
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93787
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93788
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93788
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93790
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93791
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 93791
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93792
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 93793
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 93794
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 93795
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 93796
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 93797
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 93823
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93823
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93824
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 93827
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93827
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93840
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 93852
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93852
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 93861
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93861
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93861
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbfb7ac2bd3",
+      "fingertipsId": 93862
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93863
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbfb7ac2bd3",
+      "fingertipsId": 93864
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 93865
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 93867
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 93867
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93867
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93867
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93868
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93869
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 93878
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93878
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 93880
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 93881
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 93881
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 93881
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 93881
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93882
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd2bfad0915",
+      "fingertipsId": 93882
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 93883
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd2bfad0915",
+      "fingertipsId": 93884
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd2bfad0915",
+      "fingertipsId": 93886
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 93887
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93887
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93889
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93905
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93906
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93907
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93908
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93917
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93918
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93919
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 93919
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93920
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93921
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 93922
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 93923
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93924
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93925
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93926
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93927
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93928
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93929
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93930
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93932
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 93932
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 93939
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 93954
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93954
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93955
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 93956
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 93956
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93956
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 93957
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93957
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 93958
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93958
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 93959
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 93959
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93959
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 93960
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93960
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 93961
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93961
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 93962
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+      "fingertipsId": 93962
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93962
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 93963
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93963
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93963
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93964
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 93965
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93965
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 93967
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 93967
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93967
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 93972
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 93972
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd2bfad0915",
+      "fingertipsId": 93979
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd2bfad0915",
+      "fingertipsId": 93981
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 93982
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93983
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93984
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93985
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 93994
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 93994
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 93995
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 93995
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 93995
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93995
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 93997
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93997
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 93998
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93998
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 93999
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 93999
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 94000
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 94000
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 94001
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+      "fingertipsId": 94001
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 94001
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 94002
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 94003
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 94003
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 94004
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 94004
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 94005
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 94005
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 94006
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 94006
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc7b7edeb7f",
+      "fingertipsId": 94035
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 94035
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 94036
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 94037
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 94063
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 94064
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 94064
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 94065
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 94068
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 94068
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 94068
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 94069
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 94069
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 94069
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbcc89618ef",
+      "fingertipsId": 94070
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 94070
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 94070
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 94071
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 94071
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 94073
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+      "fingertipsId": 94073
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 94073
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 94074
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 94074
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 94075
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 94089
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 94089
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 94103
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 94103
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 94106
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 94111
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 94116
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbfb7ac2bd3",
+      "fingertipsId": 94116
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 94117
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbfb7ac2bd3",
+      "fingertipsId": 94117
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 94118
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 94119
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 94120
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 94120
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 94121
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 94121
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 94121
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 94122
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 94122
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 94122
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 94122
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 94123
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 94123
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 94123
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 94123
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 94124
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbe5463461e",
+      "fingertipsId": 94124
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 94125
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 94125
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 94125
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 94125
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 94126
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 94127
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 94128
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 94129
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 94130
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 94131
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 94131
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 94131
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 94131
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb7d16afcef",
+      "fingertipsId": 94136
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94136
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 94138
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 94140
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 94141
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 94142
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc04a410071",
+      "fingertipsId": 94142
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 94143
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc04a410071",
+      "fingertipsId": 94143
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 94144
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc04a410071",
+      "fingertipsId": 94144
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94146
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94147
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94148
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 94148
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94149
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 94149
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94150
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94151
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94152
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94153
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 94154
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 94155
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 94159
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 94160
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 94161
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 94162
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 94163
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 94164
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 94174
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 94175
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 94175
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 94175
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94176
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94177
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 94182
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 94183
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 94184
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 94185
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 94186
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 94189
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 94190
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb28d2d43c6",
+      "fingertipsId": 94191
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 94192
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94192
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd1d769b2b9",
+      "fingertipsId": 94192
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 94193
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 94193
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 94194
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 94194
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 94194
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb56d765df6",
+      "fingertipsId": 94195
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 94195
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd0d1883541",
+      "fingertipsId": 94195
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 94199
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 94199
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 94199
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 94200
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 94200
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 94200
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edba9bad5d46",
+      "fingertipsId": 94201
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 94201
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 94201
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 94202
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+      "fingertipsId": 94202
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 94202
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edca5f2e1820",
+      "fingertipsId": 94204
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edca5f2e1820",
+      "fingertipsId": 94205
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 94207
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb93efbf005",
+      "fingertipsId": 94209
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 94210
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 94211
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc6a5044d65",
+      "fingertipsId": 94212
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edca5f2e1820",
+      "fingertipsId": 94221
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcd10805883",
+      "fingertipsId": 94233
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edd2bfad0915",
+      "fingertipsId": 94235
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 94236
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcc8f368d22",
+      "fingertipsId": 94236
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 94237
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 94238
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc56969334f",
+      "fingertipsId": 94238
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb3edd0ffbc",
+      "fingertipsId": 94240
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 94240
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94240
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbd4732346a",
+      "fingertipsId": 94240
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc26d6344d9",
+      "fingertipsId": 94240
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc3546e49f3",
+      "fingertipsId": 94240
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc440dd6701",
+      "fingertipsId": 94240
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edca5f2e1820",
+      "fingertipsId": 94240
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edcfc2abf8d2",
+      "fingertipsId": 94240
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 94241
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 94243
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 94244
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 94245
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 94246
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 94247
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 94248
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edbb8d977de2",
+      "fingertipsId": 94252
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94253
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94254
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94256
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94257
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 94258
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94258
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 94259
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94259
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94261
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 94262
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94262
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94263
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94264
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94265
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94266
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94267
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94268
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94269
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94270
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94271
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 94271
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94272
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 94273
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94273
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94274
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94275
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94276
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94277
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94278
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94279
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94280
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94281
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94282
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edce6e87840d",
+      "fingertipsId": 94282
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 94283
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94283
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94284
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb4839d91f9",
+      "fingertipsId": 94285
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94285
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edb8e3fdd4b8",
+      "fingertipsId": 94286
+    },
+    {
+      "topicId": "019f93b8-2b47-75d0-b03a-edc911ef103a",
+      "fingertipsId": 94311
+    }
+  ]
+}

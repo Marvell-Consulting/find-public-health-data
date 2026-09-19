@@ -18,6 +18,7 @@ describe('loadConfig', () => {
         ssl: false,
       },
       roles: { publicApiPassword: undefined, internalApiPassword: undefined },
+      publishedSnapshot: { url: undefined, sha256: undefined },
     });
   });
 
@@ -62,5 +63,17 @@ describe('loadConfig', () => {
 
   it('does not require the role passwords, which only db bootstrap uses', () => {
     expect(() => loadConfig({ ...local })).not.toThrow();
+  });
+
+  it('parses the published snapshot URL and checksum only when provided', () => {
+    const config = loadConfig({
+      ...local,
+      PUBLISHED_SNAPSHOT_URL: 'https://example.blob.core.windows.net/import/snapshot.tar',
+      PUBLISHED_SNAPSHOT_SHA256: 'a'.repeat(64),
+    });
+    expect(config.publishedSnapshot).toEqual({
+      url: 'https://example.blob.core.windows.net/import/snapshot.tar',
+      sha256: 'a'.repeat(64),
+    });
   });
 });
