@@ -4,7 +4,14 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDb, type Database } from './client.ts';
 import { dbEnvFields, resolveDbTls } from './env.ts';
-import { indicator, indicatorVersion } from './schema/index.ts';
+import {
+  classification,
+  indicator,
+  indicatorClassification,
+  indicatorTopic,
+  indicatorVersion,
+  topic,
+} from './schema/index.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
 
 const env = parseEnv(
@@ -49,7 +56,11 @@ async function newIndicatorId(): Promise<string> {
   return row.id;
 }
 
-async function addVersion(indicatorId: string, status: 'draft' | 'published') {
+async function addVersion(
+  indicatorId: string,
+  status: 'draft' | 'published',
+  values: { name?: string; publishedAt?: Date } = {},
+) {
   return db
     .insert(indicatorVersion)
     .values({
@@ -58,8 +69,27 @@ async function addVersion(indicatorId: string, status: 'draft' | 'published') {
       name: 'Schema test indicator',
       createdBy: 'schema-test',
       updatedBy: 'schema-test',
+      ...values,
     })
     .returning();
+}
+
+async function newTopicId(slug: string): Promise<string> {
+  const [row] = await db
+    .insert(topic)
+    .values({ slug, title: slug, description: slug })
+    .returning({ id: topic.id });
+  if (!row) throw new Error('inserted no topic');
+  return row.id;
+}
+
+async function newClassificationId(slug: string): Promise<string> {
+  const [row] = await db
+    .insert(classification)
+    .values({ dimension: 'population', slug, name: slug })
+    .returning({ id: classification.id });
+  if (!row) throw new Error('inserted no classification');
+  return row.id;
 }
 
 describe('a stub indicator', () => {
@@ -94,13 +124,11 @@ describe('indicator_version', () => {
     });
   });
 
-  it('allows one published version per indicator', async () => {
+  it('allows several published versions per indicator', async () => {
     const indicatorId = await newIndicatorId();
     await addVersion(indicatorId, 'published');
 
-    await expect(addVersion(indicatorId, 'published')).rejects.toMatchObject({
-      cause: { code: UNIQUE_VIOLATION },
-    });
+    await expect(addVersion(indicatorId, 'published')).resolves.toHaveLength(1);
   });
 
   // Raw SQL because the insert type no longer lets a caller omit the name.
@@ -121,5 +149,61 @@ describe('indicator_version', () => {
     await addVersion(indicatorId, 'published');
 
     await expect(addVersion(indicatorId, 'draft')).resolves.toHaveLength(1);
+  });
+});
+
+describe('the published views', () => {
+  it('show the most recently published version, memberships and all', async () => {
+    const indicatorId = await newIndicatorId();
+    const currentTopic = await newTopicId('current-topic');
+    const supersededTopic = await newTopicId('superseded-topic');
+    const currentClass = await newClassificationId('current-class');
+    const supersededClass = await newClassificationId('superseded-class');
+
+    // The newer publication is inserted first, so its UUIDv7 id sorts below the older
+    // one's and published_at is the only thing that can pick the right row.
+    const [current] = await addVersion(indicatorId, 'published', {
+      name: 'Current',
+      publishedAt: new Date('2026-06-01T00:00:00Z'),
+    });
+    const [superseded] = await addVersion(indicatorId, 'published', {
+      name: 'Superseded',
+      publishedAt: new Date('2026-01-01T00:00:00Z'),
+    });
+    if (!current || !superseded) throw new Error('inserted no versions');
+    expect(superseded.id > current.id).toBe(true);
+
+    await db.insert(indicatorTopic).values([
+      { topicId: currentTopic, indicatorVersionId: current.id },
+      { topicId: supersededTopic, indicatorVersionId: superseded.id },
+    ]);
+    await db.insert(indicatorClassification).values([
+      { classificationId: currentClass, indicatorVersionId: current.id },
+      { classificationId: supersededClass, indicatorVersionId: superseded.id },
+    ]);
+
+    const indicators = (await db.execute(
+      sql`SELECT name, first_published_at, last_published_at FROM published.indicator
+          WHERE id = ${indicatorId}`,
+      // Raw SQL, so the driver hands back timestamps as strings.
+    )) as unknown as { name: string; first_published_at: string; last_published_at: string }[];
+    const topics = (await db.execute(
+      sql`SELECT topic_id FROM published.indicator_topic WHERE indicator_id = ${indicatorId}`,
+    )) as unknown as { topic_id: string }[];
+    const classifications = (await db.execute(
+      sql`SELECT classification_id FROM published.indicator_classification
+          WHERE indicator_id = ${indicatorId}`,
+    )) as unknown as { classification_id: string }[];
+
+    expect(indicators).toHaveLength(1);
+    expect(indicators[0]?.name).toBe('Current');
+    expect(new Date(indicators[0]?.first_published_at ?? '').toISOString()).toBe(
+      '2026-01-01T00:00:00.000Z',
+    );
+    expect(new Date(indicators[0]?.last_published_at ?? '').toISOString()).toBe(
+      '2026-06-01T00:00:00.000Z',
+    );
+    expect(topics.map((row) => row.topic_id)).toEqual([currentTopic]);
+    expect(classifications.map((row) => row.classification_id)).toEqual([currentClass]);
   });
 });

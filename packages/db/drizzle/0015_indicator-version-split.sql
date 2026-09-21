@@ -78,7 +78,6 @@ ALTER TABLE "indicator_version" ADD CONSTRAINT "indicator_version_comparator_met
 ALTER TABLE "indicator_version" ADD CONSTRAINT "indicator_version_data_source_id_data_source_id_fk" FOREIGN KEY ("data_source_id") REFERENCES "public"."data_source"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "indicator_version" ADD CONSTRAINT "indicator_version_numerator_source_id_numerator_denominator_source_id_fk" FOREIGN KEY ("numerator_source_id") REFERENCES "public"."numerator_denominator_source"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "indicator_version" ADD CONSTRAINT "indicator_version_denominator_source_id_numerator_denominator_source_id_fk" FOREIGN KEY ("denominator_source_id") REFERENCES "public"."numerator_denominator_source"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "idx_indicator_version_one_published" ON "indicator_version" USING btree ("indicator_id") WHERE "indicator_version"."status" = 'published';--> statement-breakpoint
 CREATE UNIQUE INDEX "idx_indicator_version_one_draft" ON "indicator_version" USING btree ("indicator_id") WHERE "indicator_version"."status" = 'draft';--> statement-breakpoint
 CREATE INDEX "idx_indicator_version_indicator" ON "indicator_version" USING btree ("indicator_id");--> statement-breakpoint
 CREATE INDEX "idx_indicator_version_name_trgm" ON "indicator_version" USING gin ("name" gin_trgm_ops);--> statement-breakpoint

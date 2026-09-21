@@ -34,22 +34,41 @@ SELECT
   p.first_published_at,
   p.last_published_at
 FROM indicator i
-JOIN indicator_version v ON v.indicator_id = i.id AND v.status = 'published'
+JOIN (
+  -- An indicator may hold several published versions; the public surface shows the most
+  -- recently published one. Ids are UUIDv7, so the tiebreak is creation order.
+  SELECT DISTINCT ON (cv.indicator_id) cv.*
+  FROM indicator_version cv
+  WHERE cv.status = 'published'
+  ORDER BY cv.indicator_id, cv.published_at DESC NULLS LAST, cv.id DESC
+) v ON v.indicator_id = i.id
 CROSS JOIN LATERAL (
   SELECT min(pv.published_at) AS first_published_at, max(pv.published_at) AS last_published_at
   FROM indicator_version pv
   WHERE pv.indicator_id = i.id
 ) p;--> statement-breakpoint
 
+-- Memberships follow the same version published.indicator shows, so a superseded
+-- version's topics never reach the public pages.
 CREATE VIEW published.indicator_topic AS
 SELECT v.indicator_id, it.topic_id
-FROM indicator_topic it
-JOIN indicator_version v ON v.id = it.indicator_version_id AND v.status = 'published';--> statement-breakpoint
+FROM (
+  SELECT DISTINCT ON (cv.indicator_id) cv.id, cv.indicator_id
+  FROM indicator_version cv
+  WHERE cv.status = 'published'
+  ORDER BY cv.indicator_id, cv.published_at DESC NULLS LAST, cv.id DESC
+) v
+JOIN indicator_topic it ON it.indicator_version_id = v.id;--> statement-breakpoint
 
 CREATE VIEW published.indicator_classification AS
 SELECT v.indicator_id, ic.classification_id
-FROM indicator_classification ic
-JOIN indicator_version v ON v.id = ic.indicator_version_id AND v.status = 'published';--> statement-breakpoint
+FROM (
+  SELECT DISTINCT ON (cv.indicator_id) cv.id, cv.indicator_id
+  FROM indicator_version cv
+  WHERE cv.status = 'published'
+  ORDER BY cv.indicator_id, cv.published_at DESC NULLS LAST, cv.id DESC
+) v
+JOIN indicator_classification ic ON ic.indicator_version_id = v.id;--> statement-breakpoint
 
 -- The indicator-level predicate holds whatever the data plan later does with row-level
 -- publication state: an indicator with no published version exposes no observations.

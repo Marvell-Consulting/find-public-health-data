@@ -1,13 +1,13 @@
 import { z } from '@fphd/config';
-import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+import { asc, eq, inArray, sql } from 'drizzle-orm';
 
 import type { Database } from './client.ts';
+import { latestPublishedVersion } from './latest-published-version.ts';
 import {
   classification,
   indicator,
   indicatorClassification,
   indicatorTopic,
-  indicatorVersion,
   publishedClassification,
   publishedIndicatorClassification,
   publishedIndicatorTopic,
@@ -84,8 +84,9 @@ export function parseIndicatorTopicFile(data: unknown): IndicatorTopicFile {
 /**
  * Replaces topic membership for the indicators named in the file, and records when the
  * source system last published their data. Memberships attach to a version, so each
- * indicator resolves to its published one. Membership is replaced rather than merged: the
- * file states what is true now, so a link it no longer carries should not survive.
+ * indicator resolves to its latest published one. Membership is replaced rather than
+ * merged: the file states what is true now, so a link it no longer carries should not
+ * survive.
  *
  * Rows naming a topic or indicator this database does not hold are reported rather than
  * failed on — a seed file and a database can legitimately drift while both are in flux.
@@ -114,16 +115,10 @@ export async function applyIndicatorTopics(
           .select({
             id: indicator.id,
             shortId: indicator.shortId,
-            versionId: indicatorVersion.id,
+            versionId: latestPublishedVersion.id,
           })
           .from(indicator)
-          .innerJoin(
-            indicatorVersion,
-            and(
-              eq(indicatorVersion.indicatorId, indicator.id),
-              eq(indicatorVersion.status, 'published'),
-            ),
-          )
+          .innerJoin(latestPublishedVersion, eq(latestPublishedVersion.indicatorId, indicator.id))
           .where(inArray(indicator.shortId, shortIds))
       : Promise.resolve([]),
   ]);

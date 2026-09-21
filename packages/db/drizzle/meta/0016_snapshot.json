@@ -1261,22 +1261,6 @@
         }
       },
       "indexes": {
-        "idx_indicator_version_one_published": {
-          "name": "idx_indicator_version_one_published",
-          "columns": [
-            {
-              "expression": "indicator_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "with": {},
-          "method": "btree",
-          "where": "\"indicator_version\".\"status\" = 'published'",
-          "concurrently": false
-        },
         "idx_indicator_version_one_draft": {
           "name": "idx_indicator_version_one_draft",
           "columns": [

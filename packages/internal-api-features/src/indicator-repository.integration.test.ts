@@ -8,7 +8,7 @@ import {
   schema,
 } from '@fphd/db';
 import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
@@ -64,7 +64,12 @@ async function idsNewestFirst(): Promise<string[]> {
     SELECT i.id
     FROM indicator i
     LEFT JOIN indicator_version d ON d.indicator_id = i.id AND d.status = 'draft'
-    LEFT JOIN indicator_version p ON p.indicator_id = i.id AND p.status = 'published'
+    LEFT JOIN LATERAL (
+      SELECT pv.* FROM indicator_version pv
+      WHERE pv.indicator_id = i.id AND pv.status = 'published'
+      ORDER BY pv.published_at DESC NULLS LAST, pv.id DESC
+      LIMIT 1
+    ) p ON true
     ORDER BY greatest(d.updated_at, p.updated_at) DESC, coalesce(d.name, p.name), i.id
   `)) as unknown as { id: string }[];
 
@@ -77,9 +82,50 @@ async function publishedVersionId(indicatorId: string): Promise<string> {
     .from(indicatorVersion)
     .where(
       and(eq(indicatorVersion.indicatorId, indicatorId), eq(indicatorVersion.status, 'published')),
-    );
+    )
+    .orderBy(sql`${indicatorVersion.publishedAt} desc nulls last`, desc(indicatorVersion.id))
+    .limit(1);
   if (!row) throw new Error(`indicator ${indicatorId} has no published version`);
   return row.id;
+}
+
+/**
+ * An indicator with two published versions whose id order disagrees with their publication
+ * order: the superseded one is written last, so only published_at picks out the current one.
+ */
+async function indicatorWithTwoPublications(): Promise<{
+  indicatorId: string;
+  currentId: string;
+  supersededId: string;
+}> {
+  const created = await createIndicatorDraft(db, { name: 'Current publication' }, ACTOR);
+  await db
+    .update(indicatorVersion)
+    .set({
+      status: 'published',
+      publishedAt: new Date('2030-01-01T00:00:00Z'),
+      updatedAt: new Date('2030-01-01T00:00:00Z'),
+    })
+    .where(eq(indicatorVersion.id, created.versionId));
+
+  const [superseded] = await db
+    .insert(indicatorVersion)
+    .values({
+      indicatorId: created.indicatorId,
+      status: 'published',
+      name: 'Superseded publication',
+      publishedAt: new Date('2029-01-01T00:00:00Z'),
+      createdBy: ACTOR,
+      updatedBy: ACTOR,
+    })
+    .returning({ id: indicatorVersion.id });
+  if (!superseded) throw new Error('inserted no version');
+
+  return {
+    indicatorId: created.indicatorId,
+    currentId: created.versionId,
+    supersededId: superseded.id,
+  };
 }
 
 async function topicIdsOf(versionId: string): Promise<string[]> {
@@ -150,6 +196,16 @@ describe('getIndicatorById', () => {
       status: 'draft',
       name: 'Edited in a draft',
     });
+  });
+
+  it('reads the most recently published version when several exist', async () => {
+    const { indicatorId, currentId, supersededId } = await indicatorWithTwoPublications();
+
+    const found = await getIndicatorById(db, indicatorId);
+
+    expect(supersededId > currentId).toBe(true);
+    expect(found).toMatchObject({ status: 'published', name: 'Current publication' });
+    expect(found?.updatedAt.toISOString()).toBe('2030-01-01T00:00:00.000Z');
   });
 
   it('returns nothing for an id no indicator has', async () => {
@@ -258,6 +314,30 @@ describe('createDraftFromPublished', () => {
       createdBy: ACTOR,
     });
     expect(await topicIdsOf(result.versionId)).toEqual(publishedTopics);
+  });
+
+  it('copies the most recently published version, not the superseded one', async () => {
+    const { indicatorId, currentId, supersededId } = await indicatorWithTwoPublications();
+    const [current, superseded] = await db
+      .select({ id: schema.topic.id })
+      .from(schema.topic)
+      .limit(2);
+    if (!current || !superseded) throw new Error('The seed holds too few topics');
+    await db.insert(indicatorTopic).values([
+      { topicId: current.id, indicatorVersionId: currentId },
+      { topicId: superseded.id, indicatorVersionId: supersededId },
+    ]);
+
+    const result = await createDraftFromPublished(db, indicatorId, ACTOR);
+
+    expect(result).toMatchObject({ ok: true });
+    if (!result.ok) throw new Error('expected a draft');
+    const [draft] = await db
+      .select()
+      .from(indicatorVersion)
+      .where(eq(indicatorVersion.id, result.versionId));
+    expect(draft?.name).toBe('Current publication');
+    expect(await topicIdsOf(result.versionId)).toEqual([current.id]);
   });
 
   it('refuses a second draft for the same indicator', async () => {

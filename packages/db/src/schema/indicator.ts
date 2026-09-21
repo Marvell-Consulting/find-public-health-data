@@ -94,10 +94,8 @@ export const indicatorVersion = pgTable(
       sql`${t.ciConfidenceLevel} IN ('95', '99.8', 'both')`,
     ),
     check('indicator_version_status_check', sql`${t.status} IN ('draft', 'published')`),
-    // One published and one draft version per indicator, as constraints rather than convention.
-    uniqueIndex('idx_indicator_version_one_published')
-      .on(t.indicatorId)
-      .where(sql`${t.status} = 'published'`),
+    // One draft per indicator, as a constraint rather than a convention. An indicator may
+    // hold several published versions; reads take the most recently published one.
     uniqueIndex('idx_indicator_version_one_draft')
       .on(t.indicatorId)
       .where(sql`${t.status} = 'draft'`),

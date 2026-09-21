@@ -31,6 +31,7 @@ export {
   listTopicsForIndicator,
   type TopicSummaryForIndicator,
 } from './indicator-topic-repository.ts';
+export { latestPublishedVersion } from './latest-published-version.ts';
 export {
   type AreaRepository,
   createRepositories,

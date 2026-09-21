@@ -62,7 +62,9 @@ src/
 `public_api` holds no privilege on any table in `public`. It reads the views in the
 `published` schema and nothing else, so every predicate that hides an unpublished
 indicator lives in a view definition rather than in each query — `@fphd/db`'s public
-repositories select from the views, name for name. The definitions are a custom migration;
+repositories select from the views, name for name. An indicator may hold several published
+versions, so the views show the most recently published one, ties broken by id;
+`latestPublishedVersion` applies the same rule to queries over the tables. The definitions are a custom migration;
 `src/schema/published.ts` declares them with `pgSchema('published').view(...).existing()`
 so drizzle-kit gives the repositories typed columns without generating a second
 `CREATE VIEW`. Exports are prefixed (`publishedIndicator`) because the table names are
