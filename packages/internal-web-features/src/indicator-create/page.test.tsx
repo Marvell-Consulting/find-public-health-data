@@ -1,0 +1,91 @@
+// @vitest-environment jsdom
+import { cleanup, render, screen, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
+import { afterEach, describe, expect, it } from 'vitest';
+
+import { NewIndicatorPage } from './page.tsx';
+
+afterEach(cleanup);
+
+// The back link reads router state, so the page renders inside a router at its own address.
+function renderPage(props: Parameters<typeof NewIndicatorPage>[0] = {}) {
+  return render(
+    <MemoryRouter initialEntries={['/dashboard/indicators/new']}>
+      <NewIndicatorPage {...props} />
+    </MemoryRouter>,
+  );
+}
+
+function nameField() {
+  return screen.getByLabelText('What is the name of the indicator?') as HTMLInputElement;
+}
+
+describe('NewIndicatorPage', () => {
+  it('asks the question as the heading and as the label of the field', () => {
+    renderPage();
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'What is the name of the indicator?' }),
+    ).toBeTruthy();
+    expect(nameField().getAttribute('name')).toBe('name');
+  });
+
+  it('describes the field with the hint', () => {
+    renderPage();
+
+    const hint = screen.getByText(
+      'The name should be unique, descriptive and written in plain English.',
+    );
+
+    expect(nameField().getAttribute('aria-describedby')).toBe(hint.id);
+  });
+
+  it('posts back to its own address, so it works without JavaScript', () => {
+    const { container } = renderPage();
+    const form = container.querySelector('form');
+
+    expect(form?.getAttribute('method')).toBe('post');
+    expect(form?.getAttribute('action')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Continue' }).getAttribute('type')).toBe('submit');
+  });
+
+  it('starts empty and shows no error', () => {
+    renderPage();
+
+    expect(nameField().value).toBe('');
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('summarises a rejected submission and links to the field', () => {
+    renderPage({ fieldErrors: { name: 'Enter the name of the indicator' }, name: '' });
+
+    const link = within(screen.getByRole('alert')).getByRole('link', {
+      name: 'Enter the name of the indicator',
+    });
+
+    expect(link.getAttribute('href')).toBe(`#${nameField().id}`);
+  });
+
+  it('marks the field, describes it with the error and keeps what was typed', () => {
+    const { container } = renderPage({
+      fieldErrors: { name: 'Enter the name of the indicator' },
+      name: 'Kept',
+    });
+
+    const field = nameField();
+    const error = container.querySelector('.govuk-error-message');
+
+    expect(field.value).toBe('Kept');
+    expect(field.className).toContain('govuk-input--error');
+    expect(field.getAttribute('aria-describedby')).toContain(error?.id);
+    expect(container.querySelector('.govuk-form-group--error')).toBeTruthy();
+  });
+
+  it('links back to the dashboard', () => {
+    renderPage();
+
+    expect(screen.getByRole('link', { name: 'Back to indicators' }).getAttribute('href')).toBe(
+      '/dashboard',
+    );
+  });
+});
