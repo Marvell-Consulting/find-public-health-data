@@ -47,7 +47,8 @@ const COPY_IDLE_TIMEOUT_MS = 300_000;
 // Matches the deployed beta operations job's outer execution limit.
 const PUBLISHED_COPY_TIMEOUT_MS = 6 * 60 * 60 * 1_000;
 
-async function readCsvHeader(file: string): Promise<string[]> {
+/** The COPY takes its column list from the file, so callers can check one before importing. */
+export async function readCsvHeader(file: string): Promise<string[]> {
   const stream = createReadStream(file).pipe(createGunzip());
   let text = '';
   for await (const chunk of stream) {

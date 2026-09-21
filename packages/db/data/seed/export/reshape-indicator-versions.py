@@ -17,6 +17,8 @@ import os
 import secrets
 import sys
 
+from slug import assign_slugs
+
 IDENTITY_COLUMNS = ["id", "short_id", "data_updated_at", "created_at"]
 
 # The version's own columns, then everything lifted from indicator and indicator_metadata.
@@ -26,6 +28,7 @@ VERSION_COLUMNS = [
     "status",
     "published_at",
     "name",
+    "slug",
     "value_type_id",
     "unit_id",
     "year_type_id",
@@ -89,6 +92,9 @@ def main(seed_dir):
     # mirrors the order the rows were created in.
     base_ms = max(int(row["id"].replace("-", "")[:12], 16) for row in indicators) + 1
 
+    # The identity rows still carry the name at this point, before the split writes it away.
+    slugs = assign_slugs((row["id"], row["short_id"], row["name"]) for row in indicators)
+
     versions = []
     for offset, row in enumerate(sorted(indicators, key=lambda r: int(r["short_id"]))):
         version = {column: "" for column in VERSION_COLUMNS}
@@ -98,6 +104,7 @@ def main(seed_dir):
         )
         version["id"] = uuid7(base_ms + offset)
         version["indicator_id"] = row["id"]
+        version["slug"] = slugs[row["id"]]
         version["status"] = "published"
         version["published_at"] = row["updated_at"]
         versions.append(version)

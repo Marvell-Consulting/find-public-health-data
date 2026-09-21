@@ -20,6 +20,8 @@ from pathlib import Path
 import psycopg2
 from psycopg2.extras import Json, execute_values
 
+from slug import slug_problem, slugify
+
 
 INDICATOR_CONFIG = {
     241: {
@@ -116,6 +118,15 @@ def connect(repo_root):
         user=env.get("POSTGRES_USER", "fphd"),
         password=env.get("POSTGRES_PASSWORD", "fphd"),
     )
+
+
+# The exclusion constraint reports a slug another indicator already holds; this
+# reports the names that yield no slug at all.
+def version_slug(fingertips_id, name):
+    problem = slug_problem(name)
+    if problem:
+        raise SystemExit(f"Indicator {fingertips_id} has a name with no usable slug ({problem}): {name!r}")
+    return slugify(name)
 
 
 def one_id(cur, table, name):
@@ -285,14 +296,14 @@ def add_indicators(cur, metadata):
         cur.execute(
             """
             INSERT INTO indicator_version
-              (id, indicator_id, status, published_at, name, value_type_id, unit_id,
+              (id, indicator_id, status, published_at, name, slug, value_type_id, unit_id,
                year_type_id, ci_method_id, polarity_id, frequency_id, comparator_method_id,
                ci_confidence_level, config, definition, rationale, methodology,
                numerator_definition, denominator_definition, disclosure_control,
                caveats, notes, data_source_id, numerator_source_id, denominator_source_id,
                created_at, created_by, updated_at, updated_by)
             VALUES
-              (%s, %s, 'published', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+              (%s, %s, 'published', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                %s, 'fingertips-api-seed', %s, 'fingertips-api-seed')
             """,
@@ -301,6 +312,7 @@ def add_indicators(cur, metadata):
                 indicator_id,
                 updated_at,
                 descriptive["Name"],
+                version_slug(fingertips_id, descriptive["Name"]),
                 one_id(cur, "value_type", item["ValueType"]["Name"]),
                 one_id(cur, "unit", unit_name),
                 one_id(cur, "year_type", item["YearType"]["Name"]),

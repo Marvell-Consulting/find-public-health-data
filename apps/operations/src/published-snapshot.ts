@@ -8,7 +8,7 @@ import { pipeline } from 'node:stream/promises';
 import { promisify } from 'node:util';
 
 import { z } from '@fphd/config';
-import { SEED_TABLES } from '@fphd/db/operations';
+import { readCsvHeader, SEED_TABLES } from '@fphd/db/operations';
 
 const runFile = promisify(execFile);
 const publishedSource = 'PHOLIO_LIVE_A-derived fphd_new benchmark clone';
@@ -78,6 +78,12 @@ export async function verifyPublishedSnapshot(directory: string): Promise<Publis
     if ((await sha256(file)) !== expected.sha256) {
       throw new Error(`Published snapshot checksum failed for ${table}`);
     }
+  }
+  // The seed COPY takes its column list from each file, so an archive exported before a
+  // column existed would only fail deep inside the import. Name the gap here instead.
+  const versionColumns = await readCsvHeader(join(directory, 'indicator_version.csv.gz'));
+  if (!versionColumns.includes('slug')) {
+    throw new Error('Published snapshot indicator_version.csv.gz carries no slug column');
   }
   return manifest;
 }

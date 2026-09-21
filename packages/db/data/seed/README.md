@@ -44,6 +44,11 @@ That yields 489,998 observations, 758,989 bridge rows and 74,755 observation not
   headline semantics is ISS106 read-model design work.
 - `indicator.config` was converted from Pholio's `key:value,key:value` text to JSON at
   export time, and now sits on the version.
+- `indicator_version.slug` is derived from the name by the export's `slug.py`, which mirrors
+  `slugify` in `@fphd/config/slug`; a name yielding no usable slug stops the export. Where two
+  names slugify alike the lower short id keeps the bare slug and the other takes `-<short id>`.
+  A TypeScript test reads these CSVs and checks every slug against the TypeScript rule, so the
+  two implementations cannot drift.
 - Every seeded indicator loads as a single `published` version, under the system actor the
   export carries (`pholio-migration` or `fingertips-api-seed`). There are no draft rows in
   the seed.
@@ -58,9 +63,11 @@ clone. This fingerprint distinguishes the intended clone from the larger
 `PHOLIO_STAGING` corpus; update it only after verifying a refreshed published
 source. The export emits the identity and version split directly, one
 `published` version per approved source indicator, so this path has no
-`reshape-indicator-versions.py` step. Run `strip-metadata-html.py` and
-`enrich-area-display.py` against its output, then run
+`reshape-indicator-versions.py` step. Run `strip-metadata-html.py`,
+`add-version-slugs.py` and `enrich-area-display.py` against its output, then run
 `transform-uuids.py --deterministic` to rekey all tables with bounded memory.
+`add-version-slugs.py` stamps the slug column the import insists on; an archive
+without it is refused before any data is loaded.
 The published export uses an explicit CSV NULL marker so the transform keeps
 empty metadata strings distinct from database NULLs; the manifest records it.
 The resulting `manifest.json`, `source-manifest.json` and 21 CSV files form the
@@ -95,7 +102,8 @@ group and strips the level suffixes from area names. Skipping either commits see
 site would show wrong. `reshape-indicator-versions.py` runs last and splits the Pholio
 shape into the identity and version tables this service holds: `indicator.csv.gz` keeps
 only the identity columns, `indicator_version.csv.gz` carries one published version per
-indicator, and `indicator_metadata.csv.gz` is folded into it and removed.
+indicator with the slug derived from its name, and `indicator_metadata.csv.gz` is folded
+into it and removed.
 
 The transform assigns sequential UUIDv7 ids in source-id order, remaps every foreign key,
 and keeps the public Fingertips indicator number in `indicator.short_id`. Adjust the

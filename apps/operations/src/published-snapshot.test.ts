@@ -22,7 +22,8 @@ async function snapshot(source = 'PHOLIO_LIVE_A-derived fphd_new benchmark clone
   directories.push(directory);
   const tables: Record<string, { rows: number; bytes: number; sha256: string }> = {};
   for (const table of SEED_TABLES) {
-    const data = gzipSync('id\n1\n');
+    // The version file carries the slug the importer insists on; the rest only need an id.
+    const data = gzipSync(table === 'indicator_version' ? 'id,slug\n1,a-slug\n' : 'id\n1\n');
     await writeFile(join(directory, `${table}.csv.gz`), data);
     tables[table] = {
       rows:
@@ -56,6 +57,19 @@ describe('verifyPublishedSnapshot', () => {
     await expect(verifyPublishedSnapshot(directory)).resolves.toMatchObject({
       approved_indicators: 1_290,
     });
+  });
+
+  it('rejects an archive exported before indicator versions carried a slug', async () => {
+    const directory = await snapshot();
+    const data = gzipSync('id\n1\n');
+    await writeFile(join(directory, 'indicator_version.csv.gz'), data);
+    const path = join(directory, 'manifest.json');
+    const manifest = JSON.parse(await readFile(path, 'utf8'));
+    manifest.tables.indicator_version.sha256 = createHash('sha256').update(data).digest('hex');
+    manifest.tables.indicator_version.bytes = data.length;
+    await writeFile(path, JSON.stringify(manifest));
+
+    await expect(verifyPublishedSnapshot(directory)).rejects.toThrow('carries no slug column');
   });
 
   it('rejects a staging export even when its files are intact', async () => {
