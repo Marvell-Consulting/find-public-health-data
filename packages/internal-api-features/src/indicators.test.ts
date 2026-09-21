@@ -173,8 +173,13 @@ describe('GET /api/internal/indicators/:id', () => {
 });
 
 describe('POST /api/internal/indicators', () => {
-  const created = { indicatorId: row.id, shortId: 90366, versionId: 'version-1' };
-  const draftRow: IndicatorAdminDetailRow = { ...row, shortId: 90366, status: 'draft' };
+  const created = { ok: true, indicatorId: row.id, shortId: 90366, versionId: 'version-1' };
+  const draftRow: IndicatorAdminDetailRow = {
+    ...row,
+    shortId: 90366,
+    publishedSlug: null,
+    status: 'draft',
+  };
 
   it('rejects an anonymous request', async () => {
     const response = await request(createTestApp())
@@ -210,6 +215,7 @@ describe('POST /api/internal/indicators', () => {
       id: row.id,
       shortId: 90366,
       name: 'Life expectancy at birth',
+      publishedSlug: null,
       status: 'draft',
       updatedAt: '2026-01-02T00:00:00.000Z',
     });
@@ -242,6 +248,23 @@ describe('POST /api/internal/indicators', () => {
     },
   );
 
+  it('reports a name another indicator already holds against the field', async () => {
+    const createDraft = vi.fn().mockResolvedValue({ ok: false, reason: 'slug_taken' });
+    const findById = vi.fn();
+
+    const response = await request(createTestApp({ createDraft, findById }))
+      .post('/api/internal/indicators')
+      .set('Cookie', await publisherCookie())
+      .send({ name: 'Life expectancy at birth' });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({
+      error: 'slug_taken',
+      fieldErrors: { name: 'An indicator with this name already exists' },
+    });
+    expect(findById).not.toHaveBeenCalled();
+  });
+
   it('names the field a rejected submission failed on', async () => {
     const response = await request(createTestApp({ createDraft: vi.fn() }))
       .post('/api/internal/indicators')
@@ -256,7 +279,12 @@ describe('POST /api/internal/indicators', () => {
 });
 
 describe('PATCH /api/internal/indicators/:id', () => {
-  const draftRow: IndicatorAdminDetailRow = { ...row, shortId: 90366, status: 'draft' };
+  const draftRow: IndicatorAdminDetailRow = {
+    ...row,
+    shortId: 90366,
+    publishedSlug: null,
+    status: 'draft',
+  };
   const path = `/api/internal/indicators/${row.id}`;
 
   it('rejects an anonymous request', async () => {
@@ -291,6 +319,7 @@ describe('PATCH /api/internal/indicators/:id', () => {
       id: row.id,
       shortId: 90366,
       name: 'A better name',
+      publishedSlug: null,
       status: 'draft',
       updatedAt: '2026-01-02T00:00:00.000Z',
     });
@@ -349,6 +378,24 @@ describe('PATCH /api/internal/indicators/:id', () => {
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'not_found' });
+  });
+
+  it('reports a name another indicator already holds against the field', async () => {
+    const response = await request(
+      createTestApp({
+        updateDraft: async () => ({ ok: false, reason: 'slug_taken' }),
+        findById: async () => draftRow,
+      }),
+    )
+      .patch(path)
+      .set('Cookie', await publisherCookie())
+      .send({ name: 'Life expectancy at birth' });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({
+      error: 'slug_taken',
+      fieldErrors: { name: 'An indicator with this name already exists' },
+    });
   });
 
   it('answers 409 for an indicator with no draft to rename', async () => {

@@ -140,13 +140,13 @@ export const indicatorFieldErrorsSchema = z.partialRecord(indicatorFieldSchema, 
 export const indicatorCreateResponseSchema = indicatorAdminDetailSchema;
 
 export const indicatorCreateErrorSchema = z.object({
-  error: z.enum(['validation_failed']),
+  error: z.enum(['validation_failed', 'slug_taken']),
   fieldErrors: indicatorFieldErrorsSchema.optional(),
 });
 
 /** Renaming addresses an existing indicator, which may be gone or have nothing to edit. */
 export const indicatorUpdateErrorSchema = z.object({
-  error: z.enum(['invalid_id', 'validation_failed', 'not_found', 'no_draft']),
+  error: z.enum(['invalid_id', 'validation_failed', 'not_found', 'no_draft', 'slug_taken']),
   fieldErrors: indicatorFieldErrorsSchema.optional(),
 });
 

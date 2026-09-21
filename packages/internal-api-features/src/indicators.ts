@@ -16,6 +16,10 @@ import type { InternalIndicatorRepository } from './repositories.ts';
 
 export const INDICATORS_PAGE_SIZE = 10;
 
+// Two indicators cannot share a slug, and the name is what the publisher chose, so the
+// collision is reported against the name rather than the slug they never saw.
+const NAME_TAKEN = 'An indicator with this name already exists';
+
 function toSummary({ id, name, updatedAt }: IndicatorAdminRow): IndicatorAdminSummary {
   return { id, name, updatedAt: updatedAt.toISOString() };
 }
@@ -73,6 +77,12 @@ export function internalIndicatorsRouter(
 
     const { sub } = requireApiSession(response);
     const created = await indicators.createDraft(submission.data, sub);
+
+    if (!created.ok) {
+      response.status(409).json({ error: 'slug_taken', fieldErrors: { name: NAME_TAKEN } });
+      return;
+    }
+
     const row = await indicators.findById(created.indicatorId);
 
     if (!row) throw new Error('the indicator just created could not be read back');
@@ -108,9 +118,14 @@ export function internalIndicatorsRouter(
       return;
     }
 
-    // The indicator is there, so the update found no draft to write: a published indicator
-    // is edited by opening a draft first.
     if (!result.ok) {
+      if (result.reason === 'slug_taken') {
+        response.status(409).json({ error: 'slug_taken', fieldErrors: { name: NAME_TAKEN } });
+        return;
+      }
+
+      // The indicator is there, so the update found no draft to write: a published indicator
+      // is edited by opening a draft first.
       response.status(409).json({ error: 'no_draft' });
       return;
     }

@@ -69,6 +69,19 @@ test('shows a draft indicator on the dashboard', async ({ page }) => {
   await expect(page.getByRole('link', { name })).toBeVisible();
 });
 
+test('refuses a name another indicator already holds', async ({ page }) => {
+  const name = uniqueName();
+  await createIndicator(page, name);
+
+  await openNamePage(page);
+  await page.getByLabel('What is the name of the indicator?').fill(name);
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  await expect(page).toHaveURL('/publish/indicators/new');
+  await expect(page.getByRole('alert')).toContainText('An indicator with this name already exists');
+  await expect(page.getByLabel('What is the name of the indicator?')).toHaveValue(name);
+});
+
 test('renames a draft from its name page', async ({ page }) => {
   const name = uniqueName();
   await createIndicator(page, name);

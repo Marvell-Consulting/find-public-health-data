@@ -83,6 +83,24 @@ describe('createIndicator', () => {
     });
   });
 
+  it('shows a name another indicator already holds on the form', async () => {
+    const post = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      error: {
+        error: 'slug_taken',
+        fieldErrors: { name: 'An indicator with this name already exists' },
+      },
+    });
+
+    const outcome = await submit('Life expectancy at birth', post);
+
+    expect(outcome).toEqual({
+      name: 'Life expectancy at birth',
+      fieldErrors: { name: 'An indicator with this name already exists' },
+    });
+  });
+
   it('reports a refusal that names no field as a form with no field errors', async () => {
     const post = vi
       .fn()
@@ -187,6 +205,24 @@ describe('saveIndicatorName', () => {
     expect(outcome).toEqual({
       name: 'Rejected name',
       fieldErrors: { name: 'Enter the name of the indicator' },
+    });
+  });
+
+  it('shows a name another indicator already holds on the form', async () => {
+    const patch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      error: {
+        error: 'slug_taken',
+        fieldErrors: { name: 'An indicator with this name already exists' },
+      },
+    });
+
+    const outcome = await rename(created.id, 'Life expectancy at birth', patch);
+
+    expect(outcome).toEqual({
+      name: 'Life expectancy at birth',
+      fieldErrors: { name: 'An indicator with this name already exists' },
     });
   });
 
