@@ -82,10 +82,10 @@ describe('public API', () => {
   });
 
   // The UUID is internal: the list is the one public response that ever carried it.
-  it('lists an indicator by its short id alone, without the row id', async () => {
+  it('lists an indicator by its public identifiers alone, without the row id', async () => {
     const repositories = createFakeRepositories({
       indicators: {
-        listApproved: async () => [{ shortId: 108, name: 'Mortality' }],
+        listApproved: async () => [{ shortId: 108, slug: 'mortality', name: 'Mortality' }],
       },
     });
 
@@ -93,14 +93,14 @@ describe('public API', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
-      indicators: [{ shortId: 108, name: 'Mortality' }],
+      indicators: [{ shortId: 108, slug: 'mortality', name: 'Mortality' }],
     });
   });
 
   it('omits the row id from a filtered indicator list too', async () => {
     const repositories = createFakeRepositories({
       indicators: {
-        search: async () => [{ shortId: 108, name: 'Mortality' }],
+        search: async () => [{ shortId: 108, slug: 'mortality', name: 'Mortality' }],
       },
     });
 
@@ -108,7 +108,7 @@ describe('public API', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
-      indicators: [{ shortId: 108, name: 'Mortality' }],
+      indicators: [{ shortId: 108, slug: 'mortality', name: 'Mortality' }],
     });
   });
 

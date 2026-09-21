@@ -25,6 +25,7 @@ import {
   listIndicatorFacets,
   type ObservationRangePeriod,
   resolveApprovedIndicatorId,
+  resolveIndicatorIdBySlug,
   searchApprovedIndicators,
   searchIndicators,
 } from './indicator-repository.ts';
@@ -35,6 +36,8 @@ export interface IndicatorRepository {
   search(query: string, limit: number): Promise<ApprovedIndicator[]>;
   /** The one place the public short id resolves to an internal id. */
   resolveId(shortId: number): Promise<string | undefined>;
+  /** The same for a slug, current or superseded; the caller lower-cases it first. */
+  resolveIdBySlug(slug: string): Promise<string | undefined>;
   findApprovedById(indicatorId: string): Promise<IndicatorDetail | undefined>;
   findObservations(indicatorId: string, areaCode: string): Promise<IndicatorAreaData | undefined>;
   findObservationRange(
@@ -89,6 +92,7 @@ export function createRepositories(db: Database): Repositories {
       listApproved: () => listApprovedIndicators(db),
       search: (query, limit) => searchApprovedIndicators(db, query, limit),
       resolveId: (shortId) => resolveApprovedIndicatorId(db, shortId),
+      resolveIdBySlug: (slug) => resolveIndicatorIdBySlug(db, slug),
       findApprovedById: (indicatorId) => getApprovedIndicatorById(db, indicatorId),
       findObservations: (indicatorId, areaCode) =>
         getIndicatorObservations(db, indicatorId, areaCode),

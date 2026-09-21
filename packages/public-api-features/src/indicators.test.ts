@@ -7,6 +7,7 @@ import { indicatorsRouter } from './indicators.ts';
 
 const indicatorDetail = {
   shortId: 108,
+  slug: 'under-75-mortality-rate-from-all-causes',
   name: 'Under 75 mortality rate from all causes',
   valueType: 'Directly standardised rate',
   unit: { name: 'per 100,000', label: 'per 100,000' },
@@ -44,7 +45,7 @@ function createTestApp(overrides: FakeRepositoryOverrides['indicators'] = {}): E
 }
 
 describe('the public indicators surface', () => {
-  it('404s data and range requests when the short id resolves to nothing', async () => {
+  it('404s data and range requests when the identifier resolves to nothing', async () => {
     const app = createTestApp({ resolveId: async () => undefined });
 
     expect((await request(app).get('/api/indicators/424242/data')).status).toBe(404);
@@ -89,7 +90,7 @@ describe('GET /api/indicators', () => {
   });
 });
 
-describe('GET /api/indicators/:shortId', () => {
+describe('GET /api/indicators/:indicator', () => {
   it('finds an indicator by its short id', async () => {
     const app = createTestApp({
       resolveId: async () => 'ind-1',
@@ -111,16 +112,44 @@ describe('GET /api/indicators/:shortId', () => {
     expect(response.body).toEqual({ error: 'not_found' });
   });
 
-  it('rejects a non-numeric indicator id without touching the repository', async () => {
-    // No stub: if the route reached the repository, the fake would throw and this would 500.
-    const response = await request(createTestApp()).get('/api/indicators/not-a-number');
+  it('finds an indicator by its slug, case-folded, and answers 200 rather than redirecting', async () => {
+    const resolveIdBySlug = vi.fn().mockResolvedValue('ind-1');
+    const app = createTestApp({ resolveIdBySlug, findApprovedById: async () => indicatorDetail });
+
+    const response = await request(app).get(
+      '/api/indicators/Under-75-Mortality-Rate-From-All-Causes',
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(indicatorDetail);
+    expect(resolveIdBySlug).toHaveBeenCalledWith('under-75-mortality-rate-from-all-causes');
+  });
+
+  it('returns not-found for a slug no published version carries', async () => {
+    const app = createTestApp({ resolveIdBySlug: async () => undefined });
+
+    const response = await request(app).get('/api/indicators/no-such-indicator');
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'not_found' });
   });
+
+  it('rejects a segment shaped like neither identifier without touching the repository', async () => {
+    // No stub: if the route reached the repository, the fake would throw and this would 500.
+    const response = await request(createTestApp()).get('/api/indicators/not%20a%20slug');
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: 'not_found' });
+  });
+
+  it('rejects a short id too large for the column without touching the repository', async () => {
+    const response = await request(createTestApp()).get('/api/indicators/99999999999');
+
+    expect(response.status).toBe(404);
+  });
 });
 
-describe('GET /api/indicators/:shortId/data', () => {
+describe('GET /api/indicators/:indicator/data', () => {
   it('serves observations for an indicator, defaulting to England', async () => {
     const data = {
       areaCode: 'E92000001',
@@ -202,7 +231,7 @@ describe('GET /api/indicators/:shortId/data', () => {
   });
 });
 
-describe('GET /api/indicators/:shortId/range', () => {
+describe('GET /api/indicators/:indicator/range', () => {
   it('serves a per-segment range for the requested display group', async () => {
     const periods = [
       { fromDate: '2023-01-01', toDate: '2023-12-31', segment: 'Male', min: 1, max: 2 },
@@ -219,13 +248,26 @@ describe('GET /api/indicators/:shortId/range', () => {
     expect(findObservationRange).toHaveBeenCalledWith('ind-1', 'Local authorities');
   });
 
-  it('rejects a range request without area types or with a non-numeric id', async () => {
+  it('serves a range addressed by slug', async () => {
+    const findObservationRange = vi.fn().mockResolvedValue([]);
+    const app = createTestApp({ resolveIdBySlug: async () => 'ind-1', findObservationRange });
+
+    const response = await request(app).get(
+      '/api/indicators/diabetes-qof-prevalence/range?displayGroup=Local%20authorities',
+    );
+
+    expect(response.status).toBe(200);
+    expect(findObservationRange).toHaveBeenCalledWith('ind-1', 'Local authorities');
+  });
+
+  it('rejects a range request without area types or with an unusable identifier', async () => {
     // No stub: if either route reached the repository, the fake would throw and 500.
     const app = createTestApp();
 
     expect((await request(app).get('/api/indicators/241/range')).status).toBe(404);
     expect(
-      (await request(app).get('/api/indicators/nope/range?displayGroup=Local+authorities')).status,
+      (await request(app).get('/api/indicators/no%20pe/range?displayGroup=Local+authorities'))
+        .status,
     ).toBe(404);
   });
 });

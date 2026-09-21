@@ -1,3 +1,4 @@
+import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/config/slug';
 import { z } from '@fphd/config/zod';
 
 // One selection contains up to 19 picked areas and England for comparison.
@@ -55,9 +56,13 @@ export const topicSummaryListSchema = z.array(topicSummarySchema);
 // detail response can grow (indicators, related links) without touching the list contract.
 export const topicDetailSchema = topicSummarySchema;
 
-// No row id: the UUID is internal, and a caller addresses an indicator by its short id.
+/** The indicator's canonical slug: what a link to it is built from. */
+export const indicatorSlugSchema = z.string().min(1).max(SLUG_MAX_LENGTH).regex(SLUG_PATTERN);
+
+// No row id: the UUID is internal, and a caller addresses an indicator by its short id or slug.
 export const indicatorSummarySchema = z.object({
   shortId: z.number().int(),
+  slug: indicatorSlugSchema,
   name: z.string().min(1),
 });
 
@@ -72,6 +77,7 @@ export const indicatorSourceSchema = z.object({
 
 export const indicatorDetailSchema = z.object({
   shortId: z.number().int(),
+  slug: indicatorSlugSchema,
   name: z.string().min(1),
   valueType: z.string().min(1),
   unit: z.object({ name: z.string().min(1), label: z.string().min(1) }),
@@ -196,6 +202,7 @@ export type AreaParent = z.infer<typeof areaParentListSchema>[number];
 
 export const indicatorSearchRowSchema = z.object({
   shortId: z.number().int(),
+  slug: indicatorSlugSchema,
   name: z.string().min(1),
   topics: z.array(z.object({ slug: z.string().min(1), title: z.string().min(1) })),
   classifications: z.array(

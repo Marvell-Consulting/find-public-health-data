@@ -1,3 +1,4 @@
+import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/config/slug';
 import {
   and,
   asc,
@@ -32,6 +33,7 @@ import {
   publishedFrequency as frequency,
   publishedIndicator as indicator,
   publishedIndicatorClassification as indicatorClassification,
+  publishedIndicatorSlug as indicatorSlug,
   publishedIndicatorTopic as indicatorTopic,
   publishedNoteType as noteType,
   publishedNumeratorDenominatorSource as numeratorDenominatorSource,
@@ -64,6 +66,7 @@ export interface IndicatorSearchFilters {
 
 export interface IndicatorSearchRow {
   shortId: number;
+  slug: string;
   name: string;
   topics: { slug: string; title: string }[];
   classifications: { dimension: string; slug: string; name: string }[];
@@ -85,16 +88,32 @@ export interface IndicatorFacets {
 
 export interface ApprovedIndicator {
   shortId: number;
+  slug: string;
   name: string;
 }
 
 const MAX_POSTGRES_INTEGER = 2_147_483_647;
 
-/** A query that is a whole number matches that short id exactly; anything else matches nothing. */
-function exactShortIdMatch(query: string) {
+/**
+ * A query that is a whole number matches that short id exactly; a slug-shaped one matches
+ * any slug a published version carries, so an indicator's earlier address finds it too.
+ */
+function exactIdentifierMatch(db: Database, query: string) {
   const shortId = /^\d+$/.test(query) ? Number(query) : Number.NaN;
-  return Number.isSafeInteger(shortId) && shortId <= MAX_POSTGRES_INTEGER
-    ? eq(indicator.shortId, shortId)
+
+  if (Number.isSafeInteger(shortId) && shortId <= MAX_POSTGRES_INTEGER) {
+    return eq(indicator.shortId, shortId);
+  }
+
+  const slug = query.toLowerCase();
+
+  return SLUG_PATTERN.test(slug) && slug.length <= SLUG_MAX_LENGTH
+    ? exists(
+        db
+          .select({ one: sql`1` })
+          .from(indicatorSlug)
+          .where(and(eq(indicatorSlug.indicatorId, indicator.id), eq(indicatorSlug.slug, slug))),
+      )
     : sql<boolean>`false`;
 }
 
@@ -108,7 +127,7 @@ function escapedSearchTerms(query: string): string[] {
 /** The published indicator surface, ordered by name. */
 export async function listApprovedIndicators(db: Database): Promise<ApprovedIndicator[]> {
   return db
-    .select({ shortId: indicator.shortId, name: indicator.name })
+    .select({ shortId: indicator.shortId, slug: indicator.slug, name: indicator.name })
     .from(indicator)
     .orderBy(asc(indicator.name));
 }
@@ -120,9 +139,9 @@ export async function searchApprovedIndicators(
   limit: number,
 ): Promise<ApprovedIndicator[]> {
   const terms = escapedSearchTerms(query);
-  const identifierMatch = exactShortIdMatch(query.trim());
+  const identifierMatch = exactIdentifierMatch(db, query.trim());
   return db
-    .select({ shortId: indicator.shortId, name: indicator.name })
+    .select({ shortId: indicator.shortId, slug: indicator.slug, name: indicator.name })
     .from(indicator)
     .where(or(identifierMatch, and(...terms.map((term) => ilike(indicator.name, `%${term}%`)))))
     .orderBy(
@@ -150,6 +169,8 @@ export interface IndicatorTopic {
 
 export interface IndicatorDetail {
   shortId: number;
+  /** The canonical slug: the one the latest published version carries. */
+  slug: string;
   name: string;
   valueType: string;
   unit: { name: string; label: string };
@@ -190,6 +211,22 @@ export async function resolveApprovedIndicatorId(
 }
 
 /**
+ * The internal id behind a slug. Any slug a published version carries resolves, so a link
+ * made before a rename still lands on the indicator; the caller lower-cases first.
+ */
+export async function resolveIndicatorIdBySlug(
+  db: Database,
+  slug: string,
+): Promise<string | undefined> {
+  const [row] = await db
+    .select({ id: indicatorSlug.indicatorId })
+    .from(indicatorSlug)
+    .where(eq(indicatorSlug.slug, slug))
+    .limit(1);
+  return row?.id;
+}
+
+/**
  * Everything the indicator page needs in one round trip. The view is the published
  * surface, so an unpublished indicator is indistinguishable from one that does not exist.
  */
@@ -205,6 +242,7 @@ export async function getApprovedIndicatorById(
     .select({
       id: indicator.id,
       shortId: indicator.shortId,
+      slug: indicator.slug,
       name: indicator.name,
       valueType: valueType.name,
       unitName: unit.name,
@@ -261,6 +299,7 @@ export async function getApprovedIndicatorById(
 
   return {
     shortId: row.shortId,
+    slug: row.slug,
     name: row.name,
     valueType: row.valueType,
     unit: { name: row.unitName, label: row.unitLabel },
@@ -489,7 +528,7 @@ export async function searchIndicators(
   const conditions: SQL[] = [];
 
   const query = filters.query.trim();
-  const identifierMatch = exactShortIdMatch(query);
+  const identifierMatch = exactIdentifierMatch(db, query);
   const topicQueryMatch = (term: string) =>
     exists(
       db
@@ -645,7 +684,12 @@ export async function searchIndicators(
       .from(indicator)
       .where(where),
     db
-      .select({ id: indicator.id, shortId: indicator.shortId, name: indicator.name })
+      .select({
+        id: indicator.id,
+        shortId: indicator.shortId,
+        slug: indicator.slug,
+        name: indicator.name,
+      })
       .from(indicator)
       .where(where)
       .orderBy(
@@ -720,6 +764,7 @@ export async function searchIndicators(
     limit: filters.limit,
     indicators: rows.map((r) => ({
       shortId: r.shortId,
+      slug: r.slug,
       name: r.name,
       topics: topicsByIndicator.get(r.id) ?? [],
       classifications: classificationsByIndicator.get(r.id) ?? [],

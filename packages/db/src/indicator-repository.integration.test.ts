@@ -1,4 +1,5 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
+import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
@@ -20,6 +21,7 @@ import {
   listApprovedIndicators,
   listIndicatorFacets,
   resolveApprovedIndicatorId,
+  resolveIndicatorIdBySlug,
   searchApprovedIndicators,
   searchIndicators,
 } from './indicator-repository.ts';
@@ -55,6 +57,7 @@ const ENGLAND = 'E92000001';
 const CORNWALL = 'E06000052';
 
 const UNSEEDED_ID = '00000000-0000-7000-8000-000000000000';
+const MORTALITY_SLUG = 'under-75-mortality-rate-from-all-causes';
 
 let testDb: TestDatabase;
 let db: Database;
@@ -93,6 +96,14 @@ describe('listApprovedIndicators', () => {
     const names = indicators.map(({ name }) => name);
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
   });
+
+  it('carries the slug each link is built from', async () => {
+    const indicators = await listApprovedIndicators(db);
+
+    expect(indicators).toContainEqual(
+      expect.objectContaining({ shortId: MORTALITY_UNDER_75, slug: MORTALITY_SLUG }),
+    );
+  });
 });
 
 describe('searchApprovedIndicators', () => {
@@ -107,6 +118,12 @@ describe('searchApprovedIndicators', () => {
     const results = await searchApprovedIndicators(db, 'diabetes', 20);
 
     expect(results[0]?.name).toBe('Diabetes: QOF prevalence');
+  });
+
+  it('matches a slug exactly, case-folded', async () => {
+    await expect(searchApprovedIndicators(db, MORTALITY_SLUG.toUpperCase(), 20)).resolves.toEqual([
+      expect.objectContaining({ shortId: MORTALITY_UNDER_75 }),
+    ]);
   });
 
   it('matches an exact short id but not the internal id', async () => {
@@ -130,6 +147,30 @@ describe('resolveApprovedIndicatorId', () => {
   it('answers the internal id for a seeded short id and nothing otherwise', async () => {
     expect(await resolveApprovedIndicatorId(db, MORTALITY_UNDER_75)).toMatch(/^[0-9a-f-]{36}$/);
     expect(await resolveApprovedIndicatorId(db, 424242)).toBeUndefined();
+  });
+});
+
+describe('resolveIndicatorIdBySlug', () => {
+  it('answers the internal id for a published slug and nothing otherwise', async () => {
+    expect(await resolveIndicatorIdBySlug(db, MORTALITY_SLUG)).toBe(mortalityId);
+    expect(await resolveIndicatorIdBySlug(db, 'no-such-indicator')).toBeUndefined();
+  });
+
+  // The added publication is older than the seed's, so it supersedes nothing the rest of
+  // this file reads: the views still show one row per indicator, under the current name.
+  it('still answers for a slug only a superseded published version carries', async () => {
+    const owner = createDb(ownerConnection(testDb.name));
+    await owner.execute(
+      sql`INSERT INTO indicator_version
+            (indicator_id, status, name, slug, published_at, created_by, updated_by)
+          SELECT ${mortalityId}, 'published', 'An earlier name', 'an-earlier-name',
+                 '2020-01-01T00:00:00Z', 'integration-test', 'integration-test'`,
+    );
+    await owner.$client.end();
+
+    expect(await resolveIndicatorIdBySlug(db, 'an-earlier-name')).toBe(mortalityId);
+    // The canonical slug is still the latest publication's.
+    expect((await getApprovedIndicatorById(db, mortalityId))?.slug).toBe(MORTALITY_SLUG);
   });
 });
 
@@ -471,6 +512,12 @@ describe('searchIndicators', () => {
     expect(both).toBeGreaterThan(0);
     expect(both).toBeLessThanOrEqual(first);
     expect(both).toBeLessThanOrEqual(second);
+  });
+
+  it('matches a slug exactly, case-folded', async () => {
+    await expect(searchApprovedIndicators(db, MORTALITY_SLUG.toUpperCase(), 20)).resolves.toEqual([
+      expect.objectContaining({ shortId: MORTALITY_UNDER_75 }),
+    ]);
   });
 
   it('matches an exact short id but not the internal id', async () => {

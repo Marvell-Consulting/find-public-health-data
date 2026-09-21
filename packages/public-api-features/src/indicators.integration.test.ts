@@ -1,4 +1,5 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
+import { SLUG_PATTERN } from '@fphd/config/slug';
 import {
   createDb,
   createRepositories,
@@ -52,15 +53,19 @@ afterAll(async () => {
 });
 
 /** An identity whose only version is a draft: complete, but nothing the public may see. */
-async function insertDraftOnlyIndicator(shortId: number, name: string): Promise<number> {
+async function insertDraftOnlyIndicator(
+  shortId: number,
+  name: string,
+  slug: string,
+): Promise<number> {
   const [inserted] = await owner`
     WITH new_indicator AS (
       INSERT INTO indicator (short_id) VALUES (${shortId}) RETURNING id, short_id
     )
     INSERT INTO indicator_version
-      (indicator_id, status, name, value_type_id, unit_id, year_type_id, polarity_id,
+      (indicator_id, status, name, slug, value_type_id, unit_id, year_type_id, polarity_id,
        frequency_id, created_by, updated_by)
-    SELECT i.id, 'draft', ${name}, vt.id, u.id, yt.id, p.id, f.id,
+    SELECT i.id, 'draft', ${name}, ${slug}, vt.id, u.id, yt.id, p.id, f.id,
            'integration-test', 'integration-test'
     FROM new_indicator i, value_type vt, unit u, year_type yt, polarity p, frequency f
     LIMIT 1
@@ -70,6 +75,9 @@ async function insertDraftOnlyIndicator(shortId: number, name: string): Promise<
   return Number(inserted?.short_id);
 }
 
+/** The slug the seed derived for indicator 108, which is also its public address. */
+const MORTALITY_SLUG = 'under-75-mortality-rate-from-all-causes';
+
 describe('public routers against the seeded database', () => {
   it('lists the seeded indicators', async () => {
     const response = await request(app).get('/api/indicators');
@@ -78,6 +86,7 @@ describe('public routers against the seeded database', () => {
     expect(response.body.indicators).toHaveLength(13);
     expect(response.body.indicators[0]).toEqual({
       shortId: expect.any(Number),
+      slug: expect.stringMatching(SLUG_PATTERN),
       name: expect.any(String),
     });
     const names = response.body.indicators.map((i: { name: string }) => i.name);
@@ -85,7 +94,11 @@ describe('public routers against the seeded database', () => {
   });
 
   it('does not list an indicator whose only version is a draft', async () => {
-    const inserted = await insertDraftOnlyIndicator(999999, 'integration-test draft indicator');
+    const inserted = await insertDraftOnlyIndicator(
+      999999,
+      'integration-test draft indicator',
+      'integration-test-draft-indicator',
+    );
     const response = await request(app).get('/api/indicators');
     expect(response.status).toBe(200);
     expect(response.body.indicators).toHaveLength(13);
@@ -99,6 +112,7 @@ describe('public routers against the seeded database', () => {
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
       shortId: 108,
+      slug: MORTALITY_SLUG,
       name: expect.stringContaining('Under 75 mortality rate'),
       valueType: expect.any(String),
       unit: { name: expect.any(String), label: expect.any(String) },
@@ -225,8 +239,12 @@ describe('public routers against the seeded database', () => {
     expect(response.body).toEqual({ error: 'not_found' });
   });
 
-  it('does not serve an indicator that is not published', async () => {
-    await insertDraftOnlyIndicator(999998, 'integration-test unpublished indicator');
+  it('does not serve an indicator that is not published, by number or by slug', async () => {
+    await insertDraftOnlyIndicator(
+      999998,
+      'integration-test unpublished indicator',
+      'integration-test-unpublished-indicator',
+    );
 
     expect((await request(app).get('/api/indicators/999998')).status).toBe(404);
     expect((await request(app).get('/api/indicators/999998/data')).status).toBe(404);
@@ -234,6 +252,39 @@ describe('public routers against the seeded database', () => {
       (await request(app).get('/api/indicators/999998/range?displayGroup=Local%20authorities'))
         .status,
     ).toBe(404);
+    expect(
+      (await request(app).get('/api/indicators/integration-test-unpublished-indicator')).status,
+    ).toBe(404);
+  });
+
+  it('serves an indicator addressed by slug, in any case, with 200 rather than a redirect', async () => {
+    const bySlug = await request(app).get(`/api/indicators/${MORTALITY_SLUG}`);
+    const byUpperCase = await request(app).get(`/api/indicators/${MORTALITY_SLUG.toUpperCase()}`);
+
+    expect(bySlug.status).toBe(200);
+    expect(byUpperCase.status).toBe(200);
+    expect(bySlug.body.shortId).toBe(108);
+    expect(byUpperCase.body.slug).toBe(MORTALITY_SLUG);
+  });
+
+  it('serves the data and range routes by slug too', async () => {
+    const data = await request(app).get(`/api/indicators/${MORTALITY_SLUG}/data`);
+    const range = await request(app).get(
+      `/api/indicators/${MORTALITY_SLUG}/range?displayGroup=Local%20authorities`,
+    );
+
+    expect(data.status).toBe(200);
+    expect(data.body.areaCode).toBe('E92000001');
+    expect(range.status).toBe(200);
+  });
+
+  it('matches a slug-shaped query exactly, as it does a short id', async () => {
+    const response = await request(app).get(
+      `/api/indicators/search?q=${MORTALITY_SLUG.toUpperCase()}`,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body.indicators[0]).toMatchObject({ shortId: 108, slug: MORTALITY_SLUG });
   });
 
   it('connects with a read-only role', async () => {

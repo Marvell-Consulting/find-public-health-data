@@ -23,6 +23,7 @@ export {
   listApprovedIndicators,
   listIndicatorFacets,
   resolveApprovedIndicatorId,
+  resolveIndicatorIdBySlug,
   searchIndicators,
 } from './indicator-repository.ts';
 export {
