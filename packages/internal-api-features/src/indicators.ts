@@ -1,4 +1,4 @@
-import { requireJwtRole } from '@fphd/api-server';
+import { requireApiSession, requireJwtRole } from '@fphd/api-server';
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { Router } from 'express';
 
@@ -6,8 +6,10 @@ import {
   type IndicatorAdminDetail,
   type IndicatorAdminPage,
   type IndicatorAdminSummary,
+  indicatorCreateSchema,
   indicatorIdSchema,
   indicatorPageQuerySchema,
+  toFieldErrors,
 } from './contract.ts';
 import type { IndicatorAdminDetailRow, IndicatorAdminRow } from './indicator-repository.ts';
 import type { InternalIndicatorRepository } from './repositories.ts';
@@ -56,6 +58,26 @@ export function internalIndicatorsRouter(
     };
 
     response.status(200).json(body);
+  });
+
+  router.post('/api/internal/indicators', requirePublisher, async (request, response) => {
+    // Validated here as well as at the form: the API is reachable without going through it.
+    const submission = indicatorCreateSchema.safeParse(request.body);
+
+    if (!submission.success) {
+      response
+        .status(400)
+        .json({ error: 'validation_failed', fieldErrors: toFieldErrors(submission.error) });
+      return;
+    }
+
+    const { sub } = requireApiSession(response);
+    const created = await indicators.createDraft(submission.data, sub);
+    const row = await indicators.findById(created.indicatorId);
+
+    if (!row) throw new Error('the indicator just created could not be read back');
+
+    response.status(201).json(toDetail(row));
   });
 
   router.get('/api/internal/indicators/:id', requirePublisher, async (request, response) => {

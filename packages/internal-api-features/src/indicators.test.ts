@@ -36,6 +36,7 @@ function createTestApp(overrides: FakeInternalRepositoryOverrides['indicators'] 
   const repositories = createFakeInternalRepositories({ indicators: overrides });
   const app = express();
 
+  app.use(express.json());
   app.use(internalIndicatorsRouter(repositories.indicators, verifier));
 
   return app;
@@ -168,5 +169,88 @@ describe('GET /api/internal/indicators/:id', () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({ error: 'invalid_id' });
     expect(findById).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /api/internal/indicators', () => {
+  const created = { indicatorId: row.id, shortId: 90366, versionId: 'version-1' };
+  const draftRow: IndicatorAdminDetailRow = { ...row, shortId: 90366, status: 'draft' };
+
+  it('rejects an anonymous request', async () => {
+    const response = await request(createTestApp())
+      .post('/api/internal/indicators')
+      .send({ name: 'A new indicator' });
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({ error: 'authentication_required' });
+  });
+
+  it('rejects a signed-in non-publisher', async () => {
+    const response = await request(createTestApp())
+      .post('/api/internal/indicators')
+      .set('Cookie', await publisherCookie(['internal']))
+      .send({ name: 'A new indicator' });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({ error: 'forbidden' });
+  });
+
+  it('creates a draft for the signed-in publisher and serves it back', async () => {
+    const createDraft = vi.fn().mockResolvedValue(created);
+    const findById = vi.fn().mockResolvedValue(draftRow);
+
+    const response = await request(createTestApp({ createDraft, findById }))
+      .post('/api/internal/indicators')
+      .set('Cookie', await publisherCookie())
+      .send({ name: 'Life expectancy at birth' });
+
+    expect(response.status).toBe(201);
+    expect(createDraft).toHaveBeenCalledWith({ name: 'Life expectancy at birth' }, 'test-user');
+    expect(response.body).toEqual({
+      id: row.id,
+      shortId: 90366,
+      name: 'Life expectancy at birth',
+      status: 'draft',
+      updatedAt: '2026-01-02T00:00:00.000Z',
+    });
+  });
+
+  it('stores the name without its surrounding spaces', async () => {
+    const createDraft = vi.fn().mockResolvedValue(created);
+
+    await request(createTestApp({ createDraft, findById: async () => draftRow }))
+      .post('/api/internal/indicators')
+      .set('Cookie', await publisherCookie())
+      .send({ name: '  Life expectancy at birth  ' });
+
+    expect(createDraft).toHaveBeenCalledWith({ name: 'Life expectancy at birth' }, 'test-user');
+  });
+
+  it.each([{}, { name: '' }, { name: '   ' }, { name: 108 }])(
+    'rejects %s without creating anything',
+    async (body) => {
+      const createDraft = vi.fn();
+
+      const response = await request(createTestApp({ createDraft }))
+        .post('/api/internal/indicators')
+        .set('Cookie', await publisherCookie())
+        .send(body);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('validation_failed');
+      expect(createDraft).not.toHaveBeenCalled();
+    },
+  );
+
+  it('names the field a rejected submission failed on', async () => {
+    const response = await request(createTestApp({ createDraft: vi.fn() }))
+      .post('/api/internal/indicators')
+      .set('Cookie', await publisherCookie())
+      .send({ name: '' });
+
+    expect(response.body).toEqual({
+      error: 'validation_failed',
+      fieldErrors: { name: 'Enter the name of the indicator' },
+    });
   });
 });
