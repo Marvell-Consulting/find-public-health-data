@@ -1,3 +1,4 @@
+import { isShortId, SHORT_ID_PATTERN } from '@fphd/config/short-id';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/config/slug';
 import type { IndicatorSearchFilters, Repositories } from '@fphd/db';
 import { Router } from 'express';
@@ -21,7 +22,6 @@ import {
 } from './contract.ts';
 
 const DEFAULT_AREA_CODE = 'E92000001';
-const MAX_POSTGRES_INTEGER = 2_147_483_647;
 
 /**
  * An indicator is addressed by short id or by slug, and both answer 200: a client that
@@ -32,9 +32,9 @@ async function resolveIndicator(
   indicators: Repositories['indicators'],
   segment: string,
 ): Promise<string | undefined> {
-  if (/^\d+$/.test(segment)) {
-    const shortId = Number(segment);
-    return shortId <= MAX_POSTGRES_INTEGER ? indicators.resolveId(shortId) : undefined;
+  // A slug is never digits only, so a digit run addresses a short id or nothing.
+  if (SHORT_ID_PATTERN.test(segment)) {
+    return isShortId(segment) ? indicators.resolveId(Number(segment)) : undefined;
   }
 
   const slug = segment.toLowerCase();

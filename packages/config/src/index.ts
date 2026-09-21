@@ -15,6 +15,7 @@ export {
   resolveShutdown,
   serverEnvFields,
 } from './env.ts';
+export { isShortId, MAX_SHORT_ID, SHORT_ID_PATTERN } from './short-id.ts';
 export {
   isReservedSlug,
   RESERVED_SLUGS,

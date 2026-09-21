@@ -10,10 +10,16 @@ describe('isIndicatorSegment', () => {
     },
   );
 
-  it.each(['12345678901', '-leading', 'trailing-', 'two--hyphens', 'a'.repeat(81), 'no_such'])(
-    'refuses %s without asking the API',
-    (segment) => {
-      expect(isIndicatorSegment(segment)).toBe(false);
-    },
-  );
+  it.each([
+    '2147483648',
+    '9999999999',
+    '12345678901',
+    '-leading',
+    'trailing-',
+    'two--hyphens',
+    'a'.repeat(81),
+    'no_such',
+  ])('refuses %s without asking the API', (segment) => {
+    expect(isIndicatorSegment(segment)).toBe(false);
+  });
 });

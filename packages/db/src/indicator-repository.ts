@@ -1,3 +1,4 @@
+import { isShortId, SHORT_ID_PATTERN } from '@fphd/config/short-id';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/config/slug';
 import {
   and,
@@ -92,17 +93,14 @@ export interface PublishedIndicator {
   name: string;
 }
 
-const MAX_POSTGRES_INTEGER = 2_147_483_647;
-
 /**
  * A query that is a whole number matches that short id exactly; a slug-shaped one matches
  * any slug a published version carries, so an indicator's earlier address finds it too.
+ * A slug is never digits only, so a digit run matches a short id or nothing.
  */
 function exactIdentifierMatch(db: Database, query: string) {
-  const shortId = /^\d+$/.test(query) ? Number(query) : Number.NaN;
-
-  if (Number.isSafeInteger(shortId) && shortId <= MAX_POSTGRES_INTEGER) {
-    return eq(indicator.shortId, shortId);
+  if (SHORT_ID_PATTERN.test(query)) {
+    return isShortId(query) ? eq(indicator.shortId, Number(query)) : sql<boolean>`false`;
   }
 
   const slug = query.toLowerCase();

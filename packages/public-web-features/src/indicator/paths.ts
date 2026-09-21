@@ -1,3 +1,4 @@
+import { isShortId, SHORT_ID_PATTERN } from '@fphd/config/short-id';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/config/slug';
 
 /** The public indicator page, addressed by the canonical slug the API reports. */
@@ -10,19 +11,15 @@ export function indicatorCsvPath(slug: string, kind: 'table' | 'all-data'): stri
   return `${indicatorPath(slug)}/${kind}.csv`;
 }
 
-// A short id is a Postgres integer, so it never has more than ten digits.
-const SHORT_ID_SEGMENT = /^\d{1,10}$/;
-// A slug is never digits only, so a longer run of digits addresses nothing.
-const DIGITS_ONLY = /^\d+$/;
-
 /**
  * Whether a route segment can address an indicator: a short id, or a slug in any case.
- * Case and superseded slugs are the loader's 301, not a 404.
+ * Case and superseded slugs are the loader's 301, not a 404. A slug is never digits only,
+ * so a digit run too large for the column addresses nothing rather than falling through.
  */
 export function isIndicatorSegment(segment: string): boolean {
   const lowered = segment.toLowerCase();
 
-  if (DIGITS_ONLY.test(lowered)) return SHORT_ID_SEGMENT.test(lowered);
+  if (SHORT_ID_PATTERN.test(lowered)) return isShortId(lowered);
 
   return lowered.length <= SLUG_MAX_LENGTH && SLUG_PATTERN.test(lowered);
 }
