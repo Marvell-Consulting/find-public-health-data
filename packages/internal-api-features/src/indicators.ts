@@ -6,6 +6,7 @@ import {
   type IndicatorAdminDetail,
   type IndicatorAdminPage,
   type IndicatorAdminSummary,
+  indicatorFieldSchema,
   indicatorIdSchema,
   indicatorNameSchema,
   indicatorPageQuerySchema,
@@ -69,9 +70,10 @@ export function internalIndicatorsRouter(
     const submission = indicatorNameSchema.safeParse(request.body);
 
     if (!submission.success) {
-      response
-        .status(400)
-        .json({ error: 'validation_failed', fieldErrors: toFieldErrors(submission.error) });
+      response.status(400).json({
+        error: 'validation_failed',
+        fieldErrors: toFieldErrors(submission.error, indicatorFieldSchema.options),
+      });
       return;
     }
 
@@ -102,9 +104,10 @@ export function internalIndicatorsRouter(
     const submission = indicatorNameSchema.safeParse(request.body);
 
     if (!submission.success) {
-      response
-        .status(400)
-        .json({ error: 'validation_failed', fieldErrors: toFieldErrors(submission.error) });
+      response.status(400).json({
+        error: 'validation_failed',
+        fieldErrors: toFieldErrors(submission.error, indicatorFieldSchema.options),
+      });
       return;
     }
 

@@ -7,6 +7,7 @@ import {
   type TopicAdminDetail,
   type TopicAdminSummary,
   toFieldErrors,
+  topicFieldSchema,
   topicIdSchema,
   topicUpdateSchema,
 } from './contract.ts';
@@ -46,9 +47,10 @@ export function internalTopicsRouter(
     const submission = topicUpdateSchema.safeParse(request.body);
 
     if (!submission.success) {
-      response
-        .status(400)
-        .json({ error: 'validation_failed', fieldErrors: toFieldErrors(submission.error) });
+      response.status(400).json({
+        error: 'validation_failed',
+        fieldErrors: toFieldErrors(submission.error, topicFieldSchema.options),
+      });
       return;
     }
 
@@ -95,9 +97,10 @@ export function internalTopicsRouter(
     const submission = topicUpdateSchema.safeParse(request.body);
 
     if (!submission.success) {
-      response
-        .status(400)
-        .json({ error: 'validation_failed', fieldErrors: toFieldErrors(submission.error) });
+      response.status(400).json({
+        error: 'validation_failed',
+        fieldErrors: toFieldErrors(submission.error, topicFieldSchema.options),
+      });
       return;
     }
 

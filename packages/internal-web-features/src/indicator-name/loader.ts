@@ -4,6 +4,7 @@ import {
   indicatorAdminDetailSchema,
   indicatorCreateErrorSchema,
   indicatorCreateResponseSchema,
+  indicatorFieldSchema,
   indicatorIdSchema,
   indicatorNameSchema,
   indicatorUpdateErrorSchema,
@@ -57,7 +58,7 @@ export async function createIndicator({
   const submission = indicatorNameSchema.safeParse({ name });
 
   if (!submission.success) {
-    return { name, fieldErrors: toFieldErrors(submission.error) };
+    return { name, fieldErrors: toFieldErrors(submission.error, indicatorFieldSchema.options) };
   }
 
   const result = await context
@@ -99,7 +100,7 @@ export async function saveIndicatorName({
   const submission = indicatorNameSchema.safeParse({ name });
 
   if (!submission.success) {
-    return { name, fieldErrors: toFieldErrors(submission.error) };
+    return { name, fieldErrors: toFieldErrors(submission.error, indicatorFieldSchema.options) };
   }
 
   const result = await context
