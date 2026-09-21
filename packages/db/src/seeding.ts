@@ -44,8 +44,8 @@ export const SEED_TABLES = [
 
 const seedDir = fileURLToPath(new URL('../data/seed/', import.meta.url));
 const COPY_IDLE_TIMEOUT_MS = 300_000;
-// Full-data COPY can keep finalizing after its compressed source reaches EOF.
-const PUBLISHED_COPY_COMPLETION_TIMEOUT_MS = 1_800_000;
+// Matches the deployed beta operations job's outer execution limit.
+const PUBLISHED_COPY_TIMEOUT_MS = 6 * 60 * 60 * 1_000;
 
 async function readCsvHeader(file: string): Promise<string[]> {
   const stream = createReadStream(file).pipe(createGunzip());
@@ -65,7 +65,8 @@ async function loadTable(
   sql: postgres.Sql | postgres.TransactionSql,
   table: string,
   directory: string,
-  completionTimeoutMs = COPY_IDLE_TIMEOUT_MS,
+  idleTimeoutMs = COPY_IDLE_TIMEOUT_MS,
+  completionTimeoutMs = idleTimeoutMs,
 ): Promise<number> {
   const file = `${directory}/${table}.csv.gz`;
   const columns = await readCsvHeader(file);
@@ -74,7 +75,7 @@ async function loadTable(
     .unsafe(`COPY "${table}" (${columnList}) FROM STDIN WITH (FORMAT csv, HEADER true)`)
     .writable();
 
-  await streamSeedCsv(file, writable, table, COPY_IDLE_TIMEOUT_MS, completionTimeoutMs);
+  await streamSeedCsv(file, writable, table, idleTimeoutMs, completionTimeoutMs);
   const rows = await sql.unsafe(`SELECT count(*)::int AS count FROM "${table}"`);
   const count = Number(rows[0]?.count ?? 0);
   if (count === 0) {
@@ -201,7 +202,12 @@ export async function seedPublishedTables(
   directory: string,
 ): Promise<SeedSummary> {
   const topicFile = parseIndicatorTopicFile(JSON.parse(readFileSync(publishedTopicFile, 'utf-8')));
-  const tables = await seedTables(tx, directory, PUBLISHED_COPY_COMPLETION_TIMEOUT_MS);
+  const tables = await seedTables(
+    tx,
+    directory,
+    PUBLISHED_COPY_TIMEOUT_MS,
+    PUBLISHED_COPY_TIMEOUT_MS,
+  );
   const relationships = await applyIndicatorTopics(createDbFromTransaction(tx), topicFile);
   if (relationships.links === 0 || relationships.unknownTopics.length > 0) {
     throw new Error('Published topic mapping did not match the imported indicators and topics');
@@ -212,14 +218,15 @@ export async function seedPublishedTables(
 async function seedTables(
   tx: postgres.TransactionSql,
   directory: string,
-  completionTimeoutMs = COPY_IDLE_TIMEOUT_MS,
+  idleTimeoutMs = COPY_IDLE_TIMEOUT_MS,
+  completionTimeoutMs = idleTimeoutMs,
 ): Promise<Record<string, number>> {
   const allTables = [...SEED_TABLES, ...READ_MODEL_TABLES].map((t) => `"${t}"`).join(', ');
   await tx.unsafe(`TRUNCATE ${allTables} CASCADE`);
 
   const counts: Record<string, number> = {};
   for (const table of SEED_TABLES) {
-    counts[table] = await loadTable(tx, table, directory, completionTimeoutMs);
+    counts[table] = await loadTable(tx, table, directory, idleTimeoutMs, completionTimeoutMs);
   }
   return counts;
 }
