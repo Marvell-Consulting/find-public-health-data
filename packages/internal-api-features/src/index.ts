@@ -13,6 +13,7 @@ export type {
   IndicatorAdminRows,
   IndicatorDraftAttributes,
   IndicatorDraftMemberships,
+  NewIndicatorDraftAttributes,
   UpdateIndicatorDraftResult,
 } from './indicator-repository.ts';
 export { INDICATORS_PAGE_SIZE, internalIndicatorsRouter } from './indicators.ts';

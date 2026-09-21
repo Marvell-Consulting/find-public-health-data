@@ -88,19 +88,24 @@ export async function getIndicatorById(
 }
 
 /** The version columns a publisher edits: not the identity, the status or the audit trail. */
-export type IndicatorDraftAttributes = Partial<
-  Omit<
-    typeof indicatorVersion.$inferInsert,
-    | 'createdAt'
-    | 'createdBy'
-    | 'id'
-    | 'indicatorId'
-    | 'publishedAt'
-    | 'status'
-    | 'updatedAt'
-    | 'updatedBy'
-  >
+type EditableVersionColumns = Omit<
+  typeof indicatorVersion.$inferInsert,
+  | 'createdAt'
+  | 'createdBy'
+  | 'id'
+  | 'indicatorId'
+  | 'publishedAt'
+  | 'status'
+  | 'updatedAt'
+  | 'updatedBy'
 >;
+
+/** An update rewrites the columns it names, so every one of them is optional. */
+export type IndicatorDraftAttributes = Partial<EditableVersionColumns>;
+
+/** A new draft comes from the page that asks for a name, so it always has one. */
+export type NewIndicatorDraftAttributes = IndicatorDraftAttributes &
+  Pick<EditableVersionColumns, 'name'>;
 
 export interface IndicatorDraftMemberships {
   topicIds?: string[];
@@ -135,7 +140,7 @@ function isUniqueViolation(error: unknown): boolean {
 /** A new indicator is an identity and a draft version; the database mints both ids. */
 export async function createIndicatorDraft(
   db: Database,
-  attributes: IndicatorDraftAttributes,
+  attributes: NewIndicatorDraftAttributes,
   actor: string,
 ): Promise<CreatedIndicatorDraft> {
   return db.transaction(async (tx) => {

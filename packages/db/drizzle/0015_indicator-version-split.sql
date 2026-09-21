@@ -5,7 +5,7 @@ CREATE TABLE "indicator_version" (
 	"indicator_id" uuid NOT NULL,
 	"status" text DEFAULT 'draft' NOT NULL,
 	"published_at" timestamp with time zone,
-	"name" text,
+	"name" text NOT NULL,
 	"value_type_id" uuid,
 	"unit_id" uuid,
 	"year_type_id" uuid,

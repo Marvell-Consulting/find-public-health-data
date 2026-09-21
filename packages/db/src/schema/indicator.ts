@@ -60,7 +60,8 @@ export const indicatorVersion = pgTable(
       .references(() => indicator.id),
     status: text({ enum: INDICATOR_VERSION_STATUSES }).notNull().default('draft'),
     publishedAt: timestamp({ withTimezone: true }),
-    name: text(),
+    // A draft is only ever created from the page that asks for a name.
+    name: text().notNull(),
     valueTypeId: uuid().references(() => valueType.id),
     unitId: uuid().references(() => unit.id),
     yearTypeId: uuid().references(() => yearType.id),

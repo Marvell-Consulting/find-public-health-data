@@ -1,4 +1,5 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
+import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDb, type Database } from './client.ts';
@@ -20,6 +21,7 @@ const env = parseEnv(
 const FIRST_MINTED_SHORT_ID = 100_000;
 
 const UNIQUE_VIOLATION = '23505';
+const NOT_NULL_VIOLATION = '23502';
 
 let testDb: TestDatabase;
 let db: Database;
@@ -50,19 +52,25 @@ async function newIndicatorId(): Promise<string> {
 async function addVersion(indicatorId: string, status: 'draft' | 'published') {
   return db
     .insert(indicatorVersion)
-    .values({ indicatorId, status, createdBy: 'schema-test', updatedBy: 'schema-test' })
+    .values({
+      indicatorId,
+      status,
+      name: 'Schema test indicator',
+      createdBy: 'schema-test',
+      updatedBy: 'schema-test',
+    })
     .returning();
 }
 
 describe('a stub indicator', () => {
-  it('needs nothing but an actor on its first draft', async () => {
+  it('needs nothing but a name and an actor on its first draft', async () => {
     const indicatorId = await newIndicatorId();
 
     const [version] = await addVersion(indicatorId, 'draft');
 
     expect(indicatorId).toMatch(/^[0-9a-f-]{36}$/);
     expect(version?.status).toBe('draft');
-    expect(version?.name).toBeNull();
+    expect(version?.name).toBe('Schema test indicator');
     expect(version?.valueTypeId).toBeNull();
     expect(version?.publishedAt).toBeNull();
   });
@@ -93,6 +101,18 @@ describe('indicator_version', () => {
     await expect(addVersion(indicatorId, 'published')).rejects.toMatchObject({
       cause: { code: UNIQUE_VIOLATION },
     });
+  });
+
+  // Raw SQL because the insert type no longer lets a caller omit the name.
+  it('refuses a version with no name', async () => {
+    const indicatorId = await newIndicatorId();
+
+    await expect(
+      db.execute(
+        sql`INSERT INTO indicator_version (indicator_id, created_by, updated_by)
+            VALUES (${indicatorId}, 'schema-test', 'schema-test')`,
+      ),
+    ).rejects.toMatchObject({ cause: { code: NOT_NULL_VIOLATION } });
   });
 
   it('allows a draft alongside the published version', async () => {

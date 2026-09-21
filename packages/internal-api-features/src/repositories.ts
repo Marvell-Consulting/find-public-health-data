@@ -11,6 +11,7 @@ import {
   type IndicatorDraftAttributes,
   type IndicatorDraftMemberships,
   listIndicatorsPage,
+  type NewIndicatorDraftAttributes,
   type UpdateIndicatorDraftResult,
   updateIndicatorDraft,
 } from './indicator-repository.ts';
@@ -38,7 +39,10 @@ export interface InternalTopicRepository {
 export interface InternalIndicatorRepository {
   listPage(page: number, pageSize: number): Promise<IndicatorAdminRows>;
   findById(id: string): Promise<IndicatorAdminDetailRow | undefined>;
-  createDraft(attributes: IndicatorDraftAttributes, actor: string): Promise<CreatedIndicatorDraft>;
+  createDraft(
+    attributes: NewIndicatorDraftAttributes,
+    actor: string,
+  ): Promise<CreatedIndicatorDraft>;
   updateDraft(
     indicatorId: string,
     attributes: IndicatorDraftAttributes,
