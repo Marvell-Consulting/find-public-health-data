@@ -44,7 +44,8 @@ export const SEED_TABLES = [
 
 const seedDir = fileURLToPath(new URL('../data/seed/', import.meta.url));
 const COPY_IDLE_TIMEOUT_MS = 300_000;
-const PUBLISHED_COPY_TIMEOUT_MS = 24 * 60 * 60 * 1_000;
+// Matches the deployed beta operations job's outer execution limit.
+const PUBLISHED_COPY_TIMEOUT_MS = 6 * 60 * 60 * 1_000;
 
 async function readCsvHeader(file: string): Promise<string[]> {
   const stream = createReadStream(file).pipe(createGunzip());
