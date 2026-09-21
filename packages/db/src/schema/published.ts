@@ -29,6 +29,8 @@ export const publishedIndicator = publishedSchema
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     // A version is complete before it can be published, so the public surface always has a name.
     name: text('name').notNull(),
+    // The canonical slug: the one the latest published version carries.
+    slug: text('slug').notNull(),
     valueTypeId: uuid('value_type_id'),
     unitId: uuid('unit_id'),
     yearTypeId: uuid('year_type_id'),
@@ -53,6 +55,14 @@ export const publishedIndicator = publishedSchema
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
     firstPublishedAt: timestamp('first_published_at', { withTimezone: true }),
     lastPublishedAt: timestamp('last_published_at', { withTimezone: true }),
+  })
+  .existing();
+
+/** Every slug any published version carries, so an indicator's earlier addresses resolve. */
+export const publishedIndicatorSlug = publishedSchema
+  .view('indicator_slug', {
+    slug: text('slug').notNull(),
+    indicatorId: uuid('indicator_id').notNull(),
   })
   .existing();
 

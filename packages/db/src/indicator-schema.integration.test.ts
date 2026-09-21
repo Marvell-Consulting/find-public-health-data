@@ -1,5 +1,5 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDb, type Database } from './client.ts';
@@ -29,6 +29,7 @@ const FIRST_MINTED_SHORT_ID = 100_000;
 
 const UNIQUE_VIOLATION = '23505';
 const NOT_NULL_VIOLATION = '23502';
+const EXCLUSION_VIOLATION = '23P01';
 
 let testDb: TestDatabase;
 let db: Database;
@@ -56,10 +57,11 @@ async function newIndicatorId(): Promise<string> {
   return row.id;
 }
 
+// A slug belongs to one indicator, so an unnamed version takes one keyed to its own.
 async function addVersion(
   indicatorId: string,
   status: 'draft' | 'published',
-  values: { name?: string; publishedAt?: Date } = {},
+  values: { name?: string; slug?: string; publishedAt?: Date } = {},
 ) {
   return db
     .insert(indicatorVersion)
@@ -67,6 +69,7 @@ async function addVersion(
       indicatorId,
       status,
       name: 'Schema test indicator',
+      slug: `schema-test-${indicatorId}`,
       createdBy: 'schema-test',
       updatedBy: 'schema-test',
       ...values,
@@ -150,6 +153,46 @@ describe('indicator_version', () => {
 
     await expect(addVersion(indicatorId, 'draft')).resolves.toHaveLength(1);
   });
+
+  it('lets every version of one indicator share a slug', async () => {
+    const indicatorId = await newIndicatorId();
+    await addVersion(indicatorId, 'published', { slug: 'a-shared-slug' });
+
+    await expect(addVersion(indicatorId, 'draft', { slug: 'a-shared-slug' })).resolves.toHaveLength(
+      1,
+    );
+  });
+
+  it('refuses a slug another indicator already holds, draft or published', async () => {
+    const owner = await newIndicatorId();
+    const other = await newIndicatorId();
+    await addVersion(owner, 'draft', { slug: 'a-claimed-slug' });
+
+    await expect(addVersion(other, 'published', { slug: 'a-claimed-slug' })).rejects.toMatchObject({
+      cause: { code: EXCLUSION_VIOLATION },
+    });
+  });
+
+  it('releases a slug when the draft holding it is deleted', async () => {
+    const owner = await newIndicatorId();
+    const other = await newIndicatorId();
+    const [draft] = await addVersion(owner, 'draft', { slug: 'a-released-slug' });
+    await db.delete(indicatorVersion).where(eq(indicatorVersion.id, draft?.id ?? ''));
+
+    await expect(addVersion(other, 'draft', { slug: 'a-released-slug' })).resolves.toHaveLength(1);
+  });
+
+  // Raw SQL because the insert type no longer lets a caller omit the slug.
+  it('refuses a version with no slug', async () => {
+    const indicatorId = await newIndicatorId();
+
+    await expect(
+      db.execute(
+        sql`INSERT INTO indicator_version (indicator_id, name, created_by, updated_by)
+            VALUES (${indicatorId}, 'no slug', 'schema-test', 'schema-test')`,
+      ),
+    ).rejects.toMatchObject({ cause: { code: NOT_NULL_VIOLATION } });
+  });
 });
 
 describe('the published views', () => {
@@ -164,10 +207,12 @@ describe('the published views', () => {
     // one's and published_at is the only thing that can pick the right row.
     const [current] = await addVersion(indicatorId, 'published', {
       name: 'Current',
+      slug: 'current-name',
       publishedAt: new Date('2026-06-01T00:00:00Z'),
     });
     const [superseded] = await addVersion(indicatorId, 'published', {
       name: 'Superseded',
+      slug: 'superseded-name',
       publishedAt: new Date('2026-01-01T00:00:00Z'),
     });
     if (!current || !superseded) throw new Error('inserted no versions');
@@ -183,10 +228,15 @@ describe('the published views', () => {
     ]);
 
     const indicators = (await db.execute(
-      sql`SELECT name, first_published_at, last_published_at FROM published.indicator
+      sql`SELECT name, slug, first_published_at, last_published_at FROM published.indicator
           WHERE id = ${indicatorId}`,
       // Raw SQL, so the driver hands back timestamps as strings.
-    )) as unknown as { name: string; first_published_at: string; last_published_at: string }[];
+    )) as unknown as {
+      name: string;
+      slug: string;
+      first_published_at: string;
+      last_published_at: string;
+    }[];
     const topics = (await db.execute(
       sql`SELECT topic_id FROM published.indicator_topic WHERE indicator_id = ${indicatorId}`,
     )) as unknown as { topic_id: string }[];
@@ -197,6 +247,7 @@ describe('the published views', () => {
 
     expect(indicators).toHaveLength(1);
     expect(indicators[0]?.name).toBe('Current');
+    expect(indicators[0]?.slug).toBe('current-name');
     expect(new Date(indicators[0]?.first_published_at ?? '').toISOString()).toBe(
       '2026-01-01T00:00:00.000Z',
     );
@@ -205,5 +256,36 @@ describe('the published views', () => {
     );
     expect(topics.map((row) => row.topic_id)).toEqual([currentTopic]);
     expect(classifications.map((row) => row.classification_id)).toEqual([currentClass]);
+  });
+
+  it('resolve every slug a published version carries, not only the current one', async () => {
+    const indicatorId = await newIndicatorId();
+    await addVersion(indicatorId, 'published', {
+      slug: 'renamed-indicator',
+      publishedAt: new Date('2026-06-01T00:00:00Z'),
+    });
+    await addVersion(indicatorId, 'published', {
+      slug: 'original-indicator',
+      publishedAt: new Date('2026-01-01T00:00:00Z'),
+    });
+    await addVersion(indicatorId, 'draft', { slug: 'renamed-indicator' });
+
+    const rows = (await db.execute(
+      sql`SELECT slug FROM published.indicator_slug WHERE indicator_id = ${indicatorId}
+          ORDER BY slug`,
+    )) as unknown as { slug: string }[];
+
+    expect(rows.map((row) => row.slug)).toEqual(['original-indicator', 'renamed-indicator']);
+  });
+
+  it('hide a slug only a draft carries', async () => {
+    const indicatorId = await newIndicatorId();
+    await addVersion(indicatorId, 'draft', { slug: 'an-unpublished-slug' });
+
+    const rows = (await db.execute(
+      sql`SELECT slug FROM published.indicator_slug WHERE slug = 'an-unpublished-slug'`,
+    )) as unknown as { slug: string }[];
+
+    expect(rows).toEqual([]);
   });
 });

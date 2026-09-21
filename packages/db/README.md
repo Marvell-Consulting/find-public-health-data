@@ -56,6 +56,12 @@ src/
   editing it. Reference tables carry neither. `updated_at` is app-maintained on writes;
   see the topics import's conditional upsert for the pattern.
 - **Repository functions**: pure, `db` first argument, one file per aggregate.
+- **Slugs**: `indicator_version.slug` is derived from the version's name by `slugify` in
+  `@fphd/config/slug`. An exclusion constraint,
+  `EXCLUDE USING gist (slug WITH =, indicator_id WITH <>)`, keeps a slug to one indicator for
+  ever: versions of one indicator may share it, two indicators may not, and a draft holds its
+  slug until it is deleted. Drizzle cannot express the constraint, so it lives in the migration
+  alone.
 
 ## The `published` schema
 
@@ -64,7 +70,10 @@ src/
 indicator lives in a view definition rather than in each query — `@fphd/db`'s public
 repositories select from the views, name for name. An indicator may hold several published
 versions, so the views show the most recently published one, ties broken by id;
-`latestPublishedVersion` applies the same rule to queries over the tables. The definitions are a custom migration;
+`latestPublishedVersion` applies the same rule to queries over the tables. `published.indicator`
+carries that version's `slug` as the indicator's canonical address, while
+`published.indicator_slug` lists every slug any published version carries, so an address a later
+publication replaced still resolves. The definitions are a custom migration;
 `src/schema/published.ts` declares them with `pgSchema('published').view(...).existing()`
 so drizzle-kit gives the repositories typed columns without generating a second
 `CREATE VIEW`. Exports are prefixed (`publishedIndicator`) because the table names are

@@ -17,6 +17,7 @@ export const latestPublishedVersion = new QueryBuilder({ casing: 'snake_case' })
     id: indicatorVersion.id,
     indicatorId: indicatorVersion.indicatorId,
     name: indicatorVersion.name,
+    slug: indicatorVersion.slug,
     updatedAt: indicatorVersion.updatedAt,
   })
   .from(indicatorVersion)

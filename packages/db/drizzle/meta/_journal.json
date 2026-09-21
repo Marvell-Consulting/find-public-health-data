@@ -120,6 +120,13 @@
       "when": 1789746234458,
       "tag": "0016_published-views-and-grants",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790008795335,
+      "tag": "0017_indicator-slug",
+      "breakpoints": true
     }
   ]
 }

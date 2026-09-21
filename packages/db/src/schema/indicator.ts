@@ -62,6 +62,9 @@ export const indicatorVersion = pgTable(
     publishedAt: timestamp({ withTimezone: true }),
     // A draft is only ever created from the page that asks for a name.
     name: text().notNull(),
+    // Derived from the name by slugify, and the indicator's public address. An exclusion
+    // constraint, which drizzle cannot express, keeps a slug to one indicator for ever.
+    slug: text().notNull(),
     valueTypeId: uuid().references(() => valueType.id),
     unitId: uuid().references(() => unit.id),
     yearTypeId: uuid().references(() => yearType.id),
@@ -100,6 +103,7 @@ export const indicatorVersion = pgTable(
       .on(t.indicatorId)
       .where(sql`${t.status} = 'draft'`),
     index('idx_indicator_version_indicator').on(t.indicatorId),
+    index('idx_indicator_version_slug').on(t.slug),
     index('idx_indicator_version_name_trgm').using('gin', t.name.op('gin_trgm_ops')),
     index('idx_indicator_version_definition_trgm').using('gin', t.definition.op('gin_trgm_ops')),
   ],
