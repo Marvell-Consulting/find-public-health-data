@@ -17,6 +17,9 @@ const topic: Topic = {
   updatedAt: new Date('2024-01-02T00:00:00.000Z'),
 };
 
+// Any well-formed id: the public app rejects an internal path before it reads one.
+const anyId = '00000000-0000-7000-8000-000000000002';
+
 function createTestApp(repositories = createFakeRepositories()) {
   return createApp({ logger, repositories });
 }
@@ -42,13 +45,13 @@ describe('public API', () => {
     ['get', '/api/internal'],
     ['get', '/api/internal/indicators'],
     ['post', '/api/internal/indicators'],
-    ['patch', `/api/internal/indicators/${topic.id}`],
-    ['get', `/api/internal/indicators/${topic.id}`],
+    ['patch', `/api/internal/indicators/${anyId}`],
+    ['get', `/api/internal/indicators/${anyId}`],
     ['get', '/api/internal/topics'],
     ['post', '/api/internal/topics'],
-    ['get', `/api/internal/topics/${topic.id}`],
-    ['put', `/api/internal/topics/${topic.id}`],
-    ['delete', `/api/internal/topics/${topic.id}`],
+    ['get', `/api/internal/topics/${anyId}`],
+    ['put', `/api/internal/topics/${anyId}`],
+    ['delete', `/api/internal/topics/${anyId}`],
   ] as const)('does not expose the internal surface at %s %s', async (method, path) => {
     const response = await request(createTestApp())[method](path);
 
