@@ -15,7 +15,7 @@ function StatusTag({ status }: { status: IndicatorStatus }) {
   return <Tag classModifiers={colour} text={label} />;
 }
 
-// Only a published indicator has a public page; a draft has nothing to act on yet.
+// An indicator with a published version has a public page, draft or not; a draft-only one has nothing to act on yet.
 function Actions({ indicator }: { indicator: IndicatorAdminDetail }) {
   return (
     <>

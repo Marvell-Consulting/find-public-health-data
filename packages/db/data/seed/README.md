@@ -62,8 +62,8 @@ source containing unapproved indicators or one whose 1,290 indicators and
 clone. This fingerprint distinguishes the intended clone from the larger
 `PHOLIO_STAGING` corpus; update it only after verifying a refreshed published
 source. The export emits the identity and version split directly, one
-`published` version per approved source indicator, so this path has no
-`reshape-indicator-versions.py` step. Run `strip-metadata-html.py`,
+`published` version per approved source indicator, so unlike the seed pipeline
+below this path has no `reshape-indicator-versions.py` step. Run `strip-metadata-html.py`,
 `add-version-slugs.py` and `enrich-area-display.py` against its output, then run
 `transform-uuids.py --deterministic` to rekey all tables with bounded memory.
 `add-version-slugs.py` stamps the slug column the import insists on; an archive

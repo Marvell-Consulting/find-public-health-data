@@ -515,9 +515,10 @@ describe('searchIndicators', () => {
   });
 
   it('matches a slug exactly, case-folded', async () => {
-    await expect(searchApprovedIndicators(db, MORTALITY_SLUG.toUpperCase(), 20)).resolves.toEqual([
-      expect.objectContaining({ shortId: MORTALITY_UNDER_75 }),
-    ]);
+    const bySlug = await searchIndicators(db, noFilters({ query: MORTALITY_SLUG.toUpperCase() }));
+
+    expect(bySlug.total).toBe(1);
+    expect(bySlug.indicators).toEqual([expect.objectContaining({ shortId: MORTALITY_UNDER_75 })]);
   });
 
   it('matches an exact short id but not the internal id', async () => {
