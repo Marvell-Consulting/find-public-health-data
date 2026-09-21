@@ -37,7 +37,7 @@ describe('streamSeedCsv', () => {
     expect(Buffer.concat(chunks).toString()).toBe('id,name\n1,Test area\n');
   });
 
-  it('leaves COPY completion to the caller when its timeout is disabled', async () => {
+  it('allows COPY completion to use a separate timeout', async () => {
     const writable = new Writable({
       write(_chunk, _encoding, callback) {
         callback();
@@ -47,7 +47,7 @@ describe('streamSeedCsv', () => {
       },
     });
 
-    await streamSeedCsv(await csvFile(), writable, 'area', 100, null);
+    await streamSeedCsv(await csvFile(), writable, 'area', 100, 250);
   });
 
   it('aborts a COPY stalled before the source stream ends', async () => {
