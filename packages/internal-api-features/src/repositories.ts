@@ -2,7 +2,7 @@ import { type Database, listTopics, type Topic } from '@fphd/db';
 
 import {
   type CreateDraftFromPublishedResult,
-  type CreatedIndicatorDraft,
+  type CreateIndicatorDraftResult,
   createDraftFromPublished,
   createIndicatorDraft,
   getIndicatorById,
@@ -42,7 +42,7 @@ export interface InternalIndicatorRepository {
   createDraft(
     attributes: NewIndicatorDraftAttributes,
     actor: string,
-  ): Promise<CreatedIndicatorDraft>;
+  ): Promise<CreateIndicatorDraftResult>;
   updateDraft(
     indicatorId: string,
     attributes: IndicatorDraftAttributes,

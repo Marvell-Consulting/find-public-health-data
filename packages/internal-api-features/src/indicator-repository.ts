@@ -1,3 +1,4 @@
+import { slugify, slugProblem } from '@fphd/config/slug';
 import { type Database, latestPublishedVersion, schema } from '@fphd/db';
 import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
@@ -20,6 +21,8 @@ export interface IndicatorAdminRows {
 export interface IndicatorAdminDetailRow extends IndicatorAdminRow {
   shortId: number;
   status: IndicatorStatus;
+  /** The published version's slug, and so its public address; null while none is published. */
+  publishedSlug: string | null;
 }
 
 /**
@@ -73,6 +76,7 @@ export async function getIndicatorById(
       shortId: indicator.shortId,
       name: currentName,
       status: derivedStatus,
+      publishedSlug: latestPublishedVersion.slug,
       updatedAt: latestUpdatedAt,
     })
     .from(indicator)
@@ -83,7 +87,10 @@ export async function getIndicatorById(
   return rows[0];
 }
 
-/** The version columns a publisher edits: not the identity, the status or the audit trail. */
+/**
+ * The version columns a publisher edits: not the identity, the status or the audit trail,
+ * and not the slug, which these functions derive from the name.
+ */
 type EditableVersionColumns = Omit<
   typeof indicatorVersion.$inferInsert,
   | 'createdAt'
@@ -91,6 +98,7 @@ type EditableVersionColumns = Omit<
   | 'id'
   | 'indicatorId'
   | 'publishedAt'
+  | 'slug'
   | 'status'
   | 'updatedAt'
   | 'updatedBy'
@@ -114,23 +122,45 @@ export interface CreatedIndicatorDraft {
   versionId: string;
 }
 
-export type UpdateIndicatorDraftResult = { ok: true } | { ok: false; reason: 'no_draft' };
+export type CreateIndicatorDraftResult =
+  | ({ ok: true } & CreatedIndicatorDraft)
+  | { ok: false; reason: 'slug_taken' };
+
+export type UpdateIndicatorDraftResult =
+  | { ok: true }
+  | { ok: false; reason: 'no_draft' | 'slug_taken' };
 
 export type CreateDraftFromPublishedResult =
   | { ok: true; versionId: string }
-  | { ok: false; reason: 'draft_exists' | 'not_published' };
+  | { ok: false; reason: 'draft_exists' | 'not_published' | 'slug_taken' };
 
 const UNIQUE_VIOLATION = '23505';
+// The slug exclusion constraint: another indicator already holds the slug this name yields.
+const EXCLUSION_VIOLATION = '23P01';
 
 /** Drizzle wraps the driver error, so the SQLSTATE is on a `cause` rather than the error thrown. */
-function isUniqueViolation(error: unknown): boolean {
+function hasSqlState(error: unknown, sqlState: string): boolean {
   for (let current = error; current !== null && current !== undefined; ) {
     if (typeof current !== 'object') return false;
-    if ('code' in current && (current as { code?: unknown }).code === UNIQUE_VIOLATION) return true;
+    if ('code' in current && (current as { code?: unknown }).code === sqlState) return true;
     current = (current as { cause?: unknown }).cause;
   }
 
   return false;
+}
+
+/**
+ * The slug a draft takes. The name page refuses a name that yields none, so reaching this
+ * with one is a bug rather than a submission to report.
+ */
+function draftSlug(name: string): string {
+  const problem = slugProblem(name);
+
+  if (problem !== undefined) {
+    throw new Error(`Indicator name yields no usable slug (${problem}): ${name}`);
+  }
+
+  return slugify(name);
 }
 
 /** A new indicator is an identity and a draft version; the database mints both ids. */
@@ -138,35 +168,47 @@ export async function createIndicatorDraft(
   db: Database,
   attributes: NewIndicatorDraftAttributes,
   actor: string,
-): Promise<CreatedIndicatorDraft> {
-  return db.transaction(async (tx) => {
-    const [identity] = await tx
-      .insert(indicator)
-      .values({})
-      .returning({ id: indicator.id, shortId: indicator.shortId });
+): Promise<CreateIndicatorDraftResult> {
+  try {
+    return await db.transaction(async (tx) => {
+      const [identity] = await tx
+        .insert(indicator)
+        .values({})
+        .returning({ id: indicator.id, shortId: indicator.shortId });
 
-    if (identity === undefined) throw new Error('createIndicatorDraft inserted no indicator');
+      if (identity === undefined) throw new Error('createIndicatorDraft inserted no indicator');
 
-    const [version] = await tx
-      .insert(indicatorVersion)
-      .values({
-        ...attributes,
+      const [version] = await tx
+        .insert(indicatorVersion)
+        .values({
+          ...attributes,
+          slug: draftSlug(attributes.name),
+          indicatorId: identity.id,
+          status: 'draft',
+          createdBy: actor,
+          updatedBy: actor,
+        })
+        .returning({ id: indicatorVersion.id });
+
+      if (version === undefined) throw new Error('createIndicatorDraft inserted no version');
+
+      return {
+        ok: true,
         indicatorId: identity.id,
-        status: 'draft',
-        createdBy: actor,
-        updatedBy: actor,
-      })
-      .returning({ id: indicatorVersion.id });
-
-    if (version === undefined) throw new Error('createIndicatorDraft inserted no version');
-
-    return { indicatorId: identity.id, shortId: identity.shortId, versionId: version.id };
-  });
+        shortId: identity.shortId,
+        versionId: version.id,
+      };
+    });
+  } catch (error) {
+    if (hasSqlState(error, EXCLUSION_VIOLATION)) return { ok: false, reason: 'slug_taken' };
+    throw error;
+  }
 }
 
 /**
  * Rewrites a draft's columns and, when given, its memberships. Memberships are replaced
- * rather than merged: the submission states what is true now.
+ * rather than merged: the submission states what is true now. A renamed draft is
+ * re-slugged; published versions are never touched, so their slugs stand.
  */
 export async function updateIndicatorDraft(
   db: Database,
@@ -175,21 +217,28 @@ export async function updateIndicatorDraft(
   memberships: IndicatorDraftMemberships,
   actor: string,
 ): Promise<UpdateIndicatorDraftResult> {
-  return db.transaction(async (tx) => {
-    const [draft] = await tx
-      .update(indicatorVersion)
-      .set({ ...attributes, updatedAt: sql`now()`, updatedBy: actor })
-      .where(
-        and(eq(indicatorVersion.indicatorId, indicatorId), eq(indicatorVersion.status, 'draft')),
-      )
-      .returning({ id: indicatorVersion.id });
+  const renamed = attributes.name === undefined ? {} : { slug: draftSlug(attributes.name) };
 
-    if (draft === undefined) return { ok: false, reason: 'no_draft' };
+  try {
+    return await db.transaction(async (tx) => {
+      const [draft] = await tx
+        .update(indicatorVersion)
+        .set({ ...attributes, ...renamed, updatedAt: sql`now()`, updatedBy: actor })
+        .where(
+          and(eq(indicatorVersion.indicatorId, indicatorId), eq(indicatorVersion.status, 'draft')),
+        )
+        .returning({ id: indicatorVersion.id });
 
-    await replaceMemberships(tx, draft.id, memberships);
+      if (draft === undefined) return { ok: false, reason: 'no_draft' };
 
-    return { ok: true };
-  });
+      await replaceMemberships(tx, draft.id, memberships);
+
+      return { ok: true };
+    });
+  } catch (error) {
+    if (hasSqlState(error, EXCLUSION_VIOLATION)) return { ok: false, reason: 'slug_taken' };
+    throw error;
+  }
 }
 
 /**
@@ -230,6 +279,7 @@ export async function createDraftFromPublished(
         .insert(indicatorVersion)
         .values({
           ...attributes,
+          slug: draftSlug(attributes.name),
           status: 'draft',
           publishedAt: null,
           createdBy: actor,
@@ -258,7 +308,8 @@ export async function createDraftFromPublished(
       return { ok: true, versionId: draft.id };
     });
   } catch (error) {
-    if (isUniqueViolation(error)) return { ok: false, reason: 'draft_exists' };
+    if (hasSqlState(error, UNIQUE_VIOLATION)) return { ok: false, reason: 'draft_exists' };
+    if (hasSqlState(error, EXCLUSION_VIOLATION)) return { ok: false, reason: 'slug_taken' };
     throw error;
   }
 }

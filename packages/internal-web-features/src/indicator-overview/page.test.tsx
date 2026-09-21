@@ -12,6 +12,7 @@ const indicator: IndicatorAdminDetail = {
   id: '019a1b2c-3d4e-7f60-8a9b-0c1d2e3f4a5b',
   shortId: 90366,
   name: 'Life expectancy at birth',
+  publishedSlug: 'life-expectancy-at-birth',
   status: 'published',
   updatedAt: '2026-08-04T23:30:00.000Z',
 };
@@ -54,11 +55,11 @@ describe('IndicatorOverviewPage', () => {
     expect(screen.getByRole('tab', { name: 'Actions' })).toBeTruthy();
     expect(
       screen.getByRole('link', { name: 'View published indicator' }).getAttribute('href'),
-    ).toBe('/indicators/90366');
+    ).toBe('/indicators/life-expectancy-at-birth');
   });
 
-  it('offers no action for a draft indicator, which has no published page', () => {
-    renderPage({ status: 'draft' });
+  it('offers no action for an indicator with no published version, which has no public page', () => {
+    renderPage({ publishedSlug: null, status: 'draft' });
 
     expect(screen.queryByRole('link', { name: 'View published indicator' })).toBeNull();
     expect(screen.getByText('There are no actions available for this indicator yet.')).toBeTruthy();

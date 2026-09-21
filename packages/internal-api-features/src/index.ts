@@ -8,6 +8,7 @@ import { internalTopicsRouter } from './topics.ts';
 export type {
   CreateDraftFromPublishedResult,
   CreatedIndicatorDraft,
+  CreateIndicatorDraftResult,
   IndicatorAdminDetailRow,
   IndicatorAdminRow,
   IndicatorAdminRows,

@@ -108,6 +108,8 @@ export const indicatorAdminDetailSchema = z.object({
   /** The public indicator number, which is what a publisher knows an indicator by. */
   shortId: z.number().int(),
   name: z.string().min(1),
+  /** The published version's slug: the indicator's public address, absent until it has one. */
+  publishedSlug: z.string().min(1).nullable(),
   status: indicatorStatusSchema,
   updatedAt: z.iso.datetime(),
 });

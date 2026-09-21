@@ -20,10 +20,10 @@ function Actions({ indicator }: { indicator: IndicatorAdminDetail }) {
   return (
     <>
       <h2 className="govuk-heading-m">Actions</h2>
-      {indicator.status === 'published' ? (
+      {indicator.publishedSlug !== null ? (
         <ul className="govuk-list">
           <li>
-            <A href={publishedIndicatorPath(indicator.shortId)}>View published indicator</A>
+            <A href={publishedIndicatorPath(indicator.publishedSlug)}>View published indicator</A>
           </li>
         </ul>
       ) : (

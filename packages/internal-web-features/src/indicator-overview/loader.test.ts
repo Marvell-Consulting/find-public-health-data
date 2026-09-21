@@ -8,6 +8,7 @@ import { loadIndicatorOverview } from './loader.ts';
 const indicator = {
   id: '00000000-0000-7000-8000-000000000001',
   shortId: 90366,
+  publishedSlug: 'life-expectancy-at-birth',
   name: 'Life expectancy at birth',
   status: 'published',
   updatedAt: '2026-01-02T00:00:00.000Z',

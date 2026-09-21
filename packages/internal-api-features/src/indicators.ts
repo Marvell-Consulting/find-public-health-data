@@ -19,7 +19,12 @@ function toSummary({ id, name, updatedAt }: IndicatorAdminRow): IndicatorAdminSu
 }
 
 function toDetail(row: IndicatorAdminDetailRow): IndicatorAdminDetail {
-  return { ...toSummary(row), shortId: row.shortId, status: row.status };
+  return {
+    ...toSummary(row),
+    shortId: row.shortId,
+    publishedSlug: row.publishedSlug,
+    status: row.status,
+  };
 }
 
 /**

@@ -12,6 +12,7 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
+  type CreatedIndicatorDraft,
   createDraftFromPublished,
   createIndicatorDraft,
   getIndicatorById,
@@ -58,6 +59,21 @@ const { classification, indicator, indicatorClassification, indicatorTopic, indi
 
 const ACTOR = 'integration-test';
 
+/** Every case here names its indicator distinctly, so the slug is free. */
+async function newDraft(name: string): Promise<CreatedIndicatorDraft> {
+  const created = await createIndicatorDraft(db, { name }, ACTOR);
+  if (!created.ok) throw new Error(`createIndicatorDraft refused the name: ${created.reason}`);
+  return created;
+}
+
+async function slugOf(versionId: string): Promise<string | undefined> {
+  const [row] = await db
+    .select({ slug: indicatorVersion.slug })
+    .from(indicatorVersion)
+    .where(eq(indicatorVersion.id, versionId));
+  return row?.slug;
+}
+
 /** The dashboard's order, stated in SQL so the test does not lean on the code it checks. */
 async function idsNewestFirst(): Promise<string[]> {
   const rows = (await db.execute(sql`
@@ -89,16 +105,23 @@ async function publishedVersionId(indicatorId: string): Promise<string> {
   return row.id;
 }
 
+let publications = 0;
+
 /**
  * An indicator with two published versions whose id order disagrees with their publication
  * order: the superseded one is written last, so only published_at picks out the current one.
+ * Each call names its own, because a slug belongs to one indicator.
  */
 async function indicatorWithTwoPublications(): Promise<{
   indicatorId: string;
   currentId: string;
   supersededId: string;
+  currentName: string;
+  currentSlug: string;
 }> {
-  const created = await createIndicatorDraft(db, { name: 'Current publication' }, ACTOR);
+  const nth = ++publications;
+  const currentName = `Current publication ${nth}`;
+  const created = await newDraft(currentName);
   await db
     .update(indicatorVersion)
     .set({
@@ -113,7 +136,8 @@ async function indicatorWithTwoPublications(): Promise<{
     .values({
       indicatorId: created.indicatorId,
       status: 'published',
-      name: 'Superseded publication',
+      name: `Superseded publication ${nth}`,
+      slug: `superseded-publication-${nth}`,
       publishedAt: new Date('2029-01-01T00:00:00Z'),
       createdBy: ACTOR,
       updatedBy: ACTOR,
@@ -125,6 +149,8 @@ async function indicatorWithTwoPublications(): Promise<{
     indicatorId: created.indicatorId,
     currentId: created.versionId,
     supersededId: superseded.id,
+    currentName,
+    currentSlug: `current-publication-${nth}`,
   };
 }
 
@@ -161,7 +187,7 @@ describe('listIndicatorsPage', () => {
   });
 
   it('includes an indicator with no published version, which the public listing hides', async () => {
-    const created = await createIndicatorDraft(db, { name: 'A draft-only indicator' }, ACTOR);
+    const created = await newDraft('A draft-only indicator');
 
     const page = await listIndicatorsPage(db, 1, 1);
 
@@ -199,12 +225,17 @@ describe('getIndicatorById', () => {
   });
 
   it('reads the most recently published version when several exist', async () => {
-    const { indicatorId, currentId, supersededId } = await indicatorWithTwoPublications();
+    const { indicatorId, currentId, currentName, currentSlug, supersededId } =
+      await indicatorWithTwoPublications();
 
     const found = await getIndicatorById(db, indicatorId);
 
     expect(supersededId > currentId).toBe(true);
-    expect(found).toMatchObject({ status: 'published', name: 'Current publication' });
+    expect(found).toMatchObject({
+      status: 'published',
+      name: currentName,
+      publishedSlug: currentSlug,
+    });
     expect(found?.updatedAt.toISOString()).toBe('2030-01-01T00:00:00.000Z');
   });
 
@@ -215,7 +246,7 @@ describe('getIndicatorById', () => {
 
 describe('createIndicatorDraft', () => {
   it('mints an identity with a short id and one draft version', async () => {
-    const created = await createIndicatorDraft(db, { name: 'A brand new indicator' }, ACTOR);
+    const created = await newDraft('A brand new indicator');
 
     const [identity] = await db
       .select()
@@ -232,15 +263,25 @@ describe('createIndicatorDraft', () => {
       id: created.versionId,
       status: 'draft',
       name: 'A brand new indicator',
+      slug: 'a-brand-new-indicator',
       createdBy: ACTOR,
       updatedBy: ACTOR,
+    });
+  });
+
+  it('refuses a name whose slug another indicator already holds', async () => {
+    await newDraft('A contested name');
+
+    await expect(createIndicatorDraft(db, { name: 'A contested name' }, ACTOR)).resolves.toEqual({
+      ok: false,
+      reason: 'slug_taken',
     });
   });
 });
 
 describe('updateIndicatorDraft', () => {
   it('rewrites the draft columns and replaces its memberships', async () => {
-    const created = await createIndicatorDraft(db, { name: 'Before' }, ACTOR);
+    const created = await newDraft('Before');
     const [topic] = await db.select({ id: schema.topic.id }).from(schema.topic).limit(1);
     const [classified] = await db.select({ id: classification.id }).from(classification).limit(1);
     if (!topic || !classified) throw new Error('The seed holds no topics or classifications');
@@ -271,8 +312,35 @@ describe('updateIndicatorDraft', () => {
     expect(await topicIdsOf(created.versionId)).toEqual([]);
   });
 
+  it('re-slugs a renamed draft', async () => {
+    const created = await newDraft('An early name');
+
+    await updateIndicatorDraft(db, created.indicatorId, { name: 'A later name' }, {}, ACTOR);
+
+    expect(await slugOf(created.versionId)).toBe('a-later-name');
+  });
+
+  it('leaves the published version slug alone when the draft is renamed', async () => {
+    const { indicatorId, currentId, currentSlug } = await indicatorWithTwoPublications();
+    await createDraftFromPublished(db, indicatorId, ACTOR);
+
+    await updateIndicatorDraft(db, indicatorId, { name: 'Renamed in the draft' }, {}, ACTOR);
+
+    expect(await slugOf(currentId)).toBe(currentSlug);
+    expect(await getIndicatorById(db, indicatorId)).toMatchObject({ publishedSlug: currentSlug });
+  });
+
+  it("refuses a rename onto another indicator's slug", async () => {
+    await newDraft('An occupied name');
+    const created = await newDraft('A free name');
+
+    await expect(
+      updateIndicatorDraft(db, created.indicatorId, { name: 'An occupied name' }, {}, ACTOR),
+    ).resolves.toEqual({ ok: false, reason: 'slug_taken' });
+  });
+
   it('refuses an indicator with no draft', async () => {
-    const created = await createIndicatorDraft(db, { name: 'Draftless' }, ACTOR);
+    const created = await newDraft('Draftless');
     await db.delete(indicatorVersion).where(eq(indicatorVersion.indicatorId, created.indicatorId));
 
     await expect(updateIndicatorDraft(db, created.indicatorId, {}, {}, ACTOR)).resolves.toEqual({
@@ -309,6 +377,7 @@ describe('createDraftFromPublished', () => {
       status: 'draft',
       publishedAt: null,
       name: published?.name,
+      slug: published?.slug,
       definition: published?.definition,
       valueTypeId: published?.valueTypeId,
       createdBy: ACTOR,
@@ -317,7 +386,8 @@ describe('createDraftFromPublished', () => {
   });
 
   it('copies the most recently published version, not the superseded one', async () => {
-    const { indicatorId, currentId, supersededId } = await indicatorWithTwoPublications();
+    const { indicatorId, currentId, currentName, supersededId } =
+      await indicatorWithTwoPublications();
     const [current, superseded] = await db
       .select({ id: schema.topic.id })
       .from(schema.topic)
@@ -336,7 +406,7 @@ describe('createDraftFromPublished', () => {
       .select()
       .from(indicatorVersion)
       .where(eq(indicatorVersion.id, result.versionId));
-    expect(draft?.name).toBe('Current publication');
+    expect(draft?.name).toBe(currentName);
     expect(await topicIdsOf(result.versionId)).toEqual([current.id]);
   });
 
@@ -351,7 +421,7 @@ describe('createDraftFromPublished', () => {
   });
 
   it('refuses an indicator with nothing published', async () => {
-    const created = await createIndicatorDraft(db, { name: 'Never published' }, ACTOR);
+    const created = await newDraft('Never published');
 
     await expect(createDraftFromPublished(db, created.indicatorId, ACTOR)).resolves.toEqual({
       ok: false,
@@ -362,7 +432,7 @@ describe('createDraftFromPublished', () => {
 
 describe('indicator_classification', () => {
   it('follows the draft rather than the indicator', async () => {
-    const created = await createIndicatorDraft(db, { name: 'Classified' }, ACTOR);
+    const created = await newDraft('Classified');
     const [classified] = await db.select({ id: classification.id }).from(classification).limit(1);
     if (!classified) throw new Error('The seed holds no classifications');
 
