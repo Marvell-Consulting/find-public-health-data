@@ -33,3 +33,4 @@ export { NonceProvider, useNonce } from './nonce.tsx';
 export { RootErrorBoundary } from './root-error-boundary.tsx';
 export { SearchField } from './search-field.tsx';
 export { Tabs } from './tabs.tsx';
+export { TaskList, type TaskListItem } from './task-list.tsx';
