@@ -1,4 +1,4 @@
-import { SLUG_PATTERN } from '@fphd/config/slug';
+import { SLUG_PATTERN, type SlugProblem, slugProblem } from '@fphd/config/slug';
 import { z } from '@fphd/config/zod';
 
 /**
@@ -114,21 +114,33 @@ export const indicatorAdminDetailSchema = z.object({
   updatedAt: z.iso.datetime(),
 });
 
-const DIGITS_ONLY = /^\d+$/;
+/** Why the slug rule refuses a name, in the words the publisher reads. */
+const SLUG_PROBLEM_MESSAGES: Record<SlugProblem, string> = {
+  digits: 'Enter a name that is not only numbers',
+  empty: 'Enter a name that includes letters or numbers',
+  reserved: 'Enter a different name, this one is reserved for the service',
+};
 
 // Words are whitespace-separated, so a hyphenated term counts as one.
 const hasSeveralWords = (name: string) => name.split(/\s+/).length > 1;
 
 /**
  * The one answer the name page asks for, whether it starts an indicator or renames a draft.
- * A name of digits alone would read as a short id wherever a slug is accepted, so it is refused.
+ * The name carries the indicator's public address, so it is held to the slug rule here
+ * rather than at the write, where a name that yields no slug is a bug.
  */
 export const indicatorNameSchema = z.object({
   name: z
     .string()
     .trim()
     .min(1, 'Enter the name of the indicator')
-    .refine((name) => !DIGITS_ONLY.test(name), 'Enter a name that is not only numbers')
+    .superRefine((name, ctx) => {
+      const problem = slugProblem(name);
+
+      if (problem !== undefined) {
+        ctx.addIssue({ code: 'custom', message: SLUG_PROBLEM_MESSAGES[problem] });
+      }
+    })
     .refine(hasSeveralWords, 'Enter a name with more than one word'),
 });
 

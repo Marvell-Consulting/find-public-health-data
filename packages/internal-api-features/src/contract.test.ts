@@ -18,12 +18,30 @@ describe('indicatorNameSchema', () => {
     });
   });
 
-  it.each(['108', ' 2024 '])('refuses %o, which would read as a short id', (name) => {
+  it.each(['108', ' 2024 ', '2,024'])('refuses %o, which would read as a short id', (name) => {
     const result = indicatorNameSchema.safeParse({ name });
 
     expect(result.success).toBe(false);
     expect(!result.success && toFieldErrors(result.error)).toEqual({
       name: 'Enter a name that is not only numbers',
+    });
+  });
+
+  it.each(['!!!', '???  %%%'])('refuses %o, which leaves no slug at all', (name) => {
+    const result = indicatorNameSchema.safeParse({ name });
+
+    expect(result.success).toBe(false);
+    expect(!result.success && toFieldErrors(result.error)).toEqual({
+      name: 'Enter a name that includes letters or numbers',
+    });
+  });
+
+  it.each(['search', 'Compare', 'facets'])('refuses %o, which the service uses', (name) => {
+    const result = indicatorNameSchema.safeParse({ name });
+
+    expect(result.success).toBe(false);
+    expect(!result.success && toFieldErrors(result.error)).toEqual({
+      name: 'Enter a different name, this one is reserved for the service',
     });
   });
 
