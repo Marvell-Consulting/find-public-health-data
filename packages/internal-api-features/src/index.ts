@@ -14,9 +14,15 @@ export type {
   IndicatorAdminRows,
   IndicatorDraftAttributes,
   IndicatorDraftMemberships,
+  IndicatorDraftStateRow,
   NewIndicatorDraftAttributes,
   UpdateIndicatorDraftResult,
 } from './indicator-repository.ts';
+export {
+  type IndicatorTaskListDraft,
+  type IndicatorTaskListSource,
+  indicatorTaskList,
+} from './indicator-task-list.ts';
 export { INDICATORS_PAGE_SIZE, internalIndicatorsRouter } from './indicators.ts';
 export {
   createInternalRepositories,

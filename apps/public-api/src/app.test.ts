@@ -47,6 +47,7 @@ describe('public API', () => {
     ['post', '/api/internal/indicators'],
     ['patch', `/api/internal/indicators/${anyId}`],
     ['get', `/api/internal/indicators/${anyId}`],
+    ['get', `/api/internal/indicators/${anyId}/task-list`],
     ['get', '/api/internal/topics'],
     ['post', '/api/internal/topics'],
     ['get', `/api/internal/topics/${anyId}`],

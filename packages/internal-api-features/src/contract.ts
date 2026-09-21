@@ -178,3 +178,46 @@ export type IndicatorFieldErrors = z.infer<typeof indicatorFieldErrorsSchema>;
 export type IndicatorCreateResponse = z.infer<typeof indicatorCreateResponseSchema>;
 export type IndicatorCreateError = z.infer<typeof indicatorCreateErrorSchema>;
 export type IndicatorUpdateError = z.infer<typeof indicatorUpdateErrorSchema>;
+
+/**
+ * Where one task on an indicator's task list stands. The vocabulary grows with the journey:
+ * incomplete, cannot_start, updated and unchanged all arrive with the sections that need them.
+ */
+export const indicatorTaskStatusSchema = z.enum(['not_started', 'completed']);
+
+/** The tasks the API judges. A section joins this list when its form exists. */
+export const indicatorTaskKeySchema = z.enum(['name']);
+
+export const indicatorTaskStatusesSchema = z.partialRecord(
+  indicatorTaskKeySchema,
+  indicatorTaskStatusSchema,
+);
+
+/**
+ * Everything the task list page shows about a draft in one answer: what the indicator is
+ * called, whether this edit changes a published indicator, and where each task stands. A task
+ * the API does not name has no form yet, so the page shows it as not started.
+ */
+export const indicatorTaskListSchema = z.object({
+  indicator: z.object({
+    id: indicatorIdSchema,
+    shortId: z.number().int(),
+    name: z.string().min(1),
+  }),
+  /** True when a published version stands behind the draft, so this edit revises what is live. */
+  isUpdate: z.boolean(),
+  /** True once every task the state carries is complete. */
+  canSubmit: z.boolean(),
+  tasks: indicatorTaskStatusesSchema,
+});
+
+/** `no_draft` is the PATCH route's word for an indicator with nothing to edit. */
+export const indicatorTaskListErrorSchema = z.object({
+  error: z.enum(['invalid_id', 'not_found', 'no_draft']),
+});
+
+export type IndicatorTaskStatus = z.infer<typeof indicatorTaskStatusSchema>;
+export type IndicatorTaskKey = z.infer<typeof indicatorTaskKeySchema>;
+export type IndicatorTaskStatuses = z.infer<typeof indicatorTaskStatusesSchema>;
+export type IndicatorTaskList = z.infer<typeof indicatorTaskListSchema>;
+export type IndicatorTaskListError = z.infer<typeof indicatorTaskListErrorSchema>;

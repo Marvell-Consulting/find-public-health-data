@@ -93,6 +93,34 @@ export async function getIndicatorById(
   return rows[0];
 }
 
+export interface IndicatorDraftStateRow {
+  id: string;
+  shortId: number;
+  /** The draft a publisher is working on, absent while the indicator has none. */
+  draft: typeof indicatorVersion.$inferSelect | null;
+  hasPublished: boolean;
+}
+
+/** The draft and whether anything is published, which is what a task list is derived from. */
+export async function getIndicatorDraftState(
+  db: Database,
+  id: string,
+): Promise<IndicatorDraftStateRow | undefined> {
+  const rows = await db
+    .select({
+      id: indicator.id,
+      shortId: indicator.shortId,
+      draft: draftVersion,
+      hasPublished: sql<boolean>`${currentPublishedVersion.id} is not null`,
+    })
+    .from(indicator)
+    .leftJoin(draftVersion, draftJoin)
+    .leftJoin(currentPublishedVersion, publishedJoin)
+    .where(eq(indicator.id, id));
+
+  return rows[0];
+}
+
 /**
  * The version columns a publisher edits: not the identity, the status or the audit trail,
  * and not the slug, which is derived from the name until the indicator is first published
