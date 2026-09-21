@@ -75,10 +75,10 @@ describe('createIndicator', () => {
       },
     });
 
-    const outcome = await submit('Rejected', post);
+    const outcome = await submit('Rejected name', post);
 
     expect(outcome).toEqual({
-      name: 'Rejected',
+      name: 'Rejected name',
       fieldErrors: { name: 'Enter the name of the indicator' },
     });
   });
@@ -88,9 +88,9 @@ describe('createIndicator', () => {
       .fn()
       .mockResolvedValue({ ok: false, status: 400, error: { error: 'validation_failed' } });
 
-    const outcome = await submit('Rejected', post);
+    const outcome = await submit('Rejected name', post);
 
-    expect(outcome).toEqual({ name: 'Rejected', fieldErrors: {} });
+    expect(outcome).toEqual({ name: 'Rejected name', fieldErrors: {} });
   });
 });
 
@@ -149,12 +149,14 @@ describe('loadIndicatorName', () => {
 
 describe('saveIndicatorName', () => {
   it('renames the draft and returns to the overview page', async () => {
-    const patch = vi.fn().mockResolvedValue({ ok: true, data: { ...created, name: 'Renamed' } });
+    const patch = vi
+      .fn()
+      .mockResolvedValue({ ok: true, data: { ...created, name: 'Renamed indicator' } });
 
-    const outcome = await rename(created.id, '  Renamed  ', patch);
+    const outcome = await rename(created.id, '  Renamed indicator  ', patch);
 
     expect(patch.mock.calls[0]?.[0]).toBe(`/api/internal/indicators/${created.id}`);
-    expect(patch.mock.calls[0]?.[1]).toEqual({ name: 'Renamed' });
+    expect(patch.mock.calls[0]?.[1]).toEqual({ name: 'Renamed indicator' });
     expect(outcome).toBeInstanceOf(Response);
     expect((outcome as Response).headers.get('location')).toBe(
       `/dashboard/indicators/${created.id}`,
@@ -180,10 +182,10 @@ describe('saveIndicatorName', () => {
       },
     });
 
-    const outcome = await rename(created.id, 'Rejected', patch);
+    const outcome = await rename(created.id, 'Rejected name', patch);
 
     expect(outcome).toEqual({
-      name: 'Rejected',
+      name: 'Rejected name',
       fieldErrors: { name: 'Enter the name of the indicator' },
     });
   });
@@ -199,7 +201,7 @@ describe('saveIndicatorName', () => {
   it.each(['108', 'not-an-id'])('answers 404 to an id of %s without asking the API', async (id) => {
     const patch = vi.fn();
 
-    await expect(rename(id, 'Renamed', patch)).rejects.toSatisfy(isNotFound);
+    await expect(rename(id, 'Renamed indicator', patch)).rejects.toSatisfy(isNotFound);
     expect(patch).not.toHaveBeenCalled();
   });
 });

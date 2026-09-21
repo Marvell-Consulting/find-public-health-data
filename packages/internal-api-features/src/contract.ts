@@ -114,9 +114,22 @@ export const indicatorAdminDetailSchema = z.object({
   updatedAt: z.iso.datetime(),
 });
 
-/** The one answer the name page asks for, whether it starts an indicator or renames a draft. */
+const DIGITS_ONLY = /^\d+$/;
+
+// Words are whitespace-separated, so a hyphenated term counts as one.
+const hasSeveralWords = (name: string) => name.split(/\s+/).length > 1;
+
+/**
+ * The one answer the name page asks for, whether it starts an indicator or renames a draft.
+ * A name of digits alone would read as a short id wherever a slug is accepted, so it is refused.
+ */
 export const indicatorNameSchema = z.object({
-  name: z.string().trim().min(1, 'Enter the name of the indicator'),
+  name: z
+    .string()
+    .trim()
+    .min(1, 'Enter the name of the indicator')
+    .refine((name) => !DIGITS_ONLY.test(name), 'Enter a name that is not only numbers')
+    .refine(hasSeveralWords, 'Enter a name with more than one word'),
 });
 
 export const indicatorFieldSchema = z.enum(['name']);

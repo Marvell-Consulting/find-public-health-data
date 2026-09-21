@@ -18,6 +18,31 @@ describe('indicatorNameSchema', () => {
     });
   });
 
+  it.each(['108', ' 2024 '])('refuses %o, which would read as a short id', (name) => {
+    const result = indicatorNameSchema.safeParse({ name });
+
+    expect(result.success).toBe(false);
+    expect(!result.success && toFieldErrors(result.error)).toEqual({
+      name: 'Enter a name that is not only numbers',
+    });
+  });
+
+  it.each(['Obesity', 'life-expectancy', ' Smoking '])(
+    'asks for more than one word for %o',
+    (name) => {
+      const result = indicatorNameSchema.safeParse({ name });
+
+      expect(result.success).toBe(false);
+      expect(!result.success && toFieldErrors(result.error)).toEqual({
+        name: 'Enter a name with more than one word',
+      });
+    },
+  );
+
+  it.each(['Covid-19 deaths', '2024 births'])('accepts %o', (name) => {
+    expect(indicatorNameSchema.safeParse({ name }).success).toBe(true);
+  });
+
   it('rejects a submission with no name at all', () => {
     expect(indicatorNameSchema.safeParse({}).success).toBe(false);
   });
