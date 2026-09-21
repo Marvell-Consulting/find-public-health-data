@@ -31,6 +31,14 @@ export interface ApiClient {
     errorSchema: z.ZodType<E>,
   ): Promise<ApiWriteResult<T, E>>;
 
+  /** PATCH `body` to `path`, changing only the fields it carries. Answers as `put` does. */
+  patch<T, E>(
+    path: string,
+    body: unknown,
+    schema: z.ZodType<T>,
+    errorSchema: z.ZodType<E>,
+  ): Promise<ApiWriteResult<T, E>>;
+
   /** POST `body` to create. As `put`, minus the 404 case: the collection always exists. */
   post<T, E>(
     path: string,
@@ -111,6 +119,40 @@ export function createApiClient({
   headers = {},
   timeoutMs = DEFAULT_TIMEOUT_MS,
 }: ApiClientOptions): ApiClient {
+  /** A write to a member of a collection: the record may be gone, so a 404 is meaningful. */
+  async function writeToMember<T, E>(
+    method: 'PATCH' | 'PUT',
+    path: string,
+    body: unknown,
+    schema: z.ZodType<T>,
+    errorSchema: z.ZodType<E>,
+  ): Promise<ApiWriteResult<T, E>> {
+    const response = await fetch(`${baseUrl}${path}`, {
+      method,
+      headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+
+    if (response.status === 404) {
+      throw new Response('Not Found', { status: 404 });
+    }
+
+    if (response.status === 400 || response.status === 409) {
+      return {
+        ok: false,
+        status: response.status,
+        error: parseOrFail(path, errorSchema, await readJson(path, response)),
+      };
+    }
+
+    if (!response.ok) {
+      throw new Response('Bad Gateway', { status: 502 });
+    }
+
+    return { ok: true, data: parseOrFail(path, schema, await readJson(path, response)) };
+  }
+
   return {
     async get(path, schema) {
       const response = await fetch(`${baseUrl}${path}`, {
@@ -129,31 +171,12 @@ export function createApiClient({
       return parseOrFail(path, schema, await readJson(path, response));
     },
 
-    async put(path, body, schema, errorSchema) {
-      const response = await fetch(`${baseUrl}${path}`, {
-        method: 'PUT',
-        headers: { ...headers, 'content-type': 'application/json' },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(timeoutMs),
-      });
+    put(path, body, schema, errorSchema) {
+      return writeToMember('PUT', path, body, schema, errorSchema);
+    },
 
-      if (response.status === 404) {
-        throw new Response('Not Found', { status: 404 });
-      }
-
-      if (response.status === 400 || response.status === 409) {
-        return {
-          ok: false,
-          status: response.status,
-          error: parseOrFail(path, errorSchema, await readJson(path, response)),
-        };
-      }
-
-      if (!response.ok) {
-        throw new Response('Bad Gateway', { status: 502 });
-      }
-
-      return { ok: true, data: parseOrFail(path, schema, await readJson(path, response)) };
+    patch(path, body, schema, errorSchema) {
+      return writeToMember('PATCH', path, body, schema, errorSchema);
     },
 
     async post(path, body, schema, errorSchema) {

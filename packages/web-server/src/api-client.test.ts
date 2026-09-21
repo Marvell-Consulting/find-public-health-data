@@ -195,6 +195,57 @@ describe('ApiClient.put', () => {
   });
 });
 
+describe('ApiClient.patch', () => {
+  function client(headers?: Record<string, string>) {
+    return createApiClient({
+      baseUrl: 'http://api:4000',
+      ...(headers === undefined ? {} : { headers }),
+    });
+  }
+
+  it('sends the body as JSON under the PATCH method and parses the answer', async () => {
+    const fetchMock = respondWith({ slug: 'a-topic' });
+
+    const result = await client({ cookie: 'fphd-internal-session=a-token' }).patch(
+      '/api/internal/topics/1',
+      { slug: 'a-topic' },
+      topicSchema,
+      errorSchema,
+    );
+
+    expect(result).toEqual({ ok: true, data: { slug: 'a-topic' } });
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: 'PATCH',
+      body: '{"slug":"a-topic"}',
+      headers: { 'content-type': 'application/json', cookie: 'fphd-internal-session=a-token' },
+    });
+  });
+
+  it.each([400, 409])('returns a %s as a value rather than throwing', async (status) => {
+    respondWith({ error: 'validation_failed' }, status);
+
+    const result = await client().patch('/api/internal/topics/1', {}, topicSchema, errorSchema);
+
+    expect(result).toEqual({ ok: false, status, error: { error: 'validation_failed' } });
+  });
+
+  it('passes a 404 through so a route can render its not-found boundary', async () => {
+    respondWith({}, 404);
+
+    await expect(
+      client().patch('/api/internal/topics/1', {}, topicSchema, errorSchema),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it.each([401, 403, 500])('turns a %s into a 502', async (status) => {
+    respondWith({}, status);
+
+    await expect(
+      client().patch('/api/internal/topics/1', {}, topicSchema, errorSchema),
+    ).rejects.toMatchObject({ status: 502 });
+  });
+});
+
 describe('ApiClient.post', () => {
   function client(headers?: Record<string, string>) {
     return createApiClient({
