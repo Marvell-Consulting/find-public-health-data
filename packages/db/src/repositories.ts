@@ -12,8 +12,8 @@ import {
 } from './area-repository.ts';
 import type { Database } from './client.ts';
 import {
-  type ApprovedIndicator,
-  getApprovedIndicatorById,
+  type PublishedIndicator,
+  getPublishedIndicatorById,
   getIndicatorObservations,
   getObservationRange,
   type IndicatorAreaData,
@@ -21,24 +21,24 @@ import {
   type IndicatorFacets,
   type IndicatorSearchFilters,
   type IndicatorSearchResult,
-  listApprovedIndicators,
+  listPublishedIndicators,
   listIndicatorFacets,
   type ObservationRangePeriod,
-  resolveApprovedIndicatorId,
+  resolvePublishedIndicatorId,
   resolveIndicatorIdBySlug,
-  searchApprovedIndicators,
+  searchPublishedIndicators,
   searchIndicators,
 } from './indicator-repository.ts';
 import { getTopicBySlug, listTopics, type Topic } from './topic-repository.ts';
 
 export interface IndicatorRepository {
-  listApproved(): Promise<ApprovedIndicator[]>;
-  search(query: string, limit: number): Promise<ApprovedIndicator[]>;
+  listPublished(): Promise<PublishedIndicator[]>;
+  search(query: string, limit: number): Promise<PublishedIndicator[]>;
   /** The one place the public short id resolves to an internal id. */
   resolveId(shortId: number): Promise<string | undefined>;
   /** The same for a slug, current or superseded; the caller lower-cases it first. */
   resolveIdBySlug(slug: string): Promise<string | undefined>;
-  findApprovedById(indicatorId: string): Promise<IndicatorDetail | undefined>;
+  findPublishedById(indicatorId: string): Promise<IndicatorDetail | undefined>;
   findObservations(indicatorId: string, areaCode: string): Promise<IndicatorAreaData | undefined>;
   findObservationRange(
     indicatorId: string,
@@ -89,11 +89,11 @@ export function createRepositories(db: Database): Repositories {
       listParents: (childCodes, parentTypeName) => listAreaParents(db, childCodes, parentTypeName),
     },
     indicators: {
-      listApproved: () => listApprovedIndicators(db),
-      search: (query, limit) => searchApprovedIndicators(db, query, limit),
-      resolveId: (shortId) => resolveApprovedIndicatorId(db, shortId),
+      listPublished: () => listPublishedIndicators(db),
+      search: (query, limit) => searchPublishedIndicators(db, query, limit),
+      resolveId: (shortId) => resolvePublishedIndicatorId(db, shortId),
       resolveIdBySlug: (slug) => resolveIndicatorIdBySlug(db, slug),
-      findApprovedById: (indicatorId) => getApprovedIndicatorById(db, indicatorId),
+      findPublishedById: (indicatorId) => getPublishedIndicatorById(db, indicatorId),
       findObservations: (indicatorId, areaCode) =>
         getIndicatorObservations(db, indicatorId, areaCode),
       findObservationRange: (indicatorId, displayGroup) =>

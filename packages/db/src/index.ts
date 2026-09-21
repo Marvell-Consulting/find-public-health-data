@@ -9,8 +9,8 @@ export {
 } from './client.ts';
 export { dbEnvFields, resolveDbTls } from './env.ts';
 export {
-  type ApprovedIndicator,
-  getApprovedIndicatorById,
+  type PublishedIndicator,
+  getPublishedIndicatorById,
   getIndicatorObservations,
   type IndicatorAreaData,
   type IndicatorDetail,
@@ -20,9 +20,9 @@ export {
   type IndicatorSearchResult,
   type IndicatorSearchRow,
   type IndicatorSource,
-  listApprovedIndicators,
+  listPublishedIndicators,
   listIndicatorFacets,
-  resolveApprovedIndicatorId,
+  resolvePublishedIndicatorId,
   resolveIndicatorIdBySlug,
   searchIndicators,
 } from './indicator-repository.ts';

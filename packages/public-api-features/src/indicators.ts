@@ -98,7 +98,7 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
       response.status(200).json({ indicators: await indicators.search(query, capped) });
       return;
     }
-    response.status(200).json({ indicators: await indicators.listApproved() });
+    response.status(200).json({ indicators: await indicators.listPublished() });
   });
 
   router.get('/api/indicators/:indicator/data', async (request, response) => {
@@ -163,7 +163,7 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
     }
 
     // The annotation binds the repository's shape to the wire contract at compile time.
-    const detail: IndicatorDetail | undefined = await indicators.findApprovedById(indicatorId);
+    const detail: IndicatorDetail | undefined = await indicators.findPublishedById(indicatorId);
 
     if (!detail) {
       response.status(404).json({ error: 'not_found' });

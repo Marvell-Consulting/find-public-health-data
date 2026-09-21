@@ -14,15 +14,15 @@ import {
 import { createDb, type Database } from './client.ts';
 import { dbEnvFields, resolveDbTls } from './env.ts';
 import {
-  getApprovedIndicatorById,
+  getPublishedIndicatorById,
   getIndicatorObservations,
   getObservationRange,
   type IndicatorSearchFilters,
-  listApprovedIndicators,
+  listPublishedIndicators,
   listIndicatorFacets,
-  resolveApprovedIndicatorId,
+  resolvePublishedIndicatorId,
   resolveIndicatorIdBySlug,
-  searchApprovedIndicators,
+  searchPublishedIndicators,
   searchIndicators,
 } from './indicator-repository.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
@@ -66,7 +66,7 @@ let diabetesId: string;
 let lifeExpectancyId: string;
 
 async function resolvedId(shortId: number): Promise<string> {
-  const id = await resolveApprovedIndicatorId(db, shortId);
+  const id = await resolvePublishedIndicatorId(db, shortId);
   if (!id) {
     throw new Error(`seed is missing indicator ${shortId}`);
   }
@@ -88,9 +88,9 @@ afterAll(async () => {
   await testDb.drop();
 });
 
-describe('listApprovedIndicators', () => {
+describe('listPublishedIndicators', () => {
   it('returns the seeded indicators in name order', async () => {
-    const indicators = await listApprovedIndicators(db);
+    const indicators = await listPublishedIndicators(db);
 
     expect(indicators).toHaveLength(13);
     const names = indicators.map(({ name }) => name);
@@ -98,7 +98,7 @@ describe('listApprovedIndicators', () => {
   });
 
   it('carries the slug each link is built from', async () => {
-    const indicators = await listApprovedIndicators(db);
+    const indicators = await listPublishedIndicators(db);
 
     expect(indicators).toContainEqual(
       expect.objectContaining({ shortId: MORTALITY_UNDER_75, slug: MORTALITY_SLUG }),
@@ -106,47 +106,47 @@ describe('listApprovedIndicators', () => {
   });
 });
 
-describe('searchApprovedIndicators', () => {
+describe('searchPublishedIndicators', () => {
   it('matches case-insensitively anywhere in the name', async () => {
-    const results = await searchApprovedIndicators(db, 'DIABETES', 20);
+    const results = await searchPublishedIndicators(db, 'DIABETES', 20);
 
     expect(results.length).toBeGreaterThanOrEqual(2);
     expect(results.every(({ name }) => name.toLowerCase().includes('diabetes'))).toBe(true);
   });
 
   it('ranks a match earlier in the name above a later one', async () => {
-    const results = await searchApprovedIndicators(db, 'diabetes', 20);
+    const results = await searchPublishedIndicators(db, 'diabetes', 20);
 
     expect(results[0]?.name).toBe('Diabetes: QOF prevalence');
   });
 
   it('matches a slug exactly, case-folded', async () => {
-    await expect(searchApprovedIndicators(db, MORTALITY_SLUG.toUpperCase(), 20)).resolves.toEqual([
+    await expect(searchPublishedIndicators(db, MORTALITY_SLUG.toUpperCase(), 20)).resolves.toEqual([
       expect.objectContaining({ shortId: MORTALITY_UNDER_75 }),
     ]);
   });
 
   it('matches an exact short id but not the internal id', async () => {
-    await expect(searchApprovedIndicators(db, String(MORTALITY_UNDER_75), 20)).resolves.toEqual([
+    await expect(searchPublishedIndicators(db, String(MORTALITY_UNDER_75), 20)).resolves.toEqual([
       expect.objectContaining({ shortId: MORTALITY_UNDER_75 }),
     ]);
-    await expect(searchApprovedIndicators(db, mortalityId, 20)).resolves.toEqual([]);
+    await expect(searchPublishedIndicators(db, mortalityId, 20)).resolves.toEqual([]);
   });
 
   it('respects the limit', async () => {
-    expect(await searchApprovedIndicators(db, 'a', 3)).toHaveLength(3);
+    expect(await searchPublishedIndicators(db, 'a', 3)).toHaveLength(3);
   });
 
   it('treats LIKE syntax in the query as literal text', async () => {
-    expect(await searchApprovedIndicators(db, '%', 20)).toEqual([]);
-    expect(await searchApprovedIndicators(db, '_', 20)).toEqual([]);
+    expect(await searchPublishedIndicators(db, '%', 20)).toEqual([]);
+    expect(await searchPublishedIndicators(db, '_', 20)).toEqual([]);
   });
 });
 
-describe('resolveApprovedIndicatorId', () => {
+describe('resolvePublishedIndicatorId', () => {
   it('answers the internal id for a seeded short id and nothing otherwise', async () => {
-    expect(await resolveApprovedIndicatorId(db, MORTALITY_UNDER_75)).toMatch(/^[0-9a-f-]{36}$/);
-    expect(await resolveApprovedIndicatorId(db, 424242)).toBeUndefined();
+    expect(await resolvePublishedIndicatorId(db, MORTALITY_UNDER_75)).toMatch(/^[0-9a-f-]{36}$/);
+    expect(await resolvePublishedIndicatorId(db, 424242)).toBeUndefined();
   });
 });
 
@@ -170,13 +170,13 @@ describe('resolveIndicatorIdBySlug', () => {
 
     expect(await resolveIndicatorIdBySlug(db, 'an-earlier-name')).toBe(mortalityId);
     // The canonical slug is still the latest publication's.
-    expect((await getApprovedIndicatorById(db, mortalityId))?.slug).toBe(MORTALITY_SLUG);
+    expect((await getPublishedIndicatorById(db, mortalityId))?.slug).toBe(MORTALITY_SLUG);
   });
 });
 
-describe('getApprovedIndicatorById', () => {
+describe('getPublishedIndicatorById', () => {
   it('resolves the lookups, metadata and available area types in one result', async () => {
-    const indicator = await getApprovedIndicatorById(db, mortalityId);
+    const indicator = await getPublishedIndicatorById(db, mortalityId);
 
     expect(indicator).toMatchObject({
       shortId: MORTALITY_UNDER_75,
@@ -199,11 +199,11 @@ describe('getApprovedIndicatorById', () => {
   });
 
   it('returns undefined for an id no indicator carries', async () => {
-    expect(await getApprovedIndicatorById(db, UNSEEDED_ID)).toBeUndefined();
+    expect(await getPublishedIndicatorById(db, UNSEEDED_ID)).toBeUndefined();
   });
 
   it('includes the prototype diabetes indicator with its high-fidelity geography coverage', async () => {
-    const indicator = await getApprovedIndicatorById(db, diabetesId);
+    const indicator = await getPublishedIndicatorById(db, diabetesId);
 
     expect(indicator).toMatchObject({
       shortId: DIABETES_QOF_PREVALENCE,
@@ -495,9 +495,9 @@ function noFilters(overrides: Partial<IndicatorSearchFilters> = {}): IndicatorSe
 }
 
 describe('searchIndicators', () => {
-  it('no-filter total equals listApproved count', async () => {
+  it('no-filter total equals listPublished count', async () => {
     const [all, { total }] = await Promise.all([
-      listApprovedIndicators(db),
+      listPublishedIndicators(db),
       searchIndicators(db, noFilters()),
     ]);
 
@@ -799,7 +799,7 @@ describe('searchIndicators', () => {
 });
 
 describe('listIndicatorFacets', () => {
-  it('topics are scoped to approved indicators — every topic slug returns at least one result when searched', async () => {
+  it('topics are scoped to published indicators — every topic slug returns at least one result when searched', async () => {
     const facets = await listIndicatorFacets(db);
 
     expect(facets.topics.length).toBeGreaterThan(0);

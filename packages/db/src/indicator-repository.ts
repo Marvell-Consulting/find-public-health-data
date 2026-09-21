@@ -86,7 +86,7 @@ export interface IndicatorFacets {
   yearTypes: string[];
 }
 
-export interface ApprovedIndicator {
+export interface PublishedIndicator {
   shortId: number;
   slug: string;
   name: string;
@@ -125,7 +125,7 @@ function escapedSearchTerms(query: string): string[] {
 }
 
 /** The published indicator surface, ordered by name. */
-export async function listApprovedIndicators(db: Database): Promise<ApprovedIndicator[]> {
+export async function listPublishedIndicators(db: Database): Promise<PublishedIndicator[]> {
   return db
     .select({ shortId: indicator.shortId, slug: indicator.slug, name: indicator.name })
     .from(indicator)
@@ -133,11 +133,11 @@ export async function listApprovedIndicators(db: Database): Promise<ApprovedIndi
 }
 
 /** Case-insensitive indicator lookup by name or exact identifier. */
-export async function searchApprovedIndicators(
+export async function searchPublishedIndicators(
   db: Database,
   query: string,
   limit: number,
-): Promise<ApprovedIndicator[]> {
+): Promise<PublishedIndicator[]> {
   const terms = escapedSearchTerms(query);
   const identifierMatch = exactIdentifierMatch(db, query.trim());
   return db
@@ -198,7 +198,7 @@ export interface IndicatorDetail {
 }
 
 /** The internal id behind a public short id — the one place the external id resolves. */
-export async function resolveApprovedIndicatorId(
+export async function resolvePublishedIndicatorId(
   db: Database,
   shortId: number,
 ): Promise<string | undefined> {
@@ -230,7 +230,7 @@ export async function resolveIndicatorIdBySlug(
  * Everything the indicator page needs in one round trip. The view is the published
  * surface, so an unpublished indicator is indistinguishable from one that does not exist.
  */
-export async function getApprovedIndicatorById(
+export async function getPublishedIndicatorById(
   db: Database,
   indicatorId: string,
 ): Promise<IndicatorDetail | undefined> {

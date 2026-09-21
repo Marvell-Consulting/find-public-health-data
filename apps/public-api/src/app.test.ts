@@ -73,7 +73,7 @@ describe('public API', () => {
   });
 
   it('mounts the public indicators surface', async () => {
-    const repositories = createFakeRepositories({ indicators: { listApproved: async () => [] } });
+    const repositories = createFakeRepositories({ indicators: { listPublished: async () => [] } });
 
     const response = await request(createTestApp(repositories)).get('/api/indicators');
 
@@ -85,7 +85,7 @@ describe('public API', () => {
   it('lists an indicator by its public identifiers alone, without the row id', async () => {
     const repositories = createFakeRepositories({
       indicators: {
-        listApproved: async () => [{ shortId: 108, slug: 'mortality', name: 'Mortality' }],
+        listPublished: async () => [{ shortId: 108, slug: 'mortality', name: 'Mortality' }],
       },
     });
 

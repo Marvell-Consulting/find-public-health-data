@@ -80,13 +80,13 @@ describe('GET /api/indicators', () => {
   });
 
   it('lists every indicator when q is empty', async () => {
-    const listApproved = vi.fn().mockResolvedValue([]);
-    const app = createTestApp({ listApproved });
+    const listPublished = vi.fn().mockResolvedValue([]);
+    const app = createTestApp({ listPublished });
 
     const response = await request(app).get('/api/indicators?q=%20%20');
 
     expect(response.status).toBe(200);
-    expect(listApproved).toHaveBeenCalled();
+    expect(listPublished).toHaveBeenCalled();
   });
 });
 
@@ -94,7 +94,7 @@ describe('GET /api/indicators/:indicator', () => {
   it('finds an indicator by its short id', async () => {
     const app = createTestApp({
       resolveId: async () => 'ind-1',
-      findApprovedById: async () => indicatorDetail,
+      findPublishedById: async () => indicatorDetail,
     });
 
     const response = await request(app).get('/api/indicators/108');
@@ -114,7 +114,7 @@ describe('GET /api/indicators/:indicator', () => {
 
   it('finds an indicator by its slug, case-folded, and answers 200 rather than redirecting', async () => {
     const resolveIdBySlug = vi.fn().mockResolvedValue('ind-1');
-    const app = createTestApp({ resolveIdBySlug, findApprovedById: async () => indicatorDetail });
+    const app = createTestApp({ resolveIdBySlug, findPublishedById: async () => indicatorDetail });
 
     const response = await request(app).get(
       '/api/indicators/Under-75-Mortality-Rate-From-All-Causes',
