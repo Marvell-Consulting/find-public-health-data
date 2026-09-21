@@ -254,3 +254,115 @@ describe('POST /api/internal/indicators', () => {
     });
   });
 });
+
+describe('PATCH /api/internal/indicators/:id', () => {
+  const draftRow: IndicatorAdminDetailRow = { ...row, shortId: 90366, status: 'draft' };
+  const path = `/api/internal/indicators/${row.id}`;
+
+  it('rejects an anonymous request', async () => {
+    const response = await request(createTestApp()).patch(path).send({ name: 'A better name' });
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({ error: 'authentication_required' });
+  });
+
+  it('rejects a signed-in non-publisher', async () => {
+    const response = await request(createTestApp())
+      .patch(path)
+      .set('Cookie', await publisherCookie(['internal']))
+      .send({ name: 'A better name' });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({ error: 'forbidden' });
+  });
+
+  it('renames the draft as the signed-in publisher and serves the indicator back', async () => {
+    const updateDraft = vi.fn().mockResolvedValue({ ok: true });
+    const findById = vi.fn().mockResolvedValue({ ...draftRow, name: 'A better name' });
+
+    const response = await request(createTestApp({ updateDraft, findById }))
+      .patch(path)
+      .set('Cookie', await publisherCookie())
+      .send({ name: '  A better name  ' });
+
+    expect(response.status).toBe(200);
+    expect(updateDraft).toHaveBeenCalledWith(row.id, { name: 'A better name' }, {}, 'test-user');
+    expect(response.body).toEqual({
+      id: row.id,
+      shortId: 90366,
+      name: 'A better name',
+      status: 'draft',
+      updatedAt: '2026-01-02T00:00:00.000Z',
+    });
+  });
+
+  it('names no memberships, so the draft keeps its topics and classifications', async () => {
+    const updateDraft = vi.fn().mockResolvedValue({ ok: true });
+
+    await request(createTestApp({ updateDraft, findById: async () => draftRow }))
+      .patch(path)
+      .set('Cookie', await publisherCookie())
+      .send({ name: 'A better name' });
+
+    expect(updateDraft.mock.calls[0]?.[2]).toEqual({});
+  });
+
+  it('rejects an id that is not a UUID without touching the repository', async () => {
+    const updateDraft = vi.fn();
+
+    const response = await request(createTestApp({ updateDraft }))
+      .patch('/api/internal/indicators/108')
+      .set('Cookie', await publisherCookie())
+      .send({ name: 'A better name' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'invalid_id' });
+    expect(updateDraft).not.toHaveBeenCalled();
+  });
+
+  it('asks for a name when the submission has none', async () => {
+    const updateDraft = vi.fn();
+
+    const response = await request(createTestApp({ updateDraft }))
+      .patch(path)
+      .set('Cookie', await publisherCookie())
+      .send({ name: '  ' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      error: 'validation_failed',
+      fieldErrors: { name: 'Enter the name of the indicator' },
+    });
+    expect(updateDraft).not.toHaveBeenCalled();
+  });
+
+  it('answers 404 for an indicator that does not exist', async () => {
+    const response = await request(
+      createTestApp({
+        updateDraft: async () => ({ ok: false, reason: 'no_draft' }),
+        findById: async () => undefined,
+      }),
+    )
+      .patch(path)
+      .set('Cookie', await publisherCookie())
+      .send({ name: 'A better name' });
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: 'not_found' });
+  });
+
+  it('answers 409 for an indicator with no draft to rename', async () => {
+    const response = await request(
+      createTestApp({
+        updateDraft: async () => ({ ok: false, reason: 'no_draft' }),
+        findById: async () => detailRow,
+      }),
+    )
+      .patch(path)
+      .set('Cookie', await publisherCookie())
+      .send({ name: 'A better name' });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ error: 'no_draft' });
+  });
+});

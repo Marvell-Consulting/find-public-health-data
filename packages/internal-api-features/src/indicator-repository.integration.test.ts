@@ -353,6 +353,35 @@ describe('updateIndicatorDraft', () => {
     ).resolves.toEqual({ ok: false, reason: 'slug_taken' });
   });
 
+  it('leaves the memberships alone when the update names none', async () => {
+    const created = await newDraft('Keeps its links');
+    const [topic] = await db.select({ id: schema.topic.id }).from(schema.topic).limit(1);
+    const [classified] = await db.select({ id: classification.id }).from(classification).limit(1);
+    if (!topic || !classified) throw new Error('The seed holds no topics or classifications');
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      {},
+      { topicIds: [topic.id], classificationIds: [classified.id] },
+      ACTOR,
+    );
+
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      { name: 'Keeps its links renamed' },
+      {},
+      ACTOR,
+    );
+
+    expect(await topicIdsOf(created.versionId)).toEqual([topic.id]);
+    const classifications = await db
+      .select({ id: indicatorClassification.classificationId })
+      .from(indicatorClassification)
+      .where(eq(indicatorClassification.indicatorVersionId, created.versionId));
+    expect(classifications).toEqual([{ id: classified.id }]);
+  });
+
   it('refuses an indicator with no draft', async () => {
     const created = await newDraft('Draftless');
     await db.delete(indicatorVersion).where(eq(indicatorVersion.indicatorId, created.indicatorId));

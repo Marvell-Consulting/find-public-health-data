@@ -6,8 +6,8 @@ import {
   type IndicatorAdminDetail,
   type IndicatorAdminPage,
   type IndicatorAdminSummary,
-  indicatorCreateSchema,
   indicatorIdSchema,
+  indicatorNameSchema,
   indicatorPageQuerySchema,
   toFieldErrors,
 } from './contract.ts';
@@ -62,7 +62,7 @@ export function internalIndicatorsRouter(
 
   router.post('/api/internal/indicators', requirePublisher, async (request, response) => {
     // Validated here as well as at the form: the API is reachable without going through it.
-    const submission = indicatorCreateSchema.safeParse(request.body);
+    const submission = indicatorNameSchema.safeParse(request.body);
 
     if (!submission.success) {
       response
@@ -78,6 +78,44 @@ export function internalIndicatorsRouter(
     if (!row) throw new Error('the indicator just created could not be read back');
 
     response.status(201).json(toDetail(row));
+  });
+
+  router.patch('/api/internal/indicators/:id', requirePublisher, async (request, response) => {
+    const id = indicatorIdSchema.safeParse(request.params.id);
+
+    if (!id.success) {
+      response.status(400).json({ error: 'invalid_id' });
+      return;
+    }
+
+    // Validated here as well as at the form: the API is reachable without going through it.
+    const submission = indicatorNameSchema.safeParse(request.body);
+
+    if (!submission.success) {
+      response
+        .status(400)
+        .json({ error: 'validation_failed', fieldErrors: toFieldErrors(submission.error) });
+      return;
+    }
+
+    const { sub } = requireApiSession(response);
+    // No memberships: the repository leaves the ones it is not given alone.
+    const result = await indicators.updateDraft(id.data, submission.data, {}, sub);
+    const row = await indicators.findById(id.data);
+
+    if (!row) {
+      response.status(404).json({ error: 'not_found' });
+      return;
+    }
+
+    // The indicator is there, so the update found no draft to write: a published indicator
+    // is edited by opening a draft first.
+    if (!result.ok) {
+      response.status(409).json({ error: 'no_draft' });
+      return;
+    }
+
+    response.status(200).json(toDetail(row));
   });
 
   router.get('/api/internal/indicators/:id', requirePublisher, async (request, response) => {

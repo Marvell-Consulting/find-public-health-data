@@ -114,8 +114,8 @@ export const indicatorAdminDetailSchema = z.object({
   updatedAt: z.iso.datetime(),
 });
 
-/** What a publisher gives to start an indicator; the rest of the version comes later. */
-export const indicatorCreateSchema = z.object({
+/** The one answer the name page asks for, whether it starts an indicator or renames a draft. */
+export const indicatorNameSchema = z.object({
   name: z.string().trim().min(1, 'Enter the name of the indicator'),
 });
 
@@ -123,7 +123,7 @@ export const indicatorFieldSchema = z.enum(['name']);
 
 export const indicatorFieldErrorsSchema = z.partialRecord(indicatorFieldSchema, z.string());
 
-/** A created indicator reads the same as one fetched by id. */
+/** A created or renamed indicator reads the same as one fetched by id. */
 export const indicatorCreateResponseSchema = indicatorAdminDetailSchema;
 
 export const indicatorCreateErrorSchema = z.object({
@@ -131,12 +131,19 @@ export const indicatorCreateErrorSchema = z.object({
   fieldErrors: indicatorFieldErrorsSchema.optional(),
 });
 
+/** Renaming addresses an existing indicator, which may be gone or have nothing to edit. */
+export const indicatorUpdateErrorSchema = z.object({
+  error: z.enum(['invalid_id', 'validation_failed', 'not_found', 'no_draft']),
+  fieldErrors: indicatorFieldErrorsSchema.optional(),
+});
+
 export type IndicatorAdminSummary = z.infer<typeof indicatorAdminSummarySchema>;
 export type IndicatorAdminPage = z.infer<typeof indicatorAdminPageSchema>;
 export type IndicatorStatus = z.infer<typeof indicatorStatusSchema>;
 export type IndicatorAdminDetail = z.infer<typeof indicatorAdminDetailSchema>;
-export type IndicatorCreate = z.infer<typeof indicatorCreateSchema>;
+export type IndicatorName = z.infer<typeof indicatorNameSchema>;
 export type IndicatorField = z.infer<typeof indicatorFieldSchema>;
 export type IndicatorFieldErrors = z.infer<typeof indicatorFieldErrorsSchema>;
 export type IndicatorCreateResponse = z.infer<typeof indicatorCreateResponseSchema>;
 export type IndicatorCreateError = z.infer<typeof indicatorCreateErrorSchema>;
+export type IndicatorUpdateError = z.infer<typeof indicatorUpdateErrorSchema>;
