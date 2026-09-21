@@ -127,7 +127,7 @@ describe('importPublishedSnapshot', () => {
     await importPublishedSnapshot(context);
 
     expect(mocks.seedPublished).toHaveBeenCalledWith(tx, '/tmp/fixture');
-    expect(tx.unsafe).toHaveBeenCalledTimes(SEED_TABLES.length + 1);
+    expect(tx.unsafe).toHaveBeenCalledTimes(SEED_TABLES.length + 2);
     expect(mocks.rebuild).toHaveBeenCalledWith(tx);
     expect(wasCommitted()).toBe(true);
     expect(mocks.analyze).toHaveBeenCalledWith(context.sql);
@@ -147,6 +147,25 @@ describe('importPublishedSnapshot', () => {
 
     await expect(importPublishedSnapshot(context)).rejects.toThrow(
       'Published snapshot contains an unpublished indicator version',
+    );
+    expect(wasCommitted()).toBe(false);
+    expect(mocks.rebuild).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it('rejects an indicator without exactly one published version before committing', async () => {
+    const { context, tx, wasCommitted } = publishedContext();
+    const cleanup = vi.fn(async () => {});
+    mocks.download.mockResolvedValue({
+      directory: '/tmp/fixture',
+      manifest: publishedManifest(),
+      cleanup,
+    });
+    mocks.seedPublished.mockResolvedValue(seededTables(() => 1));
+    tx.unsafe.mockResolvedValueOnce([{ count: 0 }]).mockResolvedValueOnce([{ count: 1 }]);
+
+    await expect(importPublishedSnapshot(context)).rejects.toThrow(
+      'Published snapshot does not hold one published version per indicator',
     );
     expect(wasCommitted()).toBe(false);
     expect(mocks.rebuild).not.toHaveBeenCalled();

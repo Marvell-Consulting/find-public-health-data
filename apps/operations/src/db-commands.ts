@@ -144,6 +144,15 @@ export async function importPublishedSnapshot({
       if (Number(drafts?.count) !== 0) {
         throw new Error('Published snapshot contains an unpublished indicator version');
       }
+      // Matching row counts do not prove the versions are spread one per indicator.
+      const [uneven] = await tx.unsafe(
+        `SELECT count(*)::int AS count FROM indicator i
+         WHERE (SELECT count(*) FROM indicator_version v
+                WHERE v.indicator_id = i.id AND v.status = 'published') <> 1`,
+      );
+      if (Number(uneven?.count) !== 0) {
+        throw new Error('Published snapshot does not hold one published version per indicator');
+      }
       // The old 13-indicator seed's planner statistics would give the full-data
       // read-model rebuild a misleading plan. Analyze before those large queries.
       for (const table of SEED_TABLES) await tx.unsafe(`ANALYZE "${table}"`);
