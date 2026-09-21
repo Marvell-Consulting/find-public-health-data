@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
+import { MORTALITY_PATH } from '../support/indicator-page.ts';
 import { signInAs } from '../support/sign-in.ts';
 
 test.beforeEach(async ({ page }) => {
   await signInAs(page, 'Sam Taylor');
-  await page.goto('/indicators/108');
+  await page.goto(MORTALITY_PATH);
 });
 
 test('shows an indicator to a publisher', async ({ page }) => {

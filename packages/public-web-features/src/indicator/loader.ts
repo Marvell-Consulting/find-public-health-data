@@ -16,9 +16,10 @@ import {
 } from '@fphd/public-api-features/contract';
 import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
-import type { LoaderFunctionArgs } from 'react-router';
+import { type LoaderFunctionArgs, redirect } from 'react-router';
 import { loadGeographyOptions } from '../geography/loader.ts';
 import { MAX_SELECTED_AREAS, MAX_SELECTED_INDICATORS } from '../selection-limits.ts';
+import { indicatorPath, isIndicatorSegment } from './paths.ts';
 
 export type {
   AreaGroup,
@@ -70,16 +71,15 @@ const DEFAULT_AREA_CODE = 'E92000001';
 // selection is capped rather than the URL trusted.
 export { MAX_SELECTED_INDICATORS } from '../selection-limits.ts';
 
-function selectedIndicatorIds(url: URL, routeParam: string | undefined): number[] {
+function selectedIndicatorIds(url: URL, routeShortId: number | undefined): number[] {
   const fromQuery = url.searchParams
     .getAll('is')
     .filter((value) => /^\d+$/.test(value))
     .map(Number);
 
-  // The route param is the deep link into a single indicator; a query selection replaces
+  // The route slug is the deep link into a single indicator; a query selection replaces
   // it, so a link out of the page never silently re-adds where the user arrived from.
-  // Callers validate the param's shape before this point.
-  const ids = fromQuery.length > 0 ? fromQuery : routeParam ? [Number(routeParam)] : [];
+  const ids = fromQuery.length > 0 ? fromQuery : routeShortId !== undefined ? [routeShortId] : [];
 
   return [...new Set(ids)].slice(0, MAX_SELECTED_INDICATORS);
 }
@@ -101,10 +101,22 @@ async function loadIndicatorData(
 ) {
   const url = new URL(request.url);
 
-  if (params.shortId !== undefined && !/^\d+$/.test(params.shortId)) {
-    // `indicators/:shortId` matched but the segment is not a number, which the API
-    // would answer with a 404 anyway. Failing here keeps the request off the API.
+  if (params.slug !== undefined && !isIndicatorSegment(params.slug)) {
+    // `indicators/:slug` matched but the segment is neither a number nor slug-shaped,
+    // which the API would answer with a 404 anyway. Failing here keeps it off the API.
     throw new Response('Not Found', { status: 404 });
+  }
+
+  const api = context.get(apiContext);
+  // The segment goes to the API as it stands — a number, an older slug or the wrong case
+  // all resolve — and the canonical slug the body carries is the one address of the page.
+  const routeDetail =
+    params.slug === undefined
+      ? undefined
+      : await api.get(apiPath`/api/indicators/${params.slug}`, indicatorDetailSchema);
+
+  if (routeDetail !== undefined && routeDetail.slug !== params.slug) {
+    throw redirect(`${indicatorPath(routeDetail.slug)}${url.search}`, 301);
   }
 
   // De-duplicated: a hand-edited URL repeating a code would otherwise fetch it twice and
@@ -121,8 +133,6 @@ async function loadIndicatorData(
         .filter((level) => level !== '' && level.length <= MAX_AREA_NAME_LENGTH),
     ),
   ].slice(0, MAX_AREA_GROUPS_PER_REQUEST);
-
-  const api = context.get(apiContext);
 
   // A whole-level selection ("Local authorities") rides in the URL as its name; its
   // areas are resolved here, subject to the same cap as hand-picked codes.
@@ -217,7 +227,7 @@ async function loadIndicatorData(
     return { region: choices.includes('region'), rangeLevels: [...rangeLevels] };
   };
 
-  const shortIds = selectedIndicatorIds(url, params.shortId);
+  const shortIds = selectedIndicatorIds(url, routeDetail?.shortId);
   const requestedIndicatorCount = new Set(
     url.searchParams.getAll('is').filter((value) => /^\d+$/.test(value)),
   ).size;
@@ -246,7 +256,10 @@ async function loadIndicatorData(
         );
       const comparison = comparisonFor(id);
       const [detail, areaData, regionData, rangeEntries] = await Promise.all([
-        api.get(apiPath`/api/indicators/${String(id)}`, indicatorDetailSchema),
+        // The page's own indicator is already loaded; only the compared ones are fetched.
+        id === routeDetail?.shortId
+          ? routeDetail
+          : api.get(apiPath`/api/indicators/${String(id)}`, indicatorDetailSchema),
         // One request per indicator carrying every area, rather than one per pair: a
         // page comparing ten indicators across twenty areas would otherwise fire 200.
         dataFor(codesToLoad),

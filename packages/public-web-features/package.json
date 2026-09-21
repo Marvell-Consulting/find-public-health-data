@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@fphd/auth": "workspace:*",
+    "@fphd/config": "workspace:*",
     "@fphd/public-api-features": "workspace:*",
     "@fphd/ui": "workspace:*",
     "@fphd/web-server": "workspace:*",

@@ -51,12 +51,14 @@ function api(get = vi.fn()) {
           }
           // An indicator detail needs area types for the geography groups to be derived.
           // The data schema transforms a single-area response into an array, so the stub
-          // returns the post-schema shape the loader actually receives.
-          return Promise.resolve(
-            path.includes('/data')
-              ? [{ areaCode: '', areaName: '', observations: [] }]
-              : { areaTypes: [] },
-          );
+          // returns the post-schema shape the loader actually receives. A fake indicator's
+          // slug is `indicator-<short id>`, so a numeric address is one the loader redirects.
+          if (path.includes('/data')) {
+            return Promise.resolve([{ areaCode: '', areaName: '', observations: [] }]);
+          }
+          const segment = path.split('/')[3] ?? '';
+          const shortId = Number(segment.replace('indicator-', ''));
+          return Promise.resolve({ shortId, slug: `indicator-${shortId}`, areaTypes: [] });
         }),
   } as unknown as ApiClient;
   return { client, get };
@@ -146,18 +148,54 @@ describe('loadIndicator', () => {
     expect(get.mock.calls.some(([path]) => String(path).includes('q='))).toBe(false);
   });
 
-  it('treats the route param as a single selection', async () => {
+  it('treats the route slug as a single selection', async () => {
     const { client, get } = api();
 
     const result = await loadIndicator(
-      loaderArgs(client, { shortId: '108' }, 'http://localhost/indicators/108'),
+      loaderArgs(client, { slug: 'indicator-108' }, 'http://localhost/indicators/indicator-108'),
     );
 
     expect(result.selection.shortIds).toEqual([108]);
-    expect(get).toHaveBeenCalledWith('/api/indicators/108', expect.anything());
+    expect(get).toHaveBeenCalledWith('/api/indicators/indicator-108', expect.anything());
     expect(get).toHaveBeenCalledWith(
       '/api/indicators/108/data?areaCode=E92000001',
       expect.anything(),
+    );
+  });
+
+  it('asks the api once for the page indicator rather than fetching its detail twice', async () => {
+    const { client, get } = api();
+
+    await loadIndicator(
+      loaderArgs(client, { slug: 'indicator-108' }, 'http://localhost/indicators/indicator-108'),
+    );
+
+    const detailCalls = get.mock.calls
+      .map(([path]) => String(path))
+      .filter((path) => /^\/api\/indicators\/[^/?]+$/.test(path));
+    expect(detailCalls).toEqual(['/api/indicators/indicator-108']);
+  });
+
+  it.each([
+    ['a short id', '108', 'http://localhost/indicators/108?as=E06000052'],
+    ['a superseded slug', 'old-name', 'http://localhost/indicators/old-name?as=E06000052'],
+    ['the wrong case', 'Indicator-108', 'http://localhost/indicators/Indicator-108?as=E06000052'],
+  ])('301s %s to the canonical slug, query string and all', async (_case, slug, url) => {
+    const get = vi
+      .fn()
+      .mockImplementation((path: string) =>
+        /^\/api\/indicators\/[^/?]+$/.test(path)
+          ? Promise.resolve({ shortId: 108, slug: 'indicator-108', areaTypes: [] })
+          : Promise.resolve([]),
+      );
+
+    const redirected = await loadIndicator(loaderArgs(api(get).client, { slug }, url)).catch(
+      (response: Response) => response,
+    );
+
+    expect((redirected as Response).status).toBe(301);
+    expect((redirected as Response).headers.get('location')).toBe(
+      '/indicators/indicator-108?as=E06000052',
     );
   });
 
@@ -177,7 +215,11 @@ describe('loadIndicator', () => {
     const { client } = api();
 
     const result = await loadIndicator(
-      loaderArgs(client, { shortId: '108' }, 'http://localhost/indicators/108?is=90366'),
+      loaderArgs(
+        client,
+        { slug: 'indicator-108' },
+        'http://localhost/indicators/indicator-108?is=90366',
+      ),
     );
 
     expect(result.selection.shortIds).toEqual([90366]);
@@ -359,12 +401,12 @@ describe('loadIndicator', () => {
     ).toBe(true);
   });
 
-  it('404s a non-numeric route param without calling the api for it', async () => {
+  it('404s a route param shaped like neither identifier without calling the api for it', async () => {
     const { client } = api();
 
     await expect(
       loadIndicator(
-        loaderArgs(client, { shortId: '../topics' }, 'http://localhost/indicators/..%2Ftopics'),
+        loaderArgs(client, { slug: '../topics' }, 'http://localhost/indicators/..%2Ftopics'),
       ),
     ).rejects.toMatchObject({ status: 404 });
   });
@@ -379,7 +421,7 @@ describe('loadIndicator', () => {
       );
 
     await expect(
-      loadIndicator(loaderArgs(api(get).client, { shortId: '424242' })),
+      loadIndicator(loaderArgs(api(get).client, { slug: '424242' })),
     ).rejects.toMatchObject({ status: 404 });
   });
 });

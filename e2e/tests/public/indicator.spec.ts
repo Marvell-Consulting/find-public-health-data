@@ -2,7 +2,7 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 import { downloadFrom } from '../support/downloads.ts';
-import { filterCard, openIndicatorPage } from '../support/indicator-page.ts';
+import { filterCard, MORTALITY_PATH, openIndicatorPage } from '../support/indicator-page.ts';
 
 const INDICATOR = 'Under 75 mortality rate from all causes';
 
@@ -23,7 +23,7 @@ function tableOptions(page: Page) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await openIndicatorPage(page, '/indicators/108');
+  await openIndicatorPage(page, MORTALITY_PATH);
 });
 
 test('shows an indicator', async ({ page }) => {
@@ -35,11 +35,18 @@ test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
 });
 
 test('answers an indicator that does not exist with the not-found page', async ({ page }) => {
-  for (const path of ['/indicators/999999', '/indicators/not-a-number']) {
+  for (const path of ['/indicators/999999', '/indicators/no-such-indicator']) {
     const response = await page.goto(path);
     expect(response?.status(), path).toBe(404);
     await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
   }
+});
+
+test('redirects an indicator number to its slug, keeping the query string', async ({ page }) => {
+  const response = await page.request.get('/indicators/108?as=E08000003', { maxRedirects: 0 });
+
+  expect(response.status()).toBe(301);
+  expect(response.headers().location).toBe(`${MORTALITY_PATH}?as=E08000003`);
 });
 
 test.describe('the summary', () => {
@@ -76,7 +83,7 @@ test.describe('the tabs', () => {
   });
 
   test('open the tab the address names', async ({ page }) => {
-    await openIndicatorPage(page, '/indicators/108?tab-108=about');
+    await openIndicatorPage(page, `${MORTALITY_PATH}?tab-108=about`);
     await expect(page.getByRole('tab', { name: 'About this indicator' })).toHaveAttribute(
       'aria-selected',
       'true',
@@ -284,7 +291,7 @@ test.describe('the geography filter', () => {
   });
 
   test('offers the statistical region as a comparison', async ({ page }) => {
-    await openIndicatorPage(page, '/indicators/108?as=E08000003&tab-108=table');
+    await openIndicatorPage(page, `${MORTALITY_PATH}?as=E08000003&tab-108=table`);
     await tableOptions(page)
       .getByLabel('Select a geography or goal to compare with')
       .selectOption('Statistical regions');
@@ -320,7 +327,7 @@ test.describe('the geography filter', () => {
   });
 
   test('removes one area, then clears the rest', async ({ page }) => {
-    await openIndicatorPage(page, '/indicators/108?as=E08000003&as=E07000223');
+    await openIndicatorPage(page, `${MORTALITY_PATH}?as=E08000003&as=E07000223`);
     const card = filterCard(page, 'Geography filters');
 
     await card.getByRole('link', { name: 'Remove Manchester filter' }).click();
@@ -337,7 +344,7 @@ test.describe('the geography filter', () => {
   test('has no WCAG 2.2 AA violations with a comparison shown', async ({ page }, testInfo) => {
     await openIndicatorPage(
       page,
-      '/indicators/108?as=E08000003&tab-108=table&cmp-108=england&cr-108=yes',
+      `${MORTALITY_PATH}?as=E08000003&tab-108=table&cmp-108=england&cr-108=yes`,
     );
     await expect(trendTable(page).getByRole('columnheader', { name: 'Comparison' })).toBeVisible();
     await expectNoAccessibilityViolations(page, testInfo);
