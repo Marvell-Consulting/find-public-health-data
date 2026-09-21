@@ -37,7 +37,7 @@ class PublishedCsvTest(unittest.TestCase):
             Path(directory, "source-manifest.json").write_text(
                 json.dumps({"source_csv_null": transform["NULL_MARKER"]})
             )
-            path = Path(directory, "indicator_metadata.csv.gz")
+            path = Path(directory, "indicator_version.csv.gz")
             with gzip.open(path, "wt", newline="") as output:
                 output.write(
                     'id,definition,caveats\r\n'
@@ -75,7 +75,7 @@ class PublishedCsvTest(unittest.TestCase):
 
     def test_cleanup_and_deterministic_transform_preserve_both_values(self):
         with tempfile.TemporaryDirectory() as directory:
-            tables = {table: {"rows": 1} for table in transform["TABLES"]}
+            tables = {table: {"rows": 1} for table in transform["PUBLISHED_TABLES"]}
             Path(directory, "source-manifest.json").write_text(
                 json.dumps(
                     {
@@ -85,27 +85,24 @@ class PublishedCsvTest(unittest.TestCase):
                     }
                 )
             )
-            for table in transform["TABLES"]:
+            for table in transform["PUBLISHED_TABLES"]:
                 foreign_keys = list(transform["FOREIGN_KEYS"].get(table, {}))
+                if table == "indicator":
+                    foreign_keys = []
                 header = ["id", *foreign_keys]
                 row = ["1", *(["1"] * len(foreign_keys))]
-                if table == "indicator":
-                    header.append("config")
-                    row.append(transform["NULL_MARKER"])
-                if table == "indicator_metadata":
-                    header.extend(["definition", "caveats"])
-                    row.extend([transform["NULL_MARKER"], ""])
+                if table == "indicator_version":
+                    header.extend(["config", "definition", "caveats"])
+                    row.extend([transform["NULL_MARKER"], transform["NULL_MARKER"], ""])
                 with gzip.open(Path(directory, f"{table}.csv.gz"), "wt", newline="") as output:
                     csv.writer(output).writerow(header)
                     transform["write_published_row"](output, row)
 
-            strip_metadata["strip_file"](
-                str(Path(directory, "indicator_metadata.csv.gz"))
-            )
+            strip_metadata["strip_file"](str(Path(directory, "indicator_version.csv.gz")))
             transform["main"](directory, deterministic=True)
 
             with gzip.open(
-                Path(directory, "indicator_metadata.csv.gz"), "rt", newline=""
+                Path(directory, "indicator_version.csv.gz"), "rt", newline=""
             ) as result:
                 self.assertTrue(result.read().endswith(',,""\r\n'))
 

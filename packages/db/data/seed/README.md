@@ -56,7 +56,9 @@ source containing unapproved indicators or one whose 1,290 indicators and
 29,380,899 observations differ from the independently recorded benchmark
 clone. This fingerprint distinguishes the intended clone from the larger
 `PHOLIO_STAGING` corpus; update it only after verifying a refreshed published
-source. Run `strip-metadata-html.py` and
+source. The export emits the identity and version split directly, one
+`published` version per approved source indicator, so this path has no
+`reshape-indicator-versions.py` step. Run `strip-metadata-html.py` and
 `enrich-area-display.py` against its output, then run
 `transform-uuids.py --deterministic` to rekey all tables with bounded memory.
 The published export uses an explicit CSV NULL marker so the transform keeps

@@ -2,8 +2,10 @@
 """Stream the published Pholio benchmark clone into seed-format CSV files.
 
 Run as the local Postgres user on the benchmark VM. The source database is the
-PHOLIO_LIVE_A-derived `fphd_new`, never PHOLIO_STAGING. Output still has source
-integer keys; transform-uuids.py --deterministic converts them without an ID map.
+PHOLIO_LIVE_A-derived `fphd_new`, never PHOLIO_STAGING. Each approved source
+indicator is exported as an identity row plus one published indicator_version
+row. Output still has source integer keys; transform-uuids.py --deterministic
+converts them without an ID map.
 """
 
 import argparse
@@ -32,7 +34,7 @@ TABLES = [
     "area",
     "area_relationship",
     "indicator",
-    "indicator_metadata",
+    "indicator_version",
     "upload_batch",
     "note_type",
     "observation",
@@ -54,15 +56,35 @@ def psql(query):
     ).stdout.strip()
 
 
+SELECTS = {
+    "indicator": "SELECT id, data_updated_at, created_at FROM indicator",
+    # The version takes both the editable indicator columns and the whole of
+    # indicator_metadata; its id is rekeyed from the same source id under its own tag.
+    "indicator_version": (
+        "SELECT i.id AS id, i.id AS indicator_id, 'published' AS status, "
+        "i.updated_at AS published_at, i.name, i.value_type_id, i.unit_id, "
+        "i.year_type_id, i.ci_method_id, i.polarity_id, i.frequency_id, "
+        "i.comparator_method_id, i.disclosure_threshold, i.ci_confidence_level, "
+        "i.config, m.definition, m.rationale, m.methodology, m.numerator_definition, "
+        "m.denominator_definition, m.disclosure_control, m.caveats, m.notes, "
+        "m.data_source_id, m.numerator_source_id, m.denominator_source_id, "
+        "i.created_at, i.updated_at, i.created_by, i.updated_by "
+        "FROM indicator i LEFT JOIN indicator_metadata m ON m.indicator_id = i.id"
+    ),
+    "observation_dimension": (
+        "SELECT od.id, od.observation_id, od.dimension_value_id, dv.dimension_type_id "
+        "FROM observation_dimension od "
+        "JOIN dimension_value dv ON dv.id = od.dimension_value_id"
+    ),
+}
+
+# Derived tables count their rows against the table they are built from.
+COUNTED_AS = {"indicator_version": "indicator"}
+
+
 def copy_query(table):
-    if table == "observation_dimension":
-        return (
-            "COPY (SELECT od.id, od.observation_id, od.dimension_value_id, "
-            "dv.dimension_type_id FROM observation_dimension od "
-            "JOIN dimension_value dv ON dv.id = od.dimension_value_id) "
-            f"TO STDOUT WITH (FORMAT csv, HEADER true, NULL '{NULL_MARKER}')"
-        )
-    return f"COPY {table} TO STDOUT WITH (FORMAT csv, HEADER true, NULL '{NULL_MARKER}')"
+    select = SELECTS.get(table, f"SELECT * FROM {table}")
+    return f"COPY ({select}) TO STDOUT WITH (FORMAT csv, HEADER true, NULL '{NULL_MARKER}')"
 
 
 def export_table(table, out_dir):
@@ -78,7 +100,7 @@ def export_table(table, out_dir):
     if process.wait() != 0:
         path.unlink(missing_ok=True)
         raise RuntimeError(f"Exporting {table} failed: {error}")
-    rows = int(psql(f"SELECT count(*) FROM {table}"))
+    rows = int(psql(f"SELECT count(*) FROM {COUNTED_AS.get(table, table)}"))
     digest = hashlib.sha256()
     with path.open("rb") as file:
         while chunk := file.read(1024 * 1024):
@@ -93,9 +115,10 @@ def main():
     parser.add_argument("--tables", nargs="+", choices=TABLES, default=TABLES)
     args = parser.parse_args()
 
-    database, approved, other = psql(
+    database, approved, other, unattributed = psql(
         "SELECT current_database(), count(*) FILTER (WHERE status = 'approved'), "
-        "count(*) FILTER (WHERE status IS DISTINCT FROM 'approved') FROM indicator"
+        "count(*) FILTER (WHERE status IS DISTINCT FROM 'approved'), "
+        "count(*) FILTER (WHERE created_by IS NULL OR updated_by IS NULL) FROM indicator"
     ).split("|")
     observations = int(psql("SELECT count(*) FROM observation"))
     if (
@@ -105,6 +128,10 @@ def main():
         or observations != EXPECTED_OBSERVATIONS
     ):
         raise RuntimeError("Source must be the approved-only published benchmark clone")
+    # indicator_version.created_by and updated_by are NOT NULL, so a gap here would only
+    # surface as a failed COPY after the whole 29-million-row archive had been built.
+    if int(unattributed) != 0:
+        raise RuntimeError("Source indicators must all record who created and updated them")
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
     tables = {table: export_table(table, args.out_dir) for table in args.tables}
