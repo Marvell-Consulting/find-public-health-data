@@ -34,7 +34,7 @@ function accepts(data: unknown = created) {
 }
 
 describe('createIndicator', () => {
-  it('creates the indicator and goes on to its overview page', async () => {
+  it('creates the indicator and goes on to its task list', async () => {
     const post = accepts();
 
     const outcome = await submit('Life expectancy at birth', post);
@@ -44,7 +44,7 @@ describe('createIndicator', () => {
     expect(outcome).toBeInstanceOf(Response);
     expect((outcome as Response).status).toBe(302);
     expect((outcome as Response).headers.get('location')).toBe(
-      `/dashboard/indicators/${created.id}`,
+      `/publish/indicators/${created.id}/task-list`,
     );
   });
 
@@ -166,7 +166,7 @@ describe('loadIndicatorName', () => {
 });
 
 describe('saveIndicatorName', () => {
-  it('renames the draft and returns to the overview page', async () => {
+  it('renames the draft and returns to the task list', async () => {
     const patch = vi
       .fn()
       .mockResolvedValue({ ok: true, data: { ...created, name: 'Renamed indicator' } });
@@ -177,7 +177,7 @@ describe('saveIndicatorName', () => {
     expect(patch.mock.calls[0]?.[1]).toEqual({ name: 'Renamed indicator' });
     expect(outcome).toBeInstanceOf(Response);
     expect((outcome as Response).headers.get('location')).toBe(
-      `/dashboard/indicators/${created.id}`,
+      `/publish/indicators/${created.id}/task-list`,
     );
   });
 

@@ -14,7 +14,7 @@ import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from 'react-router';
 
-import { indicatorOverviewPath } from '../indicator-overview/paths.ts';
+import { indicatorTaskListPath } from '../indicator-task-list/paths.ts';
 
 export type {
   IndicatorAdminDetail,
@@ -47,8 +47,8 @@ function readName(formData: FormData): string {
 }
 
 /**
- * Creates the indicator and sends the publisher to its overview page, where the journey goes
- * on. The API's schema is applied here first, so an empty name costs no round trip.
+ * Creates the indicator and sends the publisher to its task list, where the rest of the
+ * journey is. The API's schema is applied here first, so an empty name costs no round trip.
  */
 export async function createIndicator({
   context,
@@ -74,7 +74,7 @@ export async function createIndicator({
     return { name, fieldErrors: result.error.fieldErrors ?? {} };
   }
 
-  return redirect(indicatorOverviewPath(result.data.id));
+  return redirect(indicatorTaskListPath(result.data.id));
 }
 
 /** Only a draft can be renamed, so a published indicator has no name page. */
@@ -89,7 +89,7 @@ export async function loadIndicatorName({ context, params }: LoaderFunctionArgs)
   return { indicator };
 }
 
-/** Renames the draft and returns to the overview page the publisher came from. */
+/** Renames the draft and returns to the task list the publisher came from. */
 export async function saveIndicatorName({
   context,
   params,
@@ -116,5 +116,5 @@ export async function saveIndicatorName({
     return { name, fieldErrors: result.error.fieldErrors ?? {} };
   }
 
-  return redirect(indicatorOverviewPath(id));
+  return redirect(indicatorTaskListPath(id));
 }
