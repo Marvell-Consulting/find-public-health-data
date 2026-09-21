@@ -15,4 +15,12 @@ export {
   resolveShutdown,
   serverEnvFields,
 } from './env.ts';
-export { SLUG_PATTERN } from './slug.ts';
+export {
+  isReservedSlug,
+  RESERVED_SLUGS,
+  SLUG_MAX_LENGTH,
+  SLUG_PATTERN,
+  type SlugProblem,
+  slugify,
+  slugProblem,
+} from './slug.ts';

@@ -9,7 +9,7 @@ Built package.
 | Entry     | Purpose                                                                                            |
 | --------- | -------------------------------------------------------------------------------------------------- |
 | `.`       | `z` (the single zod instance every schema is built with), the env fragments (`appEnvFields`, `serverEnvFields`, `logEnvFields`), the value schemas (`appEnvSchema`, `boolSchema`, `portSchema`), `parseEnv`, `loadWebServerConfig`, `resolveLog`, `resolveShutdown`, `isDeployedEnv` |
-| `./slug`  | `SLUG_PATTERN`, the one definition of a URL slug                                                   |
+| `./slug`  | `SLUG_PATTERN` and `SLUG_MAX_LENGTH`, the one definition of a URL slug; `slugify` and `slugProblem`, which derive one from a name and say why a name yields none; `RESERVED_SLUGS`/`isReservedSlug`, the path segments a slug may not take |
 | `./zod`   | The same `z` for code that wants zod and nothing else                                              |
 
 Depend on this package rather than on `zod` directly, so schema fragments and app schemas never
