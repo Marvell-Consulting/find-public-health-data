@@ -3,6 +3,13 @@ import { expect, type Page, test } from '@playwright/test';
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 import { signInAs } from '../support/sign-in.ts';
 
+// The seed fixes indicator ids, so a published indicator has a stable address; indicators the
+// create journey makes are drafts, edited later than the seed, and sort ahead of it.
+const PUBLISHED = {
+  id: '019fa38f-1346-7094-b773-79dcd43ae4b4',
+  name: 'Under 75 mortality rate from all causes',
+};
+
 // The dashboard orders by last edit, so the first row is whichever indicator that is; the
 // overview is reached the way a publisher reaches it, and its name read off the link.
 async function openFirstIndicator(page: Page): Promise<string> {
@@ -25,18 +32,24 @@ test('shows the indicator a publisher picked from the dashboard', async ({ page 
 
   await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
   await expect(page.getByText('Indicator number')).toBeVisible();
+});
+
+test('shows a published indicator as published', async ({ page }) => {
+  await page.goto(`/dashboard/indicators/${PUBLISHED.id}`);
+
+  await expect(page.getByRole('heading', { level: 1, name: PUBLISHED.name })).toBeVisible();
   // Exact, or the "View published indicator" link matches as well.
   await expect(page.getByText('Published', { exact: true })).toBeVisible();
 });
 
 test('opens the published indicator from the actions tab', async ({ page }) => {
-  const name = await openFirstIndicator(page);
+  await page.goto(`/dashboard/indicators/${PUBLISHED.id}`);
 
   await expect(page.getByRole('tab', { name: 'Actions' })).toBeVisible();
   await page.getByRole('link', { name: 'View published indicator' }).click();
 
   await expect(page).toHaveURL(/\/indicators\/[a-z0-9-]+$/);
-  await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: PUBLISHED.name })).toBeVisible();
 });
 
 test('goes back to the dashboard', async ({ page }) => {
