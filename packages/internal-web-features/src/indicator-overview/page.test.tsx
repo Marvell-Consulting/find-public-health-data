@@ -38,7 +38,7 @@ describe('IndicatorOverviewPage', () => {
   });
 
   it.each([
-    ['draft', 'Draft', 'grey'],
+    ['draft', 'Incomplete', 'grey'],
     ['published', 'Published', 'green'],
   ] as const)('labels a status of %s as a %s tag', (status, label, colour) => {
     renderPage({ status });

@@ -5,7 +5,7 @@ import type { IndicatorAdminDetail, IndicatorStatus } from './loader.ts';
 import { publishedIndicatorPath } from './paths.ts';
 
 const STATUS_TAGS: Record<IndicatorStatus, { label: string; colour: string }> = {
-  draft: { label: 'Draft', colour: 'grey' },
+  draft: { label: 'Incomplete', colour: 'grey' },
   published: { label: 'Published', colour: 'green' },
 };
 
