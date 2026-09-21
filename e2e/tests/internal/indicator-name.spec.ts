@@ -59,7 +59,7 @@ test('creates the indicator and shows it as incomplete on its overview page', as
   await expect(page.getByText('Incomplete')).toBeVisible();
 });
 
-test('leaves an indicator abandoned before submission on the dashboard', async ({ page }) => {
+test('shows a draft indicator on the dashboard', async ({ page }) => {
   const name = uniqueName();
 
   await createIndicator(page, name);
