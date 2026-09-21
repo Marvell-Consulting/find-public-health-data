@@ -61,6 +61,8 @@ export async function verifyPublishedSnapshot(directory: string): Promise<Publis
   }
   if (
     manifest.tables.indicator?.rows !== expectedApprovedIndicators ||
+    // The export turns each approved source indicator into one published version.
+    manifest.tables.indicator_version?.rows !== expectedApprovedIndicators ||
     manifest.tables.observation?.rows !== expectedObservations
   ) {
     throw new Error('Published snapshot row counts do not match the published benchmark clone');

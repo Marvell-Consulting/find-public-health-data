@@ -135,14 +135,14 @@ export async function importPublishedSnapshot({
           throw new Error(`Published snapshot row count failed for ${table}`);
         }
       }
-      // Recheck the approval state after COPY. The exporter rejects unpublished
+      // Recheck the version status after COPY. The exporter only reads approved
       // indicators, but this makes the import itself fail closed if an archive is
       // ever mislabeled or replaced before the transaction commits.
-      const [approval] = await tx.unsafe(
-        "SELECT count(*)::int AS count FROM indicator WHERE status IS DISTINCT FROM 'approved'",
+      const [drafts] = await tx.unsafe(
+        "SELECT count(*)::int AS count FROM indicator_version WHERE status IS DISTINCT FROM 'published'",
       );
-      if (Number(approval?.count) !== 0) {
-        throw new Error('Published snapshot contains an unapproved indicator');
+      if (Number(drafts?.count) !== 0) {
+        throw new Error('Published snapshot contains an unpublished indicator version');
       }
       // The old 13-indicator seed's planner statistics would give the full-data
       // read-model rebuild a misleading plan. Analyze before those large queries.

@@ -25,7 +25,12 @@ async function snapshot(source = 'PHOLIO_LIVE_A-derived fphd_new benchmark clone
     const data = gzipSync('id\n1\n');
     await writeFile(join(directory, `${table}.csv.gz`), data);
     tables[table] = {
-      rows: table === 'indicator' ? 1_290 : table === 'observation' ? 29_380_899 : 1,
+      rows:
+        table === 'indicator' || table === 'indicator_version'
+          ? 1_290
+          : table === 'observation'
+            ? 29_380_899
+            : 1,
       bytes: data.length,
       sha256: createHash('sha256').update(data).digest('hex'),
     };

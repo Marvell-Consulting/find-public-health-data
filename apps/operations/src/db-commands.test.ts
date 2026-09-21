@@ -134,7 +134,7 @@ describe('importPublishedSnapshot', () => {
     expect(cleanup).toHaveBeenCalledOnce();
   });
 
-  it('rejects unapproved indicators before committing the imported snapshot', async () => {
+  it('rejects unpublished versions before committing the imported snapshot', async () => {
     const { context, tx, wasCommitted } = publishedContext();
     const cleanup = vi.fn(async () => {});
     mocks.download.mockResolvedValue({
@@ -146,7 +146,7 @@ describe('importPublishedSnapshot', () => {
     tx.unsafe.mockResolvedValueOnce([{ count: 1 }]);
 
     await expect(importPublishedSnapshot(context)).rejects.toThrow(
-      'Published snapshot contains an unapproved indicator',
+      'Published snapshot contains an unpublished indicator version',
     );
     expect(wasCommitted()).toBe(false);
     expect(mocks.rebuild).not.toHaveBeenCalled();
