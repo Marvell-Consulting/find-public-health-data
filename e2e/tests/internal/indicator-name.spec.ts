@@ -69,8 +69,57 @@ test('leaves an indicator abandoned before submission on the dashboard', async (
   await expect(page.getByRole('link', { name })).toBeVisible();
 });
 
+test('renames a draft from its name page', async ({ page }) => {
+  const name = uniqueName();
+  await createIndicator(page, name);
+  const overviewUrl = new URL(page.url());
+  const [, id] = overviewUrl.pathname.match(/([0-9a-f-]{36})$/) ?? [];
+
+  await page.goto(`/publish/indicators/${id}/name`);
+  const field = page.getByLabel('What is the name of the indicator?');
+  await expect(field).toHaveValue(name);
+
+  await field.fill(`${name} renamed`);
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  await expect(page).toHaveURL(overviewUrl.pathname);
+  await expect(page.getByRole('heading', { level: 1, name: `${name} renamed` })).toBeVisible();
+});
+
+test('goes back to the indicator from its name page', async ({ page }) => {
+  await createIndicator(page, uniqueName());
+  const overviewPath = new URL(page.url()).pathname;
+  const [, id] = overviewPath.match(/([0-9a-f-]{36})$/) ?? [];
+
+  await page.goto(`/publish/indicators/${id}/name`);
+  await page.getByRole('link', { name: 'Back to indicator' }).click();
+
+  await expect(page).toHaveURL(overviewPath);
+});
+
+test('answers a name page with nothing to rename with the not-found page', async ({ page }) => {
+  for (const path of [
+    '/publish/indicators/108/name',
+    '/publish/indicators/00000000-0000-7000-8000-000000000000/name',
+    // The seeded indicator is published, so it has no draft whose name can be edited.
+    '/publish/indicators/019fa38f-1346-7094-b773-79dcd43ae4b4/name',
+  ]) {
+    const response = await page.goto(path);
+    expect(response?.status(), path).toBe(404);
+    await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
+  }
+});
+
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
   await openNamePage(page);
+  await expectNoAccessibilityViolations(page, testInfo);
+});
+
+test('has no WCAG 2.2 AA violations when renaming a draft', async ({ page }, testInfo) => {
+  await createIndicator(page, uniqueName());
+  const [, id] = new URL(page.url()).pathname.match(/([0-9a-f-]{36})$/) ?? [];
+
+  await page.goto(`/publish/indicators/${id}/name`);
   await expectNoAccessibilityViolations(page, testInfo);
 });
 

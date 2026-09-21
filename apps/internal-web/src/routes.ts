@@ -39,6 +39,10 @@ export default [
         'publish/indicators/new',
         '../../../packages/internal-web-features/src/indicator-name/new-route.tsx',
       ),
+      route(
+        'publish/indicators/:id/name',
+        '../../../packages/internal-web-features/src/indicator-name/edit-route.tsx',
+      ),
     ]),
     layout('./admin.tsx', [
       route('manage', './manage.tsx'),

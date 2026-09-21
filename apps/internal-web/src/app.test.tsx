@@ -144,6 +144,7 @@ describe('the role-gated route tables', () => {
       'dashboard',
       'dashboard/indicators/:id',
       'publish/indicators/new',
+      'publish/indicators/:id/name',
     ]);
   });
 

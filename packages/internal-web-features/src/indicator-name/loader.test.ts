@@ -3,7 +3,7 @@ import { apiContext } from '@fphd/web-server/api-context';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createIndicator } from './loader.ts';
+import { createIndicator, loadIndicatorName, saveIndicatorName } from './loader.ts';
 
 const created = {
   id: '00000000-0000-7000-8000-000000000001',
@@ -91,5 +91,115 @@ describe('createIndicator', () => {
     const outcome = await submit('Rejected', post);
 
     expect(outcome).toEqual({ name: 'Rejected', fieldErrors: {} });
+  });
+});
+
+function load(id: string, get: ApiClient['get']) {
+  const context = new RouterContextProvider();
+  context.set(apiContext, { get } as unknown as ApiClient);
+
+  return loadIndicatorName({
+    context,
+    params: { id },
+    request: new Request(`https://internal.test/publish/indicators/${id}/name`),
+  } as never);
+}
+
+function rename(id: string, name: string, patch: ApiClient['patch']) {
+  const context = new RouterContextProvider();
+  context.set(apiContext, { patch } as unknown as ApiClient);
+
+  return saveIndicatorName({
+    context,
+    params: { id },
+    request: new Request(`https://internal.test/publish/indicators/${id}/name`, {
+      method: 'POST',
+      body: new URLSearchParams({ name }),
+    }),
+  } as never);
+}
+
+function isNotFound(error: unknown) {
+  return error instanceof Response && error.status === 404;
+}
+
+describe('loadIndicatorName', () => {
+  it('fetches the draft the address names', async () => {
+    const get = vi.fn().mockResolvedValue(created);
+
+    const outcome = await load(created.id, get);
+
+    expect(get.mock.calls[0]?.[0]).toBe(`/api/internal/indicators/${created.id}`);
+    expect(outcome).toEqual({ indicator: created });
+  });
+
+  it('answers 404 for a published indicator, which has no name to edit', async () => {
+    const get = vi.fn().mockResolvedValue({ ...created, status: 'published' });
+
+    await expect(load(created.id, get)).rejects.toSatisfy(isNotFound);
+  });
+
+  it.each(['108', 'not-an-id'])('answers 404 to an id of %s without asking the API', async (id) => {
+    const get = vi.fn();
+
+    await expect(load(id, get)).rejects.toSatisfy(isNotFound);
+    expect(get).not.toHaveBeenCalled();
+  });
+});
+
+describe('saveIndicatorName', () => {
+  it('renames the draft and returns to the overview page', async () => {
+    const patch = vi.fn().mockResolvedValue({ ok: true, data: { ...created, name: 'Renamed' } });
+
+    const outcome = await rename(created.id, '  Renamed  ', patch);
+
+    expect(patch.mock.calls[0]?.[0]).toBe(`/api/internal/indicators/${created.id}`);
+    expect(patch.mock.calls[0]?.[1]).toEqual({ name: 'Renamed' });
+    expect(outcome).toBeInstanceOf(Response);
+    expect((outcome as Response).headers.get('location')).toBe(
+      `/dashboard/indicators/${created.id}`,
+    );
+  });
+
+  it.each(['', '   '])('asks for a name of %o without calling the API', async (name) => {
+    const patch = vi.fn();
+
+    const outcome = await rename(created.id, name, patch);
+
+    expect(outcome).toEqual({ name, fieldErrors: { name: 'Enter the name of the indicator' } });
+    expect(patch).not.toHaveBeenCalled();
+  });
+
+  it('shows what the API refused, keeping what was typed', async () => {
+    const patch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      error: {
+        error: 'validation_failed',
+        fieldErrors: { name: 'Enter the name of the indicator' },
+      },
+    });
+
+    const outcome = await rename(created.id, 'Rejected', patch);
+
+    expect(outcome).toEqual({
+      name: 'Rejected',
+      fieldErrors: { name: 'Enter the name of the indicator' },
+    });
+  });
+
+  it('answers 404 when the indicator no longer has a draft', async () => {
+    const patch = vi
+      .fn()
+      .mockResolvedValue({ ok: false, status: 409, error: { error: 'no_draft' } });
+
+    await expect(rename(created.id, 'Too late', patch)).rejects.toSatisfy(isNotFound);
+  });
+
+  it.each(['108', 'not-an-id'])('answers 404 to an id of %s without asking the API', async (id) => {
+    const patch = vi.fn();
+
+    await expect(rename(id, 'Renamed', patch)).rejects.toSatisfy(isNotFound);
+    expect(patch).not.toHaveBeenCalled();
   });
 });
