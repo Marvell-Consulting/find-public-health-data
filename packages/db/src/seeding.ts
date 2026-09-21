@@ -44,8 +44,8 @@ export const SEED_TABLES = [
 
 const seedDir = fileURLToPath(new URL('../data/seed/', import.meta.url));
 const COPY_IDLE_TIMEOUT_MS = 300_000;
-// Full-data COPY can keep finalizing after its compressed source reaches EOF.
-const PUBLISHED_COPY_COMPLETION_TIMEOUT_MS = 1_800_000;
+// The deployed operations job supplies the outer timeout for full-data COPY completion.
+const PUBLISHED_COPY_COMPLETION_TIMEOUT_MS = null;
 
 async function readCsvHeader(file: string): Promise<string[]> {
   const stream = createReadStream(file).pipe(createGunzip());
@@ -65,7 +65,7 @@ async function loadTable(
   sql: postgres.Sql | postgres.TransactionSql,
   table: string,
   directory: string,
-  completionTimeoutMs = COPY_IDLE_TIMEOUT_MS,
+  completionTimeoutMs: number | null = COPY_IDLE_TIMEOUT_MS,
 ): Promise<number> {
   const file = `${directory}/${table}.csv.gz`;
   const columns = await readCsvHeader(file);
@@ -89,7 +89,7 @@ export async function streamSeedCsv(
   writable: Writable,
   table: string,
   idleTimeoutMs = COPY_IDLE_TIMEOUT_MS,
-  completionTimeoutMs = idleTimeoutMs,
+  completionTimeoutMs: number | null = idleTimeoutMs,
 ): Promise<void> {
   const decompressed = createGunzip();
   const abort = new AbortController();
@@ -102,7 +102,9 @@ export async function streamSeedCsv(
     timeout = setTimeout(markStalled, idleTimeoutMs).unref();
     decompressed.once('end', () => {
       stopWaiting();
-      timeout = setTimeout(markStalled, completionTimeoutMs).unref();
+      if (completionTimeoutMs !== null) {
+        timeout = setTimeout(markStalled, completionTimeoutMs).unref();
+      }
     });
   });
   const onProgress = () => timeout?.refresh();
@@ -212,7 +214,7 @@ export async function seedPublishedTables(
 async function seedTables(
   tx: postgres.TransactionSql,
   directory: string,
-  completionTimeoutMs = COPY_IDLE_TIMEOUT_MS,
+  completionTimeoutMs: number | null = COPY_IDLE_TIMEOUT_MS,
 ): Promise<Record<string, number>> {
   const allTables = [...SEED_TABLES, ...READ_MODEL_TABLES].map((t) => `"${t}"`).join(', ');
   await tx.unsafe(`TRUNCATE ${allTables} CASCADE`);
