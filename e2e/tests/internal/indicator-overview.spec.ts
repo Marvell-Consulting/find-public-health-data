@@ -35,7 +35,7 @@ test('opens the published indicator from the actions tab', async ({ page }) => {
   await expect(page.getByRole('tab', { name: 'Actions' })).toBeVisible();
   await page.getByRole('link', { name: 'View published indicator' }).click();
 
-  await expect(page).toHaveURL(/\/indicators\/\d+$/);
+  await expect(page).toHaveURL(/\/indicators\/[a-z0-9-]+$/);
   await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
 });
 
