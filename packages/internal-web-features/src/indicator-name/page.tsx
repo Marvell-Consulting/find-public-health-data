@@ -12,14 +12,13 @@ import {
   Label,
 } from '@fphd/ui';
 
-import { DASHBOARD_PATH } from '../dashboard/paths.ts';
 import type { IndicatorFieldErrors } from './loader.ts';
 
 const NAME_FIELD = 'name';
 const HINT_ID = `${NAME_FIELD}-hint`;
 const ERROR_ID = `${NAME_FIELD}-error`;
 
-export const NEW_INDICATOR_HEADING = 'What is the name of the indicator?';
+export const INDICATOR_NAME_HEADING = 'What is the name of the indicator?';
 
 function toErrorSummary(fieldErrors: IndicatorFieldErrors): FieldError[] {
   const message = fieldErrors[NAME_FIELD];
@@ -27,20 +26,22 @@ function toErrorSummary(fieldErrors: IndicatorFieldErrors): FieldError[] {
   return message === undefined ? [] : [{ name: NAME_FIELD, message }];
 }
 
-interface NewIndicatorPageProps {
+interface IndicatorNamePageProps {
+  /** Where the question was reached from: the dashboard when creating, the indicator when not. */
+  back: { href: string; label: string };
   fieldErrors?: IndicatorFieldErrors | undefined;
   name?: string | undefined;
 }
 
 // The heading is the field's label, as GOV.UK asks of a page with a single question, so the
 // form group is assembled here rather than taken whole from TextInput.
-export function NewIndicatorPage({ fieldErrors = {}, name = '' }: NewIndicatorPageProps) {
+export function IndicatorNamePage({ back, fieldErrors = {}, name = '' }: IndicatorNamePageProps) {
   const error = fieldErrors[NAME_FIELD];
   const inputId = fieldInputId(NAME_FIELD);
 
   return (
     <>
-      <BackLink href={DASHBOARD_PATH}>Back to indicators</BackLink>
+      <BackLink href={back.href}>{back.label}</BackLink>
       <ErrorSummary errors={toErrorSummary(fieldErrors)} />
       <GridRow>
         <GridColumn width="two-thirds">
@@ -51,7 +52,7 @@ export function NewIndicatorPage({ fieldErrors = {}, name = '' }: NewIndicatorPa
             >
               <h1 className="govuk-label-wrapper">
                 <Label classModifiers="xl" htmlFor={inputId}>
-                  {NEW_INDICATOR_HEADING}
+                  {INDICATOR_NAME_HEADING}
                 </Label>
               </h1>
               <Hint id={HINT_ID}>

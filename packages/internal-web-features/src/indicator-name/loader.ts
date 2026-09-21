@@ -3,7 +3,7 @@ import {
   type IndicatorFieldErrors,
   indicatorCreateErrorSchema,
   indicatorCreateResponseSchema,
-  indicatorCreateSchema,
+  indicatorNameSchema,
   toFieldErrors,
 } from '@fphd/internal-api-features/contract';
 import { apiContext } from '@fphd/web-server/api-context';
@@ -13,7 +13,7 @@ import { indicatorOverviewPath } from '../indicator-overview/paths.ts';
 
 export type { IndicatorFieldErrors } from '@fphd/internal-api-features/contract';
 
-export interface CreateIndicatorFailure {
+export interface IndicatorNameFailure {
   name: string;
   fieldErrors: IndicatorFieldErrors;
 }
@@ -32,9 +32,9 @@ function readName(formData: FormData): string {
 export async function createIndicator({
   context,
   request,
-}: ActionFunctionArgs): Promise<CreateIndicatorFailure | Response> {
+}: ActionFunctionArgs): Promise<IndicatorNameFailure | Response> {
   const name = readName(await request.formData());
-  const submission = indicatorCreateSchema.safeParse({ name });
+  const submission = indicatorNameSchema.safeParse({ name });
 
   if (!submission.success) {
     return { name, fieldErrors: toFieldErrors(submission.error) };

@@ -64,7 +64,7 @@ describe('DashboardPage', () => {
     renderPage();
 
     expect(screen.getByRole('button', { name: 'Create new indicator' }).getAttribute('href')).toBe(
-      '/dashboard/indicators/new',
+      '/publish/indicators/new',
     );
   });
 

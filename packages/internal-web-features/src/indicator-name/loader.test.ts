@@ -22,7 +22,7 @@ function submit(name: string, post: ApiClient['post']) {
   return createIndicator({
     context,
     params: {},
-    request: new Request('https://internal.test/dashboard/indicators/new', {
+    request: new Request('https://internal.test/publish/indicators/new', {
       method: 'POST',
       body,
     }),

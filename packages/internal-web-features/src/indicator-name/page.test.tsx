@@ -3,15 +3,17 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { NewIndicatorPage } from './page.tsx';
+import { IndicatorNamePage } from './page.tsx';
 
 afterEach(cleanup);
 
+const BACK = { href: '/dashboard', label: 'Back to indicators' };
+
 // The back link reads router state, so the page renders inside a router at its own address.
-function renderPage(props: Parameters<typeof NewIndicatorPage>[0] = {}) {
+function renderPage(props: Partial<Parameters<typeof IndicatorNamePage>[0]> = {}) {
   return render(
-    <MemoryRouter initialEntries={['/dashboard/indicators/new']}>
-      <NewIndicatorPage {...props} />
+    <MemoryRouter initialEntries={['/publish/indicators/new']}>
+      <IndicatorNamePage back={BACK} {...props} />
     </MemoryRouter>,
   );
 }
@@ -20,7 +22,7 @@ function nameField() {
   return screen.getByLabelText('What is the name of the indicator?') as HTMLInputElement;
 }
 
-describe('NewIndicatorPage', () => {
+describe('IndicatorNamePage', () => {
   it('asks the question as the heading and as the label of the field', () => {
     renderPage();
 
@@ -81,11 +83,17 @@ describe('NewIndicatorPage', () => {
     expect(container.querySelector('.govuk-form-group--error')).toBeTruthy();
   });
 
-  it('links back to the dashboard', () => {
-    renderPage();
+  it('shows the name it was given, so a draft can be renamed', () => {
+    renderPage({ name: 'Life expectancy at birth' });
 
-    expect(screen.getByRole('link', { name: 'Back to indicators' }).getAttribute('href')).toBe(
-      '/dashboard',
+    expect(nameField().value).toBe('Life expectancy at birth');
+  });
+
+  it('links back where the question was reached from', () => {
+    renderPage({ back: { href: '/dashboard/indicators/an-id', label: 'Back to indicator' } });
+
+    expect(screen.getByRole('link', { name: 'Back to indicator' }).getAttribute('href')).toBe(
+      '/dashboard/indicators/an-id',
     );
   });
 });

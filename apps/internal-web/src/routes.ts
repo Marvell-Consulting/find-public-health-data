@@ -32,12 +32,12 @@ export default [
     layout('./publisher.tsx', [
       route('dashboard', '../../../packages/internal-web-features/src/dashboard/route.tsx'),
       route(
-        'dashboard/indicators/new',
-        '../../../packages/internal-web-features/src/indicator-create/route.tsx',
-      ),
-      route(
         'dashboard/indicators/:id',
         '../../../packages/internal-web-features/src/indicator-overview/route.tsx',
+      ),
+      route(
+        'publish/indicators/new',
+        '../../../packages/internal-web-features/src/indicator-name/new-route.tsx',
       ),
     ]),
     layout('./admin.tsx', [

@@ -12,7 +12,16 @@ function uniqueName() {
 async function openNamePage(page: Page) {
   await page.goto('/dashboard');
   await page.getByRole('button', { name: 'Create new indicator' }).click();
-  await expect(page).toHaveURL('/dashboard/indicators/new');
+  await expect(page).toHaveURL('/publish/indicators/new');
+}
+
+/** Names a new indicator and leaves the publisher on its overview page, as Continue does. */
+async function createIndicator(page: Page, name: string) {
+  await openNamePage(page);
+  await page.getByLabel('What is the name of the indicator?').fill(name);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page).toHaveURL(/\/dashboard\/indicators\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
 }
 
 test.beforeEach(async ({ page }) => {
@@ -34,7 +43,7 @@ test('asks for a name when Continue is selected with the box empty', async ({ pa
   await openNamePage(page);
   await page.getByRole('button', { name: 'Continue' }).click();
 
-  await expect(page).toHaveURL('/dashboard/indicators/new');
+  await expect(page).toHaveURL('/publish/indicators/new');
   const summary = page.getByRole('alert');
   await expect(summary.getByRole('link')).toHaveText(['Enter the name of the indicator']);
 
@@ -45,23 +54,15 @@ test('asks for a name when Continue is selected with the box empty', async ({ pa
 test('creates the indicator and shows it as incomplete on its overview page', async ({ page }) => {
   const name = uniqueName();
 
-  await openNamePage(page);
-  await page.getByLabel('What is the name of the indicator?').fill(name);
-  await page.getByRole('button', { name: 'Continue' }).click();
+  await createIndicator(page, name);
 
-  await expect(page).toHaveURL(/\/dashboard\/indicators\/[0-9a-f-]{36}$/);
-  await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
   await expect(page.getByText('Incomplete')).toBeVisible();
 });
 
 test('leaves an indicator abandoned before submission on the dashboard', async ({ page }) => {
   const name = uniqueName();
 
-  await openNamePage(page);
-  await page.getByLabel('What is the name of the indicator?').fill(name);
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
-
+  await createIndicator(page, name);
   await page.getByRole('link', { name: 'Back to indicators' }).click();
 
   await expect(page).toHaveURL('/dashboard');
