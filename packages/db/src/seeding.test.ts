@@ -37,6 +37,19 @@ describe('streamSeedCsv', () => {
     expect(Buffer.concat(chunks).toString()).toBe('id,name\n1,Test area\n');
   });
 
+  it('allows COPY completion to take longer than source streaming', async () => {
+    const writable = new Writable({
+      write(_chunk, _encoding, callback) {
+        callback();
+      },
+      final(callback) {
+        setTimeout(callback, 200);
+      },
+    });
+
+    await streamSeedCsv(await csvFile(), writable, 'area', 100, 500);
+  });
+
   it('aborts a COPY stalled before the source stream ends', async () => {
     const writable = new Writable({
       write() {

@@ -43,6 +43,9 @@ export const SEED_TABLES = [
 ] as const;
 
 const seedDir = fileURLToPath(new URL('../data/seed/', import.meta.url));
+const COPY_IDLE_TIMEOUT_MS = 300_000;
+// Full-data COPY can keep finalizing after its compressed source reaches EOF.
+const PUBLISHED_COPY_COMPLETION_TIMEOUT_MS = 1_800_000;
 
 async function readCsvHeader(file: string): Promise<string[]> {
   const stream = createReadStream(file).pipe(createGunzip());
@@ -62,6 +65,7 @@ async function loadTable(
   sql: postgres.Sql | postgres.TransactionSql,
   table: string,
   directory: string,
+  completionTimeoutMs = COPY_IDLE_TIMEOUT_MS,
 ): Promise<number> {
   const file = `${directory}/${table}.csv.gz`;
   const columns = await readCsvHeader(file);
@@ -70,7 +74,7 @@ async function loadTable(
     .unsafe(`COPY "${table}" (${columnList}) FROM STDIN WITH (FORMAT csv, HEADER true)`)
     .writable();
 
-  await streamSeedCsv(file, writable, table);
+  await streamSeedCsv(file, writable, table, COPY_IDLE_TIMEOUT_MS, completionTimeoutMs);
   const rows = await sql.unsafe(`SELECT count(*)::int AS count FROM "${table}"`);
   const count = Number(rows[0]?.count ?? 0);
   if (count === 0) {
@@ -84,15 +88,22 @@ export async function streamSeedCsv(
   file: string,
   writable: Writable,
   table: string,
-  idleTimeoutMs = 300_000,
+  idleTimeoutMs = COPY_IDLE_TIMEOUT_MS,
+  completionTimeoutMs = idleTimeoutMs,
 ): Promise<void> {
   const decompressed = createGunzip();
   const abort = new AbortController();
   // postgres.js can leave finish unemitted if Postgres rejects COPY after the
   // stream ends. Refreshing on decompressed chunks also catches mid-stream stalls.
   let timeout: NodeJS.Timeout | undefined;
+  const stopWaiting = () => clearTimeout(timeout);
   const stalled = new Promise<'stalled'>((resolve) => {
-    timeout = setTimeout(() => resolve('stalled'), idleTimeoutMs).unref();
+    const markStalled = () => resolve('stalled');
+    timeout = setTimeout(markStalled, idleTimeoutMs).unref();
+    decompressed.once('end', () => {
+      stopWaiting();
+      timeout = setTimeout(markStalled, completionTimeoutMs).unref();
+    });
   });
   const onProgress = () => timeout?.refresh();
   decompressed.on('data', onProgress);
@@ -107,7 +118,7 @@ export async function streamSeedCsv(
       throw new Error(`COPY into "${table}" stopped making progress`);
     }
   } finally {
-    clearTimeout(timeout);
+    stopWaiting();
     decompressed.off('data', onProgress);
   }
 }
@@ -190,7 +201,7 @@ export async function seedPublishedTables(
   directory: string,
 ): Promise<SeedSummary> {
   const topicFile = parseIndicatorTopicFile(JSON.parse(readFileSync(publishedTopicFile, 'utf-8')));
-  const tables = await seedTables(tx, directory);
+  const tables = await seedTables(tx, directory, PUBLISHED_COPY_COMPLETION_TIMEOUT_MS);
   const relationships = await applyIndicatorTopics(createDbFromTransaction(tx), topicFile);
   if (relationships.links === 0 || relationships.unknownTopics.length > 0) {
     throw new Error('Published topic mapping did not match the imported indicators and topics');
@@ -201,13 +212,14 @@ export async function seedPublishedTables(
 async function seedTables(
   tx: postgres.TransactionSql,
   directory: string,
+  completionTimeoutMs = COPY_IDLE_TIMEOUT_MS,
 ): Promise<Record<string, number>> {
   const allTables = [...SEED_TABLES, ...READ_MODEL_TABLES].map((t) => `"${t}"`).join(', ');
   await tx.unsafe(`TRUNCATE ${allTables} CASCADE`);
 
   const counts: Record<string, number> = {};
   for (const table of SEED_TABLES) {
-    counts[table] = await loadTable(tx, table, directory);
+    counts[table] = await loadTable(tx, table, directory, completionTimeoutMs);
   }
   return counts;
 }
