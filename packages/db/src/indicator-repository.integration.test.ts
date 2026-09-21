@@ -14,16 +14,16 @@ import {
 import { createDb, type Database } from './client.ts';
 import { dbEnvFields, resolveDbTls } from './env.ts';
 import {
-  getPublishedIndicatorById,
   getIndicatorObservations,
   getObservationRange,
+  getPublishedIndicatorById,
   type IndicatorSearchFilters,
-  listPublishedIndicators,
   listIndicatorFacets,
-  resolvePublishedIndicatorId,
+  listPublishedIndicators,
   resolveIndicatorIdBySlug,
-  searchPublishedIndicators,
+  resolvePublishedIndicatorId,
   searchIndicators,
+  searchPublishedIndicators,
 } from './indicator-repository.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
 

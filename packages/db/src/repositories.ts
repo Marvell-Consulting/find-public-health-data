@@ -12,22 +12,22 @@ import {
 } from './area-repository.ts';
 import type { Database } from './client.ts';
 import {
-  type PublishedIndicator,
-  getPublishedIndicatorById,
   getIndicatorObservations,
   getObservationRange,
+  getPublishedIndicatorById,
   type IndicatorAreaData,
   type IndicatorDetail,
   type IndicatorFacets,
   type IndicatorSearchFilters,
   type IndicatorSearchResult,
-  listPublishedIndicators,
   listIndicatorFacets,
+  listPublishedIndicators,
   type ObservationRangePeriod,
-  resolvePublishedIndicatorId,
+  type PublishedIndicator,
   resolveIndicatorIdBySlug,
-  searchPublishedIndicators,
+  resolvePublishedIndicatorId,
   searchIndicators,
+  searchPublishedIndicators,
 } from './indicator-repository.ts';
 import { getTopicBySlug, listTopics, type Topic } from './topic-repository.ts';
 
