@@ -1,8 +1,7 @@
-import { BackLink, GridColumn, GridRow, Tag, TaskList } from '@fphd/ui';
+import { GridColumn, GridRow, InsetText, Tag, TaskList } from '@fphd/ui';
 import type { ReactNode } from 'react';
 
 import { indicatorNamePath } from '../indicator-name/paths.ts';
-import { indicatorOverviewPath } from '../indicator-overview/paths.ts';
 import type { IndicatorTaskList, IndicatorTaskStatus, IndicatorTaskStatuses } from './loader.ts';
 
 interface TaskRow {
@@ -85,28 +84,29 @@ export function IndicatorTaskListPage({ taskList }: { taskList: IndicatorTaskLis
   const { indicator, tasks } = taskList;
 
   return (
-    <>
-      <BackLink href={indicatorOverviewPath(indicator.id)}>Back to indicator</BackLink>
-      <GridRow>
-        <GridColumn width="two-thirds">
-          <span className="govuk-caption-xl">ID: {indicator.shortId}</span>
-          <h1 className="govuk-heading-xl">{indicator.name}</h1>
-          {TASK_GROUPS.map((group) => (
-            <div key={group.id}>
-              <h2 className="govuk-heading-m">{group.title}</h2>
-              <TaskList
-                idPrefix={group.id}
-                items={group.tasks.map(({ key, path, title }) => ({
-                  id: key,
-                  title,
-                  href: path?.(indicator.id),
-                  status: statusLabel(statusOf(tasks, key)),
-                }))}
-              />
-            </div>
-          ))}
-        </GridColumn>
-      </GridRow>
-    </>
+    <GridRow>
+      <GridColumn width="two-thirds">
+        <h1 className="govuk-heading-xl govuk-!-margin-bottom-2">{indicator.name}</h1>
+        <p className="govuk-heading-m govuk-!-margin-bottom-2">ID: {indicator.shortId}</p>
+        <InsetText>
+          You can complete these sections in any order. If you exit at any point, any selections or
+          text you've added will be saved.
+        </InsetText>
+        {TASK_GROUPS.map((group) => (
+          <div key={group.id}>
+            <h2 className="govuk-heading-m">{group.title}</h2>
+            <TaskList
+              idPrefix={group.id}
+              items={group.tasks.map(({ key, path, title }) => ({
+                id: key,
+                title,
+                href: path?.(indicator.id),
+                status: statusLabel(statusOf(tasks, key)),
+              }))}
+            />
+          </div>
+        ))}
+      </GridColumn>
+    </GridRow>
   );
 }

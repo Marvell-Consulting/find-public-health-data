@@ -93,10 +93,15 @@ describe('IndicatorTaskListPage', () => {
   it('links only the tasks that can be worked on today', () => {
     renderPage();
 
-    expect(screen.getAllByRole('link').map((link) => link.textContent)).toEqual([
-      'Back to indicator',
-      'Name',
-    ]);
+    expect(screen.getAllByRole('link').map((link) => link.textContent)).toEqual(['Name']);
+  });
+
+  it('tells the publisher the sections can be completed in any order', () => {
+    renderPage();
+
+    expect(screen.getByText(/You can complete these sections in any order/).className).toContain(
+      'govuk-inset-text',
+    );
   });
 
   it('tags a task that is not started and leaves a completed one as text', () => {
@@ -104,13 +109,5 @@ describe('IndicatorTaskListPage', () => {
 
     expect(screen.getAllByText('Not started')[0]?.className).toContain('govuk-tag--grey');
     expect(screen.getByText('Completed').className).not.toContain('govuk-tag');
-  });
-
-  it('links back to the indicator overview', () => {
-    renderPage();
-
-    expect(screen.getByRole('link', { name: 'Back to indicator' }).getAttribute('href')).toBe(
-      `/dashboard/indicators/${taskList.indicator.id}`,
-    );
   });
 });

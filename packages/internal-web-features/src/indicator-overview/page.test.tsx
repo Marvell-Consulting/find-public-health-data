@@ -62,16 +62,16 @@ describe('IndicatorOverviewPage', () => {
     renderPage({ publishedSlug: null, status: 'draft' });
 
     expect(screen.queryByRole('link', { name: 'View published indicator' })).toBeNull();
-    expect(screen.getByRole('link', { name: 'Continue editing' }).getAttribute('href')).toBe(
-      `/publish/indicators/${indicator.id}/task-list`,
-    );
+    expect(
+      screen.getByRole('link', { name: 'Continue creating indicator' }).getAttribute('href'),
+    ).toBe(`/publish/indicators/${indicator.id}/task-list`);
   });
 
   it('offers both actions for a draft that revises a published indicator', () => {
     renderPage({ status: 'draft' });
 
     expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
-      'Continue editing',
+      'Continue creating indicator',
       'View published indicator',
     ]);
   });
@@ -79,7 +79,7 @@ describe('IndicatorOverviewPage', () => {
   it('offers no editing action for a published indicator, which has no draft', () => {
     renderPage();
 
-    expect(screen.queryByRole('link', { name: 'Continue editing' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Continue creating indicator' })).toBeNull();
   });
 
   it('links back to the dashboard', () => {

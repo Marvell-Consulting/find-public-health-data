@@ -20,7 +20,7 @@ function StatusTag({ status }: { status: IndicatorStatus }) {
 function Actions({ indicator }: { indicator: IndicatorAdminDetail }) {
   const actions = [
     indicator.status === 'draft'
-      ? { href: indicatorTaskListPath(indicator.id), label: 'Continue editing' }
+      ? { href: indicatorTaskListPath(indicator.id), label: 'Continue creating indicator' }
       : undefined,
     indicator.publishedSlug === null
       ? undefined
