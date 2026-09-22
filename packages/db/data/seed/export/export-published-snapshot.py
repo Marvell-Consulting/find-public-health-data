@@ -182,6 +182,9 @@ def main():
         "count(*) FILTER (WHERE created_by IS NULL OR updated_by IS NULL) FROM indicator"
     ).split("|")
     observations = int(psql("SELECT count(*) FROM observation"))
+    excluded_observations = int(
+        psql(f"SELECT count(*) FROM observation WHERE indicator_id IN {EXCLUDED_ID_LIST}")
+    )
     if (
         database != DATABASE
         or int(approved) != EXPECTED_INDICATORS
@@ -204,6 +207,8 @@ def main():
         "approved_indicators": int(approved),
         "source_observations": observations,
         "excluded_indicators": sorted(EXCLUDED_INDICATORS),
+        # What the exclusions took with them, so the importer can require the rest exactly.
+        "excluded_observations": excluded_observations,
         "source_csv_null": NULL_MARKER,
         "tables": tables,
     }

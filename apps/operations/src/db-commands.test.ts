@@ -56,6 +56,7 @@ function publishedManifest(): PublishedManifest {
     approved_indicators: 1_290,
     source_observations: 29_380_899,
     excluded_indicators: [90_366, 90_776, 92_774, 93_280],
+    excluded_observations: 380_899,
     source_csv_null: '__FPHD_NULL_5f92c66de4b849b4a717c23f5cbdb8a1__',
     id_mapping: 'deterministic-uuidv7-v1',
     tables: Object.fromEntries(

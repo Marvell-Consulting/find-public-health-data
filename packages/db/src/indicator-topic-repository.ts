@@ -86,11 +86,10 @@ export function parseIndicatorTopicFile(data: unknown): IndicatorTopicFile {
 }
 
 /**
- * Replaces topic membership for the indicators named in the file, and records when the
- * source system last published their data. Memberships attach to a version: the published
- * one where there is one, otherwise the draft, which is then the only version there is.
- * Membership is replaced rather than merged: the file states what is true now, so a link
- * it no longer carries should not survive.
+ * Replaces the topic memberships of the indicators the file names, and records when the
+ * source system last published their data. A membership belongs to a version: the
+ * published one if the indicator has one, otherwise its draft. Memberships are replaced,
+ * not merged, because the file states what is true now.
  *
  * Rows naming a topic or indicator this database does not hold are reported rather than
  * failed on — a seed file and a database can legitimately drift while both are in flux.

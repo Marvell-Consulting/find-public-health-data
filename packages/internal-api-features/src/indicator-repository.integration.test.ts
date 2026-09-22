@@ -335,6 +335,15 @@ describe('updateIndicatorDraft', () => {
     });
   });
 
+  it('refuses an unusable name even though a published indicator keeps its slug', async () => {
+    const { indicatorId } = await indicatorWithTwoPublications();
+    await createDraftFromPublished(db, indicatorId, ACTOR);
+
+    await expect(
+      updateIndicatorDraft(db, indicatorId, { name: '2024' }, {}, ACTOR),
+    ).rejects.toThrow('no usable slug');
+  });
+
   it("refuses a rename onto another indicator's slug", async () => {
     await newDraft('An occupied name');
     const created = await newDraft('A free name');

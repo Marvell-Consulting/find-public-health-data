@@ -29,6 +29,7 @@ const sourceManifestSchema = z.object({
   // The source's count before exclusion: the fingerprint of the clone the archive came from.
   source_observations: z.literal(expectedObservations),
   excluded_indicators: z.array(z.number().int()),
+  excluded_observations: z.number().int().nonnegative(),
   source_csv_null: z.literal(publishedCsvNull),
   tables: z.record(
     z.string(),
@@ -73,8 +74,9 @@ export async function verifyPublishedSnapshot(directory: string): Promise<Publis
     manifest.tables.indicator?.rows !== expectedExportedIndicators ||
     // The export turns each exported source indicator into one published version.
     manifest.tables.indicator_version?.rows !== expectedExportedIndicators ||
-    // The excluded indicators' observations go with them, so only an upper bound is known.
-    (manifest.tables.observation?.rows ?? 0) >= expectedObservations
+    // The excluded indicators' observations go with them, and the export says how many.
+    manifest.tables.observation?.rows !==
+      expectedObservations - sourceManifest.excluded_observations
   ) {
     throw new Error('Published snapshot row counts do not match the published benchmark clone');
   }

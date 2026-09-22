@@ -54,18 +54,16 @@ export async function loadIndicatorCsv(
         ? indicatorAreaDataSchema.transform((one) => [one])
         : indicatorAreaDataListSchema,
     );
-  const [detail, areaData] = await Promise.all([
-    api.get(apiPath`/api/indicators/${segment}`, indicatorDetailSchema),
-    dataFor(codesToLoad),
-  ]);
-
-  // The download shares the page's address, so it shares the page's one canonical form.
+  // The download shares the page's address, so it shares the page's one canonical form:
+  // an old address is answered with the redirect before any data is asked for.
+  const detail = await api.get(apiPath`/api/indicators/${segment}`, indicatorDetailSchema);
   if (detail.slug !== segment) {
     throw redirect(
       `${indicatorCsvPath(detail.slug, kind)}${url.search}`,
       redirectStatus(segment, detail.slug),
     );
   }
+  const areaData = await dataFor(codesToLoad);
 
   const { shortId } = detail;
 

@@ -211,6 +211,17 @@ describe('loadIndicatorCsv', () => {
     });
   });
 
+  it('redirects before asking for any data', async () => {
+    const get = api([]);
+
+    await loadIndicatorCsv(
+      args(get, 'http://localhost/indicators/108/table.csv?as=E06000052', '108'),
+      'table',
+    ).catch(() => undefined);
+
+    expect(get.mock.calls.map(([path]) => String(path))).toEqual(['/api/indicators/108']);
+  });
+
   it('names the redirect target after the canonical slug', async () => {
     const get = api([
       { areaCode: 'E92000001', areaName: 'England', observations: [observation()] },

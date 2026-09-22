@@ -227,10 +227,9 @@ export async function updateIndicatorDraft(
 ): Promise<UpdateIndicatorDraftResult> {
   try {
     return await db.transaction(async (tx) => {
-      const renamed =
-        attributes.name === undefined || (await isPublished(tx, indicatorId))
-          ? {}
-          : { slug: draftSlug(attributes.name) };
+      // The name is checked whether or not the slug it yields is used.
+      const slug = attributes.name === undefined ? undefined : draftSlug(attributes.name);
+      const renamed = slug === undefined || (await isPublished(tx, indicatorId)) ? {} : { slug };
       const [draft] = await tx
         .update(indicatorVersion)
         .set({ ...attributes, ...renamed, updatedAt: sql`now()`, updatedBy: actor })

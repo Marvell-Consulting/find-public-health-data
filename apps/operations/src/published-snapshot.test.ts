@@ -42,6 +42,7 @@ async function snapshot(source = 'PHOLIO_LIVE_A-derived fphd_new benchmark clone
     approved_indicators: 1_290,
     source_observations: 29_380_899,
     excluded_indicators: [90_366, 90_776, 92_774, 93_280],
+    excluded_observations: 380_899,
     source_csv_null: '__FPHD_NULL_5f92c66de4b849b4a717c23f5cbdb8a1__',
     tables,
   };
@@ -98,11 +99,11 @@ describe('verifyPublishedSnapshot', () => {
     );
   });
 
-  it('rejects an archive that still carries every source observation', async () => {
+  it('rejects an archive whose observations are not the source less the exclusions', async () => {
     const directory = await snapshot();
     const path = join(directory, 'manifest.json');
     const manifest = JSON.parse(await readFile(path, 'utf8'));
-    manifest.tables.observation.rows = 29_380_899;
+    manifest.tables.observation.rows -= 1;
     await writeFile(path, JSON.stringify(manifest));
     await expect(verifyPublishedSnapshot(directory)).rejects.toThrow(
       'Published snapshot row counts do not match the published benchmark clone',
