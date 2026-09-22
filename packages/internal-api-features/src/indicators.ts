@@ -23,17 +23,18 @@ export const INDICATORS_PAGE_SIZE = 10;
 // collision is reported against the name rather than the slug they never saw.
 const NAME_TAKEN = 'An indicator with this name already exists';
 
-function toSummary({ id, name, updatedAt }: IndicatorAdminRow): IndicatorAdminSummary {
-  return { id, name, updatedAt: updatedAt.toISOString() };
+function toSummary({
+  draftStatus,
+  id,
+  indicatorStatus,
+  name,
+  updatedAt,
+}: IndicatorAdminRow): IndicatorAdminSummary {
+  return { id, name, updatedAt: updatedAt.toISOString(), indicatorStatus, draftStatus };
 }
 
 function toDetail(row: IndicatorAdminDetailRow): IndicatorAdminDetail {
-  return {
-    ...toSummary(row),
-    shortId: row.shortId,
-    publishedSlug: row.publishedSlug,
-    status: row.status,
-  };
+  return { ...toSummary(row), shortId: row.shortId, publishedSlug: row.publishedSlug };
 }
 
 /**

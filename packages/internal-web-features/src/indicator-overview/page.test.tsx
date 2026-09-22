@@ -13,8 +13,9 @@ const indicator: IndicatorAdminDetail = {
   shortId: 90366,
   name: 'Life expectancy at birth',
   publishedSlug: 'life-expectancy-at-birth',
-  status: 'published',
   updatedAt: '2026-08-04T23:30:00.000Z',
+  indicatorStatus: 'live',
+  draftStatus: null,
 };
 
 // The links and tabs read router state, so the page renders inside a router at its own address.
@@ -37,16 +38,13 @@ describe('IndicatorOverviewPage', () => {
     expect(screen.getByText('90366')).toBeTruthy();
   });
 
-  it.each([
-    ['draft', 'Incomplete', 'grey'],
-    ['published', 'Published', 'green'],
-  ] as const)('labels a status of %s as a %s tag', (status, label, colour) => {
-    renderPage({ status });
+  it('shows the indicator status and the publishing status as tags', () => {
+    renderPage({ draftStatus: 'draft' });
 
-    const tag = screen.getByText(label);
-
-    expect(tag.className).toContain('govuk-tag');
-    expect(tag.className).toContain(`govuk-tag--${colour}`);
+    expect(screen.getByText('Indicator status')).toBeTruthy();
+    expect(screen.getByText('Live').className).toContain('govuk-tag');
+    expect(screen.getByText('Publishing status')).toBeTruthy();
+    expect(screen.getByText('Update incomplete').className).toContain('govuk-tag');
   });
 
   it('offers the published page as an action for a published indicator', () => {
@@ -59,7 +57,7 @@ describe('IndicatorOverviewPage', () => {
   });
 
   it('offers the task list as an action for a draft, which has no public page', () => {
-    renderPage({ publishedSlug: null, status: 'draft' });
+    renderPage({ publishedSlug: null, indicatorStatus: 'new', draftStatus: 'draft' });
 
     expect(screen.queryByRole('link', { name: 'View published indicator' })).toBeNull();
     expect(
@@ -68,7 +66,7 @@ describe('IndicatorOverviewPage', () => {
   });
 
   it('offers both actions for a draft that revises a published indicator', () => {
-    renderPage({ status: 'draft' });
+    renderPage({ draftStatus: 'draft' });
 
     expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
       'Continue creating indicator',

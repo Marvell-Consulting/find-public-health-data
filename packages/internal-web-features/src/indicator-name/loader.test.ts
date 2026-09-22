@@ -9,8 +9,10 @@ const created = {
   id: '00000000-0000-7000-8000-000000000001',
   shortId: 90366,
   name: 'Life expectancy at birth',
-  status: 'draft',
+  publishedSlug: null,
   updatedAt: '2026-01-02T00:00:00.000Z',
+  indicatorStatus: 'new',
+  draftStatus: 'draft',
 };
 
 function submit(name: string, post: ApiClient['post']) {
@@ -152,7 +154,7 @@ describe('loadIndicatorName', () => {
   });
 
   it('answers 404 for a published indicator, which has no name to edit', async () => {
-    const get = vi.fn().mockResolvedValue({ ...created, status: 'published' });
+    const get = vi.fn().mockResolvedValue({ ...created, draftStatus: null });
 
     await expect(load(created.id, get)).rejects.toSatisfy(isNotFound);
   });

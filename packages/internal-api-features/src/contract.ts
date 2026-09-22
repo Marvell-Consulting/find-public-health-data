@@ -89,10 +89,23 @@ export type TopicCreateResponse = z.infer<typeof topicCreateResponseSchema>;
 export type TopicUpdateResponse = z.infer<typeof topicUpdateResponseSchema>;
 export type TopicUpdateError = z.infer<typeof topicUpdateErrorSchema>;
 
+/** What the public has: live once any version is published, new until then. */
+export const indicatorStatusSchema = z.enum(['new', 'live']);
+
+/** The open draft's workflow state. The states after submission arrive with the workflow. */
+export const draftStatusSchema = z.enum(['draft']);
+
+/**
+ * Both statuses are derived from the versions, never stored, and sent as values rather than
+ * labels: what each is called is the web UI's decision.
+ */
 export const indicatorAdminSummarySchema = z.object({
   id: z.uuid(),
   name: z.string().min(1),
   updatedAt: z.iso.datetime(),
+  indicatorStatus: indicatorStatusSchema,
+  /** Null while the indicator has no draft, which for a live one means it is published as is. */
+  draftStatus: draftStatusSchema.nullable(),
 });
 
 /** Parsed from a query string, so the page arrives as text; absent means the first page. */
@@ -109,18 +122,11 @@ export const indicatorAdminPageSchema = z.object({
 
 export const indicatorIdSchema = z.uuid();
 
-/** Derived from the indicator's versions: draft while one exists, published otherwise. */
-export const indicatorStatusSchema = z.enum(['draft', 'published']);
-
-export const indicatorAdminDetailSchema = z.object({
-  id: indicatorIdSchema,
+export const indicatorAdminDetailSchema = indicatorAdminSummarySchema.extend({
   /** The public indicator number, which is what a publisher knows an indicator by. */
   shortId: z.number().int(),
-  name: z.string().min(1),
   /** The published version's slug: the indicator's public address, absent until it has one. */
   publishedSlug: z.string().min(1).nullable(),
-  status: indicatorStatusSchema,
-  updatedAt: z.iso.datetime(),
 });
 
 /** Why the slug rule refuses a name, in the words the publisher reads. */
@@ -171,6 +177,7 @@ export const indicatorUpdateErrorSchema = z.object({
 export type IndicatorAdminSummary = z.infer<typeof indicatorAdminSummarySchema>;
 export type IndicatorAdminPage = z.infer<typeof indicatorAdminPageSchema>;
 export type IndicatorStatus = z.infer<typeof indicatorStatusSchema>;
+export type DraftStatus = z.infer<typeof draftStatusSchema>;
 export type IndicatorAdminDetail = z.infer<typeof indicatorAdminDetailSchema>;
 export type IndicatorName = z.infer<typeof indicatorNameSchema>;
 export type IndicatorField = z.infer<typeof indicatorFieldSchema>;
@@ -206,6 +213,8 @@ export const indicatorTaskListSchema = z.object({
   }),
   /** True when a published version stands behind the draft, so this edit revises what is live. */
   isUpdate: z.boolean(),
+  indicatorStatus: indicatorStatusSchema,
+  draftStatus: draftStatusSchema,
   /** True once every task the state carries is complete. */
   canSubmit: z.boolean(),
   tasks: indicatorTaskStatusesSchema,

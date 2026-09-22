@@ -31,6 +31,17 @@ describe('indicatorTaskList', () => {
     expect(indicatorTaskList({ ...source, hasPublished }).isUpdate).toBe(hasPublished);
   });
 
+  it.each([
+    [false, 'new'],
+    [true, 'live'],
+  ] as const)('reports an indicator with hasPublished %s as %s', (hasPublished, status) => {
+    expect(indicatorTaskList({ ...source, hasPublished }).indicatorStatus).toBe(status);
+  });
+
+  it('reports the draft as unsubmitted, which is the only draft a task list is served for', () => {
+    expect(indicatorTaskList(source).draftStatus).toBe('draft');
+  });
+
   it('allows submission while every task it carries is complete', () => {
     expect(indicatorTaskList(source).canSubmit).toBe(true);
   });

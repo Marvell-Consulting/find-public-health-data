@@ -27,6 +27,9 @@ export function indicatorTaskList({
   return {
     indicator: { id: indicator.id, shortId: indicator.shortId, name: draft.name },
     isUpdate: hasPublished,
+    indicatorStatus: hasPublished ? 'live' : 'new',
+    // A task list exists only for an unsubmitted draft; later states arrive with the workflow.
+    draftStatus: 'draft',
     canSubmit: Object.values(tasks).every((status) => status === 'completed'),
     tasks,
   };

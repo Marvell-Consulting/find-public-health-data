@@ -1,0 +1,74 @@
+import type {
+  DraftStatus,
+  IndicatorStatus,
+  IndicatorTaskStatus,
+} from '@fphd/internal-api-features/contract';
+import { Tag } from '@fphd/ui';
+
+type Colour = 'blue' | 'green' | 'grey' | 'teal';
+
+interface TagFace {
+  label: string;
+  colour: Colour;
+}
+
+const INDICATOR_STATUS: Record<IndicatorStatus, TagFace> = {
+  new: { label: 'New', colour: 'blue' },
+  live: { label: 'Live', colour: 'teal' },
+};
+
+const DRAFT_STATUS: Record<DraftStatus, TagFace> = {
+  draft: { label: 'Incomplete', colour: 'blue' },
+};
+
+const PUBLISHED: TagFace = { label: 'Published', colour: 'green' };
+
+// GOV.UK shows a completed task as plain text, and anything still to do as a tag.
+const TASK_STATUS: Record<IndicatorTaskStatus, TagFace | string> = {
+  not_started: { label: 'Not started', colour: 'blue' },
+  completed: 'Completed',
+};
+
+/**
+ * What is in flight. A draft of a live indicator is an update, so its label says so; a live
+ * indicator with no draft is published as it stands. A new indicator with no draft cannot be
+ * made, so it has no label.
+ */
+function publishingStatus(
+  indicatorStatus: IndicatorStatus,
+  draftStatus: DraftStatus | null,
+): TagFace | undefined {
+  if (draftStatus === null) return indicatorStatus === 'live' ? PUBLISHED : undefined;
+
+  const { colour, label } = DRAFT_STATUS[draftStatus];
+
+  return indicatorStatus === 'live'
+    ? { colour, label: `Update ${label.toLowerCase()}` }
+    : { colour, label };
+}
+
+export type StatusTagProps =
+  | { type: 'indicator'; status: IndicatorStatus }
+  | { type: 'publishing'; indicatorStatus: IndicatorStatus; draftStatus: DraftStatus | null }
+  | { type: 'task'; status: IndicatorTaskStatus };
+
+function faceOf(props: StatusTagProps): TagFace | string | undefined {
+  switch (props.type) {
+    case 'indicator':
+      return INDICATOR_STATUS[props.status];
+    case 'publishing':
+      return publishingStatus(props.indicatorStatus, props.draftStatus);
+    case 'task':
+      return TASK_STATUS[props.status];
+  }
+}
+
+/** A status as the publisher reads it: the tag's colour and wording are decided here alone. */
+export function StatusTag(props: StatusTagProps) {
+  const face = faceOf(props);
+
+  if (face === undefined) return null;
+  if (typeof face === 'string') return face;
+
+  return <Tag className="fphd-status-tag" classModifiers={face.colour} text={face.label} />;
+}

@@ -12,6 +12,8 @@ const taskList = {
     name: 'Life expectancy at birth',
   },
   isUpdate: false,
+  indicatorStatus: 'new',
+  draftStatus: 'draft',
   canSubmit: true,
   tasks: { name: 'completed' },
 };

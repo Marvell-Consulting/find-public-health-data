@@ -15,6 +15,8 @@ const taskList: IndicatorTaskList = {
     name: 'Life expectancy at birth',
   },
   isUpdate: false,
+  indicatorStatus: 'new',
+  draftStatus: 'draft',
   canSubmit: true,
   tasks: { name: 'completed' },
 };
@@ -45,6 +47,15 @@ describe('IndicatorTaskListPage', () => {
       screen.getByRole('heading', { level: 1, name: 'Life expectancy at birth' }),
     ).toBeTruthy();
     expect(screen.getByText('ID: 90366')).toBeTruthy();
+  });
+
+  it('tags the indicator with its two statuses under the heading', () => {
+    renderPage({ isUpdate: true, indicatorStatus: 'live' });
+
+    // The tags follow the public number, under the heading.
+    const tags = [...document.querySelectorAll('h1 ~ p .govuk-tag')];
+
+    expect(tags.map((tag) => tag.textContent)).toEqual(['Live', 'Update incomplete']);
   });
 
   it('groups the fields a publisher completes', () => {
@@ -107,7 +118,7 @@ describe('IndicatorTaskListPage', () => {
   it('tags a task that is not started and leaves a completed one as text', () => {
     renderPage();
 
-    expect(screen.getAllByText('Not started')[0]?.className).toContain('govuk-tag--grey');
+    expect(screen.getAllByText('Not started')[0]?.className).toContain('govuk-tag--blue');
     expect(screen.getByText('Completed').className).not.toContain('govuk-tag');
   });
 });

@@ -2,6 +2,7 @@ import { A, Button, formatDate, GridColumn, GridRow, Pagination, Table } from '@
 
 import { NEW_INDICATOR_PATH } from '../indicator-name/paths.ts';
 import { indicatorOverviewPath } from '../indicator-overview/paths.ts';
+import { StatusTag } from '../status-tag/status-tag.tsx';
 import type { IndicatorAdminSummary } from './loader.ts';
 import { dashboardPath } from './paths.ts';
 
@@ -49,8 +50,14 @@ export function DashboardPage({ indicators, page, totalPages }: DashboardPagePro
               updatedAt: (
                 <time dateTime={indicator.updatedAt}>{formatDate(indicator.updatedAt)}</time>
               ),
-              indicatorStatus: '',
-              publishingStatus: '',
+              indicatorStatus: <StatusTag type="indicator" status={indicator.indicatorStatus} />,
+              publishingStatus: (
+                <StatusTag
+                  type="publishing"
+                  indicatorStatus={indicator.indicatorStatus}
+                  draftStatus={indicator.draftStatus}
+                />
+              ),
             }))}
           />
         )}

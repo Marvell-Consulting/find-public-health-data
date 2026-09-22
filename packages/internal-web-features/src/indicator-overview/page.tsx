@@ -1,26 +1,16 @@
-import { A, GridColumn, GridRow, SummaryList, Tabs, Tag } from '@fphd/ui';
+import { A, GridColumn, GridRow, SummaryList, Tabs } from '@fphd/ui';
 
 import { indicatorTaskListPath } from '../indicator-task-list/paths.ts';
-import type { IndicatorAdminDetail, IndicatorStatus } from './loader.ts';
+import { StatusTag } from '../status-tag/status-tag.tsx';
+import type { IndicatorAdminDetail } from './loader.ts';
 import { publishedIndicatorPath } from './paths.ts';
-
-const STATUS_TAGS: Record<IndicatorStatus, { label: string; colour: string }> = {
-  draft: { label: 'Incomplete', colour: 'grey' },
-  published: { label: 'Published', colour: 'green' },
-};
-
-function StatusTag({ status }: { status: IndicatorStatus }) {
-  const { label, colour } = STATUS_TAGS[status];
-
-  return <Tag classModifiers={colour} text={label} />;
-}
 
 // A draft is edited from its task list; an indicator with a published version has a public page, draft or not.
 function Actions({ indicator }: { indicator: IndicatorAdminDetail }) {
   const actions = [
-    indicator.status === 'draft'
-      ? { href: indicatorTaskListPath(indicator.id), label: 'Continue creating indicator' }
-      : undefined,
+    indicator.draftStatus === null
+      ? undefined
+      : { href: indicatorTaskListPath(indicator.id), label: 'Continue creating indicator' },
     indicator.publishedSlug === null
       ? undefined
       : {
@@ -55,7 +45,20 @@ export function IndicatorOverviewPage({ indicator }: { indicator: IndicatorAdmin
         <SummaryList
           items={[
             { name: 'Indicator number', children: String(indicator.shortId) },
-            { name: 'Status', children: <StatusTag status={indicator.status} /> },
+            {
+              name: 'Indicator status',
+              children: <StatusTag type="indicator" status={indicator.indicatorStatus} />,
+            },
+            {
+              name: 'Publishing status',
+              children: (
+                <StatusTag
+                  type="publishing"
+                  indicatorStatus={indicator.indicatorStatus}
+                  draftStatus={indicator.draftStatus}
+                />
+              ),
+            },
           ]}
         />
         <Tabs

@@ -10,7 +10,8 @@ const indicator: IndicatorAdminDetail = {
   shortId: 90366,
   name: 'Life expectancy at birth',
   publishedSlug: null,
-  status: 'draft',
+  indicatorStatus: 'new',
+  draftStatus: 'draft',
   updatedAt: '2026-08-04T23:30:00.000Z',
 };
 

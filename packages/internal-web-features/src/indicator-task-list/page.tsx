@@ -1,7 +1,7 @@
-import { GridColumn, GridRow, InsetText, Tag, TaskList } from '@fphd/ui';
-import type { ReactNode } from 'react';
+import { GridColumn, GridRow, InsetText, TaskList } from '@fphd/ui';
 
 import { indicatorNamePath } from '../indicator-name/paths.ts';
+import { StatusTag } from '../status-tag/status-tag.tsx';
 import type { IndicatorTaskList, IndicatorTaskStatus, IndicatorTaskStatuses } from './loader.ts';
 
 interface TaskRow {
@@ -75,19 +75,22 @@ function statusOf(tasks: IndicatorTaskStatuses, key: string): IndicatorTaskStatu
   return judged[key] ?? 'not_started';
 }
 
-// GOV.UK shows a completed task as plain text, and anything still to do as a tag.
-function statusLabel(status: IndicatorTaskStatus): ReactNode {
-  return status === 'completed' ? 'Completed' : <Tag classModifiers="grey" text="Not started" />;
-}
-
 export function IndicatorTaskListPage({ taskList }: { taskList: IndicatorTaskList }) {
-  const { indicator, tasks } = taskList;
+  const { draftStatus, indicator, indicatorStatus, tasks } = taskList;
 
   return (
     <GridRow>
       <GridColumn width="two-thirds">
         <h1 className="govuk-heading-xl govuk-!-margin-bottom-2">{indicator.name}</h1>
         <p className="govuk-heading-m govuk-!-margin-bottom-2">ID: {indicator.shortId}</p>
+        <p className="govuk-!-margin-bottom-6">
+          <StatusTag type="indicator" status={indicatorStatus} />{' '}
+          <StatusTag
+            type="publishing"
+            indicatorStatus={indicatorStatus}
+            draftStatus={draftStatus}
+          />
+        </p>
         <InsetText>
           You can complete these sections in any order. If you exit at any point, any selections or
           text you've added will be saved.
@@ -101,7 +104,7 @@ export function IndicatorTaskListPage({ taskList }: { taskList: IndicatorTaskLis
                 id: key,
                 title,
                 href: path?.(indicator.id),
-                status: statusLabel(statusOf(tasks, key)),
+                status: <StatusTag type="task" status={statusOf(tasks, key)} />,
               }))}
             />
           </div>
