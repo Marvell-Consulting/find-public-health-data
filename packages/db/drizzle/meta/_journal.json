@@ -127,6 +127,13 @@
       "when": 1790008795335,
       "tag": "0017_indicator-slug",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790086347972,
+      "tag": "0018_current-published-version",
+      "breakpoints": true
     }
   ]
 }

@@ -59,9 +59,10 @@ src/
 - **Slugs**: `indicator_version.slug` is derived from the version's name by `slugify` in
   `@fphd/config/slug`. An exclusion constraint,
   `EXCLUDE USING gist (slug WITH =, indicator_id WITH <>)`, keeps a slug to one indicator for
-  ever: versions of one indicator may share it, two indicators may not, and a draft holds its
-  slug until it is deleted. Drizzle cannot express the constraint, so it lives in the migration
-  alone.
+  ever: versions of one indicator share it, two indicators may not, and a draft holds its
+  slug until it is deleted. A draft is re-slugged on rename only until the indicator is first
+  published; from then on the slug is the public address and every version keeps it. Drizzle
+  cannot express the constraint, so it lives in the migration alone.
 
 ## The `published` schema
 
@@ -69,8 +70,10 @@ src/
 `published` schema and nothing else, so every predicate that hides an unpublished
 indicator lives in a view definition rather than in each query — `@fphd/db`'s public
 repositories select from the views, name for name. An indicator may hold several published
-versions, so the views show the most recently published one, ties broken by id;
-`latestPublishedVersion` applies the same rule to queries over the tables. `published.indicator`
+versions; `current_published_version`, a view in `public` declared in `src/schema/indicator.ts`,
+is the one definition of which: the most recently published, ties broken by id. The published
+views join it, and the internal reads join `currentPublishedVersion` for the same rule over
+the tables. `published.indicator`
 carries that version's `slug` as the indicator's canonical address, while
 `published.indicator_slug` lists every slug any published version carries, so an address a later
 publication replaced still resolves. The definitions are a custom migration;

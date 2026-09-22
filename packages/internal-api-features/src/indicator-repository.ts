@@ -1,11 +1,17 @@
 import { slugify, slugProblem } from '@fphd/config/slug';
-import { type Database, latestPublishedVersion, schema } from '@fphd/db';
+import { type Database, schema } from '@fphd/db';
 import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import type { IndicatorStatus } from './contract.ts';
 
-const { indicator, indicatorClassification, indicatorTopic, indicatorVersion } = schema;
+const {
+  currentPublishedVersion,
+  indicator,
+  indicatorClassification,
+  indicatorTopic,
+  indicatorVersion,
+} = schema;
 
 export interface IndicatorAdminRow {
   id: string;
@@ -26,20 +32,20 @@ export interface IndicatorAdminDetailRow extends IndicatorAdminRow {
 }
 
 /**
- * The one-draft index makes the draft join one row, and latestPublishedVersion is one row
+ * The one-draft index makes the draft join one row, and currentPublishedVersion is one row
  * per indicator, so an indicator's draft and published versions can be read side by side.
  */
 const draftVersion = alias(indicatorVersion, 'draft_version');
 
 const draftJoin = and(eq(draftVersion.indicatorId, indicator.id), eq(draftVersion.status, 'draft'));
-const publishedJoin = eq(latestPublishedVersion.indicatorId, indicator.id);
+const publishedJoin = eq(currentPublishedVersion.indicatorId, indicator.id);
 
 // The draft is what a publisher is working on, so it names the indicator while it exists.
-const currentName = sql<string>`coalesce(${draftVersion.name}, ${latestPublishedVersion.name})`;
+const currentName = sql<string>`coalesce(${draftVersion.name}, ${currentPublishedVersion.name})`;
 // greatest() ignores nulls, so an indicator with only one version still reports its date.
 // mapWith, because a bare sql fragment arrives as the driver's string, not a Date.
 const latestUpdatedAt =
-  sql`greatest(${draftVersion.updatedAt}, ${latestPublishedVersion.updatedAt})`.mapWith(
+  sql`greatest(${draftVersion.updatedAt}, ${currentPublishedVersion.updatedAt})`.mapWith(
     indicatorVersion.updatedAt,
   );
 const derivedStatus = sql<IndicatorStatus>`case when ${draftVersion.id} is not null then 'draft' else 'published' end`;
@@ -55,7 +61,7 @@ export async function listIndicatorsPage(
       .select({ id: indicator.id, name: currentName, updatedAt: latestUpdatedAt })
       .from(indicator)
       .leftJoin(draftVersion, draftJoin)
-      .leftJoin(latestPublishedVersion, publishedJoin)
+      .leftJoin(currentPublishedVersion, publishedJoin)
       .orderBy(desc(latestUpdatedAt), asc(currentName), asc(indicator.id))
       .limit(pageSize)
       .offset((page - 1) * pageSize),
@@ -76,12 +82,12 @@ export async function getIndicatorById(
       shortId: indicator.shortId,
       name: currentName,
       status: derivedStatus,
-      publishedSlug: latestPublishedVersion.slug,
+      publishedSlug: currentPublishedVersion.slug,
       updatedAt: latestUpdatedAt,
     })
     .from(indicator)
     .leftJoin(draftVersion, draftJoin)
-    .leftJoin(latestPublishedVersion, publishedJoin)
+    .leftJoin(currentPublishedVersion, publishedJoin)
     .where(eq(indicator.id, id));
 
   return rows[0];
@@ -89,7 +95,8 @@ export async function getIndicatorById(
 
 /**
  * The version columns a publisher edits: not the identity, the status or the audit trail,
- * and not the slug, which these functions derive from the name.
+ * and not the slug, which is derived from the name until the indicator is first published
+ * and then stays as the public address.
  */
 type EditableVersionColumns = Omit<
   typeof indicatorVersion.$inferInsert,
@@ -132,7 +139,7 @@ export type UpdateIndicatorDraftResult =
 
 export type CreateDraftFromPublishedResult =
   | { ok: true; versionId: string }
-  | { ok: false; reason: 'draft_exists' | 'not_published' | 'slug_taken' };
+  | { ok: false; reason: 'draft_exists' | 'not_published' };
 
 const UNIQUE_VIOLATION = '23505';
 // The slug exclusion constraint: another indicator already holds the slug this name yields.
@@ -208,7 +215,8 @@ export async function createIndicatorDraft(
 /**
  * Rewrites a draft's columns and, when given, its memberships. Memberships are replaced
  * rather than merged: the submission states what is true now. A renamed draft is
- * re-slugged; published versions are never touched, so their slugs stand.
+ * re-slugged only while nothing is published: once an indicator has a public address,
+ * every version keeps it, so a rename never moves the page.
  */
 export async function updateIndicatorDraft(
   db: Database,
@@ -217,10 +225,12 @@ export async function updateIndicatorDraft(
   memberships: IndicatorDraftMemberships,
   actor: string,
 ): Promise<UpdateIndicatorDraftResult> {
-  const renamed = attributes.name === undefined ? {} : { slug: draftSlug(attributes.name) };
-
   try {
     return await db.transaction(async (tx) => {
+      const renamed =
+        attributes.name === undefined || (await isPublished(tx, indicatorId))
+          ? {}
+          : { slug: draftSlug(attributes.name) };
       const [draft] = await tx
         .update(indicatorVersion)
         .set({ ...attributes, ...renamed, updatedAt: sql`now()`, updatedBy: actor })
@@ -242,8 +252,8 @@ export async function updateIndicatorDraft(
 }
 
 /**
- * Opens a draft from the most recently published version, columns and memberships alike.
- * The one-draft index refuses a second one rather than this reading first and racing.
+ * Opens a draft from the most recently published version: columns, slug and memberships
+ * alike. The one-draft index refuses a second one rather than this reading first and racing.
  */
 export async function createDraftFromPublished(
   db: Database,
@@ -254,15 +264,8 @@ export async function createDraftFromPublished(
     return await db.transaction(async (tx) => {
       const [published] = await tx
         .select()
-        .from(indicatorVersion)
-        .where(
-          and(
-            eq(indicatorVersion.indicatorId, indicatorId),
-            eq(indicatorVersion.status, 'published'),
-          ),
-        )
-        .orderBy(sql`${indicatorVersion.publishedAt} desc nulls last`, desc(indicatorVersion.id))
-        .limit(1);
+        .from(currentPublishedVersion)
+        .where(eq(currentPublishedVersion.indicatorId, indicatorId));
 
       if (published === undefined) return { ok: false, reason: 'not_published' };
 
@@ -279,7 +282,6 @@ export async function createDraftFromPublished(
         .insert(indicatorVersion)
         .values({
           ...attributes,
-          slug: draftSlug(attributes.name),
           status: 'draft',
           publishedAt: null,
           createdBy: actor,
@@ -309,12 +311,20 @@ export async function createDraftFromPublished(
     });
   } catch (error) {
     if (hasSqlState(error, UNIQUE_VIOLATION)) return { ok: false, reason: 'draft_exists' };
-    if (hasSqlState(error, EXCLUSION_VIOLATION)) return { ok: false, reason: 'slug_taken' };
     throw error;
   }
 }
 
 type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
+
+async function isPublished(tx: Transaction, indicatorId: string): Promise<boolean> {
+  const [published] = await tx
+    .select({ id: currentPublishedVersion.id })
+    .from(currentPublishedVersion)
+    .where(eq(currentPublishedVersion.indicatorId, indicatorId));
+
+  return published !== undefined;
+}
 
 async function replaceMemberships(
   tx: Transaction,

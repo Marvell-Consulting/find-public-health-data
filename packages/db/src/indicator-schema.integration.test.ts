@@ -30,6 +30,7 @@ const FIRST_MINTED_SHORT_ID = 100_000;
 const UNIQUE_VIOLATION = '23505';
 const NOT_NULL_VIOLATION = '23502';
 const EXCLUSION_VIOLATION = '23P01';
+const CHECK_VIOLATION = '23514';
 
 let testDb: TestDatabase;
 let db: Database;
@@ -57,11 +58,12 @@ async function newIndicatorId(): Promise<string> {
   return row.id;
 }
 
-// A slug belongs to one indicator, so an unnamed version takes one keyed to its own.
+// A slug belongs to one indicator, so an unnamed version takes one keyed to its own. A
+// published version says when, as the table insists, unless the caller says otherwise.
 async function addVersion(
   indicatorId: string,
   status: 'draft' | 'published',
-  values: { name?: string; slug?: string; publishedAt?: Date } = {},
+  values: { name?: string; slug?: string; publishedAt?: Date | null } = {},
 ) {
   return db
     .insert(indicatorVersion)
@@ -70,6 +72,7 @@ async function addVersion(
       status,
       name: 'Schema test indicator',
       slug: `schema-test-${indicatorId}`,
+      publishedAt: status === 'published' ? new Date() : null,
       createdBy: 'schema-test',
       updatedBy: 'schema-test',
       ...values,
@@ -144,6 +147,17 @@ describe('indicator_version', () => {
             VALUES (${indicatorId}, 'schema-test', 'schema-test')`,
       ),
     ).rejects.toMatchObject({ cause: { code: NOT_NULL_VIOLATION } });
+  });
+
+  it('ties the publication timestamp to the status', async () => {
+    const indicatorId = await newIndicatorId();
+
+    await expect(addVersion(indicatorId, 'published', { publishedAt: null })).rejects.toMatchObject(
+      { cause: { code: CHECK_VIOLATION } },
+    );
+    await expect(
+      addVersion(indicatorId, 'draft', { publishedAt: new Date() }),
+    ).rejects.toMatchObject({ cause: { code: CHECK_VIOLATION } });
   });
 
   it('allows a draft alongside the published version', async () => {

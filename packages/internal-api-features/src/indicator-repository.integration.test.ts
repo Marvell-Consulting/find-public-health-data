@@ -320,14 +320,19 @@ describe('updateIndicatorDraft', () => {
     expect(await slugOf(created.versionId)).toBe('a-later-name');
   });
 
-  it('leaves the published version slug alone when the draft is renamed', async () => {
+  it('keeps the published slug on every version when the draft is renamed', async () => {
     const { indicatorId, currentId, currentSlug } = await indicatorWithTwoPublications();
-    await createDraftFromPublished(db, indicatorId, ACTOR);
+    const opened = await createDraftFromPublished(db, indicatorId, ACTOR);
+    if (!opened.ok) throw new Error('expected a draft');
 
     await updateIndicatorDraft(db, indicatorId, { name: 'Renamed in the draft' }, {}, ACTOR);
 
     expect(await slugOf(currentId)).toBe(currentSlug);
-    expect(await getIndicatorById(db, indicatorId)).toMatchObject({ publishedSlug: currentSlug });
+    expect(await slugOf(opened.versionId)).toBe(currentSlug);
+    expect(await getIndicatorById(db, indicatorId)).toMatchObject({
+      name: 'Renamed in the draft',
+      publishedSlug: currentSlug,
+    });
   });
 
   it("refuses a rename onto another indicator's slug", async () => {

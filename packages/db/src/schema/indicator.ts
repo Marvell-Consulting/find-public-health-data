@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { asc, desc, eq, sql } from 'drizzle-orm';
 import {
   check,
   index,
@@ -6,6 +6,8 @@ import {
   jsonb,
   pgSequence,
   pgTable,
+  pgView,
+  QueryBuilder,
   smallint,
   text,
   timestamp,
@@ -97,6 +99,12 @@ export const indicatorVersion = pgTable(
       sql`${t.ciConfidenceLevel} IN ('95', '99.8', 'both')`,
     ),
     check('indicator_version_status_check', sql`${t.status} IN ('draft', 'published')`),
+    // A published version always says when, and nothing else does, so ordering by
+    // published_at never meets a null.
+    check(
+      'indicator_version_published_at_check',
+      sql`(${t.status} = 'published') = (${t.publishedAt} IS NOT NULL)`,
+    ),
     // One draft per indicator, as a constraint rather than a convention. An indicator may
     // hold several published versions; reads take the most recently published one.
     uniqueIndex('idx_indicator_version_one_draft')
@@ -107,4 +115,26 @@ export const indicatorVersion = pgTable(
     index('idx_indicator_version_name_trgm').using('gin', t.name.op('gin_trgm_ops')),
     index('idx_indicator_version_definition_trgm').using('gin', t.definition.op('gin_trgm_ops')),
   ],
+);
+
+/**
+ * The one definition of "the published version": an indicator may hold several, and this
+ * is the most recently published one, ties broken by id (UUIDv7, so creation order). The
+ * `published` views and the internal reads join this rather than restating the rule.
+ * Postgres pushes an `indicator_id` predicate into the DISTINCT ON, so a lookup by
+ * indicator costs the same as it would against the table.
+ *
+ * Built on a QueryBuilder of its own: the one `.as()` would hand a callback carries no
+ * casing, and drizzle-kit would then render the select list under the TypeScript names.
+ */
+export const currentPublishedVersion = pgView('current_published_version').as(
+  new QueryBuilder({ casing: 'snake_case' })
+    .selectDistinctOn([indicatorVersion.indicatorId])
+    .from(indicatorVersion)
+    .where(eq(indicatorVersion.status, 'published'))
+    .orderBy(
+      asc(indicatorVersion.indicatorId),
+      desc(indicatorVersion.publishedAt),
+      desc(indicatorVersion.id),
+    ),
 );

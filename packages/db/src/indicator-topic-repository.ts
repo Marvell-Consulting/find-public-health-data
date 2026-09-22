@@ -1,13 +1,15 @@
 import { z } from '@fphd/config';
-import { asc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 
 import type { Database } from './client.ts';
-import { latestPublishedVersion } from './latest-published-version.ts';
 import {
   classification,
+  currentPublishedVersion,
   indicator,
   indicatorClassification,
   indicatorTopic,
+  indicatorVersion,
   publishedClassification,
   publishedIndicatorClassification,
   publishedIndicatorTopic,
@@ -71,6 +73,8 @@ export interface IndicatorTopicImportSummary {
   unknownIndicators: number[];
 }
 
+const draftVersion = alias(indicatorVersion, 'draft_version');
+
 export function parseIndicatorTopicFile(data: unknown): IndicatorTopicFile {
   const result = indicatorTopicFileSchema.safeParse(data);
 
@@ -83,10 +87,10 @@ export function parseIndicatorTopicFile(data: unknown): IndicatorTopicFile {
 
 /**
  * Replaces topic membership for the indicators named in the file, and records when the
- * source system last published their data. Memberships attach to a version, so each
- * indicator resolves to its latest published one. Membership is replaced rather than
- * merged: the file states what is true now, so a link it no longer carries should not
- * survive.
+ * source system last published their data. Memberships attach to a version: the published
+ * one where there is one, otherwise the draft, which is then the only version there is.
+ * Membership is replaced rather than merged: the file states what is true now, so a link
+ * it no longer carries should not survive.
  *
  * Rows naming a topic or indicator this database does not hold are reported rather than
  * failed on — a seed file and a database can legitimately drift while both are in flux.
@@ -115,17 +119,25 @@ export async function applyIndicatorTopics(
           .select({
             id: indicator.id,
             shortId: indicator.shortId,
-            versionId: latestPublishedVersion.id,
+            versionId: sql<
+              string | null
+            >`coalesce(${currentPublishedVersion.id}, ${draftVersion.id})`,
           })
           .from(indicator)
-          .innerJoin(latestPublishedVersion, eq(latestPublishedVersion.indicatorId, indicator.id))
+          .leftJoin(currentPublishedVersion, eq(currentPublishedVersion.indicatorId, indicator.id))
+          .leftJoin(
+            draftVersion,
+            and(eq(draftVersion.indicatorId, indicator.id), eq(draftVersion.status, 'draft')),
+          )
           .where(inArray(indicator.shortId, shortIds))
       : Promise.resolve([]),
   ]);
 
   const knownTopicIds = new Set(topics.map((row) => row.id));
   const indicatorIdByShortId = new Map(indicators.map((row) => [row.shortId, row.id]));
-  const versionIdByShortId = new Map(indicators.map((row) => [row.shortId, row.versionId]));
+  const versionIdByShortId = new Map(
+    indicators.flatMap((row) => (row.versionId === null ? [] : [[row.shortId, row.versionId]])),
+  );
 
   const links = file.indicatorTopics.flatMap(({ topicId, fingertipsId }) => {
     const indicatorVersionId = versionIdByShortId.get(fingertipsId);
