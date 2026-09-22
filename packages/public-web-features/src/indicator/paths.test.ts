@@ -17,7 +17,7 @@ describe('isIndicatorSegment', () => {
     '-leading',
     'trailing-',
     'two--hyphens',
-    'a'.repeat(81),
+    'a'.repeat(201),
     'no_such',
     'search',
     'facets',

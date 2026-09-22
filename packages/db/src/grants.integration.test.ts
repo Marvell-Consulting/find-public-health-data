@@ -209,6 +209,6 @@ describe('an indicator whose only version is a draft', () => {
       SELECT count(*)::int AS rows FROM published.indicator
     `;
 
-    expect(seeded?.rows).toBe(13);
+    expect(seeded?.rows).toBe(12);
   });
 });

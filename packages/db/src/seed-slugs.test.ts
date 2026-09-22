@@ -75,20 +75,9 @@ const versions = readSeedTable('indicator_version').map((row) => ({
   slug: row.slug ?? '',
 }));
 
-/** The export's rule: the lower short id keeps the bare slug, the next one is suffixed. */
+/** The export's rule: the slug is the name's, and a collision stops the export. */
 function expectedSlugs(): Map<string, string> {
-  const slugs = new Map<string, string>();
-  const claimed = new Set<string>();
-
-  for (const { indicatorId, shortId, name } of [...versions].sort(
-    (a, b) => a.shortId - b.shortId,
-  )) {
-    const base = slugify(name);
-    slugs.set(indicatorId, claimed.has(base) ? `${base}-${shortId}` : base);
-    claimed.add(base);
-  }
-
-  return slugs;
+  return new Map(versions.map(({ indicatorId, name }) => [indicatorId, slugify(name)]));
 }
 
 describe('the committed seed', () => {

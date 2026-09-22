@@ -52,7 +52,8 @@ function ownerConnection(database: string) {
 // single-year and rolling periods, and sex/age/deprivation breakdowns.
 const MORTALITY_UNDER_75 = 108;
 const DIABETES_QOF_PREVALENCE = 241;
-const LIFE_EXPECTANCY_AT_BIRTH = 90366;
+// Mortality rate for deaths involving diabetes: a sexed series beside its aggregate.
+const DIABETES_MORTALITY = 93995;
 const ENGLAND = 'E92000001';
 const CORNWALL = 'E06000052';
 
@@ -63,7 +64,7 @@ let testDb: TestDatabase;
 let db: Database;
 let mortalityId: string;
 let diabetesId: string;
-let lifeExpectancyId: string;
+let diabetesMortalityId: string;
 
 async function resolvedId(shortId: number): Promise<string> {
   const id = await resolvePublishedIndicatorId(db, shortId);
@@ -76,10 +77,10 @@ async function resolvedId(shortId: number): Promise<string> {
 beforeAll(async () => {
   testDb = await createTestDatabase({ template: 'seeded' });
   db = createDb(ownerConnection(testDb.name));
-  [mortalityId, diabetesId, lifeExpectancyId] = await Promise.all([
+  [mortalityId, diabetesId, diabetesMortalityId] = await Promise.all([
     resolvedId(MORTALITY_UNDER_75),
     resolvedId(DIABETES_QOF_PREVALENCE),
-    resolvedId(LIFE_EXPECTANCY_AT_BIRTH),
+    resolvedId(DIABETES_MORTALITY),
   ]);
 });
 
@@ -92,7 +93,7 @@ describe('listPublishedIndicators', () => {
   it('returns the seeded indicators in name order', async () => {
     const indicators = await listPublishedIndicators(db);
 
-    expect(indicators).toHaveLength(13);
+    expect(indicators).toHaveLength(12);
     const names = indicators.map(({ name }) => name);
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
   });
@@ -297,10 +298,11 @@ describe('getObservationRange', () => {
     expect(await getObservationRange(db, UNSEEDED_ID, 'Local authorities')).toEqual([]);
   });
 
-  it('returns one range per segment for an always-sexed indicator', async () => {
-    const range = await getObservationRange(db, lifeExpectancyId, 'Local authorities');
+  it('returns one range per sex segment beside the aggregate series', async () => {
+    const range = await getObservationRange(db, diabetesMortalityId, 'Local authorities');
 
     const segments = new Set(range.map(({ segment }) => segment));
+    expect(segments.has('')).toBe(true);
     expect(segments.has('Male')).toBe(true);
     expect(segments.has('Female')).toBe(true);
     for (const period of range) {

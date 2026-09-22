@@ -83,7 +83,7 @@ describe('public routers against the seeded database', () => {
     const response = await request(app).get('/api/indicators');
 
     expect(response.status).toBe(200);
-    expect(response.body.indicators).toHaveLength(13);
+    expect(response.body.indicators).toHaveLength(12);
     expect(response.body.indicators[0]).toEqual({
       shortId: expect.any(Number),
       slug: expect.stringMatching(SLUG_PATTERN),
@@ -101,7 +101,7 @@ describe('public routers against the seeded database', () => {
     );
     const response = await request(app).get('/api/indicators');
     expect(response.status).toBe(200);
-    expect(response.body.indicators).toHaveLength(13);
+    expect(response.body.indicators).toHaveLength(12);
     const shortIds = response.body.indicators.map((i: { shortId: number }) => i.shortId);
     expect(shortIds).not.toContain(inserted);
   });

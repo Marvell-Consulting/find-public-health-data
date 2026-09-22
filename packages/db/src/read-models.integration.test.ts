@@ -24,7 +24,7 @@ afterAll(async () => {
 describe('bridge/registry schema', () => {
   it('holds the seeded indicators', async () => {
     const rows = await sql`SELECT count(*)::int AS count FROM indicator`;
-    expect(rows[0]?.count).toBe(13);
+    expect(rows[0]?.count).toBe(12);
   });
 
   it('holds observations for every seeded indicator', async () => {

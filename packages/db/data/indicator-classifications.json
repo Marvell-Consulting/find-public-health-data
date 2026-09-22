@@ -96,18 +96,6 @@
       "classificationSlug": "population-all-ages"
     },
     {
-      "fingertipsId": 90366,
-      "classificationSlug": "framework-public-health-outcomes-framework"
-    },
-    {
-      "fingertipsId": 90366,
-      "classificationSlug": "indicator-type-outcome"
-    },
-    {
-      "fingertipsId": 90366,
-      "classificationSlug": "population-all-ages"
-    },
-    {
       "fingertipsId": 90851,
       "classificationSlug": "indicator-type-determinant-or-risk-factor"
     },

@@ -29,14 +29,14 @@ class SlugifyTest(unittest.TestCase):
         self.assertEqual(slugify("!!! ???"), "")
 
     def test_cuts_on_a_word_boundary(self):
-        slug = slugify("word " * 16 + "overrun")
+        slug = slugify("word " * 40 + "overrun")
 
         self.assertLessEqual(len(slug), SLUG_MAX_LENGTH)
         self.assertTrue(slug.endswith("-word"))
         self.assertNotIn("overrun", slug)
 
     def test_cuts_a_single_overlong_word_short(self):
-        self.assertEqual(slugify("a" * 120), "a" * SLUG_MAX_LENGTH)
+        self.assertEqual(slugify("a" * 250), "a" * SLUG_MAX_LENGTH)
 
     def test_matches_the_shared_pattern(self):
         self.assertRegex(slugify("Mortality rate: deaths involving diabetes"), SLUG_PATTERN)
@@ -62,14 +62,21 @@ class AssignSlugsTest(unittest.TestCase):
             slugs, {"a": "under-75-mortality", "b": "diabetes-qof-prevalence"}
         )
 
-    def test_lets_the_lower_short_id_keep_the_bare_slug(self):
-        slugs = assign_slugs(
-            [("b", 900, "Resident population"), ("a", 108, "Resident population")]
-        )
+    def test_refuses_two_indicators_whose_names_slugify_alike(self):
+        with self.assertRaises(ValueError) as raised:
+            assign_slugs(
+                [
+                    ("b", 900, "Resident population"),
+                    ("a", 108, "Resident  population"),
+                    ("c", 241, "Diabetes: QOF prevalence"),
+                ]
+            )
 
-        self.assertEqual(
-            slugs, {"a": "resident-population", "b": "resident-population-900"}
-        )
+        message = str(raised.exception)
+        self.assertIn("resident-population", message)
+        self.assertIn("108", message)
+        self.assertIn("900", message)
+        self.assertNotIn("241", message)
 
     def test_refuses_a_name_with_no_usable_slug(self):
         for name in ("!!!", "2024", "Search"):

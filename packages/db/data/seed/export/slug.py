@@ -7,9 +7,10 @@ the TypeScript rule, so the two cannot drift apart unnoticed.
 
 import re
 import unicodedata
+from collections import defaultdict
 
 SLUG_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
-SLUG_MAX_LENGTH = 80
+SLUG_MAX_LENGTH = 200
 RESERVED_SLUGS = ("compare", "facets", "search")
 
 
@@ -47,8 +48,9 @@ def assign_slugs(indicators):
     """Map each indicator id to its slug.
 
     `indicators` is an iterable of (indicator_id, short_id, name). A name that
-    yields no usable slug stops the export, named. Where two indicators slugify
-    alike the lower short id keeps the bare slug and the rest take `-<short id>`.
+    yields no usable slug, or two names that slugify alike, stop the export with
+    the indicators named: a slug belongs to one indicator, so a collision is an
+    editorial problem to settle in the source rather than one for a suffix to hide.
     """
     entries = sorted(
         (int(short_id), str(indicator_id), name) for indicator_id, short_id, name in indicators
@@ -61,14 +63,19 @@ def assign_slugs(indicators):
                 f"({problem}): {name!r}"
             )
 
-    slugs = {}
-    claimed = set()
+    holders = defaultdict(list)
     for short_id, indicator_id, name in entries:
-        base = slugify(name)
-        slugs[indicator_id] = base if base not in claimed else f"{base}-{short_id}"
-        claimed.add(base)
+        holders[slugify(name)].append((short_id, name))
 
-    if len(set(slugs.values())) != len(slugs):
-        raise ValueError("Two indicators were given the same slug")
+    collisions = {slug: held for slug, held in holders.items() if len(held) > 1}
+    if collisions:
+        detail = "\n".join(
+            f"  {slug}: " + ", ".join(f"{short_id} ({name!r})" for short_id, name in held)
+            for slug, held in sorted(collisions.items())
+        )
+        raise ValueError(
+            f"{len(collisions)} slug(s) would belong to more than one indicator; "
+            f"rename or exclude one of each before exporting:\n{detail}"
+        )
 
-    return slugs
+    return {indicator_id: slugify(name) for _, indicator_id, name in entries}

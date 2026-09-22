@@ -4,8 +4,11 @@
  */
 export const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
-/** Long enough for a full indicator name, short enough for the slug to stay readable. */
-export const SLUG_MAX_LENGTH = 80;
+/**
+ * Room for a whole indicator name: Fingertips names run to about 180 characters, and cutting
+ * shorter makes names that differ only in their tail collide.
+ */
+export const SLUG_MAX_LENGTH = 200;
 
 /**
  * The literal path segments that sit beside the slug parameter in the public API and web

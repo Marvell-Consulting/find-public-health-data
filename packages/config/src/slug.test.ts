@@ -45,7 +45,7 @@ describe('slugify', () => {
 
   describe('the length limit', () => {
     it('leaves a name at the limit alone', () => {
-      const name = `${'word '.repeat(15)}xxxxx`.trim();
+      const name = `${'word '.repeat(39)}xxxxx`.trim();
       const slug = slugify(name);
 
       expect(slug).toHaveLength(SLUG_MAX_LENGTH);
@@ -53,7 +53,7 @@ describe('slugify', () => {
     });
 
     it('cuts on a word boundary, dropping the word that would overrun', () => {
-      const slug = slugify(`${'word '.repeat(16)}overrun`);
+      const slug = slugify(`${'word '.repeat(40)}overrun`);
 
       expect(slug.length).toBeLessThanOrEqual(SLUG_MAX_LENGTH);
       expect(slug.endsWith('-word')).toBe(true);
@@ -61,13 +61,13 @@ describe('slugify', () => {
     });
 
     it('cuts a single overlong word short, having no boundary to cut on', () => {
-      const slug = slugify('a'.repeat(120));
+      const slug = slugify('a'.repeat(250));
 
       expect(slug).toBe('a'.repeat(SLUG_MAX_LENGTH));
     });
 
     it('never ends on a hyphen', () => {
-      const slug = slugify(`${'ab '.repeat(30)}tail`);
+      const slug = slugify(`${'ab '.repeat(70)}tail`);
 
       expect(slug.endsWith('-')).toBe(false);
       expect(SLUG_PATTERN.test(slug)).toBe(true);

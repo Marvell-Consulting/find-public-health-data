@@ -9,14 +9,13 @@ additions come from the public Fingertips API and are imported through local Pos
 Reference and registry tables (lookups, dimension types and values, area types, note
 types) are complete. Areas, observations and bridge rows contain:
 
-- **13 indicators**, combining broad schema coverage with the prototype's showcase data:
+- **12 indicators**, combining broad schema coverage with the prototype's showcase data:
 
   | ID | Indicator | Why |
   |---|---|---|
   | 108 | Under 75 mortality rate from all causes | DSR; sex, age, deprivation deciles |
   | 241 | Diabetes: QOF prevalence | Prototype showcase; GP, NHS and local-authority trends from 2009/10 |
   | 40501 | Under 75 mortality rate from cancer | DSR; same shapes, second mortality series |
-  | 90366 | Life expectancy at birth | Rate ratio; always sexed, deprivation trend deciles |
   | 90851 | % resident in each deprivation quintile | Proportion; IMD2010/2015 quintiles |
   | 92026 | Reception prevalence of obesity | Proportion; ethnicity (17 groups), deprivation quintiles |
   | 92033 | Year 6 prevalence of obesity | Proportion; pairs with 92026 for comparisons |
@@ -32,23 +31,23 @@ types) are complete. Areas, observations and bridge rows contain:
 - The original ten indicators retain their existing focused date window. The prototype
   additions include their full published trend for the geographies above.
 
-That yields 489,998 observations, 758,989 bridge rows and 74,755 observation notes.
+That yields 433,678 observations, 657,869 bridge rows and 67,978 observation notes.
 
 ## Semantics worth knowing
 
 - An observation's aggregate ("Persons, all ages") is expressed by the **absence** of a
   dimension bridge row, not by aggregate-flagged dimension values. Some indicators have
-  no fully-aggregate observations at all (life expectancy is always sexed), so
-  `latest_headline` — which follows the alpha benchmark's definition of headline =
-  observation with zero bridge rows — only has rows for 92708 and 93622. Refining
-  headline semantics is ISS106 read-model design work.
+  no fully-aggregate observations at all, so `latest_headline` — which follows the alpha
+  benchmark's definition of headline = observation with zero bridge rows — only has rows
+  for 92708 and 93622. Refining headline semantics is ISS106 read-model design work.
 - `indicator.config` was converted from Pholio's `key:value,key:value` text to JSON at
   export time, and now sits on the version.
 - `indicator_version.slug` is derived from the name by the export's `slug.py`, which mirrors
-  `slugify` in `@fphd/config/slug`; a name yielding no usable slug stops the export. Where two
-  names slugify alike the lower short id keeps the bare slug and the other takes `-<short id>`.
-  A TypeScript test reads these CSVs and checks every slug against the TypeScript rule, so the
-  two implementations cannot drift.
+  `slugify` in `@fphd/config/slug`. A name yielding no usable slug, or two names that slugify
+  alike, stop the export with the indicators named: a slug belongs to one indicator, so a
+  collision is settled in the source by renaming or excluding one of the pair, never by a
+  suffix. A TypeScript test reads these CSVs and checks every slug against the TypeScript
+  rule, so the two implementations cannot drift.
 - Every seeded indicator loads as a single `published` version, under the system actor the
   export carries (`pholio-migration` or `fingertips-api-seed`). There are no draft rows in
   the seed.
@@ -61,9 +60,14 @@ source containing unapproved indicators or one whose 1,290 indicators and
 29,380,899 observations differ from the independently recorded benchmark
 clone. This fingerprint distinguishes the intended clone from the larger
 `PHOLIO_STAGING` corpus; update it only after verifying a refreshed published
-source. The export emits the identity and version split directly, one
-`published` version per approved source indicator, so unlike the seed pipeline
-below this path has no `reshape-indicator-versions.py` step. Run `strip-metadata-html.py`,
+source. Before writing anything it checks that no two approved names slugify
+alike and stops, naming the pairs, if they do. Four approved indicators are left
+out of the archive by `EXCLUDED_INDICATORS` in the script, each the retired half
+of a pair that shares its name with a newer indicator (90366, 90776, 92774 and
+93280); their observations go with them, and the importer refuses an archive
+built with a different list. The export emits the identity and version split
+directly, one `published` version per exported source indicator, so unlike the
+seed pipeline below this path has no `reshape-indicator-versions.py` step. Run `strip-metadata-html.py`,
 `add-version-slugs.py` and `enrich-area-display.py` against its output, then run
 `transform-uuids.py --deterministic` to rekey all tables with bounded memory.
 `add-version-slugs.py` stamps the slug column the import insists on; an archive

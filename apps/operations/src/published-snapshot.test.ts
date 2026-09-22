@@ -28,9 +28,9 @@ async function snapshot(source = 'PHOLIO_LIVE_A-derived fphd_new benchmark clone
     tables[table] = {
       rows:
         table === 'indicator' || table === 'indicator_version'
-          ? 1_290
+          ? 1_286
           : table === 'observation'
-            ? 29_380_899
+            ? 29_000_000
             : 1,
       bytes: data.length,
       sha256: createHash('sha256').update(data).digest('hex'),
@@ -40,6 +40,8 @@ async function snapshot(source = 'PHOLIO_LIVE_A-derived fphd_new benchmark clone
     source,
     source_database: 'fphd_new',
     approved_indicators: 1_290,
+    source_observations: 29_380_899,
+    excluded_indicators: [90_366, 90_776, 92_774, 93_280],
     source_csv_null: '__FPHD_NULL_5f92c66de4b849b4a717c23f5cbdb8a1__',
     tables,
   };
@@ -89,10 +91,32 @@ describe('verifyPublishedSnapshot', () => {
     const directory = await snapshot();
     const path = join(directory, 'manifest.json');
     const manifest = JSON.parse(await readFile(path, 'utf8'));
-    manifest.tables.observation.rows -= 1;
+    manifest.tables.indicator.rows -= 1;
     await writeFile(path, JSON.stringify(manifest));
     await expect(verifyPublishedSnapshot(directory)).rejects.toThrow(
       'Published snapshot row counts do not match the published benchmark clone',
+    );
+  });
+
+  it('rejects an archive that still carries every source observation', async () => {
+    const directory = await snapshot();
+    const path = join(directory, 'manifest.json');
+    const manifest = JSON.parse(await readFile(path, 'utf8'));
+    manifest.tables.observation.rows = 29_380_899;
+    await writeFile(path, JSON.stringify(manifest));
+    await expect(verifyPublishedSnapshot(directory)).rejects.toThrow(
+      'Published snapshot row counts do not match the published benchmark clone',
+    );
+  });
+
+  it('rejects an archive exported with a different exclusion list', async () => {
+    const directory = await snapshot();
+    const path = join(directory, 'source-manifest.json');
+    const sourceManifest = JSON.parse(await readFile(path, 'utf8'));
+    sourceManifest.excluded_indicators = [90_366];
+    await writeFile(path, JSON.stringify(sourceManifest));
+    await expect(verifyPublishedSnapshot(directory)).rejects.toThrow(
+      'Published snapshot was exported with a different exclusion list',
     );
   });
 

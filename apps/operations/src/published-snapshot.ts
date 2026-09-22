@@ -17,11 +17,18 @@ const publishedCsvNull = '__FPHD_NULL_5f92c66de4b849b4a717c23f5cbdb8a1__';
 // The benchmark setup establishes lineage; these counts are not a provenance signature.
 const expectedApprovedIndicators = 1_290;
 const expectedObservations = 29_380_899;
+// The approved indicators the export leaves out, each the retired half of a pair sharing a
+// name and so a slug. The export holds the same list; an archive built with another is refused.
+const excludedIndicators = [90_366, 90_776, 92_774, 93_280];
+const expectedExportedIndicators = expectedApprovedIndicators - excludedIndicators.length;
 
 const sourceManifestSchema = z.object({
   source: z.literal(publishedSource),
   source_database: z.literal('fphd_new'),
   approved_indicators: z.literal(expectedApprovedIndicators),
+  // The source's count before exclusion: the fingerprint of the clone the archive came from.
+  source_observations: z.literal(expectedObservations),
+  excluded_indicators: z.array(z.number().int()),
   source_csv_null: z.literal(publishedCsvNull),
   tables: z.record(
     z.string(),
@@ -59,11 +66,15 @@ export async function verifyPublishedSnapshot(directory: string): Promise<Publis
   ) {
     throw new Error('Published snapshot table list does not match the seed schema');
   }
+  if (sourceManifest.excluded_indicators.join(',') !== excludedIndicators.join(',')) {
+    throw new Error('Published snapshot was exported with a different exclusion list');
+  }
   if (
-    manifest.tables.indicator?.rows !== expectedApprovedIndicators ||
-    // The export turns each approved source indicator into one published version.
-    manifest.tables.indicator_version?.rows !== expectedApprovedIndicators ||
-    manifest.tables.observation?.rows !== expectedObservations
+    manifest.tables.indicator?.rows !== expectedExportedIndicators ||
+    // The export turns each exported source indicator into one published version.
+    manifest.tables.indicator_version?.rows !== expectedExportedIndicators ||
+    // The excluded indicators' observations go with them, so only an upper bound is known.
+    (manifest.tables.observation?.rows ?? 0) >= expectedObservations
   ) {
     throw new Error('Published snapshot row counts do not match the published benchmark clone');
   }
