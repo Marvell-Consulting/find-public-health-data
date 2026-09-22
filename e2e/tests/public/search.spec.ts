@@ -134,7 +134,7 @@ test.describe('indicator selection without scripting', () => {
   test('reports when the submitted selection exceeds the display limit', async ({ page }) => {
     await page.goto('/search');
     const checkboxes = page.locator('input[name="is"]');
-    await expect(checkboxes).toHaveCount(13);
+    await expect(checkboxes).toHaveCount(12);
     for (let index = 0; index < 11; index++) await checkboxes.nth(index).check();
 
     await page.getByRole('button', { name: 'View selected indicators' }).click();
@@ -213,7 +213,7 @@ test('filtering a capped selection resets ticks, count and disabled results', as
 
 test('keeps the results live region while searches update its count', async ({ page }) => {
   await ready(page);
-  const heading = page.getByRole('heading', { name: 'Select from 13 indicators', exact: true });
+  const heading = page.getByRole('heading', { name: 'Select from 12 indicators', exact: true });
   await expect(heading).toHaveAttribute('aria-live', 'polite');
   await expect(heading).toHaveAttribute('aria-atomic', 'true');
   const liveRegion = await heading.elementHandle();
