@@ -110,6 +110,17 @@ describe('verifyPublishedSnapshot', () => {
     );
   });
 
+  it('accepts the exclusion list in any order', async () => {
+    const directory = await snapshot();
+    const path = join(directory, 'source-manifest.json');
+    const sourceManifest = JSON.parse(await readFile(path, 'utf8'));
+    sourceManifest.excluded_indicators = [93_280, 90_366, 92_774, 90_776];
+    await writeFile(path, JSON.stringify(sourceManifest));
+    await expect(verifyPublishedSnapshot(directory)).resolves.toMatchObject({
+      approved_indicators: 1_290,
+    });
+  });
+
   it('rejects an archive exported with a different exclusion list', async () => {
     const directory = await snapshot();
     const path = join(directory, 'source-manifest.json');

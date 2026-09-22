@@ -46,6 +46,11 @@ const manifestSchema = sourceManifestSchema.extend({
 
 export type PublishedManifest = z.infer<typeof manifestSchema>;
 
+function sameMembers(left: number[], right: number[]): boolean {
+  const sorted = (list: number[]) => [...list].sort((a, b) => a - b).join(',');
+  return sorted(left) === sorted(right);
+}
+
 async function sha256(path: string): Promise<string> {
   const hash = createHash('sha256');
   for await (const chunk of createReadStream(path)) hash.update(chunk);
@@ -67,7 +72,7 @@ export async function verifyPublishedSnapshot(directory: string): Promise<Publis
   ) {
     throw new Error('Published snapshot table list does not match the seed schema');
   }
-  if (sourceManifest.excluded_indicators.join(',') !== excludedIndicators.join(',')) {
+  if (!sameMembers(sourceManifest.excluded_indicators, excludedIndicators)) {
     throw new Error('Published snapshot was exported with a different exclusion list');
   }
   if (
