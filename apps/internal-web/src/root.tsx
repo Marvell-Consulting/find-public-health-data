@@ -1,9 +1,15 @@
 import '@fphd/ui/styles.scss';
 
-import { AppDocument, AppShell, createDocumentMeta, RootErrorBoundary } from '@fphd/ui';
+import {
+  AppDocument,
+  AppShell,
+  backLinkFrom,
+  createDocumentMeta,
+  RootErrorBoundary,
+} from '@fphd/ui';
 import { flashMiddleware } from '@fphd/web-server/flash';
 import { getSession, sessionMiddleware } from '@fphd/web-server/session';
-import { href, Outlet, useLoaderData } from 'react-router';
+import { href, Outlet, useLoaderData, useMatches } from 'react-router';
 
 import type { Route } from './+types/root';
 
@@ -29,10 +35,12 @@ function navigationFor({ canManage, signedIn }: { canManage: boolean; signedIn: 
 
 export default function InternalApp() {
   const { canManage, signedIn } = useLoaderData<typeof loader>();
+  const backLink = backLinkFrom(useMatches());
 
   return (
     <AppShell
       audience="Internal"
+      backLink={backLink}
       navigation={navigationFor({ canManage, signedIn })}
       serviceHref={href('/dashboard')}
     >

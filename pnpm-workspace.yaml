@@ -106,3 +106,6 @@ catalog:
   vitest: 4.1.10
   yaml: 2.9.0
   zod: 4.4.3
+
+patchedDependencies:
+  '@not-govuk/page@0.19.1': patches/@not-govuk__page@0.19.1.patch

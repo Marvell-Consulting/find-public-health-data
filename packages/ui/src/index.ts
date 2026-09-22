@@ -20,6 +20,12 @@ export { default as Textarea } from '@not-govuk/textarea';
 export { AppDocument } from './app-document.tsx';
 export { type AppNavigationItem, AppShell, serviceName } from './app-shell.tsx';
 export { Autocomplete, type AutocompleteOption } from './autocomplete.tsx';
+export {
+  type BackLinkHandle,
+  type BackLinkTarget,
+  backLinkFrom,
+  backLinkHandle,
+} from './back-link-handle.ts';
 export { CardList, type CardListItem } from './card-list.tsx';
 export { ChartSection } from './chart-section.tsx';
 export { NotFoundPage, PageIntro } from './content-page.tsx';

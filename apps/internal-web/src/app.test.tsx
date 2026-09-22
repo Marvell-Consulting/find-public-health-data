@@ -9,6 +9,7 @@ import {
   SignInLandingPage,
 } from '@fphd/internal-web-features';
 import { SignInPage, TopicsRoute } from '@fphd/public-web-features';
+import { backLinkHandle } from '@fphd/ui';
 import type { RouteConfigEntry } from '@react-router/dev/routes';
 import { cleanup, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -103,6 +104,30 @@ describe('internal application routes', () => {
     render(<Routes initialEntries={['/topics']} />);
 
     expect(await screen.findByRole('link', { name: 'Manage' })).toBeTruthy();
+  });
+
+  it('places a route-declared back link above the main content', async () => {
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: InternalApp,
+        loader: () => publisher,
+        children: [
+          {
+            path: 'manage',
+            Component: ManageDataPage,
+            handle: backLinkHandle({ href: '/dashboard', text: 'Back to indicators' }),
+          },
+        ],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/manage']} />);
+
+    const backLink = await screen.findByRole('link', { name: 'Back to indicators' });
+
+    expect(backLink.getAttribute('href')).toBe('/dashboard');
+    expect(backLink.closest('main')).toBeNull();
   });
 
   it('offers a signed-out visitor sign in rather than an account', async () => {
