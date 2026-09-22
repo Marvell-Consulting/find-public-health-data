@@ -1,5 +1,5 @@
 {
-  "id": "1c9fdd46-36da-46f8-b456-5532919bce2c",
+  "id": "c30aa058-a1d5-4f46-8e72-1ff926aa8a37",
   "prevId": "ebfb3c43-071c-419f-82cb-f4a277b7c995",
   "version": "7",
   "dialect": "postgresql",
@@ -1107,6 +1107,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "value_type_id": {
           "name": "value_type_id",
           "type": "uuid",
@@ -1282,6 +1288,21 @@
           "columns": [
             {
               "expression": "indicator_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_indicator_version_slug": {
+          "name": "idx_indicator_version_slug",
+          "columns": [
+            {
+              "expression": "slug",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1481,6 +1502,10 @@
         "indicator_version_status_check": {
           "name": "indicator_version_status_check",
           "value": "\"indicator_version\".\"status\" IN ('draft', 'published')"
+        },
+        "indicator_version_published_at_check": {
+          "name": "indicator_version_published_at_check",
+          "value": "(\"indicator_version\".\"status\" = 'published') = (\"indicator_version\".\"published_at\" IS NOT NULL)"
         }
       },
       "isRLSEnabled": false
@@ -2574,169 +2599,31 @@
   "roles": {},
   "policies": {},
   "views": {
-    "published.area": {
+    "public.current_published_version": {
       "columns": {
         "id": {
           "name": "id",
           "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuidv7()"
         },
-        "code": {
-          "name": "code",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "areaTypeId": {
-          "name": "areaTypeId",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "validFrom": {
-          "name": "validFrom",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "validTo": {
-          "name": "validTo",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "name": "area",
-      "schema": "published",
-      "isExisting": true,
-      "materialized": false
-    },
-    "published.area_relationship": {
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "parentAreaId": {
-          "name": "parentAreaId",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "childAreaId": {
-          "name": "childAreaId",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "validFrom": {
-          "name": "validFrom",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "validTo": {
-          "name": "validTo",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "name": "area_relationship",
-      "schema": "published",
-      "isExisting": true,
-      "materialized": false
-    },
-    "published.area_type": {
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "hierarchyType": {
-          "name": "hierarchyType",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "level": {
-          "name": "level",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "displayGroup": {
-          "name": "displayGroup",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "displayOrder": {
-          "name": "displayOrder",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "name": "area_type",
-      "schema": "published",
-      "isExisting": true,
-      "materialized": false
-    },
-    "published.available_data": {
-      "columns": {
         "indicatorId": {
           "name": "indicatorId",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "areaTypeId": {
-          "name": "areaTypeId",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "areaTypeName": {
-          "name": "areaTypeName",
+        "status": {
+          "name": "status",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": "'draft'"
         },
-        "areaCount": {
-          "name": "areaCount",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "name": "available_data",
-      "schema": "published",
-      "isExisting": true,
-      "materialized": false
-    },
-    "published.ci_method": {
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
+        "publishedAt": {
+          "name": "publishedAt",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
@@ -2744,261 +2631,13 @@
           "name": "name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "name": "ci_method",
-      "schema": "published",
-      "isExisting": true,
-      "materialized": false
-    },
-    "published.classification": {
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "dimension": {
-          "name": "dimension",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "slug": {
           "name": "slug",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "updatedAt": {
-          "name": "updatedAt",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "name": "classification",
-      "schema": "published",
-      "isExisting": true,
-      "materialized": false
-    },
-    "published.comparator_method": {
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "name": "comparator_method",
-      "schema": "published",
-      "isExisting": true,
-      "materialized": false
-    },
-    "published.data_source": {
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "url": {
-          "name": "url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "name": "data_source",
-      "schema": "published",
-      "isExisting": true,
-      "materialized": false
-    },
-    "published.dimension_type": {
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "dimensionClass": {
-          "name": "dimensionClass",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "classificationScheme": {
-          "name": "classificationScheme",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "granularity": {
-          "name": "granularity",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "schemeVersion": {
-          "name": "schemeVersion",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "isRequired": {
-          "name": "isRequired",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "name": "dimension_type",
-      "schema": "published",
-      "isExisting": true,
-      "materialized": false
-    },
-    "published.dimension_value": {
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "dimensionTypeId": {
-          "name": "dimensionTypeId",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "parentId": {
-          "name": "parentId",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "code": {
-          "name": "code",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sortOrder": {
-          "name": "sortOrder",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "isAggregate": {
-          "name": "isAggregate",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "name": "dimension_value",
-      "schema": "published",
-      "isExisting": true,
-      "materialized": false
-    },
-    "published.frequency": {
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "name": "frequency",
-      "schema": "published",
-      "isExisting": true,
-      "materialized": false
-    },
-    "published.indicator": {
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "shortId": {
-          "name": "shortId",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "dataUpdatedAt": {
-          "name": "dataUpdatedAt",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "valueTypeId": {
           "name": "valueTypeId",
@@ -3126,20 +2765,611 @@
           "primaryKey": false,
           "notNull": false
         },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
         "updatedAt": {
           "name": "updatedAt",
           "type": "timestamp with time zone",
           "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "createdBy": {
+          "name": "createdBy",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updatedBy": {
+          "name": "updatedBy",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "definition": "select distinct on (\"indicator_version\".\"indicator_id\") \"id\", \"indicator_id\", \"status\", \"published_at\", \"name\", \"slug\", \"value_type_id\", \"unit_id\", \"year_type_id\", \"ci_method_id\", \"polarity_id\", \"frequency_id\", \"comparator_method_id\", \"disclosure_threshold\", \"ci_confidence_level\", \"config\", \"definition\", \"rationale\", \"methodology\", \"numerator_definition\", \"denominator_definition\", \"disclosure_control\", \"caveats\", \"notes\", \"data_source_id\", \"numerator_source_id\", \"denominator_source_id\", \"created_at\", \"updated_at\", \"created_by\", \"updated_by\" from \"indicator_version\" where \"indicator_version\".\"status\" = 'published' order by \"indicator_version\".\"indicator_id\" asc, \"indicator_version\".\"published_at\" desc, \"indicator_version\".\"id\" desc",
+      "name": "current_published_version",
+      "schema": "public",
+      "isExisting": false,
+      "materialized": false
+    },
+    "published.area": {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "area_type_id": {
+          "name": "area_type_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valid_from": {
+          "name": "valid_from",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valid_to": {
+          "name": "valid_to",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "name": "area",
+      "schema": "published",
+      "isExisting": true,
+      "materialized": false
+    },
+    "published.area_relationship": {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_area_id": {
+          "name": "parent_area_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "child_area_id": {
+          "name": "child_area_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valid_from": {
+          "name": "valid_from",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valid_to": {
+          "name": "valid_to",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "name": "area_relationship",
+      "schema": "published",
+      "isExisting": true,
+      "materialized": false
+    },
+    "published.area_type": {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hierarchy_type": {
+          "name": "hierarchy_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "level": {
+          "name": "level",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_group": {
+          "name": "display_group",
+          "type": "text",
+          "primaryKey": false,
           "notNull": false
         },
-        "firstPublishedAt": {
-          "name": "firstPublishedAt",
+        "display_order": {
+          "name": "display_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "name": "area_type",
+      "schema": "published",
+      "isExisting": true,
+      "materialized": false
+    },
+    "published.available_data": {
+      "columns": {
+        "indicator_id": {
+          "name": "indicator_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "area_type_id": {
+          "name": "area_type_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "area_type_name": {
+          "name": "area_type_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "area_count": {
+          "name": "area_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "name": "available_data",
+      "schema": "published",
+      "isExisting": true,
+      "materialized": false
+    },
+    "published.ci_method": {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "name": "ci_method",
+      "schema": "published",
+      "isExisting": true,
+      "materialized": false
+    },
+    "published.classification": {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dimension": {
+          "name": "dimension",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "name": "classification",
+      "schema": "published",
+      "isExisting": true,
+      "materialized": false
+    },
+    "published.comparator_method": {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "name": "comparator_method",
+      "schema": "published",
+      "isExisting": true,
+      "materialized": false
+    },
+    "published.data_source": {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "name": "data_source",
+      "schema": "published",
+      "isExisting": true,
+      "materialized": false
+    },
+    "published.dimension_type": {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dimension_class": {
+          "name": "dimension_class",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "classification_scheme": {
+          "name": "classification_scheme",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "granularity": {
+          "name": "granularity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scheme_version": {
+          "name": "scheme_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_required": {
+          "name": "is_required",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "name": "dimension_type",
+      "schema": "published",
+      "isExisting": true,
+      "materialized": false
+    },
+    "published.dimension_value": {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dimension_type_id": {
+          "name": "dimension_type_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_aggregate": {
+          "name": "is_aggregate",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "name": "dimension_value",
+      "schema": "published",
+      "isExisting": true,
+      "materialized": false
+    },
+    "published.frequency": {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "name": "frequency",
+      "schema": "published",
+      "isExisting": true,
+      "materialized": false
+    },
+    "published.indicator": {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "short_id": {
+          "name": "short_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "data_updated_at": {
+          "name": "data_updated_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
-        "lastPublishedAt": {
-          "name": "lastPublishedAt",
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value_type_id": {
+          "name": "value_type_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unit_id": {
+          "name": "unit_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "year_type_id": {
+          "name": "year_type_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ci_method_id": {
+          "name": "ci_method_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "polarity_id": {
+          "name": "polarity_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "frequency_id": {
+          "name": "frequency_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "comparator_method_id": {
+          "name": "comparator_method_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "disclosure_threshold": {
+          "name": "disclosure_threshold",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ci_confidence_level": {
+          "name": "ci_confidence_level",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "config": {
+          "name": "config",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "definition": {
+          "name": "definition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rationale": {
+          "name": "rationale",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "methodology": {
+          "name": "methodology",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "numerator_definition": {
+          "name": "numerator_definition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "denominator_definition": {
+          "name": "denominator_definition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "disclosure_control": {
+          "name": "disclosure_control",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "caveats": {
+          "name": "caveats",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "data_source_id": {
+          "name": "data_source_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "numerator_source_id": {
+          "name": "numerator_source_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "denominator_source_id": {
+          "name": "denominator_source_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "first_published_at": {
+          "name": "first_published_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_published_at": {
+          "name": "last_published_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
@@ -3152,17 +3382,17 @@
     },
     "published.indicator_classification": {
       "columns": {
-        "indicatorId": {
-          "name": "indicatorId",
+        "indicator_id": {
+          "name": "indicator_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "classificationId": {
-          "name": "classificationId",
+        "classification_id": {
+          "name": "classification_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "name": "indicator_classification",
@@ -3172,41 +3402,41 @@
     },
     "published.indicator_dimension_values": {
       "columns": {
-        "indicatorId": {
-          "name": "indicatorId",
+        "indicator_id": {
+          "name": "indicator_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "dimensionTypeId": {
-          "name": "dimensionTypeId",
+        "dimension_type_id": {
+          "name": "dimension_type_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "dimensionTypeName": {
-          "name": "dimensionTypeName",
+        "dimension_type_name": {
+          "name": "dimension_type_name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "dimensionValueId": {
-          "name": "dimensionValueId",
+        "dimension_value_id": {
+          "name": "dimension_value_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "dimensionValueName": {
-          "name": "dimensionValueName",
+        "dimension_value_name": {
+          "name": "dimension_value_name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "sortOrder": {
-          "name": "sortOrder",
+        "sort_order": {
+          "name": "sort_order",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "name": "indicator_dimension_values",
@@ -3214,19 +3444,39 @@
       "isExisting": true,
       "materialized": false
     },
+    "published.indicator_slug": {
+      "columns": {
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "indicator_id": {
+          "name": "indicator_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "name": "indicator_slug",
+      "schema": "published",
+      "isExisting": true,
+      "materialized": false
+    },
     "published.indicator_topic": {
       "columns": {
-        "indicatorId": {
-          "name": "indicatorId",
+        "indicator_id": {
+          "name": "indicator_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "topicId": {
-          "name": "topicId",
+        "topic_id": {
+          "name": "topic_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "name": "indicator_topic",
@@ -3236,29 +3486,29 @@
     },
     "published.latest_headline": {
       "columns": {
-        "indicatorId": {
-          "name": "indicatorId",
+        "indicator_id": {
+          "name": "indicator_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "areaId": {
-          "name": "areaId",
+        "area_id": {
+          "name": "area_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "fromDate": {
-          "name": "fromDate",
+        "from_date": {
+          "name": "from_date",
           "type": "date",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "toDate": {
-          "name": "toDate",
+        "to_date": {
+          "name": "to_date",
           "type": "date",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "value": {
           "name": "value",
@@ -3290,19 +3540,19 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "text": {
           "name": "text",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "category": {
           "name": "category",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "name": "note_type",
@@ -3316,13 +3566,13 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "name": {
           "name": "name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "url": {
           "name": "url",
@@ -3342,31 +3592,31 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "indicatorId": {
-          "name": "indicatorId",
+        "indicator_id": {
+          "name": "indicator_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "areaId": {
-          "name": "areaId",
+        "area_id": {
+          "name": "area_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "fromDate": {
-          "name": "fromDate",
+        "from_date": {
+          "name": "from_date",
           "type": "date",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "toDate": {
-          "name": "toDate",
+        "to_date": {
+          "name": "to_date",
           "type": "date",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "value": {
           "name": "value",
@@ -3416,29 +3666,29 @@
           "primaryKey": false,
           "notNull": false
         },
-        "distributionRank": {
-          "name": "distributionRank",
+        "distribution_rank": {
+          "name": "distribution_rank",
           "type": "smallint",
           "primaryKey": false,
           "notNull": false
         },
-        "publishedAt": {
-          "name": "publishedAt",
+        "published_at": {
+          "name": "published_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "uploadBatchId": {
-          "name": "uploadBatchId",
+        "upload_batch_id": {
+          "name": "upload_batch_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "createdAt": {
-          "name": "createdAt",
+        "created_at": {
+          "name": "created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "name": "observation",
@@ -3452,25 +3702,25 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "observationId": {
-          "name": "observationId",
+        "observation_id": {
+          "name": "observation_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "dimensionValueId": {
-          "name": "dimensionValueId",
+        "dimension_value_id": {
+          "name": "dimension_value_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "dimensionTypeId": {
-          "name": "dimensionTypeId",
+        "dimension_type_id": {
+          "name": "dimension_type_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "name": "observation_dimension",
@@ -3484,19 +3734,19 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "observationId": {
-          "name": "observationId",
+        "observation_id": {
+          "name": "observation_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "noteTypeId": {
-          "name": "noteTypeId",
+        "note_type_id": {
+          "name": "note_type_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "name": "observation_note",
@@ -3506,47 +3756,47 @@
     },
     "published.observation_range": {
       "columns": {
-        "indicatorId": {
-          "name": "indicatorId",
+        "indicator_id": {
+          "name": "indicator_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "displayGroup": {
-          "name": "displayGroup",
+        "display_group": {
+          "name": "display_group",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "fromDate": {
-          "name": "fromDate",
+        "from_date": {
+          "name": "from_date",
           "type": "date",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "toDate": {
-          "name": "toDate",
+        "to_date": {
+          "name": "to_date",
           "type": "date",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "segment": {
           "name": "segment",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "min": {
           "name": "min",
           "type": "double precision",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "max": {
           "name": "max",
           "type": "double precision",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "name": "observation_range",
@@ -3560,13 +3810,13 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "name": {
           "name": "name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "name": "polarity",
@@ -3580,37 +3830,37 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "slug": {
           "name": "slug",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "title": {
           "name": "title",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "description": {
           "name": "description",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "createdAt": {
-          "name": "createdAt",
+        "created_at": {
+          "name": "created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "updatedAt": {
-          "name": "updatedAt",
+        "updated_at": {
+          "name": "updated_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "name": "topic",
@@ -3624,25 +3874,25 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "name": {
           "name": "name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "label": {
           "name": "label",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "multiplier": {
           "name": "multiplier",
           "type": "double precision",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "name": "unit",
@@ -3656,13 +3906,13 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "name": {
           "name": "name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "name": "value_type",
@@ -3676,13 +3926,13 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "name": {
           "name": "name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "name": "year_type",

@@ -76,7 +76,7 @@ views join it, and the internal reads join `currentPublishedVersion` for the sam
 the tables. `published.indicator`
 carries that version's `slug` as the indicator's canonical address, while
 `published.indicator_slug` lists every slug any published version carries, so an address a later
-publication replaced still resolves. The definitions are a custom migration;
+publication replaced still resolves. The definitions are hand-written in the migration;
 `src/schema/published.ts` declares them with `pgSchema('published').view(...).existing()`
 so drizzle-kit gives the repositories typed columns without generating a second
 `CREATE VIEW`. Exports are prefixed (`publishedIndicator`) because the table names are

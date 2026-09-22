@@ -110,29 +110,8 @@
     {
       "idx": 15,
       "version": "7",
-      "when": 1789746222866,
-      "tag": "0015_indicator-version-split",
-      "breakpoints": true
-    },
-    {
-      "idx": 16,
-      "version": "7",
-      "when": 1789746234458,
-      "tag": "0016_published-views-and-grants",
-      "breakpoints": true
-    },
-    {
-      "idx": 17,
-      "version": "7",
-      "when": 1790008795335,
-      "tag": "0017_indicator-slug",
-      "breakpoints": true
-    },
-    {
-      "idx": 18,
-      "version": "7",
-      "when": 1790086347972,
-      "tag": "0018_current-published-version",
+      "when": 1790093313838,
+      "tag": "0015_indicator-versions",
       "breakpoints": true
     }
   ]
