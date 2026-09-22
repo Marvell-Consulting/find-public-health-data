@@ -35,7 +35,11 @@ test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
 });
 
 test('answers an indicator that does not exist with the not-found page', async ({ page }) => {
-  for (const path of ['/indicators/999999', '/indicators/no-such-indicator']) {
+  for (const path of [
+    '/indicators/999999',
+    '/indicators/no-such-indicator',
+    '/indicators/facets',
+  ]) {
     const response = await page.goto(path);
     expect(response?.status(), path).toBe(404);
     await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();

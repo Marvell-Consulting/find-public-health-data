@@ -19,6 +19,9 @@ describe('isIndicatorSegment', () => {
     'two--hyphens',
     'a'.repeat(81),
     'no_such',
+    'search',
+    'facets',
+    'Compare',
   ])('refuses %s without asking the API', (segment) => {
     expect(isIndicatorSegment(segment)).toBe(false);
   });
