@@ -34,10 +34,13 @@ test('shows the indicator a publisher picked from the dashboard', async ({ page 
   await expect(page.getByText('Indicator number')).toBeVisible();
 });
 
-test('shows a published indicator as published', async ({ page }) => {
+test('shows a published indicator as live and published', async ({ page }) => {
   await page.goto(`/dashboard/indicators/${PUBLISHED.id}`);
 
   await expect(page.getByRole('heading', { level: 1, name: PUBLISHED.name })).toBeVisible();
+  await expect(page.getByText('Indicator status')).toBeVisible();
+  await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  await expect(page.getByText('Publishing status')).toBeVisible();
   // Exact, or the "View published indicator" link matches as well.
   await expect(page.getByText('Published', { exact: true })).toBeVisible();
 });

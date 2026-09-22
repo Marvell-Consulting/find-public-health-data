@@ -47,6 +47,16 @@ test('shows the indicator name and number on its task list', async ({ page }) =>
   await expect(page.getByText(/^ID: \d+$/)).toBeVisible();
 });
 
+test('shows the indicator as new with an incomplete draft', async ({ page }) => {
+  await createIndicator(page, uniqueName());
+
+  // The tags follow the public number, under the heading.
+  await expect(page.getByRole('main').locator('h1 ~ p .govuk-tag')).toHaveText([
+    'New',
+    'Incomplete',
+  ]);
+});
+
 test('marks the name as complete and everything without a form as not started', async ({
   page,
 }) => {
