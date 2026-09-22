@@ -15,10 +15,11 @@ RESERVED_SLUGS = ("compare", "facets", "search")
 
 
 def slugify(name):
-    """Lower case, accents folded, whitespace hyphenated, cut on a word boundary."""
+    """Lower case, accents folded, spaces, dashes and slashes hyphenated, cut on a word boundary."""
     decomposed = unicodedata.normalize("NFKD", name)
     unmarked = "".join(c for c in decomposed if not unicodedata.category(c).startswith("M"))
-    hyphenated = re.sub(r"\s+", "-", unmarked.lower())
+    # A dash or a slash separates words as a space does: "and/or", "0–4 years".
+    hyphenated = re.sub(r"[\s\u2010-\u2015/\\]+", "-", unmarked.lower())
     cleaned = re.sub(r"[^a-z0-9-]+", "", hyphenated)
     slug = re.sub(r"-{2,}", "-", cleaned).strip("-")
     return slug if len(slug) <= SLUG_MAX_LENGTH else cut_to_word_boundary(slug)

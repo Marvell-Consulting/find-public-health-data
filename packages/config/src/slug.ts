@@ -22,10 +22,11 @@ export function isReservedSlug(value: string): boolean {
 }
 
 /**
- * The slug a name yields: lower case, accents folded to their plain letters, whitespace
- * runs to a single hyphen, every other character outside `[a-z0-9-]` dropped, hyphen runs
- * collapsed and trimmed, and the result cut to SLUG_MAX_LENGTH on a word boundary.
- * A name that leaves nothing usable yields the empty string — `slugProblem` names why.
+ * The slug a name yields: lower case, accents folded to their plain letters, whitespace,
+ * dashes and slashes to a single hyphen, every other character outside `[a-z0-9-]`
+ * dropped, hyphen runs collapsed and trimmed, and the result cut to SLUG_MAX_LENGTH on a
+ * word boundary. A name that leaves nothing usable yields the empty string — `slugProblem`
+ * names why.
  */
 export function slugify(name: string): string {
   const slug = name
@@ -33,7 +34,8 @@ export function slugify(name: string): string {
     // A decomposed accent is a combining mark, so dropping the marks leaves the letter.
     .replace(/\p{M}+/gu, '')
     .toLowerCase()
-    .replace(/\s+/g, '-')
+    // A dash or a slash separates words as a space does: "and/or", "0–4 years".
+    .replace(/[\s\u2010-\u2015/\\]+/g, '-')
     .replace(/[^a-z0-9-]+/g, '')
     .replace(/-{2,}/g, '-')
     .replace(/^-+|-+$/g, '');
