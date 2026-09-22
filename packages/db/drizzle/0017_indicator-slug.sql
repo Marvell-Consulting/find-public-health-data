@@ -1,9 +1,4 @@
-ALTER TABLE "indicator_version" ADD COLUMN "slug" text;--> statement-breakpoint
--- Rows written before the column have no name-derived slug and the seed carries the real
--- ones, so they take a placeholder that only has to be unique to their indicator.
-UPDATE "indicator_version" v SET "slug" = 'indicator-' || i.short_id
-FROM "indicator" i WHERE i.id = v.indicator_id;--> statement-breakpoint
-ALTER TABLE "indicator_version" ALTER COLUMN "slug" SET NOT NULL;--> statement-breakpoint
+ALTER TABLE "indicator_version" ADD COLUMN "slug" text NOT NULL;--> statement-breakpoint
 CREATE INDEX "idx_indicator_version_slug" ON "indicator_version" USING btree ("slug");--> statement-breakpoint
 
 -- A slug belongs to one indicator for ever: versions of one indicator share it, two

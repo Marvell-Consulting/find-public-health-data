@@ -12,8 +12,17 @@ export function indicatorCsvPath(slug: string, kind: 'table' | 'all-data'): stri
 }
 
 /**
+ * A number or a case variant has one permanent home, so it 301s. A superseded slug 302s:
+ * versions of one indicator share a slug, so an old address could become canonical again,
+ * and a browser holding a cached 301 each way would loop between them.
+ */
+export function redirectStatus(segment: string, canonicalSlug: string): 301 | 302 {
+  return SHORT_ID_PATTERN.test(segment) || segment.toLowerCase() === canonicalSlug ? 301 : 302;
+}
+
+/**
  * Whether a route segment can address an indicator: a short id, or a slug in any case.
- * Case and superseded slugs are the loader's 301, not a 404. A slug is never digits only,
+ * Case and superseded slugs are the loader's redirect, not a 404. A slug is never digits only,
  * so a digit run too large for the column addresses nothing rather than falling through.
  * A reserved word names an API collection endpoint, never an indicator, so it stops here.
  */

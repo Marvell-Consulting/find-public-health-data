@@ -19,7 +19,7 @@ import { apiContext } from '@fphd/web-server/api-context';
 import { type LoaderFunctionArgs, redirect } from 'react-router';
 import { loadGeographyOptions } from '../geography/loader.ts';
 import { MAX_SELECTED_AREAS, MAX_SELECTED_INDICATORS } from '../selection-limits.ts';
-import { indicatorPath, isIndicatorSegment } from './paths.ts';
+import { indicatorPath, isIndicatorSegment, redirectStatus } from './paths.ts';
 
 export type {
   AreaGroup,
@@ -115,8 +115,11 @@ async function loadIndicatorData(
       ? undefined
       : await api.get(apiPath`/api/indicators/${params.slug}`, indicatorDetailSchema);
 
-  if (routeDetail !== undefined && routeDetail.slug !== params.slug) {
-    throw redirect(`${indicatorPath(routeDetail.slug)}${url.search}`, 301);
+  if (routeDetail !== undefined && params.slug !== undefined && routeDetail.slug !== params.slug) {
+    throw redirect(
+      `${indicatorPath(routeDetail.slug)}${url.search}`,
+      redirectStatus(params.slug, routeDetail.slug),
+    );
   }
 
   // De-duplicated: a hand-edited URL repeating a code would otherwise fetch it twice and

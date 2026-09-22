@@ -21,7 +21,7 @@ import {
 } from './data.ts';
 import { allDataCsv, trendCsv } from './download.ts';
 import type { BenchmarkGeography, IndicatorAreaData } from './loader.ts';
-import { indicatorCsvPath, isIndicatorSegment } from './paths.ts';
+import { indicatorCsvPath, isIndicatorSegment, redirectStatus } from './paths.ts';
 import { trendTableModel } from './trend.ts';
 
 const ENGLAND = 'E92000001';
@@ -61,7 +61,10 @@ export async function loadIndicatorCsv(
 
   // The download shares the page's address, so it shares the page's one canonical form.
   if (detail.slug !== segment) {
-    throw redirect(`${indicatorCsvPath(detail.slug, kind)}${url.search}`, 301);
+    throw redirect(
+      `${indicatorCsvPath(detail.slug, kind)}${url.search}`,
+      redirectStatus(segment, detail.slug),
+    );
   }
 
   const { shortId } = detail;

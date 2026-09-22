@@ -177,27 +177,35 @@ describe('loadIndicator', () => {
   });
 
   it.each([
-    ['a short id', '108', 'http://localhost/indicators/108?as=E06000052'],
-    ['a superseded slug', 'old-name', 'http://localhost/indicators/old-name?as=E06000052'],
-    ['the wrong case', 'Indicator-108', 'http://localhost/indicators/Indicator-108?as=E06000052'],
-  ])('301s %s to the canonical slug, query string and all', async (_case, slug, url) => {
-    const get = vi
-      .fn()
-      .mockImplementation((path: string) =>
-        /^\/api\/indicators\/[^/?]+$/.test(path)
-          ? Promise.resolve({ shortId: 108, slug: 'indicator-108', areaTypes: [] })
-          : Promise.resolve([]),
+    ['a short id', '108', 'http://localhost/indicators/108?as=E06000052', 301],
+    ['a superseded slug', 'old-name', 'http://localhost/indicators/old-name?as=E06000052', 302],
+    [
+      'the wrong case',
+      'Indicator-108',
+      'http://localhost/indicators/Indicator-108?as=E06000052',
+      301,
+    ],
+  ])(
+    'redirects %s to the canonical slug, query string and all',
+    async (_case, slug, url, status) => {
+      const get = vi
+        .fn()
+        .mockImplementation((path: string) =>
+          /^\/api\/indicators\/[^/?]+$/.test(path)
+            ? Promise.resolve({ shortId: 108, slug: 'indicator-108', areaTypes: [] })
+            : Promise.resolve([]),
+        );
+
+      const redirected = await loadIndicator(loaderArgs(api(get).client, { slug }, url)).catch(
+        (response: Response) => response,
       );
 
-    const redirected = await loadIndicator(loaderArgs(api(get).client, { slug }, url)).catch(
-      (response: Response) => response,
-    );
-
-    expect((redirected as Response).status).toBe(301);
-    expect((redirected as Response).headers.get('location')).toBe(
-      '/indicators/indicator-108?as=E06000052',
-    );
-  });
+      expect((redirected as Response).status).toBe(status);
+      expect((redirected as Response).headers.get('location')).toBe(
+        '/indicators/indicator-108?as=E06000052',
+      );
+    },
+  );
 
   it('loads every indicator named in the query string', async () => {
     const { client, get } = api();
