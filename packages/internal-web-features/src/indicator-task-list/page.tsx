@@ -1,6 +1,7 @@
 import { GridColumn, GridRow, InsetText, TaskList } from '@fphd/ui';
 
 import { indicatorNamePath } from '../indicator-name/paths.ts';
+import { IndicatorHeading } from '../status-tag/indicator-heading.tsx';
 import { StatusTag } from '../status-tag/status-tag.tsx';
 import type { IndicatorTaskList, IndicatorTaskStatus, IndicatorTaskStatuses } from './loader.ts';
 
@@ -81,16 +82,11 @@ export function IndicatorTaskListPage({ taskList }: { taskList: IndicatorTaskLis
   return (
     <GridRow>
       <GridColumn width="two-thirds">
-        <h1 className="govuk-heading-xl govuk-!-margin-bottom-2">{indicator.name}</h1>
-        <p className="govuk-heading-m govuk-!-margin-bottom-2">ID: {indicator.shortId}</p>
-        <p className="govuk-!-margin-bottom-6">
-          <StatusTag type="indicator" status={indicatorStatus} />{' '}
-          <StatusTag
-            type="publishing"
-            indicatorStatus={indicatorStatus}
-            draftStatus={draftStatus}
-          />
-        </p>
+        <IndicatorHeading
+          {...indicator}
+          indicatorStatus={indicatorStatus}
+          draftStatus={draftStatus}
+        />
         <InsetText>
           You can complete these sections in any order. If you exit at any point, any selections or
           text you've added will be saved.

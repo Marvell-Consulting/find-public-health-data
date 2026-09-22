@@ -34,17 +34,15 @@ describe('IndicatorOverviewPage', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'Life expectancy at birth' }),
     ).toBeTruthy();
-    expect(screen.getByText('Indicator number')).toBeTruthy();
-    expect(screen.getByText('90366')).toBeTruthy();
+    expect(screen.getByText('ID: 90366')).toBeTruthy();
   });
 
-  it('shows the indicator status and the publishing status as tags', () => {
+  it('tags the indicator with its two statuses under the public number', () => {
     renderPage({ draftStatus: 'draft' });
 
-    expect(screen.getByText('Indicator status')).toBeTruthy();
-    expect(screen.getByText('Live').className).toContain('govuk-tag');
-    expect(screen.getByText('Publishing status')).toBeTruthy();
-    expect(screen.getByText('Update incomplete').className).toContain('govuk-tag');
+    const tags = [...document.querySelectorAll('h1 ~ p .govuk-tag')];
+
+    expect(tags.map((tag) => tag.textContent)).toEqual(['Live', 'Update incomplete']);
   });
 
   it('offers the published page as an action for a published indicator', () => {

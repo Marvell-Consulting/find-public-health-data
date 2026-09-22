@@ -1,7 +1,7 @@
-import { A, GridColumn, GridRow, SummaryList, Tabs } from '@fphd/ui';
+import { A, GridColumn, GridRow, Tabs } from '@fphd/ui';
 
 import { indicatorTaskListPath } from '../indicator-task-list/paths.ts';
-import { StatusTag } from '../status-tag/status-tag.tsx';
+import { IndicatorHeading } from '../status-tag/indicator-heading.tsx';
 import type { IndicatorAdminDetail } from './loader.ts';
 import { publishedIndicatorPath } from './paths.ts';
 
@@ -41,26 +41,7 @@ export function IndicatorOverviewPage({ indicator }: { indicator: IndicatorAdmin
   return (
     <GridRow>
       <GridColumn width="two-thirds">
-        <h1 className="govuk-heading-xl">{indicator.name}</h1>
-        <SummaryList
-          items={[
-            { name: 'Indicator number', children: String(indicator.shortId) },
-            {
-              name: 'Indicator status',
-              children: <StatusTag type="indicator" status={indicator.indicatorStatus} />,
-            },
-            {
-              name: 'Publishing status',
-              children: (
-                <StatusTag
-                  type="publishing"
-                  indicatorStatus={indicator.indicatorStatus}
-                  draftStatus={indicator.draftStatus}
-                />
-              ),
-            },
-          ]}
-        />
+        <IndicatorHeading {...indicator} />
         <Tabs
           items={[{ id: 'actions', label: 'Actions', content: <Actions indicator={indicator} /> }]}
           paramKey="tab"
