@@ -1,13 +1,22 @@
-import type { IndicatorTaskList, IndicatorTaskStatuses } from './contract.ts';
+import type { IndicatorTaskList, IndicatorTaskStatus, IndicatorTaskStatuses } from './contract.ts';
+import type { IndicatorDraftVersion } from './indicator-repository.ts';
 
 /** The draft columns the task list judges; each section adds the ones its form writes. */
-export interface IndicatorTaskListDraft {
-  name: string;
-}
+export type IndicatorTaskListDraft = Pick<
+  IndicatorDraftVersion,
+  'name' | 'definition' | 'rationale'
+>;
 
 export interface IndicatorTaskListSource {
   indicator: Omit<IndicatorTaskList['indicator'], 'name'>;
   draft: IndicatorTaskListDraft;
+}
+
+/** Complete once every answer holds text; a draft imported from Fingertips may hold only some. */
+function answered(...answers: readonly (string | null)[]): IndicatorTaskStatus {
+  return answers.every((answer) => answer !== null && answer.trim() !== '')
+    ? 'completed'
+    : 'not_started';
 }
 
 /**
@@ -19,7 +28,10 @@ export function indicatorTaskList({
   indicator,
 }: IndicatorTaskListSource): IndicatorTaskList {
   // A draft is created by the page that asks for a name, so it always has one.
-  const tasks: IndicatorTaskStatuses = { name: 'completed' };
+  const tasks: IndicatorTaskStatuses = {
+    name: 'completed',
+    'definition-and-rationale': answered(draft.definition, draft.rationale),
+  };
 
   return {
     indicator: { ...indicator, name: draft.name },

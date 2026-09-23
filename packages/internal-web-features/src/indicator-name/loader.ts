@@ -1,6 +1,6 @@
 // No @fphd/ui imports here, so the loader and actions unit-test without the jsdom the components need.
 import {
-  type IndicatorFieldErrors,
+  type IndicatorField,
   indicatorAdminDetailSchema,
   indicatorCreateErrorSchema,
   indicatorCreateResponseSchema,
@@ -14,27 +14,17 @@ import { apiContext } from '@fphd/web-server/api-context';
 import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from 'react-router';
 
 import { requireIndicatorId } from '../indicator-id.ts';
-import { indicatorTaskListPath } from '../indicator-task-list/paths.ts';
+import { type FormFailure, readFormValues } from '../indicator-section.ts';
+import { indicatorTaskListPath } from '../publish-paths.ts';
 
-export type {
-  IndicatorAdminDetail,
-  IndicatorFieldErrors,
-} from '@fphd/internal-api-features/contract';
+export type { IndicatorAdminDetail } from '@fphd/internal-api-features/contract';
 
-export interface IndicatorNameFailure {
-  name: string;
-  fieldErrors: IndicatorFieldErrors;
-}
+export type IndicatorNameFailure = FormFailure<IndicatorField>;
+
+const FIELDS = indicatorFieldSchema.options;
 
 function notFound(): Response {
   return new Response('Not Found', { status: 404 });
-}
-
-/** The name as typed, so a rejected submission re-renders the form exactly as it was sent. */
-function readName(formData: FormData): string {
-  const value = formData.get('name');
-
-  return typeof value === 'string' ? value : '';
 }
 
 /**
@@ -45,11 +35,11 @@ export async function createIndicator({
   context,
   request,
 }: ActionFunctionArgs): Promise<IndicatorNameFailure | Response> {
-  const name = readName(await request.formData());
-  const submission = indicatorNameSchema.safeParse({ name });
+  const values = readFormValues(await request.formData(), FIELDS);
+  const submission = indicatorNameSchema.safeParse(values);
 
   if (!submission.success) {
-    return { name, fieldErrors: toFieldErrors(submission.error, indicatorFieldSchema.options) };
+    return { values, fieldErrors: toFieldErrors(submission.error, FIELDS) };
   }
 
   const result = await context
@@ -62,7 +52,7 @@ export async function createIndicator({
     );
 
   if (!result.ok) {
-    return { name, fieldErrors: result.error.fieldErrors ?? {} };
+    return { values, fieldErrors: result.error.fieldErrors ?? {} };
   }
 
   return redirect(indicatorTaskListPath(result.data.id));
@@ -87,11 +77,11 @@ export async function saveIndicatorName({
   request,
 }: ActionFunctionArgs): Promise<IndicatorNameFailure | Response> {
   const id = requireIndicatorId(params);
-  const name = readName(await request.formData());
-  const submission = indicatorNameSchema.safeParse({ name });
+  const values = readFormValues(await request.formData(), FIELDS);
+  const submission = indicatorNameSchema.safeParse(values);
 
   if (!submission.success) {
-    return { name, fieldErrors: toFieldErrors(submission.error, indicatorFieldSchema.options) };
+    return { values, fieldErrors: toFieldErrors(submission.error, FIELDS) };
   }
 
   const result = await context
@@ -104,7 +94,7 @@ export async function saveIndicatorName({
     );
 
   if (!result.ok) {
-    return { name, fieldErrors: result.error.fieldErrors ?? {} };
+    return { values, fieldErrors: result.error.fieldErrors ?? {} };
   }
 
   return redirect(indicatorTaskListPath(id));

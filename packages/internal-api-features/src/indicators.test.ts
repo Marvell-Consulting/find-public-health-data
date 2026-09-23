@@ -554,11 +554,11 @@ describe('PATCH /api/internal/indicators/:id', () => {
 });
 
 describe('GET /api/internal/indicators/:id/task-list', () => {
-  // The handler reads the draft's name; the rest of the version row is beside the point here.
+  // The handler reads the columns the task list judges; the rest of the row is beside the point.
   const draftState = {
     id: row.id,
     shortId: 90366,
-    draft: { name: 'Life expectancy at birth' },
+    draft: { name: 'Life expectancy at birth', definition: null, rationale: null },
     indicatorStatus: 'new',
     draftStatus: 'draft',
   };
@@ -599,8 +599,8 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
         draftStatus: 'draft',
       },
       isUpdate: false,
-      canSubmit: true,
-      tasks: { name: 'completed' },
+      canSubmit: false,
+      tasks: { name: 'completed', 'definition-and-rationale': 'not_started' },
     });
   });
 

@@ -47,6 +47,10 @@ export default [
         'publish/indicators/:id/task-list',
         '../../../packages/internal-web-features/src/indicator-task-list/route.tsx',
       ),
+      route(
+        'publish/indicators/:id/definition-and-rationale',
+        '../../../packages/internal-web-features/src/indicator-definition-and-rationale/route.tsx',
+      ),
     ]),
     layout('./admin.tsx', [
       route('manage', './manage.tsx'),

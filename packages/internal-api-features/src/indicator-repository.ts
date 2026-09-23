@@ -104,11 +104,14 @@ export async function getIndicatorById(
   return rows[0];
 }
 
+/** Every column of one version, as a section reads its answers from the draft. */
+export type IndicatorDraftVersion = typeof indicatorVersion.$inferSelect;
+
 export interface IndicatorDraftStateRow {
   id: string;
   shortId: number;
   /** The draft a publisher is working on, absent while the indicator has none. */
-  draft: typeof indicatorVersion.$inferSelect | null;
+  draft: IndicatorDraftVersion | null;
   indicatorStatus: IndicatorStatus;
   draftStatus: DraftStatus | null;
 }

@@ -1,7 +1,7 @@
 import { A, GridColumn, GridRow, Tabs } from '@fphd/ui';
 import { indicatorPath } from '@fphd/utils/indicator-path';
 
-import { indicatorTaskListPath } from '../indicator-task-list/paths.ts';
+import { indicatorTaskListPath } from '../publish-paths.ts';
 import { IndicatorHeading } from '../status-tag/indicator-heading.tsx';
 import type { IndicatorAdminDetail } from './loader.ts';
 

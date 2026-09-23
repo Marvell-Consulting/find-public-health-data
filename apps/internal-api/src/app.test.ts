@@ -3,7 +3,7 @@ import { createFakeRepositories } from '@fphd/db/testing';
 import { createFakeInternalRepositories } from '@fphd/internal-api-features/testing';
 import { createLogger } from '@fphd/logger';
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createApp } from './app.ts';
 
@@ -105,6 +105,31 @@ describe('internal API', () => {
 
     expect(asPublisher.status).toBe(200);
     expect(asPublisher.body).toEqual({ indicators: [], page: 1, pageSize: 10, total: 0 });
+    expect(asInternal.status).toBe(403);
+  });
+
+  it('mounts the definition and rationale section behind the publisher role', async () => {
+    const internalRepositories = createFakeInternalRepositories({
+      indicators: {
+        // The handler reads only the section's columns of the draft.
+        findDraftState: vi
+          .fn()
+          .mockResolvedValue({ draft: { definition: 'A definition', rationale: null } }),
+      },
+    });
+    const app = createTestApp(createFakeRepositories(), internalRepositories);
+    const path =
+      '/api/internal/indicators/00000000-0000-7000-8000-000000000001/definition-and-rationale';
+
+    const asPublisher = await request(app)
+      .get(path)
+      .set('Cookie', await createCookie(['public', 'internal', 'publisher']));
+    const asInternal = await request(app)
+      .get(path)
+      .set('Cookie', await createCookie(['public', 'internal']));
+
+    expect(asPublisher.status).toBe(200);
+    expect(asPublisher.body).toEqual({ definition: 'A definition', rationale: null });
     expect(asInternal.status).toBe(403);
   });
 

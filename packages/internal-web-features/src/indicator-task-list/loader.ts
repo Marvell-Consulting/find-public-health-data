@@ -7,6 +7,7 @@ import type { LoaderFunctionArgs } from 'react-router';
 import { requireIndicatorId } from '../indicator-id.ts';
 
 export type {
+  IndicatorTaskKey,
   IndicatorTaskList,
   IndicatorTaskStatus,
   IndicatorTaskStatuses,

@@ -63,7 +63,10 @@ describe('createIndicator', () => {
 
     const outcome = await submit(name, post);
 
-    expect(outcome).toEqual({ name, fieldErrors: { name: 'Enter the name of the indicator' } });
+    expect(outcome).toEqual({
+      values: { name },
+      fieldErrors: { name: 'Enter the name of the indicator' },
+    });
     expect(post).not.toHaveBeenCalled();
   });
 
@@ -80,7 +83,7 @@ describe('createIndicator', () => {
     const outcome = await submit('Rejected name', post);
 
     expect(outcome).toEqual({
-      name: 'Rejected name',
+      values: { name: 'Rejected name' },
       fieldErrors: { name: 'Enter the name of the indicator' },
     });
   });
@@ -98,7 +101,7 @@ describe('createIndicator', () => {
     const outcome = await submit('Life expectancy at birth', post);
 
     expect(outcome).toEqual({
-      name: 'Life expectancy at birth',
+      values: { name: 'Life expectancy at birth' },
       fieldErrors: { name: 'An indicator with this name already exists' },
     });
   });
@@ -110,7 +113,7 @@ describe('createIndicator', () => {
 
     const outcome = await submit('Rejected name', post);
 
-    expect(outcome).toEqual({ name: 'Rejected name', fieldErrors: {} });
+    expect(outcome).toEqual({ values: { name: 'Rejected name' }, fieldErrors: {} });
   });
 });
 
@@ -188,7 +191,10 @@ describe('saveIndicatorName', () => {
 
     const outcome = await rename(created.id, name, patch);
 
-    expect(outcome).toEqual({ name, fieldErrors: { name: 'Enter the name of the indicator' } });
+    expect(outcome).toEqual({
+      values: { name },
+      fieldErrors: { name: 'Enter the name of the indicator' },
+    });
     expect(patch).not.toHaveBeenCalled();
   });
 
@@ -205,7 +211,7 @@ describe('saveIndicatorName', () => {
     const outcome = await rename(created.id, 'Rejected name', patch);
 
     expect(outcome).toEqual({
-      name: 'Rejected name',
+      values: { name: 'Rejected name' },
       fieldErrors: { name: 'Enter the name of the indicator' },
     });
   });
@@ -223,7 +229,7 @@ describe('saveIndicatorName', () => {
     const outcome = await rename(created.id, 'Life expectancy at birth', patch);
 
     expect(outcome).toEqual({
-      name: 'Life expectancy at birth',
+      values: { name: 'Life expectancy at birth' },
       fieldErrors: { name: 'An indicator with this name already exists' },
     });
   });

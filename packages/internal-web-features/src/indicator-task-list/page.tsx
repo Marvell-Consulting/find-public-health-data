@@ -1,9 +1,14 @@
 import { GridColumn, GridRow, InsetText, TaskList } from '@fphd/ui';
 
-import { indicatorNamePath } from '../indicator-name/paths.ts';
+import { indicatorSectionPath } from '../publish-paths.ts';
 import { IndicatorHeading } from '../status-tag/indicator-heading.tsx';
 import { StatusTag } from '../status-tag/status-tag.tsx';
-import type { IndicatorTaskList, IndicatorTaskStatus, IndicatorTaskStatuses } from './loader.ts';
+import type {
+  IndicatorTaskKey,
+  IndicatorTaskList,
+  IndicatorTaskStatus,
+  IndicatorTaskStatuses,
+} from './loader.ts';
 
 interface TaskRow {
   /** Matches the API's task key where the API judges the task. */
@@ -17,6 +22,10 @@ interface TaskGroup {
   id: string;
   title: string;
   tasks: readonly TaskRow[];
+}
+
+function sectionPath(section: IndicatorTaskKey) {
+  return (id: string) => indicatorSectionPath(id, section);
 }
 
 /** Every field a publisher completes, grouped as the publishing journey asks for them. */
@@ -37,8 +46,12 @@ const TASK_GROUPS: readonly TaskGroup[] = [
     id: 'metadata',
     title: 'Metadata',
     tasks: [
-      { key: 'name', title: 'Name', path: indicatorNamePath },
-      { key: 'definition-and-rationale', title: 'Definition and rationale' },
+      { key: 'name', title: 'Name', path: sectionPath('name') },
+      {
+        key: 'definition-and-rationale',
+        title: 'Definition and rationale',
+        path: sectionPath('definition-and-rationale'),
+      },
       { key: 'numerator', title: 'Numerator' },
       { key: 'denominator', title: 'Denominator' },
       { key: 'calculation', title: 'How the indicator was calculated' },

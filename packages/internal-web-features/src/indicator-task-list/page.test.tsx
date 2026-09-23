@@ -107,7 +107,23 @@ describe('IndicatorTaskListPage', () => {
   it('links only the tasks that can be worked on today', () => {
     renderPage();
 
-    expect(screen.getAllByRole('link').map((link) => link.textContent)).toEqual(['Name']);
+    expect(screen.getAllByRole('link').map((link) => link.textContent)).toEqual([
+      'Name',
+      'Definition and rationale',
+    ]);
+  });
+
+  it('links the definition and rationale to its page, with the status the API reports', () => {
+    renderPage({ tasks: { name: 'completed', 'definition-and-rationale': 'not_started' } });
+
+    const row = group('Metadata').getByRole('link', { name: 'Definition and rationale' });
+
+    expect(row.getAttribute('href')).toBe(
+      `/publish/indicators/${taskList.indicator.id}/definition-and-rationale`,
+    );
+    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
+      'Not started',
+    );
   });
 
   it('tells the publisher the sections can be completed in any order', () => {

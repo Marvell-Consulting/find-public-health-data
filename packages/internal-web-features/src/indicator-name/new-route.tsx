@@ -13,7 +13,7 @@ export const handle = backLinkHandle(DASHBOARD_PATH);
 export function NewIndicatorRoute() {
   const rejected = useActionData<IndicatorNameFailure | undefined>();
 
-  return <IndicatorNamePage fieldErrors={rejected?.fieldErrors} name={rejected?.name} />;
+  return <IndicatorNamePage fieldErrors={rejected?.fieldErrors} name={rejected?.values.name} />;
 }
 
 export default NewIndicatorRoute;

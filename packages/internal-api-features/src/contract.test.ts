@@ -151,7 +151,7 @@ describe('indicatorTaskListSchema', () => {
 
   it('refuses a task the API does not judge', () => {
     expect(
-      indicatorTaskListSchema.safeParse({ ...state, tasks: { polarity: 'completed' } }).success,
+      indicatorTaskListSchema.safeParse({ ...state, tasks: { 'not-a-task': 'completed' } }).success,
     ).toBe(false);
   });
 
