@@ -40,6 +40,11 @@
       "types": "./src/fake-auth-react-router-app.ts",
       "default": "./dist/fake-auth-react-router-app.js"
     },
+    "./page-url": {
+      "development": "./src/page-url.ts",
+      "types": "./src/page-url.ts",
+      "default": "./dist/page-url.js"
+    },
     "./react-router": {
       "development": "./src/react-router-app.ts",
       "types": "./src/react-router-app.ts",

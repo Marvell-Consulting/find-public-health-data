@@ -9,6 +9,7 @@ import {
 } from '@fphd/public-api-features/contract';
 import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
+import { pageSearch } from '@fphd/web-server/page-url';
 import { type LoaderFunctionArgs, redirect } from 'react-router';
 import { MAX_SELECTED_AREAS } from '../selection-limits.ts';
 import {
@@ -59,7 +60,7 @@ export async function loadIndicatorCsv(
   const detail = await api.get(apiPath`/api/indicators/${segment}`, indicatorDetailSchema);
   if (detail.slug !== segment) {
     throw redirect(
-      `${indicatorCsvPath(detail.slug, kind)}${url.search}`,
+      `${indicatorCsvPath(detail.slug, kind)}${pageSearch(url)}`,
       redirectStatus(segment, detail.slug),
     );
   }

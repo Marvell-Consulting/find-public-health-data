@@ -185,6 +185,12 @@ describe('loadIndicator', () => {
       'http://localhost/indicators/Indicator-108?as=E06000052',
       301,
     ],
+    [
+      "a client-side navigation's data request",
+      '108',
+      'http://localhost/indicators/108.data?as=E06000052&_routes=routes%2Findicator',
+      301,
+    ],
   ])(
     'redirects %s to the canonical slug, query string and all',
     async (_case, slug, url, status) => {

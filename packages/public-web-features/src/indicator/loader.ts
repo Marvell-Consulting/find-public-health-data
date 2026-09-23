@@ -16,6 +16,7 @@ import {
 } from '@fphd/public-api-features/contract';
 import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
+import { pageSearch } from '@fphd/web-server/page-url';
 import { type LoaderFunctionArgs, redirect } from 'react-router';
 import { loadGeographyOptions } from '../geography/loader.ts';
 import { MAX_SELECTED_AREAS, MAX_SELECTED_INDICATORS } from '../selection-limits.ts';
@@ -117,7 +118,7 @@ async function loadIndicatorData(
 
   if (routeDetail !== undefined && params.slug !== undefined && routeDetail.slug !== params.slug) {
     throw redirect(
-      `${indicatorPath(routeDetail.slug)}${url.search}`,
+      `${indicatorPath(routeDetail.slug)}${pageSearch(url)}`,
       redirectStatus(params.slug, routeDetail.slug),
     );
   }
