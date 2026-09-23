@@ -1,4 +1,4 @@
-import { addNotFoundHandler, createApiApp, requireJwtRole } from '@fphd/api-server';
+import { addFallbackHandlers, createApiApp, requireJwtRole } from '@fphd/api-server';
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import type { Repositories } from '@fphd/db';
 import { type InternalRepositories, internalApiRoutes } from '@fphd/internal-api-features';
@@ -31,6 +31,6 @@ export function createApp({
 
   app.use(internalApiRoutes({ repositories: internalRepositories, session }));
 
-  addNotFoundHandler(app);
+  addFallbackHandlers(app);
   return app;
 }

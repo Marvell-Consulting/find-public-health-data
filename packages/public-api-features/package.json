@@ -16,6 +16,11 @@
       "default": "./dist/contract.js"
     }
   },
+  "files": [
+    "dist",
+    "!dist/**/*.map",
+    "!dist/**/*.d.ts"
+  ],
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "typecheck": "tsc --noEmit"
@@ -23,6 +28,7 @@
   "dependencies": {
     "@fphd/config": "workspace:*",
     "@fphd/db": "workspace:*",
+    "@fphd/utils": "workspace:*",
     "express": "catalog:"
   },
   "devDependencies": {

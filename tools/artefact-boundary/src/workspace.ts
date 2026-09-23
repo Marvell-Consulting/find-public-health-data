@@ -7,6 +7,7 @@ export type WorkspacePackage = {
   name: string;
   dir: string;
   dependencies: string[];
+  devDependencies: string[];
 };
 
 export type WorkspaceDir = {
@@ -102,13 +103,19 @@ async function readManifest(dir: string): Promise<WorkspacePackage | null> {
   }
 
   if (typeof manifest !== 'object' || manifest === null) return null;
-  const { name, dependencies } = manifest as {
+  const { name, dependencies, devDependencies } = manifest as {
     name?: unknown;
     dependencies?: Record<string, unknown>;
+    devDependencies?: Record<string, unknown>;
   };
   if (typeof name !== 'string') return null;
 
-  return { name, dir, dependencies: Object.keys(dependencies ?? {}) };
+  return {
+    name,
+    dir,
+    dependencies: Object.keys(dependencies ?? {}),
+    devDependencies: Object.keys(devDependencies ?? {}),
+  };
 }
 
 /**
@@ -116,12 +123,16 @@ async function readManifest(dir: string): Promise<WorkspacePackage | null> {
  * would otherwise reach back to it. Only workspace packages are followed: a third-party dependency
  * cannot reach back into this repo.
  *
+ * A bundled entry follows devDependencies at every level: the bundler resolves anything linked in
+ * the workspace, whether or not `pnpm deploy --prod` ships it.
+ *
  * An unknown `entry` throws rather than returning nothing: an empty closure is indistinguishable
  * from a clean one, so a renamed app would silently stop being checked.
  */
 export function collectDependencyClosure(
   entry: string,
   packages: ReadonlyMap<string, WorkspacePackage>,
+  { bundled }: { bundled: boolean },
 ): string[] {
   if (!packages.has(entry)) {
     throw new Error(`${entry} is not a workspace package; it cannot be checked.`);
@@ -133,7 +144,11 @@ export function collectDependencyClosure(
   while (queue.length > 0) {
     const current = queue.pop();
     if (current === undefined) break;
-    for (const dependency of packages.get(current)?.dependencies ?? []) {
+    const pkg = packages.get(current);
+    const dependencies = bundled
+      ? [...(pkg?.dependencies ?? []), ...(pkg?.devDependencies ?? [])]
+      : (pkg?.dependencies ?? []);
+    for (const dependency of dependencies) {
       if (!packages.has(dependency) || reached.has(dependency)) continue;
       reached.add(dependency);
       queue.push(dependency);

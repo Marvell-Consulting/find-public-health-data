@@ -1,7 +1,7 @@
 import { data } from 'react-router';
 
 import { NotFoundPage } from './content-page.tsx';
-import { createDocumentMeta } from './document-title.ts';
+import { createDocumentMeta } from './document-title.tsx';
 
 export function loader() {
   return data(null, { status: 404 });

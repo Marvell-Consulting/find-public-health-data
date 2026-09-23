@@ -1,4 +1,4 @@
-"""The slug rule the seed export applies, mirroring @fphd/config/slug."""
+"""The slug rule the seed export applies, mirroring @fphd/utils/slug."""
 
 import unittest
 

@@ -1,4 +1,4 @@
-import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/config/slug';
+import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
 import { asc, desc, eq, sql } from 'drizzle-orm';
 import {
   check,

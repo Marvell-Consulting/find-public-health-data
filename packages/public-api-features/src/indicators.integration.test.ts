@@ -1,5 +1,4 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
-import { SLUG_PATTERN } from '@fphd/config/slug';
 import {
   createDb,
   createRepositories,
@@ -10,6 +9,7 @@ import {
 } from '@fphd/db';
 import { createOwnerClient } from '@fphd/db/operations';
 import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
+import { SLUG_PATTERN } from '@fphd/utils/slug';
 import express from 'express';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

@@ -107,8 +107,10 @@ jobs. A final `All checks pass` job aggregates them and is the single required s
 merging, so the required-check list does not need editing whenever a job is added — but a new job
 must be added to that job's `needs` list, or it gates nothing.
 
-Runs are triggered on every non-draft pull request (on open, on every push to the branch, and when a
-draft is marked ready for review) and on every push to `main`. **Draft pull requests run nothing.**
+Runs are triggered on every pull request (on open, on every push to the branch, on reopening, and
+when a draft is marked ready for review) and on every push to `main`. A draft pull request skips the
+e2e tests, the image builds and the web-changes check, so its `All checks pass` gate stays red until
+it is marked ready for review.
 
 `pnpm check` is the local equivalent for lint, typecheck, test and build. It runs `pnpm test`, so it
 covers all three test tiers — which means `pnpm check` needs the local database running
@@ -216,8 +218,8 @@ lands, is exempt from the scan; the mapped spec must still exist, since the entr
 exempts it.
 
 The `Web changes carry e2e changes` CI job covers the gap the route check cannot see: new behaviour
-on an existing page. A pull request that changes `apps/*-web`, `packages/*-web-features` or
-`packages/ui` without touching `e2e/` fails until it carries the `no-e2e-needed` label and a line in its body reading
+on an existing page. A pull request that changes `apps/*-web`, `packages/*-web-features`,
+`packages/ui`, `packages/utils`, `packages/web-server` or `packages/auth` without touching `e2e/` fails until it carries the `no-e2e-needed` label and a line in its body reading
 `No e2e needed: <reason>`. The job reads the label and body live rather than from the event that
 started the run, so adding them and re-running the failed job is enough. It is blunt by design — a
 copy change earns the label with a one-line reason — because the point is that the reviewer sees
@@ -569,4 +571,5 @@ Each package has a README describing its purpose and entry points:
 | [`@fphd/public-api-features`](packages/public-api-features/README.md) | The public API routes and their wire contract              |
 | [`@fphd/public-web-features`](packages/public-web-features/README.md) | The public site's pages and loaders                        |
 | [`@fphd/ui`](packages/ui/README.md)                              | Shared React components and styles                              |
+| [`@fphd/utils`](packages/utils/README.md)                        | Side-effect-free helpers shared by Node and the browser: slugs, short ids, indicator paths |
 | [`@fphd/web-server`](packages/web-server/README.md)              | The Node host for the web apps and their server-side plumbing   |

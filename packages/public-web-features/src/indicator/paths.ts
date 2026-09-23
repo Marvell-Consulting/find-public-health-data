@@ -1,10 +1,6 @@
-import { isShortId, SHORT_ID_PATTERN } from '@fphd/config/short-id';
-import { isReservedSlug, SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/config/slug';
-
-/** The public indicator page, addressed by the canonical slug the API reports. */
-export function indicatorPath(slug: string): string {
-  return `/indicators/${encodeURIComponent(slug)}`;
-}
+import { indicatorPath } from '@fphd/utils/indicator-path';
+import { isShortId, SHORT_ID_PATTERN } from '@fphd/utils/short-id';
+import { isReservedSlug, SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
 
 /** One of the page's server-rendered downloads, under the same address as the page. */
 export function indicatorCsvPath(slug: string, kind: 'table' | 'all-data'): string {

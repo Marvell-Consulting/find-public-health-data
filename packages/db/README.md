@@ -57,7 +57,7 @@ src/
   see the topics import's conditional upsert for the pattern.
 - **Repository functions**: pure, `db` first argument, one file per aggregate.
 - **Slugs**: `indicator_version.slug` is derived from the version's name by `slugify` in
-  `@fphd/config/slug`. An exclusion constraint,
+  `@fphd/utils/slug`. An exclusion constraint,
   `EXCLUDE USING gist (slug WITH =, indicator_id WITH <>)`, keeps a slug to one indicator for
   ever: versions of one indicator share it, two indicators may not, and a draft holds its
   slug until it is deleted. A draft is re-slugged on rename only until the indicator is first

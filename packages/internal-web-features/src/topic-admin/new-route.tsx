@@ -1,4 +1,4 @@
-import { backLinkHandle, createDocumentMeta } from '@fphd/ui';
+import { backLinkHandle, titleFromPage } from '@fphd/ui';
 import { useActionData } from 'react-router';
 import { createTopic, type SaveTopicFailure } from './loader.ts';
 import { NewTopicPage } from './pages.tsx';
@@ -6,7 +6,7 @@ import { TOPICS_ADMIN_PATH } from './paths.ts';
 
 export const action = createTopic;
 
-export const meta = createDocumentMeta('Add a topic');
+export const meta = titleFromPage;
 
 export const handle = backLinkHandle(TOPICS_ADMIN_PATH);
 

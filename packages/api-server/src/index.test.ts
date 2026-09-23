@@ -7,7 +7,7 @@ import { pino } from 'pino';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
-import { addNotFoundHandler, createApiApp, requireApiSession, requireJwtRole } from './index.ts';
+import { addFallbackHandlers, createApiApp, requireApiSession, requireJwtRole } from './index.ts';
 
 const logger = createLogger({ name: 'test-api', level: 'silent' });
 
@@ -38,7 +38,7 @@ describe('API server', () => {
 
   it('serves only the shared public route table', async () => {
     const app = createApiApp({ logger, serviceName: 'test-api' });
-    addNotFoundHandler(app);
+    addFallbackHandlers(app);
 
     const publicResponse = await request(app).get('/api');
     const internalResponse = await request(app).get('/api/internal');
@@ -61,7 +61,7 @@ describe('API server', () => {
       logger: pino({ name: 'test-api' }, destination),
       serviceName: 'test-api',
     });
-    addNotFoundHandler(app);
+    addFallbackHandlers(app);
 
     await request(app).get('/api');
     await request(app).get('/api/nowhere');
@@ -90,6 +90,76 @@ describe('API server', () => {
     await new Promise((resolve) => setImmediate(resolve));
 
     expect(lines[0]).toMatchObject({ req: { id: '019924a1-2c40-7000-8000-000000000001' } });
+  });
+});
+
+describe('addFallbackHandlers', () => {
+  function createAppLoggingTo(lines: Record<string, unknown>[]): Express {
+    const destination = new Writable({
+      write(chunk, _encoding, callback) {
+        lines.push(JSON.parse(String(chunk)));
+        callback();
+      },
+    });
+    const app = createApiApp({
+      logger: pino({ name: 'test-api' }, destination),
+      serviceName: 'test-api',
+    });
+
+    app.post('/api/echo', (request, response) => {
+      response.status(200).json(request.body);
+    });
+    app.get('/api/broken', async () => {
+      throw new Error('The repository failed');
+    });
+    app.get('/api/borrowed-type', async () => {
+      throw Object.assign(new Error('Not from body-parser'), { type: 'entity.parse.failed' });
+    });
+    addFallbackHandlers(app);
+
+    return app;
+  }
+
+  it('answers a thrown error with a JSON 500 and logs the error on the request line', async () => {
+    const lines: Record<string, unknown>[] = [];
+
+    const response = await request(createAppLoggingTo(lines)).get('/api/broken');
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ error: 'internal_error' });
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({
+      level: 50,
+      req: { id: response.get('X-Fphd-Request-Id') },
+      err: { message: 'The repository failed' },
+    });
+  });
+
+  it('refuses a body that is not JSON with a JSON 400', async () => {
+    const response = await request(createAppLoggingTo([]))
+      .post('/api/echo')
+      .set('Content-Type', 'application/json')
+      .send('{"name":');
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'invalid_json' });
+  });
+
+  it('answers a 500 for an error that only shares a body-parser type', async () => {
+    const response = await request(createAppLoggingTo([])).get('/api/borrowed-type');
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ error: 'internal_error' });
+  });
+
+  it('refuses a body over the size limit with a JSON 413', async () => {
+    const response = await request(createAppLoggingTo([]))
+      .post('/api/echo')
+      .send({ name: 'x'.repeat(200_000) });
+
+    expect(response.status).toBe(413);
+    expect(response.body).toEqual({ error: 'payload_too_large' });
   });
 });
 

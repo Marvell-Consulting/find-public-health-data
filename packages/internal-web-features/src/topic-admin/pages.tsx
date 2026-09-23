@@ -2,6 +2,7 @@ import type { TopicFieldErrors } from '@fphd/internal-api-features/contract';
 import {
   A,
   Button,
+  DocumentTitle,
   ErrorSummary,
   type FieldError,
   formatDate,
@@ -103,9 +104,12 @@ interface NewTopicPageProps {
 }
 
 export function NewTopicPage({ fieldErrors = {}, values = EMPTY_VALUES }: NewTopicPageProps) {
+  const errors = toErrorSummary(fieldErrors);
+
   return (
     <>
-      <ErrorSummary errors={toErrorSummary(fieldErrors)} />
+      <DocumentTitle hasErrors={errors.length > 0} pageTitle="Add a topic" />
+      <ErrorSummary errors={errors} />
       <PageIntro title="Add a topic">
         <TopicFields fieldErrors={fieldErrors} submitLabel="Create topic" values={values} />
         <p className="govuk-body">
@@ -129,14 +133,17 @@ export function EditTopicPage({
   topicId,
   values,
 }: EditTopicPageProps) {
+  const errors = toErrorSummary(fieldErrors);
+
   return (
     <>
+      <DocumentTitle hasErrors={errors.length > 0} pageTitle="Edit topic" />
       {notification === undefined ? null : (
         <NotificationBanner disableAutoFocus type="success">
           {notification}
         </NotificationBanner>
       )}
-      <ErrorSummary errors={toErrorSummary(fieldErrors)} />
+      <ErrorSummary errors={errors} />
       <PageIntro title="Edit topic">
         <TopicFields fieldErrors={fieldErrors} submitLabel="Save" values={values} />
         <p className="govuk-body">

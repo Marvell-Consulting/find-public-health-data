@@ -21,6 +21,12 @@
       "default": "./dist/testing.js"
     }
   },
+  "files": [
+    "dist",
+    "!dist/**/*.map",
+    "!dist/**/*.d.ts",
+    "!dist/testing.js"
+  ],
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "typecheck": "tsc --noEmit"
@@ -30,6 +36,7 @@
     "@fphd/auth": "workspace:*",
     "@fphd/config": "workspace:*",
     "@fphd/db": "workspace:*",
+    "@fphd/utils": "workspace:*",
     "drizzle-orm": "catalog:",
     "express": "catalog:"
   },

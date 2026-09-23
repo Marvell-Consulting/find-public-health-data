@@ -4,7 +4,7 @@ export { DASHBOARD_PATH, dashboardPath } from './dashboard/paths.ts';
 export { DashboardRoute } from './dashboard/route.tsx';
 export { loadIndicatorOverview } from './indicator-overview/loader.ts';
 export { IndicatorOverviewPage } from './indicator-overview/page.tsx';
-export { indicatorOverviewPath, publishedIndicatorPath } from './indicator-overview/paths.ts';
+export { indicatorOverviewPath } from './indicator-overview/paths.ts';
 export { IndicatorOverviewRoute } from './indicator-overview/route.tsx';
 export { ManageDataPage } from './manage-data/page.tsx';
 export { SignInLandingPage } from './sign-in/page.tsx';

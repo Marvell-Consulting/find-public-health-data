@@ -1,9 +1,9 @@
 import { A, GridColumn, GridRow, Tabs } from '@fphd/ui';
+import { indicatorPath } from '@fphd/utils/indicator-path';
 
 import { indicatorTaskListPath } from '../indicator-task-list/paths.ts';
 import { IndicatorHeading } from '../status-tag/indicator-heading.tsx';
 import type { IndicatorAdminDetail } from './loader.ts';
-import { publishedIndicatorPath } from './paths.ts';
 
 // A draft is edited from its task list; an indicator with a published version has a public page, draft or not.
 function Actions({ indicator }: { indicator: IndicatorAdminDetail }) {
@@ -20,7 +20,7 @@ function Actions({ indicator }: { indicator: IndicatorAdminDetail }) {
     indicator.publishedSlug === null
       ? undefined
       : {
-          href: publishedIndicatorPath(indicator.publishedSlug),
+          href: indicatorPath(indicator.publishedSlug),
           label: 'View published indicator',
         },
   ].filter((action) => action !== undefined);

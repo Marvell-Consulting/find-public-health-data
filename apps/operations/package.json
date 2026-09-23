@@ -4,6 +4,10 @@
   "private": true,
   "license": "MIT",
   "type": "module",
+  "files": [
+    "dist",
+    "!dist/**/*.map"
+  ],
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "cli": "tsx --env-file-if-exists=../../.env --conditions=development src/cli.ts",

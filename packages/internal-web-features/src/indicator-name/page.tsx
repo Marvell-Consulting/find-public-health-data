@@ -1,5 +1,6 @@
 import {
   Button,
+  DocumentTitle,
   ErrorMessage,
   ErrorSummary,
   type FieldError,
@@ -17,7 +18,7 @@ const NAME_FIELD = 'name';
 const HINT_ID = `${NAME_FIELD}-hint`;
 const ERROR_ID = `${NAME_FIELD}-error`;
 
-export const INDICATOR_NAME_HEADING = 'What is the name of the indicator?';
+const INDICATOR_NAME_HEADING = 'What is the name of the indicator?';
 
 function toErrorSummary(fieldErrors: IndicatorFieldErrors): FieldError[] {
   const message = fieldErrors[NAME_FIELD];
@@ -34,11 +35,13 @@ interface IndicatorNamePageProps {
 // form group is assembled here rather than taken whole from TextInput.
 export function IndicatorNamePage({ fieldErrors = {}, name = '' }: IndicatorNamePageProps) {
   const error = fieldErrors[NAME_FIELD];
+  const errors = toErrorSummary(fieldErrors);
   const inputId = fieldInputId(NAME_FIELD);
 
   return (
     <>
-      <ErrorSummary errors={toErrorSummary(fieldErrors)} />
+      <DocumentTitle hasErrors={errors.length > 0} pageTitle={INDICATOR_NAME_HEADING} />
+      <ErrorSummary errors={errors} />
       <GridRow>
         <GridColumn width="two-thirds">
           {/* A plain form posting back to its own page, so it works without JavaScript. */}

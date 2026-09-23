@@ -14,13 +14,14 @@ import {
   MAX_INDICATOR_QUERY_LENGTH,
   pickAreaCodes,
 } from '@fphd/public-api-features/contract';
+import { indicatorPath } from '@fphd/utils/indicator-path';
 import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import { pageSearch } from '@fphd/web-server/page-url';
 import { type LoaderFunctionArgs, redirect } from 'react-router';
 import { loadGeographyOptions } from '../geography/loader.ts';
 import { MAX_SELECTED_AREAS, MAX_SELECTED_INDICATORS } from '../selection-limits.ts';
-import { indicatorPath, isIndicatorSegment, redirectStatus } from './paths.ts';
+import { isIndicatorSegment, redirectStatus } from './paths.ts';
 
 export type {
   AreaGroup,

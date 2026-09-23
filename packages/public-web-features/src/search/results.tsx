@@ -1,7 +1,7 @@
 import { Button, Checkboxes, ErrorMessage, InsetText, SummaryList } from '@fphd/ui';
+import { indicatorPath } from '@fphd/utils/indicator-path';
 import { useEffect, useState } from 'react';
 import { Form, Link } from 'react-router';
-import { indicatorPath } from '../indicator/paths.ts';
 import { MAX_SELECTED_INDICATORS } from '../selection-limits.ts';
 import type { IndicatorSearchResult, IndicatorSearchRow } from './loader.ts';
 

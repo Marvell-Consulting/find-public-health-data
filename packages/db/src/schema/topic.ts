@@ -1,4 +1,5 @@
-import { SLUG_PATTERN, z } from '@fphd/config';
+import { z } from '@fphd/config';
+import { SLUG_PATTERN } from '@fphd/utils/slug';
 import { index, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
 
 import { timestamps, uuidPrimaryKey } from './helpers.ts';

@@ -1,5 +1,5 @@
-import { slugify, slugProblem } from '@fphd/config/slug';
 import { type Database, schema } from '@fphd/db';
+import { slugify, slugProblem } from '@fphd/utils/slug';
 import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 

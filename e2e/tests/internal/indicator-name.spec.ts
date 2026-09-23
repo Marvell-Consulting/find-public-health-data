@@ -35,6 +35,7 @@ test('asks for a name when Continue is selected with the box empty', async ({ pa
   await page.getByRole('button', { name: 'Continue' }).click();
 
   await expect(page).toHaveURL('/publish/indicators/new');
+  await expect(page).toHaveTitle(/^Error: /);
   const summary = page.getByRole('alert');
   await expect(summary.getByRole('link')).toHaveText(['Enter the name of the indicator']);
 
@@ -73,6 +74,7 @@ test('refuses a name another indicator already holds', async ({ page }) => {
 
   await expect(page).toHaveURL('/publish/indicators/new');
   await expect(page.getByRole('alert')).toContainText('An indicator with this name already exists');
+  await expect(page).toHaveTitle(/^Error: /);
   await expect(page.getByLabel('What is the name of the indicator?')).toHaveValue(name);
 });
 

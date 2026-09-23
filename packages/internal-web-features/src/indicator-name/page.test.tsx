@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { serviceName } from '@fphd/ui';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -54,6 +55,20 @@ describe('IndicatorNamePage', () => {
 
     expect(nameField().value).toBe('');
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('titles the document after the question', () => {
+    renderPage();
+
+    expect(document.title).toBe(`What is the name of the indicator? - ${serviceName} - GOV.UK`);
+  });
+
+  it('starts the title with "Error: " when the submission is rejected', () => {
+    renderPage({ fieldErrors: { name: 'Enter the name of the indicator' }, name: '' });
+
+    expect(document.title).toBe(
+      `Error: What is the name of the indicator? - ${serviceName} - GOV.UK`,
+    );
   });
 
   it('summarises a rejected submission and links to the field', () => {

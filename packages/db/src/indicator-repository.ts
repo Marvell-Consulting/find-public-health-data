@@ -1,5 +1,5 @@
-import { isShortId, SHORT_ID_PATTERN } from '@fphd/config/short-id';
-import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/config/slug';
+import { isShortId, SHORT_ID_PATTERN } from '@fphd/utils/short-id';
+import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
 import {
   and,
   asc,
