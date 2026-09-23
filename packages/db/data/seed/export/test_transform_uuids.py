@@ -107,5 +107,24 @@ class PublishedCsvTest(unittest.TestCase):
                 self.assertTrue(result.read().endswith(',,""\r\n'))
 
 
+class ForeignKeyIndexesTest(unittest.TestCase):
+    def test_maps_each_foreign_key_column_to_its_table(self):
+        self.assertEqual(
+            transform["foreign_key_indexes"](
+                "observation_note", ["id", "note_type_id", "observation_id"]
+            ),
+            {1: "note_type", 2: "observation"},
+        )
+
+    def test_allows_the_identity_only_indicator_row(self):
+        self.assertEqual(transform["foreign_key_indexes"]("indicator", ["id", "created_at"]), {})
+
+    def test_refuses_any_other_table_missing_a_foreign_key(self):
+        with self.assertRaises(ValueError) as raised:
+            transform["foreign_key_indexes"]("observation_note", ["id", "observation_id"])
+
+        self.assertIn("note_type_id", str(raised.exception))
+
+
 if __name__ == "__main__":
     unittest.main()

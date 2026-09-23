@@ -122,6 +122,16 @@ def deterministic_uuid7(table, old_id):
     return f"{hexed[:8]}-{hexed[8:12]}-{hexed[12:16]}-{hexed[16:20]}-{hexed[20:]}"
 
 
+def foreign_key_indexes(table, header):
+    """Map the position of each of the table's foreign-key columns to the table it references."""
+    fks = FOREIGN_KEYS.get(table, {})
+    # Only the published export's indicator row, which holds identity columns alone, may lack them.
+    missing = [col for col in fks if col not in header]
+    if missing and table != "indicator":
+        raise ValueError(f"{table} is missing foreign-key columns: {', '.join(missing)}")
+    return {header.index(col): ref for col, ref in fks.items() if col in header}
+
+
 def normalize_published_config(value):
     """The benchmark clone stores some Pholio configs as JSON strings."""
     if not value or value == NULL_MARKER:
@@ -169,7 +179,6 @@ def main(seed_dir, deterministic=False):
     for table in tables:
         path = os.path.join(seed_dir, f"{table}.csv.gz")
         tmp = f"{path}.tmp"
-        fks = FOREIGN_KEYS.get(table, {})
         with gzip.open(path, "rt", newline="") as src, gzip.open(tmp, "wt", newline="") as dst:
             reader, writer = csv.reader(src), csv.writer(dst)
             header = next(reader)
@@ -179,9 +188,7 @@ def main(seed_dir, deterministic=False):
                 if deterministic and table == "indicator_version"
                 else None
             )
-            # Only the columns the file carries: the published export's indicator row
-            # holds identity columns alone, the Pholio-shaped one holds the lot.
-            fk_indexes = {header.index(col): ref for col, ref in fks.items() if col in header}
+            fk_indexes = foreign_key_indexes(table, header)
             if table == "indicator":
                 writer.writerow([*header[: id_index + 1], "short_id", *header[id_index + 1 :]])
             else:
