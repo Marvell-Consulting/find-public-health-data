@@ -8,7 +8,7 @@ import {
   startServer,
 } from '@fphd/express';
 import type { Logger } from '@fphd/logger';
-import type { Express, RequestHandler } from 'express';
+import type { Express, RequestHandler, Response } from 'express';
 import { json } from 'express';
 
 export function createApiApp({
@@ -41,6 +41,28 @@ export function addNotFoundHandler(app: Express) {
   });
 }
 
+/** Who a request is acting as, for a handler that writes rows carrying the actor. */
+export interface ApiSession {
+  roles: readonly string[];
+  sub: string;
+}
+
+// Express types every local as `any`, so both ends of the one key we set go through this view.
+function sessionLocals(response: Response): { apiSession?: ApiSession } {
+  return response.locals;
+}
+
+/** The session `requireJwtRole` verified; only a handler mounted behind it can ask for it. */
+export function requireApiSession(response: Response): ApiSession {
+  const session = sessionLocals(response).apiSession;
+
+  if (session === undefined) {
+    throw new Error('requireApiSession called outside a route guarded by requireJwtRole');
+  }
+
+  return session;
+}
+
 export function requireJwtRole(verifier: JwtSessionVerifier, role: string): RequestHandler {
   return async (request, response, next) => {
     const token = verifier.readToken(request.headers.cookie ?? null);
@@ -57,6 +79,8 @@ export function requireJwtRole(verifier: JwtSessionVerifier, role: string): Requ
         response.status(403).json({ error: 'forbidden' });
         return;
       }
+
+      sessionLocals(response).apiSession = { roles: session.roles, sub: session.sub };
 
       next();
     } catch (error) {

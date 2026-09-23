@@ -144,6 +144,8 @@ export type CreateDraftFromPublishedResult =
 const UNIQUE_VIOLATION = '23505';
 // The slug exclusion constraint: another indicator already holds the slug this name yields.
 const EXCLUSION_VIOLATION = '23P01';
+// Scopes the slug locks within the two-key advisory lock space; no other lock uses this first key.
+export const SLUG_LOCK_NAMESPACE = 0x736c7567; // 'slug'
 
 /** Drizzle wraps the driver error, so the SQLSTATE is on a `cause` rather than the error thrown. */
 function hasSqlState(error: unknown, sqlState: string): boolean {
@@ -176,8 +178,12 @@ export async function createIndicatorDraft(
   attributes: NewIndicatorDraftAttributes,
   actor: string,
 ): Promise<CreateIndicatorDraftResult> {
+  const slug = draftSlug(attributes.name);
+
   try {
     return await db.transaction(async (tx) => {
+      await lockSlugs(tx, [slug]);
+
       const [identity] = await tx
         .insert(indicator)
         .values({})
@@ -189,7 +195,7 @@ export async function createIndicatorDraft(
         .insert(indicatorVersion)
         .values({
           ...attributes,
-          slug: draftSlug(attributes.name),
+          slug,
           indicatorId: identity.id,
           status: 'draft',
           createdBy: actor,
@@ -230,6 +236,11 @@ export async function updateIndicatorDraft(
       // The name is checked whether or not the slug it yields is used.
       const slug = attributes.name === undefined ? undefined : draftSlug(attributes.name);
       const renamed = slug === undefined || (await isPublished(tx, indicatorId)) ? {} : { slug };
+
+      // The slug left behind is held too, or two renames swapping slugs deadlock.
+      if ('slug' in renamed)
+        await lockSlugs(tx, [await draftSlugOf(tx, indicatorId), renamed.slug]);
+
       const [draft] = await tx
         .update(indicatorVersion)
         .set({ ...attributes, ...renamed, updatedAt: sql`now()`, updatedBy: actor })
@@ -315,6 +326,30 @@ export async function createDraftFromPublished(
 }
 
 type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
+
+/**
+ * Holds slugs until the transaction ends. Two writers of one slug otherwise each wait on the
+ * other's exclusion check and deadlock; serialised, the later one fails the constraint instead.
+ * Taken in one order, so two writers wanting the same pair cannot deadlock on the locks.
+ */
+async function lockSlugs(tx: Transaction, slugs: readonly (string | undefined)[]): Promise<void> {
+  const held = [...new Set(slugs)].filter((slug) => slug !== undefined).sort();
+
+  for (const slug of held) {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(${SLUG_LOCK_NAMESPACE}, hashtext(${slug}))`);
+  }
+}
+
+async function draftSlugOf(tx: Transaction, indicatorId: string): Promise<string | undefined> {
+  const [draft] = await tx
+    .select({ slug: indicatorVersion.slug })
+    .from(indicatorVersion)
+    .where(
+      and(eq(indicatorVersion.indicatorId, indicatorId), eq(indicatorVersion.status, 'draft')),
+    );
+
+  return draft?.slug;
+}
 
 async function isPublished(tx: Transaction, indicatorId: string): Promise<boolean> {
   const [published] = await tx

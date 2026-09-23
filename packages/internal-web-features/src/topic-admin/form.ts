@@ -2,6 +2,7 @@ import {
   type TopicFieldErrors,
   type TopicUpdate,
   toFieldErrors,
+  topicFieldSchema,
   topicUpdateSchema,
 } from '@fphd/internal-api-features/contract';
 
@@ -33,5 +34,5 @@ export function parseTopicForm(formData: FormData): TopicFormResult {
 
   return result.success
     ? { ok: true, values: result.data }
-    : { ok: false, fieldErrors: toFieldErrors(result.error) };
+    : { ok: false, fieldErrors: toFieldErrors(result.error, topicFieldSchema.options) };
 }

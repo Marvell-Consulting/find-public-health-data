@@ -1,5 +1,6 @@
-import { A, formatDate, GridColumn, GridRow, Pagination, Table } from '@fphd/ui';
+import { A, Button, formatDate, GridColumn, GridRow, Pagination, Table } from '@fphd/ui';
 
+import { NEW_INDICATOR_PATH } from '../indicator-name/paths.ts';
 import { indicatorOverviewPath } from '../indicator-overview/paths.ts';
 import type { IndicatorAdminSummary } from './loader.ts';
 import { dashboardPath } from './paths.ts';
@@ -24,6 +25,7 @@ export function DashboardPage({ indicators, page, totalPages }: DashboardPagePro
     <GridRow>
       <GridColumn width="full">
         <h1 className="govuk-heading-xl">Indicators</h1>
+        <Button href={NEW_INDICATOR_PATH}>Create new indicator</Button>
         {indicators.length === 0 ? (
           <p className="govuk-body">There are no indicators yet.</p>
         ) : (

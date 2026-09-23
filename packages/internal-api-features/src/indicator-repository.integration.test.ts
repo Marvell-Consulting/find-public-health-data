@@ -17,6 +17,7 @@ import {
   createIndicatorDraft,
   getIndicatorById,
   listIndicatorsPage,
+  SLUG_LOCK_NAMESPACE,
   updateIndicatorDraft,
 } from './indicator-repository.ts';
 
@@ -162,6 +163,40 @@ async function topicIdsOf(versionId: string): Promise<string[]> {
   return rows.map(({ topicId }) => topicId).sort();
 }
 
+type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
+
+/** Sessions in this test's database waiting on a slug lock. */
+async function slugLockWaiters(): Promise<number> {
+  const [row] = (await db.execute(sql`
+    SELECT count(*)::int AS waiting FROM pg_locks
+    WHERE locktype = 'advisory' AND NOT granted AND classid = ${SLUG_LOCK_NAMESPACE}::oid
+      AND database = (SELECT oid FROM pg_database WHERE datname = current_database())
+  `)) as unknown as { waiting: number }[];
+  return row?.waiting ?? 0;
+}
+
+/**
+ * Starts `write` while another transaction holds the slug's lock, having done `hold` first,
+ * and answers what the write returns once that transaction commits. The write must be seen
+ * waiting on the lock, so a write that skips it fails here rather than racing.
+ */
+async function writeWhileSlugHeld<Result>(
+  slug: string,
+  write: () => Promise<Result>,
+  hold: (tx: Transaction) => Promise<unknown> = async () => {},
+): Promise<Result> {
+  // Wrapped, or the transaction would await the write that is waiting for it to commit.
+  const { pending } = await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(${SLUG_LOCK_NAMESPACE}, hashtext(${slug}))`);
+    await hold(tx);
+    const pending = write();
+    await expect.poll(slugLockWaiters).toBe(1);
+    return { pending };
+  });
+
+  return pending;
+}
+
 describe('listIndicatorsPage', () => {
   it('pages through every indicator, most recently edited first', async () => {
     const expected = await idsNewestFirst();
@@ -277,6 +312,35 @@ describe('createIndicatorDraft', () => {
       reason: 'slug_taken',
     });
   });
+
+  it('waits for another writer of the slug, then creates', async () => {
+    const result = await writeWhileSlugHeld('a-held-name', () =>
+      createIndicatorDraft(db, { name: 'A held name' }, ACTOR),
+    );
+
+    expect(result).toMatchObject({ ok: true });
+  });
+
+  it('refuses a name whose slug a writer it waited for has taken', async () => {
+    const result = await writeWhileSlugHeld(
+      'a-name-created-twice',
+      () => createIndicatorDraft(db, { name: 'A name created twice' }, ACTOR),
+      async (tx) => {
+        const [identity] = await tx.insert(indicator).values({}).returning({ id: indicator.id });
+        if (!identity) throw new Error('inserted no indicator');
+        await tx.insert(indicatorVersion).values({
+          indicatorId: identity.id,
+          status: 'draft',
+          name: 'A name created twice',
+          slug: 'a-name-created-twice',
+          createdBy: ACTOR,
+          updatedBy: ACTOR,
+        });
+      },
+    );
+
+    expect(result).toEqual({ ok: false, reason: 'slug_taken' });
+  });
 });
 
 describe('updateIndicatorDraft', () => {
@@ -351,6 +415,65 @@ describe('updateIndicatorDraft', () => {
     await expect(
       updateIndicatorDraft(db, created.indicatorId, { name: 'An occupied name' }, {}, ACTOR),
     ).resolves.toEqual({ ok: false, reason: 'slug_taken' });
+  });
+
+  it('refuses a rename onto a slug a writer it waited for has taken', async () => {
+    const first = await newDraft('First of two renames');
+    const second = await newDraft('Second of two renames');
+
+    const result = await writeWhileSlugHeld(
+      'a-name-both-want',
+      () => updateIndicatorDraft(db, second.indicatorId, { name: 'A name both want' }, {}, ACTOR),
+      (tx) =>
+        tx
+          .update(indicatorVersion)
+          .set({ name: 'A name both want', slug: 'a-name-both-want' })
+          .where(eq(indicatorVersion.id, first.versionId)),
+    );
+
+    expect(result).toEqual({ ok: false, reason: 'slug_taken' });
+  });
+
+  // Two renames swapping slugs each wait on the other's exclusion check unless the slug a
+  // rename leaves is held as well as the one it takes.
+  it('waits for another writer of the slug it leaves, then renames', async () => {
+    const created = await newDraft('A name being left');
+
+    const result = await writeWhileSlugHeld('a-name-being-left', () =>
+      updateIndicatorDraft(db, created.indicatorId, { name: 'A name moved to' }, {}, ACTOR),
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(await slugOf(created.versionId)).toBe('a-name-moved-to');
+  });
+
+  it('leaves the memberships alone when the update names none', async () => {
+    const created = await newDraft('Keeps its links');
+    const [topic] = await db.select({ id: schema.topic.id }).from(schema.topic).limit(1);
+    const [classified] = await db.select({ id: classification.id }).from(classification).limit(1);
+    if (!topic || !classified) throw new Error('The seed holds no topics or classifications');
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      {},
+      { topicIds: [topic.id], classificationIds: [classified.id] },
+      ACTOR,
+    );
+
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      { name: 'Keeps its links renamed' },
+      {},
+      ACTOR,
+    );
+
+    expect(await topicIdsOf(created.versionId)).toEqual([topic.id]);
+    const classifications = await db
+      .select({ id: indicatorClassification.classificationId })
+      .from(indicatorClassification)
+      .where(eq(indicatorClassification.indicatorVersionId, created.versionId));
+    expect(classifications).toEqual([{ id: classified.id }]);
   });
 
   it('refuses an indicator with no draft', async () => {

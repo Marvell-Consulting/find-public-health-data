@@ -1,4 +1,4 @@
-import { SLUG_PATTERN } from '@fphd/config/slug';
+import { SLUG_PATTERN, type SlugProblem, slugProblem } from '@fphd/config/slug';
 import { z } from '@fphd/config/zod';
 
 /**
@@ -41,15 +41,24 @@ export const topicFieldSchema = z.enum(['title', 'slug', 'description']);
 
 export const topicFieldErrorsSchema = z.partialRecord(topicFieldSchema, z.string());
 
-/** One message per field: a control shows one error even when a value breaks two rules. */
-export function toFieldErrors(error: z.ZodError): TopicFieldErrors {
-  const fieldErrors: TopicFieldErrors = {};
+/**
+ * One message per field: a control shows one error even when a value breaks two rules.
+ * `fields` is the contract's own list, so the caller gets those keys and nothing else —
+ * an issue on anything the form does not show is dropped rather than sent as a field error.
+ */
+export function toFieldErrors<Field extends string>(
+  error: z.ZodError,
+  fields: readonly Field[],
+): Partial<Record<Field, string>> {
+  const known = new Set<string>(fields);
+  const isField = (value: unknown): value is Field => typeof value === 'string' && known.has(value);
+  const fieldErrors: Partial<Record<Field, string>> = {};
 
   for (const issue of error.issues) {
     const field = issue.path[0];
 
-    if (typeof field === 'string' && !Object.hasOwn(fieldErrors, field)) {
-      Object.assign(fieldErrors, { [field]: issue.message });
+    if (isField(field) && !Object.hasOwn(fieldErrors, field)) {
+      fieldErrors[field] = issue.message;
     }
   }
 
@@ -114,7 +123,58 @@ export const indicatorAdminDetailSchema = z.object({
   updatedAt: z.iso.datetime(),
 });
 
+/** Why the slug rule refuses a name, in the words the publisher reads. */
+const SLUG_PROBLEM_MESSAGES: Record<SlugProblem, string> = {
+  digits: 'Enter a name that is not only numbers',
+  empty: 'Enter a name that includes letters or numbers',
+  reserved: 'Enter a different name, this one is reserved for the service',
+};
+
+/**
+ * The one answer the name page asks for, whether it starts an indicator or renames a draft.
+ * The name carries the indicator's public address, so it is held to the slug rule here
+ * rather than at the write, where a name that yields no slug is a bug.
+ */
+export const indicatorNameSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, 'Enter the name of the indicator')
+    .max(300, 'Indicator name must be 300 characters or fewer')
+    .superRefine((name, ctx) => {
+      const problem = slugProblem(name);
+
+      if (problem !== undefined) {
+        ctx.addIssue({ code: 'custom', message: SLUG_PROBLEM_MESSAGES[problem] });
+      }
+    }),
+});
+
+export const indicatorFieldSchema = z.enum(['name']);
+
+export const indicatorFieldErrorsSchema = z.partialRecord(indicatorFieldSchema, z.string());
+
+/** A created or renamed indicator reads the same as one fetched by id. */
+export const indicatorCreateResponseSchema = indicatorAdminDetailSchema;
+
+export const indicatorCreateErrorSchema = z.object({
+  error: z.enum(['validation_failed', 'slug_taken']),
+  fieldErrors: indicatorFieldErrorsSchema.optional(),
+});
+
+/** The 400 and 409 answers; a missing indicator or draft is a 404, which the client throws. */
+export const indicatorUpdateErrorSchema = z.object({
+  error: z.enum(['invalid_id', 'validation_failed', 'slug_taken']),
+  fieldErrors: indicatorFieldErrorsSchema.optional(),
+});
+
 export type IndicatorAdminSummary = z.infer<typeof indicatorAdminSummarySchema>;
 export type IndicatorAdminPage = z.infer<typeof indicatorAdminPageSchema>;
 export type IndicatorStatus = z.infer<typeof indicatorStatusSchema>;
 export type IndicatorAdminDetail = z.infer<typeof indicatorAdminDetailSchema>;
+export type IndicatorName = z.infer<typeof indicatorNameSchema>;
+export type IndicatorField = z.infer<typeof indicatorFieldSchema>;
+export type IndicatorFieldErrors = z.infer<typeof indicatorFieldErrorsSchema>;
+export type IndicatorCreateResponse = z.infer<typeof indicatorCreateResponseSchema>;
+export type IndicatorCreateError = z.infer<typeof indicatorCreateErrorSchema>;
+export type IndicatorUpdateError = z.infer<typeof indicatorUpdateErrorSchema>;

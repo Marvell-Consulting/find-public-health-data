@@ -60,6 +60,14 @@ describe('DashboardPage', () => {
     expect(screen.getByText('5 Aug 2026').getAttribute('datetime')).toBe(indicator.updatedAt);
   });
 
+  it('starts the create-indicator journey', () => {
+    renderPage();
+
+    expect(screen.getByRole('button', { name: 'Create new indicator' }).getAttribute('href')).toBe(
+      '/publish/indicators/new',
+    );
+  });
+
   it('says so when there are no indicators', () => {
     renderPage({ indicators: [] });
 

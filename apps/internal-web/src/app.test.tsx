@@ -143,6 +143,8 @@ describe('the role-gated route tables', () => {
     expect(publisher?.children?.map((child) => child.path)).toEqual([
       'dashboard',
       'dashboard/indicators/:id',
+      'publish/indicators/new',
+      'publish/indicators/:id/name',
     ]);
   });
 
