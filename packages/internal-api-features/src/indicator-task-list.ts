@@ -12,7 +12,7 @@ export interface IndicatorTaskListSource {
   draft: IndicatorTaskListDraft;
 }
 
-/** Complete once every answer holds text; a draft imported from Fingertips may hold only some. */
+/** Complete once every answer holds text. */
 function answered(...answers: readonly (string | null)[]): IndicatorTaskStatus {
   return answers.every((answer) => answer !== null && answer.trim() !== '')
     ? 'completed'
