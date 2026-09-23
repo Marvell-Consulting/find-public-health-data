@@ -1,7 +1,7 @@
 # Seed data
 
-Real Pholio data loaded as gzipped CSVs by `pnpm db:seed-dummy-data`. The original ten-indicator
-snapshot came from the canonical bridge/registry migration; the three prototype showcase
+Real Pholio data loaded as gzipped CSVs by `pnpm db:seed-dummy-data`. The nine Pholio
+indicators came from the canonical bridge/registry migration; the three prototype showcase
 additions come from the public Fingertips API and are imported through local Postgres.
 
 ## What is in it
@@ -28,7 +28,7 @@ types) are complete. Areas, observations and bridge rows contain:
 
 - **6,544 current areas**: England, 9 statistical regions, current local authorities,
   6,168 GP practices, 42 integrated care boards and 7 NHS regions.
-- The original ten indicators retain their existing focused date window. The prototype
+- The nine Pholio indicators retain their existing focused date window. The prototype
   additions include their full published trend for the geographies above.
 
 That yields 433,678 observations, 657,869 bridge rows and 67,978 observation notes.

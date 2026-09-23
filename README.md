@@ -325,7 +325,7 @@ The dev scripts start the database but deliberately do not migrate it: applying 
 something that should happen as a side effect of running the apps. So a first run — or any run after
 `docker compose down -v` — needs the command above before the pages have data.
 
-The seed is real Pholio data for 13 indicators and the prototype's geography catalogue,
+The seed is real Pholio data for 12 indicators and the prototype's geography catalogue,
 committed as gzipped CSVs — see `packages/db/data/seed/README.md` for what is in it and
 how to regenerate it.
 

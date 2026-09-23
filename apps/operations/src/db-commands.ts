@@ -153,7 +153,7 @@ export async function importPublishedSnapshot({
       if (Number(uneven?.count) !== 0) {
         throw new Error('Published snapshot does not hold one published version per indicator');
       }
-      // The old 13-indicator seed's planner statistics would give the full-data
+      // The dummy seed's planner statistics would give the full-data
       // read-model rebuild a misleading plan. Analyze before those large queries.
       for (const table of SEED_TABLES) await tx.unsafe(`ANALYZE "${table}"`);
       await rebuildReadModelTables(tx);

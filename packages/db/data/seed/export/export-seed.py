@@ -8,7 +8,7 @@ Run on the benchmark VM (needs pyodbc + ODBC Driver 18):
 
 then copy the resulting *.csv.gz into packages/db/data/seed/.
 
-The subset: 10 indicators chosen for diverse value types and dimension shapes,
+The subset: 9 indicators chosen for diverse value types and dimension shapes,
 observations restricted to core administrative geographies (England, statistical
 regions, counties, upper- and lower-tier authorities) from 2015 onwards (2021+ for
 the large resident-population indicator). Reference/registry tables export in full.
@@ -23,7 +23,7 @@ from datetime import date, datetime
 
 import pyodbc
 
-INDICATORS = [108, 40501, 90851, 92026, 92033, 92443, 92708, 93283, 93622, 94194]
+INDICATORS = [108, 40501, 90851, 92026, 92033, 92443, 92708, 93622, 94194]
 AREA_TYPES = [6, 15, 160, 170, 180]
 YEAR_FLOOR_DEFAULT = "2015-01-01"
 YEAR_FLOORS = {92708: "2021-01-01"}
