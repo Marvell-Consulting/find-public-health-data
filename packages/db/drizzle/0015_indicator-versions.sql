@@ -34,7 +34,8 @@ CREATE TABLE "indicator_version" (
 	"updated_by" text NOT NULL,
 	CONSTRAINT "indicator_version_ci_confidence_level_check" CHECK ("indicator_version"."ci_confidence_level" IN ('95', '99.8', 'both')),
 	CONSTRAINT "indicator_version_status_check" CHECK ("indicator_version"."status" IN ('draft', 'published')),
-	CONSTRAINT "indicator_version_published_at_check" CHECK (("indicator_version"."status" = 'published') = ("indicator_version"."published_at" IS NOT NULL))
+	CONSTRAINT "indicator_version_published_at_check" CHECK (("indicator_version"."status" = 'published') = ("indicator_version"."published_at" IS NOT NULL)),
+	CONSTRAINT "indicator_version_slug_check" CHECK ("indicator_version"."slug" ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND "indicator_version"."slug" !~ '^[0-9]+$' AND length("indicator_version"."slug") <= 200)
 );
 --> statement-breakpoint
 ALTER TABLE "indicator_metadata" DISABLE ROW LEVEL SECURITY;--> statement-breakpoint

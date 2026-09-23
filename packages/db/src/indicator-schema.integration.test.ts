@@ -1,4 +1,5 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
+import { SLUG_MAX_LENGTH } from '@fphd/config/slug';
 import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -194,6 +195,27 @@ describe('indicator_version', () => {
     await db.delete(indicatorVersion).where(eq(indicatorVersion.id, draft?.id ?? ''));
 
     await expect(addVersion(other, 'draft', { slug: 'a-released-slug' })).resolves.toHaveLength(1);
+  });
+
+  it.each([
+    ['digits only, which reads as a short id', '90366'],
+    ['in upper case', 'Life-expectancy'],
+    ['with a space', 'life expectancy'],
+    ['longer than the limit', 'a'.repeat(SLUG_MAX_LENGTH + 1)],
+  ])('refuses a slug %s', async (_, slug) => {
+    const indicatorId = await newIndicatorId();
+
+    await expect(addVersion(indicatorId, 'draft', { slug })).rejects.toMatchObject({
+      cause: { code: CHECK_VIOLATION },
+    });
+  });
+
+  it('accepts a slug at the length limit', async () => {
+    const indicatorId = await newIndicatorId();
+
+    await expect(
+      addVersion(indicatorId, 'draft', { slug: 'a'.repeat(SLUG_MAX_LENGTH) }),
+    ).resolves.toHaveLength(1);
   });
 
   // Raw SQL because the insert type no longer lets a caller omit the slug.

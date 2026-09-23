@@ -1506,6 +1506,10 @@
         "indicator_version_published_at_check": {
           "name": "indicator_version_published_at_check",
           "value": "(\"indicator_version\".\"status\" = 'published') = (\"indicator_version\".\"published_at\" IS NOT NULL)"
+        },
+        "indicator_version_slug_check": {
+          "name": "indicator_version_slug_check",
+          "value": "\"indicator_version\".\"slug\" ~ '^[a-z0-9]+(-[a-z0-9]+)*$' AND \"indicator_version\".\"slug\" !~ '^[0-9]+$' AND length(\"indicator_version\".\"slug\") <= 200"
         }
       },
       "isRLSEnabled": false

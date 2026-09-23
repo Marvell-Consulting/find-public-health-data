@@ -1,3 +1,4 @@
+import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/config/slug';
 import { asc, desc, eq, sql } from 'drizzle-orm';
 import {
   check,
@@ -104,6 +105,11 @@ export const indicatorVersion = pgTable(
     check(
       'indicator_version_published_at_check',
       sql`(${t.status} = 'published') = (${t.publishedAt} IS NOT NULL)`,
+    ),
+    // The shape slugify yields and a short id cannot take; reserved words are checked by the app.
+    check(
+      'indicator_version_slug_check',
+      sql`${t.slug} ~ ${sql.raw(`'${SLUG_PATTERN.source}'`)} AND ${t.slug} !~ '^[0-9]+$' AND length(${t.slug}) <= ${sql.raw(String(SLUG_MAX_LENGTH))}`,
     ),
     // One draft per indicator, as a constraint rather than a convention. An indicator may
     // hold several published versions; reads take the most recently published one.
