@@ -8,7 +8,8 @@ Run locally after transform-uuids.py:
 indicator.csv.gz keeps only the identity columns; everything a publisher edits,
 including the whole of indicator_metadata.csv.gz, moves to a single published
 indicator_version row per indicator, under the actor the export already carries.
-indicator_metadata.csv.gz is removed.
+The Pholio polarity reference becomes the service's polarity value.
+indicator_metadata.csv.gz and polarity.csv.gz are removed.
 """
 
 import csv
@@ -17,6 +18,7 @@ import os
 import secrets
 import sys
 
+from polarity import polarity_value
 from slug import assign_slugs
 
 IDENTITY_COLUMNS = ["id", "short_id", "data_updated_at", "created_at"]
@@ -33,7 +35,7 @@ VERSION_COLUMNS = [
     "unit_id",
     "year_type_id",
     "ci_method_id",
-    "polarity_id",
+    "polarity",
     "frequency_id",
     "comparator_method_id",
     "disclosure_threshold",
@@ -84,9 +86,11 @@ def write_rows(path, columns, rows):
 def main(seed_dir):
     indicator_path = os.path.join(seed_dir, "indicator.csv.gz")
     metadata_path = os.path.join(seed_dir, "indicator_metadata.csv.gz")
+    polarity_path = os.path.join(seed_dir, "polarity.csv.gz")
 
     indicators = read_rows(indicator_path)
     metadata = {row["indicator_id"]: row for row in read_rows(metadata_path)}
+    polarity_names = {row["id"]: row["name"] for row in read_rows(polarity_path)}
 
     # Version ids sort after the indicators they belong to, so UUIDv7 ordering still
     # mirrors the order the rows were created in.
@@ -105,6 +109,9 @@ def main(seed_dir):
         version["id"] = uuid7(base_ms + offset)
         version["indicator_id"] = row["id"]
         version["slug"] = slugs[row["id"]]
+        version["polarity"] = (
+            polarity_value(polarity_names[row["polarity_id"]]) if row["polarity_id"] else ""
+        )
         version["status"] = "published"
         version["published_at"] = row["updated_at"]
         versions.append(version)
@@ -112,6 +119,7 @@ def main(seed_dir):
     write_rows(indicator_path, IDENTITY_COLUMNS, indicators)
     write_rows(os.path.join(seed_dir, "indicator_version.csv.gz"), VERSION_COLUMNS, versions)
     os.remove(metadata_path)
+    os.remove(polarity_path)
 
     print(f"indicator: {len(indicators)} identity rows")
     print(f"indicator_version: {len(versions)} published versions")

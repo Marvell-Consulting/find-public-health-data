@@ -43,12 +43,13 @@ async function insertDraftOnlyIndicator(): Promise<void> {
 
   const [version] = await owner<{ id: string }[]>`
     INSERT INTO indicator_version
-      (indicator_id, status, name, slug, value_type_id, unit_id, year_type_id, polarity_id,
+      (indicator_id, status, name, slug, value_type_id, unit_id, year_type_id, polarity,
        frequency_id, definition, created_by, updated_by)
     SELECT ${draftIndicatorId}, 'draft', 'grants-test draft indicator',
            'grants-test-draft-indicator',
-           vt.id, u.id, yt.id, p.id, f.id, 'a draft definition', 'grants-test', 'grants-test'
-    FROM value_type vt, unit u, year_type yt, polarity p, frequency f
+           vt.id, u.id, yt.id, 'lower-is-better', f.id, 'a draft definition',
+           'grants-test', 'grants-test'
+    FROM value_type vt, unit u, year_type yt, frequency f
     LIMIT 1
     RETURNING id
   `;
@@ -149,7 +150,7 @@ const PUBLISHED_INDICATOR_COLUMNS = [
   'indicator.unit_id uuid',
   'indicator.year_type_id uuid',
   'indicator.ci_method_id uuid',
-  'indicator.polarity_id uuid',
+  'indicator.polarity text',
   'indicator.frequency_id uuid',
   'indicator.comparator_method_id uuid',
   'indicator.disclosure_threshold smallint',

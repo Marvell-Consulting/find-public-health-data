@@ -1,4 +1,5 @@
 import { z } from '@fphd/config/zod';
+import { POLARITIES } from '@fphd/utils/polarity';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
 
 // One selection contains up to 19 picked areas and England for comparison.
@@ -83,7 +84,7 @@ export const indicatorDetailSchema = z.object({
   unit: z.object({ name: z.string().min(1), label: z.string().min(1) }),
   yearType: z.string().min(1),
   frequency: z.string().min(1),
-  polarity: z.string().min(1),
+  polarity: z.enum(POLARITIES),
   ciMethod: z.string().nullable(),
   ciConfidenceLevel: z.string().nullable(),
   comparatorMethod: z.string().nullable(),

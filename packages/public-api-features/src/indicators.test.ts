@@ -13,7 +13,7 @@ const indicatorDetail = {
   unit: { name: 'per 100,000', label: 'per 100,000' },
   yearType: 'Calendar',
   frequency: 'Annual',
-  polarity: 'RAG - Low is good',
+  polarity: 'lower-is-better' as const,
   ciMethod: "Dobson & Byar's methods",
   ciConfidenceLevel: '95',
   comparatorMethod: null,

@@ -157,7 +157,10 @@ export function ComparisonSection({
                                 benchmarkValue={benchmarkCell?.value ?? null}
                                 format={(value) => withUnit(row, value)}
                                 indicator={
-                                  benchmarkCell?.detail ?? { polarity: '', comparatorMethod: null }
+                                  benchmarkCell?.detail ?? {
+                                    polarity: 'no-comparison-possible',
+                                    comparatorMethod: null,
+                                  }
                                 }
                                 rangePeriod={benchmarkCell?.rangePeriod}
                                 showRange={options.range}

@@ -3,6 +3,7 @@ import type {
   IndicatorDetail,
   IndicatorObservation,
 } from '@fphd/public-api-features/contract';
+import type { Polarity } from '@fphd/utils/polarity';
 
 function daysBetween(fromDate: string, toDate: string): number {
   return (Date.parse(toDate) - Date.parse(fromDate)) / 86_400_000;
@@ -49,13 +50,12 @@ export function segmentValuesKey(observation: IndicatorObservation): string {
     .join('|');
 }
 
-/** The direction a RAG polarity calls good; null for BOB and unknown polarities. */
-export function polarityGoodDirection(polarity: string | null): 'high' | 'low' | null {
-  const lowered = polarity?.toLowerCase() ?? '';
-  if (lowered.includes('high is good')) {
+/** The direction a polarity calls good; null where neither is. */
+export function polarityGoodDirection(polarity: Polarity | null): 'high' | 'low' | null {
+  if (polarity === 'higher-is-better') {
     return 'high';
   }
-  if (lowered.includes('low is good')) {
+  if (polarity === 'lower-is-better') {
     return 'low';
   }
   return null;
@@ -63,7 +63,10 @@ export function polarityGoodDirection(polarity: string | null): 'high' | 'low' |
 
 export type BenchmarkJudgement = 'better' | 'similar' | 'worse' | 'lower' | 'higher' | 'none';
 
-/** Fingertips semantics: RAG compares confidence intervals where the comparator method sanctions it, BOB says which side. */
+/**
+ * Fingertips semantics: a good direction compares confidence intervals where the comparator
+ * method sanctions it, and no polarity says only which side.
+ */
 export function benchmarkJudgement(
   observation:
     | Pick<IndicatorObservation, 'value' | 'lowerCi95' | 'upperCi95' | 'lowerCi998' | 'upperCi998'>
@@ -77,8 +80,8 @@ export function benchmarkJudgement(
   }
   const goodDirection = polarityGoodDirection(indicator.polarity);
   if (!goodDirection) {
-    // Only an actual BOB polarity gets side colours; "Not applicable" and the like get none.
-    if (!indicator.polarity?.toLowerCase().includes('bob')) {
+    // Where no comparison is possible, not even the side is shown.
+    if (indicator.polarity !== 'no-polarity') {
       return 'none';
     }
     if (observation.value === benchmarkValue) {
@@ -615,7 +618,7 @@ export type RecentTrend =
  */
 export function recentTrend(
   observations: IndicatorObservation[],
-  polarity: string | null,
+  polarity: Polarity | null,
 ): RecentTrend {
   const series = trendSeries(observations).filter(({ value }) => value !== null);
   if (series.length < 5) {

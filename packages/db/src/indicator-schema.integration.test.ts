@@ -161,6 +161,21 @@ describe('indicator_version', () => {
     ).rejects.toMatchObject({ cause: { code: CHECK_VIOLATION } });
   });
 
+  it('holds a polarity only as one of the service values', async () => {
+    const indicatorId = await newIndicatorId();
+    const [draft] = await addVersion(indicatorId, 'draft');
+    if (!draft) throw new Error('inserted no version');
+
+    await db.execute(
+      sql`UPDATE indicator_version SET polarity = 'no-polarity' WHERE id = ${draft.id}`,
+    );
+    await expect(
+      db.execute(
+        sql`UPDATE indicator_version SET polarity = 'RAG - Low is good' WHERE id = ${draft.id}`,
+      ),
+    ).rejects.toMatchObject({ cause: { code: CHECK_VIOLATION } });
+  });
+
   it('allows a draft alongside the published version', async () => {
     const indicatorId = await newIndicatorId();
 

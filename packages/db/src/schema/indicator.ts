@@ -1,3 +1,4 @@
+import { POLARITIES } from '@fphd/utils/polarity';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
 import { asc, desc, eq, sql } from 'drizzle-orm';
 import {
@@ -23,7 +24,6 @@ import {
   dataSource,
   frequency,
   numeratorDenominatorSource,
-  polarity,
   unit,
   valueType,
   yearType,
@@ -72,7 +72,7 @@ export const indicatorVersion = pgTable(
     unitId: uuid().references(() => unit.id),
     yearTypeId: uuid().references(() => yearType.id),
     ciMethodId: uuid().references(() => ciMethod.id),
-    polarityId: uuid().references(() => polarity.id),
+    polarity: text({ enum: POLARITIES }),
     frequencyId: uuid().references(() => frequency.id),
     comparatorMethodId: uuid().references(() => comparatorMethod.id),
     disclosureThreshold: smallint(),
@@ -100,6 +100,10 @@ export const indicatorVersion = pgTable(
       sql`${t.ciConfidenceLevel} IN ('95', '99.8', 'both')`,
     ),
     check('indicator_version_status_check', sql`${t.status} IN ('draft', 'published')`),
+    check(
+      'indicator_version_polarity_check',
+      sql`${t.polarity} IN (${sql.raw(POLARITIES.map((value) => `'${value}'`).join(', '))})`,
+    ),
     // A published version always says when, and nothing else does, so ordering by
     // published_at never meets a null.
     check(

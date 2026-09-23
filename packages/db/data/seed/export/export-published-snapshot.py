@@ -19,6 +19,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from polarity import POLARITIES
 from published_csv import NULL_MARKER
 from slug import assign_slugs
 
@@ -27,7 +28,6 @@ TABLES = [
     "unit",
     "year_type",
     "ci_method",
-    "polarity",
     "frequency",
     "comparator_method",
     "data_source",
@@ -72,6 +72,19 @@ def psql(query):
     ).stdout.strip()
 
 
+def sql_string(value):
+    return "'" + value.replace("'", "''") + "'"
+
+
+# The service's polarity value in place of the reference to Pholio's lookup row.
+POLARITY_VALUE = (
+    "CASE (SELECT name FROM polarity WHERE id = i.polarity_id) "
+    + " ".join(
+        f"WHEN {sql_string(name)} THEN {sql_string(value)}" for name, value in POLARITIES.items()
+    )
+    + " END"
+)
+
 EXPORTED_INDICATORS = f"SELECT id FROM indicator WHERE id NOT IN {EXCLUDED_ID_LIST}"
 EXPORTED_OBSERVATIONS = f"SELECT id FROM observation WHERE indicator_id IN ({EXPORTED_INDICATORS})"
 
@@ -85,7 +98,7 @@ SELECTS = {
     "indicator_version": (
         "SELECT i.id AS id, i.id AS indicator_id, 'published' AS status, "
         "i.updated_at AS published_at, i.name, i.value_type_id, i.unit_id, "
-        "i.year_type_id, i.ci_method_id, i.polarity_id, i.frequency_id, "
+        f"i.year_type_id, i.ci_method_id, {POLARITY_VALUE} AS polarity, i.frequency_id, "
         "i.comparator_method_id, i.disclosure_threshold, i.ci_confidence_level, "
         "i.config, m.definition, m.rationale, m.methodology, m.numerator_definition, "
         "m.denominator_definition, m.disclosure_control, m.caveats, m.notes, "
@@ -170,6 +183,17 @@ def check_slugs():
     assign_slugs((id, id, name) for id, _, name in lines)
 
 
+def check_polarities():
+    """Fail before any data is written if an exported polarity has no service value."""
+    names = psql(
+        "SELECT DISTINCT p.name FROM indicator i JOIN polarity p ON p.id = i.polarity_id "
+        f"WHERE i.id NOT IN {EXCLUDED_ID_LIST}"
+    )
+    unknown = sorted(name for name in names.split("\n") if name and name not in POLARITIES)
+    if unknown:
+        raise RuntimeError("No polarity value for: " + ", ".join(unknown))
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("out_dir", type=Path)
@@ -198,6 +222,7 @@ def main():
         raise RuntimeError("Source indicators must all record who created and updated them")
     check_exclusions_are_approved()
     check_slugs()
+    check_polarities()
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
     tables = {table: export_table(table, args.out_dir) for table in args.tables}

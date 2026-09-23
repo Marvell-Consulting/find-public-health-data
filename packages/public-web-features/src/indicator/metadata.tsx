@@ -1,4 +1,5 @@
 import { A, formatDate, SectionBreak, SummaryList } from '@fphd/ui';
+import { POLARITY_LABELS } from '@fphd/utils/polarity';
 import type { ReactNode } from 'react';
 import { periodCovered, recentTrend } from './data.ts';
 import type { IndicatorDetail, IndicatorObservation } from './loader.ts';
@@ -192,7 +193,7 @@ export function BackgroundInformation({ indicator }: { indicator: IndicatorDetai
           ...attribute('Unit', indicator.unit.name),
           ...attribute('Year type', indicator.yearType),
           ...attribute('Frequency', indicator.frequency),
-          ...attribute('Polarity', indicator.polarity),
+          ...attribute('Polarity', POLARITY_LABELS[indicator.polarity]),
           ...(indicator.dataSource
             ? [{ name: 'Data source', children: sourceLink(indicator.dataSource) }]
             : []),
