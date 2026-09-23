@@ -122,12 +122,6 @@ export function internalIndicatorsRouter(
     const { sub } = requireApiSession(response);
     // No memberships: the repository leaves the ones it is not given alone.
     const result = await indicators.updateDraft(id.data, submission.data, {}, sub);
-    const row = await indicators.findById(id.data);
-
-    if (!row) {
-      response.status(404).json({ error: 'not_found' });
-      return;
-    }
 
     if (!result.ok) {
       if (result.reason === 'slug_taken') {
@@ -136,10 +130,16 @@ export function internalIndicatorsRouter(
       }
 
       // A published indicator is edited by opening a draft first, so until then there is no
-      // draft to rename and the page the publisher asked for does not exist.
-      response.status(404).json({ error: 'no_draft' });
+      // draft to rename and the page the publisher asked for does not exist. The read tells
+      // that apart from an indicator that does not exist at all.
+      const exists = (await indicators.findById(id.data)) !== undefined;
+      response.status(404).json({ error: exists ? 'no_draft' : 'not_found' });
       return;
     }
+
+    const row = await indicators.findById(id.data);
+
+    if (!row) throw new Error('the indicator just renamed could not be read back');
 
     request.log.info({ indicatorId: row.id, shortId: row.shortId }, 'Indicator renamed');
     response.status(200).json(toDetail(row));
