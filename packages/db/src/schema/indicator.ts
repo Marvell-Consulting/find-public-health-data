@@ -126,7 +126,9 @@ export const indicatorVersion = pgTable(
 /**
  * The one definition of "the published version": an indicator may hold several, and this
  * is the most recently published one, ties broken by id (UUIDv7, so creation order). The
- * `published` views and the internal reads join this rather than restating the rule.
+ * `published` views and the internal reads join this rather than restating the rule, then
+ * join `indicator_version` by `id` for the columns. It names the version and nothing else,
+ * so a new version column never changes its definition or the views built on it.
  * Postgres pushes an `indicator_id` predicate into the DISTINCT ON, so a lookup by
  * indicator costs the same as it would against the table.
  *
@@ -135,7 +137,10 @@ export const indicatorVersion = pgTable(
  */
 export const currentPublishedVersion = pgView('current_published_version').as(
   new QueryBuilder({ casing: 'snake_case' })
-    .selectDistinctOn([indicatorVersion.indicatorId])
+    .selectDistinctOn([indicatorVersion.indicatorId], {
+      id: indicatorVersion.id,
+      indicatorId: indicatorVersion.indicatorId,
+    })
     .from(indicatorVersion)
     .where(eq(indicatorVersion.status, 'published'))
     .orderBy(
