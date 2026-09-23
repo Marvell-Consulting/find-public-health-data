@@ -1,4 +1,4 @@
-import { addNotFoundHandler, createApiApp } from '@fphd/api-server';
+import { addFallbackHandlers, createApiApp } from '@fphd/api-server';
 import type { Repositories } from '@fphd/db';
 import type { Logger } from '@fphd/logger';
 import { publicApiRoutes } from '@fphd/public-api-features';
@@ -13,6 +13,6 @@ export function createApp({ logger, repositories }: AppDependencies) {
 
   app.use(publicApiRoutes(repositories));
 
-  addNotFoundHandler(app);
+  addFallbackHandlers(app);
   return app;
 }

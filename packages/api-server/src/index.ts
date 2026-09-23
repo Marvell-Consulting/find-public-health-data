@@ -8,7 +8,7 @@ import {
   startServer,
 } from '@fphd/express';
 import type { Logger } from '@fphd/logger';
-import type { Express, RequestHandler, Response } from 'express';
+import type { ErrorRequestHandler, Express, RequestHandler, Response } from 'express';
 import { json } from 'express';
 
 export function createApiApp({
@@ -35,10 +35,42 @@ export function createApiApp({
   return app;
 }
 
-export function addNotFoundHandler(app: Express) {
+// body-parser's error types for a body it refused before any route saw it.
+const bodyErrors = new Map([
+  ['entity.parse.failed', { status: 400, error: 'invalid_json' }],
+  ['entity.too.large', { status: 413, error: 'payload_too_large' }],
+]);
+
+function bodyErrorOf(error: unknown): { status: number; error: string } | undefined {
+  if (typeof error !== 'object' || error === null || !('type' in error)) return undefined;
+  return typeof error.type === 'string' ? bodyErrors.get(error.type) : undefined;
+}
+
+const handleError: ErrorRequestHandler = (error, _request, response, next) => {
+  if (response.headersSent) {
+    next(error);
+    return;
+  }
+
+  const bodyError = bodyErrorOf(error);
+
+  if (bodyError !== undefined) {
+    response.status(bodyError.status).json({ error: bodyError.error });
+    return;
+  }
+
+  // pino-http attaches `res.err` to the request line, so the failure joins on `req.id`.
+  response.err = error instanceof Error ? error : new Error(String(error));
+  response.status(500).json({ error: 'internal_error' });
+};
+
+/** Last in the chain: a miss is a JSON 404, and a thrown error a JSON 500 the request line logs. */
+export function addFallbackHandlers(app: Express) {
   app.use((_request, response) => {
     response.status(404).json({ error: 'not_found' });
   });
+
+  app.use(handleError);
 }
 
 /** Who a request is acting as, for a handler that writes rows carrying the actor. */
