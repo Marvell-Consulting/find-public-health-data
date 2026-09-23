@@ -1,7 +1,6 @@
 import type { TopicFieldErrors } from '@fphd/internal-api-features/contract';
 import {
   A,
-  BackLink,
   Button,
   ErrorSummary,
   type FieldError,
@@ -106,7 +105,6 @@ interface NewTopicPageProps {
 export function NewTopicPage({ fieldErrors = {}, values = EMPTY_VALUES }: NewTopicPageProps) {
   return (
     <>
-      <BackLink href={TOPICS_ADMIN_PATH}>Back to topics</BackLink>
       <ErrorSummary errors={toErrorSummary(fieldErrors)} />
       <PageIntro title="Add a topic">
         <TopicFields fieldErrors={fieldErrors} submitLabel="Create topic" values={values} />
@@ -133,7 +131,6 @@ export function EditTopicPage({
 }: EditTopicPageProps) {
   return (
     <>
-      <BackLink href={TOPICS_ADMIN_PATH}>Back to topics</BackLink>
       {notification === undefined ? null : (
         <NotificationBanner disableAutoFocus type="success">
           {notification}
@@ -155,23 +152,20 @@ export function EditTopicPage({
 
 export function DeleteTopicPage({ topic }: { topic: TopicAdminSummary }) {
   return (
-    <>
-      <BackLink href={editTopicPath(topic.id)}>Back to editing</BackLink>
-      <PageIntro title="Delete topic">
-        <p className="govuk-body">
-          Are you sure you want to delete <strong>{topic.title}</strong>? Any indicators linked to
-          this topic will be unlinked from it. This cannot be undone.
-        </p>
-        {/* Plain form so it works without JavaScript; the POST is the confirmation. */}
-        <form method="post">
-          <Button classModifiers="warning" type="submit">
-            Delete topic
-          </Button>
-        </form>
-        <p className="govuk-body">
-          <A href={editTopicPath(topic.id)}>Cancel</A>
-        </p>
-      </PageIntro>
-    </>
+    <PageIntro title="Delete topic">
+      <p className="govuk-body">
+        Are you sure you want to delete <strong>{topic.title}</strong>? Any indicators linked to
+        this topic will be unlinked from it. This cannot be undone.
+      </p>
+      {/* Plain form so it works without JavaScript; the POST is the confirmation. */}
+      <form method="post">
+        <Button classModifiers="warning" type="submit">
+          Delete topic
+        </Button>
+      </form>
+      <p className="govuk-body">
+        <A href={editTopicPath(topic.id)}>Cancel</A>
+      </p>
+    </PageIntro>
   );
 }

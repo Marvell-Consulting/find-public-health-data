@@ -16,6 +16,7 @@ import {
   createDraftFromPublished,
   createIndicatorDraft,
   getIndicatorById,
+  getIndicatorDraftState,
   listIndicatorsPage,
   SLUG_LOCK_NAMESPACE,
   updateIndicatorDraft,
@@ -600,5 +601,43 @@ describe('sharing one connection with the public repositories', () => {
       sources: expect.any(Array),
       valueTypes: expect.any(Array),
     });
+  });
+});
+
+describe('getIndicatorDraftState', () => {
+  it('reads the draft of an indicator that has never been published', async () => {
+    const created = await newDraft('A draft awaiting its first publication');
+
+    const state = await getIndicatorDraftState(db, created.indicatorId);
+
+    expect(state?.id).toBe(created.indicatorId);
+    expect(state?.shortId).toBe(created.shortId);
+    expect(state?.draft?.name).toBe('A draft awaiting its first publication');
+    expect(state?.hasPublished).toBe(false);
+  });
+
+  it('reports the published version behind a draft being revised', async () => {
+    const published = await indicatorWithTwoPublications();
+    await createDraftFromPublished(db, published.indicatorId, ACTOR);
+
+    const state = await getIndicatorDraftState(db, published.indicatorId);
+
+    expect(state?.draft?.name).toBe(published.currentName);
+    expect(state?.hasPublished).toBe(true);
+  });
+
+  it('reports no draft for a published indicator nobody is editing', async () => {
+    const published = await indicatorWithTwoPublications();
+
+    const state = await getIndicatorDraftState(db, published.indicatorId);
+
+    expect(state?.draft).toBeNull();
+    expect(state?.hasPublished).toBe(true);
+  });
+
+  it('finds nothing for an indicator that does not exist', async () => {
+    await expect(
+      getIndicatorDraftState(db, '00000000-0000-7000-8000-000000000000'),
+    ).resolves.toBeUndefined();
   });
 });

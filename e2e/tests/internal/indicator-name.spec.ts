@@ -15,13 +15,20 @@ async function openNamePage(page: Page) {
   await expect(page).toHaveURL('/publish/indicators/new');
 }
 
-/** Names a new indicator and leaves the publisher on its overview page, as Continue does. */
+/** Names a new indicator and leaves the publisher on its task list, as Continue does. */
 async function createIndicator(page: Page, name: string) {
   await openNamePage(page);
   await page.getByLabel('What is the name of the indicator?').fill(name);
   await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(page).toHaveURL(/\/dashboard\/indicators\/[0-9a-f-]{36}$/);
+  await expect(page).toHaveURL(/\/publish\/indicators\/[0-9a-f-]{36}\/task-list$/);
   await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
+}
+
+/** The id of the indicator whose page the publisher is on. */
+function indicatorIdFrom(page: Page): string {
+  const [, id] = new URL(page.url()).pathname.match(/([0-9a-f-]{36})/) ?? [];
+  if (id === undefined) throw new Error(`no indicator id in ${page.url()}`);
+  return id;
 }
 
 test.beforeEach(async ({ page }) => {
@@ -51,19 +58,22 @@ test('asks for a name when Continue is selected with the box empty', async ({ pa
   await expect(page.getByLabel('What is the name of the indicator?')).toBeFocused();
 });
 
-test('creates the indicator and shows it as incomplete on its overview page', async ({ page }) => {
+test('creates the indicator and shows its task list', async ({ page }) => {
   const name = uniqueName();
 
   await createIndicator(page, name);
 
-  await expect(page.getByText('Incomplete')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Name' })).toBeVisible();
 });
 
 test('shows a draft indicator on the dashboard', async ({ page }) => {
   const name = uniqueName();
 
   await createIndicator(page, name);
-  await page.getByRole('link', { name: 'Back to indicators' }).click();
+  await page.getByRole('link', { name: 'Back', exact: true }).click();
+  // Both pages' back links share a name, so wait for the overview before following its link.
+  await expect(page).toHaveURL(/\/dashboard\/indicators\/[0-9a-f-]{36}$/);
+  await page.getByRole('link', { name: 'Back', exact: true }).click();
 
   await expect(page).toHaveURL('/dashboard');
   await expect(page.getByRole('link', { name })).toBeVisible();
@@ -85,8 +95,8 @@ test('refuses a name another indicator already holds', async ({ page }) => {
 test('renames a draft from its name page', async ({ page }) => {
   const name = uniqueName();
   await createIndicator(page, name);
-  const overviewUrl = new URL(page.url());
-  const [, id] = overviewUrl.pathname.match(/([0-9a-f-]{36})$/) ?? [];
+  const taskListPath = new URL(page.url()).pathname;
+  const id = indicatorIdFrom(page);
 
   await page.goto(`/publish/indicators/${id}/name`);
   const field = page.getByLabel('What is the name of the indicator?');
@@ -95,19 +105,19 @@ test('renames a draft from its name page', async ({ page }) => {
   await field.fill(`${name} renamed`);
   await page.getByRole('button', { name: 'Continue' }).click();
 
-  await expect(page).toHaveURL(overviewUrl.pathname);
+  await expect(page).toHaveURL(taskListPath);
   await expect(page.getByRole('heading', { level: 1, name: `${name} renamed` })).toBeVisible();
 });
 
-test('goes back to the indicator from its name page', async ({ page }) => {
+test('goes back to the task list from its name page', async ({ page }) => {
   await createIndicator(page, uniqueName());
-  const overviewPath = new URL(page.url()).pathname;
-  const [, id] = overviewPath.match(/([0-9a-f-]{36})$/) ?? [];
+  const taskListPath = new URL(page.url()).pathname;
+  const id = indicatorIdFrom(page);
 
   await page.goto(`/publish/indicators/${id}/name`);
-  await page.getByRole('link', { name: 'Back to indicator' }).click();
+  await page.getByRole('link', { name: 'Back', exact: true }).click();
 
-  await expect(page).toHaveURL(overviewPath);
+  await expect(page).toHaveURL(taskListPath);
 });
 
 test('answers a name page with nothing to rename with the not-found page', async ({ page }) => {
@@ -130,7 +140,7 @@ test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
 
 test('has no WCAG 2.2 AA violations when renaming a draft', async ({ page }, testInfo) => {
   await createIndicator(page, uniqueName());
-  const [, id] = new URL(page.url()).pathname.match(/([0-9a-f-]{36})$/) ?? [];
+  const id = indicatorIdFrom(page);
 
   await page.goto(`/publish/indicators/${id}/name`);
   await expectNoAccessibilityViolations(page, testInfo);

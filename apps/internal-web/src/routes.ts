@@ -43,6 +43,10 @@ export default [
         'publish/indicators/:id/name',
         '../../../packages/internal-web-features/src/indicator-name/edit-route.tsx',
       ),
+      route(
+        'publish/indicators/:id/task-list',
+        '../../../packages/internal-web-features/src/indicator-task-list/route.tsx',
+      ),
     ]),
     layout('./admin.tsx', [
       route('manage', './manage.tsx'),

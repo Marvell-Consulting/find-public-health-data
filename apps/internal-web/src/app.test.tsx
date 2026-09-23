@@ -9,13 +9,14 @@ import {
   SignInLandingPage,
 } from '@fphd/internal-web-features';
 import { SignInPage, TopicsRoute } from '@fphd/public-web-features';
+import { backLinkHandle } from '@fphd/ui';
 import type { RouteConfigEntry } from '@react-router/dev/routes';
 import { cleanup, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { createRoutesStub } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import InternalApp from './root.tsx';
+import InternalApp, { ErrorBoundary } from './root.tsx';
 import routes from './routes.ts';
 
 afterEach(cleanup);
@@ -105,6 +106,56 @@ describe('internal application routes', () => {
     expect(await screen.findByRole('link', { name: 'Manage' })).toBeTruthy();
   });
 
+  it('places a route-declared back link above the main content', async () => {
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: InternalApp,
+        loader: () => publisher,
+        children: [
+          {
+            path: 'manage',
+            Component: ManageDataPage,
+            handle: backLinkHandle('/dashboard'),
+          },
+        ],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/manage']} />);
+
+    const backLink = await screen.findByRole('link', { name: 'Back' });
+
+    expect(backLink.getAttribute('href')).toBe('/dashboard');
+    expect(backLink.closest('main')).toBeNull();
+  });
+
+  it('shows a not-found page with no back link when the route declaring one is a 404', async () => {
+    const Routes = createRoutesStub([
+      {
+        path: '/',
+        Component: InternalApp,
+        ErrorBoundary,
+        loader: () => publisher,
+        children: [
+          {
+            path: 'dashboard/indicators/:id',
+            Component: ManageDataPage,
+            handle: backLinkHandle('/dashboard'),
+            loader: () => {
+              throw new Response('Not Found', { status: 404 });
+            },
+          },
+        ],
+      },
+    ]);
+
+    render(<Routes initialEntries={['/dashboard/indicators/not-an-id']} />);
+
+    expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Back' })).toBeNull();
+  });
+
   it('offers a signed-out visitor sign in rather than an account', async () => {
     const Routes = createRoutesStub([
       {
@@ -145,6 +196,7 @@ describe('the role-gated route tables', () => {
       'dashboard/indicators/:id',
       'publish/indicators/new',
       'publish/indicators/:id/name',
+      'publish/indicators/:id/task-list',
     ]);
   });
 
@@ -168,7 +220,7 @@ describe('the role-gated route tables', () => {
   });
 });
 
-// The GOV.UK link and back-link components read the router, so a page cannot be rendered
+// The GOV.UK link components read the router, so a page cannot be rendered
 // bare — the same stub the route tests above use stands in for it.
 function renderPage(page: ReactNode) {
   const Routes = createRoutesStub([{ path: '/manage/topics/:id', Component: () => page }]);

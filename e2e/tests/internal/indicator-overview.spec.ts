@@ -55,7 +55,7 @@ test('opens the published indicator from the actions tab', async ({ page }) => {
 test('goes back to the dashboard', async ({ page }) => {
   await openFirstIndicator(page);
 
-  await page.getByRole('link', { name: 'Back to indicators' }).click();
+  await page.getByRole('link', { name: 'Back', exact: true }).click();
 
   await expect(page).toHaveURL('/dashboard');
 });

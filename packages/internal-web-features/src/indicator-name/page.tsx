@@ -1,5 +1,4 @@
 import {
-  BackLink,
   Button,
   ErrorMessage,
   ErrorSummary,
@@ -27,21 +26,18 @@ function toErrorSummary(fieldErrors: IndicatorFieldErrors): FieldError[] {
 }
 
 interface IndicatorNamePageProps {
-  /** Where the question was reached from: the dashboard when creating, the indicator when not. */
-  back: { href: string; label: string };
   fieldErrors?: IndicatorFieldErrors | undefined;
   name?: string | undefined;
 }
 
 // The heading is the field's label, as GOV.UK asks of a page with a single question, so the
 // form group is assembled here rather than taken whole from TextInput.
-export function IndicatorNamePage({ back, fieldErrors = {}, name = '' }: IndicatorNamePageProps) {
+export function IndicatorNamePage({ fieldErrors = {}, name = '' }: IndicatorNamePageProps) {
   const error = fieldErrors[NAME_FIELD];
   const inputId = fieldInputId(NAME_FIELD);
 
   return (
     <>
-      <BackLink href={back.href}>{back.label}</BackLink>
       <ErrorSummary errors={toErrorSummary(fieldErrors)} />
       <GridRow>
         <GridColumn width="two-thirds">

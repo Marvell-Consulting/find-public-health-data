@@ -6,10 +6,12 @@ import {
   createDraftFromPublished,
   createIndicatorDraft,
   getIndicatorById,
+  getIndicatorDraftState,
   type IndicatorAdminDetailRow,
   type IndicatorAdminRows,
   type IndicatorDraftAttributes,
   type IndicatorDraftMemberships,
+  type IndicatorDraftStateRow,
   listIndicatorsPage,
   type NewIndicatorDraftAttributes,
   type UpdateIndicatorDraftResult,
@@ -39,6 +41,8 @@ export interface InternalTopicRepository {
 export interface InternalIndicatorRepository {
   listPage(page: number, pageSize: number): Promise<IndicatorAdminRows>;
   findById(id: string): Promise<IndicatorAdminDetailRow | undefined>;
+  /** The draft and whether anything is published, read together for the task list. */
+  findDraftState(id: string): Promise<IndicatorDraftStateRow | undefined>;
   createDraft(
     attributes: NewIndicatorDraftAttributes,
     actor: string,
@@ -67,6 +71,7 @@ export function createInternalRepositories(db: Database): InternalRepositories {
     indicators: {
       listPage: (page, pageSize) => listIndicatorsPage(db, page, pageSize),
       findById: (id) => getIndicatorById(db, id),
+      findDraftState: (id) => getIndicatorDraftState(db, id),
       createDraft: (attributes, actor) => createIndicatorDraft(db, attributes, actor),
       updateDraft: (indicatorId, attributes, memberships, actor) =>
         updateIndicatorDraft(db, indicatorId, attributes, memberships, actor),

@@ -58,18 +58,27 @@ describe('IndicatorOverviewPage', () => {
     ).toBe('/indicators/life-expectancy-at-birth');
   });
 
-  it('offers no action for an indicator with no published version, which has no public page', () => {
+  it('offers the task list as an action for a draft, which has no public page', () => {
     renderPage({ publishedSlug: null, status: 'draft' });
 
     expect(screen.queryByRole('link', { name: 'View published indicator' })).toBeNull();
-    expect(screen.getByText('There are no actions available for this indicator yet.')).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: 'Continue creating indicator' }).getAttribute('href'),
+    ).toBe(`/publish/indicators/${indicator.id}/task-list`);
   });
 
-  it('links back to the dashboard', () => {
+  it('offers both actions for a draft that revises a published indicator', () => {
+    renderPage({ status: 'draft' });
+
+    expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+      'Continue creating indicator',
+      'View published indicator',
+    ]);
+  });
+
+  it('offers no editing action for a published indicator, which has no draft', () => {
     renderPage();
 
-    expect(screen.getByRole('link', { name: 'Back to indicators' }).getAttribute('href')).toBe(
-      '/dashboard',
-    );
+    expect(screen.queryByRole('link', { name: 'Continue creating indicator' })).toBeNull();
   });
 });

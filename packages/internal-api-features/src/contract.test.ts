@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   indicatorFieldSchema,
   indicatorNameSchema,
+  indicatorTaskListSchema,
   toFieldErrors,
   topicFieldSchema,
   topicUpdateSchema,
@@ -113,5 +114,44 @@ describe('toFieldErrors', () => {
     expect(toFieldErrors(result.error, topicFieldSchema.options)).toEqual({
       title: 'Enter a topic name',
     });
+  });
+});
+
+describe('indicatorTaskListSchema', () => {
+  const state = {
+    indicator: { id: '00000000-0000-7000-8000-000000000001', shortId: 90366, name: 'An indicator' },
+    isUpdate: false,
+    canSubmit: true,
+    tasks: { name: 'completed' },
+  };
+
+  it('accepts a state naming only the tasks that exist', () => {
+    const result = indicatorTaskListSchema.safeParse({ ...state, tasks: {} });
+
+    expect(result.success && result.data.tasks).toEqual({});
+  });
+
+  it.each(['not_started', 'completed'])('accepts a task status of %s', (status) => {
+    expect(indicatorTaskListSchema.safeParse({ ...state, tasks: { name: status } }).success).toBe(
+      true,
+    );
+  });
+
+  it('refuses a status the vocabulary does not hold yet', () => {
+    expect(
+      indicatorTaskListSchema.safeParse({ ...state, tasks: { name: 'incomplete' } }).success,
+    ).toBe(false);
+  });
+
+  it('refuses a task the API does not judge', () => {
+    expect(
+      indicatorTaskListSchema.safeParse({ ...state, tasks: { polarity: 'completed' } }).success,
+    ).toBe(false);
+  });
+
+  it('requires the indicator the tasks belong to', () => {
+    const { indicator: _indicator, ...withoutIndicator } = state;
+
+    expect(indicatorTaskListSchema.safeParse(withoutIndicator).success).toBe(false);
   });
 });

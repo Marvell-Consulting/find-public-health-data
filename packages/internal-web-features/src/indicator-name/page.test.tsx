@@ -7,13 +7,11 @@ import { IndicatorNamePage } from './page.tsx';
 
 afterEach(cleanup);
 
-const BACK = { href: '/dashboard', label: 'Back to indicators' };
-
-// The back link reads router state, so the page renders inside a router at its own address.
-function renderPage(props: Partial<Parameters<typeof IndicatorNamePage>[0]> = {}) {
+// The error summary's links read router state, so the page renders inside a router.
+function renderPage(props: Parameters<typeof IndicatorNamePage>[0] = {}) {
   return render(
     <MemoryRouter initialEntries={['/publish/indicators/new']}>
-      <IndicatorNamePage back={BACK} {...props} />
+      <IndicatorNamePage {...props} />
     </MemoryRouter>,
   );
 }
@@ -87,13 +85,5 @@ describe('IndicatorNamePage', () => {
     renderPage({ name: 'Life expectancy at birth' });
 
     expect(nameField().value).toBe('Life expectancy at birth');
-  });
-
-  it('links back where the question was reached from', () => {
-    renderPage({ back: { href: '/dashboard/indicators/an-id', label: 'Back to indicator' } });
-
-    expect(screen.getByRole('link', { name: 'Back to indicator' }).getAttribute('href')).toBe(
-      '/dashboard/indicators/an-id',
-    );
   });
 });
