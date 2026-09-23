@@ -1,34 +1,18 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
+import { createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
+import { MORTALITY_ID } from '../support/indicator-page.ts';
 import { signInAs } from '../support/sign-in.ts';
 
-// Every indicator created here carries a name no other spec or run uses, so the shared seeded
-// database is only ever added to and each test asserts on the row it made itself.
 function uniqueName() {
-  return `E2E indicator ${test.info().parallelIndex} ${Date.now().toString(36)}`;
+  return uniqueIndicatorName('indicator');
 }
 
 async function openNamePage(page: Page) {
   await page.goto('/dashboard');
   await page.getByRole('button', { name: 'Create new indicator' }).click();
   await expect(page).toHaveURL('/publish/indicators/new');
-}
-
-/** Names a new indicator and leaves the publisher on its task list, as Continue does. */
-async function createIndicator(page: Page, name: string) {
-  await openNamePage(page);
-  await page.getByLabel('What is the name of the indicator?').fill(name);
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(page).toHaveURL(/\/publish\/indicators\/[0-9a-f-]{36}\/task-list$/);
-  await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
-}
-
-/** The id of the indicator whose page the publisher is on. */
-function indicatorIdFrom(page: Page): string {
-  const [, id] = new URL(page.url()).pathname.match(/([0-9a-f-]{36})/) ?? [];
-  if (id === undefined) throw new Error(`no indicator id in ${page.url()}`);
-  return id;
 }
 
 test.beforeEach(async ({ page }) => {
@@ -94,9 +78,8 @@ test('refuses a name another indicator already holds', async ({ page }) => {
 
 test('renames a draft from its name page', async ({ page }) => {
   const name = uniqueName();
-  await createIndicator(page, name);
+  const id = await createIndicator(page, name);
   const taskListPath = new URL(page.url()).pathname;
-  const id = indicatorIdFrom(page);
 
   await page.goto(`/publish/indicators/${id}/name`);
   const field = page.getByLabel('What is the name of the indicator?');
@@ -110,9 +93,8 @@ test('renames a draft from its name page', async ({ page }) => {
 });
 
 test('goes back to the task list from its name page', async ({ page }) => {
-  await createIndicator(page, uniqueName());
+  const id = await createIndicator(page, uniqueName());
   const taskListPath = new URL(page.url()).pathname;
-  const id = indicatorIdFrom(page);
 
   await page.goto(`/publish/indicators/${id}/name`);
   await page.getByRole('link', { name: 'Back', exact: true }).click();
@@ -125,7 +107,7 @@ test('answers a name page with nothing to rename with the not-found page', async
     '/publish/indicators/108/name',
     '/publish/indicators/00000000-0000-7000-8000-000000000000/name',
     // The seeded indicator is published, so it has no draft whose name can be edited.
-    '/publish/indicators/019fa38f-1346-7094-b773-79dcd43ae4b4/name',
+    `/publish/indicators/${MORTALITY_ID}/name`,
   ]) {
     const response = await page.goto(path);
     expect(response?.status(), path).toBe(404);
@@ -139,8 +121,7 @@ test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
 });
 
 test('has no WCAG 2.2 AA violations when renaming a draft', async ({ page }, testInfo) => {
-  await createIndicator(page, uniqueName());
-  const id = indicatorIdFrom(page);
+  const id = await createIndicator(page, uniqueName());
 
   await page.goto(`/publish/indicators/${id}/name`);
   await expectNoAccessibilityViolations(page, testInfo);
