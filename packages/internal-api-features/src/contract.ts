@@ -212,6 +212,7 @@ export const indicatorTaskListSchema = z.object({
     shortId: true,
     name: true,
     indicatorStatus: true,
+    // Nullable as picked, but never null here: the endpoint answers 404 when there is no draft.
     draftStatus: true,
   }),
   /** True when the indicator is live, so this edit revises what the public has. */
