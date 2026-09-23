@@ -276,6 +276,22 @@ describe('POST /api/internal/indicators', () => {
       fieldErrors: { name: 'Enter the name of the indicator' },
     });
   });
+
+  it('refuses a name over 300 characters without creating anything', async () => {
+    const createDraft = vi.fn();
+
+    const response = await request(createTestApp({ createDraft }))
+      .post('/api/internal/indicators')
+      .set('Cookie', await publisherCookie())
+      .send({ name: 'a'.repeat(301) });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      error: 'validation_failed',
+      fieldErrors: { name: 'Indicator name must be 300 characters or fewer' },
+    });
+    expect(createDraft).not.toHaveBeenCalled();
+  });
 });
 
 describe('PATCH /api/internal/indicators/:id', () => {
@@ -411,5 +427,21 @@ describe('PATCH /api/internal/indicators/:id', () => {
 
     expect(response.status).toBe(409);
     expect(response.body).toEqual({ error: 'no_draft' });
+  });
+
+  it('refuses a name over 300 characters without touching the repository', async () => {
+    const updateDraft = vi.fn();
+
+    const response = await request(createTestApp({ updateDraft }))
+      .patch(path)
+      .set('Cookie', await publisherCookie())
+      .send({ name: 'a'.repeat(301) });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      error: 'validation_failed',
+      fieldErrors: { name: 'Indicator name must be 300 characters or fewer' },
+    });
+    expect(updateDraft).not.toHaveBeenCalled();
   });
 });

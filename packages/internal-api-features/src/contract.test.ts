@@ -58,6 +58,21 @@ describe('indicatorNameSchema', () => {
     },
   );
 
+  it('accepts a name of 300 characters, measured once trimmed', () => {
+    const name = ` ${'a'.repeat(300)} `;
+
+    expect(indicatorNameSchema.safeParse({ name }).success).toBe(true);
+  });
+
+  it('refuses a name of 301 characters', () => {
+    const result = indicatorNameSchema.safeParse({ name: 'a'.repeat(301) });
+
+    expect(result.success).toBe(false);
+    expect(!result.success && toFieldErrors(result.error, indicatorFieldSchema.options)).toEqual({
+      name: 'Indicator name must be 300 characters or fewer',
+    });
+  });
+
   it('rejects a submission with no name at all', () => {
     expect(indicatorNameSchema.safeParse({}).success).toBe(false);
   });

@@ -140,6 +140,7 @@ export const indicatorNameSchema = z.object({
     .string()
     .trim()
     .min(1, 'Enter the name of the indicator')
+    .max(300, 'Indicator name must be 300 characters or fewer')
     .superRefine((name, ctx) => {
       const problem = slugProblem(name);
 
