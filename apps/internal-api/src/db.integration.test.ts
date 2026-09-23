@@ -26,7 +26,7 @@ describe('internal API database connection', () => {
     expect(indicators).toHaveLength(12);
   });
 
-  it('connects with a read-only role', async () => {
+  it('cannot write reference data such as value types', async () => {
     await expect(
       db.insert(schema.valueType).values({ name: 'integration-test-denied' }),
     ).rejects.toMatchObject({ cause: { code: '42501' } });
