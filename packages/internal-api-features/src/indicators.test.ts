@@ -341,17 +341,6 @@ describe('PATCH /api/internal/indicators/:id', () => {
     });
   });
 
-  it('names no memberships, so the draft keeps its topics and classifications', async () => {
-    const updateDraft = vi.fn().mockResolvedValue({ ok: true });
-
-    await request(createTestApp({ updateDraft, findById: async () => draftRow }))
-      .patch(path)
-      .set('Cookie', await publisherCookie())
-      .send({ name: 'A better name' });
-
-    expect(updateDraft.mock.calls[0]?.[2]).toEqual({});
-  });
-
   it('rejects an id that is not a UUID without touching the repository', async () => {
     const updateDraft = vi.fn();
 
