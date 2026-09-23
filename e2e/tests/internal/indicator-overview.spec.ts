@@ -29,7 +29,7 @@ test('shows a published indicator as live and published', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: MORTALITY_NAME })).toBeVisible();
   // The tags follow the public number, under the heading.
   await expect(page.getByRole('main').locator('h1 ~ p .govuk-tag')).toHaveText([
-    'Indicator status: Live',
+    'Indicator status: Live indicator',
     'Publishing status: Published',
   ]);
 });

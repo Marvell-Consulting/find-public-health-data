@@ -9,12 +9,14 @@ type Colour = 'blue' | 'green' | 'grey' | 'teal';
 
 interface TagFace {
   label: string;
+  /** The wording where no column header names the status, as under an indicator's heading. */
+  standaloneLabel?: string;
   colour: Colour;
 }
 
 const INDICATOR_STATUS: Record<IndicatorStatus, TagFace> = {
-  new: { label: 'New', colour: 'blue' },
-  live: { label: 'Live', colour: 'teal' },
+  new: { label: 'New', standaloneLabel: 'New indicator', colour: 'blue' },
+  live: { label: 'Live', standaloneLabel: 'Live indicator', colour: 'teal' },
 };
 
 const DRAFT_STATUS: Record<DraftStatus, TagFace> = {
@@ -52,7 +54,10 @@ export type StatusTagProps = (
   | { type: 'publishing'; indicatorStatus: IndicatorStatus; draftStatus: DraftStatus | null }
   | { type: 'task'; status: IndicatorTaskStatus }
 ) & {
-  /** Set false where something else, such as a column header, already names the status. */
+  /**
+   * Set false where something else, such as a column header, already names the status: the
+   * tag then drops its hidden prefix and uses its short wording.
+   */
   labelled?: boolean;
 };
 
@@ -80,12 +85,14 @@ export function StatusTag(props: StatusTagProps) {
   if (face === undefined) return null;
   if (typeof face === 'string') return face;
 
-  const prefix = props.labelled === false ? undefined : PREFIX[props.type];
+  const labelled = props.labelled !== false;
+  const prefix = labelled ? PREFIX[props.type] : undefined;
+  const label = labelled ? (face.standaloneLabel ?? face.label) : face.label;
 
   return (
     <Tag className="fphd-status-tag" classModifiers={face.colour}>
       {prefix === undefined ? null : <span className="govuk-visually-hidden">{prefix}</span>}
-      {face.label}
+      {label}
     </Tag>
   );
 }

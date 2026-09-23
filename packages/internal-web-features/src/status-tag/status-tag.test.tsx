@@ -17,8 +17,8 @@ function tag(label: string) {
 
 describe('StatusTag', () => {
   it.each([
-    ['new', 'New', 'blue'],
-    ['live', 'Live', 'teal'],
+    ['new', 'New indicator', 'blue'],
+    ['live', 'Live indicator', 'teal'],
   ] as const)('shows an indicator status of %s as %s', (status, label, colour) => {
     render(<StatusTag type="indicator" status={status} />);
 
@@ -49,7 +49,7 @@ describe('StatusTag', () => {
   });
 
   it.each<[string, StatusTagProps, string, string]>([
-    ['an indicator', { type: 'indicator', status: 'live' }, 'Indicator status: ', 'Live'],
+    ['an indicator', { type: 'indicator', status: 'live' }, 'Indicator status: ', 'Live indicator'],
     [
       'a publishing',
       { type: 'publishing', indicatorStatus: 'live', draftStatus: null },
@@ -65,7 +65,7 @@ describe('StatusTag', () => {
     expect(hidden.parentElement?.textContent).toBe(`${prefix}${label}`);
   });
 
-  it('leaves the name out where something else already gives it', () => {
+  it('leaves the name out, and shortens the wording, where something else already gives it', () => {
     render(<StatusTag type="indicator" status="live" labelled={false} />);
 
     expect(tag('Live')).toBeTruthy();
