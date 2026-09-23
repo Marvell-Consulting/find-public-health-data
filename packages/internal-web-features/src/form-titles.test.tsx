@@ -4,6 +4,7 @@ import { renderToString } from 'react-dom/server';
 import { createRoutesStub, Meta, type MetaFunction, Outlet } from 'react-router';
 import { describe, expect, it } from 'vitest';
 
+import * as calculation from './indicator-calculation/route.tsx';
 import * as definitionAndRationale from './indicator-definition-and-rationale/route.tsx';
 import * as editIndicatorName from './indicator-name/edit-route.tsx';
 import * as newIndicator from './indicator-name/new-route.tsx';
@@ -71,6 +72,19 @@ const forms: {
     rejected: {
       values: { polarity: '' },
       fieldErrors: { polarity: 'Select the polarity of the indicator' },
+    },
+  },
+  {
+    name: 'calculation',
+    route: calculation,
+    pageTitle: 'How was the indicator calculated?',
+    loaderData: {
+      id: indicator.id,
+      values: { methodology: '', calculatedBy: '', calculatedByOther: '' },
+    },
+    rejected: {
+      values: { methodology: '', calculatedBy: '', calculatedByOther: '' },
+      fieldErrors: { methodology: 'Enter the methodology' },
     },
   },
   {

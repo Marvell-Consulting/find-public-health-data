@@ -193,7 +193,12 @@ export type IndicatorUpdateError = z.infer<typeof indicatorUpdateErrorSchema>;
 export const indicatorTaskStatusSchema = z.enum(['not_started', 'completed']);
 
 /** The tasks the API judges. A section joins this list when its form exists. */
-export const indicatorTaskKeySchema = z.enum(['name', 'definition-and-rationale', 'polarity']);
+export const indicatorTaskKeySchema = z.enum([
+  'name',
+  'definition-and-rationale',
+  'polarity',
+  'calculation',
+]);
 
 export const indicatorTaskStatusesSchema = z.partialRecord(
   indicatorTaskKeySchema,
@@ -233,6 +238,7 @@ export type IndicatorTaskStatuses = z.infer<typeof indicatorTaskStatusesSchema>;
 export type IndicatorTaskList = z.infer<typeof indicatorTaskListSchema>;
 export type IndicatorTaskListError = z.infer<typeof indicatorTaskListErrorSchema>;
 
+export * from './indicator-calculation-contract.ts';
 export * from './indicator-definition-and-rationale-contract.ts';
 export * from './indicator-polarity-contract.ts';
 export * from './indicator-section-contract.ts';

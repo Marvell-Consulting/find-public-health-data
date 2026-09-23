@@ -111,6 +111,7 @@ describe('IndicatorTaskListPage', () => {
       'Polarity',
       'Name',
       'Definition and rationale',
+      'How the indicator was calculated',
     ]);
   });
 

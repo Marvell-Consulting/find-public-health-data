@@ -52,6 +52,8 @@ describe('public API', () => {
     ['put', `/api/internal/indicators/${anyId}/definition-and-rationale`],
     ['get', `/api/internal/indicators/${anyId}/polarity`],
     ['put', `/api/internal/indicators/${anyId}/polarity`],
+    ['get', `/api/internal/indicators/${anyId}/calculation`],
+    ['put', `/api/internal/indicators/${anyId}/calculation`],
     ['get', '/api/internal/topics'],
     ['post', '/api/internal/topics'],
     ['get', `/api/internal/topics/${anyId}`],

@@ -199,6 +199,7 @@ describe('the role-gated route tables', () => {
       'publish/indicators/:id/task-list',
       'publish/indicators/:id/definition-and-rationale',
       'publish/indicators/:id/polarity',
+      'publish/indicators/:id/calculation',
     ]);
   });
 

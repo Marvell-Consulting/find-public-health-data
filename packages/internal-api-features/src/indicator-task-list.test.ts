@@ -15,7 +15,15 @@ const source: IndicatorTaskListSource = {
     indicatorStatus: 'new',
     draftStatus: 'draft',
   },
-  draft: { name: 'Life expectancy at birth', definition: null, rationale: null, polarity: null },
+  draft: {
+    name: 'Life expectancy at birth',
+    definition: null,
+    rationale: null,
+    polarity: null,
+    methodology: null,
+    calculatedBy: null,
+    calculatedByOther: null,
+  },
 };
 
 const complete: IndicatorTaskListDraft = {
@@ -23,6 +31,9 @@ const complete: IndicatorTaskListDraft = {
   definition: 'The average number of years a newborn would live.',
   rationale: 'A summary measure of mortality across the whole population.',
   polarity: 'lower-is-better',
+  methodology: 'Calculated from mortality rates by single year of age.',
+  calculatedBy: 'ohid',
+  calculatedByOther: null,
 };
 
 function withDraft(draft: Partial<IndicatorTaskListDraft>): IndicatorTaskListSource {
@@ -75,6 +86,33 @@ describe('indicatorTaskList', () => {
 
   it('leaves the polarity not started until one is chosen', () => {
     expect(indicatorTaskList(source).tasks.polarity).toBe('not_started');
+  });
+
+  it.each([
+    ['OHID', { calculatedBy: 'ohid' }],
+    ['DHSC', { calculatedBy: 'dhsc' }],
+    ['other organisations it names', { calculatedBy: 'other', calculatedByOther: 'ONS' }],
+  ] as const)('counts the calculation as complete with a methodology and %s', (_, answer) => {
+    const state = indicatorTaskList(withDraft({ methodology: complete.methodology, ...answer }));
+
+    expect(state.tasks.calculation).toBe('completed');
+  });
+
+  it.each([
+    ['nothing', {}],
+    ['only the methodology', { methodology: complete.methodology }],
+    ['only who calculated it', { calculatedBy: 'dhsc' }],
+    ['a blank methodology', { methodology: ' ', calculatedBy: 'dhsc' }],
+    [
+      'other organisations it does not name',
+      { methodology: complete.methodology, calculatedBy: 'other' },
+    ],
+    [
+      'blank details of the other organisations',
+      { methodology: complete.methodology, calculatedBy: 'other', calculatedByOther: '\n' },
+    ],
+  ] as const)('leaves the calculation not started with %s', (_, draft) => {
+    expect(indicatorTaskList(withDraft(draft)).tasks.calculation).toBe('not_started');
   });
 
   it.each([

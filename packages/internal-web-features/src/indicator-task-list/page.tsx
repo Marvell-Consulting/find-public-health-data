@@ -54,7 +54,11 @@ const TASK_GROUPS: readonly TaskGroup[] = [
       },
       { key: 'numerator', title: 'Numerator' },
       { key: 'denominator', title: 'Denominator' },
-      { key: 'calculation', title: 'How the indicator was calculated' },
+      {
+        key: 'calculation',
+        title: 'How the indicator was calculated',
+        path: sectionPath('calculation'),
+      },
       { key: 'confidence-intervals', title: 'Confidence intervals' },
       { key: 'benchmarking', title: 'Benchmarking' },
       { key: 'other-notes-and-caveats', title: 'Other notes and caveats' },

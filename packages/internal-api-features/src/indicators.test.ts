@@ -563,6 +563,9 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
       definition: null,
       rationale: null,
       polarity: null,
+      methodology: null,
+      calculatedBy: null,
+      calculatedByOther: null,
     },
     indicatorStatus: 'new',
     draftStatus: 'draft',
@@ -609,6 +612,7 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
         name: 'completed',
         'definition-and-rationale': 'not_started',
         polarity: 'not_started',
+        calculation: 'not_started',
       },
     });
   });

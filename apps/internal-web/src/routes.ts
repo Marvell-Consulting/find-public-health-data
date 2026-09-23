@@ -55,6 +55,10 @@ export default [
         'publish/indicators/:id/polarity',
         '../../../packages/internal-web-features/src/indicator-polarity/route.tsx',
       ),
+      route(
+        'publish/indicators/:id/calculation',
+        '../../../packages/internal-web-features/src/indicator-calculation/route.tsx',
+      ),
     ]),
     layout('./admin.tsx', [
       route('manage', './manage.tsx'),
