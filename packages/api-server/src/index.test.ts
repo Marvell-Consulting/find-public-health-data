@@ -112,6 +112,9 @@ describe('addFallbackHandlers', () => {
     app.get('/api/broken', async () => {
       throw new Error('The repository failed');
     });
+    app.get('/api/borrowed-type', async () => {
+      throw Object.assign(new Error('Not from body-parser'), { type: 'entity.parse.failed' });
+    });
     addFallbackHandlers(app);
 
     return app;
@@ -141,6 +144,13 @@ describe('addFallbackHandlers', () => {
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({ error: 'invalid_json' });
+  });
+
+  it('answers a 500 for an error that only shares a body-parser type', async () => {
+    const response = await request(createAppLoggingTo([])).get('/api/borrowed-type');
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ error: 'internal_error' });
   });
 
   it('refuses a body over the size limit with a JSON 413', async () => {

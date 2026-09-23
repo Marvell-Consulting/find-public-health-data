@@ -41,9 +41,14 @@ const bodyErrors = new Map([
   ['entity.too.large', { status: 413, error: 'payload_too_large' }],
 ]);
 
+// body-parser sets the status with the type, so an error carrying only the type is not one of its own.
 function bodyErrorOf(error: unknown): { status: number; error: string } | undefined {
-  if (typeof error !== 'object' || error === null || !('type' in error)) return undefined;
-  return typeof error.type === 'string' ? bodyErrors.get(error.type) : undefined;
+  if (typeof error !== 'object' || error === null) return undefined;
+  if (!('type' in error) || typeof error.type !== 'string') return undefined;
+
+  const bodyError = bodyErrors.get(error.type);
+
+  return 'status' in error && error.status === bodyError?.status ? bodyError : undefined;
 }
 
 const handleError: ErrorRequestHandler = (error, _request, response, next) => {
