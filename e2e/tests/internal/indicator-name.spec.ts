@@ -70,7 +70,7 @@ test('shows a draft indicator on the dashboard', async ({ page }) => {
   const name = uniqueName();
 
   await createIndicator(page, name);
-  await page.getByRole('link', { name: 'Back to indicator overview' }).click();
+  await page.getByRole('link', { name: 'Back', exact: true }).click();
   await page.getByRole('link', { name: 'Back to indicators' }).click();
 
   await expect(page).toHaveURL('/dashboard');

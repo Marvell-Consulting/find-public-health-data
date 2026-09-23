@@ -116,7 +116,7 @@ describe('internal application routes', () => {
           {
             path: 'manage',
             Component: ManageDataPage,
-            handle: backLinkHandle({ href: '/dashboard', text: 'Back to indicators' }),
+            handle: backLinkHandle('/dashboard'),
           },
         ],
       },
@@ -124,7 +124,7 @@ describe('internal application routes', () => {
 
     render(<Routes initialEntries={['/manage']} />);
 
-    const backLink = await screen.findByRole('link', { name: 'Back to indicators' });
+    const backLink = await screen.findByRole('link', { name: 'Back' });
 
     expect(backLink.getAttribute('href')).toBe('/dashboard');
     expect(backLink.closest('main')).toBeNull();

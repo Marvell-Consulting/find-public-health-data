@@ -17,11 +17,8 @@ const taskList: IndicatorTaskList = {
 
 describe('the task list route', () => {
   it('links back to the indicator overview from above the page', () => {
-    if (typeof handle.backLink !== 'function') throw new Error('back link needs the loader');
+    if (typeof handle.backHref !== 'function') throw new Error('back link needs the loader');
 
-    expect(handle.backLink({ taskList })).toEqual({
-      href: `/dashboard/indicators/${taskList.indicator.id}`,
-      text: 'Back to indicator overview',
-    });
+    expect(handle.backHref({ taskList })).toBe(`/dashboard/indicators/${taskList.indicator.id}`);
   });
 });

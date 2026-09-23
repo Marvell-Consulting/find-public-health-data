@@ -3,7 +3,7 @@ import '@fphd/ui/styles.scss';
 import {
   AppDocument,
   AppShell,
-  backLinkFrom,
+  backHrefFrom,
   createDocumentMeta,
   RootErrorBoundary,
 } from '@fphd/ui';
@@ -35,12 +35,12 @@ function navigationFor({ canManage, signedIn }: { canManage: boolean; signedIn: 
 
 export default function InternalApp() {
   const { canManage, signedIn } = useLoaderData<typeof loader>();
-  const backLink = backLinkFrom(useMatches());
+  const backHref = backHrefFrom(useMatches());
 
   return (
     <AppShell
       audience="Internal"
-      backLink={backLink}
+      backHref={backHref}
       navigation={navigationFor({ canManage, signedIn })}
       serviceHref={href('/dashboard')}
     >

@@ -212,9 +212,6 @@ overrides:
   '@esbuild-kit/core-utils>esbuild': '>=0.24.3 <0.26'
   '@react-router/dev>chokidar': ^3.6.0
 
-patchedDependencies:
-  '@not-govuk/page@0.19.1': a934c79e6204a5c77e19538877edece6a581466abbda5672ec92aeb786e55165
-
 importers:
 
   .:
@@ -875,7 +872,7 @@ importers:
         version: 0.19.1(react@19.2.8)
       '@not-govuk/page':
         specifier: 'catalog:'
-        version: 0.19.1(patch_hash=a934c79e6204a5c77e19538877edece6a581466abbda5672ec92aeb786e55165)(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
+        version: 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@not-govuk/pagination':
         specifier: 'catalog:'
         version: 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
@@ -4477,7 +4474,7 @@ snapshots:
       govuk-frontend: 6.5.0
       react: 19.2.8
 
-  '@not-govuk/page@0.19.1(patch_hash=a934c79e6204a5c77e19538877edece6a581466abbda5672ec92aeb786e55165)(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
+  '@not-govuk/page@0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@not-govuk/back-link': 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@not-govuk/breadcrumbs': 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)

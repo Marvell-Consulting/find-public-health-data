@@ -2,8 +2,6 @@ import A from '@not-govuk/link';
 import { GovUKPage } from '@not-govuk/page';
 import type { ReactNode } from 'react';
 
-import type { BackLinkTarget } from './back-link-handle.ts';
-
 export const serviceName = 'Find public health data';
 
 const footerLinks = [
@@ -27,8 +25,8 @@ export interface AppNavigationItem {
 
 interface AppShellProps {
   audience: 'Public' | 'Internal';
-  /** Shown above the main content, where GOV.UK places a back link. */
-  backLink?: BackLinkTarget | undefined;
+  /** Where the back link above the main content goes, as GOV.UK places it. */
+  backHref?: string | undefined;
   children: ReactNode;
   navigation: AppNavigationItem[];
   /** Where the service name in the header links to. */
@@ -37,7 +35,7 @@ interface AppShellProps {
 
 export function AppShell({
   audience,
-  backLink,
+  backHref,
   children,
   navigation,
   serviceHref = '/',
@@ -46,7 +44,8 @@ export function AppShell({
 
   return (
     <GovUKPage
-      {...(backLink === undefined ? {} : { backHref: backLink.href, backText: backLink.text })}
+      // NotGovUK's Page names the back link "Back"; it takes no link text yet.
+      {...(backHref === undefined ? {} : { backHref })}
       meta={footerLinks}
       navigation={navigation}
       phase={isInternal ? 'Internal' : 'Alpha'}

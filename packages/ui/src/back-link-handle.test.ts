@@ -1,7 +1,7 @@
 import type { UIMatch } from 'react-router';
 import { describe, expect, it } from 'vitest';
 
-import { backLinkFrom, backLinkHandle } from './back-link-handle.ts';
+import { backHrefFrom, backLinkHandle } from './back-link-handle.ts';
 
 function match(overrides: Partial<UIMatch>): UIMatch {
   return {
@@ -16,43 +16,36 @@ function match(overrides: Partial<UIMatch>): UIMatch {
 
 const root = match({ id: 'root' });
 
-describe('backLinkFrom', () => {
+describe('backHrefFrom', () => {
   it('finds nothing when no route declares a back link', () => {
-    expect(backLinkFrom([root, match({ id: 'leaf', handle: { other: true } })])).toBeUndefined();
+    expect(backHrefFrom([root, match({ id: 'leaf', handle: { other: true } })])).toBeUndefined();
   });
 
   it('takes a fixed back link as declared', () => {
-    const handle = backLinkHandle({ href: '/dashboard', text: 'Back to indicators' });
+    const handle = backLinkHandle('/dashboard');
 
-    expect(backLinkFrom([root, match({ id: 'leaf', handle })])).toEqual({
-      href: '/dashboard',
-      text: 'Back to indicators',
-    });
+    expect(backHrefFrom([root, match({ id: 'leaf', handle })])).toBe('/dashboard');
   });
 
   it('derives a back link from the loader data', () => {
-    const handle = backLinkHandle<{ id: string }>((data) => ({
-      href: `/dashboard/indicators/${data.id}`,
-      text: 'Back to indicator overview',
-    }));
+    const handle = backLinkHandle<{ id: string }>((data) => `/dashboard/indicators/${data.id}`);
 
-    expect(backLinkFrom([root, match({ id: 'leaf', handle, loaderData: { id: 'abc' } })])).toEqual({
-      href: '/dashboard/indicators/abc',
-      text: 'Back to indicator overview',
-    });
+    expect(backHrefFrom([root, match({ id: 'leaf', handle, loaderData: { id: 'abc' } })])).toBe(
+      '/dashboard/indicators/abc',
+    );
   });
 
   it('leaves a data-derived back link out when the loader did not run', () => {
-    const handle = backLinkHandle<{ id: string }>((data) => ({ href: data.id, text: 'Back' }));
+    const handle = backLinkHandle<{ id: string }>((data) => data.id);
 
-    expect(backLinkFrom([root, match({ id: 'leaf', handle })])).toBeUndefined();
+    expect(backHrefFrom([root, match({ id: 'leaf', handle })])).toBeUndefined();
   });
 
   it('prefers the deepest route that declares one', () => {
-    const parent = match({ id: 'parent', handle: backLinkHandle({ href: '/a', text: 'A' }) });
-    const leaf = match({ id: 'leaf', handle: backLinkHandle({ href: '/b', text: 'B' }) });
+    const parent = match({ id: 'parent', handle: backLinkHandle('/a') });
+    const leaf = match({ id: 'leaf', handle: backLinkHandle('/b') });
 
-    expect(backLinkFrom([root, parent, leaf])).toEqual({ href: '/b', text: 'B' });
-    expect(backLinkFrom([root, parent, match({ id: 'plain' })])).toEqual({ href: '/a', text: 'A' });
+    expect(backHrefFrom([root, parent, leaf])).toBe('/b');
+    expect(backHrefFrom([root, parent, match({ id: 'plain' })])).toBe('/a');
   });
 });

@@ -81,7 +81,7 @@ test('is reached from the indicator overview', async ({ page }) => {
   await createIndicator(page, uniqueName());
   const taskListPath = new URL(page.url()).pathname;
 
-  await page.getByRole('link', { name: 'Back to indicator overview' }).click();
+  await page.getByRole('link', { name: 'Back', exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard\/indicators\/[0-9a-f-]{36}$/);
 
   await page.getByRole('link', { name: 'Continue creating indicator' }).click();
