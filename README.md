@@ -107,8 +107,10 @@ jobs. A final `All checks pass` job aggregates them and is the single required s
 merging, so the required-check list does not need editing whenever a job is added — but a new job
 must be added to that job's `needs` list, or it gates nothing.
 
-Runs are triggered on every non-draft pull request (on open, on every push to the branch, and when a
-draft is marked ready for review) and on every push to `main`. **Draft pull requests run nothing.**
+Runs are triggered on every pull request (on open, on every push to the branch, on reopening, and
+when a draft is marked ready for review) and on every push to `main`. A draft pull request skips the
+e2e tests, the image builds and the web-changes check, so its `All checks pass` gate stays red until
+it is marked ready for review.
 
 `pnpm check` is the local equivalent for lint, typecheck, test and build. It runs `pnpm test`, so it
 covers all three test tiers — which means `pnpm check` needs the local database running
