@@ -5,7 +5,6 @@ import {
   indicatorCreateErrorSchema,
   indicatorCreateResponseSchema,
   indicatorFieldSchema,
-  indicatorIdSchema,
   indicatorNameSchema,
   indicatorUpdateErrorSchema,
   toFieldErrors,
@@ -14,6 +13,7 @@ import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from 'react-router';
 
+import { requireIndicatorId } from '../indicator-id.ts';
 import { indicatorTaskListPath } from '../indicator-task-list/paths.ts';
 
 export type {
@@ -28,15 +28,6 @@ export interface IndicatorNameFailure {
 
 function notFound(): Response {
   return new Response('Not Found', { status: 404 });
-}
-
-/** An address that is not an id names nothing, so it is a 404 rather than an API error. */
-function requireIndicatorId(params: LoaderFunctionArgs['params']): string {
-  const id = indicatorIdSchema.safeParse(params.id);
-
-  if (!id.success) throw notFound();
-
-  return id.data;
 }
 
 /** The name as typed, so a rejected submission re-renders the form exactly as it was sent. */
