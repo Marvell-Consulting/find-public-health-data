@@ -113,6 +113,13 @@
       "when": 1790093313838,
       "tag": "0015_indicator-versions",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1790166500349,
+      "tag": "0016_published-observation-without-upload-batch",
+      "breakpoints": true
     }
   ]
 }

@@ -440,7 +440,7 @@ describe('PATCH /api/internal/indicators/:id', () => {
     expect(updateDraft).not.toHaveBeenCalled();
   });
 
-  it('answers 404 for an indicator that does not exist', async () => {
+  it('answers not_found when there is no indicator to rename', async () => {
     const response = await request(
       createTestApp({
         updateDraft: async () => ({ ok: false, reason: 'no_draft' }),
@@ -455,11 +455,13 @@ describe('PATCH /api/internal/indicators/:id', () => {
     expect(response.body).toEqual({ error: 'not_found' });
   });
 
-  it('reports a name another indicator already holds against the field', async () => {
+  it('reports a name another indicator already holds against the field, reading nothing back', async () => {
+    const findById = vi.fn();
+
     const response = await request(
       createTestApp({
         updateDraft: async () => ({ ok: false, reason: 'slug_taken' }),
-        findById: async () => draftRow,
+        findById,
       }),
     )
       .patch(path)
@@ -471,6 +473,7 @@ describe('PATCH /api/internal/indicators/:id', () => {
       error: 'slug_taken',
       fieldErrors: { name: 'An indicator with this name already exists' },
     });
+    expect(findById).not.toHaveBeenCalled();
   });
 
   it('answers 404 for an indicator with no draft to rename', async () => {
