@@ -23,6 +23,10 @@ const source: IndicatorTaskListSource = {
     methodology: null,
     calculatedBy: null,
     calculatedByOther: null,
+    ciMethodKind: null,
+    ciMethodModified: null,
+    ciMethodModifications: null,
+    ciMethodOtherDetail: null,
   },
 };
 
@@ -34,6 +38,10 @@ const complete: IndicatorTaskListDraft = {
   methodology: 'Calculated from mortality rates by single year of age.',
   calculatedBy: 'ohid',
   calculatedByOther: null,
+  ciMethodKind: 'standard',
+  ciMethodModified: false,
+  ciMethodModifications: null,
+  ciMethodOtherDetail: null,
 };
 
 function withDraft(draft: Partial<IndicatorTaskListDraft>): IndicatorTaskListSource {
@@ -113,6 +121,39 @@ describe('indicatorTaskList', () => {
     ],
   ] as const)('leaves the calculation not started with %s', (_, draft) => {
     expect(indicatorTaskList(withDraft(draft)).tasks.calculation).toBe('not_started');
+  });
+
+  it.each([
+    ['no method is chosen', {}, 'not_started'],
+    [
+      'a standard method is unmodified',
+      { ciMethodKind: 'standard', ciMethodModified: false },
+      'completed',
+    ],
+    [
+      'a standard method is modified as described',
+      { ciMethodKind: 'standard', ciMethodModified: true, ciMethodModifications: 'Adjusted' },
+      'completed',
+    ],
+    [
+      'a standard method is modified with no description',
+      { ciMethodKind: 'standard', ciMethodModified: true, ciMethodModifications: ' ' },
+      'not_started',
+    ],
+    [
+      'a standard method has no answer on modifications',
+      { ciMethodKind: 'standard', ciMethodModified: null },
+      'not_started',
+    ],
+    [
+      'an other method is detailed',
+      { ciMethodKind: 'other', ciMethodOtherDetail: 'Bootstrap intervals' },
+      'completed',
+    ],
+    ['an other method has no detail', { ciMethodKind: 'other' }, 'not_started'],
+    ['the method has nothing to describe', { ciMethodKind: 'none' }, 'completed'],
+  ] as const)('judges the confidence intervals when %s', (_, draft, status) => {
+    expect(indicatorTaskList(withDraft(draft)).tasks['confidence-intervals']).toBe(status);
   });
 
   it.each([

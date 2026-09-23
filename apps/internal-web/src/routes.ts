@@ -59,6 +59,10 @@ export default [
         'publish/indicators/:id/calculation',
         '../../../packages/internal-web-features/src/indicator-calculation/route.tsx',
       ),
+      route(
+        'publish/indicators/:id/confidence-intervals',
+        '../../../packages/internal-web-features/src/indicator-confidence-intervals/route.tsx',
+      ),
     ]),
     layout('./admin.tsx', [
       route('manage', './manage.tsx'),

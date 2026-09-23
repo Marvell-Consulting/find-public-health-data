@@ -5,6 +5,7 @@ import { createRoutesStub, Meta, type MetaFunction, Outlet } from 'react-router'
 import { describe, expect, it } from 'vitest';
 
 import * as calculation from './indicator-calculation/route.tsx';
+import * as confidenceIntervals from './indicator-confidence-intervals/route.tsx';
 import * as definitionAndRationale from './indicator-definition-and-rationale/route.tsx';
 import * as editIndicatorName from './indicator-name/edit-route.tsx';
 import * as newIndicator from './indicator-name/new-route.tsx';
@@ -85,6 +86,30 @@ const forms: {
     rejected: {
       values: { methodology: '', calculatedBy: '', calculatedByOther: '' },
       fieldErrors: { methodology: 'Enter the methodology' },
+    },
+  },
+  {
+    name: 'confidence intervals',
+    route: confidenceIntervals,
+    pageTitle: 'Confidence intervals',
+    loaderData: {
+      id: indicator.id,
+      values: {
+        ciMethodId: '',
+        ciMethodModified: '',
+        ciMethodModifications: '',
+        ciMethodOtherDetail: '',
+      },
+      methods: [],
+    },
+    rejected: {
+      values: {
+        ciMethodId: '',
+        ciMethodModified: '',
+        ciMethodModifications: '',
+        ciMethodOtherDetail: '',
+      },
+      fieldErrors: { ciMethodId: 'Select the confidence interval method used' },
     },
   },
   {

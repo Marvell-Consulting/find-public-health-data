@@ -1,5 +1,6 @@
 import { type Database, listTopics, type Topic } from '@fphd/db';
 
+import { type CiMethodRow, getCiMethodById, listCiMethods } from './ci-method-repository.ts';
 import {
   type CreateDraftFromPublishedResult,
   type CreateIndicatorDraftResult,
@@ -57,17 +58,28 @@ export interface InternalIndicatorRepository {
   draftFromPublished(indicatorId: string, actor: string): Promise<CreateDraftFromPublishedResult>;
 }
 
+/** The confidence interval methods a publisher chooses from. */
+export interface InternalCiMethodRepository {
+  list(): Promise<CiMethodRow[]>;
+  findById(id: string): Promise<CiMethodRow | undefined>;
+}
+
 /**
  * Everything the internal-only routes read and write, mirroring `Repositories` in `@fphd/db`.
  * Queries live here so the artefact-boundary check keeps them out of the public image.
  */
 export interface InternalRepositories {
+  ciMethods: InternalCiMethodRepository;
   indicators: InternalIndicatorRepository;
   topics: InternalTopicRepository;
 }
 
 export function createInternalRepositories(db: Database): InternalRepositories {
   return {
+    ciMethods: {
+      list: () => listCiMethods(db),
+      findById: (id) => getCiMethodById(db, id),
+    },
     indicators: {
       listPage: (page, pageSize) => listIndicatorsPage(db, page, pageSize),
       findById: (id) => getIndicatorById(db, id),

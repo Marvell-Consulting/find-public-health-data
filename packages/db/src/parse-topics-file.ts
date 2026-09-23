@@ -32,7 +32,7 @@ export function parseTopicsFile(data: unknown): TopicRecord[] {
   return topics;
 }
 
-function findDuplicates(values: string[]): string[] {
+export function findDuplicates(values: string[]): string[] {
   const seen = new Set<string>();
   const duplicates = new Set<string>();
 

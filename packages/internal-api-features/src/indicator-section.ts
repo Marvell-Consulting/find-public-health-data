@@ -59,7 +59,8 @@ export function indicatorSectionRouter<Field extends string, Values>(
     }
 
     // Validated here as well as at the form: the API is reachable without going through it.
-    const submission = section.schema.safeParse(request.body);
+    // Async, because a section's API-side schema may check an answer against a lookup.
+    const submission = await section.schema.safeParseAsync(request.body);
 
     if (!submission.success) {
       response.status(400).json({

@@ -566,7 +566,11 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
       methodology: null,
       calculatedBy: null,
       calculatedByOther: null,
+      ciMethodModified: null,
+      ciMethodModifications: null,
+      ciMethodOtherDetail: null,
     },
+    draftCiMethodKind: null,
     indicatorStatus: 'new',
     draftStatus: 'draft',
   };
@@ -613,8 +617,19 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
         'definition-and-rationale': 'not_started',
         polarity: 'not_started',
         calculation: 'not_started',
+        'confidence-intervals': 'not_started',
       },
     });
+  });
+
+  it("judges the confidence intervals by the kind of the draft's method", async () => {
+    const findDraftState = vi.fn().mockResolvedValue({ ...draftState, draftCiMethodKind: 'none' });
+
+    const response = await request(createTestApp({ findDraftState }))
+      .get(`/api/internal/indicators/${row.id}/task-list`)
+      .set('Cookie', await publisherCookie());
+
+    expect(response.body.tasks['confidence-intervals']).toBe('completed');
   });
 
   it('reports a draft behind a published version as an update of a live indicator', async () => {

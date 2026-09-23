@@ -1,4 +1,9 @@
-import type { IndicatorTaskList, IndicatorTaskStatus, IndicatorTaskStatuses } from './contract.ts';
+import type {
+  CiMethodKind,
+  IndicatorTaskList,
+  IndicatorTaskStatus,
+  IndicatorTaskStatuses,
+} from './contract.ts';
 import type { IndicatorDraftVersion } from './indicator-repository.ts';
 
 /** The draft columns the task list judges; each section adds the ones its form writes. */
@@ -11,7 +16,13 @@ export type IndicatorTaskListDraft = Pick<
   | 'methodology'
   | 'calculatedBy'
   | 'calculatedByOther'
->;
+  | 'ciMethodModified'
+  | 'ciMethodModifications'
+  | 'ciMethodOtherDetail'
+> & {
+  /** The kind of the draft's CI method, null while none is chosen. */
+  ciMethodKind: CiMethodKind | null;
+};
 
 export interface IndicatorTaskListSource {
   indicator: Omit<IndicatorTaskList['indicator'], 'name'>;
@@ -23,6 +34,21 @@ function answered(...answers: readonly (string | null)[]): IndicatorTaskStatus {
   return answers.every((answer) => answer !== null && answer.trim() !== '')
     ? 'completed'
     : 'not_started';
+}
+
+/** Complete once the answers the chosen method asks for are held. */
+function confidenceIntervals(draft: IndicatorTaskListDraft): IndicatorTaskStatus {
+  switch (draft.ciMethodKind) {
+    case null:
+      return 'not_started';
+    case 'none':
+      return 'completed';
+    case 'other':
+      return answered(draft.ciMethodOtherDetail);
+    case 'standard':
+      if (draft.ciMethodModified === null) return 'not_started';
+      return draft.ciMethodModified ? answered(draft.ciMethodModifications) : 'completed';
+  }
 }
 
 /**
@@ -44,6 +70,7 @@ export function indicatorTaskList({
       draft.calculatedBy,
       ...(draft.calculatedBy === 'other' ? [draft.calculatedByOther] : []),
     ),
+    'confidence-intervals': confidenceIntervals(draft),
   };
 
   return {
