@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import * as definitionAndRationale from './indicator-definition-and-rationale/route.tsx';
 import * as editIndicatorName from './indicator-name/edit-route.tsx';
 import * as newIndicator from './indicator-name/new-route.tsx';
+import * as polarity from './indicator-polarity/route.tsx';
 import * as editTopic from './topic-admin/edit-route.tsx';
 import * as newTopic from './topic-admin/new-route.tsx';
 
@@ -60,6 +61,16 @@ const forms: {
     rejected: {
       values: { definition: '', rationale: '' },
       fieldErrors: { definition: 'Enter the definition of the indicator' },
+    },
+  },
+  {
+    name: 'polarity',
+    route: polarity,
+    pageTitle: 'What is the polarity of this indicator?',
+    loaderData: { id: indicator.id, values: { polarity: '' } },
+    rejected: {
+      values: { polarity: '' },
+      fieldErrors: { polarity: 'Select the polarity of the indicator' },
     },
   },
   {

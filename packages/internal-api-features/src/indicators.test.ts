@@ -558,7 +558,12 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
   const draftState = {
     id: row.id,
     shortId: 90366,
-    draft: { name: 'Life expectancy at birth', definition: null, rationale: null },
+    draft: {
+      name: 'Life expectancy at birth',
+      definition: null,
+      rationale: null,
+      polarity: null,
+    },
     indicatorStatus: 'new',
     draftStatus: 'draft',
   };
@@ -600,7 +605,11 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
       },
       isUpdate: false,
       canSubmit: false,
-      tasks: { name: 'completed', 'definition-and-rationale': 'not_started' },
+      tasks: {
+        name: 'completed',
+        'definition-and-rationale': 'not_started',
+        polarity: 'not_started',
+      },
     });
   });
 

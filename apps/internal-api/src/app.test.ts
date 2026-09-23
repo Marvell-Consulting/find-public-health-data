@@ -133,6 +133,28 @@ describe('internal API', () => {
     expect(asInternal.status).toBe(403);
   });
 
+  it('mounts the polarity section behind the publisher role', async () => {
+    const internalRepositories = createFakeInternalRepositories({
+      indicators: {
+        // The handler reads only the section's column of the draft.
+        findDraftState: vi.fn().mockResolvedValue({ draft: { polarity: null } }),
+      },
+    });
+    const app = createTestApp(createFakeRepositories(), internalRepositories);
+    const path = '/api/internal/indicators/00000000-0000-7000-8000-000000000001/polarity';
+
+    const asPublisher = await request(app)
+      .get(path)
+      .set('Cookie', await createCookie(['public', 'internal', 'publisher']));
+    const asInternal = await request(app)
+      .get(path)
+      .set('Cookie', await createCookie(['public', 'internal']));
+
+    expect(asPublisher.status).toBe(200);
+    expect(asPublisher.body).toEqual({ polarity: null });
+    expect(asInternal.status).toBe(403);
+  });
+
   it('mounts the internal topics surface behind the admin role', async () => {
     const internalRepositories = createFakeInternalRepositories({
       topics: {

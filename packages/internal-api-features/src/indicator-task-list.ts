@@ -4,7 +4,7 @@ import type { IndicatorDraftVersion } from './indicator-repository.ts';
 /** The draft columns the task list judges; each section adds the ones its form writes. */
 export type IndicatorTaskListDraft = Pick<
   IndicatorDraftVersion,
-  'name' | 'definition' | 'rationale'
+  'name' | 'definition' | 'rationale' | 'polarity'
 >;
 
 export interface IndicatorTaskListSource {
@@ -31,6 +31,7 @@ export function indicatorTaskList({
   const tasks: IndicatorTaskStatuses = {
     name: 'completed',
     'definition-and-rationale': answered(draft.definition, draft.rationale),
+    polarity: answered(draft.polarity),
   };
 
   return {

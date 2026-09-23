@@ -2,6 +2,7 @@ import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { Router } from 'express';
 
 import { indicatorDefinitionAndRationaleRouter } from './indicator-definition-and-rationale.ts';
+import { indicatorPolarityRouter } from './indicator-polarity.ts';
 import { internalIndicatorsRouter } from './indicators.ts';
 import type { InternalRepositories } from './repositories.ts';
 import { internalTopicsRouter } from './topics.ts';
@@ -54,6 +55,7 @@ export function internalApiRoutes({ repositories, session }: InternalApiDependen
 
   router.use(internalIndicatorsRouter(repositories.indicators, session));
   router.use(indicatorDefinitionAndRationaleRouter(repositories.indicators, session));
+  router.use(indicatorPolarityRouter(repositories.indicators, session));
   router.use(internalTopicsRouter(repositories.topics, session));
 
   return router;
