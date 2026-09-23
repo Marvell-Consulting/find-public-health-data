@@ -440,7 +440,7 @@ describe('PATCH /api/internal/indicators/:id', () => {
     expect(updateDraft).not.toHaveBeenCalled();
   });
 
-  it('answers 404 for an indicator that does not exist', async () => {
+  it('answers not_found when there is no indicator to rename', async () => {
     const response = await request(
       createTestApp({
         updateDraft: async () => ({ ok: false, reason: 'no_draft' }),
