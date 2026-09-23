@@ -75,7 +75,7 @@ export async function loadIndicatorName({ context, params }: LoaderFunctionArgs)
     .get(apiContext)
     .get(apiPath`/api/internal/indicators/${id}`, indicatorAdminDetailSchema);
 
-  if (indicator.status !== 'draft') throw notFound();
+  if (indicator.draftStatus === null) throw notFound();
 
   return { indicator };
 }

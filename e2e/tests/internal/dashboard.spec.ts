@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
+import { createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
 import { signInAs } from '../support/sign-in.ts';
 
 test.beforeEach(async ({ page }) => {
@@ -21,6 +22,17 @@ test('lists a page of indicators for a publisher', async ({ page }) => {
     'Indicator status',
     'Publishing status',
   ]);
+});
+
+test('tags a new indicator as new with an incomplete draft', async ({ page }) => {
+  const name = uniqueIndicatorName('dashboard');
+  await createIndicator(page, name);
+  await page.goto('/dashboard');
+
+  const row = page.getByRole('table').getByRole('row').filter({ hasText: name });
+
+  // The column headers name the two statuses, so the tags carry no hidden prefix here.
+  await expect(row.locator('.govuk-tag')).toHaveText(['New', 'Incomplete']);
 });
 
 test('moves between pages', async ({ page }) => {

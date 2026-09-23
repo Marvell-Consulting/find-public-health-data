@@ -1,20 +1,12 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
+import { createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
+import { MORTALITY_ID } from '../support/indicator-page.ts';
 import { signInAs } from '../support/sign-in.ts';
 
-// Every indicator created here carries a name no other spec or run uses, so the shared seeded
-// database is only ever added to and each test asserts on the row it made itself.
 function uniqueName() {
-  return `E2E task list ${test.info().parallelIndex} ${Date.now().toString(36)}`;
-}
-
-/** Creates an indicator, which leaves the publisher on its task list. */
-async function createIndicator(page: Page, name: string) {
-  await page.goto('/publish/indicators/new');
-  await page.getByLabel('What is the name of the indicator?').fill(name);
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await expect(page).toHaveURL(/\/publish\/indicators\/[0-9a-f-]{36}\/task-list$/);
+  return uniqueIndicatorName('task list');
 }
 
 // The header and footer have lists of their own, so the task rows are read inside the page.
@@ -45,6 +37,16 @@ test('shows the indicator name and number on its task list', async ({ page }) =>
 
   await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
   await expect(page.getByText(/^ID: \d+$/)).toBeVisible();
+});
+
+test('shows the indicator as new with an incomplete draft', async ({ page }) => {
+  await createIndicator(page, uniqueName());
+
+  // The tags follow the public number, under the heading.
+  await expect(page.getByRole('main').locator('h1 ~ p .govuk-tag')).toHaveText([
+    'Indicator status: New indicator',
+    'Publishing status: Incomplete',
+  ]);
 });
 
 test('marks the name as complete and everything without a form as not started', async ({
@@ -94,7 +96,7 @@ test('answers an indicator with nothing to edit with the not-found page', async 
     '/publish/indicators/108/task-list',
     '/publish/indicators/00000000-0000-7000-8000-000000000000/task-list',
     // The seeded indicator is published, so no draft of it is being worked on.
-    '/publish/indicators/019fa38f-1346-7094-b773-79dcd43ae4b4/task-list',
+    `/publish/indicators/${MORTALITY_ID}/task-list`,
   ]) {
     const response = await page.goto(path);
     expect(response?.status(), path).toBe(404);

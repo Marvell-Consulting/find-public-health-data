@@ -3,7 +3,7 @@ import { type Database, schema } from '@fphd/db';
 import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
-import type { IndicatorStatus } from './contract.ts';
+import type { DraftStatus, IndicatorStatus } from './contract.ts';
 
 const {
   currentPublishedVersion,
@@ -17,6 +17,8 @@ export interface IndicatorAdminRow {
   id: string;
   name: string;
   updatedAt: Date;
+  indicatorStatus: IndicatorStatus;
+  draftStatus: DraftStatus | null;
 }
 
 export interface IndicatorAdminRows {
@@ -26,7 +28,6 @@ export interface IndicatorAdminRows {
 
 export interface IndicatorAdminDetailRow extends IndicatorAdminRow {
   shortId: number;
-  status: IndicatorStatus;
   /** The published version's slug, and so its public address; null while none is published. */
   publishedSlug: string | null;
 }
@@ -48,7 +49,10 @@ const latestUpdatedAt =
   sql`greatest(${draftVersion.updatedAt}, ${currentPublishedVersion.updatedAt})`.mapWith(
     indicatorVersion.updatedAt,
   );
-const derivedStatus = sql<IndicatorStatus>`case when ${draftVersion.id} is not null then 'draft' else 'published' end`;
+// Both statuses are read from the versions as SQL, so a filter or sort on either is a WHERE clause.
+const indicatorStatus = sql<IndicatorStatus>`case when ${currentPublishedVersion.id} is not null then 'live' else 'new' end`;
+// The draft join fixes the status it matches, which narrows the column from the version enum.
+const draftStatus = sql<DraftStatus | null>`${draftVersion.status}`;
 
 /** Every indicator whatever its status, newest edit first; the id breaks any remaining tie. */
 export async function listIndicatorsPage(
@@ -58,7 +62,13 @@ export async function listIndicatorsPage(
 ): Promise<IndicatorAdminRows> {
   const [indicators, [counted]] = await Promise.all([
     db
-      .select({ id: indicator.id, name: currentName, updatedAt: latestUpdatedAt })
+      .select({
+        id: indicator.id,
+        name: currentName,
+        updatedAt: latestUpdatedAt,
+        indicatorStatus,
+        draftStatus,
+      })
       .from(indicator)
       .leftJoin(draftVersion, draftJoin)
       .leftJoin(currentPublishedVersion, publishedJoin)
@@ -81,9 +91,10 @@ export async function getIndicatorById(
       id: indicator.id,
       shortId: indicator.shortId,
       name: currentName,
-      status: derivedStatus,
       publishedSlug: currentPublishedVersion.slug,
       updatedAt: latestUpdatedAt,
+      indicatorStatus,
+      draftStatus,
     })
     .from(indicator)
     .leftJoin(draftVersion, draftJoin)
@@ -98,10 +109,11 @@ export interface IndicatorDraftStateRow {
   shortId: number;
   /** The draft a publisher is working on, absent while the indicator has none. */
   draft: typeof indicatorVersion.$inferSelect | null;
-  hasPublished: boolean;
+  indicatorStatus: IndicatorStatus;
+  draftStatus: DraftStatus | null;
 }
 
-/** The draft and whether anything is published, which is what a task list is derived from. */
+/** The draft and the indicator's two statuses, which is what a task list is derived from. */
 export async function getIndicatorDraftState(
   db: Database,
   id: string,
@@ -111,7 +123,8 @@ export async function getIndicatorDraftState(
       id: indicator.id,
       shortId: indicator.shortId,
       draft: draftVersion,
-      hasPublished: sql<boolean>`${currentPublishedVersion.id} is not null`,
+      indicatorStatus,
+      draftStatus,
     })
     .from(indicator)
     .leftJoin(draftVersion, draftJoin)

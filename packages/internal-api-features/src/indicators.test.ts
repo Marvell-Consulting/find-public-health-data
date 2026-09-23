@@ -25,13 +25,14 @@ const row: IndicatorAdminRow = {
   id: '00000000-0000-7000-8000-000000000001',
   name: 'Life expectancy at birth',
   updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+  indicatorStatus: 'live',
+  draftStatus: null,
 };
 
 const detailRow: IndicatorAdminDetailRow = {
   ...row,
   shortId: 90366,
   publishedSlug: 'life-expectancy-at-birth',
-  status: 'published',
 };
 
 const silent = pino({ level: 'silent' });
@@ -104,6 +105,8 @@ describe('GET /api/internal/indicators', () => {
           id: row.id,
           name: 'Life expectancy at birth',
           updatedAt: '2026-01-02T00:00:00.000Z',
+          indicatorStatus: 'live',
+          draftStatus: null,
         },
       ],
       page: 1,
@@ -154,7 +157,7 @@ describe('GET /api/internal/indicators/:id', () => {
     expect(response.body).toEqual({ error: 'forbidden' });
   });
 
-  it('serves the indicator with its public identifiers and stored status', async () => {
+  it('serves the indicator with its public identifiers and derived statuses', async () => {
     const findById = vi.fn().mockResolvedValue(detailRow);
 
     const response = await request(createTestApp({ findById }))
@@ -168,8 +171,9 @@ describe('GET /api/internal/indicators/:id', () => {
       shortId: 90366,
       name: 'Life expectancy at birth',
       publishedSlug: 'life-expectancy-at-birth',
-      status: 'published',
       updatedAt: '2026-01-02T00:00:00.000Z',
+      indicatorStatus: 'live',
+      draftStatus: null,
     });
   });
 
@@ -203,7 +207,8 @@ describe('POST /api/internal/indicators', () => {
     ...row,
     shortId: 90366,
     publishedSlug: null,
-    status: 'draft',
+    indicatorStatus: 'new',
+    draftStatus: 'draft',
   };
 
   it('rejects an anonymous request', async () => {
@@ -241,7 +246,8 @@ describe('POST /api/internal/indicators', () => {
       shortId: 90366,
       name: 'Life expectancy at birth',
       publishedSlug: null,
-      status: 'draft',
+      indicatorStatus: 'new',
+      draftStatus: 'draft',
       updatedAt: '2026-01-02T00:00:00.000Z',
     });
   });
@@ -361,7 +367,8 @@ describe('PATCH /api/internal/indicators/:id', () => {
     ...row,
     shortId: 90366,
     publishedSlug: null,
-    status: 'draft',
+    indicatorStatus: 'new',
+    draftStatus: 'draft',
   };
   const path = `/api/internal/indicators/${row.id}`;
 
@@ -398,7 +405,8 @@ describe('PATCH /api/internal/indicators/:id', () => {
       shortId: 90366,
       name: 'A better name',
       publishedSlug: null,
-      status: 'draft',
+      indicatorStatus: 'new',
+      draftStatus: 'draft',
       updatedAt: '2026-01-02T00:00:00.000Z',
     });
   });
@@ -548,7 +556,8 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
     id: row.id,
     shortId: 90366,
     draft: { name: 'Life expectancy at birth' },
-    hasPublished: false,
+    indicatorStatus: 'new',
+    draftStatus: 'draft',
   };
 
   it('rejects an anonymous request', async () => {
@@ -579,22 +588,31 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
     expect(response.status).toBe(200);
     expect(findDraftState).toHaveBeenCalledWith(row.id);
     expect(response.body).toEqual({
-      indicator: { id: row.id, shortId: 90366, name: 'Life expectancy at birth' },
+      indicator: {
+        id: row.id,
+        shortId: 90366,
+        name: 'Life expectancy at birth',
+        indicatorStatus: 'new',
+        draftStatus: 'draft',
+      },
       isUpdate: false,
       canSubmit: true,
       tasks: { name: 'completed' },
     });
   });
 
-  it('reports a draft behind a published version as an update', async () => {
-    const findDraftState = vi.fn().mockResolvedValue({ ...draftState, hasPublished: true });
+  it('reports a draft behind a published version as an update of a live indicator', async () => {
+    const findDraftState = vi.fn().mockResolvedValue({ ...draftState, indicatorStatus: 'live' });
 
     const response = await request(createTestApp({ findDraftState }))
       .get(`/api/internal/indicators/${row.id}/task-list`)
       .set('Cookie', await publisherCookie());
 
     expect(response.status).toBe(200);
-    expect(response.body).toMatchObject({ isUpdate: true });
+    expect(response.body).toMatchObject({
+      indicator: { indicatorStatus: 'live', draftStatus: 'draft' },
+      isUpdate: true,
+    });
   });
 
   it('answers 404 for an indicator that does not exist', async () => {
@@ -609,7 +627,12 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
   });
 
   it('answers 404 for an indicator with no draft to edit', async () => {
-    const findDraftState = vi.fn().mockResolvedValue({ ...draftState, draft: null });
+    const findDraftState = vi.fn().mockResolvedValue({
+      ...draftState,
+      draft: null,
+      indicatorStatus: 'live',
+      draftStatus: null,
+    });
 
     const response = await request(createTestApp({ findDraftState }))
       .get(`/api/internal/indicators/${row.id}/task-list`)

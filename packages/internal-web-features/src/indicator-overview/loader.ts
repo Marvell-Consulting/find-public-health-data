@@ -6,7 +6,7 @@ import type { LoaderFunctionArgs } from 'react-router';
 
 import { requireIndicatorId } from '../indicator-id.ts';
 
-export type { IndicatorAdminDetail, IndicatorStatus } from '@fphd/internal-api-features/contract';
+export type { IndicatorAdminDetail } from '@fphd/internal-api-features/contract';
 
 export async function loadIndicatorOverview({ context, params }: LoaderFunctionArgs) {
   const id = requireIndicatorId(params);

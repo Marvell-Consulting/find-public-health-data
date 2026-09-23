@@ -11,7 +11,9 @@ const indicator = {
   id: '019a1b2c-3d4e-7f60-8a9b-0c1d2e3f4a5b',
   name: 'Life expectancy at birth',
   updatedAt: '2026-08-04T23:30:00.000Z',
-};
+  indicatorStatus: 'live',
+  draftStatus: null,
+} as const;
 
 // The pagination links read router state, so the page renders inside a router at its own address.
 function renderPage(props: Partial<Parameters<typeof DashboardPage>[0]> = {}, url = '/dashboard') {
@@ -29,6 +31,15 @@ describe('DashboardPage', () => {
     expect(
       screen.getByRole('table', { name: 'Every indicator, most recently edited first' }),
     ).toBeTruthy();
+  });
+
+  it('tags each indicator with its two statuses', () => {
+    renderPage({ indicators: [{ ...indicator, draftStatus: 'draft' }] });
+
+    const row = screen.getByRole('rowheader', { name: 'Life expectancy at birth' }).closest('tr');
+    const tags = [...(row?.querySelectorAll('.govuk-tag') ?? [])].map((tag) => tag.textContent);
+
+    expect(tags).toEqual(['Live', 'Update incomplete']);
   });
 
   it('names the columns of the prototype that have data behind them', () => {

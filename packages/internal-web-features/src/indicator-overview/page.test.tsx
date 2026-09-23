@@ -13,8 +13,9 @@ const indicator: IndicatorAdminDetail = {
   shortId: 90366,
   name: 'Life expectancy at birth',
   publishedSlug: 'life-expectancy-at-birth',
-  status: 'published',
   updatedAt: '2026-08-04T23:30:00.000Z',
+  indicatorStatus: 'live',
+  draftStatus: null,
 };
 
 // The links and tabs read router state, so the page renders inside a router at its own address.
@@ -33,20 +34,18 @@ describe('IndicatorOverviewPage', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'Life expectancy at birth' }),
     ).toBeTruthy();
-    expect(screen.getByText('Indicator number')).toBeTruthy();
-    expect(screen.getByText('90366')).toBeTruthy();
+    expect(screen.getByText('ID: 90366')).toBeTruthy();
   });
 
-  it.each([
-    ['draft', 'Incomplete', 'grey'],
-    ['published', 'Published', 'green'],
-  ] as const)('labels a status of %s as a %s tag', (status, label, colour) => {
-    renderPage({ status });
+  it('tags the indicator with its two statuses under the public number', () => {
+    renderPage({ draftStatus: 'draft' });
 
-    const tag = screen.getByText(label);
+    const tags = [...document.querySelectorAll('h1 ~ p .govuk-tag')];
 
-    expect(tag.className).toContain('govuk-tag');
-    expect(tag.className).toContain(`govuk-tag--${colour}`);
+    expect(tags.map((tag) => tag.textContent)).toEqual([
+      'Indicator status: Live indicator',
+      'Publishing status: Update incomplete',
+    ]);
   });
 
   it('offers the published page as an action for a published indicator', () => {
@@ -59,7 +58,7 @@ describe('IndicatorOverviewPage', () => {
   });
 
   it('offers the task list as an action for a draft, which has no public page', () => {
-    renderPage({ publishedSlug: null, status: 'draft' });
+    renderPage({ publishedSlug: null, indicatorStatus: 'new', draftStatus: 'draft' });
 
     expect(screen.queryByRole('link', { name: 'View published indicator' })).toBeNull();
     expect(
@@ -68,17 +67,20 @@ describe('IndicatorOverviewPage', () => {
   });
 
   it('offers both actions for a draft that revises a published indicator', () => {
-    renderPage({ status: 'draft' });
+    renderPage({ draftStatus: 'draft' });
 
     expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
-      'Continue creating indicator',
+      'Continue updating indicator',
       'View published indicator',
     ]);
+    expect(
+      screen.getByRole('link', { name: 'Continue updating indicator' }).getAttribute('href'),
+    ).toBe(`/publish/indicators/${indicator.id}/task-list`);
   });
 
   it('offers no editing action for a published indicator, which has no draft', () => {
     renderPage();
 
-    expect(screen.queryByRole('link', { name: 'Continue creating indicator' })).toBeNull();
+    expect(screen.queryByRole('link', { name: /^Continue/ })).toBeNull();
   });
 });

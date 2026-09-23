@@ -234,20 +234,53 @@ describe('listIndicatorsPage', () => {
   });
 });
 
+describe('the derived statuses', () => {
+  /** The whole listing, so a case finds its own row wherever the order put it. */
+  async function listed(id: string) {
+    const page = await listIndicatorsPage(db, 1, (await idsNewestFirst()).length);
+    return page.indicators.find((row) => row.id === id);
+  }
+
+  it('reads a draft with nothing published as new and unsubmitted', async () => {
+    const created = await newDraft('A first draft');
+    const statuses = { indicatorStatus: 'new', draftStatus: 'draft' };
+
+    expect(await listed(created.indicatorId)).toMatchObject(statuses);
+    expect(await getIndicatorById(db, created.indicatorId)).toMatchObject(statuses);
+  });
+
+  it('reads a published indicator with no draft as live and nothing in flight', async () => {
+    const { indicatorId } = await indicatorWithTwoPublications();
+    const statuses = { indicatorStatus: 'live', draftStatus: null };
+
+    expect(await listed(indicatorId)).toMatchObject(statuses);
+    expect(await getIndicatorById(db, indicatorId)).toMatchObject(statuses);
+  });
+
+  it('reads a draft of a published indicator as live with an unsubmitted draft', async () => {
+    const { indicatorId } = await indicatorWithTwoPublications();
+    await createDraftFromPublished(db, indicatorId, ACTOR);
+    const statuses = { indicatorStatus: 'live', draftStatus: 'draft' };
+
+    expect(await listed(indicatorId)).toMatchObject(statuses);
+    expect(await getIndicatorById(db, indicatorId)).toMatchObject(statuses);
+  });
+});
+
 describe('getIndicatorById', () => {
-  it('derives published from the versions, with the public number', async () => {
+  it('reads an indicator by its row id, with the public number', async () => {
     const target = seededIds[0];
     if (target === undefined) throw new Error('The seed holds no indicators');
 
     const found = await getIndicatorById(db, target);
 
-    expect(found).toMatchObject({ id: target, status: 'published' });
+    expect(found).toMatchObject({ id: target, indicatorStatus: 'live' });
     expect(found?.updatedAt).toBeInstanceOf(Date);
     expect(found?.shortId).toEqual(expect.any(Number));
     expect(found?.name).not.toBe('');
   });
 
-  it('derives draft once a draft version exists, and prefers its name', async () => {
+  it('prefers the draft name once a draft version exists', async () => {
     const target = seededIds.at(-1);
     if (target === undefined) throw new Error('The seed holds no indicators');
 
@@ -255,7 +288,7 @@ describe('getIndicatorById', () => {
     await updateIndicatorDraft(db, target, { name: 'Edited in a draft' }, {}, ACTOR);
 
     expect(await getIndicatorById(db, target)).toMatchObject({
-      status: 'draft',
+      draftStatus: 'draft',
       name: 'Edited in a draft',
     });
   });
@@ -268,7 +301,6 @@ describe('getIndicatorById', () => {
 
     expect(supersededId > currentId).toBe(true);
     expect(found).toMatchObject({
-      status: 'published',
       name: currentName,
       publishedSlug: currentSlug,
     });
@@ -613,7 +645,7 @@ describe('getIndicatorDraftState', () => {
     expect(state?.id).toBe(created.indicatorId);
     expect(state?.shortId).toBe(created.shortId);
     expect(state?.draft?.name).toBe('A draft awaiting its first publication');
-    expect(state?.hasPublished).toBe(false);
+    expect(state).toMatchObject({ indicatorStatus: 'new', draftStatus: 'draft' });
   });
 
   it('reports the published version behind a draft being revised', async () => {
@@ -623,7 +655,7 @@ describe('getIndicatorDraftState', () => {
     const state = await getIndicatorDraftState(db, published.indicatorId);
 
     expect(state?.draft?.name).toBe(published.currentName);
-    expect(state?.hasPublished).toBe(true);
+    expect(state).toMatchObject({ indicatorStatus: 'live', draftStatus: 'draft' });
   });
 
   it('reports no draft for a published indicator nobody is editing', async () => {
@@ -632,7 +664,7 @@ describe('getIndicatorDraftState', () => {
     const state = await getIndicatorDraftState(db, published.indicatorId);
 
     expect(state?.draft).toBeNull();
-    expect(state?.hasPublished).toBe(true);
+    expect(state).toMatchObject({ indicatorStatus: 'live', draftStatus: null });
   });
 
   it('finds nothing for an indicator that does not exist', async () => {

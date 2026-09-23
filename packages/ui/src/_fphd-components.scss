@@ -307,6 +307,12 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
   @include govuk-font-size($size: 16);
 }
 
+// A two-word status stays on one line, in a table cell or beside another tag.
+.govuk-tag.fphd-status-tag {
+  max-width: none;
+  white-space: nowrap;
+}
+
 .fphd-contents-list {
   list-style-type: "— ";
   padding-left: govuk-spacing(4);

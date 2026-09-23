@@ -119,7 +119,13 @@ describe('toFieldErrors', () => {
 
 describe('indicatorTaskListSchema', () => {
   const state = {
-    indicator: { id: '00000000-0000-7000-8000-000000000001', shortId: 90366, name: 'An indicator' },
+    indicator: {
+      id: '00000000-0000-7000-8000-000000000001',
+      shortId: 90366,
+      name: 'An indicator',
+      indicatorStatus: 'new',
+      draftStatus: 'draft',
+    },
     isUpdate: false,
     canSubmit: true,
     tasks: { name: 'completed' },

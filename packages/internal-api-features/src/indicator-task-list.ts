@@ -6,10 +6,8 @@ export interface IndicatorTaskListDraft {
 }
 
 export interface IndicatorTaskListSource {
-  indicator: { id: string; shortId: number };
+  indicator: Omit<IndicatorTaskList['indicator'], 'name'>;
   draft: IndicatorTaskListDraft;
-  /** Whether the indicator also has a published version, which makes this edit an update. */
-  hasPublished: boolean;
 }
 
 /**
@@ -18,15 +16,14 @@ export interface IndicatorTaskListSource {
  */
 export function indicatorTaskList({
   draft,
-  hasPublished,
   indicator,
 }: IndicatorTaskListSource): IndicatorTaskList {
   // A draft is created by the page that asks for a name, so it always has one.
   const tasks: IndicatorTaskStatuses = { name: 'completed' };
 
   return {
-    indicator: { id: indicator.id, shortId: indicator.shortId, name: draft.name },
-    isUpdate: hasPublished,
+    indicator: { ...indicator, name: draft.name },
+    isUpdate: indicator.indicatorStatus === 'live',
     canSubmit: Object.values(tasks).every((status) => status === 'completed'),
     tasks,
   };
