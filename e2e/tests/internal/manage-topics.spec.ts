@@ -57,6 +57,7 @@ test.describe('adding a topic', () => {
     await page.getByRole('button', { name: 'Create topic' }).click();
 
     await expect(page).toHaveURL('/manage/topics/new');
+    await expect(page).toHaveTitle(/^Error: /);
     const summary = page.getByRole('alert');
     await expect(summary.getByRole('link')).toHaveText([
       'Enter a topic name',
@@ -78,6 +79,7 @@ test.describe('adding a topic', () => {
     await expect(page.getByRole('alert')).toContainText(
       'Slug must be lowercase letters or numbers, separated by hyphens',
     );
+    await expect(page).toHaveTitle(/^Error: /);
     await page
       .getByRole('alert')
       .getByRole('link', {
@@ -100,6 +102,7 @@ test.describe('adding a topic', () => {
 
     await expect(page).toHaveURL('/manage/topics/new');
     await expect(page.getByRole('alert')).toContainText('This slug is already used');
+    await expect(page).toHaveTitle(/^Error: /);
     await expect(page.getByLabel('Slug')).toHaveValue('alcohol');
   });
 
@@ -192,6 +195,7 @@ test.describe('editing a topic', () => {
     await page.getByRole('button', { name: 'Save' }).click();
 
     await expect(page.getByRole('alert')).toContainText('This slug is already used');
+    await expect(page).toHaveTitle(/^Error: /);
     await expect(page.getByLabel('Slug')).toHaveValue('alcohol');
   });
 

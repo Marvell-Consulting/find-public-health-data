@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
+
+import { serviceName } from '@fphd/ui';
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { DeleteTopicPage } from './pages.tsx';
+import { DeleteTopicPage, EditTopicPage, NewTopicPage } from './pages.tsx';
 import { editTopicPath } from './paths.ts';
 
 afterEach(cleanup);
@@ -24,6 +26,56 @@ function renderPage() {
     </MemoryRouter>,
   );
 }
+
+const values = { title: 'Smoking', slug: 'smoking', description: 'About smoking.' };
+
+describe('NewTopicPage', () => {
+  it('titles the document after the page', () => {
+    render(
+      <MemoryRouter>
+        <NewTopicPage />
+      </MemoryRouter>,
+    );
+
+    expect(document.title).toBe(`Add a topic - ${serviceName} - GOV.UK`);
+  });
+
+  it('starts the title with "Error: " when the submission is rejected', () => {
+    render(
+      <MemoryRouter>
+        <NewTopicPage fieldErrors={{ title: 'Enter a topic name' }} values={values} />
+      </MemoryRouter>,
+    );
+
+    expect(document.title).toBe(`Error: Add a topic - ${serviceName} - GOV.UK`);
+  });
+});
+
+describe('EditTopicPage', () => {
+  it('titles the document after the page', () => {
+    render(
+      <MemoryRouter>
+        <EditTopicPage topicId={topic.id} values={values} />
+      </MemoryRouter>,
+    );
+
+    expect(document.title).toBe(`Edit topic - ${serviceName} - GOV.UK`);
+  });
+
+  it('starts the title with "Error: " when the save is rejected', () => {
+    render(
+      <MemoryRouter>
+        <EditTopicPage
+          fieldErrors={{ slug: 'This slug is already used' }}
+          topicId={topic.id}
+          values={values}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(document.title).toBe(`Error: Edit topic - ${serviceName} - GOV.UK`);
+  });
+});
 
 describe('DeleteTopicPage', () => {
   it('names the topic being deleted and warns it cannot be undone', () => {

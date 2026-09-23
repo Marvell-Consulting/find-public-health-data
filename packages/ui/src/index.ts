@@ -24,7 +24,12 @@ export { type BackLinkHandle, backHrefFrom, backLinkHandle } from './back-link-h
 export { CardList, type CardListItem } from './card-list.tsx';
 export { ChartSection } from './chart-section.tsx';
 export { NotFoundPage, PageIntro } from './content-page.tsx';
-export { createDocumentMeta, formatDocumentTitle } from './document-title.ts';
+export {
+  createDocumentMeta,
+  DocumentTitle,
+  formatDocumentTitle,
+  titleFromPage,
+} from './document-title.tsx';
 export { ErrorSummary, type FieldError, fieldInputId } from './error-summary.tsx';
 export { CollapsibleFilterCard, FilterCard, FilterChip, FilterChips } from './filter-card.tsx';
 export { type DateFormat, DISPLAY_TIME_ZONE, formatDate } from './format-date.ts';
