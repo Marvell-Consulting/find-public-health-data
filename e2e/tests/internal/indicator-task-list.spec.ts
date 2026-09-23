@@ -54,9 +54,9 @@ test('marks the name as complete and everything without a form as not started', 
 }) => {
   await createIndicator(page, uniqueName());
 
-  await expect(taskRow(page, 'Name')).toContainText('Completed');
+  await expect(taskRow(page, 'Name').locator('.govuk-tag')).toHaveText('Completed');
   await expect(taskRow(page, 'Name').getByRole('link')).toBeVisible();
-  await expect(taskRow(page, 'Polarity')).toContainText('Not started');
+  await expect(taskRow(page, 'Polarity').locator('.govuk-tag')).toHaveText('Not started');
   await expect(taskRow(page, 'Polarity').getByRole('link')).toHaveCount(0);
   await expect(taskRow(page, 'Publishing date')).toContainText('Not started');
 });

@@ -84,10 +84,9 @@ describe('StatusTag', () => {
     expect(tag('Not started')).toContain('govuk-tag--blue');
   });
 
-  it('shows a completed task as plain text, as GOV.UK does', () => {
-    const { container } = render(<StatusTag type="task" status="completed" />);
+  it('shows a completed task as a green tag, as the prototype does', () => {
+    render(<StatusTag type="task" status="completed" />);
 
-    expect(container.textContent).toBe('Completed');
-    expect(container.querySelector('.govuk-tag')).toBeNull();
+    expect(tag('Completed')).toContain('govuk-tag--green');
   });
 });

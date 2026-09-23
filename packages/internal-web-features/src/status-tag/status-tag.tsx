@@ -25,10 +25,10 @@ const DRAFT_STATUS: Record<DraftStatus, TagFace> = {
 
 const PUBLISHED: TagFace = { label: 'Published', colour: 'green' };
 
-// GOV.UK shows a completed task as plain text, and anything still to do as a tag.
-const TASK_STATUS: Record<IndicatorTaskStatus, TagFace | string> = {
+// The prototype tags a completed task green, where GOV.UK's pattern leaves it as plain text.
+const TASK_STATUS: Record<IndicatorTaskStatus, TagFace> = {
   not_started: { label: 'Not started', colour: 'blue' },
-  completed: 'Completed',
+  completed: { label: 'Completed', colour: 'green' },
 };
 
 /**
@@ -67,7 +67,7 @@ const PREFIX: Partial<Record<StatusTagProps['type'], string>> = {
   publishing: 'Publishing status: ',
 };
 
-function faceOf(props: StatusTagProps): TagFace | string | undefined {
+function faceOf(props: StatusTagProps): TagFace | undefined {
   switch (props.type) {
     case 'indicator':
       return INDICATOR_STATUS[props.status];
@@ -83,7 +83,6 @@ export function StatusTag(props: StatusTagProps) {
   const face = faceOf(props);
 
   if (face === undefined) return null;
-  if (typeof face === 'string') return face;
 
   const labelled = props.labelled !== false;
   const prefix = labelled ? PREFIX[props.type] : undefined;

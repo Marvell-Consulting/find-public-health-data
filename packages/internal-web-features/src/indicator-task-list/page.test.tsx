@@ -118,10 +118,10 @@ describe('IndicatorTaskListPage', () => {
     );
   });
 
-  it('tags a task that is not started and leaves a completed one as text', () => {
+  it('tags a task that is not started blue and a completed one green', () => {
     renderPage();
 
     expect(screen.getAllByText('Not started')[0]?.className).toContain('govuk-tag--blue');
-    expect(screen.getByText('Completed').className).not.toContain('govuk-tag');
+    expect(screen.getByText('Completed').className).toContain('govuk-tag--green');
   });
 });
