@@ -19,6 +19,9 @@ class SlugifyTest(unittest.TestCase):
             "Children's dental health": "childrens-dental-health",
             "  leading and trailing  ": "leading-and-trailing",
             "tabs\tand\nnewlines": "tabs-and-newlines",
+            "next\u0085line": "next-line",
+            "zero\ufeffwidth": "zerowidth",
+            "unit\u001cseparator": "unitseparator",
             "--dashes--everywhere--": "dashes-everywhere",
         }
         for name, slug in cases.items():

@@ -23,6 +23,9 @@ describe('slugify', () => {
     ["Children's dental health", 'childrens-dental-health'],
     ['  leading and trailing  ', 'leading-and-trailing'],
     ['tabs\tand\nnewlines', 'tabs-and-newlines'],
+    ['next\u0085line', 'next-line'],
+    ['zero\ufeffwidth', 'zerowidth'],
+    ['unit\u001cseparator', 'unitseparator'],
     ['already-a-slug', 'already-a-slug'],
     ['--dashes--everywhere--', 'dashes-everywhere'],
   ])('turns %j into %j', (name, slug) => {

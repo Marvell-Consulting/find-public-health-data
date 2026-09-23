@@ -21,6 +21,10 @@ export function isReservedSlug(value: string): boolean {
   return RESERVED_SLUGS.includes(value);
 }
 
+// Unicode White_Space, dashes and slashes; not `\s`, which the Python seed export reads differently.
+const WORD_SEPARATORS =
+  /[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\u2010-\u2015/\\]+/g;
+
 /**
  * The slug a name yields: lower case, accents folded to their plain letters, whitespace,
  * dashes and slashes to a single hyphen, every other character outside `[a-z0-9-]`
@@ -35,7 +39,7 @@ export function slugify(name: string): string {
     .replace(/\p{M}+/gu, '')
     .toLowerCase()
     // A dash or a slash separates words as a space does: "and/or", "0–4 years".
-    .replace(/[\s\u2010-\u2015/\\]+/g, '-')
+    .replace(WORD_SEPARATORS, '-')
     .replace(/[^a-z0-9-]+/g, '')
     .replace(/-{2,}/g, '-')
     .replace(/^-+|-+$/g, '');

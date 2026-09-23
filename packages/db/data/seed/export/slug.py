@@ -12,6 +12,10 @@ from collections import defaultdict
 SLUG_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 SLUG_MAX_LENGTH = 200
 RESERVED_SLUGS = ("compare", "facets", "search")
+# Unicode White_Space, dashes and slashes; not `\s`, which JavaScript reads differently.
+WORD_SEPARATORS = re.compile(
+    r"[\t\n\v\f\r \x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\u2010-\u2015/\\]+"
+)
 
 
 def slugify(name):
@@ -19,7 +23,7 @@ def slugify(name):
     decomposed = unicodedata.normalize("NFKD", name)
     unmarked = "".join(c for c in decomposed if not unicodedata.category(c).startswith("M"))
     # A dash or a slash separates words as a space does: "and/or", "0–4 years".
-    hyphenated = re.sub(r"[\s\u2010-\u2015/\\]+", "-", unmarked.lower())
+    hyphenated = WORD_SEPARATORS.sub("-", unmarked.lower())
     cleaned = re.sub(r"[^a-z0-9-]+", "", hyphenated)
     slug = re.sub(r"-{2,}", "-", cleaned).strip("-")
     return slug if len(slug) <= SLUG_MAX_LENGTH else cut_to_word_boundary(slug)
