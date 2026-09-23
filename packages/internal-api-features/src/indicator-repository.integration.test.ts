@@ -434,6 +434,19 @@ describe('updateIndicatorDraft', () => {
     expect(result).toEqual({ ok: false, reason: 'slug_taken' });
   });
 
+  // Two renames swapping slugs each wait on the other's exclusion check unless the slug a
+  // rename leaves is held as well as the one it takes.
+  it('waits for another writer of the slug it leaves, then renames', async () => {
+    const created = await newDraft('A name being left');
+
+    const result = await writeWhileSlugHeld('a-name-being-left', () =>
+      updateIndicatorDraft(db, created.indicatorId, { name: 'A name moved to' }, {}, ACTOR),
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(await slugOf(created.versionId)).toBe('a-name-moved-to');
+  });
+
   it('leaves the memberships alone when the update names none', async () => {
     const created = await newDraft('Keeps its links');
     const [topic] = await db.select({ id: schema.topic.id }).from(schema.topic).limit(1);

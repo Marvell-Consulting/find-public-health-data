@@ -182,7 +182,7 @@ export async function createIndicatorDraft(
 
   try {
     return await db.transaction(async (tx) => {
-      await lockSlug(tx, slug);
+      await lockSlugs(tx, [slug]);
 
       const [identity] = await tx
         .insert(indicator)
@@ -237,7 +237,9 @@ export async function updateIndicatorDraft(
       const slug = attributes.name === undefined ? undefined : draftSlug(attributes.name);
       const renamed = slug === undefined || (await isPublished(tx, indicatorId)) ? {} : { slug };
 
-      if ('slug' in renamed) await lockSlug(tx, renamed.slug);
+      // The slug left behind is held too, or two renames swapping slugs deadlock.
+      if ('slug' in renamed)
+        await lockSlugs(tx, [await draftSlugOf(tx, indicatorId), renamed.slug]);
 
       const [draft] = await tx
         .update(indicatorVersion)
@@ -326,11 +328,27 @@ export async function createDraftFromPublished(
 type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
 
 /**
- * Holds a slug until the transaction ends. Two writers of one slug otherwise each wait on the
+ * Holds slugs until the transaction ends. Two writers of one slug otherwise each wait on the
  * other's exclusion check and deadlock; serialised, the later one fails the constraint instead.
+ * Taken in one order, so two writers wanting the same pair cannot deadlock on the locks.
  */
-async function lockSlug(tx: Transaction, slug: string): Promise<void> {
-  await tx.execute(sql`SELECT pg_advisory_xact_lock(${SLUG_LOCK_NAMESPACE}, hashtext(${slug}))`);
+async function lockSlugs(tx: Transaction, slugs: readonly (string | undefined)[]): Promise<void> {
+  const held = [...new Set(slugs)].filter((slug) => slug !== undefined).sort();
+
+  for (const slug of held) {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(${SLUG_LOCK_NAMESPACE}, hashtext(${slug}))`);
+  }
+}
+
+async function draftSlugOf(tx: Transaction, indicatorId: string): Promise<string | undefined> {
+  const [draft] = await tx
+    .select({ slug: indicatorVersion.slug })
+    .from(indicatorVersion)
+    .where(
+      and(eq(indicatorVersion.indicatorId, indicatorId), eq(indicatorVersion.status, 'draft')),
+    );
+
+  return draft?.slug;
 }
 
 async function isPublished(tx: Transaction, indicatorId: string): Promise<boolean> {
