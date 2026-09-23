@@ -1,3 +1,5 @@
+import { isShortId, SHORT_ID_PATTERN } from '@fphd/config/short-id';
+import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/config/slug';
 import {
   and,
   asc,
@@ -7,12 +9,11 @@ import {
   ilike,
   inArray,
   isNotNull,
-  isNull,
   min,
   or,
+  type SQL,
   sql,
 } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
 
 import type { Database } from './client.ts';
 import {
@@ -21,31 +22,31 @@ import {
   listTopicsForIndicator,
 } from './indicator-topic-repository.ts';
 import {
-  area,
-  areaType,
-  availableData,
-  ciMethod,
-  classification,
-  comparatorMethod,
-  dataSource,
-  dimensionType,
-  dimensionValue,
-  frequency,
-  indicator,
-  indicatorClassification,
-  indicatorMetadata,
-  indicatorTopic,
-  noteType,
-  numeratorDenominatorSource,
-  observation,
-  observationDimension,
-  observationNote,
-  observationRange,
-  polarity,
-  topic,
-  unit,
-  valueType,
-  yearType,
+  publishedArea as area,
+  publishedAreaType as areaType,
+  publishedAvailableData as availableData,
+  publishedCiMethod as ciMethod,
+  publishedClassification as classification,
+  publishedComparatorMethod as comparatorMethod,
+  publishedDataSource as dataSource,
+  publishedDimensionType as dimensionType,
+  publishedDimensionValue as dimensionValue,
+  publishedFrequency as frequency,
+  publishedIndicator as indicator,
+  publishedIndicatorClassification as indicatorClassification,
+  publishedIndicatorSlug as indicatorSlug,
+  publishedIndicatorTopic as indicatorTopic,
+  publishedNoteType as noteType,
+  publishedNumeratorDenominatorSource as numeratorDenominatorSource,
+  publishedObservation as observation,
+  publishedObservationDimension as observationDimension,
+  publishedObservationNote as observationNote,
+  publishedObservationRange as observationRange,
+  publishedPolarity as polarity,
+  publishedTopic as topic,
+  publishedUnit as unit,
+  publishedValueType as valueType,
+  publishedYearType as yearType,
 } from './schema/index.ts';
 
 export interface IndicatorSearchFilters {
@@ -66,6 +67,7 @@ export interface IndicatorSearchFilters {
 
 export interface IndicatorSearchRow {
   shortId: number;
+  slug: string;
   name: string;
   topics: { slug: string; title: string }[];
   classifications: { dimension: string; slug: string; name: string }[];
@@ -85,19 +87,31 @@ export interface IndicatorFacets {
   yearTypes: string[];
 }
 
-export interface ApprovedIndicator {
+export interface PublishedIndicator {
   shortId: number;
+  slug: string;
   name: string;
-  status: string;
 }
 
-const MAX_POSTGRES_INTEGER = 2_147_483_647;
+/**
+ * A query that is a whole number matches that short id exactly; a slug-shaped one matches
+ * any slug a published version carries, so an indicator's earlier address finds it too.
+ * A slug is never digits only, so a digit run matches a short id or nothing.
+ */
+function exactIdentifierMatch(db: Database, query: string) {
+  if (SHORT_ID_PATTERN.test(query)) {
+    return isShortId(query) ? eq(indicator.shortId, Number(query)) : sql<boolean>`false`;
+  }
 
-/** A query that is a whole number matches that short id exactly; anything else matches nothing. */
-function exactShortIdMatch(query: string) {
-  const shortId = /^\d+$/.test(query) ? Number(query) : Number.NaN;
-  return Number.isSafeInteger(shortId) && shortId <= MAX_POSTGRES_INTEGER
-    ? eq(indicator.shortId, shortId)
+  const slug = query.toLowerCase();
+
+  return SLUG_PATTERN.test(slug) && slug.length <= SLUG_MAX_LENGTH
+    ? exists(
+        db
+          .select({ one: sql`1` })
+          .from(indicatorSlug)
+          .where(and(eq(indicatorSlug.indicatorId, indicator.id), eq(indicatorSlug.slug, slug))),
+      )
     : sql<boolean>`false`;
 }
 
@@ -108,40 +122,26 @@ function escapedSearchTerms(query: string): string[] {
     .map((word) => word.replace(/[\\%_]/g, '\\$&'));
 }
 
-/** The published indicator surface: approved rows only, ordered by name. */
-export async function listApprovedIndicators(db: Database): Promise<ApprovedIndicator[]> {
+/** The published indicator surface, ordered by name. */
+export async function listPublishedIndicators(db: Database): Promise<PublishedIndicator[]> {
   return db
-    .select({
-      shortId: indicator.shortId,
-      name: indicator.name,
-      status: indicator.status,
-    })
+    .select({ shortId: indicator.shortId, slug: indicator.slug, name: indicator.name })
     .from(indicator)
-    .where(eq(indicator.status, 'approved'))
     .orderBy(asc(indicator.name));
 }
 
 /** Case-insensitive indicator lookup by name or exact identifier. */
-export async function searchApprovedIndicators(
+export async function searchPublishedIndicators(
   db: Database,
   query: string,
   limit: number,
-): Promise<ApprovedIndicator[]> {
+): Promise<PublishedIndicator[]> {
   const terms = escapedSearchTerms(query);
-  const identifierMatch = exactShortIdMatch(query.trim());
+  const identifierMatch = exactIdentifierMatch(db, query.trim());
   return db
-    .select({
-      shortId: indicator.shortId,
-      name: indicator.name,
-      status: indicator.status,
-    })
+    .select({ shortId: indicator.shortId, slug: indicator.slug, name: indicator.name })
     .from(indicator)
-    .where(
-      and(
-        eq(indicator.status, 'approved'),
-        or(identifierMatch, and(...terms.map((term) => ilike(indicator.name, `%${term}%`)))),
-      ),
-    )
+    .where(or(identifierMatch, and(...terms.map((term) => ilike(indicator.name, `%${term}%`)))))
     .orderBy(
       sql`case when ${identifierMatch} then 0 when lower(${indicator.name}) = lower(${query}) then 1 when ${indicator.name} ilike ${`${query.replace(/[\\%_]/g, '\\$&')}%`} then 2 else 3 end`,
       sql`position(lower(${query}) in lower(${indicator.name}))`,
@@ -167,6 +167,8 @@ export interface IndicatorTopic {
 
 export interface IndicatorDetail {
   shortId: number;
+  /** The canonical slug: the one the latest published version carries. */
+  slug: string;
   name: string;
   valueType: string;
   unit: { name: string; label: string };
@@ -194,33 +196,51 @@ export interface IndicatorDetail {
 }
 
 /** The internal id behind a public short id — the one place the external id resolves. */
-export async function resolveApprovedIndicatorId(
+export async function resolvePublishedIndicatorId(
   db: Database,
   shortId: number,
 ): Promise<string | undefined> {
   const [row] = await db
     .select({ id: indicator.id })
     .from(indicator)
-    .where(and(eq(indicator.shortId, shortId), eq(indicator.status, 'approved')))
+    .where(eq(indicator.shortId, shortId))
     .limit(1);
   return row?.id;
 }
 
 /**
- * Everything the indicator page needs in one round trip. Approved indicators only — an
- * unpublished indicator is indistinguishable from one that does not exist.
+ * The internal id behind a slug. Any slug a published version carries resolves, so a link
+ * made before a rename still lands on the indicator; the caller lower-cases first.
  */
-export async function getApprovedIndicatorById(
+export async function resolveIndicatorIdBySlug(
+  db: Database,
+  slug: string,
+): Promise<string | undefined> {
+  const [row] = await db
+    .select({ id: indicatorSlug.indicatorId })
+    .from(indicatorSlug)
+    .where(eq(indicatorSlug.slug, slug))
+    .limit(1);
+  return row?.id;
+}
+
+/**
+ * Everything the indicator page needs in one round trip. The view is the published
+ * surface, so an unpublished indicator is indistinguishable from one that does not exist.
+ */
+export async function getPublishedIndicatorById(
   db: Database,
   indicatorId: string,
 ): Promise<IndicatorDetail | undefined> {
-  const numeratorSource = alias(numeratorDenominatorSource, 'numerator_source');
-  const denominatorSource = alias(numeratorDenominatorSource, 'denominator_source');
+  // Subqueries rather than alias(): drizzle's table alias cannot carry a view's columns.
+  const numeratorSource = db.select().from(numeratorDenominatorSource).as('numerator_source');
+  const denominatorSource = db.select().from(numeratorDenominatorSource).as('denominator_source');
 
   const [row] = await db
     .select({
       id: indicator.id,
       shortId: indicator.shortId,
+      slug: indicator.slug,
       name: indicator.name,
       valueType: valueType.name,
       unitName: unit.name,
@@ -232,14 +252,14 @@ export async function getApprovedIndicatorById(
       ciConfidenceLevel: indicator.ciConfidenceLevel,
       comparatorMethod: comparatorMethod.name,
       dataUpdatedAt: indicator.dataUpdatedAt,
-      definition: indicatorMetadata.definition,
-      rationale: indicatorMetadata.rationale,
-      methodology: indicatorMetadata.methodology,
-      numeratorDefinition: indicatorMetadata.numeratorDefinition,
-      denominatorDefinition: indicatorMetadata.denominatorDefinition,
-      disclosureControl: indicatorMetadata.disclosureControl,
-      caveats: indicatorMetadata.caveats,
-      notes: indicatorMetadata.notes,
+      definition: indicator.definition,
+      rationale: indicator.rationale,
+      methodology: indicator.methodology,
+      numeratorDefinition: indicator.numeratorDefinition,
+      denominatorDefinition: indicator.denominatorDefinition,
+      disclosureControl: indicator.disclosureControl,
+      caveats: indicator.caveats,
+      notes: indicator.notes,
       dataSourceName: dataSource.name,
       dataSourceUrl: dataSource.url,
       numeratorSourceName: numeratorSource.name,
@@ -255,11 +275,10 @@ export async function getApprovedIndicatorById(
     .innerJoin(frequency, eq(indicator.frequencyId, frequency.id))
     .leftJoin(ciMethod, eq(indicator.ciMethodId, ciMethod.id))
     .leftJoin(comparatorMethod, eq(indicator.comparatorMethodId, comparatorMethod.id))
-    .leftJoin(indicatorMetadata, eq(indicatorMetadata.indicatorId, indicator.id))
-    .leftJoin(dataSource, eq(indicatorMetadata.dataSourceId, dataSource.id))
-    .leftJoin(numeratorSource, eq(indicatorMetadata.numeratorSourceId, numeratorSource.id))
-    .leftJoin(denominatorSource, eq(indicatorMetadata.denominatorSourceId, denominatorSource.id))
-    .where(and(eq(indicator.id, indicatorId), eq(indicator.status, 'approved')))
+    .leftJoin(dataSource, eq(indicator.dataSourceId, dataSource.id))
+    .leftJoin(numeratorSource, eq(indicator.numeratorSourceId, numeratorSource.id))
+    .leftJoin(denominatorSource, eq(indicator.denominatorSourceId, denominatorSource.id))
+    .where(eq(indicator.id, indicatorId))
     .limit(1);
 
   if (!row) {
@@ -278,6 +297,7 @@ export async function getApprovedIndicatorById(
 
   return {
     shortId: row.shortId,
+    slug: row.slug,
     name: row.name,
     valueType: row.valueType,
     unit: { name: row.unitName, label: row.unitLabel },
@@ -342,8 +362,7 @@ export interface IndicatorAreaData {
 
 /**
  * All published observations for one indicator in one area, with their dimension labels.
- * An observation with no dimensions is the fully-aggregate value for its period. The id
- * must come from resolveApprovedIndicatorId — no status check happens here.
+ * An observation with no dimensions is the fully-aggregate value for its period.
  */
 export async function getIndicatorObservations(
   db: Database,
@@ -366,7 +385,7 @@ export async function getIndicatorObservations(
     })
     .from(observation)
     .innerJoin(area, and(eq(observation.areaId, area.id), eq(area.code, areaCode)))
-    .where(and(eq(observation.indicatorId, indicatorId), isNull(observation.deletedAt)))
+    .where(eq(observation.indicatorId, indicatorId))
     .orderBy(asc(observation.fromDate), asc(observation.toDate));
 
   if (rows.length === 0) {
@@ -503,10 +522,11 @@ export async function searchIndicators(
         .where(eq(indicatorClassification.indicatorId, indicator.id)),
     );
 
-  const conditions = [eq(indicator.status, 'approved')];
+  // The view is the published surface, so a search starts unfiltered.
+  const conditions: SQL[] = [];
 
   const query = filters.query.trim();
-  const identifierMatch = exactShortIdMatch(query);
+  const identifierMatch = exactIdentifierMatch(db, query);
   const topicQueryMatch = (term: string) =>
     exists(
       db
@@ -603,13 +623,7 @@ export async function searchIndicators(
           .select({ id: observation.indicatorId })
           .from(observation)
           .innerJoin(area, eq(observation.areaId, area.id))
-          .where(
-            and(
-              inArray(area.code, filters.areaCodes),
-              isNull(observation.deletedAt),
-              isNotNull(observation.value),
-            ),
-          )
+          .where(and(inArray(area.code, filters.areaCodes), isNotNull(observation.value)))
           .groupBy(observation.indicatorId)
           .having(eq(countDistinct(area.code), filters.areaCodes.length)),
       ),
@@ -618,18 +632,12 @@ export async function searchIndicators(
 
   if (filters.sources.length > 0) {
     conditions.push(
-      exists(
+      inArray(
+        indicator.dataSourceId,
         db
-          .select({ one: sql`1` })
-          .from(indicatorMetadata)
-          .innerJoin(
-            dataSource,
-            and(
-              eq(indicatorMetadata.dataSourceId, dataSource.id),
-              inArray(dataSource.name, filters.sources),
-            ),
-          )
-          .where(eq(indicatorMetadata.indicatorId, indicator.id)),
+          .select({ id: dataSource.id })
+          .from(dataSource)
+          .where(inArray(dataSource.name, filters.sources)),
       ),
     );
   }
@@ -674,7 +682,12 @@ export async function searchIndicators(
       .from(indicator)
       .where(where),
     db
-      .select({ id: indicator.id, shortId: indicator.shortId, name: indicator.name })
+      .select({
+        id: indicator.id,
+        shortId: indicator.shortId,
+        slug: indicator.slug,
+        name: indicator.name,
+      })
       .from(indicator)
       .where(where)
       .orderBy(
@@ -749,6 +762,7 @@ export async function searchIndicators(
     limit: filters.limit,
     indicators: rows.map((r) => ({
       shortId: r.shortId,
+      slug: r.slug,
       name: r.name,
       topics: topicsByIndicator.get(r.id) ?? [],
       classifications: classificationsByIndicator.get(r.id) ?? [],
@@ -757,17 +771,14 @@ export async function searchIndicators(
 }
 
 export async function listIndicatorFacets(db: Database): Promise<IndicatorFacets> {
-  const approvedIds = db
-    .select({ id: indicator.id })
-    .from(indicator)
-    .where(eq(indicator.status, 'approved'));
+  const publishedIds = db.select({ id: indicator.id }).from(indicator);
 
   const [topics, classifications, sources, valueTypes, yearTypes] = await Promise.all([
     db
       .selectDistinct({ slug: topic.slug, title: topic.title })
       .from(topic)
       .innerJoin(indicatorTopic, eq(indicatorTopic.topicId, topic.id))
-      .where(inArray(indicatorTopic.indicatorId, approvedIds))
+      .where(inArray(indicatorTopic.indicatorId, publishedIds))
       .orderBy(asc(topic.title)),
     db
       .selectDistinct({
@@ -780,25 +791,22 @@ export async function listIndicatorFacets(db: Database): Promise<IndicatorFacets
         indicatorClassification,
         eq(indicatorClassification.classificationId, classification.id),
       )
-      .where(inArray(indicatorClassification.indicatorId, approvedIds))
+      .where(inArray(indicatorClassification.indicatorId, publishedIds))
       .orderBy(asc(classification.dimension), asc(classification.name)),
     db
       .selectDistinct({ name: dataSource.name })
       .from(dataSource)
-      .innerJoin(indicatorMetadata, eq(indicatorMetadata.dataSourceId, dataSource.id))
-      .where(inArray(indicatorMetadata.indicatorId, approvedIds))
+      .innerJoin(indicator, eq(indicator.dataSourceId, dataSource.id))
       .orderBy(asc(dataSource.name)),
     db
       .selectDistinct({ name: valueType.name })
       .from(valueType)
       .innerJoin(indicator, eq(indicator.valueTypeId, valueType.id))
-      .where(eq(indicator.status, 'approved'))
       .orderBy(asc(valueType.name)),
     db
       .selectDistinct({ name: yearType.name })
       .from(yearType)
       .innerJoin(indicator, eq(indicator.yearTypeId, yearType.id))
-      .where(eq(indicator.status, 'approved'))
       .orderBy(asc(yearType.name)),
   ]);
 

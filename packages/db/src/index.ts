@@ -9,9 +9,8 @@ export {
 } from './client.ts';
 export { dbEnvFields, resolveDbTls } from './env.ts';
 export {
-  type ApprovedIndicator,
-  getApprovedIndicatorById,
   getIndicatorObservations,
+  getPublishedIndicatorById,
   type IndicatorAreaData,
   type IndicatorDetail,
   type IndicatorFacets,
@@ -20,9 +19,11 @@ export {
   type IndicatorSearchResult,
   type IndicatorSearchRow,
   type IndicatorSource,
-  listApprovedIndicators,
   listIndicatorFacets,
-  resolveApprovedIndicatorId,
+  listPublishedIndicators,
+  type PublishedIndicator,
+  resolveIndicatorIdBySlug,
+  resolvePublishedIndicatorId,
   searchIndicators,
 } from './indicator-repository.ts';
 export {
@@ -38,6 +39,5 @@ export {
   type Repositories,
   type TopicRepository,
 } from './repositories.ts';
-export type { IndicatorStatus } from './schema/indicator.ts';
 export * as schema from './schema.ts';
 export { getTopicBySlug, listTopics, type Topic } from './topic-repository.ts';

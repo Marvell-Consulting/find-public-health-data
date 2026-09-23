@@ -1,4 +1,5 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
+import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
@@ -13,15 +14,16 @@ import {
 import { createDb, type Database } from './client.ts';
 import { dbEnvFields, resolveDbTls } from './env.ts';
 import {
-  getApprovedIndicatorById,
   getIndicatorObservations,
   getObservationRange,
+  getPublishedIndicatorById,
   type IndicatorSearchFilters,
-  listApprovedIndicators,
   listIndicatorFacets,
-  resolveApprovedIndicatorId,
-  searchApprovedIndicators,
+  listPublishedIndicators,
+  resolveIndicatorIdBySlug,
+  resolvePublishedIndicatorId,
   searchIndicators,
+  searchPublishedIndicators,
 } from './indicator-repository.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
 
@@ -50,20 +52,22 @@ function ownerConnection(database: string) {
 // single-year and rolling periods, and sex/age/deprivation breakdowns.
 const MORTALITY_UNDER_75 = 108;
 const DIABETES_QOF_PREVALENCE = 241;
-const LIFE_EXPECTANCY_AT_BIRTH = 90366;
+// Mortality rate for deaths involving diabetes: a sexed series beside its aggregate.
+const DIABETES_MORTALITY = 93995;
 const ENGLAND = 'E92000001';
 const CORNWALL = 'E06000052';
 
 const UNSEEDED_ID = '00000000-0000-7000-8000-000000000000';
+const MORTALITY_SLUG = 'under-75-mortality-rate-from-all-causes';
 
 let testDb: TestDatabase;
 let db: Database;
 let mortalityId: string;
 let diabetesId: string;
-let lifeExpectancyId: string;
+let diabetesMortalityId: string;
 
 async function resolvedId(shortId: number): Promise<string> {
-  const id = await resolveApprovedIndicatorId(db, shortId);
+  const id = await resolvePublishedIndicatorId(db, shortId);
   if (!id) {
     throw new Error(`seed is missing indicator ${shortId}`);
   }
@@ -73,10 +77,10 @@ async function resolvedId(shortId: number): Promise<string> {
 beforeAll(async () => {
   testDb = await createTestDatabase({ template: 'seeded' });
   db = createDb(ownerConnection(testDb.name));
-  [mortalityId, diabetesId, lifeExpectancyId] = await Promise.all([
+  [mortalityId, diabetesId, diabetesMortalityId] = await Promise.all([
     resolvedId(MORTALITY_UNDER_75),
     resolvedId(DIABETES_QOF_PREVALENCE),
-    resolvedId(LIFE_EXPECTANCY_AT_BIRTH),
+    resolvedId(DIABETES_MORTALITY),
   ]);
 });
 
@@ -85,58 +89,95 @@ afterAll(async () => {
   await testDb.drop();
 });
 
-describe('listApprovedIndicators', () => {
+describe('listPublishedIndicators', () => {
   it('returns the seeded indicators in name order', async () => {
-    const indicators = await listApprovedIndicators(db);
+    const indicators = await listPublishedIndicators(db);
 
-    expect(indicators).toHaveLength(13);
+    expect(indicators).toHaveLength(12);
     const names = indicators.map(({ name }) => name);
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
-    expect(indicators.every(({ status }) => status === 'approved')).toBe(true);
+  });
+
+  it('carries the slug each link is built from', async () => {
+    const indicators = await listPublishedIndicators(db);
+
+    expect(indicators).toContainEqual(
+      expect.objectContaining({ shortId: MORTALITY_UNDER_75, slug: MORTALITY_SLUG }),
+    );
   });
 });
 
-describe('searchApprovedIndicators', () => {
+describe('searchPublishedIndicators', () => {
   it('matches case-insensitively anywhere in the name', async () => {
-    const results = await searchApprovedIndicators(db, 'DIABETES', 20);
+    const results = await searchPublishedIndicators(db, 'DIABETES', 20);
 
     expect(results.length).toBeGreaterThanOrEqual(2);
     expect(results.every(({ name }) => name.toLowerCase().includes('diabetes'))).toBe(true);
   });
 
   it('ranks a match earlier in the name above a later one', async () => {
-    const results = await searchApprovedIndicators(db, 'diabetes', 20);
+    const results = await searchPublishedIndicators(db, 'diabetes', 20);
 
     expect(results[0]?.name).toBe('Diabetes: QOF prevalence');
   });
 
-  it('matches an exact short id but not the internal id', async () => {
-    await expect(searchApprovedIndicators(db, String(MORTALITY_UNDER_75), 20)).resolves.toEqual([
+  it('matches a slug exactly, case-folded', async () => {
+    await expect(searchPublishedIndicators(db, MORTALITY_SLUG.toUpperCase(), 20)).resolves.toEqual([
       expect.objectContaining({ shortId: MORTALITY_UNDER_75 }),
     ]);
-    await expect(searchApprovedIndicators(db, mortalityId, 20)).resolves.toEqual([]);
+  });
+
+  it('matches an exact short id but not the internal id', async () => {
+    await expect(searchPublishedIndicators(db, String(MORTALITY_UNDER_75), 20)).resolves.toEqual([
+      expect.objectContaining({ shortId: MORTALITY_UNDER_75 }),
+    ]);
+    await expect(searchPublishedIndicators(db, mortalityId, 20)).resolves.toEqual([]);
   });
 
   it('respects the limit', async () => {
-    expect(await searchApprovedIndicators(db, 'a', 3)).toHaveLength(3);
+    expect(await searchPublishedIndicators(db, 'a', 3)).toHaveLength(3);
   });
 
   it('treats LIKE syntax in the query as literal text', async () => {
-    expect(await searchApprovedIndicators(db, '%', 20)).toEqual([]);
-    expect(await searchApprovedIndicators(db, '_', 20)).toEqual([]);
+    expect(await searchPublishedIndicators(db, '%', 20)).toEqual([]);
+    expect(await searchPublishedIndicators(db, '_', 20)).toEqual([]);
   });
 });
 
-describe('resolveApprovedIndicatorId', () => {
+describe('resolvePublishedIndicatorId', () => {
   it('answers the internal id for a seeded short id and nothing otherwise', async () => {
-    expect(await resolveApprovedIndicatorId(db, MORTALITY_UNDER_75)).toMatch(/^[0-9a-f-]{36}$/);
-    expect(await resolveApprovedIndicatorId(db, 424242)).toBeUndefined();
+    expect(await resolvePublishedIndicatorId(db, MORTALITY_UNDER_75)).toMatch(/^[0-9a-f-]{36}$/);
+    expect(await resolvePublishedIndicatorId(db, 424242)).toBeUndefined();
   });
 });
 
-describe('getApprovedIndicatorById', () => {
+describe('resolveIndicatorIdBySlug', () => {
+  it('answers the internal id for a published slug and nothing otherwise', async () => {
+    expect(await resolveIndicatorIdBySlug(db, MORTALITY_SLUG)).toBe(mortalityId);
+    expect(await resolveIndicatorIdBySlug(db, 'no-such-indicator')).toBeUndefined();
+  });
+
+  // The added publication is older than the seed's, so it supersedes nothing the rest of
+  // this file reads: the views still show one row per indicator, under the current name.
+  it('still answers for a slug only a superseded published version carries', async () => {
+    const owner = createDb(ownerConnection(testDb.name));
+    await owner.execute(
+      sql`INSERT INTO indicator_version
+            (indicator_id, status, name, slug, published_at, created_by, updated_by)
+          SELECT ${mortalityId}, 'published', 'An earlier name', 'an-earlier-name',
+                 '2020-01-01T00:00:00Z', 'integration-test', 'integration-test'`,
+    );
+    await owner.$client.end();
+
+    expect(await resolveIndicatorIdBySlug(db, 'an-earlier-name')).toBe(mortalityId);
+    // The canonical slug is still the latest publication's.
+    expect((await getPublishedIndicatorById(db, mortalityId))?.slug).toBe(MORTALITY_SLUG);
+  });
+});
+
+describe('getPublishedIndicatorById', () => {
   it('resolves the lookups, metadata and available area types in one result', async () => {
-    const indicator = await getApprovedIndicatorById(db, mortalityId);
+    const indicator = await getPublishedIndicatorById(db, mortalityId);
 
     expect(indicator).toMatchObject({
       shortId: MORTALITY_UNDER_75,
@@ -159,11 +200,11 @@ describe('getApprovedIndicatorById', () => {
   });
 
   it('returns undefined for an id no indicator carries', async () => {
-    expect(await getApprovedIndicatorById(db, UNSEEDED_ID)).toBeUndefined();
+    expect(await getPublishedIndicatorById(db, UNSEEDED_ID)).toBeUndefined();
   });
 
   it('includes the prototype diabetes indicator with its high-fidelity geography coverage', async () => {
-    const indicator = await getApprovedIndicatorById(db, diabetesId);
+    const indicator = await getPublishedIndicatorById(db, diabetesId);
 
     expect(indicator).toMatchObject({
       shortId: DIABETES_QOF_PREVALENCE,
@@ -257,10 +298,11 @@ describe('getObservationRange', () => {
     expect(await getObservationRange(db, UNSEEDED_ID, 'Local authorities')).toEqual([]);
   });
 
-  it('returns one range per segment for an always-sexed indicator', async () => {
-    const range = await getObservationRange(db, lifeExpectancyId, 'Local authorities');
+  it('returns one range per sex segment beside the aggregate series', async () => {
+    const range = await getObservationRange(db, diabetesMortalityId, 'Local authorities');
 
     const segments = new Set(range.map(({ segment }) => segment));
+    expect(segments.has('')).toBe(true);
     expect(segments.has('Male')).toBe(true);
     expect(segments.has('Female')).toBe(true);
     for (const period of range) {
@@ -455,9 +497,9 @@ function noFilters(overrides: Partial<IndicatorSearchFilters> = {}): IndicatorSe
 }
 
 describe('searchIndicators', () => {
-  it('no-filter total equals listApproved count', async () => {
+  it('no-filter total equals listPublished count', async () => {
     const [all, { total }] = await Promise.all([
-      listApprovedIndicators(db),
+      listPublishedIndicators(db),
       searchIndicators(db, noFilters()),
     ]);
 
@@ -472,6 +514,13 @@ describe('searchIndicators', () => {
     expect(both).toBeGreaterThan(0);
     expect(both).toBeLessThanOrEqual(first);
     expect(both).toBeLessThanOrEqual(second);
+  });
+
+  it('matches a slug exactly, case-folded', async () => {
+    const bySlug = await searchIndicators(db, noFilters({ query: MORTALITY_SLUG.toUpperCase() }));
+
+    expect(bySlug.total).toBe(1);
+    expect(bySlug.indicators).toEqual([expect.objectContaining({ shortId: MORTALITY_UNDER_75 })]);
   });
 
   it('matches an exact short id but not the internal id', async () => {
@@ -752,7 +801,7 @@ describe('searchIndicators', () => {
 });
 
 describe('listIndicatorFacets', () => {
-  it('topics are scoped to approved indicators — every topic slug returns at least one result when searched', async () => {
+  it('topics are scoped to published indicators — every topic slug returns at least one result when searched', async () => {
     const facets = await listIndicatorFacets(db);
 
     expect(facets.topics.length).toBeGreaterThan(0);

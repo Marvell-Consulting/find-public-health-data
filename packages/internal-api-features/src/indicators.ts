@@ -19,11 +19,16 @@ function toSummary({ id, name, updatedAt }: IndicatorAdminRow): IndicatorAdminSu
 }
 
 function toDetail(row: IndicatorAdminDetailRow): IndicatorAdminDetail {
-  return { ...toSummary(row), shortId: row.shortId, status: row.status };
+  return {
+    ...toSummary(row),
+    shortId: row.shortId,
+    publishedSlug: row.publishedSlug,
+    status: row.status,
+  };
 }
 
 /**
- * The publisher's view of indicators: every one, including the unapproved ones the public
+ * The publisher's view of indicators: every one, including the unpublished ones the public
  * API never serves. Mounted only by `internal-api`; `public-api` must 404 every path.
  */
 export function internalIndicatorsRouter(

@@ -22,10 +22,16 @@ async function snapshot(source = 'PHOLIO_LIVE_A-derived fphd_new benchmark clone
   directories.push(directory);
   const tables: Record<string, { rows: number; bytes: number; sha256: string }> = {};
   for (const table of SEED_TABLES) {
-    const data = gzipSync('id\n1\n');
+    // The version file carries the slug the importer insists on; the rest only need an id.
+    const data = gzipSync(table === 'indicator_version' ? 'id,slug\n1,a-slug\n' : 'id\n1\n');
     await writeFile(join(directory, `${table}.csv.gz`), data);
     tables[table] = {
-      rows: table === 'indicator' ? 1_290 : table === 'observation' ? 29_380_899 : 1,
+      rows:
+        table === 'indicator' || table === 'indicator_version'
+          ? 1_286
+          : table === 'observation'
+            ? 29_000_000
+            : 1,
       bytes: data.length,
       sha256: createHash('sha256').update(data).digest('hex'),
     };
@@ -34,6 +40,9 @@ async function snapshot(source = 'PHOLIO_LIVE_A-derived fphd_new benchmark clone
     source,
     source_database: 'fphd_new',
     approved_indicators: 1_290,
+    source_observations: 29_380_899,
+    excluded_indicators: [90_366, 90_776, 92_774, 93_280],
+    excluded_observations: 380_899,
     source_csv_null: '__FPHD_NULL_5f92c66de4b849b4a717c23f5cbdb8a1__',
     tables,
   };
@@ -53,6 +62,19 @@ describe('verifyPublishedSnapshot', () => {
     });
   });
 
+  it('rejects an archive exported before indicator versions carried a slug', async () => {
+    const directory = await snapshot();
+    const data = gzipSync('id\n1\n');
+    await writeFile(join(directory, 'indicator_version.csv.gz'), data);
+    const path = join(directory, 'manifest.json');
+    const manifest = JSON.parse(await readFile(path, 'utf8'));
+    manifest.tables.indicator_version.sha256 = createHash('sha256').update(data).digest('hex');
+    manifest.tables.indicator_version.bytes = data.length;
+    await writeFile(path, JSON.stringify(manifest));
+
+    await expect(verifyPublishedSnapshot(directory)).rejects.toThrow('carries no slug column');
+  });
+
   it('rejects a staging export even when its files are intact', async () => {
     const directory = await snapshot('PHOLIO_STAGING');
     await expect(verifyPublishedSnapshot(directory)).rejects.toThrow();
@@ -70,10 +92,43 @@ describe('verifyPublishedSnapshot', () => {
     const directory = await snapshot();
     const path = join(directory, 'manifest.json');
     const manifest = JSON.parse(await readFile(path, 'utf8'));
+    manifest.tables.indicator.rows -= 1;
+    await writeFile(path, JSON.stringify(manifest));
+    await expect(verifyPublishedSnapshot(directory)).rejects.toThrow(
+      'Published snapshot row counts do not match the published benchmark clone',
+    );
+  });
+
+  it('rejects an archive whose observations are not the source less the exclusions', async () => {
+    const directory = await snapshot();
+    const path = join(directory, 'manifest.json');
+    const manifest = JSON.parse(await readFile(path, 'utf8'));
     manifest.tables.observation.rows -= 1;
     await writeFile(path, JSON.stringify(manifest));
     await expect(verifyPublishedSnapshot(directory)).rejects.toThrow(
       'Published snapshot row counts do not match the published benchmark clone',
+    );
+  });
+
+  it('accepts the exclusion list in any order', async () => {
+    const directory = await snapshot();
+    const path = join(directory, 'source-manifest.json');
+    const sourceManifest = JSON.parse(await readFile(path, 'utf8'));
+    sourceManifest.excluded_indicators = [93_280, 90_366, 92_774, 90_776];
+    await writeFile(path, JSON.stringify(sourceManifest));
+    await expect(verifyPublishedSnapshot(directory)).resolves.toMatchObject({
+      approved_indicators: 1_290,
+    });
+  });
+
+  it('rejects an archive exported with a different exclusion list', async () => {
+    const directory = await snapshot();
+    const path = join(directory, 'source-manifest.json');
+    const sourceManifest = JSON.parse(await readFile(path, 'utf8'));
+    sourceManifest.excluded_indicators = [90_366];
+    await writeFile(path, JSON.stringify(sourceManifest));
+    await expect(verifyPublishedSnapshot(directory)).rejects.toThrow(
+      'Published snapshot was exported with a different exclusion list',
     );
   });
 

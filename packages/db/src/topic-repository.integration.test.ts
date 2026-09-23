@@ -101,20 +101,23 @@ describe('the topic read surface', () => {
     { role: 'internal_api', password: env.INTERNAL_API_PASSWORD },
   ];
 
-  it.each(apiRoles)('lets $role select topics', async ({ role, password }) => {
-    const client = createPostgresClient({
-      host: env.DB_HOST,
-      port: env.DB_PORT,
-      database: testDb.name,
-      user: role,
-      password,
-      ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
-    });
+  it.each(apiRoles)(
+    'lets $role select topics through the published view',
+    async ({ role, password }) => {
+      const client = createPostgresClient({
+        host: env.DB_HOST,
+        port: env.DB_PORT,
+        database: testDb.name,
+        user: role,
+        password,
+        ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
+      });
 
-    try {
-      await expect(client`SELECT * FROM topic`).resolves.toBeDefined();
-    } finally {
-      await client.end();
-    }
-  });
+      try {
+        await expect(client`SELECT * FROM published.topic`).resolves.toBeDefined();
+      } finally {
+        await client.end();
+      }
+    },
+  );
 });

@@ -19,14 +19,14 @@ export default [
       '../../../packages/public-web-features/src/indicator/comparison-csv-route.ts',
     ),
     route(
-      'indicators/:shortId/table.csv',
+      'indicators/:slug/table.csv',
       '../../../packages/public-web-features/src/indicator/table-csv-route.ts',
     ),
     route(
-      'indicators/:shortId/all-data.csv',
+      'indicators/:slug/all-data.csv',
       '../../../packages/public-web-features/src/indicator/all-data-csv-route.ts',
     ),
-    route('indicators/:shortId', '../../../packages/public-web-features/src/indicator/route.tsx', {
+    route('indicators/:slug', '../../../packages/public-web-features/src/indicator/route.tsx', {
       id: 'indicator-detail',
     }),
     layout('./publisher.tsx', [

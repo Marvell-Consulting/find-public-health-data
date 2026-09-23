@@ -54,6 +54,9 @@ function publishedManifest(): PublishedManifest {
     source: 'PHOLIO_LIVE_A-derived fphd_new benchmark clone',
     source_database: 'fphd_new',
     approved_indicators: 1_290,
+    source_observations: 29_380_899,
+    excluded_indicators: [90_366, 90_776, 92_774, 93_280],
+    excluded_observations: 380_899,
     source_csv_null: '__FPHD_NULL_5f92c66de4b849b4a717c23f5cbdb8a1__',
     id_mapping: 'deterministic-uuidv7-v1',
     tables: Object.fromEntries(
@@ -127,14 +130,14 @@ describe('importPublishedSnapshot', () => {
     await importPublishedSnapshot(context);
 
     expect(mocks.seedPublished).toHaveBeenCalledWith(tx, '/tmp/fixture');
-    expect(tx.unsafe).toHaveBeenCalledTimes(SEED_TABLES.length + 1);
+    expect(tx.unsafe).toHaveBeenCalledTimes(SEED_TABLES.length + 2);
     expect(mocks.rebuild).toHaveBeenCalledWith(tx);
     expect(wasCommitted()).toBe(true);
     expect(mocks.analyze).toHaveBeenCalledWith(context.sql);
     expect(cleanup).toHaveBeenCalledOnce();
   });
 
-  it('rejects unapproved indicators before committing the imported snapshot', async () => {
+  it('rejects unpublished versions before committing the imported snapshot', async () => {
     const { context, tx, wasCommitted } = publishedContext();
     const cleanup = vi.fn(async () => {});
     mocks.download.mockResolvedValue({
@@ -146,7 +149,26 @@ describe('importPublishedSnapshot', () => {
     tx.unsafe.mockResolvedValueOnce([{ count: 1 }]);
 
     await expect(importPublishedSnapshot(context)).rejects.toThrow(
-      'Published snapshot contains an unapproved indicator',
+      'Published snapshot contains an unpublished indicator version',
+    );
+    expect(wasCommitted()).toBe(false);
+    expect(mocks.rebuild).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it('rejects an indicator without exactly one published version before committing', async () => {
+    const { context, tx, wasCommitted } = publishedContext();
+    const cleanup = vi.fn(async () => {});
+    mocks.download.mockResolvedValue({
+      directory: '/tmp/fixture',
+      manifest: publishedManifest(),
+      cleanup,
+    });
+    mocks.seedPublished.mockResolvedValue(seededTables(() => 1));
+    tx.unsafe.mockResolvedValueOnce([{ count: 0 }]).mockResolvedValueOnce([{ count: 1 }]);
+
+    await expect(importPublishedSnapshot(context)).rejects.toThrow(
+      'Published snapshot does not hold one published version per indicator',
     );
     expect(wasCommitted()).toBe(false);
     expect(mocks.rebuild).not.toHaveBeenCalled();

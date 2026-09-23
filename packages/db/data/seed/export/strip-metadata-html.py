@@ -1,10 +1,11 @@
-"""Strip Pholio's HTML out of indicator_metadata.csv.gz prose columns.
+"""Strip Pholio's HTML out of the exported prose columns.
 
 The pages used to run this conversion on every render; the database now stores the
 display-ready text instead. A port of the web apps' plainTextFromHtml: block-level
 closers and <br> become newlines, other tags are dropped in one left-to-right pass, and
 entities decode afterwards so a decoded "&lt;" is never mistaken for markup. Run after
-export-seed.py, before committing the CSVs.
+the export, before committing the CSVs: the prose sits in indicator_metadata.csv.gz in
+the Pholio-shaped export and in indicator_version.csv.gz in the published one.
 """
 
 import csv
@@ -134,4 +135,7 @@ def strip_file(path):
 
 if __name__ == "__main__":
     directory = sys.argv[1] if len(sys.argv) > 1 else "."
-    strip_file(f"{directory}/indicator_metadata.csv.gz")
+    for name in ("indicator_metadata.csv.gz", "indicator_version.csv.gz"):
+        path = Path(directory, name)
+        if path.exists():
+            strip_file(str(path))

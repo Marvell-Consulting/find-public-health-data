@@ -1,3 +1,5 @@
+import { isShortId, SHORT_ID_PATTERN } from '@fphd/config/short-id';
+import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/config/slug';
 import type { IndicatorSearchFilters, Repositories } from '@fphd/db';
 import { Router } from 'express';
 
@@ -20,6 +22,27 @@ import {
 } from './contract.ts';
 
 const DEFAULT_AREA_CODE = 'E92000001';
+
+/**
+ * An indicator is addressed by short id or by slug, and both answer 200: a client that
+ * kept an old address is served, not redirected. Anything shaped like neither is a probe
+ * or a typo, and undefined here makes it indistinguishable from an unknown indicator.
+ */
+async function resolveIndicator(
+  indicators: Repositories['indicators'],
+  segment: string,
+): Promise<string | undefined> {
+  // A slug is never digits only, so a digit run addresses a short id or nothing.
+  if (SHORT_ID_PATTERN.test(segment)) {
+    return isShortId(segment) ? indicators.resolveId(Number(segment)) : undefined;
+  }
+
+  const slug = segment.toLowerCase();
+
+  return SLUG_PATTERN.test(slug) && slug.length <= SLUG_MAX_LENGTH
+    ? indicators.resolveIdBySlug(slug)
+    : undefined;
+}
 
 function pickStrings(value: unknown, maxLength = MAX_FILTER_VALUE_LENGTH): string[] {
   return [
@@ -75,21 +98,20 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
       response.status(200).json({ indicators: await indicators.search(query, capped) });
       return;
     }
-    response.status(200).json({ indicators: await indicators.listApproved() });
+    response.status(200).json({ indicators: await indicators.listPublished() });
   });
 
-  router.get('/api/indicators/:shortId/data', async (request, response) => {
-    const { shortId } = request.params;
+  router.get('/api/indicators/:indicator/data', async (request, response) => {
     // Repeatable, so a page comparing many areas asks once rather than once per area.
     const requested = request.query.areaCode ?? DEFAULT_AREA_CODE;
     const areaCodes = pickAreaCodes(requested);
 
-    if (!/^\d+$/.test(shortId) || areaCodes.length === 0) {
+    if (areaCodes.length === 0) {
       response.status(404).json({ error: 'not_found' });
       return;
     }
 
-    const indicatorId = await indicators.resolveId(Number(shortId));
+    const indicatorId = await resolveIndicator(indicators, request.params.indicator);
     if (!indicatorId) {
       response.status(404).json({ error: 'not_found' });
       return;
@@ -112,21 +134,15 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
     response.status(200).json(areaCodes.length === 1 ? data[0] : data);
   });
 
-  router.get('/api/indicators/:shortId/range', async (request, response) => {
-    const { shortId } = request.params;
+  router.get('/api/indicators/:indicator/range', async (request, response) => {
     const displayGroup = request.query.displayGroup;
 
-    if (
-      !/^\d+$/.test(shortId) ||
-      typeof displayGroup !== 'string' ||
-      displayGroup === '' ||
-      displayGroup.length > 100
-    ) {
+    if (typeof displayGroup !== 'string' || displayGroup === '' || displayGroup.length > 100) {
       response.status(404).json({ error: 'not_found' });
       return;
     }
 
-    const indicatorId = await indicators.resolveId(Number(shortId));
+    const indicatorId = await resolveIndicator(indicators, request.params.indicator);
     if (!indicatorId) {
       response.status(404).json({ error: 'not_found' });
       return;
@@ -139,24 +155,15 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
     });
   });
 
-  router.get('/api/indicators/:shortId', async (request, response) => {
-    const { shortId } = request.params;
-
-    // The public identifier is a plain integer; anything else can only be a probe or a
-    // typo, and answering 404 keeps both indistinguishable from an unknown indicator.
-    if (!/^\d+$/.test(shortId)) {
-      response.status(404).json({ error: 'not_found' });
-      return;
-    }
-
-    const indicatorId = await indicators.resolveId(Number(shortId));
+  router.get('/api/indicators/:indicator', async (request, response) => {
+    const indicatorId = await resolveIndicator(indicators, request.params.indicator);
     if (!indicatorId) {
       response.status(404).json({ error: 'not_found' });
       return;
     }
 
     // The annotation binds the repository's shape to the wire contract at compile time.
-    const detail: IndicatorDetail | undefined = await indicators.findApprovedById(indicatorId);
+    const detail: IndicatorDetail | undefined = await indicators.findPublishedById(indicatorId);
 
     if (!detail) {
       response.status(404).json({ error: 'not_found' });

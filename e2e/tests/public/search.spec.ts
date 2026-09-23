@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
+import { MORTALITY_PATH, MORTALITY_SLUG } from '../support/indicator-page.ts';
 
 const card = (page: Page, title: string) =>
   page
@@ -92,10 +93,13 @@ test('a keyword narrows the result count', async ({ page }) => {
   expect(narrowed).toMatch(/Select from \d+ indicators?/);
 });
 
-test('search matches an indicator number and taxonomy slugs', async ({ page }) => {
+test('search matches an indicator number, its slug and taxonomy slugs', async ({ page }) => {
   await page.goto('/search?q=108');
   await expect(page.getByRole('heading', { name: 'Select from 1 indicator' })).toBeVisible();
-  await expect(results(page).getByRole('link')).toHaveAttribute('href', '/indicators/108');
+  await expect(results(page).getByRole('link')).toHaveAttribute('href', MORTALITY_PATH);
+
+  await page.goto(`/search?q=${MORTALITY_SLUG}`);
+  await expect(page.getByRole('heading', { name: 'Select from 1 indicator' })).toBeVisible();
 
   await page.goto('/search?q=mortality-and-life-expectancy');
   await expect(results(page).locator('.fphd-search-result').first()).toContainText(
@@ -130,7 +134,7 @@ test.describe('indicator selection without scripting', () => {
   test('reports when the submitted selection exceeds the display limit', async ({ page }) => {
     await page.goto('/search');
     const checkboxes = page.locator('input[name="is"]');
-    await expect(checkboxes).toHaveCount(13);
+    await expect(checkboxes).toHaveCount(12);
     for (let index = 0; index < 11; index++) await checkboxes.nth(index).check();
 
     await page.getByRole('button', { name: 'View selected indicators' }).click();
@@ -209,7 +213,7 @@ test('filtering a capped selection resets ticks, count and disabled results', as
 
 test('keeps the results live region while searches update its count', async ({ page }) => {
   await ready(page);
-  const heading = page.getByRole('heading', { name: 'Select from 13 indicators', exact: true });
+  const heading = page.getByRole('heading', { name: 'Select from 12 indicators', exact: true });
   await expect(heading).toHaveAttribute('aria-live', 'polite');
   await expect(heading).toHaveAttribute('aria-atomic', 'true');
   const liveRegion = await heading.elementHandle();

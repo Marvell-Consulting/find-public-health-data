@@ -26,6 +26,7 @@ import {
   useOptionParamNavigation,
   usePanelOptions,
 } from './options.tsx';
+import { indicatorCsvPath } from './paths.ts';
 import { ComparisonSection } from './tables/comparison-section.tsx';
 import { InequalitiesTable } from './tables/inequalities-table.tsx';
 import { TrendTable } from './tables/trend-table.tsx';
@@ -151,13 +152,17 @@ function IndicatorBlock({
             content: (
               <>
                 <div className="fphd-download-buttons">
-                  <Form action={`/indicators/${id}/table.csv`} method="get" reloadDocument>
+                  <Form action={indicatorCsvPath(detail.slug, 'table')} method="get" reloadDocument>
                     {downloadParams(true).map(([name, value], index) => (
                       <input key={`${name}-${index}`} name={name} type="hidden" value={value} />
                     ))}
                     <Button type="submit">Download this table</Button>
                   </Form>
-                  <Form action={`/indicators/${id}/all-data.csv`} method="get" reloadDocument>
+                  <Form
+                    action={indicatorCsvPath(detail.slug, 'all-data')}
+                    method="get"
+                    reloadDocument
+                  >
                     {downloadParams(false).map(([name, value], index) => (
                       <input key={`${name}-${index}`} name={name} type="hidden" value={value} />
                     ))}

@@ -97,6 +97,7 @@ describe('public application routes', () => {
   it('renders the indicator page skeleton from loader data', async () => {
     const indicator = {
       shortId: 108,
+      slug: 'under-75-mortality-rate-from-all-causes',
       name: 'Under 75 mortality rate from all causes',
       valueType: 'Directly standardised rate',
       unit: { name: 'per 100,000', label: 'per 100,000' },
@@ -179,7 +180,7 @@ describe('public application routes', () => {
         Component: PublicApp,
         children: [
           {
-            path: 'indicators/:shortId',
+            path: 'indicators/:slug',
             Component: IndicatorRoute,
             loader: () => ({
               selected: [{ detail: indicator, areaData }],
@@ -198,7 +199,7 @@ describe('public application routes', () => {
       },
     ]);
 
-    render(<Routes initialEntries={['/indicators/108']} />);
+    render(<Routes initialEntries={['/indicators/under-75-mortality-rate-from-all-causes']} />);
 
     expect(
       await screen.findByRole('heading', { name: 'Under 75 mortality rate from all causes' }),
@@ -359,6 +360,7 @@ describe('public application routes', () => {
     });
     const indicatorDetail = {
       shortId: 108,
+      slug: 'under-75-mortality-rate-from-all-causes',
       name: 'Under 75 mortality rate from all causes',
       valueType: 'Directly standardised rate',
       unit: { name: 'per 100,000', label: 'per 100,000' },
@@ -418,7 +420,7 @@ describe('public application routes', () => {
         Component: PublicApp,
         children: [
           {
-            path: 'indicators/:shortId',
+            path: 'indicators/:slug',
             Component: IndicatorRoute,
             loader: () => loaderData,
           },
@@ -426,7 +428,13 @@ describe('public application routes', () => {
       },
     ]);
 
-    render(<Routes initialEntries={['/indicators/108?as=E12000001&as=E12000002']} />);
+    render(
+      <Routes
+        initialEntries={[
+          '/indicators/under-75-mortality-rate-from-all-causes?as=E12000001&as=E12000002',
+        ]}
+      />,
+    );
 
     // Both selected areas appear as removable chips in the geography card.
     expect(await screen.findByRole('heading', { name: 'Geography filters' })).toBeTruthy();
@@ -443,6 +451,7 @@ describe('public application routes', () => {
   it('adds a comparison section only when more than one indicator is selected', async () => {
     const detailFor = (shortId: number, name: string) => ({
       shortId,
+      slug: `indicator-${shortId}`,
       name,
       valueType: 'Directly standardised rate',
       unit: { name: 'per 100,000', label: 'per 100,000' },
@@ -566,9 +575,14 @@ describe('public application routes', () => {
       'fetch',
       vi.fn(
         async () =>
-          new Response(JSON.stringify({ indicators: [{ shortId: 108, name: 'Mortality' }] }), {
-            headers: { 'content-type': 'application/json' },
-          }),
+          new Response(
+            JSON.stringify({
+              indicators: [{ shortId: 108, slug: 'mortality', name: 'Mortality' }],
+            }),
+            {
+              headers: { 'content-type': 'application/json' },
+            },
+          ),
       ),
     );
     const loaderUrls: string[] = [];
@@ -637,6 +651,7 @@ describe('public application routes', () => {
     });
     const detail = {
       shortId: 93995,
+      slug: 'mortality-rate-for-deaths-involving-diabetes-all-ages',
       name: 'Mortality rate for deaths involving diabetes, all ages',
       valueType: 'Directly standardised rate',
       unit: { name: 'per 100,000', label: 'per 100,000' },
@@ -668,7 +683,7 @@ describe('public application routes', () => {
         Component: PublicApp,
         children: [
           {
-            path: 'indicators/:shortId',
+            path: 'indicators/:slug',
             Component: IndicatorRoute,
             loader: () => ({
               selectedAreas: [{ code: 'E06000052', name: 'Cornwall', level: 'Local authorities' }],
@@ -707,7 +722,13 @@ describe('public application routes', () => {
     ]);
 
     // A stale pt param in the URL must fall back to All, not blank the table.
-    render(<Routes initialEntries={['/indicators/93995?as=E06000052&pt-93995=1-year']} />);
+    render(
+      <Routes
+        initialEntries={[
+          '/indicators/mortality-rate-for-deaths-involving-diabetes-all-ages?as=E06000052&pt-93995=1-year',
+        ]}
+      />,
+    );
 
     expect(
       await screen.findByRole('heading', {
@@ -734,6 +755,7 @@ describe('public application routes', () => {
     });
     const detail = {
       shortId: 108,
+      slug: 'under-75-mortality-rate-from-all-causes',
       name: 'Under 75 mortality rate from all causes',
       valueType: 'Directly standardised rate',
       unit: { name: 'per 100,000', label: 'per 100,000' },
@@ -774,7 +796,7 @@ describe('public application routes', () => {
         Component: PublicApp,
         children: [
           {
-            path: 'indicators/:shortId',
+            path: 'indicators/:slug',
             Component: IndicatorRoute,
             loader: () => ({
               selectedAreas: [{ code: 'E06000052', name: 'Cornwall', level: 'Local authorities' }],
@@ -821,7 +843,11 @@ describe('public application routes', () => {
       },
     ]);
 
-    render(<Routes initialEntries={['/indicators/108?as=E06000052']} />);
+    render(
+      <Routes
+        initialEntries={['/indicators/under-75-mortality-rate-from-all-causes?as=E06000052']}
+      />,
+    );
 
     // England is not a column of its own while a real area is picked and no benchmark
     // is chosen.
@@ -855,7 +881,7 @@ describe('public application routes', () => {
         ErrorBoundary,
         children: [
           {
-            path: 'indicators/:shortId',
+            path: 'indicators/:slug',
             Component: IndicatorRoute,
             loader: () => {
               throw new Response('Not Found', { status: 404 });
@@ -865,7 +891,7 @@ describe('public application routes', () => {
       },
     ]);
 
-    render(<Routes initialEntries={['/indicators/424242']} />);
+    render(<Routes initialEntries={['/indicators/no-such-indicator']} />);
 
     expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeTruthy();
   });
@@ -1001,6 +1027,7 @@ describe('public application routes', () => {
         indicators: [
           {
             shortId: 108,
+            slug: 'under-75-mortality-rate-from-all-causes',
             name: 'Under 75 mortality rate from all causes',
             topics: [{ slug: 'mortality', title: 'Mortality' }],
             classifications: [],
@@ -1110,6 +1137,7 @@ describe('public application routes', () => {
         limit: 200,
         indicators: Array.from({ length: 200 }, (_, i) => ({
           shortId: 100 + i,
+          slug: `indicator-${100 + i}`,
           name: `Indicator ${i}`,
           topics: [],
           classifications: [],

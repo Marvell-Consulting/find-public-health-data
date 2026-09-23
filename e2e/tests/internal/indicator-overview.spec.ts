@@ -25,7 +25,8 @@ test('shows the indicator a publisher picked from the dashboard', async ({ page 
 
   await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
   await expect(page.getByText('Indicator number')).toBeVisible();
-  await expect(page.getByText('Approved')).toBeVisible();
+  // Exact, or the "View published indicator" link matches as well.
+  await expect(page.getByText('Published', { exact: true })).toBeVisible();
 });
 
 test('opens the published indicator from the actions tab', async ({ page }) => {
@@ -34,7 +35,7 @@ test('opens the published indicator from the actions tab', async ({ page }) => {
   await expect(page.getByRole('tab', { name: 'Actions' })).toBeVisible();
   await page.getByRole('link', { name: 'View published indicator' }).click();
 
-  await expect(page).toHaveURL(/\/indicators\/\d+$/);
+  await expect(page).toHaveURL(/\/indicators\/[a-z0-9-]+$/);
   await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
 });
 

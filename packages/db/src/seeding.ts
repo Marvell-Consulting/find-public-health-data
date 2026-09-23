@@ -34,7 +34,7 @@ export const SEED_TABLES = [
   'area',
   'area_relationship',
   'indicator',
-  'indicator_metadata',
+  'indicator_version',
   'upload_batch',
   'note_type',
   'observation',
@@ -47,7 +47,8 @@ const COPY_IDLE_TIMEOUT_MS = 300_000;
 // Matches the deployed beta operations job's outer execution limit.
 const PUBLISHED_COPY_TIMEOUT_MS = 6 * 60 * 60 * 1_000;
 
-async function readCsvHeader(file: string): Promise<string[]> {
+/** The COPY takes its column list from the file, so callers can check one before importing. */
+export async function readCsvHeader(file: string): Promise<string[]> {
   const stream = createReadStream(file).pipe(createGunzip());
   let text = '';
   for await (const chunk of stream) {
@@ -193,6 +194,9 @@ export async function seedDummyTables(
   const relationshipFile = readDummyRelationships();
   const tables = await seedTables(tx, directory);
   const relationships = await applyIndicatorTopics(createDbFromTransaction(tx), relationshipFile);
+  // Freshly loaded tables have no statistics, and the planner's guesses are wrong by enough
+  // to turn an indexed observation lookup into a sequential scan over the whole table.
+  await tx.unsafe(`ANALYZE ${analyzableTables()}`);
   return { tables, relationships };
 }
 
@@ -213,6 +217,12 @@ export async function seedPublishedTables(
     throw new Error('Published topic mapping did not match the imported indicators and topics');
   }
   return { tables, relationships };
+}
+
+function analyzableTables(): string {
+  return [...SEED_TABLES, 'indicator_topic', 'indicator_classification']
+    .map((table) => `"${table}"`)
+    .join(', ');
 }
 
 async function seedTables(

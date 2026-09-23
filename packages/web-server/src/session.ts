@@ -8,6 +8,8 @@ import {
   redirect,
 } from 'react-router';
 
+import { pageSearch } from './page-url.ts';
+
 type SessionContextReader = {
   get<T>(context: RouterContext<T>): T;
 };
@@ -21,11 +23,7 @@ function pagePathFrom(requestUrl: URL): string {
   const pathname = requestUrl.pathname.endsWith('/_.data')
     ? requestUrl.pathname.replace(/_\.data$/, '')
     : requestUrl.pathname.replace(/\.data$/, '');
-  const searchParams = new URLSearchParams(requestUrl.search);
-  searchParams.delete('_routes');
-  const search = searchParams.toString();
-
-  return search === '' ? pathname : `${pathname}?${search}`;
+  return `${pathname}${pageSearch(requestUrl)}`;
 }
 
 export function createRequireSessionRoleMiddleware({

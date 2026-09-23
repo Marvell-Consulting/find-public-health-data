@@ -9,7 +9,8 @@ import {
 } from '@fphd/public-api-features/contract';
 import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
-import type { LoaderFunctionArgs } from 'react-router';
+import { pageSearch } from '@fphd/web-server/page-url';
+import { type LoaderFunctionArgs, redirect } from 'react-router';
 import { MAX_SELECTED_AREAS } from '../selection-limits.ts';
 import {
   availableConfidenceLevels,
@@ -21,6 +22,7 @@ import {
 } from './data.ts';
 import { allDataCsv, trendCsv } from './download.ts';
 import type { BenchmarkGeography, IndicatorAreaData } from './loader.ts';
+import { indicatorCsvPath, isIndicatorSegment, redirectStatus } from './paths.ts';
 import { trendTableModel } from './trend.ts';
 
 const ENGLAND = 'E92000001';
@@ -33,8 +35,8 @@ export async function loadIndicatorCsv(
   { context, params, request }: LoaderFunctionArgs,
   kind: 'table' | 'all-data',
 ): Promise<Response> {
-  const { shortId } = params;
-  if (shortId === undefined || !/^\d+$/.test(shortId)) {
+  const segment = params.slug;
+  if (segment === undefined || !isIndicatorSegment(segment)) {
     throw new Response('Not Found', { status: 404 });
   }
 
@@ -46,17 +48,25 @@ export async function loadIndicatorCsv(
   const api = context.get(apiContext);
   const dataFor = (codes: string[]) =>
     api.get(
-      `${apiPath`/api/indicators/${shortId}/data`}?${codes
+      `${apiPath`/api/indicators/${segment}/data`}?${codes
         .map((code) => `areaCode=${encodeURIComponent(code)}`)
         .join('&')}`,
       codes.length === 1
         ? indicatorAreaDataSchema.transform((one) => [one])
         : indicatorAreaDataListSchema,
     );
-  const [detail, areaData] = await Promise.all([
-    api.get(apiPath`/api/indicators/${shortId}`, indicatorDetailSchema),
-    dataFor(codesToLoad),
-  ]);
+  // The download shares the page's address, so it shares the page's one canonical form:
+  // an old address is answered with the redirect before any data is asked for.
+  const detail = await api.get(apiPath`/api/indicators/${segment}`, indicatorDetailSchema);
+  if (detail.slug !== segment) {
+    throw redirect(
+      `${indicatorCsvPath(detail.slug, kind)}${pageSearch(url)}`,
+      redirectStatus(segment, detail.slug),
+    );
+  }
+  const areaData = await dataFor(codesToLoad);
+
+  const { shortId } = detail;
 
   let csv: string;
   if (kind === 'table') {
@@ -120,7 +130,7 @@ export async function loadIndicatorCsv(
         ? Promise.all(
             rangeLevels.map(async (level) => {
               const range = await api.get(
-                `${apiPath`/api/indicators/${shortId}/range`}?displayGroup=${encodeURIComponent(level)}`,
+                `${apiPath`/api/indicators/${segment}/range`}?displayGroup=${encodeURIComponent(level)}`,
                 indicatorRangeSchema,
               );
               return [level, range.periods] as const;

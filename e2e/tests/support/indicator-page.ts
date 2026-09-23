@@ -1,5 +1,9 @@
 import { expect, type Page } from '@playwright/test';
 
+/** The seeded indicator the specs drive, at the slug its published page is addressed by. */
+export const MORTALITY_SLUG = 'under-75-mortality-rate-from-all-causes';
+export const MORTALITY_PATH = `/indicators/${MORTALITY_SLUG}`;
+
 /** One of the page's two sidebar cards, by its title. */
 export function filterCard(page: Page, title: string) {
   return page.locator('.fphd-filter-card', {

@@ -12,7 +12,8 @@ const indicator: IndicatorAdminDetail = {
   id: '019a1b2c-3d4e-7f60-8a9b-0c1d2e3f4a5b',
   shortId: 90366,
   name: 'Life expectancy at birth',
-  status: 'approved',
+  publishedSlug: 'life-expectancy-at-birth',
+  status: 'published',
   updatedAt: '2026-08-04T23:30:00.000Z',
 };
 
@@ -38,9 +39,7 @@ describe('IndicatorOverviewPage', () => {
 
   it.each([
     ['draft', 'Draft', 'grey'],
-    ['in_review', 'In review', 'yellow'],
-    ['approved', 'Approved', 'green'],
-    ['archived', 'Archived', 'grey'],
+    ['published', 'Published', 'green'],
   ] as const)('labels a status of %s as a %s tag', (status, label, colour) => {
     renderPage({ status });
 
@@ -50,26 +49,21 @@ describe('IndicatorOverviewPage', () => {
     expect(tag.className).toContain(`govuk-tag--${colour}`);
   });
 
-  it('offers the published page as an action for an approved indicator', () => {
+  it('offers the published page as an action for a published indicator', () => {
     renderPage();
 
     expect(screen.getByRole('tab', { name: 'Actions' })).toBeTruthy();
     expect(
       screen.getByRole('link', { name: 'View published indicator' }).getAttribute('href'),
-    ).toBe('/indicators/90366');
+    ).toBe('/indicators/life-expectancy-at-birth');
   });
 
-  it.each(['draft', 'in_review', 'archived'] as const)(
-    'offers no action for a %s indicator, which has no published page',
-    (status) => {
-      renderPage({ status });
+  it('offers no action for an indicator with no published version, which has no public page', () => {
+    renderPage({ publishedSlug: null, status: 'draft' });
 
-      expect(screen.queryByRole('link', { name: 'View published indicator' })).toBeNull();
-      expect(
-        screen.getByText('There are no actions available for this indicator yet.'),
-      ).toBeTruthy();
-    },
-  );
+    expect(screen.queryByRole('link', { name: 'View published indicator' })).toBeNull();
+    expect(screen.getByText('There are no actions available for this indicator yet.')).toBeTruthy();
+  });
 
   it('links back to the dashboard', () => {
     renderPage();

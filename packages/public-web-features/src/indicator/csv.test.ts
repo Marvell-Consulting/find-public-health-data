@@ -6,8 +6,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { loadIndicatorCsv } from './csv.ts';
 
+const SLUG = 'mortality-all-causes';
+
 const detail = {
   shortId: 108,
+  slug: SLUG,
   name: 'Mortality, "all causes"',
   unit: { name: 'per 100,000', label: 'per 100,000' },
   yearType: 'Calendar',
@@ -30,12 +33,12 @@ function observation(overrides = {}) {
   };
 }
 
-function args(get: ReturnType<typeof vi.fn>, url: string, shortId = '108') {
+function args(get: ReturnType<typeof vi.fn>, url: string, slug = SLUG) {
   const context = new RouterContextProvider();
   context.set(apiContext, { get } as unknown as ApiClient);
   return {
     context,
-    params: { shortId },
+    params: { slug },
     request: new Request(url),
   } as unknown as LoaderFunctionArgs;
 }
@@ -56,7 +59,7 @@ describe('loadIndicatorCsv', () => {
     ]);
 
     const response = await loadIndicatorCsv(
-      args(get, 'http://localhost/indicators/108/table.csv'),
+      args(get, 'http://localhost/indicators/mortality-all-causes/table.csv'),
       'table',
     );
 
@@ -89,7 +92,10 @@ describe('loadIndicatorCsv', () => {
     ]);
 
     const response = await loadIndicatorCsv(
-      args(get, 'http://localhost/indicators/108/table.csv?as=E06000052&sex-108=Male'),
+      args(
+        get,
+        'http://localhost/indicators/mortality-all-causes/table.csv?as=E06000052&sex-108=Male',
+      ),
       'table',
     );
 
@@ -118,7 +124,7 @@ describe('loadIndicatorCsv', () => {
     ]);
 
     const response = await loadIndicatorCsv(
-      args(get, 'http://localhost/indicators/108/all-data.csv'),
+      args(get, 'http://localhost/indicators/mortality-all-causes/all-data.csv'),
       'all-data',
     );
 
@@ -146,7 +152,7 @@ describe('loadIndicatorCsv', () => {
     ]);
 
     const response = await loadIndicatorCsv(
-      args(get, 'http://localhost/indicators/108/table.csv?sex-108=Unpublished'),
+      args(get, 'http://localhost/indicators/mortality-all-causes/table.csv?sex-108=Unpublished'),
       'table',
     );
 
@@ -169,7 +175,10 @@ describe('loadIndicatorCsv', () => {
     ]);
 
     const response = await loadIndicatorCsv(
-      args(get, 'http://localhost/indicators/108/table.csv?as=E06000052&sex-108=Male'),
+      args(
+        get,
+        'http://localhost/indicators/mortality-all-causes/table.csv?as=E06000052&sex-108=Male',
+      ),
       'table',
     );
 
@@ -177,12 +186,54 @@ describe('loadIndicatorCsv', () => {
     expect(await response.text()).toContain('2023,130000,9');
   });
 
-  it('404s a non-numeric id without calling the api', async () => {
+  it('404s a segment shaped like neither identifier without calling the api', async () => {
     const get = vi.fn();
 
     await expect(
       loadIndicatorCsv(args(get, 'http://localhost/indicators/x/table.csv', '../x'), 'table'),
     ).rejects.toMatchObject({ status: 404 });
     expect(get).not.toHaveBeenCalled();
+  });
+
+  it('301s a download addressed by number to the canonical slug, query string and all', async () => {
+    const get = api([
+      { areaCode: 'E92000001', areaName: 'England', observations: [observation()] },
+    ]);
+
+    await expect(
+      loadIndicatorCsv(
+        args(get, 'http://localhost/indicators/108/table.csv?as=E06000052', '108'),
+        'table',
+      ),
+    ).rejects.toMatchObject({
+      status: 301,
+      headers: expect.anything(),
+    });
+  });
+
+  it('redirects before asking for any data', async () => {
+    const get = api([]);
+
+    await loadIndicatorCsv(
+      args(get, 'http://localhost/indicators/108/table.csv?as=E06000052', '108'),
+      'table',
+    ).catch(() => undefined);
+
+    expect(get.mock.calls.map(([path]) => String(path))).toEqual(['/api/indicators/108']);
+  });
+
+  it('names the redirect target after the canonical slug', async () => {
+    const get = api([
+      { areaCode: 'E92000001', areaName: 'England', observations: [observation()] },
+    ]);
+
+    const redirected = await loadIndicatorCsv(
+      args(get, 'http://localhost/indicators/108/all-data.csv?as=E06000052', '108'),
+      'all-data',
+    ).catch((response: Response) => response);
+
+    expect((redirected as Response).headers.get('location')).toBe(
+      `/indicators/${SLUG}/all-data.csv?as=E06000052`,
+    );
   });
 });

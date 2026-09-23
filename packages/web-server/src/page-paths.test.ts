@@ -19,7 +19,7 @@ const routes = {
   tableCsv: {
     id: 'tableCsv',
     parentId: 'authenticated',
-    path: 'indicators/:shortId/table.csv',
+    path: 'indicators/:slug/table.csv',
     module: { loader: () => null },
   },
   notFound: { id: 'notFound', parentId: 'root', path: '*', module: { default: () => null } },

@@ -23,7 +23,12 @@ const row: IndicatorAdminRow = {
   updatedAt: new Date('2026-01-02T00:00:00.000Z'),
 };
 
-const detailRow: IndicatorAdminDetailRow = { ...row, shortId: 90366, status: 'approved' };
+const detailRow: IndicatorAdminDetailRow = {
+  ...row,
+  shortId: 90366,
+  publishedSlug: 'life-expectancy-at-birth',
+  status: 'published',
+};
 
 // The router alone, on a bare Express app: these tests cover its status mapping, not what
 // `createApiApp` wraps around it.
@@ -123,7 +128,7 @@ describe('GET /api/internal/indicators/:id', () => {
     expect(response.body).toEqual({ error: 'forbidden' });
   });
 
-  it('serves the indicator with its public number and stored status', async () => {
+  it('serves the indicator with its public identifiers and stored status', async () => {
     const findById = vi.fn().mockResolvedValue(detailRow);
 
     const response = await request(createTestApp({ findById }))
@@ -136,7 +141,8 @@ describe('GET /api/internal/indicators/:id', () => {
       id: row.id,
       shortId: 90366,
       name: 'Life expectancy at birth',
-      status: 'approved',
+      publishedSlug: 'life-expectancy-at-birth',
+      status: 'published',
       updatedAt: '2026-01-02T00:00:00.000Z',
     });
   });

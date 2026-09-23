@@ -1,10 +1,19 @@
 import { type Database, listTopics, type Topic } from '@fphd/db';
 
 import {
+  type CreateDraftFromPublishedResult,
+  type CreateIndicatorDraftResult,
+  createDraftFromPublished,
+  createIndicatorDraft,
   getIndicatorById,
   type IndicatorAdminDetailRow,
   type IndicatorAdminRows,
+  type IndicatorDraftAttributes,
+  type IndicatorDraftMemberships,
   listIndicatorsPage,
+  type NewIndicatorDraftAttributes,
+  type UpdateIndicatorDraftResult,
+  updateIndicatorDraft,
 } from './indicator-repository.ts';
 import {
   type CreateTopicResult,
@@ -30,6 +39,18 @@ export interface InternalTopicRepository {
 export interface InternalIndicatorRepository {
   listPage(page: number, pageSize: number): Promise<IndicatorAdminRows>;
   findById(id: string): Promise<IndicatorAdminDetailRow | undefined>;
+  createDraft(
+    attributes: NewIndicatorDraftAttributes,
+    actor: string,
+  ): Promise<CreateIndicatorDraftResult>;
+  updateDraft(
+    indicatorId: string,
+    attributes: IndicatorDraftAttributes,
+    memberships: IndicatorDraftMemberships,
+    actor: string,
+  ): Promise<UpdateIndicatorDraftResult>;
+  /** Opens a draft from the published version, copying its columns and memberships. */
+  draftFromPublished(indicatorId: string, actor: string): Promise<CreateDraftFromPublishedResult>;
 }
 
 /**
@@ -46,6 +67,10 @@ export function createInternalRepositories(db: Database): InternalRepositories {
     indicators: {
       listPage: (page, pageSize) => listIndicatorsPage(db, page, pageSize),
       findById: (id) => getIndicatorById(db, id),
+      createDraft: (attributes, actor) => createIndicatorDraft(db, attributes, actor),
+      updateDraft: (indicatorId, attributes, memberships, actor) =>
+        updateIndicatorDraft(db, indicatorId, attributes, memberships, actor),
+      draftFromPublished: (indicatorId, actor) => createDraftFromPublished(db, indicatorId, actor),
     },
     topics: {
       list: () => listTopics(db),

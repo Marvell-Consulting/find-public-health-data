@@ -82,7 +82,7 @@ describe('internal API', () => {
   // The superset rule is structural — both apps mount publicApiRoutes — but assert it here
   // so a route added to the public surface alone would fail rather than silently 404.
   it('serves the public indicators surface', async () => {
-    const repositories = createFakeRepositories({ indicators: { listApproved: async () => [] } });
+    const repositories = createFakeRepositories({ indicators: { listPublished: async () => [] } });
 
     const response = await request(createTestApp(repositories)).get('/api/indicators');
 

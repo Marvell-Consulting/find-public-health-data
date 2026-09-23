@@ -782,6 +782,9 @@ importers:
       '@fphd/auth':
         specifier: workspace:*
         version: link:../auth
+      '@fphd/config':
+        specifier: workspace:*
+        version: link:../config
       '@fphd/public-api-features':
         specifier: workspace:*
         version: link:../public-api-features

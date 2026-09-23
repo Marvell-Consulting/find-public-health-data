@@ -8,7 +8,7 @@ import { pipeline } from 'node:stream/promises';
 import { promisify } from 'node:util';
 
 import { z } from '@fphd/config';
-import { SEED_TABLES } from '@fphd/db/operations';
+import { readCsvHeader, SEED_TABLES } from '@fphd/db/operations';
 
 const runFile = promisify(execFile);
 const publishedSource = 'PHOLIO_LIVE_A-derived fphd_new benchmark clone';
@@ -17,11 +17,19 @@ const publishedCsvNull = '__FPHD_NULL_5f92c66de4b849b4a717c23f5cbdb8a1__';
 // The benchmark setup establishes lineage; these counts are not a provenance signature.
 const expectedApprovedIndicators = 1_290;
 const expectedObservations = 29_380_899;
+// The approved indicators the export leaves out, each the retired half of a pair sharing a
+// name and so a slug. The export holds the same list; an archive built with another is refused.
+const excludedIndicators = [90_366, 90_776, 92_774, 93_280];
+const expectedExportedIndicators = expectedApprovedIndicators - excludedIndicators.length;
 
 const sourceManifestSchema = z.object({
   source: z.literal(publishedSource),
   source_database: z.literal('fphd_new'),
   approved_indicators: z.literal(expectedApprovedIndicators),
+  // The source's count before exclusion: the fingerprint of the clone the archive came from.
+  source_observations: z.literal(expectedObservations),
+  excluded_indicators: z.array(z.number().int()),
+  excluded_observations: z.number().int().nonnegative(),
   source_csv_null: z.literal(publishedCsvNull),
   tables: z.record(
     z.string(),
@@ -37,6 +45,11 @@ const manifestSchema = sourceManifestSchema.extend({
 });
 
 export type PublishedManifest = z.infer<typeof manifestSchema>;
+
+function sameMembers(left: number[], right: number[]): boolean {
+  const sorted = (list: number[]) => [...list].sort((a, b) => a - b).join(',');
+  return sorted(left) === sorted(right);
+}
 
 async function sha256(path: string): Promise<string> {
   const hash = createHash('sha256');
@@ -59,9 +72,16 @@ export async function verifyPublishedSnapshot(directory: string): Promise<Publis
   ) {
     throw new Error('Published snapshot table list does not match the seed schema');
   }
+  if (!sameMembers(sourceManifest.excluded_indicators, excludedIndicators)) {
+    throw new Error('Published snapshot was exported with a different exclusion list');
+  }
   if (
-    manifest.tables.indicator?.rows !== expectedApprovedIndicators ||
-    manifest.tables.observation?.rows !== expectedObservations
+    manifest.tables.indicator?.rows !== expectedExportedIndicators ||
+    // The export turns each exported source indicator into one published version.
+    manifest.tables.indicator_version?.rows !== expectedExportedIndicators ||
+    // The excluded indicators' observations go with them, and the export says how many.
+    manifest.tables.observation?.rows !==
+      expectedObservations - sourceManifest.excluded_observations
   ) {
     throw new Error('Published snapshot row counts do not match the published benchmark clone');
   }
@@ -76,6 +96,12 @@ export async function verifyPublishedSnapshot(directory: string): Promise<Publis
     if ((await sha256(file)) !== expected.sha256) {
       throw new Error(`Published snapshot checksum failed for ${table}`);
     }
+  }
+  // The seed COPY takes its column list from each file, so an archive exported before a
+  // column existed would only fail deep inside the import. Name the gap here instead.
+  const versionColumns = await readCsvHeader(join(directory, 'indicator_version.csv.gz'));
+  if (!versionColumns.includes('slug')) {
+    throw new Error('Published snapshot indicator_version.csv.gz carries no slug column');
   }
   return manifest;
 }
