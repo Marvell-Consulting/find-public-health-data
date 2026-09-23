@@ -1,6 +1,5 @@
-import { A, BackLink, GridColumn, GridRow, SummaryList, Tabs, Tag } from '@fphd/ui';
+import { A, GridColumn, GridRow, SummaryList, Tabs, Tag } from '@fphd/ui';
 
-import { DASHBOARD_PATH } from '../dashboard/paths.ts';
 import { indicatorTaskListPath } from '../indicator-task-list/paths.ts';
 import type { IndicatorAdminDetail, IndicatorStatus } from './loader.ts';
 import { publishedIndicatorPath } from './paths.ts';
@@ -50,25 +49,20 @@ function Actions({ indicator }: { indicator: IndicatorAdminDetail }) {
 
 export function IndicatorOverviewPage({ indicator }: { indicator: IndicatorAdminDetail }) {
   return (
-    <>
-      <BackLink href={DASHBOARD_PATH}>Back to indicators</BackLink>
-      <GridRow>
-        <GridColumn width="two-thirds">
-          <h1 className="govuk-heading-xl">{indicator.name}</h1>
-          <SummaryList
-            items={[
-              { name: 'Indicator number', children: String(indicator.shortId) },
-              { name: 'Status', children: <StatusTag status={indicator.status} /> },
-            ]}
-          />
-          <Tabs
-            items={[
-              { id: 'actions', label: 'Actions', content: <Actions indicator={indicator} /> },
-            ]}
-            paramKey="tab"
-          />
-        </GridColumn>
-      </GridRow>
-    </>
+    <GridRow>
+      <GridColumn width="two-thirds">
+        <h1 className="govuk-heading-xl">{indicator.name}</h1>
+        <SummaryList
+          items={[
+            { name: 'Indicator number', children: String(indicator.shortId) },
+            { name: 'Status', children: <StatusTag status={indicator.status} /> },
+          ]}
+        />
+        <Tabs
+          items={[{ id: 'actions', label: 'Actions', content: <Actions indicator={indicator} /> }]}
+          paramKey="tab"
+        />
+      </GridColumn>
+    </GridRow>
   );
 }

@@ -16,7 +16,7 @@ const topic = {
   updatedAt: '2026-09-01T09:30:00.000Z',
 };
 
-// The page's links and back link read router state, so it renders inside a router.
+// The page's links read router state, so it renders inside a router.
 function renderPage() {
   return render(
     <MemoryRouter>
@@ -46,8 +46,8 @@ describe('DeleteTopicPage', () => {
   it('offers a way back to editing the topic', () => {
     renderPage();
 
-    for (const name of ['Back to editing', 'Cancel']) {
-      expect(screen.getByRole('link', { name }).getAttribute('href')).toBe(editTopicPath(topic.id));
-    }
+    expect(screen.getByRole('link', { name: 'Cancel' }).getAttribute('href')).toBe(
+      editTopicPath(topic.id),
+    );
   });
 });

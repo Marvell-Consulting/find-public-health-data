@@ -81,12 +81,4 @@ describe('IndicatorOverviewPage', () => {
 
     expect(screen.queryByRole('link', { name: 'Continue creating indicator' })).toBeNull();
   });
-
-  it('links back to the dashboard', () => {
-    renderPage();
-
-    expect(screen.getByRole('link', { name: 'Back to indicators' }).getAttribute('href')).toBe(
-      '/dashboard',
-    );
-  });
 });
