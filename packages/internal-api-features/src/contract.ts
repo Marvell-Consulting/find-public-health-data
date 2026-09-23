@@ -1,5 +1,5 @@
-import { SLUG_PATTERN, type SlugProblem, slugProblem } from '@fphd/config/slug';
 import { z } from '@fphd/config/zod';
+import { SLUG_PATTERN, type SlugProblem, slugProblem } from '@fphd/utils/slug';
 
 /**
  * The wire contract for the internal API, shared by its routers and the internal web app's

@@ -1,5 +1,5 @@
-import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/config/slug';
 import { z } from '@fphd/config/zod';
+import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
 
 // One selection contains up to 19 picked areas and England for comparison.
 export const MAX_SELECTED_AREAS = 19;

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { gunzipSync } from 'node:zlib';
 
-import { isReservedSlug, SLUG_PATTERN, slugify, slugProblem } from '@fphd/config/slug';
+import { isReservedSlug, SLUG_PATTERN, slugify, slugProblem } from '@fphd/utils/slug';
 import { describe, expect, it } from 'vitest';
 
 /**

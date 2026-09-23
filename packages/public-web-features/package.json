@@ -12,9 +12,9 @@
   },
   "dependencies": {
     "@fphd/auth": "workspace:*",
-    "@fphd/config": "workspace:*",
     "@fphd/public-api-features": "workspace:*",
     "@fphd/ui": "workspace:*",
+    "@fphd/utils": "workspace:*",
     "@fphd/web-server": "workspace:*",
     "csv-stringify": "catalog:"
   },

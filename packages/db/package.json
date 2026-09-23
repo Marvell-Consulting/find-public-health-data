@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@fphd/config": "workspace:*",
+    "@fphd/utils": "workspace:*",
     "drizzle-orm": "catalog:",
     "postgres": "catalog:"
   },

@@ -1,7 +1,4 @@
-/**
- * The other public identifier, beside the slug: `indicator.short_id`. On its own subpath,
- * like `slug.ts`, so a browser bundle can import it without `env.ts`.
- */
+/** The other public identifier, beside the slug: `indicator.short_id`. */
 
 /** A run of digits: what a short id looks like in a URL, and what a slug never is. */
 export const SHORT_ID_PATTERN = /^\d+$/;

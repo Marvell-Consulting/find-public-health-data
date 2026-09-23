@@ -1,4 +1,4 @@
-"""The indicator slug rule, mirroring @fphd/config/slug.
+"""The indicator slug rule, mirroring @fphd/utils/slug.
 
 The seed arrives by COPY, so the CSV has to carry the slug the app would have
 derived. A TypeScript test reads the committed CSV and checks every slug against

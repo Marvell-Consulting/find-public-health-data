@@ -30,6 +30,7 @@
     "@fphd/auth": "workspace:*",
     "@fphd/config": "workspace:*",
     "@fphd/db": "workspace:*",
+    "@fphd/utils": "workspace:*",
     "drizzle-orm": "catalog:",
     "express": "catalog:"
   },

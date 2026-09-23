@@ -23,6 +23,7 @@
   "dependencies": {
     "@fphd/config": "workspace:*",
     "@fphd/db": "workspace:*",
+    "@fphd/utils": "workspace:*",
     "express": "catalog:"
   },
   "devDependencies": {

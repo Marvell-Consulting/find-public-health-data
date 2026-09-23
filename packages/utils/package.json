@@ -1,0 +1,35 @@
+{
+  "name": "@fphd/utils",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    "./indicator-path": {
+      "browser": "./src/indicator-path.ts",
+      "development": "./src/indicator-path.ts",
+      "types": "./src/indicator-path.ts",
+      "default": "./dist/indicator-path.js"
+    },
+    "./short-id": {
+      "browser": "./src/short-id.ts",
+      "development": "./src/short-id.ts",
+      "types": "./src/short-id.ts",
+      "default": "./dist/short-id.js"
+    },
+    "./slug": {
+      "browser": "./src/slug.ts",
+      "development": "./src/slug.ts",
+      "types": "./src/slug.ts",
+      "default": "./dist/slug.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,6 +1,6 @@
-import { isShortId, SHORT_ID_PATTERN } from '@fphd/config/short-id';
-import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/config/slug';
 import type { IndicatorSearchFilters, Repositories } from '@fphd/db';
+import { isShortId, SHORT_ID_PATTERN } from '@fphd/utils/short-id';
+import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
 import { Router } from 'express';
 
 import type {

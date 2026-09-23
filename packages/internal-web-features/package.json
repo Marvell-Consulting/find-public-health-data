@@ -13,6 +13,7 @@
   "dependencies": {
     "@fphd/internal-api-features": "workspace:*",
     "@fphd/ui": "workspace:*",
+    "@fphd/utils": "workspace:*",
     "@fphd/web-server": "workspace:*"
   },
   "peerDependencies": {

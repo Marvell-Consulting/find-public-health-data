@@ -569,4 +569,5 @@ Each package has a README describing its purpose and entry points:
 | [`@fphd/public-api-features`](packages/public-api-features/README.md) | The public API routes and their wire contract              |
 | [`@fphd/public-web-features`](packages/public-web-features/README.md) | The public site's pages and loaders                        |
 | [`@fphd/ui`](packages/ui/README.md)                              | Shared React components and styles                              |
+| [`@fphd/utils`](packages/utils/README.md)                        | Side-effect-free helpers shared by Node and the browser: slugs, short ids, indicator paths |
 | [`@fphd/web-server`](packages/web-server/README.md)              | The Node host for the web apps and their server-side plumbing   |

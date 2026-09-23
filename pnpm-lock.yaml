@@ -584,6 +584,9 @@ importers:
       '@fphd/config':
         specifier: workspace:*
         version: link:../config
+      '@fphd/utils':
+        specifier: workspace:*
+        version: link:../utils
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.2(postgres@3.4.9)
@@ -661,6 +664,9 @@ importers:
       '@fphd/db':
         specifier: workspace:*
         version: link:../db
+      '@fphd/utils':
+        specifier: workspace:*
+        version: link:../utils
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.2(postgres@3.4.9)
@@ -698,6 +704,9 @@ importers:
       '@fphd/ui':
         specifier: workspace:*
         version: link:../ui
+      '@fphd/utils':
+        specifier: workspace:*
+        version: link:../utils
       '@fphd/web-server':
         specifier: workspace:*
         version: link:../web-server
@@ -757,6 +766,9 @@ importers:
       '@fphd/db':
         specifier: workspace:*
         version: link:../db
+      '@fphd/utils':
+        specifier: workspace:*
+        version: link:../utils
       express:
         specifier: 'catalog:'
         version: 5.2.1
@@ -785,15 +797,15 @@ importers:
       '@fphd/auth':
         specifier: workspace:*
         version: link:../auth
-      '@fphd/config':
-        specifier: workspace:*
-        version: link:../config
       '@fphd/public-api-features':
         specifier: workspace:*
         version: link:../public-api-features
       '@fphd/ui':
         specifier: workspace:*
         version: link:../ui
+      '@fphd/utils':
+        specifier: workspace:*
+        version: link:../utils
       '@fphd/web-server':
         specifier: workspace:*
         version: link:../web-server
@@ -937,6 +949,15 @@ importers:
       react-router:
         specifier: 'catalog:'
         version: 8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@types/node@24.13.3)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.1.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0)(yaml@2.9.0))
+
+  packages/utils:
+    devDependencies:
       typescript:
         specifier: 'catalog:'
         version: 6.0.3

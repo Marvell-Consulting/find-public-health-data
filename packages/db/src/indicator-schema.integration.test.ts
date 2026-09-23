@@ -1,5 +1,5 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
-import { SLUG_MAX_LENGTH } from '@fphd/config/slug';
+import { SLUG_MAX_LENGTH } from '@fphd/utils/slug';
 import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
