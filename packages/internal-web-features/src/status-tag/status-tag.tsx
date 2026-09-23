@@ -5,7 +5,7 @@ import type {
 } from '@fphd/internal-api-features/contract';
 import { Tag } from '@fphd/ui';
 
-type Colour = 'blue' | 'green' | 'grey' | 'teal';
+type Colour = 'blue' | 'green' | 'teal';
 
 interface TagFace {
   label: string;
