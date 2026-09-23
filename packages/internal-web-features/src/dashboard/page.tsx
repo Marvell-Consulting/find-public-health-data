@@ -50,12 +50,16 @@ export function DashboardPage({ indicators, page, totalPages }: DashboardPagePro
               updatedAt: (
                 <time dateTime={indicator.updatedAt}>{formatDate(indicator.updatedAt)}</time>
               ),
-              indicatorStatus: <StatusTag type="indicator" status={indicator.indicatorStatus} />,
+              // The column headers name the statuses, and screen readers announce them per cell.
+              indicatorStatus: (
+                <StatusTag type="indicator" status={indicator.indicatorStatus} labelled={false} />
+              ),
               publishingStatus: (
                 <StatusTag
                   type="publishing"
                   indicatorStatus={indicator.indicatorStatus}
                   draftStatus={indicator.draftStatus}
+                  labelled={false}
                 />
               ),
             }))}

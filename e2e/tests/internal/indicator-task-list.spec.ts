@@ -44,8 +44,8 @@ test('shows the indicator as new with an incomplete draft', async ({ page }) => 
 
   // The tags follow the public number, under the heading.
   await expect(page.getByRole('main').locator('h1 ~ p .govuk-tag')).toHaveText([
-    'New',
-    'Incomplete',
+    'Indicator status: New',
+    'Publishing status: Incomplete',
   ]);
 });
 

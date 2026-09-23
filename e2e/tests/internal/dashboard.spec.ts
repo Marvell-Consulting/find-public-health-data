@@ -31,6 +31,7 @@ test('tags a new indicator as new with an incomplete draft', async ({ page }) =>
 
   const row = page.getByRole('table').getByRole('row').filter({ hasText: name });
 
+  // The column headers name the two statuses, so the tags carry no hidden prefix here.
   await expect(row.locator('.govuk-tag')).toHaveText(['New', 'Incomplete']);
 });
 

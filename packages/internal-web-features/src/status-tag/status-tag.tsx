@@ -47,10 +47,20 @@ function publishingStatus(
     : { colour, label };
 }
 
-export type StatusTagProps =
+export type StatusTagProps = (
   | { type: 'indicator'; status: IndicatorStatus }
   | { type: 'publishing'; indicatorStatus: IndicatorStatus; draftStatus: DraftStatus | null }
-  | { type: 'task'; status: IndicatorTaskStatus };
+  | { type: 'task'; status: IndicatorTaskStatus }
+) & {
+  /** Set false where something else, such as a column header, already names the status. */
+  labelled?: boolean;
+};
+
+// A task's status is already read out with its link, so only the indicator's two are prefixed.
+const PREFIX: Partial<Record<StatusTagProps['type'], string>> = {
+  indicator: 'Indicator status: ',
+  publishing: 'Publishing status: ',
+};
 
 function faceOf(props: StatusTagProps): TagFace | string | undefined {
   switch (props.type) {
@@ -70,5 +80,12 @@ export function StatusTag(props: StatusTagProps) {
   if (face === undefined) return null;
   if (typeof face === 'string') return face;
 
-  return <Tag className="fphd-status-tag" classModifiers={face.colour} text={face.label} />;
+  const prefix = props.labelled === false ? undefined : PREFIX[props.type];
+
+  return (
+    <Tag className="fphd-status-tag" classModifiers={face.colour}>
+      {prefix === undefined ? null : <span className="govuk-visually-hidden">{prefix}</span>}
+      {face.label}
+    </Tag>
+  );
 }

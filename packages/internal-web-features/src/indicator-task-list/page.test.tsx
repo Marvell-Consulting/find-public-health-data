@@ -55,7 +55,10 @@ describe('IndicatorTaskListPage', () => {
     // The tags follow the public number, under the heading.
     const tags = [...document.querySelectorAll('h1 ~ p .govuk-tag')];
 
-    expect(tags.map((tag) => tag.textContent)).toEqual(['Live', 'Update incomplete']);
+    expect(tags.map((tag) => tag.textContent)).toEqual([
+      'Indicator status: Live',
+      'Publishing status: Update incomplete',
+    ]);
   });
 
   it('groups the fields a publisher completes', () => {

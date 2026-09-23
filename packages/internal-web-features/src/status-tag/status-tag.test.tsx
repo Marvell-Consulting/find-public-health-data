@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { StatusTag } from './status-tag.tsx';
+import { StatusTag, type StatusTagProps } from './status-tag.tsx';
 
 afterEach(cleanup);
 
@@ -46,6 +46,36 @@ describe('StatusTag', () => {
     );
 
     expect(container.innerHTML).toBe('');
+  });
+
+  it.each<[string, StatusTagProps, string, string]>([
+    ['an indicator', { type: 'indicator', status: 'live' }, 'Indicator status: ', 'Live'],
+    [
+      'a publishing',
+      { type: 'publishing', indicatorStatus: 'live', draftStatus: null },
+      'Publishing status: ',
+      'Published',
+    ],
+  ])('names %s status for screen readers only', (_, props, prefix, label) => {
+    render(<StatusTag {...props} />);
+
+    const hidden = screen.getByText(prefix.trim());
+
+    expect(hidden.className).toBe('govuk-visually-hidden');
+    expect(hidden.parentElement?.textContent).toBe(`${prefix}${label}`);
+  });
+
+  it('leaves the name out where something else already gives it', () => {
+    render(<StatusTag type="indicator" status="live" labelled={false} />);
+
+    expect(tag('Live')).toBeTruthy();
+    expect(document.querySelector('.govuk-visually-hidden')).toBeNull();
+  });
+
+  it('does not name a task status, which is read out with its task', () => {
+    render(<StatusTag type="task" status="not_started" />);
+
+    expect(document.querySelector('.govuk-visually-hidden')).toBeNull();
   });
 
   it('shows a task that is not started as a tag', () => {

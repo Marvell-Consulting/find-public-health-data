@@ -42,7 +42,10 @@ describe('IndicatorOverviewPage', () => {
 
     const tags = [...document.querySelectorAll('h1 ~ p .govuk-tag')];
 
-    expect(tags.map((tag) => tag.textContent)).toEqual(['Live', 'Update incomplete']);
+    expect(tags.map((tag) => tag.textContent)).toEqual([
+      'Indicator status: Live',
+      'Publishing status: Update incomplete',
+    ]);
   });
 
   it('offers the published page as an action for a published indicator', () => {
