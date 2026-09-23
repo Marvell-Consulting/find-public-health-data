@@ -54,8 +54,9 @@ RUN test -n "${APP}" && test -d "apps/${APP}" \
 RUN pnpm --filter "@fphd/${APP}..." build
 
 # Copies the app and only the workspace packages it actually depends on into a self-contained
-# tree, with devDependencies pruned. --legacy because the non-legacy implementation requires
-# injected workspace packages, which this workspace does not use.
+# tree, with devDependencies pruned and each package cut down to its `files`. --legacy because
+# the non-legacy implementation requires injected workspace packages, which this workspace does
+# not use.
 RUN pnpm deploy --filter "@fphd/${APP}" --prod --legacy /out
 
 FROM node:24-alpine3.24@sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf AS runtime

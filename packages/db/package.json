@@ -21,6 +21,16 @@
       "default": "./dist/testing.js"
     }
   },
+  "files": [
+    "dist",
+    "!dist/**/*.map",
+    "!dist/**/*.d.ts",
+    "!dist/testing.js",
+    "drizzle/*.sql",
+    "drizzle/meta/_journal.json",
+    "data",
+    "!data/seed/export"
+  ],
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "db:generate": "drizzle-kit generate",

@@ -6,9 +6,14 @@ import {
   type WorkspacePackage,
 } from './workspace.ts';
 
-function workspace(...packages: Array<[string, string[]]>): Map<string, WorkspacePackage> {
+function workspace(
+  ...packages: Array<[string, string[], string[]?]>
+): Map<string, WorkspacePackage> {
   return new Map(
-    packages.map(([name, dependencies]) => [name, { name, dir: `/repo/${name}`, dependencies }]),
+    packages.map(([name, dependencies, devDependencies = []]) => [
+      name,
+      { name, dir: `/repo/${name}`, dependencies, devDependencies },
+    ]),
   );
 }
 
@@ -20,7 +25,7 @@ describe('collectDependencyClosure', () => {
       ['@fphd/logger', []],
     );
 
-    expect(collectDependencyClosure('@fphd/public-web', packages)).toEqual([
+    expect(collectDependencyClosure('@fphd/public-web', packages, { bundled: false })).toEqual([
       '@fphd/logger',
       '@fphd/ui',
     ]);
@@ -29,7 +34,7 @@ describe('collectDependencyClosure', () => {
   it('follows only workspace packages', () => {
     const packages = workspace(['@fphd/public-api', ['express', 'pino']]);
 
-    expect(collectDependencyClosure('@fphd/public-api', packages)).toEqual([]);
+    expect(collectDependencyClosure('@fphd/public-api', packages, { bundled: false })).toEqual([]);
   });
 
   it('terminates on a dependency cycle without reporting the entry', () => {
@@ -38,16 +43,48 @@ describe('collectDependencyClosure', () => {
       ['@fphd/ui', ['@fphd/public-web']],
     );
 
-    expect(collectDependencyClosure('@fphd/public-web', packages)).toEqual(['@fphd/ui']);
+    expect(collectDependencyClosure('@fphd/public-web', packages, { bundled: false })).toEqual([
+      '@fphd/ui',
+    ]);
+  });
+
+  it('follows devDependencies at every level for a bundled entry', () => {
+    const packages = workspace(
+      ['@fphd/public-web', ['@fphd/web-server'], ['@fphd/public-web-features']],
+      ['@fphd/web-server', [], ['@fphd/ui']],
+      ['@fphd/public-web-features', ['@fphd/public-api-features']],
+      ['@fphd/public-api-features', []],
+      ['@fphd/ui', []],
+    );
+
+    expect(collectDependencyClosure('@fphd/public-web', packages, { bundled: true })).toEqual([
+      '@fphd/public-api-features',
+      '@fphd/public-web-features',
+      '@fphd/ui',
+      '@fphd/web-server',
+    ]);
+  });
+
+  it('ignores devDependencies for an entry that is not bundled', () => {
+    const packages = workspace(
+      ['@fphd/public-api', ['@fphd/db'], ['@fphd/test-helpers']],
+      ['@fphd/db', [], ['@fphd/db-tooling']],
+      ['@fphd/test-helpers', []],
+      ['@fphd/db-tooling', []],
+    );
+
+    expect(collectDependencyClosure('@fphd/public-api', packages, { bundled: false })).toEqual([
+      '@fphd/db',
+    ]);
   });
 
   // A dependency outside the workspace is third-party and cannot reach back into this repo, so it
   // is skipped. An entry outside it is a check that would inspect nothing and report clean, which
   // is the failure this whole tool exists to prevent — so that one throws.
   it('throws for an entry that is not a workspace package', () => {
-    expect(() => collectDependencyClosure('@fphd/renamed', workspace(['@fphd/ui', []]))).toThrow(
-      /not a workspace package/,
-    );
+    expect(() =>
+      collectDependencyClosure('@fphd/renamed', workspace(['@fphd/ui', []]), { bundled: false }),
+    ).toThrow(/not a workspace package/);
   });
 });
 

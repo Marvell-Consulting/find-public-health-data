@@ -12,10 +12,10 @@ import { collectDependencyClosure, readWorkspacePackages } from './workspace.ts'
 const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
 
 /** Every reference to a public app — pnpm filter, dist path, log line — derives from these. */
-type PublicApp = { pkg: string; dir: string };
+type PublicApp = { pkg: string; dir: string; bundled: boolean };
 
-const PUBLIC_WEB: PublicApp = { pkg: '@fphd/public-web', dir: 'apps/public-web' };
-const PUBLIC_API: PublicApp = { pkg: '@fphd/public-api', dir: 'apps/public-api' };
+const PUBLIC_WEB: PublicApp = { pkg: '@fphd/public-web', dir: 'apps/public-web', bundled: true };
+const PUBLIC_API: PublicApp = { pkg: '@fphd/public-api', dir: 'apps/public-api', bundled: false };
 const PUBLIC_APPS = [PUBLIC_WEB, PUBLIC_API];
 
 type Violation = {
@@ -68,8 +68,8 @@ async function checkDependencyClosures(): Promise<Violation[]> {
   console.log('Checking the public apps’ workspace dependency closures…');
   const packages = await readWorkspacePackages(repoRoot);
 
-  return PUBLIC_APPS.flatMap(({ pkg }) => {
-    const references = findInternalReferences(collectDependencyClosure(pkg, packages));
+  return PUBLIC_APPS.flatMap(({ pkg, bundled }) => {
+    const references = findInternalReferences(collectDependencyClosure(pkg, packages, { bundled }));
     return references.length === 0
       ? []
       : [{ check: 'dependency closure', detail: pkg, references }];

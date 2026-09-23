@@ -16,6 +16,11 @@
       "default": "./dist/contract.js"
     }
   },
+  "files": [
+    "dist",
+    "!dist/**/*.map",
+    "!dist/**/*.d.ts"
+  ],
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "typecheck": "tsc --noEmit"

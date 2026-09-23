@@ -4,6 +4,11 @@
   "private": true,
   "license": "MIT",
   "type": "module",
+  "files": [
+    "dist",
+    "server.ts",
+    "server/config.ts"
+  ],
   "scripts": {
     "build": "react-router build",
     "dev": "cross-env NODE_ENV=development tsx watch --env-file-if-exists=../../.env --conditions=development server.ts",
@@ -12,12 +17,8 @@
     "typecheck": "react-router typegen && tsc --noEmit"
   },
   "dependencies": {
-    "@fphd/auth": "workspace:*",
     "@fphd/config": "workspace:*",
-    "@fphd/internal-web-features": "workspace:*",
     "@fphd/logger": "workspace:*",
-    "@fphd/public-web-features": "workspace:*",
-    "@fphd/ui": "workspace:*",
     "@fphd/web-server": "workspace:*",
     "csv-stringify": "catalog:",
     "react": "catalog:",
@@ -25,6 +26,10 @@
     "react-router": "catalog:"
   },
   "devDependencies": {
+    "@fphd/auth": "workspace:*",
+    "@fphd/internal-web-features": "workspace:*",
+    "@fphd/public-web-features": "workspace:*",
+    "@fphd/ui": "workspace:*",
     "@react-router/dev": "catalog:",
     "@testing-library/dom": "catalog:",
     "@testing-library/react": "catalog:",
