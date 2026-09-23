@@ -202,19 +202,20 @@ export const indicatorTaskStatusesSchema = z.partialRecord(
 
 /**
  * Everything the task list page shows about a draft in one answer: what the indicator is
- * called, whether this edit changes a published indicator, and where each task stands. A task
- * the API does not name has no form yet, so the page shows it as not started.
+ * called and its statuses, as the detail response gives them, whether this edit changes a
+ * published indicator, and where each task stands. A task the API does not name has no form
+ * yet, so the page shows it as not started.
  */
 export const indicatorTaskListSchema = z.object({
-  indicator: z.object({
-    id: indicatorIdSchema,
-    shortId: z.number().int(),
-    name: z.string().min(1),
+  indicator: indicatorAdminDetailSchema.pick({
+    id: true,
+    shortId: true,
+    name: true,
+    indicatorStatus: true,
+    draftStatus: true,
   }),
-  /** True when a published version stands behind the draft, so this edit revises what is live. */
+  /** True when the indicator is live, so this edit revises what the public has. */
   isUpdate: z.boolean(),
-  indicatorStatus: indicatorStatusSchema,
-  draftStatus: draftStatusSchema,
   /** True once every task the state carries is complete. */
   canSubmit: z.boolean(),
   tasks: indicatorTaskStatusesSchema,

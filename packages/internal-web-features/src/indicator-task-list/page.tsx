@@ -77,16 +77,12 @@ function statusOf(tasks: IndicatorTaskStatuses, key: string): IndicatorTaskStatu
 }
 
 export function IndicatorTaskListPage({ taskList }: { taskList: IndicatorTaskList }) {
-  const { draftStatus, indicator, indicatorStatus, tasks } = taskList;
+  const { indicator, tasks } = taskList;
 
   return (
     <GridRow>
       <GridColumn width="two-thirds">
-        <IndicatorHeading
-          {...indicator}
-          indicatorStatus={indicatorStatus}
-          draftStatus={draftStatus}
-        />
+        <IndicatorHeading indicator={indicator} />
         <InsetText>
           You can complete these sections in any order. If you exit at any point, any selections or
           text you've added will be saved.

@@ -4,19 +4,29 @@ import { indicatorTaskListSchema } from './contract.ts';
 import { type IndicatorTaskListSource, indicatorTaskList } from './indicator-task-list.ts';
 
 const source: IndicatorTaskListSource = {
-  indicator: { id: '00000000-0000-7000-8000-000000000001', shortId: 90366 },
+  indicator: {
+    id: '00000000-0000-7000-8000-000000000001',
+    shortId: 90366,
+    indicatorStatus: 'new',
+    draftStatus: 'draft',
+  },
   draft: { name: 'Life expectancy at birth' },
-  hasPublished: false,
 };
 
+function withIndicatorStatus(indicatorStatus: 'new' | 'live'): IndicatorTaskListSource {
+  return { ...source, indicator: { ...source.indicator, indicatorStatus } };
+}
+
 describe('indicatorTaskList', () => {
-  it('names the indicator from the draft being edited', () => {
+  it('names the indicator from the draft being edited, beside its statuses', () => {
     const state = indicatorTaskList({ ...source, draft: { name: 'Renamed indicator' } });
 
     expect(state.indicator).toEqual({
       id: source.indicator.id,
       shortId: 90366,
       name: 'Renamed indicator',
+      indicatorStatus: 'new',
+      draftStatus: 'draft',
     });
   });
 
@@ -25,21 +35,10 @@ describe('indicatorTaskList', () => {
   });
 
   it.each([
-    [false, 'a first publication'],
-    [true, 'an update to what is published'],
-  ])('reports a draft with hasPublished %s as %s', (hasPublished) => {
-    expect(indicatorTaskList({ ...source, hasPublished }).isUpdate).toBe(hasPublished);
-  });
-
-  it.each([
-    [false, 'new'],
-    [true, 'live'],
-  ] as const)('reports an indicator with hasPublished %s as %s', (hasPublished, status) => {
-    expect(indicatorTaskList({ ...source, hasPublished }).indicatorStatus).toBe(status);
-  });
-
-  it('reports the draft as unsubmitted, which is the only draft a task list is served for', () => {
-    expect(indicatorTaskList(source).draftStatus).toBe('draft');
+    ['new', false],
+    ['live', true],
+  ] as const)('reports a draft of a %s indicator as an update: %s', (status, isUpdate) => {
+    expect(indicatorTaskList(withIndicatorStatus(status)).isUpdate).toBe(isUpdate);
   });
 
   it('allows submission while every task it carries is complete', () => {

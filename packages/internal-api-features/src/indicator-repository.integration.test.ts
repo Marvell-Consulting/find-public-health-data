@@ -645,7 +645,7 @@ describe('getIndicatorDraftState', () => {
     expect(state?.id).toBe(created.indicatorId);
     expect(state?.shortId).toBe(created.shortId);
     expect(state?.draft?.name).toBe('A draft awaiting its first publication');
-    expect(state?.hasPublished).toBe(false);
+    expect(state).toMatchObject({ indicatorStatus: 'new', draftStatus: 'draft' });
   });
 
   it('reports the published version behind a draft being revised', async () => {
@@ -655,7 +655,7 @@ describe('getIndicatorDraftState', () => {
     const state = await getIndicatorDraftState(db, published.indicatorId);
 
     expect(state?.draft?.name).toBe(published.currentName);
-    expect(state?.hasPublished).toBe(true);
+    expect(state).toMatchObject({ indicatorStatus: 'live', draftStatus: 'draft' });
   });
 
   it('reports no draft for a published indicator nobody is editing', async () => {
@@ -664,7 +664,7 @@ describe('getIndicatorDraftState', () => {
     const state = await getIndicatorDraftState(db, published.indicatorId);
 
     expect(state?.draft).toBeNull();
-    expect(state?.hasPublished).toBe(true);
+    expect(state).toMatchObject({ indicatorStatus: 'live', draftStatus: null });
   });
 
   it('finds nothing for an indicator that does not exist', async () => {

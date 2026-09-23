@@ -10,10 +10,10 @@ const taskList = {
     id: '00000000-0000-7000-8000-000000000001',
     shortId: 90366,
     name: 'Life expectancy at birth',
+    indicatorStatus: 'new',
+    draftStatus: 'draft',
   },
   isUpdate: false,
-  indicatorStatus: 'new',
-  draftStatus: 'draft',
   canSubmit: true,
   tasks: { name: 'completed' },
 };

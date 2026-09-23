@@ -1,21 +1,16 @@
-import type { DraftStatus, IndicatorStatus } from '@fphd/internal-api-features/contract';
+import type { IndicatorAdminDetail } from '@fphd/internal-api-features/contract';
 
 import { StatusTag } from './status-tag.tsx';
 
-interface IndicatorHeadingProps {
-  name: string;
-  shortId: number;
-  indicatorStatus: IndicatorStatus;
-  draftStatus: DraftStatus | null;
-}
+type HeadedIndicator = Pick<
+  IndicatorAdminDetail,
+  'name' | 'shortId' | 'indicatorStatus' | 'draftStatus'
+>;
 
 /** How a publisher's pages title an indicator: its name, its public number, then its statuses. */
-export function IndicatorHeading({
-  draftStatus,
-  indicatorStatus,
-  name,
-  shortId,
-}: IndicatorHeadingProps) {
+export function IndicatorHeading({ indicator }: { indicator: HeadedIndicator }) {
+  const { draftStatus, indicatorStatus, name, shortId } = indicator;
+
   return (
     <>
       <h1 className="govuk-heading-xl govuk-!-margin-bottom-2">{name}</h1>

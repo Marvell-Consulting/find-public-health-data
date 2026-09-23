@@ -47,7 +47,7 @@ export function IndicatorOverviewPage({ indicator }: { indicator: IndicatorAdmin
   return (
     <GridRow>
       <GridColumn width="two-thirds">
-        <IndicatorHeading {...indicator} />
+        <IndicatorHeading indicator={indicator} />
         <Tabs
           items={[{ id: 'actions', label: 'Actions', content: <Actions indicator={indicator} /> }]}
           paramKey="tab"

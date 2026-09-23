@@ -109,10 +109,11 @@ export interface IndicatorDraftStateRow {
   shortId: number;
   /** The draft a publisher is working on, absent while the indicator has none. */
   draft: typeof indicatorVersion.$inferSelect | null;
-  hasPublished: boolean;
+  indicatorStatus: IndicatorStatus;
+  draftStatus: DraftStatus | null;
 }
 
-/** The draft and whether anything is published, which is what a task list is derived from. */
+/** The draft and the indicator's two statuses, which is what a task list is derived from. */
 export async function getIndicatorDraftState(
   db: Database,
   id: string,
@@ -122,7 +123,8 @@ export async function getIndicatorDraftState(
       id: indicator.id,
       shortId: indicator.shortId,
       draft: draftVersion,
-      hasPublished: sql<boolean>`${currentPublishedVersion.id} is not null`,
+      indicatorStatus,
+      draftStatus,
     })
     .from(indicator)
     .leftJoin(draftVersion, draftJoin)

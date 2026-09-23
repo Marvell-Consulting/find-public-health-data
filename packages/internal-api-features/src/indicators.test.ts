@@ -556,7 +556,8 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
     id: row.id,
     shortId: 90366,
     draft: { name: 'Life expectancy at birth' },
-    hasPublished: false,
+    indicatorStatus: 'new',
+    draftStatus: 'draft',
   };
 
   it('rejects an anonymous request', async () => {
@@ -587,24 +588,31 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
     expect(response.status).toBe(200);
     expect(findDraftState).toHaveBeenCalledWith(row.id);
     expect(response.body).toEqual({
-      indicator: { id: row.id, shortId: 90366, name: 'Life expectancy at birth' },
+      indicator: {
+        id: row.id,
+        shortId: 90366,
+        name: 'Life expectancy at birth',
+        indicatorStatus: 'new',
+        draftStatus: 'draft',
+      },
       isUpdate: false,
-      indicatorStatus: 'new',
-      draftStatus: 'draft',
       canSubmit: true,
       tasks: { name: 'completed' },
     });
   });
 
   it('reports a draft behind a published version as an update of a live indicator', async () => {
-    const findDraftState = vi.fn().mockResolvedValue({ ...draftState, hasPublished: true });
+    const findDraftState = vi.fn().mockResolvedValue({ ...draftState, indicatorStatus: 'live' });
 
     const response = await request(createTestApp({ findDraftState }))
       .get(`/api/internal/indicators/${row.id}/task-list`)
       .set('Cookie', await publisherCookie());
 
     expect(response.status).toBe(200);
-    expect(response.body).toMatchObject({ isUpdate: true, indicatorStatus: 'live' });
+    expect(response.body).toMatchObject({
+      indicator: { indicatorStatus: 'live', draftStatus: 'draft' },
+      isUpdate: true,
+    });
   });
 
   it('answers 404 for an indicator that does not exist', async () => {
@@ -619,7 +627,12 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
   });
 
   it('answers 404 for an indicator with no draft to edit', async () => {
-    const findDraftState = vi.fn().mockResolvedValue({ ...draftState, draft: null });
+    const findDraftState = vi.fn().mockResolvedValue({
+      ...draftState,
+      draft: null,
+      indicatorStatus: 'live',
+      draftStatus: null,
+    });
 
     const response = await request(createTestApp({ findDraftState }))
       .get(`/api/internal/indicators/${row.id}/task-list`)

@@ -171,9 +171,13 @@ export function internalIndicatorsRouter(
       }
 
       const body: IndicatorTaskList = indicatorTaskList({
-        indicator: { id: row.id, shortId: row.shortId },
+        indicator: {
+          id: row.id,
+          shortId: row.shortId,
+          indicatorStatus: row.indicatorStatus,
+          draftStatus: row.draftStatus,
+        },
         draft: row.draft,
-        hasPublished: row.hasPublished,
       });
 
       response.status(200).json(body);
