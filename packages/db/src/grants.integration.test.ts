@@ -173,6 +173,19 @@ describe('the public role', () => {
     expect(views.filter(({ readable }) => !readable)).toEqual([]);
     expect(views.filter(({ writable }) => writable)).toEqual([]);
   });
+
+  // The catalogue check above could miss a privilege arriving some other way; a real read
+  // cannot.
+  it.each(['indicator', 'indicator_version', 'current_published_version', 'observation'])(
+    'is refused a direct read of %s',
+    async (relation) => {
+      await expect(member.unsafe(`SELECT 1 FROM public.${relation} LIMIT 1`)).rejects.toMatchObject(
+        {
+          code: '42501',
+        },
+      );
+    },
+  );
 });
 
 describe('an indicator whose only version is a draft', () => {
@@ -184,6 +197,9 @@ describe('an indicator whose only version is a draft', () => {
         FROM published.indicator_topic WHERE indicator_id = ${draftIndicatorId}
       UNION ALL SELECT 'indicator_classification', count(*)::int
         FROM published.indicator_classification WHERE indicator_id = ${draftIndicatorId}
+      UNION ALL SELECT 'indicator_slug', count(*)::int
+        FROM published.indicator_slug
+        WHERE indicator_id = ${draftIndicatorId} OR slug = 'grants-test-draft-indicator'
       UNION ALL SELECT 'observation', count(*)::int
         FROM published.observation WHERE indicator_id = ${draftIndicatorId}
       UNION ALL SELECT 'observation_dimension', count(*)::int
@@ -201,7 +217,7 @@ describe('an indicator whose only version is a draft', () => {
     `;
 
     expect(counts.filter(({ rows }) => rows > 0)).toEqual([]);
-    expect(counts).toHaveLength(10);
+    expect(counts).toHaveLength(11);
   });
 
   it('does not stop the seeded published indicators being served', async () => {
