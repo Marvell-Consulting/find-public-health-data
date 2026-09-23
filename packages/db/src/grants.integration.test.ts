@@ -186,6 +186,15 @@ describe('the public role', () => {
       );
     },
   );
+
+  it('sees no upload batch, which is internal detail', async () => {
+    const columns = await member<{ table_name: string }[]>`
+      SELECT table_name FROM information_schema.columns
+      WHERE table_schema = 'published' AND column_name = 'upload_batch_id'
+    `;
+
+    expect(columns).toEqual([]);
+  });
 });
 
 describe('an indicator whose only version is a draft', () => {
