@@ -130,9 +130,6 @@ const SLUG_PROBLEM_MESSAGES: Record<SlugProblem, string> = {
   reserved: 'Enter a different name, this one is reserved for the service',
 };
 
-// Words are whitespace-separated, so a hyphenated term counts as one.
-const hasSeveralWords = (name: string) => name.split(/\s+/).length > 1;
-
 /**
  * The one answer the name page asks for, whether it starts an indicator or renames a draft.
  * The name carries the indicator's public address, so it is held to the slug rule here
@@ -149,8 +146,7 @@ export const indicatorNameSchema = z.object({
       if (problem !== undefined) {
         ctx.addIssue({ code: 'custom', message: SLUG_PROBLEM_MESSAGES[problem] });
       }
-    })
-    .refine(hasSeveralWords, 'Enter a name with more than one word'),
+    }),
 });
 
 export const indicatorFieldSchema = z.enum(['name']);

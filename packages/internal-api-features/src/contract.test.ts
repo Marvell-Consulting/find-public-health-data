@@ -51,21 +51,12 @@ describe('indicatorNameSchema', () => {
     });
   });
 
-  it.each(['Obesity', 'life-expectancy', ' Smoking '])(
-    'asks for more than one word for %o',
+  it.each(['Covid-19 deaths', '2024 births', 'Obesity', 'life-expectancy'])(
+    'accepts %o',
     (name) => {
-      const result = indicatorNameSchema.safeParse({ name });
-
-      expect(result.success).toBe(false);
-      expect(!result.success && toFieldErrors(result.error, indicatorFieldSchema.options)).toEqual({
-        name: 'Enter a name with more than one word',
-      });
+      expect(indicatorNameSchema.safeParse({ name }).success).toBe(true);
     },
   );
-
-  it.each(['Covid-19 deaths', '2024 births'])('accepts %o', (name) => {
-    expect(indicatorNameSchema.safeParse({ name }).success).toBe(true);
-  });
 
   it('rejects a submission with no name at all', () => {
     expect(indicatorNameSchema.safeParse({}).success).toBe(false);
