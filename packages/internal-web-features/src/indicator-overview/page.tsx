@@ -10,7 +10,13 @@ function Actions({ indicator }: { indicator: IndicatorAdminDetail }) {
   const actions = [
     indicator.draftStatus === null
       ? undefined
-      : { href: indicatorTaskListPath(indicator.id), label: 'Continue creating indicator' },
+      : {
+          href: indicatorTaskListPath(indicator.id),
+          label:
+            indicator.indicatorStatus === 'live'
+              ? 'Continue updating indicator'
+              : 'Continue creating indicator',
+        },
     indicator.publishedSlug === null
       ? undefined
       : {

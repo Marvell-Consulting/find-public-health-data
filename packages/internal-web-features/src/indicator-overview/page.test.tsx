@@ -70,14 +70,17 @@ describe('IndicatorOverviewPage', () => {
     renderPage({ draftStatus: 'draft' });
 
     expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
-      'Continue creating indicator',
+      'Continue updating indicator',
       'View published indicator',
     ]);
+    expect(
+      screen.getByRole('link', { name: 'Continue updating indicator' }).getAttribute('href'),
+    ).toBe(`/publish/indicators/${indicator.id}/task-list`);
   });
 
   it('offers no editing action for a published indicator, which has no draft', () => {
     renderPage();
 
-    expect(screen.queryByRole('link', { name: 'Continue creating indicator' })).toBeNull();
+    expect(screen.queryByRole('link', { name: /^Continue/ })).toBeNull();
   });
 });
