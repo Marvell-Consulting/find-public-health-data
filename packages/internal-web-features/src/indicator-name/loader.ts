@@ -113,9 +113,6 @@ export async function saveIndicatorName({
     );
 
   if (!result.ok) {
-    // The draft went while the form was open, so the page the publisher is on is gone too.
-    if (result.error.error === 'no_draft') throw notFound();
-
     return { name, fieldErrors: result.error.fieldErrors ?? {} };
   }
 

@@ -465,7 +465,7 @@ describe('PATCH /api/internal/indicators/:id', () => {
     });
   });
 
-  it('answers 409 for an indicator with no draft to rename', async () => {
+  it('answers 404 for an indicator with no draft to rename', async () => {
     const response = await request(
       createTestApp({
         updateDraft: async () => ({ ok: false, reason: 'no_draft' }),
@@ -476,7 +476,7 @@ describe('PATCH /api/internal/indicators/:id', () => {
       .set('Cookie', await publisherCookie())
       .send({ name: 'A better name' });
 
-    expect(response.status).toBe(409);
+    expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'no_draft' });
   });
 

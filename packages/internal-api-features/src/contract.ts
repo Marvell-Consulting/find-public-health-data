@@ -162,9 +162,9 @@ export const indicatorCreateErrorSchema = z.object({
   fieldErrors: indicatorFieldErrorsSchema.optional(),
 });
 
-/** Renaming addresses an existing indicator, which may be gone or have nothing to edit. */
+/** The 400 and 409 answers; a missing indicator or draft is a 404, which the client throws. */
 export const indicatorUpdateErrorSchema = z.object({
-  error: z.enum(['invalid_id', 'validation_failed', 'not_found', 'no_draft', 'slug_taken']),
+  error: z.enum(['invalid_id', 'validation_failed', 'slug_taken']),
   fieldErrors: indicatorFieldErrorsSchema.optional(),
 });
 

@@ -226,10 +226,9 @@ describe('saveIndicatorName', () => {
     });
   });
 
-  it('answers 404 when the indicator no longer has a draft', async () => {
-    const patch = vi
-      .fn()
-      .mockResolvedValue({ ok: false, status: 409, error: { error: 'no_draft' } });
+  // The API answers 404 when the draft went while the form was open; the client throws it.
+  it('lets the not-found page through when the indicator no longer has a draft', async () => {
+    const patch = vi.fn().mockRejectedValue(new Response('Not Found', { status: 404 }));
 
     await expect(rename(created.id, 'Too late', patch)).rejects.toSatisfy(isNotFound);
   });

@@ -132,9 +132,9 @@ export function internalIndicatorsRouter(
         return;
       }
 
-      // The indicator is there, so the update found no draft to write: a published indicator
-      // is edited by opening a draft first.
-      response.status(409).json({ error: 'no_draft' });
+      // A published indicator is edited by opening a draft first, so until then there is no
+      // draft to rename and the page the publisher asked for does not exist.
+      response.status(404).json({ error: 'no_draft' });
       return;
     }
 
