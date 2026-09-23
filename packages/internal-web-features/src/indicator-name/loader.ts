@@ -1,4 +1,4 @@
-// No @fphd/ui imports here, so the loader and actions unit-test without the jsdom components need.
+// No @fphd/ui imports here, so the loader and actions unit-test without the jsdom the components need.
 import {
   type IndicatorFieldErrors,
   indicatorAdminDetailSchema,
