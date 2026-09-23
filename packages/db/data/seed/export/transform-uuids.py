@@ -125,9 +125,11 @@ def deterministic_uuid7(table, old_id):
 def foreign_key_indexes(table, header):
     """Map the position of each of the table's foreign-key columns to the table it references."""
     fks = FOREIGN_KEYS.get(table, {})
-    # Only the published export's indicator row, which holds identity columns alone, may lack them.
+    # Only the published export's indicator row, which holds identity columns alone, may lack them,
+    # and then it lacks all of them.
     missing = [col for col in fks if col not in header]
-    if missing and table != "indicator":
+    identity_only = table == "indicator" and len(missing) == len(fks)
+    if missing and not identity_only:
         raise ValueError(f"{table} is missing foreign-key columns: {', '.join(missing)}")
     return {header.index(col): ref for col, ref in fks.items() if col in header}
 
