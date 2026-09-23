@@ -85,6 +85,11 @@ export function internalIndicatorsRouter(
       return;
     }
 
+    request.log.info(
+      { indicatorId: created.indicatorId, shortId: created.shortId },
+      'Indicator created',
+    );
+
     const row = await indicators.findById(created.indicatorId);
 
     if (!row) throw new Error('the indicator just created could not be read back');
@@ -133,6 +138,7 @@ export function internalIndicatorsRouter(
       return;
     }
 
+    request.log.info({ indicatorId: row.id, shortId: row.shortId }, 'Indicator renamed');
     response.status(200).json(toDetail(row));
   });
 

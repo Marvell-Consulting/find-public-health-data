@@ -1,5 +1,9 @@
+import { Writable } from 'node:stream';
+
+import { createApiApp } from '@fphd/api-server';
 import { createJwtSessionService, createJwtSessionVerifier } from '@fphd/auth/jwt-session';
-import express, { type Express } from 'express';
+import type { Express } from 'express';
+import { type Logger, pino } from 'pino';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -30,16 +34,37 @@ const detailRow: IndicatorAdminDetailRow = {
   status: 'published',
 };
 
-// The router alone, on a bare Express app: these tests cover its status mapping, not what
-// `createApiApp` wraps around it.
-function createTestApp(overrides: FakeInternalRepositoryOverrides['indicators'] = {}): Express {
-  const repositories = createFakeInternalRepositories({ indicators: overrides });
-  const app = express();
+const silent = pino({ level: 'silent' });
 
-  app.use(express.json());
+// Inside `createApiApp`, whose request logging gives the handlers their `request.log`.
+function createTestApp(
+  overrides: FakeInternalRepositoryOverrides['indicators'] = {},
+  logger: Logger = silent,
+): Express {
+  const repositories = createFakeInternalRepositories({ indicators: overrides });
+  const app = createApiApp({ logger, serviceName: 'internal-api' });
+
   app.use(internalIndicatorsRouter(repositories.indicators, verifier));
 
   return app;
+}
+
+function createCapturingLogger() {
+  const lines: Record<string, unknown>[] = [];
+  const destination = new Writable({
+    write(chunk, _encoding, callback) {
+      lines.push(JSON.parse(String(chunk)));
+      callback();
+    },
+  });
+
+  return { logger: pino({ name: 'internal-api' }, destination), lines };
+}
+
+/** The lines a handler wrote, without the request line pino-http adds once the response ends. */
+async function actionLines(lines: Record<string, unknown>[]) {
+  await new Promise((resolve) => setImmediate(resolve));
+  return lines.filter((line) => line.res === undefined);
 }
 
 async function publisherCookie(roles: readonly string[] = ['internal', 'publisher']) {
@@ -292,6 +317,43 @@ describe('POST /api/internal/indicators', () => {
     });
     expect(createDraft).not.toHaveBeenCalled();
   });
+
+  it('logs the creation under the request id, by the ids alone', async () => {
+    const { logger, lines } = createCapturingLogger();
+    const createDraft = vi.fn().mockResolvedValue(created);
+
+    const response = await request(
+      createTestApp({ createDraft, findById: async () => draftRow }, logger),
+    )
+      .post('/api/internal/indicators')
+      .set('Cookie', await publisherCookie())
+      .send({ name: 'Life expectancy at birth' });
+
+    expect(await actionLines(lines)).toEqual([
+      expect.objectContaining({
+        level: 30,
+        msg: 'Indicator created',
+        req: expect.objectContaining({ id: response.headers['x-fphd-request-id'] }),
+        indicatorId: row.id,
+        shortId: 90366,
+      }),
+    ]);
+    expect(JSON.stringify(lines)).not.toContain('Life expectancy');
+    expect(JSON.stringify(lines)).not.toContain('test-user');
+  });
+
+  it('logs nothing when the name is taken', async () => {
+    const { logger, lines } = createCapturingLogger();
+
+    await request(
+      createTestApp({ createDraft: async () => ({ ok: false, reason: 'slug_taken' }) }, logger),
+    )
+      .post('/api/internal/indicators')
+      .set('Cookie', await publisherCookie())
+      .send({ name: 'Life expectancy at birth' });
+
+    expect(await actionLines(lines)).toEqual([]);
+  });
 });
 
 describe('PATCH /api/internal/indicators/:id', () => {
@@ -432,5 +494,50 @@ describe('PATCH /api/internal/indicators/:id', () => {
       fieldErrors: { name: 'Indicator name must be 300 characters or fewer' },
     });
     expect(updateDraft).not.toHaveBeenCalled();
+  });
+
+  it('logs the rename under the request id, by the ids alone', async () => {
+    const { logger, lines } = createCapturingLogger();
+
+    const response = await request(
+      createTestApp(
+        { updateDraft: async () => ({ ok: true }), findById: async () => draftRow },
+        logger,
+      ),
+    )
+      .patch(path)
+      .set('Cookie', await publisherCookie())
+      .send({ name: 'A better name' });
+
+    expect(await actionLines(lines)).toEqual([
+      expect.objectContaining({
+        level: 30,
+        msg: 'Indicator renamed',
+        req: expect.objectContaining({ id: response.headers['x-fphd-request-id'] }),
+        indicatorId: row.id,
+        shortId: 90366,
+      }),
+    ]);
+    expect(JSON.stringify(lines)).not.toContain('A better name');
+    expect(JSON.stringify(lines)).not.toContain('test-user');
+  });
+
+  it('logs nothing when the rename is refused', async () => {
+    const { logger, lines } = createCapturingLogger();
+
+    await request(
+      createTestApp(
+        {
+          updateDraft: async () => ({ ok: false, reason: 'slug_taken' }),
+          findById: async () => draftRow,
+        },
+        logger,
+      ),
+    )
+      .patch(path)
+      .set('Cookie', await publisherCookie())
+      .send({ name: 'Life expectancy at birth' });
+
+    expect(await actionLines(lines)).toEqual([]);
   });
 });
