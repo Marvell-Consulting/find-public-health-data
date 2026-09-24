@@ -2,7 +2,8 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 import { createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
-import { MORTALITY_ID } from '../support/indicator-page.ts';
+import { expectErrorSummaryReady } from '../support/govuk-frontend.ts';
+import { expectBackToTaskList, expectNotFoundWithoutDraft } from '../support/section-page.ts';
 import { signInAs } from '../support/sign-in.ts';
 
 function uniqueName() {
@@ -39,6 +40,7 @@ test('asks for a name when Continue is selected with the box empty', async ({ pa
   const summary = page.getByRole('alert');
   await expect(summary.getByRole('link')).toHaveText(['Enter the name of the indicator']);
 
+  await expectErrorSummaryReady(page);
   await summary.getByRole('link', { name: 'Enter the name of the indicator' }).click();
   await expect(page.getByLabel('What is the name of the indicator?')).toBeFocused();
 });
@@ -99,22 +101,11 @@ test('goes back to the task list from its name page', async ({ page }) => {
   const taskListPath = new URL(page.url()).pathname;
 
   await page.goto(`/publish/indicators/${id}/name`);
-  await page.getByRole('link', { name: 'Back', exact: true }).click();
-
-  await expect(page).toHaveURL(taskListPath);
+  await expectBackToTaskList(page, taskListPath);
 });
 
 test('answers a name page with nothing to rename with the not-found page', async ({ page }) => {
-  for (const path of [
-    '/publish/indicators/108/name',
-    '/publish/indicators/00000000-0000-7000-8000-000000000000/name',
-    // The seeded indicator is published, so it has no draft whose name can be edited.
-    `/publish/indicators/${MORTALITY_ID}/name`,
-  ]) {
-    const response = await page.goto(path);
-    expect(response?.status(), path).toBe(404);
-    await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
-  }
+  await expectNotFoundWithoutDraft(page, 'name');
 });
 
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {

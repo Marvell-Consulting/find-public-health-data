@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
+import { expectErrorSummaryReady } from '../support/govuk-frontend.ts';
 import { signInAs } from '../support/sign-in.ts';
 
 // Every write here creates its own topic under a slug no other spec or run can hold, so the
@@ -65,6 +66,7 @@ test.describe('adding a topic', () => {
       'Enter a description',
     ]);
 
+    await expectErrorSummaryReady(page);
     await summary.getByRole('link', { name: 'Enter a slug' }).click();
     await expect(page.getByLabel('Slug')).toBeFocused();
   });
@@ -80,6 +82,7 @@ test.describe('adding a topic', () => {
       'Slug must be lowercase letters or numbers, separated by hyphens',
     );
     await expect(page).toHaveTitle(/^Error: /);
+    await expectErrorSummaryReady(page);
     await page
       .getByRole('alert')
       .getByRole('link', {
