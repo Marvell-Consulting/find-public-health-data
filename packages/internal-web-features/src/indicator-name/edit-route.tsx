@@ -1,6 +1,6 @@
 import { backLinkHandle, titleFromPage } from '@fphd/ui';
 import { useActionData, useLoaderData } from 'react-router';
-import { indicatorTaskListPath } from '../indicator-task-list/paths.ts';
+import { indicatorTaskListPath } from '../publish-paths.ts';
 import { type IndicatorNameFailure, loadIndicatorName, saveIndicatorName } from './loader.ts';
 import { IndicatorNamePage } from './page.tsx';
 
@@ -21,7 +21,7 @@ export function EditIndicatorNameRoute() {
   return (
     <IndicatorNamePage
       fieldErrors={rejected?.fieldErrors}
-      name={rejected?.name ?? indicator.name}
+      name={rejected?.values.name ?? indicator.name}
     />
   );
 }

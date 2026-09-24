@@ -1,6 +1,6 @@
 import { type Database, schema } from '@fphd/db';
 import { slugify, slugProblem } from '@fphd/utils/slug';
-import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, getTableColumns, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import type { DraftStatus, IndicatorStatus } from './contract.ts';
@@ -35,18 +35,21 @@ export interface IndicatorAdminDetailRow extends IndicatorAdminRow {
 /**
  * The one-draft index makes the draft join one row, and currentPublishedVersion is one row
  * per indicator, so an indicator's draft and published versions can be read side by side.
+ * The view names the published version; its columns come from the version table by id.
  */
 const draftVersion = alias(indicatorVersion, 'draft_version');
+const publishedVersion = alias(indicatorVersion, 'published_version');
 
 const draftJoin = and(eq(draftVersion.indicatorId, indicator.id), eq(draftVersion.status, 'draft'));
 const publishedJoin = eq(currentPublishedVersion.indicatorId, indicator.id);
+const publishedVersionJoin = eq(publishedVersion.id, currentPublishedVersion.id);
 
 // The draft is what a publisher is working on, so it names the indicator while it exists.
-const currentName = sql<string>`coalesce(${draftVersion.name}, ${currentPublishedVersion.name})`;
+const currentName = sql<string>`coalesce(${draftVersion.name}, ${publishedVersion.name})`;
 // greatest() ignores nulls, so an indicator with only one version still reports its date.
 // mapWith, because a bare sql fragment arrives as the driver's string, not a Date.
 const latestUpdatedAt =
-  sql`greatest(${draftVersion.updatedAt}, ${currentPublishedVersion.updatedAt})`.mapWith(
+  sql`greatest(${draftVersion.updatedAt}, ${publishedVersion.updatedAt})`.mapWith(
     indicatorVersion.updatedAt,
   );
 // Both statuses are read from the versions as SQL, so a filter or sort on either is a WHERE clause.
@@ -72,6 +75,7 @@ export async function listIndicatorsPage(
       .from(indicator)
       .leftJoin(draftVersion, draftJoin)
       .leftJoin(currentPublishedVersion, publishedJoin)
+      .leftJoin(publishedVersion, publishedVersionJoin)
       .orderBy(desc(latestUpdatedAt), asc(currentName), asc(indicator.id))
       .limit(pageSize)
       .offset((page - 1) * pageSize),
@@ -91,7 +95,7 @@ export async function getIndicatorById(
       id: indicator.id,
       shortId: indicator.shortId,
       name: currentName,
-      publishedSlug: currentPublishedVersion.slug,
+      publishedSlug: publishedVersion.slug,
       updatedAt: latestUpdatedAt,
       indicatorStatus,
       draftStatus,
@@ -99,16 +103,20 @@ export async function getIndicatorById(
     .from(indicator)
     .leftJoin(draftVersion, draftJoin)
     .leftJoin(currentPublishedVersion, publishedJoin)
+    .leftJoin(publishedVersion, publishedVersionJoin)
     .where(eq(indicator.id, id));
 
   return rows[0];
 }
 
+/** Every column of one version, as a section reads its answers from the draft. */
+export type IndicatorDraftVersion = typeof indicatorVersion.$inferSelect;
+
 export interface IndicatorDraftStateRow {
   id: string;
   shortId: number;
   /** The draft a publisher is working on, absent while the indicator has none. */
-  draft: typeof indicatorVersion.$inferSelect | null;
+  draft: IndicatorDraftVersion | null;
   indicatorStatus: IndicatorStatus;
   draftStatus: DraftStatus | null;
 }
@@ -314,8 +322,9 @@ export async function createDraftFromPublished(
   try {
     return await db.transaction(async (tx) => {
       const [published] = await tx
-        .select()
+        .select(getTableColumns(indicatorVersion))
         .from(currentPublishedVersion)
+        .innerJoin(indicatorVersion, eq(indicatorVersion.id, currentPublishedVersion.id))
         .where(eq(currentPublishedVersion.indicatorId, indicatorId));
 
       if (published === undefined) return { ok: false, reason: 'not_published' };

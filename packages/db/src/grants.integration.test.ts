@@ -137,6 +137,44 @@ afterAll(async () => {
   await testDb.drop();
 });
 
+// What the public API reads about an indicator; a change here changes its responses.
+const PUBLISHED_INDICATOR_COLUMNS = [
+  'indicator.id uuid',
+  'indicator.short_id integer',
+  'indicator.data_updated_at timestamp with time zone',
+  'indicator.created_at timestamp with time zone',
+  'indicator.name text',
+  'indicator.slug text',
+  'indicator.value_type_id uuid',
+  'indicator.unit_id uuid',
+  'indicator.year_type_id uuid',
+  'indicator.ci_method_id uuid',
+  'indicator.polarity_id uuid',
+  'indicator.frequency_id uuid',
+  'indicator.comparator_method_id uuid',
+  'indicator.disclosure_threshold smallint',
+  'indicator.ci_confidence_level text',
+  'indicator.config jsonb',
+  'indicator.definition text',
+  'indicator.rationale text',
+  'indicator.methodology text',
+  'indicator.numerator_definition text',
+  'indicator.denominator_definition text',
+  'indicator.disclosure_control text',
+  'indicator.caveats text',
+  'indicator.notes text',
+  'indicator.data_source_id uuid',
+  'indicator.numerator_source_id uuid',
+  'indicator.denominator_source_id uuid',
+  'indicator.updated_at timestamp with time zone',
+  'indicator.first_published_at timestamp with time zone',
+  'indicator.last_published_at timestamp with time zone',
+  'indicator_classification.indicator_id uuid',
+  'indicator_classification.classification_id uuid',
+  'indicator_topic.indicator_id uuid',
+  'indicator_topic.topic_id uuid',
+];
+
 describe('the public role', () => {
   it('holds no privilege on any relation in the public schema', async () => {
     const held = await owner<{ relname: string; priv: string }[]>`
@@ -187,6 +225,19 @@ describe('the public role', () => {
     },
   );
 
+  it('reads the same columns of each indicator view as it always has', async () => {
+    const columns = await member<{ table_name: string; column_name: string; data_type: string }[]>`
+      SELECT table_name, column_name, data_type FROM information_schema.columns
+      WHERE table_schema = 'published'
+        AND table_name IN ('indicator', 'indicator_topic', 'indicator_classification')
+      ORDER BY table_name, ordinal_position
+    `;
+
+    expect(columns.map((c) => `${c.table_name}.${c.column_name} ${c.data_type}`)).toEqual(
+      PUBLISHED_INDICATOR_COLUMNS,
+    );
+  });
+
   it('sees no upload batch, which is internal detail', async () => {
     const columns = await member<{ table_name: string }[]>`
       SELECT table_name FROM information_schema.columns
@@ -194,6 +245,22 @@ describe('the public role', () => {
     `;
 
     expect(columns).toEqual([]);
+  });
+});
+
+describe('the internal role', () => {
+  // A view that is dropped and recreated loses its grants, so these are checked by name.
+  it.each([
+    'public.current_published_version',
+    'published.indicator',
+    'published.indicator_topic',
+    'published.indicator_classification',
+  ])('may select %s', async (relation) => {
+    const [row] = await owner<{ readable: boolean }[]>`
+      SELECT has_table_privilege(${API_ROLES.internalApi}, ${relation}, 'SELECT') AS readable
+    `;
+
+    expect(row?.readable).toBe(true);
   });
 });
 

@@ -4,6 +4,7 @@ import { renderToString } from 'react-dom/server';
 import { createRoutesStub, Meta, type MetaFunction, Outlet } from 'react-router';
 import { describe, expect, it } from 'vitest';
 
+import * as definitionAndRationale from './indicator-definition-and-rationale/route.tsx';
 import * as editIndicatorName from './indicator-name/edit-route.tsx';
 import * as newIndicator from './indicator-name/new-route.tsx';
 import * as editTopic from './topic-admin/edit-route.tsx';
@@ -42,14 +43,24 @@ const forms: {
     name: 'new indicator',
     route: newIndicator,
     pageTitle: 'What is the name of the indicator?',
-    rejected: { name: '', fieldErrors: { name: 'Enter the name of the indicator' } },
+    rejected: { values: { name: '' }, fieldErrors: { name: 'Enter the name of the indicator' } },
   },
   {
     name: 'indicator name',
     route: editIndicatorName,
     pageTitle: 'What is the name of the indicator?',
     loaderData: { indicator },
-    rejected: { name: '', fieldErrors: { name: 'Enter the name of the indicator' } },
+    rejected: { values: { name: '' }, fieldErrors: { name: 'Enter the name of the indicator' } },
+  },
+  {
+    name: 'definition and rationale',
+    route: definitionAndRationale,
+    pageTitle: 'Definition and rationale',
+    loaderData: { id: indicator.id, values: { definition: '', rationale: '' } },
+    rejected: {
+      values: { definition: '', rationale: '' },
+      fieldErrors: { definition: 'Enter the definition of the indicator' },
+    },
   },
   {
     name: 'new topic',

@@ -1,6 +1,7 @@
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { Router } from 'express';
 
+import { indicatorDefinitionAndRationaleRouter } from './indicator-definition-and-rationale.ts';
 import { internalIndicatorsRouter } from './indicators.ts';
 import type { InternalRepositories } from './repositories.ts';
 import { internalTopicsRouter } from './topics.ts';
@@ -15,6 +16,7 @@ export type {
   IndicatorDraftAttributes,
   IndicatorDraftMemberships,
   IndicatorDraftStateRow,
+  IndicatorDraftVersion,
   NewIndicatorDraftAttributes,
   UpdateIndicatorDraftResult,
 } from './indicator-repository.ts';
@@ -51,6 +53,7 @@ export function internalApiRoutes({ repositories, session }: InternalApiDependen
   const router = Router();
 
   router.use(internalIndicatorsRouter(repositories.indicators, session));
+  router.use(indicatorDefinitionAndRationaleRouter(repositories.indicators, session));
   router.use(internalTopicsRouter(repositories.topics, session));
 
   return router;

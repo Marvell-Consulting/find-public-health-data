@@ -509,6 +509,40 @@ describe('updateIndicatorDraft', () => {
     expect(classifications).toEqual([{ id: classified.id }]);
   });
 
+  it("writes a section's answers to the draft alone, leaving its name and slug", async () => {
+    const { indicatorId, currentId, currentName, currentSlug } =
+      await indicatorWithTwoPublications();
+    const opened = await createDraftFromPublished(db, indicatorId, ACTOR);
+    if (!opened.ok) throw new Error('expected a draft');
+    const [published] = await db
+      .select()
+      .from(indicatorVersion)
+      .where(eq(indicatorVersion.id, currentId));
+
+    const result = await updateIndicatorDraft(
+      db,
+      indicatorId,
+      { definition: 'A new definition', rationale: 'A new rationale' },
+      {},
+      'someone-else',
+    );
+
+    expect(result).toEqual({ ok: true });
+    const state = await getIndicatorDraftState(db, indicatorId);
+    expect(state?.draft).toMatchObject({
+      name: currentName,
+      slug: currentSlug,
+      definition: 'A new definition',
+      rationale: 'A new rationale',
+      updatedBy: 'someone-else',
+    });
+    const [after] = await db
+      .select()
+      .from(indicatorVersion)
+      .where(eq(indicatorVersion.id, currentId));
+    expect(after).toEqual(published);
+  });
+
   it('refuses an indicator with no draft', async () => {
     const created = await newDraft('Draftless');
     await db.delete(indicatorVersion).where(eq(indicatorVersion.indicatorId, created.indicatorId));

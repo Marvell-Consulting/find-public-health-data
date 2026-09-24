@@ -1,7 +1,6 @@
 import { A, Button, formatDate, GridColumn, GridRow, Pagination, Table } from '@fphd/ui';
-
-import { NEW_INDICATOR_PATH } from '../indicator-name/paths.ts';
 import { indicatorOverviewPath } from '../indicator-overview/paths.ts';
+import { NEW_INDICATOR_PATH } from '../publish-paths.ts';
 import { StatusTag } from '../status-tag/status-tag.tsx';
 import type { IndicatorAdminSummary } from './loader.ts';
 import { dashboardPath } from './paths.ts';

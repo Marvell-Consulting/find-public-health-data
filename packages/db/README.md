@@ -71,9 +71,11 @@ src/
 indicator lives in a view definition rather than in each query — `@fphd/db`'s public
 repositories select from the views, name for name. An indicator may hold several published
 versions; `current_published_version`, a view in `public` declared in `src/schema/indicator.ts`,
-is the one definition of which: the most recently published, ties broken by id. The published
-views join it, and the internal reads join `currentPublishedVersion` for the same rule over
-the tables. `published.indicator`
+is the one definition of which: the most recently published, ties broken by id. It selects only
+the version's `id` and `indicator_id`, so a new `indicator_version` column never changes it or the
+views built on it. The published views join it, and the internal reads join
+`currentPublishedVersion` for the same rule, each then joining `indicator_version` by `id` for the
+version's columns. `published.indicator`
 carries that version's `slug` as the indicator's canonical address, while
 `published.indicator_slug` lists every slug any published version carries, so an address a later
 publication replaced still resolves. The definitions are hand-written in the migration;

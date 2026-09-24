@@ -49,13 +49,13 @@ test('shows the indicator as new with an incomplete draft', async ({ page }) => 
   ]);
 });
 
-test('marks the name as complete and everything without a form as not started', async ({
-  page,
-}) => {
+test('marks the name as complete and everything else as not started', async ({ page }) => {
   await createIndicator(page, uniqueName());
 
   await expect(taskRow(page, 'Name')).toContainText('Completed');
   await expect(taskRow(page, 'Name').getByRole('link')).toBeVisible();
+  await expect(taskRow(page, 'Definition and rationale')).toContainText('Not started');
+  await expect(taskRow(page, 'Definition and rationale').getByRole('link')).toBeVisible();
   await expect(taskRow(page, 'Polarity')).toContainText('Not started');
   await expect(taskRow(page, 'Polarity').getByRole('link')).toHaveCount(0);
   await expect(taskRow(page, 'Publishing date')).toContainText('Not started');

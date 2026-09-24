@@ -232,6 +232,17 @@ describe('indicator_version', () => {
 });
 
 describe('the published views', () => {
+  // A new version column must not change the view, or the views built on it with it.
+  it('name the current published version by its id alone', async () => {
+    const columns = (await db.execute(
+      sql`SELECT column_name FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'current_published_version'
+          ORDER BY ordinal_position`,
+    )) as unknown as { column_name: string }[];
+
+    expect(columns.map((row) => row.column_name)).toEqual(['id', 'indicator_id']);
+  });
+
   it('show the most recently published version, memberships and all', async () => {
     const indicatorId = await newIndicatorId();
     const currentTopic = await newTopicId('current-topic');

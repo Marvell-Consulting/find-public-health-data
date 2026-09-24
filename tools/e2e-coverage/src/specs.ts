@@ -22,6 +22,7 @@ export const PAGE_SPECS: Readonly<Record<string, string>> = {
   '/publish/indicators/new': 'indicator-name.spec.ts',
   '/publish/indicators/:id/name': 'indicator-name.spec.ts',
   '/publish/indicators/:id/task-list': 'indicator-task-list.spec.ts',
+  '/publish/indicators/:id/definition-and-rationale': 'indicator-definition-and-rationale.spec.ts',
   '/manage': 'manage.spec.ts',
   '/manage/topics': 'manage-topics.spec.ts',
   '/manage/topics/new': 'manage-topics.spec.ts',
