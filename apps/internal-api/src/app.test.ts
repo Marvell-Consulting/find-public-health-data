@@ -1,5 +1,6 @@
 import { createJwtSessionService, createJwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { createFakeRepositories } from '@fphd/db/testing';
+import { indicatorTaskKeySchema } from '@fphd/internal-api-features/contract';
 import { createFakeInternalRepositories } from '@fphd/internal-api-features/testing';
 import { createLogger } from '@fphd/logger';
 import request from 'supertest';
@@ -26,6 +27,20 @@ function createTestApp(
 }
 
 const app = createTestApp();
+
+// A draft as the name page leaves it: every section's columns unanswered.
+const unansweredDraft = {
+  definition: null,
+  rationale: null,
+  polarity: null,
+  methodology: null,
+  calculatedBy: null,
+  calculatedByOther: null,
+  ciMethodId: null,
+  ciMethodModified: null,
+  ciMethodModifications: null,
+  ciMethodOtherDetail: null,
+};
 
 async function createCookie(roles: readonly string[]): Promise<string> {
   const token = await session.issueToken({
@@ -90,149 +105,32 @@ describe('internal API', () => {
     expect(response.body).toEqual({ indicators: [] });
   });
 
-  it('mounts the internal indicators surface behind the publisher role', async () => {
-    const internalRepositories = createFakeInternalRepositories({
-      indicators: { listPage: async () => ({ indicators: [], total: 0 }) },
-    });
-    const app = createTestApp(createFakeRepositories(), internalRepositories);
-
-    const asPublisher = await request(app)
-      .get('/api/internal/indicators')
-      .set('Cookie', await createCookie(['public', 'internal', 'publisher']));
-    const asInternal = await request(app)
-      .get('/api/internal/indicators')
-      .set('Cookie', await createCookie(['public', 'internal']));
-
-    expect(asPublisher.status).toBe(200);
-    expect(asPublisher.body).toEqual({ indicators: [], page: 1, pageSize: 10, total: 0 });
-    expect(asInternal.status).toBe(403);
-  });
-
-  it('mounts the definition and rationale section behind the publisher role', async () => {
+  // Each section is found from the contract, so a new one is checked without an entry here.
+  it.each([
+    '/api/internal/indicators',
+    '/api/internal/ci-methods',
+    ...indicatorTaskKeySchema.options
+      .filter((key) => key !== 'name')
+      .map((key) => `/api/internal/indicators/00000000-0000-7000-8000-000000000001/${key}`),
+  ])('mounts %s behind the publisher role', async (path) => {
     const internalRepositories = createFakeInternalRepositories({
       indicators: {
-        // The handler reads only the section's columns of the draft.
-        findDraftState: vi
-          .fn()
-          .mockResolvedValue({ draft: { definition: 'A definition', rationale: null } }),
+        listPage: async () => ({ indicators: [], total: 0 }),
+        // The handlers read only the draft's section columns.
+        findDraftState: vi.fn().mockResolvedValue({ draft: unansweredDraft }),
       },
-    });
-    const app = createTestApp(createFakeRepositories(), internalRepositories);
-    const path =
-      '/api/internal/indicators/00000000-0000-7000-8000-000000000001/definition-and-rationale';
-
-    const asPublisher = await request(app)
-      .get(path)
-      .set('Cookie', await createCookie(['public', 'internal', 'publisher']));
-    const asInternal = await request(app)
-      .get(path)
-      .set('Cookie', await createCookie(['public', 'internal']));
-
-    expect(asPublisher.status).toBe(200);
-    expect(asPublisher.body).toEqual({ definition: 'A definition', rationale: null });
-    expect(asInternal.status).toBe(403);
-  });
-
-  it('mounts the polarity section behind the publisher role', async () => {
-    const internalRepositories = createFakeInternalRepositories({
-      indicators: {
-        // The handler reads only the section's column of the draft.
-        findDraftState: vi.fn().mockResolvedValue({ draft: { polarity: null } }),
-      },
-    });
-    const app = createTestApp(createFakeRepositories(), internalRepositories);
-    const path = '/api/internal/indicators/00000000-0000-7000-8000-000000000001/polarity';
-
-    const asPublisher = await request(app)
-      .get(path)
-      .set('Cookie', await createCookie(['public', 'internal', 'publisher']));
-    const asInternal = await request(app)
-      .get(path)
-      .set('Cookie', await createCookie(['public', 'internal']));
-
-    expect(asPublisher.status).toBe(200);
-    expect(asPublisher.body).toEqual({ polarity: null });
-    expect(asInternal.status).toBe(403);
-  });
-
-  it('mounts the calculation section behind the publisher role', async () => {
-    const internalRepositories = createFakeInternalRepositories({
-      indicators: {
-        // The handler reads only the section's columns of the draft.
-        findDraftState: vi.fn().mockResolvedValue({
-          draft: { methodology: 'A method', calculatedBy: 'ohid', calculatedByOther: null },
-        }),
-      },
-    });
-    const app = createTestApp(createFakeRepositories(), internalRepositories);
-    const path = '/api/internal/indicators/00000000-0000-7000-8000-000000000001/calculation';
-
-    const asPublisher = await request(app)
-      .get(path)
-      .set('Cookie', await createCookie(['public', 'internal', 'publisher']));
-    const asInternal = await request(app)
-      .get(path)
-      .set('Cookie', await createCookie(['public', 'internal']));
-
-    expect(asPublisher.status).toBe(200);
-    expect(asPublisher.body).toEqual({
-      methodology: 'A method',
-      calculatedBy: 'ohid',
-      calculatedByOther: null,
-    });
-    expect(asInternal.status).toBe(403);
-  });
-
-  it('mounts the confidence intervals section behind the publisher role', async () => {
-    const internalRepositories = createFakeInternalRepositories({
-      indicators: {
-        // The handler reads only the section's columns of the draft.
-        findDraftState: vi.fn().mockResolvedValue({
-          draft: {
-            ciMethodId: null,
-            ciMethodModified: null,
-            ciMethodModifications: null,
-            ciMethodOtherDetail: null,
-          },
-        }),
-      },
-    });
-    const app = createTestApp(createFakeRepositories(), internalRepositories);
-    const path =
-      '/api/internal/indicators/00000000-0000-7000-8000-000000000001/confidence-intervals';
-
-    const asPublisher = await request(app)
-      .get(path)
-      .set('Cookie', await createCookie(['public', 'internal', 'publisher']));
-    const asInternal = await request(app)
-      .get(path)
-      .set('Cookie', await createCookie(['public', 'internal']));
-
-    expect(asPublisher.status).toBe(200);
-    expect(asPublisher.body).toEqual({
-      ciMethodId: null,
-      ciMethodModified: null,
-      ciMethodModifications: null,
-      ciMethodOtherDetail: null,
-    });
-    expect(asInternal.status).toBe(403);
-  });
-
-  it('mounts the confidence interval methods behind the publisher role', async () => {
-    const internalRepositories = createFakeInternalRepositories({
       ciMethods: { list: async () => [] },
     });
     const app = createTestApp(createFakeRepositories(), internalRepositories);
 
     const asPublisher = await request(app)
-      .get('/api/internal/ci-methods')
+      .get(path)
       .set('Cookie', await createCookie(['public', 'internal', 'publisher']));
     const asInternal = await request(app)
-      .get('/api/internal/ci-methods')
+      .get(path)
       .set('Cookie', await createCookie(['public', 'internal']));
 
     expect(asPublisher.status).toBe(200);
-    expect(asPublisher.body).toEqual([]);
     expect(asInternal.status).toBe(403);
   });
 

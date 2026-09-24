@@ -1,10 +1,7 @@
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { Router } from 'express';
 import { internalCiMethodsRouter } from './ci-methods.ts';
-import { indicatorCalculationRouter } from './indicator-calculation.ts';
-import { indicatorConfidenceIntervalsRouter } from './indicator-confidence-intervals.ts';
-import { indicatorDefinitionAndRationaleRouter } from './indicator-definition-and-rationale.ts';
-import { indicatorPolarityRouter } from './indicator-polarity.ts';
+import { indicatorSectionsRouter } from './indicator-sections.ts';
 import { internalIndicatorsRouter } from './indicators.ts';
 import type { InternalRepositories } from './repositories.ts';
 import { internalTopicsRouter } from './topics.ts';
@@ -58,12 +55,7 @@ export function internalApiRoutes({ repositories, session }: InternalApiDependen
   const router = Router();
 
   router.use(internalIndicatorsRouter(repositories.indicators, session));
-  router.use(indicatorDefinitionAndRationaleRouter(repositories.indicators, session));
-  router.use(indicatorPolarityRouter(repositories.indicators, session));
-  router.use(indicatorCalculationRouter(repositories.indicators, session));
-  router.use(
-    indicatorConfidenceIntervalsRouter(repositories.indicators, repositories.ciMethods, session),
-  );
+  router.use(indicatorSectionsRouter(repositories, session));
   router.use(internalCiMethodsRouter(repositories.ciMethods, session));
   router.use(internalTopicsRouter(repositories.topics, session));
 

@@ -1,6 +1,6 @@
 import { z } from '@fphd/config/zod';
 
-import type { IndicatorSection } from './indicator-section-contract.ts';
+import { type IndicatorSection, indicatorSectionFormValues } from './indicator-section-contract.ts';
 
 /**
  * What choosing a method asks of the publisher next: whether a standard method was modified,
@@ -49,3 +49,39 @@ export const confidenceIntervalsSection: IndicatorSection<
   ConfidenceIntervalsField,
   ConfidenceIntervals
 > = { key: 'confidence-intervals', fields, schema };
+
+/** The answers a method of each kind requires beyond itself, and the message for each missing. */
+export function missingCiMethodFollowUps(
+  { ciMethodModified, ciMethodModifications, ciMethodOtherDetail }: ConfidenceIntervals,
+  kind: CiMethodKind,
+): Partial<Record<ConfidenceIntervalsField, string>> {
+  if (kind === 'other') {
+    return ciMethodOtherDetail === ''
+      ? { ciMethodOtherDetail: 'Enter details of the other confidence interval method used' }
+      : {};
+  }
+
+  if (kind === 'none') return {};
+
+  if (ciMethodModified === '') {
+    return { ciMethodModified: 'Select whether any modifications were used' };
+  }
+
+  return ciMethodModified === 'yes' && ciMethodModifications === ''
+    ? { ciMethodModifications: 'Enter a description of the modifications used' }
+    : {};
+}
+
+/** Complete once a method is chosen and every answer its kind asks for is held. */
+export function areConfidenceIntervalsComplete(
+  answers: Record<ConfidenceIntervalsField, string | null>,
+  kind: CiMethodKind | null,
+): boolean {
+  if (kind === null) return false;
+
+  const submission = schema.safeParse(indicatorSectionFormValues(fields, answers));
+
+  return (
+    submission.success && Object.keys(missingCiMethodFollowUps(submission.data, kind)).length === 0
+  );
+}

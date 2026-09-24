@@ -24,6 +24,25 @@ export function indicatorSectionAnswersSchema<Field extends string>(
   return z.record(fields, z.string().nullable());
 }
 
+/** Stored answers as the form's text, where an unanswered field is empty. */
+export function indicatorSectionFormValues<Field extends string>(
+  fields: IndicatorSectionFields<Field>,
+  answers: Record<Field, string | null>,
+): Record<Field, string> {
+  return Object.fromEntries(fields.options.map((field) => [field, answers[field] ?? ''])) as Record<
+    Field,
+    string
+  >;
+}
+
+/** Complete once the stored answers are ones the section's form would accept. */
+export function isIndicatorSectionComplete<Field extends string, Values>(
+  section: IndicatorSection<Field, Values>,
+  answers: Record<Field, string | null>,
+): boolean {
+  return section.schema.safeParse(indicatorSectionFormValues(section.fields, answers)).success;
+}
+
 /** The 400 answers; a missing indicator or draft is a 404, which the client throws. */
 export function indicatorSectionErrorSchema<Field extends string>(
   fields: IndicatorSectionFields<Field>,

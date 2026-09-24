@@ -4,16 +4,53 @@ import { Router } from 'express';
 
 import { indicatorIdSchema, toFieldErrors } from './contract.ts';
 import type { IndicatorDraftAttributes, IndicatorDraftVersion } from './indicator-repository.ts';
-import type { IndicatorSection } from './indicator-section-contract.ts';
+import type { IndicatorSection, IndicatorSectionFields } from './indicator-section-contract.ts';
 import type { InternalIndicatorRepository } from './repositories.ts';
 
 /** The draft columns a section writes: never the name, whose slug is the name page's concern. */
 export type IndicatorSectionAttributes = Omit<IndicatorDraftAttributes, 'name'>;
 
+/** The draft columns the sections read; each section adds the ones its form writes. */
+export type IndicatorSectionDraft = Pick<
+  IndicatorDraftVersion,
+  | 'definition'
+  | 'rationale'
+  | 'polarity'
+  | 'methodology'
+  | 'calculatedBy'
+  | 'calculatedByOther'
+  | 'ciMethodId'
+  | 'ciMethodModified'
+  | 'ciMethodModifications'
+  | 'ciMethodOtherDetail'
+>;
+
 /** How a section's answers map onto the draft's columns, in both directions. */
 export interface IndicatorSectionColumns<Field extends string, Values> {
-  fromDraft(draft: IndicatorDraftVersion): Record<Field, string | null>;
+  fromDraft(draft: IndicatorSectionDraft): Record<Field, string | null>;
   toAttributes(values: Values): IndicatorSectionAttributes;
+}
+
+/** The draft's text columns, which a field of the same name reads and writes as it is. */
+type TextColumn = {
+  [Column in keyof IndicatorSectionDraft]: IndicatorSectionDraft[Column] extends string | null
+    ? Column
+    : never;
+}[keyof IndicatorSectionDraft];
+
+/** For a section whose every field is the draft column of the same name. */
+export function sameNamedColumns<
+  Field extends TextColumn,
+  Values extends IndicatorSectionAttributes,
+>(fields: IndicatorSectionFields<Field>): IndicatorSectionColumns<Field, Values> {
+  return {
+    fromDraft: (draft) =>
+      Object.fromEntries(fields.options.map((field) => [field, draft[field]])) as Record<
+        Field,
+        string | null
+      >,
+    toAttributes: (values) => values,
+  };
 }
 
 /**

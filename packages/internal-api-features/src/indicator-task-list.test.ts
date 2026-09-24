@@ -7,6 +7,8 @@ import {
   indicatorTaskList,
 } from './indicator-task-list.ts';
 
+const ciMethodId = '019fa38f-073f-764e-9ac6-1c4d03b1cb92';
+
 // A draft as the name page leaves it: named, with every other answer still to give.
 const source: IndicatorTaskListSource = {
   indicator: {
@@ -23,6 +25,7 @@ const source: IndicatorTaskListSource = {
     methodology: null,
     calculatedBy: null,
     calculatedByOther: null,
+    ciMethodId: null,
     ciMethodKind: null,
     ciMethodModified: null,
     ciMethodModifications: null,
@@ -38,6 +41,7 @@ const complete: IndicatorTaskListDraft = {
   methodology: 'Calculated from mortality rates by single year of age.',
   calculatedBy: 'ohid',
   calculatedByOther: null,
+  ciMethodId,
   ciMethodKind: 'standard',
   ciMethodModified: false,
   ciMethodModifications: null,
@@ -127,31 +131,36 @@ describe('indicatorTaskList', () => {
     ['no method is chosen', {}, 'not_started'],
     [
       'a standard method is unmodified',
-      { ciMethodKind: 'standard', ciMethodModified: false },
+      { ciMethodId, ciMethodKind: 'standard', ciMethodModified: false },
       'completed',
     ],
     [
       'a standard method is modified as described',
-      { ciMethodKind: 'standard', ciMethodModified: true, ciMethodModifications: 'Adjusted' },
+      {
+        ciMethodId,
+        ciMethodKind: 'standard',
+        ciMethodModified: true,
+        ciMethodModifications: 'Adjusted',
+      },
       'completed',
     ],
     [
       'a standard method is modified with no description',
-      { ciMethodKind: 'standard', ciMethodModified: true, ciMethodModifications: ' ' },
+      { ciMethodId, ciMethodKind: 'standard', ciMethodModified: true, ciMethodModifications: ' ' },
       'not_started',
     ],
     [
       'a standard method has no answer on modifications',
-      { ciMethodKind: 'standard', ciMethodModified: null },
+      { ciMethodId, ciMethodKind: 'standard', ciMethodModified: null },
       'not_started',
     ],
     [
       'an other method is detailed',
-      { ciMethodKind: 'other', ciMethodOtherDetail: 'Bootstrap intervals' },
+      { ciMethodId, ciMethodKind: 'other', ciMethodOtherDetail: 'Bootstrap intervals' },
       'completed',
     ],
-    ['an other method has no detail', { ciMethodKind: 'other' }, 'not_started'],
-    ['the method has nothing to describe', { ciMethodKind: 'none' }, 'completed'],
+    ['an other method has no detail', { ciMethodId, ciMethodKind: 'other' }, 'not_started'],
+    ['the method has nothing to describe', { ciMethodId, ciMethodKind: 'none' }, 'completed'],
   ] as const)('judges the confidence intervals when %s', (_, draft, status) => {
     expect(indicatorTaskList(withDraft(draft)).tasks['confidence-intervals']).toBe(status);
   });
