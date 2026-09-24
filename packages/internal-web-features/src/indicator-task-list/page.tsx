@@ -75,7 +75,11 @@ const TASK_GROUPS: readonly TaskGroup[] = [
     id: 'publishing',
     title: 'Publishing',
     tasks: [
-      { key: 'update-frequency', title: 'Update frequency' },
+      {
+        key: 'update-frequency',
+        title: 'Update frequency',
+        path: sectionPath('update-frequency'),
+      },
       { key: 'publishing-date', title: 'Publishing date' },
     ],
   },

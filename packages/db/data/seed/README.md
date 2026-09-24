@@ -57,6 +57,9 @@ That yields 433,678 observations, 657,869 bridge rows and 67,978 observation not
   not a reference to Pholio's polarity lookup. Both exports translate the lookup row's name
   with `export/polarity.py` and carry no `polarity` table; a name it has no value for stops
   the export.
+- `indicator_version.update_frequency` likewise holds one of the service's values from
+  `@fphd/utils/update-frequency` in place of Pholio's frequency lookup, translated by
+  `export/update_frequency.py`; neither export carries a `frequency` table.
 
 ## Regenerating the base snapshot
 
@@ -80,7 +83,7 @@ seed pipeline below this path has no `reshape-indicator-versions.py` step. Run `
 without it is refused before any data is loaded.
 The published export uses an explicit CSV NULL marker so the transform keeps
 empty metadata strings distinct from database NULLs; the manifest records it.
-The resulting `manifest.json`, `source-manifest.json` and 21 CSV files form the
+The resulting `manifest.json`, `source-manifest.json` and 19 CSV files form the
 private archive consumed by `db import-published-snapshot`; do not commit it.
 The command also applies `published-indicator-topics.json`, a provisional demo
 mapping from the public Fingertips profile and group membership APIs, plus

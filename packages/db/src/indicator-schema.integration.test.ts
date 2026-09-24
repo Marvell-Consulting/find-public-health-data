@@ -182,6 +182,21 @@ describe('indicator_version', () => {
     ).rejects.toMatchObject({ cause: { code: CHECK_VIOLATION } });
   });
 
+  it('holds an update frequency only as one of the service values', async () => {
+    const indicatorId = await newIndicatorId();
+    const [draft] = await addVersion(indicatorId, 'draft');
+    if (!draft) throw new Error('inserted no version');
+
+    await db.execute(
+      sql`UPDATE indicator_version SET update_frequency = 'no-longer-updated' WHERE id = ${draft.id}`,
+    );
+    await expect(
+      db.execute(
+        sql`UPDATE indicator_version SET update_frequency = 'Annual' WHERE id = ${draft.id}`,
+      ),
+    ).rejects.toMatchObject({ cause: { code: CHECK_VIOLATION } });
+  });
+
   it('allows a draft alongside the published version', async () => {
     const indicatorId = await newIndicatorId();
 

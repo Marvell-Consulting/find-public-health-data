@@ -1,6 +1,7 @@
 import type { Polarity } from '@fphd/utils/polarity';
 import { isShortId, SHORT_ID_PATTERN } from '@fphd/utils/short-id';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
+import type { UpdateFrequency } from '@fphd/utils/update-frequency';
 import {
   and,
   asc,
@@ -32,7 +33,6 @@ import {
   publishedDataSource as dataSource,
   publishedDimensionType as dimensionType,
   publishedDimensionValue as dimensionValue,
-  publishedFrequency as frequency,
   publishedIndicator as indicator,
   publishedIndicatorClassification as indicatorClassification,
   publishedIndicatorSlug as indicatorSlug,
@@ -173,7 +173,7 @@ export interface IndicatorDetail {
   valueType: string;
   unit: { name: string; label: string };
   yearType: string;
-  frequency: string;
+  updateFrequency: UpdateFrequency;
   polarity: Polarity;
   ciMethod: string | null;
   ciConfidenceLevel: string | null;
@@ -246,7 +246,7 @@ export async function getPublishedIndicatorById(
       unitName: unit.name,
       unitLabel: unit.label,
       yearType: yearType.name,
-      frequency: frequency.name,
+      updateFrequency: indicator.updateFrequency,
       polarity: indicator.polarity,
       ciMethod: ciMethod.name,
       ciConfidenceLevel: indicator.ciConfidenceLevel,
@@ -271,7 +271,6 @@ export async function getPublishedIndicatorById(
     .innerJoin(valueType, eq(indicator.valueTypeId, valueType.id))
     .innerJoin(unit, eq(indicator.unitId, unit.id))
     .innerJoin(yearType, eq(indicator.yearTypeId, yearType.id))
-    .innerJoin(frequency, eq(indicator.frequencyId, frequency.id))
     .leftJoin(ciMethod, eq(indicator.ciMethodId, ciMethod.id))
     .leftJoin(comparatorMethod, eq(indicator.comparatorMethodId, comparatorMethod.id))
     .leftJoin(dataSource, eq(indicator.dataSourceId, dataSource.id))
@@ -280,8 +279,8 @@ export async function getPublishedIndicatorById(
     .where(eq(indicator.id, indicatorId))
     .limit(1);
 
-  // The polarity is required as the inner-joined lookups are: without one, nothing is shown.
-  if (!row || row.polarity === null) {
+  // Required as the inner-joined lookups are: without them, nothing is shown.
+  if (!row || row.polarity === null || row.updateFrequency === null) {
     return undefined;
   }
 
@@ -302,7 +301,7 @@ export async function getPublishedIndicatorById(
     valueType: row.valueType,
     unit: { name: row.unitName, label: row.unitLabel },
     yearType: row.yearType,
-    frequency: row.frequency,
+    updateFrequency: row.updateFrequency,
     polarity: row.polarity,
     ciMethod: row.ciMethod,
     ciConfidenceLevel: row.ciConfidenceLevel,

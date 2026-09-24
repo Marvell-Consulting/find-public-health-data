@@ -40,6 +40,7 @@ const unansweredDraft = {
   ciMethodModified: null,
   ciMethodModifications: null,
   ciMethodOtherDetail: null,
+  updateFrequency: null,
 };
 
 async function createCookie(roles: readonly string[]): Promise<string> {

@@ -22,13 +22,13 @@ from pathlib import Path
 from polarity import POLARITIES
 from published_csv import NULL_MARKER
 from slug import assign_slugs
+from update_frequency import UPDATE_FREQUENCIES
 
 TABLES = [
     "value_type",
     "unit",
     "year_type",
     "ci_method",
-    "frequency",
     "comparator_method",
     "data_source",
     "numerator_denominator_source",
@@ -85,6 +85,16 @@ POLARITY_VALUE = (
     + " END"
 )
 
+# The service's update frequency in place of the reference to Pholio's lookup row.
+UPDATE_FREQUENCY_VALUE = (
+    "CASE (SELECT name FROM frequency WHERE id = i.frequency_id) "
+    + " ".join(
+        f"WHEN {sql_string(name)} THEN {sql_string(value)}"
+        for name, value in UPDATE_FREQUENCIES.items()
+    )
+    + " END"
+)
+
 EXPORTED_INDICATORS = f"SELECT id FROM indicator WHERE id NOT IN {EXCLUDED_ID_LIST}"
 EXPORTED_OBSERVATIONS = f"SELECT id FROM observation WHERE indicator_id IN ({EXPORTED_INDICATORS})"
 
@@ -98,7 +108,8 @@ SELECTS = {
     "indicator_version": (
         "SELECT i.id AS id, i.id AS indicator_id, 'published' AS status, "
         "i.updated_at AS published_at, i.name, i.value_type_id, i.unit_id, "
-        f"i.year_type_id, i.ci_method_id, {POLARITY_VALUE} AS polarity, i.frequency_id, "
+        f"i.year_type_id, i.ci_method_id, {POLARITY_VALUE} AS polarity, "
+        f"{UPDATE_FREQUENCY_VALUE} AS update_frequency, "
         "i.comparator_method_id, i.disclosure_threshold, i.ci_confidence_level, "
         "i.config, m.definition, m.rationale, m.methodology, m.numerator_definition, "
         "m.denominator_definition, m.disclosure_control, m.caveats, m.notes, "
@@ -194,6 +205,19 @@ def check_polarities():
         raise RuntimeError("No polarity value for: " + ", ".join(unknown))
 
 
+def check_update_frequencies():
+    """Fail before any data is written if an exported frequency has no service value."""
+    names = psql(
+        "SELECT DISTINCT f.name FROM indicator i JOIN frequency f ON f.id = i.frequency_id "
+        f"WHERE i.id NOT IN {EXCLUDED_ID_LIST}"
+    )
+    unknown = sorted(
+        name for name in names.split("\n") if name and name not in UPDATE_FREQUENCIES
+    )
+    if unknown:
+        raise RuntimeError("No update frequency value for: " + ", ".join(unknown))
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("out_dir", type=Path)
@@ -223,6 +247,7 @@ def main():
     check_exclusions_are_approved()
     check_slugs()
     check_polarities()
+    check_update_frequencies()
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
     tables = {table: export_table(table, args.out_dir) for table in args.tables}

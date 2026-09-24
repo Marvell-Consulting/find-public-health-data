@@ -56,6 +56,8 @@ describe('public API', () => {
     ['put', `/api/internal/indicators/${anyId}/calculation`],
     ['get', `/api/internal/indicators/${anyId}/confidence-intervals`],
     ['put', `/api/internal/indicators/${anyId}/confidence-intervals`],
+    ['get', `/api/internal/indicators/${anyId}/update-frequency`],
+    ['put', `/api/internal/indicators/${anyId}/update-frequency`],
     ['get', '/api/internal/ci-methods'],
     ['get', '/api/internal/topics'],
     ['post', '/api/internal/topics'],

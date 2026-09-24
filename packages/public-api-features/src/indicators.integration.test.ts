@@ -64,10 +64,10 @@ async function insertDraftOnlyIndicator(
     )
     INSERT INTO indicator_version
       (indicator_id, status, name, slug, value_type_id, unit_id, year_type_id, polarity,
-       frequency_id, created_by, updated_by)
-    SELECT i.id, 'draft', ${name}, ${slug}, vt.id, u.id, yt.id, 'lower-is-better', f.id,
+       update_frequency, created_by, updated_by)
+    SELECT i.id, 'draft', ${name}, ${slug}, vt.id, u.id, yt.id, 'lower-is-better', 'annually',
            'integration-test', 'integration-test'
-    FROM new_indicator i, value_type vt, unit u, year_type yt, frequency f
+    FROM new_indicator i, value_type vt, unit u, year_type yt
     LIMIT 1
     RETURNING (SELECT short_id FROM new_indicator) AS short_id
   `;

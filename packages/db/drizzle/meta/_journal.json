@@ -148,6 +148,13 @@
       "when": 1790256376777,
       "tag": "0020_confidence-intervals",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1790265725056,
+      "tag": "0021_indicator-update-frequency",
+      "breakpoints": true
     }
   ]
 }

@@ -9,6 +9,7 @@ import {
   type IndicatorTaskStatuses,
   isIndicatorSectionComplete,
   polaritySection,
+  updateFrequencySection,
 } from './contract.ts';
 import type { IndicatorDraftVersion } from './indicator-repository.ts';
 import type { IndicatorSectionColumns, IndicatorSectionDraft } from './indicator-section.ts';
@@ -17,6 +18,7 @@ import {
   confidenceIntervalsColumns,
   definitionAndRationaleColumns,
   polarityColumns,
+  updateFrequencyColumns,
 } from './indicator-sections.ts';
 
 /** The draft columns the task list judges: the name, and those the sections read. */
@@ -64,6 +66,7 @@ export function indicatorTaskList({
         draft.ciMethodKind,
       ),
     ),
+    'update-frequency': complete(updateFrequencySection, updateFrequencyColumns),
   };
 
   return {

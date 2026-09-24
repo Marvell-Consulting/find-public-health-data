@@ -30,6 +30,7 @@ const source: IndicatorTaskListSource = {
     ciMethodModified: null,
     ciMethodModifications: null,
     ciMethodOtherDetail: null,
+    updateFrequency: null,
   },
 };
 
@@ -46,6 +47,7 @@ const complete: IndicatorTaskListDraft = {
   ciMethodModified: false,
   ciMethodModifications: null,
   ciMethodOtherDetail: null,
+  updateFrequency: 'quarterly',
 };
 
 function withDraft(draft: Partial<IndicatorTaskListDraft>): IndicatorTaskListSource {
@@ -98,6 +100,16 @@ describe('indicatorTaskList', () => {
 
   it('leaves the polarity not started until one is chosen', () => {
     expect(indicatorTaskList(source).tasks.polarity).toBe('not_started');
+  });
+
+  it('counts the update frequency as complete once one is chosen', () => {
+    const state = indicatorTaskList(withDraft({ updateFrequency: complete.updateFrequency }));
+
+    expect(state.tasks['update-frequency']).toBe('completed');
+  });
+
+  it('leaves the update frequency not started until one is chosen', () => {
+    expect(indicatorTaskList(source).tasks['update-frequency']).toBe('not_started');
   });
 
   it.each([

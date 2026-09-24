@@ -543,6 +543,7 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
       ciMethodModified: null,
       ciMethodModifications: null,
       ciMethodOtherDetail: null,
+      updateFrequency: null,
     },
     draftCiMethodKind: null,
     indicatorStatus: 'new',
@@ -592,6 +593,7 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
         polarity: 'not_started',
         calculation: 'not_started',
         'confidence-intervals': 'not_started',
+        'update-frequency': 'not_started',
       },
     });
   });

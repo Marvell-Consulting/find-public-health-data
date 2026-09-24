@@ -1,4 +1,5 @@
 import { POLARITIES } from '@fphd/utils/polarity';
+import { UPDATE_FREQUENCIES } from '@fphd/utils/update-frequency';
 import {
   boolean,
   date,
@@ -37,7 +38,7 @@ export const publishedIndicator = publishedSchema
     yearTypeId: uuid('year_type_id'),
     ciMethodId: uuid('ci_method_id'),
     polarity: text('polarity', { enum: POLARITIES }),
-    frequencyId: uuid('frequency_id'),
+    updateFrequency: text('update_frequency', { enum: UPDATE_FREQUENCIES }),
     comparatorMethodId: uuid('comparator_method_id'),
     disclosureThreshold: smallint('disclosure_threshold'),
     ciConfidenceLevel: text('ci_confidence_level'),
@@ -126,10 +127,6 @@ export const publishedCiMethod = publishedSchema
     name: text('name').notNull(),
     description: text('description'),
   })
-  .existing();
-
-export const publishedFrequency = publishedSchema
-  .view('frequency', { id: uuid('id').notNull(), name: text('name').notNull() })
   .existing();
 
 export const publishedComparatorMethod = publishedSchema

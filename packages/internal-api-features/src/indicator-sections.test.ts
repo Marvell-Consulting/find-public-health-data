@@ -11,6 +11,7 @@ import {
   indicatorSectionsRouter,
   judgedConfidenceIntervalsSection,
   polarityColumns,
+  updateFrequencyColumns,
 } from './indicator-sections.ts';
 import {
   createFakeInternalRepositories,
@@ -32,6 +33,7 @@ const unanswered: IndicatorSectionDraft = {
   ciMethodModified: null,
   ciMethodModifications: null,
   ciMethodOtherDetail: null,
+  updateFrequency: null,
 };
 
 const METHODS: Record<CiMethodRow['kind'], CiMethodRow> = {
@@ -101,6 +103,15 @@ describe('polarityColumns', () => {
     expect(polarityColumns.toAttributes({ polarity: 'no-polarity' })).toEqual({
       polarity: 'no-polarity',
     });
+  });
+});
+
+describe('updateFrequencyColumns', () => {
+  it('reads and writes the column of the same name', () => {
+    const answers = { updateFrequency: 'no-longer-updated' } as const;
+
+    expect(updateFrequencyColumns.fromDraft({ ...unanswered, ...answers })).toEqual(answers);
+    expect(updateFrequencyColumns.toAttributes(answers)).toEqual(answers);
   });
 });
 
