@@ -1,21 +1,15 @@
-import { createJwtSessionService, createJwtSessionVerifier } from '@fphd/auth/jwt-session';
 import type { Topic } from '@fphd/db';
 import express, { type Express } from 'express';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
-import { createFakeInternalRepositories, type FakeInternalRepositoryOverrides } from './testing.ts';
+import {
+  createFakeInternalRepositories,
+  type FakeInternalRepositoryOverrides,
+  testSessionCookie,
+  testSessionVerifier,
+} from './testing.ts';
 import { internalTopicsRouter } from './topics.ts';
-
-const session = createJwtSessionService({
-  audience: 'fphd-internal',
-  clock: () => new Date('2026-08-04T10:00:00.000Z'),
-  cookieName: 'fphd-internal-session',
-  issuer: 'fphd-auth',
-  secret: 'a-jwt-session-secret-that-is-long-enough-for-tests',
-  secure: false,
-});
-const verifier = createJwtSessionVerifier(session);
 
 const topic: Topic = {
   id: '00000000-0000-7000-8000-000000000001',
@@ -35,14 +29,13 @@ function createTestApp(overrides: FakeInternalRepositoryOverrides['topics'] = {}
   const app = express();
 
   app.use(express.json());
-  app.use(internalTopicsRouter(repositories.topics, verifier));
+  app.use(internalTopicsRouter(repositories.topics, testSessionVerifier));
 
   return app;
 }
 
-async function adminCookie(roles: readonly string[] = ['internal', 'publisher', 'admin']) {
-  const token = await session.issueToken({ expiresInSeconds: 900, roles, subject: 'test-user' });
-  return session.createCookieHeader(token, 900);
+function adminCookie(roles: readonly string[] = ['internal', 'publisher', 'admin']) {
+  return testSessionCookie(roles);
 }
 
 describe('the internal topics surface', () => {

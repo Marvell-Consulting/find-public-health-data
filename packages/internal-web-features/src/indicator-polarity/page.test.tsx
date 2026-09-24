@@ -55,15 +55,6 @@ describe('PolarityPage', () => {
     expect(radios.every((radio) => radio.name === 'polarity' && !radio.checked)).toBe(true);
   });
 
-  it('posts back to its own address, so it works without JavaScript', () => {
-    const { container } = renderPage();
-    const form = container.querySelector('form');
-
-    expect(form?.getAttribute('method')).toBe('post');
-    expect(form?.getAttribute('action')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Continue' }).getAttribute('type')).toBe('submit');
-  });
-
   it('shows the polarity it is given, so a draft can be revisited', () => {
     renderPage({ values: { polarity: 'no-polarity' } });
 

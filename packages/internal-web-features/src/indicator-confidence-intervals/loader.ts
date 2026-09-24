@@ -1,15 +1,13 @@
-// No @fphd/ui imports here, so the loader and action unit-test without the jsdom the components need.
+// No @fphd/ui imports here, so the loader unit-tests without the jsdom the components need.
 import {
   ciMethodListSchema,
   confidenceIntervalsSection,
 } from '@fphd/internal-api-features/contract';
 import { apiContext } from '@fphd/web-server/api-context';
-import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
+import type { LoaderFunctionArgs } from 'react-router';
 
 import { requireIndicatorId } from '../indicator-id.ts';
-import { loadIndicatorSection, saveIndicatorSection } from '../indicator-section.ts';
-
-export type { CiMethod, ConfidenceIntervalsField } from '@fphd/internal-api-features/contract';
+import { loadIndicatorSection } from '../indicator-section.ts';
 
 /** The draft's answers, and every method the form offers with what each asks next. */
 export async function loadConfidenceIntervals(args: LoaderFunctionArgs) {
@@ -22,9 +20,4 @@ export async function loadConfidenceIntervals(args: LoaderFunctionArgs) {
   ]);
 
   return { ...section, methods };
-}
-
-/** The form checks that a method is chosen; the API checks what that method asks for. */
-export function saveConfidenceIntervals(args: ActionFunctionArgs) {
-  return saveIndicatorSection(args, confidenceIntervalsSection);
 }

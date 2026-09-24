@@ -1,17 +1,12 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 import { createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
-import { MORTALITY_ID } from '../support/indicator-page.ts';
+import { expectNotFoundWithoutDraft, taskRow } from '../support/section-page.ts';
 import { signInAs } from '../support/sign-in.ts';
 
 function uniqueName() {
   return uniqueIndicatorName('task list');
-}
-
-// The header and footer have lists of their own, so the task rows are read inside the page.
-function taskRow(page: Page, title: string) {
-  return page.getByRole('main').getByRole('listitem').filter({ hasText: title }).first();
 }
 
 test.beforeEach(async ({ page }) => {
@@ -98,16 +93,7 @@ test('is reached from the indicator overview', async ({ page }) => {
 });
 
 test('answers an indicator with nothing to edit with the not-found page', async ({ page }) => {
-  for (const path of [
-    '/publish/indicators/108/task-list',
-    '/publish/indicators/00000000-0000-7000-8000-000000000000/task-list',
-    // The seeded indicator is published, so no draft of it is being worked on.
-    `/publish/indicators/${MORTALITY_ID}/task-list`,
-  ]) {
-    const response = await page.goto(path);
-    expect(response?.status(), path).toBe(404);
-    await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
-  }
+  await expectNotFoundWithoutDraft(page, 'task-list');
 });
 
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {

@@ -1,25 +1,19 @@
-import { Writable } from 'node:stream';
-
-import { createApiApp } from '@fphd/api-server';
-import { createJwtSessionService, createJwtSessionVerifier } from '@fphd/auth/jwt-session';
 import type { Express } from 'express';
-import { type Logger, pino } from 'pino';
+import type { Logger } from 'pino';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { IndicatorAdminDetailRow, IndicatorAdminRow } from './indicator-repository.ts';
 import { INDICATORS_PAGE_SIZE, internalIndicatorsRouter } from './indicators.ts';
-import { createFakeInternalRepositories, type FakeInternalRepositoryOverrides } from './testing.ts';
-
-const session = createJwtSessionService({
-  audience: 'fphd-internal',
-  clock: () => new Date('2026-08-04T10:00:00.000Z'),
-  cookieName: 'fphd-internal-session',
-  issuer: 'fphd-auth',
-  secret: 'a-jwt-session-secret-that-is-long-enough-for-tests',
-  secure: false,
-});
-const verifier = createJwtSessionVerifier(session);
+import {
+  createCapturingLogger,
+  createFakeInternalRepositories,
+  createRouterTestApp,
+  type FakeInternalRepositoryOverrides,
+  handlerLogLines,
+  testSessionCookie,
+  testSessionVerifier,
+} from './testing.ts';
 
 const row: IndicatorAdminRow = {
   id: '00000000-0000-7000-8000-000000000001',
@@ -35,42 +29,21 @@ const detailRow: IndicatorAdminDetailRow = {
   publishedSlug: 'life-expectancy-at-birth',
 };
 
-const silent = pino({ level: 'silent' });
-
 // Inside `createApiApp`, whose request logging gives the handlers their `request.log`.
 function createTestApp(
   overrides: FakeInternalRepositoryOverrides['indicators'] = {},
-  logger: Logger = silent,
+  logger?: Logger,
 ): Express {
   const repositories = createFakeInternalRepositories({ indicators: overrides });
-  const app = createApiApp({ logger, serviceName: 'internal-api' });
 
-  app.use(internalIndicatorsRouter(repositories.indicators, verifier));
-
-  return app;
+  return createRouterTestApp(
+    internalIndicatorsRouter(repositories.indicators, testSessionVerifier),
+    logger,
+  );
 }
 
-function createCapturingLogger() {
-  const lines: Record<string, unknown>[] = [];
-  const destination = new Writable({
-    write(chunk, _encoding, callback) {
-      lines.push(JSON.parse(String(chunk)));
-      callback();
-    },
-  });
-
-  return { logger: pino({ name: 'internal-api' }, destination), lines };
-}
-
-/** The lines a handler wrote, without the request line pino-http adds once the response ends. */
-async function actionLines(lines: Record<string, unknown>[]) {
-  await new Promise((resolve) => setImmediate(resolve));
-  return lines.filter((line) => line.res === undefined);
-}
-
-async function publisherCookie(roles: readonly string[] = ['internal', 'publisher']) {
-  const token = await session.issueToken({ expiresInSeconds: 900, roles, subject: 'test-user' });
-  return session.createCookieHeader(token, 900);
+function publisherCookie(roles: readonly string[] = ['internal', 'publisher']) {
+  return testSessionCookie(roles);
 }
 
 describe('GET /api/internal/indicators', () => {
@@ -335,7 +308,7 @@ describe('POST /api/internal/indicators', () => {
       .set('Cookie', await publisherCookie())
       .send({ name: 'Life expectancy at birth' });
 
-    expect(await actionLines(lines)).toEqual([
+    expect(await handlerLogLines(lines)).toEqual([
       expect.objectContaining({
         level: 30,
         msg: 'Indicator created',
@@ -358,7 +331,7 @@ describe('POST /api/internal/indicators', () => {
       .set('Cookie', await publisherCookie())
       .send({ name: 'Life expectancy at birth' });
 
-    expect(await actionLines(lines)).toEqual([]);
+    expect(await handlerLogLines(lines)).toEqual([]);
   });
 });
 
@@ -520,7 +493,7 @@ describe('PATCH /api/internal/indicators/:id', () => {
       .set('Cookie', await publisherCookie())
       .send({ name: 'A better name' });
 
-    expect(await actionLines(lines)).toEqual([
+    expect(await handlerLogLines(lines)).toEqual([
       expect.objectContaining({
         level: 30,
         msg: 'Indicator renamed',
@@ -549,7 +522,7 @@ describe('PATCH /api/internal/indicators/:id', () => {
       .set('Cookie', await publisherCookie())
       .send({ name: 'Life expectancy at birth' });
 
-    expect(await actionLines(lines)).toEqual([]);
+    expect(await handlerLogLines(lines)).toEqual([]);
   });
 });
 
@@ -566,6 +539,7 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
       methodology: null,
       calculatedBy: null,
       calculatedByOther: null,
+      ciMethodId: null,
       ciMethodModified: null,
       ciMethodModifications: null,
       ciMethodOtherDetail: null,
@@ -623,7 +597,11 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
   });
 
   it("judges the confidence intervals by the kind of the draft's method", async () => {
-    const findDraftState = vi.fn().mockResolvedValue({ ...draftState, draftCiMethodKind: 'none' });
+    const findDraftState = vi.fn().mockResolvedValue({
+      ...draftState,
+      draft: { ...draftState.draft, ciMethodId: '019fa38f-0747-73bb-b8a4-bb6e8f3c244e' },
+      draftCiMethodKind: 'none',
+    });
 
     const response = await request(createTestApp({ findDraftState }))
       .get(`/api/internal/indicators/${row.id}/task-list`)

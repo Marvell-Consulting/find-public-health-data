@@ -1,35 +1,26 @@
-import { backLinkHandle, titleFromPage } from '@fphd/ui';
-import { useActionData, useLoaderData } from 'react-router';
-
-import type { FormFailure } from '../indicator-section.ts';
-import { indicatorTaskListPath } from '../publish-paths.ts';
 import {
   type DefinitionAndRationaleField,
-  loadDefinitionAndRationale,
-  saveDefinitionAndRationale,
-} from './loader.ts';
+  definitionAndRationaleSection,
+} from '@fphd/internal-api-features/contract';
+import { titleFromPage } from '@fphd/ui';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
+
+import { loadIndicatorSection, saveIndicatorSection } from '../indicator-section.ts';
+import { sectionBackLinkHandle, useSectionForm } from '../indicator-section-route.ts';
 import { DefinitionAndRationalePage } from './page.tsx';
 
-export const loader = loadDefinitionAndRationale;
+export const loader = (args: LoaderFunctionArgs) =>
+  loadIndicatorSection(args, definitionAndRationaleSection);
 
-export const action = saveDefinitionAndRationale;
+export const action = (args: ActionFunctionArgs) =>
+  saveIndicatorSection(args, definitionAndRationaleSection);
 
 export const meta = titleFromPage;
 
-export const handle = backLinkHandle<Awaited<ReturnType<typeof loader>>>(({ id }) =>
-  indicatorTaskListPath(id),
-);
+export const handle = sectionBackLinkHandle;
 
 export function DefinitionAndRationaleRoute() {
-  const { values } = useLoaderData<typeof loader>();
-  const rejected = useActionData<FormFailure<DefinitionAndRationaleField> | undefined>();
-
-  return (
-    <DefinitionAndRationalePage
-      fieldErrors={rejected?.fieldErrors}
-      values={rejected?.values ?? values}
-    />
-  );
+  return <DefinitionAndRationalePage {...useSectionForm<DefinitionAndRationaleField>()} />;
 }
 
 export default DefinitionAndRationaleRoute;

@@ -1,15 +1,15 @@
-import { confidenceIntervalsSection } from '@fphd/internal-api-features/contract';
+import {
+  type CiMethod,
+  type ConfidenceIntervalsField,
+  confidenceIntervalsSection,
+} from '@fphd/internal-api-features/contract';
 import { fieldInputId, firstRadioId, Radios, Select, Textarea } from '@fphd/ui';
 import { useEffect, useState } from 'react';
 
-import type { FormFailure, FormValues } from '../indicator-section.ts';
-import { IndicatorSectionForm } from '../indicator-section-form.tsx';
-import type { CiMethod, ConfidenceIntervalsField } from './loader.ts';
+import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
-interface ConfidenceIntervalsPageProps {
-  fieldErrors?: FormFailure<ConfidenceIntervalsField>['fieldErrors'] | undefined;
+interface ConfidenceIntervalsPageProps extends SectionPageProps<ConfidenceIntervalsField> {
   methods: readonly CiMethod[];
-  values: FormValues<ConfidenceIntervalsField>;
 }
 
 const listWithOr = new Intl.ListFormat('en-GB', { type: 'disjunction' });

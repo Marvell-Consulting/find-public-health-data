@@ -1,26 +1,22 @@
-import { Writable } from 'node:stream';
-
-import { createApiApp } from '@fphd/api-server';
-import { createJwtSessionService, createJwtSessionVerifier } from '@fphd/auth/jwt-session';
 import type { Express } from 'express';
-import { type Logger, pino } from 'pino';
+import type { Logger } from 'pino';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 
-import { indicatorDefinitionAndRationaleRouter } from './indicator-definition-and-rationale.ts';
-import { createFakeInternalRepositories, type FakeInternalRepositoryOverrides } from './testing.ts';
+import { definitionAndRationaleSection } from './contract.ts';
+import { indicatorSectionRouter } from './indicator-section.ts';
+import { definitionAndRationaleColumns } from './indicator-sections.ts';
+import {
+  createCapturingLogger,
+  createFakeInternalRepositories,
+  createRouterTestApp,
+  type FakeInternalRepositoryOverrides,
+  handlerLogLines,
+  testSessionCookie,
+  testSessionVerifier,
+} from './testing.ts';
 
 // What every section's endpoints share, shown through the first section built on them.
-
-const session = createJwtSessionService({
-  audience: 'fphd-internal',
-  clock: () => new Date('2026-08-04T10:00:00.000Z'),
-  cookieName: 'fphd-internal-session',
-  issuer: 'fphd-auth',
-  secret: 'a-jwt-session-secret-that-is-long-enough-for-tests',
-  secure: false,
-});
-const verifier = createJwtSessionVerifier(session);
 
 const id = '00000000-0000-7000-8000-000000000001';
 const path = `/api/internal/indicators/${id}/definition-and-rationale`;
@@ -37,41 +33,25 @@ const noDraftState = { ...draftState, draft: null, indicatorStatus: 'live', draf
 
 const answers = { definition: 'A definition', rationale: 'A rationale' };
 
-const silent = pino({ level: 'silent' });
-
 function createTestApp(
   overrides: FakeInternalRepositoryOverrides['indicators'] = {},
-  logger: Logger = silent,
+  logger?: Logger,
 ): Express {
   const repositories = createFakeInternalRepositories({ indicators: overrides });
-  const app = createApiApp({ logger, serviceName: 'internal-api' });
 
-  app.use(indicatorDefinitionAndRationaleRouter(repositories.indicators, verifier));
-
-  return app;
+  return createRouterTestApp(
+    indicatorSectionRouter(
+      repositories.indicators,
+      testSessionVerifier,
+      definitionAndRationaleSection,
+      definitionAndRationaleColumns,
+    ),
+    logger,
+  );
 }
 
-function createCapturingLogger() {
-  const lines: Record<string, unknown>[] = [];
-  const destination = new Writable({
-    write(chunk, _encoding, callback) {
-      lines.push(JSON.parse(String(chunk)));
-      callback();
-    },
-  });
-
-  return { logger: pino({ name: 'internal-api' }, destination), lines };
-}
-
-/** The lines a handler wrote, without the request line pino-http adds once the response ends. */
-async function actionLines(lines: Record<string, unknown>[]) {
-  await new Promise((resolve) => setImmediate(resolve));
-  return lines.filter((line) => line.res === undefined);
-}
-
-async function publisherCookie(roles: readonly string[] = ['internal', 'publisher']) {
-  const token = await session.issueToken({ expiresInSeconds: 900, roles, subject: 'test-user' });
-  return session.createCookieHeader(token, 900);
+function publisherCookie(roles: readonly string[] = ['internal', 'publisher']) {
+  return testSessionCookie(roles);
 }
 
 describe.each(['get', 'put'] as const)('%s on a section', (method) => {
@@ -208,7 +188,7 @@ describe('PUT on a section', () => {
       .set('Cookie', await publisherCookie())
       .send(answers);
 
-    expect(await actionLines(lines)).toEqual([
+    expect(await handlerLogLines(lines)).toEqual([
       expect.objectContaining({
         level: 30,
         msg: 'Indicator section saved',
@@ -238,6 +218,6 @@ describe('PUT on a section', () => {
       .set('Cookie', await publisherCookie())
       .send(answers);
 
-    expect(await actionLines(lines)).toEqual([]);
+    expect(await handlerLogLines(lines)).toEqual([]);
   });
 });
