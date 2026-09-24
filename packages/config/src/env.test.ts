@@ -134,14 +134,17 @@ describe('resolveShutdown', () => {
 describe('logEnvFields', () => {
   const schema = z.object(logEnvFields);
 
-  it('leaves both fields for resolveLog to derive', () => {
+  it('leaves every field for resolveLog to derive', () => {
     expect(schema.parse({})).toEqual({});
   });
 
   it('accepts pino level names and boolean text', () => {
-    expect(schema.parse({ LOG_LEVEL: 'debug', LOG_PRETTY: '1' })).toEqual({
+    expect(
+      schema.parse({ LOG_LEVEL: 'debug', LOG_PRETTY: '1', LOG_REQUEST_DETAILS: 'true' }),
+    ).toEqual({
       LOG_LEVEL: 'debug',
       LOG_PRETTY: true,
+      LOG_REQUEST_DETAILS: true,
     });
   });
 
@@ -152,7 +155,11 @@ describe('logEnvFields', () => {
 
 describe('resolveLog', () => {
   it.each(['production', 'preview'] as const)('defaults to info under %s', (appEnv) => {
-    expect(resolveLog(appEnv, {})).toEqual({ level: 'info', pretty: false });
+    expect(resolveLog(appEnv, {})).toEqual({
+      level: 'info',
+      pretty: false,
+      requestDetails: false,
+    });
   });
 
   it.each(['local', 'test', 'dev'] as const)('defaults to debug under %s', (appEnv) => {
@@ -168,6 +175,15 @@ describe('resolveLog', () => {
     expect(resolveLog('local', {}).pretty).toBe(true);
     expect(resolveLog('local', { LOG_PRETTY: false }).pretty).toBe(false);
     expect(resolveLog('dev', { LOG_PRETTY: true }).pretty).toBe(false);
+  });
+
+  it('prints request details only in pretty output, and only when LOG_REQUEST_DETAILS asks', () => {
+    expect(resolveLog('local', {}).requestDetails).toBe(false);
+    expect(resolveLog('local', { LOG_REQUEST_DETAILS: true }).requestDetails).toBe(true);
+    expect(
+      resolveLog('local', { LOG_PRETTY: false, LOG_REQUEST_DETAILS: true }).requestDetails,
+    ).toBe(false);
+    expect(resolveLog('dev', { LOG_REQUEST_DETAILS: true }).requestDetails).toBe(false);
   });
 });
 
@@ -226,7 +242,7 @@ describe('loadWebServerConfig', () => {
       port: 3000,
       apiUrl: 'http://localhost:4000',
       trustedProxyHops: 2,
-      log: { level: 'debug', pretty: true },
+      log: { level: 'debug', pretty: true, requestDetails: false },
       shutdown: { drainDelayMs: 0, gracePeriodMs: 25_000 },
       session: { secret: sessionSecret, secure: false },
       webSession: { secret: webSessionSecret, secure: false },
@@ -255,7 +271,7 @@ describe('loadWebServerConfig', () => {
       port: 8080,
       apiUrl: 'http://api.internal:9000',
       trustedProxyHops: 1,
-      log: { level: 'debug', pretty: false },
+      log: { level: 'debug', pretty: false, requestDetails: false },
       shutdown: { drainDelayMs: 5_000, gracePeriodMs: 25_000 },
       session: { secret: sessionSecret, secure: true },
       webSession: { secret: webSessionSecret, secure: true },

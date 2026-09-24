@@ -8,6 +8,7 @@ const logger = createLogger({
   name: 'operations',
   level: config.log.level,
   pretty: config.log.pretty,
+  requestDetails: config.log.requestDetails,
 });
 
 // A usage mistake is not the same failure as a command that ran and could not finish, and a

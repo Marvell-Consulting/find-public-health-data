@@ -13,6 +13,7 @@ const logger = createLogger({
   name: 'internal-api',
   level: config.log.level,
   pretty: config.log.pretty,
+  requestDetails: config.log.requestDetails,
 });
 
 startServer({
