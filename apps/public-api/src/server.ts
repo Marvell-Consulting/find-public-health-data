@@ -10,6 +10,7 @@ const logger = createLogger({
   name: 'public-api',
   level: config.log.level,
   pretty: config.log.pretty,
+  requestDetails: config.log.requestDetails,
 });
 
 startServer({

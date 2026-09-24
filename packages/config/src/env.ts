@@ -89,28 +89,36 @@ export function resolveShutdown(
 
 /**
  * The level names mirror pino's, kept as a plain enum so this package carries no pino
- * dependency. Neither field has a default here: both depend on APP_ENV, which a shared
- * fragment cannot see, so `resolveLog` derives them.
+ * dependency. None of the fields has a default here: level and pretty depend on APP_ENV,
+ * which a shared fragment cannot see, so `resolveLog` derives them all.
  */
 export const logEnvFields = {
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).optional(),
   LOG_PRETTY: boolSchema.optional(),
+  LOG_REQUEST_DETAILS: boolSchema.optional(),
 };
 
 /**
  * Production and preview log at `info`; every other environment at `debug`, so the lines
  * beneath each action show wherever a developer is looking. Pretty output only under `local`;
- * every other runtime wants JSON.
+ * every other runtime wants JSON. Pretty output prints each request as one summary line
+ * unless LOG_REQUEST_DETAILS asks for its full `req` and `res`; JSON always carries them.
  */
 export function resolveLog(
   appEnv: AppEnv,
-  env: { LOG_LEVEL?: z.infer<typeof logEnvFields.LOG_LEVEL>; LOG_PRETTY?: boolean | undefined },
+  env: {
+    LOG_LEVEL?: z.infer<typeof logEnvFields.LOG_LEVEL>;
+    LOG_PRETTY?: boolean | undefined;
+    LOG_REQUEST_DETAILS?: boolean | undefined;
+  },
 ) {
   const productionLike = appEnv === 'production' || appEnv === 'preview';
+  const pretty = appEnv === 'local' && (env.LOG_PRETTY ?? true);
 
   return {
     level: env.LOG_LEVEL ?? (productionLike ? 'info' : 'debug'),
-    pretty: appEnv === 'local' && (env.LOG_PRETTY ?? true),
+    pretty,
+    requestDetails: pretty && (env.LOG_REQUEST_DETAILS ?? false),
   } as const;
 }
 

@@ -8,7 +8,7 @@ describe('loadConfig', () => {
   it('applies local defaults when only APP_ENV and the owner password are set', () => {
     expect(loadConfig({ ...local })).toEqual({
       appEnv: 'local',
-      log: { level: 'debug', pretty: true },
+      log: { level: 'debug', pretty: true, requestDetails: false },
       db: {
         host: 'localhost',
         port: 5432,

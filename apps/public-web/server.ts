@@ -7,6 +7,7 @@ const logger = createLogger({
   name: 'public-web',
   level: config.log.level,
   pretty: config.log.pretty,
+  requestDetails: config.log.requestDetails,
 });
 
 await startReactRouterServer({
