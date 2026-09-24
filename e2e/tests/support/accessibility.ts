@@ -22,7 +22,16 @@ type KnownViolation = {
   ticket: string;
 };
 
-const KNOWN_VIOLATIONS: KnownViolation[] = [];
+const KNOWN_VIOLATIONS: KnownViolation[] = [
+  {
+    // GOV.UK Frontend sets aria-expanded on a radio with a conditional reveal, which ARIA does not
+    // allow on role=radio, and NotGovUK copies it (alphagov/govuk-frontend#979, w3c/aria#1404).
+    ticket: 'FPH-446',
+    rule: 'aria-allowed-attr',
+    selector: 'input.govuk-radios__input[aria-controls]',
+    expectedOn: /^\/publish\/indicators\/[0-9a-f-]{36}\/calculation$/,
+  },
+];
 
 function describeViolation(violation: Violation): string {
   const targets = violation.nodes.map((node) => node.target.join(' ')).join(', ');

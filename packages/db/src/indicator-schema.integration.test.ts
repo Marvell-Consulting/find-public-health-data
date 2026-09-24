@@ -64,7 +64,12 @@ async function newIndicatorId(): Promise<string> {
 async function addVersion(
   indicatorId: string,
   status: 'draft' | 'published',
-  values: { name?: string; slug?: string; publishedAt?: Date | null } = {},
+  values: Partial<
+    Pick<
+      typeof indicatorVersion.$inferInsert,
+      'name' | 'slug' | 'publishedAt' | 'calculatedBy' | 'calculatedByOther'
+    >
+  > = {},
 ) {
   return db
     .insert(indicatorVersion)
@@ -233,6 +238,51 @@ describe('indicator_version', () => {
     ).resolves.toHaveLength(1);
   });
 
+  // Raw SQL because the insert type only lets a caller name the allowed values.
+  it('refuses anyone but OHID, DHSC or other organisations as who calculated it', async () => {
+    const indicatorId = await newIndicatorId();
+    const [draft] = await addVersion(indicatorId, 'draft');
+
+    await expect(
+      db.execute(
+        sql`UPDATE indicator_version SET calculated_by = 'nhs' WHERE id = ${draft?.id ?? ''}`,
+      ),
+    ).rejects.toMatchObject({ cause: { code: CHECK_VIOLATION } });
+  });
+
+  it.each(['ohid', 'dhsc', 'other'] as const)(
+    'accepts %s as who calculated it',
+    async (calculatedBy) => {
+      const indicatorId = await newIndicatorId();
+
+      await expect(addVersion(indicatorId, 'draft', { calculatedBy })).resolves.toHaveLength(1);
+    },
+  );
+
+  it.each([
+    ['nobody', null],
+    ['OHID', 'ohid'],
+    ['DHSC', 'dhsc'],
+  ] as const)('refuses other organisations beside %s', async (_, calculatedBy) => {
+    const indicatorId = await newIndicatorId();
+
+    await expect(
+      addVersion(indicatorId, 'draft', { calculatedBy, calculatedByOther: 'ONS' }),
+    ).rejects.toMatchObject({ cause: { code: CHECK_VIOLATION } });
+  });
+
+  it('accepts other organisations beside "other", named or not yet', async () => {
+    await expect(
+      addVersion(await newIndicatorId(), 'draft', {
+        calculatedBy: 'other',
+        calculatedByOther: 'ONS',
+      }),
+    ).resolves.toHaveLength(1);
+    await expect(
+      addVersion(await newIndicatorId(), 'draft', { calculatedBy: 'other' }),
+    ).resolves.toHaveLength(1);
+  });
+
   // Raw SQL because the insert type no longer lets a caller omit the slug.
   it('refuses a version with no slug', async () => {
     const indicatorId = await newIndicatorId();
@@ -338,6 +388,15 @@ describe('the published views', () => {
     )) as unknown as { slug: string }[];
 
     expect(rows.map((row) => row.slug)).toEqual(['original-indicator', 'renamed-indicator']);
+  });
+
+  it('keep who calculated an indicator off the public surface', async () => {
+    const rows = (await db.execute(
+      sql`SELECT column_name FROM information_schema.columns
+          WHERE table_schema = 'published' AND column_name LIKE 'calculated_by%'`,
+    )) as unknown as { column_name: string }[];
+
+    expect(rows).toEqual([]);
   });
 
   it('hide a slug only a draft carries', async () => {

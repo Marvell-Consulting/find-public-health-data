@@ -134,6 +134,13 @@
       "when": 1790182379093,
       "tag": "0018_indicator-polarity",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790255402955,
+      "tag": "0019_indicator-calculated-by",
+      "breakpoints": true
     }
   ]
 }

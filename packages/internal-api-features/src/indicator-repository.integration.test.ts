@@ -543,6 +543,38 @@ describe('updateIndicatorDraft', () => {
     expect(after).toEqual(published);
   });
 
+  it('writes who calculated the indicator, and clears the other organisations on request', async () => {
+    const created = await newDraft('Calculated by others');
+
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      { methodology: 'A method', calculatedBy: 'other', calculatedByOther: 'ONS' },
+      {},
+      ACTOR,
+    );
+    const asOther = await getIndicatorDraftState(db, created.indicatorId);
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      { calculatedBy: 'dhsc', calculatedByOther: null },
+      {},
+      ACTOR,
+    );
+    const asDhsc = await getIndicatorDraftState(db, created.indicatorId);
+
+    expect(asOther?.draft).toMatchObject({
+      methodology: 'A method',
+      calculatedBy: 'other',
+      calculatedByOther: 'ONS',
+    });
+    expect(asDhsc?.draft).toMatchObject({
+      methodology: 'A method',
+      calculatedBy: 'dhsc',
+      calculatedByOther: null,
+    });
+  });
+
   it('refuses an indicator with no draft', async () => {
     const created = await newDraft('Draftless');
     await db.delete(indicatorVersion).where(eq(indicatorVersion.indicatorId, created.indicatorId));
@@ -587,6 +619,19 @@ describe('createDraftFromPublished', () => {
       createdBy: ACTOR,
     });
     expect(await topicIdsOf(result.versionId)).toEqual(publishedTopics);
+  });
+
+  it('copies who calculated the published version', async () => {
+    const { indicatorId, currentId } = await indicatorWithTwoPublications();
+    await db
+      .update(indicatorVersion)
+      .set({ calculatedBy: 'other', calculatedByOther: 'ONS' })
+      .where(eq(indicatorVersion.id, currentId));
+
+    await createDraftFromPublished(db, indicatorId, ACTOR);
+
+    const state = await getIndicatorDraftState(db, indicatorId);
+    expect(state?.draft).toMatchObject({ calculatedBy: 'other', calculatedByOther: 'ONS' });
   });
 
   it('copies the most recently published version, not the superseded one', async () => {

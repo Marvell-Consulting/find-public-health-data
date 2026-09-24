@@ -33,6 +33,9 @@ export const INDICATOR_VERSION_STATUSES = ['draft', 'published'] as const;
 
 export type IndicatorVersionStatus = (typeof INDICATOR_VERSION_STATUSES)[number];
 
+/** Who calculated an indicator: OHID, DHSC, or organisations named in `calculated_by_other`. */
+export const INDICATOR_CALCULATED_BY = ['ohid', 'dhsc', 'other'] as const;
+
 // Starts above every Fingertips number carried over in the seed, so this service's own
 // numbering is visible at a glance.
 export const indicatorShortIdSeq = pgSequence('indicator_short_id_seq', { startWith: 100000 });
@@ -81,6 +84,8 @@ export const indicatorVersion = pgTable(
     definition: text(),
     rationale: text(),
     methodology: text(),
+    calculatedBy: text({ enum: INDICATOR_CALCULATED_BY }),
+    calculatedByOther: text(),
     numeratorDefinition: text(),
     denominatorDefinition: text(),
     disclosureControl: text(),
@@ -103,6 +108,15 @@ export const indicatorVersion = pgTable(
     check(
       'indicator_version_polarity_check',
       sql`${t.polarity} IN (${sql.raw(POLARITIES.map((value) => `'${value}'`).join(', '))})`,
+    ),
+    check(
+      'indicator_version_calculated_by_check',
+      sql`${t.calculatedBy} IN ('ohid', 'dhsc', 'other')`,
+    ),
+    // Other organisations only beside "other"; null-safe, so no choice refuses them too.
+    check(
+      'indicator_version_calculated_by_other_check',
+      sql`${t.calculatedBy} IS NOT DISTINCT FROM 'other' OR ${t.calculatedByOther} IS NULL`,
     ),
     // A published version always says when, and nothing else does, so ordering by
     // published_at never meets a null.
