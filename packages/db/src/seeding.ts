@@ -17,7 +17,8 @@ import { READ_MODEL_TABLES } from './read-models.ts';
 
 // Topological FK order: every table loads after the tables it references.
 // Self-references (dimension_value.parent_id etc.) resolve within a single COPY
-// because FK checks run at end of statement.
+// because FK checks run at end of statement. The files carry ci_method, but the table is
+// core data: the source's methods are read only to point its versions at ours.
 export const SEED_TABLES = [
   'value_type',
   'unit',
@@ -61,22 +62,24 @@ export async function readCsvHeader(file: string): Promise<string[]> {
   throw new Error(`No header row in ${file}`);
 }
 
+/** Loads a table's CSV into that table, or into `into`, such as a staging table. */
 async function loadTable(
   sql: postgres.Sql | postgres.TransactionSql,
   table: string,
   directory: string,
   idleTimeoutMs = COPY_IDLE_TIMEOUT_MS,
   completionTimeoutMs = idleTimeoutMs,
+  into = table,
 ): Promise<number> {
   const file = `${directory}/${table}.csv.gz`;
   const columns = await readCsvHeader(file);
   const columnList = columns.map((c) => `"${c}"`).join(', ');
   const writable = await sql
-    .unsafe(`COPY "${table}" (${columnList}) FROM STDIN WITH (FORMAT csv, HEADER true)`)
+    .unsafe(`COPY "${into}" (${columnList}) FROM STDIN WITH (FORMAT csv, HEADER true)`)
     .writable();
 
   await streamSeedCsv(file, writable, table, idleTimeoutMs, completionTimeoutMs);
-  const rows = await sql.unsafe(`SELECT count(*)::int AS count FROM "${table}"`);
+  const rows = await sql.unsafe(`SELECT count(*)::int AS count FROM "${into}"`);
   const count = Number(rows[0]?.count ?? 0);
   if (count === 0) {
     throw new Error(`COPY into "${table}" loaded no rows — check the seed CSV`);
@@ -230,12 +233,107 @@ async function seedTables(
   idleTimeoutMs = COPY_IDLE_TIMEOUT_MS,
   completionTimeoutMs = idleTimeoutMs,
 ): Promise<Record<string, number>> {
-  const allTables = [...SEED_TABLES, ...READ_MODEL_TABLES].map((t) => `"${t}"`).join(', ');
-  await tx.unsafe(`TRUNCATE ${allTables} CASCADE`);
+  const replaced = [...SEED_TABLES.filter((t) => t !== 'ci_method'), ...READ_MODEL_TABLES];
+  await tx.unsafe(`TRUNCATE ${replaced.map((t) => `"${t}"`).join(', ')} CASCADE`);
 
   const counts: Record<string, number> = {};
   for (const table of SEED_TABLES) {
-    counts[table] = await loadTable(tx, table, directory, idleTimeoutMs, completionTimeoutMs);
+    if (table === 'ci_method') continue;
+
+    if (table === 'indicator_version') {
+      const loaded = await loadIndicatorVersions(tx, directory, idleTimeoutMs, completionTimeoutMs);
+      counts.ci_method = loaded.ciMethods;
+      counts.indicator_version = loaded.versions;
+    } else {
+      counts[table] = await loadTable(tx, table, directory, idleTimeoutMs, completionTimeoutMs);
+    }
   }
   return counts;
+}
+
+/** Pholio's names for the CI methods the service names differently; the rest match as they are. */
+const PHOLIO_CI_METHOD_NAMES: Record<string, string> = {
+  'Normal approximation': 'Wald normal approximation',
+  'Other method - see below': 'Other method',
+};
+
+/**
+ * Loads the versions through staging tables, pointing each at the core CI method its source
+ * method names, and answers how many rows each file held. The source's own method ids exist
+ * nowhere else, so a direct COPY would break the foreign key; a method with no core
+ * counterpart stops the load rather than being dropped.
+ */
+export async function loadIndicatorVersions(
+  tx: postgres.TransactionSql,
+  directory: string,
+  idleTimeoutMs = COPY_IDLE_TIMEOUT_MS,
+  completionTimeoutMs = idleTimeoutMs,
+): Promise<{ ciMethods: number; versions: number }> {
+  await tx`CREATE TEMP TABLE source_ci_method (id uuid, name text, description text) ON COMMIT DROP`;
+  await tx`CREATE TEMP TABLE source_indicator_version (LIKE indicator_version INCLUDING DEFAULTS) ON COMMIT DROP`;
+  const ciMethods = await loadTable(
+    tx,
+    'ci_method',
+    directory,
+    idleTimeoutMs,
+    completionTimeoutMs,
+    'source_ci_method',
+  );
+  await loadTable(
+    tx,
+    'indicator_version',
+    directory,
+    idleTimeoutMs,
+    completionTimeoutMs,
+    'source_indicator_version',
+  );
+
+  const sourceMethods = await tx<{ id: string; name: string }[]>`
+    SELECT DISTINCT s.id, s.name FROM source_ci_method s
+    JOIN source_indicator_version v ON v.ci_method_id = s.id
+  `;
+  const coreMethods = await tx<{ id: string; name: string }[]>`SELECT id, name FROM ci_method`;
+  const coreIds = new Map(coreMethods.map(({ id, name }) => [name, id]));
+  const mapping = sourceMethods.map(({ id, name }) => ({
+    sourceId: id,
+    coreId: coreIds.get(PHOLIO_CI_METHOD_NAMES[name] ?? name),
+    name,
+  }));
+  const unmatched = mapping.filter(({ coreId }) => coreId === undefined).map(({ name }) => name);
+
+  if (unmatched.length > 0) {
+    throw new Error(
+      `No core CI method for ${unmatched.join(', ')}: add it to data/ci-methods.json or map its name here, and run \`db import-core-data\``,
+    );
+  }
+
+  await tx`CREATE TEMP TABLE source_ci_method_map (source_id uuid, core_id uuid) ON COMMIT DROP`;
+  if (mapping.length > 0) {
+    await tx`INSERT INTO source_ci_method_map ${tx(
+      mapping.map(({ sourceId, coreId }) => ({ source_id: sourceId, core_id: coreId })),
+    )}`;
+  }
+
+  const [dangling] = await tx<{ count: number }[]>`
+    SELECT count(*)::int AS count FROM source_indicator_version v
+    WHERE v.ci_method_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM source_ci_method_map m WHERE m.source_id = v.ci_method_id)
+  `;
+
+  if (dangling?.count) {
+    throw new Error(`${dangling.count} seeded versions name a CI method the source does not hold`);
+  }
+
+  const columns = await readCsvHeader(`${directory}/indicator_version.csv.gz`);
+  const columnList = columns.map((c) => `"${c}"`).join(', ');
+  const selectList = columns
+    .map((c) => (c === 'ci_method_id' ? 'm.core_id' : `v."${c}"`))
+    .join(', ');
+  const inserted = await tx.unsafe(`
+    INSERT INTO indicator_version (${columnList})
+    SELECT ${selectList} FROM source_indicator_version v
+    LEFT JOIN source_ci_method_map m ON m.source_id = v.ci_method_id
+  `);
+
+  return { ciMethods, versions: inserted.count };
 }

@@ -1,13 +1,15 @@
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { Router } from 'express';
-
+import { internalCiMethodsRouter } from './ci-methods.ts';
 import { indicatorCalculationRouter } from './indicator-calculation.ts';
+import { indicatorConfidenceIntervalsRouter } from './indicator-confidence-intervals.ts';
 import { indicatorDefinitionAndRationaleRouter } from './indicator-definition-and-rationale.ts';
 import { indicatorPolarityRouter } from './indicator-polarity.ts';
 import { internalIndicatorsRouter } from './indicators.ts';
 import type { InternalRepositories } from './repositories.ts';
 import { internalTopicsRouter } from './topics.ts';
 
+export type { CiMethodRow } from './ci-method-repository.ts';
 export type {
   CreateDraftFromPublishedResult,
   CreatedIndicatorDraft,
@@ -30,6 +32,7 @@ export {
 export { INDICATORS_PAGE_SIZE, internalIndicatorsRouter } from './indicators.ts';
 export {
   createInternalRepositories,
+  type InternalCiMethodRepository,
   type InternalIndicatorRepository,
   type InternalRepositories,
   type InternalTopicRepository,
@@ -58,6 +61,10 @@ export function internalApiRoutes({ repositories, session }: InternalApiDependen
   router.use(indicatorDefinitionAndRationaleRouter(repositories.indicators, session));
   router.use(indicatorPolarityRouter(repositories.indicators, session));
   router.use(indicatorCalculationRouter(repositories.indicators, session));
+  router.use(
+    indicatorConfidenceIntervalsRouter(repositories.indicators, repositories.ciMethods, session),
+  );
+  router.use(internalCiMethodsRouter(repositories.ciMethods, session));
   router.use(internalTopicsRouter(repositories.topics, session));
 
   return router;

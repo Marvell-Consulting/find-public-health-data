@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createDb, type Database } from './client.ts';
 import { dbEnvFields, resolveDbTls } from './env.ts';
 import {
+  ciMethod,
   classification,
   indicator,
   indicatorClassification,
@@ -296,6 +297,23 @@ describe('indicator_version', () => {
   });
 });
 
+describe('ci_method', () => {
+  it('takes a method as standard unless told otherwise', async () => {
+    const [row] = await db
+      .insert(ciMethod)
+      .values({ name: 'A method of no particular kind' })
+      .returning({ kind: ciMethod.kind });
+
+    expect(row?.kind).toBe('standard');
+  });
+
+  it('refuses a kind the publisher form does not know', async () => {
+    await expect(
+      db.execute(sql`INSERT INTO ci_method (name, kind) VALUES ('A strange method', 'strange')`),
+    ).rejects.toMatchObject({ cause: { code: CHECK_VIOLATION } });
+  });
+});
+
 describe('the published views', () => {
   // A new version column must not change the view, or the views built on it with it.
   it('name the current published version by its id alone', async () => {
@@ -397,6 +415,17 @@ describe('the published views', () => {
     )) as unknown as { column_name: string }[];
 
     expect(rows).toEqual([]);
+  });
+
+  it('keep the confidence interval follow-up answers and method kinds off the public surface', async () => {
+    const rows = (await db.execute(
+      sql`SELECT table_name, column_name FROM information_schema.columns
+          WHERE table_schema = 'published'
+            AND (column_name LIKE 'ci_method_%' OR (table_name = 'ci_method' AND column_name = 'kind'))
+          ORDER BY table_name, column_name`,
+    )) as unknown as { table_name: string; column_name: string }[];
+
+    expect(rows).toEqual([{ table_name: 'indicator', column_name: 'ci_method_id' }]);
   });
 
   it('hide a slug only a draft carries', async () => {

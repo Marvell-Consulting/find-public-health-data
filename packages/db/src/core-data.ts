@@ -3,6 +3,11 @@ import { fileURLToPath } from 'node:url';
 
 import type postgres from 'postgres';
 
+import {
+  type CiMethodUpsertResult,
+  parseCiMethodsFile,
+  upsertCiMethods,
+} from './ci-method-core-data.ts';
 import { createDbFromClient } from './client.ts';
 import { parseTopicsFile } from './parse-topics-file.ts';
 import { type UpsertResult, upsertTopics } from './topic-repository.ts';
@@ -10,17 +15,35 @@ import { type UpsertResult, upsertTopics } from './topic-repository.ts';
 // Resolves identically from src/ and from dist/, both of which sit one level under the
 // package root alongside data/.
 const topicsFile = fileURLToPath(new URL('../data/topics.json', import.meta.url));
+const ciMethodsFile = fileURLToPath(new URL('../data/ci-methods.json', import.meta.url));
+
+export interface CoreDataImport {
+  topics: UpsertResult;
+  ciMethods: CiMethodUpsertResult;
+}
+
+function readJson(file: string): unknown {
+  return JSON.parse(readFileSync(file, 'utf-8'));
+}
 
 /**
- * Load the required core content — topics, today — from the committed data files. This is
- * permanent content every environment needs, so unlike the dummy seed it carries no
- * environment gate, and it is idempotent: the upsert keys on stable ids, re-runs are
- * no-ops, and rows absent from the file are reported rather than deleted. Future core
- * reference or content data joins this function rather than growing new commands.
+ * Load the required core content — topics, and the confidence interval methods a publisher
+ * chooses from — from the committed data files. This is permanent content every environment
+ * needs, so unlike the dummy seed it carries no environment gate, and it is idempotent: the
+ * upserts key on stable ids, re-runs are no-ops, and rows absent from a file are reported
+ * rather than deleted. Future core reference or content data joins this function rather
+ * than growing new commands.
  */
-export async function importCoreData(sql: postgres.Sql): Promise<UpsertResult> {
-  const records = parseTopicsFile(JSON.parse(readFileSync(topicsFile, 'utf-8')));
-  return upsertTopics(createDbFromClient(sql), records);
+export async function importCoreData(sql: postgres.Sql): Promise<CoreDataImport> {
+  // Both files are read first, so a bad one fails before anything is written.
+  const topicRecords = parseTopicsFile(readJson(topicsFile));
+  const ciMethodRecords = parseCiMethodsFile(readJson(ciMethodsFile));
+  const db = createDbFromClient(sql);
+
+  return {
+    topics: await upsertTopics(db, topicRecords),
+    ciMethods: await upsertCiMethods(db, ciMethodRecords),
+  };
 }
 
 /**

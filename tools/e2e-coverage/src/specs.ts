@@ -25,6 +25,7 @@ export const PAGE_SPECS: Readonly<Record<string, string>> = {
   '/publish/indicators/:id/definition-and-rationale': 'indicator-definition-and-rationale.spec.ts',
   '/publish/indicators/:id/polarity': 'indicator-polarity.spec.ts',
   '/publish/indicators/:id/calculation': 'indicator-calculation.spec.ts',
+  '/publish/indicators/:id/confidence-intervals': 'indicator-confidence-intervals.spec.ts',
   '/manage': 'manage.spec.ts',
   '/manage/topics': 'manage-topics.spec.ts',
   '/manage/topics/new': 'manage-topics.spec.ts',

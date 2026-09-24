@@ -3,9 +3,10 @@ import { slugify, slugProblem } from '@fphd/utils/slug';
 import { and, asc, count, desc, eq, getTableColumns, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
-import type { DraftStatus, IndicatorStatus } from './contract.ts';
+import type { CiMethodKind, DraftStatus, IndicatorStatus } from './contract.ts';
 
 const {
+  ciMethod,
   currentPublishedVersion,
   indicator,
   indicatorClassification,
@@ -117,6 +118,8 @@ export interface IndicatorDraftStateRow {
   shortId: number;
   /** The draft a publisher is working on, absent while the indicator has none. */
   draft: IndicatorDraftVersion | null;
+  /** What the draft's CI method asks for, which the task list needs to judge its answers. */
+  draftCiMethodKind: CiMethodKind | null;
   indicatorStatus: IndicatorStatus;
   draftStatus: DraftStatus | null;
 }
@@ -131,11 +134,13 @@ export async function getIndicatorDraftState(
       id: indicator.id,
       shortId: indicator.shortId,
       draft: draftVersion,
+      draftCiMethodKind: ciMethod.kind,
       indicatorStatus,
       draftStatus,
     })
     .from(indicator)
     .leftJoin(draftVersion, draftJoin)
+    .leftJoin(ciMethod, eq(ciMethod.id, draftVersion.ciMethodId))
     .leftJoin(currentPublishedVersion, publishedJoin)
     .where(eq(indicator.id, id));
 

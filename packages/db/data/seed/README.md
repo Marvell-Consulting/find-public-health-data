@@ -7,7 +7,9 @@ additions come from the public Fingertips API and are imported through local Pos
 ## What is in it
 
 Reference and registry tables (lookups, dimension types and values, area types, note
-types) are complete. Areas, observations and bridge rows contain:
+types) are complete. `ci_method.csv.gz` is Pholio's list and is not loaded: the methods are
+core data (`../ci-methods.json`), and the seed maps its versions onto them by name. Areas,
+observations and bridge rows contain:
 
 - **12 indicators**, combining broad schema coverage with the prototype's showcase data:
 

@@ -65,12 +65,19 @@ export async function bootstrap({ sql, config }: CommandContext): Promise<void> 
  * production run this too.
  */
 export async function importCoreData({ sql, logger }: CommandContext): Promise<void> {
-  const { summary, orphaned } = await importCoreDataFromFiles(sql);
-  logger.info({ ...summary }, 'Topics imported');
-  for (const topic of orphaned) {
+  const { topics, ciMethods } = await importCoreDataFromFiles(sql);
+  logger.info({ ...topics.summary }, 'Topics imported');
+  for (const topic of topics.orphaned) {
     logger.warn(
       { id: topic.id, slug: topic.slug },
       'Topic in the database but absent from the file; left in place',
+    );
+  }
+  logger.info({ ...ciMethods.summary }, 'CI methods imported');
+  for (const method of ciMethods.orphaned) {
+    logger.warn(
+      { id: method.id, name: method.name },
+      'CI method in the database but absent from the file; left in place',
     );
   }
 }

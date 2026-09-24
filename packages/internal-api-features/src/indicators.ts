@@ -177,7 +177,7 @@ export function internalIndicatorsRouter(
           indicatorStatus: row.indicatorStatus,
           draftStatus: row.draftStatus,
         },
-        draft: row.draft,
+        draft: { ...row.draft, ciMethodKind: row.draftCiMethodKind },
       });
 
       response.status(200).json(body);

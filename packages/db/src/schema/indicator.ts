@@ -2,6 +2,7 @@ import { POLARITIES } from '@fphd/utils/polarity';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
 import { asc, desc, eq, sql } from 'drizzle-orm';
 import {
+  boolean,
   check,
   index,
   integer,
@@ -75,6 +76,11 @@ export const indicatorVersion = pgTable(
     unitId: uuid().references(() => unit.id),
     yearTypeId: uuid().references(() => yearType.id),
     ciMethodId: uuid().references(() => ciMethod.id),
+    // Asked of a standard CI method only, and the modifications only when there were some.
+    ciMethodModified: boolean(),
+    ciMethodModifications: text(),
+    // Asked of an other CI method only.
+    ciMethodOtherDetail: text(),
     polarity: text({ enum: POLARITIES }),
     frequencyId: uuid().references(() => frequency.id),
     comparatorMethodId: uuid().references(() => comparatorMethod.id),

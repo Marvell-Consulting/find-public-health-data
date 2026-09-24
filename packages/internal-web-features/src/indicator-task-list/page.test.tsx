@@ -112,7 +112,21 @@ describe('IndicatorTaskListPage', () => {
       'Name',
       'Definition and rationale',
       'How the indicator was calculated',
+      'Confidence intervals',
     ]);
+  });
+
+  it('links the confidence intervals to their page, with the status the API reports', () => {
+    renderPage({ tasks: { name: 'completed', 'confidence-intervals': 'completed' } });
+
+    const row = group('Metadata').getByRole('link', { name: 'Confidence intervals' });
+
+    expect(row.getAttribute('href')).toBe(
+      `/publish/indicators/${taskList.indicator.id}/confidence-intervals`,
+    );
+    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
+      'Completed',
+    );
   });
 
   it('links the polarity to its page, with the status the API reports', () => {

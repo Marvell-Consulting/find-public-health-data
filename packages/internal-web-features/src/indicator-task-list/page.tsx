@@ -59,7 +59,11 @@ const TASK_GROUPS: readonly TaskGroup[] = [
         title: 'How the indicator was calculated',
         path: sectionPath('calculation'),
       },
-      { key: 'confidence-intervals', title: 'Confidence intervals' },
+      {
+        key: 'confidence-intervals',
+        title: 'Confidence intervals',
+        path: sectionPath('confidence-intervals'),
+      },
       { key: 'benchmarking', title: 'Benchmarking' },
       { key: 'other-notes-and-caveats', title: 'Other notes and caveats' },
       { key: 'links', title: 'Links' },

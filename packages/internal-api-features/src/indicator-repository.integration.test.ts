@@ -107,6 +107,15 @@ async function publishedVersionId(indicatorId: string): Promise<string> {
   return row.id;
 }
 
+async function ciMethodId(name: string): Promise<string> {
+  const [row] = await db
+    .select({ id: schema.ciMethod.id })
+    .from(schema.ciMethod)
+    .where(eq(schema.ciMethod.name, name));
+  if (!row) throw new Error(`The seed holds no CI method named ${name}`);
+  return row.id;
+}
+
 let publications = 0;
 
 /**
@@ -575,6 +584,33 @@ describe('updateIndicatorDraft', () => {
     });
   });
 
+  it('writes the confidence interval answers to the draft', async () => {
+    const created = await newDraft('Confidence intervals answered');
+    const methodId = await ciMethodId("Byar's method");
+
+    const result = await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      {
+        ciMethodId: methodId,
+        ciMethodModified: true,
+        ciMethodModifications: 'Adjusted for clustering',
+        ciMethodOtherDetail: null,
+      },
+      {},
+      ACTOR,
+    );
+
+    expect(result).toEqual({ ok: true });
+    const state = await getIndicatorDraftState(db, created.indicatorId);
+    expect(state?.draft).toMatchObject({
+      ciMethodId: methodId,
+      ciMethodModified: true,
+      ciMethodModifications: 'Adjusted for clustering',
+      ciMethodOtherDetail: null,
+    });
+  });
+
   it('refuses an indicator with no draft', async () => {
     const created = await newDraft('Draftless');
     await db.delete(indicatorVersion).where(eq(indicatorVersion.indicatorId, created.indicatorId));
@@ -657,6 +693,29 @@ describe('createDraftFromPublished', () => {
       .where(eq(indicatorVersion.id, result.versionId));
     expect(draft?.name).toBe(currentName);
     expect(await topicIdsOf(result.versionId)).toEqual([current.id]);
+  });
+
+  it('copies the confidence interval answers of the published version', async () => {
+    const { indicatorId, currentId } = await indicatorWithTwoPublications();
+    const methodId = await ciMethodId('Other method');
+    await db
+      .update(indicatorVersion)
+      .set({ ciMethodId: methodId, ciMethodOtherDetail: 'Bootstrap intervals' })
+      .where(eq(indicatorVersion.id, currentId));
+
+    const result = await createDraftFromPublished(db, indicatorId, ACTOR);
+
+    if (!result.ok) throw new Error('expected a draft');
+    const [draft] = await db
+      .select()
+      .from(indicatorVersion)
+      .where(eq(indicatorVersion.id, result.versionId));
+    expect(draft).toMatchObject({
+      ciMethodId: methodId,
+      ciMethodModified: null,
+      ciMethodModifications: null,
+      ciMethodOtherDetail: 'Bootstrap intervals',
+    });
   });
 
   it('refuses a second draft for the same indicator', async () => {
@@ -744,6 +803,23 @@ describe('getIndicatorDraftState', () => {
 
     expect(state?.draft).toBeNull();
     expect(state).toMatchObject({ indicatorStatus: 'live', draftStatus: null });
+  });
+
+  it("reports the kind of the draft's CI method, and none before one is chosen", async () => {
+    const created = await newDraft('A draft choosing its CI method');
+
+    const before = await getIndicatorDraftState(db, created.indicatorId);
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      { ciMethodId: await ciMethodId('No confidence intervals available') },
+      {},
+      ACTOR,
+    );
+    const after = await getIndicatorDraftState(db, created.indicatorId);
+
+    expect(before?.draftCiMethodKind).toBeNull();
+    expect(after?.draftCiMethodKind).toBe('none');
   });
 
   it('finds nothing for an indicator that does not exist', async () => {

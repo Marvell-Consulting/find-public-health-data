@@ -183,6 +183,59 @@ describe('internal API', () => {
     expect(asInternal.status).toBe(403);
   });
 
+  it('mounts the confidence intervals section behind the publisher role', async () => {
+    const internalRepositories = createFakeInternalRepositories({
+      indicators: {
+        // The handler reads only the section's columns of the draft.
+        findDraftState: vi.fn().mockResolvedValue({
+          draft: {
+            ciMethodId: null,
+            ciMethodModified: null,
+            ciMethodModifications: null,
+            ciMethodOtherDetail: null,
+          },
+        }),
+      },
+    });
+    const app = createTestApp(createFakeRepositories(), internalRepositories);
+    const path =
+      '/api/internal/indicators/00000000-0000-7000-8000-000000000001/confidence-intervals';
+
+    const asPublisher = await request(app)
+      .get(path)
+      .set('Cookie', await createCookie(['public', 'internal', 'publisher']));
+    const asInternal = await request(app)
+      .get(path)
+      .set('Cookie', await createCookie(['public', 'internal']));
+
+    expect(asPublisher.status).toBe(200);
+    expect(asPublisher.body).toEqual({
+      ciMethodId: null,
+      ciMethodModified: null,
+      ciMethodModifications: null,
+      ciMethodOtherDetail: null,
+    });
+    expect(asInternal.status).toBe(403);
+  });
+
+  it('mounts the confidence interval methods behind the publisher role', async () => {
+    const internalRepositories = createFakeInternalRepositories({
+      ciMethods: { list: async () => [] },
+    });
+    const app = createTestApp(createFakeRepositories(), internalRepositories);
+
+    const asPublisher = await request(app)
+      .get('/api/internal/ci-methods')
+      .set('Cookie', await createCookie(['public', 'internal', 'publisher']));
+    const asInternal = await request(app)
+      .get('/api/internal/ci-methods')
+      .set('Cookie', await createCookie(['public', 'internal']));
+
+    expect(asPublisher.status).toBe(200);
+    expect(asPublisher.body).toEqual([]);
+    expect(asInternal.status).toBe(403);
+  });
+
   it('mounts the internal topics surface behind the admin role', async () => {
     const internalRepositories = createFakeInternalRepositories({
       topics: {
