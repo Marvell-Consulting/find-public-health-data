@@ -1,16 +1,9 @@
-import { calculationSection } from '@fphd/internal-api-features/contract';
+import { type CalculationField, calculationSection } from '@fphd/internal-api-features/contract';
 import { firstRadioId, Radios, Textarea } from '@fphd/ui';
 
-import type { FormFailure, FormValues } from '../indicator-section.ts';
-import { IndicatorSectionForm } from '../indicator-section-form.tsx';
-import type { CalculationField } from './loader.ts';
+import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
-interface CalculationPageProps {
-  fieldErrors?: FormFailure<CalculationField>['fieldErrors'] | undefined;
-  values: FormValues<CalculationField>;
-}
-
-export function CalculationPage({ fieldErrors = {}, values }: CalculationPageProps) {
+export function CalculationPage({ fieldErrors = {}, values }: SectionPageProps<CalculationField>) {
   return (
     <IndicatorSectionForm
       fieldErrors={fieldErrors}

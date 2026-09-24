@@ -1,6 +1,14 @@
 import { Button, DocumentTitle, ErrorSummary, GridColumn, GridRow } from '@fphd/ui';
 import type { ReactNode } from 'react';
 
+import type { FormValues } from './indicator-section.ts';
+
+/** What every section page is given: its answers, and any refusals of the last submission. */
+export interface SectionPageProps<Field extends string> {
+  fieldErrors?: Partial<Record<Field, string>> | undefined;
+  values: FormValues<Field>;
+}
+
 interface IndicatorSectionFormProps<Field extends string> {
   /** The page's h1 and its document title. */
   title: string;

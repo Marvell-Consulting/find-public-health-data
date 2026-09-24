@@ -4,6 +4,7 @@ import {
   type IndicatorTaskKey,
   indicatorSectionAnswersSchema,
   indicatorSectionErrorSchema,
+  indicatorSectionFormValues,
   toFieldErrors,
 } from '@fphd/internal-api-features/contract';
 import { apiPath } from '@fphd/web-server/api-client';
@@ -48,11 +49,8 @@ export async function loadIndicatorSection<Field extends string, Values>(
   const answers = await context
     .get(apiContext)
     .get(sectionApiPath(id, section.key), indicatorSectionAnswersSchema(section.fields));
-  const values = Object.fromEntries(
-    section.fields.options.map((field) => [field, answers[field] ?? '']),
-  ) as FormValues<Field>;
 
-  return { id, values };
+  return { id, values: indicatorSectionFormValues(section.fields, answers) };
 }
 
 /**

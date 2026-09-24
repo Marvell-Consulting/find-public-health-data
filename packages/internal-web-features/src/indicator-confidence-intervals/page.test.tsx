@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
+import type { CiMethod } from '@fphd/internal-api-features/contract';
 import { serviceName } from '@fphd/ui';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import type { CiMethod } from './loader.ts';
 import { ConfidenceIntervalsPage } from './page.tsx';
 
 afterEach(() => {

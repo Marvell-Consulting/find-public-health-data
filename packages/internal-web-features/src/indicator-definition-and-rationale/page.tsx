@@ -1,19 +1,15 @@
-import { definitionAndRationaleSection } from '@fphd/internal-api-features/contract';
+import {
+  type DefinitionAndRationaleField,
+  definitionAndRationaleSection,
+} from '@fphd/internal-api-features/contract';
 import { Textarea } from '@fphd/ui';
 
-import type { FormFailure, FormValues } from '../indicator-section.ts';
-import { IndicatorSectionForm } from '../indicator-section-form.tsx';
-import type { DefinitionAndRationaleField } from './loader.ts';
-
-interface DefinitionAndRationalePageProps {
-  fieldErrors?: FormFailure<DefinitionAndRationaleField>['fieldErrors'] | undefined;
-  values: FormValues<DefinitionAndRationaleField>;
-}
+import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
 export function DefinitionAndRationalePage({
   fieldErrors = {},
   values,
-}: DefinitionAndRationalePageProps) {
+}: SectionPageProps<DefinitionAndRationaleField>) {
   return (
     <IndicatorSectionForm
       fieldErrors={fieldErrors}

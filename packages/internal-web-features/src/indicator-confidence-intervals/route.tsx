@@ -1,36 +1,30 @@
-import { backLinkHandle, titleFromPage } from '@fphd/ui';
-import { useActionData, useLoaderData } from 'react-router';
-
-import type { FormFailure } from '../indicator-section.ts';
-import { indicatorTaskListPath } from '../publish-paths.ts';
 import {
   type ConfidenceIntervalsField,
-  loadConfidenceIntervals,
-  saveConfidenceIntervals,
-} from './loader.ts';
+  confidenceIntervalsSection,
+} from '@fphd/internal-api-features/contract';
+import { titleFromPage } from '@fphd/ui';
+import { type ActionFunctionArgs, useLoaderData } from 'react-router';
+
+import { saveIndicatorSection } from '../indicator-section.ts';
+import { sectionBackLinkHandle, useSectionForm } from '../indicator-section-route.ts';
+import { loadConfidenceIntervals } from './loader.ts';
 import { ConfidenceIntervalsPage } from './page.tsx';
 
 export const loader = loadConfidenceIntervals;
 
-export const action = saveConfidenceIntervals;
+// The form checks that a method is chosen; the API checks what that method asks for.
+export const action = (args: ActionFunctionArgs) =>
+  saveIndicatorSection(args, confidenceIntervalsSection);
 
 export const meta = titleFromPage;
 
-export const handle = backLinkHandle<Awaited<ReturnType<typeof loader>>>(({ id }) =>
-  indicatorTaskListPath(id),
-);
+export const handle = sectionBackLinkHandle;
 
 export function ConfidenceIntervalsRoute() {
-  const { methods, values } = useLoaderData<typeof loader>();
-  const rejected = useActionData<FormFailure<ConfidenceIntervalsField> | undefined>();
+  const { methods } = useLoaderData<typeof loader>();
+  const form = useSectionForm<ConfidenceIntervalsField>();
 
-  return (
-    <ConfidenceIntervalsPage
-      fieldErrors={rejected?.fieldErrors}
-      methods={methods}
-      values={rejected?.values ?? values}
-    />
-  );
+  return <ConfidenceIntervalsPage {...form} methods={methods} />;
 }
 
 export default ConfidenceIntervalsRoute;

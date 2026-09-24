@@ -1,20 +1,13 @@
-import { polaritySection } from '@fphd/internal-api-features/contract';
+import { type PolarityField, polaritySection } from '@fphd/internal-api-features/contract';
 import { firstRadioId, Radios } from '@fphd/ui';
 import { POLARITIES, POLARITY_LABELS } from '@fphd/utils/polarity';
 
-import type { FormFailure, FormValues } from '../indicator-section.ts';
-import { IndicatorSectionForm } from '../indicator-section-form.tsx';
-import type { PolarityField } from './loader.ts';
+import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
 const POLARITY_QUESTION = 'What is the polarity of this indicator?';
 
-interface PolarityPageProps {
-  fieldErrors?: FormFailure<PolarityField>['fieldErrors'] | undefined;
-  values: FormValues<PolarityField>;
-}
-
 // The question is the page's h1, inside the legend, where NotGovUK sizes it.
-export function PolarityPage({ fieldErrors = {}, values }: PolarityPageProps) {
+export function PolarityPage({ fieldErrors = {}, values }: SectionPageProps<PolarityField>) {
   const error = fieldErrors.polarity;
 
   return (
