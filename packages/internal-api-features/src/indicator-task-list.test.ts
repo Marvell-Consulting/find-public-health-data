@@ -15,13 +15,14 @@ const source: IndicatorTaskListSource = {
     indicatorStatus: 'new',
     draftStatus: 'draft',
   },
-  draft: { name: 'Life expectancy at birth', definition: null, rationale: null },
+  draft: { name: 'Life expectancy at birth', definition: null, rationale: null, polarity: null },
 };
 
 const complete: IndicatorTaskListDraft = {
   name: 'Life expectancy at birth',
   definition: 'The average number of years a newborn would live.',
   rationale: 'A summary measure of mortality across the whole population.',
+  polarity: 'lower-is-better',
 };
 
 function withDraft(draft: Partial<IndicatorTaskListDraft>): IndicatorTaskListSource {
@@ -64,6 +65,16 @@ describe('indicatorTaskList', () => {
     expect(indicatorTaskList(withDraft(draft)).tasks['definition-and-rationale']).toBe(
       'not_started',
     );
+  });
+
+  it('counts the polarity as complete once one is chosen', () => {
+    expect(indicatorTaskList(withDraft({ polarity: complete.polarity })).tasks.polarity).toBe(
+      'completed',
+    );
+  });
+
+  it('leaves the polarity not started until one is chosen', () => {
+    expect(indicatorTaskList(source).tasks.polarity).toBe('not_started');
   });
 
   it.each([

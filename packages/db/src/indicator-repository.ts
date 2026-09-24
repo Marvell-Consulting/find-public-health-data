@@ -1,3 +1,4 @@
+import type { Polarity } from '@fphd/utils/polarity';
 import { isShortId, SHORT_ID_PATTERN } from '@fphd/utils/short-id';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
 import {
@@ -42,7 +43,6 @@ import {
   publishedObservationDimension as observationDimension,
   publishedObservationNote as observationNote,
   publishedObservationRange as observationRange,
-  publishedPolarity as polarity,
   publishedTopic as topic,
   publishedUnit as unit,
   publishedValueType as valueType,
@@ -174,7 +174,7 @@ export interface IndicatorDetail {
   unit: { name: string; label: string };
   yearType: string;
   frequency: string;
-  polarity: string;
+  polarity: Polarity;
   ciMethod: string | null;
   ciConfidenceLevel: string | null;
   comparatorMethod: string | null;
@@ -247,7 +247,7 @@ export async function getPublishedIndicatorById(
       unitLabel: unit.label,
       yearType: yearType.name,
       frequency: frequency.name,
-      polarity: polarity.name,
+      polarity: indicator.polarity,
       ciMethod: ciMethod.name,
       ciConfidenceLevel: indicator.ciConfidenceLevel,
       comparatorMethod: comparatorMethod.name,
@@ -271,7 +271,6 @@ export async function getPublishedIndicatorById(
     .innerJoin(valueType, eq(indicator.valueTypeId, valueType.id))
     .innerJoin(unit, eq(indicator.unitId, unit.id))
     .innerJoin(yearType, eq(indicator.yearTypeId, yearType.id))
-    .innerJoin(polarity, eq(indicator.polarityId, polarity.id))
     .innerJoin(frequency, eq(indicator.frequencyId, frequency.id))
     .leftJoin(ciMethod, eq(indicator.ciMethodId, ciMethod.id))
     .leftJoin(comparatorMethod, eq(indicator.comparatorMethodId, comparatorMethod.id))
@@ -281,7 +280,8 @@ export async function getPublishedIndicatorById(
     .where(eq(indicator.id, indicatorId))
     .limit(1);
 
-  if (!row) {
+  // The polarity is required as the inner-joined lookups are: without one, nothing is shown.
+  if (!row || row.polarity === null) {
     return undefined;
   }
 

@@ -283,7 +283,7 @@ describe('confidenceInterval', () => {
 
 describe('benchmarkJudgement', () => {
   const ciIndicator = {
-    polarity: 'RAG - Low is good',
+    polarity: 'lower-is-better' as const,
     comparatorMethod: 'Confidence intervals overlapping reference value (95.0 & 99.8)',
   };
 
@@ -307,7 +307,7 @@ describe('benchmarkJudgement', () => {
   it('refuses to judge without a sanctioned comparator or intervals', () => {
     expect(
       benchmarkJudgement(obs({ value: 90, lowerCi95: 85, upperCi95: 95 }), 100, {
-        polarity: 'RAG - Low is good',
+        polarity: 'lower-is-better',
         comparatorMethod: 'No comparison',
       }),
     ).toBe('none');
@@ -317,7 +317,7 @@ describe('benchmarkJudgement', () => {
   });
 
   it('inverts better and worse when high is good', () => {
-    const highGood = { ...ciIndicator, polarity: 'RAG - High is good' };
+    const highGood = { ...ciIndicator, polarity: 'higher-is-better' as const };
     expect(
       benchmarkJudgement(obs({ value: 110, lowerCi95: 105, upperCi95: 115 }), 100, highGood),
     ).toBe('better');
@@ -326,21 +326,21 @@ describe('benchmarkJudgement', () => {
     ).toBe('worse');
   });
 
-  it('reports sides without judgement for BOB polarity', () => {
-    const bob = { polarity: 'BOB - Blue orange blue', comparatorMethod: null };
-    expect(benchmarkJudgement(obs({ value: 90 }), 100, bob)).toBe('lower');
-    expect(benchmarkJudgement(obs({ value: 110 }), 100, bob)).toBe('higher');
-    expect(benchmarkJudgement(obs({ value: 100 }), 100, bob)).toBe('similar');
+  it('reports sides without judgement when neither direction is better', () => {
+    const noPolarity = { polarity: 'no-polarity' as const, comparatorMethod: null };
+    expect(benchmarkJudgement(obs({ value: 90 }), 100, noPolarity)).toBe('lower');
+    expect(benchmarkJudgement(obs({ value: 110 }), 100, noPolarity)).toBe('higher');
+    expect(benchmarkJudgement(obs({ value: 100 }), 100, noPolarity)).toBe('similar');
   });
 
-  it('refuses to judge a polarity that is neither RAG nor BOB', () => {
+  it('refuses to judge where no comparison is possible', () => {
     const observation = obs({ value: 90, lowerCi95: 85, upperCi95: 95 });
     expect(
-      benchmarkJudgement(observation, 100, { polarity: 'Not applicable', comparatorMethod: null }),
+      benchmarkJudgement(observation, 100, {
+        polarity: 'no-comparison-possible',
+        comparatorMethod: null,
+      }),
     ).toBe('none');
-    expect(benchmarkJudgement(observation, 100, { polarity: '', comparatorMethod: null })).toBe(
-      'none',
-    );
   });
 });
 

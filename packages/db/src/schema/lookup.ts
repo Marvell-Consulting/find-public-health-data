@@ -25,11 +25,6 @@ export const ciMethod = pgTable('ci_method', {
   description: text(),
 });
 
-export const polarity = pgTable('polarity', {
-  id: uuidPrimaryKey(),
-  name: text().notNull().unique(),
-});
-
 export const frequency = pgTable('frequency', {
   id: uuidPrimaryKey(),
   name: text().notNull().unique(),

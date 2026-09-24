@@ -127,6 +127,13 @@
       "when": 1790181703508,
       "tag": "0017_narrow-current-published-version",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790182379093,
+      "tag": "0018_indicator-polarity",
+      "breakpoints": true
     }
   ]
 }

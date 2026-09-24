@@ -23,7 +23,6 @@ export const SEED_TABLES = [
   'unit',
   'year_type',
   'ci_method',
-  'polarity',
   'frequency',
   'comparator_method',
   'data_source',

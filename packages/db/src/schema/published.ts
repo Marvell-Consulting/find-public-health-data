@@ -1,3 +1,4 @@
+import { POLARITIES } from '@fphd/utils/polarity';
 import {
   boolean,
   date,
@@ -35,7 +36,7 @@ export const publishedIndicator = publishedSchema
     unitId: uuid('unit_id'),
     yearTypeId: uuid('year_type_id'),
     ciMethodId: uuid('ci_method_id'),
-    polarityId: uuid('polarity_id'),
+    polarity: text('polarity', { enum: POLARITIES }),
     frequencyId: uuid('frequency_id'),
     comparatorMethodId: uuid('comparator_method_id'),
     disclosureThreshold: smallint('disclosure_threshold'),
@@ -125,10 +126,6 @@ export const publishedCiMethod = publishedSchema
     name: text('name').notNull(),
     description: text('description'),
   })
-  .existing();
-
-export const publishedPolarity = publishedSchema
-  .view('polarity', { id: uuid('id').notNull(), name: text('name').notNull() })
   .existing();
 
 export const publishedFrequency = publishedSchema

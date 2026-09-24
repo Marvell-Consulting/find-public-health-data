@@ -51,6 +51,10 @@ export default [
         'publish/indicators/:id/definition-and-rationale',
         '../../../packages/internal-web-features/src/indicator-definition-and-rationale/route.tsx',
       ),
+      route(
+        'publish/indicators/:id/polarity',
+        '../../../packages/internal-web-features/src/indicator-polarity/route.tsx',
+      ),
     ]),
     layout('./admin.tsx', [
       route('manage', './manage.tsx'),

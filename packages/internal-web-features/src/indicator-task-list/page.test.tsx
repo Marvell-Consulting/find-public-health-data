@@ -98,19 +98,31 @@ describe('IndicatorTaskListPage', () => {
   it('shows a task with no form yet as not started, without a link', () => {
     renderPage();
 
-    const polarity = group('Data').getByText('Polarity');
+    const dataQuality = group('Data').getByText('Data quality');
 
-    expect(screen.queryByRole('link', { name: 'Polarity' })).toBeNull();
-    expect(polarity.closest('li')?.textContent).toContain('Not started');
+    expect(screen.queryByRole('link', { name: 'Data quality' })).toBeNull();
+    expect(dataQuality.closest('li')?.textContent).toContain('Not started');
   });
 
   it('links only the tasks that can be worked on today', () => {
     renderPage();
 
     expect(screen.getAllByRole('link').map((link) => link.textContent)).toEqual([
+      'Polarity',
       'Name',
       'Definition and rationale',
     ]);
+  });
+
+  it('links the polarity to its page, with the status the API reports', () => {
+    renderPage({ tasks: { name: 'completed', polarity: 'completed' } });
+
+    const row = group('Data').getByRole('link', { name: 'Polarity' });
+
+    expect(row.getAttribute('href')).toBe(`/publish/indicators/${taskList.indicator.id}/polarity`);
+    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
+      'Completed',
+    );
   });
 
   it('links the definition and rationale to its page, with the status the API reports', () => {

@@ -11,6 +11,12 @@
       "types": "./src/indicator-path.ts",
       "default": "./dist/indicator-path.js"
     },
+    "./polarity": {
+      "browser": "./src/polarity.ts",
+      "development": "./src/polarity.ts",
+      "types": "./src/polarity.ts",
+      "default": "./dist/polarity.js"
+    },
     "./short-id": {
       "browser": "./src/short-id.ts",
       "development": "./src/short-id.ts",

@@ -25,17 +25,17 @@ from slug import slug_problem, slugify
 
 INDICATOR_CONFIG = {
     241: {
-        "polarity": "Not applicable",
+        "polarity": "no-comparison-possible",
         "comparator": "Confidence intervals overlapping reference value (95.0 & 99.8)",
         "confidence": "both",
     },
     93861: {
-        "polarity": "RAG - Low is good",
+        "polarity": "lower-is-better",
         "comparator": "No comparison",
         "confidence": None,
     },
     93995: {
-        "polarity": "RAG - Low is good",
+        "polarity": "lower-is-better",
         "comparator": "Confidence intervals overlapping reference value (95.0 & 99.8)",
         "confidence": "both",
     },
@@ -297,7 +297,7 @@ def add_indicators(cur, metadata):
             """
             INSERT INTO indicator_version
               (id, indicator_id, status, published_at, name, slug, value_type_id, unit_id,
-               year_type_id, ci_method_id, polarity_id, frequency_id, comparator_method_id,
+               year_type_id, ci_method_id, polarity, frequency_id, comparator_method_id,
                ci_confidence_level, config, definition, rationale, methodology,
                numerator_definition, denominator_definition, disclosure_control,
                caveats, notes, data_source_id, numerator_source_id, denominator_source_id,
@@ -317,7 +317,7 @@ def add_indicators(cur, metadata):
                 one_id(cur, "unit", unit_name),
                 one_id(cur, "year_type", item["YearType"]["Name"]),
                 one_id(cur, "ci_method", item["ConfidenceIntervalMethod"]["Name"]),
-                one_id(cur, "polarity", config["polarity"]),
+                config["polarity"],
                 one_id(cur, "frequency", "Annual"),
                 one_id(cur, "comparator_method", config["comparator"]),
                 config["confidence"],
