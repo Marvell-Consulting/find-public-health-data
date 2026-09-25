@@ -129,6 +129,9 @@ catalogs:
     accessible-autocomplete:
       specifier: 3.0.1
       version: 3.0.1
+    basic-auth:
+      specifier: 3.0.0
+      version: 3.0.0
     compression:
       specifier: 1.8.1
       version: 1.8.1
@@ -997,6 +1000,9 @@ importers:
       '@react-router/node':
         specifier: 'catalog:'
         version: 8.3.0(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(typescript@6.0.3)
+      basic-auth:
+        specifier: 'catalog:'
+        version: 3.0.0
       compression:
         specifier: 'catalog:'
         version: 1.8.1
@@ -2619,6 +2625,10 @@ packages:
     resolution: {integrity: sha512-H0ulySigv6icDJ1F7SjtdCD6PrhTpdYCmP0CactWy1+ekh0AFd0o1Wn5T8b+hnTmdBx19u9yhL6wvCylXMY7zw==}
     engines: {node: '>=6.0.0'}
     hasBin: true
+
+  basic-auth@3.0.0:
+    resolution: {integrity: sha512-B63UKsSJ2atgiSuCJvzAjpfAdFY6mYT3C0vZFlLV/81Rw2/VCs6Tp29UzkpKETB3qA2cHwuU1LjBnhUQ0WkPKw==}
+    engines: {node: '>=22'}
 
   bidi-js@1.0.3:
     resolution: {integrity: sha512-RKshQI1R3YQ+n9YJz2QQ147P66ELpa1FQEg20Dk8oW9t2KgLbpDLLp9aGZ7y8WHSshDknG0bknqGw5/tyCs5tw==}
@@ -5114,6 +5124,8 @@ snapshots:
       - supports-color
 
   baseline-browser-mapping@2.11.20: {}
+
+  basic-auth@3.0.0: {}
 
   bidi-js@1.0.3:
     dependencies:

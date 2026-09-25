@@ -101,3 +101,38 @@ describe('React Router production host', () => {
     });
   });
 });
+
+describe('React Router production host with basic auth', () => {
+  const app = createProductionHost({
+    basicAuth: { username: 'preview', password: 'secret' },
+    clientDirectory,
+    logger: createLogger({ name: 'test-web', level: 'silent' }),
+    requestHandler: (_request, response) => {
+      response.status(200).type('html').send('<html><main>Server rendered</main></html>');
+    },
+    serviceName: 'test-web',
+  });
+
+  it.each(['/topics', '/assets/app-123.js'])(
+    'challenges an unauthenticated request for %s',
+    async (path) => {
+      const response = await request(app).get(path);
+
+      expect(response.status).toBe(401);
+      expect(response.headers['www-authenticate']).toMatch(/^Basic /);
+    },
+  );
+
+  it('serves pages to a request with the credentials', async () => {
+    const response = await request(app).get('/topics').auth('preview', 'secret');
+
+    expect(response.status).toBe(200);
+    expect(response.text).toContain('Server rendered');
+  });
+
+  it.each(['/livez', '/readyz'])('leaves the probe at %s open', async (path) => {
+    const response = await request(app).get(path);
+
+    expect(response.status).toBe(200);
+  });
+});

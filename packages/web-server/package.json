@@ -77,6 +77,7 @@
     "@fphd/logger": "workspace:*",
     "@react-router/express": "catalog:",
     "@react-router/node": "catalog:",
+    "basic-auth": "catalog:",
     "compression": "catalog:",
     "express": "catalog:",
     "isbot": "catalog:",

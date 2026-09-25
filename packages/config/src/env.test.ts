@@ -344,4 +344,47 @@ describe('loadWebServerConfig', () => {
       loadWebServerConfig({ APP_ENV: 'local', API_URL: 'not-a-url', ...secrets }, defaults),
     ).toThrow(/API_URL/);
   });
+
+  it('leaves basic auth off when neither credential is set', () => {
+    expect(loadWebServerConfig({ APP_ENV: 'local', ...secrets }, defaults).basicAuth).toBe(
+      undefined,
+    );
+  });
+
+  it('turns basic auth on when both credentials are set', () => {
+    expect(
+      loadWebServerConfig(
+        {
+          APP_ENV: 'dev',
+          BASIC_AUTH_USERNAME: 'preview',
+          BASIC_AUTH_PASSWORD: 'pass:word',
+          ...secrets,
+        },
+        defaults,
+      ).basicAuth,
+    ).toEqual({ username: 'preview', password: 'pass:word' });
+  });
+
+  it.each([{ BASIC_AUTH_USERNAME: 'preview' }, { BASIC_AUTH_PASSWORD: 'password' }])(
+    'refuses one basic auth credential without the other: %o',
+    (credential) => {
+      expect(() =>
+        loadWebServerConfig({ APP_ENV: 'dev', ...credential, ...secrets }, defaults),
+      ).toThrow(/must be set together/);
+    },
+  );
+
+  it('refuses a basic auth username containing a colon', () => {
+    expect(() =>
+      loadWebServerConfig(
+        {
+          APP_ENV: 'dev',
+          BASIC_AUTH_USERNAME: 'pre:view',
+          BASIC_AUTH_PASSWORD: 'password',
+          ...secrets,
+        },
+        defaults,
+      ),
+    ).toThrow(/BASIC_AUTH_USERNAME/);
+  });
 });
