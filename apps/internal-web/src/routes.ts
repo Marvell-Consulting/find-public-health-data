@@ -56,6 +56,10 @@ export default [
         '../../../packages/internal-web-features/src/indicator-polarity/route.tsx',
       ),
       route(
+        'publish/indicators/:id/data-quality',
+        '../../../packages/internal-web-features/src/indicator-data-quality/route.tsx',
+      ),
+      route(
         'publish/indicators/:id/calculation',
         '../../../packages/internal-web-features/src/indicator-calculation/route.tsx',
       ),

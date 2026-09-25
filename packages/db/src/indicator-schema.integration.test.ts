@@ -533,6 +533,15 @@ describe('the published views', () => {
     expect(rows).toEqual([]);
   });
 
+  it('keep whether there are data quality issues off the public surface', async () => {
+    const rows = (await db.execute(
+      sql`SELECT table_name, column_name FROM information_schema.columns
+          WHERE table_schema = 'published' AND column_name LIKE 'data_quality%'`,
+    )) as unknown as { table_name: string; column_name: string }[];
+
+    expect(rows).toEqual([]);
+  });
+
   it('hide a slug only a draft carries', async () => {
     const indicatorId = await newIndicatorId();
     await addVersion(indicatorId, 'draft', { slug: 'an-unpublished-slug' });

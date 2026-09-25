@@ -688,6 +688,18 @@ describe('updateIndicatorDraft', () => {
     expect(state?.draft).toMatchObject(answers);
   });
 
+  it('writes whether there are data quality issues to the draft', async () => {
+    const created = await newDraft('Data quality answered');
+
+    await updateIndicatorDraft(db, created.indicatorId, { dataQualityIssues: true }, {}, ACTOR);
+    const yes = await getIndicatorDraftState(db, created.indicatorId);
+    await updateIndicatorDraft(db, created.indicatorId, { dataQualityIssues: false }, {}, ACTOR);
+    const no = await getIndicatorDraftState(db, created.indicatorId);
+
+    expect(yes?.draft?.dataQualityIssues).toBe(true);
+    expect(no?.draft?.dataQualityIssues).toBe(false);
+  });
+
   it('refuses an indicator with no draft', async () => {
     const created = await newDraft('Draftless');
     await db.delete(indicatorVersion).where(eq(indicatorVersion.indicatorId, created.indicatorId));
@@ -745,6 +757,19 @@ describe('createDraftFromPublished', () => {
 
     const state = await getIndicatorDraftState(db, indicatorId);
     expect(state?.draft).toMatchObject({ calculatedBy: 'other', calculatedByOther: 'ONS' });
+  });
+
+  it('copies whether the published version has data quality issues', async () => {
+    const { indicatorId, currentId } = await indicatorWithTwoPublications();
+    await db
+      .update(indicatorVersion)
+      .set({ dataQualityIssues: true })
+      .where(eq(indicatorVersion.id, currentId));
+
+    await createDraftFromPublished(db, indicatorId, ACTOR);
+
+    const state = await getIndicatorDraftState(db, indicatorId);
+    expect(state?.draft?.dataQualityIssues).toBe(true);
   });
 
   it('copies the most recently published version, not the superseded one', async () => {

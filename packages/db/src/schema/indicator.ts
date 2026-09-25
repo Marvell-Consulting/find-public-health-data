@@ -111,6 +111,7 @@ export const indicatorVersion = pgTable(
     caveatsDetail: text(),
     otherNotesNeeded: boolean(),
     otherNotesDetail: text(),
+    dataQualityIssues: boolean(),
     // Notes for reviewers, never published.
     variation: text(),
     qualityAssurance: text(),

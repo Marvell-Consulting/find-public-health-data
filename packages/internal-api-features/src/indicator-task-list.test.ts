@@ -46,6 +46,7 @@ const source: IndicatorTaskListSource = {
     qualityAssurance: null,
     sourceDataIssues: null,
     sourceDataIssuesDetail: null,
+    dataQualityIssues: null,
   },
 };
 
@@ -78,6 +79,7 @@ const complete: IndicatorTaskListDraft = {
   qualityAssurance: 'Checked against the published ONS figures.',
   sourceDataIssues: true,
   sourceDataIssuesDetail: 'Late returns from two areas.',
+  dataQualityIssues: false,
 };
 
 function withDraft(draft: Partial<IndicatorTaskListDraft>): IndicatorTaskListSource {
@@ -130,6 +132,16 @@ describe('indicatorTaskList', () => {
 
   it('leaves the polarity not started until one is chosen', () => {
     expect(indicatorTaskList(source).tasks.polarity).toBe('not_started');
+  });
+
+  it.each([true, false])('counts data quality as complete once answered, %s', (answer) => {
+    const state = indicatorTaskList(withDraft({ dataQualityIssues: answer }));
+
+    expect(state.tasks['data-quality']).toBe('completed');
+  });
+
+  it('leaves data quality not started until answered', () => {
+    expect(indicatorTaskList(source).tasks['data-quality']).toBe('not_started');
   });
 
   it('counts the update frequency as complete once one is chosen', () => {

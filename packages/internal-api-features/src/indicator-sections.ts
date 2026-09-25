@@ -10,7 +10,10 @@ import {
   type ConfidenceIntervalsField,
   calculationSection,
   confidenceIntervalsSection,
+  type DataQualityField,
+  dataQualitySection,
   definitionAndRationaleSection,
+  type IndicatorDataQuality,
   type Links,
   type LinksAnswers,
   type LinksField,
@@ -91,6 +94,11 @@ export const confidenceIntervalsColumns: IndicatorSectionColumns<
       ciMethodOtherDetail: kind === 'other' ? ciMethodOtherDetail : null,
     };
   },
+};
+
+export const dataQualityColumns: IndicatorSectionColumns<DataQualityField, IndicatorDataQuality> = {
+  fromDraft: (draft) => ({ dataQualityIssues: yesNoAnswer(draft.dataQualityIssues) }),
+  toAttributes: ({ dataQualityIssues }) => ({ dataQualityIssues: dataQualityIssues === 'yes' }),
 };
 
 const otherNotesAndCaveatsAnswers = yesNoDetailColumns(
@@ -291,6 +299,7 @@ export function indicatorSectionsRouter(
       definitionAndRationaleColumns,
     ),
     indicatorSectionRouter(indicators, session, polaritySection, polarityColumns),
+    indicatorSectionRouter(indicators, session, dataQualitySection, dataQualityColumns),
     indicatorSectionRouter(indicators, session, calculationSection, calculationColumns),
     indicatorSectionRouter(
       indicators,

@@ -52,6 +52,8 @@ describe('public API', () => {
     ['put', `/api/internal/indicators/${anyId}/definition-and-rationale`],
     ['get', `/api/internal/indicators/${anyId}/polarity`],
     ['put', `/api/internal/indicators/${anyId}/polarity`],
+    ['get', `/api/internal/indicators/${anyId}/data-quality`],
+    ['put', `/api/internal/indicators/${anyId}/data-quality`],
     ['get', `/api/internal/indicators/${anyId}/calculation`],
     ['put', `/api/internal/indicators/${anyId}/calculation`],
     ['get', `/api/internal/indicators/${anyId}/confidence-intervals`],
