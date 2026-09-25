@@ -43,6 +43,7 @@ function groupError(
 // Each group shows its first message and marks only the parts given one.
 export function PublishingDatePage({
   fieldErrors = {},
+  formError,
   values,
 }: SectionPageProps<PublishingDateField>) {
   const dateError = groupError(fieldErrors, DATE);
@@ -50,6 +51,7 @@ export function PublishingDatePage({
   return (
     <IndicatorSectionForm
       fieldErrors={fieldErrors}
+      formError={formError}
       fieldIds={eachPart(datePartId)}
       fields={publishingDateSection.fields.options}
       title="When should this indicator be published?"

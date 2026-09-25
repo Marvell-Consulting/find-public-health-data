@@ -6,6 +6,7 @@ import type { FormValues } from './indicator-section.ts';
 /** What every section page is given: its answers, and any refusals of the last submission. */
 export interface SectionPageProps<Field extends string, Values = FormValues<Field>> {
   fieldErrors?: Partial<Record<Field, string>> | undefined;
+  formError?: string | undefined;
   values: Values;
 }
 
@@ -17,6 +18,8 @@ interface IndicatorSectionFormProps<Field extends string> {
   /** Every field, in the order the form asks them, which the error summary follows. */
   fields: readonly Field[];
   fieldErrors: Partial<Record<Field, string>>;
+  /** Required, so no page can drop a refusal that names no field. */
+  formError: string | undefined;
   /** Where a summary link goes when it is not the field's own input, such as `firstRadioId`. */
   fieldIds?: Partial<Record<Field, string>>;
   children: ReactNode;
@@ -28,6 +31,7 @@ export function IndicatorSectionForm<Field extends string>({
   fieldErrors,
   fieldIds = {},
   fields,
+  formError,
   questionIsHeading = false,
   title,
 }: IndicatorSectionFormProps<Field>) {
@@ -40,8 +44,8 @@ export function IndicatorSectionForm<Field extends string>({
 
   return (
     <>
-      <DocumentTitle hasErrors={errors.length > 0} pageTitle={title} />
-      <ErrorSummary errors={errors} />
+      <DocumentTitle hasErrors={errors.length > 0 || formError !== undefined} pageTitle={title} />
+      <ErrorSummary errors={errors} formError={formError} />
       <GridRow>
         <GridColumn width="two-thirds">
           {questionIsHeading ? null : <h1 className="govuk-heading-xl">{title}</h1>}

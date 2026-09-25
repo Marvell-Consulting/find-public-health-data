@@ -7,12 +7,17 @@ import { IndicatorSectionForm, type SectionPageProps } from '../indicator-sectio
 const POLARITY_QUESTION = 'What is the polarity of this indicator?';
 
 // The question is the page's h1, inside the legend, where NotGovUK sizes it.
-export function PolarityPage({ fieldErrors = {}, values }: SectionPageProps<PolarityField>) {
+export function PolarityPage({
+  fieldErrors = {},
+  formError,
+  values,
+}: SectionPageProps<PolarityField>) {
   const error = fieldErrors.polarity;
 
   return (
     <IndicatorSectionForm
       fieldErrors={fieldErrors}
+      formError={formError}
       fieldIds={{ polarity: firstRadioId('polarity') }}
       fields={polaritySection.fields.options}
       questionIsHeading

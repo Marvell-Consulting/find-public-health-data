@@ -16,16 +16,17 @@ import {
   redirect,
 } from 'react-router';
 
+import { type FormRefusal, formRefusal } from './form-refusal.ts';
 import { requireIndicatorId } from './indicator-id.ts';
 import { indicatorTaskListPath } from './publish-paths.ts';
 
 /** A form's fields as text, which is what the page renders into its controls. */
 export type FormValues<Field extends string> = Record<Field, string>;
 
-/** A rejected submission: the form as it was sent, and a message for each field refused. */
-export interface FormFailure<Field extends string, Values = FormValues<Field>> {
+/** A rejected submission: the form as it was sent, and why it was refused. */
+export interface FormFailure<Field extends string, Values = FormValues<Field>>
+  extends FormRefusal<Field> {
   values: Values;
-  fieldErrors: Partial<Record<Field, string>>;
 }
 
 /** The name of each control whose name is not its field's, such as a part of a date. */
@@ -85,7 +86,7 @@ export async function putIndicatorSection<Field extends string, Values, Input>(
   section: IndicatorSection<Field, Values, Input>,
   answers: Values,
   answersSchema: ApiResponseSchema<unknown>,
-): Promise<Response | { fieldErrors: Partial<Record<Field, string>> }> {
+): Promise<Response | FormRefusal<Field>> {
   const result = await context
     .get(apiContext)
     .put(
@@ -95,9 +96,7 @@ export async function putIndicatorSection<Field extends string, Values, Input>(
       indicatorSectionErrorSchema(section.fields),
     );
 
-  return result.ok
-    ? redirect(indicatorTaskListPath(id))
-    : { fieldErrors: result.error.fieldErrors ?? {} };
+  return result.ok ? redirect(indicatorTaskListPath(id)) : formRefusal(result.error);
 }
 
 /**

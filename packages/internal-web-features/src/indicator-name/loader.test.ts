@@ -3,6 +3,7 @@ import { apiContext } from '@fphd/web-server/api-context';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
+import { FORM_NOT_SAVED } from '../form-refusal.ts';
 import { createIndicator, loadIndicatorName, saveIndicatorName } from './loader.ts';
 
 const created = {
@@ -106,14 +107,20 @@ describe('createIndicator', () => {
     });
   });
 
-  it('reports a refusal that names no field as a form with no field errors', async () => {
-    const post = vi
-      .fn()
-      .mockResolvedValue({ ok: false, status: 400, error: { error: 'validation_failed' } });
+  it('reports a refusal that names no field as the form not saved', async () => {
+    const post = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      error: { error: 'validation_failed', fieldErrors: {} },
+    });
 
     const outcome = await submit('Rejected name', post);
 
-    expect(outcome).toEqual({ values: { name: 'Rejected name' }, fieldErrors: {} });
+    expect(outcome).toEqual({
+      values: { name: 'Rejected name' },
+      fieldErrors: {},
+      formError: FORM_NOT_SAVED,
+    });
   });
 });
 
@@ -231,6 +238,21 @@ describe('saveIndicatorName', () => {
     expect(outcome).toEqual({
       values: { name: 'Life expectancy at birth' },
       fieldErrors: { name: 'An indicator with this name already exists' },
+    });
+  });
+
+  it.each([
+    ['an id', { error: 'invalid_id' }],
+    ['no field', { error: 'validation_failed', fieldErrors: {} }],
+  ])('reports a refusal naming %s as the form not saved', async (_case, error) => {
+    const patch = vi.fn().mockResolvedValue({ ok: false, status: 400, error });
+
+    const outcome = await rename(created.id, 'Rejected name', patch);
+
+    expect(outcome).toEqual({
+      values: { name: 'Rejected name' },
+      fieldErrors: {},
+      formError: FORM_NOT_SAVED,
     });
   });
 

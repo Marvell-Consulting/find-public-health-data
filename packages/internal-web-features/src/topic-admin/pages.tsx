@@ -100,16 +100,24 @@ function TopicFields({ fieldErrors, values, submitLabel }: TopicFieldsProps) {
 
 interface NewTopicPageProps {
   fieldErrors?: TopicFieldErrors | undefined;
+  formError?: string | undefined;
   values?: TopicFormValues | undefined;
 }
 
-export function NewTopicPage({ fieldErrors = {}, values = EMPTY_VALUES }: NewTopicPageProps) {
+export function NewTopicPage({
+  fieldErrors = {},
+  formError,
+  values = EMPTY_VALUES,
+}: NewTopicPageProps) {
   const errors = toErrorSummary(fieldErrors);
 
   return (
     <>
-      <DocumentTitle hasErrors={errors.length > 0} pageTitle="Add a topic" />
-      <ErrorSummary errors={errors} />
+      <DocumentTitle
+        hasErrors={errors.length > 0 || formError !== undefined}
+        pageTitle="Add a topic"
+      />
+      <ErrorSummary errors={errors} formError={formError} />
       <PageIntro title="Add a topic">
         <TopicFields fieldErrors={fieldErrors} submitLabel="Create topic" values={values} />
         <p className="govuk-body">
@@ -122,6 +130,7 @@ export function NewTopicPage({ fieldErrors = {}, values = EMPTY_VALUES }: NewTop
 
 interface EditTopicPageProps {
   fieldErrors?: TopicFieldErrors;
+  formError?: string | undefined;
   notification?: string | undefined;
   topicId: string;
   values: TopicFormValues;
@@ -129,6 +138,7 @@ interface EditTopicPageProps {
 
 export function EditTopicPage({
   fieldErrors = {},
+  formError,
   notification,
   topicId,
   values,
@@ -137,13 +147,16 @@ export function EditTopicPage({
 
   return (
     <>
-      <DocumentTitle hasErrors={errors.length > 0} pageTitle="Edit topic" />
+      <DocumentTitle
+        hasErrors={errors.length > 0 || formError !== undefined}
+        pageTitle="Edit topic"
+      />
       {notification === undefined ? null : (
         <NotificationBanner disableAutoFocus type="success">
           {notification}
         </NotificationBanner>
       )}
-      <ErrorSummary errors={errors} />
+      <ErrorSummary errors={errors} formError={formError} />
       <PageIntro title="Edit topic">
         <TopicFields fieldErrors={fieldErrors} submitLabel="Save" values={values} />
         <p className="govuk-body">

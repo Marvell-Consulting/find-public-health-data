@@ -4,6 +4,7 @@ import { renderToString } from 'react-dom/server';
 import { createRoutesStub, Meta, type MetaFunction, Outlet } from 'react-router';
 import { describe, expect, it } from 'vitest';
 
+import { FORM_NOT_SAVED } from './form-refusal.ts';
 import * as calculation from './indicator-calculation/route.tsx';
 import * as confidenceIntervals from './indicator-confidence-intervals/route.tsx';
 import * as definitionAndRationale from './indicator-definition-and-rationale/route.tsx';
@@ -247,5 +248,17 @@ describe.each(forms)('the $name form', (form) => {
     expect(titlesIn(renderDocument(form, form.rejected))).toEqual([
       `Error: ${form.pageTitle} - ${serviceName} - GOV.UK`,
     ]);
+  });
+
+  it('server-renders a refusal that names no field in the summary, titled "Error: "', () => {
+    const html = renderDocument(form, {
+      ...(form.rejected as object),
+      fieldErrors: {},
+      formError: FORM_NOT_SAVED,
+    });
+
+    expect(titlesIn(html)).toEqual([`Error: ${form.pageTitle} - ${serviceName} - GOV.UK`]);
+    expect(html).toMatch(/class="govuk-error-summary"/);
+    expect(html).toContain(FORM_NOT_SAVED);
   });
 });

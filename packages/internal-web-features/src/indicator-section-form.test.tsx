@@ -20,6 +20,7 @@ function renderForm(props: Partial<Props> = {}) {
         fields={['answer', 'choice']}
         fieldErrors={fieldErrors}
         fieldIds={{ choice: firstRadioId('choice') }}
+        formError={undefined}
         title="A section"
         {...props}
       >
@@ -74,6 +75,17 @@ describe('IndicatorSectionForm', () => {
     const links = within(screen.getByRole('alert')).getAllByRole('link');
 
     expect(links.map((link) => link.textContent)).toEqual(['Enter an answer', 'Choose one']);
+    expect(document.title).toBe(`Error: A section - ${serviceName} - GOV.UK`);
+  });
+
+  it('summarises a refusal naming no field as an unlinked message, with an "Error: " title', () => {
+    renderForm({ formError: 'Your answers could not be saved. Try again.' });
+
+    const summary = within(screen.getByRole('alert'));
+
+    expect(summary.getByText('Your answers could not be saved. Try again.')).toBeTruthy();
+    expect(summary.queryAllByRole('link')).toEqual([]);
+    expect(document.querySelector('.govuk-form-group--error')).toBeNull();
     expect(document.title).toBe(`Error: A section - ${serviceName} - GOV.UK`);
   });
 

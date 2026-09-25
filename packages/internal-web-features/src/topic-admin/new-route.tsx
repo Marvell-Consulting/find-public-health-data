@@ -13,7 +13,13 @@ export const handle = backLinkHandle(TOPICS_ADMIN_PATH);
 export function NewTopicRoute() {
   const rejected = useActionData<SaveTopicFailure | undefined>();
 
-  return <NewTopicPage fieldErrors={rejected?.fieldErrors} values={rejected?.values} />;
+  return (
+    <NewTopicPage
+      fieldErrors={rejected?.fieldErrors}
+      formError={rejected?.formError}
+      values={rejected?.values}
+    />
+  );
 }
 
 export default NewTopicRoute;

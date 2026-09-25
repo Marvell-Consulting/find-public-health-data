@@ -27,6 +27,7 @@ const OPTIONS = [
 // The question is the page's h1, inside the legend, where NotGovUK sizes it.
 export function UpdateFrequencyPage({
   fieldErrors = {},
+  formError,
   values,
 }: SectionPageProps<UpdateFrequencyField>) {
   const error = fieldErrors.updateFrequency;
@@ -34,6 +35,7 @@ export function UpdateFrequencyPage({
   return (
     <IndicatorSectionForm
       fieldErrors={fieldErrors}
+      formError={formError}
       fieldIds={{ updateFrequency: firstRadioId('updateFrequency') }}
       fields={updateFrequencySection.fields.options}
       questionIsHeading

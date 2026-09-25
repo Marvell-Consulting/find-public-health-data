@@ -11,12 +11,17 @@ const INDICATOR_NAME_HEADING = 'What is the name of the indicator?';
 
 interface IndicatorNamePageProps {
   fieldErrors?: IndicatorNameFailure['fieldErrors'] | undefined;
+  formError?: string | undefined;
   name?: string | undefined;
 }
 
 // The heading is the field's label, as GOV.UK asks of a page with a single question, so the
 // form group is assembled here rather than taken whole from TextInput.
-export function IndicatorNamePage({ fieldErrors = {}, name = '' }: IndicatorNamePageProps) {
+export function IndicatorNamePage({
+  fieldErrors = {},
+  formError,
+  name = '',
+}: IndicatorNamePageProps) {
   const error = fieldErrors[NAME_FIELD];
   const inputId = fieldInputId(NAME_FIELD);
 
@@ -24,6 +29,7 @@ export function IndicatorNamePage({ fieldErrors = {}, name = '' }: IndicatorName
     <IndicatorSectionForm
       fieldErrors={fieldErrors}
       fields={[NAME_FIELD]}
+      formError={formError}
       questionIsHeading
       title={INDICATOR_NAME_HEADING}
     >

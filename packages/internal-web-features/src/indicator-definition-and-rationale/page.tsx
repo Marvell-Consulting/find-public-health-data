@@ -8,11 +8,13 @@ import { IndicatorSectionForm, type SectionPageProps } from '../indicator-sectio
 
 export function DefinitionAndRationalePage({
   fieldErrors = {},
+  formError,
   values,
 }: SectionPageProps<DefinitionAndRationaleField>) {
   return (
     <IndicatorSectionForm
       fieldErrors={fieldErrors}
+      formError={formError}
       fields={definitionAndRationaleSection.fields.options}
       title="Definition and rationale"
     >
