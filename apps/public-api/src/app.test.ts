@@ -68,6 +68,8 @@ describe('public API', () => {
     ['put', `/api/internal/indicators/${anyId}/variance-and-quality`],
     ['get', `/api/internal/indicators/${anyId}/justifications`],
     ['put', `/api/internal/indicators/${anyId}/justifications`],
+    ['get', `/api/internal/indicators/${anyId}/other-comments`],
+    ['put', `/api/internal/indicators/${anyId}/other-comments`],
     ['get', '/api/internal/ci-methods'],
     ['get', '/api/internal/topics'],
     ['post', '/api/internal/topics'],

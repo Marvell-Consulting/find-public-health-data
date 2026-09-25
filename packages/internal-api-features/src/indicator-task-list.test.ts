@@ -53,6 +53,9 @@ const source: IndicatorTaskListSource = {
     exclusionsDetail: null,
     automationUsed: null,
     automationDetail: null,
+    sponsorsAndStakeholders: null,
+    hasReviewerComments: null,
+    reviewerCommentsDetail: null,
   },
 };
 
@@ -92,6 +95,9 @@ const complete: IndicatorTaskListDraft = {
   exclusionsDetail: null,
   automationUsed: true,
   automationDetail: 'The shared indicator pipeline.',
+  sponsorsAndStakeholders: 'The national screening committee.',
+  hasReviewerComments: false,
+  reviewerCommentsDetail: null,
 };
 
 function withDraft(draft: Partial<IndicatorTaskListDraft>): IndicatorTaskListSource {
@@ -283,6 +289,21 @@ describe('indicatorTaskList', () => {
     ['automation used without its details', { ...complete, automationDetail: null }],
   ] as const)('leaves the justifications not started with %s', (_, draft) => {
     expect(indicatorTaskList(withDraft(draft)).tasks.justifications).toBe('not_started');
+  });
+
+  it.each([
+    ['every question answered', complete],
+    ['no sponsors or stakeholders', { ...complete, sponsorsAndStakeholders: null }],
+  ] as const)('counts the other comments as complete with %s', (_, draft) => {
+    expect(indicatorTaskList(withDraft(draft)).tasks['other-comments']).toBe('completed');
+  });
+
+  it.each([
+    ['nothing', {}],
+    ['comments unanswered', { ...complete, hasReviewerComments: null }],
+    ['comments without their details', { ...complete, hasReviewerComments: true }],
+  ] as const)('leaves the other comments not started with %s', (_, draft) => {
+    expect(indicatorTaskList(withDraft(draft)).tasks['other-comments']).toBe('not_started');
   });
 
   it.each([

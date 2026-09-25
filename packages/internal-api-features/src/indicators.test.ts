@@ -566,6 +566,9 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
       exclusionsDetail: null,
       automationUsed: null,
       automationDetail: null,
+      sponsorsAndStakeholders: null,
+      hasReviewerComments: null,
+      reviewerCommentsDetail: null,
     },
     draftCiMethodKind: null,
     indicatorStatus: 'new',
@@ -621,6 +624,7 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
         links: 'not_started',
         'variance-and-quality': 'not_started',
         justifications: 'not_started',
+        'other-comments': 'not_started',
       },
     });
   });
