@@ -81,6 +81,8 @@ async function addVersion(
       | 'caveatsDetail'
       | 'otherNotesNeeded'
       | 'otherNotesDetail'
+      | 'sourceDataIssues'
+      | 'sourceDataIssuesDetail'
     >
   > = {},
 ) {
@@ -332,6 +334,11 @@ describe('indicator_version', () => {
     ['caveats of nobody', { caveatsDetail: 'Survey data' }],
     ['caveats not needed', { caveatsNeeded: false, caveatsDetail: 'Survey data' }],
     ['other notes not needed', { otherNotesNeeded: false, otherNotesDetail: 'Revised' }],
+    ['source data issues of nobody', { sourceDataIssuesDetail: 'Late returns' }],
+    [
+      'source data without issues',
+      { sourceDataIssues: false, sourceDataIssuesDetail: 'Late returns' },
+    ],
   ] as const)('refuses a detail beside %s', async (_, values) => {
     await expect(addVersion(await newIndicatorId(), 'draft', values)).rejects.toMatchObject({
       cause: { code: CHECK_VIOLATION },
@@ -345,6 +352,8 @@ describe('indicator_version', () => {
         disclosureControlDetail: 'Suppressed',
         caveatsNeeded: true,
         caveatsDetail: 'Survey data',
+        sourceDataIssues: true,
+        sourceDataIssuesDetail: 'Late returns',
       }),
     ).resolves.toHaveLength(1);
     await expect(
@@ -512,6 +521,16 @@ describe('the published views', () => {
       'caveats_detail',
       'other_notes_detail',
     ]);
+  });
+
+  it('keep the notes for reviewers off the public surface', async () => {
+    const rows = (await db.execute(
+      sql`SELECT column_name FROM information_schema.columns
+          WHERE table_schema = 'published'
+            AND column_name IN ('variation', 'quality_assurance', 'source_data_issues', 'source_data_issues_detail')`,
+    )) as unknown as { column_name: string }[];
+
+    expect(rows).toEqual([]);
   });
 
   it('hide a slug only a draft carries', async () => {

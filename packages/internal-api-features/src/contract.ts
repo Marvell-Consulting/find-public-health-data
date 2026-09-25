@@ -213,6 +213,7 @@ export const indicatorTaskKeySchema = z.enum([
   'other-notes-and-caveats',
   'publishing-date',
   'links',
+  'variance-and-quality',
 ]);
 
 export const indicatorTaskStatusesSchema = z.partialRecord(
@@ -262,3 +263,4 @@ export * from './indicator-polarity-contract.ts';
 export * from './indicator-publishing-date-contract.ts';
 export * from './indicator-section-contract.ts';
 export * from './indicator-update-frequency-contract.ts';
+export * from './indicator-variance-and-quality-contract.ts';

@@ -8,7 +8,11 @@ import type {
   IndicatorDraftAttributes,
   IndicatorDraftLists,
 } from './indicator-repository.ts';
-import type { IndicatorSection, IndicatorSectionFields } from './indicator-section-contract.ts';
+import type {
+  DetailedQuestion,
+  IndicatorSection,
+  IndicatorSectionFields,
+} from './indicator-section-contract.ts';
 import type { InternalIndicatorRepository } from './repositories.ts';
 
 /** The draft columns a section writes: never the name, whose slug is the name page's concern. */
@@ -39,6 +43,10 @@ export type IndicatorSectionDraft = Pick<
   | 'scheduledPublishAtUk'
   | 'hasLinks'
   | 'links'
+  | 'variation'
+  | 'qualityAssurance'
+  | 'sourceDataIssues'
+  | 'sourceDataIssuesDetail'
 >;
 
 /**
@@ -75,6 +83,69 @@ export function sameNamedColumns<
         string | null
       >,
     toAttributes: (values) => values,
+  };
+}
+
+/** The draft's yes/no columns, which a form answers "yes" or "no". */
+type BooleanColumn = {
+  [Column in keyof IndicatorSectionDraft]: IndicatorSectionDraft[Column] extends boolean | null
+    ? Column
+    : never;
+}[keyof IndicatorSectionDraft];
+
+/** A stored yes/no as the form answers it. */
+export function yesNoAnswer(answer: boolean | null): 'yes' | 'no' | null {
+  if (answer === null) return null;
+  return answer ? 'yes' : 'no';
+}
+
+/** A detail is kept beside a yes alone, whatever the form sent. */
+export function detailOf(answer: string, detail: string): string | null {
+  return answer === 'yes' ? detail : null;
+}
+
+/** Nothing, or a property naming the yes/no columns no question answers, which fails the call. */
+type Asks<Unasked extends string> = [Unasked] extends [never]
+  ? unknown
+  : { yesNoWithoutQuestion: Unasked };
+
+/**
+ * For a section whose every field is the draft column of the same name: text as it is, and
+ * each yes/no question stored as a boolean, its details kept beside a yes alone. The questions
+ * are the ones the section's schema requires details for; a yes/no column no question names
+ * does not compile.
+ */
+export function yesNoDetailColumns<
+  Field extends TextColumn | BooleanColumn,
+  Values extends Record<Field, string>,
+  Question extends DetailedQuestion<Field & BooleanColumn, Field & TextColumn>,
+>(
+  section: IndicatorSection<Field, Values>,
+  questions: readonly Question[] & Asks<Exclude<Extract<Field, BooleanColumn>, Question['answer']>>,
+): IndicatorSectionColumns<Field, Values> {
+  const answers = new Set<Field>(questions.map(({ answer }) => answer));
+  const isAnswer = (field: Field): field is Question['answer'] => answers.has(field);
+  const answerOf = new Map<Field, Question['answer']>(
+    questions.map(({ answer, detail }) => [detail, answer]),
+  );
+
+  return {
+    fromDraft: (draft) =>
+      Object.fromEntries(
+        section.fields.options.map((field) => [
+          field,
+          isAnswer(field) ? yesNoAnswer(draft[field]) : draft[field],
+        ]),
+      ) as Record<Field, string | null>,
+    toAttributes: (values) =>
+      Object.fromEntries(
+        section.fields.options.map((field) => {
+          const answer = answerOf.get(field);
+
+          if (isAnswer(field)) return [field, values[field] === 'yes'];
+          return [field, answer ? detailOf(values[answer], values[field]) : values[field]];
+        }),
+      ) as IndicatorSectionAttributes,
   };
 }
 

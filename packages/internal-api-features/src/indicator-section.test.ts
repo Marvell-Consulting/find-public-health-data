@@ -3,8 +3,12 @@ import type { Logger } from 'pino';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 
-import { definitionAndRationaleSection } from './contract.ts';
-import { indicatorSectionRouter } from './indicator-section.ts';
+import {
+  definitionAndRationaleSection,
+  otherNotesAndCaveatsSection,
+  varianceAndQualitySection,
+} from './contract.ts';
+import { indicatorSectionRouter, yesNoDetailColumns } from './indicator-section.ts';
 import { definitionAndRationaleColumns } from './indicator-sections.ts';
 import {
   createCapturingLogger,
@@ -219,5 +223,35 @@ describe('PUT on a section', () => {
       .send(answers);
 
     expect(await handlerLogLines(lines)).toEqual([]);
+  });
+});
+
+// Checked by the typecheck: each @ts-expect-error fails it if the call compiles.
+describe('yesNoDetailColumns', () => {
+  it('needs a question for every yes/no column', () => {
+    yesNoDetailColumns(
+      otherNotesAndCaveatsSection,
+      // @ts-expect-error otherNotesNeeded is no question's answer
+      [
+        { answer: 'roundingApplied', detail: 'roundingDetail', detailRequired: 'x' },
+        { answer: 'caveatsNeeded', detail: 'caveatsDetail', detailRequired: 'x' },
+      ],
+    );
+    // @ts-expect-error sourceDataIssues is no question's answer
+    yesNoDetailColumns(varianceAndQualitySection, []);
+  });
+
+  it('takes a yes/no column alone as an answer and a text column alone as details', () => {
+    yesNoDetailColumns(otherNotesAndCaveatsSection, [
+      // @ts-expect-error disclosureControl is a text column
+      { answer: 'disclosureControl', detail: 'disclosureControlDetail', detailRequired: 'x' },
+      { answer: 'roundingApplied', detail: 'roundingDetail', detailRequired: 'x' },
+      { answer: 'caveatsNeeded', detail: 'caveatsDetail', detailRequired: 'x' },
+      { answer: 'otherNotesNeeded', detail: 'otherNotesDetail', detailRequired: 'x' },
+    ]);
+    yesNoDetailColumns(varianceAndQualitySection, [
+      // @ts-expect-error sourceDataIssues is a yes/no column
+      { answer: 'sourceDataIssues', detail: 'sourceDataIssues', detailRequired: 'x' },
+    ]);
   });
 });

@@ -117,6 +117,7 @@ describe('IndicatorTaskListPage', () => {
       'Links',
       'Update frequency',
       'Publishing date',
+      'Variance and quality',
     ]);
   });
 
@@ -202,6 +203,21 @@ describe('IndicatorTaskListPage', () => {
     const row = group('Metadata').getByRole('link', { name: 'Links' });
 
     expect(row.getAttribute('href')).toBe(`/publish/indicators/${taskList.indicator.id}/links`);
+    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
+      'Completed',
+    );
+  });
+
+  it('links the variance and quality to its page, with the status the API reports', () => {
+    renderPage({ tasks: { name: 'completed', 'variance-and-quality': 'completed' } });
+
+    const row = group('Notes for reviewers (for internal use only)').getByRole('link', {
+      name: 'Variance and quality',
+    });
+
+    expect(row.getAttribute('href')).toBe(
+      `/publish/indicators/${taskList.indicator.id}/variance-and-quality`,
+    );
     expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
       'Completed',
     );

@@ -111,6 +111,11 @@ export const indicatorVersion = pgTable(
     caveatsDetail: text(),
     otherNotesNeeded: boolean(),
     otherNotesDetail: text(),
+    // Notes for reviewers, never published.
+    variation: text(),
+    qualityAssurance: text(),
+    sourceDataIssues: boolean(),
+    sourceDataIssuesDetail: text(),
     dataSourceId: uuid().references(() => dataSource.id),
     numeratorSourceId: uuid().references(() => numeratorDenominatorSource.id),
     denominatorSourceId: uuid().references(() => numeratorDenominatorSource.id),
@@ -161,6 +166,10 @@ export const indicatorVersion = pgTable(
     check(
       'indicator_version_other_notes_detail_check',
       sql`${t.otherNotesNeeded} IS TRUE OR ${t.otherNotesDetail} IS NULL`,
+    ),
+    check(
+      'indicator_version_source_data_issues_detail_check',
+      sql`${t.sourceDataIssues} IS TRUE OR ${t.sourceDataIssuesDetail} IS NULL`,
     ),
     // A published version always says when, and nothing else does, so ordering by
     // published_at never meets a null.

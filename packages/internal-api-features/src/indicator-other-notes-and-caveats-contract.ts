@@ -1,6 +1,11 @@
 import { z } from '@fphd/config/zod';
 
-import type { IndicatorSection } from './indicator-section-contract.ts';
+import {
+  type DetailedQuestion,
+  type IndicatorSection,
+  requireDetails,
+  yesNoSchema,
+} from './indicator-section-contract.ts';
 
 const fields = z.enum([
   'disclosureControl',
@@ -13,42 +18,50 @@ const fields = z.enum([
   'otherNotesDetail',
 ]);
 
-const yesNo = (error: string) => z.enum(['yes', 'no'], { error });
+export type OtherNotesAndCaveatsField = z.infer<typeof fields>;
 
-/** Each question's detail, asked for only under a yes, and the message when it is missing. */
-const DETAILS = [
-  ['disclosureControl', 'disclosureControlDetail', 'Provide details of the disclosure control'],
-  ['roundingApplied', 'roundingDetail', 'Provide details of the rounding'],
-  ['caveatsNeeded', 'caveatsDetail', 'Provide details of the caveats'],
-  ['otherNotesNeeded', 'otherNotesDetail', 'Provide details of the other notes'],
-] as const;
+/** Answered yes, no or "Not applicable", so stored as its answer rather than as a yes/no. */
+const disclosureControlQuestion = {
+  answer: 'disclosureControl',
+  detail: 'disclosureControlDetail',
+  detailRequired: 'Provide details of the disclosure control',
+} as const satisfies DetailedQuestion<OtherNotesAndCaveatsField>;
 
-const schema = z
-  .object({
+/** The yes/no questions whose yes asks for details. */
+export const otherNotesAndCaveatsQuestions = [
+  {
+    answer: 'roundingApplied',
+    detail: 'roundingDetail',
+    detailRequired: 'Provide details of the rounding',
+  },
+  {
+    answer: 'caveatsNeeded',
+    detail: 'caveatsDetail',
+    detailRequired: 'Provide details of the caveats',
+  },
+  {
+    answer: 'otherNotesNeeded',
+    detail: 'otherNotesDetail',
+    detailRequired: 'Provide details of the other notes',
+  },
+] as const satisfies readonly DetailedQuestion<OtherNotesAndCaveatsField>[];
+
+const schema = requireDetails(
+  z.object({
     disclosureControl: z.enum(['yes', 'no', 'not-applicable'], {
       error: 'Select whether disclosure control has been applied',
     }),
     disclosureControlDetail: z.string().trim(),
-    roundingApplied: yesNo('Select whether rounding has been applied'),
+    roundingApplied: yesNoSchema('Select whether rounding has been applied'),
     roundingDetail: z.string().trim(),
-    caveatsNeeded: yesNo('Select whether there are any caveats needed'),
+    caveatsNeeded: yesNoSchema('Select whether there are any caveats needed'),
     caveatsDetail: z.string().trim(),
-    otherNotesNeeded: yesNo('Select whether there are any other notes needed'),
+    otherNotesNeeded: yesNoSchema('Select whether there are any other notes needed'),
     otherNotesDetail: z.string().trim(),
-  })
-  .superRefine(
-    (answers, ctx) => {
-      for (const [answer, detail, message] of DETAILS) {
-        if (answers[answer] === 'yes' && answers[detail] === '') {
-          ctx.addIssue({ code: 'custom', path: [detail], message });
-        }
-      }
-    },
-    // Also beside an unanswered question, so every refusal shows at once.
-    { when: ({ value }) => typeof value === 'object' && value !== null },
-  );
+  }),
+  [disclosureControlQuestion, ...otherNotesAndCaveatsQuestions],
+);
 
-export type OtherNotesAndCaveatsField = z.infer<typeof fields>;
 export type OtherNotesAndCaveats = z.infer<typeof schema>;
 
 export const otherNotesAndCaveatsSection: IndicatorSection<

@@ -16,6 +16,7 @@ import {
   publishingDateColumns,
   publishingDateServerSection,
   updateFrequencyColumns,
+  varianceAndQualityColumns,
 } from './indicator-sections.ts';
 import {
   createFakeInternalRepositories,
@@ -49,6 +50,10 @@ const unanswered: IndicatorSectionDraft = {
   scheduledPublishAtUk: null,
   hasLinks: null,
   links: [],
+  variation: null,
+  qualityAssurance: null,
+  sourceDataIssues: null,
+  sourceDataIssuesDetail: null,
 };
 
 const METHODS: Record<CiMethodRow['kind'], CiMethodRow> = {
@@ -309,6 +314,43 @@ describe('otherNotesAndCaveatsColumns', () => {
     expect(
       otherNotesAndCaveatsColumns.fromDraft({ ...unanswered, roundingApplied }).roundingApplied,
     ).toBe(answer);
+  });
+});
+
+// yesNoDetailColumns, shown through the first section built on it alone.
+describe('varianceAndQualityColumns', () => {
+  const answered = {
+    variation: 'Varies by area.',
+    qualityAssurance: 'Checked against ONS figures.',
+    sourceDataIssues: 'yes',
+    sourceDataIssuesDetail: 'Late returns.',
+  } as const;
+
+  it('writes the text as it is, and a yes as true beside its details', () => {
+    expect(varianceAndQualityColumns.toAttributes(answered)).toEqual({
+      ...answered,
+      sourceDataIssues: true,
+    });
+  });
+
+  it('writes a no as false and clears its details', () => {
+    expect(varianceAndQualityColumns.toAttributes({ ...answered, sourceDataIssues: 'no' })).toEqual(
+      { ...answered, sourceDataIssues: false, sourceDataIssuesDetail: null },
+    );
+  });
+
+  it.each([
+    [true, 'yes'],
+    [false, 'no'],
+    [null, null],
+  ])('reads a stored %s as %s, beside the text as it is', (sourceDataIssues, answer) => {
+    expect(
+      varianceAndQualityColumns.fromDraft({
+        ...unanswered,
+        ...answered,
+        sourceDataIssues,
+      }),
+    ).toEqual({ ...answered, sourceDataIssues: answer });
   });
 });
 

@@ -1,0 +1,48 @@
+import {
+  type VarianceAndQualityField,
+  varianceAndQualitySection,
+} from '@fphd/internal-api-features/contract';
+import { firstRadioId, Textarea } from '@fphd/ui';
+
+import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
+import { YesNoQuestion } from '../yes-no-question.tsx';
+
+export function VarianceAndQualityPage({
+  fieldErrors = {},
+  formError,
+  values,
+}: SectionPageProps<VarianceAndQualityField>) {
+  return (
+    <IndicatorSectionForm
+      fieldErrors={fieldErrors}
+      formError={formError}
+      fieldIds={{ sourceDataIssues: firstRadioId('sourceDataIssues') }}
+      fields={varianceAndQualitySection.fields.options}
+      title="Variance and quality"
+    >
+      <Textarea
+        defaultValue={values.variation}
+        error={fieldErrors.variation}
+        label="How does the indicator vary?"
+        name="variation"
+        rows={5}
+      />
+      <Textarea
+        defaultValue={values.qualityAssurance}
+        error={fieldErrors.qualityAssurance}
+        label="What quality assurance has been done on the indicator?"
+        name="qualityAssurance"
+        rows={5}
+      />
+      <YesNoQuestion
+        answer="sourceDataIssues"
+        detail="sourceDataIssuesDetail"
+        detailLabel="Enter details, including what is being done to improve the quality of the source data"
+        detailRows={5}
+        fieldErrors={fieldErrors}
+        legend="Are there any data quality issues with the source data?"
+        values={values}
+      />
+    </IndicatorSectionForm>
+  );
+}

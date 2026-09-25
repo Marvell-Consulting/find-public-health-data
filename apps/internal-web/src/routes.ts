@@ -79,6 +79,10 @@ export default [
         'publish/indicators/:id/links',
         '../../../packages/internal-web-features/src/indicator-links/route.tsx',
       ),
+      route(
+        'publish/indicators/:id/variance-and-quality',
+        '../../../packages/internal-web-features/src/indicator-variance-and-quality/route.tsx',
+      ),
     ]),
     layout('./admin.tsx', [
       route('manage', './manage.tsx'),

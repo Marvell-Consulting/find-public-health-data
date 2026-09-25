@@ -555,6 +555,10 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
       scheduledPublishAtUk: null,
       hasLinks: null,
       links: [],
+      variation: null,
+      qualityAssurance: null,
+      sourceDataIssues: null,
+      sourceDataIssuesDetail: null,
     },
     draftCiMethodKind: null,
     indicatorStatus: 'new',
@@ -608,6 +612,7 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
         'other-notes-and-caveats': 'not_started',
         'publishing-date': 'not_started',
         links: 'not_started',
+        'variance-and-quality': 'not_started',
       },
     });
   });

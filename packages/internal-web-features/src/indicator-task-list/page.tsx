@@ -91,7 +91,11 @@ const TASK_GROUPS: readonly TaskGroup[] = [
     id: 'reviewer-notes',
     title: 'Notes for reviewers (for internal use only)',
     tasks: [
-      { key: 'variance-and-quality', title: 'Variance and quality' },
+      {
+        key: 'variance-and-quality',
+        title: 'Variance and quality',
+        path: sectionPath('variance-and-quality'),
+      },
       { key: 'justifications', title: 'Justifications' },
       { key: 'other-comments', title: 'Other comments' },
     ],
