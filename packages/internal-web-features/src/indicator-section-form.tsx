@@ -4,9 +4,9 @@ import type { ReactNode } from 'react';
 import type { FormValues } from './indicator-section.ts';
 
 /** What every section page is given: its answers, and any refusals of the last submission. */
-export interface SectionPageProps<Field extends string> {
+export interface SectionPageProps<Field extends string, Values = FormValues<Field>> {
   fieldErrors?: Partial<Record<Field, string>> | undefined;
-  values: FormValues<Field>;
+  values: Values;
 }
 
 interface IndicatorSectionFormProps<Field extends string> {

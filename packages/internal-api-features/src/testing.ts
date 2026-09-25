@@ -80,8 +80,8 @@ export async function handlerLogLines(
 }
 
 /** The field errors a section's schema gives a submission, or undefined when it accepts it. */
-export function sectionFieldErrors<Field extends string, Values>(
-  section: IndicatorSection<Field, Values>,
+export function sectionFieldErrors<Field extends string, Values, Input>(
+  section: IndicatorSection<Field, Values, Input>,
   body: unknown,
 ): Partial<Record<Field, string>> | undefined {
   const submission = section.schema.safeParse(body);

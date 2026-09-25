@@ -8,13 +8,14 @@ export type IndicatorSectionFields<Field extends string> = z.ZodEnum<{ [K in Fie
 /**
  * One section of a draft, as its page and its endpoint both see it. The key names the task,
  * the page (`/publish/indicators/:id/<key>`) and the endpoint
- * (`/api/internal/indicators/:id/<key>`). Every field travels as the form's text, so the
- * schema takes what was typed and is applied at the form and again at the API.
+ * (`/api/internal/indicators/:id/<key>`). The schema takes the answers as the form holds
+ * them, which is its text unless the section says otherwise, and is applied at the form and
+ * again at the API.
  */
-export interface IndicatorSection<Field extends string, Values> {
+export interface IndicatorSection<Field extends string, Values, Input = Record<Field, string>> {
   key: IndicatorTaskKey;
   fields: IndicatorSectionFields<Field>;
-  schema: z.ZodType<Values, Record<Field, string>>;
+  schema: z.ZodType<Values, Input>;
 }
 
 /** A section's answers as the draft holds them: null until a field is answered. */

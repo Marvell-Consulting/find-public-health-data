@@ -114,6 +114,7 @@ describe('IndicatorTaskListPage', () => {
       'How the indicator was calculated',
       'Confidence intervals',
       'Other notes and caveats',
+      'Links',
       'Update frequency',
       'Publishing date',
     ]);
@@ -192,6 +193,17 @@ describe('IndicatorTaskListPage', () => {
     );
     expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
       'Not started',
+    );
+  });
+
+  it('links the links to their page, with the status the API reports', () => {
+    renderPage({ tasks: { name: 'completed', links: 'completed' } });
+
+    const row = group('Metadata').getByRole('link', { name: 'Links' });
+
+    expect(row.getAttribute('href')).toBe(`/publish/indicators/${taskList.indicator.id}/links`);
+    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
+      'Completed',
     );
   });
 

@@ -7,9 +7,14 @@ import {
   indicatorSectionFormValues,
   toFieldErrors,
 } from '@fphd/internal-api-features/contract';
-import { apiPath } from '@fphd/web-server/api-client';
+import { type ApiResponseSchema, apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
-import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from 'react-router';
+import {
+  type ActionFunctionArgs,
+  type LoaderFunctionArgs,
+  type RouterContextProvider,
+  redirect,
+} from 'react-router';
 
 import { requireIndicatorId } from './indicator-id.ts';
 import { indicatorTaskListPath } from './publish-paths.ts';
@@ -18,8 +23,8 @@ import { indicatorTaskListPath } from './publish-paths.ts';
 export type FormValues<Field extends string> = Record<Field, string>;
 
 /** A rejected submission: the form as it was sent, and a message for each field refused. */
-export interface FormFailure<Field extends string> {
-  values: FormValues<Field>;
+export interface FormFailure<Field extends string, Values = FormValues<Field>> {
+  values: Values;
   fieldErrors: Partial<Record<Field, string>>;
 }
 
@@ -44,17 +49,55 @@ function sectionApiPath(id: string, key: IndicatorTaskKey): string {
   return apiPath`/api/internal/indicators/${id}/${key}`;
 }
 
-/** The draft's answers, filling the form. The API answers 404 when there is no draft. */
-export async function loadIndicatorSection<Field extends string, Values>(
+/** The draft's answers to one section. The API answers 404 when there is no draft. */
+export async function loadIndicatorSectionAnswers<Answers>(
   { context, params }: LoaderFunctionArgs,
+  key: IndicatorTaskKey,
+  answersSchema: ApiResponseSchema<Answers>,
+): Promise<{ id: string; answers: Answers }> {
+  const id = requireIndicatorId(params);
+  const answers = await context.get(apiContext).get(sectionApiPath(id, key), answersSchema);
+
+  return { id, answers };
+}
+
+/** The draft's answers, filling the form. */
+export async function loadIndicatorSection<Field extends string, Values>(
+  args: LoaderFunctionArgs,
   section: IndicatorSection<Field, Values>,
 ): Promise<{ id: string; values: FormValues<Field> }> {
-  const id = requireIndicatorId(params);
-  const answers = await context
-    .get(apiContext)
-    .get(sectionApiPath(id, section.key), indicatorSectionAnswersSchema(section.fields));
+  const { id, answers } = await loadIndicatorSectionAnswers(
+    args,
+    section.key,
+    indicatorSectionAnswersSchema(section.fields),
+  );
 
   return { id, values: indicatorSectionFormValues(section.fields, answers) };
+}
+
+/**
+ * Saves answers the form has accepted and returns to the task list, or answers why the API
+ * refused them, in which case it saved nothing.
+ */
+export async function putIndicatorSection<Field extends string, Values, Input>(
+  context: Readonly<RouterContextProvider>,
+  id: string,
+  section: IndicatorSection<Field, Values, Input>,
+  answers: Values,
+  answersSchema: ApiResponseSchema<unknown>,
+): Promise<Response | { fieldErrors: Partial<Record<Field, string>> }> {
+  const result = await context
+    .get(apiContext)
+    .put(
+      sectionApiPath(id, section.key),
+      answers,
+      answersSchema,
+      indicatorSectionErrorSchema(section.fields),
+    );
+
+  return result.ok
+    ? redirect(indicatorTaskListPath(id))
+    : { fieldErrors: result.error.fieldErrors ?? {} };
 }
 
 /**
@@ -76,18 +119,13 @@ export async function saveIndicatorSection<Field extends string, Values>(
     return { values, fieldErrors: toFieldErrors(submission.error, fields) };
   }
 
-  const result = await context
-    .get(apiContext)
-    .put(
-      sectionApiPath(id, section.key),
-      submission.data,
-      indicatorSectionAnswersSchema(section.fields),
-      indicatorSectionErrorSchema(section.fields),
-    );
+  const saved = await putIndicatorSection(
+    context,
+    id,
+    section,
+    submission.data,
+    indicatorSectionAnswersSchema(section.fields),
+  );
 
-  if (!result.ok) {
-    return { values, fieldErrors: result.error.fieldErrors ?? {} };
-  }
-
-  return redirect(indicatorTaskListPath(id));
+  return saved instanceof Response ? saved : { values, ...saved };
 }

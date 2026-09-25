@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import * as calculation from './indicator-calculation/route.tsx';
 import * as confidenceIntervals from './indicator-confidence-intervals/route.tsx';
 import * as definitionAndRationale from './indicator-definition-and-rationale/route.tsx';
+import * as links from './indicator-links/route.tsx';
 import * as editIndicatorName from './indicator-name/edit-route.tsx';
 import * as newIndicator from './indicator-name/new-route.tsx';
 import * as otherNotesAndCaveats from './indicator-other-notes-and-caveats/route.tsx';
@@ -143,6 +144,19 @@ const forms: {
     rejected: {
       values: notesAndCaveatsUnanswered,
       fieldErrors: { disclosureControl: 'Select whether disclosure control has been applied' },
+    },
+  },
+  {
+    name: 'links',
+    route: links,
+    pageTitle: 'Are there any relevant links to help users understand this indicator better?',
+    loaderData: {
+      id: indicator.id,
+      values: { hasLinks: '', links: [], linkUrl: '', linkText: '' },
+    },
+    rejected: {
+      values: { hasLinks: '', links: [], linkUrl: '', linkText: '' },
+      fieldErrors: { hasLinks: 'Select whether there are any relevant links' },
     },
   },
   {

@@ -62,6 +62,8 @@ describe('public API', () => {
     ['put', `/api/internal/indicators/${anyId}/other-notes-and-caveats`],
     ['get', `/api/internal/indicators/${anyId}/publishing-date`],
     ['put', `/api/internal/indicators/${anyId}/publishing-date`],
+    ['get', `/api/internal/indicators/${anyId}/links`],
+    ['put', `/api/internal/indicators/${anyId}/links`],
     ['get', '/api/internal/ci-methods'],
     ['get', '/api/internal/topics'],
     ['post', '/api/internal/topics'],

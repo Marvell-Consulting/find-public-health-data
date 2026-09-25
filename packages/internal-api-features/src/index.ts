@@ -16,7 +16,7 @@ export type {
   IndicatorAdminRows,
   IndicatorDraft,
   IndicatorDraftAttributes,
-  IndicatorDraftMemberships,
+  IndicatorDraftLists,
   IndicatorDraftStateRow,
   IndicatorDraftVersion,
   NewIndicatorDraftAttributes,

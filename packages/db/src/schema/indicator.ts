@@ -11,6 +11,7 @@ import {
   pgSequence,
   pgTable,
   pgView,
+  primaryKey,
   QueryBuilder,
   smallint,
   text,
@@ -97,6 +98,8 @@ export const indicatorVersion = pgTable(
     methodology: text(),
     calculatedBy: text({ enum: INDICATOR_CALCULATED_BY }),
     calculatedByOther: text(),
+    // Null until answered, so "no links" is told apart from a question not yet asked.
+    hasLinks: boolean(),
     numeratorDefinition: text(),
     denominatorDefinition: text(),
     // Each answer's detail is asked for, and kept, only when the answer is yes.
@@ -179,6 +182,23 @@ export const indicatorVersion = pgTable(
     index('idx_indicator_version_slug').on(t.slug),
     index('idx_indicator_version_name_trgm').using('gin', t.name.op('gin_trgm_ops')),
     index('idx_indicator_version_definition_trgm').using('gin', t.definition.op('gin_trgm_ops')),
+  ],
+);
+
+/** The links a version offers users, in the order the publisher added them. */
+export const indicatorVersionLink = pgTable(
+  'indicator_version_link',
+  {
+    indicatorVersionId: uuid()
+      .notNull()
+      .references(() => indicatorVersion.id),
+    position: smallint().notNull(),
+    url: text().notNull(),
+    text: text().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.indicatorVersionId, t.position] }),
+    check('indicator_version_link_position_check', sql`${t.position} >= 0`),
   ],
 );
 

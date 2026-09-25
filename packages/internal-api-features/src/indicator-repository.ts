@@ -12,6 +12,7 @@ const {
   indicatorClassification,
   indicatorTopic,
   indicatorVersion,
+  indicatorVersionLink,
 } = schema;
 
 export interface IndicatorAdminRow {
@@ -113,10 +114,16 @@ export async function getIndicatorById(
 /** Every column of one version, as a section reads its answers from the draft. */
 export type IndicatorDraftVersion = typeof indicatorVersion.$inferSelect;
 
-/** A draft as the sections read it: its columns, and its scheduled publication in UK time. */
+export type IndicatorDraftLink = Pick<typeof indicatorVersionLink.$inferSelect, 'url' | 'text'>;
+
+/**
+ * A draft as the sections read it: its columns, its scheduled publication in UK time, and the
+ * lists held in tables of their own.
+ */
 export type IndicatorDraft = IndicatorDraftVersion & {
   /** `scheduledPublishAt` as ISO 8601 with the UK offset then in force, such as `+01:00`. */
   scheduledPublishAtUk: string | null;
+  links: IndicatorDraftLink[];
 };
 
 /** A date and time as a publisher in the UK gives it, whether GMT or BST is in force. */
@@ -200,7 +207,21 @@ export async function getIndicatorDraftState(
 
   const { draft, draftScheduledPublishAtUk: scheduledPublishAtUk, ...state } = row;
 
-  return { ...state, draft: draft && { ...draft, scheduledPublishAtUk } };
+  return {
+    ...state,
+    draft: draft && { ...draft, scheduledPublishAtUk, links: await linksOf(db, draft.id) },
+  };
+}
+
+async function linksOf(
+  db: Database | Transaction,
+  versionId: string,
+): Promise<IndicatorDraftLink[]> {
+  return db
+    .select({ url: indicatorVersionLink.url, text: indicatorVersionLink.text })
+    .from(indicatorVersionLink)
+    .where(eq(indicatorVersionLink.indicatorVersionId, versionId))
+    .orderBy(asc(indicatorVersionLink.position));
 }
 
 /**
@@ -228,9 +249,12 @@ export type IndicatorDraftAttributes = Partial<EditableVersionColumns>;
 export type NewIndicatorDraftAttributes = IndicatorDraftAttributes &
   Pick<EditableVersionColumns, 'name'>;
 
-export interface IndicatorDraftMemberships {
+/** The draft's answers held in tables of their own; each is replaced whole when given. */
+export interface IndicatorDraftLists {
   topicIds?: string[];
   classificationIds?: string[];
+  /** In the order they are shown. */
+  links?: IndicatorDraftLink[];
 }
 
 export interface CreatedIndicatorDraft {
@@ -329,8 +353,8 @@ export async function createIndicatorDraft(
 }
 
 /**
- * Rewrites a draft's columns and, when given, its memberships. Memberships are replaced
- * rather than merged: the submission states what is true now. A renamed draft is
+ * Rewrites a draft's columns and, when given, its lists. Lists are replaced rather than
+ * merged: the submission states what is true now. A renamed draft is
  * re-slugged only while nothing is published: once an indicator has a public address,
  * every version keeps it, so a rename never moves the page.
  */
@@ -338,7 +362,7 @@ export async function updateIndicatorDraft(
   db: Database,
   indicatorId: string,
   attributes: IndicatorDraftAttributes,
-  memberships: IndicatorDraftMemberships,
+  lists: IndicatorDraftLists,
   actor: string,
 ): Promise<UpdateIndicatorDraftResult> {
   try {
@@ -361,7 +385,7 @@ export async function updateIndicatorDraft(
 
       if (draft === undefined) return { ok: false, reason: 'no_draft' };
 
-      await replaceMemberships(tx, draft.id, memberships);
+      await replaceLists(tx, draft.id, lists);
 
       return { ok: true };
     });
@@ -372,8 +396,7 @@ export async function updateIndicatorDraft(
 }
 
 /**
- * Opens a draft from the most recently published version: columns, slug and memberships
- * alike. The one-draft index refuses a second one rather than this reading first and racing.
+ * Opens a draft from the most recently published version: columns, slug and lists alike. The one-draft index refuses a second one rather than this reading first and racing.
  */
 export async function createDraftFromPublished(
   db: Database,
@@ -414,7 +437,7 @@ export async function createDraftFromPublished(
 
       if (draft === undefined) throw new Error('createDraftFromPublished inserted no version');
 
-      const [topics, classifications] = await Promise.all([
+      const [topics, classifications, links] = await Promise.all([
         tx
           .select({ topicId: indicatorTopic.topicId })
           .from(indicatorTopic)
@@ -423,11 +446,13 @@ export async function createDraftFromPublished(
           .select({ classificationId: indicatorClassification.classificationId })
           .from(indicatorClassification)
           .where(eq(indicatorClassification.indicatorVersionId, publishedId)),
+        linksOf(tx, publishedId),
       ]);
 
-      await replaceMemberships(tx, draft.id, {
+      await replaceLists(tx, draft.id, {
         topicIds: topics.map(({ topicId }) => topicId),
         classificationIds: classifications.map(({ classificationId }) => classificationId),
+        links,
       });
 
       return { ok: true, versionId: draft.id };
@@ -473,10 +498,10 @@ async function isPublished(tx: Transaction, indicatorId: string): Promise<boolea
   return published !== undefined;
 }
 
-async function replaceMemberships(
+async function replaceLists(
   tx: Transaction,
   versionId: string,
-  { classificationIds, topicIds }: IndicatorDraftMemberships,
+  { classificationIds, links, topicIds }: IndicatorDraftLists,
 ): Promise<void> {
   if (topicIds !== undefined) {
     await tx.delete(indicatorTopic).where(eq(indicatorTopic.indicatorVersionId, versionId));
@@ -496,6 +521,22 @@ async function replaceMemberships(
         classificationIds.map((classificationId) => ({
           classificationId,
           indicatorVersionId: versionId,
+        })),
+      );
+    }
+  }
+
+  if (links !== undefined) {
+    await tx
+      .delete(indicatorVersionLink)
+      .where(eq(indicatorVersionLink.indicatorVersionId, versionId));
+    if (links.length > 0) {
+      await tx.insert(indicatorVersionLink).values(
+        links.map(({ url, text }, position) => ({
+          indicatorVersionId: versionId,
+          position,
+          url,
+          text,
         })),
       );
     }

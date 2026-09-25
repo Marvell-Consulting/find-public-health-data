@@ -40,6 +40,8 @@ const source: IndicatorTaskListSource = {
     otherNotesNeeded: null,
     otherNotesDetail: null,
     scheduledPublishAtUk: null,
+    hasLinks: null,
+    links: [],
   },
 };
 
@@ -66,6 +68,8 @@ const complete: IndicatorTaskListDraft = {
   otherNotesNeeded: false,
   otherNotesDetail: null,
   scheduledPublishAtUk: '2027-09-14T09:30:00+01:00',
+  hasLinks: true,
+  links: [{ url: 'https://www.gov.uk/', text: 'Statistical commentary' }],
 };
 
 function withDraft(draft: Partial<IndicatorTaskListDraft>): IndicatorTaskListSource {
@@ -221,6 +225,15 @@ describe('indicatorTaskList', () => {
 
   it('leaves the publishing date not started until one is scheduled', () => {
     expect(indicatorTaskList(source).tasks['publishing-date']).toBe('not_started');
+  });
+
+  it.each([
+    ['unanswered', {}, 'not_started'],
+    ['no links', { hasLinks: false }, 'completed'],
+    ['links', { hasLinks: true, links: complete.links }, 'completed'],
+    ['links it does not hold', { hasLinks: true }, 'not_started'],
+  ] as const)('judges the links when there are %s', (_, draft, status) => {
+    expect(indicatorTaskList(withDraft(draft)).tasks.links).toBe(status);
   });
 
   it.each([

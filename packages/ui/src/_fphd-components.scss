@@ -276,6 +276,31 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
   background-color: govuk-colour("white");
 }
 
+// A list a form builds up, each row an item and the button that removes it.
+.fphd-added-list {
+  margin-top: govuk-spacing(4);
+  margin-bottom: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fphd-added-list__item {
+  @include govuk-font($size: 19);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: govuk-spacing(2);
+  padding: govuk-spacing(2) 0;
+  border-bottom: 1px solid $govuk-border-colour;
+}
+
+// Long text with no spaces, such as a pasted URL, wraps instead of overflowing the row.
+.fphd-added-list__item > a {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .fphd-link-button {
   padding: 0;
   border: 0;

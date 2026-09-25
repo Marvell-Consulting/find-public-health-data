@@ -50,6 +50,8 @@ const unansweredDraft = {
   otherNotesNeeded: null,
   otherNotesDetail: null,
   scheduledPublishAtUk: null,
+  hasLinks: null,
+  links: [],
 };
 
 async function createCookie(roles: readonly string[]): Promise<string> {

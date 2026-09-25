@@ -70,7 +70,7 @@ const TASK_GROUPS: readonly TaskGroup[] = [
         title: 'Other notes and caveats',
         path: sectionPath('other-notes-and-caveats'),
       },
-      { key: 'links', title: 'Links' },
+      { key: 'links', title: 'Links', path: sectionPath('links') },
       { key: 'tagging', title: 'Tagging' },
       { key: 'copyright-and-data-re-use', title: 'Copyright and data re-use' },
     ],

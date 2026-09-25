@@ -11,6 +11,10 @@ import {
   calculationSection,
   confidenceIntervalsSection,
   definitionAndRationaleSection,
+  type Links,
+  type LinksAnswers,
+  type LinksField,
+  linksSection,
   missingCiMethodFollowUps,
   type OtherNotesAndCaveats,
   type OtherNotesAndCaveatsField,
@@ -54,7 +58,7 @@ export const calculationColumns: IndicatorSectionColumns<CalculationField, Calcu
 
 export type ConfidenceIntervalsWithKind = ConfidenceIntervals & { kind: CiMethodKind };
 
-function yesNo(answer: boolean | null): string | null {
+function yesNo(answer: boolean | null): 'yes' | 'no' | null {
   if (answer === null) return null;
   return answer ? 'yes' : 'no';
 }
@@ -117,6 +121,16 @@ export const otherNotesAndCaveatsColumns: IndicatorSectionColumns<
     otherNotesNeeded: answers.otherNotesNeeded === 'yes',
     otherNotesDetail: detailOf(answers.otherNotesNeeded, answers.otherNotesDetail),
   }),
+};
+
+export const linksColumns: IndicatorSectionColumns<LinksField, Links, LinksAnswers> = {
+  fromDraft: ({ hasLinks, links }) => ({
+    hasLinks: yesNo(hasLinks),
+    links: links.map(({ url, text }) => ({ url, text })),
+  }),
+  toAttributes: ({ hasLinks }) => ({ hasLinks: hasLinks === 'yes' }),
+  // Links sent beside "No" are dropped, whatever the form sent.
+  toLists: ({ hasLinks, links }) => ({ links: hasLinks === 'yes' ? links : [] }),
 };
 
 /** The form's schema, then the requirements of the chosen method, read from its row. */
@@ -281,5 +295,6 @@ export function indicatorSectionsRouter(
       publishingDateServerSection(indicators, now),
       publishingDateColumns,
     ),
+    indicatorSectionRouter(indicators, session, linksSection, linksColumns),
   );
 }

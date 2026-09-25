@@ -9,6 +9,9 @@ export interface ApiClientOptions {
   timeoutMs?: number;
 }
 
+/** A schema the client parses a response with, for callers that pass one along. */
+export type ApiResponseSchema<T> = z.ZodType<T>;
+
 export type ApiWriteResult<T, E> = { ok: true; data: T } | { ok: false; status: number; error: E };
 
 export interface ApiClient {
