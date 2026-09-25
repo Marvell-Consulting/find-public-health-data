@@ -71,6 +71,8 @@ test('marks the name as complete and everything else as not started', async ({ p
   await expect(taskRow(page, 'Justifications').getByRole('link')).toBeVisible();
   await expect(taskRow(page, 'Other comments')).toContainText('Not started');
   await expect(taskRow(page, 'Other comments').getByRole('link')).toBeVisible();
+  await expect(taskRow(page, 'Copyright and data re-use')).toContainText('Not started');
+  await expect(taskRow(page, 'Copyright and data re-use').getByRole('link')).toBeVisible();
 });
 
 test('opens the name from the task list and comes back to it renamed', async ({ page }) => {

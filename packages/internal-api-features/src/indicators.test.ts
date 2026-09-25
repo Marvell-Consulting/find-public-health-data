@@ -570,6 +570,10 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
       sponsorsAndStakeholders: null,
       hasReviewerComments: null,
       reviewerCommentsDetail: null,
+      copyrightNonDefault: null,
+      copyrightDetail: null,
+      dataReuseNonDefault: null,
+      dataReuseDetail: null,
     },
     draftCiMethodKind: null,
     indicatorStatus: 'new',
@@ -627,6 +631,7 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
         'variance-and-quality': 'not_started',
         justifications: 'not_started',
         'other-comments': 'not_started',
+        'copyright-and-data-reuse': 'not_started',
       },
     });
   });

@@ -68,6 +68,10 @@ const unanswered: IndicatorSectionDraft = {
   sponsorsAndStakeholders: null,
   hasReviewerComments: null,
   reviewerCommentsDetail: null,
+  copyrightNonDefault: null,
+  copyrightDetail: null,
+  dataReuseNonDefault: null,
+  dataReuseDetail: null,
 };
 
 const METHODS: Record<CiMethodRow['kind'], CiMethodRow> = {
