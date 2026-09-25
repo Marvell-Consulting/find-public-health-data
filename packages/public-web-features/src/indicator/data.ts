@@ -169,6 +169,17 @@ export function formatCalculatedValue(value: number | null): string {
   return value === null ? 'No data' : calculatedValueFormat.format(value);
 }
 
+/** A value with its unit: "6.0%", "341.1 per 100,000", or the value alone when it has none. */
+export function withUnit(value: string, unit: string | null): string {
+  if (unit === null) return value;
+  return unit === '%' ? `${value}%` : `${value} ${unit}`;
+}
+
+/** The unit after a column heading, " (per 100,000)", or nothing when the values have none. */
+export function unitNote(unit: string | null): string {
+  return unit === null ? '' : ` (${unit})`;
+}
+
 export function formatConfidenceInterval(observation: IndicatorObservation): string {
   if (observation.lowerCi95 === null || observation.upperCi95 === null) {
     return '—';
@@ -193,8 +204,7 @@ export interface ComparisonRow {
   key: string;
   name: string;
   suffix: string;
-  unit: string;
-  unitLabel: string;
+  unit: string | null;
   areaName: string;
   period: string;
   value: number | null;
@@ -286,8 +296,7 @@ export function comparisonRows(
           key: `${detail.shortId}|${variant.suffix}`,
           name: detail.name,
           suffix: variant.suffix,
-          unit: detail.unit.name,
-          unitLabel: detail.unit.label,
+          unit: detail.unit,
           areaName: firstWithData?.areaName ?? '',
           period: periodLabel(latest, detail.yearType),
           value: firstWithData?.value ?? null,
@@ -309,8 +318,7 @@ export function comparisonRows(
             key: String(detail.shortId),
             name: detail.name,
             suffix: '',
-            unit: detail.unit.name,
-            unitLabel: detail.unit.label,
+            unit: detail.unit,
             areaName: first?.areaName ?? '',
             period: '',
             value: null,

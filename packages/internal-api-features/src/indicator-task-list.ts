@@ -14,6 +14,7 @@ import {
   polaritySection,
   publishingDateSection,
   updateFrequencySection,
+  valueTypeAndUnitsSection,
 } from './contract.ts';
 import type { IndicatorDraftVersion } from './indicator-repository.ts';
 import type { IndicatorSectionColumns, IndicatorSectionDraft } from './indicator-section.ts';
@@ -27,6 +28,7 @@ import {
   polarityColumns,
   publishingDateColumns,
   updateFrequencyColumns,
+  valueTypeAndUnitsColumns,
 } from './indicator-sections.ts';
 
 /** The draft columns the task list judges: the name, and those the sections read. */
@@ -76,6 +78,7 @@ export function indicatorTaskList({
       ),
     ),
     'update-frequency': complete(updateFrequencySection, updateFrequencyColumns),
+    'value-type-and-units': complete(valueTypeAndUnitsSection, valueTypeAndUnitsColumns),
     'other-notes-and-caveats': complete(otherNotesAndCaveatsSection, otherNotesAndCaveatsColumns),
     'publishing-date': complete(publishingDateSection, publishingDateColumns),
     links: taskStatus(areLinksComplete(linksColumns.fromDraft(draft))),

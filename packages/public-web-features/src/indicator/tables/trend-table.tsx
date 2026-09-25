@@ -18,6 +18,16 @@ import { BenchmarkCells, BenchmarkHeaderCells } from './benchmark-cells.tsx';
 import { NoteFootnotes, noteMarker } from './note-markers.tsx';
 import { TableScrollRegion } from './table-scroll-region.tsx';
 
+/** The unit after a value column's heading, or nothing when the values have none. */
+function UnitNote({ unit }: { unit: string | null }) {
+  return unit === null ? null : (
+    <>
+      {' '}
+      <span className="fphd-table-note">({unit})</span>
+    </>
+  );
+}
+
 export function TrendTable({
   areaData,
   benchmark = 'none',
@@ -63,7 +73,7 @@ export function TrendTable({
   const cell = (areaSeries: (typeof seriesByArea)[number], period: (typeof periods)[number]) =>
     areaSeries.series.find(inPeriod(period));
   const columnsPerArea = (hasCounts ? 2 : 1) + (confidence === 'none' ? 0 : 2);
-  const valueSuffix = indicator.unit.label === '%' ? '%' : '';
+  const valueSuffix = indicator.unit === '%' ? '%' : '';
   // Every distinct value note gets a sequential marker, explained under the table.
   const noteTexts = [
     ...new Set(
@@ -113,8 +123,8 @@ export function TrendTable({
                     </th>
                   ) : null}
                   <th scope="col" className="govuk-table__header">
-                    Calculated value{' '}
-                    <span className="fphd-table-note">({indicator.unit.label})</span>
+                    Calculated value
+                    <UnitNote unit={indicator.unit} />
                   </th>
                   {confidence === 'none' ? null : (
                     <>
@@ -129,12 +139,7 @@ export function TrendTable({
                   {benchmarks.get(data.areaCode) ? (
                     <BenchmarkHeaderCells
                       showRange={showRange}
-                      unit={
-                        <>
-                          {' '}
-                          <span className="fphd-table-note">({indicator.unit.label})</span>
-                        </>
-                      }
+                      unit={<UnitNote unit={indicator.unit} />}
                     />
                   ) : null}
                 </Fragment>

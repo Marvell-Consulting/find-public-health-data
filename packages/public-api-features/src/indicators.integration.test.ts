@@ -70,6 +70,7 @@ async function insertDraftOnlyIndicator(
            ${YEAR_TYPES.calendar.id}, 'lower-is-better', 'annually',
            'integration-test', 'integration-test'
     FROM new_indicator i, value_type vt, unit u
+    WHERE u.name <> 'Other'
     LIMIT 1
     RETURNING (SELECT short_id FROM new_indicator) AS short_id
   `;
@@ -116,8 +117,8 @@ describe('public routers against the seeded database', () => {
       shortId: 108,
       slug: MORTALITY_SLUG,
       name: expect.stringContaining('Under 75 mortality rate'),
-      valueType: expect.any(String),
-      unit: { name: expect.any(String), label: expect.any(String) },
+      valueType: 'Directly standardised rate',
+      unit: 'per 100,000',
       definition: expect.any(String),
     });
     expect(response.body.areaTypes.length).toBeGreaterThan(0);
@@ -154,7 +155,7 @@ describe('public routers against the seeded database', () => {
       shortId: 241,
       name: 'Diabetes: QOF prevalence',
       valueType: 'Proportion',
-      unit: { label: '%' },
+      unit: '%',
     });
     expect(detail.body.areaTypes.map(({ name }: { name: string }) => name)).toEqual(
       expect.arrayContaining(['England', 'GPs', 'ICBs', 'NHS regions', 'Regions (statistical)']),

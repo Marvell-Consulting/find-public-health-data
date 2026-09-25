@@ -72,6 +72,10 @@ export default [
         '../../../packages/internal-web-features/src/indicator-period-type/route.tsx',
       ),
       route(
+        'publish/indicators/:id/value-type-and-units',
+        '../../../packages/internal-web-features/src/indicator-value-type-and-units/route.tsx',
+      ),
+      route(
         'publish/indicators/:id/other-notes-and-caveats',
         '../../../packages/internal-web-features/src/indicator-other-notes-and-caveats/route.tsx',
       ),

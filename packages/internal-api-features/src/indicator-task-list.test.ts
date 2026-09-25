@@ -1,4 +1,5 @@
 import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
+import { UNITS, VALUE_TYPES } from '@fphd/utils/value-type-and-unit';
 import { describe, expect, it } from 'vitest';
 
 import { indicatorTaskListSchema } from './contract.ts';
@@ -36,6 +37,11 @@ const source: IndicatorTaskListSource = {
     yearTypeId: null,
     yearEndDay: null,
     yearEndMonth: null,
+    valueTypeId: null,
+    standardPopulation: null,
+    standardPopulationDetail: null,
+    unitId: null,
+    unitOther: null,
     disclosureControl: null,
     disclosureControlDetail: null,
     roundingApplied: null,
@@ -68,6 +74,11 @@ const complete: IndicatorTaskListDraft = {
   yearTypeId: YEAR_TYPES.specifiedEndDate.id,
   yearEndDay: 31,
   yearEndMonth: 7,
+  valueTypeId: VALUE_TYPES.directlyStandardisedRate.id,
+  standardPopulation: 'esp-2013',
+  standardPopulationDetail: null,
+  unitId: UNITS.per100000.id,
+  unitOther: null,
   disclosureControl: 'not-applicable',
   disclosureControlDetail: null,
   roundingApplied: false,
@@ -171,6 +182,42 @@ describe('indicatorTaskList', () => {
     ],
   ])('leaves the period type not started with %s', (_, draft) => {
     expect(indicatorTaskList(withDraft(draft)).tasks['period-type']).toBe('not_started');
+  });
+
+  it.each([
+    ['nothing', {}, 'not_started'],
+    [
+      'a value type and unit that ask nothing more',
+      { valueTypeId: VALUE_TYPES.proportion.id, unitId: UNITS.percent.id },
+      'completed',
+    ],
+    [
+      'a directly standardised rate with its standard population',
+      {
+        valueTypeId: complete.valueTypeId,
+        standardPopulation: 'esp-2013',
+        unitId: complete.unitId,
+      },
+      'completed',
+    ],
+    [
+      'a directly standardised rate without its standard population',
+      { valueTypeId: complete.valueTypeId, unitId: complete.unitId },
+      'not_started',
+    ],
+    [
+      'an indirectly standardised ratio without its reference population',
+      { valueTypeId: VALUE_TYPES.indirectlyStandardisedRatio.id, unitId: complete.unitId },
+      'not_started',
+    ],
+    [
+      'an other unit with its name',
+      { valueTypeId: VALUE_TYPES.count.id, unitId: UNITS.other.id, unitOther: 'people' },
+      'completed',
+    ],
+    ['a value type alone', { valueTypeId: VALUE_TYPES.count.id }, 'not_started'],
+  ] as const)('judges the value type and units with %s', (_, draft, status) => {
+    expect(indicatorTaskList(withDraft(draft)).tasks['value-type-and-units']).toBe(status);
   });
 
   it.each([

@@ -1,7 +1,7 @@
 import { stringify } from 'csv-stringify/sync';
 
 import type { comparisonTable } from './comparison.ts';
-import { type ConfidenceLevel, periodLabel, segmentLabel } from './data.ts';
+import { type ConfidenceLevel, periodLabel, segmentLabel, unitNote, withUnit } from './data.ts';
 import type { IndicatorAreaData, IndicatorDetail } from './loader.ts';
 import type { trendTableModel } from './trend.ts';
 
@@ -28,7 +28,7 @@ export function trendCsv(
       const benchmark = benchmarks.get(data.areaCode);
       return [
         ...(hasCounts ? [`${data.areaName} count`] : []),
-        `${data.areaName} calculated value (${indicator.unit.label})`,
+        `${data.areaName} calculated value${unitNote(indicator.unit)}`,
         ...(confidence === 'none'
           ? []
           : [
@@ -37,7 +37,7 @@ export function trendCsv(
             ]),
         ...(benchmark
           ? [
-              `${data.areaName} ${benchmark.name} calculated value (${indicator.unit.label})`,
+              `${data.areaName} ${benchmark.name} calculated value${unitNote(indicator.unit)}`,
               ...(showRange
                 ? [
                     `${data.areaName} ${benchmark.name} minimum`,
@@ -86,7 +86,7 @@ export function allDataCsv(indicator: IndicatorDetail, areaData: IndicatorAreaDa
       'Segment',
       'Count',
       'Denominator',
-      `Calculated value (${indicator.unit.label})`,
+      `Calculated value${unitNote(indicator.unit)}`,
       'Lower 95% CI',
       'Upper 95% CI',
       'Lower 99.8% CI',
@@ -151,10 +151,10 @@ export function comparisonCsv(
         return [
           trendOf(row, cell).label,
           cell.count === null ? '' : String(cell.count),
-          cell.value === null ? '' : `${cell.value} ${row.unit}`,
+          cell.value === null ? '' : withUnit(String(cell.value), row.unit),
           ...(benchmarkNameFor(cell.areaCode)
             ? [
-                benchmarkCell?.value == null ? '' : `${benchmarkCell.value} ${row.unit}`,
+                benchmarkCell?.value == null ? '' : withUnit(String(benchmarkCell.value), row.unit),
                 ...(range
                   ? [
                       benchmarkCell?.rangePeriod ? String(benchmarkCell.rangePeriod.min) : '',

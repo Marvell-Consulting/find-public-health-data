@@ -19,6 +19,8 @@ import {
   periodLabel,
   segmentLabel,
   trendSeries,
+  unitNote,
+  withUnit,
 } from './data.ts';
 
 function obs(overrides = {}) {
@@ -151,6 +153,15 @@ describe('formatting', () => {
     expect(formatValue(null)).toBe('No data');
   });
 
+  it.each([
+    ['%', '6.0%', ' (%)'],
+    ['per 100,000', '6.0 per 100,000', ' (per 100,000)'],
+    [null, '6.0', ''],
+  ])('puts the unit %s beside a value and after a heading', (unit, value, note) => {
+    expect(withUnit('6.0', unit)).toBe(value);
+    expect(unitNote(unit)).toBe(note);
+  });
+
   it('formats a confidence interval as a range', () => {
     expect(formatConfidenceInterval(obs())).toBe('95 to 105');
     expect(formatConfidenceInterval(obs({ lowerCi95: null }))).toBe('—');
@@ -162,7 +173,7 @@ describe('comparisonRows', () => {
     ({
       shortId,
       name,
-      unit: { name: 'per 100,000', label: 'per 100,000' },
+      unit: 'per 100,000',
     }) as never;
 
   it('takes each indicator’s latest value in the first selected area', () => {

@@ -1,4 +1,5 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
+import { UNITS } from '@fphd/utils/value-type-and-unit';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -54,6 +55,10 @@ const MORTALITY_UNDER_75 = 108;
 const DIABETES_QOF_PREVALENCE = 241;
 // Mortality rate for deaths involving diabetes: a sexed series beside its aggregate.
 const DIABETES_MORTALITY = 93995;
+// Resident population, a count with no unit.
+const RESIDENT_POPULATION = 92708;
+// Emergency admissions for gastroenteritis, which no other test reads.
+const GASTROENTERITIS_ADMISSIONS = 94194;
 const ENGLAND = 'E92000001';
 const CORNWALL = 'E06000052';
 
@@ -182,8 +187,8 @@ describe('getPublishedIndicatorById', () => {
     expect(indicator).toMatchObject({
       shortId: MORTALITY_UNDER_75,
       name: expect.stringContaining('Under 75 mortality rate'),
-      valueType: expect.any(String),
-      unit: { name: expect.any(String), label: expect.any(String) },
+      valueType: 'Directly standardised rate',
+      unit: 'per 100,000',
       yearType: expect.any(String),
       updateFrequency: 'annually',
       polarity: expect.any(String),
@@ -199,6 +204,22 @@ describe('getPublishedIndicatorById', () => {
     expect(areaTypeNames).toEqual([...areaTypeNames].sort((a, b) => a.localeCompare(b)));
   });
 
+  it('gives no unit to values that have none', async () => {
+    const id = await resolvedId(RESIDENT_POPULATION);
+
+    expect((await getPublishedIndicatorById(db, id))?.unit).toBeNull();
+  });
+
+  it('names an other unit as its publisher did', async () => {
+    const id = await resolvedId(GASTROENTERITIS_ADMISSIONS);
+    await db.execute(
+      sql`UPDATE indicator_version SET unit_id = ${UNITS.other.id}, unit_other = 'per 1,000 live births'
+          WHERE indicator_id = ${id}`,
+    );
+
+    expect((await getPublishedIndicatorById(db, id))?.unit).toBe('per 1,000 live births');
+  });
+
   it('returns undefined for an id no indicator carries', async () => {
     expect(await getPublishedIndicatorById(db, UNSEEDED_ID)).toBeUndefined();
   });
@@ -210,7 +231,7 @@ describe('getPublishedIndicatorById', () => {
       shortId: DIABETES_QOF_PREVALENCE,
       name: 'Diabetes: QOF prevalence',
       valueType: 'Proportion',
-      unit: { label: '%' },
+      unit: '%',
     });
     expect(indicator?.areaTypes.map(({ name }) => name)).toEqual(
       expect.arrayContaining(['England', 'GPs', 'ICBs', 'NHS regions', 'Regions (statistical)']),

@@ -1,4 +1,5 @@
 import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
+import { UNITS, VALUE_TYPES } from '@fphd/utils/value-type-and-unit';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 import type { CiMethodRow } from './ci-method-repository.ts';
@@ -17,6 +18,7 @@ import {
   publishingDateColumns,
   publishingDateServerSection,
   updateFrequencyColumns,
+  valueTypeAndUnitsColumns,
 } from './indicator-sections.ts';
 import {
   createFakeInternalRepositories,
@@ -43,6 +45,11 @@ const unanswered: IndicatorSectionDraft = {
   yearTypeId: null,
   yearEndDay: null,
   yearEndMonth: null,
+  valueTypeId: null,
+  standardPopulation: null,
+  standardPopulationDetail: null,
+  unitId: null,
+  unitOther: null,
   disclosureControl: null,
   disclosureControlDetail: null,
   roundingApplied: null,
@@ -229,6 +236,62 @@ describe('periodTypeColumns', () => {
       yearEndDay: null,
       yearEndMonth: null,
     });
+  });
+});
+
+describe('valueTypeAndUnitsColumns', () => {
+  const DSR = VALUE_TYPES.directlyStandardisedRate.id;
+  const ISR = VALUE_TYPES.indirectlyStandardisedRatio.id;
+  // Every follow-up filled in, as a form without JavaScript may send them.
+  const everyFollowUp = {
+    standardPopulation: 'other',
+    standardPopulationOther: 'England 2021',
+    referencePopulation: 'England 2019',
+    unitOther: 'people',
+  } as const;
+
+  it.each([
+    [
+      'the 2013 European Standard Population alone beside a directly standardised rate',
+      { valueTypeId: DSR, standardPopulation: 'esp-2013', unitId: UNITS.per100000.id },
+      { standardPopulation: 'esp-2013', standardPopulationDetail: null, unitOther: null },
+    ],
+    [
+      'an other standard population with its detail',
+      { valueTypeId: DSR, unitId: UNITS.per100000.id },
+      { standardPopulation: 'other', standardPopulationDetail: 'England 2021', unitOther: null },
+    ],
+    [
+      'the reference population beside an indirectly standardised value type',
+      { valueTypeId: ISR, unitId: UNITS.per100.id },
+      { standardPopulation: null, standardPopulationDetail: 'England 2019', unitOther: null },
+    ],
+    [
+      'no population beside any other value type, and an other unit with its name',
+      { valueTypeId: VALUE_TYPES.count.id, unitId: UNITS.other.id },
+      { standardPopulation: null, standardPopulationDetail: null, unitOther: 'people' },
+    ],
+  ] as const)('writes %s, clearing what is not asked', (_, answers, attributes) => {
+    expect(valueTypeAndUnitsColumns.toAttributes({ ...everyFollowUp, ...answers })).toEqual({
+      valueTypeId: answers.valueTypeId,
+      unitId: answers.unitId,
+      ...attributes,
+    });
+  });
+
+  it.each([
+    [
+      'an other standard population',
+      { valueTypeId: DSR, standardPopulation: 'other', standardPopulationDetail: 'England 2021' },
+      { standardPopulationOther: 'England 2021', referencePopulation: null },
+    ],
+    [
+      'a reference population',
+      { valueTypeId: ISR, standardPopulationDetail: 'England 2019' },
+      { standardPopulationOther: null, referencePopulation: 'England 2019' },
+    ],
+  ] as const)('reads %s back into its own field', (_, draft, answers) => {
+    expect(valueTypeAndUnitsColumns.fromDraft({ ...unanswered, ...draft })).toMatchObject(answers);
   });
 });
 

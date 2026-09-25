@@ -51,6 +51,7 @@ async function insertDraftOnlyIndicator(): Promise<void> {
            vt.id, u.id, ${PERIOD_TYPES.years.id}, ${YEAR_TYPES.calendar.id}, 'lower-is-better',
            'annually', 'a draft definition', 'grants-test', 'grants-test'
     FROM value_type vt, unit u
+    WHERE u.name <> 'Other'
     LIMIT 1
     RETURNING id
   `;
@@ -149,6 +150,7 @@ const PUBLISHED_INDICATOR_COLUMNS = [
   'indicator.slug text',
   'indicator.value_type_id uuid',
   'indicator.unit_id uuid',
+  'indicator.unit_other text',
   'indicator.year_type_id uuid',
   'indicator.year_end_day smallint',
   'indicator.year_end_month smallint',

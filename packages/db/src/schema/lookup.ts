@@ -1,8 +1,9 @@
 import { sql } from 'drizzle-orm';
-import { check, doublePrecision, pgTable, text } from 'drizzle-orm/pg-core';
+import { check, pgTable, text } from 'drizzle-orm/pg-core';
 
 import { uuidPrimaryKey } from './helpers.ts';
 
+// The rows of these two are the vocabularies in @fphd/utils/value-type-and-unit, inserted by migration.
 export const valueType = pgTable('value_type', {
   id: uuidPrimaryKey(),
   name: text().notNull().unique(),
@@ -10,9 +11,7 @@ export const valueType = pgTable('value_type', {
 
 export const unit = pgTable('unit', {
   id: uuidPrimaryKey(),
-  name: text().notNull(),
-  label: text().notNull(),
-  multiplier: doublePrecision().notNull().default(1.0),
+  name: text().notNull().unique(),
 });
 
 // The rows of these two are the vocabularies in @fphd/utils/period-type, inserted by migration.

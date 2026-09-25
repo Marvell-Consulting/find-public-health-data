@@ -59,6 +59,8 @@ test('marks the name as complete and everything else as not started', async ({ p
   await expect(taskRow(page, 'Other notes and caveats').getByRole('link')).toBeVisible();
   await expect(taskRow(page, 'Period type')).toContainText('Not started');
   await expect(taskRow(page, 'Period type').getByRole('link')).toBeVisible();
+  await expect(taskRow(page, 'Value type and units')).toContainText('Not started');
+  await expect(taskRow(page, 'Value type and units').getByRole('link')).toBeVisible();
   await expect(taskRow(page, 'Polarity')).toContainText('Not started');
   await expect(taskRow(page, 'Polarity').getByRole('link')).toBeVisible();
   await expect(taskRow(page, 'Data quality')).toContainText('Not started');

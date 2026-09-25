@@ -108,6 +108,7 @@ describe('IndicatorTaskListPage', () => {
     renderPage();
 
     expect(screen.getAllByRole('link').map((link) => link.textContent)).toEqual([
+      'Value type and units',
       'Period type',
       'Polarity',
       'Name',
@@ -141,6 +142,19 @@ describe('IndicatorTaskListPage', () => {
 
     expect(row.getAttribute('href')).toBe(
       `/publish/indicators/${taskList.indicator.id}/update-frequency`,
+    );
+    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
+      'Completed',
+    );
+  });
+
+  it('links the value type and units to their page, with the status the API reports', () => {
+    renderPage({ tasks: { name: 'completed', 'value-type-and-units': 'completed' } });
+
+    const row = group('Data').getByRole('link', { name: 'Value type and units' });
+
+    expect(row.getAttribute('href')).toBe(
+      `/publish/indicators/${taskList.indicator.id}/value-type-and-units`,
     );
     expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
       'Completed',

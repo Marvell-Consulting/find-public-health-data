@@ -1,6 +1,7 @@
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { z } from '@fphd/config/zod';
 import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
+import { standardisationOf, UNITS } from '@fphd/utils/value-type-and-unit';
 import { Router } from 'express';
 
 import {
@@ -30,6 +31,9 @@ import {
   REAL_PUBLISHING_TIME,
   SELECT_CI_METHOD,
   updateFrequencySection,
+  type ValueTypeAndUnits,
+  type ValueTypeAndUnitsField,
+  valueTypeAndUnitsSection,
 } from './contract.ts';
 import type { UkDateTime } from './indicator-repository.ts';
 import {
@@ -58,6 +62,46 @@ export const calculationColumns: IndicatorSectionColumns<CalculationField, Calcu
     calculatedBy,
     calculatedByOther: calculatedBy === 'other' ? calculatedByOther : null,
   }),
+};
+
+export const valueTypeAndUnitsColumns: IndicatorSectionColumns<
+  ValueTypeAndUnitsField,
+  ValueTypeAndUnits
+> = {
+  fromDraft: (draft) => {
+    const indirect =
+      draft.valueTypeId !== null && standardisationOf(draft.valueTypeId) === 'indirect';
+
+    return {
+      valueTypeId: draft.valueTypeId,
+      standardPopulation: draft.standardPopulation,
+      standardPopulationOther: indirect ? null : draft.standardPopulationDetail,
+      referencePopulation: indirect ? draft.standardPopulationDetail : null,
+      unitId: draft.unitId,
+      unitOther: draft.unitOther,
+    };
+  },
+  // Answers the chosen value type or unit does not ask for are cleared, whatever the form sent.
+  toAttributes: (answers) => {
+    const standardisation = standardisationOf(answers.valueTypeId);
+    const standardPopulation =
+      standardisation === 'direct' && answers.standardPopulation !== ''
+        ? answers.standardPopulation
+        : null;
+
+    return {
+      valueTypeId: answers.valueTypeId,
+      standardPopulation,
+      standardPopulationDetail:
+        standardPopulation === 'other'
+          ? answers.standardPopulationOther
+          : standardisation === 'indirect'
+            ? answers.referencePopulation
+            : null,
+      unitId: answers.unitId,
+      unitOther: answers.unitId === UNITS.other.id ? answers.unitOther : null,
+    };
+  },
 };
 
 export type ConfidenceIntervalsWithKind = ConfidenceIntervals & { kind: CiMethodKind };
@@ -313,6 +357,7 @@ export function indicatorSectionsRouter(
     ),
     indicatorSectionRouter(indicators, session, updateFrequencySection, updateFrequencyColumns),
     indicatorSectionRouter(indicators, session, periodTypeSection, periodTypeColumns),
+    indicatorSectionRouter(indicators, session, valueTypeAndUnitsSection, valueTypeAndUnitsColumns),
     indicatorSectionRouter(
       indicators,
       session,

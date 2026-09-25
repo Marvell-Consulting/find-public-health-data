@@ -28,6 +28,7 @@ export const PAGE_SPECS: Readonly<Record<string, string>> = {
   '/publish/indicators/:id/confidence-intervals': 'indicator-confidence-intervals.spec.ts',
   '/publish/indicators/:id/update-frequency': 'indicator-update-frequency.spec.ts',
   '/publish/indicators/:id/period-type': 'indicator-period-type.spec.ts',
+  '/publish/indicators/:id/value-type-and-units': 'indicator-value-type-and-units.spec.ts',
   '/publish/indicators/:id/other-notes-and-caveats': 'indicator-other-notes-and-caveats.spec.ts',
   '/publish/indicators/:id/publishing-date': 'indicator-publishing-date.spec.ts',
   '/publish/indicators/:id/links': 'indicator-links.spec.ts',

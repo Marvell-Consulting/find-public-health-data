@@ -5,6 +5,7 @@ import {
   inequalityCategoryLabel,
   periodLabel,
   segmentLabel,
+  unitNote,
 } from '../data.ts';
 import type { IndicatorDetail, IndicatorObservation } from '../loader.ts';
 import { NoteFootnotes, noteMarker } from './note-markers.tsx';
@@ -40,7 +41,7 @@ export function InequalitiesTable({
               Segment
             </th>
             <th scope="col" className="govuk-table__header govuk-table__header--numeric">
-              Value ({indicator.unit.name})
+              Value{unitNote(indicator.unit)}
             </th>
             {confidence === 'none' ? null : (
               <th scope="col" className="govuk-table__header govuk-table__header--numeric">
