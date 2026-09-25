@@ -1,6 +1,7 @@
 import { loadWebServerConfig } from '@fphd/config';
 
 export const {
+  basicAuth,
   development,
   host,
   port,
