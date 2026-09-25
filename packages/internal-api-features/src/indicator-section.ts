@@ -47,6 +47,11 @@ export type IndicatorSectionDraft = Pick<
   | 'qualityAssurance'
   | 'sourceDataIssues'
   | 'sourceDataIssuesDetail'
+  | 'hasGoalBenchmark'
+  | 'goalLowerValue'
+  | 'goalUpperValue'
+  | 'goalPolarity'
+  | 'goalPolicyDetail'
 >;
 
 /**

@@ -83,6 +83,11 @@ async function addVersion(
       | 'otherNotesDetail'
       | 'sourceDataIssues'
       | 'sourceDataIssuesDetail'
+      | 'hasGoalBenchmark'
+      | 'goalLowerValue'
+      | 'goalUpperValue'
+      | 'goalPolarity'
+      | 'goalPolicyDetail'
     >
   > = {},
 ) {
@@ -363,6 +368,97 @@ describe('indicator_version', () => {
       }),
     ).resolves.toHaveLength(1);
   });
+
+  const goal = {
+    hasGoalBenchmark: true,
+    goalLowerValue: 90,
+    goalUpperValue: 95,
+    goalPolarity: 'higher-is-better',
+    goalPolicyDetail: 'The national immunisation programme target.',
+  } as const;
+
+  it.each([
+    ['a goal', goal],
+    [
+      'a single goal value without detail',
+      { ...goal, goalUpperValue: null, goalPolicyDetail: null },
+    ],
+    ['a negative goal', { ...goal, goalLowerValue: -2.5, goalUpperValue: -0.5 }],
+    ['no goal', { hasGoalBenchmark: false }],
+  ] as const)('accepts %s', async (_, values) => {
+    await expect(addVersion(await newIndicatorId(), 'draft', values)).resolves.toHaveLength(1);
+  });
+
+  // Each case names the check that refuses it; Postgres tries the checks in name order.
+  it.each([
+    ['a yes without its goal', { hasGoalBenchmark: true }, 'goal'],
+    ['a goal beside no', { ...goal, hasGoalBenchmark: false }, 'goal'],
+    ['a goal of nobody', { ...goal, hasGoalBenchmark: null }, 'goal'],
+    ['a goal without its lower value', { ...goal, goalLowerValue: null }, 'goal'],
+    ['a goal without its polarity', { ...goal, goalPolarity: null }, 'goal_pair'],
+    [
+      'a polarity beside no',
+      { hasGoalBenchmark: false, goalPolarity: 'higher-is-better' },
+      'goal_pair',
+    ],
+    [
+      'a detail beside no goal',
+      { hasGoalBenchmark: false, goalPolicyDetail: 'A target' },
+      'goal_policy_detail',
+    ],
+    ['an upper value equal to the lower', { ...goal, goalUpperValue: 90 }, 'goal_upper_value'],
+    ['an upper value below the lower', { ...goal, goalUpperValue: 85 }, 'goal_upper_value'],
+    [
+      'an upper value beside no',
+      { hasGoalBenchmark: false, goalUpperValue: 5 },
+      'goal_upper_value',
+    ],
+    [
+      'a lower value that is no number, beside an upper',
+      { ...goal, goalLowerValue: Number.NaN },
+      'goal_upper_value',
+    ],
+    [
+      'an infinite lower value',
+      { ...goal, goalLowerValue: Number.NEGATIVE_INFINITY },
+      'goal_values',
+    ],
+    [
+      'an infinite single value',
+      { ...goal, goalUpperValue: null, goalLowerValue: Number.POSITIVE_INFINITY },
+      'goal_values',
+    ],
+    [
+      'an infinite upper value',
+      { ...goal, goalUpperValue: Number.POSITIVE_INFINITY },
+      'goal_values',
+    ],
+    [
+      'a single value that is no number',
+      { ...goal, goalUpperValue: null, goalLowerValue: Number.NaN },
+      'goal_values',
+    ],
+    ['an upper value that is no number', { ...goal, goalUpperValue: Number.NaN }, 'goal_values'],
+  ] as const)('refuses %s', async (_, values, check) => {
+    await expect(addVersion(await newIndicatorId(), 'draft', values)).rejects.toMatchObject({
+      cause: { code: CHECK_VIOLATION, constraint_name: `indicator_version_${check}_check` },
+    });
+  });
+
+  it.each(['no-polarity', 'no-comparison-possible', 'high-is-good'])(
+    'refuses a goal polarity of %s',
+    async (polarity) => {
+      const [draft] = await addVersion(await newIndicatorId(), 'draft', goal);
+
+      await expect(
+        db.execute(
+          sql`UPDATE indicator_version SET goal_polarity = ${polarity} WHERE id = ${draft?.id ?? ''}`,
+        ),
+      ).rejects.toMatchObject({
+        cause: { code: CHECK_VIOLATION, constraint_name: 'indicator_version_goal_polarity_check' },
+      });
+    },
+  );
 
   // Raw SQL because the insert type no longer lets a caller omit the slug.
   it('refuses a version with no slug', async () => {

@@ -214,6 +214,7 @@ export const indicatorTaskKeySchema = z.enum([
   'publishing-date',
   'links',
   'variance-and-quality',
+  'benchmarking',
 ]);
 
 export const indicatorTaskStatusesSchema = z.partialRecord(
@@ -254,6 +255,7 @@ export type IndicatorTaskStatuses = z.infer<typeof indicatorTaskStatusesSchema>;
 export type IndicatorTaskList = z.infer<typeof indicatorTaskListSchema>;
 export type IndicatorTaskListError = z.infer<typeof indicatorTaskListErrorSchema>;
 
+export * from './indicator-benchmarking-contract.ts';
 export * from './indicator-calculation-contract.ts';
 export * from './indicator-confidence-intervals-contract.ts';
 export * from './indicator-definition-and-rationale-contract.ts';

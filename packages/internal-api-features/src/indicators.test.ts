@@ -559,6 +559,11 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
       qualityAssurance: null,
       sourceDataIssues: null,
       sourceDataIssuesDetail: null,
+      hasGoalBenchmark: null,
+      goalLowerValue: null,
+      goalUpperValue: null,
+      goalPolarity: null,
+      goalPolicyDetail: null,
     },
     draftCiMethodKind: null,
     indicatorStatus: 'new',
@@ -613,6 +618,7 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
         'publishing-date': 'not_started',
         links: 'not_started',
         'variance-and-quality': 'not_started',
+        benchmarking: 'not_started',
       },
     });
   });

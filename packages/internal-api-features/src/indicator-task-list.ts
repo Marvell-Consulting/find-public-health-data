@@ -1,6 +1,7 @@
 import {
   areConfidenceIntervalsComplete,
   areLinksComplete,
+  benchmarkingSection,
   type CiMethodKind,
   calculationSection,
   definitionAndRationaleSection,
@@ -18,6 +19,7 @@ import {
 import type { IndicatorDraftVersion } from './indicator-repository.ts';
 import type { IndicatorSectionColumns, IndicatorSectionDraft } from './indicator-section.ts';
 import {
+  benchmarkingColumns,
   calculationColumns,
   confidenceIntervalsColumns,
   definitionAndRationaleColumns,
@@ -79,6 +81,7 @@ export function indicatorTaskList({
     'publishing-date': complete(publishingDateSection, publishingDateColumns),
     links: taskStatus(areLinksComplete(linksColumns.fromDraft(draft))),
     'variance-and-quality': complete(varianceAndQualitySection, varianceAndQualityColumns),
+    benchmarking: complete(benchmarkingSection, benchmarkingColumns),
   };
 
   return {
