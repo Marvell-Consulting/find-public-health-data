@@ -12,7 +12,7 @@ const indicatorDetail = {
   valueType: 'Directly standardised rate',
   unit: { name: 'per 100,000', label: 'per 100,000' },
   yearType: 'Calendar',
-  frequency: 'Annual',
+  updateFrequency: 'annually' as const,
   polarity: 'lower-is-better' as const,
   ciMethod: "Dobson & Byar's methods",
   ciConfidenceLevel: '95',

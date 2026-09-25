@@ -14,6 +14,7 @@ import {
   missingCiMethodFollowUps,
   polaritySection,
   SELECT_CI_METHOD,
+  updateFrequencySection,
 } from './contract.ts';
 import {
   type IndicatorSectionColumns,
@@ -26,6 +27,8 @@ import type { InternalCiMethodRepository, InternalRepositories } from './reposit
 export const definitionAndRationaleColumns = sameNamedColumns(definitionAndRationaleSection.fields);
 
 export const polarityColumns = sameNamedColumns(polaritySection.fields);
+
+export const updateFrequencyColumns = sameNamedColumns(updateFrequencySection.fields);
 
 export const calculationColumns: IndicatorSectionColumns<CalculationField, Calculation> = {
   ...sameNamedColumns(calculationSection.fields),
@@ -118,5 +121,6 @@ export function indicatorSectionsRouter(
       judgedConfidenceIntervalsSection(ciMethods),
       confidenceIntervalsColumns,
     ),
+    indicatorSectionRouter(indicators, session, updateFrequencySection, updateFrequencyColumns),
   );
 }

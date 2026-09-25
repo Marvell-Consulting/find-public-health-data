@@ -23,6 +23,7 @@ export type IndicatorSectionDraft = Pick<
   | 'ciMethodModified'
   | 'ciMethodModifications'
   | 'ciMethodOtherDetail'
+  | 'updateFrequency'
 >;
 
 /** How a section's answers map onto the draft's columns, in both directions. */

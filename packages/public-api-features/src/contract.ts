@@ -1,6 +1,7 @@
 import { z } from '@fphd/config/zod';
 import { POLARITIES } from '@fphd/utils/polarity';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
+import { UPDATE_FREQUENCIES } from '@fphd/utils/update-frequency';
 
 // One selection contains up to 19 picked areas and England for comparison.
 export const MAX_SELECTED_AREAS = 19;
@@ -83,7 +84,7 @@ export const indicatorDetailSchema = z.object({
   valueType: z.string().min(1),
   unit: z.object({ name: z.string().min(1), label: z.string().min(1) }),
   yearType: z.string().min(1),
-  frequency: z.string().min(1),
+  updateFrequency: z.enum(UPDATE_FREQUENCIES),
   polarity: z.enum(POLARITIES),
   ciMethod: z.string().nullable(),
   ciConfidenceLevel: z.string().nullable(),

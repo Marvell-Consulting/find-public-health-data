@@ -1,5 +1,6 @@
 import { POLARITIES } from '@fphd/utils/polarity';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
+import { UPDATE_FREQUENCIES } from '@fphd/utils/update-frequency';
 import { asc, desc, eq, sql } from 'drizzle-orm';
 import {
   boolean,
@@ -23,7 +24,6 @@ import {
   ciMethod,
   comparatorMethod,
   dataSource,
-  frequency,
   numeratorDenominatorSource,
   unit,
   valueType,
@@ -82,7 +82,7 @@ export const indicatorVersion = pgTable(
     // Asked of an other CI method only.
     ciMethodOtherDetail: text(),
     polarity: text({ enum: POLARITIES }),
-    frequencyId: uuid().references(() => frequency.id),
+    updateFrequency: text({ enum: UPDATE_FREQUENCIES }),
     comparatorMethodId: uuid().references(() => comparatorMethod.id),
     disclosureThreshold: smallint(),
     ciConfidenceLevel: text(),
@@ -114,6 +114,10 @@ export const indicatorVersion = pgTable(
     check(
       'indicator_version_polarity_check',
       sql`${t.polarity} IN (${sql.raw(POLARITIES.map((value) => `'${value}'`).join(', '))})`,
+    ),
+    check(
+      'indicator_version_update_frequency_check',
+      sql`${t.updateFrequency} IN (${sql.raw(UPDATE_FREQUENCIES.map((value) => `'${value}'`).join(', '))})`,
     ),
     check(
       'indicator_version_calculated_by_check',

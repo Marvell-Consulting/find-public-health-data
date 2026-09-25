@@ -28,6 +28,12 @@
       "development": "./src/slug.ts",
       "types": "./src/slug.ts",
       "default": "./dist/slug.js"
+    },
+    "./update-frequency": {
+      "browser": "./src/update-frequency.ts",
+      "development": "./src/update-frequency.ts",
+      "types": "./src/update-frequency.ts",
+      "default": "./dist/update-frequency.js"
     }
   },
   "files": [

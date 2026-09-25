@@ -113,7 +113,21 @@ describe('IndicatorTaskListPage', () => {
       'Definition and rationale',
       'How the indicator was calculated',
       'Confidence intervals',
+      'Update frequency',
     ]);
+  });
+
+  it('links the update frequency to its page, with the status the API reports', () => {
+    renderPage({ tasks: { name: 'completed', 'update-frequency': 'completed' } });
+
+    const row = group('Publishing').getByRole('link', { name: 'Update frequency' });
+
+    expect(row.getAttribute('href')).toBe(
+      `/publish/indicators/${taskList.indicator.id}/update-frequency`,
+    );
+    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
+      'Completed',
+    );
   });
 
   it('links the confidence intervals to their page, with the status the API reports', () => {

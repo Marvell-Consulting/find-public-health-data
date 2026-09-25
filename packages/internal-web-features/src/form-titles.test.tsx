@@ -10,6 +10,7 @@ import * as definitionAndRationale from './indicator-definition-and-rationale/ro
 import * as editIndicatorName from './indicator-name/edit-route.tsx';
 import * as newIndicator from './indicator-name/new-route.tsx';
 import * as polarity from './indicator-polarity/route.tsx';
+import * as updateFrequency from './indicator-update-frequency/route.tsx';
 import * as editTopic from './topic-admin/edit-route.tsx';
 import * as newTopic from './topic-admin/new-route.tsx';
 
@@ -110,6 +111,16 @@ const forms: {
         ciMethodOtherDetail: '',
       },
       fieldErrors: { ciMethodId: 'Select the confidence interval method used' },
+    },
+  },
+  {
+    name: 'update frequency',
+    route: updateFrequency,
+    pageTitle: 'How often will this indicator be updated?',
+    loaderData: { id: indicator.id, values: { updateFrequency: '' } },
+    rejected: {
+      values: { updateFrequency: '' },
+      fieldErrors: { updateFrequency: 'Select how often this indicator will be updated' },
     },
   },
   {

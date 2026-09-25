@@ -8,8 +8,8 @@ Run locally after transform-uuids.py:
 indicator.csv.gz keeps only the identity columns; everything a publisher edits,
 including the whole of indicator_metadata.csv.gz, moves to a single published
 indicator_version row per indicator, under the actor the export already carries.
-The Pholio polarity reference becomes the service's polarity value.
-indicator_metadata.csv.gz and polarity.csv.gz are removed.
+The Pholio polarity and frequency references become the service's values.
+indicator_metadata.csv.gz, polarity.csv.gz and frequency.csv.gz are removed.
 """
 
 import csv
@@ -20,6 +20,7 @@ import sys
 
 from polarity import polarity_value
 from slug import assign_slugs
+from update_frequency import update_frequency_value
 
 IDENTITY_COLUMNS = ["id", "short_id", "data_updated_at", "created_at"]
 
@@ -36,7 +37,7 @@ VERSION_COLUMNS = [
     "year_type_id",
     "ci_method_id",
     "polarity",
-    "frequency_id",
+    "update_frequency",
     "comparator_method_id",
     "disclosure_threshold",
     "ci_confidence_level",
@@ -87,10 +88,12 @@ def main(seed_dir):
     indicator_path = os.path.join(seed_dir, "indicator.csv.gz")
     metadata_path = os.path.join(seed_dir, "indicator_metadata.csv.gz")
     polarity_path = os.path.join(seed_dir, "polarity.csv.gz")
+    frequency_path = os.path.join(seed_dir, "frequency.csv.gz")
 
     indicators = read_rows(indicator_path)
     metadata = {row["indicator_id"]: row for row in read_rows(metadata_path)}
     polarity_names = {row["id"]: row["name"] for row in read_rows(polarity_path)}
+    frequency_names = {row["id"]: row["name"] for row in read_rows(frequency_path)}
 
     # Version ids sort after the indicators they belong to, so UUIDv7 ordering still
     # mirrors the order the rows were created in.
@@ -112,6 +115,11 @@ def main(seed_dir):
         version["polarity"] = (
             polarity_value(polarity_names[row["polarity_id"]]) if row["polarity_id"] else ""
         )
+        version["update_frequency"] = (
+            update_frequency_value(frequency_names[row["frequency_id"]])
+            if row["frequency_id"]
+            else ""
+        )
         version["status"] = "published"
         version["published_at"] = row["updated_at"]
         versions.append(version)
@@ -120,6 +128,7 @@ def main(seed_dir):
     write_rows(os.path.join(seed_dir, "indicator_version.csv.gz"), VERSION_COLUMNS, versions)
     os.remove(metadata_path)
     os.remove(polarity_path)
+    os.remove(frequency_path)
 
     print(f"indicator: {len(indicators)} identity rows")
     print(f"indicator_version: {len(versions)} published versions")

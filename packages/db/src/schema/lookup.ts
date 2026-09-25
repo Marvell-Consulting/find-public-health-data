@@ -37,11 +37,6 @@ export const ciMethod = pgTable(
   (t) => [check('ci_method_kind_check', sql`${t.kind} IN ('standard', 'other', 'none')`)],
 );
 
-export const frequency = pgTable('frequency', {
-  id: uuidPrimaryKey(),
-  name: text().notNull().unique(),
-});
-
 export const comparatorMethod = pgTable('comparator_method', {
   id: uuidPrimaryKey(),
   name: text().notNull().unique(),

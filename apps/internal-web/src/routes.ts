@@ -63,6 +63,10 @@ export default [
         'publish/indicators/:id/confidence-intervals',
         '../../../packages/internal-web-features/src/indicator-confidence-intervals/route.tsx',
       ),
+      route(
+        'publish/indicators/:id/update-frequency',
+        '../../../packages/internal-web-features/src/indicator-update-frequency/route.tsx',
+      ),
     ]),
     layout('./admin.tsx', [
       route('manage', './manage.tsx'),

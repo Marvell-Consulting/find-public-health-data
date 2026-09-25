@@ -54,8 +54,8 @@ TAGGED_TABLES = [
 ]
 # Tagged by position in the full list, so a table the export stops carrying moves no id.
 TABLE_TAGS = {table: index + 1 for index, table in enumerate(TAGGED_TABLES)}
-# The polarity is exported as its value rather than a reference to a lookup row.
-PUBLISHED_TABLES = [table for table in TAGGED_TABLES if table != "polarity"]
+# The polarity and frequency are exported as values rather than references to lookup rows.
+PUBLISHED_TABLES = [table for table in TAGGED_TABLES if table not in ("polarity", "frequency")]
 
 FOREIGN_KEYS = {
     "dimension_value": {"dimension_type_id": "dimension_type", "parent_id": "dimension_value"},
@@ -83,7 +83,6 @@ FOREIGN_KEYS = {
         "unit_id": "unit",
         "year_type_id": "year_type",
         "ci_method_id": "ci_method",
-        "frequency_id": "frequency",
         "comparator_method_id": "comparator_method",
         "data_source_id": "data_source",
         "numerator_source_id": "numerator_denominator_source",

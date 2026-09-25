@@ -199,6 +199,7 @@ export const indicatorTaskKeySchema = z.enum([
   'polarity',
   'calculation',
   'confidence-intervals',
+  'update-frequency',
 ]);
 
 export const indicatorTaskStatusesSchema = z.partialRecord(
@@ -244,3 +245,4 @@ export * from './indicator-confidence-intervals-contract.ts';
 export * from './indicator-definition-and-rationale-contract.ts';
 export * from './indicator-polarity-contract.ts';
 export * from './indicator-section-contract.ts';
+export * from './indicator-update-frequency-contract.ts';

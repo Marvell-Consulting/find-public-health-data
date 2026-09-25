@@ -24,7 +24,6 @@ export const SEED_TABLES = [
   'unit',
   'year_type',
   'ci_method',
-  'frequency',
   'comparator_method',
   'data_source',
   'numerator_denominator_source',
