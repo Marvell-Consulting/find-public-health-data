@@ -98,10 +98,10 @@ describe('IndicatorTaskListPage', () => {
   it('shows a task with no form yet as not started, without a link', () => {
     renderPage();
 
-    const dataQuality = group('Data').getByText('Data quality');
+    const dataTable = group('Data').getByText('Data table');
 
-    expect(screen.queryByRole('link', { name: 'Data quality' })).toBeNull();
-    expect(dataQuality.closest('li')?.textContent).toContain('Not started');
+    expect(screen.queryByRole('link', { name: 'Data table' })).toBeNull();
+    expect(dataTable.closest('li')?.textContent).toContain('Not started');
   });
 
   it('links only the tasks that can be worked on today', () => {
@@ -109,6 +109,7 @@ describe('IndicatorTaskListPage', () => {
 
     expect(screen.getAllByRole('link').map((link) => link.textContent)).toEqual([
       'Polarity',
+      'Data quality',
       'Name',
       'Definition and rationale',
       'How the indicator was calculated',
@@ -119,6 +120,19 @@ describe('IndicatorTaskListPage', () => {
       'Publishing date',
       'Variance and quality',
     ]);
+  });
+
+  it('links the data quality to its page, with the status the API reports', () => {
+    renderPage({ tasks: { name: 'completed', 'data-quality': 'completed' } });
+
+    const row = group('Data').getByRole('link', { name: 'Data quality' });
+
+    expect(row.getAttribute('href')).toBe(
+      `/publish/indicators/${taskList.indicator.id}/data-quality`,
+    );
+    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
+      'Completed',
+    );
   });
 
   it('links the update frequency to its page, with the status the API reports', () => {

@@ -47,6 +47,7 @@ export type IndicatorSectionDraft = Pick<
   | 'qualityAssurance'
   | 'sourceDataIssues'
   | 'sourceDataIssuesDetail'
+  | 'dataQualityIssues'
 >;
 
 /**

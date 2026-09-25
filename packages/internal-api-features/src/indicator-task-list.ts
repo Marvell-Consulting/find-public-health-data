@@ -3,6 +3,7 @@ import {
   areLinksComplete,
   type CiMethodKind,
   calculationSection,
+  dataQualitySection,
   definitionAndRationaleSection,
   type IndicatorSection,
   type IndicatorTaskList,
@@ -20,6 +21,7 @@ import type { IndicatorSectionColumns, IndicatorSectionDraft } from './indicator
 import {
   calculationColumns,
   confidenceIntervalsColumns,
+  dataQualityColumns,
   definitionAndRationaleColumns,
   linksColumns,
   otherNotesAndCaveatsColumns,
@@ -67,6 +69,7 @@ export function indicatorTaskList({
       definitionAndRationaleColumns,
     ),
     polarity: complete(polaritySection, polarityColumns),
+    'data-quality': complete(dataQualitySection, dataQualityColumns),
     calculation: complete(calculationSection, calculationColumns),
     'confidence-intervals': taskStatus(
       areConfidenceIntervalsComplete(

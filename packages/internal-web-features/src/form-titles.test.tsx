@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { FORM_NOT_SAVED } from './form-refusal.ts';
 import * as calculation from './indicator-calculation/route.tsx';
 import * as confidenceIntervals from './indicator-confidence-intervals/route.tsx';
+import * as dataQuality from './indicator-data-quality/route.tsx';
 import * as definitionAndRationale from './indicator-definition-and-rationale/route.tsx';
 import * as links from './indicator-links/route.tsx';
 import * as editIndicatorName from './indicator-name/edit-route.tsx';
@@ -105,6 +106,18 @@ const forms: {
     rejected: {
       values: { polarity: '' },
       fieldErrors: { polarity: 'Select the polarity of the indicator' },
+    },
+  },
+  {
+    name: 'data quality',
+    route: dataQuality,
+    pageTitle: 'Are there any data quality issues with this indicator?',
+    loaderData: { id: indicator.id, values: { dataQualityIssues: '' } },
+    rejected: {
+      values: { dataQualityIssues: '' },
+      fieldErrors: {
+        dataQualityIssues: 'Select whether there are any data quality issues with this indicator',
+      },
     },
   },
   {

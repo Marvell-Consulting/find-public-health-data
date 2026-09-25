@@ -8,6 +8,7 @@ import {
   calculationColumns,
   confidenceIntervalsColumns,
   confidenceIntervalsServerSection,
+  dataQualityColumns,
   definitionAndRationaleColumns,
   indicatorSectionsRouter,
   linksColumns,
@@ -54,6 +55,7 @@ const unanswered: IndicatorSectionDraft = {
   qualityAssurance: null,
   sourceDataIssues: null,
   sourceDataIssuesDetail: null,
+  dataQualityIssues: null,
 };
 
 const METHODS: Record<CiMethodRow['kind'], CiMethodRow> = {
@@ -159,6 +161,27 @@ describe('polarityColumns', () => {
     });
     expect(polarityColumns.toAttributes({ polarity: 'no-polarity' })).toEqual({
       polarity: 'no-polarity',
+    });
+  });
+});
+
+describe('dataQualityColumns', () => {
+  it.each([
+    [true, 'yes'],
+    [false, 'no'],
+    [null, null],
+  ])('reads whether there are data quality issues, %s, as %s', (dataQualityIssues, answer) => {
+    expect(dataQualityColumns.fromDraft({ ...unanswered, dataQualityIssues })).toEqual({
+      dataQualityIssues: answer,
+    });
+  });
+
+  it.each([
+    ['yes', true],
+    ['no', false],
+  ] as const)('writes %s as %s', (dataQualityIssues, answer) => {
+    expect(dataQualityColumns.toAttributes({ dataQualityIssues })).toEqual({
+      dataQualityIssues: answer,
     });
   });
 });

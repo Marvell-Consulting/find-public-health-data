@@ -39,7 +39,7 @@ const TASK_GROUPS: readonly TaskGroup[] = [
       { key: 'sex-and-ages', title: 'Sex and ages' },
       { key: 'period-type', title: 'Period type' },
       { key: 'polarity', title: 'Polarity', path: sectionPath('polarity') },
-      { key: 'data-quality', title: 'Data quality' },
+      { key: 'data-quality', title: 'Data quality', path: sectionPath('data-quality') },
     ],
   },
   {
