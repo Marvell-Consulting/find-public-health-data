@@ -672,6 +672,22 @@ describe('updateIndicatorDraft', () => {
     expect(state?.draft).toMatchObject(answers);
   });
 
+  it('writes the variance and quality notes to the draft', async () => {
+    const created = await newDraft('Variance and quality answered');
+    const answers = {
+      variation: 'Varies with the age structure of each area.',
+      qualityAssurance: 'Checked against the published ONS figures.',
+      sourceDataIssues: true,
+      sourceDataIssuesDetail: 'Late returns from two areas.',
+    };
+
+    const result = await updateIndicatorDraft(db, created.indicatorId, answers, {}, ACTOR);
+
+    expect(result).toEqual({ ok: true });
+    const state = await getIndicatorDraftState(db, created.indicatorId);
+    expect(state?.draft).toMatchObject(answers);
+  });
+
   it('refuses an indicator with no draft', async () => {
     const created = await newDraft('Draftless');
     await db.delete(indicatorVersion).where(eq(indicatorVersion.indicatorId, created.indicatorId));

@@ -13,6 +13,7 @@ import {
   polaritySection,
   publishingDateSection,
   updateFrequencySection,
+  varianceAndQualitySection,
 } from './contract.ts';
 import type { IndicatorDraftVersion } from './indicator-repository.ts';
 import type { IndicatorSectionColumns, IndicatorSectionDraft } from './indicator-section.ts';
@@ -25,6 +26,7 @@ import {
   polarityColumns,
   publishingDateColumns,
   updateFrequencyColumns,
+  varianceAndQualityColumns,
 } from './indicator-sections.ts';
 
 /** The draft columns the task list judges: the name, and those the sections read. */
@@ -76,6 +78,7 @@ export function indicatorTaskList({
     'other-notes-and-caveats': complete(otherNotesAndCaveatsSection, otherNotesAndCaveatsColumns),
     'publishing-date': complete(publishingDateSection, publishingDateColumns),
     links: taskStatus(areLinksComplete(linksColumns.fromDraft(draft))),
+    'variance-and-quality': complete(varianceAndQualitySection, varianceAndQualityColumns),
   };
 
   return {

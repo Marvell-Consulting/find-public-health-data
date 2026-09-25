@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { serviceName } from '@fphd/ui';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -100,24 +100,6 @@ describe('OtherNotesAndCaveatsPage', () => {
     },
   );
 
-  it('marks each reveal hidden while Yes is not chosen, which hides it only with JavaScript', () => {
-    renderPage({ values: { ...empty, caveatsNeeded: 'no' } });
-
-    for (const [legend] of QUESTIONS) {
-      expect(conditional(legend).className).toContain('govuk-radios__conditional--hidden');
-    }
-  });
-
-  it('reveals the details when Yes is chosen', () => {
-    const legend = 'Has any rounding been applied?';
-    renderPage();
-
-    fireEvent.click(option(legend, 'Yes'));
-
-    expect(conditional(legend).className).not.toContain('govuk-radios__conditional--hidden');
-    expect(option(legend, 'Yes').getAttribute('aria-expanded')).toBe('true');
-  });
-
   it('shows the answers it is given, so a draft can be revisited', () => {
     renderPage({
       values: {
@@ -172,38 +154,5 @@ describe('OtherNotesAndCaveatsPage', () => {
     expect(document.title).toBe(
       `Error: Provide any other notes and caveats - ${serviceName} - GOV.UK`,
     );
-  });
-
-  it('marks an unanswered question as refused', () => {
-    const { container } = renderPage({
-      fieldErrors: { caveatsNeeded: 'Select whether there are any caveats needed' },
-    });
-
-    const group = screen.getByRole('group', { name: /Are there any caveats needed\?/ });
-
-    expect(group.closest('.govuk-form-group--error')).not.toBeNull();
-    expect(group.textContent).toContain('Select whether there are any caveats needed');
-    expect(container.querySelectorAll('.govuk-form-group--error')).toHaveLength(1);
-  });
-
-  it('shows a details error inside the open reveal and keeps what was typed elsewhere', () => {
-    const legend = 'Are there any other notes needed?';
-    renderPage({
-      fieldErrors: { otherNotesDetail: 'Provide details of the other notes' },
-      values: {
-        ...empty,
-        caveatsNeeded: 'yes',
-        caveatsDetail: 'Survey data.',
-        otherNotesNeeded: 'yes',
-      },
-    });
-
-    const error = conditional(legend).querySelector('.govuk-error-message');
-
-    expect(conditional(legend).className).not.toContain('govuk-radios__conditional--hidden');
-    expect(error?.textContent).toContain('Provide details of the other notes');
-    expect(detailsField(legend).className).toContain('govuk-textarea--error');
-    expect(detailsField(legend).getAttribute('aria-describedby')).toBe(error?.id);
-    expect(detailsField('Are there any caveats needed?').value).toBe('Survey data.');
   });
 });

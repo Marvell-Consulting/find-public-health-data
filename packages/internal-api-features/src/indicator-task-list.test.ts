@@ -42,6 +42,10 @@ const source: IndicatorTaskListSource = {
     scheduledPublishAtUk: null,
     hasLinks: null,
     links: [],
+    variation: null,
+    qualityAssurance: null,
+    sourceDataIssues: null,
+    sourceDataIssuesDetail: null,
   },
 };
 
@@ -70,6 +74,10 @@ const complete: IndicatorTaskListDraft = {
   scheduledPublishAtUk: '2027-09-14T09:30:00+01:00',
   hasLinks: true,
   links: [{ url: 'https://www.gov.uk/', text: 'Statistical commentary' }],
+  variation: 'Varies with the age structure of each area.',
+  qualityAssurance: 'Checked against the published ONS figures.',
+  sourceDataIssues: true,
+  sourceDataIssuesDetail: 'Late returns from two areas.',
 };
 
 function withDraft(draft: Partial<IndicatorTaskListDraft>): IndicatorTaskListSource {
@@ -234,6 +242,20 @@ describe('indicatorTaskList', () => {
     ['links it does not hold', { hasLinks: true }, 'not_started'],
   ] as const)('judges the links when there are %s', (_, draft, status) => {
     expect(indicatorTaskList(withDraft(draft)).tasks.links).toBe(status);
+  });
+
+  it('counts the variance and quality as complete once every question is answered', () => {
+    expect(indicatorTaskList(withDraft(complete)).tasks['variance-and-quality']).toBe('completed');
+  });
+
+  it.each([
+    ['nothing', {}],
+    ['a blank variation', { ...complete, variation: ' ' }],
+    ['quality assurance unanswered', { ...complete, qualityAssurance: null }],
+    ['source data issues unanswered', { ...complete, sourceDataIssues: null }],
+    ['source data issues without their details', { ...complete, sourceDataIssuesDetail: null }],
+  ] as const)('leaves the variance and quality not started with %s', (_, draft) => {
+    expect(indicatorTaskList(withDraft(draft)).tasks['variance-and-quality']).toBe('not_started');
   });
 
   it.each([

@@ -15,6 +15,7 @@ import * as otherNotesAndCaveats from './indicator-other-notes-and-caveats/route
 import * as polarity from './indicator-polarity/route.tsx';
 import * as publishingDate from './indicator-publishing-date/route.tsx';
 import * as updateFrequency from './indicator-update-frequency/route.tsx';
+import * as varianceAndQuality from './indicator-variance-and-quality/route.tsx';
 import * as editTopic from './topic-admin/edit-route.tsx';
 import * as newTopic from './topic-admin/new-route.tsx';
 
@@ -57,6 +58,13 @@ const publishingDateUnanswered = {
   publishingDateYear: '',
   publishingTimeHour: '09',
   publishingTimeMinute: '30',
+};
+
+const varianceAndQualityUnanswered = {
+  variation: '',
+  qualityAssurance: '',
+  sourceDataIssues: '',
+  sourceDataIssuesDetail: '',
 };
 
 const forms: {
@@ -177,6 +185,16 @@ const forms: {
     rejected: {
       values: { hasLinks: '', links: [], linkUrl: '', linkText: '' },
       fieldErrors: { hasLinks: 'Select whether there are any relevant links' },
+    },
+  },
+  {
+    name: 'variance and quality',
+    route: varianceAndQuality,
+    pageTitle: 'Variance and quality',
+    loaderData: { id: indicator.id, values: varianceAndQualityUnanswered },
+    rejected: {
+      values: varianceAndQualityUnanswered,
+      fieldErrors: { variation: 'Enter how the indicator varies' },
     },
   },
   {

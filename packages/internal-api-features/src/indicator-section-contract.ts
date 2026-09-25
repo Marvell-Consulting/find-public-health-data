@@ -18,6 +18,39 @@ export interface IndicatorSection<Field extends string, Values, Input = Record<F
   schema: z.ZodType<Values, Input>;
 }
 
+/** A yes or no radio answer, refused with `error` when it is neither. */
+export function yesNoSchema(error: string) {
+  return z.enum(['yes', 'no'], { error });
+}
+
+/**
+ * A question whose yes asks for details, and the message when they are missing. A section
+ * declares its list once, `as const`, for both its schema and its columns.
+ */
+export interface DetailedQuestion<Answer extends string, Detail extends string = Answer> {
+  answer: Answer;
+  detail: Detail;
+  detailRequired: string;
+}
+
+/** Refuses each yes whose details are blank, also beside an unanswered question. */
+export function requireDetails<Shape extends z.ZodRawShape>(
+  schema: z.ZodObject<Shape>,
+  questions: readonly DetailedQuestion<keyof Shape & string>[],
+) {
+  return schema.superRefine(
+    (answers: Record<string, unknown>, ctx) => {
+      for (const { answer, detail, detailRequired } of questions) {
+        if (answers[answer] === 'yes' && answers[detail] === '') {
+          ctx.addIssue({ code: 'custom', path: [detail], message: detailRequired });
+        }
+      }
+    },
+    // So every refusal shows at once, not the missing details only once the rest are answered.
+    { when: ({ value }) => typeof value === 'object' && value !== null },
+  );
+}
+
 /** A section's answers as the draft holds them: null until a field is answered. */
 export function indicatorSectionAnswersSchema<Field extends string>(
   fields: IndicatorSectionFields<Field>,

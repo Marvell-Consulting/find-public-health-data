@@ -18,6 +18,7 @@ import {
   missingCiMethodFollowUps,
   type OtherNotesAndCaveats,
   type OtherNotesAndCaveatsField,
+  otherNotesAndCaveatsQuestions,
   otherNotesAndCaveatsSection,
   type PublishingDate,
   type PublishingDateField,
@@ -26,12 +27,17 @@ import {
   REAL_PUBLISHING_TIME,
   SELECT_CI_METHOD,
   updateFrequencySection,
+  varianceAndQualityQuestions,
+  varianceAndQualitySection,
 } from './contract.ts';
 import type { UkDateTime } from './indicator-repository.ts';
 import {
+  detailOf,
   type IndicatorSectionColumns,
   indicatorSectionRouter,
   sameNamedColumns,
+  yesNoAnswer,
+  yesNoDetailColumns,
 } from './indicator-section.ts';
 import type { IndicatorSection } from './indicator-section-contract.ts';
 import type {
@@ -58,18 +64,13 @@ export const calculationColumns: IndicatorSectionColumns<CalculationField, Calcu
 
 export type ConfidenceIntervalsWithKind = ConfidenceIntervals & { kind: CiMethodKind };
 
-function yesNo(answer: boolean | null): 'yes' | 'no' | null {
-  if (answer === null) return null;
-  return answer ? 'yes' : 'no';
-}
-
 export const confidenceIntervalsColumns: IndicatorSectionColumns<
   ConfidenceIntervalsField,
   ConfidenceIntervalsWithKind
 > = {
   fromDraft: (draft) => ({
     ciMethodId: draft.ciMethodId,
-    ciMethodModified: yesNo(draft.ciMethodModified),
+    ciMethodModified: yesNoAnswer(draft.ciMethodModified),
     ciMethodModifications: draft.ciMethodModifications,
     ciMethodOtherDetail: draft.ciMethodOtherDetail,
   }),
@@ -92,40 +93,31 @@ export const confidenceIntervalsColumns: IndicatorSectionColumns<
   },
 };
 
-/** A detail is kept beside a yes alone, whatever the form sent. */
-function detailOf(answer: string, detail: string): string | null {
-  return answer === 'yes' ? detail : null;
-}
+const otherNotesAndCaveatsAnswers = yesNoDetailColumns(
+  otherNotesAndCaveatsSection,
+  otherNotesAndCaveatsQuestions,
+);
 
 export const otherNotesAndCaveatsColumns: IndicatorSectionColumns<
   OtherNotesAndCaveatsField,
   OtherNotesAndCaveats
 > = {
-  fromDraft: (draft) => ({
-    disclosureControl: draft.disclosureControl,
-    disclosureControlDetail: draft.disclosureControlDetail,
-    roundingApplied: yesNo(draft.roundingApplied),
-    roundingDetail: draft.roundingDetail,
-    caveatsNeeded: yesNo(draft.caveatsNeeded),
-    caveatsDetail: draft.caveatsDetail,
-    otherNotesNeeded: yesNo(draft.otherNotesNeeded),
-    otherNotesDetail: draft.otherNotesDetail,
-  }),
+  ...otherNotesAndCaveatsAnswers,
+  // Disclosure control is stored as its answer, which "Not applicable" makes more than yes/no.
   toAttributes: (answers) => ({
-    disclosureControl: answers.disclosureControl,
+    ...otherNotesAndCaveatsAnswers.toAttributes(answers),
     disclosureControlDetail: detailOf(answers.disclosureControl, answers.disclosureControlDetail),
-    roundingApplied: answers.roundingApplied === 'yes',
-    roundingDetail: detailOf(answers.roundingApplied, answers.roundingDetail),
-    caveatsNeeded: answers.caveatsNeeded === 'yes',
-    caveatsDetail: detailOf(answers.caveatsNeeded, answers.caveatsDetail),
-    otherNotesNeeded: answers.otherNotesNeeded === 'yes',
-    otherNotesDetail: detailOf(answers.otherNotesNeeded, answers.otherNotesDetail),
   }),
 };
 
+export const varianceAndQualityColumns = yesNoDetailColumns(
+  varianceAndQualitySection,
+  varianceAndQualityQuestions,
+);
+
 export const linksColumns: IndicatorSectionColumns<LinksField, Links, LinksAnswers> = {
   fromDraft: ({ hasLinks, links }) => ({
-    hasLinks: yesNo(hasLinks),
+    hasLinks: yesNoAnswer(hasLinks),
     links: links.map(({ url, text }) => ({ url, text })),
   }),
   toAttributes: ({ hasLinks }) => ({ hasLinks: hasLinks === 'yes' }),
@@ -296,5 +288,11 @@ export function indicatorSectionsRouter(
       publishingDateColumns,
     ),
     indicatorSectionRouter(indicators, session, linksSection, linksColumns),
+    indicatorSectionRouter(
+      indicators,
+      session,
+      varianceAndQualitySection,
+      varianceAndQualityColumns,
+    ),
   );
 }
