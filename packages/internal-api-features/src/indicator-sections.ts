@@ -52,7 +52,7 @@ export const calculationColumns: IndicatorSectionColumns<CalculationField, Calcu
   }),
 };
 
-export type JudgedConfidenceIntervals = ConfidenceIntervals & { kind: CiMethodKind };
+export type ConfidenceIntervalsWithKind = ConfidenceIntervals & { kind: CiMethodKind };
 
 function yesNo(answer: boolean | null): string | null {
   if (answer === null) return null;
@@ -61,7 +61,7 @@ function yesNo(answer: boolean | null): string | null {
 
 export const confidenceIntervalsColumns: IndicatorSectionColumns<
   ConfidenceIntervalsField,
-  JudgedConfidenceIntervals
+  ConfidenceIntervalsWithKind
 > = {
   fromDraft: (draft) => ({
     ciMethodId: draft.ciMethodId,
@@ -120,9 +120,9 @@ export const otherNotesAndCaveatsColumns: IndicatorSectionColumns<
 };
 
 /** The form's schema, then the requirements of the chosen method, read from its row. */
-export function judgedConfidenceIntervalsSection(
+export function confidenceIntervalsServerSection(
   ciMethods: InternalCiMethodRepository,
-): IndicatorSection<ConfidenceIntervalsField, JudgedConfidenceIntervals> {
+): IndicatorSection<ConfidenceIntervalsField, ConfidenceIntervalsWithKind> {
   return {
     ...confidenceIntervalsSection,
     schema: confidenceIntervalsSection.schema.transform(async (answers, ctx) => {
@@ -145,7 +145,7 @@ export function judgedConfidenceIntervalsSection(
 }
 
 /** The publishing date as an instant: ISO 8601 with the UK offset in force on that date. */
-export type JudgedPublishingDate = PublishingDate & { scheduledPublishAt: string };
+export type PublishingDateWithInstant = PublishingDate & { scheduledPublishAt: string };
 
 // The instant as the repository reads it back, whose local date and time are the answers.
 const UK_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):\d{2}[+-]\d{2}:\d{2}$/;
@@ -188,7 +188,7 @@ export function publishingDateAnswers(
 
 export const publishingDateColumns: IndicatorSectionColumns<
   PublishingDateField,
-  JudgedPublishingDate
+  PublishingDateWithInstant
 > = {
   fromDraft: (draft) => publishingDateAnswers(draft.scheduledPublishAtUk),
   toAttributes: ({ scheduledPublishAt }) => ({ scheduledPublishAt: new Date(scheduledPublishAt) }),
@@ -217,12 +217,12 @@ const NOTICE_MS = NOTICE_DAYS * 24 * 60 * 60 * 1000;
 
 /**
  * The form's schema, then the instant the answers name, which must exist in UK time and be at
- * least 28 days after `now`. The notice is judged on the date, so it marks the date's parts.
+ * least 28 days after `now`. The notice is about the date, so its error marks the date's parts.
  */
-export function judgedPublishingDateSection(
+export function publishingDateServerSection(
   indicators: InternalIndicatorRepository,
   now: () => Date,
-): IndicatorSection<PublishingDateField, JudgedPublishingDate> {
+): IndicatorSection<PublishingDateField, PublishingDateWithInstant> {
   return {
     ...publishingDateSection,
     schema: publishingDateSection.schema.transform(async (answers, ctx) => {
@@ -247,7 +247,7 @@ export function judgedPublishingDateSection(
   };
 }
 
-/** GET and PUT for every section of a draft; `now` is when a publishing date is judged. */
+/** GET and PUT for every section of a draft; `now` is the clock for the publishing date's notice. */
 export function indicatorSectionsRouter(
   { indicators, ciMethods }: Pick<InternalRepositories, 'indicators' | 'ciMethods'>,
   session: JwtSessionVerifier,
@@ -265,7 +265,7 @@ export function indicatorSectionsRouter(
     indicatorSectionRouter(
       indicators,
       session,
-      judgedConfidenceIntervalsSection(ciMethods),
+      confidenceIntervalsServerSection(ciMethods),
       confidenceIntervalsColumns,
     ),
     indicatorSectionRouter(indicators, session, updateFrequencySection, updateFrequencyColumns),
@@ -278,7 +278,7 @@ export function indicatorSectionsRouter(
     indicatorSectionRouter(
       indicators,
       session,
-      judgedPublishingDateSection(indicators, now),
+      publishingDateServerSection(indicators, now),
       publishingDateColumns,
     ),
   );
