@@ -295,6 +295,12 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
   border-bottom: 1px solid $govuk-border-colour;
 }
 
+// Long text with no spaces, such as a pasted URL, wraps instead of overflowing the row.
+.fphd-added-list__item > a {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .fphd-link-button {
   padding: 0;
   border: 0;
