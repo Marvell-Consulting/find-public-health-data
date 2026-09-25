@@ -5,7 +5,12 @@ import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 import { FORM_NOT_SAVED } from './form-refusal.ts';
-import { loadIndicatorSection, readFormValues, saveIndicatorSection } from './indicator-section.ts';
+import {
+  type ControlNamesOf,
+  loadIndicatorSection,
+  readFormValues,
+  saveIndicatorSection,
+} from './indicator-section.ts';
 
 // What every section's loader and action share, shown through the first section built on them.
 
@@ -26,7 +31,12 @@ function load(indicatorId: string, get: ApiClient['get']) {
   );
 }
 
-function save(indicatorId: string, body: Record<string, string>, put: ApiClient['put']) {
+function save(
+  indicatorId: string,
+  body: Record<string, string>,
+  put: ApiClient['put'],
+  controlNames?: ControlNamesOf<'definition' | 'rationale'>,
+) {
   const context = new RouterContextProvider();
   context.set(apiContext, { put } as unknown as ApiClient);
 
@@ -40,6 +50,7 @@ function save(indicatorId: string, body: Record<string, string>, put: ApiClient[
       }),
     } as never,
     section,
+    controlNames,
   );
 }
 
@@ -113,6 +124,17 @@ describe('saveIndicatorSection', () => {
     expect((outcome as Response).headers.get('location')).toBe(
       `/publish/indicators/${id}/task-list`,
     );
+  });
+
+  it('reads each field from the control an answer in the submission chooses', async () => {
+    const put = vi.fn().mockResolvedValue({ ok: true, data: answers });
+    const body = { ...answers, which: 'second', second: 'A second rationale' };
+
+    await save(id, body, put, (formData) =>
+      formData.get('which') === 'second' ? { rationale: 'second' } : {},
+    );
+
+    expect(put.mock.calls[0]?.[1]).toEqual({ ...answers, rationale: 'A second rationale' });
   });
 
   it('saves nothing while any answer is missing, keeping what was typed', async () => {

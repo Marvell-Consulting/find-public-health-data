@@ -32,6 +32,11 @@ export interface FormFailure<Field extends string, Values = FormValues<Field>>
 /** The name of each control whose name is not its field's, such as a part of a date. */
 export type ControlNames<Field extends string> = Partial<Record<Field, string>>;
 
+/** The control names, or how to read them from the submission where they depend on an answer. */
+export type ControlNamesOf<Field extends string> =
+  | ControlNames<Field>
+  | ((formData: FormData) => ControlNames<Field>);
+
 /** Each field as typed; one the browser did not send, such as an unchosen radio, is empty. */
 export function readFormValues<Field extends string>(
   formData: FormData,
@@ -107,11 +112,13 @@ export async function putIndicatorSection<Field extends string, Values, Input>(
 export async function saveIndicatorSection<Field extends string, Values>(
   { context, params, request }: ActionFunctionArgs,
   section: IndicatorSection<Field, Values>,
-  controlNames: ControlNames<Field> = {},
+  controlNames: ControlNamesOf<Field> = {},
 ): Promise<FormFailure<Field> | Response> {
   const id = requireIndicatorId(params);
   const fields = section.fields.options;
-  const values = readFormValues(await request.formData(), fields, controlNames);
+  const formData = await request.formData();
+  const names = typeof controlNames === 'function' ? controlNames(formData) : controlNames;
+  const values = readFormValues(formData, fields, names);
   const submission = section.schema.safeParse(values);
 
   if (!submission.success) {

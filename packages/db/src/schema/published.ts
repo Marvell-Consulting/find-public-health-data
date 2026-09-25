@@ -36,6 +36,8 @@ export const publishedIndicator = publishedSchema
     valueTypeId: uuid('value_type_id'),
     unitId: uuid('unit_id'),
     yearTypeId: uuid('year_type_id'),
+    yearEndDay: smallint('year_end_day'),
+    yearEndMonth: smallint('year_end_month'),
     ciMethodId: uuid('ci_method_id'),
     polarity: text('polarity', { enum: POLARITIES }),
     updateFrequency: text('update_frequency', { enum: UPDATE_FREQUENCIES }),

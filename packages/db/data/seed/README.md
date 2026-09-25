@@ -60,6 +60,13 @@ That yields 433,678 observations, 657,869 bridge rows and 67,978 observation not
 - `indicator_version.update_frequency` likewise holds one of the service's values from
   `@fphd/utils/update-frequency` in place of Pholio's frequency lookup, translated by
   `export/update_frequency.py`; neither export carries a `frequency` table.
+- `indicator_version.period_type_id` and `year_type_id` point at the service's own
+  `period_type` and `year_type` rows, which the migrations insert with the ids in
+  `@fphd/utils/period-type`, and a year ending on a specified date holds its day and month
+  in `year_end_day` and `year_end_month`. `export/year_type.py` translates each of Pholio's
+  17 year types to them, and a name it has no translation for stops the export. Neither
+  export carries a `year_type` table; migration 0025 holds the same translation for
+  databases that already had Pholio's rows.
 - Pholio's disclosure control, caveats and notes prose becomes the service's answers:
   `export/notes_and_caveats.py` turns prose that is an answer in itself, such as "None
   applied" or "Not applicable", into that answer and drops it, matching the whole text
@@ -90,7 +97,7 @@ seed pipeline below this path has no `reshape-indicator-versions.py` step. Run `
 without it is refused before any data is loaded.
 The published export uses an explicit CSV NULL marker so the transform keeps
 empty metadata strings distinct from database NULLs; the manifest records it.
-The resulting `manifest.json`, `source-manifest.json` and 19 CSV files form the
+The resulting `manifest.json`, `source-manifest.json` and 18 CSV files form the
 private archive consumed by `db import-published-snapshot`; do not commit it.
 The command also applies `published-indicator-topics.json`, a provisional demo
 mapping from the public Fingertips profile and group membership APIs, plus

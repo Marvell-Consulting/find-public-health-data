@@ -1,5 +1,6 @@
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { z } from '@fphd/config/zod';
+import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
 import { Router } from 'express';
 
 import {
@@ -19,8 +20,11 @@ import {
   type OtherNotesAndCaveats,
   type OtherNotesAndCaveatsField,
   otherNotesAndCaveatsSection,
+  type PeriodType,
+  type PeriodTypeField,
   type PublishingDate,
   type PublishingDateField,
+  periodTypeSection,
   polaritySection,
   publishingDateSection,
   REAL_PUBLISHING_TIME,
@@ -88,6 +92,31 @@ export const confidenceIntervalsColumns: IndicatorSectionColumns<
       ciMethodModified: modified,
       ciMethodModifications: modified ? ciMethodModifications : null,
       ciMethodOtherDetail: kind === 'other' ? ciMethodOtherDetail : null,
+    };
+  },
+};
+
+function numberText(value: number | null): string | null {
+  return value === null ? null : String(value);
+}
+
+export const periodTypeColumns: IndicatorSectionColumns<PeriodTypeField, PeriodType> = {
+  fromDraft: (draft) => ({
+    periodType: draft.periodTypeId,
+    yearType: draft.yearTypeId,
+    yearEndDay: numberText(draft.yearEndDay),
+    yearEndMonth: numberText(draft.yearEndMonth),
+  }),
+  // Answers the chosen period and year types do not ask for are cleared, whatever the form sent.
+  toAttributes: ({ periodType, yearType, yearEndDay, yearEndMonth }) => {
+    const yearTypeId = periodType === PERIOD_TYPES.months.id ? null : yearType;
+    const endsOnDate = yearTypeId === YEAR_TYPES.specifiedEndDate.id;
+
+    return {
+      periodTypeId: periodType,
+      yearTypeId,
+      yearEndDay: endsOnDate ? Number(yearEndDay) : null,
+      yearEndMonth: endsOnDate ? Number(yearEndMonth) : null,
     };
   },
 };
@@ -283,6 +312,7 @@ export function indicatorSectionsRouter(
       confidenceIntervalsColumns,
     ),
     indicatorSectionRouter(indicators, session, updateFrequencySection, updateFrequencyColumns),
+    indicatorSectionRouter(indicators, session, periodTypeSection, periodTypeColumns),
     indicatorSectionRouter(
       indicators,
       session,

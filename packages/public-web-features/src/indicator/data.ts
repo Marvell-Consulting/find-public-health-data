@@ -11,7 +11,7 @@ function daysBetween(fromDate: string, toDate: string): number {
 
 export function periodLabel(
   { fromDate, toDate }: Pick<IndicatorObservation, 'fromDate' | 'toDate'>,
-  yearType?: string,
+  yearType?: string | null,
 ): string {
   const fromYear = fromDate.slice(0, 4);
   const toYear = toDate.slice(0, 4);
@@ -550,7 +550,7 @@ export function inequalityCategoryOptions(
 export function inequalityPeriods(
   observations: IndicatorObservation[],
   category: string,
-  yearType?: string,
+  yearType?: string | null,
 ): { value: string; label: string }[] {
   const reference = trendSeries(observations)[0];
   const periods = new Map<string, string>();
@@ -589,7 +589,10 @@ export function inequalityBreakdown(
 }
 
 /** The span an indicator's data covers, as the summary table states it. */
-export function periodCovered(observations: IndicatorObservation[], yearType?: string): string {
+export function periodCovered(
+  observations: IndicatorObservation[],
+  yearType?: string | null,
+): string {
   if (observations.length === 0) {
     return '';
   }
