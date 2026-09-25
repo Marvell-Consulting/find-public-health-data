@@ -8,7 +8,8 @@ Run locally after transform-uuids.py:
 indicator.csv.gz keeps only the identity columns; everything a publisher edits,
 including the whole of indicator_metadata.csv.gz, moves to a single published
 indicator_version row per indicator, under the actor the export already carries.
-The Pholio polarity and frequency references become the service's values.
+The Pholio polarity and frequency references become the service's values, and
+the disclosure control, caveats and notes prose becomes the service's answers.
 indicator_metadata.csv.gz, polarity.csv.gz and frequency.csv.gz are removed.
 """
 
@@ -18,6 +19,7 @@ import os
 import secrets
 import sys
 
+from notes_and_caveats import NOTES_AND_CAVEATS_COLUMNS, notes_and_caveats
 from polarity import polarity_value
 from slug import assign_slugs
 from update_frequency import update_frequency_value
@@ -47,9 +49,7 @@ VERSION_COLUMNS = [
     "methodology",
     "numerator_definition",
     "denominator_definition",
-    "disclosure_control",
-    "caveats",
-    "notes",
+    *NOTES_AND_CAVEATS_COLUMNS,
     "data_source_id",
     "numerator_source_id",
     "denominator_source_id",
@@ -106,8 +106,10 @@ def main(seed_dir):
     for offset, row in enumerate(sorted(indicators, key=lambda r: int(r["short_id"]))):
         version = {column: "" for column in VERSION_COLUMNS}
         version.update({column: row.get(column, "") for column in VERSION_COLUMNS})
+        prose = metadata.get(row["id"], {})
+        version.update({column: prose.get(column, "") for column in METADATA_COLUMNS})
         version.update(
-            {column: metadata.get(row["id"], {}).get(column, "") for column in METADATA_COLUMNS}
+            {column: value or "" for column, value in notes_and_caveats(prose).items()}
         )
         version["id"] = uuid7(base_ms + offset)
         version["indicator_id"] = row["id"]

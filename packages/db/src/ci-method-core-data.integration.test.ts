@@ -133,7 +133,7 @@ describe('loadIndicatorVersions', () => {
   });
 
   /** A source as Pholio's export shapes it: its own method ids and names, one version. */
-  async function writeSource(methodName: string) {
+  async function writeSource(methodName: string, extraColumn?: string) {
     const methodId = '00000000-0000-7000-8000-00000000c1c1';
     await writeFile(
       join(directory, 'ci_method.csv.gz'),
@@ -142,8 +142,8 @@ describe('loadIndicatorVersions', () => {
     await writeFile(
       join(directory, 'indicator_version.csv.gz'),
       gzipSync(
-        'indicator_id,status,published_at,name,slug,ci_method_id,created_by,updated_by\n' +
-          `${indicatorId},published,2026-01-01T00:00:00Z,A seeded indicator,a-seeded-indicator,${methodId},seed,seed\n`,
+        `indicator_id,status,published_at,name,slug,ci_method_id,created_by,updated_by${extraColumn ? `,${extraColumn}` : ''}\n` +
+          `${indicatorId},published,2026-01-01T00:00:00Z,A seeded indicator,a-seeded-indicator,${methodId},seed,seed${extraColumn ? ',x' : ''}\n`,
       ),
     );
   }
@@ -167,6 +167,14 @@ describe('loadIndicatorVersions', () => {
 
     await expect(sql.begin((tx) => loadIndicatorVersions(tx, directory))).rejects.toThrow(
       /No core CI method for A method nobody has heard of/,
+    );
+  });
+
+  it('names the columns of a file exported before a migration', async () => {
+    await writeSource('Normal approximation', 'caveats');
+
+    await expect(sql.begin((tx) => loadIndicatorVersions(tx, directory))).rejects.toThrow(
+      'indicator_version.csv.gz has columns indicator_version does not: caveats',
     );
   });
 });

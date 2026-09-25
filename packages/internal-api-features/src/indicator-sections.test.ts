@@ -10,6 +10,7 @@ import {
   definitionAndRationaleColumns,
   indicatorSectionsRouter,
   judgedConfidenceIntervalsSection,
+  otherNotesAndCaveatsColumns,
   polarityColumns,
   updateFrequencyColumns,
 } from './indicator-sections.ts';
@@ -34,6 +35,14 @@ const unanswered: IndicatorSectionDraft = {
   ciMethodModifications: null,
   ciMethodOtherDetail: null,
   updateFrequency: null,
+  disclosureControl: null,
+  disclosureControlDetail: null,
+  roundingApplied: null,
+  roundingDetail: null,
+  caveatsNeeded: null,
+  caveatsDetail: null,
+  otherNotesNeeded: null,
+  otherNotesDetail: null,
 };
 
 const METHODS: Record<CiMethodRow['kind'], CiMethodRow> = {
@@ -189,6 +198,74 @@ describe('confidenceIntervalsColumns', () => {
         ...answers,
       }),
     ).toEqual({ ciMethodId: METHODS.standard.id, ...attributes });
+  });
+});
+
+describe('otherNotesAndCaveatsColumns', () => {
+  const answered = {
+    disclosureControl: 'yes',
+    disclosureControlDetail: 'Counts under 5 are suppressed.',
+    roundingApplied: 'yes',
+    roundingDetail: 'Rounded to the nearest 5.',
+    caveatsNeeded: 'yes',
+    caveatsDetail: 'Survey data.',
+    otherNotesNeeded: 'yes',
+    otherNotesDetail: 'Revised in 2024.',
+  } as const;
+
+  it('keeps every detail beside a yes', () => {
+    expect(otherNotesAndCaveatsColumns.toAttributes(answered)).toEqual({
+      ...answered,
+      roundingApplied: true,
+      caveatsNeeded: true,
+      otherNotesNeeded: true,
+    });
+  });
+
+  it.each(['no', 'not-applicable'] as const)(
+    'clears every detail beside a no, and disclosure control that is %s',
+    (disclosureControl) => {
+      expect(
+        otherNotesAndCaveatsColumns.toAttributes({
+          ...answered,
+          disclosureControl,
+          roundingApplied: 'no',
+          caveatsNeeded: 'no',
+          otherNotesNeeded: 'no',
+        }),
+      ).toEqual({
+        disclosureControl,
+        disclosureControlDetail: null,
+        roundingApplied: false,
+        roundingDetail: null,
+        caveatsNeeded: false,
+        caveatsDetail: null,
+        otherNotesNeeded: false,
+        otherNotesDetail: null,
+      });
+    },
+  );
+
+  it('reads the stored answers back as the form gives them', () => {
+    expect(
+      otherNotesAndCaveatsColumns.fromDraft({
+        ...unanswered,
+        ...answered,
+        roundingApplied: true,
+        caveatsNeeded: true,
+        otherNotesNeeded: true,
+      }),
+    ).toEqual(answered);
+  });
+
+  it.each([
+    [true, 'yes'],
+    [false, 'no'],
+    [null, null],
+  ])('reads a stored %s as %s', (roundingApplied, answer) => {
+    expect(
+      otherNotesAndCaveatsColumns.fromDraft({ ...unanswered, roundingApplied }).roundingApplied,
+    ).toBe(answer);
   });
 });
 

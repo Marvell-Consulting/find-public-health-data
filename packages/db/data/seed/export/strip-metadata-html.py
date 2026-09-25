@@ -38,6 +38,8 @@ NAMED_ENTITIES = {
 
 BLOCK_BREAK_TAGS = {"p", "div", "li", "tr", "h1", "h2", "h3", "h4", "h5", "h6"}
 
+# Pholio-shaped metadata uses the Fingertips column names for the notes prose; the published
+# version holds it in the detail columns that notes_and_caveats.py moves it into.
 PROSE_COLUMNS = [
     "definition",
     "rationale",
@@ -47,6 +49,9 @@ PROSE_COLUMNS = [
     "disclosure_control",
     "caveats",
     "notes",
+    "disclosure_control_detail",
+    "caveats_detail",
+    "other_notes_detail",
 ]
 
 

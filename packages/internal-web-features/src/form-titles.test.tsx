@@ -9,6 +9,7 @@ import * as confidenceIntervals from './indicator-confidence-intervals/route.tsx
 import * as definitionAndRationale from './indicator-definition-and-rationale/route.tsx';
 import * as editIndicatorName from './indicator-name/edit-route.tsx';
 import * as newIndicator from './indicator-name/new-route.tsx';
+import * as otherNotesAndCaveats from './indicator-other-notes-and-caveats/route.tsx';
 import * as polarity from './indicator-polarity/route.tsx';
 import * as updateFrequency from './indicator-update-frequency/route.tsx';
 import * as editTopic from './topic-admin/edit-route.tsx';
@@ -34,6 +35,17 @@ const topic = {
   title: 'Smoking',
   slug: 'smoking',
   description: 'About smoking.',
+};
+
+const notesAndCaveatsUnanswered = {
+  disclosureControl: '',
+  disclosureControlDetail: '',
+  roundingApplied: '',
+  roundingDetail: '',
+  caveatsNeeded: '',
+  caveatsDetail: '',
+  otherNotesNeeded: '',
+  otherNotesDetail: '',
 };
 
 const forms: {
@@ -121,6 +133,16 @@ const forms: {
     rejected: {
       values: { updateFrequency: '' },
       fieldErrors: { updateFrequency: 'Select how often this indicator will be updated' },
+    },
+  },
+  {
+    name: 'other notes and caveats',
+    route: otherNotesAndCaveats,
+    pageTitle: 'Provide any other notes and caveats',
+    loaderData: { id: indicator.id, values: notesAndCaveatsUnanswered },
+    rejected: {
+      values: notesAndCaveatsUnanswered,
+      fieldErrors: { disclosureControl: 'Select whether disclosure control has been applied' },
     },
   },
   {

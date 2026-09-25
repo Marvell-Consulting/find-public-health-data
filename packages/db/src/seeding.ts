@@ -72,6 +72,17 @@ async function loadTable(
 ): Promise<number> {
   const file = `${directory}/${table}.csv.gz`;
   const columns = await readCsvHeader(file);
+  // A file exported before a migration renamed or dropped a column would otherwise fail on COPY.
+  const known = await sql<{ name: string }[]>`
+    SELECT attname AS name FROM pg_attribute
+    WHERE attrelid = ${`"${into}"`}::regclass AND attnum > 0 AND NOT attisdropped
+  `;
+  const unknown = columns.filter((column) => !known.some(({ name }) => name === column));
+  if (unknown.length > 0) {
+    throw new Error(
+      `${table}.csv.gz has columns ${table} does not: ${unknown.join(', ')}. Export it again against the current schema`,
+    );
+  }
   const columnList = columns.map((c) => `"${c}"`).join(', ');
   const writable = await sql
     .unsafe(`COPY "${into}" (${columnList}) FROM STDIN WITH (FORMAT csv, HEADER true)`)

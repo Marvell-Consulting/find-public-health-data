@@ -60,6 +60,13 @@ That yields 433,678 observations, 657,869 bridge rows and 67,978 observation not
 - `indicator_version.update_frequency` likewise holds one of the service's values from
   `@fphd/utils/update-frequency` in place of Pholio's frequency lookup, translated by
   `export/update_frequency.py`; neither export carries a `frequency` table.
+- Pholio's disclosure control, caveats and notes prose becomes the service's answers:
+  `export/notes_and_caveats.py` turns prose that is an answer in itself, such as "None
+  applied" or "Not applicable", into that answer and drops it, matching the whole text
+  against its `VOCABULARY`. Any other prose is kept as the detail of a yes
+  (`disclosure_control`, `caveats_needed`, `other_notes_needed`), and blank prose leaves the
+  question unanswered. Rounding has no Pholio field and stays unanswered. Migration 0022
+  holds the same vocabulary for databases that already had the prose.
 
 ## Regenerating the base snapshot
 

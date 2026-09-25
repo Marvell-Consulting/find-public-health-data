@@ -19,6 +19,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from notes_and_caveats import notes_and_caveats_select
 from polarity import POLARITIES
 from published_csv import NULL_MARKER
 from slug import assign_slugs
@@ -112,7 +113,7 @@ SELECTS = {
         f"{UPDATE_FREQUENCY_VALUE} AS update_frequency, "
         "i.comparator_method_id, i.disclosure_threshold, i.ci_confidence_level, "
         "i.config, m.definition, m.rationale, m.methodology, m.numerator_definition, "
-        "m.denominator_definition, m.disclosure_control, m.caveats, m.notes, "
+        f"m.denominator_definition, {notes_and_caveats_select('m')}, "
         "m.data_source_id, m.numerator_source_id, m.denominator_source_id, "
         "i.created_at, i.updated_at, i.created_by, i.updated_by "
         "FROM indicator i LEFT JOIN indicator_metadata m ON m.indicator_id = i.id "

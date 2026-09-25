@@ -205,6 +205,10 @@ test.describe('about this indicator', () => {
     await expect(panel.getByText('Annually', { exact: true })).toBeVisible();
     await expect(panel.getByText('Lower is better', { exact: true })).toBeVisible();
     await expect(panel.getByRole('heading', { name: 'Calculation' })).toBeVisible();
+    await expect(panel.getByRole('heading', { name: 'Other notes and caveats' })).toBeVisible();
+    for (const note of ['Disclosure control', 'Notes', 'Caveats']) {
+      await expect(panel.getByRole('heading', { name: note, exact: true })).toBeVisible();
+    }
   });
 
   test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {

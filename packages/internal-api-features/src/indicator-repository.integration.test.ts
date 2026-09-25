@@ -611,6 +611,26 @@ describe('updateIndicatorDraft', () => {
     });
   });
 
+  it('writes the other notes and caveats answers to the draft', async () => {
+    const created = await newDraft('Notes and caveats answered');
+    const answers = {
+      disclosureControl: 'yes',
+      disclosureControlDetail: 'Counts under 5 are suppressed.',
+      roundingApplied: false,
+      roundingDetail: null,
+      caveatsNeeded: true,
+      caveatsDetail: 'Survey data.',
+      otherNotesNeeded: false,
+      otherNotesDetail: null,
+    } as const;
+
+    const result = await updateIndicatorDraft(db, created.indicatorId, answers, {}, ACTOR);
+
+    expect(result).toEqual({ ok: true });
+    const state = await getIndicatorDraftState(db, created.indicatorId);
+    expect(state?.draft).toMatchObject(answers);
+  });
+
   it('refuses an indicator with no draft', async () => {
     const created = await newDraft('Draftless');
     await db.delete(indicatorVersion).where(eq(indicatorVersion.indicatorId, created.indicatorId));

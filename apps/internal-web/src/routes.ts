@@ -67,6 +67,10 @@ export default [
         'publish/indicators/:id/update-frequency',
         '../../../packages/internal-web-features/src/indicator-update-frequency/route.tsx',
       ),
+      route(
+        'publish/indicators/:id/other-notes-and-caveats',
+        '../../../packages/internal-web-features/src/indicator-other-notes-and-caveats/route.tsx',
+      ),
     ]),
     layout('./admin.tsx', [
       route('manage', './manage.tsx'),

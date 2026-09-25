@@ -29,7 +29,8 @@ const KNOWN_VIOLATIONS: KnownViolation[] = [
     ticket: 'FPH-446',
     rule: 'aria-allowed-attr',
     selector: 'input.govuk-radios__input[aria-controls]',
-    expectedOn: /^\/publish\/indicators\/[0-9a-f-]{36}\/(calculation|confidence-intervals)$/,
+    expectedOn:
+      /^\/publish\/indicators\/[0-9a-f-]{36}\/(calculation|confidence-intervals|other-notes-and-caveats)$/,
   },
 ];
 
