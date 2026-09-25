@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { FORM_NOT_SAVED } from './form-refusal.ts';
 import * as calculation from './indicator-calculation/route.tsx';
 import * as confidenceIntervals from './indicator-confidence-intervals/route.tsx';
+import * as copyrightAndDataReuse from './indicator-copyright-and-data-reuse/route.tsx';
 import * as definitionAndRationale from './indicator-definition-and-rationale/route.tsx';
 import * as links from './indicator-links/route.tsx';
 import * as editIndicatorName from './indicator-name/edit-route.tsx';
@@ -65,6 +66,13 @@ const varianceAndQualityUnanswered = {
   qualityAssurance: '',
   sourceDataIssues: '',
   sourceDataIssuesDetail: '',
+};
+
+const copyrightAndDataReuseUnanswered = {
+  copyrightNonDefault: '',
+  copyrightDetail: '',
+  dataReuseNonDefault: '',
+  dataReuseDetail: '',
 };
 
 const forms: {
@@ -195,6 +203,18 @@ const forms: {
     rejected: {
       values: varianceAndQualityUnanswered,
       fieldErrors: { variation: 'Enter how the indicator varies' },
+    },
+  },
+  {
+    name: 'copyright and data re-use',
+    route: copyrightAndDataReuse,
+    pageTitle: 'Copyright and data re-use',
+    loaderData: { id: indicator.id, values: copyrightAndDataReuseUnanswered },
+    rejected: {
+      values: copyrightAndDataReuseUnanswered,
+      fieldErrors: {
+        copyrightNonDefault: 'Select whether the copyright is anything other than Crown copyright',
+      },
     },
   },
   {

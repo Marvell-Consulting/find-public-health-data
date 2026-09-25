@@ -214,6 +214,7 @@ export const indicatorTaskKeySchema = z.enum([
   'publishing-date',
   'links',
   'variance-and-quality',
+  'copyright-and-data-reuse',
 ]);
 
 export const indicatorTaskStatusesSchema = z.partialRecord(
@@ -256,6 +257,7 @@ export type IndicatorTaskListError = z.infer<typeof indicatorTaskListErrorSchema
 
 export * from './indicator-calculation-contract.ts';
 export * from './indicator-confidence-intervals-contract.ts';
+export * from './indicator-copyright-and-data-reuse-contract.ts';
 export * from './indicator-definition-and-rationale-contract.ts';
 export * from './indicator-links-contract.ts';
 export * from './indicator-other-notes-and-caveats-contract.ts';

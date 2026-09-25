@@ -7,6 +7,7 @@ interface YesNoQuestionProps<Field extends string> {
   answer: Field;
   detail: Field;
   legend: string;
+  hint?: string;
   detailLabel: string;
   detailRows: number;
   values: FormValues<Field>;
@@ -22,6 +23,7 @@ export function YesNoQuestion<Field extends string>({
   detailLabel,
   detailRows,
   fieldErrors,
+  hint,
   legend,
   moreOptions = [],
   values,
@@ -32,6 +34,7 @@ export function YesNoQuestion<Field extends string>({
     <Radios
       {...(error === undefined ? {} : { error })}
       defaultValue={values[answer]}
+      {...(hint === undefined ? {} : { hint })}
       // NotGovUK sizes a legend by the heading passed as its label.
       label={<h2 className="govuk-heading-m">{legend}</h2>}
       name={answer}

@@ -115,6 +115,7 @@ describe('IndicatorTaskListPage', () => {
       'Confidence intervals',
       'Other notes and caveats',
       'Links',
+      'Copyright and data re-use',
       'Update frequency',
       'Publishing date',
       'Variance and quality',
@@ -217,6 +218,19 @@ describe('IndicatorTaskListPage', () => {
 
     expect(row.getAttribute('href')).toBe(
       `/publish/indicators/${taskList.indicator.id}/variance-and-quality`,
+    );
+    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
+      'Completed',
+    );
+  });
+
+  it('links the copyright and data re-use to its page, with the status the API reports', () => {
+    renderPage({ tasks: { name: 'completed', 'copyright-and-data-reuse': 'completed' } });
+
+    const row = group('Metadata').getByRole('link', { name: 'Copyright and data re-use' });
+
+    expect(row.getAttribute('href')).toBe(
+      `/publish/indicators/${taskList.indicator.id}/copyright-and-data-reuse`,
     );
     expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
       'Completed',

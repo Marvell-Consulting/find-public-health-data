@@ -83,6 +83,10 @@ async function addVersion(
       | 'otherNotesDetail'
       | 'sourceDataIssues'
       | 'sourceDataIssuesDetail'
+      | 'copyrightNonDefault'
+      | 'copyrightDetail'
+      | 'dataReuseNonDefault'
+      | 'dataReuseDetail'
     >
   > = {},
 ) {
@@ -339,6 +343,13 @@ describe('indicator_version', () => {
       'source data without issues',
       { sourceDataIssues: false, sourceDataIssuesDetail: 'Late returns' },
     ],
+    ['copyright of nobody', { copyrightDetail: 'NHS England' }],
+    ['the default copyright', { copyrightNonDefault: false, copyrightDetail: 'NHS England' }],
+    ['data re-use of nobody', { dataReuseDetail: 'Cite NHS England' }],
+    [
+      'the default data re-use',
+      { dataReuseNonDefault: false, dataReuseDetail: 'Cite NHS England' },
+    ],
   ] as const)('refuses a detail beside %s', async (_, values) => {
     await expect(addVersion(await newIndicatorId(), 'draft', values)).rejects.toMatchObject({
       cause: { code: CHECK_VIOLATION },
@@ -354,6 +365,10 @@ describe('indicator_version', () => {
         caveatsDetail: 'Survey data',
         sourceDataIssues: true,
         sourceDataIssuesDetail: 'Late returns',
+        copyrightNonDefault: true,
+        copyrightDetail: 'NHS England',
+        dataReuseNonDefault: true,
+        dataReuseDetail: 'Cite NHS England',
       }),
     ).resolves.toHaveLength(1);
     await expect(

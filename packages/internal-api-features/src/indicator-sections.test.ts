@@ -54,6 +54,10 @@ const unanswered: IndicatorSectionDraft = {
   qualityAssurance: null,
   sourceDataIssues: null,
   sourceDataIssuesDetail: null,
+  copyrightNonDefault: null,
+  copyrightDetail: null,
+  dataReuseNonDefault: null,
+  dataReuseDetail: null,
 };
 
 const METHODS: Record<CiMethodRow['kind'], CiMethodRow> = {
