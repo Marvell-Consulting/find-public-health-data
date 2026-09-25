@@ -66,6 +66,12 @@ const source: IndicatorTaskListSource = {
     goalUpperValue: null,
     goalPolarity: null,
     goalPolicyDetail: null,
+    sexes: null,
+    ageType: null,
+    ageRanges: [],
+    specificAge: null,
+    specificAgeUnit: null,
+    ageOtherDetail: null,
   },
 };
 
@@ -118,6 +124,12 @@ const complete: IndicatorTaskListDraft = {
   goalUpperValue: 95,
   goalPolarity: 'higher-is-better',
   goalPolicyDetail: null,
+  sexes: ['persons'],
+  ageType: 'range',
+  ageRanges: [{ lowerLimit: 16, lowerLimitUnit: 'years', upperLimit: null, upperLimitUnit: null }],
+  specificAge: null,
+  specificAgeUnit: null,
+  ageOtherDetail: null,
 };
 
 function withDraft(draft: Partial<IndicatorTaskListDraft>): IndicatorTaskListSource {
@@ -376,6 +388,30 @@ describe('indicatorTaskList', () => {
     ['a goal without its polarity', { ...complete, goalPolarity: null }],
   ] as const)('leaves the benchmarking not started with %s', (_, draft) => {
     expect(indicatorTaskList(withDraft(draft)).tasks.benchmarking).toBe('not_started');
+  });
+
+  it.each([
+    ['unanswered', {}, 'not_started'],
+    ['sexes and all ages', { sexes: complete.sexes, ageType: 'all' }, 'completed'],
+    [
+      'sexes and an age range',
+      { sexes: complete.sexes, ageType: 'range', ageRanges: complete.ageRanges },
+      'completed',
+    ],
+    [
+      'sexes and a specific age',
+      { sexes: complete.sexes, ageType: 'specific', specificAge: 5, specificAgeUnit: 'years' },
+      'completed',
+    ],
+    [
+      'sexes and other ages',
+      { sexes: complete.sexes, ageType: 'other', ageOtherDetail: 'School year 6' },
+      'completed',
+    ],
+    ['no sexes', { ageType: 'range', ageRanges: complete.ageRanges }, 'not_started'],
+    ['an age range it does not hold', { sexes: complete.sexes, ageType: 'range' }, 'not_started'],
+  ] as const)('judges the sex and ages when there are %s', (_, draft, status) => {
+    expect(indicatorTaskList(withDraft(draft)).tasks['sex-and-ages']).toBe(status);
   });
 
   it.each([

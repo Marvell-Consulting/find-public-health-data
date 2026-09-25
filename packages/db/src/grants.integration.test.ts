@@ -276,6 +276,18 @@ describe('the internal role', () => {
       expect(row?.granted).toBe(true);
     },
   );
+  it.each(['SELECT', 'INSERT', 'UPDATE', 'DELETE'])(
+    'may %s the age ranges of a version',
+    async (privilege) => {
+      const [row] = await owner<{ granted: boolean }[]>`
+        SELECT has_table_privilege(
+          ${API_ROLES.internalApi}, 'public.indicator_version_age_range', ${privilege}
+        ) AS granted
+      `;
+
+      expect(row?.granted).toBe(true);
+    },
+  );
 });
 
 describe('an indicator whose only version is a draft', () => {

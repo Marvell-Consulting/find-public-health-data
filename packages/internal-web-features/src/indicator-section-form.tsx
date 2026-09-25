@@ -22,12 +22,15 @@ interface IndicatorSectionFormProps<Field extends string> {
   formError: string | undefined;
   /** Where a summary link goes when it is not the field's own input, such as `firstRadioId`. */
   fieldIds?: Partial<Record<Field, string>>;
+  /** Set when the form has buttons of its own before Continue, which Enter would otherwise press. */
+  continueOnEnter?: boolean;
   children: ReactNode;
 }
 
 /** The frame of a section page: title, error summary, and a form that continues to the task list. */
 export function IndicatorSectionForm<Field extends string>({
   children,
+  continueOnEnter = false,
   fieldErrors,
   fieldIds = {},
   fields,
@@ -51,6 +54,17 @@ export function IndicatorSectionForm<Field extends string>({
           {questionIsHeading ? null : <h1 className="govuk-heading-xl">{title}</h1>}
           {/* A plain form posting back to its own page, so it works without JavaScript. */}
           <form method="post">
+            {/* Enter presses a form's first submit button: this Continue, out of sight and reach. */}
+            {continueOnEnter ? (
+              <button
+                aria-hidden="true"
+                className="govuk-visually-hidden"
+                tabIndex={-1}
+                type="submit"
+              >
+                Continue
+              </button>
+            ) : null}
             {children}
             <Button type="submit">Continue</Button>
           </form>

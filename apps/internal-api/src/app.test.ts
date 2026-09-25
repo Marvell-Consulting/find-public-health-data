@@ -76,6 +76,12 @@ const unansweredDraft = {
   goalUpperValue: null,
   goalPolarity: null,
   goalPolicyDetail: null,
+  sexes: null,
+  ageType: null,
+  ageRanges: [],
+  specificAge: null,
+  specificAgeUnit: null,
+  ageOtherDetail: null,
 };
 
 async function createCookie(roles: readonly string[]): Promise<string> {

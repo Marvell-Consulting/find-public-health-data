@@ -103,6 +103,10 @@ export default [
         'publish/indicators/:id/benchmarking',
         '../../../packages/internal-web-features/src/indicator-benchmarking/route.tsx',
       ),
+      route(
+        'publish/indicators/:id/sex-and-ages',
+        '../../../packages/internal-web-features/src/indicator-sex-and-ages/route.tsx',
+      ),
     ]),
     layout('./admin.tsx', [
       route('manage', './manage.tsx'),
