@@ -115,6 +115,7 @@ describe('IndicatorTaskListPage', () => {
       'Confidence intervals',
       'Other notes and caveats',
       'Update frequency',
+      'Publishing date',
     ]);
   });
 
@@ -151,6 +152,19 @@ describe('IndicatorTaskListPage', () => {
 
     expect(row.getAttribute('href')).toBe(
       `/publish/indicators/${taskList.indicator.id}/other-notes-and-caveats`,
+    );
+    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
+      'Completed',
+    );
+  });
+
+  it('links the publishing date to its page, with the status the API reports', () => {
+    renderPage({ tasks: { name: 'completed', 'publishing-date': 'completed' } });
+
+    const row = group('Publishing').getByRole('link', { name: 'Publishing date' });
+
+    expect(row.getAttribute('href')).toBe(
+      `/publish/indicators/${taskList.indicator.id}/publishing-date`,
     );
     expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
       'Completed',

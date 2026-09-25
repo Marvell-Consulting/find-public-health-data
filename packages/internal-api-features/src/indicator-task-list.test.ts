@@ -39,6 +39,7 @@ const source: IndicatorTaskListSource = {
     caveatsDetail: null,
     otherNotesNeeded: null,
     otherNotesDetail: null,
+    scheduledPublishAtUk: null,
   },
 };
 
@@ -64,6 +65,7 @@ const complete: IndicatorTaskListDraft = {
   caveatsDetail: 'Survey data.',
   otherNotesNeeded: false,
   otherNotesDetail: null,
+  scheduledPublishAtUk: '2027-09-14T09:30:00+01:00',
 };
 
 function withDraft(draft: Partial<IndicatorTaskListDraft>): IndicatorTaskListSource {
@@ -209,6 +211,16 @@ describe('indicatorTaskList', () => {
     expect(indicatorTaskList(withDraft(draft)).tasks['other-notes-and-caveats']).toBe(
       'not_started',
     );
+  });
+
+  it('counts the publishing date as complete once one is scheduled', () => {
+    const draft = { scheduledPublishAtUk: complete.scheduledPublishAtUk };
+
+    expect(indicatorTaskList(withDraft(draft)).tasks['publishing-date']).toBe('completed');
+  });
+
+  it('leaves the publishing date not started until one is scheduled', () => {
+    expect(indicatorTaskList(source).tasks['publishing-date']).toBe('not_started');
   });
 
   it.each([

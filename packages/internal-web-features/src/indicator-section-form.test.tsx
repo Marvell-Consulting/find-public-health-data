@@ -77,6 +77,16 @@ describe('IndicatorSectionForm', () => {
     expect(document.title).toBe(`Error: A section - ${serviceName} - GOV.UK`);
   });
 
+  it('summarises a message given on several fields once, linking to the first', () => {
+    renderForm({ fieldErrors: { answer: 'Answer both', choice: 'Answer both' } });
+
+    const links = within(screen.getByRole('alert')).getAllByRole('link');
+
+    expect(links.map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
+      ['Answer both', '#answer-input'],
+    ]);
+  });
+
   it("links a field's error to its input, and a radios error to the first option", () => {
     renderForm({ fieldErrors: { answer: 'Enter an answer', choice: 'Choose one' } });
 

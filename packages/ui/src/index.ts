@@ -1,6 +1,7 @@
 export { default as BackLink } from '@not-govuk/back-link';
 export { default as Button } from '@not-govuk/button';
 export { default as Checkboxes } from '@not-govuk/checkboxes';
+export { default as DateInput } from '@not-govuk/date-input';
 export { default as Details } from '@not-govuk/details';
 export { default as ErrorMessage } from '@not-govuk/error-message';
 export { default as Hint } from '@not-govuk/hint';
@@ -24,6 +25,7 @@ export { type BackLinkHandle, backHrefFrom, backLinkHandle } from './back-link-h
 export { CardList, type CardListItem } from './card-list.tsx';
 export { ChartSection } from './chart-section.tsx';
 export { NotFoundPage, PageIntro } from './content-page.tsx';
+export { datePartId, datePartName, TimeInput, type TimeInputValue } from './date-time-input.tsx';
 export {
   createDocumentMeta,
   DocumentTitle,

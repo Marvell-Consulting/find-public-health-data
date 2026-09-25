@@ -71,6 +71,10 @@ export default [
         'publish/indicators/:id/other-notes-and-caveats',
         '../../../packages/internal-web-features/src/indicator-other-notes-and-caveats/route.tsx',
       ),
+      route(
+        'publish/indicators/:id/publishing-date',
+        '../../../packages/internal-web-features/src/indicator-publishing-date/route.tsx',
+      ),
     ]),
     layout('./admin.tsx', [
       route('manage', './manage.tsx'),

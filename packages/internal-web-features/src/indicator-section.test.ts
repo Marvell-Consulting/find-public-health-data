@@ -64,6 +64,13 @@ describe('readFormValues', () => {
 
     expect(readFormValues(formData, ['definition'])).toEqual({ definition: 'A definition' });
   });
+
+  it('reads a field from the control named for it', () => {
+    const formData = new FormData();
+    formData.set('date[day]', '14');
+
+    expect(readFormValues(formData, ['day'], { day: 'date[day]' })).toEqual({ day: '14' });
+  });
 });
 
 describe('loadIndicatorSection', () => {

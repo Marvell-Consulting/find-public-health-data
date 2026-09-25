@@ -552,6 +552,7 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
       caveatsDetail: null,
       otherNotesNeeded: null,
       otherNotesDetail: null,
+      scheduledPublishAtUk: null,
     },
     draftCiMethodKind: null,
     indicatorStatus: 'new',
@@ -603,6 +604,7 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
         'confidence-intervals': 'not_started',
         'update-frequency': 'not_started',
         'other-notes-and-caveats': 'not_started',
+        'publishing-date': 'not_started',
       },
     });
   });

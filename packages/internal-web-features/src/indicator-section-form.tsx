@@ -31,9 +31,11 @@ export function IndicatorSectionForm<Field extends string>({
   questionIsHeading = false,
   title,
 }: IndicatorSectionFormProps<Field>) {
-  const errors = fields.flatMap((name) => {
+  // A message given on several fields, such as the parts of a date, links to the first of them.
+  const errors = fields.flatMap((name, index) => {
     const message = fieldErrors[name];
-    return message === undefined ? [] : [{ name, message, id: fieldIds[name] }];
+    const repeated = fields.slice(0, index).some((earlier) => fieldErrors[earlier] === message);
+    return message === undefined || repeated ? [] : [{ name, message, id: fieldIds[name] }];
   });
 
   return (

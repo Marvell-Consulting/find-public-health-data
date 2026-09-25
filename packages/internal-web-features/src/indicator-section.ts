@@ -23,14 +23,18 @@ export interface FormFailure<Field extends string> {
   fieldErrors: Partial<Record<Field, string>>;
 }
 
+/** The name of each control whose name is not its field's, such as a part of a date. */
+export type ControlNames<Field extends string> = Partial<Record<Field, string>>;
+
 /** Each field as typed; one the browser did not send, such as an unchosen radio, is empty. */
 export function readFormValues<Field extends string>(
   formData: FormData,
   fields: readonly Field[],
+  controlNames: ControlNames<Field> = {},
 ): FormValues<Field> {
   return Object.fromEntries(
     fields.map((field) => {
-      const value = formData.get(field);
+      const value = formData.get(controlNames[field] ?? field);
       return [field, typeof value === 'string' ? value : ''];
     }),
   ) as FormValues<Field>;
@@ -61,10 +65,11 @@ export async function loadIndicatorSection<Field extends string, Values>(
 export async function saveIndicatorSection<Field extends string, Values>(
   { context, params, request }: ActionFunctionArgs,
   section: IndicatorSection<Field, Values>,
+  controlNames: ControlNames<Field> = {},
 ): Promise<FormFailure<Field> | Response> {
   const id = requireIndicatorId(params);
   const fields = section.fields.options;
-  const values = readFormValues(await request.formData(), fields);
+  const values = readFormValues(await request.formData(), fields, controlNames);
   const submission = section.schema.safeParse(values);
 
   if (!submission.success) {
