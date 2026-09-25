@@ -12,8 +12,8 @@ import { PublishingDatePage, publishingDateControlNames } from './page.tsx';
 
 export const loader = loadPublishingDate;
 
-// The form checks the date and time are real; the API checks they exist in UK time and are at
-// least 28 days ahead.
+// The form checks the date and time are real; the API checks the date is at least 28 days from
+// today and the time exists in UK time on it.
 export const action = (args: ActionFunctionArgs) =>
   saveIndicatorSection(args, publishingDateSection, publishingDateControlNames);
 
