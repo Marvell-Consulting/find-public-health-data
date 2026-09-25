@@ -10,6 +10,8 @@ import {
   type ConfidenceIntervalsField,
   calculationSection,
   confidenceIntervalsSection,
+  copyrightAndDataReuseQuestions,
+  copyrightAndDataReuseSection,
   definitionAndRationaleSection,
   type Links,
   type LinksAnswers,
@@ -113,6 +115,11 @@ export const otherNotesAndCaveatsColumns: IndicatorSectionColumns<
 export const varianceAndQualityColumns = yesNoDetailColumns(
   varianceAndQualitySection,
   varianceAndQualityQuestions,
+);
+
+export const copyrightAndDataReuseColumns = yesNoDetailColumns(
+  copyrightAndDataReuseSection,
+  copyrightAndDataReuseQuestions,
 );
 
 export const linksColumns: IndicatorSectionColumns<LinksField, Links, LinksAnswers> = {
@@ -293,6 +300,12 @@ export function indicatorSectionsRouter(
       session,
       varianceAndQualitySection,
       varianceAndQualityColumns,
+    ),
+    indicatorSectionRouter(
+      indicators,
+      session,
+      copyrightAndDataReuseSection,
+      copyrightAndDataReuseColumns,
     ),
   );
 }

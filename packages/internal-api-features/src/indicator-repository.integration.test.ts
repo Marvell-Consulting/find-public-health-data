@@ -688,6 +688,22 @@ describe('updateIndicatorDraft', () => {
     expect(state?.draft).toMatchObject(answers);
   });
 
+  it('writes the copyright and data re-use terms to the draft', async () => {
+    const created = await newDraft('Copyright and data re-use answered');
+    const answers = {
+      copyrightNonDefault: true,
+      copyrightDetail: 'Copyright © NHS England',
+      dataReuseNonDefault: false,
+      dataReuseDetail: null,
+    };
+
+    const result = await updateIndicatorDraft(db, created.indicatorId, answers, {}, ACTOR);
+
+    expect(result).toEqual({ ok: true });
+    const state = await getIndicatorDraftState(db, created.indicatorId);
+    expect(state?.draft).toMatchObject(answers);
+  });
+
   it('refuses an indicator with no draft', async () => {
     const created = await newDraft('Draftless');
     await db.delete(indicatorVersion).where(eq(indicatorVersion.indicatorId, created.indicatorId));

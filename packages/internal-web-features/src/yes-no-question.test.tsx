@@ -54,6 +54,15 @@ describe('YesNoQuestion', () => {
     expect(heading.parentElement?.tagName).toBe('LEGEND');
   });
 
+  it('describes the question with its hint', () => {
+    renderQuestion({ hint: 'The default is "© Crown copyright"' });
+
+    const hint = within(group()).getByText('The default is "© Crown copyright"');
+
+    expect(hint.className).toContain('govuk-hint');
+    expect(group().getAttribute('aria-describedby')).toContain(hint.id);
+  });
+
   it('answers with Yes and No under its answer field, then any further answers', () => {
     renderQuestion({ moreOptions: [{ value: 'not-applicable', label: 'Not applicable' }] });
 

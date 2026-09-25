@@ -3,6 +3,7 @@ import {
   areLinksComplete,
   type CiMethodKind,
   calculationSection,
+  copyrightAndDataReuseSection,
   definitionAndRationaleSection,
   type IndicatorSection,
   type IndicatorTaskList,
@@ -20,6 +21,7 @@ import type { IndicatorSectionColumns, IndicatorSectionDraft } from './indicator
 import {
   calculationColumns,
   confidenceIntervalsColumns,
+  copyrightAndDataReuseColumns,
   definitionAndRationaleColumns,
   linksColumns,
   otherNotesAndCaveatsColumns,
@@ -79,6 +81,10 @@ export function indicatorTaskList({
     'publishing-date': complete(publishingDateSection, publishingDateColumns),
     links: taskStatus(areLinksComplete(linksColumns.fromDraft(draft))),
     'variance-and-quality': complete(varianceAndQualitySection, varianceAndQualityColumns),
+    'copyright-and-data-reuse': complete(
+      copyrightAndDataReuseSection,
+      copyrightAndDataReuseColumns,
+    ),
   };
 
   return {
