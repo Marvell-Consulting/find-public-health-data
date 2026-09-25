@@ -24,6 +24,14 @@ export type IndicatorSectionDraft = Pick<
   | 'ciMethodModifications'
   | 'ciMethodOtherDetail'
   | 'updateFrequency'
+  | 'disclosureControl'
+  | 'disclosureControlDetail'
+  | 'roundingApplied'
+  | 'roundingDetail'
+  | 'caveatsNeeded'
+  | 'caveatsDetail'
+  | 'otherNotesNeeded'
+  | 'otherNotesDetail'
 >;
 
 /** How a section's answers map onto the draft's columns, in both directions. */

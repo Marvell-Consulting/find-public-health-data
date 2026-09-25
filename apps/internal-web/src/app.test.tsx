@@ -202,6 +202,7 @@ describe('the role-gated route tables', () => {
       'publish/indicators/:id/calculation',
       'publish/indicators/:id/confidence-intervals',
       'publish/indicators/:id/update-frequency',
+      'publish/indicators/:id/other-notes-and-caveats',
     ]);
   });
 

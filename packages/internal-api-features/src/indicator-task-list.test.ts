@@ -31,6 +31,14 @@ const source: IndicatorTaskListSource = {
     ciMethodModifications: null,
     ciMethodOtherDetail: null,
     updateFrequency: null,
+    disclosureControl: null,
+    disclosureControlDetail: null,
+    roundingApplied: null,
+    roundingDetail: null,
+    caveatsNeeded: null,
+    caveatsDetail: null,
+    otherNotesNeeded: null,
+    otherNotesDetail: null,
   },
 };
 
@@ -48,6 +56,14 @@ const complete: IndicatorTaskListDraft = {
   ciMethodModifications: null,
   ciMethodOtherDetail: null,
   updateFrequency: 'quarterly',
+  disclosureControl: 'not-applicable',
+  disclosureControlDetail: null,
+  roundingApplied: false,
+  roundingDetail: null,
+  caveatsNeeded: true,
+  caveatsDetail: 'Survey data.',
+  otherNotesNeeded: false,
+  otherNotesDetail: null,
 };
 
 function withDraft(draft: Partial<IndicatorTaskListDraft>): IndicatorTaskListSource {
@@ -175,6 +191,24 @@ describe('indicatorTaskList', () => {
     ['the method has nothing to describe', { ciMethodId, ciMethodKind: 'none' }, 'completed'],
   ] as const)('judges the confidence intervals when %s', (_, draft, status) => {
     expect(indicatorTaskList(withDraft(draft)).tasks['confidence-intervals']).toBe(status);
+  });
+
+  it('counts the other notes and caveats as complete once every question is answered', () => {
+    expect(indicatorTaskList(withDraft(complete)).tasks['other-notes-and-caveats']).toBe(
+      'completed',
+    );
+  });
+
+  it.each([
+    ['nothing', {}],
+    ['disclosure control unanswered', { ...complete, disclosureControl: null }],
+    ['rounding unanswered', { ...complete, roundingApplied: null }],
+    ['caveats needed without their details', { ...complete, caveatsDetail: null }],
+    ['caveats needed with blank details', { ...complete, caveatsDetail: ' ' }],
+  ] as const)('leaves the other notes and caveats not started with %s', (_, draft) => {
+    expect(indicatorTaskList(withDraft(draft)).tasks['other-notes-and-caveats']).toBe(
+      'not_started',
+    );
   });
 
   it.each([

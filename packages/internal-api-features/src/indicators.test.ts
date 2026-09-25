@@ -544,6 +544,14 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
       ciMethodModifications: null,
       ciMethodOtherDetail: null,
       updateFrequency: null,
+      disclosureControl: null,
+      disclosureControlDetail: null,
+      roundingApplied: null,
+      roundingDetail: null,
+      caveatsNeeded: null,
+      caveatsDetail: null,
+      otherNotesNeeded: null,
+      otherNotesDetail: null,
     },
     draftCiMethodKind: null,
     indicatorStatus: 'new',
@@ -594,6 +602,7 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
         calculation: 'not_started',
         'confidence-intervals': 'not_started',
         'update-frequency': 'not_started',
+        'other-notes-and-caveats': 'not_started',
       },
     });
   });

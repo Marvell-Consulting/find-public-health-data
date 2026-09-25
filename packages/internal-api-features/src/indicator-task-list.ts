@@ -8,6 +8,7 @@ import {
   type IndicatorTaskStatus,
   type IndicatorTaskStatuses,
   isIndicatorSectionComplete,
+  otherNotesAndCaveatsSection,
   polaritySection,
   updateFrequencySection,
 } from './contract.ts';
@@ -17,6 +18,7 @@ import {
   calculationColumns,
   confidenceIntervalsColumns,
   definitionAndRationaleColumns,
+  otherNotesAndCaveatsColumns,
   polarityColumns,
   updateFrequencyColumns,
 } from './indicator-sections.ts';
@@ -67,6 +69,7 @@ export function indicatorTaskList({
       ),
     ),
     'update-frequency': complete(updateFrequencySection, updateFrequencyColumns),
+    'other-notes-and-caveats': complete(otherNotesAndCaveatsSection, otherNotesAndCaveatsColumns),
   };
 
   return {

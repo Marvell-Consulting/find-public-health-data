@@ -37,6 +37,9 @@ export type IndicatorVersionStatus = (typeof INDICATOR_VERSION_STATUSES)[number]
 /** Who calculated an indicator: OHID, DHSC, or organisations named in `calculated_by_other`. */
 export const INDICATOR_CALCULATED_BY = ['ohid', 'dhsc', 'other'] as const;
 
+/** Whether disclosure control was applied, described in `disclosure_control_detail` when it was. */
+export const INDICATOR_DISCLOSURE_CONTROL = ['yes', 'no', 'not-applicable'] as const;
+
 // Starts above every Fingertips number carried over in the seed, so this service's own
 // numbering is visible at a glance.
 export const indicatorShortIdSeq = pgSequence('indicator_short_id_seq', { startWith: 100000 });
@@ -94,9 +97,15 @@ export const indicatorVersion = pgTable(
     calculatedByOther: text(),
     numeratorDefinition: text(),
     denominatorDefinition: text(),
-    disclosureControl: text(),
-    caveats: text(),
-    notes: text(),
+    // Each answer's detail is asked for, and kept, only when the answer is yes.
+    disclosureControl: text({ enum: INDICATOR_DISCLOSURE_CONTROL }),
+    disclosureControlDetail: text(),
+    roundingApplied: boolean(),
+    roundingDetail: text(),
+    caveatsNeeded: boolean(),
+    caveatsDetail: text(),
+    otherNotesNeeded: boolean(),
+    otherNotesDetail: text(),
     dataSourceId: uuid().references(() => dataSource.id),
     numeratorSourceId: uuid().references(() => numeratorDenominatorSource.id),
     denominatorSourceId: uuid().references(() => numeratorDenominatorSource.id),
@@ -127,6 +136,26 @@ export const indicatorVersion = pgTable(
     check(
       'indicator_version_calculated_by_other_check',
       sql`${t.calculatedBy} IS NOT DISTINCT FROM 'other' OR ${t.calculatedByOther} IS NULL`,
+    ),
+    check(
+      'indicator_version_disclosure_control_check',
+      sql`${t.disclosureControl} IN ('yes', 'no', 'not-applicable')`,
+    ),
+    check(
+      'indicator_version_disclosure_control_detail_check',
+      sql`${t.disclosureControl} IS NOT DISTINCT FROM 'yes' OR ${t.disclosureControlDetail} IS NULL`,
+    ),
+    check(
+      'indicator_version_rounding_detail_check',
+      sql`${t.roundingApplied} IS TRUE OR ${t.roundingDetail} IS NULL`,
+    ),
+    check(
+      'indicator_version_caveats_detail_check',
+      sql`${t.caveatsNeeded} IS TRUE OR ${t.caveatsDetail} IS NULL`,
+    ),
+    check(
+      'indicator_version_other_notes_detail_check',
+      sql`${t.otherNotesNeeded} IS TRUE OR ${t.otherNotesDetail} IS NULL`,
     ),
     // A published version always says when, and nothing else does, so ordering by
     // published_at never meets a null.

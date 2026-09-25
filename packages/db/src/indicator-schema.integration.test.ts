@@ -68,7 +68,19 @@ async function addVersion(
   values: Partial<
     Pick<
       typeof indicatorVersion.$inferInsert,
-      'name' | 'slug' | 'publishedAt' | 'calculatedBy' | 'calculatedByOther'
+      | 'name'
+      | 'slug'
+      | 'publishedAt'
+      | 'calculatedBy'
+      | 'calculatedByOther'
+      | 'disclosureControl'
+      | 'disclosureControlDetail'
+      | 'roundingApplied'
+      | 'roundingDetail'
+      | 'caveatsNeeded'
+      | 'caveatsDetail'
+      | 'otherNotesNeeded'
+      | 'otherNotesDetail'
     >
   > = {},
 ) {
@@ -299,6 +311,50 @@ describe('indicator_version', () => {
     ).resolves.toHaveLength(1);
   });
 
+  it('refuses a disclosure control answer the publisher form does not offer', async () => {
+    const [draft] = await addVersion(await newIndicatorId(), 'draft');
+
+    await expect(
+      db.execute(
+        sql`UPDATE indicator_version SET disclosure_control = 'Not applied' WHERE id = ${draft?.id ?? ''}`,
+      ),
+    ).rejects.toMatchObject({ cause: { code: CHECK_VIOLATION } });
+  });
+
+  it.each([
+    ['disclosure control of nobody', { disclosureControlDetail: 'Suppressed' }],
+    ['disclosure control that is no', { disclosureControl: 'no', disclosureControlDetail: 'x' }],
+    [
+      'disclosure control that is not applicable',
+      { disclosureControl: 'not-applicable', disclosureControlDetail: 'x' },
+    ],
+    ['rounding not applied', { roundingApplied: false, roundingDetail: 'To the nearest 5' }],
+    ['caveats of nobody', { caveatsDetail: 'Survey data' }],
+    ['caveats not needed', { caveatsNeeded: false, caveatsDetail: 'Survey data' }],
+    ['other notes not needed', { otherNotesNeeded: false, otherNotesDetail: 'Revised' }],
+  ] as const)('refuses a detail beside %s', async (_, values) => {
+    await expect(addVersion(await newIndicatorId(), 'draft', values)).rejects.toMatchObject({
+      cause: { code: CHECK_VIOLATION },
+    });
+  });
+
+  it('accepts a detail beside a yes, given or not yet', async () => {
+    await expect(
+      addVersion(await newIndicatorId(), 'draft', {
+        disclosureControl: 'yes',
+        disclosureControlDetail: 'Suppressed',
+        caveatsNeeded: true,
+        caveatsDetail: 'Survey data',
+      }),
+    ).resolves.toHaveLength(1);
+    await expect(
+      addVersion(await newIndicatorId(), 'draft', {
+        disclosureControl: 'yes',
+        caveatsNeeded: true,
+      }),
+    ).resolves.toHaveLength(1);
+  });
+
   // Raw SQL because the insert type no longer lets a caller omit the slug.
   it('refuses a version with no slug', async () => {
     const indicatorId = await newIndicatorId();
@@ -441,6 +497,21 @@ describe('the published views', () => {
     )) as unknown as { table_name: string; column_name: string }[];
 
     expect(rows).toEqual([{ table_name: 'indicator', column_name: 'ci_method_id' }]);
+  });
+
+  it('keep the notes and caveats answers and the rounding off the public surface', async () => {
+    const rows = (await db.execute(
+      sql`SELECT column_name FROM information_schema.columns
+          WHERE table_schema = 'published' AND table_name = 'indicator'
+            AND column_name ~ '^(disclosure_control|rounding|caveats|other_notes)'
+          ORDER BY ordinal_position`,
+    )) as unknown as { column_name: string }[];
+
+    expect(rows.map((row) => row.column_name)).toEqual([
+      'disclosure_control_detail',
+      'caveats_detail',
+      'other_notes_detail',
+    ]);
   });
 
   it('hide a slug only a draft carries', async () => {

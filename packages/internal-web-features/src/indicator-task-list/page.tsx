@@ -65,7 +65,11 @@ const TASK_GROUPS: readonly TaskGroup[] = [
         path: sectionPath('confidence-intervals'),
       },
       { key: 'benchmarking', title: 'Benchmarking' },
-      { key: 'other-notes-and-caveats', title: 'Other notes and caveats' },
+      {
+        key: 'other-notes-and-caveats',
+        title: 'Other notes and caveats',
+        path: sectionPath('other-notes-and-caveats'),
+      },
       { key: 'links', title: 'Links' },
       { key: 'tagging', title: 'Tagging' },
       { key: 'copyright-and-data-re-use', title: 'Copyright and data re-use' },

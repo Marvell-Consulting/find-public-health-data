@@ -20,6 +20,7 @@ from pathlib import Path
 import psycopg2
 from psycopg2.extras import Json, execute_values
 
+from notes_and_caveats import notes_and_caveats
 from slug import slug_problem, slugify
 
 
@@ -300,11 +301,13 @@ def add_indicators(cur, metadata):
                year_type_id, ci_method_id, polarity, update_frequency, comparator_method_id,
                ci_confidence_level, config, definition, rationale, methodology,
                numerator_definition, denominator_definition, disclosure_control,
-               caveats, notes, data_source_id, numerator_source_id, denominator_source_id,
+               disclosure_control_detail, rounding_applied, rounding_detail, caveats_needed,
+               caveats_detail, other_notes_needed, other_notes_detail, data_source_id,
+               numerator_source_id, denominator_source_id,
                created_at, created_by, updated_at, updated_by)
             VALUES
               (%s, %s, 'published', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-               %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+               %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                %s, 'fingertips-api-seed', %s, 'fingertips-api-seed')
             """,
             (
@@ -327,9 +330,13 @@ def add_indicators(cur, metadata):
                 descriptive.get("IndMethod"),
                 descriptive.get("CountDefinition"),
                 descriptive.get("DenomDefinition"),
-                descriptive.get("DiscControl"),
-                descriptive.get("Caveats"),
-                descriptive.get("Notes"),
+                *notes_and_caveats(
+                    {
+                        "disclosure_control": descriptive.get("DiscControl"),
+                        "caveats": descriptive.get("Caveats"),
+                        "notes": descriptive.get("Notes"),
+                    }
+                ).values(),
                 optional_id(cur, "data_source", descriptive.get("DataSource")),
                 optional_id(
                     cur, "numerator_denominator_source", descriptive.get("CountSource")

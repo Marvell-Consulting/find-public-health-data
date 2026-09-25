@@ -113,6 +113,7 @@ describe('IndicatorTaskListPage', () => {
       'Definition and rationale',
       'How the indicator was calculated',
       'Confidence intervals',
+      'Other notes and caveats',
       'Update frequency',
     ]);
   });
@@ -137,6 +138,19 @@ describe('IndicatorTaskListPage', () => {
 
     expect(row.getAttribute('href')).toBe(
       `/publish/indicators/${taskList.indicator.id}/confidence-intervals`,
+    );
+    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
+      'Completed',
+    );
+  });
+
+  it('links the other notes and caveats to their page, with the status the API reports', () => {
+    renderPage({ tasks: { name: 'completed', 'other-notes-and-caveats': 'completed' } });
+
+    const row = group('Metadata').getByRole('link', { name: 'Other notes and caveats' });
+
+    expect(row.getAttribute('href')).toBe(
+      `/publish/indicators/${taskList.indicator.id}/other-notes-and-caveats`,
     );
     expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
       'Completed',
