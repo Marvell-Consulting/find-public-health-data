@@ -64,6 +64,7 @@ const {
   indicatorTopic,
   indicatorVersion,
   indicatorVersionLink,
+  indicatorVersionSource,
 } = schema;
 
 const ACTOR = 'integration-test';
@@ -182,6 +183,25 @@ async function linksOf(versionId: string): Promise<{ url: string; text: string }
     .from(indicatorVersionLink)
     .where(eq(indicatorVersionLink.indicatorVersionId, versionId))
     .orderBy(indicatorVersionLink.position);
+}
+
+/** The core data's ONS provider, with one of its sources and with none specific. */
+async function onsSources() {
+  const [row] = await db
+    .select({ providerId: schema.dataProvider.id, sourceId: schema.dataProviderSource.id })
+    .from(schema.dataProvider)
+    .innerJoin(
+      schema.dataProviderSource,
+      eq(schema.dataProviderSource.providerId, schema.dataProvider.id),
+    )
+    .where(
+      and(
+        eq(schema.dataProvider.name, 'Office for National Statistics (ONS)'),
+        eq(schema.dataProviderSource.name, 'Live births'),
+      ),
+    );
+  if (!row) throw new Error('The core data holds no ONS live births');
+  return { liveBirths: row, onsAlone: { providerId: row.providerId, sourceId: null } };
 }
 
 async function topicIdsOf(versionId: string): Promise<string[]> {
@@ -559,6 +579,57 @@ describe('updateIndicatorDraft', () => {
     expect(cleared?.draft).toMatchObject({ hasLinks: false, links: [] });
   });
 
+  it("writes each part's sources in the order given, replacing that part's alone", async () => {
+    const created = await newDraft('Sources in order');
+    const { liveBirths, onsAlone } = await onsSources();
+
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      {},
+      { numeratorSources: [liveBirths, onsAlone], denominatorSources: [onsAlone] },
+      ACTOR,
+    );
+    const first = await getIndicatorDraftState(db, created.indicatorId);
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      {},
+      { numeratorSources: [onsAlone] },
+      ACTOR,
+    );
+    const replaced = await getIndicatorDraftState(db, created.indicatorId);
+
+    expect(first?.draft).toMatchObject({
+      numeratorSources: [liveBirths, onsAlone],
+      denominatorSources: [onsAlone],
+    });
+    expect(replaced?.draft).toMatchObject({
+      numeratorSources: [onsAlone],
+      denominatorSources: [onsAlone],
+    });
+  });
+
+  it('refuses a source under a provider it does not belong to', async () => {
+    const created = await newDraft('Source under another provider');
+    const { liveBirths } = await onsSources();
+    const [other] = await db
+      .select({ id: schema.dataProvider.id })
+      .from(schema.dataProvider)
+      .where(eq(schema.dataProvider.name, 'Estimated'));
+    if (!other) throw new Error('The core data holds no Estimated provider');
+
+    await expect(
+      updateIndicatorDraft(
+        db,
+        created.indicatorId,
+        {},
+        { numeratorSources: [{ providerId: other.id, sourceId: liveBirths.sourceId }] },
+        ACTOR,
+      ),
+    ).rejects.toThrow();
+  });
+
   it("writes a section's answers to the draft alone, leaving its name and slug", async () => {
     const { indicatorId, currentId, currentName, currentSlug } =
       await indicatorWithTwoPublications();
@@ -811,6 +882,25 @@ describe('createDraftFromPublished', () => {
     const state = await getIndicatorDraftState(db, indicatorId);
     expect(state?.draft).toMatchObject({ hasLinks: true, links: [fingertips, commentary] });
     expect(await linksOf(currentId)).toEqual([fingertips, commentary]);
+  });
+
+  it('copies the numerator and denominator sources of the published version', async () => {
+    const { indicatorId, currentId } = await indicatorWithTwoPublications();
+    const { liveBirths, onsAlone } = await onsSources();
+    await db.insert(indicatorVersionSource).values([
+      { indicatorVersionId: currentId, part: 'numerator', position: 0, ...liveBirths },
+      { indicatorVersionId: currentId, part: 'numerator', position: 1, ...onsAlone },
+      { indicatorVersionId: currentId, part: 'denominator', position: 0, ...onsAlone },
+    ]);
+
+    const result = await createDraftFromPublished(db, indicatorId, ACTOR);
+
+    if (!result.ok) throw new Error('expected a draft');
+    const state = await getIndicatorDraftState(db, indicatorId);
+    expect(state?.draft).toMatchObject({
+      numeratorSources: [liveBirths, onsAlone],
+      denominatorSources: [onsAlone],
+    });
   });
 
   it('refuses a second draft for the same indicator', async () => {

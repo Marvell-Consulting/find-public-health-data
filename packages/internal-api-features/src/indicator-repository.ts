@@ -13,6 +13,7 @@ const {
   indicatorTopic,
   indicatorVersion,
   indicatorVersionLink,
+  indicatorVersionSource,
 } = schema;
 
 export interface IndicatorAdminRow {
@@ -116,15 +117,28 @@ export type IndicatorDraftVersion = typeof indicatorVersion.$inferSelect;
 
 export type IndicatorDraftLink = Pick<typeof indicatorVersionLink.$inferSelect, 'url' | 'text'>;
 
+/** A provider of a numerator's or denominator's data, and its source, null for none specific. */
+export type IndicatorDraftSource = Pick<
+  typeof indicatorVersionSource.$inferSelect,
+  'providerId' | 'sourceId'
+>;
+
+/** The providers and sources of each half of the calculation, in the order they were added. */
+export interface IndicatorDraftSources {
+  numeratorSources: IndicatorDraftSource[];
+  denominatorSources: IndicatorDraftSource[];
+}
+
 /**
  * A draft as the sections read it: its columns, its scheduled publication in UK time, and the
  * lists held in tables of their own.
  */
-export type IndicatorDraft = IndicatorDraftVersion & {
-  /** `scheduledPublishAt` as ISO 8601 with the UK offset then in force, such as `+01:00`. */
-  scheduledPublishAtUk: string | null;
-  links: IndicatorDraftLink[];
-};
+export type IndicatorDraft = IndicatorDraftVersion &
+  IndicatorDraftSources & {
+    /** `scheduledPublishAt` as ISO 8601 with the UK offset then in force, such as `+01:00`. */
+    scheduledPublishAtUk: string | null;
+    links: IndicatorDraftLink[];
+  };
 
 /** A date and time as a publisher in the UK gives it, whether GMT or BST is in force. */
 export interface UkDateTime {
@@ -209,8 +223,34 @@ export async function getIndicatorDraftState(
 
   return {
     ...state,
-    draft: draft && { ...draft, scheduledPublishAtUk, links: await linksOf(db, draft.id) },
+    draft: draft && {
+      ...draft,
+      ...(await sourcesOf(db, draft.id)),
+      scheduledPublishAtUk,
+      links: await linksOf(db, draft.id),
+    },
   };
+}
+
+async function sourcesOf(
+  db: Database | Transaction,
+  versionId: string,
+): Promise<IndicatorDraftSources> {
+  const rows = await db
+    .select({
+      part: indicatorVersionSource.part,
+      providerId: indicatorVersionSource.providerId,
+      sourceId: indicatorVersionSource.sourceId,
+    })
+    .from(indicatorVersionSource)
+    .where(eq(indicatorVersionSource.indicatorVersionId, versionId))
+    .orderBy(asc(indicatorVersionSource.position));
+  const ofPart = (part: schema.IndicatorSourcePart) =>
+    rows
+      .filter((row) => row.part === part)
+      .map(({ providerId, sourceId }) => ({ providerId, sourceId }));
+
+  return { numeratorSources: ofPart('numerator'), denominatorSources: ofPart('denominator') };
 }
 
 async function linksOf(
@@ -250,7 +290,7 @@ export type NewIndicatorDraftAttributes = IndicatorDraftAttributes &
   Pick<EditableVersionColumns, 'name'>;
 
 /** The draft's answers held in tables of their own; each is replaced whole when given. */
-export interface IndicatorDraftLists {
+export interface IndicatorDraftLists extends Partial<IndicatorDraftSources> {
   topicIds?: string[];
   classificationIds?: string[];
   /** In the order they are shown. */
@@ -437,7 +477,7 @@ export async function createDraftFromPublished(
 
       if (draft === undefined) throw new Error('createDraftFromPublished inserted no version');
 
-      const [topics, classifications, links] = await Promise.all([
+      const [topics, classifications, links, sources] = await Promise.all([
         tx
           .select({ topicId: indicatorTopic.topicId })
           .from(indicatorTopic)
@@ -447,12 +487,14 @@ export async function createDraftFromPublished(
           .from(indicatorClassification)
           .where(eq(indicatorClassification.indicatorVersionId, publishedId)),
         linksOf(tx, publishedId),
+        sourcesOf(tx, publishedId),
       ]);
 
       await replaceLists(tx, draft.id, {
         topicIds: topics.map(({ topicId }) => topicId),
         classificationIds: classifications.map(({ classificationId }) => classificationId),
         links,
+        ...sources,
       });
 
       return { ok: true, versionId: draft.id };
@@ -501,7 +543,7 @@ async function isPublished(tx: Transaction, indicatorId: string): Promise<boolea
 async function replaceLists(
   tx: Transaction,
   versionId: string,
-  { classificationIds, links, topicIds }: IndicatorDraftLists,
+  { classificationIds, links, topicIds, numeratorSources, denominatorSources }: IndicatorDraftLists,
 ): Promise<void> {
   if (topicIds !== undefined) {
     await tx.delete(indicatorTopic).where(eq(indicatorTopic.indicatorVersionId, versionId));
@@ -540,5 +582,38 @@ async function replaceLists(
         })),
       );
     }
+  }
+
+  await replaceSources(tx, versionId, 'numerator', numeratorSources);
+  await replaceSources(tx, versionId, 'denominator', denominatorSources);
+}
+
+async function replaceSources(
+  tx: Transaction,
+  versionId: string,
+  part: schema.IndicatorSourcePart,
+  sources: IndicatorDraftSource[] | undefined,
+): Promise<void> {
+  if (sources === undefined) return;
+
+  await tx
+    .delete(indicatorVersionSource)
+    .where(
+      and(
+        eq(indicatorVersionSource.indicatorVersionId, versionId),
+        eq(indicatorVersionSource.part, part),
+      ),
+    );
+
+  if (sources.length > 0) {
+    await tx.insert(indicatorVersionSource).values(
+      sources.map(({ providerId, sourceId }, position) => ({
+        indicatorVersionId: versionId,
+        part,
+        position,
+        providerId,
+        sourceId,
+      })),
+    );
   }
 }

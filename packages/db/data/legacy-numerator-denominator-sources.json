@@ -1,0 +1,1794 @@
+{
+  "Appropriate source not listed - contact profilefeedback": [],
+  "Care Quality Commission (CQC), Care directory": [
+    {
+      "provider": "Care Quality Commission (CQC)",
+      "source": "Care directory"
+    }
+  ],
+  "Care Quality Commission (CQC), Community Mental Health Survey (CMHS)": [
+    {
+      "provider": "Care Quality Commission (CQC)",
+      "source": "Community Mental Health Survey (CMHS)"
+    }
+  ],
+  "Care Quality Commission (CQC), Maternity Services Survey (MSS)": [
+    {
+      "provider": "Care Quality Commission (CQC)",
+      "source": "Maternity Services Survey (MSS)"
+    }
+  ],
+  "Chartered Institute of Environmental Health (CIEH), Modelled estimates": [
+    {
+      "provider": "Chartered Institute of Environmental Health (CIEH)",
+      "source": "Modelled estimates"
+    }
+  ],
+  "Consumer Data Research Centre (CDRC), Access to Healthy Assets and Hazards (AHAH)": [
+    {
+      "provider": "Consumer Data Research Centre (CDRC)",
+      "source": "Access to Healthy Assets and Hazards (AHAH)"
+    }
+  ],
+  "Department for Business, Energy and Industrial Strategy (BEIS)": [
+    {
+      "provider": "Department for Business, Energy and Industrial Strategy (BEIS)",
+      "source": null
+    }
+  ],
+  "Department for Education (DfE), Children in need and child protection statistics": [
+    {
+      "provider": "Department for Education (DfE)",
+      "source": "Children in need and child protection statistics"
+    }
+  ],
+  "Department for Education (DfE), Early years foundation stage (EYFS) profile results": [
+    {
+      "provider": "Department for Education (DfE)",
+      "source": "Early years foundation stage (EYFS) profile results"
+    }
+  ],
+  "Department for Education (DfE), Exclusions statistics in England": [
+    {
+      "provider": "Department for Education (DfE)",
+      "source": "Exclusions statistics in England"
+    }
+  ],
+  "Department for Education (DfE), Key Stage 1 (KS1) and phonics screening check attainment": [
+    {
+      "provider": "Department for Education (DfE)",
+      "source": "Key Stage 1 (KS1) and phonics screening check attainment"
+    }
+  ],
+  "Department for Education (DfE), Key Stage 2 (KS2) attainment": [
+    {
+      "provider": "Department for Education (DfE)",
+      "source": "Key Stage 2 (KS2) attainment"
+    }
+  ],
+  "Department for Education (DfE), Key Stage 4 (KS4) performance": [
+    {
+      "provider": "Department for Education (DfE)",
+      "source": "Key Stage 4 (KS4) performance"
+    }
+  ],
+  "Department for Education (DfE), Looked-after children": [
+    {
+      "provider": "Department for Education (DfE)",
+      "source": "Looked-after children"
+    }
+  ],
+  "Department for Education (DfE), NEET and participation": [
+    {
+      "provider": "Department for Education (DfE)",
+      "source": "NEET and participation"
+    }
+  ],
+  "Department for Education (DfE), Phonics screening check and Key Stage 1 (KS1) assessments": [
+    {
+      "provider": "Department for Education (DfE)",
+      "source": "Key Stage 1 (KS1) and phonics screening check attainment"
+    }
+  ],
+  "Department for Education (DfE), Pupil absence in schools in England": [
+    {
+      "provider": "Department for Education (DfE)",
+      "source": "Pupil absence in schools in England"
+    }
+  ],
+  "Department for Education (DfE), Pupil attendance and absence": [
+    {
+      "provider": "Department for Education (DfE)",
+      "source": "Pupil attendance and absence"
+    }
+  ],
+  "Department for Education (DfE), Schools, pupils and their characteristics": [
+    {
+      "provider": "Department for Education (DfE)",
+      "source": "Schools, pupils and their characteristics"
+    }
+  ],
+  "Department for Education (DfE), Special Educational Needs (SEN) in England": [
+    {
+      "provider": "Department for Education (DfE)",
+      "source": "Special Educational Needs (SEN) in England"
+    }
+  ],
+  "Department for Energy Security and Net Zero (DESNZ), Fuel poverty statistics": [
+    {
+      "provider": "Department for Energy Security and Net Zero (DESNZ)",
+      "source": "Fuel poverty statistics"
+    }
+  ],
+  "Department for Environment, Food and Rural Affairs (DEFRA)": [
+    {
+      "provider": "Department for Environment, Food and Rural Affairs (DEFRA)",
+      "source": null
+    }
+  ],
+  "Department for Transport (DfT), Reported drinking and driving: data tables": [
+    {
+      "provider": "Department for Transport (DfT)",
+      "source": "Reported drinking and driving: data tables"
+    }
+  ],
+  "Department for Transport (DfT), Road accidents and safety statistics": [
+    {
+      "provider": "Department for Transport (DfT)",
+      "source": "Road accidents and safety statistics"
+    }
+  ],
+  "Department for Transport (DfT), Road traffic statistics (TRA)": [
+    {
+      "provider": "Department for Transport (DfT)",
+      "source": "Road traffic statistics (TRA)"
+    }
+  ],
+  "Department for Work and Pensions (DWP)": [
+    {
+      "provider": "Department for Work and Pensions (DWP)",
+      "source": null
+    }
+  ],
+  "Department for Work and Pensions (DWP), Children in low income families: local area statistics": [
+    {
+      "provider": "Department for Work and Pensions (DWP)",
+      "source": "Children in low income families: local area statistics"
+    }
+  ],
+  "Department for Work and Pensions (DWP), Family Resources Survey (FRS)": [
+    {
+      "provider": "Department for Work and Pensions (DWP)",
+      "source": "Family Resources Survey (FRS)"
+    }
+  ],
+  "Department for Work and Pensions (DWP), Winter Fuel Payment statistics": [
+    {
+      "provider": "Department for Work and Pensions (DWP)",
+      "source": "Winter Fuel Payment statistics"
+    }
+  ],
+  "Department of Health and Social Care (DHSC), Abortion statistics in England and Wales": [
+    {
+      "provider": "Department of Health and Social Care (DHSC)",
+      "source": "Abortion statistics in England and Wales"
+    }
+  ],
+  "Department of Health and Social Care (DHSC), National Child Measurement Programme (NCMP)": [
+    {
+      "provider": "Department of Health and Social Care (DHSC)",
+      "source": "National Child Measurement Programme (NCMP)"
+    }
+  ],
+  "Estimated": [
+    {
+      "provider": "Estimated",
+      "source": null
+    }
+  ],
+  "Eurostat, European Standard Population (2013)": [
+    {
+      "provider": "Eurostat",
+      "source": "European Standard Population (2013)"
+    }
+  ],
+  "Food Standards Agency (FSA), Food Hygiene Rating Scheme": [
+    {
+      "provider": "Food Standards Agency (FSA)",
+      "source": "Food Hygiene Rating Scheme"
+    }
+  ],
+  "Gambling Survey of Great Britain Gambling Commission": [
+    {
+      "provider": "The Gambling Commission",
+      "source": "Gambling Survey of Great Britain"
+    }
+  ],
+  "Geographic Data Service (GeoDS), Access to Healthy Assets and Hazards (AHAH) Geographic Data Service (GeoDS), Access to Healthy Assets and Hazards (AHAH)": [
+    {
+      "provider": "Consumer Data Research Centre (CDRC)",
+      "source": "Access to Healthy Assets and Hazards (AHAH)"
+    }
+  ],
+  "Health and Safety Executive (HSE)": [
+    {
+      "provider": "Health and Safety Executive (HSE)",
+      "source": null
+    }
+  ],
+  "Health and Safety Executive (HSE), based on Office for National Statistics (ONS) data": [
+    {
+      "provider": "Health and Safety Executive (HSE)",
+      "source": "Based on Office for National Statistics (ONS) data"
+    }
+  ],
+  "HM Revenue and Customs (HMRC), Child Benefit - Geographical statistics": [
+    {
+      "provider": "HM Revenue and Customs (HMRC)",
+      "source": "Child Benefit Geographical statistics"
+    }
+  ],
+  "Home Office (HO), Alcohol and late night refreshment licensing": [
+    {
+      "provider": "Home Office (HO)",
+      "source": "Alcohol and late night refreshment licensing"
+    }
+  ],
+  "Home Office (HO), Immigration statistics": [
+    {
+      "provider": "Home Office (HO)",
+      "source": "Immigration statistics"
+    }
+  ],
+  "Home Office (HO), Police recorded crime and outcomes: open data tables": [
+    {
+      "provider": "Home Office (HO)",
+      "source": "Police recorded crime and outcomes: open data tables"
+    }
+  ],
+  "Joseph Rowntree Foundation (JRF), Minimum Income Standards (MIS)": [
+    {
+      "provider": "Joseph Rowntree Foundation (JRF)",
+      "source": "Minimum Income Standards (MIS)"
+    }
+  ],
+  "King's College London (KCL), Sentinel Stroke National Audit Programme (SSNAP)": [
+    {
+      "provider": "King's College London (KCL)",
+      "source": "Sentinel Stroke National Audit Programme (SSNAP)"
+    }
+  ],
+  "Liverpool John Moores University (LJMU), Estimates of OCU use in England": [
+    {
+      "provider": "Liverpool John Moores University (LJMU)",
+      "source": "Estimates of OCU use in England"
+    }
+  ],
+  "Medicines and Healthcare Products Regulatory Agency (MHRA), Clinical Practice Research Datalink (CPRD)": [
+    {
+      "provider": "Medicines and Healthcare Products Regulatory Agency (MHRA)",
+      "source": "Clinical Practice Research Datalink (CPRD)"
+    }
+  ],
+  "Medicines and Healthcare Products Regulatory Agency (MHRA), Clinical Practice Research Datalink (CPRD), Office for National Statistics (ONS), 2021 Census and Ministry of Housing, Communities and Local Government (MHCLG), English indices of deprivation": [
+    {
+      "provider": "Medicines and Healthcare Products Regulatory Agency (MHRA)",
+      "source": "Clinical Practice Research Datalink (CPRD)"
+    },
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "2021 Census"
+    },
+    {
+      "provider": "Ministry of Housing, Communities and Local Government (MHCLG)",
+      "source": "English indices of deprivation"
+    }
+  ],
+  "Ministry of Housing, Communities and Local Government (MHCLG), English Housing Survey": [
+    {
+      "provider": "Ministry of Housing, Communities and Local Government (MHCLG)",
+      "source": "English Housing Survey"
+    }
+  ],
+  "Ministry of Housing, Communities and Local Government (MHCLG), English indices of deprivation": [
+    {
+      "provider": "Ministry of Housing, Communities and Local Government (MHCLG)",
+      "source": "English indices of deprivation"
+    }
+  ],
+  "Ministry of Housing, Communities and Local Government (MHCLG), Homelessness statistics": [
+    {
+      "provider": "Ministry of Housing, Communities and Local Government (MHCLG)",
+      "source": "Homelessness statistics"
+    }
+  ],
+  "Ministry of Housing, Communities and Local Government (MHCLG), Homelessness statistics and Department for Energy Security and Net Zero (DESNZ), Fuel poverty statistics": [
+    {
+      "provider": "Ministry of Housing, Communities and Local Government (MHCLG)",
+      "source": "Homelessness statistics"
+    },
+    {
+      "provider": "Department for Energy Security and Net Zero (DESNZ)",
+      "source": "Fuel poverty statistics"
+    }
+  ],
+  "Ministry of Housing, Communities and Local Government (MHCLG), Live tables on dwelling stock": [
+    {
+      "provider": "Ministry of Housing, Communities and Local Government (MHCLG)",
+      "source": "Live tables on dwelling stock"
+    }
+  ],
+  "Ministry of Housing, Communities and Local Government (MHCLG), Live tables on homelessness": [
+    {
+      "provider": "Ministry of Housing, Communities and Local Government (MHCLG)",
+      "source": "Live tables on homelessness"
+    }
+  ],
+  "Ministry of Housing, Communities and Local Government (MHCLG), Statutory homelessness in England": [
+    {
+      "provider": "Ministry of Housing, Communities and Local Government (MHCLG)",
+      "source": "Statutory homelessness in England"
+    }
+  ],
+  "Ministry of Justice (MoJ), Criminal Justice Statistics (CJS)": [
+    {
+      "provider": "Ministry of Justice (MoJ)",
+      "source": "Criminal Justice Statistics (CJS)"
+    }
+  ],
+  "Ministry of Justice (MoJ), Mortgage and landlord possession statistics": [
+    {
+      "provider": "Ministry of Justice (MoJ)",
+      "source": "Mortgage and landlord possession statistics"
+    }
+  ],
+  "Ministry of Justice (MoJ), multiple sources": [
+    {
+      "provider": "Ministry of Justice (MoJ)",
+      "source": null
+    }
+  ],
+  "Ministry of Justice (MoJ), Police National Computer": [
+    {
+      "provider": "Ministry of Justice (MoJ)",
+      "source": "Police National Computer"
+    }
+  ],
+  "Ministry of Justice (MoJ), Prison population figures": [
+    {
+      "provider": "Ministry of Justice (MoJ)",
+      "source": "Prison population figures"
+    }
+  ],
+  "Ministry of Justice (MoJ), Proven reoffending statistics": [
+    {
+      "provider": "Ministry of Justice (MoJ)",
+      "source": "Proven reoffending statistics"
+    }
+  ],
+  "Ministry of Justice (MoJ), Youth justice statistics": [
+    {
+      "provider": "Ministry of Justice (MoJ)",
+      "source": "Youth justice statistics"
+    }
+  ],
+  "Moorfields Eye Hospital, The Certifications Office": [
+    {
+      "provider": "Moorfields Eye Hospital",
+      "source": "The Certifications Office"
+    }
+  ],
+  "National Disease Registration Service (NDRS), based on NHS England (NHSE) Cancer Waiting Times (CWT) and Patients registered at a GP Practice data": [
+    {
+      "provider": "National Disease Registration Service (NDRS)",
+      "source": null
+    },
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Cancer Waiting Times (CWT)"
+    },
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Patients registered at a GP practice"
+    }
+  ],
+  "Natural England (NE), Monitor of Engagement with the Natural Environment Survey (MENE)": [
+    {
+      "provider": "Natural England (NE)",
+      "source": "Monitor of Engagement with the Natural Environment Survey (MENE)"
+    }
+  ],
+  "NHS Benchmarking Network (NHSBN)": [
+    {
+      "provider": "NHS Benchmarking Network (NHSBN)",
+      "source": null
+    }
+  ],
+  "NHS Business Services Authority (NHSBSA), Electronic Prescription Service (EPS) and electronic Repeat Dispensing (eRD) utilisation dashboard": [
+    {
+      "provider": "NHS Business Services Authority (NHSBSA)",
+      "source": "Electronic Prescription Service (EPS) and electronic Repeat Dispensing (eRD) utilisation dashboard"
+    }
+  ],
+  "NHS Business Services Authority (NHSBSA), English Contractor Monthly General Dental Activity": [
+    {
+      "provider": "NHS Business Services Authority (NHSBSA)",
+      "source": "English Contractor Monthly General Dental Activity"
+    }
+  ],
+  "NHS Business Services Authority (NHSBSA), Prescription data (ePACT2)": [
+    {
+      "provider": "NHS Business Services Authority (NHSBSA)",
+      "source": "Prescription data (ePACT2)"
+    }
+  ],
+  "NHS England (NHSE) and Office for Health Improvement and Disparities (OHID), Bowel Cancer Screening Programme (BCSP)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Bowel Cancer Screening Programme (BCSP)"
+    },
+    {
+      "provider": "Office for Health Improvement and Disparities (OHID)",
+      "source": null
+    }
+  ],
+  "NHS England (NHSE), Abdominal Aortic Aneurysm Screening Programme (AAA)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Abdominal Aortic Aneurysm Screening Programme (AAA)"
+    }
+  ],
+  "NHS England (NHSE), Adult Psychiatric Morbidity Survey (APMS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Adult Psychiatric Morbidity Survey (APMS)"
+    }
+  ],
+  "NHS England (NHSE), Adult Social Care and Activity Finance Report (ASC-FR)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Adult Social Care and Activity Finance Report (ASC-FR)"
+    }
+  ],
+  "NHS England (NHSE), Adult Social Care and Activity Finance Report (ASC-FR) and Office for National Statistics (ONS), Annual Population Survey (APS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Adult Social Care and Activity Finance Report (ASC-FR)"
+    },
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Annual Population Survey (APS)"
+    }
+  ],
+  "NHS England (NHSE), Adult Social Care and Activity Finance Report (ASC-FR), Short and Long-Term data returns (SALT)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Adult Social Care and Activity Finance Report (ASC-FR)"
+    },
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Short and Long-Term data returns (SALT)"
+    }
+  ],
+  "NHS England (NHSE), Adult Social Care Outcomes Framework (ASCOF)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Adult Social Care Outcomes Framework (ASCOF)"
+    }
+  ],
+  "NHS England (NHSE), Adult Social Care Outcomes Framework (ASCOF) and Office for National Statistics (ONS), Annual Population Survey (APS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Adult Social Care Outcomes Framework (ASCOF)"
+    },
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Annual Population Survey (APS)"
+    }
+  ],
+  "NHS England (NHSE), Adult Social Care Survey (ASCS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Adult Social Care Survey (ASCS)"
+    }
+  ],
+  "NHS England (NHSE), Ambulance Quality Indicators (AQIs)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Ambulance Quality Indicators (AQIs)"
+    }
+  ],
+  "NHS England (NHSE), Appointments in General Practice": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Appointments in General Practice"
+    }
+  ],
+  "NHS England (NHSE), Bed Availability and Occupancy (KH03)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Bed Availability and Occupancy (KH03)"
+    }
+  ],
+  "NHS England (NHSE), Bowel Cancer Screening Programme (BCSP)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Bowel Cancer Screening Programme (BCSP)"
+    }
+  ],
+  "NHS England (NHSE), Breast Screening Programme (BSP)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Breast Screening Programme (BSP)"
+    }
+  ],
+  "NHS England (NHSE), Cancer Waiting Times (CWT)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Cancer Waiting Times (CWT)"
+    }
+  ],
+  "NHS England (NHSE), Cervical Screening Programme (CSP)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Cervical Screening Programme (CSP)"
+    }
+  ],
+  "NHS England (NHSE), Child Health Information Services (CHISS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Child Health Information Services (CHISS)"
+    }
+  ],
+  "NHS England (NHSE), Civil Registrations of Death linked to Mental Health Services Dataset (MHSDS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Civil Registrations of Death linked to the following datasets: Mental Health Services Dataset (MHSDS), Mental Health and Learning Disabilities Dataset (MHLDS) and Mental Health Minimum Dataset (MHMDS)"
+    }
+  ],
+  "NHS England (NHSE), Civil Registrations of Death linked to the following datasets: Mental Health Services Dataset (MHSDS), Mental Health and Learning Disabilities Dataset (MHLDS) and Mental Health Minimum Dataset (MHMDS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Civil Registrations of Death linked to the following datasets: Mental Health Services Dataset (MHSDS), Mental Health and Learning Disabilities Dataset (MHLDS) and Mental Health Minimum Dataset (MHMDS)"
+    }
+  ],
+  "NHS England (NHSE), Community Services Data Set (CSDS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Community Services Data Set (CSDS)"
+    }
+  ],
+  "NHS England (NHSE), Delayed Transfer of Care (DTOC)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Delayed Transfer of Care (DTOC)"
+    }
+  ],
+  "NHS England (NHSE), Diabetic Eye Screening Programme (DES)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Diabetic Eye Screening Programme (DES)"
+    }
+  ],
+  "NHS England (NHSE), Emergency Care Data Set (ECDS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Emergency Care Data Set (ECDS)"
+    }
+  ],
+  "NHS England (NHSE), Estates Returns Information Collection": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Estates Returns Information Collection"
+    }
+  ],
+  "NHS England (NHSE), Fetal Anomaly Screening Programme (FASP)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Fetal Anomaly Screening Programme (FASP)"
+    }
+  ],
+  "NHS England (NHSE), General Practice Extraction Service (GPES)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "General Practice Extraction Service (GPES)"
+    }
+  ],
+  "NHS England (NHSE), General Practice Workforce": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "General Practice Workforce"
+    }
+  ],
+  "NHS England (NHSE), General Practice Workforce and Primary Care Workforce Quarterly Update": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "General Practice Workforce"
+    },
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Primary Care Workforce Quarterly Update"
+    }
+  ],
+  "NHS England (NHSE), GP Patient Survey (GPPS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "GP Patient Survey (GPPS)"
+    }
+  ],
+  "NHS England (NHSE), Health and Justice": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Health and Justice"
+    }
+  ],
+  "NHS England (NHSE), Health Survey for England (HSE)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Health Survey for England (HSE)"
+    }
+  ],
+  "NHS England (NHSE), Health Survey for England (HSE) and Office for National Statistics (ONS), Mid-year population estimates": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Health Survey for England (HSE)"
+    },
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Mid-year population estimates"
+    }
+  ],
+  "NHS England (NHSE), Health Survey for England (HSE), Hospital Episode Statistics (HES) and Patients registered at a GP practice": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Health Survey for England (HSE)"
+    },
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Hospital Episode Statistics (HES)"
+    },
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Patients registered at a GP practice"
+    }
+  ],
+  "NHS England (NHSE), Hospital Episode Statistics (HES)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Hospital Episode Statistics (HES)"
+    }
+  ],
+  "NHS England (NHSE), Hospital Episode Statistics (HES) and Health Survey for England (HSE)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Hospital Episode Statistics (HES)"
+    },
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Health Survey for England (HSE)"
+    }
+  ],
+  "NHS England (NHSE), Hospital Episode Statistics (HES) linked to Office for National Statistics (ONS), Annual Mortality Extract data": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Hospital Episode Statistics (HES)"
+    },
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Annual mortality extract"
+    }
+  ],
+  "NHS England (NHSE), Hospital Episode Statistics (HES), Admitted Patient Care (APC)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Hospital Episode Statistics (HES)"
+    },
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Admitted Patient Care (APC)"
+    }
+  ],
+  "NHS England (NHSE), Hospital Episode Statistics (HES), Admitted Patient Care (APC) and Hospital Outpatient Activity (OP)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Hospital Episode Statistics (HES)"
+    },
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Admitted Patient Care (APC)"
+    },
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Hospital Outpatient Activity (OP)"
+    }
+  ],
+  "NHS England (NHSE), Hospital Episode Statistics (HES), Admitted Patient Care (APC) and Office for National Statistics (ONS) linked mortality data": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Hospital Episode Statistics (HES)"
+    },
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Admitted Patient Care (APC)"
+    },
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Annual mortality extract"
+    }
+  ],
+  "NHS England (NHSE), Hospital Episode Statistics (HES), Continuous Inpatient Spells (CIP) database": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Hospital Episode Statistics (HES)"
+    },
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Continuous Inpatient Spells (CIP) database"
+    }
+  ],
+  "NHS England (NHSE), Hospital Episode Statistics (HES), Hospital Maternity Activity (HMA)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Hospital Episode Statistics (HES)"
+    },
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Hospital Maternity Activity (HMA)"
+    }
+  ],
+  "NHS England (NHSE), Hospital Episode Statistics (HES), Hospital Outpatient Activity (OP)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Hospital Episode Statistics (HES)"
+    },
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Hospital Outpatient Activity (OP)"
+    }
+  ],
+  "NHS England (NHSE), Hospital Episode Statistics (HES), National Diabetes Audit (NDA) and Quality and Outcomes Framework (QOF)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Hospital Episode Statistics (HES)"
+    },
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "National Diabetes Audit (NDA)"
+    },
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Quality and Outcomes Framework (QOF)"
+    }
+  ],
+  "NHS England (NHSE), Infectious Diseases in Pregnancy Screening Programme (IDPS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Infectious Diseases in Pregnancy Screening Programme (IDPS)"
+    }
+  ],
+  "NHS England (NHSE), Learning Disabilities Health Check Scheme (LDHCS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Learning Disabilities Health Check Scheme (LDHCS)"
+    }
+  ],
+  "NHS England (NHSE), Local Antimicrobial Stewardship Teams": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Local Antimicrobial Stewardship Teams"
+    }
+  ],
+  "NHS England (NHSE), Local Screening and Immunisation Teams": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Local Screening and Immunisation Teams"
+    }
+  ],
+  "NHS England (NHSE), Maternity Services Data Set (MSDS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Maternity Services Data Set (MSDS)"
+    }
+  ],
+  "NHS England (NHSE), Mental Health Act Statistics annual figures": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Mental Health Act Statistics annual figures"
+    }
+  ],
+  "NHS England (NHSE), Mental Health and Learning Disabilities Statistics (MHLDS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Mental Health and Learning Disabilities Statistics (MHLDS)"
+    }
+  ],
+  "NHS England (NHSE), Mental Health Community Teams Activity (MHCTA)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Mental Health Community Teams Activity (MHCTA)"
+    }
+  ],
+  "NHS England (NHSE), Mental Health of Children and Young People Survey (MHCYPS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Mental Health of Children and Young People Survey (MHCYPS)"
+    }
+  ],
+  "NHS England (NHSE), Mental Health Services Dataset (MHSDS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Mental Health Services Dataset (MHSDS)"
+    }
+  ],
+  "NHS England (NHSE), Mental Health Services Dataset (MHSDS), Mental Health and Learning Disabilities Dataset (MHLDS) and Mental Health Minimum Dataset (MHMDS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Mental Health Services Dataset (MHSDS)"
+    },
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Mental Health and Learning Disabilities Dataset (MHLDS)"
+    },
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Mental Health Minimum Dataset (MHMDS)"
+    }
+  ],
+  "NHS England (NHSE), Mental Health Services Monthly Statistics": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Mental Health Services Monthly Statistics (MHSMS)"
+    }
+  ],
+  "NHS England (NHSE), Mental Health Services Monthly Statistics (MHSMS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Mental Health Services Monthly Statistics (MHSMS)"
+    }
+  ],
+  "NHS England (NHSE), multiple sources": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": null
+    }
+  ],
+  "NHS England (NHSE), National Cancer Registration and Analysis Service (NCRAS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "National Cancer Registration and Analysis Service (NCRAS)"
+    }
+  ],
+  "NHS England (NHSE), National Cancer Registration Dataset (NCRD)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "National Cancer Registration Dataset (NCRD)"
+    }
+  ],
+  "NHS England (NHSE), National Child Measurement Programme (NCMP)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "National Child Measurement Programme (NCMP)"
+    }
+  ],
+  "NHS England (NHSE), National Dental Epidemiology Programme for England (NDEP)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "National Dental Epidemiology Programme (NDEP)"
+    }
+  ],
+  "NHS England (NHSE), National Diabetes Audit (NDA)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "National Diabetes Audit (NDA)"
+    }
+  ],
+  "NHS England (NHSE), National Diabetes Audit (NDA) and Quality and Outcomes Framework (QOF)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "National Diabetes Audit (NDA)"
+    },
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Quality and Outcomes Framework (QOF)"
+    }
+  ],
+  "NHS England (NHSE), National Disease Registration Service (NDRS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "National Disease Registration Service (NDRS)"
+    }
+  ],
+  "NHS England (NHSE), Newborn and Infant Physical Examination Screening Programme (NIPE)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Newborn and Infant Physical Examination Screening Programme (NIPE)"
+    }
+  ],
+  "NHS England (NHSE), Newborn Hearing Screening Programme (NHSP)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Newborn Hearing Screening Programme (NHSP)"
+    }
+  ],
+  "NHS England (NHSE), NHS Dental Statistics for England": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "NHS Dental Statistics for England"
+    }
+  ],
+  "NHS England (NHSE), NHS Health Check Programme (HCP)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "NHS Health Check Programme (HCP)"
+    }
+  ],
+  "NHS England (NHSE), NHS Outcomes Framework (OF)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "NHS Outcomes Framework (OF)"
+    }
+  ],
+  "NHS England (NHSE), NHS Payments to General Practice": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "NHS Payments to General Practice"
+    }
+  ],
+  "NHS England (NHSE), NHS Staff Survey": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "NHS Staff Survey"
+    }
+  ],
+  "NHS England (NHSE), NHS Talking Therapies": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "NHS Talking Therapies"
+    }
+  ],
+  "NHS England (NHSE), Patient Online Management Information (POMI)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Patient Online Management Information (POMI)"
+    }
+  ],
+  "NHS England (NHSE), Patients registered at a GP practice": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Patients registered at a GP practice"
+    }
+  ],
+  "NHS England (NHSE), Personal Demographics Service (PDS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Personal Demographics Service (PDS)"
+    }
+  ],
+  "NHS England (NHSE), Personal Social Services Survey Adult Social Care Survey (ASCS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Personal Social Services Survey Adult Social Care Survey (ASCS)"
+    }
+  ],
+  "NHS England (NHSE), Personal Social Services Survey of Adult Carers in England (SACE)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Personal Social Services Survey of Adult Carers in England (SACE)"
+    }
+  ],
+  "NHS England (NHSE), Primary Care Workforce Quarterly Update": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Primary Care Workforce Quarterly Update"
+    }
+  ],
+  "NHS England (NHSE), Quality and Outcomes Framework (QOF)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Quality and Outcomes Framework (QOF)"
+    }
+  ],
+  "NHS England (NHSE), Recorded Dementia Diagnoses (RDD)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Recorded Dementia Diagnoses (RDD)"
+    }
+  ],
+  "NHS England (NHSE), Registered Blind and Partially Sighted People": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Registered Blind and Partially Sighted People"
+    }
+  ],
+  "NHS England (NHSE), Safeguarding Adults Collection (SAC)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Safeguarding Adults Collection (SAC)"
+    }
+  ],
+  "NHS England (NHSE), Sexual and Reproductive Health Activity Dataset (SRHAD)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Sexual and Reproductive Health Activity Dataset (SRHAD)"
+    }
+  ],
+  "NHS England (NHSE), Sickle Cell and Thalassaemia (SCT) Screening Programme": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Sickle Cell and Thalassaemia (SCT) Screening Programme"
+    }
+  ],
+  "NHS England (NHSE), Smoking, drinking and drug use among young people in England (SDD)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Smoking, drinking and drug use among young people in England (SDD)"
+    }
+  ],
+  "NHS England (NHSE), Statistics on NHS Stop Smoking Services in England (SSS)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Statistics on NHS Stop Smoking Services in England (SSS)"
+    }
+  ],
+  "NHS England (NHSE), Statistics on Women's Smoking at a Time of Delivery (SATOD)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Statistics on Women's Smoking at a Time of Delivery (SATOD)"
+    }
+  ],
+  "NHS England (NHSE), Sustainable Development Unit (SDU)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Sustainable Development Unit (SDU)"
+    }
+  ],
+  "NHS England (NHSE), What about youth study (WAY)": [
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "What About Youth study (WAY)"
+    }
+  ],
+  "Nielsen, CGA Strategy (CGA)": [
+    {
+      "provider": "Nielsen",
+      "source": "CGA Strategy (CGA)"
+    }
+  ],
+  "Not applicable (N/A)": [],
+  "Office for Health Improvement and Disparities (OHID), based on Joint Commissioning Panel for Mental Health (JCPMH) and NHS England (NHSE) data": [
+    {
+      "provider": "Office for Health Improvement and Disparities (OHID)",
+      "source": "Based on Joint Commissioning Panel for Mental Health (JCPMH) and NHS England (NHSE) data"
+    }
+  ],
+  "Office for Health Improvement and Disparities (OHID), based on Joint Commissioning Panel for Mental Health (JCPMH) and Office for National Statistics (ONS) data": [
+    {
+      "provider": "Office for Health Improvement and Disparities (OHID)",
+      "source": "Based on Joint Commissioning Panel for Mental Health (JCPMH) and Office for National Statistics (ONS) data"
+    }
+  ],
+  "Office for Health Improvement and Disparities (OHID), based on National Drug Treatment Monitoring System (NDTMS) and Ministry of Justice (MoJ) data": [
+    {
+      "provider": "Office for Health Improvement and Disparities (OHID)",
+      "source": "Based on National Drug Treatment Monitoring System (NDTMS) and Ministry of Justice (MoJ) data"
+    }
+  ],
+  "Office for Health Improvement and Disparities (OHID), based on NHS England (NHSE) and Office for National Statistics (ONS) data": [
+    {
+      "provider": "Office for Health Improvement and Disparities (OHID)",
+      "source": "Based on NHS England (NHSE) and Office for National Statistics (ONS) data"
+    }
+  ],
+  "Office for Health Improvement and Disparities (OHID), based on NHS England (NHSE) data": [
+    {
+      "provider": "Office for Health Improvement and Disparities (OHID)",
+      "source": "Based on NHS England (NHSE) data"
+    }
+  ],
+  "Office for Health Improvement and Disparities (OHID), based on NHS England (NHSE), Hospital Episode Statistics (HES), Admitted Patient Care (APC) data": [
+    {
+      "provider": "Office for Health Improvement and Disparities (OHID)",
+      "source": "Based on NHS England (NHSE), Hospital Episode Statistics (HES), Admitted Patient Care (APC) data"
+    }
+  ],
+  "Office for Health Improvement and Disparities (OHID), based on Office for National Statistics (ONS) data": [
+    {
+      "provider": "Office for Health Improvement and Disparities (OHID)",
+      "source": "Based on Office for National Statistics (ONS) data"
+    }
+  ],
+  "Office for Health Improvement and Disparities (OHID), Child and maternal health statistics - Breastfeeding statistics (via interim national reporting process)": [
+    {
+      "provider": "Office for Health Improvement and Disparities (OHID)",
+      "source": "Child and maternal health statistics Breastfeeding statistics (via interim national reporting process)"
+    }
+  ],
+  "Office for Health Improvement and Disparities (OHID), Child and maternal health statistics - Child development outcomes at 2 to 2 and a half years (via interim national reporting process)": [
+    {
+      "provider": "Office for Health Improvement and Disparities (OHID)",
+      "source": "Child and maternal health statistics Child development outcomes at 2 to 2 and a half years (via interim national reporting process)"
+    }
+  ],
+  "Office for Health Improvement and Disparities (OHID), Child and maternal health statistics - Health visitor service delivery (via interim national reporting process)": [
+    {
+      "provider": "Office for Health Improvement and Disparities (OHID)",
+      "source": "Child and maternal health statistics Health visitor service delivery (via interim national reporting process)"
+    }
+  ],
+  "Office for Health Improvement and Disparities (OHID), Local Health - Small Area Public Health Data": [
+    {
+      "provider": "Office for Health Improvement and Disparities (OHID)",
+      "source": "Local Health Small Area Public Health Data"
+    }
+  ],
+  "Office for Health Improvement and Disparities (OHID), National Cardiovascular Intelligence Network (NCVIN)": [
+    {
+      "provider": "Office for Health Improvement and Disparities (OHID)",
+      "source": "National Cardiovascular Intelligence Network (NCVIN)"
+    }
+  ],
+  "Office for Health Improvement and Disparities (OHID), National Cardiovascular Intelligence Network (NCVIN), Atrial fibrillation prevalence estimates": [
+    {
+      "provider": "Office for Health Improvement and Disparities (OHID)",
+      "source": "National Cardiovascular Intelligence Network (NCVIN)"
+    },
+    {
+      "provider": "Office for Health Improvement and Disparities (OHID)",
+      "source": "Atrial fibrillation prevalence estimates"
+    }
+  ],
+  "Office for Health Improvement and Disparities (OHID), National Dental Epidemiology Programme (NDEP)": [
+    {
+      "provider": "Office for Health Improvement and Disparities (OHID)",
+      "source": "National Dental Epidemiology Programme (NDEP)"
+    }
+  ],
+  "Office for Health Improvement and Disparities (OHID), National Drug Treatment Monitoring System (NDTMS)": [
+    {
+      "provider": "Office for Health Improvement and Disparities (OHID)",
+      "source": "National Drug Treatment Monitoring System (NDTMS)"
+    }
+  ],
+  "Office for Health Improvement and Disparities (OHID), NHS Health Check Programme": [
+    {
+      "provider": "Office for Health Improvement and Disparities (OHID)",
+      "source": "NHS Health Check Programme"
+    }
+  ],
+  "Office for Health Improvement and Disparities (OHID), Prevalence estimates": [
+    {
+      "provider": "Office for Health Improvement and Disparities (OHID)",
+      "source": "Prevalence estimates"
+    }
+  ],
+  "Office for National Statistics (ONS), 2011 Census": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "2011 Census"
+    }
+  ],
+  "Office for National Statistics (ONS), 2011 Census: Key Statistics for Local Authorities in England and Wales": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "2011 Census"
+    }
+  ],
+  "Office for National Statistics (ONS), 2018 based household projections for England": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "2018 based household projections for England"
+    }
+  ],
+  "Office for National Statistics (ONS), 2021 Census": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "2021 Census"
+    }
+  ],
+  "Office for National Statistics (ONS), Adhoc table": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Adhoc table"
+    }
+  ],
+  "Office for National Statistics (ONS), Annual births and mortality extracts": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Annual births and mortality extracts"
+    }
+  ],
+  "Office for National Statistics (ONS), Annual births and mortality extracts and Office for National Statistics (ONS), Annual Population Survey (APS), Census based Health state adjustment factors": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Annual births and mortality extracts"
+    },
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Annual Population Survey (APS)"
+    },
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Census based health state adjustment factors"
+    }
+  ],
+  "Office for National Statistics (ONS), Annual Business Survey (ABS) for employee jobs and Labour Force Survey (LFS) for self-employment jobs,  Department for Environment, Food and Rural Affairs (DEFRA) for agricultural employees, Department for Education (DfE) and Department for Work and Pensions (DWP) for Government-supported trainees and Ministry of Defence (MoD) for armed forces employees.": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Annual Business Survey (ABS)"
+    },
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Labour Force Survey (LFS)"
+    },
+    {
+      "provider": "Department for Environment, Food and Rural Affairs (DEFRA)",
+      "source": null
+    },
+    {
+      "provider": "Department for Education (DfE)",
+      "source": null
+    },
+    {
+      "provider": "Department for Work and Pensions (DWP)",
+      "source": null
+    },
+    {
+      "provider": "Ministry of Defence (MoD)",
+      "source": null
+    }
+  ],
+  "Office for National Statistics (ONS), Annual mortality extract": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Annual mortality extract"
+    }
+  ],
+  "Office for National Statistics (ONS), Annual mortality extract (produced for OHID)": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Annual mortality extract"
+    }
+  ],
+  "Office for National Statistics (ONS), Annual mortality extract and Ministry of Housing, Communities and Local Government (MHCLG), English indices of deprivation": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Annual mortality extract"
+    },
+    {
+      "provider": "Ministry of Housing, Communities and Local Government (MHCLG)",
+      "source": "English indices of deprivation"
+    }
+  ],
+  "Office for National Statistics (ONS), Annual mortality extract, Annual Population Survey (APS) and English Census (2011 and 2021) data": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Annual mortality extract"
+    },
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Annual Population Survey (APS)"
+    },
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "2011 Census"
+    },
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "2021 Census"
+    }
+  ],
+  "Office for National Statistics (ONS), Annual mortality extract, Office for National Statistics (ONS), Annual Population Survey (APS) and Ministry of Housing, Communities and Local Government (MHCLG), English indices of deprivation": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Annual mortality extract"
+    },
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Annual Population Survey (APS)"
+    },
+    {
+      "provider": "Ministry of Housing, Communities and Local Government (MHCLG)",
+      "source": "English indices of deprivation"
+    }
+  ],
+  "Office for National Statistics (ONS), Annual mortality extracts and Office for National Statistics (ONS), Single Year Life Tables": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Annual mortality extract"
+    },
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Single Year Life Tables"
+    }
+  ],
+  "Office for National Statistics (ONS), Annual Population Survey (APS)": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Annual Population Survey (APS)"
+    }
+  ],
+  "Office for National Statistics (ONS), Annual Survey of Hours and Earnings (ASHE)": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Annual Survey of Hours and Earnings (ASHE)"
+    }
+  ],
+  "Office for National Statistics (ONS), Births characteristics in England and Wales": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Births characteristics in England and Wales"
+    }
+  ],
+  "Office for National Statistics (ONS), Births in England and Wales: linked births": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Births in England and Wales: linked births"
+    }
+  ],
+  "Office for National Statistics (ONS), Births, deaths and marriages": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Births, deaths and marriages"
+    }
+  ],
+  "Office for National Statistics (ONS), Births, deaths and natural change by UK country": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Births, deaths and natural change by UK country"
+    }
+  ],
+  "Office for National Statistics (ONS), Causes of death": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Causes of death"
+    }
+  ],
+  "Office for National Statistics (ONS), Census": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Census"
+    }
+  ],
+  "Office for National Statistics (ONS), Census 2021 and Ministry of Housing, Communities and Local Government (MHCLG), English indices of deprivation": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "2021 Census"
+    },
+    {
+      "provider": "Ministry of Housing, Communities and Local Government (MHCLG)",
+      "source": "English indices of deprivation"
+    }
+  ],
+  "Office for National Statistics (ONS), Conceptions in England and Wales": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Conceptions in England and Wales"
+    }
+  ],
+  "Office for National Statistics (ONS), Death registrations and occurrences by local authority and place of death": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Death registrations and occurrences by local authority and place of death"
+    }
+  ],
+  "Office for National Statistics (ONS), Deaths registered in England and Wales": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Deaths registered in England and Wales"
+    }
+  ],
+  "Office for National Statistics (ONS), Domestic abuse prevalence and victim characteristics": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Domestic abuse prevalence and victim characteristics"
+    }
+  ],
+  "Office for National Statistics (ONS), Drug misuse deaths": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Drug misuse deaths"
+    }
+  ],
+  "Office for National Statistics (ONS), Health and life expectancies": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Health and life expectancies"
+    }
+  ],
+  "Office for National Statistics (ONS), House prices statistics (HPS)": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "House prices statistics (HPS)"
+    }
+  ],
+  "Office for National Statistics (ONS), House prices statistics for small areas (HPSSAs)": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "House prices statistics for small areas (HPSSAs)"
+    }
+  ],
+  "Office for National Statistics (ONS), Household projections for England": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Household projections for England"
+    }
+  ],
+  "Office for National Statistics (ONS), Labour Force Survey (LFS)": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Labour Force Survey (LFS)"
+    }
+  ],
+  "Office for National Statistics (ONS), Live births": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Live births"
+    }
+  ],
+  "Office for National Statistics (ONS), Local area migration indicators": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Local area migration indicators"
+    }
+  ],
+  "Office for National Statistics (ONS), Maternities": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Maternities"
+    }
+  ],
+  "Office for National Statistics (ONS), Mid-year population estimates": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Mid-year population estimates"
+    }
+  ],
+  "Office for National Statistics (ONS), Mid-year population estimates (for administrative geographies); NHS England (NHSE), Patients registered at a GP practice (for health geographies)": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Mid-year population estimates"
+    },
+    {
+      "provider": "NHS England (NHSE)",
+      "source": "Patients registered at a GP practice"
+    }
+  ],
+  "Office for National Statistics (ONS), Mid-year population estimates and Eurostat, European Standard Population (2013)": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Mid-year population estimates"
+    },
+    {
+      "provider": "Eurostat",
+      "source": "European Standard Population (2013)"
+    }
+  ],
+  "Office for National Statistics (ONS), Mid-year population estimates and Ministry of Housing, Communities and Local Government (MHCLG), English indices of deprivation": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Mid-year population estimates"
+    },
+    {
+      "provider": "Ministry of Housing, Communities and Local Government (MHCLG)",
+      "source": "English indices of deprivation"
+    }
+  ],
+  "Office for National Statistics (ONS), Mid-year population estimates and Office for National Statistics (ONS), Annual Population Survey (APS)": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Mid-year population estimates"
+    },
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Annual Population Survey (APS)"
+    }
+  ],
+  "Office for National Statistics (ONS), Mid-year population estimates, Annual Population Survey (APS) and English Census (2011 and 2021) data": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Mid-year population estimates"
+    },
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Annual Population Survey (APS)"
+    },
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "2011 Census"
+    },
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "2021 Census"
+    }
+  ],
+  "Office for National Statistics (ONS), Mid-year population estimates, Office for National Statistics (ONS), Annual Population Survey (APS) and Ministry of Housing, Communities and Local Government (MHCLG), English indices of deprivation": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Mid-year population estimates"
+    },
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Annual Population Survey (APS)"
+    },
+    {
+      "provider": "Ministry of Housing, Communities and Local Government (MHCLG)",
+      "source": "English indices of deprivation"
+    }
+  ],
+  "Office for National Statistics (ONS), Number of deaths in care homes notified to the Care Quality Commission, England": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Number of deaths in care homes notified to the Care Quality Commission, England"
+    }
+  ],
+  "Office for National Statistics (ONS), Official Census and Labour Market Statistics (NOMIS)": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Official Census and Labour Market Statistics (NOMIS)"
+    }
+  ],
+  "Office for National Statistics (ONS), Standard Area Measurements (SAM)": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Standard Area Measurements (SAM)"
+    }
+  ],
+  "Office for National Statistics (ONS), Suicides in England and Wales": [
+    {
+      "provider": "Office for National Statistics (ONS)",
+      "source": "Suicides in England and Wales"
+    }
+  ],
+  "Official Census and Labour Market Statistics (NOMIS), Annual Population Survey/Labour Force Survey (APS/LFS)": [
+    {
+      "provider": "Official Census and Labour Market Statistics (NOMIS)",
+      "source": "Annual Population Survey/Labour Force Survey (APS/LFS)"
+    }
+  ],
+  "Official Census and Labour Market Statistics (NOMIS), Job Centre Plus Administration Systems": [
+    {
+      "provider": "Official Census and Labour Market Statistics (NOMIS)",
+      "source": "Job Centre Plus Administration Systems"
+    }
+  ],
+  "PointX": [
+    {
+      "provider": "PointX",
+      "source": null
+    }
+  ],
+  "Rx-info (Define), DDDs based on trust-submitted prescribing data": [
+    {
+      "provider": "Rx-info (Define)",
+      "source": "DDDs based on trust-submitted prescribing data"
+    }
+  ],
+  "Sport England (SE), Active Lives Adult Survey (ALAS)": [
+    {
+      "provider": "Sport England (SE)",
+      "source": "Active Lives Adult Survey (ALAS)"
+    }
+  ],
+  "Sport England (SE), Active Lives Children and Young People Survey (ALCYPS)": [
+    {
+      "provider": "Sport England (SE)",
+      "source": "Active Lives Children and Young People Survey (ALCYPS)"
+    }
+  ],
+  "Step Change Statistical Yearbook (SCSY)": [
+    {
+      "provider": "StepChange Debt Charity",
+      "source": "Statistical Yearbook (SCSY)"
+    }
+  ],
+  "The Gambling Commission, Register of Gambling Premises": [
+    {
+      "provider": "The Gambling Commission",
+      "source": "Register of Gambling Premises"
+    }
+  ],
+  "The UK Kidney Association (UKKA), UK Renal Registry (UKRR)": [
+    {
+      "provider": "The UK Kidney Association (UKKA)",
+      "source": "UK Renal Registry (UKRR)"
+    }
+  ],
+  "UK Government, multiple sources": [
+    {
+      "provider": "UK Government",
+      "source": null
+    }
+  ],
+  "UK Health Security Agency (UKHSA), Acute Hepatitis B database": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "Acute Hepatitis B database"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), Antibiotic Guardian": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "Antibiotic Guardian"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), Cover of Vaccination Evaluated Rapidly Programme (COVER)": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "Cover of Vaccination Evaluated Rapidly Programme (COVER)"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), Enhanced Tuberculosis Surveillance System (ETS)": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "Enhanced Tuberculosis Surveillance System (ETS)"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), GUMCAD STI and CTAD Chlamydia Surveillance Systems": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "GUMCAD STI and CTAD Chlamydia Surveillance Systems"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), GUMCAD STI Surveillance System": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "GUMCAD STI Surveillance System"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), Healthcare Associated Infection Data Capture System (HCAI DCS) Mandatory Surveillance": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "Healthcare Associated Infection Data Capture System (HCAI DCS) Mandatory Surveillance"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), HIV and AIDS Reporting System (HARS)": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "HIV and AIDS Reporting System (HARS)"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), ImmForm": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "ImmForm"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), Measles Enhanced Surveillance Programme": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "Measles Enhanced Surveillance Programme"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), Meningococcal Reference Unit (MRU)": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "Meningococcal Reference Unit (MRU)"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), Mumps Enhanced Surveillance Programme": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "Mumps Enhanced Surveillance Programme"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), National Enhanced Listeria Surveillance Programme": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "National Enhanced Listeria Surveillance Programme"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), National Enhanced Shiga toxin-producing Eschericha coli (STEC) Surveillance Programme": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "National Enhanced Shiga toxin-producing Eschericha coli (STEC) Surveillance Programme"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), National Surveillance Scheme for Legionnaires' disease": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "National Surveillance Scheme for Legionnaires' disease"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), National Surveillance Scheme for Typhoid and Paratyphoid": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "National Surveillance Scheme for Typhoid and Paratyphoid"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), Notifications of Infectious Diseases (NOIDs)": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "Notifications of Infectious Diseases (NOIDs)"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), Population Repository based on Office for National Statistics (ONS) data": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "Population Repository based on Office for National Statistics (ONS) data"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), PPV vaccine uptake figures": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "PPV vaccine uptake figures"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), Rare and Imported Pathogens Laboratory (RIPL)": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "Rare and Imported Pathogens Laboratory (RIPL)"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), Respiratory and Vaccine Preventable Bacteria Reference Unit (RVPBRU)": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "Respiratory and Vaccine Preventable Bacteria Reference Unit (RVPBRU)"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), Seasonal flu vaccine uptake figures": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "Seasonal flu vaccine uptake figures"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), Second Generation Surveillance System (SGSS)": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "Second Generation Surveillance System (SGSS)"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), Second Generation Surveillance System (SGSS) linked to Healthcare Associated Infection Data Capture System (HCAI DCS) Mandatory Surveillance": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "Second Generation Surveillance System (SGSS) linked to Healthcare Associated Infection Data Capture System (HCAI DCS) Mandatory Surveillance"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), Shingles vaccine uptake figures": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "Shingles vaccine uptake figures"
+    }
+  ],
+  "UK Health Security Agency (UKHSA), Surgical Site Infection Surveillance Service (SSISS)": [
+    {
+      "provider": "UK Health Security Agency (UKHSA)",
+      "source": "Surgical Site Infection Surveillance Service (SSISS)"
+    }
+  ],
+  "University College London (UCL), English Longitudinal Study of Ageing (ELSA)": [
+    {
+      "provider": "University College London (UCL)",
+      "source": "English Longitudinal Study of Ageing (ELSA)"
+    }
+  ],
+  "University of Essex, Institute for Social and Economic Research, Understanding Society Survey": [
+    {
+      "provider": "University of Essex",
+      "source": "Understanding Society Survey, Institute for Social and Economic Research"
+    }
+  ],
+  "University of Sheffield, Estimates of Alcohol Dependence in England": [
+    {
+      "provider": "University of Sheffield",
+      "source": "Estimates of Alcohol Dependence in England"
+    }
+  ],
+  "Versus Arthritis and University College London (UCL), based on English Longitudinal Study of Ageing (ELSA)": [
+    {
+      "provider": "Versus Arthritis and University College London (UCL)",
+      "source": "English Longitudinal Study of Ageing (ELSA)"
+    }
+  ],
+  "Versus Arthritis and University College London (UCL), based on Health Survey for England (HSE)": [
+    {
+      "provider": "Versus Arthritis and University College London (UCL)",
+      "source": "Health Survey for England (HSE)"
+    }
+  ],
+  "Woodland Trust (WT), State of the UK's woods and trees": [
+    {
+      "provider": "Woodland Trust (WT)",
+      "source": "State of the UK's woods and trees"
+    }
+  ]
+}

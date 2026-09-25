@@ -15,6 +15,7 @@ export {
   type IndicatorDetail,
   type IndicatorFacets,
   type IndicatorObservation,
+  type IndicatorProviderSource,
   type IndicatorSearchFilters,
   type IndicatorSearchResult,
   type IndicatorSearchRow,

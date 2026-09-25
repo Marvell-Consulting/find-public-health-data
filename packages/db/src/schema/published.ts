@@ -13,6 +13,8 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
+import { INDICATOR_SOURCE_PARTS } from './indicator.ts';
+
 /**
  * The only objects `public_api` may read. The views carry the predicates that keep an
  * unpublished indicator out, so no query has to remember them; the definitions live in a
@@ -52,8 +54,6 @@ export const publishedIndicator = publishedSchema
     caveatsDetail: text('caveats_detail'),
     otherNotesDetail: text('other_notes_detail'),
     dataSourceId: uuid('data_source_id'),
-    numeratorSourceId: uuid('numerator_source_id'),
-    denominatorSourceId: uuid('denominator_source_id'),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
     firstPublishedAt: timestamp('first_published_at', { withTimezone: true }),
     lastPublishedAt: timestamp('last_published_at', { withTimezone: true }),
@@ -137,11 +137,26 @@ export const publishedDataSource = publishedSchema
   .view('data_source', { id: uuid('id').notNull(), name: text('name').notNull(), url: text('url') })
   .existing();
 
-export const publishedNumeratorDenominatorSource = publishedSchema
-  .view('numerator_denominator_source', {
+/** The providers and sources of each published indicator's numerator and denominator. */
+export const publishedIndicatorSource = publishedSchema
+  .view('indicator_source', {
+    indicatorId: uuid('indicator_id').notNull(),
+    part: text('part', { enum: INDICATOR_SOURCE_PARTS }).notNull(),
+    position: smallint('position').notNull(),
+    providerId: uuid('provider_id').notNull(),
+    sourceId: uuid('source_id'),
+  })
+  .existing();
+
+export const publishedDataProvider = publishedSchema
+  .view('data_provider', { id: uuid('id').notNull(), name: text('name').notNull() })
+  .existing();
+
+export const publishedDataProviderSource = publishedSchema
+  .view('data_provider_source', {
     id: uuid('id').notNull(),
+    providerId: uuid('provider_id').notNull(),
     name: text('name').notNull(),
-    url: text('url'),
   })
   .existing();
 

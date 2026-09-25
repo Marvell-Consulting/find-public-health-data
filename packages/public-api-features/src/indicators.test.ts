@@ -27,8 +27,8 @@ const indicatorDetail = {
   caveats: null,
   notes: null,
   dataSource: { name: 'Office for National Statistics', url: null },
-  numeratorSource: null,
-  denominatorSource: null,
+  numeratorSources: [],
+  denominatorSources: [],
   areaTypes: [{ name: 'Counties & UAs (from Apr 2023)', areaCount: 153 }],
   topics: [{ slug: 'mortality-and-life-expectancy', title: 'Mortality and life expectancy' }],
   classifications: [

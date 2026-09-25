@@ -63,6 +63,10 @@ async function insertDraftOnlyIndicator(): Promise<void> {
     INSERT INTO indicator_classification (indicator_version_id, classification_id)
     SELECT ${versionId}, c.id FROM classification c LIMIT 1
   `;
+  await owner`
+    INSERT INTO indicator_version_source (indicator_version_id, part, position, provider_id)
+    SELECT ${versionId}, 'numerator', 0, p.id FROM data_provider p LIMIT 1
+  `;
 
   const [batch] = await owner<{ id: string }[]>`
     INSERT INTO upload_batch (indicator_id, original_filename, uploaded_by)
@@ -165,13 +169,16 @@ const PUBLISHED_INDICATOR_COLUMNS = [
   'indicator.caveats_detail text',
   'indicator.other_notes_detail text',
   'indicator.data_source_id uuid',
-  'indicator.numerator_source_id uuid',
-  'indicator.denominator_source_id uuid',
   'indicator.updated_at timestamp with time zone',
   'indicator.first_published_at timestamp with time zone',
   'indicator.last_published_at timestamp with time zone',
   'indicator_classification.indicator_id uuid',
   'indicator_classification.classification_id uuid',
+  'indicator_source.indicator_id uuid',
+  'indicator_source.part text',
+  'indicator_source.position smallint',
+  'indicator_source.provider_id uuid',
+  'indicator_source.source_id uuid',
   'indicator_topic.indicator_id uuid',
   'indicator_topic.topic_id uuid',
 ];
@@ -230,7 +237,9 @@ describe('the public role', () => {
     const columns = await member<{ table_name: string; column_name: string; data_type: string }[]>`
       SELECT table_name, column_name, data_type FROM information_schema.columns
       WHERE table_schema = 'published'
-        AND table_name IN ('indicator', 'indicator_topic', 'indicator_classification')
+        AND table_name IN (
+          'indicator', 'indicator_topic', 'indicator_classification', 'indicator_source'
+        )
       ORDER BY table_name, ordinal_position
     `;
 
@@ -256,6 +265,11 @@ describe('the internal role', () => {
     'published.indicator',
     'published.indicator_topic',
     'published.indicator_classification',
+    'published.indicator_source',
+    'published.data_provider',
+    'published.data_provider_source',
+    'public.data_provider',
+    'public.data_provider_source',
   ])('may select %s', async (relation) => {
     const [row] = await owner<{ readable: boolean }[]>`
       SELECT has_table_privilege(${API_ROLES.internalApi}, ${relation}, 'SELECT') AS readable
@@ -264,18 +278,26 @@ describe('the internal role', () => {
     expect(row?.readable).toBe(true);
   });
   // Table-level, as the other publisher writes are.
-  it.each(['SELECT', 'INSERT', 'UPDATE', 'DELETE'])(
-    'may %s the links of a version',
-    async (privilege) => {
-      const [row] = await owner<{ granted: boolean }[]>`
-        SELECT has_table_privilege(
-          ${API_ROLES.internalApi}, 'public.indicator_version_link', ${privilege}
-        ) AS granted
-      `;
+  it.each(
+    ['indicator_version_link', 'indicator_version_source'].flatMap((table) =>
+      ['SELECT', 'INSERT', 'UPDATE', 'DELETE'].map((privilege) => [privilege, table]),
+    ),
+  )('may %s %s', async (privilege, table) => {
+    const [row] = await owner<{ granted: boolean }[]>`
+      SELECT has_table_privilege(${API_ROLES.internalApi}, ${`public.${table}`}, ${privilege}) AS granted
+    `;
 
-      expect(row?.granted).toBe(true);
-    },
-  );
+    expect(row?.granted).toBe(true);
+  });
+
+  // The list is core data, which only the import writes.
+  it.each(['data_provider', 'data_provider_source'])('may not write %s', async (table) => {
+    const [row] = await owner<{ granted: boolean }[]>`
+      SELECT has_table_privilege(${API_ROLES.internalApi}, ${`public.${table}`}, 'INSERT') AS granted
+    `;
+
+    expect(row?.granted).toBe(false);
+  });
 });
 
 describe('an indicator whose only version is a draft', () => {
@@ -287,6 +309,8 @@ describe('an indicator whose only version is a draft', () => {
         FROM published.indicator_topic WHERE indicator_id = ${draftIndicatorId}
       UNION ALL SELECT 'indicator_classification', count(*)::int
         FROM published.indicator_classification WHERE indicator_id = ${draftIndicatorId}
+      UNION ALL SELECT 'indicator_source', count(*)::int
+        FROM published.indicator_source WHERE indicator_id = ${draftIndicatorId}
       UNION ALL SELECT 'indicator_slug', count(*)::int
         FROM published.indicator_slug
         WHERE indicator_id = ${draftIndicatorId} OR slug = 'grants-test-draft-indicator'
@@ -307,7 +331,7 @@ describe('an indicator whose only version is a draft', () => {
     `;
 
     expect(counts.filter(({ rows }) => rows > 0)).toEqual([]);
-    expect(counts).toHaveLength(11);
+    expect(counts).toHaveLength(12);
   });
 
   it('does not stop the seeded published indicators being served', async () => {

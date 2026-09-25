@@ -1,5 +1,5 @@
 import type { SqlClient } from '@fphd/db';
-import { SEED_TABLES } from '@fphd/db/operations';
+import { SEED_TABLES, SEEDED_TABLES } from '@fphd/db/operations';
 import { createLogger } from '@fphd/logger';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { CommandContext } from './commands.ts';
@@ -130,7 +130,7 @@ describe('importPublishedSnapshot', () => {
     await importPublishedSnapshot(context);
 
     expect(mocks.seedPublished).toHaveBeenCalledWith(tx, '/tmp/fixture');
-    expect(tx.unsafe).toHaveBeenCalledTimes(SEED_TABLES.length + 2);
+    expect(tx.unsafe).toHaveBeenCalledTimes(SEEDED_TABLES.length + 2);
     expect(mocks.rebuild).toHaveBeenCalledWith(tx);
     expect(wasCommitted()).toBe(true);
     expect(mocks.analyze).toHaveBeenCalledWith(context.sql);

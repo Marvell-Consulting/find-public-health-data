@@ -176,6 +176,13 @@
       "when": 1790331372932,
       "tag": "0024_indicator-links",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790336357655,
+      "tag": "0025_numerator-and-denominator-sources",
+      "breakpoints": true
     }
   ]
 }

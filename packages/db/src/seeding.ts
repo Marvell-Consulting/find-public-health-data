@@ -13,12 +13,14 @@ import {
   type IndicatorTopicImportSummary,
   parseIndicatorTopicFile,
 } from './indicator-topic-repository.ts';
+import { type LegacySourceMap, mapLegacySources, readLegacySourceMap } from './legacy-sources.ts';
 import { READ_MODEL_TABLES } from './read-models.ts';
 
 // Topological FK order: every table loads after the tables it references.
 // Self-references (dimension_value.parent_id etc.) resolve within a single COPY
-// because FK checks run at end of statement. The files carry ci_method, but the table is
-// core data: the source's methods are read only to point its versions at ours.
+// because FK checks run at end of statement. The files carry ci_method and
+// numerator_denominator_source, but the service's lists are core data: the source's rows are
+// read only to point its versions at ours.
 export const SEED_TABLES = [
   'value_type',
   'unit',
@@ -40,6 +42,15 @@ export const SEED_TABLES = [
   'observation_dimension',
   'observation_note',
 ] as const;
+
+// Staged from the files but never loaded: the service keeps no table of that name.
+const STAGED_ONLY_TABLES: readonly string[] = ['numerator_denominator_source'];
+
+/** Every table a seed writes, in load order, for a caller that analyzes them afterwards. */
+export const SEEDED_TABLES = [
+  ...SEED_TABLES.filter((table) => !STAGED_ONLY_TABLES.includes(table)),
+  'indicator_version_source',
+];
 
 const seedDir = fileURLToPath(new URL('../data/seed/', import.meta.url));
 const COPY_IDLE_TIMEOUT_MS = 300_000;
@@ -232,7 +243,7 @@ export async function seedPublishedTables(
 }
 
 function analyzableTables(): string {
-  return [...SEED_TABLES, 'indicator_topic', 'indicator_classification']
+  return [...SEEDED_TABLES, 'indicator_topic', 'indicator_classification']
     .map((table) => `"${table}"`)
     .join(', ');
 }
@@ -243,17 +254,19 @@ async function seedTables(
   idleTimeoutMs = COPY_IDLE_TIMEOUT_MS,
   completionTimeoutMs = idleTimeoutMs,
 ): Promise<Record<string, number>> {
-  const replaced = [...SEED_TABLES.filter((t) => t !== 'ci_method'), ...READ_MODEL_TABLES];
+  const replaced = [...SEEDED_TABLES.filter((t) => t !== 'ci_method'), ...READ_MODEL_TABLES];
   await tx.unsafe(`TRUNCATE ${replaced.map((t) => `"${t}"`).join(', ')} CASCADE`);
 
   const counts: Record<string, number> = {};
   for (const table of SEED_TABLES) {
-    if (table === 'ci_method') continue;
+    if (table === 'ci_method' || STAGED_ONLY_TABLES.includes(table)) continue;
 
     if (table === 'indicator_version') {
       const loaded = await loadIndicatorVersions(tx, directory, idleTimeoutMs, completionTimeoutMs);
       counts.ci_method = loaded.ciMethods;
       counts.indicator_version = loaded.versions;
+      counts.numerator_denominator_source = loaded.legacySources;
+      counts.indicator_version_source = loaded.sources;
     } else {
       counts[table] = await loadTable(tx, table, directory, idleTimeoutMs, completionTimeoutMs);
     }
@@ -267,20 +280,35 @@ const PHOLIO_CI_METHOD_NAMES: Record<string, string> = {
   'Other method - see below': 'Other method',
 };
 
+/** The Fingertips columns naming a version's single numerator and denominator source. */
+const LEGACY_SOURCE_COLUMNS = ['numerator_source_id', 'denominator_source_id'];
+
+export interface LoadedIndicatorVersions {
+  ciMethods: number;
+  versions: number;
+  /** Rows of the source's own numerator and denominator source list. */
+  legacySources: number;
+  /** The providers and sources the versions were given in their place. */
+  sources: number;
+}
+
 /**
  * Loads the versions through staging tables, pointing each at the core CI method its source
- * method names, and answers how many rows each file held. The source's own method ids exist
- * nowhere else, so a direct COPY would break the foreign key; a method with no core
- * counterpart stops the load rather than being dropped.
+ * method names and giving it the core providers and sources its numerator and denominator
+ * sources map to, and answers how many rows each file held. The source's own ids exist
+ * nowhere else, so a direct COPY would break the foreign keys; a method or source with no
+ * core counterpart stops the load rather than being dropped.
  */
 export async function loadIndicatorVersions(
   tx: postgres.TransactionSql,
   directory: string,
   idleTimeoutMs = COPY_IDLE_TIMEOUT_MS,
   completionTimeoutMs = idleTimeoutMs,
-): Promise<{ ciMethods: number; versions: number }> {
+  legacySourceMap: LegacySourceMap = readLegacySourceMap(),
+): Promise<LoadedIndicatorVersions> {
   await tx`CREATE TEMP TABLE source_ci_method (id uuid, name text, description text) ON COMMIT DROP`;
   await tx`CREATE TEMP TABLE source_indicator_version (LIKE indicator_version INCLUDING DEFAULTS) ON COMMIT DROP`;
+  await tx`ALTER TABLE source_indicator_version ADD COLUMN numerator_source_id uuid, ADD COLUMN denominator_source_id uuid`;
   const ciMethods = await loadTable(
     tx,
     'ci_method',
@@ -334,7 +362,9 @@ export async function loadIndicatorVersions(
     throw new Error(`${dangling.count} seeded versions name a CI method the source does not hold`);
   }
 
-  const columns = await readCsvHeader(`${directory}/indicator_version.csv.gz`);
+  const header = await readCsvHeader(`${directory}/indicator_version.csv.gz`);
+  // The id is always carried over, so the sources below find the versions they belong to.
+  const columns = ['id', ...header.filter((c) => c !== 'id' && !LEGACY_SOURCE_COLUMNS.includes(c))];
   const columnList = columns.map((c) => `"${c}"`).join(', ');
   const selectList = columns
     .map((c) => (c === 'ci_method_id' ? 'm.core_id' : `v."${c}"`))
@@ -345,5 +375,74 @@ export async function loadIndicatorVersions(
     LEFT JOIN source_ci_method_map m ON m.source_id = v.ci_method_id
   `);
 
-  return { ciMethods, versions: inserted.count };
+  const hasLegacySources = header.some((c) => LEGACY_SOURCE_COLUMNS.includes(c));
+  const sources = hasLegacySources
+    ? await loadLegacySources(tx, directory, idleTimeoutMs, completionTimeoutMs, legacySourceMap)
+    : { legacySources: 0, sources: 0 };
+
+  return { ciMethods, versions: inserted.count, ...sources };
+}
+
+/** Gives the staged versions the core providers and sources their Fingertips sources map to. */
+async function loadLegacySources(
+  tx: postgres.TransactionSql,
+  directory: string,
+  idleTimeoutMs: number,
+  completionTimeoutMs: number,
+  legacySourceMap: LegacySourceMap,
+): Promise<{ legacySources: number; sources: number }> {
+  await tx`CREATE TEMP TABLE source_numerator_denominator_source (id uuid, name text, url text) ON COMMIT DROP`;
+  const legacySources = await loadTable(
+    tx,
+    'numerator_denominator_source',
+    directory,
+    idleTimeoutMs,
+    completionTimeoutMs,
+    'source_numerator_denominator_source',
+  );
+
+  const used = await tx<{ id: string; name: string }[]>`
+    SELECT s.id, s.name FROM source_numerator_denominator_source s
+    WHERE s.id IN (
+      SELECT numerator_source_id FROM source_indicator_version
+      UNION SELECT denominator_source_id FROM source_indicator_version
+    )
+  `;
+  const [dangling] = await tx<{ count: number }[]>`
+    SELECT count(*)::int AS count FROM source_indicator_version v
+    CROSS JOIN LATERAL (VALUES (v.numerator_source_id), (v.denominator_source_id)) AS p (id)
+    WHERE p.id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM source_numerator_denominator_source s WHERE s.id = p.id)
+  `;
+
+  if (dangling?.count) {
+    throw new Error(`${dangling.count} seeded sources name a row the source list does not hold`);
+  }
+
+  const pairs = await mapLegacySources(tx, used, legacySourceMap);
+
+  await tx`CREATE TEMP TABLE source_pair_map (legacy_id uuid, position smallint, provider_id uuid, source_id uuid) ON COMMIT DROP`;
+  if (pairs.length > 0) {
+    await tx`INSERT INTO source_pair_map ${tx(
+      pairs.map(({ legacyId, position, providerId, sourceId }) => ({
+        legacy_id: legacyId,
+        position,
+        provider_id: providerId,
+        source_id: sourceId,
+      })),
+    )}`;
+  }
+
+  const inserted = await tx`
+    INSERT INTO indicator_version_source
+      (indicator_version_id, part, position, provider_id, source_id)
+    SELECT v.id, p.part, m.position, m.provider_id, m.source_id
+    FROM source_indicator_version v
+    CROSS JOIN LATERAL (
+      VALUES ('numerator', v.numerator_source_id), ('denominator', v.denominator_source_id)
+    ) AS p (part, legacy_id)
+    JOIN source_pair_map m ON m.legacy_id = p.legacy_id
+  `;
+
+  return { legacySources, sources: inserted.count };
 }
