@@ -371,10 +371,14 @@ describe('publishingDateServerSection', () => {
   // 09:30 BST on 14 September 2027.
   const now = new Date('2027-09-14T08:30:00.000Z');
 
-  function submit(body: object, instant: string | null = '2027-10-12T09:30:00+01:00') {
+  function submit(
+    body: object,
+    instant: string | null = '2027-10-12T09:30:00+01:00',
+    at: Date = now,
+  ) {
     const ukInstant = vi.fn().mockResolvedValue(instant);
     const { indicators } = createFakeInternalRepositories({ indicators: { ukInstant } });
-    const section = publishingDateServerSection(indicators, () => now);
+    const section = publishingDateServerSection(indicators, () => at);
 
     return { section, submission: section.schema.safeParseAsync(body), ukInstant };
   }
@@ -396,18 +400,52 @@ describe('publishingDateServerSection', () => {
     expect(result.success && result.data.scheduledPublishAt).toBe('2027-10-12T09:30:00+01:00');
   });
 
-  it.each([
-    ['one minute short of 28 days ahead', '2027-10-12T09:29:00+01:00'],
-    ['now', '2027-09-14T09:30:00+01:00'],
-    ['one minute in the past', '2027-09-14T09:29:00+01:00'],
-  ])('refuses an instant %s, on the parts of the date', async (_, instant) => {
-    const message = 'Publishing date and time must be at least 28 days in the future';
+  function dated(day: string, month: string, year = '2027') {
+    return {
+      ...publishingDate,
+      publishingDateDay: day,
+      publishingDateMonth: month,
+      publishingDateYear: year,
+    };
+  }
 
-    expect(await fieldErrorsOf(submit(publishingDate, instant))).toEqual({
+  it.each([
+    ['27 days from today', dated('11', '10')],
+    ['today', dated('14', '9')],
+    ['in the past', dated('13', '9')],
+  ])('refuses a date %s, on the parts of the date', async (_, body) => {
+    const submitted = submit(body);
+    const message = 'Publishing date must be at least 28 days from today';
+
+    expect(await fieldErrorsOf(submitted)).toEqual({
       publishingDateDay: message,
       publishingDateMonth: message,
       publishingDateYear: message,
     });
+    expect(submitted.ukInstant).not.toHaveBeenCalled();
+  });
+
+  it('accepts any time on the date 28 days from today', async () => {
+    // Less than 28 × 24 hours after 09:30 on 14 September.
+    const midnight = { ...dated('12', '10'), publishingTimeHour: '00', publishingTimeMinute: '00' };
+
+    expect((await submit(midnight, '2027-10-12T00:00:00+01:00').submission).success).toBe(true);
+  });
+
+  it("counts from today's date in the UK", async () => {
+    // 00:30 BST on 15 September, still 14 September in UTC.
+    const lateEvening = new Date('2027-09-14T23:30:00.000Z');
+
+    expect(await fieldErrorsOf(submit(dated('12', '10'), undefined, lateEvening))).toBeDefined();
+    expect((await submit(dated('13', '10'), undefined, lateEvening).submission).success).toBe(true);
+  });
+
+  it('counts calendar days across a clock change', async () => {
+    // 09:30 GMT on 5 March; 09:30 BST on 2 April is an hour short of 28 × 24 hours later.
+    const march = new Date('2027-03-05T09:30:00.000Z');
+    const submitted = submit(dated('2', '4'), '2027-04-02T09:30:00+01:00', march);
+
+    expect((await submitted.submission).success).toBe(true);
   });
 
   it('refuses a time the spring clock change skips, on the parts of the time', async () => {

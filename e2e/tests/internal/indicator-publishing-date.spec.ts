@@ -49,6 +49,19 @@ function ukDateTime(instant: Date): DateTime {
   };
 }
 
+/** The UK date `days` after today's. */
+function ukDateInDays(days: number): Pick<DateTime, 'day' | 'month' | 'year'> {
+  const today = ukDateTime(new Date());
+  const date = new Date(
+    Date.UTC(Number(today.year), Number(today.month) - 1, Number(today.day) + days),
+  );
+  return {
+    day: String(date.getUTCDate()),
+    month: String(date.getUTCMonth() + 1),
+    year: String(date.getUTCFullYear()),
+  };
+}
+
 /** The last Sunday of March or October two years ahead, when the UK clocks change. */
 function clockChangeDay(month: 3 | 10): Pick<DateTime, 'day' | 'month' | 'year'> {
   const year = new Date().getFullYear() + 2;
@@ -141,14 +154,14 @@ test('refuses a time that does not exist', async ({ page }) => {
   await expect(part(page, 'Time', 'Hour')).toBeFocused();
 });
 
-test('refuses a publishing date and time less than 28 days ahead', async ({ page }) => {
+test('refuses a publishing date less than 28 days from today', async ({ page }) => {
   await openSectionPage(page, SECTION);
 
-  await fill(page, ukDateTime(new Date(Date.now() + 28 * 24 * 60 * 60 * 1000 - 60 * 1000)));
+  await fill(page, { ...ukDateInDays(27), hour: '23', minute: '59' });
   await page.getByRole('button', { name: 'Continue' }).click();
 
   await expect(page.getByRole('alert').getByRole('link')).toHaveText([
-    'Publishing date and time must be at least 28 days in the future',
+    'Publishing date must be at least 28 days from today',
   ]);
 });
 
