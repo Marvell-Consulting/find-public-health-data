@@ -12,6 +12,7 @@ import * as editIndicatorName from './indicator-name/edit-route.tsx';
 import * as newIndicator from './indicator-name/new-route.tsx';
 import * as otherNotesAndCaveats from './indicator-other-notes-and-caveats/route.tsx';
 import * as polarity from './indicator-polarity/route.tsx';
+import * as publishingDate from './indicator-publishing-date/route.tsx';
 import * as updateFrequency from './indicator-update-frequency/route.tsx';
 import * as editTopic from './topic-admin/edit-route.tsx';
 import * as newTopic from './topic-admin/new-route.tsx';
@@ -47,6 +48,14 @@ const notesAndCaveatsUnanswered = {
   caveatsDetail: '',
   otherNotesNeeded: '',
   otherNotesDetail: '',
+};
+
+const publishingDateUnanswered = {
+  publishingDateDay: '',
+  publishingDateMonth: '',
+  publishingDateYear: '',
+  publishingTimeHour: '09',
+  publishingTimeMinute: '30',
 };
 
 const forms: {
@@ -144,6 +153,16 @@ const forms: {
     rejected: {
       values: notesAndCaveatsUnanswered,
       fieldErrors: { disclosureControl: 'Select whether disclosure control has been applied' },
+    },
+  },
+  {
+    name: 'publishing date',
+    route: publishingDate,
+    pageTitle: 'When should this indicator be published?',
+    loaderData: { id: indicator.id, values: publishingDateUnanswered },
+    rejected: {
+      values: publishingDateUnanswered,
+      fieldErrors: { publishingDateDay: 'Enter the publishing date' },
     },
   },
   {
