@@ -5,6 +5,7 @@ import { createRoutesStub, Meta, type MetaFunction, Outlet } from 'react-router'
 import { describe, expect, it } from 'vitest';
 
 import { FORM_NOT_SAVED } from './form-refusal.ts';
+import * as benchmarking from './indicator-benchmarking/route.tsx';
 import * as calculation from './indicator-calculation/route.tsx';
 import * as confidenceIntervals from './indicator-confidence-intervals/route.tsx';
 import * as copyrightAndDataReuse from './indicator-copyright-and-data-reuse/route.tsx';
@@ -62,6 +63,14 @@ const publishingDateUnanswered = {
   publishingDateYear: '',
   publishingTimeHour: '09',
   publishingTimeMinute: '30',
+};
+
+const benchmarkingUnanswered = {
+  hasGoalBenchmark: '',
+  goalLowerValue: '',
+  goalUpperValue: '',
+  goalPolarity: '',
+  goalPolicyDetail: '',
 };
 
 const varianceAndQualityUnanswered = {
@@ -265,6 +274,18 @@ const forms: {
       values: copyrightAndDataReuseUnanswered,
       fieldErrors: {
         copyrightNonDefault: 'Select whether the copyright is anything other than Crown copyright',
+      },
+    },
+  },
+  {
+    name: 'benchmarking',
+    route: benchmarking,
+    pageTitle: 'Benchmarking',
+    loaderData: { id: indicator.id, values: benchmarkingUnanswered },
+    rejected: {
+      values: benchmarkingUnanswered,
+      fieldErrors: {
+        hasGoalBenchmark: 'Select whether there are any goal benchmarks for this indicator',
       },
     },
   },

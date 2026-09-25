@@ -99,6 +99,10 @@ export default [
         'publish/indicators/:id/copyright-and-data-reuse',
         '../../../packages/internal-web-features/src/indicator-copyright-and-data-reuse/route.tsx',
       ),
+      route(
+        'publish/indicators/:id/benchmarking',
+        '../../../packages/internal-web-features/src/indicator-benchmarking/route.tsx',
+      ),
     ]),
     layout('./admin.tsx', [
       route('manage', './manage.tsx'),

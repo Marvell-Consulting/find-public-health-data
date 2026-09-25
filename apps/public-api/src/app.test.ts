@@ -74,6 +74,8 @@ describe('public API', () => {
     ['put', `/api/internal/indicators/${anyId}/other-comments`],
     ['get', `/api/internal/indicators/${anyId}/copyright-and-data-reuse`],
     ['put', `/api/internal/indicators/${anyId}/copyright-and-data-reuse`],
+    ['get', `/api/internal/indicators/${anyId}/benchmarking`],
+    ['put', `/api/internal/indicators/${anyId}/benchmarking`],
     ['get', '/api/internal/ci-methods'],
     ['get', '/api/internal/topics'],
     ['post', '/api/internal/topics'],

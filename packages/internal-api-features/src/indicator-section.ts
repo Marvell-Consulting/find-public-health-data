@@ -62,6 +62,11 @@ export type IndicatorSectionDraft = Pick<
   | 'sponsorsAndStakeholders'
   | 'hasReviewerComments'
   | 'reviewerCommentsDetail'
+  | 'hasGoalBenchmark'
+  | 'goalLowerValue'
+  | 'goalUpperValue'
+  | 'goalPolarity'
+  | 'goalPolicyDetail'
 >;
 
 /**
