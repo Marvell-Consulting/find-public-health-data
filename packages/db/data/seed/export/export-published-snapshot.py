@@ -24,11 +24,10 @@ from polarity import POLARITIES
 from published_csv import NULL_MARKER
 from slug import assign_slugs
 from update_frequency import UPDATE_FREQUENCIES
+from value_type_and_unit import unit_select, unknown_units, unknown_value_types, value_type_select
 from year_type import YEAR_TYPES, year_type_select
 
 TABLES = [
-    "value_type",
-    "unit",
     "ci_method",
     "comparator_method",
     "data_source",
@@ -108,7 +107,8 @@ SELECTS = {
     # indicator_metadata; its id is rekeyed from the same source id under its own tag.
     "indicator_version": (
         "SELECT i.id AS id, i.id AS indicator_id, 'published' AS status, "
-        "i.updated_at AS published_at, i.name, i.value_type_id, i.unit_id, "
+        "i.updated_at AS published_at, i.name, "
+        f"{value_type_select('i.value_type_id')}, {unit_select('i.unit_id')}, "
         f"{year_type_select('i.year_type_id')}, "
         f"i.ci_method_id, {POLARITY_VALUE} AS polarity, "
         f"{UPDATE_FREQUENCY_VALUE} AS update_frequency, "
@@ -231,6 +231,24 @@ def check_year_types():
         raise RuntimeError("No year type value for: " + ", ".join(unknown))
 
 
+def check_value_types_and_units():
+    """Fail before any data is written if an exported value type or unit has no service value."""
+    value_types = psql(
+        "SELECT DISTINCT t.name FROM indicator i JOIN value_type t ON t.id = i.value_type_id "
+        f"WHERE i.id NOT IN {EXCLUDED_ID_LIST}"
+    )
+    units = psql(
+        "SELECT DISTINCT u.name FROM indicator i JOIN unit u ON u.id = i.unit_id "
+        f"WHERE i.id NOT IN {EXCLUDED_ID_LIST}"
+    )
+    unknown = [
+        *(f"value type {name}" for name in unknown_value_types(value_types.split("\n"))),
+        *(f"unit {name}" for name in unknown_units(units.split("\n"))),
+    ]
+    if unknown:
+        raise RuntimeError("No service value for: " + ", ".join(unknown))
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("out_dir", type=Path)
@@ -262,6 +280,7 @@ def main():
     check_polarities()
     check_update_frequencies()
     check_year_types()
+    check_value_types_and_units()
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
     tables = {table: export_table(table, args.out_dir) for table in args.tables}

@@ -12,7 +12,7 @@ const detail = {
   shortId: 108,
   slug: SLUG,
   name: 'Mortality, "all causes"',
-  unit: { name: 'per 100,000', label: 'per 100,000' },
+  unit: 'per 100,000',
   yearType: 'Calendar',
 };
 
@@ -70,6 +70,25 @@ describe('loadIndicatorCsv', () => {
     const body = await response.text();
     expect(body).toContain('Period,England count,"England calculated value (per 100,000)"');
     expect(body).toContain('2023,130000,341.1');
+  });
+
+  it('adds no unit to the headings of values that have none', async () => {
+    const get = vi
+      .fn()
+      .mockImplementation((path: string) =>
+        Promise.resolve(
+          path.includes('/data')
+            ? [{ areaCode: 'E92000001', areaName: 'England', observations: [observation()] }]
+            : { ...detail, unit: null },
+        ),
+      );
+
+    const response = await loadIndicatorCsv(
+      args(get, 'http://localhost/indicators/mortality-all-causes/table.csv'),
+      'table',
+    );
+
+    expect(await response.text()).toContain('Period,England count,England calculated value\n');
   });
 
   it('loads the linked areas with England riding along and filters the trend by options', async () => {

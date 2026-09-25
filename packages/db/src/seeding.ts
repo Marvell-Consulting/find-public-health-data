@@ -19,10 +19,9 @@ import { READ_MODEL_TABLES } from './read-models.ts';
 // Self-references (dimension_value.parent_id etc.) resolve within a single COPY
 // because FK checks run at end of statement. The files carry ci_method, but the table is
 // core data: the source's methods are read only to point its versions at ours. The period
-// and year types are the migrations' rows, which the versions already point at.
+// and year types, value types and units are the migrations' rows, which the versions already
+// point at.
 export const SEED_TABLES = [
-  'value_type',
-  'unit',
   'ci_method',
   'comparator_method',
   'data_source',

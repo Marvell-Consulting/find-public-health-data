@@ -22,6 +22,7 @@ from psycopg2.extras import Json, execute_values
 
 from notes_and_caveats import notes_and_caveats
 from slug import slug_problem, slugify
+from value_type_and_unit import unit_name_for_label, unit_values, value_type_id
 from year_type import year_type_values
 
 
@@ -285,7 +286,7 @@ def add_indicators(cur, metadata):
         indicator_ids[str(fingertips_id)] = indicator_id
         batch_ids[str(fingertips_id)] = batch_id
 
-        unit_name = "Percent" if item["Unit"]["Label"] == "%" else item["Unit"]["Label"]
+        unit_name = unit_name_for_label(item["Unit"]["Label"])
         updated_at = item["DataChange"]["LastUploadedAt"]
         cur.execute(
             """
@@ -299,7 +300,7 @@ def add_indicators(cur, metadata):
             """
             INSERT INTO indicator_version
               (id, indicator_id, status, published_at, name, slug, value_type_id, unit_id,
-               period_type_id, year_type_id, year_end_day, year_end_month,
+               unit_other, period_type_id, year_type_id, year_end_day, year_end_month,
                ci_method_id, polarity, update_frequency, comparator_method_id,
                ci_confidence_level, config, definition, rationale, methodology,
                numerator_definition, denominator_definition, disclosure_control,
@@ -308,7 +309,7 @@ def add_indicators(cur, metadata):
                numerator_source_id, denominator_source_id,
                created_at, created_by, updated_at, updated_by)
             VALUES
-              (%s, %s, 'published', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+              (%s, %s, 'published', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                %s, 'fingertips-api-seed', %s, 'fingertips-api-seed')
             """,
@@ -318,8 +319,8 @@ def add_indicators(cur, metadata):
                 updated_at,
                 descriptive["Name"],
                 version_slug(fingertips_id, descriptive["Name"]),
-                one_id(cur, "value_type", item["ValueType"]["Name"]),
-                one_id(cur, "unit", unit_name),
+                value_type_id(item["ValueType"]["Name"]),
+                *unit_values(unit_name).values(),
                 *year_type_values(item["YearType"]["Name"]).values(),
                 one_id(cur, "ci_method", item["ConfidenceIntervalMethod"]["Name"]),
                 config["polarity"],

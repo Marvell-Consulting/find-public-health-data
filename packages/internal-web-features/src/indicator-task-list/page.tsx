@@ -35,7 +35,11 @@ const TASK_GROUPS: readonly TaskGroup[] = [
     title: 'Data',
     tasks: [
       { key: 'data-table', title: 'Data table' },
-      { key: 'value-type-and-units', title: 'Value type and units' },
+      {
+        key: 'value-type-and-units',
+        title: 'Value type and units',
+        path: sectionPath('value-type-and-units'),
+      },
       { key: 'sex-and-ages', title: 'Sex and ages' },
       { key: 'period-type', title: 'Period type', path: sectionPath('period-type') },
       { key: 'polarity', title: 'Polarity', path: sectionPath('polarity') },

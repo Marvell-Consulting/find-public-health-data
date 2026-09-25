@@ -67,6 +67,12 @@ That yields 433,678 observations, 657,869 bridge rows and 67,978 observation not
   17 year types to them, and a name it has no translation for stops the export. Neither
   export carries a `year_type` table; migration 0025 holds the same translation for
   databases that already had Pholio's rows.
+- `indicator_version.value_type_id` and `unit_id` point at the service's own rows, whose ids
+  are in `@fphd/utils/value-type-and-unit` and which the migrations insert, so neither export
+  carries a `value_type` or `unit` table. `export/value_type_and_unit.py` translates Pholio's
+  names; a unit outside the service's list becomes "Other", named in `unit_other` as Pholio
+  named it. A value type it has no value for, or a placeholder unit ("Unknown unit 54"),
+  stops the export. Migration 0026 holds the same translation.
 - Pholio's disclosure control, caveats and notes prose becomes the service's answers:
   `export/notes_and_caveats.py` turns prose that is an answer in itself, such as "None
   applied" or "Not applicable", into that answer and drops it, matching the whole text

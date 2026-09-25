@@ -16,6 +16,7 @@ import * as periodType from './indicator-period-type/route.tsx';
 import * as polarity from './indicator-polarity/route.tsx';
 import * as publishingDate from './indicator-publishing-date/route.tsx';
 import * as updateFrequency from './indicator-update-frequency/route.tsx';
+import * as valueTypeAndUnits from './indicator-value-type-and-units/route.tsx';
 import * as editTopic from './topic-admin/edit-route.tsx';
 import * as newTopic from './topic-admin/new-route.tsx';
 
@@ -60,6 +61,15 @@ const publishingDateUnanswered = {
   publishingDateYear: '',
   publishingTimeHour: '09',
   publishingTimeMinute: '30',
+};
+
+const valueTypeAndUnitsUnanswered = {
+  valueTypeId: '',
+  standardPopulation: '',
+  standardPopulationOther: '',
+  referencePopulation: '',
+  unitId: '',
+  unitOther: '',
 };
 
 const forms: {
@@ -147,6 +157,16 @@ const forms: {
     rejected: {
       values: { updateFrequency: '' },
       fieldErrors: { updateFrequency: 'Select how often this indicator will be updated' },
+    },
+  },
+  {
+    name: 'value type and units',
+    route: valueTypeAndUnits,
+    pageTitle: 'What are the value type and units used in this indicator?',
+    loaderData: { id: indicator.id, values: valueTypeAndUnitsUnanswered },
+    rejected: {
+      values: valueTypeAndUnitsUnanswered,
+      fieldErrors: { valueTypeId: 'Select the value type' },
     },
   },
   {

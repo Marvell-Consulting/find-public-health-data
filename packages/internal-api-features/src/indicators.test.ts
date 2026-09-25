@@ -609,6 +609,7 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
         calculation: 'not_started',
         'confidence-intervals': 'not_started',
         'update-frequency': 'not_started',
+        'value-type-and-units': 'not_started',
         'period-type': 'not_started',
         'other-notes-and-caveats': 'not_started',
         'publishing-date': 'not_started',

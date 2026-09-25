@@ -35,6 +35,7 @@ export const publishedIndicator = publishedSchema
     slug: text('slug').notNull(),
     valueTypeId: uuid('value_type_id'),
     unitId: uuid('unit_id'),
+    unitOther: text('unit_other'),
     yearTypeId: uuid('year_type_id'),
     yearEndDay: smallint('year_end_day'),
     yearEndMonth: smallint('year_end_month'),
@@ -111,12 +112,7 @@ export const publishedValueType = publishedSchema
   .existing();
 
 export const publishedUnit = publishedSchema
-  .view('unit', {
-    id: uuid('id').notNull(),
-    name: text('name').notNull(),
-    label: text('label').notNull(),
-    multiplier: doublePrecision('multiplier').notNull(),
-  })
+  .view('unit', { id: uuid('id').notNull(), name: text('name').notNull() })
   .existing();
 
 export const publishedYearType = publishedSchema

@@ -183,6 +183,13 @@
       "when": 1790339555018,
       "tag": "0025_period-type",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790342879217,
+      "tag": "0026_value-type-and-units",
+      "breakpoints": true
     }
   ]
 }

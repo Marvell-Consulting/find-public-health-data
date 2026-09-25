@@ -2,7 +2,7 @@ import { Button, ChartSection, Tabs } from '@fphd/ui';
 import { Fragment } from 'react';
 import { Form } from 'react-router';
 import { comparisonTable } from '../comparison.ts';
-import { formatCalculatedValue, formatValue } from '../data.ts';
+import { formatCalculatedValue, formatValue, withUnit } from '../data.ts';
 import type { BenchmarkGeography, SelectedIndicator } from '../loader.ts';
 import { PanelOptionsPanel, usePanelOptions } from '../options.tsx';
 import { TrendTag } from '../trend-tag.tsx';
@@ -32,10 +32,8 @@ export function ComparisonSection({
   const noteTexts = [...new Set(rows.flatMap(({ cells }) => cells.flatMap(({ notes }) => notes)))];
 
   const benchmarkColumns = 1 + (options.range ? 3 : 0);
-  const withUnit = (row: (typeof rows)[number], value: number) =>
-    row.unitLabel === '%'
-      ? `${formatCalculatedValue(value)}%`
-      : `${formatCalculatedValue(value)} ${row.unit}`;
+  const valueWithUnit = (row: (typeof rows)[number], value: number) =>
+    withUnit(formatCalculatedValue(value), row.unit);
 
   const downloadParams = new URLSearchParams();
   for (const { detail } of selected) downloadParams.append('is', String(detail.shortId));
@@ -139,7 +137,7 @@ export function ComparisonSection({
                           '-'
                         ) : (
                           <>
-                            {withUnit(row, cell.value)}
+                            {valueWithUnit(row, cell.value)}
                             {cell.notes.map((text) => (
                               <sup key={text}>{noteMarker(noteTexts, text)}</sup>
                             ))}
@@ -155,7 +153,7 @@ export function ComparisonSection({
                                 areaObservation={benchmarkCell?.areaObservation}
                                 benchmarkName={benchmarkNameFor(cell.areaCode) ?? ''}
                                 benchmarkValue={benchmarkCell?.value ?? null}
-                                format={(value) => withUnit(row, value)}
+                                format={(value) => valueWithUnit(row, value)}
                                 indicator={
                                   benchmarkCell?.detail ?? {
                                     polarity: 'no-comparison-possible',

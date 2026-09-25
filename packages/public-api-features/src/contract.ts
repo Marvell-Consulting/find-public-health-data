@@ -82,7 +82,8 @@ export const indicatorDetailSchema = z.object({
   slug: indicatorSlugSchema,
   name: z.string().min(1),
   valueType: z.string().min(1),
-  unit: z.object({ name: z.string().min(1), label: z.string().min(1) }),
+  /** Null when the values have no unit, so none is shown beside them. */
+  unit: z.string().min(1).nullable(),
   /** Null for an indicator of months, which have no year type. */
   yearType: z.string().min(1).nullable(),
   updateFrequency: z.enum(UPDATE_FREQUENCIES),

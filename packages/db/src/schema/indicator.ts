@@ -2,7 +2,14 @@ import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
 import { POLARITIES } from '@fphd/utils/polarity';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
 import { UPDATE_FREQUENCIES } from '@fphd/utils/update-frequency';
-import { asc, desc, eq, sql } from 'drizzle-orm';
+import {
+  INDIRECTLY_STANDARDISED_VALUE_TYPE_IDS,
+  STANDARD_POPULATIONS,
+  UNIT_OTHER_MAX_LENGTH,
+  UNITS,
+  VALUE_TYPES,
+} from '@fphd/utils/value-type-and-unit';
+import { asc, desc, eq, type SQL, sql } from 'drizzle-orm';
 import {
   boolean,
   check,
@@ -43,6 +50,11 @@ export const INDICATOR_CALCULATED_BY = ['ohid', 'dhsc', 'other'] as const;
 /** Whether disclosure control was applied, described in `disclosure_control_detail` when it was. */
 export const INDICATOR_DISCLOSURE_CONTROL = ['yes', 'no', 'not-applicable'] as const;
 
+/** The app's own vocabulary as a list of SQL literals, for a check constraint. */
+function literals(values: readonly string[]): SQL {
+  return sql.raw(values.map((value) => `'${value}'`).join(', '));
+}
+
 // Starts above every Fingertips number carried over in the seed, so this service's own
 // numbering is visible at a glance.
 export const indicatorShortIdSeq = pgSequence('indicator_short_id_seq', { startWith: 100000 });
@@ -81,7 +93,13 @@ export const indicatorVersion = pgTable(
     // constraint, which drizzle cannot express, keeps a slug to one indicator for ever.
     slug: text().notNull(),
     valueTypeId: uuid().references(() => valueType.id),
+    // Asked of a directly standardised rate only, and the detail of an other population or of
+    // the population an indirectly standardised value type is standardised against.
+    standardPopulation: text({ enum: STANDARD_POPULATIONS }),
+    standardPopulationDetail: text(),
     unitId: uuid().references(() => unit.id),
+    // The unit a publisher names under "Other".
+    unitOther: text(),
     periodTypeId: uuid().references(() => periodType.id),
     // Asked of years and quarters only, and the end date only of a year ending on a specified one.
     yearTypeId: uuid().references(() => yearType.id),
@@ -138,6 +156,31 @@ export const indicatorVersion = pgTable(
     check(
       'indicator_version_update_frequency_check',
       sql`${t.updateFrequency} IN (${sql.raw(UPDATE_FREQUENCIES.map((value) => `'${value}'`).join(', '))})`,
+    ),
+    check(
+      'indicator_version_standard_population_check',
+      sql`${t.standardPopulation} IN (${literals(STANDARD_POPULATIONS)})`,
+    ),
+    check(
+      'indicator_version_standard_population_value_type_check',
+      sql`${t.standardPopulation} IS NULL OR ${t.valueTypeId} = ${literals([VALUE_TYPES.directlyStandardisedRate.id])}`,
+    ),
+    // Beside an other standard population, or an indirectly standardised value type, alone.
+    check(
+      'indicator_version_standard_population_detail_check',
+      sql`${t.standardPopulationDetail} IS NULL OR ${t.standardPopulation} IS NOT DISTINCT FROM 'other' OR ${t.valueTypeId} IN (${literals(INDIRECTLY_STANDARDISED_VALUE_TYPE_IDS)})`,
+    ),
+    check(
+      'indicator_version_standard_population_other_check',
+      sql`${t.standardPopulation} IS DISTINCT FROM 'other' OR ${t.standardPopulationDetail} IS NOT NULL`,
+    ),
+    check(
+      'indicator_version_unit_other_check',
+      sql`(${t.unitOther} IS NOT NULL) = (${t.unitId} IS NOT DISTINCT FROM ${literals([UNITS.other.id])})`,
+    ),
+    check(
+      'indicator_version_unit_other_length_check',
+      sql`length(${t.unitOther}) <= ${sql.raw(String(UNIT_OTHER_MAX_LENGTH))}`,
     ),
     check(
       'indicator_version_calculated_by_check',

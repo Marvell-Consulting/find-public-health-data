@@ -55,9 +55,12 @@ TAGGED_TABLES = [
 # Tagged by position in the full list, so a table the export stops carrying moves no id.
 TABLE_TAGS = {table: index + 1 for index, table in enumerate(TAGGED_TABLES)}
 # The polarity and frequency are exported as values rather than references to lookup rows, and
-# the year type as a reference to one of the service's own rows, which the migrations insert.
+# the year type, value type and unit as references to the service's own rows, which the
+# migrations insert.
 PUBLISHED_TABLES = [
-    table for table in TAGGED_TABLES if table not in ("polarity", "frequency", "year_type")
+    table
+    for table in TAGGED_TABLES
+    if table not in ("polarity", "frequency", "year_type", "value_type", "unit")
 ]
 
 FOREIGN_KEYS = {
@@ -82,8 +85,6 @@ FOREIGN_KEYS = {
     },
     "indicator_version": {
         "indicator_id": "indicator",
-        "value_type_id": "value_type",
-        "unit_id": "unit",
         "ci_method_id": "ci_method",
         "comparator_method_id": "comparator_method",
         "data_source_id": "data_source",

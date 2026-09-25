@@ -210,6 +210,7 @@ export const indicatorTaskKeySchema = z.enum([
   'calculation',
   'confidence-intervals',
   'update-frequency',
+  'value-type-and-units',
   'period-type',
   'other-notes-and-caveats',
   'publishing-date',
@@ -264,3 +265,4 @@ export * from './indicator-polarity-contract.ts';
 export * from './indicator-publishing-date-contract.ts';
 export * from './indicator-section-contract.ts';
 export * from './indicator-update-frequency-contract.ts';
+export * from './indicator-value-type-and-units-contract.ts';

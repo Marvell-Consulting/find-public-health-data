@@ -3,6 +3,7 @@ import type { Polarity } from '@fphd/utils/polarity';
 import { isShortId, SHORT_ID_PATTERN } from '@fphd/utils/short-id';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
 import type { UpdateFrequency } from '@fphd/utils/update-frequency';
+import { unitLabel } from '@fphd/utils/value-type-and-unit';
 import {
   and,
   asc,
@@ -172,7 +173,8 @@ export interface IndicatorDetail {
   slug: string;
   name: string;
   valueType: string;
-  unit: { name: string; label: string };
+  /** As the public reads it beside a value; null when the values have no unit. */
+  unit: string | null;
   /** As the public reads it, which for a year ending on a specified date names the date. */
   yearType: string | null;
   updateFrequency: UpdateFrequency;
@@ -245,8 +247,9 @@ export async function getPublishedIndicatorById(
       slug: indicator.slug,
       name: indicator.name,
       valueType: valueType.name,
+      unitId: unit.id,
       unitName: unit.name,
-      unitLabel: unit.label,
+      unitOther: indicator.unitOther,
       yearTypeId: yearType.id,
       yearTypeName: yearType.name,
       yearEndDay: indicator.yearEndDay,
@@ -305,7 +308,7 @@ export async function getPublishedIndicatorById(
     slug: row.slug,
     name: row.name,
     valueType: row.valueType,
-    unit: { name: row.unitName, label: row.unitLabel },
+    unit: unitLabel({ id: row.unitId, name: row.unitName }, row.unitOther),
     yearType: publicYearTypeLabel({
       id: row.yearTypeId,
       name: row.yearTypeName,
