@@ -1,10 +1,11 @@
-import { POLARITIES } from '@fphd/utils/polarity';
+import { GOAL_POLARITIES, POLARITIES } from '@fphd/utils/polarity';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
 import { UPDATE_FREQUENCIES } from '@fphd/utils/update-frequency';
 import { asc, desc, eq, sql } from 'drizzle-orm';
 import {
   boolean,
   check,
+  doublePrecision,
   index,
   integer,
   jsonb,
@@ -111,6 +112,12 @@ export const indicatorVersion = pgTable(
     caveatsDetail: text(),
     otherNotesNeeded: boolean(),
     otherNotesDetail: text(),
+    // A goal is kept beside a yes alone; a single goal value has no upper value.
+    hasGoalBenchmark: boolean(),
+    goalLowerValue: doublePrecision(),
+    goalUpperValue: doublePrecision(),
+    goalPolarity: text({ enum: GOAL_POLARITIES }),
+    goalPolicyDetail: text(),
     // Notes for reviewers, never published.
     variation: text(),
     qualityAssurance: text(),
@@ -166,6 +173,32 @@ export const indicatorVersion = pgTable(
     check(
       'indicator_version_other_notes_detail_check',
       sql`${t.otherNotesNeeded} IS TRUE OR ${t.otherNotesDetail} IS NULL`,
+    ),
+    check(
+      'indicator_version_goal_polarity_check',
+      sql`${t.goalPolarity} IN (${sql.raw(GOAL_POLARITIES.map((value) => `'${value}'`).join(', '))})`,
+    ),
+    // A yes has its goal, which is a lower value and a polarity; nothing else has one.
+    check(
+      'indicator_version_goal_check',
+      sql`(${t.hasGoalBenchmark} IS TRUE) = (${t.goalLowerValue} IS NOT NULL)`,
+    ),
+    check(
+      'indicator_version_goal_pair_check',
+      sql`(${t.goalLowerValue} IS NULL) = (${t.goalPolarity} IS NULL)`,
+    ),
+    check(
+      'indicator_version_goal_upper_value_check',
+      sql`${t.goalUpperValue} IS NULL OR (${t.goalLowerValue} IS NOT NULL AND ${t.goalUpperValue} > ${t.goalLowerValue})`,
+    ),
+    check(
+      'indicator_version_goal_policy_detail_check',
+      sql`${t.hasGoalBenchmark} IS TRUE OR ${t.goalPolicyDetail} IS NULL`,
+    ),
+    // Postgres orders NaN above Infinity, so these bounds refuse it too.
+    check(
+      'indicator_version_goal_values_check',
+      sql`${t.goalLowerValue} > '-Infinity' AND ${t.goalLowerValue} < 'Infinity' AND ${t.goalUpperValue} < 'Infinity'`,
     ),
     check(
       'indicator_version_source_data_issues_detail_check',

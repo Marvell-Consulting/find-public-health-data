@@ -5,6 +5,7 @@ import type { CiMethodRow } from './ci-method-repository.ts';
 import { indicatorTaskKeySchema, toFieldErrors } from './contract.ts';
 import type { IndicatorSectionDraft } from './indicator-section.ts';
 import {
+  benchmarkingColumns,
   calculationColumns,
   confidenceIntervalsColumns,
   confidenceIntervalsServerSection,
@@ -54,6 +55,11 @@ const unanswered: IndicatorSectionDraft = {
   qualityAssurance: null,
   sourceDataIssues: null,
   sourceDataIssuesDetail: null,
+  hasGoalBenchmark: null,
+  goalLowerValue: null,
+  goalUpperValue: null,
+  goalPolarity: null,
+  goalPolicyDetail: null,
 };
 
 const METHODS: Record<CiMethodRow['kind'], CiMethodRow> = {
@@ -351,6 +357,76 @@ describe('varianceAndQualityColumns', () => {
         sourceDataIssues,
       }),
     ).toEqual({ ...answered, sourceDataIssues: answer });
+  });
+});
+
+describe('benchmarkingColumns', () => {
+  const goal = {
+    hasGoalBenchmark: 'yes',
+    goalLowerValue: '2,400',
+    goalUpperValue: '3250.5',
+    goalPolarity: 'higher-is-better',
+    goalPolicyDetail: 'The national detection rate ambition.',
+  } as const;
+
+  const noGoal = {
+    hasGoalBenchmark: false,
+    goalLowerValue: null,
+    goalUpperValue: null,
+    goalPolarity: null,
+    goalPolicyDetail: null,
+  };
+
+  it('writes a goal with its values as numbers', () => {
+    expect(benchmarkingColumns.toAttributes(goal)).toEqual({
+      hasGoalBenchmark: true,
+      goalLowerValue: 2400,
+      goalUpperValue: 3250.5,
+      goalPolarity: 'higher-is-better',
+      goalPolicyDetail: 'The national detection rate ambition.',
+    });
+  });
+
+  it('writes a single goal value and a blank detail as none', () => {
+    expect(
+      benchmarkingColumns.toAttributes({ ...goal, goalUpperValue: '', goalPolicyDetail: '' }),
+    ).toMatchObject({ goalUpperValue: null, goalPolicyDetail: null });
+  });
+
+  it('writes no goal and clears whatever the form sent beside it', () => {
+    expect(benchmarkingColumns.toAttributes({ ...goal, hasGoalBenchmark: 'no' })).toEqual(noGoal);
+  });
+
+  it('reads a goal back as the form shows it', () => {
+    expect(
+      benchmarkingColumns.fromDraft({
+        ...unanswered,
+        hasGoalBenchmark: true,
+        goalLowerValue: 2400,
+        goalUpperValue: 1e21,
+        goalPolarity: 'lower-is-better',
+        goalPolicyDetail: null,
+      }),
+    ).toEqual({
+      hasGoalBenchmark: 'yes',
+      goalLowerValue: '2400',
+      goalUpperValue: '1000000000000000000000',
+      goalPolarity: 'lower-is-better',
+      goalPolicyDetail: null,
+    });
+  });
+
+  it.each([
+    [false, 'no'],
+    [null, null],
+  ])('reads a stored %s as %s', (hasGoalBenchmark, answer) => {
+    expect(benchmarkingColumns.fromDraft({ ...unanswered, hasGoalBenchmark })).toEqual({
+      hasGoalBenchmark: answer,
+      goalLowerValue: null,
+      goalUpperValue: null,
+      goalPolarity: null,
+      goalPolicyDetail: null,
+    });
   });
 });
 

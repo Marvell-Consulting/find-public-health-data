@@ -688,6 +688,23 @@ describe('updateIndicatorDraft', () => {
     expect(state?.draft).toMatchObject(answers);
   });
 
+  it('writes a goal to the draft, its values as they were given', async () => {
+    const created = await newDraft('Benchmarking answered');
+    const answers = {
+      hasGoalBenchmark: true,
+      goalLowerValue: 0.956000001,
+      goalUpperValue: 1.161000001,
+      goalPolarity: 'lower-is-better',
+      goalPolicyDetail: 'Below the England value for 2013/14.',
+    } as const;
+
+    const result = await updateIndicatorDraft(db, created.indicatorId, answers, {}, ACTOR);
+
+    expect(result).toEqual({ ok: true });
+    const state = await getIndicatorDraftState(db, created.indicatorId);
+    expect(state?.draft).toMatchObject(answers);
+  });
+
   it('refuses an indicator with no draft', async () => {
     const created = await newDraft('Draftless');
     await db.delete(indicatorVersion).where(eq(indicatorVersion.indicatorId, created.indicatorId));

@@ -183,6 +183,13 @@
       "when": 1790335181863,
       "tag": "0025_variance-and-quality",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790343294373,
+      "tag": "0026_goal-benchmark",
+      "breakpoints": true
     }
   ]
 }
