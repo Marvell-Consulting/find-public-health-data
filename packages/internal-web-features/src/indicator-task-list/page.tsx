@@ -52,8 +52,8 @@ const TASK_GROUPS: readonly TaskGroup[] = [
         title: 'Definition and rationale',
         path: sectionPath('definition-and-rationale'),
       },
-      { key: 'numerator', title: 'Numerator' },
-      { key: 'denominator', title: 'Denominator' },
+      { key: 'numerator', title: 'Numerator', path: sectionPath('numerator') },
+      { key: 'denominator', title: 'Denominator', path: sectionPath('denominator') },
       {
         key: 'calculation',
         title: 'How the indicator was calculated',

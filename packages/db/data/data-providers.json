@@ -1,0 +1,1162 @@
+[
+  {
+    "id": "01a0d85a-7f54-76c3-a859-5540faf37782",
+    "name": "Care Quality Commission (CQC)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-554154640e76",
+        "name": "Care directory"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55424f1bc11b",
+        "name": "Community Mental Health Survey (CMHS)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-5543690ed0f2",
+        "name": "Maternity Services Survey (MSS)"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-554419aae3c8",
+    "name": "Chartered Institute of Environmental Health (CIEH)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-5545a0b98b78",
+        "name": "Modelled estimates"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-55468174c48a",
+    "name": "Consumer Data Research Centre (CDRC)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-5547b853ad42",
+        "name": "Access to Healthy Assets and Hazards (AHAH)"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-55485d44e62c",
+    "name": "Department for Business, Energy and Industrial Strategy (BEIS)",
+    "sources": []
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-5549392e4ac2",
+    "name": "Department for Education (DfE)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-554a34336909",
+        "name": "Children in need and child protection statistics"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-554b07213309",
+        "name": "Early years foundation stage (EYFS) profile results"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-554c97e280e8",
+        "name": "Exclusions statistics in England"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-554d3f6f743f",
+        "name": "Key Stage 1 (KS1) and phonics screening check attainment"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-554e7f1586f6",
+        "name": "Key Stage 2 (KS2) attainment"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-554f8bd2d8ca",
+        "name": "Key Stage 4 (KS4) performance"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-555041a8b4ee",
+        "name": "Looked-after children"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-5551201d7463",
+        "name": "NEET and participation"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-5552414fd170",
+        "name": "Pupil absence in schools in England"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-5553daa25d8f",
+        "name": "Pupil attendance and absence"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55545a9bc65b",
+        "name": "Schools, pupils and their characteristics"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55557d3cece2",
+        "name": "Special Educational Needs (SEN) in England"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-55566e6e2906",
+    "name": "Department for Energy Security and Net Zero (DESNZ)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55574a2abe60",
+        "name": "Fuel poverty statistics"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-55580ceadcb0",
+    "name": "Department for Environment, Food and Rural Affairs (DEFRA)",
+    "sources": []
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-5559e9b1f863",
+    "name": "Department for Transport (DfT)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-555a7bb240c0",
+        "name": "Reported drinking and driving: data tables"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-555bd01b1386",
+        "name": "Road accidents and safety statistics"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-555c1dcd82f2",
+        "name": "Road traffic statistics (TRA)"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-555db6ad700b",
+    "name": "Department for Work and Pensions (DWP)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-555e2fe72549",
+        "name": "Children in low income families: local area statistics"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-555f72471c8f",
+        "name": "Family Resources Survey (FRS)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-5560669be900",
+        "name": "Winter Fuel Payment statistics"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-556193ff419c",
+    "name": "Department of Health and Social Care (DHSC)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-5562d4aa9e65",
+        "name": "Abortion statistics in England and Wales"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55636acff99c",
+        "name": "National Child Measurement Programme (NCMP)"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-556489b0489b",
+    "name": "Estimated",
+    "sources": []
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-5565aabef5f5",
+    "name": "Eurostat",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-5566600dd251",
+        "name": "European Standard Population (2013)"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-55670faec68c",
+    "name": "Food Standards Agency (FSA)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-5568c2408717",
+        "name": "Food Hygiene Rating Scheme"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-5569268a0306",
+    "name": "Health and Safety Executive (HSE)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-556a29b583cf",
+        "name": "Based on Office for National Statistics (ONS) data"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-556b7274e1d7",
+    "name": "HM Revenue and Customs (HMRC)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-556cdc67be8d",
+        "name": "Child Benefit Geographical statistics"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-556db523170c",
+    "name": "Home Office (HO)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-556e9c35b962",
+        "name": "Alcohol and late night refreshment licensing"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-556facf3bfc2",
+        "name": "Immigration statistics"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-557020f94075",
+        "name": "Police recorded crime and outcomes: open data tables"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-5571ceb2db49",
+    "name": "Joseph Rowntree Foundation (JRF)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-557266d11e26",
+        "name": "Minimum Income Standards (MIS)"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-5573ec64c090",
+    "name": "King's College London (KCL)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-5574d82ca4bc",
+        "name": "Sentinel Stroke National Audit Programme (SSNAP)"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-5575e5830d16",
+    "name": "Liverpool John Moores University (LJMU)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55769f614a84",
+        "name": "Estimates of OCU use in England"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-55778df16415",
+    "name": "Medicines and Healthcare Products Regulatory Agency (MHRA)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55784cb610da",
+        "name": "Clinical Practice Research Datalink (CPRD)"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-5579d2219621",
+    "name": "Ministry of Defence (MoD)",
+    "sources": []
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-557ab6ca1b3e",
+    "name": "Ministry of Housing, Communities and Local Government (MHCLG)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-557b5fc52083",
+        "name": "English Housing Survey"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-557cfae959f2",
+        "name": "English indices of deprivation"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-557da6b7d9dd",
+        "name": "Homelessness statistics"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-557e709e7c96",
+        "name": "Live tables on dwelling stock"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-557ff9babc91",
+        "name": "Live tables on homelessness"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-5580b819b56e",
+        "name": "Statutory homelessness in England"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-55812cd548b1",
+    "name": "Ministry of Justice (MoJ)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-5582d555f587",
+        "name": "Criminal Justice Statistics (CJS)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55832d46eac6",
+        "name": "Mortgage and landlord possession statistics"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-5584b2298b16",
+        "name": "Police National Computer"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55852c102ce0",
+        "name": "Prison population figures"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-5586eeb57c00",
+        "name": "Proven reoffending statistics"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-5587d748987c",
+        "name": "Youth justice statistics"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-5588f8874910",
+    "name": "Moorfields Eye Hospital",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-558909012e8c",
+        "name": "The Certifications Office"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-558a20a280ce",
+    "name": "National Disease Registration Service (NDRS)",
+    "sources": []
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-558b03784521",
+    "name": "Natural England (NE)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-558c8f6165d4",
+        "name": "Monitor of Engagement with the Natural Environment Survey (MENE)"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-558d68ddff20",
+    "name": "NHS Benchmarking Network (NHSBN)",
+    "sources": []
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-558e3a9b1bb1",
+    "name": "NHS Business Services Authority (NHSBSA)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-558f212ca221",
+        "name": "Electronic Prescription Service (EPS) and electronic Repeat Dispensing (eRD) utilisation dashboard"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-5590ef2a6c48",
+        "name": "English Contractor Monthly General Dental Activity"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-5591b76d2136",
+        "name": "Prescription data (ePACT2)"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f54-76c3-a859-5592ef93870e",
+    "name": "NHS England (NHSE)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f54-76c3-a859-5593d052a79f",
+        "name": "Abdominal Aortic Aneurysm Screening Programme (AAA)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55947bd4ad37",
+        "name": "Admitted Patient Care (APC)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-5595894c94e5",
+        "name": "Adult Psychiatric Morbidity Survey (APMS)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55968c971f88",
+        "name": "Adult Social Care and Activity Finance Report (ASC-FR)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-5597630c633e",
+        "name": "Adult Social Care Outcomes Framework (ASCOF)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55988842a018",
+        "name": "Adult Social Care Survey (ASCS)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-559990b24ab3",
+        "name": "Ambulance Quality Indicators (AQIs)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-559a37876146",
+        "name": "Appointments in General Practice"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-559b785a3a70",
+        "name": "Bed Availability and Occupancy (KH03)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-559cc9c05df2",
+        "name": "Bowel Cancer Screening Programme (BCSP)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-559dee926740",
+        "name": "Breast Screening Programme (BSP)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-559ee0111d66",
+        "name": "Cancer Waiting Times (CWT)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-559fd31acc84",
+        "name": "Cervical Screening Programme (CSP)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55a0bf09c735",
+        "name": "Child Health Information Services (CHISS)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55a135c6e7b4",
+        "name": "Civil Registrations of Death linked to the following datasets: Mental Health Services Dataset (MHSDS), Mental Health and Learning Disabilities Dataset (MHLDS) and Mental Health Minimum Dataset (MHMDS)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55a26c084f78",
+        "name": "Community Services Data Set (CSDS)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55a3b8d0fc49",
+        "name": "Continuous Inpatient Spells (CIP) database"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55a44f0c6bfb",
+        "name": "Delayed Transfer of Care (DTOC)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55a54a6b57e6",
+        "name": "Diabetic Eye Screening Programme (DES)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55a6e80d7b25",
+        "name": "Emergency Care Data Set (ECDS)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55a7dab944b2",
+        "name": "Estates Returns Information Collection"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55a8bc94c8f0",
+        "name": "Fetal Anomaly Screening Programme (FASP)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55a91af539f9",
+        "name": "General Practice Extraction Service (GPES)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55aa2169b56d",
+        "name": "General Practice Workforce"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55abc625f47d",
+        "name": "GP Patient Survey (GPPS)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55ac8bad9514",
+        "name": "Health and Justice"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55ad0a23c4f5",
+        "name": "Health Survey for England (HSE)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55ae3691cacf",
+        "name": "Hospital Episode Statistics (HES)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55afcf45e04d",
+        "name": "Hospital Maternity Activity (HMA)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55b0e0a77035",
+        "name": "Hospital Outpatient Activity (OP)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55b10f6c3290",
+        "name": "Infectious Diseases in Pregnancy Screening Programme (IDPS)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55b21009bfb6",
+        "name": "Learning Disabilities Health Check Scheme (LDHCS)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55b3f0c0e34c",
+        "name": "Local Antimicrobial Stewardship Teams"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55b4ff398eb8",
+        "name": "Local Screening and Immunisation Teams"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55b5ba290062",
+        "name": "Maternity Services Data Set (MSDS)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55b6ad97ca71",
+        "name": "Mental Health Act Statistics annual figures"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55b7a4a62f77",
+        "name": "Mental Health and Learning Disabilities Dataset (MHLDS)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55b80cfa007c",
+        "name": "Mental Health and Learning Disabilities Statistics (MHLDS)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55b98bf5741c",
+        "name": "Mental Health Community Teams Activity (MHCTA)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55baf2926e39",
+        "name": "Mental Health Minimum Dataset (MHMDS)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55bb135e23c4",
+        "name": "Mental Health of Children and Young People Survey (MHCYPS)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55bcab784b1b",
+        "name": "Mental Health Services Dataset (MHSDS)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55bdb4f79c3a",
+        "name": "Mental Health Services Monthly Statistics (MHSMS)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55be5606a5a4",
+        "name": "National Cancer Registration and Analysis Service (NCRAS)"
+      },
+      {
+        "id": "01a0d85a-7f54-76c3-a859-55bf65769a3e",
+        "name": "National Cancer Registration Dataset (NCRD)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-395438246fe9",
+        "name": "National Child Measurement Programme (NCMP)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-395565a9f521",
+        "name": "National Dental Epidemiology Programme (NDEP)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3956d3f29618",
+        "name": "National Diabetes Audit (NDA)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3957e953d5af",
+        "name": "National Disease Registration Service (NDRS)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3958a7f4e563",
+        "name": "Newborn and Infant Physical Examination Screening Programme (NIPE)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3959c7f75e8a",
+        "name": "Newborn Hearing Screening Programme (NHSP)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-395a1a3f6950",
+        "name": "NHS Dental Statistics for England"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-395b8d845a9b",
+        "name": "NHS Health Check Programme (HCP)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-395cb04854bb",
+        "name": "NHS Outcomes Framework (OF)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-395d2b216ca4",
+        "name": "NHS Payments to General Practice"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-395e790b6f5c",
+        "name": "NHS Staff Survey"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-395fb137c12c",
+        "name": "NHS Talking Therapies"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3960ec10e59e",
+        "name": "Patient Online Management Information (POMI)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39613c5653a6",
+        "name": "Patients registered at a GP practice"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39629fccfbc7",
+        "name": "Personal Demographics Service (PDS)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3963be0ba688",
+        "name": "Personal Social Services Survey Adult Social Care Survey (ASCS)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-396495e753e9",
+        "name": "Personal Social Services Survey of Adult Carers in England (SACE)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39658c098276",
+        "name": "Primary Care Workforce Quarterly Update"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3966f2c082d1",
+        "name": "Quality and Outcomes Framework (QOF)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39670a045f7e",
+        "name": "Recorded Dementia Diagnoses (RDD)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3968363da939",
+        "name": "Registered Blind and Partially Sighted People"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3969f71c995f",
+        "name": "Safeguarding Adults Collection (SAC)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-396aa25a9184",
+        "name": "Sexual and Reproductive Health Activity Dataset (SRHAD)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-396b30818a94",
+        "name": "Short and Long-Term data returns (SALT)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-396c791ef6a7",
+        "name": "Sickle Cell and Thalassaemia (SCT) Screening Programme"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-396d38962ff0",
+        "name": "Smoking, drinking and drug use among young people in England (SDD)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-396e9016fe58",
+        "name": "Statistics on NHS Stop Smoking Services in England (SSS)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-396fc3c44b3f",
+        "name": "Statistics on Women's Smoking at a Time of Delivery (SATOD)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3970a43cc5c5",
+        "name": "Sustainable Development Unit (SDU)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-397134b0e75c",
+        "name": "What About Youth study (WAY)"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f55-77bf-b5c7-397208ce5648",
+    "name": "Nielsen",
+    "sources": [
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39739af793a1",
+        "name": "CGA Strategy (CGA)"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f55-77bf-b5c7-39742538b0ec",
+    "name": "Office for Health Improvement and Disparities (OHID)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-397573fa6f50",
+        "name": "Atrial fibrillation prevalence estimates"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-397645b3513f",
+        "name": "Based on Joint Commissioning Panel for Mental Health (JCPMH) and NHS England (NHSE) data"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3977872bda03",
+        "name": "Based on Joint Commissioning Panel for Mental Health (JCPMH) and Office for National Statistics (ONS) data"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3978b9ebeeca",
+        "name": "Based on National Drug Treatment Monitoring System (NDTMS) and Ministry of Justice (MoJ) data"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39796a064bfa",
+        "name": "Based on NHS England (NHSE) and Office for National Statistics (ONS) data"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-397ab1c05faa",
+        "name": "Based on NHS England (NHSE) data"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-397bb78aa26f",
+        "name": "Based on NHS England (NHSE), Hospital Episode Statistics (HES), Admitted Patient Care (APC) data"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-397cf1843e23",
+        "name": "Based on Office for National Statistics (ONS) data"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-397d1d5ddff1",
+        "name": "Child and maternal health statistics Breastfeeding statistics (via interim national reporting process)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-397e0e84f267",
+        "name": "Child and maternal health statistics Child development outcomes at 2 to 2 and a half years (via interim national reporting process)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-397fa703e83a",
+        "name": "Child and maternal health statistics Health visitor service delivery (via interim national reporting process)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3980283a61de",
+        "name": "Local Health Small Area Public Health Data"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3981c9944315",
+        "name": "National Cardiovascular Intelligence Network (NCVIN)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3982d0aea0a2",
+        "name": "National Dental Epidemiology Programme (NDEP)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-398336f831d2",
+        "name": "National Drug Treatment Monitoring System (NDTMS)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3984813f4c05",
+        "name": "NHS Health Check Programme"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3985d3f21fab",
+        "name": "Prevalence estimates"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f55-77bf-b5c7-3986f1fb09e1",
+    "name": "Office for National Statistics (ONS)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3987f18c167d",
+        "name": "2011 Census"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3988e0054cf4",
+        "name": "2018 based household projections for England"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-398945c5d210",
+        "name": "2021 Census"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-398a1588609e",
+        "name": "Adhoc table"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-398bbe72b0d5",
+        "name": "Annual births and mortality extracts"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-398cec812159",
+        "name": "Annual Business Survey (ABS)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-398d7daa7b85",
+        "name": "Annual mortality extract"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-398eef7828f0",
+        "name": "Annual Population Survey (APS)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-398f24c2bbf3",
+        "name": "Annual Survey of Hours and Earnings (ASHE)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3990418e5883",
+        "name": "Births characteristics in England and Wales"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3991b096d625",
+        "name": "Births in England and Wales: linked births"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-399286fd6b9d",
+        "name": "Births, deaths and marriages"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39939859df02",
+        "name": "Births, deaths and natural change by UK country"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3994741adb23",
+        "name": "Causes of death"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39956dbc7477",
+        "name": "Census"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3996f178976c",
+        "name": "Census based health state adjustment factors"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-399791b065d1",
+        "name": "Conceptions in England and Wales"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39985a8f5252",
+        "name": "Death registrations and occurrences by local authority and place of death"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-3999733a4d28",
+        "name": "Deaths registered in England and Wales"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-399a17fe68d8",
+        "name": "Domestic abuse prevalence and victim characteristics"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-399bd20525b3",
+        "name": "Drug misuse deaths"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-399c7a5efcfb",
+        "name": "Health and life expectancies"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-399d28418b34",
+        "name": "House prices statistics (HPS)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-399eb6e1a1c1",
+        "name": "House prices statistics for small areas (HPSSAs)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-399fcc14d2b7",
+        "name": "Household projections for England"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39a0c564f2fe",
+        "name": "Labour Force Survey (LFS)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39a1bb725110",
+        "name": "Live births"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39a257e8f0b9",
+        "name": "Local area migration indicators"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39a307bcca32",
+        "name": "Maternities"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39a4651afe7c",
+        "name": "Mid-year population estimates"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39a53b0c0bbb",
+        "name": "Number of deaths in care homes notified to the Care Quality Commission, England"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39a6c2051f4d",
+        "name": "Official Census and Labour Market Statistics (NOMIS)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39a7816dbed5",
+        "name": "Single Year Life Tables"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39a8662ab3b2",
+        "name": "Standard Area Measurements (SAM)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39a923e46e7b",
+        "name": "Suicides in England and Wales"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f55-77bf-b5c7-39aa7768c12f",
+    "name": "Official Census and Labour Market Statistics (NOMIS)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39ab855ec762",
+        "name": "Annual Population Survey/Labour Force Survey (APS/LFS)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39ac3d521fd8",
+        "name": "Job Centre Plus Administration Systems"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f55-77bf-b5c7-39ad9bbb161a",
+    "name": "PointX",
+    "sources": []
+  },
+  {
+    "id": "01a0d85a-7f55-77bf-b5c7-39ae1975dc77",
+    "name": "Rx-info (Define)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39afdacad76f",
+        "name": "DDDs based on trust-submitted prescribing data"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f55-77bf-b5c7-39b0be0e0765",
+    "name": "Sport England (SE)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39b1e516de1d",
+        "name": "Active Lives Adult Survey (ALAS)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39b2a18eae69",
+        "name": "Active Lives Children and Young People Survey (ALCYPS)"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f55-77bf-b5c7-39b3206fd4c5",
+    "name": "StepChange Debt Charity",
+    "sources": [
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39b4f8b572c6",
+        "name": "Statistical Yearbook (SCSY)"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f55-77bf-b5c7-39b52dc03247",
+    "name": "The Gambling Commission",
+    "sources": [
+      {
+        "id": "01a0d8be-c98c-73bc-b5a5-2f2764be24d0",
+        "name": "Gambling Survey of Great Britain"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39b64083a1fa",
+        "name": "Register of Gambling Premises"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f55-77bf-b5c7-39b7c657008e",
+    "name": "The UK Kidney Association (UKKA)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39b8f235cb4f",
+        "name": "UK Renal Registry (UKRR)"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f55-77bf-b5c7-39b9371d2fa3",
+    "name": "UK Government",
+    "sources": []
+  },
+  {
+    "id": "01a0d85a-7f55-77bf-b5c7-39ba3ffcc689",
+    "name": "UK Health Security Agency (UKHSA)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39bbf28741ac",
+        "name": "Acute Hepatitis B database"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39bc4cbbd4b7",
+        "name": "Antibiotic Guardian"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39bdb08af7bd",
+        "name": "Cover of Vaccination Evaluated Rapidly Programme (COVER)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39be625686ac",
+        "name": "Enhanced Tuberculosis Surveillance System (ETS)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39bf2086367a",
+        "name": "GUMCAD STI and CTAD Chlamydia Surveillance Systems"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39c0fccace5f",
+        "name": "GUMCAD STI Surveillance System"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39c14648bbe5",
+        "name": "Healthcare Associated Infection Data Capture System (HCAI DCS) Mandatory Surveillance"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39c24dda0d6a",
+        "name": "HIV and AIDS Reporting System (HARS)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39c351929c9a",
+        "name": "ImmForm"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39c427e56146",
+        "name": "Measles Enhanced Surveillance Programme"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39c527800dba",
+        "name": "Meningococcal Reference Unit (MRU)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39c6eb4f8fce",
+        "name": "Mumps Enhanced Surveillance Programme"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39c70a31cd06",
+        "name": "National Enhanced Listeria Surveillance Programme"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39c85d6a6c20",
+        "name": "National Enhanced Shiga toxin-producing Eschericha coli (STEC) Surveillance Programme"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39c9cdfa44fe",
+        "name": "National Surveillance Scheme for Legionnaires' disease"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39ca4d36153c",
+        "name": "National Surveillance Scheme for Typhoid and Paratyphoid"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39cb2093f7f3",
+        "name": "Notifications of Infectious Diseases (NOIDs)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39cc808e4cb9",
+        "name": "Population Repository based on Office for National Statistics (ONS) data"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39cd9a2acd08",
+        "name": "PPV vaccine uptake figures"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39ce9c0cd81d",
+        "name": "Rare and Imported Pathogens Laboratory (RIPL)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39cfc68c798f",
+        "name": "Respiratory and Vaccine Preventable Bacteria Reference Unit (RVPBRU)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39d0e45cbc83",
+        "name": "Seasonal flu vaccine uptake figures"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39d185e06612",
+        "name": "Second Generation Surveillance System (SGSS)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39d24ebec5d7",
+        "name": "Second Generation Surveillance System (SGSS) linked to Healthcare Associated Infection Data Capture System (HCAI DCS) Mandatory Surveillance"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39d34574352e",
+        "name": "Shingles vaccine uptake figures"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39d4c94b4702",
+        "name": "Surgical Site Infection Surveillance Service (SSISS)"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f55-77bf-b5c7-39d5241fec60",
+    "name": "University College London (UCL)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39d6f0b95b21",
+        "name": "English Longitudinal Study of Ageing (ELSA)"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f55-77bf-b5c7-39d7397bb945",
+    "name": "University of Essex",
+    "sources": [
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39d8415b19bd",
+        "name": "Understanding Society Survey, Institute for Social and Economic Research"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f55-77bf-b5c7-39d9551a28ba",
+    "name": "University of Sheffield",
+    "sources": [
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39da8e99a59e",
+        "name": "Estimates of Alcohol Dependence in England"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f55-77bf-b5c7-39db51ca67ae",
+    "name": "Versus Arthritis and University College London (UCL)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39dc81f18f9a",
+        "name": "English Longitudinal Study of Ageing (ELSA)"
+      },
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39dd23c68d7f",
+        "name": "Health Survey for England (HSE)"
+      }
+    ]
+  },
+  {
+    "id": "01a0d85a-7f55-77bf-b5c7-39de86dc1d87",
+    "name": "Woodland Trust (WT)",
+    "sources": [
+      {
+        "id": "01a0d85a-7f55-77bf-b5c7-39df01ad4b7a",
+        "name": "State of the UK's woods and trees"
+      }
+    ]
+  }
+]

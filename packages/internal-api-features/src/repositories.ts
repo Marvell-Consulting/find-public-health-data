@@ -1,6 +1,7 @@
 import { type Database, listTopics, type Topic } from '@fphd/db';
 
 import { type CiMethodRow, getCiMethodById, listCiMethods } from './ci-method-repository.ts';
+import { type DataProviderRow, listDataProviders } from './data-provider-repository.ts';
 import {
   type CreateDraftFromPublishedResult,
   type CreateIndicatorDraftResult,
@@ -68,12 +69,18 @@ export interface InternalCiMethodRepository {
   findById(id: string): Promise<CiMethodRow | undefined>;
 }
 
+/** The providers of data, and their sources, a publisher chooses from. */
+export interface InternalDataProviderRepository {
+  list(): Promise<DataProviderRow[]>;
+}
+
 /**
  * Everything the internal-only routes read and write, mirroring `Repositories` in `@fphd/db`.
  * Queries live here so the artefact-boundary check keeps them out of the public image.
  */
 export interface InternalRepositories {
   ciMethods: InternalCiMethodRepository;
+  dataProviders: InternalDataProviderRepository;
   indicators: InternalIndicatorRepository;
   topics: InternalTopicRepository;
 }
@@ -83,6 +90,9 @@ export function createInternalRepositories(db: Database): InternalRepositories {
     ciMethods: {
       list: () => listCiMethods(db),
       findById: (id) => getCiMethodById(db, id),
+    },
+    dataProviders: {
+      list: () => listDataProviders(db),
     },
     indicators: {
       listPage: (page, pageSize) => listIndicatorsPage(db, page, pageSize),

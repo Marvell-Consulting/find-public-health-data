@@ -205,6 +205,17 @@ test.describe('about this indicator', () => {
     await expect(panel.getByText('Annually', { exact: true })).toBeVisible();
     await expect(panel.getByText('Lower is better', { exact: true })).toBeVisible();
     await expect(panel.getByRole('heading', { name: 'Calculation' })).toBeVisible();
+    // The seed's Fingertips sources, as the provider and source each maps to.
+    await expect(
+      panel.getByText('Office for National Statistics (ONS): Annual mortality extract', {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      panel.getByText('Office for National Statistics (ONS): Mid-year population estimates', {
+        exact: true,
+      }),
+    ).toBeVisible();
     await expect(panel.getByRole('heading', { name: 'Other notes and caveats' })).toBeVisible();
     for (const note of ['Disclosure control', 'Notes', 'Caveats']) {
       await expect(panel.getByRole('heading', { name: note, exact: true })).toBeVisible();

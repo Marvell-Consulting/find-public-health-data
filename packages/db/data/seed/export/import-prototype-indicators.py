@@ -20,6 +20,13 @@ from pathlib import Path
 import psycopg2
 from psycopg2.extras import Json, execute_values
 
+from legacy_sources import (
+    LEGACY_COLUMNS,
+    legacy_source,
+    legacy_source_ids,
+    read_legacy_map,
+    version_legacy_sources,
+)
 from notes_and_caveats import notes_and_caveats
 from slug import slug_problem, slugify
 
@@ -265,7 +272,31 @@ def add_areas(cur, registry):
     return area_ids, len(rows)
 
 
-def add_indicators(cur, metadata):
+def add_version_sources(cur, version_id, part, pairs):
+    """Writes the providers and sources a legacy source maps to, as the seed load does."""
+    for position, pair in enumerate(pairs):
+        provider_id = one_id(cur, "data_provider", pair["provider"])
+        source_id = None
+        if pair["source"] is not None:
+            cur.execute(
+                "SELECT id FROM data_provider_source WHERE provider_id = %s AND name = %s",
+                (provider_id, pair["source"]),
+            )
+            row = cur.fetchone()
+            if row is None:
+                raise ValueError(f"Missing data_provider_source row: {pair}")
+            source_id = row[0]
+        cur.execute(
+            """
+            INSERT INTO indicator_version_source
+              (indicator_version_id, part, position, provider_id, source_id)
+            VALUES (%s, %s, %s, %s, %s)
+            """,
+            (version_id, part, position, provider_id, source_id),
+        )
+
+
+def add_indicators(cur, metadata, seed_dir):
     cur.execute(
         "SELECT short_id FROM indicator WHERE short_id = ANY(%s)",
         (list(INDICATOR_CONFIG),),
@@ -276,6 +307,10 @@ def add_indicators(cur, metadata):
 
     indicator_ids = {}
     batch_ids = {}
+    # The legacy source ids each new version names, which only the exported CSV carries.
+    version_sources = {}
+    source_ids = legacy_source_ids(seed_dir)
+    legacy_map = read_legacy_map()
     for fingertips_id, config in INDICATOR_CONFIG.items():
         item = metadata[str(fingertips_id)]
         descriptive = item["Descriptive"]
@@ -283,6 +318,15 @@ def add_indicators(cur, metadata):
         batch_id = uuid7()
         indicator_ids[str(fingertips_id)] = indicator_id
         batch_ids[str(fingertips_id)] = batch_id
+
+        version_id = uuid7()
+        numerator_id, numerator_pairs = legacy_source(
+            descriptive.get("CountSource"), source_ids, legacy_map
+        )
+        denominator_id, denominator_pairs = legacy_source(
+            descriptive.get("DenomSource"), source_ids, legacy_map
+        )
+        version_sources[version_id] = (numerator_id, denominator_id)
 
         unit_name = "Percent" if item["Unit"]["Label"] == "%" else item["Unit"]["Label"]
         updated_at = item["DataChange"]["LastUploadedAt"]
@@ -303,15 +347,14 @@ def add_indicators(cur, metadata):
                numerator_definition, denominator_definition, disclosure_control,
                disclosure_control_detail, rounding_applied, rounding_detail, caveats_needed,
                caveats_detail, other_notes_needed, other_notes_detail, data_source_id,
-               numerator_source_id, denominator_source_id,
                created_at, created_by, updated_at, updated_by)
             VALUES
               (%s, %s, 'published', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-               %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+               %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                %s, 'fingertips-api-seed', %s, 'fingertips-api-seed')
             """,
             (
-                uuid7(),
+                version_id,
                 indicator_id,
                 updated_at,
                 descriptive["Name"],
@@ -338,16 +381,12 @@ def add_indicators(cur, metadata):
                     }
                 ).values(),
                 optional_id(cur, "data_source", descriptive.get("DataSource")),
-                optional_id(
-                    cur, "numerator_denominator_source", descriptive.get("CountSource")
-                ),
-                optional_id(
-                    cur, "numerator_denominator_source", descriptive.get("DenomSource")
-                ),
                 updated_at,
                 updated_at,
             ),
         )
+        add_version_sources(cur, version_id, "numerator", numerator_pairs)
+        add_version_sources(cur, version_id, "denominator", denominator_pairs)
 
         cur.execute(
             """
@@ -364,7 +403,7 @@ def add_indicators(cur, metadata):
                 Json({"source": "Public Fingertips API", "validated": True}),
             ),
         )
-    return indicator_ids, batch_ids
+    return indicator_ids, batch_ids, version_sources
 
 
 def load_dimension_values(cur):
@@ -502,15 +541,35 @@ def validate(cur):
     return rows
 
 
-def export_tables(conn, seed_dir, out_dir):
+def export_tables(conn, seed_dir, out_dir, new_version_sources):
     out_dir.mkdir(parents=True, exist_ok=True)
     with conn.cursor() as cur:
+        # The versions' legacy source ids live in the seed CSV alone, so the export joins them back.
+        cur.execute(
+            "CREATE TEMP TABLE legacy_version_source "
+            "(id uuid PRIMARY KEY, numerator_source_id uuid, denominator_source_id uuid)"
+        )
+        legacy = {**version_legacy_sources(seed_dir), **new_version_sources}
+        execute_values(
+            cur,
+            "INSERT INTO legacy_version_source VALUES %s",
+            [(version_id, *sources) for version_id, sources in legacy.items()],
+        )
         for table in EXPORT_TABLES:
             source_path = seed_dir / f"{table}.csv.gz"
             with gzip.open(source_path, "rt", newline="") as source:
                 columns = next(csv.reader(source))
-            quoted = ", ".join(f'"{column}"' for column in columns)
-            query = f'COPY (SELECT {quoted} FROM "{table}" ORDER BY id) TO STDOUT WITH CSV HEADER'
+            if table == "indicator_version":
+                selected = ", ".join(
+                    f'l."{column}"' if column in LEGACY_COLUMNS else f't."{column}"'
+                    for column in columns
+                )
+                relation = f'"{table}" t LEFT JOIN legacy_version_source l ON l.id = t.id'
+            else:
+                selected = ", ".join(f'"{column}"' for column in columns)
+                relation = f'"{table}" t'
+            query = f"COPY (SELECT {selected} FROM {relation} ORDER BY t.id) TO STDOUT WITH CSV HEADER"
+
             target_path = out_dir / f"{table}.csv.gz"
             with gzip.open(target_path, "wt", newline="", encoding="utf-8") as target:
                 cur.copy_expert(query, target)
@@ -539,7 +598,9 @@ def main():
             with conn.cursor() as cur:
                 add_imd_dimension(cur)
                 area_ids, added_areas = add_areas(cur, registry)
-                indicator_ids, batch_ids = add_indicators(cur, metadata)
+                indicator_ids, batch_ids, version_sources = add_indicators(
+                    cur, metadata, seed_dir
+                )
                 observation_counts = add_observations(
                     cur,
                     args.data_csv,
@@ -557,7 +618,7 @@ def main():
                 )
                 print(f"area type observation counts: {observation_counts[3]}")
                 print(f"indicator coverage: {coverage}")
-        export_tables(conn, seed_dir, args.out_dir)
+        export_tables(conn, seed_dir, args.out_dir, version_sources)
     finally:
         conn.close()
 

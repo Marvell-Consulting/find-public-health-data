@@ -77,6 +77,11 @@ export const indicatorSourceSchema = z.object({
   url: z.string().nullable(),
 });
 
+export const indicatorProviderSourceSchema = z.object({
+  provider: z.string().min(1),
+  source: z.string().min(1).nullable(),
+});
+
 export const indicatorDetailSchema = z.object({
   shortId: z.number().int(),
   slug: indicatorSlugSchema,
@@ -99,8 +104,8 @@ export const indicatorDetailSchema = z.object({
   caveats: z.string().nullable(),
   notes: z.string().nullable(),
   dataSource: indicatorSourceSchema.nullable(),
-  numeratorSource: indicatorSourceSchema.nullable(),
-  denominatorSource: indicatorSourceSchema.nullable(),
+  numeratorSources: z.array(indicatorProviderSourceSchema),
+  denominatorSources: z.array(indicatorProviderSourceSchema),
   areaTypes: z.array(z.object({ name: z.string().min(1), areaCount: z.number().int() })),
   topics: z.array(z.object({ slug: z.string().min(1), title: z.string().min(1) })),
   classifications: z.array(
@@ -193,6 +198,7 @@ export type TopicDetail = z.infer<typeof topicDetailSchema>;
 export type IndicatorSummary = z.infer<typeof indicatorSummarySchema>;
 export type IndicatorDetail = z.infer<typeof indicatorDetailSchema>;
 export type IndicatorSource = z.infer<typeof indicatorSourceSchema>;
+export type IndicatorProviderSource = z.infer<typeof indicatorProviderSourceSchema>;
 export type IndicatorObservation = z.infer<typeof indicatorObservationSchema>;
 export type IndicatorAreaData = z.infer<typeof indicatorAreaDataSchema>;
 export type IndicatorRange = z.infer<typeof indicatorRangeSchema>;

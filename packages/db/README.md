@@ -13,8 +13,9 @@ the first migration: the grant migrations reference the roles.
 ## Layout
 
 ```
-data/                 Core content (topics.json, ci-methods.json), the dummy indicator
-                      relationship files and the committed seed (seed/)
+data/                 Core content (topics.json, ci-methods.json, data-providers.json), the
+                      map from Fingertips' numerator and denominator sources onto it, the
+                      dummy indicator relationship files and the committed seed (seed/)
 drizzle/              Generated migrations + drizzle-kit metadata — never edit applied ones
 src/
   schema/             One file per domain group, re-exported by schema/index.ts: lookup.ts
@@ -27,7 +28,9 @@ src/
   client.ts           createDb + Database/Schema types
   env.ts              dbEnvFields — shared connection env fragment
   read-models.ts      rebuildReadModels — repopulates the cache.ts tables from canonical data
-  core-data.ts        importCoreData — loads the required core content (topics, CI methods)
+  core-data.ts        importCoreData — loads the required core content (topics, CI methods,
+                      data providers)
+  legacy-sources.ts   Maps Fingertips' numerator and denominator sources onto the providers
   seeding.ts          seedDummyTables — loads data/seed and the indicator relationships
   reset.ts            resetDatabase — drops all application schema objects
   testing.ts          Integration-test database harness (@fphd/db/testing)
@@ -106,7 +109,7 @@ taken. `@fphd/internal-api-features` reads the tables directly, every status.
 ## Core data import
 
 ```sh
-pnpm db:import-core-data         # imports data/topics.json and data/ci-methods.json
+pnpm db:import-core-data         # imports data/topics.json, ci-methods.json and data-providers.json
 ```
 
 Upserts matched on `id`: a rename — even one that changes the slug — updates the row in
@@ -120,6 +123,15 @@ and the published snapshot still carry Pholio's `ci_method.csv.gz`, but neither 
 `seeding.ts` reads it only to point each version at the core method of the same name,
 through a short map of the names Pholio spells differently, and stops at a method with no
 core counterpart.
+
+`data-providers.json` holds the providers a numerator's or denominator's data comes from,
+each with its named sources; a publisher may also choose a provider with no specific source.
+It is the prototype's list plus the providers and sources the Fingertips data names that the
+prototype leaves out. The seed and the snapshot carry Pholio's flat
+`numerator_denominator_source.csv.gz`, which is staged but not loaded:
+`legacy-numerator-denominator-sources.json` maps each of its names to the providers and
+sources it stands for, or to none (for "Not applicable"), and a name the map lacks, or a
+pair the core data does not hold, stops the load.
 
 The data-loading commands (`db:import-core-data`, `db:seed-dummy-data`, `db:reset`) all
 run through `apps/operations`, so a developer machine and a deployed job use one engine —
