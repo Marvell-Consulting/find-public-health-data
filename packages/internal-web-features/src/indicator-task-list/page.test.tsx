@@ -119,6 +119,7 @@ describe('IndicatorTaskListPage', () => {
       'Publishing date',
       'Variance and quality',
       'Justifications',
+      'Other comments',
     ]);
   });
 
@@ -233,6 +234,21 @@ describe('IndicatorTaskListPage', () => {
 
     expect(row.getAttribute('href')).toBe(
       `/publish/indicators/${taskList.indicator.id}/justifications`,
+    );
+    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
+      'Completed',
+    );
+  });
+
+  it('links the other comments to their page, with the status the API reports', () => {
+    renderPage({ tasks: { name: 'completed', 'other-comments': 'completed' } });
+
+    const row = group('Notes for reviewers (for internal use only)').getByRole('link', {
+      name: 'Other comments',
+    });
+
+    expect(row.getAttribute('href')).toBe(
+      `/publish/indicators/${taskList.indicator.id}/other-comments`,
     );
     expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
       'Completed',

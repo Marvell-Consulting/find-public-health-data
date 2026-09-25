@@ -87,6 +87,10 @@ export default [
         'publish/indicators/:id/justifications',
         '../../../packages/internal-web-features/src/indicator-justifications/route.tsx',
       ),
+      route(
+        'publish/indicators/:id/other-comments',
+        '../../../packages/internal-web-features/src/indicator-other-comments/route.tsx',
+      ),
     ]),
     layout('./admin.tsx', [
       route('manage', './manage.tsx'),

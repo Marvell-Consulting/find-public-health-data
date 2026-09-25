@@ -12,6 +12,7 @@ import * as justifications from './indicator-justifications/route.tsx';
 import * as links from './indicator-links/route.tsx';
 import * as editIndicatorName from './indicator-name/edit-route.tsx';
 import * as newIndicator from './indicator-name/new-route.tsx';
+import * as otherComments from './indicator-other-comments/route.tsx';
 import * as otherNotesAndCaveats from './indicator-other-notes-and-caveats/route.tsx';
 import * as polarity from './indicator-polarity/route.tsx';
 import * as publishingDate from './indicator-publishing-date/route.tsx';
@@ -76,6 +77,12 @@ const justificationsUnanswered = {
   exclusionsDetail: '',
   automationUsed: '',
   automationDetail: '',
+};
+
+const otherCommentsUnanswered = {
+  sponsorsAndStakeholders: '',
+  hasReviewerComments: '',
+  reviewerCommentsDetail: '',
 };
 
 const forms: {
@@ -216,6 +223,16 @@ const forms: {
     rejected: {
       values: justificationsUnanswered,
       fieldErrors: { hasExclusions: 'Select whether there have been any exclusions' },
+    },
+  },
+  {
+    name: 'other comments',
+    route: otherComments,
+    pageTitle: 'Other comments',
+    loaderData: { id: indicator.id, values: otherCommentsUnanswered },
+    rejected: {
+      values: otherCommentsUnanswered,
+      fieldErrors: { hasReviewerComments: 'Select whether you have additional comments' },
     },
   },
   {

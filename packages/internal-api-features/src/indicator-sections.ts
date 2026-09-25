@@ -18,8 +18,12 @@ import {
   type LinksField,
   linksSection,
   missingCiMethodFollowUps,
+  type OtherComments,
+  type OtherCommentsField,
   type OtherNotesAndCaveats,
   type OtherNotesAndCaveatsField,
+  otherCommentsQuestions,
+  otherCommentsSection,
   otherNotesAndCaveatsQuestions,
   otherNotesAndCaveatsSection,
   type PublishingDate,
@@ -121,6 +125,17 @@ export const justificationsColumns = yesNoDetailColumns(
   justificationsSection,
   justificationsQuestions,
 );
+
+const otherCommentsAnswers = yesNoDetailColumns(otherCommentsSection, otherCommentsQuestions);
+
+export const otherCommentsColumns: IndicatorSectionColumns<OtherCommentsField, OtherComments> = {
+  ...otherCommentsAnswers,
+  // The sponsors and stakeholders are optional, and none given is stored as none.
+  toAttributes: (answers) => ({
+    ...otherCommentsAnswers.toAttributes(answers),
+    sponsorsAndStakeholders: answers.sponsorsAndStakeholders || null,
+  }),
+};
 
 export const linksColumns: IndicatorSectionColumns<LinksField, Links, LinksAnswers> = {
   fromDraft: ({ hasLinks, links }) => ({
@@ -302,5 +317,6 @@ export function indicatorSectionsRouter(
       varianceAndQualityColumns,
     ),
     indicatorSectionRouter(indicators, session, justificationsSection, justificationsColumns),
+    indicatorSectionRouter(indicators, session, otherCommentsSection, otherCommentsColumns),
   );
 }

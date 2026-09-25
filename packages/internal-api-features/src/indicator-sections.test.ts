@@ -12,6 +12,7 @@ import {
   indicatorSectionsRouter,
   justificationsColumns,
   linksColumns,
+  otherCommentsColumns,
   otherNotesAndCaveatsColumns,
   polarityColumns,
   publishingDateColumns,
@@ -62,6 +63,9 @@ const unanswered: IndicatorSectionDraft = {
   exclusionsDetail: null,
   automationUsed: null,
   automationDetail: null,
+  sponsorsAndStakeholders: null,
+  hasReviewerComments: null,
+  reviewerCommentsDetail: null,
 };
 
 const METHODS: Record<CiMethodRow['kind'], CiMethodRow> = {
@@ -392,6 +396,42 @@ describe('justificationsColumns', () => {
         automationDetail: null,
       }),
     ).toEqual({ ...answered, automationDetail: null });
+  });
+});
+
+describe('otherCommentsColumns', () => {
+  const answered = {
+    sponsorsAndStakeholders: 'The national screening committee.',
+    hasReviewerComments: 'yes',
+    reviewerCommentsDetail: 'Replaces indicator 108.',
+  } as const;
+
+  it('keeps the comments beside a yes', () => {
+    expect(otherCommentsColumns.toAttributes(answered)).toEqual({
+      ...answered,
+      hasReviewerComments: true,
+    });
+  });
+
+  it('clears the comments beside a no', () => {
+    expect(otherCommentsColumns.toAttributes({ ...answered, hasReviewerComments: 'no' })).toEqual({
+      ...answered,
+      hasReviewerComments: false,
+      reviewerCommentsDetail: null,
+    });
+  });
+
+  it('writes blank sponsors and stakeholders as none', () => {
+    expect(
+      otherCommentsColumns.toAttributes({ ...answered, sponsorsAndStakeholders: '' })
+        .sponsorsAndStakeholders,
+    ).toBeNull();
+  });
+
+  it('reads the stored answers back as the form gives them', () => {
+    expect(
+      otherCommentsColumns.fromDraft({ ...unanswered, ...answered, hasReviewerComments: true }),
+    ).toEqual(answered);
   });
 });
 

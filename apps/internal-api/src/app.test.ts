@@ -63,6 +63,9 @@ const unansweredDraft = {
   exclusionsDetail: null,
   automationUsed: null,
   automationDetail: null,
+  sponsorsAndStakeholders: null,
+  hasReviewerComments: null,
+  reviewerCommentsDetail: null,
 };
 
 async function createCookie(roles: readonly string[]): Promise<string> {

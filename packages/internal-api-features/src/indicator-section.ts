@@ -54,6 +54,9 @@ export type IndicatorSectionDraft = Pick<
   | 'exclusionsDetail'
   | 'automationUsed'
   | 'automationDetail'
+  | 'sponsorsAndStakeholders'
+  | 'hasReviewerComments'
+  | 'reviewerCommentsDetail'
 >;
 
 /**

@@ -123,6 +123,9 @@ export const indicatorVersion = pgTable(
     exclusionsDetail: text(),
     automationUsed: boolean(),
     automationDetail: text(),
+    sponsorsAndStakeholders: text(),
+    hasReviewerComments: boolean(),
+    reviewerCommentsDetail: text(),
     dataSourceId: uuid().references(() => dataSource.id),
     numeratorSourceId: uuid().references(() => numeratorDenominatorSource.id),
     denominatorSourceId: uuid().references(() => numeratorDenominatorSource.id),
@@ -185,6 +188,10 @@ export const indicatorVersion = pgTable(
     check(
       'indicator_version_automation_detail_check',
       sql`${t.automationUsed} IS TRUE OR ${t.automationDetail} IS NULL`,
+    ),
+    check(
+      'indicator_version_reviewer_comments_detail_check',
+      sql`${t.hasReviewerComments} IS TRUE OR ${t.reviewerCommentsDetail} IS NULL`,
     ),
     // A published version always says when, and nothing else does, so ordering by
     // published_at never meets a null.

@@ -707,6 +707,21 @@ describe('updateIndicatorDraft', () => {
     expect(state?.draft).toMatchObject(answers);
   });
 
+  it('writes the other comments to the draft', async () => {
+    const created = await newDraft('Other comments answered');
+    const answers = {
+      sponsorsAndStakeholders: 'The national screening committee.',
+      hasReviewerComments: true,
+      reviewerCommentsDetail: 'Replaces indicator 108.',
+    };
+
+    const result = await updateIndicatorDraft(db, created.indicatorId, answers, {}, ACTOR);
+
+    expect(result).toEqual({ ok: true });
+    const state = await getIndicatorDraftState(db, created.indicatorId);
+    expect(state?.draft).toMatchObject(answers);
+  });
+
   it('refuses an indicator with no draft', async () => {
     const created = await newDraft('Draftless');
     await db.delete(indicatorVersion).where(eq(indicatorVersion.indicatorId, created.indicatorId));
