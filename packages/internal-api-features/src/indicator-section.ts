@@ -39,6 +39,12 @@ export type IndicatorSectionDraft = Pick<
   | 'scheduledPublishAtUk'
   | 'hasLinks'
   | 'links'
+  | 'sexes'
+  | 'ageType'
+  | 'ageRanges'
+  | 'specificAge'
+  | 'specificAgeUnit'
+  | 'ageOtherDetail'
 >;
 
 /**

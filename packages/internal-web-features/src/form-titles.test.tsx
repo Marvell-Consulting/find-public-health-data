@@ -14,6 +14,7 @@ import * as newIndicator from './indicator-name/new-route.tsx';
 import * as otherNotesAndCaveats from './indicator-other-notes-and-caveats/route.tsx';
 import * as polarity from './indicator-polarity/route.tsx';
 import * as publishingDate from './indicator-publishing-date/route.tsx';
+import * as sexAndAges from './indicator-sex-and-ages/route.tsx';
 import * as updateFrequency from './indicator-update-frequency/route.tsx';
 import * as editTopic from './topic-admin/edit-route.tsx';
 import * as newTopic from './topic-admin/new-route.tsx';
@@ -38,6 +39,15 @@ const topic = {
   title: 'Smoking',
   slug: 'smoking',
   description: 'About smoking.',
+};
+
+const sexAndAgesUnanswered = {
+  sexes: [],
+  ageType: '',
+  ageRanges: [{ lowerLimit: '', lowerLimitUnit: '', upperLimit: '', upperLimitUnit: '' }],
+  specificAge: '',
+  specificAgeUnit: '',
+  ageOtherDetail: '',
 };
 
 const notesAndCaveatsUnanswered = {
@@ -177,6 +187,16 @@ const forms: {
     rejected: {
       values: { hasLinks: '', links: [], linkUrl: '', linkText: '' },
       fieldErrors: { hasLinks: 'Select whether there are any relevant links' },
+    },
+  },
+  {
+    name: 'sex and ages',
+    route: sexAndAges,
+    pageTitle: 'What are the sexes and ages included in this indicator?',
+    loaderData: { id: indicator.id, values: sexAndAgesUnanswered },
+    rejected: {
+      values: sexAndAgesUnanswered,
+      fieldErrors: { sexes: 'Select sexes included', ageType: 'Select the age type' },
     },
   },
   {

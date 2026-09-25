@@ -32,7 +32,13 @@ export {
   formatDocumentTitle,
   titleFromPage,
 } from './document-title.tsx';
-export { ErrorSummary, type FieldError, fieldInputId, firstRadioId } from './error-summary.tsx';
+export {
+  ErrorSummary,
+  type FieldError,
+  fieldInputId,
+  firstCheckboxId,
+  firstRadioId,
+} from './error-summary.tsx';
 export { CollapsibleFilterCard, FilterCard, FilterChip, FilterChips } from './filter-card.tsx';
 export { type DateFormat, DISPLAY_TIME_ZONE, formatDate } from './format-date.ts';
 export { type GeographyArea, GeographyTree } from './geography-tree.tsx';

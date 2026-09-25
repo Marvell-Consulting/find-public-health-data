@@ -108,6 +108,7 @@ describe('IndicatorTaskListPage', () => {
     renderPage();
 
     expect(screen.getAllByRole('link').map((link) => link.textContent)).toEqual([
+      'Sex and ages',
       'Polarity',
       'Name',
       'Definition and rationale',
@@ -202,6 +203,19 @@ describe('IndicatorTaskListPage', () => {
     const row = group('Metadata').getByRole('link', { name: 'Links' });
 
     expect(row.getAttribute('href')).toBe(`/publish/indicators/${taskList.indicator.id}/links`);
+    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
+      'Completed',
+    );
+  });
+
+  it('links the sex and ages to their page, with the status the API reports', () => {
+    renderPage({ tasks: { name: 'completed', 'sex-and-ages': 'completed' } });
+
+    const row = group('Data').getByRole('link', { name: 'Sex and ages' });
+
+    expect(row.getAttribute('href')).toBe(
+      `/publish/indicators/${taskList.indicator.id}/sex-and-ages`,
+    );
     expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
       'Completed',
     );

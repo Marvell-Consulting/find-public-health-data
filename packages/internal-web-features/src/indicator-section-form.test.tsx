@@ -63,6 +63,30 @@ describe('IndicatorSectionForm', () => {
     expect(within(form as HTMLElement).getByRole('button', { name: 'Continue' })).toBeTruthy();
   });
 
+  it('offers one Continue, which Enter in a field presses when no other button comes first', () => {
+    const { container } = renderForm();
+    const buttons = container.querySelectorAll('form button');
+
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0]?.textContent).toBe('Continue');
+  });
+
+  it("puts a hidden Continue first when asked, for Enter to press in place of the form's own buttons", () => {
+    const { container } = renderForm({ continueOnEnter: true });
+    const [first, ...others] = container.querySelectorAll('form button');
+
+    expect(first?.textContent).toBe('Continue');
+    expect(first?.getAttribute('type')).toBe('submit');
+    expect(first?.getAttribute('name')).toBeNull();
+    expect(first?.getAttribute('tabindex')).toBe('-1');
+    expect(first?.getAttribute('aria-hidden')).toBe('true');
+    expect(first?.className).toBe('govuk-visually-hidden');
+    // Out of the accessibility tree, so the visible Continue is the only one announced.
+    expect(screen.getAllByRole('button', { name: 'Continue' })).toEqual(
+      others.filter((button) => button.textContent === 'Continue'),
+    );
+  });
+
   it('shows no summary and a plain title while nothing is refused', () => {
     renderForm();
 

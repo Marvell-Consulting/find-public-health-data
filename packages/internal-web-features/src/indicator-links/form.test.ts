@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest';
-
+import { removeIntent } from '../list-form.ts';
 import {
   type LinksPageValues,
   linkFieldName,
   readLinksForm,
-  removeLinkIntent,
   withLinkAdded,
   withLinkRemoved,
 } from './form.ts';
@@ -44,13 +43,11 @@ describe('readLinksForm', () => {
     expect(readLinksForm(new FormData()).values).toEqual(empty);
   });
 
-  it.each([
-    [{ intent: 'add' }, { to: 'add' }],
-    [{ intent: removeLinkIntent(1) }, { to: 'remove', index: 1 }],
-    [{}, { to: 'continue' }],
-    [{ intent: 'something-else' }, { to: 'continue' }],
-  ])('reads the button that sent %o', (fields, intent) => {
-    expect(readLinksForm(formData(fields)).intent).toEqual(intent);
+  it('reads which button sent the form', () => {
+    expect(readLinksForm(formData({ intent: removeIntent(1) })).intent).toEqual({
+      to: 'remove',
+      index: 1,
+    });
   });
 
   it('refuses a carried link the page would not have written', () => {

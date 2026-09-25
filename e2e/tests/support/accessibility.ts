@@ -30,7 +30,7 @@ const KNOWN_VIOLATIONS: KnownViolation[] = [
     rule: 'aria-allowed-attr',
     selector: 'input.govuk-radios__input[aria-controls]',
     expectedOn:
-      /^\/publish\/indicators\/[0-9a-f-]{36}\/(calculation|confidence-intervals|other-notes-and-caveats|links)$/,
+      /^\/publish\/indicators\/[0-9a-f-]{36}\/(calculation|confidence-intervals|other-notes-and-caveats|links|sex-and-ages)$/,
   },
 ];
 

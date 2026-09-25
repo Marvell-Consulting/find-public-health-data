@@ -301,6 +301,19 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
   overflow-wrap: anywhere;
 }
 
+// Short fields that belong together, such as a number and its unit, side by side. Aligned
+// at the foot, so a field whose error pushes its control down keeps the controls in line.
+.fphd-field-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  column-gap: govuk-spacing(4);
+}
+
+.fphd-field-row > .govuk-form-group {
+  margin-bottom: govuk-spacing(4);
+}
+
 .fphd-link-button {
   padding: 0;
   border: 0;

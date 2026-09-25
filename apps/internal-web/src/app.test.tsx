@@ -205,6 +205,7 @@ describe('the role-gated route tables', () => {
       'publish/indicators/:id/other-notes-and-caveats',
       'publish/indicators/:id/publishing-date',
       'publish/indicators/:id/links',
+      'publish/indicators/:id/sex-and-ages',
     ]);
   });
 

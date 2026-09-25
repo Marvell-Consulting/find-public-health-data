@@ -555,6 +555,12 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
       scheduledPublishAtUk: null,
       hasLinks: null,
       links: [],
+      sexes: null,
+      ageType: null,
+      ageRanges: [],
+      specificAge: null,
+      specificAgeUnit: null,
+      ageOtherDetail: null,
     },
     draftCiMethodKind: null,
     indicatorStatus: 'new',
@@ -608,6 +614,7 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
         'other-notes-and-caveats': 'not_started',
         'publishing-date': 'not_started',
         links: 'not_started',
+        'sex-and-ages': 'not_started',
       },
     });
   });

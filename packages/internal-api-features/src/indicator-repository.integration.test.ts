@@ -8,6 +8,7 @@ import {
   schema,
 } from '@fphd/db';
 import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
+import { MAX_AGE } from '@fphd/utils/sex-and-ages';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -17,6 +18,8 @@ import {
   createIndicatorDraft,
   getIndicatorById,
   getIndicatorDraftState,
+  type IndicatorDraftAgeRange,
+  type IndicatorDraftAttributes,
   listIndicatorsPage,
   SLUG_LOCK_NAMESPACE,
   ukInstant,
@@ -63,6 +66,7 @@ const {
   indicatorClassification,
   indicatorTopic,
   indicatorVersion,
+  indicatorVersionAgeRange,
   indicatorVersionLink,
 } = schema;
 
@@ -182,6 +186,33 @@ async function linksOf(versionId: string): Promise<{ url: string; text: string }
     .from(indicatorVersionLink)
     .where(eq(indicatorVersionLink.indicatorVersionId, versionId))
     .orderBy(indicatorVersionLink.position);
+}
+
+const sixteenPlus = {
+  lowerLimit: 16,
+  lowerLimitUnit: 'years',
+  upperLimit: null,
+  upperLimitUnit: null,
+} as const;
+const underFive = {
+  lowerLimit: null,
+  lowerLimitUnit: null,
+  upperLimit: 4,
+  upperLimitUnit: 'years',
+} as const;
+
+/** A version's age ranges as the table holds them, in order. */
+async function ageRangesOf(versionId: string) {
+  return db
+    .select({
+      lowerLimit: indicatorVersionAgeRange.lowerLimit,
+      lowerLimitUnit: indicatorVersionAgeRange.lowerLimitUnit,
+      upperLimit: indicatorVersionAgeRange.upperLimit,
+      upperLimitUnit: indicatorVersionAgeRange.upperLimitUnit,
+    })
+    .from(indicatorVersionAgeRange)
+    .where(eq(indicatorVersionAgeRange.indicatorVersionId, versionId))
+    .orderBy(indicatorVersionAgeRange.position);
 }
 
 async function topicIdsOf(versionId: string): Promise<string[]> {
@@ -559,6 +590,136 @@ describe('updateIndicatorDraft', () => {
     expect(cleared?.draft).toMatchObject({ hasLinks: false, links: [] });
   });
 
+  it('writes the sexes and age ranges in the order given, replacing those held before', async () => {
+    const created = await newDraft('Ages in order');
+
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      { sexes: ['females', 'males'], ageType: 'range' },
+      { ageRanges: [underFive, sixteenPlus] },
+      ACTOR,
+    );
+    const first = await getIndicatorDraftState(db, created.indicatorId);
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      { ageType: 'specific', specificAge: 5, specificAgeUnit: 'weeks' },
+      { ageRanges: [] },
+      ACTOR,
+    );
+    const replaced = await getIndicatorDraftState(db, created.indicatorId);
+
+    expect(first?.draft).toMatchObject({
+      sexes: ['females', 'males'],
+      ageType: 'range',
+      ageRanges: [underFive, sixteenPlus],
+    });
+    expect(replaced?.draft).toMatchObject({
+      ageType: 'specific',
+      specificAge: 5,
+      specificAgeUnit: 'weeks',
+      ageRanges: [],
+    });
+  });
+
+  it('holds all ages', async () => {
+    const created = await newDraft('All ages');
+
+    await updateIndicatorDraft(db, created.indicatorId, { ageType: 'all' }, {}, ACTOR);
+
+    expect((await getIndicatorDraftState(db, created.indicatorId))?.draft?.ageType).toBe('all');
+  });
+
+  it('holds ages up to the highest', async () => {
+    const created = await newDraft('Ages up to the highest');
+    const oldest = { ...underFive, upperLimit: MAX_AGE };
+
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      { ageType: 'range' },
+      { ageRanges: [oldest] },
+      ACTOR,
+    );
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      { ageType: 'specific', specificAge: MAX_AGE, specificAgeUnit: 'days' },
+      {},
+      ACTOR,
+    );
+
+    expect((await getIndicatorDraftState(db, created.indicatorId))?.draft).toMatchObject({
+      specificAge: MAX_AGE,
+      ageRanges: [oldest],
+    });
+  });
+
+  it.each<[string, IndicatorDraftAttributes]>([
+    ['no sexes', { sexes: [] }],
+    // As a caller the types do not bind could send.
+    ['a sex outside the vocabulary', { sexes: ['everyone' as never] }],
+    ['a specific age without its unit', { ageType: 'specific', specificAge: 5 }],
+    [
+      'a specific age beside another age type',
+      { ageType: 'other', specificAge: 5, specificAgeUnit: 'years' },
+    ],
+    ['other ages beside another age type', { ageType: 'range', ageOtherDetail: 'Year 6' }],
+    [
+      'a specific age beside all ages',
+      { ageType: 'all', specificAge: 5, specificAgeUnit: 'years' },
+    ],
+    [
+      'a specific age above the highest',
+      { ageType: 'specific', specificAge: MAX_AGE + 1, specificAgeUnit: 'years' },
+    ],
+  ])('refuses %s', async (name, attributes) => {
+    const created = await newDraft(`Refuses ${name}`);
+
+    await expect(
+      updateIndicatorDraft(db, created.indicatorId, attributes, {}, ACTOR),
+    ).rejects.toThrow();
+  });
+
+  it.each<[string, IndicatorDraftAgeRange]>([
+    ['no limit', { ...sixteenPlus, lowerLimit: null, lowerLimitUnit: null }],
+    ['a limit without its unit', { ...sixteenPlus, lowerLimitUnit: null }],
+    ['a unit without its limit', { ...underFive, lowerLimitUnit: 'years' }],
+    ['a negative limit', { ...sixteenPlus, lowerLimit: -1 }],
+    ['a limit above the highest', { ...underFive, upperLimit: MAX_AGE + 1 }],
+    [
+      'an upper limit below the lower',
+      { lowerLimit: 5, lowerLimitUnit: 'years', upperLimit: 4, upperLimitUnit: 'years' },
+    ],
+  ])('refuses an age range with %s', async (name, ageRange) => {
+    const created = await newDraft(`Refuses a range with ${name}`);
+
+    await expect(
+      updateIndicatorDraft(db, created.indicatorId, {}, { ageRanges: [ageRange] }, ACTOR),
+    ).rejects.toThrow();
+  });
+
+  it('holds an upper limit the same age as the lower in another unit', async () => {
+    const created = await newDraft('Limits in different units');
+    const firstYear = {
+      lowerLimit: 12,
+      lowerLimitUnit: 'months',
+      upperLimit: 1,
+      upperLimitUnit: 'years',
+    } as const;
+
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      { ageType: 'range' },
+      { ageRanges: [firstYear] },
+      ACTOR,
+    );
+
+    expect(await ageRangesOf(created.versionId)).toEqual([firstYear]);
+  });
+
   it("writes a section's answers to the draft alone, leaving its name and slug", async () => {
     const { indicatorId, currentId, currentName, currentSlug } =
       await indicatorWithTwoPublications();
@@ -811,6 +972,30 @@ describe('createDraftFromPublished', () => {
     const state = await getIndicatorDraftState(db, indicatorId);
     expect(state?.draft).toMatchObject({ hasLinks: true, links: [fingertips, commentary] });
     expect(await linksOf(currentId)).toEqual([fingertips, commentary]);
+  });
+
+  it('copies the sexes and age ranges of the published version, leaving them on it too', async () => {
+    const { indicatorId, currentId, supersededId } = await indicatorWithTwoPublications();
+    await db
+      .update(indicatorVersion)
+      .set({ sexes: ['persons'], ageType: 'range' })
+      .where(eq(indicatorVersion.id, currentId));
+    await db.insert(indicatorVersionAgeRange).values([
+      { indicatorVersionId: currentId, position: 0, ...sixteenPlus },
+      { indicatorVersionId: currentId, position: 1, ...underFive },
+      { indicatorVersionId: supersededId, position: 0, ...underFive },
+    ]);
+
+    const result = await createDraftFromPublished(db, indicatorId, ACTOR);
+
+    if (!result.ok) throw new Error('expected a draft');
+    const state = await getIndicatorDraftState(db, indicatorId);
+    expect(state?.draft).toMatchObject({
+      sexes: ['persons'],
+      ageType: 'range',
+      ageRanges: [sixteenPlus, underFive],
+    });
+    expect(await ageRangesOf(currentId)).toEqual([sixteenPlus, underFive]);
   });
 
   it('refuses a second draft for the same indicator', async () => {

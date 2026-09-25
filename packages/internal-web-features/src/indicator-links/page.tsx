@@ -2,12 +2,8 @@ import type { IndicatorLink } from '@fphd/internal-api-features/contract';
 import { Button, fieldInputId, firstRadioId, Radios, TextInput } from '@fphd/ui';
 
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
-import {
-  type LinksPageField,
-  type LinksPageValues,
-  linkFieldName,
-  removeLinkIntent,
-} from './form.ts';
+import { ADD_INTENT, removeIntent } from '../list-form.ts';
+import { type LinksPageField, type LinksPageValues, linkFieldName } from './form.ts';
 
 const LINKS_QUESTION =
   'Are there any relevant links to help users understand this indicator better?';
@@ -36,7 +32,7 @@ function AddedLinks({ links }: { links: readonly IndicatorLink[] }) {
             classModifiers="secondary"
             className="govuk-!-margin-bottom-0"
             name="intent"
-            value={removeLinkIntent(index)}
+            value={removeIntent(index)}
           >
             {'Remove '}
             <span className="govuk-visually-hidden">link {text}</span>
@@ -99,7 +95,7 @@ export function LinksPage({
                   classModifiers="secondary"
                   className="govuk-!-margin-top-3 govuk-!-margin-bottom-0"
                   name="intent"
-                  value="add"
+                  value={ADD_INTENT}
                 >
                   Add link
                 </Button>
