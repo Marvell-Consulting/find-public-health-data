@@ -8,6 +8,7 @@ import { FORM_NOT_SAVED } from './form-refusal.ts';
 import * as calculation from './indicator-calculation/route.tsx';
 import * as confidenceIntervals from './indicator-confidence-intervals/route.tsx';
 import * as definitionAndRationale from './indicator-definition-and-rationale/route.tsx';
+import * as justifications from './indicator-justifications/route.tsx';
 import * as links from './indicator-links/route.tsx';
 import * as editIndicatorName from './indicator-name/edit-route.tsx';
 import * as newIndicator from './indicator-name/new-route.tsx';
@@ -65,6 +66,16 @@ const varianceAndQualityUnanswered = {
   qualityAssurance: '',
   sourceDataIssues: '',
   sourceDataIssuesDetail: '',
+};
+
+const justificationsUnanswered = {
+  ciMethodJustification: '',
+  dataSourcesJustification: '',
+  inequalitiesIncluded: '',
+  hasExclusions: '',
+  exclusionsDetail: '',
+  automationUsed: '',
+  automationDetail: '',
 };
 
 const forms: {
@@ -195,6 +206,16 @@ const forms: {
     rejected: {
       values: varianceAndQualityUnanswered,
       fieldErrors: { variation: 'Enter how the indicator varies' },
+    },
+  },
+  {
+    name: 'justifications',
+    route: justifications,
+    pageTitle: 'Justifications',
+    loaderData: { id: indicator.id, values: justificationsUnanswered },
+    rejected: {
+      values: justificationsUnanswered,
+      fieldErrors: { hasExclusions: 'Select whether there have been any exclusions' },
     },
   },
   {

@@ -83,6 +83,10 @@ async function addVersion(
       | 'otherNotesDetail'
       | 'sourceDataIssues'
       | 'sourceDataIssuesDetail'
+      | 'hasExclusions'
+      | 'exclusionsDetail'
+      | 'automationUsed'
+      | 'automationDetail'
     >
   > = {},
 ) {
@@ -339,6 +343,10 @@ describe('indicator_version', () => {
       'source data without issues',
       { sourceDataIssues: false, sourceDataIssuesDetail: 'Late returns' },
     ],
+    ['exclusions of nobody', { exclusionsDetail: 'Small areas' }],
+    ['no exclusions', { hasExclusions: false, exclusionsDetail: 'Small areas' }],
+    ['automation of nobody', { automationDetail: 'Pipeline' }],
+    ['no automation', { automationUsed: false, automationDetail: 'Pipeline' }],
   ] as const)('refuses a detail beside %s', async (_, values) => {
     await expect(addVersion(await newIndicatorId(), 'draft', values)).rejects.toMatchObject({
       cause: { code: CHECK_VIOLATION },
@@ -354,6 +362,10 @@ describe('indicator_version', () => {
         caveatsDetail: 'Survey data',
         sourceDataIssues: true,
         sourceDataIssuesDetail: 'Late returns',
+        hasExclusions: true,
+        exclusionsDetail: 'Small areas',
+        automationUsed: true,
+        automationDetail: 'Pipeline',
       }),
     ).resolves.toHaveLength(1);
     await expect(
@@ -527,7 +539,11 @@ describe('the published views', () => {
     const rows = (await db.execute(
       sql`SELECT column_name FROM information_schema.columns
           WHERE table_schema = 'published'
-            AND column_name IN ('variation', 'quality_assurance', 'source_data_issues', 'source_data_issues_detail')`,
+            AND column_name IN (
+              'variation', 'quality_assurance', 'source_data_issues', 'source_data_issues_detail',
+              'ci_method_justification', 'data_sources_justification', 'inequalities_included',
+              'has_exclusions', 'exclusions_detail', 'automation_used', 'automation_detail'
+            )`,
     )) as unknown as { column_name: string }[];
 
     expect(rows).toEqual([]);

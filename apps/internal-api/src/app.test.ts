@@ -56,6 +56,13 @@ const unansweredDraft = {
   qualityAssurance: null,
   sourceDataIssues: null,
   sourceDataIssuesDetail: null,
+  ciMethodJustification: null,
+  dataSourcesJustification: null,
+  inequalitiesIncluded: null,
+  hasExclusions: null,
+  exclusionsDetail: null,
+  automationUsed: null,
+  automationDetail: null,
 };
 
 async function createCookie(roles: readonly string[]): Promise<string> {

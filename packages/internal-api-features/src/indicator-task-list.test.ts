@@ -46,6 +46,13 @@ const source: IndicatorTaskListSource = {
     qualityAssurance: null,
     sourceDataIssues: null,
     sourceDataIssuesDetail: null,
+    ciMethodJustification: null,
+    dataSourcesJustification: null,
+    inequalitiesIncluded: null,
+    hasExclusions: null,
+    exclusionsDetail: null,
+    automationUsed: null,
+    automationDetail: null,
   },
 };
 
@@ -78,6 +85,13 @@ const complete: IndicatorTaskListDraft = {
   qualityAssurance: 'Checked against the published ONS figures.',
   sourceDataIssues: true,
   sourceDataIssuesDetail: 'Late returns from two areas.',
+  ciMethodJustification: 'The standard method for rates.',
+  dataSourcesJustification: 'The only national source.',
+  inequalitiesIncluded: 'Deprivation deciles.',
+  hasExclusions: false,
+  exclusionsDetail: null,
+  automationUsed: true,
+  automationDetail: 'The shared indicator pipeline.',
 };
 
 function withDraft(draft: Partial<IndicatorTaskListDraft>): IndicatorTaskListSource {
@@ -256,6 +270,19 @@ describe('indicatorTaskList', () => {
     ['source data issues without their details', { ...complete, sourceDataIssuesDetail: null }],
   ] as const)('leaves the variance and quality not started with %s', (_, draft) => {
     expect(indicatorTaskList(withDraft(draft)).tasks['variance-and-quality']).toBe('not_started');
+  });
+
+  it('counts the justifications as complete once every question is answered', () => {
+    expect(indicatorTaskList(withDraft(complete)).tasks.justifications).toBe('completed');
+  });
+
+  it.each([
+    ['nothing', {}],
+    ['a blank inequalities answer', { ...complete, inequalitiesIncluded: ' ' }],
+    ['exclusions unanswered', { ...complete, hasExclusions: null }],
+    ['automation used without its details', { ...complete, automationDetail: null }],
+  ] as const)('leaves the justifications not started with %s', (_, draft) => {
+    expect(indicatorTaskList(withDraft(draft)).tasks.justifications).toBe('not_started');
   });
 
   it.each([

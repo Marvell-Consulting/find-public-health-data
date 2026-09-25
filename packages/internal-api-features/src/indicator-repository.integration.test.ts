@@ -688,6 +688,25 @@ describe('updateIndicatorDraft', () => {
     expect(state?.draft).toMatchObject(answers);
   });
 
+  it('writes the justifications to the draft', async () => {
+    const created = await newDraft('Justifications answered');
+    const answers = {
+      ciMethodJustification: 'The standard method for rates.',
+      dataSourcesJustification: 'The only national source.',
+      inequalitiesIncluded: 'Deprivation deciles.',
+      hasExclusions: true,
+      exclusionsDetail: 'Areas with fewer than 5 deaths.',
+      automationUsed: false,
+      automationDetail: null,
+    };
+
+    const result = await updateIndicatorDraft(db, created.indicatorId, answers, {}, ACTOR);
+
+    expect(result).toEqual({ ok: true });
+    const state = await getIndicatorDraftState(db, created.indicatorId);
+    expect(state?.draft).toMatchObject(answers);
+  });
+
   it('refuses an indicator with no draft', async () => {
     const created = await newDraft('Draftless');
     await db.delete(indicatorVersion).where(eq(indicatorVersion.indicatorId, created.indicatorId));

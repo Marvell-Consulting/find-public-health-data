@@ -118,6 +118,7 @@ describe('IndicatorTaskListPage', () => {
       'Update frequency',
       'Publishing date',
       'Variance and quality',
+      'Justifications',
     ]);
   });
 
@@ -217,6 +218,21 @@ describe('IndicatorTaskListPage', () => {
 
     expect(row.getAttribute('href')).toBe(
       `/publish/indicators/${taskList.indicator.id}/variance-and-quality`,
+    );
+    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
+      'Completed',
+    );
+  });
+
+  it('links the justifications to their page, with the status the API reports', () => {
+    renderPage({ tasks: { name: 'completed', justifications: 'completed' } });
+
+    const row = group('Notes for reviewers (for internal use only)').getByRole('link', {
+      name: 'Justifications',
+    });
+
+    expect(row.getAttribute('href')).toBe(
+      `/publish/indicators/${taskList.indicator.id}/justifications`,
     );
     expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
       'Completed',
