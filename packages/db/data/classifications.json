@@ -1,0 +1,122 @@
+[
+  {
+    "dimension": "indicator_type",
+    "slug": "indicator-type-determinant-or-risk-factor",
+    "name": "Determinant or risk factor"
+  },
+  {
+    "dimension": "indicator_type",
+    "slug": "indicator-type-healthcare-utilisation",
+    "name": "Healthcare utilisation"
+  },
+  {
+    "dimension": "indicator_type",
+    "slug": "indicator-type-outcome",
+    "name": "Outcome"
+  },
+  {
+    "dimension": "indicator_type",
+    "slug": "indicator-type-prevalence-and-detection",
+    "name": "Prevalence and detection"
+  },
+  {
+    "dimension": "indicator_type",
+    "slug": "indicator-type-spend-and-resource",
+    "name": "Spend and resource"
+  },
+  {
+    "dimension": "indicator_type",
+    "slug": "indicator-type-treatment-and-care",
+    "name": "Treatment and care"
+  },
+  {
+    "dimension": "risk_factor",
+    "slug": "risk-factor-air-pollution-or-environment",
+    "name": "Air pollution or environment"
+  },
+  {
+    "dimension": "risk_factor",
+    "slug": "risk-factor-alcohol",
+    "name": "Alcohol"
+  },
+  {
+    "dimension": "risk_factor",
+    "slug": "risk-factor-diet-and-nutrition",
+    "name": "Diet and nutrition"
+  },
+  {
+    "dimension": "risk_factor",
+    "slug": "risk-factor-drug-use",
+    "name": "Drug use"
+  },
+  {
+    "dimension": "risk_factor",
+    "slug": "risk-factor-excess-weight-or-obesity",
+    "name": "Excess weight or obesity"
+  },
+  {
+    "dimension": "risk_factor",
+    "slug": "risk-factor-gambling",
+    "name": "Gambling"
+  },
+  {
+    "dimension": "risk_factor",
+    "slug": "risk-factor-high-blood-pressure-or-cholesterol",
+    "name": "High blood pressure or cholesterol"
+  },
+  {
+    "dimension": "risk_factor",
+    "slug": "risk-factor-physical-activity-or-inactivity",
+    "name": "Physical activity or inactivity"
+  },
+  {
+    "dimension": "risk_factor",
+    "slug": "risk-factor-smoking-and-tobacco",
+    "name": "Smoking and tobacco"
+  },
+  {
+    "dimension": "risk_factor",
+    "slug": "risk-factor-violence",
+    "name": "Violence"
+  },
+  {
+    "dimension": "framework",
+    "slug": "framework-10-year-plan",
+    "name": "10-year plan"
+  },
+  {
+    "dimension": "framework",
+    "slug": "framework-healthy-child",
+    "name": "Healthy Child"
+  },
+  {
+    "dimension": "framework",
+    "slug": "framework-local-outcomes-framework",
+    "name": "Local Outcomes Framework"
+  },
+  {
+    "dimension": "framework",
+    "slug": "framework-public-health-outcomes-framework",
+    "name": "Public Health Outcomes Framework"
+  },
+  {
+    "slug": "inequality-deprivation-or-income",
+    "dimension": "inequality",
+    "name": "Deprivation or income"
+  },
+  {
+    "slug": "population-all-ages",
+    "dimension": "population",
+    "name": "All ages"
+  },
+  {
+    "slug": "population-infants-and-early-years-aged-4-years-and-under",
+    "dimension": "population",
+    "name": "Infants and early years (aged 4 years and under)"
+  },
+  {
+    "slug": "population-working-age-adults-aged-18-to-64-years",
+    "dimension": "population",
+    "name": "Working-age adults (aged 18 to 64 years)"
+  }
+]

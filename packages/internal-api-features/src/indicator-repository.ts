@@ -1,12 +1,13 @@
 import { type Database, schema } from '@fphd/db';
 import { slugify, slugProblem } from '@fphd/utils/slug';
-import { and, asc, count, desc, eq, getTableColumns, type SQL, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, getTableColumns, inArray, type SQL, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import type { CiMethodKind, DraftStatus, IndicatorStatus } from './contract.ts';
 
 const {
   ciMethod,
+  classification,
   currentPublishedVersion,
   indicator,
   indicatorClassification,
@@ -14,7 +15,10 @@ const {
   indicatorVersion,
   indicatorVersionAgeRange,
   indicatorVersionLink,
+  topic,
 } = schema;
+
+type ClassificationDimension = schema.ClassificationDimension;
 
 export interface IndicatorAdminRow {
   id: string;
@@ -131,7 +135,16 @@ export type IndicatorDraft = IndicatorDraftVersion & {
   scheduledPublishAtUk: string | null;
   links: IndicatorDraftLink[];
   ageRanges: IndicatorDraftAgeRange[];
+  /** Ordered by title, as the tagging page lists them. */
+  topicIds: string[];
+  /** Ordered by name, as the tagging page lists them. */
+  classifications: IndicatorDraftClassification[];
 };
+
+export interface IndicatorDraftClassification {
+  id: string;
+  dimension: ClassificationDimension;
+}
 
 /** A date and time as a publisher in the UK gives it, whether GMT or BST is in force. */
 export interface UkDateTime {
@@ -221,6 +234,8 @@ export async function getIndicatorDraftState(
       scheduledPublishAtUk,
       links: await linksOf(db, draft.id),
       ageRanges: await ageRangesOf(db, draft.id),
+      topicIds: await topicIdsOf(db, draft.id),
+      classifications: await classificationsOf(db, draft.id),
     },
   };
 }
@@ -234,6 +249,29 @@ async function linksOf(
     .from(indicatorVersionLink)
     .where(eq(indicatorVersionLink.indicatorVersionId, versionId))
     .orderBy(asc(indicatorVersionLink.position));
+}
+
+async function topicIdsOf(db: Database | Transaction, versionId: string): Promise<string[]> {
+  const rows = await db
+    .select({ id: indicatorTopic.topicId })
+    .from(indicatorTopic)
+    .innerJoin(topic, eq(topic.id, indicatorTopic.topicId))
+    .where(eq(indicatorTopic.indicatorVersionId, versionId))
+    .orderBy(asc(topic.title));
+
+  return rows.map(({ id }) => id);
+}
+
+async function classificationsOf(
+  db: Database | Transaction,
+  versionId: string,
+): Promise<IndicatorDraftClassification[]> {
+  return db
+    .select({ id: classification.id, dimension: classification.dimension })
+    .from(indicatorClassification)
+    .innerJoin(classification, eq(classification.id, indicatorClassification.classificationId))
+    .where(eq(indicatorClassification.indicatorVersionId, versionId))
+    .orderBy(asc(classification.name));
 }
 
 async function ageRangesOf(
@@ -280,7 +318,8 @@ export type NewIndicatorDraftAttributes = IndicatorDraftAttributes &
 /** The draft's answers held in tables of their own; each is replaced whole when given. */
 export interface IndicatorDraftLists {
   topicIds?: string[];
-  classificationIds?: string[];
+  /** Each dimension given is replaced; the others are left as they are. */
+  classificationIds?: Partial<Record<ClassificationDimension, string[]>>;
   /** In the order they are shown. */
   links?: IndicatorDraftLink[];
   /** In the order they are shown. */
@@ -467,22 +506,21 @@ export async function createDraftFromPublished(
 
       if (draft === undefined) throw new Error('createDraftFromPublished inserted no version');
 
-      const [topics, classifications, links, ageRanges] = await Promise.all([
-        tx
-          .select({ topicId: indicatorTopic.topicId })
-          .from(indicatorTopic)
-          .where(eq(indicatorTopic.indicatorVersionId, publishedId)),
-        tx
-          .select({ classificationId: indicatorClassification.classificationId })
-          .from(indicatorClassification)
-          .where(eq(indicatorClassification.indicatorVersionId, publishedId)),
+      const [topicIds, classifications, links, ageRanges] = await Promise.all([
+        topicIdsOf(tx, publishedId),
+        classificationsOf(tx, publishedId),
         linksOf(tx, publishedId),
         ageRangesOf(tx, publishedId),
       ]);
 
       await replaceLists(tx, draft.id, {
-        topicIds: topics.map(({ topicId }) => topicId),
-        classificationIds: classifications.map(({ classificationId }) => classificationId),
+        topicIds,
+        classificationIds: Object.fromEntries(
+          schema.CLASSIFICATION_DIMENSIONS.map((dimension) => [
+            dimension,
+            classifications.filter((row) => row.dimension === dimension).map(({ id }) => id),
+          ]),
+        ),
         links,
         ageRanges,
       });
@@ -544,17 +582,30 @@ async function replaceLists(
     }
   }
 
-  if (classificationIds !== undefined) {
+  for (const dimension of schema.CLASSIFICATION_DIMENSIONS) {
+    const ids = classificationIds?.[dimension];
+    if (ids === undefined) continue;
+
     await tx
       .delete(indicatorClassification)
-      .where(eq(indicatorClassification.indicatorVersionId, versionId));
-    if (classificationIds.length > 0) {
-      await tx.insert(indicatorClassification).values(
-        classificationIds.map((classificationId) => ({
-          classificationId,
-          indicatorVersionId: versionId,
-        })),
+      .where(
+        and(
+          eq(indicatorClassification.indicatorVersionId, versionId),
+          inArray(
+            indicatorClassification.classificationId,
+            tx
+              .select({ id: classification.id })
+              .from(classification)
+              .where(eq(classification.dimension, dimension)),
+          ),
+        ),
       );
+    if (ids.length > 0) {
+      await tx
+        .insert(indicatorClassification)
+        .values(
+          ids.map((classificationId) => ({ classificationId, indicatorVersionId: versionId })),
+        );
     }
   }
 

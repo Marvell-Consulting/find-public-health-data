@@ -15,6 +15,7 @@ import * as otherNotesAndCaveats from './indicator-other-notes-and-caveats/route
 import * as polarity from './indicator-polarity/route.tsx';
 import * as publishingDate from './indicator-publishing-date/route.tsx';
 import * as sexAndAges from './indicator-sex-and-ages/route.tsx';
+import * as tagging from './indicator-tagging/route.tsx';
 import * as updateFrequency from './indicator-update-frequency/route.tsx';
 import * as editTopic from './topic-admin/edit-route.tsx';
 import * as newTopic from './topic-admin/new-route.tsx';
@@ -49,6 +50,21 @@ const sexAndAgesUnanswered = {
   specificAgeUnit: '',
   ageOtherDetail: '',
 };
+
+const taggingUnanswered = {
+  topicIds: [],
+  indicatorTypeIds: [],
+  hasRiskFactor: '',
+  riskFactorIds: [],
+  hasFramework: '',
+  frameworkIds: [],
+  addTopic: '',
+  addIndicatorType: '',
+  addRiskFactor: '',
+  addFramework: '',
+};
+
+const tagOptions = { topics: [], indicatorTypes: [], riskFactors: [], frameworks: [] };
 
 const notesAndCaveatsUnanswered = {
   disclosureControl: '',
@@ -197,6 +213,16 @@ const forms: {
     rejected: {
       values: sexAndAgesUnanswered,
       fieldErrors: { sexes: 'Select sexes included', ageType: 'Select the age type' },
+    },
+  },
+  {
+    name: 'tagging',
+    route: tagging,
+    pageTitle: 'Add tags for this indicator',
+    loaderData: { id: indicator.id, options: tagOptions, values: taggingUnanswered },
+    rejected: {
+      values: taggingUnanswered,
+      fieldErrors: { topicIds: 'Select at least one topic' },
     },
   },
   {

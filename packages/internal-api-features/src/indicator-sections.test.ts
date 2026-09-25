@@ -2,7 +2,13 @@ import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { CiMethodRow } from './ci-method-repository.ts';
-import { indicatorTaskKeySchema, type SexAndAges, toFieldErrors } from './contract.ts';
+import {
+  indicatorTaskKeySchema,
+  type SexAndAges,
+  type Tagging,
+  type TagOptions,
+  toFieldErrors,
+} from './contract.ts';
 import type { IndicatorSectionDraft } from './indicator-section.ts';
 import {
   calculationColumns,
@@ -16,6 +22,8 @@ import {
   publishingDateColumns,
   publishingDateServerSection,
   sexAndAgesColumns,
+  taggingColumns,
+  taggingServerSection,
   updateFrequencyColumns,
 } from './indicator-sections.ts';
 import {
@@ -56,6 +64,10 @@ const unanswered: IndicatorSectionDraft = {
   specificAge: null,
   specificAgeUnit: null,
   ageOtherDetail: null,
+  hasRiskFactor: null,
+  hasFramework: null,
+  topicIds: [],
+  classifications: [],
 };
 
 const METHODS: Record<CiMethodRow['kind'], CiMethodRow> = {
@@ -415,6 +427,111 @@ describe('sexAndAgesColumns', () => {
       ageOtherDetail: 'School year 6',
     });
     expect(sexAndAgesColumns.toLists?.(values)).toEqual({ ageRanges: [] });
+  });
+});
+
+const TAGS = {
+  topic: '019fa38f-073f-764e-9ac6-1c4d03b10001',
+  otherTopic: '019fa38f-073f-764e-9ac6-1c4d03b10002',
+  type: '019fa38f-073f-764e-9ac6-1c4d03b10003',
+  riskFactor: '019fa38f-073f-764e-9ac6-1c4d03b10004',
+  framework: '019fa38f-073f-764e-9ac6-1c4d03b10005',
+};
+
+const tagOptions: TagOptions = {
+  topics: [
+    { id: TAGS.topic, name: 'Alcohol' },
+    { id: TAGS.otherTopic, name: 'Cancer' },
+  ],
+  indicatorTypes: [{ id: TAGS.type, name: 'Outcome' }],
+  riskFactors: [{ id: TAGS.riskFactor, name: 'Alcohol' }],
+  frameworks: [{ id: TAGS.framework, name: 'Healthy Child' }],
+};
+
+const tagging: Tagging = {
+  topicIds: [TAGS.otherTopic, TAGS.topic],
+  indicatorTypeIds: [TAGS.type],
+  hasRiskFactor: 'yes',
+  riskFactorIds: [TAGS.riskFactor],
+  hasFramework: 'no',
+  frameworkIds: [],
+};
+
+describe('taggingColumns', () => {
+  it('reads each dimension of the classifications as its own list', () => {
+    expect(
+      taggingColumns.fromDraft({
+        ...unanswered,
+        hasRiskFactor: true,
+        hasFramework: false,
+        topicIds: [TAGS.topic],
+        classifications: [
+          { id: TAGS.framework, dimension: 'framework' },
+          { id: TAGS.type, dimension: 'indicator_type' },
+          { id: '019fa38f-073f-764e-9ac6-1c4d03b10006', dimension: 'population' },
+          { id: TAGS.riskFactor, dimension: 'risk_factor' },
+        ],
+      }),
+    ).toEqual({
+      topicIds: [TAGS.topic],
+      indicatorTypeIds: [TAGS.type],
+      hasRiskFactor: 'yes',
+      riskFactorIds: [TAGS.riskFactor],
+      hasFramework: 'no',
+      frameworkIds: [TAGS.framework],
+    });
+  });
+
+  it('writes the answers and replaces only the dimensions the page asks about', () => {
+    expect(taggingColumns.toAttributes(tagging)).toEqual({
+      hasRiskFactor: true,
+      hasFramework: false,
+    });
+    expect(taggingColumns.toLists?.(tagging)).toEqual({
+      topicIds: [TAGS.otherTopic, TAGS.topic],
+      classificationIds: {
+        indicator_type: [TAGS.type],
+        risk_factor: [TAGS.riskFactor],
+        framework: [],
+      },
+    });
+  });
+});
+
+describe('taggingServerSection', () => {
+  async function fieldErrorsOf(body: object) {
+    const { tags } = createFakeInternalRepositories({
+      tags: { listOptions: vi.fn().mockResolvedValue(tagOptions) },
+    });
+    const section = taggingServerSection(tags);
+    const result = await section.schema.safeParseAsync(body);
+    return result.success ? undefined : toFieldErrors(result.error, section.fields.options);
+  }
+
+  it('accepts tags the page offers', async () => {
+    expect(await fieldErrorsOf(tagging)).toBeUndefined();
+  });
+
+  it('refuses a tag offered under another question, or not at all', async () => {
+    expect(
+      await fieldErrorsOf({
+        ...tagging,
+        topicIds: [TAGS.type],
+        riskFactorIds: ['019fa38f-073f-764e-9ac6-1c4d03b10999'],
+        hasFramework: 'yes',
+        frameworkIds: [TAGS.topic],
+      }),
+    ).toEqual({
+      topicIds: 'Select a topic from the list',
+      riskFactorIds: 'Select a risk factor from the list',
+      frameworkIds: 'Select a framework or programme from the list',
+    });
+  });
+
+  it('does not judge the tags beside a "No", which are dropped', async () => {
+    expect(
+      await fieldErrorsOf({ ...tagging, hasRiskFactor: 'no', riskFactorIds: [TAGS.topic] }),
+    ).toBeUndefined();
   });
 });
 

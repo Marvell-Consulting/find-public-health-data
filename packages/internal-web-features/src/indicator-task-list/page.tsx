@@ -71,7 +71,7 @@ const TASK_GROUPS: readonly TaskGroup[] = [
         path: sectionPath('other-notes-and-caveats'),
       },
       { key: 'links', title: 'Links', path: sectionPath('links') },
-      { key: 'tagging', title: 'Tagging' },
+      { key: 'tagging', title: 'Tagging', path: sectionPath('tagging') },
       { key: 'copyright-and-data-re-use', title: 'Copyright and data re-use' },
     ],
   },
