@@ -15,6 +15,8 @@ import * as justifications from './indicator-justifications/route.tsx';
 import * as links from './indicator-links/route.tsx';
 import * as editIndicatorName from './indicator-name/edit-route.tsx';
 import * as newIndicator from './indicator-name/new-route.tsx';
+import * as denominator from './indicator-numerator-denominator/denominator-route.tsx';
+import * as numerator from './indicator-numerator-denominator/numerator-route.tsx';
 import * as otherComments from './indicator-other-comments/route.tsx';
 import * as otherNotesAndCaveats from './indicator-other-notes-and-caveats/route.tsx';
 import * as polarity from './indicator-polarity/route.tsx';
@@ -128,6 +130,8 @@ const copyrightAndDataReuseUnanswered = {
   dataReuseNonDefault: '',
   dataReuseDetail: '',
 };
+
+const providerSourcesUnanswered = { sources: [], definition: '', providerId: '', sourceId: '' };
 
 const forms: {
   name: string;
@@ -261,6 +265,21 @@ const forms: {
       fieldErrors: { hasLinks: 'Select whether there are any relevant links' },
     },
   },
+  ...(
+    [
+      ['numerator', numerator],
+      ['denominator', denominator],
+    ] as const
+  ).map(([part, route]) => ({
+    name: part,
+    route,
+    pageTitle: `What are the details of the ${part}?`,
+    loaderData: { id: indicator.id, values: providerSourcesUnanswered, providers: [] },
+    rejected: {
+      values: providerSourcesUnanswered,
+      fieldErrors: { sources: `Add at least one data provider for the ${part}` },
+    },
+  })),
   {
     name: 'variance and quality',
     route: varianceAndQuality,
