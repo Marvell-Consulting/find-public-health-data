@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { check, doublePrecision, pgTable, text } from 'drizzle-orm/pg-core';
+import { check, doublePrecision, pgTable, text, unique, uuid } from 'drizzle-orm/pg-core';
 
 import { uuidPrimaryKey } from './helpers.ts';
 
@@ -48,8 +48,25 @@ export const dataSource = pgTable('data_source', {
   url: text(),
 });
 
-export const numeratorDenominatorSource = pgTable('numerator_denominator_source', {
+/** An organisation a numerator or denominator's data comes from: core data, like the CI methods. */
+export const dataProvider = pgTable('data_provider', {
   id: uuidPrimaryKey(),
-  name: text().notNull(),
-  url: text(),
+  name: text().notNull().unique(),
 });
+
+/** One of a provider's named sources; a provider may also be chosen with no specific source. */
+export const dataProviderSource = pgTable(
+  'data_provider_source',
+  {
+    id: uuidPrimaryKey(),
+    providerId: uuid()
+      .notNull()
+      .references(() => dataProvider.id),
+    name: text().notNull(),
+  },
+  // The pair is unique so a choice can reference a source together with its provider.
+  (t) => [
+    unique('data_provider_source_provider_id_name_unique').on(t.providerId, t.name),
+    unique('data_provider_source_id_provider_id_unique').on(t.id, t.providerId),
+  ],
+);

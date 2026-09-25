@@ -15,6 +15,7 @@ const {
   indicatorVersion,
   indicatorVersionAgeRange,
   indicatorVersionLink,
+  indicatorVersionSource,
   topic,
 } = schema;
 
@@ -126,20 +127,33 @@ export type IndicatorDraftAgeRange = Omit<
   'indicatorVersionId' | 'position'
 >;
 
+/** A provider of a numerator's or denominator's data, and its source, null for none specific. */
+export type IndicatorDraftSource = Pick<
+  typeof indicatorVersionSource.$inferSelect,
+  'providerId' | 'sourceId'
+>;
+
+/** The providers and sources of each half of the calculation, in the order they were added. */
+export interface IndicatorDraftSources {
+  numeratorSources: IndicatorDraftSource[];
+  denominatorSources: IndicatorDraftSource[];
+}
+
 /**
  * A draft as the sections read it: its columns, its scheduled publication in UK time, and the
  * lists held in tables of their own.
  */
-export type IndicatorDraft = IndicatorDraftVersion & {
-  /** `scheduledPublishAt` as ISO 8601 with the UK offset then in force, such as `+01:00`. */
-  scheduledPublishAtUk: string | null;
-  links: IndicatorDraftLink[];
-  ageRanges: IndicatorDraftAgeRange[];
-  /** Ordered by title, as the tagging page lists them. */
-  topicIds: string[];
-  /** Ordered by name, as the tagging page lists them. */
-  classifications: IndicatorDraftClassification[];
-};
+export type IndicatorDraft = IndicatorDraftVersion &
+  IndicatorDraftSources & {
+    /** `scheduledPublishAt` as ISO 8601 with the UK offset then in force, such as `+01:00`. */
+    scheduledPublishAtUk: string | null;
+    links: IndicatorDraftLink[];
+    ageRanges: IndicatorDraftAgeRange[];
+    /** Ordered by title, as the tagging page lists them. */
+    topicIds: string[];
+    /** Ordered by name, as the tagging page lists them. */
+    classifications: IndicatorDraftClassification[];
+  };
 
 export interface IndicatorDraftClassification {
   id: string;
@@ -229,17 +243,47 @@ export async function getIndicatorDraftState(
 
   if (draft === null) return { ...state, draft: null };
 
-  const [links, ageRanges, topicIds, classifications] = await Promise.all([
+  const [links, ageRanges, topicIds, classifications, sources] = await Promise.all([
     linksOf(db, draft.id),
     ageRangesOf(db, draft.id),
     topicIdsOf(db, draft.id),
     classificationsOf(db, draft.id),
+    sourcesOf(db, draft.id),
   ]);
 
   return {
     ...state,
-    draft: { ...draft, scheduledPublishAtUk, links, ageRanges, topicIds, classifications },
+    draft: {
+      ...draft,
+      ...sources,
+      scheduledPublishAtUk,
+      links,
+      ageRanges,
+      topicIds,
+      classifications,
+    },
   };
+}
+
+async function sourcesOf(
+  db: Database | Transaction,
+  versionId: string,
+): Promise<IndicatorDraftSources> {
+  const rows = await db
+    .select({
+      part: indicatorVersionSource.part,
+      providerId: indicatorVersionSource.providerId,
+      sourceId: indicatorVersionSource.sourceId,
+    })
+    .from(indicatorVersionSource)
+    .where(eq(indicatorVersionSource.indicatorVersionId, versionId))
+    .orderBy(asc(indicatorVersionSource.position));
+  const ofPart = (part: schema.IndicatorSourcePart) =>
+    rows
+      .filter((row) => row.part === part)
+      .map(({ providerId, sourceId }) => ({ providerId, sourceId }));
+
+  return { numeratorSources: ofPart('numerator'), denominatorSources: ofPart('denominator') };
 }
 
 async function linksOf(
@@ -318,7 +362,7 @@ export type NewIndicatorDraftAttributes = IndicatorDraftAttributes &
   Pick<EditableVersionColumns, 'name'>;
 
 /** The draft's answers held in tables of their own; each is replaced whole when given. */
-export interface IndicatorDraftLists {
+export interface IndicatorDraftLists extends Partial<IndicatorDraftSources> {
   topicIds?: string[];
   /** Each dimension given is replaced; the others are left as they are. */
   classificationIds?: Partial<Record<ClassificationDimension, string[]>>;
@@ -508,11 +552,12 @@ export async function createDraftFromPublished(
 
       if (draft === undefined) throw new Error('createDraftFromPublished inserted no version');
 
-      const [topicIds, classifications, links, ageRanges] = await Promise.all([
+      const [topicIds, classifications, links, ageRanges, sources] = await Promise.all([
         topicIdsOf(tx, publishedId),
         classificationsOf(tx, publishedId),
         linksOf(tx, publishedId),
         ageRangesOf(tx, publishedId),
+        sourcesOf(tx, publishedId),
       ]);
 
       await replaceLists(tx, draft.id, {
@@ -525,6 +570,7 @@ export async function createDraftFromPublished(
         ),
         links,
         ageRanges,
+        ...sources,
       });
 
       return { ok: true, versionId: draft.id };
@@ -573,7 +619,14 @@ async function isPublished(tx: Transaction, indicatorId: string): Promise<boolea
 async function replaceLists(
   tx: Transaction,
   versionId: string,
-  { ageRanges, classificationIds, links, topicIds }: IndicatorDraftLists,
+  {
+    ageRanges,
+    classificationIds,
+    links,
+    topicIds,
+    numeratorSources,
+    denominatorSources,
+  }: IndicatorDraftLists,
 ): Promise<void> {
   if (topicIds !== undefined) {
     await tx.delete(indicatorTopic).where(eq(indicatorTopic.indicatorVersionId, versionId));
@@ -640,5 +693,38 @@ async function replaceLists(
         })),
       );
     }
+  }
+
+  await replaceSources(tx, versionId, 'numerator', numeratorSources);
+  await replaceSources(tx, versionId, 'denominator', denominatorSources);
+}
+
+async function replaceSources(
+  tx: Transaction,
+  versionId: string,
+  part: schema.IndicatorSourcePart,
+  sources: IndicatorDraftSource[] | undefined,
+): Promise<void> {
+  if (sources === undefined) return;
+
+  await tx
+    .delete(indicatorVersionSource)
+    .where(
+      and(
+        eq(indicatorVersionSource.indicatorVersionId, versionId),
+        eq(indicatorVersionSource.part, part),
+      ),
+    );
+
+  if (sources.length > 0) {
+    await tx.insert(indicatorVersionSource).values(
+      sources.map(({ providerId, sourceId }, position) => ({
+        indicatorVersionId: versionId,
+        part,
+        position,
+        providerId,
+        sourceId,
+      })),
+    );
   }
 }

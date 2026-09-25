@@ -216,6 +216,40 @@ describe('getPublishedIndicatorById', () => {
       expect.arrayContaining(['England', 'GPs', 'ICBs', 'NHS regions', 'Regions (statistical)']),
     );
   });
+
+  it("lists each part's providers and sources in order, a provider alone where none is named", async () => {
+    const [version] = await db.execute<{ id: string }>(
+      sql`SELECT id FROM current_published_version WHERE indicator_id = ${diabetesId}`,
+    );
+    await db.execute(
+      sql`DELETE FROM indicator_version_source WHERE indicator_version_id = ${version?.id}`,
+    );
+    // Inserted out of position order, so the order read back is the positions'.
+    await db.execute(
+      sql`INSERT INTO indicator_version_source
+            (indicator_version_id, part, position, provider_id, source_id)
+          SELECT ${version?.id}, entry.part, entry.position, p.id, s.id
+          FROM (VALUES
+            ('numerator', 2, 'Estimated', NULL),
+            ('denominator', 0, 'Office for National Statistics (ONS)', 'Mid-year population estimates'),
+            ('numerator', 0, 'NHS England (NHSE)', 'Hospital Episode Statistics (HES)'),
+            ('numerator', 1, 'NHS England (NHSE)', 'Admitted Patient Care (APC)')
+          ) AS entry (part, position, provider, source)
+          JOIN data_provider p ON p.name = entry.provider
+          LEFT JOIN data_provider_source s ON s.provider_id = p.id AND s.name = entry.source`,
+    );
+
+    const indicator = await getPublishedIndicatorById(db, diabetesId);
+
+    expect(indicator?.numeratorSources).toEqual([
+      { provider: 'NHS England (NHSE)', source: 'Hospital Episode Statistics (HES)' },
+      { provider: 'NHS England (NHSE)', source: 'Admitted Patient Care (APC)' },
+      { provider: 'Estimated', source: null },
+    ]);
+    expect(indicator?.denominatorSources).toEqual([
+      { provider: 'Office for National Statistics (ONS)', source: 'Mid-year population estimates' },
+    ]);
+  });
 });
 
 describe('getIndicatorObservations', () => {

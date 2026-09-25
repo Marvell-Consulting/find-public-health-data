@@ -3,7 +3,7 @@ import { POLARITY_LABELS } from '@fphd/utils/polarity';
 import { UPDATE_FREQUENCY_LABELS } from '@fphd/utils/update-frequency';
 import type { ReactNode } from 'react';
 import { periodCovered, recentTrend } from './data.ts';
-import type { IndicatorDetail, IndicatorObservation } from './loader.ts';
+import type { IndicatorDetail, IndicatorObservation, IndicatorProviderSource } from './loader.ts';
 import { TrendTag } from './trend-tag.tsx';
 
 const CONFIDENCE_LEVEL_LABELS: Record<string, string> = {
@@ -124,18 +124,23 @@ export function IndicatorSummary({
   );
 }
 
+/** A provider alone where it has no specific source. */
+function providerSourceLabel({ provider, source }: IndicatorProviderSource): string {
+  return source === null ? provider : `${provider}: ${source}`;
+}
+
 function CalculationPart({
   title,
   explainer,
-  source,
+  sources,
   definition,
 }: {
   title: string;
   explainer: string;
-  source: IndicatorDetail['dataSource'];
+  sources: IndicatorProviderSource[];
   definition: string | null;
 }) {
-  if (!source && !definition) {
+  if (sources.length === 0 && !definition) {
     return null;
   }
 
@@ -145,7 +150,20 @@ function CalculationPart({
       <p className="govuk-body">{explainer}</p>
       <SummaryList
         items={[
-          ...(source ? [{ name: 'Sources', children: sourceLink(source) }] : []),
+          ...(sources.length > 0
+            ? [
+                {
+                  name: 'Sources',
+                  children: (
+                    <ul className="govuk-list">
+                      {sources.map((entry) => (
+                        <li key={providerSourceLabel(entry)}>{providerSourceLabel(entry)}</li>
+                      ))}
+                    </ul>
+                  ),
+                },
+              ]
+            : []),
           ...(definition
             ? [
                 {
@@ -207,13 +225,13 @@ export function BackgroundInformation({ indicator }: { indicator: IndicatorDetai
       <CalculationPart
         title="Numerator"
         explainer="This is the count, or raw number, of the thing an indicator measures."
-        source={indicator.numeratorSource}
+        sources={indicator.numeratorSources}
         definition={indicator.numeratorDefinition}
       />
       <CalculationPart
         title="Denominator"
         explainer="This is the total eligible group an indicator covers."
-        source={indicator.denominatorSource}
+        sources={indicator.denominatorSources}
         definition={indicator.denominatorDefinition}
       />
       {indicator.methodology ? (

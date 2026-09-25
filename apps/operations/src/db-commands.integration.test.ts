@@ -137,6 +137,13 @@ describe('db seed-dummy-data (integration)', () => {
       );
 
       await importCoreData(context);
+      await sql`DELETE FROM data_provider_source`;
+      await sql`DELETE FROM data_provider`;
+      await expect(seedDummyData(context)).rejects.toThrow(
+        'No data providers in the database — run `db import-core-data` before seeding',
+      );
+
+      await importCoreData(context);
       await expect(assertCoreDataPresent(sql)).resolves.toBeUndefined();
     } finally {
       await sql.end();

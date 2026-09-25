@@ -16,6 +16,7 @@ import {
   rebuildReadModelTables,
   resetDatabase,
   SEED_TABLES,
+  SEEDED_TABLES,
   seedDummyTables,
   seedPublishedTables,
 } from '@fphd/db/operations';
@@ -65,7 +66,7 @@ export async function bootstrap({ sql, config }: CommandContext): Promise<void> 
  * production run this too.
  */
 export async function importCoreData({ sql, logger }: CommandContext): Promise<void> {
-  const { topics, ciMethods, classifications } = await importCoreDataFromFiles(sql);
+  const { topics, ciMethods, classifications, dataProviders } = await importCoreDataFromFiles(sql);
   logger.info({ ...topics.summary }, 'Topics imported');
   for (const topic of topics.orphaned) {
     logger.warn(
@@ -85,6 +86,16 @@ export async function importCoreData({ sql, logger }: CommandContext): Promise<v
     logger.warn(
       { id: row.id, slug: row.slug },
       'Classification in the database but absent from the file; left in place',
+    );
+  }
+  logger.info(
+    { providers: dataProviders.providers, sources: dataProviders.sources },
+    'Data providers imported',
+  );
+  for (const row of dataProviders.orphaned) {
+    logger.warn(
+      { id: row.id, providerOrSourceName: row.name },
+      'Data provider or source in the database but absent from the file; left in place',
     );
   }
 }
@@ -175,7 +186,7 @@ export async function importPublishedSnapshot({
       }
       // The dummy seed's planner statistics would give the full-data
       // read-model rebuild a misleading plan. Analyze before those large queries.
-      for (const table of SEED_TABLES) await tx.unsafe(`ANALYZE "${table}"`);
+      for (const table of SEEDED_TABLES) await tx.unsafe(`ANALYZE "${table}"`);
       await rebuildReadModelTables(tx);
       return result;
     });

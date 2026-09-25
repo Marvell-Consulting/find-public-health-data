@@ -34,6 +34,7 @@ export {
   assertSeedingAllowed,
   readCsvHeader,
   SEED_TABLES,
+  SEEDED_TABLES,
   type SeedSummary,
   seedDummyTables,
   seedPublishedTables,
