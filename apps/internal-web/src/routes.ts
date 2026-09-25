@@ -75,6 +75,10 @@ export default [
         'publish/indicators/:id/publishing-date',
         '../../../packages/internal-web-features/src/indicator-publishing-date/route.tsx',
       ),
+      route(
+        'publish/indicators/:id/links',
+        '../../../packages/internal-web-features/src/indicator-links/route.tsx',
+      ),
     ]),
     layout('./admin.tsx', [
       route('manage', './manage.tsx'),

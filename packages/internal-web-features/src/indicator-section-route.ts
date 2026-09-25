@@ -11,9 +11,12 @@ export const sectionBackLinkHandle = backLinkHandle<{ id: string }>(({ id }) =>
 );
 
 /** The draft's answers, or what was typed and why it was refused after a rejected submission. */
-export function useSectionForm<Field extends string>(): SectionPageProps<Field> {
-  const { values } = useLoaderData<{ values: FormValues<Field> }>();
-  const rejected = useActionData<FormFailure<Field> | undefined>();
+export function useSectionForm<
+  Field extends string,
+  Values = FormValues<Field>,
+>(): SectionPageProps<Field, Values> {
+  const { values } = useLoaderData<{ values: Values }>();
+  const rejected = useActionData<FormFailure<Field, Values> | undefined>();
 
   return { fieldErrors: rejected?.fieldErrors, values: rejected?.values ?? values };
 }

@@ -120,7 +120,7 @@ export function internalIndicatorsRouter(
     }
 
     const { sub } = requireApiSession(response);
-    // No memberships: the repository leaves the ones it is not given alone.
+    // No lists: the repository leaves the ones it is not given alone.
     const result = await indicators.updateDraft(id.data, submission.data, {}, sub);
 
     if (!result.ok) {

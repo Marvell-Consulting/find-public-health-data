@@ -57,8 +57,14 @@ afterAll(async () => {
   await testDb.drop();
 });
 
-const { classification, indicator, indicatorClassification, indicatorTopic, indicatorVersion } =
-  schema;
+const {
+  classification,
+  indicator,
+  indicatorClassification,
+  indicatorTopic,
+  indicatorVersion,
+  indicatorVersionLink,
+} = schema;
 
 const ACTOR = 'integration-test';
 
@@ -164,6 +170,18 @@ async function indicatorWithTwoPublications(): Promise<{
     currentName,
     currentSlug: `current-publication-${nth}`,
   };
+}
+
+const commentary = { url: 'https://www.gov.uk/statistics', text: 'Statistical commentary' };
+const fingertips = { url: 'https://fingertips.phe.org.uk/', text: 'Fingertips' };
+
+/** A version's links as the table holds them, in order. */
+async function linksOf(versionId: string): Promise<{ url: string; text: string }[]> {
+  return db
+    .select({ url: indicatorVersionLink.url, text: indicatorVersionLink.text })
+    .from(indicatorVersionLink)
+    .where(eq(indicatorVersionLink.indicatorVersionId, versionId))
+    .orderBy(indicatorVersionLink.position);
 }
 
 async function topicIdsOf(versionId: string): Promise<string[]> {
@@ -387,7 +405,7 @@ describe('createIndicatorDraft', () => {
 });
 
 describe('updateIndicatorDraft', () => {
-  it('rewrites the draft columns and replaces its memberships', async () => {
+  it('rewrites the draft columns and replaces its lists', async () => {
     const created = await newDraft('Before');
     const [topic] = await db.select({ id: schema.topic.id }).from(schema.topic).limit(1);
     const [classified] = await db.select({ id: classification.id }).from(classification).limit(1);
@@ -490,7 +508,7 @@ describe('updateIndicatorDraft', () => {
     expect(await slugOf(created.versionId)).toBe('a-name-moved-to');
   });
 
-  it('leaves the memberships alone when the update names none', async () => {
+  it('leaves the lists alone when the update names none', async () => {
     const created = await newDraft('Keeps its links');
     const [topic] = await db.select({ id: schema.topic.id }).from(schema.topic).limit(1);
     const [classified] = await db.select({ id: classification.id }).from(classification).limit(1);
@@ -499,7 +517,7 @@ describe('updateIndicatorDraft', () => {
       db,
       created.indicatorId,
       {},
-      { topicIds: [topic.id], classificationIds: [classified.id] },
+      { topicIds: [topic.id], classificationIds: [classified.id], links: [commentary] },
       ACTOR,
     );
 
@@ -517,6 +535,28 @@ describe('updateIndicatorDraft', () => {
       .from(indicatorClassification)
       .where(eq(indicatorClassification.indicatorVersionId, created.versionId));
     expect(classifications).toEqual([{ id: classified.id }]);
+    expect(await linksOf(created.versionId)).toEqual([commentary]);
+  });
+
+  it('writes the links in the order given, replacing those held before', async () => {
+    const created = await newDraft('Links in order');
+
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      { hasLinks: true },
+      { links: [commentary, fingertips] },
+      ACTOR,
+    );
+    const first = await getIndicatorDraftState(db, created.indicatorId);
+    await updateIndicatorDraft(db, created.indicatorId, {}, { links: [fingertips] }, ACTOR);
+    const replaced = await getIndicatorDraftState(db, created.indicatorId);
+    await updateIndicatorDraft(db, created.indicatorId, { hasLinks: false }, { links: [] }, ACTOR);
+    const cleared = await getIndicatorDraftState(db, created.indicatorId);
+
+    expect(first?.draft).toMatchObject({ hasLinks: true, links: [commentary, fingertips] });
+    expect(replaced?.draft?.links).toEqual([fingertips]);
+    expect(cleared?.draft).toMatchObject({ hasLinks: false, links: [] });
   });
 
   it("writes a section's answers to the draft alone, leaving its name and slug", async () => {
@@ -644,7 +684,7 @@ describe('updateIndicatorDraft', () => {
 });
 
 describe('createDraftFromPublished', () => {
-  it('copies the published version columns and memberships into a new draft', async () => {
+  it('copies the published version columns and lists into a new draft', async () => {
     const target = seededIds[0];
     if (target === undefined) throw new Error('The seed holds no indicators');
     const publishedId = await publishedVersionId(target);
@@ -751,6 +791,26 @@ describe('createDraftFromPublished', () => {
     if (!result.ok) throw new Error('expected a draft');
     const state = await getIndicatorDraftState(db, indicatorId);
     expect(state?.draft).toMatchObject({ scheduledPublishAt: null, scheduledPublishAtUk: null });
+  });
+
+  it('copies the links of the published version in order, leaving them on it too', async () => {
+    const { indicatorId, currentId, supersededId } = await indicatorWithTwoPublications();
+    await db
+      .update(indicatorVersion)
+      .set({ hasLinks: true })
+      .where(eq(indicatorVersion.id, currentId));
+    await db.insert(indicatorVersionLink).values([
+      { indicatorVersionId: currentId, position: 0, ...fingertips },
+      { indicatorVersionId: currentId, position: 1, ...commentary },
+      { indicatorVersionId: supersededId, position: 0, url: 'https://www.gov.uk/old', text: 'Old' },
+    ]);
+
+    const result = await createDraftFromPublished(db, indicatorId, ACTOR);
+
+    if (!result.ok) throw new Error('expected a draft');
+    const state = await getIndicatorDraftState(db, indicatorId);
+    expect(state?.draft).toMatchObject({ hasLinks: true, links: [fingertips, commentary] });
+    expect(await linksOf(currentId)).toEqual([fingertips, commentary]);
   });
 
   it('refuses a second draft for the same indicator', async () => {

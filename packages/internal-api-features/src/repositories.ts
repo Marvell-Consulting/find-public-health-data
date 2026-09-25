@@ -11,7 +11,7 @@ import {
   type IndicatorAdminDetailRow,
   type IndicatorAdminRows,
   type IndicatorDraftAttributes,
-  type IndicatorDraftMemberships,
+  type IndicatorDraftLists,
   type IndicatorDraftStateRow,
   listIndicatorsPage,
   type NewIndicatorDraftAttributes,
@@ -53,10 +53,10 @@ export interface InternalIndicatorRepository {
   updateDraft(
     indicatorId: string,
     attributes: IndicatorDraftAttributes,
-    memberships: IndicatorDraftMemberships,
+    lists: IndicatorDraftLists,
     actor: string,
   ): Promise<UpdateIndicatorDraftResult>;
-  /** Opens a draft from the published version, copying its columns and memberships. */
+  /** Opens a draft from the published version, copying its columns and lists. */
   draftFromPublished(indicatorId: string, actor: string): Promise<CreateDraftFromPublishedResult>;
   /** The instant a UK date and time names, as ISO 8601 with its UK offset; null if skipped. */
   ukInstant(dateTime: UkDateTime): Promise<string | null>;
@@ -89,8 +89,8 @@ export function createInternalRepositories(db: Database): InternalRepositories {
       findById: (id) => getIndicatorById(db, id),
       findDraftState: (id) => getIndicatorDraftState(db, id),
       createDraft: (attributes, actor) => createIndicatorDraft(db, attributes, actor),
-      updateDraft: (indicatorId, attributes, memberships, actor) =>
-        updateIndicatorDraft(db, indicatorId, attributes, memberships, actor),
+      updateDraft: (indicatorId, attributes, lists, actor) =>
+        updateIndicatorDraft(db, indicatorId, attributes, lists, actor),
       draftFromPublished: (indicatorId, actor) => createDraftFromPublished(db, indicatorId, actor),
       ukInstant: (dateTime) => ukInstant(db, dateTime),
     },

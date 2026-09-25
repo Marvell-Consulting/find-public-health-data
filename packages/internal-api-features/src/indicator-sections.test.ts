@@ -10,6 +10,7 @@ import {
   confidenceIntervalsServerSection,
   definitionAndRationaleColumns,
   indicatorSectionsRouter,
+  linksColumns,
   otherNotesAndCaveatsColumns,
   polarityColumns,
   publishingDateColumns,
@@ -46,6 +47,8 @@ const unanswered: IndicatorSectionDraft = {
   otherNotesNeeded: null,
   otherNotesDetail: null,
   scheduledPublishAtUk: null,
+  hasLinks: null,
+  links: [],
 };
 
 const METHODS: Record<CiMethodRow['kind'], CiMethodRow> = {
@@ -69,6 +72,11 @@ const METHODS: Record<CiMethodRow['kind'], CiMethodRow> = {
   },
 };
 
+const links = [
+  { url: 'https://www.gov.uk/government/statistics', text: 'Statistical commentary' },
+  { url: 'https://fingertips.phe.org.uk/', text: 'Fingertips' },
+];
+
 // Every follow-up filled in, as a form without JavaScript may send them.
 const everyAnswer = {
   ciMethodModified: 'yes',
@@ -80,7 +88,7 @@ describe('indicatorSectionsRouter', () => {
   const sectionKeys = indicatorTaskKeySchema.options.filter((key) => key !== 'name');
 
   it.each(sectionKeys)(
-    'serves the %s section, answering every unanswered field as null',
+    'serves the %s section, answering every unanswered field as null and every list as empty',
     async (key) => {
       const repositories = createFakeInternalRepositories({
         indicators: { findDraftState: vi.fn().mockResolvedValue({ draft: unanswered }) },
@@ -93,9 +101,41 @@ describe('indicatorSectionsRouter', () => {
         .set('Cookie', await testSessionCookie(['internal', 'publisher']));
 
       expect(response.status).toBe(200);
-      expect(Object.values(response.body).every((answer) => answer === null)).toBe(true);
+      expect(
+        Object.values(response.body).every(
+          (answer) => answer === null || (Array.isArray(answer) && answer.length === 0),
+        ),
+      ).toBe(true);
     },
   );
+
+  it('writes the lists a section gives beside its columns', async () => {
+    const updateDraft = vi.fn().mockResolvedValue({ ok: true });
+    const repositories = createFakeInternalRepositories({
+      indicators: {
+        updateDraft,
+        findDraftState: vi
+          .fn()
+          .mockResolvedValue({ draft: { ...unanswered, hasLinks: true, links } }),
+      },
+    });
+
+    const response = await request(
+      createRouterTestApp(indicatorSectionsRouter(repositories, testSessionVerifier)),
+    )
+      .put('/api/internal/indicators/00000000-0000-7000-8000-000000000001/links')
+      .set('Cookie', await testSessionCookie(['internal', 'publisher']))
+      .send({ hasLinks: 'yes', links });
+
+    expect(response.status).toBe(200);
+    expect(updateDraft).toHaveBeenCalledWith(
+      '00000000-0000-7000-8000-000000000001',
+      { hasLinks: true },
+      { links },
+      'test-user',
+    );
+    expect(response.body).toEqual({ hasLinks: 'yes', links });
+  });
 });
 
 describe('definitionAndRationaleColumns', () => {
@@ -269,6 +309,30 @@ describe('otherNotesAndCaveatsColumns', () => {
     expect(
       otherNotesAndCaveatsColumns.fromDraft({ ...unanswered, roundingApplied }).roundingApplied,
     ).toBe(answer);
+  });
+});
+
+describe('linksColumns', () => {
+  it.each([
+    [true, 'yes'],
+    [false, 'no'],
+    [null, null],
+  ])('reads whether there are links, %s, as %s', (hasLinks, answer) => {
+    expect(linksColumns.fromDraft({ ...unanswered, hasLinks }).hasLinks).toBe(answer);
+  });
+
+  it('reads the links in the order they are held', () => {
+    expect(linksColumns.fromDraft({ ...unanswered, hasLinks: true, links }).links).toEqual(links);
+  });
+
+  it('writes the links beside "Yes"', () => {
+    expect(linksColumns.toAttributes({ hasLinks: 'yes', links })).toEqual({ hasLinks: true });
+    expect(linksColumns.toLists?.({ hasLinks: 'yes', links })).toEqual({ links });
+  });
+
+  it('clears the links beside "No"', () => {
+    expect(linksColumns.toAttributes({ hasLinks: 'no', links })).toEqual({ hasLinks: false });
+    expect(linksColumns.toLists?.({ hasLinks: 'no', links })).toEqual({ links: [] });
   });
 });
 

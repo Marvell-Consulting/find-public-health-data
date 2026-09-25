@@ -3,14 +3,18 @@ import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { Router } from 'express';
 
 import { indicatorIdSchema, toFieldErrors } from './contract.ts';
-import type { IndicatorDraft, IndicatorDraftAttributes } from './indicator-repository.ts';
+import type {
+  IndicatorDraft,
+  IndicatorDraftAttributes,
+  IndicatorDraftLists,
+} from './indicator-repository.ts';
 import type { IndicatorSection, IndicatorSectionFields } from './indicator-section-contract.ts';
 import type { InternalIndicatorRepository } from './repositories.ts';
 
 /** The draft columns a section writes: never the name, whose slug is the name page's concern. */
 export type IndicatorSectionAttributes = Omit<IndicatorDraftAttributes, 'name'>;
 
-/** The draft columns the sections read; each section adds the ones its form writes. */
+/** The draft columns and lists the sections read; each section adds the ones its form writes. */
 export type IndicatorSectionDraft = Pick<
   IndicatorDraft,
   | 'definition'
@@ -33,12 +37,23 @@ export type IndicatorSectionDraft = Pick<
   | 'otherNotesNeeded'
   | 'otherNotesDetail'
   | 'scheduledPublishAtUk'
+  | 'hasLinks'
+  | 'links'
 >;
 
-/** How a section's answers map onto the draft's columns, in both directions. */
-export interface IndicatorSectionColumns<Field extends string, Values> {
-  fromDraft(draft: IndicatorSectionDraft): Record<Field, string | null>;
+/**
+ * How a section's answers map onto the draft's columns and lists, in both directions. The
+ * answers are each field's text, or null, unless the section says otherwise.
+ */
+export interface IndicatorSectionColumns<
+  Field extends string,
+  Values,
+  Answers = Record<Field, string | null>,
+> {
+  fromDraft(draft: IndicatorSectionDraft): Answers;
   toAttributes(values: Values): IndicatorSectionAttributes;
+  /** For a section that also writes lists; one it returns replaces the draft's. */
+  toLists?(values: Values): IndicatorDraftLists;
 }
 
 /** The draft's text columns, which a field of the same name reads and writes as it is. */
@@ -69,11 +84,11 @@ export function sameNamedColumns<
  * draft first, so until then the section does not exist: 404 `no_draft`, told apart from an
  * indicator that does not exist at all.
  */
-export function indicatorSectionRouter<Field extends string, Values>(
+export function indicatorSectionRouter<Field extends string, Values, Input, Answers>(
   indicators: InternalIndicatorRepository,
   session: JwtSessionVerifier,
-  section: IndicatorSection<Field, Values>,
-  columns: IndicatorSectionColumns<Field, Values>,
+  section: IndicatorSection<Field, Values, Input>,
+  columns: IndicatorSectionColumns<Field, Values, Answers>,
 ): Router {
   const router = Router();
   const requirePublisher = requireJwtRole(session, 'publisher');
@@ -119,7 +134,8 @@ export function indicatorSectionRouter<Field extends string, Values>(
 
     const { sub } = requireApiSession(response);
     const attributes = columns.toAttributes(submission.data);
-    const result = await indicators.updateDraft(id.data, attributes, {}, sub);
+    const lists = columns.toLists?.(submission.data) ?? {};
+    const result = await indicators.updateDraft(id.data, attributes, lists, sub);
 
     // With no name in the write there is no slug to collide on, so a refusal means no draft.
     if (!result.ok) {

@@ -1,5 +1,6 @@
 import {
   areConfidenceIntervalsComplete,
+  areLinksComplete,
   type CiMethodKind,
   calculationSection,
   definitionAndRationaleSection,
@@ -19,6 +20,7 @@ import {
   calculationColumns,
   confidenceIntervalsColumns,
   definitionAndRationaleColumns,
+  linksColumns,
   otherNotesAndCaveatsColumns,
   polarityColumns,
   publishingDateColumns,
@@ -73,6 +75,7 @@ export function indicatorTaskList({
     'update-frequency': complete(updateFrequencySection, updateFrequencyColumns),
     'other-notes-and-caveats': complete(otherNotesAndCaveatsSection, otherNotesAndCaveatsColumns),
     'publishing-date': complete(publishingDateSection, publishingDateColumns),
+    links: taskStatus(areLinksComplete(linksColumns.fromDraft(draft))),
   };
 
   return {
