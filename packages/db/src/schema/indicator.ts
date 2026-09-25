@@ -70,6 +70,8 @@ export const indicatorVersion = pgTable(
       .references(() => indicator.id),
     status: text({ enum: INDICATOR_VERSION_STATUSES }).notNull().default('draft'),
     publishedAt: timestamp({ withTimezone: true }),
+    // When the publisher asks for this version to be published; published_at records when it was.
+    scheduledPublishAt: timestamp({ withTimezone: true }),
     // A draft is only ever created from the page that asks for a name.
     name: text().notNull(),
     // Derived from the name by slugify, and the indicator's public address. An exclusion

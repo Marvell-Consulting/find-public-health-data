@@ -7,11 +7,13 @@ import type { IndicatorSectionDraft } from './indicator-section.ts';
 import {
   calculationColumns,
   confidenceIntervalsColumns,
+  confidenceIntervalsServerSection,
   definitionAndRationaleColumns,
   indicatorSectionsRouter,
-  judgedConfidenceIntervalsSection,
   otherNotesAndCaveatsColumns,
   polarityColumns,
+  publishingDateColumns,
+  publishingDateServerSection,
   updateFrequencyColumns,
 } from './indicator-sections.ts';
 import {
@@ -43,6 +45,7 @@ const unanswered: IndicatorSectionDraft = {
   caveatsDetail: null,
   otherNotesNeeded: null,
   otherNotesDetail: null,
+  scheduledPublishAtUk: null,
 };
 
 const METHODS: Record<CiMethodRow['kind'], CiMethodRow> = {
@@ -269,27 +272,27 @@ describe('otherNotesAndCaveatsColumns', () => {
   });
 });
 
-describe('judgedConfidenceIntervalsSection', () => {
-  function judge(
+describe('confidenceIntervalsServerSection', () => {
+  function submit(
     body: object,
     findById = vi.fn(async (id: string) =>
       Object.values(METHODS).find((method) => method.id === id),
     ),
   ) {
     const { ciMethods } = createFakeInternalRepositories({ ciMethods: { findById } });
-    const section = judgedConfidenceIntervalsSection(ciMethods);
+    const section = confidenceIntervalsServerSection(ciMethods);
 
     return { findById, submission: section.schema.safeParseAsync(body), section };
   }
 
   async function fieldErrorsOf(body: object) {
-    const { section, submission } = judge(body);
+    const { section, submission } = submit(body);
     const result = await submission;
     return result.success ? undefined : toFieldErrors(result.error, section.fields.options);
   }
 
   it('adds the kind of the chosen method', async () => {
-    const result = await judge({ ...everyAnswer, ciMethodId: METHODS.other.id }).submission;
+    const result = await submit({ ...everyAnswer, ciMethodId: METHODS.other.id }).submission;
 
     expect(result.success && result.data.kind).toBe('other');
   });
@@ -301,7 +304,7 @@ describe('judgedConfidenceIntervalsSection', () => {
   });
 
   it('refuses an unchosen method without looking for it', async () => {
-    const { findById, submission } = judge({ ...everyAnswer, ciMethodId: '' });
+    const { findById, submission } = submit({ ...everyAnswer, ciMethodId: '' });
 
     expect((await submission).success).toBe(false);
     expect(findById).not.toHaveBeenCalled();
@@ -316,5 +319,120 @@ describe('judgedConfidenceIntervalsSection', () => {
         ciMethodOtherDetail: '',
       }),
     ).toEqual({ ciMethodModified: 'Select whether any modifications were used' });
+  });
+});
+
+const publishingDate = {
+  publishingDateDay: '14',
+  publishingDateMonth: '9',
+  publishingDateYear: '2027',
+  publishingTimeHour: '09',
+  publishingTimeMinute: '30',
+};
+
+describe('publishingDateColumns', () => {
+  it.each([
+    ['in BST', '2027-09-14T09:30:00+01:00', publishingDate],
+    [
+      'in GMT, as the clock showed it',
+      '2027-01-04T15:05:00+00:00',
+      {
+        publishingDateDay: '4',
+        publishingDateMonth: '1',
+        publishingDateYear: '2027',
+        publishingTimeHour: '15',
+        publishingTimeMinute: '05',
+      },
+    ],
+  ])(
+    'reads a scheduled publication %s as its UK date and time',
+    (_, scheduledPublishAtUk, answers) => {
+      expect(publishingDateColumns.fromDraft({ ...unanswered, scheduledPublishAtUk })).toEqual(
+        answers,
+      );
+    },
+  );
+
+  it('reads an unscheduled publication as unanswered', () => {
+    expect(Object.values(publishingDateColumns.fromDraft(unanswered))).toEqual(Array(5).fill(null));
+  });
+
+  it('writes the instant the answers name', () => {
+    expect(
+      publishingDateColumns.toAttributes({
+        ...publishingDate,
+        scheduledPublishAt: '2027-09-14T09:30:00+01:00',
+      }),
+    ).toEqual({ scheduledPublishAt: new Date('2027-09-14T08:30:00.000Z') });
+  });
+});
+
+describe('publishingDateServerSection', () => {
+  // 09:30 BST on 14 September 2027.
+  const now = new Date('2027-09-14T08:30:00.000Z');
+
+  function submit(body: object, instant: string | null = '2027-10-12T09:30:00+01:00') {
+    const ukInstant = vi.fn().mockResolvedValue(instant);
+    const { indicators } = createFakeInternalRepositories({ indicators: { ukInstant } });
+    const section = publishingDateServerSection(indicators, () => now);
+
+    return { section, submission: section.schema.safeParseAsync(body), ukInstant };
+  }
+
+  async function fieldErrorsOf({ section, submission }: ReturnType<typeof submit>) {
+    const result = await submission;
+    return result.success ? undefined : toFieldErrors(result.error, section.fields.options);
+  }
+
+  it('adds the instant the UK date and time name, 28 days ahead', async () => {
+    const { submission, ukInstant } = submit({
+      ...publishingDate,
+      publishingDateDay: '12',
+      publishingDateMonth: '10',
+    });
+    const result = await submission;
+
+    expect(ukInstant).toHaveBeenCalledWith({ year: 2027, month: 10, day: 12, hour: 9, minute: 30 });
+    expect(result.success && result.data.scheduledPublishAt).toBe('2027-10-12T09:30:00+01:00');
+  });
+
+  it.each([
+    ['one minute short of 28 days ahead', '2027-10-12T09:29:00+01:00'],
+    ['now', '2027-09-14T09:30:00+01:00'],
+    ['one minute in the past', '2027-09-14T09:29:00+01:00'],
+  ])('refuses an instant %s, on the parts of the date', async (_, instant) => {
+    const message = 'Publishing date and time must be at least 28 days in the future';
+
+    expect(await fieldErrorsOf(submit(publishingDate, instant))).toEqual({
+      publishingDateDay: message,
+      publishingDateMonth: message,
+      publishingDateYear: message,
+    });
+  });
+
+  it('refuses a time the spring clock change skips, on the parts of the time', async () => {
+    const skipped = {
+      publishingDateDay: '26',
+      publishingDateMonth: '3',
+      publishingDateYear: '2028',
+      publishingTimeHour: '01',
+      publishingTimeMinute: '30',
+    };
+
+    expect(await fieldErrorsOf(submit(skipped, null))).toEqual({
+      publishingTimeHour: 'Publishing time must be a real time',
+      publishingTimeMinute: 'Publishing time must be a real time',
+    });
+  });
+
+  it('refuses a date that is not real without converting it', async () => {
+    const { submission, ukInstant } = submit({
+      ...publishingDate,
+      publishingDateDay: '31',
+      publishingDateMonth: '2',
+    });
+
+    expect((await submission).success).toBe(false);
+    expect(ukInstant).not.toHaveBeenCalled();
   });
 });

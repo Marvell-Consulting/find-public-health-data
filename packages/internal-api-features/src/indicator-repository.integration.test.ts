@@ -19,6 +19,7 @@ import {
   getIndicatorDraftState,
   listIndicatorsPage,
   SLUG_LOCK_NAMESPACE,
+  ukInstant,
   updateIndicatorDraft,
 } from './indicator-repository.ts';
 
@@ -738,6 +739,20 @@ describe('createDraftFromPublished', () => {
     });
   });
 
+  it('leaves the new draft unscheduled, whenever the published version was scheduled for', async () => {
+    const { indicatorId, currentId } = await indicatorWithTwoPublications();
+    await db
+      .update(indicatorVersion)
+      .set({ scheduledPublishAt: new Date('2029-12-01T09:30:00.000Z') })
+      .where(eq(indicatorVersion.id, currentId));
+
+    const result = await createDraftFromPublished(db, indicatorId, ACTOR);
+
+    if (!result.ok) throw new Error('expected a draft');
+    const state = await getIndicatorDraftState(db, indicatorId);
+    expect(state?.draft).toMatchObject({ scheduledPublishAt: null, scheduledPublishAtUk: null });
+  });
+
   it('refuses a second draft for the same indicator', async () => {
     const target = seededIds[0];
     if (target === undefined) throw new Error('The seed holds no indicators');
@@ -842,9 +857,97 @@ describe('getIndicatorDraftState', () => {
     expect(after?.draftCiMethodKind).toBe('none');
   });
 
+  it('reads the scheduled publication as it was written, and in UK time', async () => {
+    const created = await newDraft('A draft with a publishing date');
+
+    const before = await getIndicatorDraftState(db, created.indicatorId);
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      { scheduledPublishAt: new Date('2027-09-14T08:30:00.000Z') },
+      {},
+      ACTOR,
+    );
+    const after = await getIndicatorDraftState(db, created.indicatorId);
+
+    expect(before?.draft).toMatchObject({ scheduledPublishAt: null, scheduledPublishAtUk: null });
+    expect(after?.draft).toMatchObject({
+      scheduledPublishAt: new Date('2027-09-14T08:30:00.000Z'),
+      scheduledPublishAtUk: '2027-09-14T09:30:00+01:00',
+    });
+  });
+
   it('finds nothing for an indicator that does not exist', async () => {
     await expect(
       getIndicatorDraftState(db, '00000000-0000-7000-8000-000000000000'),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe('ukInstant', () => {
+  /** The instant as the draft reads it back in UK time. */
+  async function readBack(instant: string): Promise<string | null | undefined> {
+    const created = await newDraft(`A draft scheduled for ${instant}`);
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      { scheduledPublishAt: new Date(instant) },
+      {},
+      ACTOR,
+    );
+    return (await getIndicatorDraftState(db, created.indicatorId))?.draft?.scheduledPublishAtUk;
+  }
+
+  it.each([
+    [
+      'a BST date an hour ahead of UTC',
+      [2027, 9, 14, 9, 30],
+      '2027-09-14T09:30:00+01:00',
+      '2027-09-14T08:30:00.000Z',
+    ],
+    [
+      'a GMT date at UTC',
+      [2027, 1, 14, 9, 30],
+      '2027-01-14T09:30:00+00:00',
+      '2027-01-14T09:30:00.000Z',
+    ],
+    [
+      'the last minute before the spring change in GMT',
+      [2027, 3, 28, 0, 59],
+      '2027-03-28T00:59:00+00:00',
+      '2027-03-28T00:59:00.000Z',
+    ],
+    [
+      'the first minute after the spring change in BST',
+      [2027, 3, 28, 2, 0],
+      '2027-03-28T02:00:00+01:00',
+      '2027-03-28T01:00:00.000Z',
+    ],
+    [
+      'the last minute before the autumn change in BST',
+      [2027, 10, 31, 0, 59],
+      '2027-10-31T00:59:00+01:00',
+      '2027-10-30T23:59:00.000Z',
+    ],
+    [
+      'a time the autumn change repeats as its second, GMT, occurrence',
+      [2027, 10, 31, 1, 30],
+      '2027-10-31T01:30:00+00:00',
+      '2027-10-31T01:30:00.000Z',
+    ],
+  ] as const)('reads %s', async (_, [year, month, day, hour, minute], uk, utc) => {
+    const instant = await ukInstant(db, { year, month, day, hour, minute });
+
+    expect(instant).toBe(uk);
+    expect(new Date(instant ?? '').toISOString()).toBe(utc);
+    expect(await readBack(uk)).toBe(uk);
+  });
+
+  it.each([
+    [1, 0],
+    [1, 30],
+    [1, 59],
+  ])('finds no instant for %i:%i on the day the spring change skips it', async (hour, minute) => {
+    expect(await ukInstant(db, { year: 2027, month: 3, day: 28, hour, minute })).toBeNull();
   });
 });

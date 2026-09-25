@@ -15,7 +15,9 @@ import {
   type IndicatorDraftStateRow,
   listIndicatorsPage,
   type NewIndicatorDraftAttributes,
+  type UkDateTime,
   type UpdateIndicatorDraftResult,
+  ukInstant,
   updateIndicatorDraft,
 } from './indicator-repository.ts';
 import {
@@ -56,6 +58,8 @@ export interface InternalIndicatorRepository {
   ): Promise<UpdateIndicatorDraftResult>;
   /** Opens a draft from the published version, copying its columns and memberships. */
   draftFromPublished(indicatorId: string, actor: string): Promise<CreateDraftFromPublishedResult>;
+  /** The instant a UK date and time names, as ISO 8601 with its UK offset; null if skipped. */
+  ukInstant(dateTime: UkDateTime): Promise<string | null>;
 }
 
 /** The confidence interval methods a publisher chooses from. */
@@ -88,6 +92,7 @@ export function createInternalRepositories(db: Database): InternalRepositories {
       updateDraft: (indicatorId, attributes, memberships, actor) =>
         updateIndicatorDraft(db, indicatorId, attributes, memberships, actor),
       draftFromPublished: (indicatorId, actor) => createDraftFromPublished(db, indicatorId, actor),
+      ukInstant: (dateTime) => ukInstant(db, dateTime),
     },
     topics: {
       list: () => listTopics(db),

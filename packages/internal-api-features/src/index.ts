@@ -14,11 +14,13 @@ export type {
   IndicatorAdminDetailRow,
   IndicatorAdminRow,
   IndicatorAdminRows,
+  IndicatorDraft,
   IndicatorDraftAttributes,
   IndicatorDraftMemberships,
   IndicatorDraftStateRow,
   IndicatorDraftVersion,
   NewIndicatorDraftAttributes,
+  UkDateTime,
   UpdateIndicatorDraftResult,
 } from './indicator-repository.ts';
 export {

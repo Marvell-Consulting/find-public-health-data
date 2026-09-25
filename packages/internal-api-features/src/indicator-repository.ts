@@ -1,6 +1,6 @@
 import { type Database, schema } from '@fphd/db';
 import { slugify, slugProblem } from '@fphd/utils/slug';
-import { and, asc, count, desc, eq, getTableColumns, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, getTableColumns, type SQL, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import type { CiMethodKind, DraftStatus, IndicatorStatus } from './contract.ts';
@@ -113,11 +113,62 @@ export async function getIndicatorById(
 /** Every column of one version, as a section reads its answers from the draft. */
 export type IndicatorDraftVersion = typeof indicatorVersion.$inferSelect;
 
+/** A draft as the sections read it: its columns, and its scheduled publication in UK time. */
+export type IndicatorDraft = IndicatorDraftVersion & {
+  /** `scheduledPublishAt` as ISO 8601 with the UK offset then in force, such as `+01:00`. */
+  scheduledPublishAtUk: string | null;
+};
+
+/** A date and time as a publisher in the UK gives it, whether GMT or BST is in force. */
+export interface UkDateTime {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+}
+
+// Publishers give and read times in UK local time; the database resolves its clock changes.
+const UK_TIME_ZONE = 'Europe/London';
+
+/** An instant as ISO 8601 in UK local time, with its offset: never negative in the UK. */
+function inUkTime(instant: SQL): SQL<string | null> {
+  const local = sql`(${instant} AT TIME ZONE ${UK_TIME_ZONE})`;
+  return sql<
+    string | null
+  >`to_char(${local}, 'YYYY-MM-DD"T"HH24:MI:SS') || to_char(${local} - (${instant} AT TIME ZONE 'UTC'), '"+"HH24:MI')`;
+}
+
+/**
+ * The instant a UK date and time names, as ISO 8601 with its UK offset, or null for a time
+ * the spring clock change skips. A time the autumn change repeats is its second, GMT,
+ * occurrence, which is what make_timestamptz gives.
+ */
+export async function ukInstant(
+  db: Database,
+  { year, month, day, hour, minute }: UkDateTime,
+): Promise<string | null> {
+  const [row] = await db.execute<{ instant: string | null }>(sql`
+    SELECT CASE WHEN (t.instant AT TIME ZONE ${UK_TIME_ZONE}) = t.local
+      THEN ${inUkTime(sql`t.instant`)} END AS instant
+    FROM (
+      SELECT
+        make_timestamptz(${year}::int, ${month}::int, ${day}::int, ${hour}::int, ${minute}::int, 0, ${UK_TIME_ZONE}) AS instant,
+        make_timestamp(${year}::int, ${month}::int, ${day}::int, ${hour}::int, ${minute}::int, 0) AS local
+    ) AS t
+  `);
+
+  if (row === undefined) throw new Error('ukInstant returned no row');
+
+  // A skipped time is moved an hour on, so it reads back as a different local time.
+  return row.instant;
+}
+
 export interface IndicatorDraftStateRow {
   id: string;
   shortId: number;
   /** The draft a publisher is working on, absent while the indicator has none. */
-  draft: IndicatorDraftVersion | null;
+  draft: IndicatorDraft | null;
   /** What the draft's CI method asks for, which the task list needs to judge its answers. */
   draftCiMethodKind: CiMethodKind | null;
   indicatorStatus: IndicatorStatus;
@@ -129,11 +180,12 @@ export async function getIndicatorDraftState(
   db: Database,
   id: string,
 ): Promise<IndicatorDraftStateRow | undefined> {
-  const rows = await db
+  const [row] = await db
     .select({
       id: indicator.id,
       shortId: indicator.shortId,
       draft: draftVersion,
+      draftScheduledPublishAtUk: inUkTime(sql`${draftVersion.scheduledPublishAt}`),
       draftCiMethodKind: ciMethod.kind,
       indicatorStatus,
       draftStatus,
@@ -144,7 +196,11 @@ export async function getIndicatorDraftState(
     .leftJoin(currentPublishedVersion, publishedJoin)
     .where(eq(indicator.id, id));
 
-  return rows[0];
+  if (row === undefined) return undefined;
+
+  const { draft, draftScheduledPublishAtUk: scheduledPublishAtUk, ...state } = row;
+
+  return { ...state, draft: draft && { ...draft, scheduledPublishAtUk } };
 }
 
 /**
@@ -349,6 +405,8 @@ export async function createDraftFromPublished(
           ...attributes,
           status: 'draft',
           publishedAt: null,
+          // A new version is published when its own publisher says.
+          scheduledPublishAt: null,
           createdBy: actor,
           updatedBy: actor,
         })

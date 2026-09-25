@@ -10,6 +10,7 @@ import {
   isIndicatorSectionComplete,
   otherNotesAndCaveatsSection,
   polaritySection,
+  publishingDateSection,
   updateFrequencySection,
 } from './contract.ts';
 import type { IndicatorDraftVersion } from './indicator-repository.ts';
@@ -20,6 +21,7 @@ import {
   definitionAndRationaleColumns,
   otherNotesAndCaveatsColumns,
   polarityColumns,
+  publishingDateColumns,
   updateFrequencyColumns,
 } from './indicator-sections.ts';
 
@@ -70,6 +72,7 @@ export function indicatorTaskList({
     ),
     'update-frequency': complete(updateFrequencySection, updateFrequencyColumns),
     'other-notes-and-caveats': complete(otherNotesAndCaveatsSection, otherNotesAndCaveatsColumns),
+    'publishing-date': complete(publishingDateSection, publishingDateColumns),
   };
 
   return {

@@ -21,6 +21,9 @@ catalogs:
     '@not-govuk/checkboxes':
       specifier: 0.19.1
       version: 0.19.1
+    '@not-govuk/date-input':
+      specifier: 0.19.1
+      version: 0.19.1
     '@not-govuk/details':
       specifier: 0.19.1
       version: 0.19.1
@@ -28,6 +31,9 @@ catalogs:
       specifier: 0.19.1
       version: 0.19.1
     '@not-govuk/error-summary':
+      specifier: 0.19.1
+      version: 0.19.1
+    '@not-govuk/form-group':
       specifier: 0.19.1
       version: 0.19.1
     '@not-govuk/hint':
@@ -855,6 +861,9 @@ importers:
       '@not-govuk/checkboxes':
         specifier: 'catalog:'
         version: 0.19.1(react@19.2.8)
+      '@not-govuk/date-input':
+        specifier: 'catalog:'
+        version: 0.19.1(react@19.2.8)
       '@not-govuk/details':
         specifier: 'catalog:'
         version: 0.19.1(react@19.2.8)
@@ -864,6 +873,9 @@ importers:
       '@not-govuk/error-summary':
         specifier: 'catalog:'
         version: 0.19.1(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
+      '@not-govuk/form-group':
+        specifier: 'catalog:'
+        version: 0.19.1(react@19.2.8)
       '@not-govuk/hint':
         specifier: 'catalog:'
         version: 0.19.1(react@19.2.8)
@@ -1734,6 +1746,18 @@ packages:
 
   '@not-govuk/checkboxes@0.19.1':
     resolution: {integrity: sha512-Rd7wM8sblUpjVHR8yJU7VK+/Ms5RSpKlJTkQbiNULEvEFcp8DEqx16d/5tkVBE20/ekEAB8E9vLrKLRgK6CfqA==}
+    peerDependencies:
+      '@react-foundry/docs-components': ^0.5.4
+      '@storybook/addon-docs': ^10.5.7
+      react: ^19.2.8
+    peerDependenciesMeta:
+      '@react-foundry/docs-components':
+        optional: true
+      '@storybook/addon-docs':
+        optional: true
+
+  '@not-govuk/date-input@0.19.1':
+    resolution: {integrity: sha512-rgA2OnPoc/RibeDJvTYzDCEp6e5YHI8vOtxh4Fz3SGJgfkphEyzOLsfVzMW0r1jMTnnFOSxdxV/LIJjUpsE4CA==}
     peerDependencies:
       '@react-foundry/docs-components': ^0.5.4
       '@storybook/addon-docs': ^10.5.7
@@ -4359,6 +4383,16 @@ snapshots:
     dependencies:
       '@not-govuk/form-group': 0.19.1(react@19.2.8)
       '@not-govuk/hint': 0.19.1(react@19.2.8)
+      '@not-govuk/label': 0.19.1(react@19.2.8)
+      '@not-govuk/sass-base': 0.19.1
+      '@react-foundry/component-helpers': 0.5.4
+      govuk-frontend: 6.5.0
+      react: 19.2.8
+
+  '@not-govuk/date-input@0.19.1(react@19.2.8)':
+    dependencies:
+      '@not-govuk/form-group': 0.19.1(react@19.2.8)
+      '@not-govuk/input': 0.19.1(react@19.2.8)
       '@not-govuk/label': 0.19.1(react@19.2.8)
       '@not-govuk/sass-base': 0.19.1
       '@react-foundry/component-helpers': 0.5.4

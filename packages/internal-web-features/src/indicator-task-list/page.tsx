@@ -84,7 +84,7 @@ const TASK_GROUPS: readonly TaskGroup[] = [
         title: 'Update frequency',
         path: sectionPath('update-frequency'),
       },
-      { key: 'publishing-date', title: 'Publishing date' },
+      { key: 'publishing-date', title: 'Publishing date', path: sectionPath('publishing-date') },
     ],
   },
   {

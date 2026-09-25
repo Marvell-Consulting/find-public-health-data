@@ -3,7 +3,7 @@ import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { Router } from 'express';
 
 import { indicatorIdSchema, toFieldErrors } from './contract.ts';
-import type { IndicatorDraftAttributes, IndicatorDraftVersion } from './indicator-repository.ts';
+import type { IndicatorDraft, IndicatorDraftAttributes } from './indicator-repository.ts';
 import type { IndicatorSection, IndicatorSectionFields } from './indicator-section-contract.ts';
 import type { InternalIndicatorRepository } from './repositories.ts';
 
@@ -12,7 +12,7 @@ export type IndicatorSectionAttributes = Omit<IndicatorDraftAttributes, 'name'>;
 
 /** The draft columns the sections read; each section adds the ones its form writes. */
 export type IndicatorSectionDraft = Pick<
-  IndicatorDraftVersion,
+  IndicatorDraft,
   | 'definition'
   | 'rationale'
   | 'polarity'
@@ -32,6 +32,7 @@ export type IndicatorSectionDraft = Pick<
   | 'caveatsDetail'
   | 'otherNotesNeeded'
   | 'otherNotesDetail'
+  | 'scheduledPublishAtUk'
 >;
 
 /** How a section's answers map onto the draft's columns, in both directions. */
