@@ -14,6 +14,8 @@ import {
   dataQualitySection,
   definitionAndRationaleSection,
   type IndicatorDataQuality,
+  justificationsQuestions,
+  justificationsSection,
   type Links,
   type LinksAnswers,
   type LinksField,
@@ -121,6 +123,11 @@ export const otherNotesAndCaveatsColumns: IndicatorSectionColumns<
 export const varianceAndQualityColumns = yesNoDetailColumns(
   varianceAndQualitySection,
   varianceAndQualityQuestions,
+);
+
+export const justificationsColumns = yesNoDetailColumns(
+  justificationsSection,
+  justificationsQuestions,
 );
 
 export const linksColumns: IndicatorSectionColumns<LinksField, Links, LinksAnswers> = {
@@ -327,5 +334,6 @@ export function indicatorSectionsRouter(
       varianceAndQualitySection,
       varianceAndQualityColumns,
     ),
+    indicatorSectionRouter(indicators, session, justificationsSection, justificationsColumns),
   );
 }

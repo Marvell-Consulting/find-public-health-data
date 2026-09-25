@@ -96,7 +96,7 @@ const TASK_GROUPS: readonly TaskGroup[] = [
         title: 'Variance and quality',
         path: sectionPath('variance-and-quality'),
       },
-      { key: 'justifications', title: 'Justifications' },
+      { key: 'justifications', title: 'Justifications', path: sectionPath('justifications') },
       { key: 'other-comments', title: 'Other comments' },
     ],
   },
