@@ -25,6 +25,10 @@ import {
   publishingDateSection,
   REAL_PUBLISHING_TIME,
   SELECT_CI_METHOD,
+  type SexAndAges,
+  type SexAndAgesAnswers,
+  type SexAndAgesField,
+  sexAndAgesSection,
   updateFrequencySection,
 } from './contract.ts';
 import type { UkDateTime } from './indicator-repository.ts';
@@ -131,6 +135,49 @@ export const linksColumns: IndicatorSectionColumns<LinksField, Links, LinksAnswe
   toAttributes: ({ hasLinks }) => ({ hasLinks: hasLinks === 'yes' }),
   // Links sent beside "No" are dropped, whatever the form sent.
   toLists: ({ hasLinks, links }) => ({ links: hasLinks === 'yes' ? links : [] }),
+};
+
+// A limit or age the form accepted, which is a whole number or nothing.
+function age(value: string): number | null {
+  return value === '' ? null : Number(value);
+}
+
+export const sexAndAgesColumns: IndicatorSectionColumns<
+  SexAndAgesField,
+  SexAndAges,
+  SexAndAgesAnswers
+> = {
+  fromDraft: (draft) => ({
+    sexes: draft.sexes ?? [],
+    ageType: draft.ageType,
+    ageRanges: draft.ageRanges,
+    specificAge: draft.specificAge,
+    specificAgeUnit: draft.specificAgeUnit,
+    ageOtherDetail: draft.ageOtherDetail,
+  }),
+  // Answers the chosen age type does not ask for are cleared, whatever the form sent.
+  toAttributes: ({ sexes, ageType, specificAge, specificAgeUnit, ageOtherDetail }) => {
+    const specific = ageType === 'specific';
+
+    return {
+      sexes,
+      ageType,
+      specificAge: specific ? age(specificAge) : null,
+      specificAgeUnit: specific && specificAgeUnit !== '' ? specificAgeUnit : null,
+      ageOtherDetail: ageType === 'other' ? ageOtherDetail : null,
+    };
+  },
+  toLists: ({ ageType, ageRanges }) => ({
+    ageRanges:
+      ageType === 'range'
+        ? ageRanges.map(({ lowerLimit, lowerLimitUnit, upperLimit, upperLimitUnit }) => ({
+            lowerLimit: age(lowerLimit),
+            lowerLimitUnit: lowerLimitUnit === '' ? null : lowerLimitUnit,
+            upperLimit: age(upperLimit),
+            upperLimitUnit: upperLimitUnit === '' ? null : upperLimitUnit,
+          }))
+        : [],
+  }),
 };
 
 /** The form's schema, then the requirements of the chosen method, read from its row. */
@@ -296,5 +343,6 @@ export function indicatorSectionsRouter(
       publishingDateColumns,
     ),
     indicatorSectionRouter(indicators, session, linksSection, linksColumns),
+    indicatorSectionRouter(indicators, session, sexAndAgesSection, sexAndAgesColumns),
   );
 }

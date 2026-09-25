@@ -1,8 +1,10 @@
 import { POLARITIES } from '@fphd/utils/polarity';
+import { AGE_TYPES, AGE_UNIT_DAYS, AGE_UNITS, MAX_AGE, SEXES } from '@fphd/utils/sex-and-ages';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
 import { UPDATE_FREQUENCIES } from '@fphd/utils/update-frequency';
-import { asc, desc, eq, sql } from 'drizzle-orm';
+import { asc, desc, eq, type SQL, sql } from 'drizzle-orm';
 import {
+  type AnyPgColumn,
   boolean,
   check,
   index,
@@ -40,6 +42,19 @@ export const INDICATOR_CALCULATED_BY = ['ohid', 'dhsc', 'other'] as const;
 
 /** Whether disclosure control was applied, described in `disclosure_control_detail` when it was. */
 export const INDICATOR_DISCLOSURE_CONTROL = ['yes', 'no', 'not-applicable'] as const;
+
+/** The app's own vocabulary as a list of SQL literals, for a check constraint. */
+function literals(values: readonly string[]): SQL {
+  return sql.raw(values.map((value) => `'${value}'`).join(', '));
+}
+
+/** An age in days, as the contract compares ages; null when either part is. */
+function ageInDays(age: AnyPgColumn, unit: AnyPgColumn): SQL {
+  const days = Object.entries(AGE_UNIT_DAYS).map(
+    ([name, length]) => `WHEN '${name}' THEN ${length}`,
+  );
+  return sql`${age} * CASE ${unit} ${sql.raw(days.join(' '))} END`;
+}
 
 // Starts above every Fingertips number carried over in the seed, so this service's own
 // numbering is visible at a glance.
@@ -100,6 +115,12 @@ export const indicatorVersion = pgTable(
     calculatedByOther: text(),
     // Null until answered, so "no links" is told apart from a question not yet asked.
     hasLinks: boolean(),
+    sexes: text({ enum: SEXES }).array(),
+    // The ranges an age type of range gives are rows of indicator_version_age_range.
+    ageType: text({ enum: AGE_TYPES }),
+    specificAge: smallint(),
+    specificAgeUnit: text({ enum: AGE_UNITS }),
+    ageOtherDetail: text(),
     numeratorDefinition: text(),
     denominatorDefinition: text(),
     // Each answer's detail is asked for, and kept, only when the answer is yes.
@@ -162,6 +183,32 @@ export const indicatorVersion = pgTable(
       'indicator_version_other_notes_detail_check',
       sql`${t.otherNotesNeeded} IS TRUE OR ${t.otherNotesDetail} IS NULL`,
     ),
+    check(
+      'indicator_version_sexes_check',
+      sql`${t.sexes} <@ ARRAY[${literals(SEXES)}]::text[] AND cardinality(${t.sexes}) > 0`,
+    ),
+    check('indicator_version_age_type_check', sql`${t.ageType} IN (${literals(AGE_TYPES)})`),
+    check(
+      'indicator_version_specific_age_unit_check',
+      sql`${t.specificAgeUnit} IN (${literals(AGE_UNITS)})`,
+    ),
+    check(
+      'indicator_version_specific_age_check',
+      sql`${t.specificAge} BETWEEN 0 AND ${sql.raw(String(MAX_AGE))}`,
+    ),
+    // A specific age has its unit, and is kept beside that age type alone.
+    check(
+      'indicator_version_specific_age_pair_check',
+      sql`(${t.specificAge} IS NULL) = (${t.specificAgeUnit} IS NULL)`,
+    ),
+    check(
+      'indicator_version_specific_age_type_check',
+      sql`${t.ageType} IS NOT DISTINCT FROM 'specific' OR ${t.specificAge} IS NULL`,
+    ),
+    check(
+      'indicator_version_age_other_detail_check',
+      sql`${t.ageType} IS NOT DISTINCT FROM 'other' OR ${t.ageOtherDetail} IS NULL`,
+    ),
     // A published version always says when, and nothing else does, so ordering by
     // published_at never meets a null.
     check(
@@ -199,6 +246,54 @@ export const indicatorVersionLink = pgTable(
   (t) => [
     primaryKey({ columns: [t.indicatorVersionId, t.position] }),
     check('indicator_version_link_position_check', sql`${t.position} >= 0`),
+  ],
+);
+
+/** The age ranges a version covers, in the order the publisher gave them. */
+export const indicatorVersionAgeRange = pgTable(
+  'indicator_version_age_range',
+  {
+    indicatorVersionId: uuid()
+      .notNull()
+      .references(() => indicatorVersion.id),
+    position: smallint().notNull(),
+    lowerLimit: smallint(),
+    lowerLimitUnit: text({ enum: AGE_UNITS }),
+    upperLimit: smallint(),
+    upperLimitUnit: text({ enum: AGE_UNITS }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.indicatorVersionId, t.position] }),
+    check('indicator_version_age_range_position_check', sql`${t.position} >= 0`),
+    check(
+      'indicator_version_age_range_lower_limit_unit_check',
+      sql`${t.lowerLimitUnit} IN (${literals(AGE_UNITS)})`,
+    ),
+    check(
+      'indicator_version_age_range_upper_limit_unit_check',
+      sql`${t.upperLimitUnit} IN (${literals(AGE_UNITS)})`,
+    ),
+    check(
+      'indicator_version_age_range_limits_check',
+      sql`${t.lowerLimit} BETWEEN 0 AND ${sql.raw(String(MAX_AGE))} AND ${t.upperLimit} BETWEEN 0 AND ${sql.raw(String(MAX_AGE))}`,
+    ),
+    // Each limit has its unit, and a range has at least one limit.
+    check(
+      'indicator_version_age_range_lower_limit_pair_check',
+      sql`(${t.lowerLimit} IS NULL) = (${t.lowerLimitUnit} IS NULL)`,
+    ),
+    check(
+      'indicator_version_age_range_upper_limit_pair_check',
+      sql`(${t.upperLimit} IS NULL) = (${t.upperLimitUnit} IS NULL)`,
+    ),
+    check(
+      'indicator_version_age_range_limit_check',
+      sql`${t.lowerLimit} IS NOT NULL OR ${t.upperLimit} IS NOT NULL`,
+    ),
+    check(
+      'indicator_version_age_range_order_check',
+      sql`${ageInDays(t.upperLimit, t.upperLimitUnit)} >= ${ageInDays(t.lowerLimit, t.lowerLimitUnit)}`,
+    ),
   ],
 );
 

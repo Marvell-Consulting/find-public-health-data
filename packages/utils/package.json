@@ -17,6 +17,12 @@
       "types": "./src/polarity.ts",
       "default": "./dist/polarity.js"
     },
+    "./sex-and-ages": {
+      "browser": "./src/sex-and-ages.ts",
+      "development": "./src/sex-and-ages.ts",
+      "types": "./src/sex-and-ages.ts",
+      "default": "./dist/sex-and-ages.js"
+    },
     "./short-id": {
       "browser": "./src/short-id.ts",
       "development": "./src/short-id.ts",

@@ -79,6 +79,10 @@ export default [
         'publish/indicators/:id/links',
         '../../../packages/internal-web-features/src/indicator-links/route.tsx',
       ),
+      route(
+        'publish/indicators/:id/sex-and-ages',
+        '../../../packages/internal-web-features/src/indicator-sex-and-ages/route.tsx',
+      ),
     ]),
     layout('./admin.tsx', [
       route('manage', './manage.tsx'),

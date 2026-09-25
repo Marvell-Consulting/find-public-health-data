@@ -2,7 +2,7 @@ import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { CiMethodRow } from './ci-method-repository.ts';
-import { indicatorTaskKeySchema, toFieldErrors } from './contract.ts';
+import { indicatorTaskKeySchema, type SexAndAges, toFieldErrors } from './contract.ts';
 import type { IndicatorSectionDraft } from './indicator-section.ts';
 import {
   calculationColumns,
@@ -15,6 +15,7 @@ import {
   polarityColumns,
   publishingDateColumns,
   publishingDateServerSection,
+  sexAndAgesColumns,
   updateFrequencyColumns,
 } from './indicator-sections.ts';
 import {
@@ -49,6 +50,12 @@ const unanswered: IndicatorSectionDraft = {
   scheduledPublishAtUk: null,
   hasLinks: null,
   links: [],
+  sexes: null,
+  ageType: null,
+  ageRanges: [],
+  specificAge: null,
+  specificAgeUnit: null,
+  ageOtherDetail: null,
 };
 
 const METHODS: Record<CiMethodRow['kind'], CiMethodRow> = {
@@ -333,6 +340,81 @@ describe('linksColumns', () => {
   it('clears the links beside "No"', () => {
     expect(linksColumns.toAttributes({ hasLinks: 'no', links })).toEqual({ hasLinks: false });
     expect(linksColumns.toLists?.({ hasLinks: 'no', links })).toEqual({ links: [] });
+  });
+});
+
+describe('sexAndAgesColumns', () => {
+  // Every age type's answers filled in, as a form without JavaScript may send them.
+  const everyAnswer = (ageType: SexAndAges['ageType']): SexAndAges => ({
+    sexes: ['females', 'males'],
+    ageType,
+    ageRanges: [{ lowerLimit: '16', lowerLimitUnit: 'years', upperLimit: '', upperLimitUnit: '' }],
+    specificAge: '5',
+    specificAgeUnit: 'weeks',
+    ageOtherDetail: 'School year 6',
+  });
+
+  it('reads unanswered sexes as none', () => {
+    expect(sexAndAgesColumns.fromDraft(unanswered)).toEqual({
+      sexes: [],
+      ageType: null,
+      ageRanges: [],
+      specificAge: null,
+      specificAgeUnit: null,
+      ageOtherDetail: null,
+    });
+  });
+
+  it('writes the ranges, with each limit left empty as null, and nothing else beside a range', () => {
+    const values = everyAnswer('range');
+
+    expect(sexAndAgesColumns.toAttributes(values)).toEqual({
+      sexes: ['females', 'males'],
+      ageType: 'range',
+      specificAge: null,
+      specificAgeUnit: null,
+      ageOtherDetail: null,
+    });
+    expect(sexAndAgesColumns.toLists?.(values)).toEqual({
+      ageRanges: [
+        { lowerLimit: 16, lowerLimitUnit: 'years', upperLimit: null, upperLimitUnit: null },
+      ],
+    });
+  });
+
+  it('writes the specific age as a number, and nothing else beside it', () => {
+    const values = everyAnswer('specific');
+
+    expect(sexAndAgesColumns.toAttributes(values)).toMatchObject({
+      specificAge: 5,
+      specificAgeUnit: 'weeks',
+      ageOtherDetail: null,
+    });
+    expect(sexAndAgesColumns.toLists?.(values)).toEqual({ ageRanges: [] });
+  });
+
+  it('writes all ages, and nothing else beside them', () => {
+    const values = everyAnswer('all');
+
+    expect(sexAndAgesColumns.toAttributes(values)).toEqual({
+      sexes: ['females', 'males'],
+      ageType: 'all',
+      specificAge: null,
+      specificAgeUnit: null,
+      ageOtherDetail: null,
+    });
+    expect(sexAndAgesColumns.toLists?.(values)).toEqual({ ageRanges: [] });
+  });
+
+  it('writes the other ages, and nothing else beside them', () => {
+    const values = everyAnswer('other');
+
+    expect(sexAndAgesColumns.toAttributes(values)).toMatchObject({
+      specificAge: null,
+      specificAgeUnit: null,
+      ageOtherDetail: 'School year 6',
+    });
+    expect(sexAndAgesColumns.toLists?.(values)).toEqual({ ageRanges: [] });
   });
 });
 
