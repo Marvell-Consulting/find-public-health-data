@@ -18,5 +18,9 @@ export function useSectionForm<
   const { values } = useLoaderData<{ values: Values }>();
   const rejected = useActionData<FormFailure<Field, Values> | undefined>();
 
-  return { fieldErrors: rejected?.fieldErrors, values: rejected?.values ?? values };
+  return {
+    fieldErrors: rejected?.fieldErrors,
+    formError: rejected?.formError,
+    values: rejected?.values ?? values,
+  };
 }

@@ -20,6 +20,7 @@ const listWithOr = new Intl.ListFormat('en-GB', { type: 'disjunction' });
  */
 export function ConfidenceIntervalsPage({
   fieldErrors = {},
+  formError,
   methods,
   values,
 }: ConfidenceIntervalsPageProps) {
@@ -47,6 +48,7 @@ export function ConfidenceIntervalsPage({
   return (
     <IndicatorSectionForm
       fieldErrors={fieldErrors}
+      formError={formError}
       fieldIds={{ ciMethodModified: firstRadioId('ciMethodModified') }}
       fields={confidenceIntervalsSection.fields.options}
       title="Confidence intervals"

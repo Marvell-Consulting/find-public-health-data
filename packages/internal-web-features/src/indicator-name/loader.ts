@@ -13,6 +13,7 @@ import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from 'react-router';
 
+import { formRefusal } from '../form-refusal.ts';
 import { requireIndicatorId } from '../indicator-id.ts';
 import { type FormFailure, readFormValues } from '../indicator-section.ts';
 import { indicatorTaskListPath } from '../publish-paths.ts';
@@ -52,7 +53,7 @@ export async function createIndicator({
     );
 
   if (!result.ok) {
-    return { values, fieldErrors: result.error.fieldErrors ?? {} };
+    return { values, ...formRefusal(result.error) };
   }
 
   return redirect(indicatorTaskListPath(result.data.id));
@@ -94,7 +95,7 @@ export async function saveIndicatorName({
     );
 
   if (!result.ok) {
-    return { values, fieldErrors: result.error.fieldErrors ?? {} };
+    return { values, ...formRefusal(result.error) };
   }
 
   return redirect(indicatorTaskListPath(id));

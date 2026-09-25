@@ -1,6 +1,6 @@
 // No @fphd/ui imports here, so the loaders unit-test without the jsdom the components need.
 import {
-  type TopicFieldErrors,
+  type TopicField,
   topicAdminDetailSchema,
   topicAdminSummaryListSchema,
   topicCreateResponseSchema,
@@ -13,6 +13,7 @@ import { apiContext } from '@fphd/web-server/api-context';
 import { setFlash, takeFlash } from '@fphd/web-server/flash';
 import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from 'react-router';
 
+import { type FormRefusal, formRefusal } from '../form-refusal.ts';
 import { parseTopicForm, readTopicForm, type TopicFormValues } from './form.ts';
 import { editTopicPath, TOPICS_ADMIN_PATH } from './paths.ts';
 
@@ -67,9 +68,8 @@ export async function loadAdminTopicToEdit({ context, params }: LoaderFunctionAr
   };
 }
 
-export interface SaveTopicFailure {
+export interface SaveTopicFailure extends FormRefusal<TopicField> {
   values: TopicFormValues;
-  fieldErrors: TopicFieldErrors;
 }
 
 /**
@@ -99,7 +99,7 @@ export async function saveTopic({
     );
 
   if (!result.ok) {
-    return { values: readTopicForm(formData), fieldErrors: result.error.fieldErrors ?? {} };
+    return { values: readTopicForm(formData), ...formRefusal(result.error) };
   }
 
   setFlash(context, result.data.changed ? 'topic-updated' : 'topic-unchanged');
@@ -129,7 +129,7 @@ export async function createTopic({
     );
 
   if (!result.ok) {
-    return { values: readTopicForm(formData), fieldErrors: result.error.fieldErrors ?? {} };
+    return { values: readTopicForm(formData), ...formRefusal(result.error) };
   }
 
   setFlash(context, 'topic-created');

@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  definitionAndRationaleSection,
+  indicatorCreateErrorSchema,
   indicatorFieldSchema,
   indicatorNameSchema,
+  indicatorSectionErrorSchema,
   indicatorTaskListSchema,
+  indicatorUpdateErrorSchema,
   toFieldErrors,
   topicFieldSchema,
+  topicUpdateErrorSchema,
   topicUpdateSchema,
 } from './contract.ts';
 
@@ -114,6 +119,32 @@ describe('toFieldErrors', () => {
     expect(toFieldErrors(result.error, topicFieldSchema.options)).toEqual({
       title: 'Enter a topic name',
     });
+  });
+});
+
+describe.each([
+  ['topicUpdateErrorSchema', topicUpdateErrorSchema, ['validation_failed', 'slug_taken']],
+  ['indicatorCreateErrorSchema', indicatorCreateErrorSchema, ['validation_failed', 'slug_taken']],
+  ['indicatorUpdateErrorSchema', indicatorUpdateErrorSchema, ['validation_failed', 'slug_taken']],
+  [
+    'indicatorSectionErrorSchema',
+    indicatorSectionErrorSchema(definitionAndRationaleSection.fields),
+    ['validation_failed'],
+  ],
+])('%s', (_name, schema, refusals) => {
+  it.each(refusals)('requires %s to name its fields', (error) => {
+    expect(schema.safeParse({ error }).success).toBe(false);
+    expect(schema.safeParse({ error, fieldErrors: {} }).success).toBe(true);
+  });
+});
+
+describe('invalid_id', () => {
+  it.each([
+    topicUpdateErrorSchema,
+    indicatorUpdateErrorSchema,
+    indicatorSectionErrorSchema(definitionAndRationaleSection.fields),
+  ])('is accepted with no fields, as no field is at fault', (schema) => {
+    expect(schema.safeParse({ error: 'invalid_id' }).success).toBe(true);
   });
 });
 

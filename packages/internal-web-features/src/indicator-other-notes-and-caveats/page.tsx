@@ -30,11 +30,13 @@ const QUESTIONS = [
 
 export function OtherNotesAndCaveatsPage({
   fieldErrors = {},
+  formError,
   values,
 }: SectionPageProps<OtherNotesAndCaveatsField>) {
   return (
     <IndicatorSectionForm
       fieldErrors={fieldErrors}
+      formError={formError}
       fieldIds={Object.fromEntries(QUESTIONS.map(({ answer }) => [answer, firstRadioId(answer)]))}
       fields={otherNotesAndCaveatsSection.fields.options}
       title="Provide any other notes and caveats"

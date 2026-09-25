@@ -4,6 +4,7 @@ import { apiContext } from '@fphd/web-server/api-context';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
+import { FORM_NOT_SAVED } from './form-refusal.ts';
 import { loadIndicatorSection, readFormValues, saveIndicatorSection } from './indicator-section.ts';
 
 // What every section's loader and action share, shown through the first section built on them.
@@ -138,12 +139,17 @@ describe('saveIndicatorSection', () => {
     expect(outcome).toEqual({ values: answers, fieldErrors: { definition: 'Refused by the API' } });
   });
 
-  it('reports a refusal that names no field as a form with no field errors', async () => {
-    const put = vi
-      .fn()
-      .mockResolvedValue({ ok: false, status: 400, error: { error: 'validation_failed' } });
+  it.each([
+    ['an id', { error: 'invalid_id' }],
+    ['no field', { error: 'validation_failed', fieldErrors: {} }],
+  ])('reports a refusal naming %s as the form not saved', async (_case, error) => {
+    const put = vi.fn().mockResolvedValue({ ok: false, status: 400, error });
 
-    await expect(save(id, answers, put)).resolves.toEqual({ values: answers, fieldErrors: {} });
+    await expect(save(id, answers, put)).resolves.toEqual({
+      values: answers,
+      fieldErrors: {},
+      formError: FORM_NOT_SAVED,
+    });
   });
 
   // The API answers 404 when the draft went while the form was open; the client throws it.

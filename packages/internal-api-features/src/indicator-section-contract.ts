@@ -44,17 +44,22 @@ export function isIndicatorSectionComplete<Field extends string, Values>(
   return section.schema.safeParse(indicatorSectionFormValues(section.fields, answers)).success;
 }
 
-/** The 400 answers; a missing indicator or draft is a 404, which the client throws. */
+/**
+ * The 400 answers. A refused answer is always named; only a bad id names no field. A missing
+ * indicator or draft is a 404, which the client throws.
+ */
 export function indicatorSectionErrorSchema<Field extends string>(
   fields: IndicatorSectionFields<Field>,
 ): z.ZodType<IndicatorSectionError<Field>> {
-  return z.object({
-    error: z.enum(['invalid_id', 'validation_failed']),
-    fieldErrors: z.partialRecord(fields, z.string()).optional(),
-  });
+  return z.discriminatedUnion('error', [
+    z.object({ error: z.literal('invalid_id') }),
+    z.object({
+      error: z.literal('validation_failed'),
+      fieldErrors: z.partialRecord(fields, z.string()),
+    }),
+  ]);
 }
 
-export interface IndicatorSectionError<Field extends string> {
-  error: 'invalid_id' | 'validation_failed';
-  fieldErrors?: Partial<Record<Field, string>> | undefined;
-}
+export type IndicatorSectionError<Field extends string> =
+  | { error: 'invalid_id' }
+  | { error: 'validation_failed'; fieldErrors: Partial<Record<Field, string>> };

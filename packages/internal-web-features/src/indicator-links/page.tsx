@@ -50,6 +50,7 @@ function AddedLinks({ links }: { links: readonly IndicatorLink[] }) {
 // The question is the page's h1, inside the legend, where NotGovUK sizes it.
 export function LinksPage({
   fieldErrors = {},
+  formError,
   values,
 }: SectionPageProps<LinksPageField, LinksPageValues>) {
   const { hasLinks: hasLinksError, linkText: linkTextError } = fieldErrors;
@@ -59,6 +60,7 @@ export function LinksPage({
   return (
     <IndicatorSectionForm
       fieldErrors={fieldErrors}
+      formError={formError}
       fieldIds={{ hasLinks: firstRadioId('hasLinks'), links: fieldInputId('linkUrl') }}
       fields={FIELDS}
       questionIsHeading

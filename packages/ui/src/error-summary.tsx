@@ -20,21 +20,30 @@ export interface FieldError {
 
 interface ErrorSummaryProps {
   errors: FieldError[];
+  /** A message for the whole form, listed first and unlinked, as it belongs to no one field. */
+  formError?: string | undefined;
   title?: string;
 }
 
-export function ErrorSummary({ errors, title = 'There is a problem' }: ErrorSummaryProps) {
-  if (errors.length === 0) return null;
+export function ErrorSummary({
+  errors,
+  formError,
+  title = 'There is a problem',
+}: ErrorSummaryProps) {
+  if (errors.length === 0 && formError === undefined) return null;
 
   return (
     <NotGovUKErrorSummary
       title={title}
-      items={errors.map(({ id, name, message }) => ({
-        href: `#${id ?? fieldInputId(name)}`,
-        text: message,
-        // GOV.UK Frontend handles focus without a router navigation.
-        forceExternal: true,
-      }))}
+      items={[
+        ...(formError === undefined ? [] : [{ text: formError }]),
+        ...errors.map(({ id, name, message }) => ({
+          href: `#${id ?? fieldInputId(name)}`,
+          text: message,
+          // GOV.UK Frontend handles focus without a router navigation.
+          forceExternal: true,
+        })),
+      ]}
     />
   );
 }

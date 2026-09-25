@@ -21,6 +21,7 @@ export function EditIndicatorNameRoute() {
   return (
     <IndicatorNamePage
       fieldErrors={rejected?.fieldErrors}
+      formError={rejected?.formError}
       name={rejected?.values.name ?? indicator.name}
     />
   );

@@ -3,10 +3,15 @@ import { firstRadioId, Radios, Textarea } from '@fphd/ui';
 
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
-export function CalculationPage({ fieldErrors = {}, values }: SectionPageProps<CalculationField>) {
+export function CalculationPage({
+  fieldErrors = {},
+  formError,
+  values,
+}: SectionPageProps<CalculationField>) {
   return (
     <IndicatorSectionForm
       fieldErrors={fieldErrors}
+      formError={formError}
       fieldIds={{ calculatedBy: firstRadioId('calculatedBy') }}
       fields={calculationSection.fields.options}
       title="How was the indicator calculated?"

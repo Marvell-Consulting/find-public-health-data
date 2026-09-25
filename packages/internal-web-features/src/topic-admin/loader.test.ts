@@ -8,6 +8,7 @@ import {
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
+import { FORM_NOT_SAVED } from '../form-refusal.ts';
 import {
   createTopic,
   deleteTopic,
@@ -209,6 +210,17 @@ describe('saveTopic', () => {
     expect(outcome).toEqual({ values: valid, fieldErrors });
   });
 
+  it.each([
+    ['an id', { error: 'invalid_id' }],
+    ['no field', { error: 'validation_failed', fieldErrors: {} }],
+  ])('reports a refusal naming %s as the form not saved', async (_case, error) => {
+    const put = vi.fn().mockResolvedValue({ ok: false, status: 400, error });
+
+    const { outcome } = await save(createContext(fakeApi({ put })), valid);
+
+    expect(outcome).toEqual({ values: valid, fieldErrors: {}, formError: FORM_NOT_SAVED });
+  });
+
   it('keeps the submitted values when the API rejects them', async () => {
     const put = vi.fn().mockResolvedValue({
       ok: false,
@@ -270,6 +282,18 @@ describe('createTopic', () => {
       values: { ...valid, slug: 'taken-slug' },
       fieldErrors: { slug: 'This slug is already used' },
     });
+  });
+
+  it('reports a refusal that names no field as the form not saved', async () => {
+    const post = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      error: { error: 'validation_failed', fieldErrors: {} },
+    });
+
+    const { outcome } = await create(createContext(fakeApi({ post })), valid);
+
+    expect(outcome).toEqual({ values: valid, fieldErrors: {}, formError: FORM_NOT_SAVED });
   });
 });
 

@@ -4,6 +4,7 @@ import { renderToString } from 'react-dom/server';
 import { createRoutesStub, Meta, type MetaFunction, Outlet } from 'react-router';
 import { describe, expect, it } from 'vitest';
 
+import { FORM_NOT_SAVED } from './form-refusal.ts';
 import * as calculation from './indicator-calculation/route.tsx';
 import * as confidenceIntervals from './indicator-confidence-intervals/route.tsx';
 import * as definitionAndRationale from './indicator-definition-and-rationale/route.tsx';
@@ -12,6 +13,7 @@ import * as editIndicatorName from './indicator-name/edit-route.tsx';
 import * as newIndicator from './indicator-name/new-route.tsx';
 import * as otherNotesAndCaveats from './indicator-other-notes-and-caveats/route.tsx';
 import * as polarity from './indicator-polarity/route.tsx';
+import * as publishingDate from './indicator-publishing-date/route.tsx';
 import * as updateFrequency from './indicator-update-frequency/route.tsx';
 import * as editTopic from './topic-admin/edit-route.tsx';
 import * as newTopic from './topic-admin/new-route.tsx';
@@ -47,6 +49,14 @@ const notesAndCaveatsUnanswered = {
   caveatsDetail: '',
   otherNotesNeeded: '',
   otherNotesDetail: '',
+};
+
+const publishingDateUnanswered = {
+  publishingDateDay: '',
+  publishingDateMonth: '',
+  publishingDateYear: '',
+  publishingTimeHour: '09',
+  publishingTimeMinute: '30',
 };
 
 const forms: {
@@ -147,6 +157,16 @@ const forms: {
     },
   },
   {
+    name: 'publishing date',
+    route: publishingDate,
+    pageTitle: 'When should this indicator be published?',
+    loaderData: { id: indicator.id, values: publishingDateUnanswered },
+    rejected: {
+      values: publishingDateUnanswered,
+      fieldErrors: { publishingDateDay: 'Enter the publishing date' },
+    },
+  },
+  {
     name: 'links',
     route: links,
     pageTitle: 'Are there any relevant links to help users understand this indicator better?',
@@ -228,5 +248,17 @@ describe.each(forms)('the $name form', (form) => {
     expect(titlesIn(renderDocument(form, form.rejected))).toEqual([
       `Error: ${form.pageTitle} - ${serviceName} - GOV.UK`,
     ]);
+  });
+
+  it('server-renders a refusal that names no field in the summary, titled "Error: "', () => {
+    const html = renderDocument(form, {
+      ...(form.rejected as object),
+      fieldErrors: {},
+      formError: FORM_NOT_SAVED,
+    });
+
+    expect(titlesIn(html)).toEqual([`Error: ${form.pageTitle} - ${serviceName} - GOV.UK`]);
+    expect(html).toMatch(/class="govuk-error-summary"/);
+    expect(html).toContain(FORM_NOT_SAVED);
   });
 });

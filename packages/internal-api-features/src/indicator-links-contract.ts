@@ -124,5 +124,5 @@ export function addLink(
 
   return added.success
     ? { links: added.data }
-    : { fieldErrors: { linkUrl: added.error.issues[0]?.message ?? '' } };
+    : { fieldErrors: { linkUrl: added.error.issues[0]?.message ?? 'The link could not be added' } };
 }
