@@ -131,6 +131,22 @@ describe('readLocalMigrations', () => {
     }
   });
 
+  // Migrations numbered on parallel branches keep the time each was generated, and the
+  // migrator passes over one older than the newest it has applied.
+  it('dates this package’s migrations in the order they are numbered', () => {
+    const migrations = readLocalMigrations();
+    const byTag = [...migrations].sort((a, b) => a.tag.localeCompare(b.tag));
+
+    expect(byTag.map(({ tag }) => tag)).toEqual(migrations.map(({ tag }) => tag));
+    for (const [index, migration] of byTag.entries()) {
+      if (index > 0) {
+        expect(migration.folderMillis, migration.tag).toBeGreaterThan(
+          byTag[index - 1]?.folderMillis ?? 0,
+        );
+      }
+    }
+  });
+
   it('throws naming the file when the journal is not one, rather than reading past it', () => {
     const folder = mkdtempSync(join(tmpdir(), 'fphd-journal-'));
     mkdirSync(join(folder, 'meta'));
