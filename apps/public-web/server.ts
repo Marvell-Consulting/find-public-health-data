@@ -11,6 +11,7 @@ const logger = createLogger({
 });
 
 await startReactRouterServer({
+  basicAuth: config.basicAuth,
   development: config.development,
   host: config.host,
   logger,

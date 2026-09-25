@@ -12,20 +12,25 @@ import type { Logger } from '@fphd/logger';
 import compression from 'compression';
 import express, { type Express, type RequestHandler } from 'express';
 
+import { type BasicAuthCredentials, basicAuth } from './basic-auth.ts';
 import { securityHeaders } from './security-headers.ts';
 
 export { serverLogging } from '@fphd/express';
 
 interface HostOptions {
+  /** Puts everything but the probes behind HTTP basic auth; off when undefined. */
+  basicAuth: BasicAuthCredentials | undefined;
   development: boolean;
   serviceName: string;
 }
 
-function createHost({ development, serviceName }: HostOptions) {
+function createHost({ basicAuth: credentials, development, serviceName }: HostOptions) {
   const app = createBaseApp({ serviceName });
 
   // After the base, so its JSON probe responses answer without a CSP.
   app.use(securityHeaders({ development }));
+  // After the base too, so Container Apps can probe without credentials.
+  if (credentials !== undefined) app.use(basicAuth(credentials));
   // At the host so static assets compress too; Front Door does not compress.
   app.use(compression());
 
@@ -42,6 +47,7 @@ function loggerLocals(logger: Logger): RequestHandler {
 }
 
 interface ProductionHostOptions {
+  basicAuth?: BasicAuthCredentials | undefined;
   clientDirectory: string;
   logger: Logger;
   requestHandler: RequestHandler;
@@ -49,12 +55,13 @@ interface ProductionHostOptions {
 }
 
 export function createProductionHost({
+  basicAuth,
   clientDirectory,
   logger,
   requestHandler,
   serviceName,
 }: ProductionHostOptions): Express {
-  const app = createHost({ development: false, serviceName });
+  const app = createHost({ basicAuth, development: false, serviceName });
 
   app.use(
     '/assets',
@@ -87,6 +94,7 @@ function readRequestHandler(serverModule: unknown): RequestHandler {
 }
 
 interface ReactRouterServerOptions extends Omit<StartServerOptions, 'app'> {
+  basicAuth?: BasicAuthCredentials | undefined;
   development: boolean;
   logger: Logger;
   rootDirectory: string;
@@ -95,6 +103,7 @@ interface ReactRouterServerOptions extends Omit<StartServerOptions, 'app'> {
 }
 
 export async function startReactRouterServer({
+  basicAuth,
   development,
   logger,
   onShutdown,
@@ -121,7 +130,7 @@ export async function startReactRouterServer({
     // watcher's own ignore list still excludes node_modules.
     vite.watcher.add(join(rootDirectory, '..', '..', 'packages'));
 
-    app = createHost({ development: true, serviceName });
+    app = createHost({ basicAuth, development: true, serviceName });
     app.use(vite.middlewares);
     // After Vite's handlers, as production sits after the static ones: page requests only.
     app.use(requestLogging(logger));
@@ -142,7 +151,13 @@ export async function startReactRouterServer({
     const serverModule: unknown = await import(buildUrl);
     const requestHandler = readRequestHandler(serverModule);
 
-    app = createProductionHost({ clientDirectory, logger, requestHandler, serviceName });
+    app = createProductionHost({
+      basicAuth,
+      clientDirectory,
+      logger,
+      requestHandler,
+      serviceName,
+    });
   }
 
   return startServer({
