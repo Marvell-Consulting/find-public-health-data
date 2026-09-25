@@ -58,6 +58,8 @@ describe('public API', () => {
     ['put', `/api/internal/indicators/${anyId}/confidence-intervals`],
     ['get', `/api/internal/indicators/${anyId}/update-frequency`],
     ['put', `/api/internal/indicators/${anyId}/update-frequency`],
+    ['get', `/api/internal/indicators/${anyId}/period-type`],
+    ['put', `/api/internal/indicators/${anyId}/period-type`],
     ['get', `/api/internal/indicators/${anyId}/other-notes-and-caveats`],
     ['put', `/api/internal/indicators/${anyId}/other-notes-and-caveats`],
     ['get', `/api/internal/indicators/${anyId}/publishing-date`],

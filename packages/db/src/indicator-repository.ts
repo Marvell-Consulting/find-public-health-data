@@ -1,3 +1,4 @@
+import { yearTypeLabel } from '@fphd/utils/period-type';
 import type { Polarity } from '@fphd/utils/polarity';
 import { isShortId, SHORT_ID_PATTERN } from '@fphd/utils/short-id';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
@@ -172,7 +173,8 @@ export interface IndicatorDetail {
   name: string;
   valueType: string;
   unit: { name: string; label: string };
-  yearType: string;
+  /** As the public reads it, which for a year ending on a specified date names the date. */
+  yearType: string | null;
   updateFrequency: UpdateFrequency;
   polarity: Polarity;
   ciMethod: string | null;
@@ -245,7 +247,10 @@ export async function getPublishedIndicatorById(
       valueType: valueType.name,
       unitName: unit.name,
       unitLabel: unit.label,
-      yearType: yearType.name,
+      yearTypeId: yearType.id,
+      yearTypeName: yearType.name,
+      yearEndDay: indicator.yearEndDay,
+      yearEndMonth: indicator.yearEndMonth,
       updateFrequency: indicator.updateFrequency,
       polarity: indicator.polarity,
       ciMethod: ciMethod.name,
@@ -270,7 +275,8 @@ export async function getPublishedIndicatorById(
     .from(indicator)
     .innerJoin(valueType, eq(indicator.valueTypeId, valueType.id))
     .innerJoin(unit, eq(indicator.unitId, unit.id))
-    .innerJoin(yearType, eq(indicator.yearTypeId, yearType.id))
+    // A months indicator has no year type.
+    .leftJoin(yearType, eq(indicator.yearTypeId, yearType.id))
     .leftJoin(ciMethod, eq(indicator.ciMethodId, ciMethod.id))
     .leftJoin(comparatorMethod, eq(indicator.comparatorMethodId, comparatorMethod.id))
     .leftJoin(dataSource, eq(indicator.dataSourceId, dataSource.id))
@@ -300,7 +306,12 @@ export async function getPublishedIndicatorById(
     name: row.name,
     valueType: row.valueType,
     unit: { name: row.unitName, label: row.unitLabel },
-    yearType: row.yearType,
+    yearType: publicYearTypeLabel({
+      id: row.yearTypeId,
+      name: row.yearTypeName,
+      yearEndDay: row.yearEndDay,
+      yearEndMonth: row.yearEndMonth,
+    }),
     updateFrequency: row.updateFrequency,
     polarity: row.polarity,
     ciMethod: row.ciMethod,
@@ -654,14 +665,19 @@ export async function searchIndicators(
   }
 
   if (filters.yearTypes.length > 0) {
+    const chosen = (await listPublishedYearTypes(db)).filter(({ label }) =>
+      filters.yearTypes.includes(label),
+    );
     conditions.push(
-      inArray(
-        indicator.yearTypeId,
-        db
-          .select({ id: yearType.id })
-          .from(yearType)
-          .where(inArray(yearType.name, filters.yearTypes)),
-      ),
+      or(
+        ...chosen.map(({ id, yearEndDay, yearEndMonth }) =>
+          and(
+            eq(indicator.yearTypeId, id),
+            sql`${indicator.yearEndDay} IS NOT DISTINCT FROM ${yearEndDay}`,
+            sql`${indicator.yearEndMonth} IS NOT DISTINCT FROM ${yearEndMonth}`,
+          ),
+        ),
+      ) ?? sql<boolean>`false`,
     );
   }
 
@@ -769,6 +785,41 @@ export async function searchIndicators(
   };
 }
 
+/** A version's year type and year end; the year type is null for months. */
+interface YearTypeColumns {
+  id: string | null;
+  name: string | null;
+  yearEndDay: number | null;
+  yearEndMonth: number | null;
+}
+
+function publicYearTypeLabel({ id, name, yearEndDay, yearEndMonth }: YearTypeColumns) {
+  if (id === null || name === null) return null;
+  const yearEnd =
+    yearEndDay === null || yearEndMonth === null ? null : { day: yearEndDay, month: yearEndMonth };
+  return yearTypeLabel({ id, name }, yearEnd);
+}
+
+/**
+ * Each year type and year end a published indicator has, with the label the public reads it
+ * by; the search filter chooses by label, and one label may stand for several of these.
+ */
+async function listPublishedYearTypes(
+  db: Database,
+): Promise<(YearTypeColumns & { id: string; label: string })[]> {
+  const rows = await db
+    .selectDistinct({
+      id: yearType.id,
+      name: yearType.name,
+      yearEndDay: indicator.yearEndDay,
+      yearEndMonth: indicator.yearEndMonth,
+    })
+    .from(indicator)
+    .innerJoin(yearType, eq(indicator.yearTypeId, yearType.id));
+
+  return rows.map((row) => ({ ...row, label: publicYearTypeLabel(row) ?? row.name }));
+}
+
 export async function listIndicatorFacets(db: Database): Promise<IndicatorFacets> {
   const publishedIds = db.select({ id: indicator.id }).from(indicator);
 
@@ -802,11 +853,7 @@ export async function listIndicatorFacets(db: Database): Promise<IndicatorFacets
       .from(valueType)
       .innerJoin(indicator, eq(indicator.valueTypeId, valueType.id))
       .orderBy(asc(valueType.name)),
-    db
-      .selectDistinct({ name: yearType.name })
-      .from(yearType)
-      .innerJoin(indicator, eq(indicator.yearTypeId, yearType.id))
-      .orderBy(asc(yearType.name)),
+    listPublishedYearTypes(db),
   ]);
 
   return {
@@ -814,6 +861,6 @@ export async function listIndicatorFacets(db: Database): Promise<IndicatorFacets
     classifications,
     sources: sources.map((s) => s.name),
     valueTypes: valueTypes.map((v) => v.name),
-    yearTypes: yearTypes.map((y) => y.name),
+    yearTypes: [...new Set(yearTypes.map(({ label }) => label))].sort((a, b) => a.localeCompare(b)),
   };
 }

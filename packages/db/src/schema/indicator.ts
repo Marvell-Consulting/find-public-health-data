@@ -1,3 +1,4 @@
+import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
 import { POLARITIES } from '@fphd/utils/polarity';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
 import { UPDATE_FREQUENCIES } from '@fphd/utils/update-frequency';
@@ -26,6 +27,7 @@ import {
   comparatorMethod,
   dataSource,
   numeratorDenominatorSource,
+  periodType,
   unit,
   valueType,
   yearType,
@@ -80,7 +82,11 @@ export const indicatorVersion = pgTable(
     slug: text().notNull(),
     valueTypeId: uuid().references(() => valueType.id),
     unitId: uuid().references(() => unit.id),
+    periodTypeId: uuid().references(() => periodType.id),
+    // Asked of years and quarters only, and the end date only of a year ending on a specified one.
     yearTypeId: uuid().references(() => yearType.id),
+    yearEndDay: smallint(),
+    yearEndMonth: smallint(),
     ciMethodId: uuid().references(() => ciMethod.id),
     // Asked of a standard CI method only, and the modifications only when there were some.
     ciMethodModified: boolean(),
@@ -161,6 +167,19 @@ export const indicatorVersion = pgTable(
     check(
       'indicator_version_other_notes_detail_check',
       sql`${t.otherNotesNeeded} IS TRUE OR ${t.otherNotesDetail} IS NULL`,
+    ),
+    check(
+      'indicator_version_year_type_check',
+      sql`(${t.yearTypeId} IS NOT NULL) = (${t.periodTypeId} IS NOT NULL AND ${t.periodTypeId} <> ${sql.raw(`'${PERIOD_TYPES.months.id}'`)})`,
+    ),
+    check(
+      'indicator_version_year_end_check',
+      sql`(${t.yearEndDay} IS NOT NULL) = (${t.yearTypeId} IS NOT DISTINCT FROM ${sql.raw(`'${YEAR_TYPES.specifiedEndDate.id}'`)}) AND (${t.yearEndMonth} IS NOT NULL) = (${t.yearEndDay} IS NOT NULL)`,
+    ),
+    // A day of that month in some year, so 29 February is one.
+    check(
+      'indicator_version_year_end_date_check',
+      sql`${t.yearEndMonth} BETWEEN 1 AND 12 AND ${t.yearEndDay} BETWEEN 1 AND CASE WHEN ${t.yearEndMonth} = 2 THEN 29 WHEN ${t.yearEndMonth} IN (4, 6, 9, 11) THEN 30 ELSE 31 END`,
     ),
     // A published version always says when, and nothing else does, so ordering by
     // published_at never meets a null.

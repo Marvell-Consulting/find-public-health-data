@@ -24,11 +24,11 @@ from polarity import POLARITIES
 from published_csv import NULL_MARKER
 from slug import assign_slugs
 from update_frequency import UPDATE_FREQUENCIES
+from year_type import YEAR_TYPES, year_type_select
 
 TABLES = [
     "value_type",
     "unit",
-    "year_type",
     "ci_method",
     "comparator_method",
     "data_source",
@@ -109,7 +109,8 @@ SELECTS = {
     "indicator_version": (
         "SELECT i.id AS id, i.id AS indicator_id, 'published' AS status, "
         "i.updated_at AS published_at, i.name, i.value_type_id, i.unit_id, "
-        f"i.year_type_id, i.ci_method_id, {POLARITY_VALUE} AS polarity, "
+        f"{year_type_select('i.year_type_id')}, "
+        f"i.ci_method_id, {POLARITY_VALUE} AS polarity, "
         f"{UPDATE_FREQUENCY_VALUE} AS update_frequency, "
         "i.comparator_method_id, i.disclosure_threshold, i.ci_confidence_level, "
         "i.config, m.definition, m.rationale, m.methodology, m.numerator_definition, "
@@ -219,6 +220,17 @@ def check_update_frequencies():
         raise RuntimeError("No update frequency value for: " + ", ".join(unknown))
 
 
+def check_year_types():
+    """Fail before any data is written if an exported year type has no service value."""
+    names = psql(
+        "SELECT DISTINCT y.name FROM indicator i JOIN year_type y ON y.id = i.year_type_id "
+        f"WHERE i.id NOT IN {EXCLUDED_ID_LIST}"
+    )
+    unknown = sorted(name for name in names.split("\n") if name and name not in YEAR_TYPES)
+    if unknown:
+        raise RuntimeError("No year type value for: " + ", ".join(unknown))
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("out_dir", type=Path)
@@ -249,6 +261,7 @@ def main():
     check_slugs()
     check_polarities()
     check_update_frequencies()
+    check_year_types()
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
     tables = {table: export_table(table, args.out_dir) for table in args.tables}

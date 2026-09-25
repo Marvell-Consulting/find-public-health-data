@@ -1,9 +1,14 @@
 import { randomBytes } from 'node:crypto';
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
+import { drizzle } from 'drizzle-orm/postgres-js';
+import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import type postgres from 'postgres';
 
 import { importCoreData } from './core-data.ts';
-import { migrateToLatest } from './migrations.ts';
+import { migrateToLatest, migrationsFolder } from './migrations.ts';
 import { rebuildReadModels } from './read-models.ts';
 import type { Repositories } from './repositories.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
@@ -140,6 +145,30 @@ export async function createTestDatabase({
       }
     },
   };
+}
+
+/**
+ * Applies every migration before the one tagged, so a test can put data in the shape that
+ * migration meets and then run it with `migrateToLatest`.
+ */
+export async function migrateBefore(sql: postgres.Sql, tag: string): Promise<void> {
+  const folder = mkdtempSync(join(tmpdir(), 'fphd-migrations-'));
+  try {
+    cpSync(migrationsFolder, folder, { recursive: true });
+    const journalPath = join(folder, 'meta', '_journal.json');
+    const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as {
+      entries: { tag: string }[];
+    };
+    const index = journal.entries.findIndex((entry) => entry.tag === tag);
+    if (index === -1) throw new Error(`no migration ${tag}`);
+    writeFileSync(
+      journalPath,
+      JSON.stringify({ ...journal, entries: journal.entries.slice(0, index) }),
+    );
+    await migrate(drizzle(sql), { migrationsFolder: folder });
+  } finally {
+    rmSync(folder, { recursive: true, force: true });
+  }
 }
 
 /**

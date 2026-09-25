@@ -50,6 +50,29 @@ describe('periodLabel', () => {
   it('labels a rolling period with its year range', () => {
     expect(periodLabel(obs({ fromDate: '2021-01-01', toDate: '2023-12-31' }))).toBe('2021 to 2023');
   });
+
+  it('labels a financial year as one period spanning two years', () => {
+    const financialYear = obs({ fromDate: '2022-04-01', toDate: '2023-03-31' });
+
+    expect(periodLabel(financialYear, 'Financial')).toBe('2022/23');
+  });
+
+  it('labels a Fingertips financial year of cumulative quarters as one financial year', () => {
+    const cumulativeQuarters = obs({ fromDate: '2022-04-01', toDate: '2023-03-31' });
+    const multiYear = obs({ fromDate: '2020-04-01', toDate: '2023-03-31' });
+
+    expect(periodLabel(cumulativeQuarters, 'Financial')).toBe('2022/23');
+    expect(periodLabel(multiYear, 'Financial')).toBe('2020 to 2023');
+  });
+
+  it.each([
+    ['another year type', 'August to July'],
+    ['no year type, as months have', null],
+  ])('labels a year spanning two years as a range for %s', (_, yearType) => {
+    const year = obs({ fromDate: '2022-08-01', toDate: '2023-07-31' });
+
+    expect(periodLabel(year, yearType)).toBe('2022 to 2023');
+  });
 });
 
 describe('segmentLabel', () => {

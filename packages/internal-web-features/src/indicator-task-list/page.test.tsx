@@ -108,6 +108,7 @@ describe('IndicatorTaskListPage', () => {
     renderPage();
 
     expect(screen.getAllByRole('link').map((link) => link.textContent)).toEqual([
+      'Period type',
       'Polarity',
       'Name',
       'Definition and rationale',
@@ -118,6 +119,19 @@ describe('IndicatorTaskListPage', () => {
       'Update frequency',
       'Publishing date',
     ]);
+  });
+
+  it('links the period type to its page, with the status the API reports', () => {
+    renderPage({ tasks: { name: 'completed', 'period-type': 'completed' } });
+
+    const row = group('Data').getByRole('link', { name: 'Period type' });
+
+    expect(row.getAttribute('href')).toBe(
+      `/publish/indicators/${taskList.indicator.id}/period-type`,
+    );
+    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
+      'Completed',
+    );
   });
 
   it('links the update frequency to its page, with the status the API reports', () => {

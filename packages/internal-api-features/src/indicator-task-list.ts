@@ -10,6 +10,7 @@ import {
   type IndicatorTaskStatuses,
   isIndicatorSectionComplete,
   otherNotesAndCaveatsSection,
+  periodTypeSection,
   polaritySection,
   publishingDateSection,
   updateFrequencySection,
@@ -22,6 +23,7 @@ import {
   definitionAndRationaleColumns,
   linksColumns,
   otherNotesAndCaveatsColumns,
+  periodTypeColumns,
   polarityColumns,
   publishingDateColumns,
   updateFrequencyColumns,
@@ -64,6 +66,7 @@ export function indicatorTaskList({
       definitionAndRationaleSection,
       definitionAndRationaleColumns,
     ),
+    'period-type': complete(periodTypeSection, periodTypeColumns),
     polarity: complete(polaritySection, polarityColumns),
     calculation: complete(calculationSection, calculationColumns),
     'confidence-intervals': taskStatus(

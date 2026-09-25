@@ -12,6 +12,7 @@ import * as links from './indicator-links/route.tsx';
 import * as editIndicatorName from './indicator-name/edit-route.tsx';
 import * as newIndicator from './indicator-name/new-route.tsx';
 import * as otherNotesAndCaveats from './indicator-other-notes-and-caveats/route.tsx';
+import * as periodType from './indicator-period-type/route.tsx';
 import * as polarity from './indicator-polarity/route.tsx';
 import * as publishingDate from './indicator-publishing-date/route.tsx';
 import * as updateFrequency from './indicator-update-frequency/route.tsx';
@@ -50,6 +51,8 @@ const notesAndCaveatsUnanswered = {
   otherNotesNeeded: '',
   otherNotesDetail: '',
 };
+
+const periodTypeUnanswered = { periodType: '', yearType: '', yearEndDay: '', yearEndMonth: '' };
 
 const publishingDateUnanswered = {
   publishingDateDay: '',
@@ -144,6 +147,16 @@ const forms: {
     rejected: {
       values: { updateFrequency: '' },
       fieldErrors: { updateFrequency: 'Select how often this indicator will be updated' },
+    },
+  },
+  {
+    name: 'period type',
+    route: periodType,
+    pageTitle: 'What is the period type in this indicator?',
+    loaderData: { id: indicator.id, values: periodTypeUnanswered },
+    rejected: {
+      values: periodTypeUnanswered,
+      fieldErrors: { periodType: 'Select the period type' },
     },
   },
   {

@@ -68,6 +68,10 @@ export default [
         '../../../packages/internal-web-features/src/indicator-update-frequency/route.tsx',
       ),
       route(
+        'publish/indicators/:id/period-type',
+        '../../../packages/internal-web-features/src/indicator-period-type/route.tsx',
+      ),
+      route(
         'publish/indicators/:id/other-notes-and-caveats',
         '../../../packages/internal-web-features/src/indicator-other-notes-and-caveats/route.tsx',
       ),

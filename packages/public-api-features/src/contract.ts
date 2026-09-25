@@ -83,7 +83,8 @@ export const indicatorDetailSchema = z.object({
   name: z.string().min(1),
   valueType: z.string().min(1),
   unit: z.object({ name: z.string().min(1), label: z.string().min(1) }),
-  yearType: z.string().min(1),
+  /** Null for an indicator of months, which have no year type. */
+  yearType: z.string().min(1).nullable(),
   updateFrequency: z.enum(UPDATE_FREQUENCIES),
   polarity: z.enum(POLARITIES),
   ciMethod: z.string().nullable(),

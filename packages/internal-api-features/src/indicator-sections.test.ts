@@ -1,6 +1,6 @@
+import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
-
 import type { CiMethodRow } from './ci-method-repository.ts';
 import { indicatorTaskKeySchema, toFieldErrors } from './contract.ts';
 import type { IndicatorSectionDraft } from './indicator-section.ts';
@@ -12,6 +12,7 @@ import {
   indicatorSectionsRouter,
   linksColumns,
   otherNotesAndCaveatsColumns,
+  periodTypeColumns,
   polarityColumns,
   publishingDateColumns,
   publishingDateServerSection,
@@ -38,6 +39,10 @@ const unanswered: IndicatorSectionDraft = {
   ciMethodModifications: null,
   ciMethodOtherDetail: null,
   updateFrequency: null,
+  periodTypeId: null,
+  yearTypeId: null,
+  yearEndDay: null,
+  yearEndMonth: null,
   disclosureControl: null,
   disclosureControlDetail: null,
   roundingApplied: null,
@@ -164,6 +169,66 @@ describe('updateFrequencyColumns', () => {
 
     expect(updateFrequencyColumns.fromDraft({ ...unanswered, ...answers })).toEqual(answers);
     expect(updateFrequencyColumns.toAttributes(answers)).toEqual(answers);
+  });
+});
+
+describe('periodTypeColumns', () => {
+  const years = PERIOD_TYPES.years.id;
+  const specified = YEAR_TYPES.specifiedEndDate.id;
+
+  it('reads the year end as the form gives it', () => {
+    expect(
+      periodTypeColumns.fromDraft({
+        ...unanswered,
+        periodTypeId: years,
+        yearTypeId: specified,
+        yearEndDay: 31,
+        yearEndMonth: 7,
+      }),
+    ).toEqual({ periodType: years, yearType: specified, yearEndDay: '31', yearEndMonth: '7' });
+  });
+
+  it('writes the year end of a year ending on a specified date', () => {
+    expect(
+      periodTypeColumns.toAttributes({
+        periodType: years,
+        yearType: specified,
+        yearEndDay: '31',
+        yearEndMonth: '07',
+      }),
+    ).toEqual({ periodTypeId: years, yearTypeId: specified, yearEndDay: 31, yearEndMonth: 7 });
+  });
+
+  it('clears a year end the year type does not ask for', () => {
+    expect(
+      periodTypeColumns.toAttributes({
+        periodType: PERIOD_TYPES.quarters.id,
+        yearType: YEAR_TYPES.financial.id,
+        yearEndDay: '31',
+        yearEndMonth: '7',
+      }),
+    ).toEqual({
+      periodTypeId: PERIOD_TYPES.quarters.id,
+      yearTypeId: YEAR_TYPES.financial.id,
+      yearEndDay: null,
+      yearEndMonth: null,
+    });
+  });
+
+  it('clears the year type and year end of months', () => {
+    expect(
+      periodTypeColumns.toAttributes({
+        periodType: PERIOD_TYPES.months.id,
+        yearType: specified,
+        yearEndDay: '31',
+        yearEndMonth: '7',
+      }),
+    ).toEqual({
+      periodTypeId: PERIOD_TYPES.months.id,
+      yearTypeId: null,
+      yearEndDay: null,
+      yearEndMonth: null,
+    });
   });
 });
 

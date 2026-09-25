@@ -1,34 +1,11 @@
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-
-import { drizzle } from 'drizzle-orm/postgres-js';
-import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import type postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { migrateToLatest, migrationsFolder } from './migrations.ts';
+import { migrateToLatest } from './migrations.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
-import { createTestDatabase, type TestDatabase } from './testing.ts';
+import { createTestDatabase, migrateBefore, type TestDatabase } from './testing.ts';
 
 const MIGRATION = '0022_other-notes-and-caveats';
-
-/** A copy of the migrations folder that stops short of the one under test. */
-function migrationsBefore(tag: string): string {
-  const folder = mkdtempSync(join(tmpdir(), 'fphd-migrations-'));
-  cpSync(migrationsFolder, folder, { recursive: true });
-  const journalPath = join(folder, 'meta', '_journal.json');
-  const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as {
-    entries: { tag: string }[];
-  };
-  const index = journal.entries.findIndex((entry) => entry.tag === tag);
-  if (index === -1) throw new Error(`no migration ${tag}`);
-  writeFileSync(
-    journalPath,
-    JSON.stringify({ ...journal, entries: journal.entries.slice(0, index) }),
-  );
-  return folder;
-}
 
 interface Prose {
   disclosureControl?: string | null;
@@ -58,13 +35,11 @@ const PROSE: Record<number, Prose> = {
 
 let testDb: TestDatabase;
 let sql: postgres.Sql;
-let folder: string;
 
 beforeAll(async () => {
   testDb = await createTestDatabase({ template: 'unmigrated' });
   sql = createOwnerClient(testDb.name);
-  folder = migrationsBefore(MIGRATION);
-  await migrate(drizzle(sql), { migrationsFolder: folder });
+  await migrateBefore(sql, MIGRATION);
 
   for (const [shortId, prose] of Object.entries(PROSE)) {
     await sql`
@@ -84,7 +59,6 @@ beforeAll(async () => {
 afterAll(async () => {
   await sql?.end();
   await testDb?.drop();
-  if (folder) rmSync(folder, { recursive: true, force: true });
 });
 
 async function answersOf(shortId: number) {

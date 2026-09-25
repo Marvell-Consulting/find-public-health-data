@@ -1,3 +1,4 @@
+import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
 import { describe, expect, it } from 'vitest';
 
 import { indicatorTaskListSchema } from './contract.ts';
@@ -31,6 +32,10 @@ const source: IndicatorTaskListSource = {
     ciMethodModifications: null,
     ciMethodOtherDetail: null,
     updateFrequency: null,
+    periodTypeId: null,
+    yearTypeId: null,
+    yearEndDay: null,
+    yearEndMonth: null,
     disclosureControl: null,
     disclosureControlDetail: null,
     roundingApplied: null,
@@ -59,6 +64,10 @@ const complete: IndicatorTaskListDraft = {
   ciMethodModifications: null,
   ciMethodOtherDetail: null,
   updateFrequency: 'quarterly',
+  periodTypeId: PERIOD_TYPES.years.id,
+  yearTypeId: YEAR_TYPES.specifiedEndDate.id,
+  yearEndDay: 31,
+  yearEndMonth: 7,
   disclosureControl: 'not-applicable',
   disclosureControlDetail: null,
   roundingApplied: false,
@@ -132,6 +141,36 @@ describe('indicatorTaskList', () => {
 
   it('leaves the update frequency not started until one is chosen', () => {
     expect(indicatorTaskList(source).tasks['update-frequency']).toBe('not_started');
+  });
+
+  it.each([
+    ['months', { periodTypeId: PERIOD_TYPES.months.id }],
+    [
+      'quarters of a year type',
+      { periodTypeId: PERIOD_TYPES.quarters.id, yearTypeId: YEAR_TYPES.financial.id },
+    ],
+    [
+      'years ending on a date',
+      {
+        periodTypeId: PERIOD_TYPES.years.id,
+        yearTypeId: YEAR_TYPES.specifiedEndDate.id,
+        yearEndDay: 29,
+        yearEndMonth: 2,
+      },
+    ],
+  ])('counts the period type as complete with %s', (_, draft) => {
+    expect(indicatorTaskList(withDraft(draft)).tasks['period-type']).toBe('completed');
+  });
+
+  it.each([
+    ['nothing', {}],
+    ['years of no year type', { periodTypeId: PERIOD_TYPES.years.id }],
+    [
+      'years ending on a date not given',
+      { periodTypeId: PERIOD_TYPES.years.id, yearTypeId: YEAR_TYPES.specifiedEndDate.id },
+    ],
+  ])('leaves the period type not started with %s', (_, draft) => {
+    expect(indicatorTaskList(withDraft(draft)).tasks['period-type']).toBe('not_started');
   });
 
   it.each([
