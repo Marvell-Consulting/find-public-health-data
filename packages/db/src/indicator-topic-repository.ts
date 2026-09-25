@@ -31,21 +31,6 @@ export const indicatorTopicFileSchema = z.object({
   indicatorDataUpdatedAt: z
     .record(z.string(), z.iso.datetime({ local: true }).nullable())
     .default({}),
-  classifications: z
-    .array(
-      z.object({
-        slug: z.string().min(1),
-        dimension: z.enum([
-          'indicator_type',
-          'population',
-          'risk_factor',
-          'inequality',
-          'framework',
-        ]),
-        name: z.string().min(1),
-      }),
-    )
-    .default([]),
   indicatorClassifications: z
     .array(z.object({ fingertipsId: z.number().int(), classificationSlug: z.string().min(1) }))
     .default([]),
@@ -65,11 +50,11 @@ export interface IndicatorClassification {
 }
 
 export interface IndicatorTopicImportSummary {
-  classifications: number;
   classificationLinks: number;
   links: number;
   timestamps: number;
   unknownTopics: string[];
+  unknownClassifications: string[];
   unknownIndicators: number[];
 }
 
@@ -86,12 +71,12 @@ export function parseIndicatorTopicFile(data: unknown): IndicatorTopicFile {
 }
 
 /**
- * Replaces the topic memberships of the indicators the file names, and records when the
- * source system last published their data. A membership belongs to a version: the
+ * Replaces the topic memberships and classifications of the indicators the file names, and
+ * records when the source system last published their data. A membership belongs to a version: the
  * published one if the indicator has one, otherwise its draft. Memberships are replaced,
  * not merged, because the file states what is true now.
  *
- * Rows naming a topic or indicator this database does not hold are reported rather than
+ * Rows naming a topic, classification or indicator this database does not hold are reported rather than
  * failed on — a seed file and a database can legitimately drift while both are in flux.
  *
  * Runs several statements without opening a transaction, so the caller owns atomicity —
@@ -105,6 +90,7 @@ export async function applyIndicatorTopics(
   const shortIds = [
     ...new Set([
       ...file.indicatorTopics.map(({ fingertipsId }) => fingertipsId),
+      ...file.indicatorClassifications.map(({ fingertipsId }) => fingertipsId),
       ...Object.keys(file.indicatorDataUpdatedAt).map(Number),
     ]),
   ];
@@ -164,49 +150,89 @@ export async function applyIndicatorTopics(
     timestamps += 1;
   }
 
-  let classificationCount = 0;
-  let classificationLinks = 0;
-  if (file.classifications.length > 0) {
-    const stored = await db
-      .insert(classification)
-      .values(file.classifications)
-      .onConflictDoUpdate({
-        target: classification.slug,
-        set: {
-          name: sql`excluded.name`,
-          dimension: sql`excluded.dimension`,
-          updatedAt: sql`now()`,
-        },
-      })
-      .returning({ id: classification.id, slug: classification.slug });
-    classificationCount = stored.length;
-    const idBySlug = new Map(stored.map((row) => [row.slug, row.id]));
-
-    const rows = file.indicatorClassifications.flatMap(({ fingertipsId, classificationSlug }) => {
-      const indicatorVersionId = versionIdByShortId.get(fingertipsId);
-      const classificationId = idBySlug.get(classificationSlug);
-      return indicatorVersionId && classificationId
-        ? [{ indicatorVersionId, classificationId }]
-        : [];
-    });
-    const classified = [...new Set(rows.map(({ indicatorVersionId }) => indicatorVersionId))];
-    if (classified.length > 0) {
-      await db
-        .delete(indicatorClassification)
-        .where(inArray(indicatorClassification.indicatorVersionId, classified));
-      await db.insert(indicatorClassification).values(rows);
-    }
-    classificationLinks = rows.length;
-  }
+  const classificationLinks = await applyIndicatorClassifications(
+    db,
+    file.indicatorClassifications,
+    versionIdByShortId,
+  );
 
   return {
-    classifications: classificationCount,
-    classificationLinks,
+    classificationLinks: classificationLinks.links,
     links: links.length,
     timestamps,
     unknownTopics: topicIds.filter((id) => !knownTopicIds.has(id)),
+    unknownClassifications: classificationLinks.unknownSlugs,
     unknownIndicators: shortIds.filter((id) => !indicatorIdByShortId.has(id)),
   };
+}
+
+/**
+ * Replaces the classifications of the versions the rows name, which name classifications by
+ * the slug the core data gives them. A version given a risk factor or a framework has
+ * answered yes to having one; any other is left unanswered, as the source never asked.
+ */
+async function applyIndicatorClassifications(
+  db: Database,
+  rows: IndicatorTopicFile['indicatorClassifications'],
+  versionIdByShortId: ReadonlyMap<number, string>,
+): Promise<{ links: number; unknownSlugs: string[] }> {
+  const slugs = [...new Set(rows.map(({ classificationSlug }) => classificationSlug))];
+  const known =
+    slugs.length > 0
+      ? await db
+          .select({
+            id: classification.id,
+            slug: classification.slug,
+            dimension: classification.dimension,
+          })
+          .from(classification)
+          .where(inArray(classification.slug, slugs))
+      : [];
+  const bySlug = new Map(known.map((row) => [row.slug, row]));
+
+  const links = rows.flatMap(({ fingertipsId, classificationSlug }) => {
+    const indicatorVersionId = versionIdByShortId.get(fingertipsId);
+    const found = bySlug.get(classificationSlug);
+    return indicatorVersionId && found
+      ? [{ indicatorVersionId, classificationId: found.id, dimension: found.dimension }]
+      : [];
+  });
+  const versionIds = [...new Set(links.map(({ indicatorVersionId }) => indicatorVersionId))];
+
+  if (versionIds.length > 0) {
+    await db
+      .delete(indicatorClassification)
+      .where(inArray(indicatorClassification.indicatorVersionId, versionIds));
+    await db.insert(indicatorClassification).values(
+      links.map(({ indicatorVersionId, classificationId }) => ({
+        indicatorVersionId,
+        classificationId,
+      })),
+    );
+  }
+
+  const answeredYes = (dimension: string) => [
+    ...new Set(
+      links.filter((link) => link.dimension === dimension).map((link) => link.indicatorVersionId),
+    ),
+  ];
+  const withRiskFactor = answeredYes('risk_factor');
+  const withFramework = answeredYes('framework');
+
+  if (withRiskFactor.length > 0) {
+    await db
+      .update(indicatorVersion)
+      .set({ hasRiskFactor: true })
+      .where(inArray(indicatorVersion.id, withRiskFactor));
+  }
+  if (withFramework.length > 0) {
+    await db
+      .update(indicatorVersion)
+      .set({ hasFramework: true })
+      .where(inArray(indicatorVersion.id, withFramework));
+  }
+
+  return { links: links.length, unknownSlugs: slugs.filter((slug) => !bySlug.has(slug)) };
 }
 
 /** The topics a published indicator belongs to, ordered by title. */

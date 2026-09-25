@@ -2,12 +2,16 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import type postgres from 'postgres';
-
 import {
   type CiMethodUpsertResult,
   parseCiMethodsFile,
   upsertCiMethods,
 } from './ci-method-core-data.ts';
+import {
+  type ClassificationUpsertResult,
+  parseClassificationsFile,
+  upsertClassifications,
+} from './classification-core-data.ts';
 import { createDbFromClient } from './client.ts';
 import { parseTopicsFile } from './parse-topics-file.ts';
 import { type UpsertResult, upsertTopics } from './topic-repository.ts';
@@ -16,10 +20,12 @@ import { type UpsertResult, upsertTopics } from './topic-repository.ts';
 // package root alongside data/.
 const topicsFile = fileURLToPath(new URL('../data/topics.json', import.meta.url));
 const ciMethodsFile = fileURLToPath(new URL('../data/ci-methods.json', import.meta.url));
+const classificationsFile = fileURLToPath(new URL('../data/classifications.json', import.meta.url));
 
 export interface CoreDataImport {
   topics: UpsertResult;
   ciMethods: CiMethodUpsertResult;
+  classifications: ClassificationUpsertResult;
 }
 
 function readJson(file: string): unknown {
@@ -27,22 +33,25 @@ function readJson(file: string): unknown {
 }
 
 /**
- * Load the required core content — topics, and the confidence interval methods a publisher
- * chooses from — from the committed data files. This is permanent content every environment
- * needs, so unlike the dummy seed it carries no environment gate, and it is idempotent: the
- * upserts key on stable ids, re-runs are no-ops, and rows absent from a file are reported
- * rather than deleted. Future core reference or content data joins this function rather
+ * Load the required core content — topics, the confidence interval methods a publisher
+ * chooses from, and the classifications an indicator is tagged with — from the committed
+ * data files. This is permanent content every environment needs, so unlike the dummy seed it
+ * carries no environment gate, and it is idempotent: the upserts key on stable ids (slugs for
+ * classifications), re-runs are no-ops, and rows absent from a file are reported rather than
+ * deleted. Future core reference or content data joins this function rather
  * than growing new commands.
  */
 export async function importCoreData(sql: postgres.Sql): Promise<CoreDataImport> {
-  // Both files are read first, so a bad one fails before anything is written.
+  // Every file is read first, so a bad one fails before anything is written.
   const topicRecords = parseTopicsFile(readJson(topicsFile));
   const ciMethodRecords = parseCiMethodsFile(readJson(ciMethodsFile));
+  const classificationRecords = parseClassificationsFile(readJson(classificationsFile));
   const db = createDbFromClient(sql);
 
   return {
     topics: await upsertTopics(db, topicRecords),
     ciMethods: await upsertCiMethods(db, ciMethodRecords),
+    classifications: await upsertClassifications(db, classificationRecords),
   };
 }
 

@@ -380,10 +380,11 @@ Four commands are worth noting:
   CI's integration job and a managed server all create the per-API roles through it. It is
   idempotent — safe against a server where the roles already exist — and it sets the passwords
   every time, so it is also how a credential is rotated.
-- `db import-core-data` loads the required starting data the service relies on — today that is
-  topics, from `packages/db/data/topics.json`. It is idempotent (upserts keyed on stable ids,
-  rows absent from the file are reported rather than deleted) and runs in any environment: this
-  is permanent content preview and production need, not dummy data.
+- `db import-core-data` loads the required starting data the service relies on — topics, CI
+  methods and the classifications indicators are tagged with, from `packages/db/data/`. It is
+  idempotent (upserts keyed on stable ids, or slugs for classifications, and rows absent from the
+  file are reported rather than deleted) and runs in any environment: this is permanent content
+  preview and production need, not dummy data.
 - `db seed-dummy-data` replaces the dummy data — the committed indicators, observations and the
   links tying those indicators to topics — and rebuilds the read models, in one command and one
   transaction. A job runs one command, and a seeded database whose read models are still empty

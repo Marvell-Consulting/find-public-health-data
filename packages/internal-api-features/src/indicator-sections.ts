@@ -29,9 +29,17 @@ import {
   type SexAndAgesAnswers,
   type SexAndAgesField,
   sexAndAgesSection,
+  TAG_LIST_DETAILS,
+  TAG_LISTS,
+  type Tagging,
+  type TaggingAnswers,
+  type TaggingField,
+  type TaggingFormValues,
+  taggingSection,
+  unknownTagMessage,
   updateFrequencySection,
 } from './contract.ts';
-import type { UkDateTime } from './indicator-repository.ts';
+import type { IndicatorDraftClassification, UkDateTime } from './indicator-repository.ts';
 import {
   type IndicatorSectionColumns,
   indicatorSectionRouter,
@@ -42,6 +50,7 @@ import type {
   InternalCiMethodRepository,
   InternalIndicatorRepository,
   InternalRepositories,
+  InternalTagRepository,
 } from './repositories.ts';
 
 export const definitionAndRationaleColumns = sameNamedColumns(definitionAndRationaleSection.fields);
@@ -180,6 +189,61 @@ export const sexAndAgesColumns: IndicatorSectionColumns<
   }),
 };
 
+function idsIn(
+  classifications: readonly IndicatorDraftClassification[],
+  dimension: IndicatorDraftClassification['dimension'],
+): string[] {
+  return classifications.filter((row) => row.dimension === dimension).map(({ id }) => id);
+}
+
+export const taggingColumns: IndicatorSectionColumns<TaggingField, Tagging, TaggingAnswers> = {
+  fromDraft: ({ topicIds, classifications, hasRiskFactor, hasFramework }) => ({
+    topicIds,
+    indicatorTypeIds: idsIn(classifications, 'indicator_type'),
+    hasRiskFactor: yesNo(hasRiskFactor),
+    riskFactorIds: idsIn(classifications, 'risk_factor'),
+    hasFramework: yesNo(hasFramework),
+    frameworkIds: idsIn(classifications, 'framework'),
+  }),
+  toAttributes: ({ hasRiskFactor, hasFramework }) => ({
+    hasRiskFactor: hasRiskFactor === 'yes',
+    hasFramework: hasFramework === 'yes',
+  }),
+  // The schema has already dropped the tags beside a "No".
+  toLists: ({ topicIds, indicatorTypeIds, riskFactorIds, frameworkIds }) => ({
+    topicIds,
+    classificationIds: {
+      indicator_type: indicatorTypeIds,
+      risk_factor: riskFactorIds,
+      framework: frameworkIds,
+    },
+  }),
+};
+
+/** The form's schema, then that every tag is one the page offers under its own question. */
+export function taggingServerSection(
+  tags: InternalTagRepository,
+): IndicatorSection<TaggingField, Tagging, TaggingFormValues> {
+  return {
+    ...taggingSection,
+    schema: taggingSection.schema.transform(async (answers, ctx) => {
+      const options = await tags.listOptions();
+      let refused = false;
+
+      for (const list of TAG_LISTS) {
+        const offered = new Set(options[TAG_LIST_DETAILS[list].options].map(({ id }) => id));
+
+        if (answers[list].some((id) => !offered.has(id))) {
+          ctx.addIssue({ code: 'custom', path: [list], message: unknownTagMessage(list) });
+          refused = true;
+        }
+      }
+
+      return refused ? z.NEVER : answers;
+    }),
+  };
+}
+
 /** The form's schema, then the requirements of the chosen method, read from its row. */
 export function confidenceIntervalsServerSection(
   ciMethods: InternalCiMethodRepository,
@@ -310,7 +374,7 @@ export function publishingDateServerSection(
 
 /** GET and PUT for every section of a draft; `now` is the clock for the publishing date's notice. */
 export function indicatorSectionsRouter(
-  { indicators, ciMethods }: Pick<InternalRepositories, 'indicators' | 'ciMethods'>,
+  { indicators, ciMethods, tags }: Pick<InternalRepositories, 'indicators' | 'ciMethods' | 'tags'>,
   session: JwtSessionVerifier,
   now: () => Date = () => new Date(),
 ): Router {
@@ -344,5 +408,6 @@ export function indicatorSectionsRouter(
     ),
     indicatorSectionRouter(indicators, session, linksSection, linksColumns),
     indicatorSectionRouter(indicators, session, sexAndAgesSection, sexAndAgesColumns),
+    indicatorSectionRouter(indicators, session, taggingServerSection(tags), taggingColumns),
   );
 }

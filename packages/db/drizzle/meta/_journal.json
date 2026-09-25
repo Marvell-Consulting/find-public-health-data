@@ -183,6 +183,13 @@
       "when": 1790346740444,
       "tag": "0025_indicator-sex-and-ages",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790347394163,
+      "tag": "0026_indicator-tagging",
+      "breakpoints": true
     }
   ]
 }

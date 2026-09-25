@@ -1,6 +1,7 @@
 import { type Database, listTopics, type Topic } from '@fphd/db';
 
 import { type CiMethodRow, getCiMethodById, listCiMethods } from './ci-method-repository.ts';
+import type { TagOptions } from './contract.ts';
 import {
   type CreateDraftFromPublishedResult,
   type CreateIndicatorDraftResult,
@@ -20,6 +21,7 @@ import {
   ukInstant,
   updateIndicatorDraft,
 } from './indicator-repository.ts';
+import { listTagOptions } from './tag-repository.ts';
 import {
   type CreateTopicResult,
   createTopic,
@@ -68,6 +70,11 @@ export interface InternalCiMethodRepository {
   findById(id: string): Promise<CiMethodRow | undefined>;
 }
 
+/** The topics and classifications a publisher tags an indicator with. */
+export interface InternalTagRepository {
+  listOptions(): Promise<TagOptions>;
+}
+
 /**
  * Everything the internal-only routes read and write, mirroring `Repositories` in `@fphd/db`.
  * Queries live here so the artefact-boundary check keeps them out of the public image.
@@ -75,6 +82,7 @@ export interface InternalCiMethodRepository {
 export interface InternalRepositories {
   ciMethods: InternalCiMethodRepository;
   indicators: InternalIndicatorRepository;
+  tags: InternalTagRepository;
   topics: InternalTopicRepository;
 }
 
@@ -93,6 +101,9 @@ export function createInternalRepositories(db: Database): InternalRepositories {
         updateIndicatorDraft(db, indicatorId, attributes, lists, actor),
       draftFromPublished: (indicatorId, actor) => createDraftFromPublished(db, indicatorId, actor),
       ukInstant: (dateTime) => ukInstant(db, dateTime),
+    },
+    tags: {
+      listOptions: () => listTagOptions(db),
     },
     topics: {
       list: () => listTopics(db),

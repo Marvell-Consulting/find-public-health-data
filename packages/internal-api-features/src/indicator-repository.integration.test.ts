@@ -223,6 +223,30 @@ async function topicIdsOf(versionId: string): Promise<string[]> {
   return rows.map(({ topicId }) => topicId).sort();
 }
 
+/** The first classification of a dimension, by name, from the core data. */
+async function classificationIn(
+  dimension: schema.ClassificationDimension,
+): Promise<{ id: string }> {
+  const [row] = await db
+    .select({ id: classification.id })
+    .from(classification)
+    .where(eq(classification.dimension, dimension))
+    .orderBy(classification.name)
+    .limit(1);
+  if (row === undefined) throw new Error(`The core data holds no ${dimension}`);
+  return row;
+}
+
+const typeClassification = () => classificationIn('indicator_type');
+
+async function classificationIdsOf(versionId: string): Promise<string[]> {
+  const rows = await db
+    .select({ id: indicatorClassification.classificationId })
+    .from(indicatorClassification)
+    .where(eq(indicatorClassification.indicatorVersionId, versionId));
+  return rows.map(({ id }) => id).sort();
+}
+
 type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
 
 /** Sessions in this test's database waiting on a slug lock. */
@@ -439,14 +463,14 @@ describe('updateIndicatorDraft', () => {
   it('rewrites the draft columns and replaces its lists', async () => {
     const created = await newDraft('Before');
     const [topic] = await db.select({ id: schema.topic.id }).from(schema.topic).limit(1);
-    const [classified] = await db.select({ id: classification.id }).from(classification).limit(1);
+    const classified = await typeClassification();
     if (!topic || !classified) throw new Error('The seed holds no topics or classifications');
 
     const result = await updateIndicatorDraft(
       db,
       created.indicatorId,
       { name: 'After', definition: 'A definition' },
-      { topicIds: [topic.id], classificationIds: [classified.id] },
+      { topicIds: [topic.id], classificationIds: { indicator_type: [classified.id] } },
       'someone-else',
     );
 
@@ -542,13 +566,17 @@ describe('updateIndicatorDraft', () => {
   it('leaves the lists alone when the update names none', async () => {
     const created = await newDraft('Keeps its links');
     const [topic] = await db.select({ id: schema.topic.id }).from(schema.topic).limit(1);
-    const [classified] = await db.select({ id: classification.id }).from(classification).limit(1);
+    const classified = await typeClassification();
     if (!topic || !classified) throw new Error('The seed holds no topics or classifications');
     await updateIndicatorDraft(
       db,
       created.indicatorId,
       {},
-      { topicIds: [topic.id], classificationIds: [classified.id], links: [commentary] },
+      {
+        topicIds: [topic.id],
+        classificationIds: { indicator_type: [classified.id] },
+        links: [commentary],
+      },
       ACTOR,
     );
 
@@ -567,6 +595,60 @@ describe('updateIndicatorDraft', () => {
       .where(eq(indicatorClassification.indicatorVersionId, created.versionId));
     expect(classifications).toEqual([{ id: classified.id }]);
     expect(await linksOf(created.versionId)).toEqual([commentary]);
+  });
+
+  it('replaces the classifications of the dimensions given and leaves the others', async () => {
+    const created = await newDraft('Tagged by dimension');
+    const population = await classificationIn('population');
+    const riskFactor = await classificationIn('risk_factor');
+    const type = await typeClassification();
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      {},
+      { classificationIds: { population: [population.id], risk_factor: [riskFactor.id] } },
+      ACTOR,
+    );
+
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      {},
+      { classificationIds: { indicator_type: [type.id], risk_factor: [] } },
+      ACTOR,
+    );
+
+    expect(await classificationIdsOf(created.versionId)).toEqual([population.id, type.id].sort());
+  });
+
+  it('reads back the tags and their answers', async () => {
+    const created = await newDraft('Tags read back');
+    const topics = await db
+      .select({ id: schema.topic.id, title: schema.topic.title })
+      .from(schema.topic)
+      .orderBy(desc(schema.topic.title))
+      .limit(2);
+    const riskFactor = await classificationIn('risk_factor');
+
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      { hasRiskFactor: true, hasFramework: false },
+      {
+        topicIds: topics.map(({ id }) => id),
+        classificationIds: { risk_factor: [riskFactor.id] },
+      },
+      ACTOR,
+    );
+
+    const state = await getIndicatorDraftState(db, created.indicatorId);
+    expect(state?.draft).toMatchObject({
+      hasRiskFactor: true,
+      hasFramework: false,
+      // Ordered by title, whatever order they were written in.
+      topicIds: topics.map(({ id }) => id).reverse(),
+      classifications: [{ id: riskFactor.id, dimension: 'risk_factor' }],
+    });
   });
 
   it('writes the links in the order given, replacing those held before', async () => {
@@ -879,6 +961,29 @@ describe('createDraftFromPublished', () => {
     expect(await topicIdsOf(result.versionId)).toEqual(publishedTopics);
   });
 
+  it('copies the tags of every dimension and their answers', async () => {
+    const { indicatorId, currentId } = await indicatorWithTwoPublications();
+    const population = await classificationIn('population');
+    const framework = await classificationIn('framework');
+    await db
+      .update(indicatorVersion)
+      .set({ hasRiskFactor: false, hasFramework: true })
+      .where(eq(indicatorVersion.id, currentId));
+    await db.insert(indicatorClassification).values([
+      { classificationId: population.id, indicatorVersionId: currentId },
+      { classificationId: framework.id, indicatorVersionId: currentId },
+    ]);
+
+    const result = await createDraftFromPublished(db, indicatorId, ACTOR);
+
+    if (!result.ok) throw new Error('expected a draft');
+    expect(await classificationIdsOf(result.versionId)).toEqual(
+      [population.id, framework.id].sort(),
+    );
+    const state = await getIndicatorDraftState(db, indicatorId);
+    expect(state?.draft).toMatchObject({ hasRiskFactor: false, hasFramework: true });
+  });
+
   it('copies who calculated the published version', async () => {
     const { indicatorId, currentId } = await indicatorWithTwoPublications();
     await db
@@ -1021,14 +1126,14 @@ describe('createDraftFromPublished', () => {
 describe('indicator_classification', () => {
   it('follows the draft rather than the indicator', async () => {
     const created = await newDraft('Classified');
-    const [classified] = await db.select({ id: classification.id }).from(classification).limit(1);
+    const classified = await typeClassification();
     if (!classified) throw new Error('The seed holds no classifications');
 
     await updateIndicatorDraft(
       db,
       created.indicatorId,
       {},
-      { classificationIds: [classified.id] },
+      { classificationIds: { indicator_type: [classified.id] } },
       ACTOR,
     );
 

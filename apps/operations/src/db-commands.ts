@@ -65,7 +65,7 @@ export async function bootstrap({ sql, config }: CommandContext): Promise<void> 
  * production run this too.
  */
 export async function importCoreData({ sql, logger }: CommandContext): Promise<void> {
-  const { topics, ciMethods } = await importCoreDataFromFiles(sql);
+  const { topics, ciMethods, classifications } = await importCoreDataFromFiles(sql);
   logger.info({ ...topics.summary }, 'Topics imported');
   for (const topic of topics.orphaned) {
     logger.warn(
@@ -78,6 +78,13 @@ export async function importCoreData({ sql, logger }: CommandContext): Promise<v
     logger.warn(
       { id: method.id, name: method.name },
       'CI method in the database but absent from the file; left in place',
+    );
+  }
+  logger.info({ ...classifications.summary }, 'Classifications imported');
+  for (const row of classifications.orphaned) {
+    logger.warn(
+      { slug: row.slug, name: row.name },
+      'Classification in the database but absent from the file; left in place',
     );
   }
 }
@@ -105,10 +112,16 @@ export async function seedDummyData({ sql, config, logger }: CommandContext): Pr
   for (const [table, rows] of Object.entries(tables)) {
     logger.info({ table, rows }, 'Dummy table seeded');
   }
-  const { unknownTopics, unknownIndicators, ...counts } = relationships;
+  const { unknownTopics, unknownClassifications, unknownIndicators, ...counts } = relationships;
   logger.info(counts, 'Indicator relationships imported');
   if (unknownTopics.length > 0) {
     logger.warn({ topics: unknownTopics }, 'Topic ids in the file not in this database; skipped');
+  }
+  if (unknownClassifications.length > 0) {
+    logger.warn(
+      { classifications: unknownClassifications },
+      'Classification slugs in the file not in this database; skipped',
+    );
   }
   if (unknownIndicators.length > 0) {
     logger.warn(

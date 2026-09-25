@@ -48,6 +48,10 @@ const source: IndicatorTaskListSource = {
     specificAge: null,
     specificAgeUnit: null,
     ageOtherDetail: null,
+    hasRiskFactor: null,
+    hasFramework: null,
+    topicIds: [],
+    classifications: [],
   },
 };
 
@@ -82,6 +86,13 @@ const complete: IndicatorTaskListDraft = {
   specificAge: null,
   specificAgeUnit: null,
   ageOtherDetail: null,
+  hasRiskFactor: true,
+  hasFramework: false,
+  topicIds: ['019fa38f-073f-764e-9ac6-1c4d03b10001'],
+  classifications: [
+    { id: '019fa38f-073f-764e-9ac6-1c4d03b10002', dimension: 'indicator_type' },
+    { id: '019fa38f-073f-764e-9ac6-1c4d03b10003', dimension: 'risk_factor' },
+  ],
 };
 
 function withDraft(draft: Partial<IndicatorTaskListDraft>): IndicatorTaskListSource {
@@ -271,6 +282,23 @@ describe('indicatorTaskList', () => {
   ] as const)('judges the sex and ages when there are %s', (_, draft, status) => {
     expect(indicatorTaskList(withDraft(draft)).tasks['sex-and-ages']).toBe(status);
   });
+
+  it.each([
+    ['unanswered', {}, 'not_started'],
+    ['every answer', complete, 'completed'],
+    ['no topics', { ...complete, topicIds: [] }, 'not_started'],
+    [
+      'a risk factor it does not hold',
+      { ...complete, classifications: complete.classifications.slice(0, 1) },
+      'not_started',
+    ],
+    ['no answer on frameworks', { ...complete, hasFramework: null }, 'not_started'],
+  ] satisfies [string, Partial<IndicatorTaskListDraft>, string][])(
+    'judges the tagging when there are %s',
+    (_, draft, status) => {
+      expect(indicatorTaskList(withDraft(draft)).tasks.tagging).toBe(status);
+    },
+  );
 
   it.each([
     ['new', false],

@@ -214,6 +214,7 @@ export const indicatorTaskKeySchema = z.enum([
   'publishing-date',
   'links',
   'sex-and-ages',
+  'tagging',
 ]);
 
 export const indicatorTaskStatusesSchema = z.partialRecord(
@@ -263,4 +264,5 @@ export * from './indicator-polarity-contract.ts';
 export * from './indicator-publishing-date-contract.ts';
 export * from './indicator-section-contract.ts';
 export * from './indicator-sex-and-ages-contract.ts';
+export * from './indicator-tagging-contract.ts';
 export * from './indicator-update-frequency-contract.ts';

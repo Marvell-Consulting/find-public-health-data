@@ -10,6 +10,7 @@ import {
   type IndicatorTaskStatus,
   type IndicatorTaskStatuses,
   isIndicatorSectionComplete,
+  isTaggingComplete,
   otherNotesAndCaveatsSection,
   polaritySection,
   publishingDateSection,
@@ -26,6 +27,7 @@ import {
   polarityColumns,
   publishingDateColumns,
   sexAndAgesColumns,
+  taggingColumns,
   updateFrequencyColumns,
 } from './indicator-sections.ts';
 
@@ -79,6 +81,7 @@ export function indicatorTaskList({
     'publishing-date': complete(publishingDateSection, publishingDateColumns),
     links: taskStatus(areLinksComplete(linksColumns.fromDraft(draft))),
     'sex-and-ages': taskStatus(areSexAndAgesComplete(sexAndAgesColumns.fromDraft(draft))),
+    tagging: taskStatus(isTaggingComplete(taggingColumns.fromDraft(draft))),
   };
 
   return {

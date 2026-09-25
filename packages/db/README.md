@@ -13,8 +13,8 @@ the first migration: the grant migrations reference the roles.
 ## Layout
 
 ```
-data/                 Core content (topics.json, ci-methods.json), the dummy indicator
-                      relationship files and the committed seed (seed/)
+data/                 Core content (topics.json, ci-methods.json, classifications.json), the
+                      dummy indicator relationship files and the committed seed (seed/)
 drizzle/              Generated migrations + drizzle-kit metadata — never edit applied ones
 src/
   schema/             One file per domain group, re-exported by schema/index.ts: lookup.ts
@@ -27,7 +27,8 @@ src/
   client.ts           createDb + Database/Schema types
   env.ts              dbEnvFields — shared connection env fragment
   read-models.ts      rebuildReadModels — repopulates the cache.ts tables from canonical data
-  core-data.ts        importCoreData — loads the required core content (topics, CI methods)
+  core-data.ts        importCoreData — loads the required core content (topics, CI methods,
+                      classifications)
   seeding.ts          seedDummyTables — loads data/seed and the indicator relationships
   reset.ts            resetDatabase — drops all application schema objects
   testing.ts          Integration-test database harness (@fphd/db/testing)
@@ -106,13 +107,16 @@ taken. `@fphd/internal-api-features` reads the tables directly, every status.
 ## Core data import
 
 ```sh
-pnpm db:import-core-data         # imports data/topics.json and data/ci-methods.json
+pnpm db:import-core-data         # imports topics, CI methods and classifications from data/
 ```
 
 Upserts matched on `id`: a rename — even one that changes the slug — updates the row in
-place without changing the primary key. Rows in the database but absent from the file
-are reported and left alone, never deleted. Re-runs are true no-ops (`updated_at`
-untouched), so the import is safe to run repeatedly, in any environment.
+place without changing the primary key. Classifications are the exception: seed and import
+files name them by slug, and they keep the ids the database gave them, so they upsert on
+`slug`. A classification whose slug changes is a new row, and the old one is reported as
+orphaned. Rows in the database but absent from the file are reported and left alone, never
+deleted. Re-runs are true no-ops (`updated_at` untouched), so the import is safe to run
+repeatedly, in any environment.
 
 Lookups a publisher chooses from are core data under the service's own names, with fixed
 ids, so every environment holds the same rows; `ci-methods.json` is the first. The seed

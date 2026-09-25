@@ -22,7 +22,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import { audit, uuidPrimaryKey } from './helpers.ts';
+import { audit, literals, uuidPrimaryKey } from './helpers.ts';
 import {
   ciMethod,
   comparatorMethod,
@@ -42,11 +42,6 @@ export const INDICATOR_CALCULATED_BY = ['ohid', 'dhsc', 'other'] as const;
 
 /** Whether disclosure control was applied, described in `disclosure_control_detail` when it was. */
 export const INDICATOR_DISCLOSURE_CONTROL = ['yes', 'no', 'not-applicable'] as const;
-
-/** The app's own vocabulary as a list of SQL literals, for a check constraint. */
-function literals(values: readonly string[]): SQL {
-  return sql.raw(values.map((value) => `'${value}'`).join(', '));
-}
 
 /** An age in days, as the contract compares ages; null when either part is. */
 function ageInDays(age: AnyPgColumn, unit: AnyPgColumn): SQL {
@@ -115,6 +110,9 @@ export const indicatorVersion = pgTable(
     calculatedByOther: text(),
     // Null until answered, so "no links" is told apart from a question not yet asked.
     hasLinks: boolean(),
+    // Null until answered; the risk factors and frameworks are rows of indicator_classification.
+    hasRiskFactor: boolean(),
+    hasFramework: boolean(),
     sexes: text({ enum: SEXES }).array(),
     // The ranges an age type of range gives are rows of indicator_version_age_range.
     ageType: text({ enum: AGE_TYPES }),

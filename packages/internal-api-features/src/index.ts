@@ -4,6 +4,7 @@ import { internalCiMethodsRouter } from './ci-methods.ts';
 import { indicatorSectionsRouter } from './indicator-sections.ts';
 import { internalIndicatorsRouter } from './indicators.ts';
 import type { InternalRepositories } from './repositories.ts';
+import { internalTagsRouter } from './tags.ts';
 import { internalTopicsRouter } from './topics.ts';
 
 export type { CiMethodRow } from './ci-method-repository.ts';
@@ -16,6 +17,7 @@ export type {
   IndicatorAdminRows,
   IndicatorDraft,
   IndicatorDraftAttributes,
+  IndicatorDraftClassification,
   IndicatorDraftLists,
   IndicatorDraftStateRow,
   IndicatorDraftVersion,
@@ -34,8 +36,10 @@ export {
   type InternalCiMethodRepository,
   type InternalIndicatorRepository,
   type InternalRepositories,
+  type InternalTagRepository,
   type InternalTopicRepository,
 } from './repositories.ts';
+export { internalTagsRouter } from './tags.ts';
 export type {
   CreateTopicResult,
   DeleteTopicResult,
@@ -59,6 +63,7 @@ export function internalApiRoutes({ repositories, session }: InternalApiDependen
   router.use(internalIndicatorsRouter(repositories.indicators, session));
   router.use(indicatorSectionsRouter(repositories, session));
   router.use(internalCiMethodsRouter(repositories.ciMethods, session));
+  router.use(internalTagsRouter(repositories.tags, session));
   router.use(internalTopicsRouter(repositories.topics, session));
 
   return router;
