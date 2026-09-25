@@ -75,10 +75,14 @@ export const topicUpdateResponseSchema = z.object({
   topic: topicAdminDetailSchema,
 });
 
-export const topicUpdateErrorSchema = z.object({
-  error: z.enum(['invalid_id', 'validation_failed', 'slug_taken']),
-  fieldErrors: topicFieldErrorsSchema.optional(),
-});
+/** The 400 and 409 answers. A refused value is always named; only a bad id names no field. */
+export const topicUpdateErrorSchema = z.discriminatedUnion('error', [
+  z.object({ error: z.literal('invalid_id') }),
+  z.object({
+    error: z.enum(['validation_failed', 'slug_taken']),
+    fieldErrors: topicFieldErrorsSchema,
+  }),
+]);
 
 export type TopicAdminSummary = z.infer<typeof topicAdminSummarySchema>;
 export type TopicAdminDetail = z.infer<typeof topicAdminDetailSchema>;
@@ -165,14 +169,20 @@ export const indicatorCreateResponseSchema = indicatorAdminDetailSchema;
 
 export const indicatorCreateErrorSchema = z.object({
   error: z.enum(['validation_failed', 'slug_taken']),
-  fieldErrors: indicatorFieldErrorsSchema.optional(),
+  fieldErrors: indicatorFieldErrorsSchema,
 });
 
-/** The 400 and 409 answers; a missing indicator or draft is a 404, which the client throws. */
-export const indicatorUpdateErrorSchema = z.object({
-  error: z.enum(['invalid_id', 'validation_failed', 'slug_taken']),
-  fieldErrors: indicatorFieldErrorsSchema.optional(),
-});
+/**
+ * The 400 and 409 answers. A refused value is always named; only a bad id names no field. A
+ * missing indicator or draft is a 404, which the client throws.
+ */
+export const indicatorUpdateErrorSchema = z.discriminatedUnion('error', [
+  z.object({ error: z.literal('invalid_id') }),
+  z.object({
+    error: z.enum(['validation_failed', 'slug_taken']),
+    fieldErrors: indicatorFieldErrorsSchema,
+  }),
+]);
 
 export type IndicatorAdminSummary = z.infer<typeof indicatorAdminSummarySchema>;
 export type IndicatorAdminPage = z.infer<typeof indicatorAdminPageSchema>;
