@@ -4,15 +4,15 @@ import { pipeline } from 'node:stream/promises';
 import { fileURLToPath } from 'node:url';
 import { createGunzip } from 'node:zlib';
 
+import { createDbFromTransaction } from '@fphd/db';
 import type postgres from 'postgres';
 
-import { createDbFromTransaction } from './client.ts';
 import {
   applyIndicatorTopics,
   type IndicatorTopicFile,
   type IndicatorTopicImportSummary,
   parseIndicatorTopicFile,
-} from './indicator-topic-repository.ts';
+} from './indicator-topic-import.ts';
 import { READ_MODEL_TABLES } from './read-models.ts';
 
 // Topological FK order: every table loads after the tables it references.

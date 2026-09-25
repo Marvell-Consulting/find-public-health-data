@@ -3,9 +3,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDb, createPostgresClient, type Database } from './client.ts';
 import { dbEnvFields, resolveDbTls } from './env.ts';
-import type { TopicRecord } from './schema.ts';
+import { type TopicRecord, topic } from './schema.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
-import { getTopicBySlug, listTopics, upsertTopics } from './topic-repository.ts';
+import { getTopicBySlug, listTopics } from './topic-repository.ts';
 
 const env = parseEnv(
   z.object({
@@ -47,7 +47,7 @@ beforeAll(async () => {
     password: env.POSTGRES_PASSWORD,
     ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
   });
-  await upsertTopics(db, [zebra, apple]);
+  await db.insert(topic).values([zebra, apple]);
 });
 
 afterAll(async () => {

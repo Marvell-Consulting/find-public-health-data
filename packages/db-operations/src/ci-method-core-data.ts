@@ -1,10 +1,11 @@
 import { z } from '@fphd/config';
+import { type Database, schema } from '@fphd/db';
 import { sql } from 'drizzle-orm';
 
-import type { Database } from './client.ts';
 import { findDuplicates } from './parse-topics-file.ts';
-import { CI_METHOD_KINDS, ciMethod } from './schema/index.ts';
-import { summarizeUpsert, type UpsertSummary } from './topic-repository.ts';
+import { summarizeUpsert, type UpsertSummary } from './topic-import.ts';
+
+const { CI_METHOD_KINDS, ciMethod } = schema;
 
 /** A confidence interval method as the core data file states it, under the service's names. */
 export const ciMethodRecordSchema = z.object({

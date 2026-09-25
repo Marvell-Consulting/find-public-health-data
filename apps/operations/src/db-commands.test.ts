@@ -1,5 +1,5 @@
 import type { SqlClient } from '@fphd/db';
-import { SEED_TABLES } from '@fphd/db/operations';
+import { SEED_TABLES } from '@fphd/db-operations';
 import { createLogger } from '@fphd/logger';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { CommandContext } from './commands.ts';
@@ -16,8 +16,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('./published-snapshot.ts', () => ({ downloadPublishedSnapshot: mocks.download }));
-vi.mock('@fphd/db/operations', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@fphd/db/operations')>()),
+vi.mock('@fphd/db-operations', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@fphd/db-operations')>()),
   assertCoreDataPresent: mocks.assertCoreData,
   seedPublishedTables: mocks.seedPublished,
   rebuildReadModelTables: mocks.rebuild,

@@ -7,8 +7,7 @@ import {
   resolveDbTls,
   schema,
 } from '@fphd/db';
-import { createOwnerClient } from '@fphd/db/operations';
-import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
+import { createOwnerClient, createTestDatabase, type TestDatabase } from '@fphd/db/testing';
 import { SLUG_PATTERN } from '@fphd/utils/slug';
 import express from 'express';
 import request from 'supertest';

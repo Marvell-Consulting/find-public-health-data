@@ -1,11 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { createDbFromClient } from '@fphd/db';
+import { createOwnerClient, createTestDatabase, type TestDatabase } from '@fphd/db/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createDbFromClient } from './client.ts';
-import { applyIndicatorTopics, parseIndicatorTopicFile } from './indicator-topic-repository.ts';
-import { createOwnerClient } from './scripts/owner-client.ts';
-import { createTestDatabase, type TestDatabase } from './testing.ts';
+import { applyIndicatorTopics, parseIndicatorTopicFile } from './indicator-topic-import.ts';
 
 let database: TestDatabase;
 let sql: ReturnType<typeof createOwnerClient>;

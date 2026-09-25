@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-
+import { createDbFromClient } from '@fphd/db';
 import type postgres from 'postgres';
 
 import {
@@ -8,9 +8,8 @@ import {
   parseCiMethodsFile,
   upsertCiMethods,
 } from './ci-method-core-data.ts';
-import { createDbFromClient } from './client.ts';
 import { parseTopicsFile } from './parse-topics-file.ts';
-import { type UpsertResult, upsertTopics } from './topic-repository.ts';
+import { type UpsertResult, upsertTopics } from './topic-import.ts';
 
 // Resolves identically from src/ and from dist/, both of which sit one level under the
 // package root alongside data/.

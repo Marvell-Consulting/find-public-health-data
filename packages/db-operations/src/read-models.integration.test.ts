@@ -1,10 +1,9 @@
 import { readFileSync } from 'node:fs';
+import { createOwnerClient, createTestDatabase, type TestDatabase } from '@fphd/db/testing';
 import type postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { READ_MODEL_TABLES, rebuildReadModels } from './read-models.ts';
-import { createOwnerClient } from './scripts/owner-client.ts';
-import { createTestDatabase, type TestDatabase } from './testing.ts';
 
 const MISSING_UUID = '00000000-0000-0000-0000-000000000000';
 

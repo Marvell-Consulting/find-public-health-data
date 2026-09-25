@@ -18,7 +18,7 @@ import {
   SEED_TABLES,
   seedDummyTables,
   seedPublishedTables,
-} from '@fphd/db/operations';
+} from '@fphd/db-operations';
 
 import type { CommandContext } from './commands.ts';
 import type { Config } from './load-config.ts';

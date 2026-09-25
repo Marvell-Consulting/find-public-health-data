@@ -1,12 +1,11 @@
 import { existsSync } from 'node:fs';
 
 import { appEnvFields, parseEnv, z } from '@fphd/config';
+import { dbEnvFields, resolveDbTls } from '@fphd/db';
 import { defineConfig } from 'drizzle-kit';
 
-import { dbEnvFields, resolveDbTls } from './src/env.ts';
-
-// Load the repo-root .env when running drizzle-kit from this package (cwd = packages/db).
-// drizzle-kit runs migrations as the owner role.
+// Load the repo-root .env when running drizzle-kit from this package
+// (cwd = packages/db-operations). drizzle-kit runs migrations as the owner role.
 if (existsSync('../../.env')) {
   process.loadEnvFile('../../.env');
 }
@@ -23,7 +22,7 @@ const env = parseEnv(
 
 export default defineConfig({
   dialect: 'postgresql',
-  schema: './src/schema.ts',
+  schema: '../db/src/schema.ts',
   out: './drizzle',
   casing: 'snake_case',
   dbCredentials: {

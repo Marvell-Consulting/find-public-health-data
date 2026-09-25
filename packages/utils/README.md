@@ -15,7 +15,7 @@ There is no root export; import each module by its subpath.
 | `./short-id`       | `SHORT_ID_PATTERN`, `MAX_SHORT_ID` and `isShortId`, the one definition of the public indicator number — a run of digits an integer column can hold                                                                                          |
 | `./slug`           | `SLUG_PATTERN` and `SLUG_MAX_LENGTH`, the one definition of a URL slug; `slugify` and `slugProblem`, which derive one from a name and say why a name yields none; `RESERVED_SLUGS`/`isReservedSlug`, the path segments a slug may not take |
 
-The seed export's `packages/db/data/seed/export/slug.py` mirrors `./slug` and must change with it.
+The seed export's `packages/db-operations/data/seed/export/slug.py` mirrors `./slug` and must change with it.
 
 ## Prerequisites
 

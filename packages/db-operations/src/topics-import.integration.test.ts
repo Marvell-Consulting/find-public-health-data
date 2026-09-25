@@ -1,12 +1,12 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
+import { createDb, type Database, dbEnvFields, resolveDbTls, schema } from '@fphd/db';
+import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
 import { eq, getTableColumns, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createDb, type Database } from './client.ts';
-import { dbEnvFields, resolveDbTls } from './env.ts';
-import { type TopicRecord, topic } from './schema.ts';
-import { createTestDatabase, type TestDatabase } from './testing.ts';
-import { upsertTopics } from './topic-repository.ts';
+import { upsertTopics } from './topic-import.ts';
+
+const { topic } = schema;
 
 const env = parseEnv(
   z.object({
@@ -42,14 +42,14 @@ afterAll(async () => {
   await testDb.drop();
 });
 
-const topicA: TopicRecord = {
+const topicA: schema.TopicRecord = {
   id: '00000000-0000-4000-8000-000000000001',
   slug: 'topic-a',
   title: 'Topic A',
   description: 'The first topic.',
 };
 
-const topicB: TopicRecord = {
+const topicB: schema.TopicRecord = {
   id: '00000000-0000-4000-8000-000000000002',
   slug: 'topic-b',
   title: 'Topic B',
@@ -97,7 +97,7 @@ describe('topics import (integration)', () => {
 
   it('updates a renamed title in place and bumps updated_at', async () => {
     const before = await requireRow(topicA.id);
-    const renamed: TopicRecord = { ...topicA, title: 'Topic A Renamed' };
+    const renamed: schema.TopicRecord = { ...topicA, title: 'Topic A Renamed' };
 
     const { summary } = await upsertTopics(db, [renamed, topicB]);
 
@@ -110,7 +110,11 @@ describe('topics import (integration)', () => {
   });
 
   it('updates a changed slug in place, leaving the primary key unchanged', async () => {
-    const resluggedA: TopicRecord = { ...topicA, title: 'Topic A Renamed', slug: 'topic-a-new' };
+    const resluggedA: schema.TopicRecord = {
+      ...topicA,
+      title: 'Topic A Renamed',
+      slug: 'topic-a-new',
+    };
 
     const { summary } = await upsertTopics(db, [resluggedA, topicB]);
 

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-import { parseIndicatorTopicFile } from './indicator-topic-repository.ts';
+import { parseIndicatorTopicFile } from './indicator-topic-import.ts';
 
 function data(path: string): unknown {
   return JSON.parse(readFileSync(fileURLToPath(new URL(path, import.meta.url)), 'utf-8'));
