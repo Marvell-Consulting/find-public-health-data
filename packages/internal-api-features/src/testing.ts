@@ -21,6 +21,7 @@ export function createFakeInternalRepositories(
   return {
     ciMethods: withThrowingDefaults('ciMethods', overrides.ciMethods),
     indicators: withThrowingDefaults('indicators', overrides.indicators),
+    tags: withThrowingDefaults('tags', overrides.tags),
     topics: withThrowingDefaults('topics', overrides.topics),
   };
 }

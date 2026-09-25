@@ -118,6 +118,7 @@ describe('IndicatorTaskListPage', () => {
       'Benchmarking',
       'Other notes and caveats',
       'Links',
+      'Tagging',
       'Copyright and data re-use',
       'Update frequency',
       'Publishing date',
@@ -306,6 +307,17 @@ describe('IndicatorTaskListPage', () => {
     expect(row.getAttribute('href')).toBe(
       `/publish/indicators/${taskList.indicator.id}/sex-and-ages`,
     );
+    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
+      'Completed',
+    );
+  });
+
+  it('links the tagging to its page, with the status the API reports', () => {
+    renderPage({ tasks: { name: 'completed', tagging: 'completed' } });
+
+    const row = group('Metadata').getByRole('link', { name: 'Tagging' });
+
+    expect(row.getAttribute('href')).toBe(`/publish/indicators/${taskList.indicator.id}/tagging`);
     expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
       'Completed',
     );

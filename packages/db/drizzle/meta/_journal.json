@@ -225,6 +225,13 @@
       "when": 1790683699965,
       "tag": "0031_indicator-sex-and-ages",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1790691095222,
+      "tag": "0032_indicator-tagging",
+      "breakpoints": true
     }
   ]
 }

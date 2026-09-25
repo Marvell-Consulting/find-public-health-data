@@ -1,9 +1,9 @@
 import type { SqlClient } from '@fphd/db';
 import { SEED_TABLES } from '@fphd/db/operations';
-import { createLogger } from '@fphd/logger';
+import { createLogger, type Logger } from '@fphd/logger';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { CommandContext } from './commands.ts';
-import { importPublishedSnapshot, rolesToBootstrap } from './db-commands.ts';
+import { importCoreData, importPublishedSnapshot, rolesToBootstrap } from './db-commands.ts';
 import type { Config } from './load-config.ts';
 import type { PublishedManifest } from './published-snapshot.ts';
 
@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   seedPublished: vi.fn(),
   rebuild: vi.fn(),
   analyze: vi.fn(),
+  importCoreData: vi.fn(),
 }));
 
 vi.mock('./published-snapshot.ts', () => ({ downloadPublishedSnapshot: mocks.download }));
@@ -22,6 +23,7 @@ vi.mock('@fphd/db/operations', async (importOriginal) => ({
   seedPublishedTables: mocks.seedPublished,
   rebuildReadModelTables: mocks.rebuild,
   analyzeReadModels: mocks.analyze,
+  importCoreData: mocks.importCoreData,
 }));
 
 afterEach(() => vi.clearAllMocks());
@@ -92,6 +94,31 @@ describe('rolesToBootstrap', () => {
     expect(() =>
       rolesToBootstrap({ publicApiPassword: 'public-pw', internalApiPassword: undefined }),
     ).toThrow(/INTERNAL_API_PASSWORD/);
+  });
+});
+
+describe('importCoreData', () => {
+  it('names orphaned rows without a name key, which pino would take as the logger name', async () => {
+    const summary = { inserted: 0, updated: 0, unchanged: 1 };
+    mocks.importCoreData.mockResolvedValue({
+      topics: { summary, orphaned: [{ id: 'topic-id', slug: 'a-topic' }] },
+      ciMethods: { summary, orphaned: [{ id: 'method-id', name: 'A method' }] },
+      classifications: { summary, orphaned: [{ id: 'classification-id', slug: 'a-tag' }] },
+    });
+    const warn = vi.fn();
+    const context = {
+      sql: {} as SqlClient,
+      config: {} as Config,
+      logger: { info: vi.fn(), warn } as unknown as Logger,
+    };
+
+    await importCoreData(context);
+
+    expect(warn.mock.calls.map(([fields]) => fields)).toEqual([
+      { id: 'topic-id', slug: 'a-topic' },
+      { id: 'method-id', methodName: 'A method' },
+      { id: 'classification-id', slug: 'a-tag' },
+    ]);
   });
 });
 
