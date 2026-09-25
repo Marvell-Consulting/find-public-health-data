@@ -49,6 +49,10 @@ const unanswered: IndicatorSectionDraft = {
   scheduledPublishAtUk: null,
   hasLinks: null,
   links: [],
+  numeratorSources: [],
+  numeratorDefinition: null,
+  denominatorSources: [],
+  denominatorDefinition: null,
 };
 
 const METHODS: Record<CiMethodRow['kind'], CiMethodRow> = {

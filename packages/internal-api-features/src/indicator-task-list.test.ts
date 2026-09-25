@@ -8,6 +8,7 @@ import {
 } from './indicator-task-list.ts';
 
 const ciMethodId = '019fa38f-073f-764e-9ac6-1c4d03b1cb92';
+const ons = { providerId: '01a0d858-9885-764e-8d53-6826aec6729e', sourceId: null };
 
 // A draft as the name page leaves it: named, with every other answer still to give.
 const source: IndicatorTaskListSource = {
@@ -42,6 +43,10 @@ const source: IndicatorTaskListSource = {
     scheduledPublishAtUk: null,
     hasLinks: null,
     links: [],
+    numeratorSources: [],
+    numeratorDefinition: null,
+    denominatorSources: [],
+    denominatorDefinition: null,
   },
 };
 
@@ -70,6 +75,10 @@ const complete: IndicatorTaskListDraft = {
   scheduledPublishAtUk: '2027-09-14T09:30:00+01:00',
   hasLinks: true,
   links: [{ url: 'https://www.gov.uk/', text: 'Statistical commentary' }],
+  numeratorSources: [ons],
+  numeratorDefinition: 'Deaths registered in the year.',
+  denominatorSources: [ons],
+  denominatorDefinition: 'Mid-year population.',
 };
 
 function withDraft(draft: Partial<IndicatorTaskListDraft>): IndicatorTaskListSource {
@@ -234,6 +243,29 @@ describe('indicatorTaskList', () => {
     ['links it does not hold', { hasLinks: true }, 'not_started'],
   ] as const)('judges the links when there are %s', (_, draft, status) => {
     expect(indicatorTaskList(withDraft(draft)).tasks.links).toBe(status);
+  });
+
+  it.each([
+    ['nothing', {}, 'not_started'],
+    ['sources alone', { numeratorSources: [ons] }, 'not_started'],
+    ['a definition alone', { numeratorDefinition: complete.numeratorDefinition }, 'not_started'],
+    [
+      'sources and a definition',
+      { numeratorSources: [ons], numeratorDefinition: complete.numeratorDefinition },
+      'completed',
+    ],
+  ] satisfies [string, Partial<IndicatorTaskListDraft>, string][])(
+    'judges the numerator with %s',
+    (_, draft, status) => {
+      expect(indicatorTaskList(withDraft(draft)).tasks.numerator).toBe(status);
+    },
+  );
+
+  it('judges the denominator from its own answers', () => {
+    const numeratorOnly = { numeratorSources: [ons], numeratorDefinition: 'Deaths' };
+
+    expect(indicatorTaskList(withDraft(numeratorOnly)).tasks.denominator).toBe('not_started');
+    expect(indicatorTaskList(withDraft(complete)).tasks.denominator).toBe('completed');
   });
 
   it.each([

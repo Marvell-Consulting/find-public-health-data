@@ -111,6 +111,8 @@ describe('IndicatorTaskListPage', () => {
       'Polarity',
       'Name',
       'Definition and rationale',
+      'Numerator',
+      'Denominator',
       'How the indicator was calculated',
       'Confidence intervals',
       'Other notes and caveats',

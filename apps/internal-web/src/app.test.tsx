@@ -199,6 +199,8 @@ describe('the role-gated route tables', () => {
       'publish/indicators/:id/task-list',
       'publish/indicators/:id/definition-and-rationale',
       'publish/indicators/:id/polarity',
+      'publish/indicators/:id/numerator',
+      'publish/indicators/:id/denominator',
       'publish/indicators/:id/calculation',
       'publish/indicators/:id/confidence-intervals',
       'publish/indicators/:id/update-frequency',

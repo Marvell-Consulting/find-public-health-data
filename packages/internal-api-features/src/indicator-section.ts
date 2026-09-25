@@ -39,6 +39,10 @@ export type IndicatorSectionDraft = Pick<
   | 'scheduledPublishAtUk'
   | 'hasLinks'
   | 'links'
+  | 'numeratorSources'
+  | 'numeratorDefinition'
+  | 'denominatorSources'
+  | 'denominatorDefinition'
 >;
 
 /**
