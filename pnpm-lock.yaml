@@ -227,9 +227,9 @@ importers:
       '@biomejs/biome':
         specifier: 'catalog:'
         version: 2.5.9
-      '@fphd/db':
+      '@fphd/db-operations':
         specifier: workspace:*
-        version: link:packages/db
+        version: link:packages/db-operations
       '@react-router/dev':
         specifier: 'catalog:'
         version: 8.3.0(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(typescript@6.0.3)(vite@8.1.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0)(yaml@2.9.0))
@@ -376,6 +376,9 @@ importers:
       '@fphd/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@fphd/db-operations':
+        specifier: workspace:*
+        version: link:../../packages/db-operations
       '@fphd/logger':
         specifier: workspace:*
         version: link:../../packages/logger
@@ -605,12 +608,37 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 24.13.3
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@types/node@24.13.3)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.1.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0)(yaml@2.9.0))
+
+  packages/db-operations:
+    dependencies:
+      '@fphd/config':
+        specifier: workspace:*
+        version: link:../config
+      '@fphd/db':
+        specifier: workspace:*
+        version: link:../db
+      '@fphd/utils':
+        specifier: workspace:*
+        version: link:../utils
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.2(postgres@3.4.9)
+      postgres:
+        specifier: 'catalog:'
+        version: 3.4.9
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.13.3
       drizzle-kit:
         specifier: 'catalog:'
         version: 0.31.10
-      tsx:
-        specifier: 'catalog:'
-        version: 4.23.0
       typescript:
         specifier: 'catalog:'
         version: 6.0.3

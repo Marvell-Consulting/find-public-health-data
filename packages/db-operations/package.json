@@ -1,5 +1,5 @@
 {
-  "name": "@fphd/db",
+  "name": "@fphd/db-operations",
   "version": "0.0.0",
   "private": true,
   "license": "MIT",
@@ -21,20 +21,28 @@
     "!dist/**/*.map",
     "!dist/**/*.d.ts",
     "!dist/testing.js",
-    "!dist/scripts"
+    "drizzle/*.sql",
+    "drizzle/meta/_journal.json",
+    "data",
+    "!data/seed/export"
   ],
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@fphd/config": "workspace:*",
+    "@fphd/db": "workspace:*",
     "@fphd/utils": "workspace:*",
     "drizzle-orm": "catalog:",
     "postgres": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "drizzle-kit": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

@@ -17,6 +17,7 @@
   "dependencies": {
     "@fphd/config": "workspace:*",
     "@fphd/db": "workspace:*",
+    "@fphd/db-operations": "workspace:*",
     "@fphd/logger": "workspace:*"
   },
   "devDependencies": {

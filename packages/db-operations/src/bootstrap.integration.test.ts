@@ -1,13 +1,11 @@
 import { randomBytes } from 'node:crypto';
 
 import { appEnvFields, parseEnv, z } from '@fphd/config';
+import { createPostgresClient, dbEnvFields, resolveDbTls } from '@fphd/db';
+import { createOwnerClient, createTestDatabase, type TestDatabase } from '@fphd/db/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { bootstrapRoles } from './bootstrap.ts';
-import { createPostgresClient } from './client.ts';
-import { dbEnvFields, resolveDbTls } from './env.ts';
-import { createOwnerClient } from './scripts/owner-client.ts';
-import { createTestDatabase, type TestDatabase } from './testing.ts';
 
 const env = parseEnv(
   z.object({

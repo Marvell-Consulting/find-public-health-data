@@ -1,9 +1,9 @@
+import type { schema } from '@fphd/db';
 import { describe, expect, it } from 'vitest';
 
-import type { TopicRecord } from './schema/index.ts';
-import { findOrphanedTopics, summarizeUpsert } from './topic-repository.ts';
+import { findOrphanedTopics, summarizeUpsert } from './topic-import.ts';
 
-const validTopic: TopicRecord = {
+const validTopic: schema.TopicRecord = {
   id: '019f93b8-2b47-75d0-b03a-edb28d2d43c6',
   slug: 'alcohol',
   title: 'Alcohol',
@@ -12,7 +12,7 @@ const validTopic: TopicRecord = {
 
 describe('findOrphanedTopics', () => {
   it('reports rows present in the database but absent from the file', () => {
-    const inFile: TopicRecord = validTopic;
+    const inFile: schema.TopicRecord = validTopic;
     const orphan = { id: 'other-id', slug: 'other', title: 'Other', description: 'Other.' };
 
     expect(findOrphanedTopics([inFile], [inFile, orphan])).toEqual([orphan]);

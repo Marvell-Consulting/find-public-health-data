@@ -8,7 +8,7 @@ import { pipeline } from 'node:stream/promises';
 import { promisify } from 'node:util';
 
 import { z } from '@fphd/config';
-import { readCsvHeader, SEED_TABLES } from '@fphd/db/operations';
+import { readCsvHeader, SEED_TABLES } from '@fphd/db-operations';
 
 const runFile = promisify(execFile);
 const publishedSource = 'PHOLIO_LIVE_A-derived fphd_new benchmark clone';

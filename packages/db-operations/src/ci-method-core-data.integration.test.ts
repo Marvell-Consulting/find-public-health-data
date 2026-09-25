@@ -2,16 +2,14 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
-
+import { createDbFromClient } from '@fphd/db';
+import { createOwnerClient, createTestDatabase, type TestDatabase } from '@fphd/db/testing';
 import type postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { type CiMethodRecord, upsertCiMethods } from './ci-method-core-data.ts';
-import { createDbFromClient } from './client.ts';
 import { importCoreData } from './core-data.ts';
-import { createOwnerClient } from './scripts/owner-client.ts';
 import { loadIndicatorVersions } from './seeding.ts';
-import { createTestDatabase, type TestDatabase } from './testing.ts';
 
 // The service's list, in the order the publisher's form shows it.
 const SERVICE_CI_METHODS = [

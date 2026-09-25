@@ -292,7 +292,7 @@ migrations reference the roles, so migrating a database that has never been boot
 It is idempotent, and it sets the passwords every time, so re-running it is also how a password
 change in `.env` reaches the database.
 
-Schema and migrations are managed with Drizzle in `packages/db`:
+The Drizzle schema lives in `packages/db` and its migrations in `packages/db-operations`:
 
 ```sh
 pnpm db:generate              # generate a migration from the schema
@@ -314,8 +314,9 @@ and minted by a sequence otherwise. Grants are explicit and read-only:
 sees upload state, and a table added by a future migration gets no access until granted
 deliberately. Write grants wait for the publisher workflow design.
 
-The package layout, naming conventions, the add-a-table checklist and the core data
-import's semantics are documented in [`packages/db/README.md`](packages/db/README.md).
+The schema's layout, naming conventions and the add-a-table checklist are documented in
+[`packages/db/README.md`](packages/db/README.md), and the core data import's semantics in
+[`packages/db-operations/README.md`](packages/db-operations/README.md).
 
 A fresh database is ready for development with:
 
@@ -328,7 +329,7 @@ something that should happen as a side effect of running the apps. So a first ru
 `docker compose down -v` — needs the command above before the pages have data.
 
 The seed is real Pholio data for 12 indicators and the prototype's geography catalogue,
-committed as gzipped CSVs — see `packages/db/data/seed/README.md` for what is in it and
+committed as gzipped CSVs — see `packages/db-operations/data/seed/README.md` for what is in it and
 how to regenerate it.
 
 ## Graceful shutdown
@@ -381,7 +382,7 @@ Four commands are worth noting:
   idempotent — safe against a server where the roles already exist — and it sets the passwords
   every time, so it is also how a credential is rotated.
 - `db import-core-data` loads the required starting data the service relies on — today that is
-  topics, from `packages/db/data/topics.json`. It is idempotent (upserts keyed on stable ids,
+  topics, from `packages/db-operations/data/topics.json`. It is idempotent (upserts keyed on stable ids,
   rows absent from the file are reported rather than deleted) and runs in any environment: this
   is permanent content preview and production need, not dummy data.
 - `db seed-dummy-data` replaces the dummy data — the committed indicators, observations and the
@@ -563,7 +564,8 @@ Each package has a README describing its purpose and entry points:
 | [`@fphd/api-server`](packages/api-server/README.md)              | The Express app both APIs are built from                        |
 | [`@fphd/auth`](packages/auth/README.md)                          | Audiences, fake users and the JWT session cookie                |
 | [`@fphd/config`](packages/config/README.md)                      | Environment parsing fragments and the shared zod instance       |
-| [`@fphd/db`](packages/db/README.md)                              | Schema, migrations, repositories and database operations        |
+| [`@fphd/db`](packages/db/README.md)                              | Schema, client and the repositories the APIs read through       |
+| [`@fphd/db-operations`](packages/db-operations/README.md)        | Migrations, bootstrap, imports, seed data and reset             |
 | [`@fphd/express`](packages/express/README.md)                    | The base Express app and middleware every server shares         |
 | [`@fphd/internal-api-features`](packages/internal-api-features/README.md) | Routes and queries only the internal API runs          |
 | [`@fphd/internal-web-features`](packages/internal-web-features/README.md) | Pages and loaders only the internal web app mounts     |

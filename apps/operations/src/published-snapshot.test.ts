@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
-import { SEED_TABLES } from '@fphd/db/operations';
+import { SEED_TABLES } from '@fphd/db-operations';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { verifyPublishedSnapshot } from './published-snapshot.ts';

@@ -1,15 +1,15 @@
 import { z } from '@fphd/config';
 
-import { type TopicRecord, topicRecordSchema } from './schema/index.ts';
+import { schema } from '@fphd/db';
 
-const topicsFileSchema = z.array(topicRecordSchema);
+const topicsFileSchema = z.array(schema.topicRecordSchema);
 
 /**
  * Parses and validates a topics import file. Beyond per-record shape, rejects duplicate ids
  * or slugs within the file — either would make the upsert's `ON CONFLICT (id)` target
  * ambiguous or silently clobber one topic with another's data.
  */
-export function parseTopicsFile(data: unknown): TopicRecord[] {
+export function parseTopicsFile(data: unknown): schema.TopicRecord[] {
   const result = topicsFileSchema.safeParse(data);
 
   if (!result.success) {

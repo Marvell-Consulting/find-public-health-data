@@ -1,8 +1,9 @@
+import type { schema } from '@fphd/db';
 import { describe, expect, it } from 'vitest';
-import { parseTopicsFile } from './parse-topics-file.ts';
-import type { TopicRecord } from './schema/index.ts';
 
-const validTopic: TopicRecord = {
+import { parseTopicsFile } from './parse-topics-file.ts';
+
+const validTopic: schema.TopicRecord = {
   id: '019f93b8-2b47-75d0-b03a-edb28d2d43c6',
   slug: 'alcohol',
   title: 'Alcohol',

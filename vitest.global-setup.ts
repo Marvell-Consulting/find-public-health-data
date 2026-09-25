@@ -5,7 +5,7 @@ export default async function setup(): Promise<(() => Promise<void>) | undefined
   if (process.env.INTEGRATION_DB !== '1') {
     return undefined;
   }
-  const { setUpTestTemplate, tearDownTestTemplate } = await import('@fphd/db/testing');
+  const { setUpTestTemplate, tearDownTestTemplate } = await import('@fphd/db-operations/testing');
   await setUpTestTemplate();
   return async () => {
     await tearDownTestTemplate();

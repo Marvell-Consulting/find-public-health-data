@@ -6,7 +6,7 @@ Run on the benchmark VM (needs pyodbc + ODBC Driver 18):
 
     MSSQL_PASSWORD=... python3 export-seed.py /tmp/seed-out
 
-then copy the resulting *.csv.gz into packages/db/data/seed/.
+then copy the resulting *.csv.gz into packages/db-operations/data/seed/.
 
 The subset: 9 indicators chosen for diverse value types and dimension shapes,
 observations restricted to core administrative geographies (England, statistical

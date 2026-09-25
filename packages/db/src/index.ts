@@ -1,6 +1,8 @@
 export { type AreaSummary, listAreasByType } from './area-repository.ts';
 export {
   createDb,
+  createDbFromClient,
+  createDbFromTransaction,
   createPostgresClient,
   type Database,
   type DbConnection,
