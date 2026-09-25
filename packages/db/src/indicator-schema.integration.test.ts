@@ -87,6 +87,8 @@ async function addVersion(
       | 'exclusionsDetail'
       | 'automationUsed'
       | 'automationDetail'
+      | 'hasReviewerComments'
+      | 'reviewerCommentsDetail'
     >
   > = {},
 ) {
@@ -347,6 +349,11 @@ describe('indicator_version', () => {
     ['no exclusions', { hasExclusions: false, exclusionsDetail: 'Small areas' }],
     ['automation of nobody', { automationDetail: 'Pipeline' }],
     ['no automation', { automationUsed: false, automationDetail: 'Pipeline' }],
+    ['reviewer comments of nobody', { reviewerCommentsDetail: 'Replaces 108' }],
+    [
+      'no reviewer comments',
+      { hasReviewerComments: false, reviewerCommentsDetail: 'Replaces 108' },
+    ],
   ] as const)('refuses a detail beside %s', async (_, values) => {
     await expect(addVersion(await newIndicatorId(), 'draft', values)).rejects.toMatchObject({
       cause: { code: CHECK_VIOLATION },
@@ -366,6 +373,8 @@ describe('indicator_version', () => {
         exclusionsDetail: 'Small areas',
         automationUsed: true,
         automationDetail: 'Pipeline',
+        hasReviewerComments: true,
+        reviewerCommentsDetail: 'Replaces 108',
       }),
     ).resolves.toHaveLength(1);
     await expect(
@@ -542,7 +551,8 @@ describe('the published views', () => {
             AND column_name IN (
               'variation', 'quality_assurance', 'source_data_issues', 'source_data_issues_detail',
               'ci_method_justification', 'data_sources_justification', 'inequalities_included',
-              'has_exclusions', 'exclusions_detail', 'automation_used', 'automation_detail'
+              'has_exclusions', 'exclusions_detail', 'automation_used', 'automation_detail',
+              'sponsors_and_stakeholders', 'has_reviewer_comments', 'reviewer_comments_detail'
             )`,
     )) as unknown as { column_name: string }[];
 

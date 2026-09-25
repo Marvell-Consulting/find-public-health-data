@@ -11,6 +11,7 @@ import {
   type IndicatorTaskStatuses,
   isIndicatorSectionComplete,
   justificationsSection,
+  otherCommentsSection,
   otherNotesAndCaveatsSection,
   polaritySection,
   publishingDateSection,
@@ -26,6 +27,7 @@ import {
   definitionAndRationaleColumns,
   justificationsColumns,
   linksColumns,
+  otherCommentsColumns,
   otherNotesAndCaveatsColumns,
   polarityColumns,
   publishingDateColumns,
@@ -85,6 +87,7 @@ export function indicatorTaskList({
     links: taskStatus(areLinksComplete(linksColumns.fromDraft(draft))),
     'variance-and-quality': complete(varianceAndQualitySection, varianceAndQualityColumns),
     justifications: complete(justificationsSection, justificationsColumns),
+    'other-comments': complete(otherCommentsSection, otherCommentsColumns),
   };
 
   return {
