@@ -84,7 +84,7 @@ jobs:
             ${{ env.IMAGE }}:${{ github.sha }}
             ${{ env.IMAGE }}:latest
           labels: |
-            org.opencontainers.image.title=${{ matrix.app }}
+            org.opencontainers.image.title=fphd-${{ matrix.app }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.created=${{ steps.timestamp.outputs.created }}
