@@ -11,6 +11,7 @@ import {
   dataQualityColumns,
   definitionAndRationaleColumns,
   indicatorSectionsRouter,
+  justificationsColumns,
   linksColumns,
   otherNotesAndCaveatsColumns,
   polarityColumns,
@@ -56,6 +57,13 @@ const unanswered: IndicatorSectionDraft = {
   sourceDataIssues: null,
   sourceDataIssuesDetail: null,
   dataQualityIssues: null,
+  ciMethodJustification: null,
+  dataSourcesJustification: null,
+  inequalitiesIncluded: null,
+  hasExclusions: null,
+  exclusionsDetail: null,
+  automationUsed: null,
+  automationDetail: null,
 };
 
 const METHODS: Record<CiMethodRow['kind'], CiMethodRow> = {
@@ -374,6 +382,39 @@ describe('varianceAndQualityColumns', () => {
         sourceDataIssues,
       }),
     ).toEqual({ ...answered, sourceDataIssues: answer });
+  });
+});
+
+describe('justificationsColumns', () => {
+  const answered = {
+    ciMethodJustification: 'The standard method for rates.',
+    dataSourcesJustification: 'The only national source.',
+    inequalitiesIncluded: 'Deprivation deciles.',
+    hasExclusions: 'yes',
+    exclusionsDetail: 'Areas with fewer than 5 deaths.',
+    automationUsed: 'no',
+    automationDetail: 'Typed before No was chosen.',
+  } as const;
+
+  it('keeps the details of a yes and clears those of a no', () => {
+    expect(justificationsColumns.toAttributes(answered)).toEqual({
+      ...answered,
+      hasExclusions: true,
+      automationUsed: false,
+      automationDetail: null,
+    });
+  });
+
+  it('reads the stored answers back as the form gives them', () => {
+    expect(
+      justificationsColumns.fromDraft({
+        ...unanswered,
+        ...answered,
+        hasExclusions: true,
+        automationUsed: false,
+        automationDetail: null,
+      }),
+    ).toEqual({ ...answered, automationDetail: null });
   });
 });
 

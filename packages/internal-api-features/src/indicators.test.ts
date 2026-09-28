@@ -560,6 +560,13 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
       sourceDataIssues: null,
       sourceDataIssuesDetail: null,
       dataQualityIssues: null,
+      ciMethodJustification: null,
+      dataSourcesJustification: null,
+      inequalitiesIncluded: null,
+      hasExclusions: null,
+      exclusionsDetail: null,
+      automationUsed: null,
+      automationDetail: null,
     },
     draftCiMethodKind: null,
     indicatorStatus: 'new',
@@ -615,6 +622,7 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
         'publishing-date': 'not_started',
         links: 'not_started',
         'variance-and-quality': 'not_started',
+        justifications: 'not_started',
       },
     });
   });

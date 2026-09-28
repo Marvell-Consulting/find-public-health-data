@@ -48,6 +48,13 @@ export type IndicatorSectionDraft = Pick<
   | 'sourceDataIssues'
   | 'sourceDataIssuesDetail'
   | 'dataQualityIssues'
+  | 'ciMethodJustification'
+  | 'dataSourcesJustification'
+  | 'inequalitiesIncluded'
+  | 'hasExclusions'
+  | 'exclusionsDetail'
+  | 'automationUsed'
+  | 'automationDetail'
 >;
 
 /**
