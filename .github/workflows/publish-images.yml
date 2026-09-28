@@ -47,13 +47,16 @@ jobs:
     steps:
       # Derived from the run so the workflow publishes under whichever repository it is in.
       # Repo-prefixed so a generic name like `operations` isn't loose in the organisation
-      # namespace; lowercased because image references must be and an owner or repository name
-      # need not be. The packages are linked to that repository and inherit its permissions
-      # because their first push comes from this workflow's token — the prefix alone does
-      # nothing. They are public, so deployments pull anonymously, but GHCR creates each package
-      # private: a new one must be flipped to public by hand before anything can pull it.
-      - name: Derive the registry from this repository
-        run: echo "REGISTRY=ghcr.io/${GITHUB_REPOSITORY,,}" >> "${GITHUB_ENV}"
+      # namespace, and `fphd-` prefixed so the five group together in the organisation's package
+      # list; lowercased because image references must be and an owner or repository name need
+      # not be. The packages are linked to that repository and inherit its permissions because
+      # their first push comes from this workflow's token — the prefixes alone do nothing. They
+      # are public, so deployments pull anonymously, but GHCR creates each package private: a new
+      # one must be flipped to public by hand before anything can pull it.
+      - name: Derive the image name from this repository
+        env:
+          APP: ${{ matrix.app }}
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}/fphd-${APP}" >> "${GITHUB_ENV}"
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -78,8 +81,8 @@ jobs:
           app: ${{ matrix.app }}
           target: ${{ matrix.target }}
           tags: |
-            ${{ env.REGISTRY }}/${{ matrix.app }}:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ matrix.app }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
           labels: |
             org.opencontainers.image.title=${{ matrix.app }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
@@ -92,28 +95,26 @@ jobs:
       - name: Smoke test the image
         env:
           APP: ${{ matrix.app }}
-        run: scripts/smoke-image.sh "${APP}" "${REGISTRY}/${APP}:${GITHUB_SHA}"
+        run: scripts/smoke-image.sh "${APP}" "${IMAGE}:${GITHUB_SHA}"
 
       # After the smoke test, so a scan finding never masks an image that fails to start, and
       # before the push, so a failing image is never in the registry to be deployed.
       - name: Scan the image
         uses: ./.github/actions/scan-image
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ matrix.app }}:${{ github.sha }}
+          image-ref: ${{ env.IMAGE }}:${{ github.sha }}
 
       # Both tags are labels for humans, not what a deployment should reference: GHCR tags are
       # mutable, and re-running this workflow for the same commit produces a different manifest
       # that overwrites both. The digest below is the immutable reference.
       - name: Push the image
         id: push
-        env:
-          APP: ${{ matrix.app }}
         run: |
           # `docker push` reports the manifest the registry stored as `<tag>: digest: sha256:…`.
           # Read it from the push rather than from the local image: it is the registry's own
           # answer to what now exists under this tag.
-          push_output=$(docker push "${REGISTRY}/${APP}:${GITHUB_SHA}" | tee /dev/stderr)
-          docker push "${REGISTRY}/${APP}:latest"
+          push_output=$(docker push "${IMAGE}:${GITHUB_SHA}" | tee /dev/stderr)
+          docker push "${IMAGE}:latest"
 
           digest=$(sed -n 's/.*digest: \(sha256:[0-9a-f]\{64\}\).*/\1/p' <<<"${push_output}" | head -1)
           if [ -z "${digest}" ]; then
@@ -121,7 +122,7 @@ jobs:
             exit 1
           fi
           echo "digest=${digest}" >> "${GITHUB_OUTPUT}"
-          echo "reference=${REGISTRY}/${APP}@${digest}" >> "${GITHUB_OUTPUT}"
+          echo "reference=${IMAGE}@${digest}" >> "${GITHUB_OUTPUT}"
 
       # Build provenance for the digest just pushed, signed with this run's OIDC identity and
       # stored both in this repository's attestations and in the registry beside the image.
@@ -131,7 +132,7 @@ jobs:
         id: attest
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ matrix.app }}
+          subject-name: ${{ env.IMAGE }}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
 
