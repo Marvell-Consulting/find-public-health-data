@@ -208,6 +208,7 @@ describe('the role-gated route tables', () => {
       'publish/indicators/:id/links',
       'publish/indicators/:id/variance-and-quality',
       'publish/indicators/:id/justifications',
+      'publish/indicators/:id/other-comments',
     ]);
   });
 
