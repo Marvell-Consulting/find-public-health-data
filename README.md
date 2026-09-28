@@ -474,12 +474,13 @@ its devDependencies — exactly what the production images must not do.
 
 `.github/workflows/publish-images.yml` builds all five on every push to `main` and pushes them to
 GitHub Container Registry under the repository that ran it —
-`ghcr.io/<owner>/find-public-health-data/<app>`, lowercased — tagged with the commit SHA and
-`latest`. OCI labels carry the repository, commit and build time rather than encoding them in the
-tag. There is no registry credential on either side: the workflow authenticates with its own
-run-scoped `GITHUB_TOKEN`, and the packages are public, so deployments pull anonymously. The one
-manual step is at creation: GHCR makes a package private on its first push, so a brand-new package
-must be flipped to public in its settings before anything can pull it.
+`ghcr.io/<owner>/find-public-health-data/fphd-<app>`, lowercased — tagged with the commit SHA and
+`latest`. The `fphd-` prefix groups the five in the organisation's package list. OCI labels carry
+the repository, commit and build time rather than encoding them in the tag. There is no registry
+credential on either side: the workflow authenticates with its own run-scoped `GITHUB_TOKEN`, and
+the packages are public, so deployments pull anonymously. The one manual step is at creation: GHCR
+makes a package private on its first push, so a brand-new package must be flipped to public in its
+settings before anything can pull it.
 
 Write access to the packages is repository access: they are linked to this repository on that first
 push and inherit its permissions, so anyone with maintain or admin here can push to them, from any
@@ -494,7 +495,7 @@ overwrites both tags. A replica scaling up afterwards against the same tag can g
 from the one already running. Each run therefore prints the pushed digest to its summary:
 
 ```
-ghcr.io/<owner>/find-public-health-data/public-web@sha256:4f30b957…
+ghcr.io/<owner>/find-public-health-data/fphd-public-web@sha256:4f30b957…
 ```
 
 That is what a revision should reference, and what `app_images` in the infrastructure repository
