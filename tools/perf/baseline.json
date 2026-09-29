@@ -1,0 +1,140 @@
+{
+  "internal-api /api/internal/indicators": {
+    "statements": 2,
+    "buffers": 14,
+    "rows": 11,
+    "bytes": 2015
+  },
+  "internal-api /api/internal/indicators/01a00ab4-ce0a-70c1-b22b-f8192c94a59d": {
+    "statements": 1,
+    "buffers": 13,
+    "rows": 1,
+    "bytes": 218
+  },
+  "internal-api /api/internal/topics": {
+    "statements": 1,
+    "buffers": 2,
+    "rows": 33,
+    "bytes": 6442
+  },
+  "internal-web /dashboard": {
+    "statements": 2,
+    "buffers": 14,
+    "rows": 11,
+    "bytes": 37996
+  },
+  "internal-web /dashboard/indicators/01a00ab4-ce0a-70c1-b22b-f8192c94a59d": {
+    "statements": 1,
+    "buffers": 13,
+    "rows": 1,
+    "bytes": 31885
+  },
+  "internal-web /manage/topics": {
+    "statements": 1,
+    "buffers": 2,
+    "rows": 33,
+    "bytes": 47749
+  },
+  "public-api /api/areas?displayGroup=GP%20practices": {
+    "statements": 1,
+    "buffers": 84,
+    "rows": 6168,
+    "bytes": 310737
+  },
+  "public-api /api/areas/search?q=leeds": {
+    "statements": 1,
+    "buffers": 89,
+    "rows": 5,
+    "bytes": 510
+  },
+  "public-api /api/indicators?q=mortality": {
+    "statements": 1,
+    "buffers": 17,
+    "rows": 4,
+    "bytes": 596
+  },
+  "public-api /api/indicators/241": {
+    "statements": 5,
+    "buffers": 47,
+    "rows": 16,
+    "bytes": 3334
+  },
+  "public-api /api/indicators/241/data?areaCode=E92000001&areaCode=E08000003&areaCode=E07000223&areaCode=E07000032&areaCode=E06000047": {
+    "statements": 16,
+    "buffers": 12930,
+    "rows": 2738,
+    "bytes": 400303
+  },
+  "public-api /api/indicators/241/range?displayGroup=GP%20practices": {
+    "statements": 2,
+    "buffers": 88,
+    "rows": 17,
+    "bytes": 1757
+  },
+  "public-api /api/indicators/search?q=diabetes": {
+    "statements": 4,
+    "buffers": 61,
+    "rows": 23,
+    "bytes": 2051
+  },
+  "public-api /api/topics": {
+    "statements": 1,
+    "buffers": 2,
+    "rows": 33,
+    "bytes": 10307
+  },
+  "public-web /": {
+    "statements": 0,
+    "buffers": 0,
+    "rows": 0,
+    "bytes": 27754
+  },
+  "public-web /indicators?as=E07000223&as=E07000032&is=92443&is=241&cmp-compare=england&cr-compare=no": {
+    "statements": 34,
+    "buffers": 26461,
+    "rows": 6116,
+    "bytes": 784630
+  },
+  "public-web /indicators?find=mortality": {
+    "statements": 3,
+    "buffers": 100,
+    "rows": 270,
+    "bytes": 54725
+  },
+  "public-web /indicators/diabetes-qof-prevalence": {
+    "statements": 11,
+    "buffers": 12325,
+    "rows": 2916,
+    "bytes": 369506
+  },
+  "public-web /indicators/diabetes-qof-prevalence/table.csv": {
+    "statements": 9,
+    "buffers": 12212,
+    "rows": 2650,
+    "bytes": 569
+  },
+  "public-web /indicators/under-75-mortality-rate-from-all-causes/all-data.csv": {
+    "statements": 9,
+    "buffers": 23213,
+    "rows": 5215,
+    "bytes": 269866
+  },
+  "public-web /search?q=mortality": {
+    "statements": 11,
+    "buffers": 215,
+    "rows": 330,
+    "bytes": 78179
+  },
+  "public-web /topics": {
+    "statements": 1,
+    "buffers": 2,
+    "rows": 33,
+    "bytes": 50571
+  },
+  "public-web /topics/diabetes": {
+    "statements": 1,
+    "buffers": 2,
+    "rows": 1,
+    "bytes": 27064
+  }
+}
