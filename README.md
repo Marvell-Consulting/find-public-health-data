@@ -102,8 +102,9 @@ unambiguous artifacts.
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs lint, typecheck, unit tests, integration tests, e2e tests,
-`pnpm audit`, build, the public artifact boundary check and the e2e coverage checks as parallel
-jobs. A final `All checks pass` job aggregates them and is the single required status check for
+`pnpm audit`, build, the image builds and scans, the public artifact boundary check and the e2e
+coverage checks as parallel jobs, except that the e2e tests and the image scans wait for the image
+build. A final `All checks pass` job aggregates them and is the single required status check for
 merging, so the required-check list does not need editing whenever a job is added — but a new job
 must be added to that job's `needs` list, or it gates nothing.
 
@@ -134,9 +135,10 @@ Each tier is its own CI job, so the jobs run `pnpm test:unit`, `pnpm test:integr
 - `pnpm test:integration` runs Vitest over every project, selecting `integration.test` files. A
   project without any still passes because of `--passWithNoTests`.
 - `pnpm test:e2e` names the one suite directly (`pnpm --filter @fphd/e2e run test:e2e`), so broken
-  e2e wiring is an error rather than a silent skip. In CI the job builds the four apps as compose
-  containers, seeds the database with the same commands a developer runs, runs the suite, and
-  uploads the Playwright report when it fails.
+  e2e wiring is an error rather than a silent skip. In CI the job runs the four apps as compose
+  containers from the production images the image build job made (see
+  [Container images](#container-images)), seeds the database with the same commands a developer
+  runs, runs the suite, and uploads the Playwright report when it fails.
 
 Both tiers are one root Vitest run over the projects declared in `vitest.config.ts`, globbed from
 `apps/*`, `packages/*` and `tools/*`. Packages declare no test scripts of their own, so a new
@@ -444,8 +446,8 @@ unrecognised command.
 ## Container images
 
 `docker/Dockerfile` builds the production images — one per deployable application, plus
-`operations`. A shared builder stage installs the workspace and builds the requested app; then
-`--target` picks the runtime shape and `--build-arg APP` picks the app:
+`operations`. A shared builder stage installs and builds the whole workspace; then `--target` picks
+the runtime shape and `--build-arg APP` picks the app:
 
 ```sh
 docker build -f docker/Dockerfile --target web --build-arg APP=public-web   -t public-web   .
@@ -473,6 +475,13 @@ defaulting to `0.0.0.0` and the app's own port.
 This is separate from `docker/app.Dockerfile`, which is the development image used by
 [mixed local/Docker development](#mixed-localdocker-development) and keeps the whole workspace and
 its devDependencies — exactly what the production images must not do.
+
+On a pull request, CI builds the four server images in one `docker buildx bake` run from
+`docker/docker-bake.hcl`, so the shared builder stage runs once. It smoke-tests them and saves them
+as an artifact. The e2e job loads that artifact and runs the suite against the images, with
+`compose.e2e.yaml` layered over `compose.yaml` to swap each service's build for its image, and a
+scan job per image runs Trivy on the same images alongside it. The operations image, which e2e
+does not use, is built, smoke-tested and scanned in a job of its own.
 
 `.github/workflows/publish-images.yml` builds all five on every push to `main` and pushes them to
 GitHub Container Registry under the repository that ran it —

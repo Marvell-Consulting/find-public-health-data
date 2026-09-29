@@ -4,8 +4,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   push:
-    # TEMPORARY: the FPH-430 timing experiment runs on push to its branch. Remove before review.
-    branches: [main, fph-430-e2e-production-images]
+    branches: [main]
 
 permissions:
   contents: read
@@ -231,7 +230,7 @@ jobs:
   # No registry login: the images are built into the local daemon, then saved as an artifact for
   # e2e and scan-app-images. One bake invocation so the shared builder stage runs once and the four
   # app builds run in parallel. No build cache: every layer after `COPY . .` misses on a pull
-  # request anyway, and exporting it cost more time than it restored.
+  # request anyway, and exporting it costs more time than it restores.
   build-app-images:
     name: Build app images
     if: ${{ !github.event.pull_request.draft }}
