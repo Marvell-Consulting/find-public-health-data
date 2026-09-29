@@ -4,7 +4,7 @@ export type Route = {
   app: App;
   /** Path and query, against the seeded data. */
   path: string;
-  /** A median slower than this fails the route. Set well above CI's usual median: see the README. */
+  /** A median slower than this fails the route: 5–10 times CI's usual median (see the README). */
   limitMs: number;
 };
 
@@ -29,42 +29,42 @@ const AREAS = ['E92000001', 'E08000003', 'E07000223', 'E07000032', 'E06000047'];
 
 /** Read-only GETs over the seeded data: the common pages and the heaviest queries behind them. */
 export const ROUTES: Route[] = [
-  { app: 'public-web', path: '/', limitMs: 1000 },
-  { app: 'public-web', path: '/search?q=mortality', limitMs: 1000 },
-  { app: 'public-web', path: '/topics', limitMs: 1000 },
-  { app: 'public-web', path: '/topics/diabetes', limitMs: 1000 },
-  { app: 'public-web', path: '/indicators?find=mortality', limitMs: 1000 },
-  { app: 'public-web', path: `/indicators/${DIABETES_SLUG}`, limitMs: 1000 },
+  { app: 'public-web', path: '/', limitMs: 500 },
+  { app: 'public-web', path: '/search?q=mortality', limitMs: 500 },
+  { app: 'public-web', path: '/topics', limitMs: 500 },
+  { app: 'public-web', path: '/topics/diabetes', limitMs: 500 },
+  { app: 'public-web', path: '/indicators?find=mortality', limitMs: 500 },
+  { app: 'public-web', path: `/indicators/${DIABETES_SLUG}`, limitMs: 500 },
   {
     app: 'public-web',
     path: '/indicators?as=E07000223&as=E07000032&is=92443&is=241&cmp-compare=england&cr-compare=no',
     limitMs: 1000,
   },
-  { app: 'public-web', path: `/indicators/${DIABETES_SLUG}/table.csv`, limitMs: 2000 },
-  { app: 'public-web', path: `/indicators/${MORTALITY_SLUG}/all-data.csv`, limitMs: 2000 },
+  { app: 'public-web', path: `/indicators/${DIABETES_SLUG}/table.csv`, limitMs: 1000 },
+  { app: 'public-web', path: `/indicators/${MORTALITY_SLUG}/all-data.csv`, limitMs: 1000 },
 
-  { app: 'internal-web', path: '/dashboard', limitMs: 1000 },
-  { app: 'internal-web', path: `/dashboard/indicators/${DIABETES.id}`, limitMs: 1000 },
-  { app: 'internal-web', path: '/manage/topics', limitMs: 1000 },
+  { app: 'internal-web', path: '/dashboard', limitMs: 500 },
+  { app: 'internal-web', path: `/dashboard/indicators/${DIABETES.id}`, limitMs: 500 },
+  { app: 'internal-web', path: '/manage/topics', limitMs: 500 },
 
-  { app: 'public-api', path: '/api/topics', limitMs: 500 },
-  { app: 'public-api', path: '/api/indicators?q=mortality', limitMs: 500 },
-  { app: 'public-api', path: '/api/indicators/search?q=diabetes', limitMs: 500 },
-  { app: 'public-api', path: `/api/indicators/${DIABETES.shortId}`, limitMs: 500 },
+  { app: 'public-api', path: '/api/topics', limitMs: 250 },
+  { app: 'public-api', path: '/api/indicators?q=mortality', limitMs: 250 },
+  { app: 'public-api', path: '/api/indicators/search?q=diabetes', limitMs: 250 },
+  { app: 'public-api', path: `/api/indicators/${DIABETES.shortId}`, limitMs: 250 },
   {
     app: 'public-api',
     path: `/api/indicators/${DIABETES.shortId}/data?${AREAS.map((code) => `areaCode=${code}`).join('&')}`,
-    limitMs: 500,
+    limitMs: 250,
   },
   {
     app: 'public-api',
     path: `/api/indicators/${DIABETES.shortId}/range?${GP_PRACTICES}`,
-    limitMs: 500,
+    limitMs: 250,
   },
-  { app: 'public-api', path: `/api/areas?${GP_PRACTICES}`, limitMs: 500 },
-  { app: 'public-api', path: '/api/areas/search?q=leeds', limitMs: 500 },
+  { app: 'public-api', path: `/api/areas?${GP_PRACTICES}`, limitMs: 250 },
+  { app: 'public-api', path: '/api/areas/search?q=leeds', limitMs: 250 },
 
-  { app: 'internal-api', path: '/api/internal/indicators', limitMs: 500 },
-  { app: 'internal-api', path: `/api/internal/indicators/${DIABETES.id}`, limitMs: 500 },
-  { app: 'internal-api', path: '/api/internal/topics', limitMs: 500 },
+  { app: 'internal-api', path: '/api/internal/indicators', limitMs: 250 },
+  { app: 'internal-api', path: `/api/internal/indicators/${DIABETES.id}`, limitMs: 250 },
+  { app: 'internal-api', path: '/api/internal/topics', limitMs: 250 },
 ];
