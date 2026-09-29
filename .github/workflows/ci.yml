@@ -4,7 +4,8 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   push:
-    branches: [main]
+    # TEMPORARY: the FPH-430 timing experiment runs on push to its branch. Remove before review.
+    branches: [main, fph-430-e2e-production-images]
 
 permissions:
   contents: read
@@ -107,10 +108,10 @@ jobs:
 
   e2e:
     name: E2E tests
+    needs: build-app-images
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
-    # Covers the uncached compose image build on top of the suite itself.
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -135,12 +136,20 @@ jobs:
       - name: Install Chromium
         run: pnpm --filter @fphd/e2e exec playwright install --with-deps chromium
 
-      # The same development images and profiles scripts/dev.sh uses, built uncached: they
-      # share no Dockerfile instructions with build-images' production images, so borrowing
-      # that job's cache would hit nothing, and all four builds share every layer up to
-      # `ARG APP` through the daemon's local cache. The healthchecks make --wait a real
-      # readiness gate. APP_ENV=test rather than local so the TLS-to-database default stays
-      # off (isDeployedEnv is false for both) while container logs stay JSON.
+      - name: Download the app images
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: app-images
+          path: ${{ runner.temp }}
+
+      - name: Load the app images
+        run: zstd --decompress --stdout "${RUNNER_TEMP}/app-images.tar.zst" | docker load
+
+      # The production images build-app-images built, smoke-tested and saved, so the suite runs
+      # against the artefact scan-app-images scans. compose.e2e.yaml swaps each service's build
+      # for its image; the healthchecks make --wait a real readiness gate. APP_ENV=test rather
+      # than local so the TLS-to-database default stays off (isDeployedEnv is false for both)
+      # while container logs stay JSON.
       - name: Start the stack
         env:
           APP_ENV: test
@@ -154,10 +163,10 @@ jobs:
           SESSION_JWT_SECRET: ci-only-jwt-session-secret-at-least-32-bytes
           WEB_SESSION_SECRET: ci-only-web-session-secret-at-least-32-bytes
         run: >
-          docker compose
+          docker compose -f compose.yaml -f compose.e2e.yaml
           --profile public-web --profile internal-web
           --profile public-api --profile internal-api
-          up --detach --build --wait
+          up --detach --wait
 
       # The same commands a developer runs, from the host against the compose database.
       - name: Seed the database
@@ -216,55 +225,125 @@ jobs:
   # Distinct from `compile`, which only proves the workspace builds. This proves the artefact that
   # actually ships assembles and starts: `pnpm deploy --prod --legacy` prunes devDependencies, so a
   # module imported at runtime but declared as a devDependency compiles here and is missing there.
-  # Without this the first sign of that is a red publish after merge, or a crash-looping revision.
+  # The smoke test catches that at startup; the e2e job, which runs these images, catches it in a
+  # route handler.
   #
-  # No registry login: the images are built into the local daemon and discarded. Build, smoke test
-  # and scan are the same three steps publish-images.yml runs, through the same action and script,
-  # so a regression fails the pull request instead of the publish after it.
-  build-images:
-    name: Build images (${{ matrix.app }})
+  # No registry login: the images are built into the local daemon, then saved as an artifact for
+  # e2e and scan-app-images. One bake invocation so the shared builder stage runs once and the four
+  # app builds run in parallel. One cache scope per app, as .github/actions/build-image uses.
+  build-app-images:
+    name: Build app images
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    strategy:
-      # One image failing to build must not mask the state of the other four.
-      fail-fast: false
-      # Mirrors the matrix in publish-images.yml; both need a row when an app is added.
-      matrix:
-        include:
-          - app: public-web
-            target: web
-          - app: internal-web
-            target: web
-          - app: public-api
-            target: api
-          - app: internal-api
-            target: api
-          - app: operations
-            target: operations
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Build ${{ matrix.app }}
-        uses: ./.github/actions/build-image
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+      # `source: .` builds the checkout; the default is a Git context fetched by BuildKit.
+      - name: Build the app images
+        uses: docker/bake-action@018cb6412ab401ebaa809aa5f85966b74628600f # v7.4.0
         with:
-          app: ${{ matrix.app }}
-          target: ${{ matrix.target }}
-          tags: fphd-ci/${{ matrix.app }}:ci
-          cache-scope: images-${{ matrix.app }}
+          source: .
+          files: docker/docker-bake.hcl
+          load: true
+          provenance: false
+          set: |
+            public-web.cache-from=type=gha,scope=images-public-web
+            public-web.cache-to=type=gha,mode=max,scope=images-public-web
+            internal-web.cache-from=type=gha,scope=images-internal-web
+            internal-web.cache-to=type=gha,mode=max,scope=images-internal-web
+            public-api.cache-from=type=gha,scope=images-public-api
+            public-api.cache-to=type=gha,mode=max,scope=images-public-api
+            internal-api.cache-from=type=gha,scope=images-internal-api
+            internal-api.cache-to=type=gha,mode=max,scope=images-internal-api
 
-      - name: Smoke test ${{ matrix.app }}
-        env:
-          APP: ${{ matrix.app }}
-        run: scripts/smoke-image.sh "${APP}" "fphd-ci/${APP}:ci"
+      - name: Smoke test the app images
+        run: |
+          for app in public-web internal-web public-api internal-api; do
+            scripts/smoke-image.sh "${app}" "fphd-ci/${app}:ci"
+          done
 
-      # After the smoke test, so a scan finding never masks an image that fails to start.
+      # One archive for all four so the base layers they share are stored once. zstd rather than
+      # the artifact's own zip compression, which is slower for the same size.
+      - name: Save the app images
+        run: >
+          docker save
+          fphd-ci/public-web:ci fphd-ci/internal-web:ci
+          fphd-ci/public-api:ci fphd-ci/internal-api:ci
+          | zstd -T0 -3 -o "${RUNNER_TEMP}/app-images.tar.zst"
+
+      - name: Upload the app images
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: app-images
+          path: ${{ runner.temp }}/app-images.tar.zst
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+  # Alongside e2e rather than before it, so a scan never holds up the suite.
+  scan-app-images:
+    name: Scan images (${{ matrix.app }})
+    needs: build-app-images
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      # One image's findings must not mask the state of the other three.
+      fail-fast: false
+      matrix:
+        app: [public-web, internal-web, public-api, internal-api]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download the app images
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: app-images
+          path: ${{ runner.temp }}
+
+      - name: Load the app images
+        run: zstd --decompress --stdout "${RUNNER_TEMP}/app-images.tar.zst" | docker load
+
       - name: Scan ${{ matrix.app }}
         uses: ./.github/actions/scan-image
         with:
           image-ref: fphd-ci/${{ matrix.app }}:ci
+
+  # Build, smoke test and scan, the same three steps publish-images.yml runs through the same
+  # action and script. On its own because nothing downstream runs the image.
+  build-operations-image:
+    name: Build image (operations)
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build operations
+        uses: ./.github/actions/build-image
+        with:
+          app: operations
+          target: operations
+          tags: fphd-ci/operations:ci
+          cache-scope: images-operations
+
+      - name: Smoke test operations
+        run: scripts/smoke-image.sh operations fphd-ci/operations:ci
+
+      # After the smoke test, so a scan finding never masks an image that fails to start.
+      - name: Scan operations
+        uses: ./.github/actions/scan-image
+        with:
+          image-ref: fphd-ci/operations:ci
 
   artefact-boundary:
     name: Public artefact boundary
@@ -347,7 +426,9 @@ jobs:
         e2e,
         audit,
         compile,
-        build-images,
+        build-app-images,
+        scan-app-images,
+        build-operations-image,
         artefact-boundary,
         e2e-coverage,
         web-changes-need-e2e,
