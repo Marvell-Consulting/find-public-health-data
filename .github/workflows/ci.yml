@@ -4,8 +4,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   push:
-    # TEMPORARY: runs on push to this branch while the baseline is bootstrapped. Remove before review.
-    branches: [main, fph-431-route-budgets]
+    branches: [main]
 
 permissions:
   contents: read
