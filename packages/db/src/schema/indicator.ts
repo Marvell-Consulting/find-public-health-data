@@ -112,6 +112,11 @@ export const indicatorVersion = pgTable(
     otherNotesNeeded: boolean(),
     otherNotesDetail: text(),
     dataQualityIssues: boolean(),
+    // True when the indicator states its own copyright or re-use terms instead of the defaults.
+    copyrightNonDefault: boolean(),
+    copyrightDetail: text(),
+    dataReuseNonDefault: boolean(),
+    dataReuseDetail: text(),
     // Notes for reviewers, never published.
     variation: text(),
     qualityAssurance: text(),
@@ -177,6 +182,14 @@ export const indicatorVersion = pgTable(
     check(
       'indicator_version_other_notes_detail_check',
       sql`${t.otherNotesNeeded} IS TRUE OR ${t.otherNotesDetail} IS NULL`,
+    ),
+    check(
+      'indicator_version_copyright_detail_check',
+      sql`${t.copyrightNonDefault} IS TRUE OR ${t.copyrightDetail} IS NULL`,
+    ),
+    check(
+      'indicator_version_data_reuse_detail_check',
+      sql`${t.dataReuseNonDefault} IS TRUE OR ${t.dataReuseDetail} IS NULL`,
     ),
     check(
       'indicator_version_source_data_issues_detail_check',

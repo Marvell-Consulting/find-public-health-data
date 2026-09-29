@@ -95,6 +95,10 @@ export default [
         'publish/indicators/:id/other-comments',
         '../../../packages/internal-web-features/src/indicator-other-comments/route.tsx',
       ),
+      route(
+        'publish/indicators/:id/copyright-and-data-reuse',
+        '../../../packages/internal-web-features/src/indicator-copyright-and-data-reuse/route.tsx',
+      ),
     ]),
     layout('./admin.tsx', [
       route('manage', './manage.tsx'),

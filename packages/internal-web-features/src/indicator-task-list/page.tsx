@@ -72,7 +72,11 @@ const TASK_GROUPS: readonly TaskGroup[] = [
       },
       { key: 'links', title: 'Links', path: sectionPath('links') },
       { key: 'tagging', title: 'Tagging' },
-      { key: 'copyright-and-data-re-use', title: 'Copyright and data re-use' },
+      {
+        key: 'copyright-and-data-reuse',
+        title: 'Copyright and data re-use',
+        path: sectionPath('copyright-and-data-reuse'),
+      },
     ],
   },
   {

@@ -209,6 +209,7 @@ describe('the role-gated route tables', () => {
       'publish/indicators/:id/variance-and-quality',
       'publish/indicators/:id/justifications',
       'publish/indicators/:id/other-comments',
+      'publish/indicators/:id/copyright-and-data-reuse',
     ]);
   });
 

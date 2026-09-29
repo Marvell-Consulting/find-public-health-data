@@ -3,6 +3,7 @@ import {
   areLinksComplete,
   type CiMethodKind,
   calculationSection,
+  copyrightAndDataReuseSection,
   dataQualitySection,
   definitionAndRationaleSection,
   type IndicatorSection,
@@ -23,6 +24,7 @@ import type { IndicatorSectionColumns, IndicatorSectionDraft } from './indicator
 import {
   calculationColumns,
   confidenceIntervalsColumns,
+  copyrightAndDataReuseColumns,
   dataQualityColumns,
   definitionAndRationaleColumns,
   justificationsColumns,
@@ -88,6 +90,10 @@ export function indicatorTaskList({
     'variance-and-quality': complete(varianceAndQualitySection, varianceAndQualityColumns),
     justifications: complete(justificationsSection, justificationsColumns),
     'other-comments': complete(otherCommentsSection, otherCommentsColumns),
+    'copyright-and-data-reuse': complete(
+      copyrightAndDataReuseSection,
+      copyrightAndDataReuseColumns,
+    ),
   };
 
   return {

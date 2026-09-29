@@ -204,6 +204,13 @@
       "when": 1790587080925,
       "tag": "0028_other-comments",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1790589828000,
+      "tag": "0029_copyright-and-data-reuse",
+      "breakpoints": true
     }
   ]
 }

@@ -57,6 +57,10 @@ const source: IndicatorTaskListSource = {
     sponsorsAndStakeholders: null,
     hasReviewerComments: null,
     reviewerCommentsDetail: null,
+    copyrightNonDefault: null,
+    copyrightDetail: null,
+    dataReuseNonDefault: null,
+    dataReuseDetail: null,
   },
 };
 
@@ -100,6 +104,10 @@ const complete: IndicatorTaskListDraft = {
   sponsorsAndStakeholders: 'The national screening committee.',
   hasReviewerComments: false,
   reviewerCommentsDetail: null,
+  copyrightNonDefault: true,
+  copyrightDetail: 'Copyright © NHS England',
+  dataReuseNonDefault: false,
+  dataReuseDetail: null,
 };
 
 function withDraft(draft: Partial<IndicatorTaskListDraft>): IndicatorTaskListSource {
@@ -316,6 +324,24 @@ describe('indicatorTaskList', () => {
     ['comments without their details', { ...complete, hasReviewerComments: true }],
   ] as const)('leaves the other comments not started with %s', (_, draft) => {
     expect(indicatorTaskList(withDraft(draft)).tasks['other-comments']).toBe('not_started');
+  });
+
+  it('counts the copyright and data re-use as complete once both questions are answered', () => {
+    expect(indicatorTaskList(withDraft(complete)).tasks['copyright-and-data-reuse']).toBe(
+      'completed',
+    );
+  });
+
+  it.each([
+    ['nothing', {}],
+    ['copyright unanswered', { ...complete, copyrightNonDefault: null }],
+    ['a different copyright without its details', { ...complete, copyrightDetail: null }],
+    ['data re-use unanswered', { ...complete, dataReuseNonDefault: null }],
+    ['a different data re-use without its details', { ...complete, dataReuseNonDefault: true }],
+  ] as const)('leaves the copyright and data re-use not started with %s', (_, draft) => {
+    expect(indicatorTaskList(withDraft(draft)).tasks['copyright-and-data-reuse']).toBe(
+      'not_started',
+    );
   });
 
   it.each([

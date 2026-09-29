@@ -10,6 +10,8 @@ import {
   type ConfidenceIntervalsField,
   calculationSection,
   confidenceIntervalsSection,
+  copyrightAndDataReuseQuestions,
+  copyrightAndDataReuseSection,
   type DataQualityField,
   dataQualitySection,
   definitionAndRationaleSection,
@@ -144,6 +146,11 @@ export const otherCommentsColumns: IndicatorSectionColumns<OtherCommentsField, O
     sponsorsAndStakeholders: answers.sponsorsAndStakeholders || null,
   }),
 };
+
+export const copyrightAndDataReuseColumns = yesNoDetailColumns(
+  copyrightAndDataReuseSection,
+  copyrightAndDataReuseQuestions,
+);
 
 export const linksColumns: IndicatorSectionColumns<LinksField, Links, LinksAnswers> = {
   fromDraft: ({ hasLinks, links }) => ({
@@ -351,5 +358,11 @@ export function indicatorSectionsRouter(
     ),
     indicatorSectionRouter(indicators, session, justificationsSection, justificationsColumns),
     indicatorSectionRouter(indicators, session, otherCommentsSection, otherCommentsColumns),
+    indicatorSectionRouter(
+      indicators,
+      session,
+      copyrightAndDataReuseSection,
+      copyrightAndDataReuseColumns,
+    ),
   );
 }

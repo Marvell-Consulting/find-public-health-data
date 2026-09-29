@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { FORM_NOT_SAVED } from './form-refusal.ts';
 import * as calculation from './indicator-calculation/route.tsx';
 import * as confidenceIntervals from './indicator-confidence-intervals/route.tsx';
+import * as copyrightAndDataReuse from './indicator-copyright-and-data-reuse/route.tsx';
 import * as dataQuality from './indicator-data-quality/route.tsx';
 import * as definitionAndRationale from './indicator-definition-and-rationale/route.tsx';
 import * as justifications from './indicator-justifications/route.tsx';
@@ -84,6 +85,13 @@ const otherCommentsUnanswered = {
   sponsorsAndStakeholders: '',
   hasReviewerComments: '',
   reviewerCommentsDetail: '',
+};
+
+const copyrightAndDataReuseUnanswered = {
+  copyrightNonDefault: '',
+  copyrightDetail: '',
+  dataReuseNonDefault: '',
+  dataReuseDetail: '',
 };
 
 const forms: {
@@ -246,6 +254,18 @@ const forms: {
     rejected: {
       values: otherCommentsUnanswered,
       fieldErrors: { hasReviewerComments: 'Select whether you have additional comments' },
+    },
+  },
+  {
+    name: 'copyright and data re-use',
+    route: copyrightAndDataReuse,
+    pageTitle: 'Copyright and data re-use',
+    loaderData: { id: indicator.id, values: copyrightAndDataReuseUnanswered },
+    rejected: {
+      values: copyrightAndDataReuseUnanswered,
+      fieldErrors: {
+        copyrightNonDefault: 'Select whether the copyright is anything other than Crown copyright',
+      },
     },
   },
   {
