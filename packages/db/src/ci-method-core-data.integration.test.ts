@@ -157,7 +157,7 @@ describe('loadIndicatorVersions', () => {
       WHERE v.indicator_id = ${indicatorId}
     `;
 
-    expect(loaded).toEqual({ ciMethods: 1, versions: 1 });
+    expect(loaded).toEqual({ ciMethods: 1, versions: 1, legacySources: 0, sources: 0 });
     expect(rows).toEqual([{ name: 'Wald normal approximation' }]);
     await sql`DELETE FROM indicator_version WHERE indicator_id = ${indicatorId}`;
   });

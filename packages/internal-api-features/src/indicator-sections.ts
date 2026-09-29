@@ -18,6 +18,7 @@ import {
   type DataQualityField,
   dataQualitySection,
   definitionAndRationaleSection,
+  denominatorSection,
   goalValue,
   goalValueText,
   type IndicatorDataQuality,
@@ -28,6 +29,7 @@ import {
   type LinksField,
   linksSection,
   missingCiMethodFollowUps,
+  numeratorSection,
   type OtherComments,
   type OtherCommentsField,
   type OtherNotesAndCaveats,
@@ -58,6 +60,11 @@ import {
   varianceAndQualityQuestions,
   varianceAndQualitySection,
 } from './contract.ts';
+import {
+  denominatorColumns,
+  numeratorColumns,
+  providerSourcesServerSection,
+} from './indicator-provider-sources.ts';
 import type { IndicatorDraftClassification, UkDateTime } from './indicator-repository.ts';
 import {
   detailOf,
@@ -459,7 +466,12 @@ export function publishingDateServerSection(
 
 /** GET and PUT for every section of a draft; `now` is the clock for the publishing date's notice. */
 export function indicatorSectionsRouter(
-  { indicators, ciMethods, tags }: Pick<InternalRepositories, 'indicators' | 'ciMethods' | 'tags'>,
+  {
+    indicators,
+    ciMethods,
+    tags,
+    dataProviders,
+  }: Pick<InternalRepositories, 'indicators' | 'ciMethods' | 'tags' | 'dataProviders'>,
   session: JwtSessionVerifier,
   now: () => Date = () => new Date(),
 ): Router {
@@ -472,6 +484,18 @@ export function indicatorSectionsRouter(
     ),
     indicatorSectionRouter(indicators, session, polaritySection, polarityColumns),
     indicatorSectionRouter(indicators, session, dataQualitySection, dataQualityColumns),
+    indicatorSectionRouter(
+      indicators,
+      session,
+      providerSourcesServerSection(numeratorSection, dataProviders),
+      numeratorColumns,
+    ),
+    indicatorSectionRouter(
+      indicators,
+      session,
+      providerSourcesServerSection(denominatorSection, dataProviders),
+      denominatorColumns,
+    ),
     indicatorSectionRouter(indicators, session, calculationSection, calculationColumns),
     indicatorSectionRouter(
       indicators,

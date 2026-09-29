@@ -1,6 +1,7 @@
 import {
   areConfidenceIntervalsComplete,
   areLinksComplete,
+  areProviderSourcesComplete,
   areSexAndAgesComplete,
   benchmarkingSection,
   type CiMethodKind,
@@ -8,6 +9,7 @@ import {
   copyrightAndDataReuseSection,
   dataQualitySection,
   definitionAndRationaleSection,
+  denominatorSection,
   type IndicatorSection,
   type IndicatorTaskList,
   type IndicatorTaskStatus,
@@ -15,6 +17,7 @@ import {
   isIndicatorSectionComplete,
   isTaggingComplete,
   justificationsSection,
+  numeratorSection,
   otherCommentsSection,
   otherNotesAndCaveatsSection,
   polaritySection,
@@ -22,6 +25,7 @@ import {
   updateFrequencySection,
   varianceAndQualitySection,
 } from './contract.ts';
+import { denominatorColumns, numeratorColumns } from './indicator-provider-sources.ts';
 import type { IndicatorDraftVersion } from './indicator-repository.ts';
 import type { IndicatorSectionColumns, IndicatorSectionDraft } from './indicator-section.ts';
 import {
@@ -82,6 +86,12 @@ export function indicatorTaskList({
     ),
     polarity: complete(polaritySection, polarityColumns),
     'data-quality': complete(dataQualitySection, dataQualityColumns),
+    numerator: taskStatus(
+      areProviderSourcesComplete(numeratorSection, numeratorColumns.fromDraft(draft)),
+    ),
+    denominator: taskStatus(
+      areProviderSourcesComplete(denominatorSection, denominatorColumns.fromDraft(draft)),
+    ),
     calculation: complete(calculationSection, calculationColumns),
     'confidence-intervals': taskStatus(
       areConfidenceIntervalsComplete(

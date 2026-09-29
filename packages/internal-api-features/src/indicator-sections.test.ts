@@ -97,6 +97,10 @@ const unanswered: IndicatorSectionDraft = {
   hasFramework: null,
   topicIds: [],
   classifications: [],
+  numeratorSources: [],
+  numeratorDefinition: null,
+  denominatorSources: [],
+  denominatorDefinition: null,
 };
 
 const METHODS: Record<CiMethodRow['kind'], CiMethodRow> = {

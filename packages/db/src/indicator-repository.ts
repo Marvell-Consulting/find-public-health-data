@@ -23,6 +23,7 @@ import {
   listClassificationsForIndicator,
   listTopicsForIndicator,
 } from './indicator-topic-repository.ts';
+import type { IndicatorSourcePart } from './schema/index.ts';
 import {
   publishedArea as area,
   publishedAreaType as areaType,
@@ -30,15 +31,17 @@ import {
   publishedCiMethod as ciMethod,
   publishedClassification as classification,
   publishedComparatorMethod as comparatorMethod,
+  publishedDataProvider as dataProvider,
+  publishedDataProviderSource as dataProviderSource,
   publishedDataSource as dataSource,
   publishedDimensionType as dimensionType,
   publishedDimensionValue as dimensionValue,
   publishedIndicator as indicator,
   publishedIndicatorClassification as indicatorClassification,
   publishedIndicatorSlug as indicatorSlug,
+  publishedIndicatorSource as indicatorSource,
   publishedIndicatorTopic as indicatorTopic,
   publishedNoteType as noteType,
-  publishedNumeratorDenominatorSource as numeratorDenominatorSource,
   publishedObservation as observation,
   publishedObservationDimension as observationDimension,
   publishedObservationNote as observationNote,
@@ -155,6 +158,12 @@ export interface IndicatorSource {
   url: string | null;
 }
 
+/** A provider of a numerator's or denominator's data, and its source, if a specific one. */
+export interface IndicatorProviderSource {
+  provider: string;
+  source: string | null;
+}
+
 export interface IndicatorAreaType {
   name: string;
   areaCount: number;
@@ -188,8 +197,8 @@ export interface IndicatorDetail {
   caveats: string | null;
   notes: string | null;
   dataSource: IndicatorSource | null;
-  numeratorSource: IndicatorSource | null;
-  denominatorSource: IndicatorSource | null;
+  numeratorSources: IndicatorProviderSource[];
+  denominatorSources: IndicatorProviderSource[];
   areaTypes: IndicatorAreaType[];
   topics: IndicatorTopic[];
   classifications: IndicatorClassification[];
@@ -232,10 +241,6 @@ export async function getPublishedIndicatorById(
   db: Database,
   indicatorId: string,
 ): Promise<IndicatorDetail | undefined> {
-  // Subqueries rather than alias(): drizzle's table alias cannot carry a view's columns.
-  const numeratorSource = db.select().from(numeratorDenominatorSource).as('numerator_source');
-  const denominatorSource = db.select().from(numeratorDenominatorSource).as('denominator_source');
-
   const [row] = await db
     .select({
       id: indicator.id,
@@ -262,10 +267,6 @@ export async function getPublishedIndicatorById(
       notes: indicator.otherNotesDetail,
       dataSourceName: dataSource.name,
       dataSourceUrl: dataSource.url,
-      numeratorSourceName: numeratorSource.name,
-      numeratorSourceUrl: numeratorSource.url,
-      denominatorSourceName: denominatorSource.name,
-      denominatorSourceUrl: denominatorSource.url,
     })
     .from(indicator)
     .innerJoin(valueType, eq(indicator.valueTypeId, valueType.id))
@@ -274,8 +275,6 @@ export async function getPublishedIndicatorById(
     .leftJoin(ciMethod, eq(indicator.ciMethodId, ciMethod.id))
     .leftJoin(comparatorMethod, eq(indicator.comparatorMethodId, comparatorMethod.id))
     .leftJoin(dataSource, eq(indicator.dataSourceId, dataSource.id))
-    .leftJoin(numeratorSource, eq(indicator.numeratorSourceId, numeratorSource.id))
-    .leftJoin(denominatorSource, eq(indicator.denominatorSourceId, denominatorSource.id))
     .where(eq(indicator.id, indicatorId))
     .limit(1);
 
@@ -284,7 +283,7 @@ export async function getPublishedIndicatorById(
     return undefined;
   }
 
-  const [areaTypes, topics, classifications] = await Promise.all([
+  const [areaTypes, topics, classifications, sources] = await Promise.all([
     db
       .select({ name: availableData.areaTypeName, areaCount: availableData.areaCount })
       .from(availableData)
@@ -292,7 +291,22 @@ export async function getPublishedIndicatorById(
       .orderBy(asc(availableData.areaTypeName)),
     listTopicsForIndicator(db, row.id),
     listClassificationsForIndicator(db, row.id),
+    db
+      .select({
+        part: indicatorSource.part,
+        provider: dataProvider.name,
+        source: dataProviderSource.name,
+      })
+      .from(indicatorSource)
+      .innerJoin(dataProvider, eq(dataProvider.id, indicatorSource.providerId))
+      .leftJoin(dataProviderSource, eq(dataProviderSource.id, indicatorSource.sourceId))
+      .where(eq(indicatorSource.indicatorId, row.id))
+      .orderBy(asc(indicatorSource.position)),
   ]);
+  const sourcesOf = (part: IndicatorSourcePart) =>
+    sources
+      .filter((entry) => entry.part === part)
+      .map(({ provider, source }) => ({ provider, source }));
 
   return {
     shortId: row.shortId,
@@ -317,14 +331,8 @@ export async function getPublishedIndicatorById(
     notes: row.notes,
     dataSource:
       row.dataSourceName === null ? null : { name: row.dataSourceName, url: row.dataSourceUrl },
-    numeratorSource:
-      row.numeratorSourceName === null
-        ? null
-        : { name: row.numeratorSourceName, url: row.numeratorSourceUrl },
-    denominatorSource:
-      row.denominatorSourceName === null
-        ? null
-        : { name: row.denominatorSourceName, url: row.denominatorSourceUrl },
+    numeratorSources: sourcesOf('numerator'),
+    denominatorSources: sourcesOf('denominator'),
     areaTypes,
     topics,
     classifications,

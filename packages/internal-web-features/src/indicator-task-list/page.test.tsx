@@ -113,6 +113,8 @@ describe('IndicatorTaskListPage', () => {
       'Data quality',
       'Name',
       'Definition and rationale',
+      'Numerator',
+      'Denominator',
       'How the indicator was calculated',
       'Confidence intervals',
       'Benchmarking',

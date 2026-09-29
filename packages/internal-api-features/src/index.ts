@@ -1,6 +1,7 @@
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { Router } from 'express';
 import { internalCiMethodsRouter } from './ci-methods.ts';
+import { internalDataProvidersRouter } from './data-providers.ts';
 import { indicatorSectionsRouter } from './indicator-sections.ts';
 import { internalIndicatorsRouter } from './indicators.ts';
 import type { InternalRepositories } from './repositories.ts';
@@ -8,6 +9,7 @@ import { internalTagsRouter } from './tags.ts';
 import { internalTopicsRouter } from './topics.ts';
 
 export type { CiMethodRow } from './ci-method-repository.ts';
+export type { DataProviderRow } from './data-provider-repository.ts';
 export type {
   CreateDraftFromPublishedResult,
   CreatedIndicatorDraft,
@@ -19,6 +21,8 @@ export type {
   IndicatorDraftAttributes,
   IndicatorDraftClassification,
   IndicatorDraftLists,
+  IndicatorDraftSource,
+  IndicatorDraftSources,
   IndicatorDraftStateRow,
   IndicatorDraftVersion,
   NewIndicatorDraftAttributes,
@@ -34,6 +38,7 @@ export { INDICATORS_PAGE_SIZE, internalIndicatorsRouter } from './indicators.ts'
 export {
   createInternalRepositories,
   type InternalCiMethodRepository,
+  type InternalDataProviderRepository,
   type InternalIndicatorRepository,
   type InternalRepositories,
   type InternalTagRepository,
@@ -64,6 +69,7 @@ export function internalApiRoutes({ repositories, session }: InternalApiDependen
   router.use(indicatorSectionsRouter(repositories, session));
   router.use(internalCiMethodsRouter(repositories.ciMethods, session));
   router.use(internalTagsRouter(repositories.tags, session));
+  router.use(internalDataProvidersRouter(repositories.dataProviders, session));
   router.use(internalTopicsRouter(repositories.topics, session));
 
   return router;

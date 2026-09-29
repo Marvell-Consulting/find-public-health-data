@@ -60,6 +60,14 @@ export default [
         '../../../packages/internal-web-features/src/indicator-data-quality/route.tsx',
       ),
       route(
+        'publish/indicators/:id/numerator',
+        '../../../packages/internal-web-features/src/indicator-numerator-denominator/numerator-route.tsx',
+      ),
+      route(
+        'publish/indicators/:id/denominator',
+        '../../../packages/internal-web-features/src/indicator-numerator-denominator/denominator-route.tsx',
+      ),
+      route(
         'publish/indicators/:id/calculation',
         '../../../packages/internal-web-features/src/indicator-calculation/route.tsx',
       ),

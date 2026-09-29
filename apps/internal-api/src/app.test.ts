@@ -86,6 +86,10 @@ const unansweredDraft = {
   hasFramework: null,
   topicIds: [],
   classifications: [],
+  numeratorSources: [],
+  numeratorDefinition: null,
+  denominatorSources: [],
+  denominatorDefinition: null,
 };
 
 async function createCookie(roles: readonly string[]): Promise<string> {
@@ -156,6 +160,7 @@ describe('internal API', () => {
     '/api/internal/indicators',
     '/api/internal/ci-methods',
     '/api/internal/tags',
+    '/api/internal/data-providers',
     ...indicatorTaskKeySchema.options
       .filter((key) => key !== 'name')
       .map((key) => `/api/internal/indicators/00000000-0000-7000-8000-000000000001/${key}`),
@@ -175,6 +180,7 @@ describe('internal API', () => {
           frameworks: [],
         }),
       },
+      dataProviders: { list: async () => [] },
     });
     const app = createTestApp(createFakeRepositories(), internalRepositories);
 

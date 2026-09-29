@@ -208,6 +208,8 @@ export const indicatorTaskKeySchema = z.enum([
   'definition-and-rationale',
   'polarity',
   'data-quality',
+  'numerator',
+  'denominator',
   'calculation',
   'confidence-intervals',
   'update-frequency',
@@ -269,6 +271,7 @@ export * from './indicator-data-quality-contract.ts';
 export * from './indicator-definition-and-rationale-contract.ts';
 export * from './indicator-justifications-contract.ts';
 export * from './indicator-links-contract.ts';
+export * from './indicator-numerator-denominator-contract.ts';
 export * from './indicator-other-comments-contract.ts';
 export * from './indicator-other-notes-and-caveats-contract.ts';
 export * from './indicator-polarity-contract.ts';

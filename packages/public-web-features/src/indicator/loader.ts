@@ -29,6 +29,7 @@ export type {
   IndicatorAreaData,
   IndicatorDetail,
   IndicatorObservation,
+  IndicatorProviderSource,
   IndicatorRangePeriod,
   IndicatorSummary,
 } from '@fphd/public-api-features/contract';

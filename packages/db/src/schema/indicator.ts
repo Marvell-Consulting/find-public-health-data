@@ -8,6 +8,7 @@ import {
   boolean,
   check,
   doublePrecision,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -19,6 +20,7 @@ import {
   smallint,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
@@ -27,8 +29,9 @@ import { audit, literals, uuidPrimaryKey } from './helpers.ts';
 import {
   ciMethod,
   comparatorMethod,
+  dataProvider,
+  dataProviderSource,
   dataSource,
-  numeratorDenominatorSource,
   unit,
   valueType,
   yearType,
@@ -159,8 +162,6 @@ export const indicatorVersion = pgTable(
     hasReviewerComments: boolean(),
     reviewerCommentsDetail: text(),
     dataSourceId: uuid().references(() => dataSource.id),
-    numeratorSourceId: uuid().references(() => numeratorDenominatorSource.id),
-    denominatorSourceId: uuid().references(() => numeratorDenominatorSource.id),
     ...audit,
     // The writer of a version is always known: a publisher, or the seed's system actor.
     createdBy: text().notNull(),
@@ -370,6 +371,47 @@ export const indicatorVersionAgeRange = pgTable(
       'indicator_version_age_range_order_check',
       sql`${ageInDays(t.upperLimit, t.upperLimitUnit)} >= ${ageInDays(t.lowerLimit, t.lowerLimitUnit)}`,
     ),
+  ],
+);
+
+/** The two halves of a calculation, each of which names where its data comes from. */
+export const INDICATOR_SOURCE_PARTS = ['numerator', 'denominator'] as const;
+
+export type IndicatorSourcePart = (typeof INDICATOR_SOURCE_PARTS)[number];
+
+/**
+ * The providers, and where named their sources, of a version's numerator and denominator, in
+ * the order the publisher added them. A null source is the provider with no specific source.
+ */
+export const indicatorVersionSource = pgTable(
+  'indicator_version_source',
+  {
+    indicatorVersionId: uuid()
+      .notNull()
+      .references(() => indicatorVersion.id),
+    part: text({ enum: INDICATOR_SOURCE_PARTS }).notNull(),
+    position: smallint().notNull(),
+    providerId: uuid()
+      .notNull()
+      .references(() => dataProvider.id),
+    sourceId: uuid(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.indicatorVersionId, t.part, t.position] }),
+    check(
+      'indicator_version_source_part_check',
+      sql`${t.part} IN (${literals(INDICATOR_SOURCE_PARTS)})`,
+    ),
+    check('indicator_version_source_position_check', sql`${t.position} >= 0`),
+    // A named source belongs to the provider beside it.
+    foreignKey({
+      name: 'indicator_version_source_source_fk',
+      columns: [t.sourceId, t.providerId],
+      foreignColumns: [dataProviderSource.id, dataProviderSource.providerId],
+    }),
+    unique('indicator_version_source_pair_unique')
+      .on(t.indicatorVersionId, t.part, t.providerId, t.sourceId)
+      .nullsNotDistinct(),
   ],
 );
 

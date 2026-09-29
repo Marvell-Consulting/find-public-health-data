@@ -77,6 +77,10 @@ export type IndicatorSectionDraft = Pick<
   | 'specificAge'
   | 'specificAgeUnit'
   | 'ageOtherDetail'
+  | 'numeratorSources'
+  | 'numeratorDefinition'
+  | 'denominatorSources'
+  | 'denominatorDefinition'
 >;
 
 /**
