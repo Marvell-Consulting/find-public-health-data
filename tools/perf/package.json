@@ -1,0 +1,20 @@
+{
+  "name": "@fphd/perf",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check:perf": "tsx src/cli.ts",
+    "perf:accept": "tsx src/accept.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "postgres": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
