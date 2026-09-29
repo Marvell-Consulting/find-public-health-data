@@ -20,6 +20,7 @@ import {
   numeratorSection,
   otherCommentsSection,
   otherNotesAndCaveatsSection,
+  periodTypeSection,
   polaritySection,
   publishingDateSection,
   updateFrequencySection,
@@ -39,6 +40,7 @@ import {
   linksColumns,
   otherCommentsColumns,
   otherNotesAndCaveatsColumns,
+  periodTypeColumns,
   polarityColumns,
   publishingDateColumns,
   sexAndAgesColumns,
@@ -84,6 +86,7 @@ export function indicatorTaskList({
       definitionAndRationaleSection,
       definitionAndRationaleColumns,
     ),
+    'period-type': complete(periodTypeSection, periodTypeColumns),
     polarity: complete(polaritySection, polarityColumns),
     'data-quality': complete(dataQualitySection, dataQualityColumns),
     numerator: taskStatus(

@@ -239,6 +239,13 @@
       "when": 1790702457406,
       "tag": "0033_numerator-and-denominator-sources",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1790705685737,
+      "tag": "0034_period-type",
+      "breakpoints": true
     }
   ]
 }

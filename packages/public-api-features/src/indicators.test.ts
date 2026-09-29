@@ -1,4 +1,5 @@
 import { createFakeRepositories, type FakeRepositoryOverrides } from '@fphd/db/testing';
+import { YEAR_TYPES } from '@fphd/utils/period-type';
 import express, { type Express } from 'express';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
@@ -11,7 +12,7 @@ const indicatorDetail = {
   name: 'Under 75 mortality rate from all causes',
   valueType: 'Directly standardised rate',
   unit: { name: 'per 100,000', label: 'per 100,000' },
-  yearType: 'Calendar',
+  yearType: { id: YEAR_TYPES.calendar.id, label: 'Calendar' },
   updateFrequency: 'annually' as const,
   polarity: 'lower-is-better' as const,
   ciMethod: "Dobson & Byar's methods",

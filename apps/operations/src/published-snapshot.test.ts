@@ -1,27 +1,35 @@
+import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { promisify } from 'node:util';
 import { gzipSync } from 'node:zlib';
 
 import { SEED_TABLES } from '@fphd/db/operations';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { verifyPublishedSnapshot } from './published-snapshot.ts';
+import { downloadPublishedSnapshot, verifyPublishedSnapshot } from './published-snapshot.ts';
+
+const runFile = promisify(execFile);
 
 const directories: string[] = [];
 
 afterEach(async () => {
+  vi.unstubAllGlobals();
   await Promise.all(
     directories.splice(0).map((directory) => rm(directory, { recursive: true, force: true })),
   );
 });
 
-async function snapshot(source = 'PHOLIO_LIVE_A-derived fphd_new benchmark clone') {
+async function snapshot(
+  source = 'PHOLIO_LIVE_A-derived fphd_new benchmark clone',
+  tableNames: readonly string[] = SEED_TABLES,
+) {
   const directory = await mkdtemp(join(tmpdir(), 'fphd-snapshot-test-'));
   directories.push(directory);
   const tables: Record<string, { rows: number; bytes: number; sha256: string }> = {};
-  for (const table of SEED_TABLES) {
+  for (const table of tableNames) {
     // The version file carries the slug the importer insists on; the rest only need an id.
     const data = gzipSync(table === 'indicator_version' ? 'id,slug\n1,a-slug\n' : 'id\n1\n');
     await writeFile(join(directory, `${table}.csv.gz`), data);
@@ -140,6 +148,35 @@ describe('verifyPublishedSnapshot', () => {
     await writeFile(path, JSON.stringify(sourceManifest));
     await expect(verifyPublishedSnapshot(directory)).rejects.toThrow(
       'Published snapshot source row count differs for area',
+    );
+  });
+});
+
+describe('downloadPublishedSnapshot', () => {
+  /** Serves a directory as the archive at an HTTPS URL, returning the archive's checksum. */
+  async function serveArchive(directory: string): Promise<string> {
+    const archive = join(await mkdtemp(join(tmpdir(), 'fphd-archive-test-')), 'snapshot.tar');
+    directories.push(join(archive, '..'));
+    await runFile('tar', ['-cf', archive, '-C', directory, ...(await readdir(directory))]);
+    const bytes = await readFile(archive);
+    vi.stubGlobal('fetch', async () => new Response(bytes));
+    return createHash('sha256').update(bytes).digest('hex');
+  }
+
+  it('accepts an archive of the seed tables', async () => {
+    const sha256 = await serveArchive(await snapshot());
+    const { manifest, cleanup } = await downloadPublishedSnapshot('https://example.test/a', sha256);
+    await cleanup();
+
+    expect(manifest.approved_indicators).toBe(1_290);
+  });
+
+  it('refuses an archive exported before the period types, which carries year_type', async () => {
+    const tables = [...SEED_TABLES.slice(0, 2), 'year_type', ...SEED_TABLES.slice(2)];
+    const sha256 = await serveArchive(await snapshot(undefined, tables));
+
+    await expect(downloadPublishedSnapshot('https://example.test/a', sha256)).rejects.toThrow(
+      'Published snapshot predates the period type change and must be regenerated',
     );
   });
 });

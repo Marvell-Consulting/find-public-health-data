@@ -8,9 +8,11 @@ Run locally after transform-uuids.py:
 indicator.csv.gz keeps only the identity columns; everything a publisher edits,
 including the whole of indicator_metadata.csv.gz, moves to a single published
 indicator_version row per indicator, under the actor the export already carries.
-The Pholio polarity and frequency references become the service's values, and
-the disclosure control, caveats and notes prose becomes the service's answers.
-indicator_metadata.csv.gz, polarity.csv.gz and frequency.csv.gz are removed.
+The Pholio polarity and frequency references become the service's values, the
+year type reference the service's period type, year type and year end, and the
+disclosure control, caveats and notes prose becomes the service's answers.
+indicator_metadata.csv.gz, polarity.csv.gz, frequency.csv.gz and year_type.csv.gz
+are removed.
 """
 
 import csv
@@ -23,6 +25,7 @@ from notes_and_caveats import NOTES_AND_CAVEATS_COLUMNS, notes_and_caveats
 from polarity import polarity_value
 from slug import assign_slugs
 from update_frequency import update_frequency_value
+from year_type import YEAR_TYPE_COLUMNS, year_type_values
 
 IDENTITY_COLUMNS = ["id", "short_id", "data_updated_at", "created_at"]
 
@@ -36,7 +39,7 @@ VERSION_COLUMNS = [
     "slug",
     "value_type_id",
     "unit_id",
-    "year_type_id",
+    *YEAR_TYPE_COLUMNS,
     "ci_method_id",
     "polarity",
     "update_frequency",
@@ -89,11 +92,13 @@ def main(seed_dir):
     metadata_path = os.path.join(seed_dir, "indicator_metadata.csv.gz")
     polarity_path = os.path.join(seed_dir, "polarity.csv.gz")
     frequency_path = os.path.join(seed_dir, "frequency.csv.gz")
+    year_type_path = os.path.join(seed_dir, "year_type.csv.gz")
 
     indicators = read_rows(indicator_path)
     metadata = {row["indicator_id"]: row for row in read_rows(metadata_path)}
     polarity_names = {row["id"]: row["name"] for row in read_rows(polarity_path)}
     frequency_names = {row["id"]: row["name"] for row in read_rows(frequency_path)}
+    year_type_names = {row["id"]: row["name"] for row in read_rows(year_type_path)}
 
     # Version ids sort after the indicators they belong to, so UUIDv7 ordering still
     # mirrors the order the rows were created in.
@@ -122,6 +127,15 @@ def main(seed_dir):
             if row["frequency_id"]
             else ""
         )
+        if row["year_type_id"]:
+            version.update(
+                {
+                    column: "" if value is None else value
+                    for column, value in year_type_values(
+                        year_type_names[row["year_type_id"]]
+                    ).items()
+                }
+            )
         version["status"] = "published"
         version["published_at"] = row["updated_at"]
         versions.append(version)
@@ -131,6 +145,7 @@ def main(seed_dir):
     os.remove(metadata_path)
     os.remove(polarity_path)
     os.remove(frequency_path)
+    os.remove(year_type_path)
 
     print(f"indicator: {len(indicators)} identity rows")
     print(f"indicator_version: {len(versions)} published versions")

@@ -210,7 +210,7 @@ export function BackgroundInformation({ indicator }: { indicator: IndicatorDetai
         items={[
           ...attribute('Value type', indicator.valueType),
           ...attribute('Unit', indicator.unit.name),
-          ...attribute('Year type', indicator.yearType),
+          ...attribute('Year type', indicator.yearType?.label ?? null),
           ...attribute('Frequency', UPDATE_FREQUENCY_LABELS[indicator.updateFrequency]),
           ...attribute('Polarity', POLARITY_LABELS[indicator.polarity]),
           ...(indicator.dataSource
