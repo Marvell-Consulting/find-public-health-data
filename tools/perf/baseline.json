@@ -21,19 +21,19 @@
     "statements": 2,
     "buffers": 14,
     "rows": 11,
-    "bytes": 37996
+    "bytes": 37995
   },
   "internal-web /dashboard/indicators/01a00ab4-ce0a-70c1-b22b-f8192c94a59d": {
     "statements": 1,
     "buffers": 13,
     "rows": 1,
-    "bytes": 31885
+    "bytes": 31882
   },
   "internal-web /manage/topics": {
     "statements": 1,
     "buffers": 2,
     "rows": 33,
-    "bytes": 47749
+    "bytes": 47747
   },
   "public-api /api/areas?displayGroup=GP%20practices": {
     "statements": 1,
@@ -54,10 +54,10 @@
     "bytes": 596
   },
   "public-api /api/indicators/241": {
-    "statements": 5,
-    "buffers": 47,
-    "rows": 16,
-    "bytes": 3334
+    "statements": 6,
+    "buffers": 56,
+    "rows": 18,
+    "bytes": 3346
   },
   "public-api /api/indicators/241/data?areaCode=E92000001&areaCode=E08000003&areaCode=E07000223&areaCode=E07000032&areaCode=E06000047": {
     "statements": 16,
@@ -90,10 +90,10 @@
     "bytes": 27754
   },
   "public-web /indicators?as=E07000223&as=E07000032&is=92443&is=241&cmp-compare=england&cr-compare=no": {
-    "statements": 34,
-    "buffers": 26461,
-    "rows": 6116,
-    "bytes": 784630
+    "statements": 36,
+    "buffers": 26455,
+    "rows": 6120,
+    "bytes": 784863
   },
   "public-web /indicators?find=mortality": {
     "statements": 3,
@@ -102,26 +102,26 @@
     "bytes": 54725
   },
   "public-web /indicators/diabetes-qof-prevalence": {
-    "statements": 11,
-    "buffers": 12325,
-    "rows": 2916,
-    "bytes": 369506
+    "statements": 12,
+    "buffers": 12358,
+    "rows": 2918,
+    "bytes": 369631
   },
   "public-web /indicators/diabetes-qof-prevalence/table.csv": {
-    "statements": 9,
-    "buffers": 12212,
-    "rows": 2650,
+    "statements": 10,
+    "buffers": 12221,
+    "rows": 2652,
     "bytes": 569
   },
   "public-web /indicators/under-75-mortality-rate-from-all-causes/all-data.csv": {
-    "statements": 9,
-    "buffers": 23213,
-    "rows": 5215,
+    "statements": 10,
+    "buffers": 23222,
+    "rows": 5217,
     "bytes": 269866
   },
   "public-web /search?q=mortality": {
     "statements": 11,
-    "buffers": 215,
+    "buffers": 209,
     "rows": 330,
     "bytes": 78179
   },
