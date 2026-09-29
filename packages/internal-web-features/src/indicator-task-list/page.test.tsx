@@ -114,6 +114,7 @@ describe('IndicatorTaskListPage', () => {
       'Definition and rationale',
       'How the indicator was calculated',
       'Confidence intervals',
+      'Benchmarking',
       'Other notes and caveats',
       'Links',
       'Copyright and data re-use',
@@ -145,6 +146,19 @@ describe('IndicatorTaskListPage', () => {
 
     expect(row.getAttribute('href')).toBe(
       `/publish/indicators/${taskList.indicator.id}/update-frequency`,
+    );
+    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
+      'Completed',
+    );
+  });
+
+  it('links the benchmarking to its page, with the status the API reports', () => {
+    renderPage({ tasks: { name: 'completed', benchmarking: 'completed' } });
+
+    const row = group('Metadata').getByRole('link', { name: 'Benchmarking' });
+
+    expect(row.getAttribute('href')).toBe(
+      `/publish/indicators/${taskList.indicator.id}/benchmarking`,
     );
     expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
       'Completed',

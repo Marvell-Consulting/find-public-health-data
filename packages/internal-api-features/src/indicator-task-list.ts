@@ -1,6 +1,7 @@
 import {
   areConfidenceIntervalsComplete,
   areLinksComplete,
+  benchmarkingSection,
   type CiMethodKind,
   calculationSection,
   copyrightAndDataReuseSection,
@@ -22,6 +23,7 @@ import {
 import type { IndicatorDraftVersion } from './indicator-repository.ts';
 import type { IndicatorSectionColumns, IndicatorSectionDraft } from './indicator-section.ts';
 import {
+  benchmarkingColumns,
   calculationColumns,
   confidenceIntervalsColumns,
   copyrightAndDataReuseColumns,
@@ -94,6 +96,7 @@ export function indicatorTaskList({
       copyrightAndDataReuseSection,
       copyrightAndDataReuseColumns,
     ),
+    benchmarking: complete(benchmarkingSection, benchmarkingColumns),
   };
 
   return {

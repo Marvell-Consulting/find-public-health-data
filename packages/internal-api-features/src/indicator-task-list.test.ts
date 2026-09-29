@@ -61,6 +61,11 @@ const source: IndicatorTaskListSource = {
     copyrightDetail: null,
     dataReuseNonDefault: null,
     dataReuseDetail: null,
+    hasGoalBenchmark: null,
+    goalLowerValue: null,
+    goalUpperValue: null,
+    goalPolarity: null,
+    goalPolicyDetail: null,
   },
 };
 
@@ -108,6 +113,11 @@ const complete: IndicatorTaskListDraft = {
   copyrightDetail: 'Copyright © NHS England',
   dataReuseNonDefault: false,
   dataReuseDetail: null,
+  hasGoalBenchmark: true,
+  goalLowerValue: 90,
+  goalUpperValue: 95,
+  goalPolarity: 'higher-is-better',
+  goalPolicyDetail: null,
 };
 
 function withDraft(draft: Partial<IndicatorTaskListDraft>): IndicatorTaskListSource {
@@ -342,6 +352,30 @@ describe('indicatorTaskList', () => {
     expect(indicatorTaskList(withDraft(draft)).tasks['copyright-and-data-reuse']).toBe(
       'not_started',
     );
+  });
+
+  it.each([
+    ['a goal', complete],
+    ['a single goal value', { ...complete, goalUpperValue: null }],
+    [
+      'tiny values JavaScript writes with an exponent',
+      { ...complete, goalLowerValue: 5e-324, goalUpperValue: 1e-101 },
+    ],
+    [
+      'a huge value JavaScript writes with an exponent',
+      { ...complete, goalUpperValue: Number.MAX_VALUE },
+    ],
+    ['no goal', { hasGoalBenchmark: false }],
+  ] as const)('counts the benchmarking as complete with %s', (_, draft) => {
+    expect(indicatorTaskList(withDraft(draft)).tasks.benchmarking).toBe('completed');
+  });
+
+  it.each([
+    ['nothing', {}],
+    ['a goal without its lower value', { ...complete, goalLowerValue: null }],
+    ['a goal without its polarity', { ...complete, goalPolarity: null }],
+  ] as const)('leaves the benchmarking not started with %s', (_, draft) => {
+    expect(indicatorTaskList(withDraft(draft)).tasks.benchmarking).toBe('not_started');
   });
 
   it.each([

@@ -35,6 +35,7 @@ export const PAGE_SPECS: Readonly<Record<string, string>> = {
   '/publish/indicators/:id/justifications': 'indicator-justifications.spec.ts',
   '/publish/indicators/:id/other-comments': 'indicator-other-comments.spec.ts',
   '/publish/indicators/:id/copyright-and-data-reuse': 'indicator-copyright-and-data-reuse.spec.ts',
+  '/publish/indicators/:id/benchmarking': 'indicator-benchmarking.spec.ts',
   '/manage': 'manage.spec.ts',
   '/manage/topics': 'manage-topics.spec.ts',
   '/manage/topics/new': 'manage-topics.spec.ts',

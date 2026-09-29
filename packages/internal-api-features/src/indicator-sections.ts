@@ -3,6 +3,9 @@ import { z } from '@fphd/config/zod';
 import { Router } from 'express';
 
 import {
+  type Benchmarking,
+  type BenchmarkingField,
+  benchmarkingSection,
   type Calculation,
   type CalculationField,
   type CiMethodKind,
@@ -15,6 +18,8 @@ import {
   type DataQualityField,
   dataQualitySection,
   definitionAndRationaleSection,
+  goalValue,
+  goalValueText,
   type IndicatorDataQuality,
   justificationsQuestions,
   justificationsSection,
@@ -151,6 +156,33 @@ export const copyrightAndDataReuseColumns = yesNoDetailColumns(
   copyrightAndDataReuseSection,
   copyrightAndDataReuseQuestions,
 );
+
+export const benchmarkingColumns: IndicatorSectionColumns<BenchmarkingField, Benchmarking> = {
+  fromDraft: (draft) => ({
+    hasGoalBenchmark: yesNoAnswer(draft.hasGoalBenchmark),
+    goalLowerValue: goalValueText(draft.goalLowerValue),
+    goalUpperValue: goalValueText(draft.goalUpperValue),
+    goalPolarity: draft.goalPolarity,
+    goalPolicyDetail: draft.goalPolicyDetail,
+  }),
+  // The goal is kept beside a yes alone, whatever the form sent, and a blank detail is none.
+  toAttributes: (answers) =>
+    answers.hasGoalBenchmark === 'yes'
+      ? {
+          hasGoalBenchmark: true,
+          goalLowerValue: goalValue(answers.goalLowerValue) ?? null,
+          goalUpperValue: goalValue(answers.goalUpperValue) ?? null,
+          goalPolarity: answers.goalPolarity || null,
+          goalPolicyDetail: answers.goalPolicyDetail || null,
+        }
+      : {
+          hasGoalBenchmark: false,
+          goalLowerValue: null,
+          goalUpperValue: null,
+          goalPolarity: null,
+          goalPolicyDetail: null,
+        },
+};
 
 export const linksColumns: IndicatorSectionColumns<LinksField, Links, LinksAnswers> = {
   fromDraft: ({ hasLinks, links }) => ({
@@ -364,5 +396,6 @@ export function indicatorSectionsRouter(
       copyrightAndDataReuseSection,
       copyrightAndDataReuseColumns,
     ),
+    indicatorSectionRouter(indicators, session, benchmarkingSection, benchmarkingColumns),
   );
 }
