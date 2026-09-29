@@ -10,6 +10,11 @@ export function firstRadioId(name: string): string {
   return `${name}-radio-0`;
 }
 
+// Likewise for a group's checkboxes.
+export function firstCheckboxId(name: string): string {
+  return `${name}-checkbox-0`;
+}
+
 export interface FieldError {
   /** The `name` of the field the message belongs to. */
   name: string;

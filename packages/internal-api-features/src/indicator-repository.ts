@@ -12,6 +12,7 @@ const {
   indicatorClassification,
   indicatorTopic,
   indicatorVersion,
+  indicatorVersionAgeRange,
   indicatorVersionLink,
 } = schema;
 
@@ -116,6 +117,11 @@ export type IndicatorDraftVersion = typeof indicatorVersion.$inferSelect;
 
 export type IndicatorDraftLink = Pick<typeof indicatorVersionLink.$inferSelect, 'url' | 'text'>;
 
+export type IndicatorDraftAgeRange = Omit<
+  typeof indicatorVersionAgeRange.$inferSelect,
+  'indicatorVersionId' | 'position'
+>;
+
 /**
  * A draft as the sections read it: its columns, its scheduled publication in UK time, and the
  * lists held in tables of their own.
@@ -124,6 +130,7 @@ export type IndicatorDraft = IndicatorDraftVersion & {
   /** `scheduledPublishAt` as ISO 8601 with the UK offset then in force, such as `+01:00`. */
   scheduledPublishAtUk: string | null;
   links: IndicatorDraftLink[];
+  ageRanges: IndicatorDraftAgeRange[];
 };
 
 /** A date and time as a publisher in the UK gives it, whether GMT or BST is in force. */
@@ -209,7 +216,12 @@ export async function getIndicatorDraftState(
 
   return {
     ...state,
-    draft: draft && { ...draft, scheduledPublishAtUk, links: await linksOf(db, draft.id) },
+    draft: draft && {
+      ...draft,
+      scheduledPublishAtUk,
+      links: await linksOf(db, draft.id),
+      ageRanges: await ageRangesOf(db, draft.id),
+    },
   };
 }
 
@@ -222,6 +234,22 @@ async function linksOf(
     .from(indicatorVersionLink)
     .where(eq(indicatorVersionLink.indicatorVersionId, versionId))
     .orderBy(asc(indicatorVersionLink.position));
+}
+
+async function ageRangesOf(
+  db: Database | Transaction,
+  versionId: string,
+): Promise<IndicatorDraftAgeRange[]> {
+  return db
+    .select({
+      lowerLimit: indicatorVersionAgeRange.lowerLimit,
+      lowerLimitUnit: indicatorVersionAgeRange.lowerLimitUnit,
+      upperLimit: indicatorVersionAgeRange.upperLimit,
+      upperLimitUnit: indicatorVersionAgeRange.upperLimitUnit,
+    })
+    .from(indicatorVersionAgeRange)
+    .where(eq(indicatorVersionAgeRange.indicatorVersionId, versionId))
+    .orderBy(asc(indicatorVersionAgeRange.position));
 }
 
 /**
@@ -255,6 +283,8 @@ export interface IndicatorDraftLists {
   classificationIds?: string[];
   /** In the order they are shown. */
   links?: IndicatorDraftLink[];
+  /** In the order they are shown. */
+  ageRanges?: IndicatorDraftAgeRange[];
 }
 
 export interface CreatedIndicatorDraft {
@@ -437,7 +467,7 @@ export async function createDraftFromPublished(
 
       if (draft === undefined) throw new Error('createDraftFromPublished inserted no version');
 
-      const [topics, classifications, links] = await Promise.all([
+      const [topics, classifications, links, ageRanges] = await Promise.all([
         tx
           .select({ topicId: indicatorTopic.topicId })
           .from(indicatorTopic)
@@ -447,12 +477,14 @@ export async function createDraftFromPublished(
           .from(indicatorClassification)
           .where(eq(indicatorClassification.indicatorVersionId, publishedId)),
         linksOf(tx, publishedId),
+        ageRangesOf(tx, publishedId),
       ]);
 
       await replaceLists(tx, draft.id, {
         topicIds: topics.map(({ topicId }) => topicId),
         classificationIds: classifications.map(({ classificationId }) => classificationId),
         links,
+        ageRanges,
       });
 
       return { ok: true, versionId: draft.id };
@@ -501,7 +533,7 @@ async function isPublished(tx: Transaction, indicatorId: string): Promise<boolea
 async function replaceLists(
   tx: Transaction,
   versionId: string,
-  { classificationIds, links, topicIds }: IndicatorDraftLists,
+  { ageRanges, classificationIds, links, topicIds }: IndicatorDraftLists,
 ): Promise<void> {
   if (topicIds !== undefined) {
     await tx.delete(indicatorTopic).where(eq(indicatorTopic.indicatorVersionId, versionId));
@@ -537,6 +569,21 @@ async function replaceLists(
           position,
           url,
           text,
+        })),
+      );
+    }
+  }
+
+  if (ageRanges !== undefined) {
+    await tx
+      .delete(indicatorVersionAgeRange)
+      .where(eq(indicatorVersionAgeRange.indicatorVersionId, versionId));
+    if (ageRanges.length > 0) {
+      await tx.insert(indicatorVersionAgeRange).values(
+        ageRanges.map((range, position) => ({
+          ...range,
+          indicatorVersionId: versionId,
+          position,
         })),
       );
     }

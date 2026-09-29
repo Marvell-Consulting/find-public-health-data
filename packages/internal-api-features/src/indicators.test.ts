@@ -579,6 +579,12 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
       goalUpperValue: null,
       goalPolarity: null,
       goalPolicyDetail: null,
+      sexes: null,
+      ageType: null,
+      ageRanges: [],
+      specificAge: null,
+      specificAgeUnit: null,
+      ageOtherDetail: null,
     },
     draftCiMethodKind: null,
     indicatorStatus: 'new',
@@ -638,6 +644,7 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
         'other-comments': 'not_started',
         'copyright-and-data-reuse': 'not_started',
         benchmarking: 'not_started',
+        'sex-and-ages': 'not_started',
       },
     });
   });

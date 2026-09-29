@@ -67,6 +67,12 @@ export type IndicatorSectionDraft = Pick<
   | 'goalUpperValue'
   | 'goalPolarity'
   | 'goalPolicyDetail'
+  | 'sexes'
+  | 'ageType'
+  | 'ageRanges'
+  | 'specificAge'
+  | 'specificAgeUnit'
+  | 'ageOtherDetail'
 >;
 
 /**

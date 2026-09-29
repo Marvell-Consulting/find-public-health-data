@@ -1,6 +1,7 @@
 import {
   areConfidenceIntervalsComplete,
   areLinksComplete,
+  areSexAndAgesComplete,
   benchmarkingSection,
   type CiMethodKind,
   calculationSection,
@@ -35,6 +36,7 @@ import {
   otherNotesAndCaveatsColumns,
   polarityColumns,
   publishingDateColumns,
+  sexAndAgesColumns,
   updateFrequencyColumns,
   varianceAndQualityColumns,
 } from './indicator-sections.ts';
@@ -97,6 +99,7 @@ export function indicatorTaskList({
       copyrightAndDataReuseColumns,
     ),
     benchmarking: complete(benchmarkingSection, benchmarkingColumns),
+    'sex-and-ages': taskStatus(areSexAndAgesComplete(sexAndAgesColumns.fromDraft(draft))),
   };
 
   return {
