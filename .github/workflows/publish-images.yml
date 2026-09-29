@@ -1,7 +1,7 @@
 name: Publish images
 
 # Only main, and only on push — these packages are what deployments pull, so only merged
-# code publishes to them. It doesn't wait on CI: build-images already gates image regressions
+# code publishes to them. It doesn't wait on CI: CI's image builds already gate image regressions
 # on the pull request, and this job smoke-tests and scans the image it pushes itself.
 on:
   push:

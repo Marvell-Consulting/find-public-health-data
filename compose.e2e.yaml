@@ -1,0 +1,32 @@
+# CI only: runs the e2e stack on the production images ci.yml's build-app-images job built, which
+# the e2e job loads into the daemon first. Layered over compose.yaml, which keeps the development
+# image for scripts/dev.sh:
+#
+#   docker compose -f compose.yaml -f compose.e2e.yaml --profile public-web ... up --detach --wait
+#
+# `pull_policy: never` so a missing image fails the command instead of reaching for a registry.
+# `init: false` because the images' entrypoint is tini already.
+services:
+  public-web:
+    image: fphd-ci/public-web:ci
+    build: !reset null
+    pull_policy: never
+    init: false
+
+  internal-web:
+    image: fphd-ci/internal-web:ci
+    build: !reset null
+    pull_policy: never
+    init: false
+
+  public-api:
+    image: fphd-ci/public-api:ci
+    build: !reset null
+    pull_policy: never
+    init: false
+
+  internal-api:
+    image: fphd-ci/internal-api:ci
+    build: !reset null
+    pull_policy: never
+    init: false

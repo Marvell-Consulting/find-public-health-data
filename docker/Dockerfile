@@ -11,9 +11,9 @@
 #   docker build -f docker/Dockerfile --target api --build-arg APP=internal-api  -t internal-api  .
 #   docker build -f docker/Dockerfile --target operations --build-arg APP=operations -t operations .
 #
-# Two workflows build this list, one matrix job per row, both through .github/actions/build-image
-# so the flags live in one place: ci.yml on every pull request, publish-images.yml on main. Each
-# builds, smoke-tests and scans; only the second pushes.
+# publish-images.yml builds this list on main, one matrix job per row, through
+# .github/actions/build-image. ci.yml builds the four servers in one go from docker/docker-bake.hcl
+# and operations through the same action. Both smoke-test and scan; only publish pushes.
 #
 # docker/app.Dockerfile is the separate development image (see scripts/dev.sh); it keeps the
 # whole workspace and devDependencies, which is exactly what these must not do.
@@ -34,24 +34,25 @@ WORKDIR /repo
 
 FROM base AS builder
 
-# Deps layer keyed on the lockfile alone, so source edits don't re-download packages. Both
-# this and the install below sit before `ARG APP`, so all five images share them.
+# Deps layer keyed on the lockfile alone, so source edits don't re-download packages. This, the
+# install and the build below sit before `ARG APP`, so all five images share them.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm fetch
 
 COPY . .
 RUN pnpm install --frozen-lockfile --prefer-offline
 
+# The whole workspace, so one build serves every image built from the same context. The packages
+# the Node runtime consumes resolve to dist/ through their `default` export condition, so an
+# unbuilt one would be missing at runtime rather than at build time. Only what `pnpm deploy`
+# copies below reaches an image, so the other apps' output never does.
+RUN pnpm build
+
 # Fail here on an unknown APP, not at runtime with an empty image. Checked against the workspace
 # so adding an app needs no edit to this file.
 ARG APP
 RUN test -n "${APP}" && test -d "apps/${APP}" \
       || { echo "APP build arg must name a directory in apps/ (got '${APP}')" >&2; exit 1; }
-
-# `...` builds the app's workspace dependencies first: the packages the Node runtime consumes
-# resolve to dist/ through their `default` export condition, so an unbuilt one is missing at
-# runtime rather than at build time.
-RUN pnpm --filter "@fphd/${APP}..." build
 
 # Copies the app and only the workspace packages it actually depends on into a self-contained
 # tree, with devDependencies pruned and each package cut down to its `files`. --legacy because
