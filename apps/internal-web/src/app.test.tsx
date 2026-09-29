@@ -212,6 +212,7 @@ describe('the role-gated route tables', () => {
       'publish/indicators/:id/copyright-and-data-reuse',
       'publish/indicators/:id/benchmarking',
       'publish/indicators/:id/sex-and-ages',
+      'publish/indicators/:id/tagging',
     ]);
   });
 

@@ -1,5 +1,5 @@
 import type { SqlClient } from '@fphd/db';
-import { createOwnerClient, loadOwnerEnv } from '@fphd/db/operations';
+import { assertCoreDataPresent, createOwnerClient, loadOwnerEnv } from '@fphd/db/operations';
 import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
 import { createLogger } from '@fphd/logger';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -103,6 +103,44 @@ describe('db seed-dummy-data (integration)', () => {
     } finally {
       await sql.end();
       await bare.drop();
+    }
+  }, 60_000);
+
+  it('refuses when core data is only partly imported or not under its ids, and passes once it is all there', async () => {
+    const partial = await createTestDatabase();
+    const sql = createOwnerClient(partial.name);
+    try {
+      const context = testContext(sql, partial.name, 'test');
+      await importCoreData(context);
+      await expect(assertCoreDataPresent(sql)).resolves.toBeUndefined();
+
+      // A database seeded before classifications were core data holds only some of them.
+      await sql`DELETE FROM classification WHERE dimension IN ('risk_factor', 'framework')`;
+      await expect(seedDummyData(context)).rejects.toThrow(
+        'Classifications are missing from the database — run `db import-core-data` before seeding',
+      );
+
+      // A classification with the right slug under another id is not the one the seed links to.
+      await importCoreData(context);
+      await sql`
+        UPDATE classification SET id = uuidv7() WHERE slug = 'risk-factor-smoking-and-tobacco'
+      `;
+      await expect(seedDummyData(context)).rejects.toThrow(
+        'Classifications are missing from the database — run `db import-core-data` before seeding',
+      );
+
+      await sql`DELETE FROM classification WHERE slug = 'risk-factor-smoking-and-tobacco'`;
+      await importCoreData(context);
+      await sql`DELETE FROM ci_method`;
+      await expect(seedDummyData(context)).rejects.toThrow(
+        'No CI methods in the database — run `db import-core-data` before seeding',
+      );
+
+      await importCoreData(context);
+      await expect(assertCoreDataPresent(sql)).resolves.toBeUndefined();
+    } finally {
+      await sql.end();
+      await partial.drop();
     }
   }, 60_000);
 });

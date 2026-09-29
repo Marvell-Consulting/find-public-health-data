@@ -13,6 +13,7 @@ import {
   type IndicatorTaskStatus,
   type IndicatorTaskStatuses,
   isIndicatorSectionComplete,
+  isTaggingComplete,
   justificationsSection,
   otherCommentsSection,
   otherNotesAndCaveatsSection,
@@ -37,6 +38,7 @@ import {
   polarityColumns,
   publishingDateColumns,
   sexAndAgesColumns,
+  taggingColumns,
   updateFrequencyColumns,
   varianceAndQualityColumns,
 } from './indicator-sections.ts';
@@ -100,6 +102,7 @@ export function indicatorTaskList({
     ),
     benchmarking: complete(benchmarkingSection, benchmarkingColumns),
     'sex-and-ages': taskStatus(areSexAndAgesComplete(sexAndAgesColumns.fromDraft(draft))),
+    tagging: taskStatus(isTaggingComplete(taggingColumns.fromDraft(draft))),
   };
 
   return {

@@ -82,6 +82,10 @@ const unansweredDraft = {
   specificAge: null,
   specificAgeUnit: null,
   ageOtherDetail: null,
+  hasRiskFactor: null,
+  hasFramework: null,
+  topicIds: [],
+  classifications: [],
 };
 
 async function createCookie(roles: readonly string[]): Promise<string> {
@@ -151,6 +155,7 @@ describe('internal API', () => {
   it.each([
     '/api/internal/indicators',
     '/api/internal/ci-methods',
+    '/api/internal/tags',
     ...indicatorTaskKeySchema.options
       .filter((key) => key !== 'name')
       .map((key) => `/api/internal/indicators/00000000-0000-7000-8000-000000000001/${key}`),
@@ -162,6 +167,14 @@ describe('internal API', () => {
         findDraftState: vi.fn().mockResolvedValue({ draft: unansweredDraft }),
       },
       ciMethods: { list: async () => [] },
+      tags: {
+        listOptions: async () => ({
+          topics: [],
+          indicatorTypes: [],
+          riskFactors: [],
+          frameworks: [],
+        }),
+      },
     });
     const app = createTestApp(createFakeRepositories(), internalRepositories);
 
