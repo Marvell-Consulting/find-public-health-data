@@ -1,6 +1,7 @@
 import type { IndicatorLink } from '@fphd/internal-api-features/contract';
 import { Button, fieldInputId, firstRadioId, Radios, TextInput } from '@fphd/ui';
 
+import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 import { ADD_INTENT, removeIntent } from '../list-form.ts';
 import { type LinksPageField, type LinksPageValues, linkFieldName } from './form.ts';
@@ -46,7 +47,6 @@ export function LinksPage({
   formError,
   values,
 }: SectionPageProps<LinksPageField, LinksPageValues>) {
-  const { hasLinks: hasLinksError, linkText: linkTextError } = fieldErrors;
   // "Yes" with no links is asked of the URL field, where the next link goes.
   const linkUrlError = fieldErrors.linkUrl ?? fieldErrors.links;
 
@@ -61,7 +61,7 @@ export function LinksPage({
       title={LINKS_QUESTION}
     >
       <Radios
-        {...(hasLinksError === undefined ? {} : { error: hasLinksError })}
+        {...errorProp(fieldErrors.hasLinks)}
         defaultValue={values.hasLinks}
         hint="For example, any statistical commentaries that will be available once this indicator is published"
         label={<h1>{LINKS_QUESTION}</h1>}
@@ -85,7 +85,7 @@ export function LinksPage({
                 <TextInput
                   autoComplete="off"
                   defaultValue={values.linkText}
-                  error={linkTextError}
+                  error={fieldErrors.linkText}
                   label="Add link text"
                   name="linkText"
                 />

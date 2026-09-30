@@ -6,6 +6,7 @@ import {
 import { fieldInputId, firstRadioId, Radios, Select, Textarea } from '@fphd/ui';
 import { useEffect, useState } from 'react';
 
+import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
 interface ConfidenceIntervalsPageProps extends SectionPageProps<ConfidenceIntervalsField> {
@@ -39,11 +40,6 @@ export function ConfidenceIntervalsPage({
     listWithOr.format(methods.filter(test).map(({ name }) => name));
   const hint = (text: string) => (enhanced ? {} : { hint: text });
   const showsFor = (kind: CiMethod['kind']) => !enhanced || method?.kind === kind;
-  // Select and Radios take no undefined error.
-  const errorOf = (field: ConfidenceIntervalsField) => {
-    const error = fieldErrors[field];
-    return error === undefined ? {} : { error };
-  };
 
   return (
     <IndicatorSectionForm
@@ -54,7 +50,7 @@ export function ConfidenceIntervalsPage({
       title="Confidence intervals"
     >
       <Select
-        {...errorOf('ciMethodId')}
+        {...errorProp(fieldErrors.ciMethodId)}
         defaultValue={values.ciMethodId}
         label="Select the confidence interval method used"
         name="ciMethodId"
@@ -73,7 +69,7 @@ export function ConfidenceIntervalsPage({
         ) : null}
         <Radios
           {...hint(`Not needed for ${namesOf(({ kind }) => kind !== 'standard')}`)}
-          {...errorOf('ciMethodModified')}
+          {...errorProp(fieldErrors.ciMethodModified)}
           defaultValue={values.ciMethodModified}
           label={
             // NotGovUK sizes a legend by the heading passed as its label.

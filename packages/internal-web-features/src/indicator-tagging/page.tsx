@@ -6,6 +6,7 @@ import {
 } from '@fphd/internal-api-features/contract';
 import { Button, fieldInputId, firstRadioId, Radios, Select } from '@fphd/ui';
 
+import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 import { addIntent, removeIntent } from '../list-form.ts';
 import { ADD_TAG_FIELDS, type TaggingPageField, type TaggingPageValues } from './form.ts';
@@ -28,11 +29,6 @@ const FIELDS: readonly TaggingPageField[] = [
   'frameworkIds',
   'addFramework',
 ];
-
-/** An error for the NotGovUK controls whose types take one only when there is one. */
-function optionalError(error: string | undefined): { error?: string } {
-  return error === undefined ? {} : { error };
-}
 
 /**
  * One list of tags: a select and its Add button, then the tags added so far, each carried in
@@ -59,7 +55,7 @@ function TagPicker({
       <div className="fphd-field-row fphd-field-row--with-button">
         <Select
           // A list refused as a whole is shown on the select that adds to it.
-          {...optionalError(fieldErrors[field] ?? fieldErrors[list])}
+          {...errorProp(fieldErrors[field] ?? fieldErrors[list])}
           defaultValue={values[field]}
           label={`Select ${article} ${noun}`}
           name={field}
@@ -130,7 +126,7 @@ export function TaggingPage({ fieldErrors = {}, formError, options, values }: Ta
       {picker('topicIds')}
       {picker('indicatorTypeIds')}
       <Radios
-        {...optionalError(fieldErrors.hasRiskFactor)}
+        {...errorProp(fieldErrors.hasRiskFactor)}
         defaultValue={values.hasRiskFactor}
         // NotGovUK sizes a legend by the heading passed as its label.
         label={<h2 className="govuk-heading-m">{RISK_FACTOR_QUESTION}</h2>}
@@ -142,7 +138,7 @@ export function TaggingPage({ fieldErrors = {}, formError, options, values }: Ta
         ]}
       />
       <Radios
-        {...optionalError(fieldErrors.hasFramework)}
+        {...errorProp(fieldErrors.hasFramework)}
         defaultValue={values.hasFramework}
         label={<h2 className="govuk-heading-m">{FRAMEWORK_QUESTION}</h2>}
         name="hasFramework"

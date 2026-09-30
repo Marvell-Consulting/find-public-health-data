@@ -2,6 +2,7 @@ import { type PeriodTypeField, periodTypeSection } from '@fphd/internal-api-feat
 import { DayMonthInput, datePartId, datePartName, firstRadioId, Radios } from '@fphd/ui';
 import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
 
+import { errorProp } from '../error-prop.ts';
 import type { ControlNames } from '../indicator-section.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
@@ -55,7 +56,7 @@ function YearTypeQuestion({ fieldErrors, set, values }: YearTypeQuestionProps) {
 
   return (
     <Radios
-      {...(yearTypeError === undefined ? {} : { error: yearTypeError })}
+      {...errorProp(yearTypeError)}
       classModifiers="small"
       defaultValue={values.yearType}
       // NotGovUK sizes a legend by its label's heading level or class; an h3 would be medium.
@@ -89,7 +90,6 @@ export function PeriodTypePage({
   values,
 }: SectionPageProps<PeriodTypeField>) {
   const chosenSet = yearTypeSetOf(values.periodType);
-  const periodTypeError = fieldErrors.periodType;
 
   const question = (set: YearTypeSet) => (
     <YearTypeQuestion
@@ -116,7 +116,7 @@ export function PeriodTypePage({
       title="What is the period type in this indicator?"
     >
       <Radios
-        {...(periodTypeError === undefined ? {} : { error: periodTypeError })}
+        {...errorProp(fieldErrors.periodType)}
         defaultValue={values.periodType}
         // NotGovUK sizes a legend by the heading passed as its label.
         label={<h2 className="govuk-heading-m">Select period type</h2>}

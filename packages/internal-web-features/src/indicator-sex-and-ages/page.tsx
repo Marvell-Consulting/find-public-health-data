@@ -22,6 +22,7 @@ import {
 import { AGE_UNITS, SEX_LABELS, SEXES } from '@fphd/utils/sex-and-ages';
 import type { ReactNode } from 'react';
 
+import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 import { ADD_INTENT, removeIntent } from '../list-form.ts';
 
@@ -47,11 +48,6 @@ function pageFields(rangeCount: number): SexAndAgesPageField[] {
     'specificAgeUnit',
     'ageOtherDetail',
   ];
-}
-
-/** An error for the NotGovUK controls whose types take one only when there is one. */
-function optionalError(error: string | undefined): { error?: string } {
-  return error === undefined ? {} : { error };
 }
 
 /** "Periods", saying to screen readers which age it is the unit of, as the page repeats it. */
@@ -91,7 +87,7 @@ function AgeLimit({
         name={valueName}
       />
       <Select
-        {...optionalError(fieldErrors[unitName])}
+        {...errorProp(fieldErrors[unitName])}
         defaultValue={range[unitField]}
         label={periodsLabel(label.toLowerCase())}
         name={unitName}
@@ -159,7 +155,7 @@ export function SexAndAgesPage({
       title={TITLE}
     >
       <Checkboxes
-        {...optionalError(sexesError)}
+        {...errorProp(sexesError)}
         defaultValue={values.sexes}
         // NotGovUK sizes a legend by the heading passed as its label.
         label={<h2 className="govuk-heading-m">Select sexes included</h2>}
@@ -167,7 +163,7 @@ export function SexAndAgesPage({
         options={SEXES.map((sex) => ({ value: sex, label: SEX_LABELS[sex] }))}
       />
       <Radios
-        {...optionalError(ageTypeError)}
+        {...errorProp(ageTypeError)}
         defaultValue={values.ageType}
         label={<h2 className="govuk-heading-m">Select age type</h2>}
         name="ageType"
@@ -204,7 +200,7 @@ export function SexAndAgesPage({
                   name="specificAge"
                 />
                 <Select
-                  {...optionalError(fieldErrors.specificAgeUnit)}
+                  {...errorProp(fieldErrors.specificAgeUnit)}
                   defaultValue={values.specificAgeUnit}
                   label={periodsLabel('age')}
                   name="specificAgeUnit"

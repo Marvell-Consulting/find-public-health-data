@@ -9,6 +9,7 @@ import {
   type UpdateFrequency,
 } from '@fphd/utils/update-frequency';
 
+import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
 const UPDATE_FREQUENCY_QUESTION = 'How often will this indicator be updated?';
@@ -30,8 +31,6 @@ export function UpdateFrequencyPage({
   formError,
   values,
 }: SectionPageProps<UpdateFrequencyField>) {
-  const error = fieldErrors.updateFrequency;
-
   return (
     <IndicatorSectionForm
       fieldErrors={fieldErrors}
@@ -42,7 +41,7 @@ export function UpdateFrequencyPage({
       title={UPDATE_FREQUENCY_QUESTION}
     >
       <Radios
-        {...(error === undefined ? {} : { error })}
+        {...errorProp(fieldErrors.updateFrequency)}
         defaultValue={values.updateFrequency}
         label={<h1>{UPDATE_FREQUENCY_QUESTION}</h1>}
         name="updateFrequency"

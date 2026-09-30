@@ -2,6 +2,7 @@ import { type PolarityField, polaritySection } from '@fphd/internal-api-features
 import { firstRadioId, Radios } from '@fphd/ui';
 import { POLARITIES, POLARITY_LABELS } from '@fphd/utils/polarity';
 
+import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
 const POLARITY_QUESTION = 'What is the polarity of this indicator?';
@@ -12,8 +13,6 @@ export function PolarityPage({
   formError,
   values,
 }: SectionPageProps<PolarityField>) {
-  const error = fieldErrors.polarity;
-
   return (
     <IndicatorSectionForm
       fieldErrors={fieldErrors}
@@ -24,7 +23,7 @@ export function PolarityPage({
       title={POLARITY_QUESTION}
     >
       <Radios
-        {...(error === undefined ? {} : { error })}
+        {...errorProp(fieldErrors.polarity)}
         defaultValue={values.polarity}
         label={<h1>{POLARITY_QUESTION}</h1>}
         name="polarity"

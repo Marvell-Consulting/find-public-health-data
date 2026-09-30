@@ -52,8 +52,6 @@ export function PublishingDatePage({
   formError,
   values,
 }: PublishingDatePageProps) {
-  const dateError = groupError(fieldErrors, DATE);
-
   return (
     <IndicatorSectionForm
       fieldErrors={fieldErrors}
@@ -68,7 +66,7 @@ export function PublishingDatePage({
           month: values.publishingDateMonth,
           year: values.publishingDateYear,
         }}
-        {...(dateError === undefined ? {} : { error: dateError })}
+        error={groupError(fieldErrors, DATE)}
         hint={`For example, ${dateExample}`}
         // NotGovUK sizes a legend by the heading passed as its label.
         label={<h2 className="govuk-heading-m">Date</h2>}

@@ -13,6 +13,7 @@ import {
 } from '@fphd/utils/value-type-and-unit';
 import { useEffect, useState } from 'react';
 
+import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
 export const VALUE_TYPE_AND_UNITS_TITLE =
@@ -46,11 +47,6 @@ export function ValueTypeAndUnitsPage({
   const standardisation = standardisationOf(valueTypeId);
   const hint = (text: string) => (enhanced ? {} : { hint: text });
   const hides = (shown: boolean) => enhanced && !shown;
-  // Select and Radios take no undefined error.
-  const errorOf = (field: ValueTypeAndUnitsField) => {
-    const error = fieldErrors[field];
-    return error === undefined ? {} : { error };
-  };
 
   return (
     <IndicatorSectionForm
@@ -61,7 +57,7 @@ export function ValueTypeAndUnitsPage({
       title={VALUE_TYPE_AND_UNITS_TITLE}
     >
       <Select
-        {...errorOf('valueTypeId')}
+        {...errorProp(fieldErrors.valueTypeId)}
         defaultValue={values.valueTypeId}
         label="Select value type"
         name="valueTypeId"
@@ -74,7 +70,7 @@ export function ValueTypeAndUnitsPage({
       <div hidden={hides(standardisation === 'direct')}>
         <Radios
           {...hint(`Only needed for ${VALUE_TYPES.directlyStandardisedRate.name}`)}
-          {...errorOf('standardPopulation')}
+          {...errorProp(fieldErrors.standardPopulation)}
           defaultValue={values.standardPopulation}
           // NotGovUK sizes a heading in a legend; a bare h2 would be large, the class makes it medium.
           label={<h2 className="govuk-heading-m">What standard population has been used?</h2>}
@@ -111,7 +107,7 @@ export function ValueTypeAndUnitsPage({
         />
       </div>
       <Select
-        {...errorOf('unitId')}
+        {...errorProp(fieldErrors.unitId)}
         defaultValue={values.unitId}
         label="Select units"
         name="unitId"
