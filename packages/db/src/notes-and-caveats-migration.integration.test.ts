@@ -1,9 +1,8 @@
 import type postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { migrateToLatest } from './migrations.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
-import { createTestDatabase, migrateBefore, type TestDatabase } from './testing.ts';
+import { createTestDatabase, migrateBefore, migrateThrough, type TestDatabase } from './testing.ts';
 
 const MIGRATION = '0022_other-notes-and-caveats';
 
@@ -53,7 +52,7 @@ beforeAll(async () => {
     `;
   }
 
-  await migrateToLatest(sql);
+  await migrateThrough(sql, MIGRATION);
 });
 
 afterAll(async () => {

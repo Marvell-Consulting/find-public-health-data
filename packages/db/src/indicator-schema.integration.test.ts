@@ -9,9 +9,9 @@ import {
   ciMethod,
   classification,
   indicator,
-  indicatorClassification,
-  indicatorTopic,
   indicatorVersion,
+  indicatorVersionClassification,
+  indicatorVersionTopic,
   topic,
 } from './schema/index.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
@@ -525,6 +525,43 @@ describe('indicator_version', () => {
   });
 });
 
+describe("a version's child tables", () => {
+  // Postgres cuts a name at 63 bytes, which would cut the "_fk" off a generated one.
+  it('name every foreign key in full', async () => {
+    const keys = await db.execute<{ name: string }>(sql`
+      SELECT conname AS name FROM pg_constraint
+      WHERE contype = 'f' AND conrelid::regclass::text LIKE 'indicator_version_%'
+      ORDER BY conname
+    `);
+
+    expect(keys.map(({ name }) => name)).toEqual([
+      'indicator_version_age_range_version_fk',
+      'indicator_version_classification_classification_fk',
+      'indicator_version_classification_version_fk',
+      'indicator_version_link_version_fk',
+      'indicator_version_source_provider_fk',
+      'indicator_version_source_source_fk',
+      'indicator_version_source_version_fk',
+      'indicator_version_topic_topic_fk',
+      'indicator_version_topic_version_fk',
+    ]);
+  });
+});
+
+describe('constraint names', () => {
+  // A renamed table keeps its constraints' names, and Postgres cuts a long one at 63 bytes.
+  it("start with their table's name and are never cut short", async () => {
+    const misnamed = await db.execute<{ name: string }>(sql`
+      SELECT conname AS name FROM pg_constraint
+      WHERE connamespace = 'public'::regnamespace AND conrelid <> 0
+        AND (left(conname, length(conrelid::regclass::text) + 1) <> conrelid::regclass::text || '_'
+          OR octet_length(conname) >= 63)
+    `);
+
+    expect(misnamed.map(({ name }) => name)).toEqual([]);
+  });
+});
+
 describe('ci_method', () => {
   it('takes a method as standard unless told otherwise', async () => {
     const [row] = await db
@@ -576,11 +613,11 @@ describe('the published views', () => {
     if (!current || !superseded) throw new Error('inserted no versions');
     expect(superseded.id > current.id).toBe(true);
 
-    await db.insert(indicatorTopic).values([
+    await db.insert(indicatorVersionTopic).values([
       { topicId: currentTopic, indicatorVersionId: current.id },
       { topicId: supersededTopic, indicatorVersionId: superseded.id },
     ]);
-    await db.insert(indicatorClassification).values([
+    await db.insert(indicatorVersionClassification).values([
       { classificationId: currentClass, indicatorVersionId: current.id },
       { classificationId: supersededClass, indicatorVersionId: superseded.id },
     ]);

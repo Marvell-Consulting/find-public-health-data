@@ -10,8 +10,8 @@ const {
   classification,
   currentPublishedVersion,
   indicator,
-  indicatorClassification,
-  indicatorTopic,
+  indicatorVersionClassification,
+  indicatorVersionTopic,
   indicatorVersion,
   indicatorVersionAgeRange,
   indicatorVersionLink,
@@ -299,10 +299,10 @@ async function linksOf(
 
 async function topicIdsOf(db: Database | Transaction, versionId: string): Promise<string[]> {
   const rows = await db
-    .select({ id: indicatorTopic.topicId })
-    .from(indicatorTopic)
-    .innerJoin(topic, eq(topic.id, indicatorTopic.topicId))
-    .where(eq(indicatorTopic.indicatorVersionId, versionId))
+    .select({ id: indicatorVersionTopic.topicId })
+    .from(indicatorVersionTopic)
+    .innerJoin(topic, eq(topic.id, indicatorVersionTopic.topicId))
+    .where(eq(indicatorVersionTopic.indicatorVersionId, versionId))
     .orderBy(asc(topic.title));
 
   return rows.map(({ id }) => id);
@@ -314,9 +314,12 @@ async function classificationsOf(
 ): Promise<IndicatorDraftClassification[]> {
   return db
     .select({ id: classification.id, dimension: classification.dimension })
-    .from(indicatorClassification)
-    .innerJoin(classification, eq(classification.id, indicatorClassification.classificationId))
-    .where(eq(indicatorClassification.indicatorVersionId, versionId))
+    .from(indicatorVersionClassification)
+    .innerJoin(
+      classification,
+      eq(classification.id, indicatorVersionClassification.classificationId),
+    )
+    .where(eq(indicatorVersionClassification.indicatorVersionId, versionId))
     .orderBy(asc(classification.name));
 }
 
@@ -629,10 +632,12 @@ async function replaceLists(
   }: IndicatorDraftLists,
 ): Promise<void> {
   if (topicIds !== undefined) {
-    await tx.delete(indicatorTopic).where(eq(indicatorTopic.indicatorVersionId, versionId));
+    await tx
+      .delete(indicatorVersionTopic)
+      .where(eq(indicatorVersionTopic.indicatorVersionId, versionId));
     if (topicIds.length > 0) {
       await tx
-        .insert(indicatorTopic)
+        .insert(indicatorVersionTopic)
         .values(topicIds.map((topicId) => ({ topicId, indicatorVersionId: versionId })));
     }
   }
@@ -642,12 +647,12 @@ async function replaceLists(
     if (ids === undefined) continue;
 
     await tx
-      .delete(indicatorClassification)
+      .delete(indicatorVersionClassification)
       .where(
         and(
-          eq(indicatorClassification.indicatorVersionId, versionId),
+          eq(indicatorVersionClassification.indicatorVersionId, versionId),
           inArray(
-            indicatorClassification.classificationId,
+            indicatorVersionClassification.classificationId,
             tx
               .select({ id: classification.id })
               .from(classification)
@@ -657,7 +662,7 @@ async function replaceLists(
       );
     if (ids.length > 0) {
       await tx
-        .insert(indicatorClassification)
+        .insert(indicatorVersionClassification)
         .values(
           ids.map((classificationId) => ({ classificationId, indicatorVersionId: versionId })),
         );

@@ -57,11 +57,11 @@ async function insertDraftOnlyIndicator(): Promise<void> {
   const versionId = version?.id ?? '';
 
   await owner`
-    INSERT INTO indicator_topic (topic_id, indicator_version_id)
+    INSERT INTO indicator_version_topic (topic_id, indicator_version_id)
     SELECT t.id, ${versionId} FROM topic t LIMIT 1
   `;
   await owner`
-    INSERT INTO indicator_classification (indicator_version_id, classification_id)
+    INSERT INTO indicator_version_classification (indicator_version_id, classification_id)
     SELECT ${versionId}, c.id FROM classification c LIMIT 1
   `;
   await owner`

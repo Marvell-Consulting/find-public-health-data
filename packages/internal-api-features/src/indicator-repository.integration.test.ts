@@ -63,8 +63,8 @@ afterAll(async () => {
 const {
   classification,
   indicator,
-  indicatorClassification,
-  indicatorTopic,
+  indicatorVersionClassification,
+  indicatorVersionTopic,
   indicatorVersion,
   indicatorVersionAgeRange,
   indicatorVersionLink,
@@ -237,9 +237,9 @@ async function onsSources() {
 
 async function topicIdsOf(versionId: string): Promise<string[]> {
   const rows = await db
-    .select({ topicId: indicatorTopic.topicId })
-    .from(indicatorTopic)
-    .where(eq(indicatorTopic.indicatorVersionId, versionId));
+    .select({ topicId: indicatorVersionTopic.topicId })
+    .from(indicatorVersionTopic)
+    .where(eq(indicatorVersionTopic.indicatorVersionId, versionId));
   return rows.map(({ topicId }) => topicId).sort();
 }
 
@@ -261,9 +261,9 @@ const typeClassification = () => classificationIn('indicator_type');
 
 async function classificationIdsOf(versionId: string): Promise<string[]> {
   const rows = await db
-    .select({ id: indicatorClassification.classificationId })
-    .from(indicatorClassification)
-    .where(eq(indicatorClassification.indicatorVersionId, versionId));
+    .select({ id: indicatorVersionClassification.classificationId })
+    .from(indicatorVersionClassification)
+    .where(eq(indicatorVersionClassification.indicatorVersionId, versionId));
   return rows.map(({ id }) => id).sort();
 }
 
@@ -610,9 +610,9 @@ describe('updateIndicatorDraft', () => {
 
     expect(await topicIdsOf(created.versionId)).toEqual([topic.id]);
     const classifications = await db
-      .select({ id: indicatorClassification.classificationId })
-      .from(indicatorClassification)
-      .where(eq(indicatorClassification.indicatorVersionId, created.versionId));
+      .select({ id: indicatorVersionClassification.classificationId })
+      .from(indicatorVersionClassification)
+      .where(eq(indicatorVersionClassification.indicatorVersionId, created.versionId));
     expect(classifications).toEqual([{ id: classified.id }]);
     expect(await linksOf(created.versionId)).toEqual([commentary]);
   });
@@ -1135,7 +1135,7 @@ describe('createDraftFromPublished', () => {
       .update(indicatorVersion)
       .set({ hasRiskFactor: false, hasFramework: true })
       .where(eq(indicatorVersion.id, currentId));
-    await db.insert(indicatorClassification).values([
+    await db.insert(indicatorVersionClassification).values([
       { classificationId: population.id, indicatorVersionId: currentId },
       { classificationId: framework.id, indicatorVersionId: currentId },
     ]);
@@ -1184,7 +1184,7 @@ describe('createDraftFromPublished', () => {
       .from(schema.topic)
       .limit(2);
     if (!current || !superseded) throw new Error('The seed holds too few topics');
-    await db.insert(indicatorTopic).values([
+    await db.insert(indicatorVersionTopic).values([
       { topicId: current.id, indicatorVersionId: currentId },
       { topicId: superseded.id, indicatorVersionId: supersededId },
     ]);
@@ -1321,7 +1321,7 @@ describe('createDraftFromPublished', () => {
   });
 });
 
-describe('indicator_classification', () => {
+describe('indicator_version_classification', () => {
   it('follows the draft rather than the indicator', async () => {
     const created = await newDraft('Classified');
     const classified = await typeClassification();
@@ -1336,9 +1336,9 @@ describe('indicator_classification', () => {
     );
 
     const rows = await db
-      .select({ versionId: indicatorClassification.indicatorVersionId })
-      .from(indicatorClassification)
-      .where(eq(indicatorClassification.indicatorVersionId, created.versionId));
+      .select({ versionId: indicatorVersionClassification.indicatorVersionId })
+      .from(indicatorVersionClassification)
+      .where(eq(indicatorVersionClassification.indicatorVersionId, created.versionId));
 
     expect(rows).toEqual([{ versionId: created.versionId }]);
   });

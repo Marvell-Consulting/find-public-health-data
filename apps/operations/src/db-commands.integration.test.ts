@@ -227,7 +227,7 @@ describe('db reset (integration)', () => {
       expect(await count(sql, 'topic')).toBeGreaterThan(0);
       expect(await count(sql, 'indicator')).toBeGreaterThan(0);
       expect(await count(sql, 'indicator_version')).toBeGreaterThan(0);
-      expect(await count(sql, 'indicator_topic')).toBeGreaterThan(0);
+      expect(await count(sql, 'indicator_version_topic')).toBeGreaterThan(0);
       expect(await count(sql, 'latest_headline')).toBeGreaterThan(0);
     } finally {
       await sql.end();

@@ -1,6 +1,6 @@
 import { z } from '@fphd/config';
 import { SLUG_PATTERN } from '@fphd/utils/slug';
-import { index, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
+import { foreignKey, index, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
 
 import { timestamps, uuidPrimaryKey } from './helpers.ts';
 import { indicatorVersion } from './indicator.ts';
@@ -17,19 +17,25 @@ export const topic = pgTable('topic', {
  * Which topics an indicator version belongs to. Many-to-many in both directions: an
  * indicator is reachable from several topics, and a topic lists many indicators.
  */
-export const indicatorTopic = pgTable(
-  'indicator_topic',
+export const indicatorVersionTopic = pgTable(
+  'indicator_version_topic',
   {
-    topicId: uuid()
-      .notNull()
-      .references(() => topic.id),
-    indicatorVersionId: uuid()
-      .notNull()
-      .references(() => indicatorVersion.id),
+    indicatorVersionId: uuid().notNull(),
+    topicId: uuid().notNull(),
   },
   (t) => [
-    primaryKey({ columns: [t.topicId, t.indicatorVersionId] }),
-    index('idx_indicator_topic_indicator_version').on(t.indicatorVersionId),
+    primaryKey({ name: 'indicator_version_topic_pk', columns: [t.indicatorVersionId, t.topicId] }),
+    foreignKey({
+      name: 'indicator_version_topic_version_fk',
+      columns: [t.indicatorVersionId],
+      foreignColumns: [indicatorVersion.id],
+    }),
+    foreignKey({
+      name: 'indicator_version_topic_topic_fk',
+      columns: [t.topicId],
+      foreignColumns: [topic.id],
+    }),
+    index('idx_indicator_version_topic_topic').on(t.topicId),
   ],
 );
 

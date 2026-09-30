@@ -136,7 +136,7 @@ export const indicatorVersion = pgTable(
     calculatedByOther: text(),
     // Null until answered, so "no links" is told apart from a question not yet asked.
     hasLinks: boolean(),
-    // Null until answered; the risk factors and frameworks are rows of indicator_classification.
+    // Null until answered; the risk factors and frameworks are rows of indicator_version_classification.
     hasRiskFactor: boolean(),
     hasFramework: boolean(),
     sexes: text({ enum: SEXES }).array(),
@@ -378,15 +378,18 @@ export const indicatorVersion = pgTable(
 export const indicatorVersionLink = pgTable(
   'indicator_version_link',
   {
-    indicatorVersionId: uuid()
-      .notNull()
-      .references(() => indicatorVersion.id),
+    indicatorVersionId: uuid().notNull(),
     position: smallint().notNull(),
     url: text().notNull(),
     text: text().notNull(),
   },
   (t) => [
     primaryKey({ columns: [t.indicatorVersionId, t.position] }),
+    foreignKey({
+      name: 'indicator_version_link_version_fk',
+      columns: [t.indicatorVersionId],
+      foreignColumns: [indicatorVersion.id],
+    }),
     check('indicator_version_link_position_check', sql`${t.position} >= 0`),
   ],
 );
@@ -395,9 +398,7 @@ export const indicatorVersionLink = pgTable(
 export const indicatorVersionAgeRange = pgTable(
   'indicator_version_age_range',
   {
-    indicatorVersionId: uuid()
-      .notNull()
-      .references(() => indicatorVersion.id),
+    indicatorVersionId: uuid().notNull(),
     position: smallint().notNull(),
     lowerLimit: smallint(),
     lowerLimitUnit: text({ enum: AGE_UNITS }),
@@ -406,6 +407,11 @@ export const indicatorVersionAgeRange = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.indicatorVersionId, t.position] }),
+    foreignKey({
+      name: 'indicator_version_age_range_version_fk',
+      columns: [t.indicatorVersionId],
+      foreignColumns: [indicatorVersion.id],
+    }),
     check('indicator_version_age_range_position_check', sql`${t.position} >= 0`),
     check(
       'indicator_version_age_range_lower_limit_unit_check',
@@ -451,18 +457,24 @@ export type IndicatorSourcePart = (typeof INDICATOR_SOURCE_PARTS)[number];
 export const indicatorVersionSource = pgTable(
   'indicator_version_source',
   {
-    indicatorVersionId: uuid()
-      .notNull()
-      .references(() => indicatorVersion.id),
+    indicatorVersionId: uuid().notNull(),
     part: text({ enum: INDICATOR_SOURCE_PARTS }).notNull(),
     position: smallint().notNull(),
-    providerId: uuid()
-      .notNull()
-      .references(() => dataProvider.id),
+    providerId: uuid().notNull(),
     sourceId: uuid(),
   },
   (t) => [
     primaryKey({ columns: [t.indicatorVersionId, t.part, t.position] }),
+    foreignKey({
+      name: 'indicator_version_source_version_fk',
+      columns: [t.indicatorVersionId],
+      foreignColumns: [indicatorVersion.id],
+    }),
+    foreignKey({
+      name: 'indicator_version_source_provider_fk',
+      columns: [t.providerId],
+      foreignColumns: [dataProvider.id],
+    }),
     check(
       'indicator_version_source_part_check',
       sql`${t.part} IN (${literals(INDICATOR_SOURCE_PARTS)})`,

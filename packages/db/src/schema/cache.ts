@@ -74,6 +74,7 @@ export const observationRange = pgTable(
   },
   (t) => [
     primaryKey({
+      name: 'observation_range_pk',
       columns: [t.indicatorId, t.displayGroup, t.fromDate, t.toDate, t.segment],
     }),
   ],

@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { deleteTopic, getTopicById } from './topic-repository.ts';
 
-// Seeded, because the cascade is only meaningful against real indicator_topic links, and
+// Seeded, because the cascade is only meaningful against real indicator_version_topic links, and
 // building an indicator by hand would mean seeding the whole lookup graph it references.
 const env = parseEnv(
   z.object({
@@ -40,13 +40,14 @@ afterAll(async () => {
 describe('deleteTopic with linked indicators', () => {
   it('removes the topic and its links, but leaves the indicators themselves', async () => {
     const [linked] = await db.$client<{ topicId: string }[]>`
-      SELECT topic_id AS "topicId" FROM indicator_topic GROUP BY topic_id LIMIT 1
+      SELECT topic_id AS "topicId" FROM indicator_version_topic GROUP BY topic_id LIMIT 1
     `;
-    if (linked === undefined) throw new Error('the seed has no indicator_topic links to exercise');
+    if (linked === undefined)
+      throw new Error('the seed has no indicator_version_topic links to exercise');
 
     const links = await db.$client<{ indicatorId: string }[]>`
       SELECT v.indicator_id AS "indicatorId"
-      FROM indicator_topic it
+      FROM indicator_version_topic it
       JOIN indicator_version v ON v.id = it.indicator_version_id
       WHERE it.topic_id = ${linked.topicId}
     `;
@@ -58,7 +59,7 @@ describe('deleteTopic with linked indicators', () => {
     expect(await getTopicById(db, linked.topicId)).toBeUndefined();
 
     const [remaining] = await db.$client<{ count: number }[]>`
-      SELECT count(*)::int AS count FROM indicator_topic WHERE topic_id = ${linked.topicId}
+      SELECT count(*)::int AS count FROM indicator_version_topic WHERE topic_id = ${linked.topicId}
     `;
     expect(remaining?.count).toBe(0);
 

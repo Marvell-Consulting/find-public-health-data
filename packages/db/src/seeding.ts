@@ -244,7 +244,7 @@ export async function seedPublishedTables(
 }
 
 function analyzableTables(): string {
-  return [...SEEDED_TABLES, 'indicator_topic', 'indicator_classification']
+  return [...SEEDED_TABLES, 'indicator_version_topic', 'indicator_version_classification']
     .map((table) => `"${table}"`)
     .join(', ');
 }
