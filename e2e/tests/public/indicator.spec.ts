@@ -202,6 +202,7 @@ test.describe('about this indicator', () => {
     await expect(panel.getByText('108', { exact: true })).toBeVisible();
     await expect(panel.getByRole('heading', { name: 'Data attributes' })).toBeVisible();
     await expect(panel.getByText('Directly standardised rate', { exact: true })).toBeVisible();
+    await expect(panel.getByText('per 100,000', { exact: true })).toBeVisible();
     await expect(panel.getByText('Annually', { exact: true })).toBeVisible();
     await expect(panel.getByText('Lower is better', { exact: true })).toBeVisible();
     await expect(panel.getByRole('heading', { name: 'Calculation' })).toBeVisible();

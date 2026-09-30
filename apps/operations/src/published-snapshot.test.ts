@@ -179,4 +179,13 @@ describe('downloadPublishedSnapshot', () => {
       'Published snapshot predates the period type change and must be regenerated',
     );
   });
+
+  it('refuses an archive exported before the value types and units, which carries both', async () => {
+    const tables = ['value_type', 'unit', ...SEED_TABLES];
+    const sha256 = await serveArchive(await snapshot(undefined, tables));
+
+    await expect(downloadPublishedSnapshot('https://example.test/a', sha256)).rejects.toThrow(
+      'Published snapshot predates the value type and unit change and must be regenerated',
+    );
+  });
 });

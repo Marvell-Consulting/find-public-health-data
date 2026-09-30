@@ -24,6 +24,7 @@ import {
   polaritySection,
   publishingDateSection,
   updateFrequencySection,
+  valueTypeAndUnitsSection,
   varianceAndQualitySection,
 } from './contract.ts';
 import { denominatorColumns, numeratorColumns } from './indicator-provider-sources.ts';
@@ -46,6 +47,7 @@ import {
   sexAndAgesColumns,
   taggingColumns,
   updateFrequencyColumns,
+  valueTypeAndUnitsColumns,
   varianceAndQualityColumns,
 } from './indicator-sections.ts';
 
@@ -103,6 +105,7 @@ export function indicatorTaskList({
       ),
     ),
     'update-frequency': complete(updateFrequencySection, updateFrequencyColumns),
+    'value-type-and-units': complete(valueTypeAndUnitsSection, valueTypeAndUnitsColumns),
     'other-notes-and-caveats': complete(otherNotesAndCaveatsSection, otherNotesAndCaveatsColumns),
     'publishing-date': complete(publishingDateSection, publishingDateColumns),
     links: taskStatus(areLinksComplete(linksColumns.fromDraft(draft))),

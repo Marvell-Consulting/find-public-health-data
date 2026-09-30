@@ -209,7 +209,7 @@ export function BackgroundInformation({ indicator }: { indicator: IndicatorDetai
       <SummaryList
         items={[
           ...attribute('Value type', indicator.valueType),
-          ...attribute('Unit', indicator.unit.name),
+          ...attribute('Unit', indicator.unit),
           ...attribute('Year type', indicator.yearType?.label ?? null),
           ...attribute('Frequency', UPDATE_FREQUENCY_LABELS[indicator.updateFrequency]),
           ...attribute('Polarity', POLARITY_LABELS[indicator.polarity]),
