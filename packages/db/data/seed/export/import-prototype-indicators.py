@@ -29,6 +29,7 @@ from legacy_sources import (
 )
 from notes_and_caveats import notes_and_caveats
 from slug import slug_problem, slugify
+from year_type import year_type_values
 
 
 INDICATOR_CONFIG = {
@@ -342,14 +343,15 @@ def add_indicators(cur, metadata, seed_dir):
             """
             INSERT INTO indicator_version
               (id, indicator_id, status, published_at, name, slug, value_type_id, unit_id,
-               year_type_id, ci_method_id, polarity, update_frequency, comparator_method_id,
+               period_type_id, year_type_id, year_end_day, year_end_month,
+               ci_method_id, polarity, update_frequency, comparator_method_id,
                ci_confidence_level, config, definition, rationale, methodology,
                numerator_definition, denominator_definition, disclosure_control,
                disclosure_control_detail, rounding_applied, rounding_detail, caveats_needed,
                caveats_detail, other_notes_needed, other_notes_detail, data_source_id,
                created_at, created_by, updated_at, updated_by)
             VALUES
-              (%s, %s, 'published', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+              (%s, %s, 'published', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                %s, 'fingertips-api-seed', %s, 'fingertips-api-seed')
             """,
@@ -361,7 +363,7 @@ def add_indicators(cur, metadata, seed_dir):
                 version_slug(fingertips_id, descriptive["Name"]),
                 one_id(cur, "value_type", item["ValueType"]["Name"]),
                 one_id(cur, "unit", unit_name),
-                one_id(cur, "year_type", item["YearType"]["Name"]),
+                *year_type_values(item["YearType"]["Name"]).values(),
                 one_id(cur, "ci_method", item["ConfidenceIntervalMethod"]["Name"]),
                 config["polarity"],
                 "annually",

@@ -11,6 +11,12 @@
       "types": "./src/indicator-path.ts",
       "default": "./dist/indicator-path.js"
     },
+    "./period-type": {
+      "browser": "./src/period-type.ts",
+      "development": "./src/period-type.ts",
+      "types": "./src/period-type.ts",
+      "default": "./dist/period-type.js"
+    },
     "./polarity": {
       "browser": "./src/polarity.ts",
       "development": "./src/polarity.ts",

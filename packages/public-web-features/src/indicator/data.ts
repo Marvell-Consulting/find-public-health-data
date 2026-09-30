@@ -3,6 +3,7 @@ import type {
   IndicatorDetail,
   IndicatorObservation,
 } from '@fphd/public-api-features/contract';
+import { type PublicYearType, YEAR_TYPES } from '@fphd/utils/period-type';
 import type { Polarity } from '@fphd/utils/polarity';
 
 function daysBetween(fromDate: string, toDate: string): number {
@@ -11,7 +12,7 @@ function daysBetween(fromDate: string, toDate: string): number {
 
 export function periodLabel(
   { fromDate, toDate }: Pick<IndicatorObservation, 'fromDate' | 'toDate'>,
-  yearType?: string,
+  yearType?: PublicYearType | null,
 ): string {
   const fromYear = fromDate.slice(0, 4);
   const toYear = toDate.slice(0, 4);
@@ -21,7 +22,7 @@ export function periodLabel(
   // A financial year spans two calendar years but is one period: 2009/10, not
   // "2009 to 2010" — that form is reserved for genuine multi-year ranges.
   const days = daysBetween(fromDate, toDate);
-  if (yearType === 'Financial' && days <= 400) {
+  if (yearType?.id === YEAR_TYPES.financial.id && days <= 400) {
     return `${fromYear}/${toYear.slice(2)}`;
   }
   return `${fromYear} to ${toYear}`;
@@ -550,7 +551,7 @@ export function inequalityCategoryOptions(
 export function inequalityPeriods(
   observations: IndicatorObservation[],
   category: string,
-  yearType?: string,
+  yearType?: PublicYearType | null,
 ): { value: string; label: string }[] {
   const reference = trendSeries(observations)[0];
   const periods = new Map<string, string>();
@@ -589,7 +590,10 @@ export function inequalityBreakdown(
 }
 
 /** The span an indicator's data covers, as the summary table states it. */
-export function periodCovered(observations: IndicatorObservation[], yearType?: string): string {
+export function periodCovered(
+  observations: IndicatorObservation[],
+  yearType?: PublicYearType | null,
+): string {
   if (observations.length === 0) {
     return '';
   }

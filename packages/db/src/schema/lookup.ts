@@ -15,6 +15,12 @@ export const unit = pgTable('unit', {
   multiplier: doublePrecision().notNull().default(1.0),
 });
 
+// The rows of these two are the vocabularies in @fphd/utils/period-type, inserted by migration.
+export const periodType = pgTable('period_type', {
+  id: uuidPrimaryKey(),
+  name: text().notNull().unique(),
+});
+
 export const yearType = pgTable('year_type', {
   id: uuidPrimaryKey(),
   name: text().notNull().unique(),

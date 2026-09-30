@@ -130,6 +130,10 @@ export async function downloadPublishedSnapshot(
       ...SEED_TABLES.map((table) => `${table}.csv.gz`),
     ]);
     const archivedFiles = stdout.trim().split('\n');
+    // An archive with year_type predates the period types: its versions point at Pholio's.
+    if (archivedFiles.includes('year_type.csv.gz')) {
+      throw new Error('Published snapshot predates the period type change and must be regenerated');
+    }
     if (
       archivedFiles.length !== expectedFiles.size ||
       archivedFiles.some((file) => !expectedFiles.has(file))

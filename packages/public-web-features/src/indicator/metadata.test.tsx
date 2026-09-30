@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { YEAR_TYPES } from '@fphd/utils/period-type';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -14,7 +15,7 @@ const indicator: IndicatorDetail = {
   name: 'An indicator',
   valueType: 'Proportion',
   unit: { name: '%', label: '%' },
-  yearType: 'Calendar',
+  yearType: { id: YEAR_TYPES.calendar.id, label: 'Calendar' },
   updateFrequency: 'annually',
   polarity: 'lower-is-better',
   ciMethod: null,
@@ -65,5 +66,19 @@ describe('BackgroundInformation', () => {
 
     expect(screen.getByRole('heading', { name: 'Numerator' })).toBeDefined();
     expect(screen.queryByRole('heading', { name: 'Denominator' })).toBeNull();
+  });
+
+  it('shows the year type', () => {
+    renderBackground(indicator);
+
+    expect(screen.getByText('Year type')).toBeTruthy();
+    expect(screen.getByText('Calendar')).toBeTruthy();
+  });
+
+  it('leaves out the year type row for an indicator of months, which has none', () => {
+    renderBackground({ ...indicator, yearType: null });
+
+    expect(screen.queryByText('Year type')).toBeNull();
+    expect(screen.getByText('Value type')).toBeTruthy();
   });
 });

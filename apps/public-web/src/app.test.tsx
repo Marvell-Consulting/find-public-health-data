@@ -13,6 +13,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import PublicApp, { ErrorBoundary } from './root.tsx';
 
+const CALENDAR_YEARS = { id: '01a0d88c-310a-7ca5-8494-19e32c307628', label: 'Calendar' };
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -101,7 +103,7 @@ describe('public application routes', () => {
       name: 'Under 75 mortality rate from all causes',
       valueType: 'Directly standardised rate',
       unit: { name: 'per 100,000', label: 'per 100,000' },
-      yearType: 'Calendar',
+      yearType: CALENDAR_YEARS,
       updateFrequency: 'annually',
       polarity: 'lower-is-better',
       ciMethod: "Dobson & Byar's methods",
@@ -364,7 +366,7 @@ describe('public application routes', () => {
       name: 'Under 75 mortality rate from all causes',
       valueType: 'Directly standardised rate',
       unit: { name: 'per 100,000', label: 'per 100,000' },
-      yearType: 'Calendar',
+      yearType: CALENDAR_YEARS,
       updateFrequency: 'annually',
       polarity: 'lower-is-better',
       ciMethod: null,
@@ -455,7 +457,7 @@ describe('public application routes', () => {
       name,
       valueType: 'Directly standardised rate',
       unit: { name: 'per 100,000', label: 'per 100,000' },
-      yearType: 'Calendar',
+      yearType: CALENDAR_YEARS,
       updateFrequency: 'annually',
       polarity: 'lower-is-better',
       ciMethod: null,
@@ -655,7 +657,7 @@ describe('public application routes', () => {
       name: 'Mortality rate for deaths involving diabetes, all ages',
       valueType: 'Directly standardised rate',
       unit: { name: 'per 100,000', label: 'per 100,000' },
-      yearType: 'Calendar',
+      yearType: CALENDAR_YEARS,
       updateFrequency: 'annually',
       polarity: 'lower-is-better',
       ciMethod: null,
@@ -759,7 +761,7 @@ describe('public application routes', () => {
       name: 'Under 75 mortality rate from all causes',
       valueType: 'Directly standardised rate',
       unit: { name: 'per 100,000', label: 'per 100,000' },
-      yearType: 'Calendar',
+      yearType: CALENDAR_YEARS,
       updateFrequency: 'annually',
       polarity: 'lower-is-better',
       ciMethod: null,
