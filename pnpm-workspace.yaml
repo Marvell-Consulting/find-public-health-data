@@ -15,14 +15,6 @@ minimumReleaseAgeExclude:
   - electron-to-chromium@1.5.417
 
 overrides:
-  # GHSA postcss <=8.5.17 source-map path traversal; transitive via vite.
-  postcss: '>=8.5.18'
-  # GHSA-2v37-7h3g-55p8 nanoid <3.3.17 unbounded loop on a zero size. Scoped to postcss, the
-  # only package that resolves nanoid here, and capped below 4 because postcss requires it as
-  # CommonJS and nanoid 4 and up are ESM-only.
-  'postcss>nanoid': '>=3.3.17 <4'
-  # GHSA-4cwx-7wf7-3272 undici >=7.0.0 <7.29.0 cross-user information disclosure; transitive via jsdom.
-  undici: '>=7.29.0 <8'
   # GHSA-67mh-4wv8-2f99 esbuild <=0.24.2 dev server answers any origin. Transitive via
   # drizzle-kit's deprecated @esbuild-kit loader, which pins ~0.18 and was merged into tsx, so
   # no fixed release is coming. Scoped so drizzle-kit's and tsx's own esbuild stay untouched.
@@ -90,7 +82,7 @@ catalog:
   govuk-frontend: 6.5.0
   http-graceful-shutdown: 4.0.0
   isbot: 5.2.0
-  jsdom: 29.1.1
+  jsdom: 30.1.1
   jose: 6.2.4
   pino: 10.3.1
   pino-http: 11.0.0
@@ -105,7 +97,7 @@ catalog:
   uuid: 14.0.2
   # React Router 8.2 supports TypeScript 5 and 6; TypeScript 7 produces unmet peers.
   typescript: 6.0.3
-  vite: 8.1.4
-  vitest: 4.1.10
+  vite: 8.3.1
+  vitest: 4.1.11
   yaml: 2.9.0
   zod: 4.4.3
