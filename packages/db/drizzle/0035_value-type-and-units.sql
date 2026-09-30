@@ -18,6 +18,7 @@ INSERT INTO "value_type" ("id", "name") VALUES
   ('01a0d8a5-3ca2-7315-bfca-96d1b508d83f', 'Percentage point'),
   ('01a0d8a5-3ca2-7315-bfca-96d2031a65e7', 'Proportion'),
   ('01a0d8a5-3ca2-7315-bfca-96d34a17c74b', 'Ratio'),
+  ('01a0f31b-a23f-749d-a9ea-68b179920ab3', 'Relative index of inequality'),
   ('01a0d8a5-3ca2-7315-bfca-96d4cc7f7bcb', 'Score'),
   ('01a0d8a5-3ca2-7315-bfca-96d54168d21f', 'Slope index of inequality');--> statement-breakpoint
 -- export/value_type_and_unit.py holds the same translation.
@@ -38,11 +39,17 @@ JOIN (VALUES
   ('Percentage point', '01a0d8a5-3ca2-7315-bfca-96d1b508d83f'),
   ('Proportion', '01a0d8a5-3ca2-7315-bfca-96d2031a65e7'),
   ('Ratio', '01a0d8a5-3ca2-7315-bfca-96d34a17c74b'),
+  ('Relative index of inequality', '01a0f31b-a23f-749d-a9ea-68b179920ab3'),
   ('Score', '01a0d8a5-3ca2-7315-bfca-96d4cc7f7bcb'),
   ('Slope index of inequality', '01a0d8a5-3ca2-7315-bfca-96d54168d21f'),
   ('Slope Index of Inequality', '01a0d8a5-3ca2-7315-bfca-96d54168d21f'),
+  ('Relative Index of Inequality', '01a0f31b-a23f-749d-a9ea-68b179920ab3'),
   ('Number', '01a0d8a5-3ca2-7315-bfca-96c7324d4347'),
-  ('Rate ratio', '01a0d8a5-3ca2-7315-bfca-96d34a17c74b')
+  ('Months life lost', '01a0d8a5-3ca2-7315-bfca-96c7324d4347'),
+  ('Rate ratio', '01a0d8a5-3ca2-7315-bfca-96d34a17c74b'),
+  ('Indirectly standardised rate', '01a0d8a5-3ca2-7315-bfca-96cc2dc711c3'),
+  -- Pholio's placeholder for the value type the Fingertips API gives id 21, Gap.
+  ('Unknown value type 21', '01a0d8a5-3ca2-7315-bfca-96cb03846bff')
 ) AS m(name, value_type_id) ON t.name = 'Fingertips: ' || m.name
 WHERE t.id = v.value_type_id;--> statement-breakpoint
 -- published.unit selected every column, so it goes while two of them are dropped.
@@ -50,6 +57,31 @@ DROP VIEW published.unit;--> statement-breakpoint
 ALTER TABLE "unit" DROP COLUMN "label";--> statement-breakpoint
 ALTER TABLE "unit" DROP COLUMN "multiplier";--> statement-breakpoint
 UPDATE "unit" SET "name" = 'Fingertips: ' || "name";--> statement-breakpoint
+-- Pholio's placeholders for units the Fingertips API names take the name of Pholio's unit with
+-- the label and multiplier the API gives their id.
+UPDATE "unit" u
+SET "name" = 'Fingertips: ' || m.name
+FROM (VALUES
+  ('Unknown unit 54', 'admissions'),
+  ('Unknown unit 56', '£'),
+  ('Unknown unit 57', 'per 1,000,000'),
+  ('Unknown unit 58', 'Minutes'),
+  ('Unknown unit 59', 'per 100,000 bed-days'),
+  ('Unknown unit 60', 'per 100'),
+  ('Unknown unit 61', 'litres per adult'),
+  ('Unknown unit 63', 'µg/m-3 (micrograms per cubic meter)'),
+  ('Unknown unit 65', 'per 100 procedures'),
+  ('Unknown unit 66', 'Score'),
+  ('Unknown unit 67', 'Count'),
+  ('Unknown unit 68', 'Percentage points'),
+  ('Unknown unit 71', 'per 1,000, per day '),
+  ('Unknown unit 72', 'per 100,000 smoking population aged 18+'),
+  ('Unknown unit 73', 'per re-offender'),
+  ('Unknown unit 74', 'per 1,000,000,000 vehicle miles'),
+  ('Unknown unit 75', 'Persons per km2'),
+  ('Unknown unit 76', 'Centimetre')
+) AS m(placeholder, name)
+WHERE u.name = 'Fingertips: ' || m.placeholder;--> statement-breakpoint
 INSERT INTO "unit" ("id", "name") VALUES
   ('01a0d8a5-3ca2-7315-bfca-96d615820bd4', '%'),
   ('01a0d8a5-3ca2-7315-bfca-96d787920e40', 'per 100'),

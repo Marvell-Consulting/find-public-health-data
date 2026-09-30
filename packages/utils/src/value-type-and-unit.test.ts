@@ -22,6 +22,7 @@ describe('standardisationOf', () => {
     [VALUE_TYPES.indirectlyStandardisedProportion, 'indirect'],
     [VALUE_TYPES.indirectlyStandardisedRatio, 'indirect'],
     [VALUE_TYPES.crudeRate, null],
+    [VALUE_TYPES.relativeIndexOfInequality, null],
   ])('reads $name as $1', ({ id }, standardisation) => {
     expect(standardisationOf(id)).toBe(standardisation);
   });

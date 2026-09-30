@@ -22,6 +22,10 @@ export const VALUE_TYPES = {
   percentagePoint: { id: '01a0d8a5-3ca2-7315-bfca-96d1b508d83f', name: 'Percentage point' },
   proportion: { id: '01a0d8a5-3ca2-7315-bfca-96d2031a65e7', name: 'Proportion' },
   ratio: { id: '01a0d8a5-3ca2-7315-bfca-96d34a17c74b', name: 'Ratio' },
+  relativeIndexOfInequality: {
+    id: '01a0f31b-a23f-749d-a9ea-68b179920ab3',
+    name: 'Relative index of inequality',
+  },
   score: { id: '01a0d8a5-3ca2-7315-bfca-96d4cc7f7bcb', name: 'Score' },
   slopeIndexOfInequality: {
     id: '01a0d8a5-3ca2-7315-bfca-96d54168d21f',

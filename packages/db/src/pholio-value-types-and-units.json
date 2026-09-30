@@ -1,0 +1,469 @@
+{
+  "valueTypes": [
+    { "name": "Count", "service": "Count" },
+    { "name": "Crude rate", "service": "Crude rate" },
+    { "name": "Directly standardised rate", "service": "Directly standardised rate" },
+    { "name": "Excess risk", "service": "Excess risk" },
+    { "name": "Gap", "service": "Gap" },
+    {
+      "name": "Indirectly standardised proportion",
+      "service": "Indirectly standardised proportion"
+    },
+    { "name": "Indirectly standardised rate", "service": "Indirectly standardised proportion" },
+    { "name": "Indirectly standardised ratio", "service": "Indirectly standardised ratio" },
+    { "name": "Life expectancy", "service": "Life expectancy" },
+    { "name": "Mean", "service": "Mean" },
+    { "name": "Median", "service": "Median" },
+    { "name": "Months life lost", "service": "Count" },
+    { "name": "Number", "service": "Count" },
+    { "name": "Percentage point", "service": "Percentage point" },
+    { "name": "Proportion", "service": "Proportion" },
+    { "name": "Rate ratio", "service": "Ratio" },
+    { "name": "Ratio", "service": "Ratio" },
+    { "name": "Relative Index of Inequality", "service": "Relative index of inequality" },
+    { "name": "Score", "service": "Score" },
+    { "name": "Slope Index of Inequality", "service": "Slope index of inequality" },
+    {
+      "name": "Unknown value type 21",
+      "fingertipsApi": { "id": 21, "name": "Gap" },
+      "service": "Gap"
+    }
+  ],
+  "units": [
+    {
+      "name": "per 1,000",
+      "label": "per 1,000",
+      "multiplier": 1000,
+      "service": "per 1,000",
+      "other": null
+    },
+    {
+      "name": "per 10,000",
+      "label": "per 10,000",
+      "multiplier": 10000,
+      "service": "per 10,000",
+      "other": null
+    },
+    {
+      "name": "per 100,000",
+      "label": "per 100,000",
+      "multiplier": 100000,
+      "service": "per 100,000",
+      "other": null
+    },
+    { "name": "Kg/m2", "label": "kg/m2", "multiplier": 1, "service": "Other", "other": "Kg/m2" },
+    { "name": "Percent", "label": "%", "multiplier": 100, "service": "%", "other": null },
+    {
+      "name": "per 1,000 bed-days",
+      "label": "per 1,000 bed-days",
+      "multiplier": 1000,
+      "service": "Other",
+      "other": "per 1,000 bed-days"
+    },
+    { "name": "Days", "label": "Days", "multiplier": 1, "service": "days", "other": null },
+    {
+      "name": "per 100 women aged 15-17",
+      "label": "per 100 women aged 15-17",
+      "multiplier": 100,
+      "service": "Other",
+      "other": "per 100 women aged 15-17"
+    },
+    {
+      "name": "Average daily quantity",
+      "label": "Average daily quantity",
+      "multiplier": 1,
+      "service": "Other",
+      "other": "Average daily quantity"
+    },
+    {
+      "name": "Number of items prescribed",
+      "label": "Number of items prescribed",
+      "multiplier": 1,
+      "service": "Other",
+      "other": "Number of items prescribed"
+    },
+    { "name": "Years", "label": "Years", "multiplier": 1, "service": "years", "other": null },
+    {
+      "name": "per 1,000 births",
+      "label": "per 1,000 births",
+      "multiplier": 1000,
+      "service": "Other",
+      "other": "per 1,000 births"
+    },
+    {
+      "name": "per 10,000 bed-days",
+      "label": "per 10,000 bed-days",
+      "multiplier": 10000,
+      "service": "Other",
+      "other": "per 10,000 bed-days"
+    },
+    {
+      "name": "per 100,000 aged 16+",
+      "label": "per 100,000 16+",
+      "multiplier": 100000,
+      "service": "Other",
+      "other": "per 100,000 aged 16+"
+    },
+    {
+      "name": "per 1,000 aged 65+",
+      "label": "per 1,000 65+",
+      "multiplier": 1000,
+      "service": "Other",
+      "other": "per 1,000 aged 65+"
+    },
+    {
+      "name": "per 100,000 aged 65+",
+      "label": "per 100,000 65+",
+      "multiplier": 100000,
+      "service": "Other",
+      "other": "per 100,000 aged 65+"
+    },
+    {
+      "name": "per 10,000 aged 65+",
+      "label": "per 10,000 65+",
+      "multiplier": 10000,
+      "service": "Other",
+      "other": "per 10,000 aged 65+"
+    },
+    { "name": "1,000", "label": "1,000", "multiplier": 1000, "service": "Other", "other": "1,000" },
+    { "name": "No unit", "label": "No unit", "multiplier": 1, "service": "No unit", "other": null },
+    {
+      "name": "per STAR-PU",
+      "label": "per STAR-PU",
+      "multiplier": 1,
+      "service": "Other",
+      "other": "per STAR-PU"
+    },
+    {
+      "name": "average daily quantity per STAR-PU",
+      "label": "ADQ per STAR-PU",
+      "multiplier": 1,
+      "service": "Other",
+      "other": "average daily quantity per STAR-PU"
+    },
+    {
+      "name": "tonnes CO2e per 1000 population",
+      "label": "tonnes CO2e per 1000 pop'n",
+      "multiplier": 1000,
+      "service": "Other",
+      "other": "tonnes CO2e per 1000 population"
+    },
+    {
+      "name": "per 1,000 live births",
+      "label": "per 1,000 live births",
+      "multiplier": 1000,
+      "service": "Other",
+      "other": "per 1,000 live births"
+    },
+    {
+      "name": "mean dmft per child",
+      "label": "mean dmft per child",
+      "multiplier": 1,
+      "service": "Other",
+      "other": "mean dmft per child"
+    },
+    {
+      "name": "£1,000,000 per 100,000",
+      "label": "£M per 100,000",
+      "multiplier": 100000,
+      "service": "Other",
+      "other": "£1,000,000 per 100,000"
+    },
+    {
+      "name": "per offender",
+      "label": "per offender",
+      "multiplier": 1,
+      "service": "Other",
+      "other": "per offender"
+    },
+    {
+      "name": "£ per capita",
+      "label": "£ per capita",
+      "multiplier": 1,
+      "service": "£ per capita",
+      "other": null
+    },
+    {
+      "name": "per 100,000 aged 35+",
+      "label": "per 100,000 aged 35+",
+      "multiplier": 100000,
+      "service": "Other",
+      "other": "per 100,000 aged 35+"
+    },
+    {
+      "name": "per 100,000 smoking population aged 16+",
+      "label": "per 100,000 smokers aged 16+",
+      "multiplier": 100000,
+      "service": "Other",
+      "other": "per 100,000 smoking population aged 16+"
+    },
+    {
+      "name": "population",
+      "label": "population",
+      "multiplier": 1,
+      "service": "Other",
+      "other": "population"
+    },
+    {
+      "name": "admissions",
+      "label": "admissions",
+      "multiplier": 1,
+      "service": "Other",
+      "other": "admissions"
+    },
+    {
+      "name": "discharges",
+      "label": "discharges",
+      "multiplier": 1,
+      "service": "Other",
+      "other": "discharges"
+    },
+    { "name": "£", "label": "£", "multiplier": 1, "service": "£", "other": null },
+    {
+      "name": "per 1,000,000",
+      "label": "per 1,000,000",
+      "multiplier": 1000000,
+      "service": "per 1,000,000",
+      "other": null
+    },
+    { "name": "Minutes", "label": "min", "multiplier": 1, "service": "minutes", "other": null },
+    {
+      "name": "per 100,000 bed-days",
+      "label": "per 100,000 bed-days",
+      "multiplier": 100000,
+      "service": "Other",
+      "other": "per 100,000 bed-days"
+    },
+    {
+      "name": "per 100",
+      "label": "per 100",
+      "multiplier": 100,
+      "service": "per 100",
+      "other": null
+    },
+    {
+      "name": "litres per adult",
+      "label": "l/adult",
+      "multiplier": 1,
+      "service": "Other",
+      "other": "litres per adult"
+    },
+    {
+      "name": "µg/m-3 (micrograms per cubic meter)",
+      "label": "µg/m3",
+      "multiplier": 1,
+      "service": "Other",
+      "other": "µg/m-3 (micrograms per cubic meter)"
+    },
+    {
+      "name": "£ per 100,000",
+      "label": "£",
+      "multiplier": 100000,
+      "service": "Other",
+      "other": "£ per 100,000"
+    },
+    {
+      "name": "per 100 procedures",
+      "label": "per 100 procedures",
+      "multiplier": 100,
+      "service": "Other",
+      "other": "per 100 procedures"
+    },
+    { "name": "Score", "label": "Score", "multiplier": 1, "service": "Other", "other": "Score" },
+    { "name": "Count", "label": "Count", "multiplier": 1, "service": "Other", "other": "Count" },
+    {
+      "name": "Percentage points",
+      "label": "Percentage points",
+      "multiplier": 100,
+      "service": "Other",
+      "other": "Percentage points"
+    },
+    { "name": "Cases", "label": "Cases", "multiplier": 1, "service": "Other", "other": "Cases" },
+    {
+      "name": "per 1,000, per day ",
+      "label": "per 1,000/day",
+      "multiplier": 2.737850787,
+      "service": "Other",
+      "other": "per 1,000, per day"
+    },
+    {
+      "name": "per 100,000 smoking population aged 18+",
+      "label": "per 100,000 smokers aged 18+",
+      "multiplier": 100000,
+      "service": "Other",
+      "other": "per 100,000 smoking population aged 18+"
+    },
+    {
+      "name": "per re-offender",
+      "label": "per re-offender",
+      "multiplier": 1,
+      "service": "Other",
+      "other": "per re-offender"
+    },
+    {
+      "name": "per 1,000,000,000 vehicle miles",
+      "label": "per billion vehicle miles",
+      "multiplier": 1000000000,
+      "service": "Other",
+      "other": "per 1,000,000,000 vehicle miles"
+    },
+    {
+      "name": "Persons per km2",
+      "label": "persons/km2",
+      "multiplier": 1,
+      "service": "Other",
+      "other": "Persons per km2"
+    },
+    {
+      "name": "Centimetre",
+      "label": "cm",
+      "multiplier": 1,
+      "service": "Other",
+      "other": "Centimetre"
+    },
+    {
+      "name": "Unknown unit 54",
+      "label": "Unknown",
+      "multiplier": 1,
+      "fingertipsApi": { "id": 54, "label": "admissions", "multiplier": 1 },
+      "service": "Other",
+      "other": "admissions"
+    },
+    {
+      "name": "Unknown unit 56",
+      "label": "Unknown",
+      "multiplier": 1,
+      "fingertipsApi": { "id": 56, "label": "£", "multiplier": 1 },
+      "service": "£",
+      "other": null
+    },
+    {
+      "name": "Unknown unit 57",
+      "label": "Unknown",
+      "multiplier": 1,
+      "fingertipsApi": { "id": 57, "label": "per 1,000,000", "multiplier": 1000000 },
+      "service": "per 1,000,000",
+      "other": null
+    },
+    {
+      "name": "Unknown unit 58",
+      "label": "Unknown",
+      "multiplier": 1,
+      "fingertipsApi": { "id": 58, "label": "min", "multiplier": 1 },
+      "service": "minutes",
+      "other": null
+    },
+    {
+      "name": "Unknown unit 59",
+      "label": "Unknown",
+      "multiplier": 1,
+      "fingertipsApi": { "id": 59, "label": "per 100,000 bed-days", "multiplier": 100000 },
+      "service": "Other",
+      "other": "per 100,000 bed-days"
+    },
+    {
+      "name": "Unknown unit 60",
+      "label": "Unknown",
+      "multiplier": 1,
+      "fingertipsApi": { "id": 60, "label": "per 100", "multiplier": 100 },
+      "service": "per 100",
+      "other": null
+    },
+    {
+      "name": "Unknown unit 61",
+      "label": "Unknown",
+      "multiplier": 1,
+      "fingertipsApi": { "id": 61, "label": "l/adult", "multiplier": 1 },
+      "service": "Other",
+      "other": "litres per adult"
+    },
+    {
+      "name": "Unknown unit 63",
+      "label": "Unknown",
+      "multiplier": 1,
+      "fingertipsApi": { "id": 63, "label": "µg/m3", "multiplier": 1 },
+      "service": "Other",
+      "other": "µg/m-3 (micrograms per cubic meter)"
+    },
+    {
+      "name": "Unknown unit 65",
+      "label": "Unknown",
+      "multiplier": 1,
+      "fingertipsApi": { "id": 65, "label": "per 100 procedures", "multiplier": 100 },
+      "service": "Other",
+      "other": "per 100 procedures"
+    },
+    {
+      "name": "Unknown unit 66",
+      "label": "Unknown",
+      "multiplier": 1,
+      "fingertipsApi": { "id": 66, "label": "Score", "multiplier": 1 },
+      "service": "Other",
+      "other": "Score"
+    },
+    {
+      "name": "Unknown unit 67",
+      "label": "Unknown",
+      "multiplier": 1,
+      "fingertipsApi": { "id": 67, "label": "Count", "multiplier": 1 },
+      "service": "Other",
+      "other": "Count"
+    },
+    {
+      "name": "Unknown unit 68",
+      "label": "Unknown",
+      "multiplier": 1,
+      "fingertipsApi": { "id": 68, "label": "Percentage points", "multiplier": 100 },
+      "service": "Other",
+      "other": "Percentage points"
+    },
+    {
+      "name": "Unknown unit 71",
+      "label": "Unknown",
+      "multiplier": 1,
+      "fingertipsApi": { "id": 71, "label": "per 1,000/day", "multiplier": 2.737850787 },
+      "service": "Other",
+      "other": "per 1,000, per day"
+    },
+    {
+      "name": "Unknown unit 72",
+      "label": "Unknown",
+      "multiplier": 1,
+      "fingertipsApi": { "id": 72, "label": "per 100,000 smokers aged 18+", "multiplier": 100000 },
+      "service": "Other",
+      "other": "per 100,000 smoking population aged 18+"
+    },
+    {
+      "name": "Unknown unit 73",
+      "label": "Unknown",
+      "multiplier": 1,
+      "fingertipsApi": { "id": 73, "label": "per re-offender", "multiplier": 1 },
+      "service": "Other",
+      "other": "per re-offender"
+    },
+    {
+      "name": "Unknown unit 74",
+      "label": "Unknown",
+      "multiplier": 1,
+      "fingertipsApi": { "id": 74, "label": "per billion vehicle miles", "multiplier": 1000000000 },
+      "service": "Other",
+      "other": "per 1,000,000,000 vehicle miles"
+    },
+    {
+      "name": "Unknown unit 75",
+      "label": "Unknown",
+      "multiplier": 1,
+      "fingertipsApi": { "id": 75, "label": "persons/km2", "multiplier": 1 },
+      "service": "Other",
+      "other": "Persons per km2"
+    },
+    {
+      "name": "Unknown unit 76",
+      "label": "Unknown",
+      "multiplier": 1,
+      "fingertipsApi": { "id": 76, "label": "cm", "multiplier": 1 },
+      "service": "Other",
+      "other": "Centimetre"
+    }
+  ]
+}
