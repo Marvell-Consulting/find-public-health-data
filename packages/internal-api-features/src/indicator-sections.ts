@@ -1,7 +1,7 @@
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { z } from '@fphd/config/zod';
 import { isYearType } from '@fphd/utils/period-type';
-import { standardisationOf, UNITS } from '@fphd/utils/value-type-and-unit';
+import { standardisationOf, UNIT_IDS } from '@fphd/utils/value-type-and-unit';
 import { Router } from 'express';
 
 import {
@@ -50,6 +50,8 @@ import {
   publishingDateSection,
   REAL_PUBLISHING_TIME,
   SELECT_CI_METHOD,
+  SELECT_UNITS,
+  SELECT_VALUE_TYPE,
   type SexAndAges,
   type SexAndAgesAnswers,
   type SexAndAgesField,
@@ -90,6 +92,7 @@ import type {
   InternalIndicatorRepository,
   InternalRepositories,
   InternalTagRepository,
+  InternalValueTypeAndUnitRepository,
 } from './repositories.ts';
 
 export const definitionAndRationaleColumns = sameNamedColumns(definitionAndRationaleSection.fields);
@@ -143,7 +146,7 @@ export const valueTypeAndUnitsColumns: IndicatorSectionColumns<
             ? answers.referencePopulation
             : null,
       unitId: answers.unitId,
-      unitOther: answers.unitId === UNITS.other.id ? answers.unitOther : null,
+      unitOther: answers.unitId === UNIT_IDS.other ? answers.unitOther : null,
     };
   },
 };
@@ -413,6 +416,31 @@ export function confidenceIntervalsServerSection(
   };
 }
 
+/** The form's schema, then that the value type and unit are ones the page offers. */
+export function valueTypeAndUnitsServerSection(
+  valueTypesAndUnits: InternalValueTypeAndUnitRepository,
+): IndicatorSection<ValueTypeAndUnitsField, ValueTypeAndUnits> {
+  return {
+    ...valueTypeAndUnitsSection,
+    schema: valueTypeAndUnitsSection.schema.transform(async (answers, ctx) => {
+      const { valueTypes, units } = await valueTypesAndUnits.listOptions();
+      const offers = (options: { id: string }[], id: string) => options.some((o) => o.id === id);
+      let refused = false;
+
+      if (!offers(valueTypes, answers.valueTypeId)) {
+        ctx.addIssue({ code: 'custom', path: ['valueTypeId'], message: SELECT_VALUE_TYPE });
+        refused = true;
+      }
+      if (!offers(units, answers.unitId)) {
+        ctx.addIssue({ code: 'custom', path: ['unitId'], message: SELECT_UNITS });
+        refused = true;
+      }
+
+      return refused ? z.NEVER : answers;
+    }),
+  };
+}
+
 /** The publishing date as an instant: ISO 8601 with the UK offset in force on that date. */
 type PublishingDateWithInstant = PublishingDate & { scheduledPublishAt: string };
 
@@ -530,7 +558,11 @@ export function indicatorSectionsRouter(
     ciMethods,
     tags,
     dataProviders,
-  }: Pick<InternalRepositories, 'indicators' | 'ciMethods' | 'tags' | 'dataProviders'>,
+    valueTypesAndUnits,
+  }: Pick<
+    InternalRepositories,
+    'indicators' | 'ciMethods' | 'tags' | 'dataProviders' | 'valueTypesAndUnits'
+  >,
   session: JwtSessionVerifier,
   now: () => Date = () => new Date(),
 ): Router {
@@ -564,7 +596,12 @@ export function indicatorSectionsRouter(
     ),
     indicatorSectionRouter(indicators, session, updateFrequencySection, updateFrequencyColumns),
     indicatorSectionRouter(indicators, session, periodTypeSection, periodTypeColumns),
-    indicatorSectionRouter(indicators, session, valueTypeAndUnitsSection, valueTypeAndUnitsColumns),
+    indicatorSectionRouter(
+      indicators,
+      session,
+      valueTypeAndUnitsServerSection(valueTypesAndUnits),
+      valueTypeAndUnitsColumns,
+    ),
     indicatorSectionRouter(
       indicators,
       session,

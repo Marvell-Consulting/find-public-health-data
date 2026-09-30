@@ -1,4 +1,4 @@
-import { UNITS, VALUE_TYPES } from '@fphd/utils/value-type-and-unit';
+import { UNIT_IDS, VALUE_TYPE_IDS } from '@fphd/utils/value-type-and-unit';
 import { describe, expect, it } from 'vitest';
 
 import { indicatorTaskListSchema } from './contract.ts';
@@ -112,10 +112,10 @@ const complete: IndicatorTaskListDraft = {
   yearType: 'specified-end-date',
   yearEndDay: 31,
   yearEndMonth: 7,
-  valueTypeId: VALUE_TYPES.directlyStandardisedRate.id,
+  valueTypeId: VALUE_TYPE_IDS.directlyStandardisedRate,
   standardPopulation: 'esp-2013',
   standardPopulationDetail: null,
-  unitId: UNITS.per100000.id,
+  unitId: '01a0d8a5-3ca2-7315-bfca-96daa0c93ee9',
   unitOther: null,
   disclosureControl: 'not-applicable',
   disclosureControlDetail: null,
@@ -271,7 +271,10 @@ describe('indicatorTaskList', () => {
     ['nothing', {}, 'not_started'],
     [
       'a value type and unit that ask nothing more',
-      { valueTypeId: VALUE_TYPES.proportion.id, unitId: UNITS.percent.id },
+      {
+        valueTypeId: '01a0d8a5-3ca2-7315-bfca-96d2031a65e7',
+        unitId: '01a0d8a5-3ca2-7315-bfca-96d615820bd4',
+      },
       'completed',
     ],
     [
@@ -290,15 +293,19 @@ describe('indicatorTaskList', () => {
     ],
     [
       'an indirectly standardised ratio without its reference population',
-      { valueTypeId: VALUE_TYPES.indirectlyStandardisedRatio.id, unitId: complete.unitId },
+      { valueTypeId: VALUE_TYPE_IDS.indirectlyStandardisedRatio, unitId: complete.unitId },
       'not_started',
     ],
     [
       'an other unit with its name',
-      { valueTypeId: VALUE_TYPES.count.id, unitId: UNITS.other.id, unitOther: 'people' },
+      {
+        valueTypeId: '01a0d8a5-3ca2-7315-bfca-96c7324d4347',
+        unitId: UNIT_IDS.other,
+        unitOther: 'people',
+      },
       'completed',
     ],
-    ['a value type alone', { valueTypeId: VALUE_TYPES.count.id }, 'not_started'],
+    ['a value type alone', { valueTypeId: '01a0d8a5-3ca2-7315-bfca-96c7324d4347' }, 'not_started'],
   ] as const)('judges the value type and units with %s', (_, draft, status) => {
     expect(indicatorTaskList(withDraft(draft)).tasks['value-type-and-units']).toBe(status);
   });

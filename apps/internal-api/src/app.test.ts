@@ -165,6 +165,7 @@ describe('internal API', () => {
     '/api/internal/ci-methods',
     '/api/internal/tags',
     '/api/internal/data-providers',
+    '/api/internal/value-types-and-units',
     ...indicatorTaskKeySchema.options
       .filter((key) => key !== 'name')
       .map((key) => `/api/internal/indicators/00000000-0000-7000-8000-000000000001/${key}`),
@@ -185,6 +186,7 @@ describe('internal API', () => {
         }),
       },
       dataProviders: { list: async () => [] },
+      valueTypesAndUnits: { listOptions: async () => ({ valueTypes: [], units: [] }) },
     });
     const app = createTestApp(createFakeRepositories(), internalRepositories);
 

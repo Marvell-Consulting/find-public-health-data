@@ -14,7 +14,8 @@ the first migration: the grant migrations reference the roles.
 
 ```
 data/                 Core content (topics.json, ci-methods.json, classifications.json,
-                      data-providers.json), the map from Fingertips' numerator and
+                      data-providers.json, value-types.json, units.json,
+                      comparator-methods.json), the map from Fingertips' numerator and
                       denominator sources onto it, the dummy indicator relationship files
                       and the committed seed (seed/)
 drizzle/              Generated migrations + drizzle-kit metadata — never edit applied ones
@@ -30,7 +31,8 @@ src/
   env.ts              dbEnvFields — shared connection env fragment
   read-models.ts      rebuildReadModels — repopulates the cache.ts tables from canonical data
   core-data.ts        importCoreData — loads the required core content (topics, CI methods,
-                      classifications, data providers)
+                      classifications, data providers, value types, units, comparator
+                      methods)
   legacy-sources.ts   Maps Fingertips' numerator and denominator sources onto the providers
   seeding.ts          seedDummyTables — loads data/seed and the indicator relationships
   reset.ts            resetDatabase — drops all application schema objects
@@ -110,7 +112,7 @@ taken. `@fphd/internal-api-features` reads the tables directly, every status.
 ## Core data import
 
 ```sh
-pnpm db:import-core-data         # imports topics, CI methods, classifications and data providers from data/
+pnpm db:import-core-data         # imports topics, classifications and the lists a publisher chooses from
 ```
 
 Upserts matched on `id`: a rename — even one that changes the slug — updates the row in
@@ -120,10 +122,18 @@ untouched), so the import is safe to run repeatedly, in any environment.
 
 Lookups a publisher chooses from are core data under the service's own names, with fixed
 ids, so every environment holds the same rows and the seed's relationship files can name
-them by id. The seed and the published snapshot still carry Pholio's `ci_method.csv.gz`,
-but neither loads it: `seeding.ts` reads it only to point each version at the core method
-of the same name, through a short map of the names Pholio spells differently, and stops at
-a method with no core counterpart.
+them by id: the CI methods, data providers, value types, units and comparator methods. No
+new migration inserts a row of any of them. The value type and unit rows migration 0035
+inserted carry the ids the files hold, and 0037 re-keys each comparator method a database
+already held to the id `comparator-methods.json` gives its name, deleting those the file
+lacks and stopping if a version names one of them. `value-types.json` and `units.json` list their rows
+in the order the publisher's form shows them, which the import stores as each row's
+`position`; code that behaves differently for a row keys it on the row's fixed id, kept as a
+constant in `@fphd/utils/value-type-and-unit`. The seed and the published snapshot still
+carry Pholio's `ci_method.csv.gz` and `comparator_method.csv.gz`, but neither loads them:
+`seeding.ts` reads them only to point each version at the core row of the same name,
+through a short map of the CI method names Pholio spells differently, and stops at a row
+with no core counterpart.
 
 `data-providers.json` holds the providers a numerator's or denominator's data comes from,
 each with its named sources; a publisher may also choose a provider with no specific source.

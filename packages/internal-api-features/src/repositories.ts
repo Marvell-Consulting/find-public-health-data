@@ -1,7 +1,7 @@
 import { type Database, listTopics, type Topic } from '@fphd/db';
 
 import { type CiMethodRow, getCiMethodById, listCiMethods } from './ci-method-repository.ts';
-import type { TagOptions } from './contract.ts';
+import type { TagOptions, ValueTypeAndUnitOptions } from './contract.ts';
 import { type DataProviderRow, listDataProviders } from './data-provider-repository.ts';
 import {
   type CreateDraftFromPublishedResult,
@@ -33,6 +33,7 @@ import {
   type UpdateTopicResult,
   updateTopic,
 } from './topic-repository.ts';
+import { listValueTypeAndUnitOptions } from './value-type-and-unit-repository.ts';
 
 /** The publisher's topic surface: the public listing plus the writes only `internal_api` makes. */
 export interface InternalTopicRepository {
@@ -81,6 +82,11 @@ export interface InternalDataProviderRepository {
   list(): Promise<DataProviderRow[]>;
 }
 
+/** The value types and units a publisher chooses from. */
+export interface InternalValueTypeAndUnitRepository {
+  listOptions(): Promise<ValueTypeAndUnitOptions>;
+}
+
 /**
  * Everything the internal-only routes read and write, mirroring `Repositories` in `@fphd/db`.
  * Queries live here so the artefact-boundary check keeps them out of the public image.
@@ -91,6 +97,7 @@ export interface InternalRepositories {
   indicators: InternalIndicatorRepository;
   tags: InternalTagRepository;
   topics: InternalTopicRepository;
+  valueTypesAndUnits: InternalValueTypeAndUnitRepository;
 }
 
 export function createInternalRepositories(db: Database): InternalRepositories {
@@ -121,6 +128,9 @@ export function createInternalRepositories(db: Database): InternalRepositories {
       create: (values) => createTopic(db, values),
       update: (id, values) => updateTopic(db, id, values),
       delete: (id) => deleteTopic(db, id),
+    },
+    valueTypesAndUnits: {
+      listOptions: () => listValueTypeAndUnitOptions(db),
     },
   };
 }

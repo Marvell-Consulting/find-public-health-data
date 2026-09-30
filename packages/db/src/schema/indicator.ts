@@ -11,9 +11,9 @@ import { UPDATE_FREQUENCIES } from '@fphd/utils/update-frequency';
 import {
   INDIRECTLY_STANDARDISED_VALUE_TYPE_IDS,
   STANDARD_POPULATIONS,
+  UNIT_IDS,
   UNIT_OTHER_MAX_LENGTH,
-  UNITS,
-  VALUE_TYPES,
+  VALUE_TYPE_IDS,
 } from '@fphd/utils/value-type-and-unit';
 import { asc, desc, eq, type SQL, sql } from 'drizzle-orm';
 import {
@@ -209,7 +209,7 @@ export const indicatorVersion = pgTable(
     ),
     check(
       'indicator_version_standard_population_value_type_check',
-      sql`${t.standardPopulation} IS NULL OR ${t.valueTypeId} = ${literals([VALUE_TYPES.directlyStandardisedRate.id])}`,
+      sql`${t.standardPopulation} IS NULL OR ${t.valueTypeId} = ${literals([VALUE_TYPE_IDS.directlyStandardisedRate])}`,
     ),
     // Beside an other standard population, or an indirectly standardised value type, alone.
     check(
@@ -222,7 +222,7 @@ export const indicatorVersion = pgTable(
     ),
     check(
       'indicator_version_unit_other_check',
-      sql`(${t.unitOther} IS NOT NULL) = (${t.unitId} IS NOT DISTINCT FROM ${literals([UNITS.other.id])})`,
+      sql`(${t.unitOther} IS NOT NULL) = (${t.unitId} IS NOT DISTINCT FROM ${literals([UNIT_IDS.other])})`,
     ),
     check(
       'indicator_version_unit_other_length_check',

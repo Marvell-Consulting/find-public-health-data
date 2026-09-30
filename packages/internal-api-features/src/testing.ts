@@ -24,6 +24,7 @@ export function createFakeInternalRepositories(
     indicators: withThrowingDefaults('indicators', overrides.indicators),
     tags: withThrowingDefaults('tags', overrides.tags),
     topics: withThrowingDefaults('topics', overrides.topics),
+    valueTypesAndUnits: withThrowingDefaults('valueTypesAndUnits', overrides.valueTypesAndUnits),
   };
 }
 

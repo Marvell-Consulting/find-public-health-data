@@ -1,4 +1,4 @@
-import { UNITS, VALUE_TYPES } from '@fphd/utils/value-type-and-unit';
+import { UNIT_IDS, VALUE_TYPE_IDS } from '@fphd/utils/value-type-and-unit';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -8,7 +8,7 @@ import {
 } from './indicator-value-type-and-units-contract.ts';
 import { sectionFieldErrors } from './testing.ts';
 
-const DSR = VALUE_TYPES.directlyStandardisedRate.id;
+const DSR = VALUE_TYPE_IDS.directlyStandardisedRate;
 
 const empty = {
   valueTypeId: '',
@@ -27,7 +27,7 @@ describe('valueTypeAndUnitsSection', () => {
         valueTypeId: DSR,
         standardPopulation: 'other',
         standardPopulationOther: ' England 2021\n',
-        unitId: UNITS.other.id,
+        unitId: UNIT_IDS.other,
         unitOther: '\tpeople ',
       }),
     ).toEqual({
@@ -35,14 +35,22 @@ describe('valueTypeAndUnitsSection', () => {
       valueTypeId: DSR,
       standardPopulation: 'other',
       standardPopulationOther: 'England 2021',
-      unitId: UNITS.other.id,
+      unitId: UNIT_IDS.other,
       unitOther: 'people',
     });
   });
 
   it.each([
-    ['a value type and unit that ask nothing more', VALUE_TYPES.count.id, UNITS.noUnit.id],
-    ['a unit in the list beside any value type', VALUE_TYPES.proportion.id, UNITS.percent.id],
+    [
+      'a value type and unit that ask nothing more',
+      '01a0d8a5-3ca2-7315-bfca-96c7324d4347',
+      UNIT_IDS.noUnit,
+    ],
+    [
+      'a unit in the list beside any value type',
+      '01a0d8a5-3ca2-7315-bfca-96d2031a65e7',
+      '01a0d8a5-3ca2-7315-bfca-96d615820bd4',
+    ],
   ])('accepts %s', (_, valueTypeId, unitId) => {
     expect(sectionFieldErrors(section, { ...empty, valueTypeId, unitId })).toBeUndefined();
   });
@@ -53,7 +61,7 @@ describe('valueTypeAndUnitsSection', () => {
         ...empty,
         valueTypeId: DSR,
         standardPopulation: 'esp-2013',
-        unitId: UNITS.per100000.id,
+        unitId: '01a0d8a5-3ca2-7315-bfca-96daa0c93ee9',
       }),
     ).toBeUndefined();
   });
@@ -62,9 +70,9 @@ describe('valueTypeAndUnitsSection', () => {
     expect(
       sectionFieldErrors(section, {
         ...empty,
-        valueTypeId: VALUE_TYPES.crudeRate.id,
+        valueTypeId: '01a0d8a5-3ca2-7315-bfca-96c8c77cad18',
         standardPopulation: 'other',
-        unitId: UNITS.per1000.id,
+        unitId: '01a0d8a5-3ca2-7315-bfca-96d8d8d7aec2',
         unitOther: 'x'.repeat(101),
       }),
     ).toBeUndefined();
@@ -90,34 +98,39 @@ describe('valueTypeAndUnitsSection', () => {
       'an indirectly standardised value type with no reference population',
       {
         ...empty,
-        valueTypeId: VALUE_TYPES.indirectlyStandardisedProportion.id,
-        unitId: UNITS.percent.id,
+        valueTypeId: VALUE_TYPE_IDS.indirectlyStandardisedProportion,
+        unitId: '01a0d8a5-3ca2-7315-bfca-96d615820bd4',
       },
       { referencePopulation: ENTER_POPULATION },
     ],
     [
       'an other unit it does not name, beside no value type',
-      { ...empty, unitId: UNITS.other.id },
+      { ...empty, unitId: UNIT_IDS.other },
       { valueTypeId: 'Select the value type', unitOther: 'Enter the unit' },
     ],
     [
       'an other unit over 100 characters',
       {
         ...empty,
-        valueTypeId: VALUE_TYPES.count.id,
-        unitId: UNITS.other.id,
+        valueTypeId: '01a0d8a5-3ca2-7315-bfca-96c7324d4347',
+        unitId: UNIT_IDS.other,
         unitOther: 'x'.repeat(101),
       },
       { unitOther: 'Unit must be 100 characters or fewer' },
     ],
     [
-      'a value type and unit it does not offer',
-      { ...empty, valueTypeId: '00000000-0000-7000-8000-000000000999', unitId: 'per week' },
+      'a value type and unit that are not ids',
+      { ...empty, valueTypeId: 'Crude rate', unitId: 'per week' },
       { valueTypeId: 'Select the value type', unitId: 'Select the units' },
     ],
     [
       'a standard population it does not offer',
-      { ...empty, valueTypeId: DSR, standardPopulation: '1976', unitId: UNITS.per100000.id },
+      {
+        ...empty,
+        valueTypeId: DSR,
+        standardPopulation: '1976',
+        unitId: '01a0d8a5-3ca2-7315-bfca-96daa0c93ee9',
+      },
       { standardPopulation: SELECT_STANDARD_POPULATION },
     ],
   ])('refuses %s', (_, body, fieldErrors) => {
@@ -128,8 +141,8 @@ describe('valueTypeAndUnitsSection', () => {
     expect(
       sectionFieldErrors(section, {
         ...empty,
-        valueTypeId: VALUE_TYPES.count.id,
-        unitId: UNITS.other.id,
+        valueTypeId: '01a0d8a5-3ca2-7315-bfca-96c7324d4347',
+        unitId: UNIT_IDS.other,
         unitOther: 'x'.repeat(100),
       }),
     ).toBeUndefined();

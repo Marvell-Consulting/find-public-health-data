@@ -1,17 +1,22 @@
 import { sql } from 'drizzle-orm';
-import { check, pgTable, text, unique, uuid } from 'drizzle-orm/pg-core';
+import { check, pgTable, smallint, text, unique, uuid } from 'drizzle-orm/pg-core';
 
-import { uuidPrimaryKey } from './helpers.ts';
+import { timestamps, uuidPrimaryKey } from './helpers.ts';
 
-// The rows of these two are the vocabularies in @fphd/utils/value-type-and-unit, inserted by migration.
+/** What an indicator's values are: core data, in the order the publisher's form lists them. */
 export const valueType = pgTable('value_type', {
   id: uuidPrimaryKey(),
   name: text().notNull().unique(),
+  position: smallint().notNull(),
+  ...timestamps,
 });
 
+/** The units of an indicator's values: core data, like the value types. */
 export const unit = pgTable('unit', {
   id: uuidPrimaryKey(),
   name: text().notNull().unique(),
+  position: smallint().notNull(),
+  ...timestamps,
 });
 
 /**
@@ -31,9 +36,11 @@ export const ciMethod = pgTable(
   (t) => [check('ci_method_kind_check', sql`${t.kind} IN ('standard', 'other', 'none')`)],
 );
 
+/** How an area is compared with its benchmark: core data, which no page yet asks for. */
 export const comparatorMethod = pgTable('comparator_method', {
   id: uuidPrimaryKey(),
   name: text().notNull().unique(),
+  ...timestamps,
 });
 
 export const dataSource = pgTable('data_source', {

@@ -32,12 +32,15 @@ snapshot = runpy.run_path(str(Path(__file__).with_name("export-published-snapsho
 PHOLIO = json.loads(
     Path(__file__).parents[3].joinpath("src/pholio-value-types-and-units.json").read_text()
 )
+CORE_VALUE_TYPES = json.loads(Path(__file__).parents[2].joinpath("value-types.json").read_text())
+CORE_UNITS = json.loads(Path(__file__).parents[2].joinpath("units.json").read_text())
 
 
 class ValueTypeIdTest(unittest.TestCase):
     def test_keeps_each_service_value_type(self):
-        for name, id in VALUE_TYPE_IDS.items():
-            self.assertEqual(value_type_id(name), id)
+        for row in CORE_VALUE_TYPES:
+            with self.subTest(name=row["name"]):
+                self.assertEqual(value_type_id(row["name"]), row["id"])
 
     def test_gives_every_pholio_value_type_its_service_value(self):
         for row in PHOLIO["valueTypes"]:
@@ -59,6 +62,12 @@ class ValueTypeIdTest(unittest.TestCase):
 
 
 class UnitValuesTest(unittest.TestCase):
+    def test_gives_each_listed_fingertips_unit_a_row_the_core_data_holds(self):
+        core = {row["name"]: row["id"] for row in CORE_UNITS}
+        for name, service in UNITS.items():
+            with self.subTest(name=name):
+                self.assertEqual(unit_values(name)["unit_id"], core[service])
+
     def test_gives_each_fingertips_unit_in_the_list_its_row(self):
         self.assertEqual(
             {

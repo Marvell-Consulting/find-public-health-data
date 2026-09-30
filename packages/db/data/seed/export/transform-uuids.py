@@ -54,9 +54,8 @@ TAGGED_TABLES = [
 ]
 # Tagged by position in the full list, so a table the export stops carrying moves no id.
 TABLE_TAGS = {table: index + 1 for index, table in enumerate(TAGGED_TABLES)}
-# The polarity and frequency are exported as values rather than references to lookup rows, and
-# the year type, value type and unit as references to the service's own rows, which the
-# migrations insert.
+# The polarity, frequency and year type are exported as values rather than references to lookup
+# rows, and the value type and unit as references to the service's own core data rows.
 PUBLISHED_TABLES = [
     table
     for table in TAGGED_TABLES

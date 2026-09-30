@@ -260,6 +260,13 @@
       "when": 1790794245901,
       "tag": "0036_period-and-year-type-values",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1790794908509,
+      "tag": "0037_value-type-and-unit-core-data",
+      "breakpoints": true
     }
   ]
 }

@@ -249,7 +249,12 @@ const forms: {
     name: 'value type and units',
     route: valueTypeAndUnits,
     pageTitle: 'What are the value type and units used in this indicator?',
-    loaderData: { id: indicator.id, values: valueTypeAndUnitsUnanswered },
+    loaderData: {
+      id: indicator.id,
+      values: valueTypeAndUnitsUnanswered,
+      valueTypes: [],
+      units: [],
+    },
     rejected: {
       values: valueTypeAndUnitsUnanswered,
       fieldErrors: { valueTypeId: 'Select the value type' },

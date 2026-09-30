@@ -109,6 +109,9 @@ describe('importCoreData', () => {
         sources: summary,
         orphaned: [{ id: 'provider-id', name: 'A provider' }],
       },
+      valueTypes: { summary, orphaned: [{ id: 'value-type-id', name: 'A value type' }] },
+      units: { summary, orphaned: [{ id: 'unit-id', name: 'A unit' }] },
+      comparatorMethods: { summary, orphaned: [{ id: 'comparator-id', name: 'A comparator' }] },
     });
     const warn = vi.fn();
     const context = {
@@ -124,6 +127,9 @@ describe('importCoreData', () => {
       { id: 'method-id', methodName: 'A method' },
       { id: 'classification-id', slug: 'a-tag' },
       { id: 'provider-id', providerOrSourceName: 'A provider' },
+      { id: 'value-type-id', entryName: 'A value type' },
+      { id: 'unit-id', entryName: 'A unit' },
+      { id: 'comparator-id', entryName: 'A comparator' },
     ]);
   });
 });

@@ -382,18 +382,20 @@ Four commands are worth noting:
   CI's integration job and a managed server all create the per-API roles through it. It is
   idempotent — safe against a server where the roles already exist — and it sets the passwords
   every time, so it is also how a credential is rotated.
-- `db import-core-data` loads the required starting data the service relies on — topics, CI
-  methods and the classifications indicators are tagged with, from `packages/db/data/`. It is
-  idempotent (upserts keyed on stable ids, rows absent from the file are reported rather than
-  deleted) and runs in any environment: this is permanent content preview and production need,
-  not dummy data.
+- `db import-core-data` loads the required starting data the service relies on from
+  `packages/db/data/`: topics, the classifications indicators are tagged with, and the lists a
+  publisher chooses from — CI methods, data providers, value types, units and comparator
+  methods. It is idempotent (upserts keyed on stable ids, rows absent from the file are reported
+  rather than deleted) and runs in any environment: this is permanent content preview and
+  production need, not dummy data.
 - `db seed-dummy-data` replaces the dummy data — the committed indicators, observations and the
   links tying those indicators to topics — and rebuilds the read models, in one command and one
   transaction. A job runs one command, and a seeded database whose read models are still empty
   serves an empty site. It refuses to run unless `APP_ENV` is `local`, `test` or `dev`, and fails
-  if the core data has not been imported (no topics or CI methods, or any classification in the
-  file missing): dummy data may depend on core data, never the reverse. The core-data tables are
-  left alone.
+  if the core data has not been imported: no topics, CI methods or data providers, or any
+  classification, value type, unit or comparator method whose id its file holds missing from the
+  database. Dummy data may depend on core data, never the reverse. The core-data tables are left
+  alone.
 - `db import-published-snapshot` replaces the dev seed with the approved-only
   `PHOLIO_LIVE_A`-derived benchmark clone. Set `PUBLISHED_SNAPSHOT_URL` to a private HTTPS
   archive and `PUBLISHED_SNAPSHOT_SHA256` to its checksum. The command checks the source,

@@ -1,12 +1,10 @@
 import { readFileSync } from 'node:fs';
 
-import { UNITS, VALUE_TYPES } from '@fphd/utils/value-type-and-unit';
 import type postgres from 'postgres';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { migrateToLatest } from './migrations.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
-import { createTestDatabase, migrateBefore, type TestDatabase } from './testing.ts';
+import { createTestDatabase, migrateBefore, migrateThrough, type TestDatabase } from './testing.ts';
 
 const MIGRATION = '0035_value-type-and-units';
 
@@ -18,34 +16,45 @@ const PHOLIO: {
   readFileSync(new URL('./pholio-value-types-and-units.json', import.meta.url), 'utf-8'),
 );
 
-function serviceId(values: Record<string, { id: string; name: string }>, name: string): string {
-  const value = Object.values(values).find((candidate) => candidate.name === name);
+/** A core data file's rows, whose ids are the ones this migration inserts. */
+function coreRows(file: string): { id: string; name: string }[] {
+  return JSON.parse(readFileSync(new URL(`../data/${file}`, import.meta.url), 'utf-8'));
+}
+
+const VALUE_TYPES = coreRows('value-types.json');
+const UNITS = coreRows('units.json');
+
+function serviceId(values: { id: string; name: string }[], name: string): string {
+  const value = values.find((candidate) => candidate.name === name);
   if (!value) throw new Error(`No service value named ${name}`);
   return value.id;
 }
 
+const valueTypeId = (name: string) => serviceId(VALUE_TYPES, name);
+const unitId = (name: string) => serviceId(UNITS, name);
+
 // Fingertips value types, and what each becomes.
 const VALUE_TYPE_TRANSLATIONS: [string, string][] = [
-  ['Proportion', VALUE_TYPES.proportion.id],
-  ['Directly standardised rate', VALUE_TYPES.directlyStandardisedRate.id],
-  ['Slope index of inequality', VALUE_TYPES.slopeIndexOfInequality.id],
-  ['Slope Index of Inequality', VALUE_TYPES.slopeIndexOfInequality.id],
-  ['Number', VALUE_TYPES.count.id],
-  ['Rate ratio', VALUE_TYPES.ratio.id],
+  ['Proportion', valueTypeId('Proportion')],
+  ['Directly standardised rate', valueTypeId('Directly standardised rate')],
+  ['Slope index of inequality', valueTypeId('Slope index of inequality')],
+  ['Slope Index of Inequality', valueTypeId('Slope index of inequality')],
+  ['Number', valueTypeId('Count')],
+  ['Rate ratio', valueTypeId('Ratio')],
 ];
 
 // Each Fingertips unit, and the unit and other unit it becomes.
 const UNIT_TRANSLATIONS: [string, string, string | null][] = [
-  ['Percent', UNITS.percent.id, null],
-  ['per 100,000', UNITS.per100000.id, null],
-  ['Minutes', UNITS.minutes.id, null],
-  ['Days', UNITS.days.id, null],
-  ['Years', UNITS.years.id, null],
-  ['£ per capita', UNITS.poundsPerCapita.id, null],
-  ['No unit', UNITS.noUnit.id, null],
-  ['per 1,000 live births', UNITS.other.id, 'per 1,000 live births'],
-  ['per 1,000, per day ', UNITS.other.id, 'per 1,000, per day'],
-  ['Percentage points', UNITS.other.id, 'Percentage points'],
+  ['Percent', unitId('%'), null],
+  ['per 100,000', unitId('per 100,000'), null],
+  ['Minutes', unitId('minutes'), null],
+  ['Days', unitId('days'), null],
+  ['Years', unitId('years'), null],
+  ['£ per capita', unitId('£ per capita'), null],
+  ['No unit', unitId('No unit'), null],
+  ['per 1,000 live births', unitId('Other'), 'per 1,000 live births'],
+  ['per 1,000, per day ', unitId('Other'), 'per 1,000, per day'],
+  ['Percentage points', unitId('Other'), 'Percentage points'],
 ];
 
 interface LegacyVersion {
@@ -117,7 +126,7 @@ describe(`migration ${MIGRATION}`, () => {
       ...UNIT_TRANSLATIONS.map(([unit]) => ({ unit })),
       {},
     ]);
-    await migrateToLatest(sql);
+    await migrateThrough(sql, MIGRATION);
   });
 
   afterAll(async () => {
@@ -151,13 +160,14 @@ describe(`migration ${MIGRATION}`, () => {
     });
   });
 
-  it("holds the service's value types and units and no Fingertips one", async () => {
+  it('holds only value types and units the core data files hold, and no Fingertips one', async () => {
     const valueTypes = await sql<{ id: string; name: string }[]>`SELECT id, name FROM value_type`;
     const units = await sql<{ id: string; name: string }[]>`SELECT id, name FROM unit`;
-    const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name);
 
-    expect([...valueTypes].sort(byName)).toEqual(Object.values(VALUE_TYPES).sort(byName));
-    expect([...units].sort(byName)).toEqual(Object.values(UNITS).sort(byName));
+    expect(valueTypes).toHaveLength(16);
+    expect(VALUE_TYPES).toEqual(expect.arrayContaining(valueTypes));
+    expect(units).toHaveLength(16);
+    expect(UNITS).toEqual(expect.arrayContaining(units));
   });
 
   describe('constraints', () => {
@@ -174,38 +184,38 @@ describe(`migration ${MIGRATION}`, () => {
     it.each<[string, Record<string, string | null>, string]>([
       [
         'an other unit with no name',
-        { unit_id: UNITS.other.id, unit_other: null },
+        { unit_id: unitId('Other'), unit_other: null },
         'unit_other_check',
       ],
       [
         'a named unit beside one in the list',
-        { unit_id: UNITS.percent.id, unit_other: 'people' },
+        { unit_id: unitId('%'), unit_other: 'people' },
         'unit_other_check',
       ],
       [
         'an other unit over 100 characters',
-        { unit_id: UNITS.other.id, unit_other: 'x'.repeat(101) },
+        { unit_id: unitId('Other'), unit_other: 'x'.repeat(101) },
         'unit_other_length_check',
       ],
       [
         'a standard population on a crude rate',
-        { value_type_id: VALUE_TYPES.crudeRate.id, standard_population: 'esp-2013' },
+        { value_type_id: valueTypeId('Crude rate'), standard_population: 'esp-2013' },
         'standard_population_value_type_check',
       ],
       [
         'an unknown standard population',
-        { value_type_id: VALUE_TYPES.directlyStandardisedRate.id, standard_population: '1976' },
+        { value_type_id: valueTypeId('Directly standardised rate'), standard_population: '1976' },
         'standard_population_check',
       ],
       [
         'an other standard population with no detail',
-        { value_type_id: VALUE_TYPES.directlyStandardisedRate.id, standard_population: 'other' },
+        { value_type_id: valueTypeId('Directly standardised rate'), standard_population: 'other' },
         'standard_population_other_check',
       ],
       [
         'a detail beside the 2013 European Standard Population',
         {
-          value_type_id: VALUE_TYPES.directlyStandardisedRate.id,
+          value_type_id: valueTypeId('Directly standardised rate'),
           standard_population: 'esp-2013',
           standard_population_detail: 'England 2021',
         },
@@ -213,7 +223,7 @@ describe(`migration ${MIGRATION}`, () => {
       ],
       [
         'a population detail on a proportion',
-        { value_type_id: VALUE_TYPES.proportion.id, standard_population_detail: 'England 2021' },
+        { value_type_id: valueTypeId('Proportion'), standard_population_detail: 'England 2021' },
         'standard_population_detail_check',
       ],
     ])('refuses %s', async (_, columns, constraint) => {
@@ -224,11 +234,11 @@ describe(`migration ${MIGRATION}`, () => {
     });
 
     it.each<[string, Record<string, string | null>]>([
-      ['an other unit with its name', { unit_id: UNITS.other.id, unit_other: 'people' }],
+      ['an other unit with its name', { unit_id: unitId('Other'), unit_other: 'people' }],
       [
         'a directly standardised rate with an other population',
         {
-          value_type_id: VALUE_TYPES.directlyStandardisedRate.id,
+          value_type_id: valueTypeId('Directly standardised rate'),
           standard_population: 'other',
           standard_population_detail: 'England 2021',
         },
@@ -236,7 +246,7 @@ describe(`migration ${MIGRATION}`, () => {
       [
         'an indirectly standardised ratio with its reference population',
         {
-          value_type_id: VALUE_TYPES.indirectlyStandardisedRatio.id,
+          value_type_id: valueTypeId('Indirectly standardised ratio'),
           standard_population_detail: 'England 2021',
         },
       ],
@@ -255,7 +265,7 @@ describe(`migration ${MIGRATION} over every Pholio value type and unit`, () => {
       ...PHOLIO.valueTypes.map(({ name }) => ({ valueType: name })),
       ...PHOLIO.units.map(({ name }) => ({ unit: name })),
     ]);
-    await migrateToLatest(sql);
+    await migrateThrough(sql, MIGRATION);
   });
 
   afterAll(async () => {
@@ -311,6 +321,6 @@ describe.each<[string, LegacyVersion]>([
   });
 
   it('stops rather than drop the answer', async () => {
-    await expect(migrateToLatest(sql)).rejects.toThrow(/no value to translate it to/);
+    await expect(migrateThrough(sql, MIGRATION)).rejects.toThrow(/no value to translate it to/);
   });
 });

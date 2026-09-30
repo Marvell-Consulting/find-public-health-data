@@ -37,7 +37,7 @@ describe('bridge/registry schema', () => {
 
   it('generates time-ordered uuidv7 ids by default', async () => {
     const rows = await sql`
-      INSERT INTO value_type (name) VALUES ('integration-test-value-type')
+      INSERT INTO value_type (name, position) VALUES ('integration-test-value-type', 0)
       RETURNING id
     `;
     const id = rows[0]?.id as string;

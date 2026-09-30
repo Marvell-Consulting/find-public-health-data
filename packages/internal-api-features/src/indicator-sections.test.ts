@@ -1,4 +1,4 @@
-import { UNITS, VALUE_TYPES } from '@fphd/utils/value-type-and-unit';
+import { UNIT_IDS, VALUE_TYPE_IDS } from '@fphd/utils/value-type-and-unit';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 import type { CiMethodRow } from './ci-method-repository.ts';
@@ -31,6 +31,7 @@ import {
   taggingServerSection,
   updateFrequencyColumns,
   valueTypeAndUnitsColumns,
+  valueTypeAndUnitsServerSection,
   varianceAndQualityColumns,
 } from './indicator-sections.ts';
 import {
@@ -312,8 +313,8 @@ describe('periodTypeColumns', () => {
 });
 
 describe('valueTypeAndUnitsColumns', () => {
-  const DSR = VALUE_TYPES.directlyStandardisedRate.id;
-  const ISR = VALUE_TYPES.indirectlyStandardisedRatio.id;
+  const DSR = VALUE_TYPE_IDS.directlyStandardisedRate;
+  const ISR = VALUE_TYPE_IDS.indirectlyStandardisedRatio;
   // Every follow-up filled in, as a form without JavaScript may send them.
   const everyFollowUp = {
     standardPopulation: 'other',
@@ -325,22 +326,26 @@ describe('valueTypeAndUnitsColumns', () => {
   it.each([
     [
       'the 2013 European Standard Population alone beside a directly standardised rate',
-      { valueTypeId: DSR, standardPopulation: 'esp-2013', unitId: UNITS.per100000.id },
+      {
+        valueTypeId: DSR,
+        standardPopulation: 'esp-2013',
+        unitId: '01a0d8a5-3ca2-7315-bfca-96daa0c93ee9',
+      },
       { standardPopulation: 'esp-2013', standardPopulationDetail: null, unitOther: null },
     ],
     [
       'an other standard population with its detail',
-      { valueTypeId: DSR, unitId: UNITS.per100000.id },
+      { valueTypeId: DSR, unitId: '01a0d8a5-3ca2-7315-bfca-96daa0c93ee9' },
       { standardPopulation: 'other', standardPopulationDetail: 'England 2021', unitOther: null },
     ],
     [
       'the reference population beside an indirectly standardised value type',
-      { valueTypeId: ISR, unitId: UNITS.per100.id },
+      { valueTypeId: ISR, unitId: '01a0d8a5-3ca2-7315-bfca-96d787920e40' },
       { standardPopulation: null, standardPopulationDetail: 'England 2019', unitOther: null },
     ],
     [
       'no population beside any other value type, and an other unit with its name',
-      { valueTypeId: VALUE_TYPES.count.id, unitId: UNITS.other.id },
+      { valueTypeId: '01a0d8a5-3ca2-7315-bfca-96c7324d4347', unitId: UNIT_IDS.other },
       { standardPopulation: null, standardPopulationDetail: null, unitOther: 'people' },
     ],
   ] as const)('writes %s, clearing what is not asked', (_, answers, attributes) => {
@@ -939,6 +944,57 @@ describe('confidenceIntervalsServerSection', () => {
         ciMethodOtherDetail: '',
       }),
     ).toEqual({ ciMethodModified: 'Select whether any modifications were used' });
+  });
+});
+
+describe('valueTypeAndUnitsServerSection', () => {
+  const options = {
+    valueTypes: [{ id: '01a0d8a5-3ca2-7315-bfca-96d2031a65e7', name: 'Proportion' }],
+    units: [{ id: '01a0d8a5-3ca2-7315-bfca-96d615820bd4', name: '%' }],
+  };
+  const answers = {
+    valueTypeId: '01a0d8a5-3ca2-7315-bfca-96d2031a65e7',
+    standardPopulation: '',
+    standardPopulationOther: '',
+    referencePopulation: '',
+    unitId: '01a0d8a5-3ca2-7315-bfca-96d615820bd4',
+    unitOther: '',
+  };
+
+  function submit(body: object) {
+    const listOptions = vi.fn().mockResolvedValue(options);
+    const { valueTypesAndUnits } = createFakeInternalRepositories({
+      valueTypesAndUnits: { listOptions },
+    });
+    const section = valueTypeAndUnitsServerSection(valueTypesAndUnits);
+
+    return { listOptions, section, submission: section.schema.safeParseAsync(body) };
+  }
+
+  async function fieldErrorsOf(body: object) {
+    const { section, submission } = submit(body);
+    const result = await submission;
+    return result.success ? undefined : toFieldErrors(result.error, section.fields.options);
+  }
+
+  it('accepts a value type and unit the page offers', async () => {
+    expect(await fieldErrorsOf(answers)).toBeUndefined();
+  });
+
+  it('refuses a value type or unit the page does not offer', async () => {
+    const missing = '00000000-0000-7000-8000-000000000999';
+
+    expect(await fieldErrorsOf({ ...answers, valueTypeId: missing, unitId: missing })).toEqual({
+      valueTypeId: 'Select the value type',
+      unitId: 'Select the units',
+    });
+  });
+
+  it('refuses an unchosen value type without reading the options', async () => {
+    const { listOptions, submission } = submit({ ...answers, valueTypeId: '' });
+
+    expect((await submission).success).toBe(false);
+    expect(listOptions).not.toHaveBeenCalled();
   });
 });
 

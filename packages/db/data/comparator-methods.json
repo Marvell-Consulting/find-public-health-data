@@ -1,0 +1,50 @@
+[
+  {
+    "id": "019fa38f-0756-71f5-a109-4f1f61b49a25",
+    "name": "Confidence intervals overlapping reference value (95.0 & 99.8)"
+  },
+  {
+    "id": "019fa38f-0751-7a9d-9344-d24639ec4c1b",
+    "name": "Confidence intervals overlapping reference value (95.0)"
+  },
+  {
+    "id": "019fa38f-0757-7741-85a3-84bb9805ba5b",
+    "name": "Confidence intervals overlapping reference value (99.8)"
+  },
+  {
+    "id": "019fa38f-0753-7f30-a0cf-61037e844ba7",
+    "name": "Is a suicide prevention plan defined?"
+  },
+  {
+    "id": "019fa38f-0758-7d48-9991-8c1852e1829b",
+    "name": "Legacy comparator method 12"
+  },
+  {
+    "id": "019fa38f-0759-7cc2-b03b-894932ed9e8c",
+    "name": "Legacy comparator method 15"
+  },
+  {
+    "id": "019fa38f-075a-730b-8eb0-517bbe3595b9",
+    "name": "Legacy comparator method 17"
+  },
+  {
+    "id": "019fa38f-075b-721d-82d8-ffbcc8a9caa2",
+    "name": "Legacy comparator method 18"
+  },
+  {
+    "id": "019fa38f-0750-73a5-a5aa-998e2d8982c2",
+    "name": "No comparison"
+  },
+  {
+    "id": "019fa38f-0752-7559-a682-6cd10ebd0b9a",
+    "name": "Overlapping confidence intervals (95.0)"
+  },
+  {
+    "id": "019fa38f-0755-7319-8a9c-23e8e9f97264",
+    "name": "Quartiles (Longer Lives only)"
+  },
+  {
+    "id": "019fa38f-0754-71bd-ac34-5687fe18d4b4",
+    "name": "Quintiles"
+  }
+]

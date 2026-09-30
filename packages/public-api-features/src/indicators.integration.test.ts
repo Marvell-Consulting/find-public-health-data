@@ -291,7 +291,7 @@ describe('public routers against the seeded database', () => {
 
   it('connects with a read-only role', async () => {
     await expect(
-      db.insert(schema.valueType).values({ name: 'integration-test-denied' }),
+      db.insert(schema.valueType).values({ name: 'integration-test-denied', position: 0 }),
     ).rejects.toMatchObject({ cause: { code: '42501' } });
   });
 

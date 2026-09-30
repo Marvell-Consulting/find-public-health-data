@@ -135,6 +135,10 @@ describe('loadIndicatorVersions with Fingertips sources', () => {
       gzipSync('id,name,description\n00000000-0000-7000-8000-00000000c1c1,Unknown,\n'),
     );
     await writeFile(
+      join(directory, 'comparator_method.csv.gz'),
+      gzipSync('id,name\n00000000-0000-7000-8000-00000000c0c0,No comparison\n'),
+    );
+    await writeFile(
       join(directory, 'indicator_version.csv.gz'),
       gzipSync(
         'indicator_id,status,published_at,name,slug,numerator_source_id,denominator_source_id,created_by,updated_by\n' +
@@ -170,7 +174,13 @@ describe('loadIndicatorVersions with Fingertips sources', () => {
       ORDER BY s.position
     `;
 
-    expect(loaded).toEqual({ ciMethods: 1, versions: 1, legacySources: 1, sources: 2 });
+    expect(loaded).toEqual({
+      ciMethods: 1,
+      comparatorMethods: 1,
+      versions: 1,
+      legacySources: 1,
+      sources: 2,
+    });
     expect(rows).toEqual([
       { part: 'numerator', source: 'Mid-year population estimates' },
       { part: 'numerator', source: 'Annual Population Survey (APS)' },
