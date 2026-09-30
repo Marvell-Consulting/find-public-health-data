@@ -349,6 +349,19 @@ jobs:
       # two jobs parallel, and keeping the check runnable standalone from a clean tree.
       - run: pnpm check:artefacts
 
+  # A schema change without its migration: drizzle-kit, run against a copy of the migrations,
+  # would write one. Needs no database.
+  migration-drift:
+    name: Migrations match the schema
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-workspace
+      - run: pnpm check:migrations
+
   e2e-coverage:
     name: E2E route coverage
     runs-on: ubuntu-24.04
@@ -421,6 +434,7 @@ jobs:
         scan-app-images,
         build-operations-image,
         artefact-boundary,
+        migration-drift,
         e2e-coverage,
         web-changes-need-e2e,
       ]

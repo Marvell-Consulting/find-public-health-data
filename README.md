@@ -89,6 +89,7 @@ pnpm dev:internal
 pnpm check
 pnpm check:artefacts   # assert no internal code or secret reaches the public artifacts
 pnpm check:e2e-coverage # assert every page route has an e2e spec and every spec scans with axe
+pnpm check:migrations  # assert the schema holds no change its migrations do not
 pnpm build
 pnpm test              # all three tiers below, in order
 pnpm test:unit         # unit tests
@@ -102,8 +103,8 @@ unambiguous artifacts.
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs lint, typecheck, unit tests, integration tests, e2e tests,
-`pnpm audit`, build, the image builds and scans, the public artifact boundary check and the e2e
-coverage checks as parallel jobs, except that the e2e tests and the image scans wait for the image
+`pnpm audit`, build, the image builds and scans, the public artifact boundary check, the migration
+drift check and the e2e coverage checks as parallel jobs, except that the e2e tests and the image scans wait for the image
 build. A final `All checks pass` job aggregates them and is the single required status check for
 merging, so the required-check list does not need editing whenever a job is added — but a new job
 must be added to that job's `needs` list, or it gates nothing.
@@ -299,7 +300,7 @@ Schema and migrations are managed with Drizzle in `packages/db`:
 ```sh
 pnpm db:generate              # generate a migration from the schema
 pnpm db:migrate               # apply pending migrations
-pnpm db:import-core-data      # load required core data (topics) — idempotent, any environment
+pnpm db:import-core-data      # load required core data (topics and lists) — idempotent, any environment
 pnpm db:seed-dummy-data       # replace dummy data with the committed seed and rebuild read models
 pnpm db:rebuild-read-models   # rebuild the derived cache tables from canonical data
 pnpm db:reset                 # back to a freshly created database, for db:migrate to rebuild

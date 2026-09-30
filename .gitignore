@@ -18,3 +18,4 @@ AGENTS.md
 agent-docs
 plans
 __pycache__/
+packages/db/.migration-drift.*/

@@ -67,6 +67,18 @@ src/
   version's child tables carry neither: their rows are deleted and reinserted on every save,
   and the version's own `updated_at` records that. `observation` records only creation,
   since a correction supersedes a row rather than editing it.
+- **Vocabularies**: a closed set whose values the code behaves on is a checked text column,
+  `text({ enum })` beside a check written with `literals()` over the list in its
+  `@fphd/utils` module, which also holds the labels and which the contracts and pages import,
+  as `polarity`, `period_type` and `year_type` do. An open list a publisher chooses from is
+  core data (below), and no new migration inserts its rows.
+- **Yes/no answers and details**: a yes/no answer is `has_<subject>`, always positive, the
+  text beside it `<subject>_detail`, and the text beside an "other" choice
+  `<question>_detail` (`calculated_by_detail`, `unit_detail`). The checks mirror the contract:
+  a detail it requires beside a yes is held there and nowhere else,
+  `(has_x IS TRUE) = (x_detail IS NOT NULL)`; an optional one is only refused elsewhere,
+  `has_x IS TRUE OR x_detail IS NULL`. `goal_policy_detail`, the optional detail beside
+  `has_goal_benchmark`, is the one whose name predates the rule.
 - **Repository functions**: pure, `db` first argument, one file per aggregate.
 - **Slugs**: `indicator_version.slug` is derived from the version's name by `slugify` in
   `@fphd/utils/slug`. An exclusion constraint,
@@ -96,12 +108,21 @@ so drizzle-kit gives the repositories typed columns without generating a second
 `CREATE VIEW`. Exports are prefixed (`publishedIndicator`) because the table names are
 taken. `@fphd/internal-api-features` reads the tables directly, every status.
 
+A migration that only appends columns to a view uses `CREATE OR REPLACE VIEW`, which keeps the
+view and its grants. One that renames a column uses `ALTER VIEW ... RENAME COLUMN`; only one
+that removes a column drops and recreates the view, and grants it again. The grants test's
+"reads the same columns of each indicator view as it always has" case catches a view that
+changed by accident.
+
 ## Adding a table
 
 1. Add the table to the `src/schema/` file for its domain, or create one and re-export it
    from `src/schema/index.ts`.
 2. `pnpm db:generate --name=create-<table>` (from the repo root; always pass a
-   meaningful `--name`).
+   meaningful `--name`). drizzle-kit loads `@fphd/config` and `@fphd/utils` from their
+   `dist`, so the root script builds them first; running drizzle-kit directly against a
+   stale `dist` fails with a module-not-found error, or generates from old constants. For a
+   rename drizzle-kit asks, in a terminal, whether a column is new or renamed.
 3. Grants are explicit and per-table — the API roles can read exactly what they have
    been granted, nothing implicitly. Add a custom migration:
    `pnpm --filter @fphd/db exec drizzle-kit generate --custom --name=<table>-grants`
@@ -114,6 +135,22 @@ taken. `@fphd/internal-api-features` reads the tables directly, every status.
 5. `pnpm db:migrate`.
 6. Add repository functions and tests, including an integration assertion that the
    granted role can do what it needs and no more.
+
+## Migrations
+
+`pnpm check:migrations`, part of `pnpm check` and its own CI job, fails when the schema
+differs from the latest snapshot in `drizzle/meta`, as it does when a schema change has no
+migration. It runs drizzle-kit check for migrations that collide, then drizzle-kit generate
+against a copy of `drizzle/`, refusing anything but "no schema changes". It compares the
+schema with the snapshot, not with the migration SQL, so it cannot catch a hand-edited
+migration that the snapshot does not match. It builds the two packages first, as
+`db:generate` does.
+
+A migration never edits an applied one. Until an environment holds publisher data the seed
+cannot restore, a migration may drop data that a reset and reseed of the shared environments
+restores, where that is cleaner than translating it; from then on every migration
+translates. Either way, one that meets an answer it cannot translate stops with an error
+rather than drop it, as 0034 and 0036 do.
 
 ## Core data import
 
@@ -160,3 +197,6 @@ see the operations section of the root README.
 but never touch the shared `fphd` database. The root Vitest global setup builds a
 migrated, seeded template once per run; each test file calls `createTestDatabase()` from
 `@fphd/db/testing` for its own throwaway copy and drops it in `afterAll`.
+
+A migration's own test puts rows in the shape the migration meets with `migrateBefore`, then
+runs it with `migrateThrough`, which stops there, so a later migration never breaks it.
