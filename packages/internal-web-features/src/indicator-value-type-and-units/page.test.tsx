@@ -7,13 +7,15 @@ import { renderToString } from 'react-dom/server';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { VALUE_TYPE_AND_UNITS_TITLE, ValueTypeAndUnitsPage } from './page.tsx';
+import { ValueTypeAndUnitsPage } from './page.tsx';
 
 afterEach(() => {
   cleanup();
   // The server-rendered cases write the body directly, which cleanup does not know about.
   document.body.innerHTML = '';
 });
+
+const TITLE = 'What are the value type and units used in this indicator?';
 
 const empty = {
   valueTypeId: '',
@@ -100,9 +102,7 @@ describe('ValueTypeAndUnitsPage', () => {
   it("offers the prototype's value types and units, and No unit, after an empty choice", () => {
     renderPage();
 
-    expect(
-      screen.getByRole('heading', { level: 1, name: VALUE_TYPE_AND_UNITS_TITLE }),
-    ).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: TITLE })).toBeTruthy();
     expect(valueTypeSelect().getAttribute('name')).toBe('valueTypeId');
     expect(optionsOf(valueTypeSelect())).toEqual([
       ['', 'Select'],
@@ -269,7 +269,7 @@ describe('ValueTypeAndUnitsPage', () => {
     expect(standardPopulationOther().value).toBe('England 2021');
     expect(unitSelect().value).toBe(UNITS.other.id);
     expect(unitOther().value).toBe('people');
-    expect(document.title).toBe(`${VALUE_TYPE_AND_UNITS_TITLE} - ${serviceName} - GOV.UK`);
+    expect(document.title).toBe(`${TITLE} - ${serviceName} - GOV.UK`);
   });
 
   it('summarises every refusal in the order the form asks, linking to each field', () => {
@@ -291,7 +291,7 @@ describe('ValueTypeAndUnitsPage', () => {
       `#${screen.getByLabelText('2013 European Standard Population').id}`,
       `#${unitSelect().id}`,
     ]);
-    expect(document.title).toBe(`Error: ${VALUE_TYPE_AND_UNITS_TITLE} - ${serviceName} - GOV.UK`);
+    expect(document.title).toBe(`Error: ${TITLE} - ${serviceName} - GOV.UK`);
   });
 
   it('marks a refused reference population and links to it', () => {

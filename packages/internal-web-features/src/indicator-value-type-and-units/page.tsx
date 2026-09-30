@@ -16,8 +16,7 @@ import { useEffect, useState } from 'react';
 import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
-export const VALUE_TYPE_AND_UNITS_TITLE =
-  'What are the value type and units used in this indicator?';
+const VALUE_TYPE_AND_UNITS_TITLE = 'What are the value type and units used in this indicator?';
 
 /** The value type or unit in its select, which may be ahead of state before hydration. */
 function selected(field: ValueTypeAndUnitsField): string | undefined {

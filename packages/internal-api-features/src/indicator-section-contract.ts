@@ -93,6 +93,6 @@ export function indicatorSectionErrorSchema<Field extends string>(
   ]);
 }
 
-export type IndicatorSectionError<Field extends string> =
+type IndicatorSectionError<Field extends string> =
   | { error: 'invalid_id' }
   | { error: 'validation_failed'; fieldErrors: Partial<Record<Field, string>> };

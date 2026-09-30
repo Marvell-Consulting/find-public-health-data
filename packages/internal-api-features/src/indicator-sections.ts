@@ -148,7 +148,7 @@ export const valueTypeAndUnitsColumns: IndicatorSectionColumns<
   },
 };
 
-export type ConfidenceIntervalsWithKind = ConfidenceIntervals & { kind: CiMethodKind };
+type ConfidenceIntervalsWithKind = ConfidenceIntervals & { kind: CiMethodKind };
 
 export const confidenceIntervalsColumns: IndicatorSectionColumns<
   ConfidenceIntervalsField,
@@ -413,13 +413,13 @@ export function confidenceIntervalsServerSection(
 }
 
 /** The publishing date as an instant: ISO 8601 with the UK offset in force on that date. */
-export type PublishingDateWithInstant = PublishingDate & { scheduledPublishAt: string };
+type PublishingDateWithInstant = PublishingDate & { scheduledPublishAt: string };
 
 // The instant as the repository reads it back, whose local date and time are the answers.
 const UK_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):\d{2}[+-]\d{2}:\d{2}$/;
 
 /** The date and time a publisher typed, from the instant they name in UK time. */
-export function publishingDateAnswers(
+function publishingDateAnswers(
   scheduledPublishAtUk: string | null,
 ): Record<PublishingDateField, string | null> {
   if (scheduledPublishAtUk === null) {
