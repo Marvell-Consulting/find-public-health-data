@@ -11,10 +11,7 @@ const LINKS_QUESTION =
 // The order the error summary lists them in, which is the order the page asks.
 const FIELDS: readonly LinksPageField[] = ['hasLinks', 'linkUrl', 'linkText', 'links'];
 
-/**
- * The links added so far, each carried in hidden fields until Continue saves them. The list
- * follows the Add button, so Enter in a field adds rather than removing the first link.
- */
+/** The links added so far, each carried in hidden fields until Continue saves them. */
 function AddedLinks({ links }: { links: readonly IndicatorLink[] }) {
   if (links.length === 0) return null;
 
@@ -55,6 +52,7 @@ export function LinksPage({
 
   return (
     <IndicatorSectionForm
+      continueOnEnter
       fieldErrors={fieldErrors}
       formError={formError}
       fieldIds={{ hasLinks: firstRadioId('hasLinks'), links: fieldInputId('linkUrl') }}
