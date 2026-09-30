@@ -92,6 +92,7 @@ test('lists the value types and units in the order the prototype does, with No u
     'Percentage point',
     'Proportion',
     'Ratio',
+    'Relative index of inequality',
     'Score',
     'Slope index of inequality',
   ]);

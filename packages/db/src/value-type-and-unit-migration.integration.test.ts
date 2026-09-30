@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import { UNITS, VALUE_TYPES } from '@fphd/utils/value-type-and-unit';
 import type postgres from 'postgres';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -7,6 +9,20 @@ import { createOwnerClient } from './scripts/owner-client.ts';
 import { createTestDatabase, migrateBefore, type TestDatabase } from './testing.ts';
 
 const MIGRATION = '0035_value-type-and-units';
+
+// Every value type and unit row in Pholio, each with the service value it translates to.
+const PHOLIO: {
+  valueTypes: { name: string; service: string }[];
+  units: { name: string; service: string; other: string | null }[];
+} = JSON.parse(
+  readFileSync(new URL('./pholio-value-types-and-units.json', import.meta.url), 'utf-8'),
+);
+
+function serviceId(values: Record<string, { id: string; name: string }>, name: string): string {
+  const value = Object.values(values).find((candidate) => candidate.name === name);
+  if (!value) throw new Error(`No service value named ${name}`);
+  return value.id;
+}
 
 // Fingertips value types, and what each becomes.
 const VALUE_TYPE_TRANSLATIONS: [string, string][] = [
@@ -230,9 +246,55 @@ describe(`migration ${MIGRATION}`, () => {
   });
 });
 
+describe(`migration ${MIGRATION} over every Pholio value type and unit`, () => {
+  let testDb: TestDatabase;
+  let sql: postgres.Sql;
+
+  beforeAll(async () => {
+    [testDb, sql] = await withLegacyVersions([
+      ...PHOLIO.valueTypes.map(({ name }) => ({ valueType: name })),
+      ...PHOLIO.units.map(({ name }) => ({ unit: name })),
+    ]);
+    await migrateToLatest(sql);
+  });
+
+  afterAll(async () => {
+    await sql?.end();
+    await testDb?.drop();
+  });
+
+  it('translates each value type', async () => {
+    const translated = await Promise.all(
+      PHOLIO.valueTypes.map((_, index) => versionOf(sql, index + 1)),
+    );
+
+    expect(
+      PHOLIO.valueTypes.map(({ name }, index) => [name, translated[index]?.value_type_id]),
+    ).toEqual(
+      PHOLIO.valueTypes.map(({ name, service }) => [name, serviceId(VALUE_TYPES, service)]),
+    );
+  });
+
+  it('translates each unit', async () => {
+    const translated = await Promise.all(
+      PHOLIO.units.map((_, index) => versionOf(sql, PHOLIO.valueTypes.length + index + 1)),
+    );
+
+    expect(
+      PHOLIO.units.map(({ name }, index) => [
+        name,
+        translated[index]?.unit_id,
+        translated[index]?.unit_other,
+      ]),
+    ).toEqual(
+      PHOLIO.units.map(({ name, service, other }) => [name, serviceId(UNITS, service), other]),
+    );
+  });
+});
+
 describe.each<[string, LegacyVersion]>([
-  ['a value type', { valueType: 'Months life lost' }],
-  ['a placeholder unit', { unit: 'Unknown unit 54' }],
+  ['a value type', { valueType: 'Weighted mean' }],
+  ['a placeholder unit', { unit: 'Unknown unit 99' }],
   ['a blank unit', { unit: '  ' }],
   ['a unit named in over 100 characters', { unit: 'x'.repeat(101) }],
 ])(`migration ${MIGRATION} over %s it cannot translate`, (_, version) => {

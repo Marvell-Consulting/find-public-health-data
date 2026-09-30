@@ -12,6 +12,7 @@ from value_type_and_unit import (
     UNIT_COLUMNS,
     UNIT_IDS,
     UNIT_NAMES_BY_LABEL,
+    UNIT_PLACEHOLDERS,
     UNITS,
     VALUE_TYPE_IDS,
     VALUE_TYPES,
@@ -27,6 +28,10 @@ transform = runpy.run_path(str(Path(__file__).with_name("transform-uuids.py")))
 reshape = runpy.run_path(str(Path(__file__).with_name("reshape-indicator-versions.py")))
 snapshot = runpy.run_path(str(Path(__file__).with_name("export-published-snapshot.py")))
 (migration,) = Path(__file__).parents[3].glob("drizzle/*_value-type-and-units.sql")
+# Every value type and unit row in Pholio, each with the service value it translates to.
+PHOLIO = json.loads(
+    Path(__file__).parents[3].joinpath("src/pholio-value-types-and-units.json").read_text()
+)
 
 
 class ValueTypeIdTest(unittest.TestCase):
@@ -34,16 +39,19 @@ class ValueTypeIdTest(unittest.TestCase):
         for name, id in VALUE_TYPE_IDS.items():
             self.assertEqual(value_type_id(name), id)
 
-    def test_gives_renamed_and_merged_value_types_a_service_value(self):
-        self.assertEqual(
-            value_type_id("Slope Index of Inequality"),
-            VALUE_TYPE_IDS["Slope index of inequality"],
-        )
-        self.assertEqual(value_type_id("Number"), VALUE_TYPE_IDS["Count"])
-        self.assertEqual(value_type_id("Rate ratio"), VALUE_TYPE_IDS["Ratio"])
+    def test_gives_every_pholio_value_type_its_service_value(self):
+        for row in PHOLIO["valueTypes"]:
+            with self.subTest(name=row["name"]):
+                self.assertEqual(value_type_id(row["name"]), VALUE_TYPE_IDS[row["service"]])
+
+    def test_translates_a_placeholder_as_the_value_type_the_fingertips_api_names(self):
+        placeholders = [row for row in PHOLIO["valueTypes"] if "fingertipsApi" in row]
+        self.assertEqual([row["name"] for row in placeholders], ["Unknown value type 21"])
+        for row in placeholders:
+            self.assertEqual(value_type_id(row["name"]), value_type_id(row["fingertipsApi"]["name"]))
 
     def test_refuses_a_value_type_it_has_no_value_for(self):
-        for name in ["Months life lost", "Relative Index of Inequality", "Unknown value type 21"]:
+        for name in ["Unknown value type 22", "Weighted mean"]:
             with self.assertRaises(ValueError) as raised:
                 value_type_id(name)
 
@@ -78,10 +86,35 @@ class UnitValuesTest(unittest.TestCase):
             {"unit_id": UNIT_IDS["Other"], "unit_other": "Percentage points"},
         )
 
-    def test_refuses_a_placeholder_or_a_name_too_long_to_keep(self):
-        for name in ["Unknown unit 54", " ", "x" * 101]:
+    def test_refuses_an_unknown_placeholder_or_a_name_too_long_to_keep(self):
+        for name in ["Unknown unit 99", " ", "x" * 101]:
             with self.assertRaises(ValueError):
                 unit_values(name)
+
+    def test_gives_every_pholio_unit_its_service_value(self):
+        for row in PHOLIO["units"]:
+            with self.subTest(name=row["name"]):
+                self.assertEqual(
+                    unit_values(row["name"]),
+                    {"unit_id": UNIT_IDS[row["service"]], "unit_other": row["other"]},
+                )
+
+
+class UnitPlaceholdersTest(unittest.TestCase):
+    def test_names_each_pholio_placeholder_as_the_unit_the_fingertips_api_describes(self):
+        named = [row for row in PHOLIO["units"] if "fingertipsApi" not in row]
+        placeholders = {}
+        for row in PHOLIO["units"]:
+            if "fingertipsApi" in row:
+                api = row["fingertipsApi"]
+                (twin,) = [
+                    unit["name"]
+                    for unit in named
+                    if (unit["label"], unit["multiplier"]) == (api["label"], api["multiplier"])
+                ]
+                placeholders[row["name"]] = twin
+
+        self.assertEqual(UNIT_PLACEHOLDERS, placeholders)
 
 
 class UnitNameForLabelTest(unittest.TestCase):
@@ -106,12 +139,17 @@ class UnitNameForLabelTest(unittest.TestCase):
 class UnknownNamesTest(unittest.TestCase):
     def test_lists_the_names_it_cannot_translate(self):
         self.assertEqual(
-            unknown_value_types(["Count", "Months life lost", ""]), ["", "Months life lost"]
+            unknown_value_types(["Count", "Months life lost", "Weighted mean", ""]),
+            ["", "Weighted mean"],
         )
         self.assertEqual(
-            unknown_units(["Percent", "Kg/m2", "Unknown unit 54", "", "  "]),
-            ["", "  ", "Unknown unit 54"],
+            unknown_units(["Percent", "Kg/m2", "Unknown unit 54", "Unknown unit 99", "", "  "]),
+            ["", "  ", "Unknown unit 99"],
         )
+
+    def test_can_translate_every_pholio_value_type_and_unit(self):
+        self.assertEqual(unknown_value_types(row["name"] for row in PHOLIO["valueTypes"]), [])
+        self.assertEqual(unknown_units(row["name"] for row in PHOLIO["units"]), [])
 
 
 def selected_unit(name):
@@ -131,12 +169,12 @@ class UnitSelectTest(unittest.TestCase):
         self.assertEqual(selected_unit(None), {"unit_id": None, "unit_other": None})
 
     def test_agrees_with_unit_values(self):
-        for name in ["Percent", "No unit", "per 1,000 live births", "per 1,000, per day "]:
+        for name in [row["name"] for row in PHOLIO["units"]]:
             with self.subTest(name=name):
                 self.assertEqual(selected_unit(name), unit_values(name))
 
-    def test_leaves_a_blank_or_placeholder_name_to_the_check_before_it(self):
-        for name in ["", "  ", "Unknown unit 54"]:
+    def test_leaves_a_blank_or_unknown_placeholder_name_to_the_check_before_it(self):
+        for name in ["", "  ", "Unknown unit 99"]:
             with self.subTest(name=name):
                 with self.assertRaises(ValueError):
                     unit_values(name)
@@ -163,14 +201,27 @@ class CheckValueTypesAndUnitsTest(unittest.TestCase):
                 self.assertIn(f"unit {name!r}", str(raised.exception))
 
 
-def migration_translation(column):
-    """The Fingertips names and ids in the migration's translation of this column."""
+def migration_statement(marker):
+    """The one statement in the migration containing this text."""
     (statement,) = [
         statement
         for statement in migration.read_text().split("--> statement-breakpoint")
-        if f'SET "{column}" = m.{column}' in statement
+        if marker in statement
     ]
+    return statement
+
+
+def migration_translation(column):
+    """The Fingertips names and ids in the migration's translation of this column."""
+    statement = migration_statement(f'SET "{column}" = m.{column}')
     return dict(re.findall(r"\('((?:[^']|'')*)', '([0-9a-f-]{36})'", statement))
+
+
+def migration_unit_placeholders():
+    """The placeholder unit names and the names the migration gives them."""
+    statement = migration_statement("AS m(placeholder, name)")
+    pairs = re.findall(r"\('((?:[^']|'')*)', '((?:[^']|'')*)'\)", statement)
+    return {placeholder.replace("''", "'"): name.replace("''", "'") for placeholder, name in pairs}
 
 
 class MigrationTest(unittest.TestCase):
@@ -185,6 +236,9 @@ class MigrationTest(unittest.TestCase):
             migration_translation("unit_id"),
             {name: unit_values(name)["unit_id"] for name in UNITS},
         )
+
+    def test_holds_the_same_placeholder_units(self):
+        self.assertEqual(migration_unit_placeholders(), UNIT_PLACEHOLDERS)
 
 
 class ReshapeTest(unittest.TestCase):

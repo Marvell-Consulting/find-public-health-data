@@ -76,9 +76,12 @@ That yields 433,678 observations, 657,869 bridge rows and 67,978 observation not
   are in `@fphd/utils/value-type-and-unit` and which the migrations insert, so neither export
   carries a `value_type` or `unit` table. `export/value_type_and_unit.py` translates Pholio's
   names; a unit outside the service's list becomes "Other", named in `unit_other` as Pholio
-  named it. A value type it has no value for, or a unit named with a placeholder ("Unknown
-  unit 54"), blank or over 100 characters, stops the export; a version with no unit keeps
-  none. Migration 0035 holds the same translation.
+  named it. Pholio's placeholders ("Unknown value type 21", "Unknown unit 54") translate as
+  the value type or unit the public Fingertips API gives that id, a unit identified by its
+  label and multiplier. `../../src/pholio-value-types-and-units.json` lists every Pholio
+  value type and unit with what it becomes. Any other value type, or a unit named with
+  another placeholder, blank or over 100 characters, stops the export; a version with no
+  unit keeps none. Migration 0035 holds the same translation.
 - Pholio's disclosure control, caveats and notes prose becomes the service's answers:
   `export/notes_and_caveats.py` turns prose that is an answer in itself, such as "None
   applied" or "Not applicable", into that answer and drops it, matching the whole text
