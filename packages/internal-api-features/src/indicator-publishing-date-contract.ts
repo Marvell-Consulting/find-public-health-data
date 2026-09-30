@@ -1,6 +1,7 @@
 import { z } from '@fphd/config/zod';
+import { isDayOfMonth } from '@fphd/utils/period-type';
 
-import type { IndicatorSection } from './indicator-section-contract.ts';
+import { type IndicatorSection, isSmallNumber } from './indicator-section-contract.ts';
 
 const fields = z.enum([
   'publishingDateDay',
@@ -70,15 +71,6 @@ function unless(ok: boolean, field: PublishingDateField, message: string): Probl
   return ok ? {} : { [field]: message };
 }
 
-/** Up to two digits, from min to max. */
-function isSmallNumber(text: string, min: number, max: number): boolean {
-  return /^\d{1,2}$/.test(text) && Number(text) >= min && Number(text) <= max;
-}
-
-function isDayOfMonth(day: number, month: number, year: number): boolean {
-  return new Date(Date.UTC(year, month - 1, day)).getUTCDate() === day;
-}
-
 /** What is wrong with the date, on each part the publisher should correct. */
 function dateProblems(answers: Answers): Problems {
   const missing = DATE_PARTS.filter(([field]) => answers[field] === '');
@@ -107,8 +99,8 @@ function dateProblems(answers: Answers): Problems {
 
   if (Object.keys(problems).length > 0) return problems;
 
-  // There was no year 0, and the database refuses to name one.
-  if (Number(year) === 0) return { publishingDateYear: REAL_DATE };
+  // A year below 1000 is not a four-digit year, and the database refuses year 0 outright.
+  if (Number(year) < 1000) return { publishingDateYear: REAL_DATE };
 
   return unless(
     isDayOfMonth(Number(day), Number(month), Number(year)),

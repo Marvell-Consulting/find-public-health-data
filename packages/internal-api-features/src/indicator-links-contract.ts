@@ -1,6 +1,6 @@
 import { z } from '@fphd/config/zod';
 
-import type { IndicatorSection } from './indicator-section-contract.ts';
+import { type IndicatorSection, toFieldErrors } from './indicator-section-contract.ts';
 
 export const LINK_URL_MAX_LENGTH = 2000;
 export const LINK_TEXT_MAX_LENGTH = 200;
@@ -11,7 +11,10 @@ const url = z
   .string()
   .trim()
   .min(1, 'Enter a URL')
-  .max(LINK_URL_MAX_LENGTH, 'URL must be 2,000 characters or fewer')
+  .max(
+    LINK_URL_MAX_LENGTH,
+    `URL must be ${LINK_URL_MAX_LENGTH.toLocaleString('en-GB')} characters or fewer`,
+  )
   .pipe(
     z.url({
       protocol: /^https?$/,
@@ -24,7 +27,7 @@ const text = z
   .string()
   .trim()
   .min(1, 'Enter link text')
-  .max(LINK_TEXT_MAX_LENGTH, 'Link text must be 200 characters or fewer');
+  .max(LINK_TEXT_MAX_LENGTH, `Link text must be ${LINK_TEXT_MAX_LENGTH} characters or fewer`);
 
 export const indicatorLinkSchema = z.object({ url, text });
 
@@ -37,7 +40,7 @@ function sameAddress(url: string): string {
 
 const linksSchema = z
   .array(indicatorLinkSchema)
-  .max(MAX_LINKS, 'You cannot add more than 20 links')
+  .max(MAX_LINKS, `You cannot add more than ${MAX_LINKS} links`)
   .refine(
     (links) => new Set(links.map((link) => sameAddress(link.url))).size === links.length,
     'Enter a URL that has not already been added',
@@ -109,16 +112,7 @@ export function addLink(
 ): { links: IndicatorLink[] } | { fieldErrors: Partial<Record<NewLinkField, string>> } {
   const link = newLinkSchema.safeParse(newLink);
 
-  if (!link.success) {
-    const fieldErrors: Partial<Record<NewLinkField, string>> = {};
-
-    for (const issue of link.error.issues) {
-      const field = issue.path[0] as NewLinkField;
-      fieldErrors[field] ??= issue.message;
-    }
-
-    return { fieldErrors };
-  }
+  if (!link.success) return { fieldErrors: toFieldErrors(link.error, ['linkUrl', 'linkText']) };
 
   const added = linksSchema.safeParse([...links, link.data]);
 

@@ -89,6 +89,7 @@ describe('publishingDateSection', () => {
       { publishingDateYear: 'Year must include 4 numbers' },
     ],
     ['year 0', date('14', '9', '0000'), { publishingDateYear: REAL_DATE }],
+    ['a year below 1000', date('14', '9', '0999'), { publishingDateYear: REAL_DATE }],
   ])('refuses %s, on the part to correct', (_, body, errors) => {
     expect(sectionFieldErrors(section, body)).toEqual(errors);
   });

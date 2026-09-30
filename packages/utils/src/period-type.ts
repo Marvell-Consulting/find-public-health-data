@@ -29,15 +29,21 @@ const MONTH_NAMES = [
   'December',
 ] as const;
 
-/** Whether a day falls in a month of some year; 29 February does, in a leap year. */
-export function isDayOfMonth(day: number, month: number): boolean {
+/**
+ * Whether a day falls in a month of `year`, a four-digit year, or of some year when none is
+ * given; 29 February does in a leap year.
+ */
+export function isDayOfMonth(day: number, month: number, year = 2000): boolean {
   return (
+    Number.isInteger(year) &&
+    year >= 1000 &&
+    year <= 9999 &&
     Number.isInteger(day) &&
     Number.isInteger(month) &&
     month >= 1 &&
     month <= 12 &&
     day >= 1 &&
-    new Date(Date.UTC(2000, month - 1, day)).getUTCDate() === day
+    new Date(Date.UTC(year, month - 1, day)).getUTCDate() === day
   );
 }
 
