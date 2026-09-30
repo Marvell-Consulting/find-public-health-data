@@ -109,6 +109,25 @@ describe('upsertCiMethods', () => {
     expect(renamed.summary).toEqual({ inserted: 0, updated: 1, unchanged: 0 });
     expect(renamed.orphaned).toEqual([{ id: stray?.id, name: 'A method no file lists' }]);
   });
+
+  it('touches updated_at only on a method it rewrites', async () => {
+    const db = createDbFromClient(sql);
+    const stamp = async () => {
+      const [row] = await sql<{ stamp: number }[]>`
+        SELECT extract(epoch FROM updated_at)::float8 AS stamp FROM ci_method WHERE id = ${method.id}
+      `;
+      return row?.stamp ?? 0;
+    };
+    await upsertCiMethods(db, [method]);
+    const before = await stamp();
+
+    await upsertCiMethods(db, [method]);
+    const unchanged = await stamp();
+    await upsertCiMethods(db, [{ ...method, description: 'A description.' }]);
+
+    expect(unchanged).toBe(before);
+    expect(await stamp()).toBeGreaterThan(before);
+  });
 });
 
 describe('loadIndicatorVersions', () => {

@@ -51,7 +51,6 @@ export const indicatorClassification = pgTable(
     classificationId: uuid()
       .notNull()
       .references(() => classification.id),
-    ...timestamps,
   },
   (t) => [
     primaryKey({ columns: [t.indicatorVersionId, t.classificationId] }),

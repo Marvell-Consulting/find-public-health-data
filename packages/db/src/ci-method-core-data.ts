@@ -59,6 +59,7 @@ export async function upsertCiMethods(
         name: sql`excluded.name`,
         kind: sql`excluded.kind`,
         description: sql`excluded.description`,
+        updatedAt: sql`now()`,
       },
       setWhere: sql`(${ciMethod.name}, ${ciMethod.kind}, ${ciMethod.description}) IS DISTINCT FROM (excluded.name, excluded.kind, excluded.description)`,
     })

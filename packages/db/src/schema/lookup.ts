@@ -32,6 +32,7 @@ export const ciMethod = pgTable(
     name: text().notNull().unique(),
     description: text(),
     kind: text({ enum: CI_METHOD_KINDS }).notNull().default('standard'),
+    ...timestamps,
   },
   (t) => [check('ci_method_kind_check', sql`${t.kind} IN ('standard', 'other', 'none')`)],
 );
@@ -53,6 +54,7 @@ export const dataSource = pgTable('data_source', {
 export const dataProvider = pgTable('data_provider', {
   id: uuidPrimaryKey(),
   name: text().notNull().unique(),
+  ...timestamps,
 });
 
 /** One of a provider's named sources; a provider may also be chosen with no specific source. */
@@ -64,6 +66,7 @@ export const dataProviderSource = pgTable(
       .notNull()
       .references(() => dataProvider.id),
     name: text().notNull(),
+    ...timestamps,
   },
   // The pair is unique so a choice can reference a source together with its provider.
   (t) => [

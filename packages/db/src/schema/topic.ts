@@ -26,7 +26,6 @@ export const indicatorTopic = pgTable(
     indicatorVersionId: uuid()
       .notNull()
       .references(() => indicatorVersion.id),
-    ...timestamps,
   },
   (t) => [
     primaryKey({ columns: [t.topicId, t.indicatorVersionId] }),

@@ -54,13 +54,14 @@ src/
   Postgres 18's native `uuidv7()`. Rows created by an import supply their own ids
   instead, so the id survives a re-import. The read models in `cache.ts` are the
   exception: they are keyed by the columns they aggregate and carry no surrogate id.
-- **Timestamps**: opt-in, not universal. Spread `timestamps` from `schema/helpers.ts`
-  (`created_at` / `updated_at`, timestamptz) on a table whose rows are updated in place,
-  as `topic` does, or `audit` where the actor columns matter too, as `indicator_version`
-  does.
-  `observation` records only creation, since a correction supersedes a row rather than
-  editing it. Reference tables carry neither. `updated_at` is app-maintained on writes;
-  see the topics import's conditional upsert for the pattern.
+- **Timestamps**: every core data table (the topics, the classifications and the lists a
+  publisher chooses from) spreads `timestamps` from `schema/helpers.ts` (`created_at` /
+  `updated_at`, timestamptz). `updated_at` is app-maintained: the import's conditional upsert
+  bumps it only on a row the file changes, as the topics import shows. A table a publisher
+  edits spreads `audit` where the actor columns matter too, as `indicator_version` does. A
+  version's child tables carry neither: their rows are deleted and reinserted on every save,
+  and the version's own `updated_at` records that. `observation` records only creation,
+  since a correction supersedes a row rather than editing it.
 - **Repository functions**: pure, `db` first argument, one file per aggregate.
 - **Slugs**: `indicator_version.slug` is derived from the version's name by `slugify` in
   `@fphd/utils/slug`. An exclusion constraint,
