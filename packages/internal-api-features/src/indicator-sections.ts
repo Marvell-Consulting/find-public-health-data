@@ -1,6 +1,6 @@
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { z } from '@fphd/config/zod';
-import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
+import { isYearType } from '@fphd/utils/period-type';
 import { standardisationOf, UNITS } from '@fphd/utils/value-type-and-unit';
 import { Router } from 'express';
 
@@ -190,19 +190,20 @@ function numberText(value: number | null): string | null {
 
 export const periodTypeColumns: IndicatorSectionColumns<PeriodTypeField, PeriodType> = {
   fromDraft: (draft) => ({
-    periodType: draft.periodTypeId,
-    yearType: draft.yearTypeId,
+    periodType: draft.periodType,
+    yearType: draft.yearType,
     yearEndDay: numberText(draft.yearEndDay),
     yearEndMonth: numberText(draft.yearEndMonth),
   }),
   // Answers the chosen period and year types do not ask for are cleared, whatever the form sent.
   toAttributes: ({ periodType, yearType, yearEndDay, yearEndMonth }) => {
-    const yearTypeId = periodType === PERIOD_TYPES.months.id ? null : yearType;
-    const endsOnDate = yearTypeId === YEAR_TYPES.specifiedEndDate.id;
+    // The schema has refused any other year type beside years or quarters.
+    const kept = periodType === 'months' || !isYearType(yearType) ? null : yearType;
+    const endsOnDate = kept === 'specified-end-date';
 
     return {
-      periodTypeId: periodType,
-      yearTypeId,
+      periodType,
+      yearType: kept,
       yearEndDay: endsOnDate ? Number(yearEndDay) : null,
       yearEndMonth: endsOnDate ? Number(yearEndMonth) : null,
     };

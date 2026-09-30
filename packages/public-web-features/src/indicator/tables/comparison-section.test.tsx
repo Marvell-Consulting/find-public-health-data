@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import { YEAR_TYPES } from '@fphd/utils/period-type';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -15,7 +14,7 @@ function selected(shortId: number, name: string, unit: string | null): SelectedI
       shortId,
       name,
       unit,
-      yearType: { id: YEAR_TYPES.calendar.id, label: 'Calendar' },
+      yearType: { value: 'calendar', label: 'Calendar' },
       polarity: 'no-comparison-possible',
     } as IndicatorDetail,
     areaData: [

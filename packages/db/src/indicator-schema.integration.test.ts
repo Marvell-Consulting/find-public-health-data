@@ -65,41 +65,7 @@ async function newIndicatorId(): Promise<string> {
 async function addVersion(
   indicatorId: string,
   status: 'draft' | 'published',
-  values: Partial<
-    Pick<
-      typeof indicatorVersion.$inferInsert,
-      | 'name'
-      | 'slug'
-      | 'publishedAt'
-      | 'calculatedBy'
-      | 'calculatedByOther'
-      | 'disclosureControl'
-      | 'disclosureControlDetail'
-      | 'roundingApplied'
-      | 'roundingDetail'
-      | 'caveatsNeeded'
-      | 'caveatsDetail'
-      | 'otherNotesNeeded'
-      | 'otherNotesDetail'
-      | 'sourceDataIssues'
-      | 'sourceDataIssuesDetail'
-      | 'hasExclusions'
-      | 'exclusionsDetail'
-      | 'automationUsed'
-      | 'automationDetail'
-      | 'hasReviewerComments'
-      | 'reviewerCommentsDetail'
-      | 'copyrightNonDefault'
-      | 'copyrightDetail'
-      | 'dataReuseNonDefault'
-      | 'dataReuseDetail'
-      | 'hasGoalBenchmark'
-      | 'goalLowerValue'
-      | 'goalUpperValue'
-      | 'goalPolarity'
-      | 'goalPolicyDetail'
-    >
-  > = {},
+  values: Partial<typeof indicatorVersion.$inferInsert> = {},
 ) {
   return db
     .insert(indicatorVersion)
@@ -224,6 +190,56 @@ describe('indicator_version', () => {
         sql`UPDATE indicator_version SET update_frequency = 'Annual' WHERE id = ${draft.id}`,
       ),
     ).rejects.toMatchObject({ cause: { code: CHECK_VIOLATION } });
+  });
+
+  it.each([
+    ['months', { periodType: 'months' }],
+    ['quarters of a year type', { periodType: 'quarters', yearType: 'financial' }],
+    [
+      'years ending on 29 February',
+      { periodType: 'years', yearType: 'specified-end-date', yearEndDay: 29, yearEndMonth: 2 },
+    ],
+  ] as const)('holds a period type of %s', async (_, values) => {
+    await expect(addVersion(await newIndicatorId(), 'draft', values)).resolves.toHaveLength(1);
+  });
+
+  // Each case names the check that refuses it; Postgres tries the checks in name order.
+  it.each([
+    ['a period type the service does not know', { periodType: 'weeks' }, 'period_type'],
+    [
+      'a year type the service does not know',
+      { periodType: 'years', yearType: 'survey' },
+      'year_type',
+    ],
+    ['a year type on months', { periodType: 'months', yearType: 'calendar' }, 'year_type_period'],
+    ['no year type on years', { periodType: 'years' }, 'year_type_period'],
+    ['a year type with no period type', { yearType: 'calendar' }, 'year_type_period'],
+    [
+      'a year end on a calendar year',
+      { periodType: 'years', yearType: 'calendar', yearEndDay: 31, yearEndMonth: 7 },
+      'year_end',
+    ],
+    [
+      'no year end on a year ending on a date',
+      { periodType: 'years', yearType: 'specified-end-date' },
+      'year_end',
+    ],
+    [
+      'half a year end',
+      { periodType: 'years', yearType: 'specified-end-date', yearEndDay: 31 },
+      'year_end',
+    ],
+    [
+      '31 February',
+      { periodType: 'years', yearType: 'specified-end-date', yearEndDay: 31, yearEndMonth: 2 },
+      'year_end_date',
+    ],
+  ] as const)('refuses %s', async (_, values, check) => {
+    await expect(
+      addVersion(await newIndicatorId(), 'draft', values as never),
+    ).rejects.toMatchObject({
+      cause: { code: CHECK_VIOLATION, constraint_name: `indicator_version_${check}_check` },
+    });
   });
 
   it('allows a draft alongside the published version', async () => {

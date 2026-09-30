@@ -189,7 +189,7 @@ describe('getPublishedIndicatorById', () => {
       name: expect.stringContaining('Under 75 mortality rate'),
       valueType: 'Directly standardised rate',
       unit: 'per 100,000',
-      yearType: { id: expect.any(String), label: expect.any(String) },
+      yearType: { value: expect.any(String), label: expect.any(String) },
       updateFrequency: 'annually',
       polarity: expect.any(String),
       definition: expect.any(String),

@@ -1,4 +1,5 @@
 import { z } from '@fphd/config/zod';
+import { YEAR_TYPES } from '@fphd/utils/period-type';
 import { POLARITIES } from '@fphd/utils/polarity';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
 import { UPDATE_FREQUENCIES } from '@fphd/utils/update-frequency';
@@ -90,7 +91,7 @@ export const indicatorDetailSchema = z.object({
   /** Null when the values have no unit, so none is shown beside them. */
   unit: z.string().min(1).nullable(),
   /** Null for an indicator of months, which have no year type. */
-  yearType: z.object({ id: z.uuid(), label: z.string().min(1) }).nullable(),
+  yearType: z.object({ value: z.enum(YEAR_TYPES), label: z.string().min(1) }).nullable(),
   updateFrequency: z.enum(UPDATE_FREQUENCIES),
   polarity: z.enum(POLARITIES),
   ciMethod: z.string().nullable(),

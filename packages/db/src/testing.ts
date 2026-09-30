@@ -147,11 +147,8 @@ export async function createTestDatabase({
   };
 }
 
-/**
- * Applies every migration before the one tagged, so a test can put data in the shape that
- * migration meets and then run it with `migrateToLatest`.
- */
-export async function migrateBefore(sql: postgres.Sql, tag: string): Promise<void> {
+/** Applies the migrations up to the one tagged, and that one too when `through` is set. */
+async function migrateUpTo(sql: postgres.Sql, tag: string, through: boolean): Promise<void> {
   const folder = mkdtempSync(join(tmpdir(), 'fphd-migrations-'));
   try {
     cpSync(migrationsFolder, folder, { recursive: true });
@@ -163,12 +160,28 @@ export async function migrateBefore(sql: postgres.Sql, tag: string): Promise<voi
     if (index === -1) throw new Error(`no migration ${tag}`);
     writeFileSync(
       journalPath,
-      JSON.stringify({ ...journal, entries: journal.entries.slice(0, index) }),
+      JSON.stringify({
+        ...journal,
+        entries: journal.entries.slice(0, through ? index + 1 : index),
+      }),
     );
     await migrate(drizzle(sql), { migrationsFolder: folder });
   } finally {
     rmSync(folder, { recursive: true, force: true });
   }
+}
+
+/**
+ * Applies every migration before the one tagged, so a test can put data in the shape that
+ * migration meets and then run it with `migrateThrough` or `migrateToLatest`.
+ */
+export async function migrateBefore(sql: postgres.Sql, tag: string): Promise<void> {
+  await migrateUpTo(sql, tag, false);
+}
+
+/** Applies the migrations up to and including the one tagged, so later ones leave its test be. */
+export async function migrateThrough(sql: postgres.Sql, tag: string): Promise<void> {
+  await migrateUpTo(sql, tag, true);
 }
 
 /**

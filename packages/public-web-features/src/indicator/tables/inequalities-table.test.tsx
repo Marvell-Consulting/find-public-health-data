@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import { YEAR_TYPES } from '@fphd/utils/period-type';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -9,7 +8,7 @@ import { InequalitiesTable } from './inequalities-table.tsx';
 afterEach(cleanup);
 
 function indicator(unit: string | null) {
-  return { unit, yearType: { id: YEAR_TYPES.calendar.id, label: 'Calendar' } } as IndicatorDetail;
+  return { unit, yearType: { value: 'calendar', label: 'Calendar' } } as IndicatorDetail;
 }
 
 const observations = [

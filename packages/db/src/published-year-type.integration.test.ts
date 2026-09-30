@@ -1,5 +1,5 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
-import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
+import type { PeriodType, YearType } from '@fphd/utils/period-type';
 import type postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -45,13 +45,13 @@ let db: Database;
 
 async function setPeriodType(
   shortId: number,
-  periodTypeId: string,
-  yearTypeId: string | null,
+  periodType: PeriodType,
+  yearType: YearType | null,
   yearEnd: [number, number] | null = null,
 ): Promise<void> {
   await owner`
     UPDATE indicator_version v
-    SET period_type_id = ${periodTypeId}, year_type_id = ${yearTypeId},
+    SET period_type = ${periodType}, year_type = ${yearType},
         year_end_day = ${yearEnd?.[0] ?? null}, year_end_month = ${yearEnd?.[1] ?? null}
     FROM indicator i
     WHERE i.id = v.indicator_id AND i.short_id = ${shortId}
@@ -93,15 +93,14 @@ beforeAll(async () => {
     ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
   });
 
-  const { specifiedEndDate } = YEAR_TYPES;
-  await setPeriodType(WINTER_YEARS, PERIOD_TYPES.years.id, specifiedEndDate.id, [31, 7]);
-  await setPeriodType(SURVEY_YEARS, PERIOD_TYPES.quarters.id, specifiedEndDate.id, [15, 11]);
-  await setPeriodType(MONTHLY, PERIOD_TYPES.months.id, null);
-  await setPeriodType(MARCH_YEARS, PERIOD_TYPES.years.id, specifiedEndDate.id, [28, 2]);
-  await setPeriodType(LEAP_MARCH_YEARS, PERIOD_TYPES.years.id, specifiedEndDate.id, [29, 2]);
-  await setPeriodType(ENDING_31_MARCH, PERIOD_TYPES.years.id, specifiedEndDate.id, [31, 3]);
-  await setPeriodType(ENDING_31_DECEMBER, PERIOD_TYPES.years.id, specifiedEndDate.id, [31, 12]);
-  await setPeriodType(ENDING_31_AUGUST, PERIOD_TYPES.years.id, specifiedEndDate.id, [31, 8]);
+  await setPeriodType(WINTER_YEARS, 'years', 'specified-end-date', [31, 7]);
+  await setPeriodType(SURVEY_YEARS, 'quarters', 'specified-end-date', [15, 11]);
+  await setPeriodType(MONTHLY, 'months', null);
+  await setPeriodType(MARCH_YEARS, 'years', 'specified-end-date', [28, 2]);
+  await setPeriodType(LEAP_MARCH_YEARS, 'years', 'specified-end-date', [29, 2]);
+  await setPeriodType(ENDING_31_MARCH, 'years', 'specified-end-date', [31, 3]);
+  await setPeriodType(ENDING_31_DECEMBER, 'years', 'specified-end-date', [31, 12]);
+  await setPeriodType(ENDING_31_AUGUST, 'years', 'specified-end-date', [31, 8]);
 });
 
 afterAll(async () => {
@@ -115,7 +114,7 @@ describe('the public year type', () => {
     const id = await resolvePublishedIndicatorId(db, WINTER_YEARS);
 
     expect((await getPublishedIndicatorById(db, id ?? ''))?.yearType).toEqual({
-      id: YEAR_TYPES.specifiedEndDate.id,
+      value: 'specified-end-date',
       label: 'August to July',
     });
   });
@@ -129,17 +128,17 @@ describe('the public year type', () => {
   });
 
   it.each([
-    [ENDING_31_MARCH, YEAR_TYPES.financial],
-    [ENDING_31_DECEMBER, YEAR_TYPES.calendar],
-    [ENDING_31_AUGUST, YEAR_TYPES.academic],
-  ])('is the named year type a year ending on its last day is (%i)', async (shortId, named) => {
-    const id = await resolvePublishedIndicatorId(db, shortId);
+    [ENDING_31_MARCH, 'financial', 'Financial'],
+    [ENDING_31_DECEMBER, 'calendar', 'Calendar'],
+    [ENDING_31_AUGUST, 'academic', 'Academic'],
+  ])(
+    'is the named year type a year ending on its last day is (%i)',
+    async (shortId, value, label) => {
+      const id = await resolvePublishedIndicatorId(db, shortId);
 
-    expect((await getPublishedIndicatorById(db, id ?? ''))?.yearType).toEqual({
-      id: named.id,
-      label: named.name,
-    });
-  });
+      expect((await getPublishedIndicatorById(db, id ?? ''))?.yearType).toEqual({ value, label });
+    },
+  );
 
   it('is null for an indicator of months, which is still published', async () => {
     const id = await resolvePublishedIndicatorId(db, MONTHLY);

@@ -1,7 +1,6 @@
 import { randomBytes } from 'node:crypto';
 
 import { appEnvFields, parseEnv, z } from '@fphd/config';
-import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
 import type postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -44,11 +43,11 @@ async function insertDraftOnlyIndicator(): Promise<void> {
 
   const [version] = await owner<{ id: string }[]>`
     INSERT INTO indicator_version
-      (indicator_id, status, name, slug, value_type_id, unit_id, period_type_id, year_type_id,
+      (indicator_id, status, name, slug, value_type_id, unit_id, period_type, year_type,
        polarity, update_frequency, definition, created_by, updated_by)
     SELECT ${draftIndicatorId}, 'draft', 'grants-test draft indicator',
            'grants-test-draft-indicator',
-           vt.id, u.id, ${PERIOD_TYPES.years.id}, ${YEAR_TYPES.calendar.id}, 'lower-is-better',
+           vt.id, u.id, 'years', 'calendar', 'lower-is-better',
            'annually', 'a draft definition', 'grants-test', 'grants-test'
     FROM value_type vt, unit u
     WHERE u.name <> 'Other'
@@ -155,7 +154,7 @@ const PUBLISHED_INDICATOR_COLUMNS = [
   'indicator.value_type_id uuid',
   'indicator.unit_id uuid',
   'indicator.unit_other text',
-  'indicator.year_type_id uuid',
+  'indicator.year_type text',
   'indicator.year_end_day smallint',
   'indicator.year_end_month smallint',
   'indicator.ci_method_id uuid',
@@ -275,7 +274,6 @@ describe('the internal role', () => {
     'published.data_provider_source',
     'public.data_provider',
     'public.data_provider_source',
-    'public.period_type',
   ])('may select %s', async (relation) => {
     const [row] = await owner<{ readable: boolean }[]>`
       SELECT has_table_privilege(${API_ROLES.internalApi}, ${relation}, 'SELECT') AS readable

@@ -1,4 +1,9 @@
-import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
+import {
+  PERIOD_TYPES,
+  PERIOD_TYPES_WITH_YEAR_TYPE,
+  YEAR_TYPES,
+  type YearType,
+} from '@fphd/utils/period-type';
 import { GOAL_POLARITIES, POLARITIES } from '@fphd/utils/polarity';
 import { AGE_TYPES, AGE_UNIT_DAYS, AGE_UNITS, MAX_AGE, SEXES } from '@fphd/utils/sex-and-ages';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
@@ -40,10 +45,8 @@ import {
   dataProvider,
   dataProviderSource,
   dataSource,
-  periodType,
   unit,
   valueType,
-  yearType,
 } from './lookup.ts';
 
 export const INDICATOR_VERSION_STATUSES = ['draft', 'published'] as const;
@@ -109,9 +112,9 @@ export const indicatorVersion = pgTable(
     unitId: uuid().references(() => unit.id),
     // The unit a publisher names under "Other".
     unitOther: text(),
-    periodTypeId: uuid().references(() => periodType.id),
+    periodType: text({ enum: PERIOD_TYPES }),
     // Asked of years and quarters only, and the end date only of a year ending on a specified one.
-    yearTypeId: uuid().references(() => yearType.id),
+    yearType: text({ enum: YEAR_TYPES }),
     yearEndDay: smallint(),
     yearEndMonth: smallint(),
     ciMethodId: uuid().references(() => ciMethod.id),
@@ -331,12 +334,17 @@ export const indicatorVersion = pgTable(
       sql`${t.ageType} IS NOT DISTINCT FROM 'other' OR ${t.ageOtherDetail} IS NULL`,
     ),
     check(
-      'indicator_version_year_type_check',
-      sql`(${t.yearTypeId} IS NOT NULL) = (${t.periodTypeId} IS NOT NULL AND ${t.periodTypeId} <> ${sql.raw(`'${PERIOD_TYPES.months.id}'`)})`,
+      'indicator_version_period_type_check',
+      sql`${t.periodType} IN (${literals(PERIOD_TYPES)})`,
+    ),
+    check('indicator_version_year_type_check', sql`${t.yearType} IN (${literals(YEAR_TYPES)})`),
+    check(
+      'indicator_version_year_type_period_check',
+      sql`(${t.yearType} IS NOT NULL) = (${t.periodType} IS NOT NULL AND ${t.periodType} IN (${literals(PERIOD_TYPES_WITH_YEAR_TYPE)}))`,
     ),
     check(
       'indicator_version_year_end_check',
-      sql`(${t.yearEndDay} IS NOT NULL) = (${t.yearTypeId} IS NOT DISTINCT FROM ${sql.raw(`'${YEAR_TYPES.specifiedEndDate.id}'`)}) AND (${t.yearEndMonth} IS NOT NULL) = (${t.yearEndDay} IS NOT NULL)`,
+      sql`(${t.yearEndDay} IS NOT NULL) = (${t.yearType} IS NOT DISTINCT FROM ${literals(['specified-end-date' satisfies YearType])}) AND (${t.yearEndMonth} IS NOT NULL) = (${t.yearEndDay} IS NOT NULL)`,
     ),
     // A day of that month in some year, so 29 February is one.
     check(

@@ -344,7 +344,7 @@ def add_indicators(cur, metadata, seed_dir):
             """
             INSERT INTO indicator_version
               (id, indicator_id, status, published_at, name, slug, value_type_id, unit_id,
-               unit_other, period_type_id, year_type_id, year_end_day, year_end_month,
+               unit_other, period_type, year_type, year_end_day, year_end_month,
                ci_method_id, polarity, update_frequency, comparator_method_id,
                ci_confidence_level, config, definition, rationale, methodology,
                numerator_definition, denominator_definition, disclosure_control,

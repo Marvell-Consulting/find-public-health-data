@@ -1,13 +1,11 @@
 import { z } from '@fphd/config/zod';
-import { isDayOfMonth, PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
+import { isDayOfMonth, isYearType, PERIOD_TYPES } from '@fphd/utils/period-type';
 
 import { type IndicatorSection, isSmallNumber } from './indicator-section-contract.ts';
 
 const fields = z.enum(['periodType', 'yearType', 'yearEndDay', 'yearEndMonth']);
 
 export type PeriodTypeField = z.infer<typeof fields>;
-
-const yearTypeIds: readonly string[] = Object.values(YEAR_TYPES).map(({ id }) => id);
 
 const REAL_DATE = 'Date must be a real date';
 
@@ -36,23 +34,20 @@ function yearEndProblems(day: string, month: string): Partial<Record<PeriodTypeF
  */
 const schema = z
   .object({
-    periodType: z.enum(
-      [PERIOD_TYPES.years.id, PERIOD_TYPES.quarters.id, PERIOD_TYPES.months.id],
-      'Select the period type',
-    ),
+    periodType: z.enum(PERIOD_TYPES, 'Select the period type'),
     yearType: z.string(),
     yearEndDay: z.string().trim(),
     yearEndMonth: z.string().trim(),
   })
   .superRefine(({ periodType, yearType, yearEndDay, yearEndMonth }, ctx) => {
-    if (periodType === PERIOD_TYPES.months.id) return;
+    if (periodType === 'months') return;
 
-    if (!yearTypeIds.includes(yearType)) {
+    if (!isYearType(yearType)) {
       ctx.addIssue({ code: 'custom', path: ['yearType'], message: 'Select the year type' });
       return;
     }
 
-    if (yearType !== YEAR_TYPES.specifiedEndDate.id) return;
+    if (yearType !== 'specified-end-date') return;
 
     for (const [field, message] of Object.entries(yearEndProblems(yearEndDay, yearEndMonth))) {
       ctx.addIssue({ code: 'custom', path: [field], message });

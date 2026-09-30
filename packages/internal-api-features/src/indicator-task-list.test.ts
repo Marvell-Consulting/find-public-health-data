@@ -1,4 +1,3 @@
-import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
 import { UNITS, VALUE_TYPES } from '@fphd/utils/value-type-and-unit';
 import { describe, expect, it } from 'vitest';
 
@@ -34,8 +33,8 @@ const source: IndicatorTaskListSource = {
     ciMethodModifications: null,
     ciMethodOtherDetail: null,
     updateFrequency: null,
-    periodTypeId: null,
-    yearTypeId: null,
+    periodType: null,
+    yearType: null,
     yearEndDay: null,
     yearEndMonth: null,
     valueTypeId: null,
@@ -109,8 +108,8 @@ const complete: IndicatorTaskListDraft = {
   ciMethodModifications: null,
   ciMethodOtherDetail: null,
   updateFrequency: 'quarterly',
-  periodTypeId: PERIOD_TYPES.years.id,
-  yearTypeId: YEAR_TYPES.specifiedEndDate.id,
+  periodType: 'years',
+  yearType: 'specified-end-date',
   yearEndDay: 31,
   yearEndMonth: 7,
   valueTypeId: VALUE_TYPES.directlyStandardisedRate.id,
@@ -245,32 +244,26 @@ describe('indicatorTaskList', () => {
   });
 
   it.each([
-    ['months', { periodTypeId: PERIOD_TYPES.months.id }],
-    [
-      'quarters of a year type',
-      { periodTypeId: PERIOD_TYPES.quarters.id, yearTypeId: YEAR_TYPES.financial.id },
-    ],
+    ['months', { periodType: 'months' }],
+    ['quarters of a year type', { periodType: 'quarters', yearType: 'financial' }],
     [
       'years ending on a date',
       {
-        periodTypeId: PERIOD_TYPES.years.id,
-        yearTypeId: YEAR_TYPES.specifiedEndDate.id,
+        periodType: 'years',
+        yearType: 'specified-end-date',
         yearEndDay: 29,
         yearEndMonth: 2,
       },
     ],
-  ])('counts the period type as complete with %s', (_, draft) => {
+  ] as const)('counts the period type as complete with %s', (_, draft) => {
     expect(indicatorTaskList(withDraft(draft)).tasks['period-type']).toBe('completed');
   });
 
   it.each([
     ['nothing', {}],
-    ['years of no year type', { periodTypeId: PERIOD_TYPES.years.id }],
-    [
-      'years ending on a date not given',
-      { periodTypeId: PERIOD_TYPES.years.id, yearTypeId: YEAR_TYPES.specifiedEndDate.id },
-    ],
-  ])('leaves the period type not started with %s', (_, draft) => {
+    ['years of no year type', { periodType: 'years' }],
+    ['years ending on a date not given', { periodType: 'years', yearType: 'specified-end-date' }],
+  ] as const)('leaves the period type not started with %s', (_, draft) => {
     expect(indicatorTaskList(withDraft(draft)).tasks['period-type']).toBe('not_started');
   });
 

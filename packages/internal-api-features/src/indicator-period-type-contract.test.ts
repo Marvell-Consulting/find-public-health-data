@@ -1,4 +1,3 @@
-import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
 import { describe, expect, it } from 'vitest';
 
 import { periodTypeSection as section } from './indicator-period-type-contract.ts';
@@ -7,13 +6,13 @@ import { sectionFieldErrors } from './testing.ts';
 const unanswered = { periodType: '', yearType: '', yearEndDay: '', yearEndMonth: '' };
 
 const years = (yearType: string, yearEndDay = '', yearEndMonth = '') => ({
-  periodType: PERIOD_TYPES.years.id,
+  periodType: 'years',
   yearType,
   yearEndDay,
   yearEndMonth,
 });
 
-const endingOn = (day: string, month: string) => years(YEAR_TYPES.specifiedEndDate.id, day, month);
+const endingOn = (day: string, month: string) => years('specified-end-date', day, month);
 
 const REAL_DATE = 'Date must be a real date';
 
@@ -31,14 +30,12 @@ describe('periodTypeSection', () => {
   });
 
   it('takes months with nothing more', () => {
-    expect(
-      sectionFieldErrors(section, { ...unanswered, periodType: PERIOD_TYPES.months.id }),
-    ).toBeUndefined();
+    expect(sectionFieldErrors(section, { ...unanswered, periodType: 'months' })).toBeUndefined();
   });
 
   it.each([
-    ['years', PERIOD_TYPES.years.id],
-    ['quarters', PERIOD_TYPES.quarters.id],
+    ['years', 'years'],
+    ['quarters', 'quarters'],
   ])('asks %s for the year type', (_, periodType) => {
     expect(sectionFieldErrors(section, { ...unanswered, periodType })).toEqual({
       yearType: 'Select the year type',
@@ -48,13 +45,12 @@ describe('periodTypeSection', () => {
     ).toEqual({ yearType: 'Select the year type' });
   });
 
-  it.each(
-    [YEAR_TYPES.calendar, YEAR_TYPES.financial, YEAR_TYPES.academic, YEAR_TYPES.rolling].map(
-      ({ id, name }) => [name, id],
-    ),
-  )('takes a %s year with no date', (_, yearType) => {
-    expect(sectionFieldErrors(section, years(yearType))).toBeUndefined();
-  });
+  it.each(['calendar', 'financial', 'academic', 'rolling'])(
+    'takes a %s year with no date',
+    (yearType) => {
+      expect(sectionFieldErrors(section, years(yearType))).toBeUndefined();
+    },
+  );
 
   it.each([
     ['the last day of a month', '31', '7'],
@@ -98,8 +94,8 @@ describe('periodTypeSection', () => {
   it('takes a year type of quarters ending on a date', () => {
     expect(
       sectionFieldErrors(section, {
-        periodType: PERIOD_TYPES.quarters.id,
-        yearType: YEAR_TYPES.specifiedEndDate.id,
+        periodType: 'quarters',
+        yearType: 'specified-end-date',
         yearEndDay: '30',
         yearEndMonth: '9',
       }),
@@ -107,8 +103,6 @@ describe('periodTypeSection', () => {
   });
 
   it('checks no date for a year type that does not ask for one', () => {
-    expect(
-      sectionFieldErrors(section, years(YEAR_TYPES.calendar.id, 'last', 'July')),
-    ).toBeUndefined();
+    expect(sectionFieldErrors(section, years('calendar', 'last', 'July'))).toBeUndefined();
   });
 });

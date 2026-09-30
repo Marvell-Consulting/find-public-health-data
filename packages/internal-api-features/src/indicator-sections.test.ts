@@ -1,4 +1,3 @@
-import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
 import { UNITS, VALUE_TYPES } from '@fphd/utils/value-type-and-unit';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
@@ -55,8 +54,8 @@ const unanswered: IndicatorSectionDraft = {
   ciMethodModifications: null,
   ciMethodOtherDetail: null,
   updateFrequency: null,
-  periodTypeId: null,
-  yearTypeId: null,
+  periodType: null,
+  yearType: null,
   yearEndDay: null,
   yearEndMonth: null,
   valueTypeId: null,
@@ -253,15 +252,15 @@ describe('updateFrequencyColumns', () => {
 });
 
 describe('periodTypeColumns', () => {
-  const years = PERIOD_TYPES.years.id;
-  const specified = YEAR_TYPES.specifiedEndDate.id;
+  const years = 'years';
+  const specified = 'specified-end-date';
 
   it('reads the year end as the form gives it', () => {
     expect(
       periodTypeColumns.fromDraft({
         ...unanswered,
-        periodTypeId: years,
-        yearTypeId: specified,
+        periodType: years,
+        yearType: specified,
         yearEndDay: 31,
         yearEndMonth: 7,
       }),
@@ -276,20 +275,20 @@ describe('periodTypeColumns', () => {
         yearEndDay: '31',
         yearEndMonth: '07',
       }),
-    ).toEqual({ periodTypeId: years, yearTypeId: specified, yearEndDay: 31, yearEndMonth: 7 });
+    ).toEqual({ periodType: years, yearType: specified, yearEndDay: 31, yearEndMonth: 7 });
   });
 
   it('clears a year end the year type does not ask for', () => {
     expect(
       periodTypeColumns.toAttributes({
-        periodType: PERIOD_TYPES.quarters.id,
-        yearType: YEAR_TYPES.financial.id,
+        periodType: 'quarters',
+        yearType: 'financial',
         yearEndDay: '31',
         yearEndMonth: '7',
       }),
     ).toEqual({
-      periodTypeId: PERIOD_TYPES.quarters.id,
-      yearTypeId: YEAR_TYPES.financial.id,
+      periodType: 'quarters',
+      yearType: 'financial',
       yearEndDay: null,
       yearEndMonth: null,
     });
@@ -298,14 +297,14 @@ describe('periodTypeColumns', () => {
   it('clears the year type and year end of months', () => {
     expect(
       periodTypeColumns.toAttributes({
-        periodType: PERIOD_TYPES.months.id,
+        periodType: 'months',
         yearType: specified,
         yearEndDay: '31',
         yearEndMonth: '7',
       }),
     ).toEqual({
-      periodTypeId: PERIOD_TYPES.months.id,
-      yearTypeId: null,
+      periodType: 'months',
+      yearType: null,
       yearEndDay: null,
       yearEndMonth: null,
     });

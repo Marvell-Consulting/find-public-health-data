@@ -1,3 +1,4 @@
+import { YEAR_TYPES } from '@fphd/utils/period-type';
 import { POLARITIES } from '@fphd/utils/polarity';
 import { UPDATE_FREQUENCIES } from '@fphd/utils/update-frequency';
 import {
@@ -38,7 +39,7 @@ export const publishedIndicator = publishedSchema
     valueTypeId: uuid('value_type_id'),
     unitId: uuid('unit_id'),
     unitOther: text('unit_other'),
-    yearTypeId: uuid('year_type_id'),
+    yearType: text('year_type', { enum: YEAR_TYPES }),
     yearEndDay: smallint('year_end_day'),
     yearEndMonth: smallint('year_end_month'),
     ciMethodId: uuid('ci_method_id'),
@@ -113,10 +114,6 @@ export const publishedValueType = publishedSchema
 
 export const publishedUnit = publishedSchema
   .view('unit', { id: uuid('id').notNull(), name: text('name').notNull() })
-  .existing();
-
-export const publishedYearType = publishedSchema
-  .view('year_type', { id: uuid('id').notNull(), name: text('name').notNull() })
   .existing();
 
 export const publishedCiMethod = publishedSchema

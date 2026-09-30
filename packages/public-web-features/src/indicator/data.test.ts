@@ -1,4 +1,4 @@
-import { publicYearType, YEAR_TYPES } from '@fphd/utils/period-type';
+import { publicYearType } from '@fphd/utils/period-type';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -54,7 +54,7 @@ describe('periodLabel', () => {
     expect(periodLabel(obs({ fromDate: '2021-01-01', toDate: '2023-12-31' }))).toBe('2021 to 2023');
   });
 
-  const financial = publicYearType(YEAR_TYPES.financial.id, null);
+  const financial = publicYearType('financial', null);
 
   it('labels a financial year as one period spanning two years', () => {
     const financialYear = obs({ fromDate: '2022-04-01', toDate: '2023-03-31' });
@@ -63,19 +63,17 @@ describe('periodLabel', () => {
   });
 
   it('labels a year ending on a specified 31 March as a financial year', () => {
-    const yearEnd = publicYearType(YEAR_TYPES.specifiedEndDate.id, { day: 31, month: 3 });
+    const yearEnd = publicYearType('specified-end-date', { day: 31, month: 3 });
     const year = obs({ fromDate: '2022-04-01', toDate: '2023-03-31' });
 
     expect(periodLabel(year, yearEnd)).toBe('2022/23');
   });
 
-  it('knows a financial year by its id, not its label', () => {
+  it('knows a financial year by its value, not its label', () => {
     const year = obs({ fromDate: '2022-04-01', toDate: '2023-03-31' });
 
-    expect(periodLabel(year, { id: YEAR_TYPES.financial.id, label: 'Renamed' })).toBe('2022/23');
-    expect(periodLabel(year, { id: YEAR_TYPES.rolling.id, label: 'Financial' })).toBe(
-      '2022 to 2023',
-    );
+    expect(periodLabel(year, { value: 'financial', label: 'Renamed' })).toBe('2022/23');
+    expect(periodLabel(year, { value: 'rolling', label: 'Financial' })).toBe('2022 to 2023');
   });
 
   it('labels a Fingertips financial year of cumulative quarters as one financial year', () => {
@@ -87,8 +85,8 @@ describe('periodLabel', () => {
   });
 
   it.each([
-    ['another year type', publicYearType(YEAR_TYPES.specifiedEndDate.id, { day: 31, month: 7 })],
-    ['an academic year', publicYearType(YEAR_TYPES.specifiedEndDate.id, { day: 31, month: 8 })],
+    ['another year type', publicYearType('specified-end-date', { day: 31, month: 7 })],
+    ['an academic year', publicYearType('specified-end-date', { day: 31, month: 8 })],
     ['no year type, as months have', null],
   ])('labels a year spanning two years as a range for %s', (_, yearType) => {
     const year = obs({ fromDate: '2022-08-01', toDate: '2023-07-31' });

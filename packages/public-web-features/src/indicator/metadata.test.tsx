@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import { YEAR_TYPES } from '@fphd/utils/period-type';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -15,7 +14,7 @@ const indicator: IndicatorDetail = {
   name: 'An indicator',
   valueType: 'Proportion',
   unit: '%',
-  yearType: { id: YEAR_TYPES.calendar.id, label: 'Calendar' },
+  yearType: { value: 'calendar', label: 'Calendar' },
   updateFrequency: 'annually',
   polarity: 'lower-is-better',
   ciMethod: null,

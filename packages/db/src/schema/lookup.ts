@@ -14,17 +14,6 @@ export const unit = pgTable('unit', {
   name: text().notNull().unique(),
 });
 
-// The rows of these two are the vocabularies in @fphd/utils/period-type, inserted by migration.
-export const periodType = pgTable('period_type', {
-  id: uuidPrimaryKey(),
-  name: text().notNull().unique(),
-});
-
-export const yearType = pgTable('year_type', {
-  id: uuidPrimaryKey(),
-  name: text().notNull().unique(),
-});
-
 /**
  * What choosing a method asks of a publisher next: a standard method's modifications, an
  * other method's detail, or nothing for a method that has none to describe.

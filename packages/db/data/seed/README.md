@@ -65,12 +65,11 @@ That yields 433,678 observations, 657,869 bridge rows and 67,978 observation not
   the table: the load maps each name onto the core data providers through
   `../legacy-numerator-denominator-sources.json` and writes the result to
   `indicator_version_source`.
-- `indicator_version.period_type_id` and `year_type_id` point at the service's own
-  `period_type` and `year_type` rows, which the migrations insert with the ids in
+- `indicator_version.period_type` and `year_type` hold the service's values from
   `@fphd/utils/period-type`, and a year ending on a specified date holds its day and month
   in `year_end_day` and `year_end_month`. `export/year_type.py` translates each of Pholio's
   17 year types to them, and a name it has no translation for stops the export. Neither
-  export carries a `year_type` table; migration 0034 holds the same translation for
+  export carries a `year_type` table; migrations 0034 and 0036 hold the same translation for
   databases that already had Pholio's rows.
 - `indicator_version.value_type_id` and `unit_id` point at the service's own rows, whose ids
   are in `@fphd/utils/value-type-and-unit` and which the migrations insert, so neither export

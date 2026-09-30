@@ -259,7 +259,7 @@ export async function getPublishedIndicatorById(
       unitId: unit.id,
       unitName: unit.name,
       unitOther: indicator.unitOther,
-      yearTypeId: indicator.yearTypeId,
+      yearType: indicator.yearType,
       yearEndDay: indicator.yearEndDay,
       yearEndMonth: indicator.yearEndMonth,
       updateFrequency: indicator.updateFrequency,
@@ -324,7 +324,7 @@ export async function getPublishedIndicatorById(
     name: row.name,
     valueType: row.valueType,
     unit: unitLabel({ id: row.unitId, name: row.unitName }, row.unitOther),
-    yearType: row.yearTypeId === null ? null : publicYearType(row.yearTypeId, yearEndOf(row)),
+    yearType: row.yearType === null ? null : publicYearType(row.yearType, yearEndOf(row)),
     updateFrequency: row.updateFrequency,
     polarity: row.polarity,
     ciMethod: row.ciMethod,
@@ -676,11 +676,11 @@ export async function searchIndicators(
       or(
         ...filters.yearTypes
           .flatMap(yearTypeValuesLabelled)
-          .map(({ yearTypeId, yearEnd }) =>
+          .map(({ yearType, yearEnd }) =>
             yearEnd === null
-              ? eq(indicator.yearTypeId, yearTypeId)
+              ? eq(indicator.yearType, yearType)
               : and(
-                  eq(indicator.yearTypeId, yearTypeId),
+                  eq(indicator.yearType, yearType),
                   eq(indicator.yearEndDay, yearEnd.day),
                   eq(indicator.yearEndMonth, yearEnd.month),
                 ),
@@ -809,14 +809,14 @@ function yearEndOf({
 async function listPublishedYearTypeLabels(db: Database): Promise<string[]> {
   const rows = await db
     .selectDistinct({
-      yearTypeId: indicator.yearTypeId,
+      yearType: indicator.yearType,
       yearEndDay: indicator.yearEndDay,
       yearEndMonth: indicator.yearEndMonth,
     })
     .from(indicator);
 
-  const labels = rows.flatMap(({ yearTypeId, ...yearEnd }) =>
-    yearTypeId === null ? [] : [publicYearType(yearTypeId, yearEndOf(yearEnd)).label],
+  const labels = rows.flatMap(({ yearType, ...yearEnd }) =>
+    yearType === null ? [] : [publicYearType(yearType, yearEndOf(yearEnd)).label],
   );
   return [...new Set(labels)].sort((a, b) => a.localeCompare(b));
 }
