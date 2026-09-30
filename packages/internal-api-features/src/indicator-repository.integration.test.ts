@@ -767,7 +767,7 @@ describe('updateIndicatorDraft', () => {
       'a specific age beside another age type',
       { ageType: 'other', specificAge: 5, specificAgeUnit: 'years' },
     ],
-    ['other ages beside another age type', { ageType: 'range', ageOtherDetail: 'Year 6' }],
+    ['other ages beside another age type', { ageType: 'range', ageDetail: 'Year 6' }],
     [
       'a specific age beside all ages',
       { ageType: 'all', specificAge: 5, specificAgeUnit: 'years' },
@@ -913,7 +913,7 @@ describe('updateIndicatorDraft', () => {
     await updateIndicatorDraft(
       db,
       created.indicatorId,
-      { methodology: 'A method', calculatedBy: 'other', calculatedByOther: 'ONS' },
+      { methodology: 'A method', calculatedBy: 'other', calculatedByDetail: 'ONS' },
       {},
       ACTOR,
     );
@@ -921,7 +921,7 @@ describe('updateIndicatorDraft', () => {
     await updateIndicatorDraft(
       db,
       created.indicatorId,
-      { calculatedBy: 'dhsc', calculatedByOther: null },
+      { calculatedBy: 'dhsc', calculatedByDetail: null },
       {},
       ACTOR,
     );
@@ -930,12 +930,12 @@ describe('updateIndicatorDraft', () => {
     expect(asOther?.draft).toMatchObject({
       methodology: 'A method',
       calculatedBy: 'other',
-      calculatedByOther: 'ONS',
+      calculatedByDetail: 'ONS',
     });
     expect(asDhsc?.draft).toMatchObject({
       methodology: 'A method',
       calculatedBy: 'dhsc',
-      calculatedByOther: null,
+      calculatedByDetail: null,
     });
   });
 
@@ -948,9 +948,9 @@ describe('updateIndicatorDraft', () => {
       created.indicatorId,
       {
         ciMethodId: methodId,
-        ciMethodModified: true,
-        ciMethodModifications: 'Adjusted for clustering',
-        ciMethodOtherDetail: null,
+        hasCiMethodModifications: true,
+        ciMethodModificationsDetail: 'Adjusted for clustering',
+        ciMethodDetail: null,
       },
       {},
       ACTOR,
@@ -960,9 +960,9 @@ describe('updateIndicatorDraft', () => {
     const state = await getIndicatorDraftState(db, created.indicatorId);
     expect(state?.draft).toMatchObject({
       ciMethodId: methodId,
-      ciMethodModified: true,
-      ciMethodModifications: 'Adjusted for clustering',
-      ciMethodOtherDetail: null,
+      hasCiMethodModifications: true,
+      ciMethodModificationsDetail: 'Adjusted for clustering',
+      ciMethodDetail: null,
     });
   });
 
@@ -971,11 +971,11 @@ describe('updateIndicatorDraft', () => {
     const answers = {
       disclosureControl: 'yes',
       disclosureControlDetail: 'Counts under 5 are suppressed.',
-      roundingApplied: false,
+      hasRounding: false,
       roundingDetail: null,
-      caveatsNeeded: true,
+      hasCaveats: true,
       caveatsDetail: 'Survey data.',
-      otherNotesNeeded: false,
+      hasOtherNotes: false,
       otherNotesDetail: null,
     } as const;
 
@@ -991,7 +991,7 @@ describe('updateIndicatorDraft', () => {
     const answers = {
       variation: 'Varies with the age structure of each area.',
       qualityAssurance: 'Checked against the published ONS figures.',
-      sourceDataIssues: true,
+      hasSourceDataIssues: true,
       sourceDataIssuesDetail: 'Late returns from two areas.',
     };
 
@@ -1005,13 +1005,13 @@ describe('updateIndicatorDraft', () => {
   it('writes whether there are data quality issues to the draft', async () => {
     const created = await newDraft('Data quality answered');
 
-    await updateIndicatorDraft(db, created.indicatorId, { dataQualityIssues: true }, {}, ACTOR);
+    await updateIndicatorDraft(db, created.indicatorId, { hasDataQualityIssues: true }, {}, ACTOR);
     const yes = await getIndicatorDraftState(db, created.indicatorId);
-    await updateIndicatorDraft(db, created.indicatorId, { dataQualityIssues: false }, {}, ACTOR);
+    await updateIndicatorDraft(db, created.indicatorId, { hasDataQualityIssues: false }, {}, ACTOR);
     const no = await getIndicatorDraftState(db, created.indicatorId);
 
-    expect(yes?.draft?.dataQualityIssues).toBe(true);
-    expect(no?.draft?.dataQualityIssues).toBe(false);
+    expect(yes?.draft?.hasDataQualityIssues).toBe(true);
+    expect(no?.draft?.hasDataQualityIssues).toBe(false);
   });
 
   it('writes the justifications to the draft', async () => {
@@ -1022,7 +1022,7 @@ describe('updateIndicatorDraft', () => {
       inequalitiesIncluded: 'Deprivation deciles.',
       hasExclusions: true,
       exclusionsDetail: 'Areas with fewer than 5 deaths.',
-      automationUsed: false,
+      hasAutomation: false,
       automationDetail: null,
     };
 
@@ -1051,10 +1051,10 @@ describe('updateIndicatorDraft', () => {
   it('writes the copyright and data re-use terms to the draft', async () => {
     const created = await newDraft('Copyright and data re-use answered');
     const answers = {
-      copyrightNonDefault: true,
-      copyrightDetail: 'Copyright © NHS England',
-      dataReuseNonDefault: false,
-      dataReuseDetail: null,
+      hasCustomCopyright: true,
+      customCopyrightDetail: 'Copyright © NHS England',
+      hasCustomDataReuse: false,
+      customDataReuseDetail: null,
     };
 
     const result = await updateIndicatorDraft(db, created.indicatorId, answers, {}, ACTOR);
@@ -1154,26 +1154,26 @@ describe('createDraftFromPublished', () => {
     const { indicatorId, currentId } = await indicatorWithTwoPublications();
     await db
       .update(indicatorVersion)
-      .set({ calculatedBy: 'other', calculatedByOther: 'ONS' })
+      .set({ calculatedBy: 'other', calculatedByDetail: 'ONS' })
       .where(eq(indicatorVersion.id, currentId));
 
     await createDraftFromPublished(db, indicatorId, ACTOR);
 
     const state = await getIndicatorDraftState(db, indicatorId);
-    expect(state?.draft).toMatchObject({ calculatedBy: 'other', calculatedByOther: 'ONS' });
+    expect(state?.draft).toMatchObject({ calculatedBy: 'other', calculatedByDetail: 'ONS' });
   });
 
   it('copies whether the published version has data quality issues', async () => {
     const { indicatorId, currentId } = await indicatorWithTwoPublications();
     await db
       .update(indicatorVersion)
-      .set({ dataQualityIssues: true })
+      .set({ hasDataQualityIssues: true })
       .where(eq(indicatorVersion.id, currentId));
 
     await createDraftFromPublished(db, indicatorId, ACTOR);
 
     const state = await getIndicatorDraftState(db, indicatorId);
-    expect(state?.draft?.dataQualityIssues).toBe(true);
+    expect(state?.draft?.hasDataQualityIssues).toBe(true);
   });
 
   it('copies the most recently published version, not the superseded one', async () => {
@@ -1206,7 +1206,7 @@ describe('createDraftFromPublished', () => {
     const methodId = await ciMethodId('Other method');
     await db
       .update(indicatorVersion)
-      .set({ ciMethodId: methodId, ciMethodOtherDetail: 'Bootstrap intervals' })
+      .set({ ciMethodId: methodId, ciMethodDetail: 'Bootstrap intervals' })
       .where(eq(indicatorVersion.id, currentId));
 
     const result = await createDraftFromPublished(db, indicatorId, ACTOR);
@@ -1218,9 +1218,9 @@ describe('createDraftFromPublished', () => {
       .where(eq(indicatorVersion.id, result.versionId));
     expect(draft).toMatchObject({
       ciMethodId: methodId,
-      ciMethodModified: null,
-      ciMethodModifications: null,
-      ciMethodOtherDetail: 'Bootstrap intervals',
+      hasCiMethodModifications: null,
+      ciMethodModificationsDetail: null,
+      ciMethodDetail: 'Bootstrap intervals',
     });
   });
 

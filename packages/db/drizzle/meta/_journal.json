@@ -281,6 +281,13 @@
       "when": 1790796162300,
       "tag": "0039_version-child-tables",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1790796434611,
+      "tag": "0040_rename-yes-no-and-detail-columns",
+      "breakpoints": true
     }
   ]
 }

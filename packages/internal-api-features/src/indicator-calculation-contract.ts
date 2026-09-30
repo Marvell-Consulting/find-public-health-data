@@ -2,7 +2,7 @@ import { z } from '@fphd/config/zod';
 
 import type { IndicatorSection } from './indicator-section-contract.ts';
 
-const fields = z.enum(['methodology', 'calculatedBy', 'calculatedByOther']);
+const fields = z.enum(['methodology', 'calculatedBy', 'calculatedByDetail']);
 
 const calculatedBySchema = z.enum(['ohid', 'dhsc', 'other'], {
   error: 'Select who calculated the indicator',
@@ -13,13 +13,13 @@ const schema = z
   .object({
     methodology: z.string().trim().min(1, 'Enter the methodology'),
     calculatedBy: calculatedBySchema,
-    calculatedByOther: z.string().trim(),
+    calculatedByDetail: z.string().trim(),
   })
-  .superRefine(({ calculatedBy, calculatedByOther }, ctx) => {
-    if (calculatedBy === 'other' && calculatedByOther === '') {
+  .superRefine(({ calculatedBy, calculatedByDetail }, ctx) => {
+    if (calculatedBy === 'other' && calculatedByDetail === '') {
       ctx.addIssue({
         code: 'custom',
-        path: ['calculatedByOther'],
+        path: ['calculatedByDetail'],
         message: 'Enter details of the other organisation or organisations',
       });
     }

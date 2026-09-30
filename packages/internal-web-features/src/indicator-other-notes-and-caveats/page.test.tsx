@@ -11,19 +11,19 @@ afterEach(cleanup);
 const empty = {
   disclosureControl: '',
   disclosureControlDetail: '',
-  roundingApplied: '',
+  hasRounding: '',
   roundingDetail: '',
-  caveatsNeeded: '',
+  hasCaveats: '',
   caveatsDetail: '',
-  otherNotesNeeded: '',
+  hasOtherNotes: '',
   otherNotesDetail: '',
 };
 
 const QUESTIONS = [
   ['Has disclosure control been applied?', 'disclosureControl', 'disclosureControlDetail'],
-  ['Has any rounding been applied?', 'roundingApplied', 'roundingDetail'],
-  ['Are there any caveats needed?', 'caveatsNeeded', 'caveatsDetail'],
-  ['Are there any other notes needed?', 'otherNotesNeeded', 'otherNotesDetail'],
+  ['Has any rounding been applied?', 'hasRounding', 'roundingDetail'],
+  ['Are there any caveats needed?', 'hasCaveats', 'caveatsDetail'],
+  ['Are there any other notes needed?', 'hasOtherNotes', 'otherNotesDetail'],
 ] as const;
 
 // The error summary's links read router state, so the page renders inside a router.
@@ -105,10 +105,10 @@ describe('OtherNotesAndCaveatsPage', () => {
       values: {
         ...empty,
         disclosureControl: 'not-applicable',
-        roundingApplied: 'no',
-        caveatsNeeded: 'yes',
+        hasRounding: 'no',
+        hasCaveats: 'yes',
         caveatsDetail: 'Survey data.',
-        otherNotesNeeded: 'no',
+        hasOtherNotes: 'no',
       },
     });
 
@@ -132,9 +132,9 @@ describe('OtherNotesAndCaveatsPage', () => {
   it('summarises every refusal in the order the form asks, linking to each control', () => {
     renderPage({
       fieldErrors: {
-        otherNotesNeeded: 'Select whether there are any other notes needed',
+        hasOtherNotes: 'Select whether there are any other notes needed',
         disclosureControlDetail: 'Provide details of the disclosure control',
-        roundingApplied: 'Select whether rounding has been applied',
+        hasRounding: 'Select whether rounding has been applied',
       },
       values: { ...empty, disclosureControl: 'yes' },
     });

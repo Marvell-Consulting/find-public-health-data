@@ -9,9 +9,9 @@ describe('calculationSection', () => {
       section.schema.parse({
         methodology: '  A method\n',
         calculatedBy: 'other',
-        calculatedByOther: '\tONS ',
+        calculatedByDetail: '\tONS ',
       }),
-    ).toEqual({ methodology: 'A method', calculatedBy: 'other', calculatedByOther: 'ONS' });
+    ).toEqual({ methodology: 'A method', calculatedBy: 'other', calculatedByDetail: 'ONS' });
   });
 
   it.each(['ohid', 'dhsc'] as const)(
@@ -21,7 +21,7 @@ describe('calculationSection', () => {
         sectionFieldErrors(section, {
           methodology: 'A method',
           calculatedBy,
-          calculatedByOther: '',
+          calculatedByDetail: '',
         }),
       ).toBeUndefined();
     },
@@ -29,33 +29,33 @@ describe('calculationSection', () => {
 
   it.each([
     [
-      { methodology: '', calculatedBy: '', calculatedByOther: '' },
+      { methodology: '', calculatedBy: '', calculatedByDetail: '' },
       {
         methodology: 'Enter the methodology',
         calculatedBy: 'Select who calculated the indicator',
       },
     ],
     [
-      { methodology: ' ', calculatedBy: 'ohid', calculatedByOther: '' },
+      { methodology: ' ', calculatedBy: 'ohid', calculatedByDetail: '' },
       { methodology: 'Enter the methodology' },
     ],
     [
-      { methodology: 'A method', calculatedBy: '', calculatedByOther: 'ONS' },
+      { methodology: 'A method', calculatedBy: '', calculatedByDetail: 'ONS' },
       { calculatedBy: 'Select who calculated the indicator' },
     ],
     [
-      { methodology: 'A method', calculatedBy: 'other', calculatedByOther: ' \n' },
-      { calculatedByOther: 'Enter details of the other organisation or organisations' },
+      { methodology: 'A method', calculatedBy: 'other', calculatedByDetail: ' \n' },
+      { calculatedByDetail: 'Enter details of the other organisation or organisations' },
     ],
     [
-      { methodology: '', calculatedBy: 'other', calculatedByOther: '' },
+      { methodology: '', calculatedBy: 'other', calculatedByDetail: '' },
       {
         methodology: 'Enter the methodology',
-        calculatedByOther: 'Enter details of the other organisation or organisations',
+        calculatedByDetail: 'Enter details of the other organisation or organisations',
       },
     ],
     [
-      { methodology: 'A method', calculatedBy: 'nhs', calculatedByOther: '' },
+      { methodology: 'A method', calculatedBy: 'nhs', calculatedByDetail: '' },
       { calculatedBy: 'Select who calculated the indicator' },
     ],
   ])('refuses %o', (body, fieldErrors) => {
@@ -65,7 +65,7 @@ describe('calculationSection', () => {
   it.each([
     {},
     { methodology: 'A method', calculatedBy: 'ohid' },
-    { methodology: 1, calculatedBy: 'ohid', calculatedByOther: '' },
+    { methodology: 1, calculatedBy: 'ohid', calculatedByDetail: '' },
   ])('refuses %o, which the form never sends', (body) => {
     expect(sectionFieldErrors(section, body)).toBeDefined();
   });
@@ -77,7 +77,7 @@ describe('calculationSection', () => {
       sectionFieldErrors(section, {
         methodology: long,
         calculatedBy: 'other',
-        calculatedByOther: long,
+        calculatedByDetail: long,
       }),
     ).toBeUndefined();
   });

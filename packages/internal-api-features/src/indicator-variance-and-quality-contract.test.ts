@@ -5,7 +5,7 @@ import { sectionFieldErrors } from './testing.ts';
 const answered = {
   variation: 'Varies with the age structure of each area.',
   qualityAssurance: 'Checked against the published ONS figures.',
-  sourceDataIssues: 'no',
+  hasSourceDataIssues: 'no',
   sourceDataIssuesDetail: '',
 };
 
@@ -15,13 +15,13 @@ describe('varianceAndQualitySection', () => {
       section.schema.parse({
         variation: ' Varies by area.\n',
         qualityAssurance: '\tChecked. ',
-        sourceDataIssues: 'yes',
+        hasSourceDataIssues: 'yes',
         sourceDataIssuesDetail: '  Late returns. ',
       }),
     ).toEqual({
       variation: 'Varies by area.',
       qualityAssurance: 'Checked.',
-      sourceDataIssues: 'yes',
+      hasSourceDataIssues: 'yes',
       sourceDataIssuesDetail: 'Late returns.',
     });
   });
@@ -35,13 +35,13 @@ describe('varianceAndQualitySection', () => {
       sectionFieldErrors(section, {
         variation: '',
         qualityAssurance: ' ',
-        sourceDataIssues: '',
+        hasSourceDataIssues: '',
         sourceDataIssuesDetail: '',
       }),
     ).toEqual({
       variation: 'Enter how the indicator varies',
       qualityAssurance: 'Enter what quality assurance has been done on the indicator',
-      sourceDataIssues: 'Select whether there are any data quality issues with the source data',
+      hasSourceDataIssues: 'Select whether there are any data quality issues with the source data',
     });
   });
 
@@ -49,7 +49,7 @@ describe('varianceAndQualitySection', () => {
     expect(
       sectionFieldErrors(section, {
         ...answered,
-        sourceDataIssues: 'yes',
+        hasSourceDataIssues: 'yes',
         sourceDataIssuesDetail: ' \n',
       }),
     ).toEqual({
@@ -59,7 +59,7 @@ describe('varianceAndQualitySection', () => {
 
   it('asks for missing details beside an unanswered question', () => {
     expect(
-      sectionFieldErrors(section, { ...answered, variation: '', sourceDataIssues: 'yes' }),
+      sectionFieldErrors(section, { ...answered, variation: '', hasSourceDataIssues: 'yes' }),
     ).toEqual({
       variation: 'Enter how the indicator varies',
       sourceDataIssuesDetail: 'Enter details of the data quality issues with the source data',
@@ -69,8 +69,8 @@ describe('varianceAndQualitySection', () => {
   it.each([
     null,
     {},
-    { ...answered, sourceDataIssues: 'not-applicable' },
-    { ...answered, sourceDataIssues: true },
+    { ...answered, hasSourceDataIssues: 'not-applicable' },
+    { ...answered, hasSourceDataIssues: true },
     { ...answered, variation: 108 },
   ])('refuses %o, which the form never sends', (body) => {
     expect(sectionFieldErrors(section, body)).toBeDefined();

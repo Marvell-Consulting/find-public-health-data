@@ -137,10 +137,10 @@ export function ValueTypeAndUnitsPage({
         <TextInput
           {...hint('Only needed for Other units')}
           className="govuk-input--width-20"
-          defaultValue={values.unitOther}
-          error={fieldErrors.unitOther}
+          defaultValue={values.unitDetail}
+          error={fieldErrors.unitDetail}
           label="Enter unit"
-          name="unitOther"
+          name="unitDetail"
         />
       </div>
     </IndicatorSectionForm>

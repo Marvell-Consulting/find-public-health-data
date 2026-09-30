@@ -21,7 +21,7 @@ const unanswered = {
   standardPopulationOther: '',
   referencePopulation: '',
   unitId: '',
-  unitOther: '',
+  unitDetail: '',
 };
 
 function context(client: Partial<ApiClient>) {
@@ -55,7 +55,7 @@ describe('loadValueTypeAndUnits', () => {
               standardPopulationOther: null,
               referencePopulation: null,
               unitId,
-              unitOther: null,
+              unitDetail: null,
             }
           : options,
       ),

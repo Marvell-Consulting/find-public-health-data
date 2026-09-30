@@ -153,7 +153,7 @@ const PUBLISHED_INDICATOR_COLUMNS = [
   'indicator.slug text',
   'indicator.value_type_id uuid',
   'indicator.unit_id uuid',
-  'indicator.unit_other text',
+  'indicator.unit_detail text',
   'indicator.year_type text',
   'indicator.year_end_day smallint',
   'indicator.year_end_month smallint',

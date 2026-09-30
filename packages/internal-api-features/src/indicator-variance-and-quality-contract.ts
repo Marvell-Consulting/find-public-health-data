@@ -10,7 +10,7 @@ import {
 const fields = z.enum([
   'variation',
   'qualityAssurance',
-  'sourceDataIssues',
+  'hasSourceDataIssues',
   'sourceDataIssuesDetail',
 ]);
 
@@ -18,7 +18,7 @@ export type VarianceAndQualityField = z.infer<typeof fields>;
 
 export const varianceAndQualityQuestions = [
   {
-    answer: 'sourceDataIssues',
+    answer: 'hasSourceDataIssues',
     detail: 'sourceDataIssuesDetail',
     detailRequired: 'Enter details of the data quality issues with the source data',
   },
@@ -31,7 +31,7 @@ const schema = requireDetails(
       .string()
       .trim()
       .min(1, 'Enter what quality assurance has been done on the indicator'),
-    sourceDataIssues: yesNoSchema(
+    hasSourceDataIssues: yesNoSchema(
       'Select whether there are any data quality issues with the source data',
     ),
     sourceDataIssuesDetail: z.string().trim(),

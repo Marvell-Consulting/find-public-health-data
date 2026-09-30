@@ -11,11 +11,11 @@ export const VALUE_TYPE_IDS = {
 /** The units whose ids the code behaves on; every unit is a core data row, as value types are. */
 export const UNIT_IDS = {
   noUnit: '01a0d8a5-3ca2-7315-bfca-96e4a96bfc8e',
-  // Named by the publisher in `unit_other`.
+  // Named by the publisher in `unit_detail`.
   other: '01a0d8a5-3ca2-7315-bfca-96e5cee57158',
 } as const;
 
-export const UNIT_OTHER_MAX_LENGTH = 100;
+export const UNIT_DETAIL_MAX_LENGTH = 100;
 
 /** The value types standardised against a reference population the publisher names. */
 export const INDIRECTLY_STANDARDISED_VALUE_TYPE_IDS: readonly string[] = [
@@ -40,7 +40,10 @@ export const STANDARD_POPULATION_LABELS: Readonly<Record<StandardPopulation, str
 };
 
 /** The unit as the public reads it beside a value: null when the values have none. */
-export function unitLabel(unit: { id: string; name: string }, other: string | null): string | null {
+export function unitLabel(
+  unit: { id: string; name: string },
+  detail: string | null,
+): string | null {
   if (unit.id === UNIT_IDS.noUnit) return null;
-  return unit.id === UNIT_IDS.other && other !== null ? other : unit.name;
+  return unit.id === UNIT_IDS.other && detail !== null ? detail : unit.name;
 }

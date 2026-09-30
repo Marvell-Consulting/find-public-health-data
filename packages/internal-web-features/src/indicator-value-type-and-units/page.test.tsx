@@ -23,7 +23,7 @@ const empty = {
   standardPopulationOther: '',
   referencePopulation: '',
   unitId: '',
-  unitOther: '',
+  unitDetail: '',
 };
 
 const STANDARD_POPULATION = 'What standard population has been used?';
@@ -98,7 +98,7 @@ function standardPopulationOther() {
   return document.getElementById('standardPopulationOther-input') as HTMLInputElement;
 }
 
-function unitOther() {
+function unitDetail() {
   return screen.getByLabelText('Enter unit') as HTMLInputElement;
 }
 
@@ -137,7 +137,7 @@ describe('ValueTypeAndUnitsPage', () => {
 
       expect(shown(standardPopulationQuestion())).toBe(false);
       expect(shown(referencePopulation())).toBe(false);
-      expect(shown(unitOther())).toBe(false);
+      expect(shown(unitDetail())).toBe(false);
     });
 
     it('asks a directly standardised rate for its standard population', () => {
@@ -178,11 +178,11 @@ describe('ValueTypeAndUnitsPage', () => {
 
       chooseUnit(UNIT_IDS.other);
 
-      expect(shown(unitOther())).toBe(true);
+      expect(shown(unitDetail())).toBe(true);
 
       chooseUnit(UNIT_IDS.noUnit);
 
-      expect(shown(unitOther())).toBe(false);
+      expect(shown(unitDetail())).toBe(false);
     });
 
     it('reveals the name of an other standard population under Other', () => {
@@ -210,7 +210,7 @@ describe('ValueTypeAndUnitsPage', () => {
 
       expect(shown(referencePopulation())).toBe(true);
       expect(shown(standardPopulationQuestion())).toBe(false);
-      expect(shown(unitOther())).toBe(true);
+      expect(shown(unitDetail())).toBe(true);
     });
 
     it('drops the hints that name the choice each follow-up is for', () => {
@@ -226,7 +226,7 @@ describe('ValueTypeAndUnitsPage', () => {
 
       expect(shown(standardPopulationQuestion())).toBe(true);
       expect(shown(referencePopulation())).toBe(true);
-      expect(shown(unitOther())).toBe(true);
+      expect(shown(unitDetail())).toBe(true);
       expect(
         within(standardPopulationQuestion()).getByText(
           'Only needed for Directly standardised rate',
@@ -258,7 +258,7 @@ describe('ValueTypeAndUnitsPage', () => {
         standardPopulation: 'other',
         standardPopulationOther: 'England 2021',
         unitId: UNIT_IDS.other,
-        unitOther: 'people',
+        unitDetail: 'people',
       },
     });
 
@@ -266,7 +266,7 @@ describe('ValueTypeAndUnitsPage', () => {
     expect((screen.getByLabelText('Other') as HTMLInputElement).checked).toBe(true);
     expect(standardPopulationOther().value).toBe('England 2021');
     expect(unitSelect().value).toBe(UNIT_IDS.other);
-    expect(unitOther().value).toBe('people');
+    expect(unitDetail().value).toBe('people');
     expect(document.title).toBe(`${TITLE} - ${serviceName} - GOV.UK`);
   });
 
@@ -310,6 +310,6 @@ describe('ValueTypeAndUnitsPage', () => {
   it('keeps the width the prototype gives the unit name', () => {
     renderPage();
 
-    expect(unitOther().className).toContain('govuk-input--width-20');
+    expect(unitDetail().className).toContain('govuk-input--width-20');
   });
 });

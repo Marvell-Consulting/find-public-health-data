@@ -15,9 +15,9 @@ const methods = [
 
 const unanswered = {
   ciMethodId: '',
-  ciMethodModified: '',
-  ciMethodModifications: '',
-  ciMethodOtherDetail: '',
+  hasCiMethodModifications: '',
+  ciMethodModificationsDetail: '',
+  ciMethodDetail: '',
 };
 
 function context(client: Partial<ApiClient>) {
@@ -47,9 +47,9 @@ describe('loadConfidenceIntervals', () => {
         path === sectionPath
           ? {
               ciMethodId: methodId,
-              ciMethodModified: 'no',
-              ciMethodModifications: null,
-              ciMethodOtherDetail: null,
+              hasCiMethodModifications: 'no',
+              ciMethodModificationsDetail: null,
+              ciMethodDetail: null,
             }
           : methods,
       ),
@@ -63,7 +63,7 @@ describe('loadConfidenceIntervals', () => {
     ]);
     expect(outcome).toEqual({
       id,
-      values: { ...unanswered, ciMethodId: methodId, ciMethodModified: 'no' },
+      values: { ...unanswered, ciMethodId: methodId, hasCiMethodModifications: 'no' },
       methods,
     });
   });

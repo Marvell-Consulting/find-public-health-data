@@ -14,10 +14,10 @@ const QUESTIONS = [
     legend: 'Has disclosure control been applied?',
     moreOptions: [{ value: 'not-applicable', label: 'Not applicable' }],
   },
-  { answer: 'roundingApplied', detail: 'roundingDetail', legend: 'Has any rounding been applied?' },
-  { answer: 'caveatsNeeded', detail: 'caveatsDetail', legend: 'Are there any caveats needed?' },
+  { answer: 'hasRounding', detail: 'roundingDetail', legend: 'Has any rounding been applied?' },
+  { answer: 'hasCaveats', detail: 'caveatsDetail', legend: 'Are there any caveats needed?' },
   {
-    answer: 'otherNotesNeeded',
+    answer: 'hasOtherNotes',
     detail: 'otherNotesDetail',
     legend: 'Are there any other notes needed?',
   },

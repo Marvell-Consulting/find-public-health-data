@@ -39,10 +39,10 @@ export function CalculationPage({
             // Shown without JavaScript; with it, only while "Other" is chosen.
             conditional: (
               <Textarea
-                defaultValue={values.calculatedByOther}
-                error={fieldErrors.calculatedByOther}
+                defaultValue={values.calculatedByDetail}
+                error={fieldErrors.calculatedByDetail}
                 label="Enter details of the other organisation or organisations"
-                name="calculatedByOther"
+                name="calculatedByDetail"
                 rows={3}
               />
             ),

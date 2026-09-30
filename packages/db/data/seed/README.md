@@ -76,7 +76,7 @@ That yields 433,678 observations, 657,869 bridge rows and 67,978 observation not
   core data in `../value-types.json` and `../units.json`, so neither export carries a
   `value_type` or `unit` table. `export/value_type_and_unit.py` reads the ids from those files
   and translates Pholio's names; a unit outside the service's list becomes "Other", named in
-  `unit_other` as Pholio named it. Pholio's placeholders ("Unknown value type 21", "Unknown
+  `unit_detail` as Pholio named it. Pholio's placeholders ("Unknown value type 21", "Unknown
   unit 54") translate as the value type or unit the public Fingertips API gives that id, a unit
   identified by its label and multiplier. `../../src/pholio-value-types-and-units.json` lists
   every Pholio value type and unit with what it becomes, and a test checks that each is a name
@@ -87,7 +87,7 @@ That yields 433,678 observations, 657,869 bridge rows and 67,978 observation not
   `export/notes_and_caveats.py` turns prose that is an answer in itself, such as "None
   applied" or "Not applicable", into that answer and drops it, matching the whole text
   against its `VOCABULARY`. Any other prose is kept as the detail of a yes
-  (`disclosure_control`, `caveats_needed`, `other_notes_needed`), and blank prose leaves the
+  (`disclosure_control`, `has_caveats`, `has_other_notes`), and blank prose leaves the
   question unanswered. Rounding has no Pholio field and stays unanswered. Migration 0022
   holds the same vocabulary for databases that already had the prose.
 

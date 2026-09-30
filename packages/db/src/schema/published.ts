@@ -38,7 +38,7 @@ export const publishedIndicator = publishedSchema
     slug: text('slug').notNull(),
     valueTypeId: uuid('value_type_id'),
     unitId: uuid('unit_id'),
-    unitOther: text('unit_other'),
+    unitDetail: text('unit_detail'),
     yearType: text('year_type', { enum: YEAR_TYPES }),
     yearEndDay: smallint('year_end_day'),
     yearEndMonth: smallint('year_end_month'),

@@ -328,7 +328,7 @@ describe('indicator_version', () => {
     const indicatorId = await newIndicatorId();
 
     await expect(
-      addVersion(indicatorId, 'draft', { calculatedBy, calculatedByOther: 'ONS' }),
+      addVersion(indicatorId, 'draft', { calculatedBy, calculatedByDetail: 'ONS' }),
     ).rejects.toMatchObject({ cause: { code: CHECK_VIOLATION } });
   });
 
@@ -336,7 +336,7 @@ describe('indicator_version', () => {
     await expect(
       addVersion(await newIndicatorId(), 'draft', {
         calculatedBy: 'other',
-        calculatedByOther: 'ONS',
+        calculatedByDetail: 'ONS',
       }),
     ).resolves.toHaveLength(1);
     await expect(
@@ -361,30 +361,30 @@ describe('indicator_version', () => {
       'disclosure control that is not applicable',
       { disclosureControl: 'not-applicable', disclosureControlDetail: 'x' },
     ],
-    ['rounding not applied', { roundingApplied: false, roundingDetail: 'To the nearest 5' }],
+    ['rounding not applied', { hasRounding: false, roundingDetail: 'To the nearest 5' }],
     ['caveats of nobody', { caveatsDetail: 'Survey data' }],
-    ['caveats not needed', { caveatsNeeded: false, caveatsDetail: 'Survey data' }],
-    ['other notes not needed', { otherNotesNeeded: false, otherNotesDetail: 'Revised' }],
+    ['caveats not needed', { hasCaveats: false, caveatsDetail: 'Survey data' }],
+    ['other notes not needed', { hasOtherNotes: false, otherNotesDetail: 'Revised' }],
     ['source data issues of nobody', { sourceDataIssuesDetail: 'Late returns' }],
     [
       'source data without issues',
-      { sourceDataIssues: false, sourceDataIssuesDetail: 'Late returns' },
+      { hasSourceDataIssues: false, sourceDataIssuesDetail: 'Late returns' },
     ],
     ['exclusions of nobody', { exclusionsDetail: 'Small areas' }],
     ['no exclusions', { hasExclusions: false, exclusionsDetail: 'Small areas' }],
     ['automation of nobody', { automationDetail: 'Pipeline' }],
-    ['no automation', { automationUsed: false, automationDetail: 'Pipeline' }],
+    ['no automation', { hasAutomation: false, automationDetail: 'Pipeline' }],
     ['reviewer comments of nobody', { reviewerCommentsDetail: 'Replaces 108' }],
     [
       'no reviewer comments',
       { hasReviewerComments: false, reviewerCommentsDetail: 'Replaces 108' },
     ],
-    ['copyright of nobody', { copyrightDetail: 'NHS England' }],
-    ['the default copyright', { copyrightNonDefault: false, copyrightDetail: 'NHS England' }],
-    ['data re-use of nobody', { dataReuseDetail: 'Cite NHS England' }],
+    ['copyright of nobody', { customCopyrightDetail: 'NHS England' }],
+    ['the default copyright', { hasCustomCopyright: false, customCopyrightDetail: 'NHS England' }],
+    ['data re-use of nobody', { customDataReuseDetail: 'Cite NHS England' }],
     [
       'the default data re-use',
-      { dataReuseNonDefault: false, dataReuseDetail: 'Cite NHS England' },
+      { hasCustomDataReuse: false, customDataReuseDetail: 'Cite NHS England' },
     ],
   ] as const)('refuses a detail beside %s', async (_, values) => {
     await expect(addVersion(await newIndicatorId(), 'draft', values)).rejects.toMatchObject({
@@ -397,26 +397,26 @@ describe('indicator_version', () => {
       addVersion(await newIndicatorId(), 'draft', {
         disclosureControl: 'yes',
         disclosureControlDetail: 'Suppressed',
-        caveatsNeeded: true,
+        hasCaveats: true,
         caveatsDetail: 'Survey data',
-        sourceDataIssues: true,
+        hasSourceDataIssues: true,
         sourceDataIssuesDetail: 'Late returns',
         hasExclusions: true,
         exclusionsDetail: 'Small areas',
-        automationUsed: true,
+        hasAutomation: true,
         automationDetail: 'Pipeline',
         hasReviewerComments: true,
         reviewerCommentsDetail: 'Replaces 108',
-        copyrightNonDefault: true,
-        copyrightDetail: 'NHS England',
-        dataReuseNonDefault: true,
-        dataReuseDetail: 'Cite NHS England',
+        hasCustomCopyright: true,
+        customCopyrightDetail: 'NHS England',
+        hasCustomDataReuse: true,
+        customDataReuseDetail: 'Cite NHS England',
       }),
     ).resolves.toHaveLength(1);
     await expect(
       addVersion(await newIndicatorId(), 'draft', {
         disclosureControl: 'yes',
-        caveatsNeeded: true,
+        hasCaveats: true,
       }),
     ).resolves.toHaveLength(1);
   });
@@ -713,9 +713,9 @@ describe('the published views', () => {
       sql`SELECT column_name FROM information_schema.columns
           WHERE table_schema = 'published'
             AND column_name IN (
-              'variation', 'quality_assurance', 'source_data_issues', 'source_data_issues_detail',
+              'variation', 'quality_assurance', 'has_source_data_issues', 'source_data_issues_detail',
               'ci_method_justification', 'data_sources_justification', 'inequalities_included',
-              'has_exclusions', 'exclusions_detail', 'automation_used', 'automation_detail',
+              'has_exclusions', 'exclusions_detail', 'has_automation', 'automation_detail',
               'sponsors_and_stakeholders', 'has_reviewer_comments', 'reviewer_comments_detail'
             )`,
     )) as unknown as { column_name: string }[];

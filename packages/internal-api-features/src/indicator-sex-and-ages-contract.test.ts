@@ -34,7 +34,7 @@ const form: SexAndAgesFormValues = {
   ageRanges: [],
   specificAge: '',
   specificAgeUnit: '',
-  ageOtherDetail: '',
+  ageDetail: '',
 };
 
 /** The page's refusals of a submission, or undefined when the section accepts it. */
@@ -86,11 +86,11 @@ describe('sexAndAgesSection', () => {
     expect(
       pageErrors({ ...form, ageType: 'specific', specificAge: '5', specificAgeUnit: 'years' }),
     ).toBeUndefined();
-    expect(pageErrors({ ...form, ageType: 'other', ageOtherDetail: 'Year 6' })).toBeUndefined();
+    expect(pageErrors({ ...form, ageType: 'other', ageDetail: 'Year 6' })).toBeUndefined();
   });
 
   it.each([
-    ['other ages', { ageType: 'other', ageOtherDetail: 'Year 6' }],
+    ['other ages', { ageType: 'other', ageDetail: 'Year 6' }],
     ['all ages', { ageType: 'all' }],
   ])('asks nothing of the age types not chosen beside %s', (_, given) => {
     expect(
@@ -112,11 +112,11 @@ describe('sexAndAgesSection', () => {
 
   it.each([
     [
-      { sexes: ['everyone'], ageType: 'other', ageOtherDetail: 'Year 6' },
+      { sexes: ['everyone'], ageType: 'other', ageDetail: 'Year 6' },
       { sexes: 'Select sexes included' },
     ],
     [
-      { sexes: 'persons', ageType: 'other', ageOtherDetail: 'Year 6' },
+      { sexes: 'persons', ageType: 'other', ageDetail: 'Year 6' },
       { sexes: 'Select sexes included' },
     ],
     [{ ageType: 'everyone' }, { ageType: 'Select the age type' }],
@@ -137,7 +137,7 @@ describe('sexAndAgesSection', () => {
       { ageType: 'specific', specificAge: '5', specificAgeUnit: 'decades' },
       { specificAgeUnit: 'Select the periods' },
     ],
-    [{ ageType: 'other', ageOtherDetail: ' ' }, { ageOtherDetail: 'Enter the ages included' }],
+    [{ ageType: 'other', ageDetail: ' ' }, { ageDetail: 'Enter the ages included' }],
   ])('refuses %o', (answers, fieldErrors) => {
     expect(sectionFieldErrors(section, { ...form, ...answers })).toEqual(fieldErrors);
   });
@@ -239,7 +239,7 @@ describe('areSexAndAgesComplete', () => {
     ageRanges: [],
     specificAge: null,
     specificAgeUnit: null,
-    ageOtherDetail: null,
+    ageDetail: null,
   };
   const sixteenPlus = {
     lowerLimit: 16,
@@ -288,7 +288,7 @@ describe('sexAndAgesFormValues', () => {
         ],
         specificAge: null,
         specificAgeUnit: null,
-        ageOtherDetail: null,
+        ageDetail: null,
       }),
     ).toEqual({
       sexes: ['females'],
@@ -296,7 +296,7 @@ describe('sexAndAgesFormValues', () => {
       ageRanges: [{ lowerLimit: '0', lowerLimitUnit: 'days', upperLimit: '', upperLimitUnit: '' }],
       specificAge: '',
       specificAgeUnit: '',
-      ageOtherDetail: '',
+      ageDetail: '',
     });
   });
 });

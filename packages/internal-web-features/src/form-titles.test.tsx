@@ -58,7 +58,7 @@ const sexAndAgesUnanswered = {
   ageRanges: [{ lowerLimit: '', lowerLimitUnit: '', upperLimit: '', upperLimitUnit: '' }],
   specificAge: '',
   specificAgeUnit: '',
-  ageOtherDetail: '',
+  ageDetail: '',
 };
 
 const taggingUnanswered = {
@@ -79,11 +79,11 @@ const tagOptions = { topics: [], indicatorTypes: [], riskFactors: [], frameworks
 const notesAndCaveatsUnanswered = {
   disclosureControl: '',
   disclosureControlDetail: '',
-  roundingApplied: '',
+  hasRounding: '',
   roundingDetail: '',
-  caveatsNeeded: '',
+  hasCaveats: '',
   caveatsDetail: '',
-  otherNotesNeeded: '',
+  hasOtherNotes: '',
   otherNotesDetail: '',
 };
 
@@ -108,7 +108,7 @@ const benchmarkingUnanswered = {
 const varianceAndQualityUnanswered = {
   variation: '',
   qualityAssurance: '',
-  sourceDataIssues: '',
+  hasSourceDataIssues: '',
   sourceDataIssuesDetail: '',
 };
 
@@ -118,7 +118,7 @@ const justificationsUnanswered = {
   inequalitiesIncluded: '',
   hasExclusions: '',
   exclusionsDetail: '',
-  automationUsed: '',
+  hasAutomation: '',
   automationDetail: '',
 };
 
@@ -129,10 +129,10 @@ const otherCommentsUnanswered = {
 };
 
 const copyrightAndDataReuseUnanswered = {
-  copyrightNonDefault: '',
-  copyrightDetail: '',
-  dataReuseNonDefault: '',
-  dataReuseDetail: '',
+  hasCustomCopyright: '',
+  customCopyrightDetail: '',
+  hasCustomDataReuse: '',
+  customDataReuseDetail: '',
 };
 
 const providerSourcesUnanswered = { sources: [], definition: '', providerId: '', sourceId: '' };
@@ -143,7 +143,7 @@ const valueTypeAndUnitsUnanswered = {
   standardPopulationOther: '',
   referencePopulation: '',
   unitId: '',
-  unitOther: '',
+  unitDetail: '',
 };
 
 const forms: {
@@ -190,11 +190,12 @@ const forms: {
     name: 'data quality',
     route: dataQuality,
     pageTitle: 'Are there any data quality issues with this indicator?',
-    loaderData: { id: indicator.id, values: { dataQualityIssues: '' } },
+    loaderData: { id: indicator.id, values: { hasDataQualityIssues: '' } },
     rejected: {
-      values: { dataQualityIssues: '' },
+      values: { hasDataQualityIssues: '' },
       fieldErrors: {
-        dataQualityIssues: 'Select whether there are any data quality issues with this indicator',
+        hasDataQualityIssues:
+          'Select whether there are any data quality issues with this indicator',
       },
     },
   },
@@ -204,10 +205,10 @@ const forms: {
     pageTitle: 'How was the indicator calculated?',
     loaderData: {
       id: indicator.id,
-      values: { methodology: '', calculatedBy: '', calculatedByOther: '' },
+      values: { methodology: '', calculatedBy: '', calculatedByDetail: '' },
     },
     rejected: {
-      values: { methodology: '', calculatedBy: '', calculatedByOther: '' },
+      values: { methodology: '', calculatedBy: '', calculatedByDetail: '' },
       fieldErrors: { methodology: 'Enter the methodology' },
     },
   },
@@ -219,18 +220,18 @@ const forms: {
       id: indicator.id,
       values: {
         ciMethodId: '',
-        ciMethodModified: '',
-        ciMethodModifications: '',
-        ciMethodOtherDetail: '',
+        hasCiMethodModifications: '',
+        ciMethodModificationsDetail: '',
+        ciMethodDetail: '',
       },
       methods: [],
     },
     rejected: {
       values: {
         ciMethodId: '',
-        ciMethodModified: '',
-        ciMethodModifications: '',
-        ciMethodOtherDetail: '',
+        hasCiMethodModifications: '',
+        ciMethodModificationsDetail: '',
+        ciMethodDetail: '',
       },
       fieldErrors: { ciMethodId: 'Select the confidence interval method used' },
     },
@@ -356,7 +357,7 @@ const forms: {
     rejected: {
       values: copyrightAndDataReuseUnanswered,
       fieldErrors: {
-        copyrightNonDefault: 'Select whether the copyright is anything other than Crown copyright',
+        hasCustomCopyright: 'Select whether the copyright is anything other than Crown copyright',
       },
     },
   },

@@ -213,7 +213,7 @@ describe('getPublishedIndicatorById', () => {
   it('names an other unit as its publisher did', async () => {
     const id = await resolvedId(GASTROENTERITIS_ADMISSIONS);
     await db.execute(
-      sql`UPDATE indicator_version SET unit_id = ${UNIT_IDS.other}, unit_other = 'per 1,000 live births'
+      sql`UPDATE indicator_version SET unit_id = ${UNIT_IDS.other}, unit_detail = 'per 1,000 live births'
           WHERE indicator_id = ${id}`,
     );
 

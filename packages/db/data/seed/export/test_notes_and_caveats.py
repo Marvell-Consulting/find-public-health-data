@@ -29,11 +29,11 @@ class NotesAndCaveatsTest(unittest.TestCase):
             {
                 "disclosure_control": "yes",
                 "disclosure_control_detail": "Counts under 5 are suppressed.",
-                "rounding_applied": None,
+                "has_rounding": None,
                 "rounding_detail": None,
-                "caveats_needed": "true",
+                "has_caveats": "true",
                 "caveats_detail": "Survey data.",
-                "other_notes_needed": "true",
+                "has_other_notes": "true",
                 "other_notes_detail": "Revised in 2024.",
             },
         )
@@ -74,8 +74,8 @@ class NotesAndCaveatsTest(unittest.TestCase):
             notes_and_caveats({"caveats": "None.", "notes": "N/A"}),
             {
                 **dict.fromkeys(NOTES_AND_CAVEATS_COLUMNS),
-                "caveats_needed": "false",
-                "other_notes_needed": "false",
+                "has_caveats": "false",
+                "has_other_notes": "false",
             },
         )
 
@@ -103,7 +103,7 @@ class NotesAndCaveatsTest(unittest.TestCase):
                 )
 
     def test_answers_caveats_with_disclosure_control_words_as_a_yes(self):
-        self.assertEqual(notes_and_caveats({"caveats": "Not applied"})["caveats_needed"], "true")
+        self.assertEqual(notes_and_caveats({"caveats": "Not applied"})["has_caveats"], "true")
 
     def test_holds_its_vocabulary_already_normalised(self):
         for _, prose, _ in VOCABULARY:

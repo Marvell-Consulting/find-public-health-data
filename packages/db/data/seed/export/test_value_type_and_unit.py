@@ -83,16 +83,16 @@ class UnitValuesTest(unittest.TestCase):
                 "No unit": UNIT_IDS["No unit"],
             },
         )
-        self.assertIsNone(unit_values("Percent")["unit_other"])
+        self.assertIsNone(unit_values("Percent")["unit_detail"])
 
     def test_names_any_other_unit_as_fingertips_named_it(self):
         self.assertEqual(
             unit_values("per 1,000, per day "),
-            {"unit_id": UNIT_IDS["Other"], "unit_other": "per 1,000, per day"},
+            {"unit_id": UNIT_IDS["Other"], "unit_detail": "per 1,000, per day"},
         )
         self.assertEqual(
             unit_values("Percentage points"),
-            {"unit_id": UNIT_IDS["Other"], "unit_other": "Percentage points"},
+            {"unit_id": UNIT_IDS["Other"], "unit_detail": "Percentage points"},
         )
 
     def test_refuses_an_unknown_placeholder_or_a_name_too_long_to_keep(self):
@@ -105,7 +105,7 @@ class UnitValuesTest(unittest.TestCase):
             with self.subTest(name=row["name"]):
                 self.assertEqual(
                     unit_values(row["name"]),
-                    {"unit_id": UNIT_IDS[row["service"]], "unit_other": row["other"]},
+                    {"unit_id": UNIT_IDS[row["service"]], "unit_detail": row["other"]},
                 )
 
 
@@ -175,7 +175,7 @@ def selected_unit(name):
 
 class UnitSelectTest(unittest.TestCase):
     def test_leaves_no_unit_unanswered(self):
-        self.assertEqual(selected_unit(None), {"unit_id": None, "unit_other": None})
+        self.assertEqual(selected_unit(None), {"unit_id": None, "unit_detail": None})
 
     def test_agrees_with_unit_values(self):
         for name in [row["name"] for row in PHOLIO["units"]]:
@@ -261,7 +261,7 @@ class ReshapeTest(unittest.TestCase):
             {
                 "value_type_id": VALUE_TYPE_IDS["Directly standardised rate"],
                 "unit_id": UNIT_IDS["Other"],
-                "unit_other": "per 1,000 live births",
+                "unit_detail": "per 1,000 live births",
             },
         )
 

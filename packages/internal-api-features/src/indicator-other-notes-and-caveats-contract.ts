@@ -10,11 +10,11 @@ import {
 const fields = z.enum([
   'disclosureControl',
   'disclosureControlDetail',
-  'roundingApplied',
+  'hasRounding',
   'roundingDetail',
-  'caveatsNeeded',
+  'hasCaveats',
   'caveatsDetail',
-  'otherNotesNeeded',
+  'hasOtherNotes',
   'otherNotesDetail',
 ]);
 
@@ -30,17 +30,17 @@ const disclosureControlQuestion = {
 /** The yes/no questions whose yes asks for details. */
 export const otherNotesAndCaveatsQuestions = [
   {
-    answer: 'roundingApplied',
+    answer: 'hasRounding',
     detail: 'roundingDetail',
     detailRequired: 'Provide details of the rounding',
   },
   {
-    answer: 'caveatsNeeded',
+    answer: 'hasCaveats',
     detail: 'caveatsDetail',
     detailRequired: 'Provide details of the caveats',
   },
   {
-    answer: 'otherNotesNeeded',
+    answer: 'hasOtherNotes',
     detail: 'otherNotesDetail',
     detailRequired: 'Provide details of the other notes',
   },
@@ -52,11 +52,11 @@ const schema = requireDetails(
       error: 'Select whether disclosure control has been applied',
     }),
     disclosureControlDetail: z.string().trim(),
-    roundingApplied: yesNoSchema('Select whether rounding has been applied'),
+    hasRounding: yesNoSchema('Select whether rounding has been applied'),
     roundingDetail: z.string().trim(),
-    caveatsNeeded: yesNoSchema('Select whether there are any caveats needed'),
+    hasCaveats: yesNoSchema('Select whether there are any caveats needed'),
     caveatsDetail: z.string().trim(),
-    otherNotesNeeded: yesNoSchema('Select whether there are any other notes needed'),
+    hasOtherNotes: yesNoSchema('Select whether there are any other notes needed'),
     otherNotesDetail: z.string().trim(),
   }),
   [disclosureControlQuestion, ...otherNotesAndCaveatsQuestions],

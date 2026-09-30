@@ -43,19 +43,19 @@ PROSE_ANSWERS = {
         {"yes": "yes", "no": "no", "not-applicable": "not-applicable"},
         "disclosure_control_detail",
     ),
-    "caveats": ("caveats_needed", {"yes": "true", "no": "false"}, "caveats_detail"),
-    "notes": ("other_notes_needed", {"yes": "true", "no": "false"}, "other_notes_detail"),
+    "caveats": ("has_caveats", {"yes": "true", "no": "false"}, "caveats_detail"),
+    "notes": ("has_other_notes", {"yes": "true", "no": "false"}, "other_notes_detail"),
 }
 
 # The version columns the translation writes, in the order the table declares them.
 NOTES_AND_CAVEATS_COLUMNS = [
     "disclosure_control",
     "disclosure_control_detail",
-    "rounding_applied",
+    "has_rounding",
     "rounding_detail",
-    "caveats_needed",
+    "has_caveats",
     "caveats_detail",
-    "other_notes_needed",
+    "has_other_notes",
     "other_notes_detail",
 ]
 

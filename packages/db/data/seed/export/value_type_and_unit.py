@@ -1,7 +1,7 @@
 """The service's value type and unit for each Fingertips value type and unit name.
 
 The service holds them as references to its value_type and unit rows, which are core data
-in data/value-types.json and data/units.json, with the unit's own name in unit_other when it
+in data/value-types.json and data/units.json, with the unit's own name in unit_detail when it
 is not one of the service's; the exports translate Pholio's lookup rows to them. Migration
 0035 holds the same translation for databases that already had the Fingertips rows.
 """
@@ -90,9 +90,9 @@ UNIT_NAMES_BY_LABEL = {
 
 UNKNOWN_UNIT_PREFIX = "Unknown unit "
 
-UNIT_OTHER_MAX_LENGTH = 100
+UNIT_DETAIL_MAX_LENGTH = 100
 
-UNIT_COLUMNS = ["unit_id", "unit_other"]
+UNIT_COLUMNS = ["unit_id", "unit_detail"]
 
 
 def value_type_id(name):
@@ -107,12 +107,12 @@ def unit_values(name):
     """The unit columns' values for a Fingertips unit name; one it cannot keep stops the export."""
     name = UNIT_PLACEHOLDERS.get(name, name)
     if name in UNITS:
-        return {"unit_id": UNIT_IDS[UNITS[name]], "unit_other": None}
+        return {"unit_id": UNIT_IDS[UNITS[name]], "unit_detail": None}
     # Spaces only, as Postgres's btrim in unit_select and migration 0035 trims.
     other = name.strip(" ")
-    if not other or other.startswith(UNKNOWN_UNIT_PREFIX) or len(other) > UNIT_OTHER_MAX_LENGTH:
+    if not other or other.startswith(UNKNOWN_UNIT_PREFIX) or len(other) > UNIT_DETAIL_MAX_LENGTH:
         raise ValueError(f"No unit for the Fingertips unit {name!r}")
-    return {"unit_id": UNIT_IDS["Other"], "unit_other": other}
+    return {"unit_id": UNIT_IDS["Other"], "unit_detail": other}
 
 
 def unit_name_for_label(label):
@@ -161,7 +161,7 @@ def unit_select(unit_id_expression):
         f"ELSE CASE {name} {cases} ELSE {other} END END AS unit_id, "
         f"CASE WHEN {name} IS NULL THEN NULL "
         f"WHEN {name} IN ({', '.join(_sql_literal(source) for source in UNITS)}) THEN NULL "
-        f"ELSE btrim({name}) END AS unit_other"
+        f"ELSE btrim({name}) END AS unit_detail"
     )
 
 

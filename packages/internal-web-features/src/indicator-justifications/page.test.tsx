@@ -14,7 +14,7 @@ const empty = {
   inequalitiesIncluded: '',
   hasExclusions: '',
   exclusionsDetail: '',
-  automationUsed: '',
+  hasAutomation: '',
   automationDetail: '',
 };
 
@@ -64,8 +64,8 @@ describe('JustificationsPage', () => {
     ).toEqual([
       ['hasExclusions', 'yes'],
       ['hasExclusions', 'no'],
-      ['automationUsed', 'yes'],
-      ['automationUsed', 'no'],
+      ['hasAutomation', 'yes'],
+      ['hasAutomation', 'no'],
     ]);
   });
 
@@ -92,7 +92,7 @@ describe('JustificationsPage', () => {
         inequalitiesIncluded: 'Deciles.',
         hasExclusions: 'yes',
         exclusionsDetail: 'Small areas.',
-        automationUsed: 'no',
+        hasAutomation: 'no',
         automationDetail: '',
       },
     });
@@ -111,7 +111,7 @@ describe('JustificationsPage', () => {
   it('summarises every refusal in the order the form asks, linking to each control', () => {
     renderPage({
       fieldErrors: {
-        automationUsed: 'Select whether internal automation tools have been used',
+        hasAutomation: 'Select whether internal automation tools have been used',
         exclusionsDetail: 'Enter why exclusions were made',
         dataSourcesJustification: 'Enter why the data sources were chosen',
       },

@@ -104,10 +104,10 @@ export const updateFrequencyColumns = sameNamedColumns(updateFrequencySection.fi
 export const calculationColumns: IndicatorSectionColumns<CalculationField, Calculation> = {
   ...sameNamedColumns(calculationSection.fields),
   // Details typed under "Other" are dropped once another organisation is chosen.
-  toAttributes: ({ methodology, calculatedBy, calculatedByOther }) => ({
+  toAttributes: ({ methodology, calculatedBy, calculatedByDetail }) => ({
     methodology,
     calculatedBy,
-    calculatedByOther: calculatedBy === 'other' ? calculatedByOther : null,
+    calculatedByDetail: calculatedBy === 'other' ? calculatedByDetail : null,
   }),
 };
 
@@ -125,7 +125,7 @@ export const valueTypeAndUnitsColumns: IndicatorSectionColumns<
       standardPopulationOther: indirect ? null : draft.standardPopulationDetail,
       referencePopulation: indirect ? draft.standardPopulationDetail : null,
       unitId: draft.unitId,
-      unitOther: draft.unitOther,
+      unitDetail: draft.unitDetail,
     };
   },
   // Answers the chosen value type or unit does not ask for are cleared, whatever the form sent.
@@ -146,7 +146,7 @@ export const valueTypeAndUnitsColumns: IndicatorSectionColumns<
             ? answers.referencePopulation
             : null,
       unitId: answers.unitId,
-      unitOther: answers.unitId === UNIT_IDS.other ? answers.unitOther : null,
+      unitDetail: answers.unitId === UNIT_IDS.other ? answers.unitDetail : null,
     };
   },
 };
@@ -159,32 +159,34 @@ export const confidenceIntervalsColumns: IndicatorSectionColumns<
 > = {
   fromDraft: (draft) => ({
     ciMethodId: draft.ciMethodId,
-    ciMethodModified: yesNoAnswer(draft.ciMethodModified),
-    ciMethodModifications: draft.ciMethodModifications,
-    ciMethodOtherDetail: draft.ciMethodOtherDetail,
+    hasCiMethodModifications: yesNoAnswer(draft.hasCiMethodModifications),
+    ciMethodModificationsDetail: draft.ciMethodModificationsDetail,
+    ciMethodDetail: draft.ciMethodDetail,
   }),
   // Answers the chosen method does not ask for are cleared, whatever the form sent.
   toAttributes: ({
     ciMethodId,
-    ciMethodModified,
-    ciMethodModifications,
-    ciMethodOtherDetail,
+    hasCiMethodModifications,
+    ciMethodModificationsDetail,
+    ciMethodDetail,
     kind,
   }) => {
-    const modified = kind === 'standard' ? ciMethodModified === 'yes' : null;
+    const modified = kind === 'standard' ? hasCiMethodModifications === 'yes' : null;
 
     return {
       ciMethodId,
-      ciMethodModified: modified,
-      ciMethodModifications: modified ? ciMethodModifications : null,
-      ciMethodOtherDetail: kind === 'other' ? ciMethodOtherDetail : null,
+      hasCiMethodModifications: modified,
+      ciMethodModificationsDetail: modified ? ciMethodModificationsDetail : null,
+      ciMethodDetail: kind === 'other' ? ciMethodDetail : null,
     };
   },
 };
 
 export const dataQualityColumns: IndicatorSectionColumns<DataQualityField, IndicatorDataQuality> = {
-  fromDraft: (draft) => ({ dataQualityIssues: yesNoAnswer(draft.dataQualityIssues) }),
-  toAttributes: ({ dataQualityIssues }) => ({ dataQualityIssues: dataQualityIssues === 'yes' }),
+  fromDraft: (draft) => ({ hasDataQualityIssues: yesNoAnswer(draft.hasDataQualityIssues) }),
+  toAttributes: ({ hasDataQualityIssues }) => ({
+    hasDataQualityIssues: hasDataQualityIssues === 'yes',
+  }),
 };
 
 function numberText(value: number | null): string | null {
@@ -309,10 +311,10 @@ export const sexAndAgesColumns: IndicatorSectionColumns<
     ageRanges: draft.ageRanges,
     specificAge: draft.specificAge,
     specificAgeUnit: draft.specificAgeUnit,
-    ageOtherDetail: draft.ageOtherDetail,
+    ageDetail: draft.ageDetail,
   }),
   // Answers the chosen age type does not ask for are cleared, whatever the form sent.
-  toAttributes: ({ sexes, ageType, specificAge, specificAgeUnit, ageOtherDetail }) => {
+  toAttributes: ({ sexes, ageType, specificAge, specificAgeUnit, ageDetail }) => {
     const specific = ageType === 'specific';
 
     return {
@@ -320,7 +322,7 @@ export const sexAndAgesColumns: IndicatorSectionColumns<
       ageType,
       specificAge: specific ? age(specificAge) : null,
       specificAgeUnit: specific && specificAgeUnit !== '' ? specificAgeUnit : null,
-      ageOtherDetail: ageType === 'other' ? ageOtherDetail : null,
+      ageDetail: ageType === 'other' ? ageDetail : null,
     };
   },
   toLists: ({ ageType, ageRanges }) => ({

@@ -2,8 +2,8 @@ import { z } from '@fphd/config/zod';
 import {
   STANDARD_POPULATIONS,
   standardisationOf,
+  UNIT_DETAIL_MAX_LENGTH,
   UNIT_IDS,
-  UNIT_OTHER_MAX_LENGTH,
 } from '@fphd/utils/value-type-and-unit';
 
 import type { IndicatorSection } from './indicator-section-contract.ts';
@@ -26,7 +26,7 @@ const fields = z.enum([
   'standardPopulationOther',
   'referencePopulation',
   'unitId',
-  'unitOther',
+  'unitDetail',
 ]);
 
 export const SELECT_VALUE_TYPE = 'Select the value type';
@@ -48,7 +48,7 @@ const schema = z
     standardPopulationOther: z.string().trim(),
     referencePopulation: z.string().trim(),
     unitId: z.uuid(SELECT_UNITS),
-    unitOther: z.string().trim(),
+    unitDetail: z.string().trim(),
   })
   .superRefine(
     (answers, ctx) => {
@@ -69,11 +69,11 @@ const schema = z
       if (standardisation === 'indirect' && answers.referencePopulation === '') {
         issue('referencePopulation', ENTER_POPULATION);
       }
-      if (answers.unitId === UNIT_IDS.other && answers.unitOther === '') {
-        issue('unitOther', 'Enter the unit');
+      if (answers.unitId === UNIT_IDS.other && answers.unitDetail === '') {
+        issue('unitDetail', 'Enter the unit');
       }
-      if (answers.unitId === UNIT_IDS.other && answers.unitOther.length > UNIT_OTHER_MAX_LENGTH) {
-        issue('unitOther', `Unit must be ${UNIT_OTHER_MAX_LENGTH} characters or fewer`);
+      if (answers.unitId === UNIT_IDS.other && answers.unitDetail.length > UNIT_DETAIL_MAX_LENGTH) {
+        issue('unitDetail', `Unit must be ${UNIT_DETAIL_MAX_LENGTH} characters or fewer`);
       }
     },
     // Also beside an unanswered value type or unit, so every refusal shows at once.

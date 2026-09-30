@@ -49,7 +49,7 @@ export function readSexAndAgesForm(formData: FormData): {
   values: SexAndAgesFormValues;
   intent: ListIntent;
 } {
-  const text = (name: 'ageType' | 'specificAge' | 'specificAgeUnit' | 'ageOtherDetail') => {
+  const text = (name: 'ageType' | 'specificAge' | 'specificAgeUnit' | 'ageDetail') => {
     const value = formData.get(name);
     return typeof value === 'string' ? value : '';
   };
@@ -61,7 +61,7 @@ export function readSexAndAgesForm(formData: FormData): {
       ageRanges: readAgeRanges(formData),
       specificAge: text('specificAge'),
       specificAgeUnit: text('specificAgeUnit'),
-      ageOtherDetail: text('ageOtherDetail'),
+      ageDetail: text('ageDetail'),
     },
     intent: readListIntent(formData),
   };

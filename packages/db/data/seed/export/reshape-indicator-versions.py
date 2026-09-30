@@ -91,7 +91,7 @@ def write_rows(path, columns, rows):
 
 def translated_value_type_and_unit(row, value_type_names, unit_names):
     """The version's value type and unit columns for a row referencing Pholio's lookup rows."""
-    columns = {"value_type_id": "", "unit_id": "", "unit_other": ""}
+    columns = {"value_type_id": "", "unit_id": "", "unit_detail": ""}
     if row["value_type_id"]:
         columns["value_type_id"] = value_type_id(value_type_names[row["value_type_id"]])
     if row["unit_id"]:

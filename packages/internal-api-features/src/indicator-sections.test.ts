@@ -49,11 +49,11 @@ const unanswered: IndicatorSectionDraft = {
   polarity: null,
   methodology: null,
   calculatedBy: null,
-  calculatedByOther: null,
+  calculatedByDetail: null,
   ciMethodId: null,
-  ciMethodModified: null,
-  ciMethodModifications: null,
-  ciMethodOtherDetail: null,
+  hasCiMethodModifications: null,
+  ciMethodModificationsDetail: null,
+  ciMethodDetail: null,
   updateFrequency: null,
   periodType: null,
   yearType: null,
@@ -63,37 +63,37 @@ const unanswered: IndicatorSectionDraft = {
   standardPopulation: null,
   standardPopulationDetail: null,
   unitId: null,
-  unitOther: null,
+  unitDetail: null,
   disclosureControl: null,
   disclosureControlDetail: null,
-  roundingApplied: null,
+  hasRounding: null,
   roundingDetail: null,
-  caveatsNeeded: null,
+  hasCaveats: null,
   caveatsDetail: null,
-  otherNotesNeeded: null,
+  hasOtherNotes: null,
   otherNotesDetail: null,
   scheduledPublishAtUk: null,
   hasLinks: null,
   links: [],
   variation: null,
   qualityAssurance: null,
-  sourceDataIssues: null,
+  hasSourceDataIssues: null,
   sourceDataIssuesDetail: null,
-  dataQualityIssues: null,
+  hasDataQualityIssues: null,
   ciMethodJustification: null,
   dataSourcesJustification: null,
   inequalitiesIncluded: null,
   hasExclusions: null,
   exclusionsDetail: null,
-  automationUsed: null,
+  hasAutomation: null,
   automationDetail: null,
   sponsorsAndStakeholders: null,
   hasReviewerComments: null,
   reviewerCommentsDetail: null,
-  copyrightNonDefault: null,
-  copyrightDetail: null,
-  dataReuseNonDefault: null,
-  dataReuseDetail: null,
+  hasCustomCopyright: null,
+  customCopyrightDetail: null,
+  hasCustomDataReuse: null,
+  customDataReuseDetail: null,
   hasGoalBenchmark: null,
   goalLowerValue: null,
   goalUpperValue: null,
@@ -104,7 +104,7 @@ const unanswered: IndicatorSectionDraft = {
   ageRanges: [],
   specificAge: null,
   specificAgeUnit: null,
-  ageOtherDetail: null,
+  ageDetail: null,
   hasRiskFactor: null,
   hasFramework: null,
   topicIds: [],
@@ -143,9 +143,9 @@ const links = [
 
 // Every follow-up filled in, as a form without JavaScript may send them.
 const everyAnswer = {
-  ciMethodModified: 'yes',
-  ciMethodModifications: 'Adjusted for clustering',
-  ciMethodOtherDetail: 'Bootstrap intervals',
+  hasCiMethodModifications: 'yes',
+  ciMethodModificationsDetail: 'Adjusted for clustering',
+  ciMethodDetail: 'Bootstrap intervals',
 } as const;
 
 describe('indicatorSectionsRouter', () => {
@@ -227,18 +227,18 @@ describe('dataQualityColumns', () => {
     [true, 'yes'],
     [false, 'no'],
     [null, null],
-  ])('reads whether there are data quality issues, %s, as %s', (dataQualityIssues, answer) => {
-    expect(dataQualityColumns.fromDraft({ ...unanswered, dataQualityIssues })).toEqual({
-      dataQualityIssues: answer,
+  ])('reads whether there are data quality issues, %s, as %s', (hasDataQualityIssues, answer) => {
+    expect(dataQualityColumns.fromDraft({ ...unanswered, hasDataQualityIssues })).toEqual({
+      hasDataQualityIssues: answer,
     });
   });
 
   it.each([
     ['yes', true],
     ['no', false],
-  ] as const)('writes %s as %s', (dataQualityIssues, answer) => {
-    expect(dataQualityColumns.toAttributes({ dataQualityIssues })).toEqual({
-      dataQualityIssues: answer,
+  ] as const)('writes %s as %s', (hasDataQualityIssues, answer) => {
+    expect(dataQualityColumns.toAttributes({ hasDataQualityIssues })).toEqual({
+      hasDataQualityIssues: answer,
     });
   });
 });
@@ -320,7 +320,7 @@ describe('valueTypeAndUnitsColumns', () => {
     standardPopulation: 'other',
     standardPopulationOther: 'England 2021',
     referencePopulation: 'England 2019',
-    unitOther: 'people',
+    unitDetail: 'people',
   } as const;
 
   it.each([
@@ -331,22 +331,22 @@ describe('valueTypeAndUnitsColumns', () => {
         standardPopulation: 'esp-2013',
         unitId: '01a0d8a5-3ca2-7315-bfca-96daa0c93ee9',
       },
-      { standardPopulation: 'esp-2013', standardPopulationDetail: null, unitOther: null },
+      { standardPopulation: 'esp-2013', standardPopulationDetail: null, unitDetail: null },
     ],
     [
       'an other standard population with its detail',
       { valueTypeId: DSR, unitId: '01a0d8a5-3ca2-7315-bfca-96daa0c93ee9' },
-      { standardPopulation: 'other', standardPopulationDetail: 'England 2021', unitOther: null },
+      { standardPopulation: 'other', standardPopulationDetail: 'England 2021', unitDetail: null },
     ],
     [
       'the reference population beside an indirectly standardised value type',
       { valueTypeId: ISR, unitId: '01a0d8a5-3ca2-7315-bfca-96d787920e40' },
-      { standardPopulation: null, standardPopulationDetail: 'England 2019', unitOther: null },
+      { standardPopulation: null, standardPopulationDetail: 'England 2019', unitDetail: null },
     ],
     [
       'no population beside any other value type, and an other unit with its name',
       { valueTypeId: '01a0d8a5-3ca2-7315-bfca-96c7324d4347', unitId: UNIT_IDS.other },
-      { standardPopulation: null, standardPopulationDetail: null, unitOther: 'people' },
+      { standardPopulation: null, standardPopulationDetail: null, unitDetail: 'people' },
     ],
   ] as const)('writes %s, clearing what is not asked', (_, answers, attributes) => {
     expect(valueTypeAndUnitsColumns.toAttributes({ ...everyFollowUp, ...answers })).toEqual({
@@ -377,7 +377,7 @@ describe('calculationColumns', () => {
     const answers = {
       methodology: 'A method',
       calculatedBy: 'other',
-      calculatedByOther: 'ONS',
+      calculatedByDetail: 'ONS',
     } as const;
 
     expect(calculationColumns.fromDraft({ ...unanswered, ...answers })).toEqual(answers);
@@ -391,9 +391,9 @@ describe('calculationColumns', () => {
         calculationColumns.toAttributes({
           methodology: 'A method',
           calculatedBy,
-          calculatedByOther: 'Left from before',
+          calculatedByDetail: 'Left from before',
         }),
-      ).toEqual({ methodology: 'A method', calculatedBy, calculatedByOther: null });
+      ).toEqual({ methodology: 'A method', calculatedBy, calculatedByDetail: null });
     },
   );
 });
@@ -403,40 +403,41 @@ describe('confidenceIntervalsColumns', () => {
     [true, 'yes'],
     [false, 'no'],
     [null, null],
-  ])('reads a modifications answer of %s as %s', (ciMethodModified, answer) => {
+  ])('reads a modifications answer of %s as %s', (hasCiMethodModifications, answer) => {
     expect(
-      confidenceIntervalsColumns.fromDraft({ ...unanswered, ciMethodModified }).ciMethodModified,
+      confidenceIntervalsColumns.fromDraft({ ...unanswered, hasCiMethodModifications })
+        .hasCiMethodModifications,
     ).toBe(answer);
   });
 
   it.each([
     [
       'an unmodified standard method, clearing the answers it does not ask for',
-      { kind: 'standard', ciMethodModified: 'no' },
-      { ciMethodModified: false, ciMethodModifications: null, ciMethodOtherDetail: null },
+      { kind: 'standard', hasCiMethodModifications: 'no' },
+      { hasCiMethodModifications: false, ciMethodModificationsDetail: null, ciMethodDetail: null },
     ],
     [
       "a modified standard method with its modifications' description",
       { kind: 'standard' },
       {
-        ciMethodModified: true,
-        ciMethodModifications: 'Adjusted for clustering',
-        ciMethodOtherDetail: null,
+        hasCiMethodModifications: true,
+        ciMethodModificationsDetail: 'Adjusted for clustering',
+        ciMethodDetail: null,
       },
     ],
     [
       'an other method with its detail, clearing the modifications',
       { kind: 'other' },
       {
-        ciMethodModified: null,
-        ciMethodModifications: null,
-        ciMethodOtherDetail: 'Bootstrap intervals',
+        hasCiMethodModifications: null,
+        ciMethodModificationsDetail: null,
+        ciMethodDetail: 'Bootstrap intervals',
       },
     ],
     [
       'a method with nothing to describe alone, clearing every follow-up',
       { kind: 'none' },
-      { ciMethodModified: null, ciMethodModifications: null, ciMethodOtherDetail: null },
+      { hasCiMethodModifications: null, ciMethodModificationsDetail: null, ciMethodDetail: null },
     ],
   ] as const)('writes %s', (_, answers, attributes) => {
     expect(
@@ -453,20 +454,20 @@ describe('otherNotesAndCaveatsColumns', () => {
   const answered = {
     disclosureControl: 'yes',
     disclosureControlDetail: 'Counts under 5 are suppressed.',
-    roundingApplied: 'yes',
+    hasRounding: 'yes',
     roundingDetail: 'Rounded to the nearest 5.',
-    caveatsNeeded: 'yes',
+    hasCaveats: 'yes',
     caveatsDetail: 'Survey data.',
-    otherNotesNeeded: 'yes',
+    hasOtherNotes: 'yes',
     otherNotesDetail: 'Revised in 2024.',
   } as const;
 
   it('keeps every detail beside a yes', () => {
     expect(otherNotesAndCaveatsColumns.toAttributes(answered)).toEqual({
       ...answered,
-      roundingApplied: true,
-      caveatsNeeded: true,
-      otherNotesNeeded: true,
+      hasRounding: true,
+      hasCaveats: true,
+      hasOtherNotes: true,
     });
   });
 
@@ -477,18 +478,18 @@ describe('otherNotesAndCaveatsColumns', () => {
         otherNotesAndCaveatsColumns.toAttributes({
           ...answered,
           disclosureControl,
-          roundingApplied: 'no',
-          caveatsNeeded: 'no',
-          otherNotesNeeded: 'no',
+          hasRounding: 'no',
+          hasCaveats: 'no',
+          hasOtherNotes: 'no',
         }),
       ).toEqual({
         disclosureControl,
         disclosureControlDetail: null,
-        roundingApplied: false,
+        hasRounding: false,
         roundingDetail: null,
-        caveatsNeeded: false,
+        hasCaveats: false,
         caveatsDetail: null,
-        otherNotesNeeded: false,
+        hasOtherNotes: false,
         otherNotesDetail: null,
       });
     },
@@ -499,9 +500,9 @@ describe('otherNotesAndCaveatsColumns', () => {
       otherNotesAndCaveatsColumns.fromDraft({
         ...unanswered,
         ...answered,
-        roundingApplied: true,
-        caveatsNeeded: true,
-        otherNotesNeeded: true,
+        hasRounding: true,
+        hasCaveats: true,
+        hasOtherNotes: true,
       }),
     ).toEqual(answered);
   });
@@ -510,10 +511,10 @@ describe('otherNotesAndCaveatsColumns', () => {
     [true, 'yes'],
     [false, 'no'],
     [null, null],
-  ])('reads a stored %s as %s', (roundingApplied, answer) => {
-    expect(
-      otherNotesAndCaveatsColumns.fromDraft({ ...unanswered, roundingApplied }).roundingApplied,
-    ).toBe(answer);
+  ])('reads a stored %s as %s', (hasRounding, answer) => {
+    expect(otherNotesAndCaveatsColumns.fromDraft({ ...unanswered, hasRounding }).hasRounding).toBe(
+      answer,
+    );
   });
 });
 
@@ -522,35 +523,35 @@ describe('varianceAndQualityColumns', () => {
   const answered = {
     variation: 'Varies by area.',
     qualityAssurance: 'Checked against ONS figures.',
-    sourceDataIssues: 'yes',
+    hasSourceDataIssues: 'yes',
     sourceDataIssuesDetail: 'Late returns.',
   } as const;
 
   it('writes the text as it is, and a yes as true beside its details', () => {
     expect(varianceAndQualityColumns.toAttributes(answered)).toEqual({
       ...answered,
-      sourceDataIssues: true,
+      hasSourceDataIssues: true,
     });
   });
 
   it('writes a no as false and clears its details', () => {
-    expect(varianceAndQualityColumns.toAttributes({ ...answered, sourceDataIssues: 'no' })).toEqual(
-      { ...answered, sourceDataIssues: false, sourceDataIssuesDetail: null },
-    );
+    expect(
+      varianceAndQualityColumns.toAttributes({ ...answered, hasSourceDataIssues: 'no' }),
+    ).toEqual({ ...answered, hasSourceDataIssues: false, sourceDataIssuesDetail: null });
   });
 
   it.each([
     [true, 'yes'],
     [false, 'no'],
     [null, null],
-  ])('reads a stored %s as %s, beside the text as it is', (sourceDataIssues, answer) => {
+  ])('reads a stored %s as %s, beside the text as it is', (hasSourceDataIssues, answer) => {
     expect(
       varianceAndQualityColumns.fromDraft({
         ...unanswered,
         ...answered,
-        sourceDataIssues,
+        hasSourceDataIssues,
       }),
-    ).toEqual({ ...answered, sourceDataIssues: answer });
+    ).toEqual({ ...answered, hasSourceDataIssues: answer });
   });
 });
 
@@ -561,7 +562,7 @@ describe('justificationsColumns', () => {
     inequalitiesIncluded: 'Deprivation deciles.',
     hasExclusions: 'yes',
     exclusionsDetail: 'Areas with fewer than 5 deaths.',
-    automationUsed: 'no',
+    hasAutomation: 'no',
     automationDetail: 'Typed before No was chosen.',
   } as const;
 
@@ -569,7 +570,7 @@ describe('justificationsColumns', () => {
     expect(justificationsColumns.toAttributes(answered)).toEqual({
       ...answered,
       hasExclusions: true,
-      automationUsed: false,
+      hasAutomation: false,
       automationDetail: null,
     });
   });
@@ -580,7 +581,7 @@ describe('justificationsColumns', () => {
         ...unanswered,
         ...answered,
         hasExclusions: true,
-        automationUsed: false,
+        hasAutomation: false,
         automationDetail: null,
       }),
     ).toEqual({ ...answered, automationDetail: null });
@@ -725,7 +726,7 @@ describe('sexAndAgesColumns', () => {
     ageRanges: [{ lowerLimit: '16', lowerLimitUnit: 'years', upperLimit: '', upperLimitUnit: '' }],
     specificAge: '5',
     specificAgeUnit: 'weeks',
-    ageOtherDetail: 'School year 6',
+    ageDetail: 'School year 6',
   });
 
   it('reads unanswered sexes as none', () => {
@@ -735,7 +736,7 @@ describe('sexAndAgesColumns', () => {
       ageRanges: [],
       specificAge: null,
       specificAgeUnit: null,
-      ageOtherDetail: null,
+      ageDetail: null,
     });
   });
 
@@ -747,7 +748,7 @@ describe('sexAndAgesColumns', () => {
       ageType: 'range',
       specificAge: null,
       specificAgeUnit: null,
-      ageOtherDetail: null,
+      ageDetail: null,
     });
     expect(sexAndAgesColumns.toLists?.(values)).toEqual({
       ageRanges: [
@@ -762,7 +763,7 @@ describe('sexAndAgesColumns', () => {
     expect(sexAndAgesColumns.toAttributes(values)).toMatchObject({
       specificAge: 5,
       specificAgeUnit: 'weeks',
-      ageOtherDetail: null,
+      ageDetail: null,
     });
     expect(sexAndAgesColumns.toLists?.(values)).toEqual({ ageRanges: [] });
   });
@@ -775,7 +776,7 @@ describe('sexAndAgesColumns', () => {
       ageType: 'all',
       specificAge: null,
       specificAgeUnit: null,
-      ageOtherDetail: null,
+      ageDetail: null,
     });
     expect(sexAndAgesColumns.toLists?.(values)).toEqual({ ageRanges: [] });
   });
@@ -786,7 +787,7 @@ describe('sexAndAgesColumns', () => {
     expect(sexAndAgesColumns.toAttributes(values)).toMatchObject({
       specificAge: null,
       specificAgeUnit: null,
-      ageOtherDetail: 'School year 6',
+      ageDetail: 'School year 6',
     });
     expect(sexAndAgesColumns.toLists?.(values)).toEqual({ ageRanges: [] });
   });
@@ -939,11 +940,11 @@ describe('confidenceIntervalsServerSection', () => {
     expect(
       await fieldErrorsOf({
         ciMethodId: METHODS.standard.id,
-        ciMethodModified: '',
-        ciMethodModifications: '',
-        ciMethodOtherDetail: '',
+        hasCiMethodModifications: '',
+        ciMethodModificationsDetail: '',
+        ciMethodDetail: '',
       }),
-    ).toEqual({ ciMethodModified: 'Select whether any modifications were used' });
+    ).toEqual({ hasCiMethodModifications: 'Select whether any modifications were used' });
   });
 });
 
@@ -958,7 +959,7 @@ describe('valueTypeAndUnitsServerSection', () => {
     standardPopulationOther: '',
     referencePopulation: '',
     unitId: '01a0d8a5-3ca2-7315-bfca-96d615820bd4',
-    unitOther: '',
+    unitDetail: '',
   };
 
   function submit(body: object) {

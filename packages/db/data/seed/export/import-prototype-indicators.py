@@ -344,12 +344,12 @@ def add_indicators(cur, metadata, seed_dir):
             """
             INSERT INTO indicator_version
               (id, indicator_id, status, published_at, name, slug, value_type_id, unit_id,
-               unit_other, period_type, year_type, year_end_day, year_end_month,
+               unit_detail, period_type, year_type, year_end_day, year_end_month,
                ci_method_id, polarity, update_frequency, comparator_method_id,
                ci_confidence_level, config, definition, rationale, methodology,
                numerator_definition, denominator_definition, disclosure_control,
-               disclosure_control_detail, rounding_applied, rounding_detail, caveats_needed,
-               caveats_detail, other_notes_needed, other_notes_detail, data_source_id,
+               disclosure_control_detail, has_rounding, rounding_detail, has_caveats,
+               caveats_detail, has_other_notes, other_notes_detail, data_source_id,
                created_at, created_by, updated_at, updated_by)
             VALUES
               (%s, %s, 'published', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,

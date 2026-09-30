@@ -11,8 +11,8 @@ import { UPDATE_FREQUENCIES } from '@fphd/utils/update-frequency';
 import {
   INDIRECTLY_STANDARDISED_VALUE_TYPE_IDS,
   STANDARD_POPULATIONS,
+  UNIT_DETAIL_MAX_LENGTH,
   UNIT_IDS,
-  UNIT_OTHER_MAX_LENGTH,
   VALUE_TYPE_IDS,
 } from '@fphd/utils/value-type-and-unit';
 import { asc, desc, eq, type SQL, sql } from 'drizzle-orm';
@@ -53,7 +53,7 @@ export const INDICATOR_VERSION_STATUSES = ['draft', 'published'] as const;
 
 export type IndicatorVersionStatus = (typeof INDICATOR_VERSION_STATUSES)[number];
 
-/** Who calculated an indicator: OHID, DHSC, or organisations named in `calculated_by_other`. */
+/** Who calculated an indicator: OHID, DHSC, or organisations named in `calculated_by_detail`. */
 export const INDICATOR_CALCULATED_BY = ['ohid', 'dhsc', 'other'] as const;
 
 /** Whether disclosure control was applied, described in `disclosure_control_detail` when it was. */
@@ -111,7 +111,7 @@ export const indicatorVersion = pgTable(
     standardPopulationDetail: text(),
     unitId: uuid().references(() => unit.id),
     // The unit a publisher names under "Other".
-    unitOther: text(),
+    unitDetail: text(),
     periodType: text({ enum: PERIOD_TYPES }),
     // Asked of years and quarters only, and the end date only of a year ending on a specified one.
     yearType: text({ enum: YEAR_TYPES }),
@@ -119,10 +119,10 @@ export const indicatorVersion = pgTable(
     yearEndMonth: smallint(),
     ciMethodId: uuid().references(() => ciMethod.id),
     // Asked of a standard CI method only, and the modifications only when there were some.
-    ciMethodModified: boolean(),
-    ciMethodModifications: text(),
+    hasCiMethodModifications: boolean(),
+    ciMethodModificationsDetail: text(),
     // Asked of an other CI method only.
-    ciMethodOtherDetail: text(),
+    ciMethodDetail: text(),
     polarity: text({ enum: POLARITIES }),
     updateFrequency: text({ enum: UPDATE_FREQUENCIES }),
     comparatorMethodId: uuid().references(() => comparatorMethod.id),
@@ -133,7 +133,7 @@ export const indicatorVersion = pgTable(
     rationale: text(),
     methodology: text(),
     calculatedBy: text({ enum: INDICATOR_CALCULATED_BY }),
-    calculatedByOther: text(),
+    calculatedByDetail: text(),
     // Null until answered, so "no links" is told apart from a question not yet asked.
     hasLinks: boolean(),
     // Null until answered; the risk factors and frameworks are rows of indicator_version_classification.
@@ -144,24 +144,24 @@ export const indicatorVersion = pgTable(
     ageType: text({ enum: AGE_TYPES }),
     specificAge: smallint(),
     specificAgeUnit: text({ enum: AGE_UNITS }),
-    ageOtherDetail: text(),
+    ageDetail: text(),
     numeratorDefinition: text(),
     denominatorDefinition: text(),
     // Each answer's detail is asked for, and kept, only when the answer is yes.
     disclosureControl: text({ enum: INDICATOR_DISCLOSURE_CONTROL }),
     disclosureControlDetail: text(),
-    roundingApplied: boolean(),
+    hasRounding: boolean(),
     roundingDetail: text(),
-    caveatsNeeded: boolean(),
+    hasCaveats: boolean(),
     caveatsDetail: text(),
-    otherNotesNeeded: boolean(),
+    hasOtherNotes: boolean(),
     otherNotesDetail: text(),
-    dataQualityIssues: boolean(),
+    hasDataQualityIssues: boolean(),
     // True when the indicator states its own copyright or re-use terms instead of the defaults.
-    copyrightNonDefault: boolean(),
-    copyrightDetail: text(),
-    dataReuseNonDefault: boolean(),
-    dataReuseDetail: text(),
+    hasCustomCopyright: boolean(),
+    customCopyrightDetail: text(),
+    hasCustomDataReuse: boolean(),
+    customDataReuseDetail: text(),
     // A goal is kept beside a yes alone; a single goal value has no upper value.
     hasGoalBenchmark: boolean(),
     goalLowerValue: doublePrecision(),
@@ -171,14 +171,14 @@ export const indicatorVersion = pgTable(
     // Notes for reviewers, never published.
     variation: text(),
     qualityAssurance: text(),
-    sourceDataIssues: boolean(),
+    hasSourceDataIssues: boolean(),
     sourceDataIssuesDetail: text(),
     ciMethodJustification: text(),
     dataSourcesJustification: text(),
     inequalitiesIncluded: text(),
     hasExclusions: boolean(),
     exclusionsDetail: text(),
-    automationUsed: boolean(),
+    hasAutomation: boolean(),
     automationDetail: text(),
     sponsorsAndStakeholders: text(),
     hasReviewerComments: boolean(),
@@ -222,11 +222,11 @@ export const indicatorVersion = pgTable(
     ),
     check(
       'indicator_version_unit_other_check',
-      sql`(${t.unitOther} IS NOT NULL) = (${t.unitId} IS NOT DISTINCT FROM ${literals([UNIT_IDS.other])})`,
+      sql`(${t.unitDetail} IS NOT NULL) = (${t.unitId} IS NOT DISTINCT FROM ${literals([UNIT_IDS.other])})`,
     ),
     check(
       'indicator_version_unit_other_length_check',
-      sql`length(${t.unitOther}) <= ${sql.raw(String(UNIT_OTHER_MAX_LENGTH))}`,
+      sql`length(${t.unitDetail}) <= ${sql.raw(String(UNIT_DETAIL_MAX_LENGTH))}`,
     ),
     check(
       'indicator_version_calculated_by_check',
@@ -235,7 +235,7 @@ export const indicatorVersion = pgTable(
     // Other organisations only beside "other"; null-safe, so no choice refuses them too.
     check(
       'indicator_version_calculated_by_other_check',
-      sql`${t.calculatedBy} IS NOT DISTINCT FROM 'other' OR ${t.calculatedByOther} IS NULL`,
+      sql`${t.calculatedBy} IS NOT DISTINCT FROM 'other' OR ${t.calculatedByDetail} IS NULL`,
     ),
     check(
       'indicator_version_disclosure_control_check',
@@ -247,23 +247,23 @@ export const indicatorVersion = pgTable(
     ),
     check(
       'indicator_version_rounding_detail_check',
-      sql`${t.roundingApplied} IS TRUE OR ${t.roundingDetail} IS NULL`,
+      sql`${t.hasRounding} IS TRUE OR ${t.roundingDetail} IS NULL`,
     ),
     check(
       'indicator_version_caveats_detail_check',
-      sql`${t.caveatsNeeded} IS TRUE OR ${t.caveatsDetail} IS NULL`,
+      sql`${t.hasCaveats} IS TRUE OR ${t.caveatsDetail} IS NULL`,
     ),
     check(
       'indicator_version_other_notes_detail_check',
-      sql`${t.otherNotesNeeded} IS TRUE OR ${t.otherNotesDetail} IS NULL`,
+      sql`${t.hasOtherNotes} IS TRUE OR ${t.otherNotesDetail} IS NULL`,
     ),
     check(
       'indicator_version_copyright_detail_check',
-      sql`${t.copyrightNonDefault} IS TRUE OR ${t.copyrightDetail} IS NULL`,
+      sql`${t.hasCustomCopyright} IS TRUE OR ${t.customCopyrightDetail} IS NULL`,
     ),
     check(
       'indicator_version_data_reuse_detail_check',
-      sql`${t.dataReuseNonDefault} IS TRUE OR ${t.dataReuseDetail} IS NULL`,
+      sql`${t.hasCustomDataReuse} IS TRUE OR ${t.customDataReuseDetail} IS NULL`,
     ),
     check(
       'indicator_version_goal_polarity_check',
@@ -293,7 +293,7 @@ export const indicatorVersion = pgTable(
     ),
     check(
       'indicator_version_source_data_issues_detail_check',
-      sql`${t.sourceDataIssues} IS TRUE OR ${t.sourceDataIssuesDetail} IS NULL`,
+      sql`${t.hasSourceDataIssues} IS TRUE OR ${t.sourceDataIssuesDetail} IS NULL`,
     ),
     check(
       'indicator_version_exclusions_detail_check',
@@ -301,7 +301,7 @@ export const indicatorVersion = pgTable(
     ),
     check(
       'indicator_version_automation_detail_check',
-      sql`${t.automationUsed} IS TRUE OR ${t.automationDetail} IS NULL`,
+      sql`${t.hasAutomation} IS TRUE OR ${t.automationDetail} IS NULL`,
     ),
     check(
       'indicator_version_reviewer_comments_detail_check',
@@ -331,7 +331,7 @@ export const indicatorVersion = pgTable(
     ),
     check(
       'indicator_version_age_other_detail_check',
-      sql`${t.ageType} IS NOT DISTINCT FROM 'other' OR ${t.ageOtherDetail} IS NULL`,
+      sql`${t.ageType} IS NOT DISTINCT FROM 'other' OR ${t.ageDetail} IS NULL`,
     ),
     check(
       'indicator_version_period_type_check',

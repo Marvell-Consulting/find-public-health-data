@@ -6,28 +6,28 @@ import { sectionFieldErrors } from './testing.ts';
 const empty = {
   disclosureControl: '',
   disclosureControlDetail: '',
-  roundingApplied: '',
+  hasRounding: '',
   roundingDetail: '',
-  caveatsNeeded: '',
+  hasCaveats: '',
   caveatsDetail: '',
-  otherNotesNeeded: '',
+  hasOtherNotes: '',
   otherNotesDetail: '',
 };
 
 const allNo = {
   ...empty,
   disclosureControl: 'no',
-  roundingApplied: 'no',
-  caveatsNeeded: 'no',
-  otherNotesNeeded: 'no',
+  hasRounding: 'no',
+  hasCaveats: 'no',
+  hasOtherNotes: 'no',
 };
 
 const allYes = {
   ...empty,
   disclosureControl: 'yes',
-  roundingApplied: 'yes',
-  caveatsNeeded: 'yes',
-  otherNotesNeeded: 'yes',
+  hasRounding: 'yes',
+  hasCaveats: 'yes',
+  hasOtherNotes: 'yes',
 };
 
 describe('otherNotesAndCaveatsSection', () => {
@@ -36,21 +36,21 @@ describe('otherNotesAndCaveatsSection', () => {
       section.schema.parse({
         disclosureControl: 'yes',
         disclosureControlDetail: '  Counts under 5 are suppressed.\n',
-        roundingApplied: 'yes',
+        hasRounding: 'yes',
         roundingDetail: ' Rounded to the nearest 5. ',
-        caveatsNeeded: 'yes',
+        hasCaveats: 'yes',
         caveatsDetail: '\tSurvey data. ',
-        otherNotesNeeded: 'yes',
+        hasOtherNotes: 'yes',
         otherNotesDetail: ' Revised in 2024.',
       }),
     ).toEqual({
       disclosureControl: 'yes',
       disclosureControlDetail: 'Counts under 5 are suppressed.',
-      roundingApplied: 'yes',
+      hasRounding: 'yes',
       roundingDetail: 'Rounded to the nearest 5.',
-      caveatsNeeded: 'yes',
+      hasCaveats: 'yes',
       caveatsDetail: 'Survey data.',
-      otherNotesNeeded: 'yes',
+      hasOtherNotes: 'yes',
       otherNotesDetail: 'Revised in 2024.',
     });
   });
@@ -68,9 +68,9 @@ describe('otherNotesAndCaveatsSection', () => {
   it('asks for every answer when the form is empty', () => {
     expect(sectionFieldErrors(section, empty)).toEqual({
       disclosureControl: 'Select whether disclosure control has been applied',
-      roundingApplied: 'Select whether rounding has been applied',
-      caveatsNeeded: 'Select whether there are any caveats needed',
-      otherNotesNeeded: 'Select whether there are any other notes needed',
+      hasRounding: 'Select whether rounding has been applied',
+      hasCaveats: 'Select whether there are any caveats needed',
+      hasOtherNotes: 'Select whether there are any other notes needed',
     });
   });
 
@@ -85,17 +85,17 @@ describe('otherNotesAndCaveatsSection', () => {
 
   it('asks for a missing detail beside an unanswered question', () => {
     expect(
-      sectionFieldErrors(section, { ...allNo, disclosureControl: 'yes', roundingApplied: '' }),
+      sectionFieldErrors(section, { ...allNo, disclosureControl: 'yes', hasRounding: '' }),
     ).toEqual({
       disclosureControlDetail: 'Provide details of the disclosure control',
-      roundingApplied: 'Select whether rounding has been applied',
+      hasRounding: 'Select whether rounding has been applied',
     });
   });
 
   it.each([
     { ...allNo, disclosureControl: 'maybe' },
-    { ...allNo, roundingApplied: 'not-applicable' },
-    { ...allNo, caveatsNeeded: true },
+    { ...allNo, hasRounding: 'not-applicable' },
+    { ...allNo, hasCaveats: true },
   ])('refuses an answer the form does not offer: %o', (body) => {
     expect(sectionFieldErrors(section, body)).toBeDefined();
   });
@@ -103,7 +103,7 @@ describe('otherNotesAndCaveatsSection', () => {
   it.each([
     null,
     {},
-    { disclosureControl: 'no', roundingApplied: 'no' },
+    { disclosureControl: 'no', hasRounding: 'no' },
     { ...allNo, otherNotesDetail: 108 },
   ])('refuses %o, which the form never sends', (body) => {
     expect(sectionFieldErrors(section, body)).toBeDefined();

@@ -24,7 +24,7 @@ export function JustificationsPage({
       formError={formError}
       fieldIds={{
         hasExclusions: firstRadioId('hasExclusions'),
-        automationUsed: firstRadioId('automationUsed'),
+        hasAutomation: firstRadioId('hasAutomation'),
       }}
       fields={justificationsSection.fields.options}
       title="Justifications"
@@ -49,7 +49,7 @@ export function JustificationsPage({
         values={values}
       />
       <YesNoQuestion
-        answer="automationUsed"
+        answer="hasAutomation"
         detail="automationDetail"
         detailLabel="Enter details of the tools used"
         detailRows={5}

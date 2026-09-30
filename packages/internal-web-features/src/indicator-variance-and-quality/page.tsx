@@ -16,7 +16,7 @@ export function VarianceAndQualityPage({
     <IndicatorSectionForm
       fieldErrors={fieldErrors}
       formError={formError}
-      fieldIds={{ sourceDataIssues: firstRadioId('sourceDataIssues') }}
+      fieldIds={{ hasSourceDataIssues: firstRadioId('hasSourceDataIssues') }}
       fields={varianceAndQualitySection.fields.options}
       title="Variance and quality"
     >
@@ -35,7 +35,7 @@ export function VarianceAndQualityPage({
         rows={5}
       />
       <YesNoQuestion
-        answer="sourceDataIssues"
+        answer="hasSourceDataIssues"
         detail="sourceDataIssuesDetail"
         detailLabel="Enter details, including what is being done to improve the quality of the source data"
         detailRows={5}

@@ -16,7 +16,7 @@ const empty = {
   standardPopulationOther: '',
   referencePopulation: '',
   unitId: '',
-  unitOther: '',
+  unitDetail: '',
 };
 
 describe('valueTypeAndUnitsSection', () => {
@@ -28,7 +28,7 @@ describe('valueTypeAndUnitsSection', () => {
         standardPopulation: 'other',
         standardPopulationOther: ' England 2021\n',
         unitId: UNIT_IDS.other,
-        unitOther: '\tpeople ',
+        unitDetail: '\tpeople ',
       }),
     ).toEqual({
       ...empty,
@@ -36,7 +36,7 @@ describe('valueTypeAndUnitsSection', () => {
       standardPopulation: 'other',
       standardPopulationOther: 'England 2021',
       unitId: UNIT_IDS.other,
-      unitOther: 'people',
+      unitDetail: 'people',
     });
   });
 
@@ -73,7 +73,7 @@ describe('valueTypeAndUnitsSection', () => {
         valueTypeId: '01a0d8a5-3ca2-7315-bfca-96c8c77cad18',
         standardPopulation: 'other',
         unitId: '01a0d8a5-3ca2-7315-bfca-96d8d8d7aec2',
-        unitOther: 'x'.repeat(101),
+        unitDetail: 'x'.repeat(101),
       }),
     ).toBeUndefined();
   });
@@ -106,7 +106,7 @@ describe('valueTypeAndUnitsSection', () => {
     [
       'an other unit it does not name, beside no value type',
       { ...empty, unitId: UNIT_IDS.other },
-      { valueTypeId: 'Select the value type', unitOther: 'Enter the unit' },
+      { valueTypeId: 'Select the value type', unitDetail: 'Enter the unit' },
     ],
     [
       'an other unit over 100 characters',
@@ -114,9 +114,9 @@ describe('valueTypeAndUnitsSection', () => {
         ...empty,
         valueTypeId: '01a0d8a5-3ca2-7315-bfca-96c7324d4347',
         unitId: UNIT_IDS.other,
-        unitOther: 'x'.repeat(101),
+        unitDetail: 'x'.repeat(101),
       },
-      { unitOther: 'Unit must be 100 characters or fewer' },
+      { unitDetail: 'Unit must be 100 characters or fewer' },
     ],
     [
       'a value type and unit that are not ids',
@@ -143,12 +143,12 @@ describe('valueTypeAndUnitsSection', () => {
         ...empty,
         valueTypeId: '01a0d8a5-3ca2-7315-bfca-96c7324d4347',
         unitId: UNIT_IDS.other,
-        unitOther: 'x'.repeat(100),
+        unitDetail: 'x'.repeat(100),
       }),
     ).toBeUndefined();
   });
 
-  it.each([{}, { ...empty, unitOther: 1 }])('refuses %o, which the form never sends', (body) => {
+  it.each([{}, { ...empty, unitDetail: 1 }])('refuses %o, which the form never sends', (body) => {
     expect(sectionFieldErrors(section, body)).toBeDefined();
   });
 });
