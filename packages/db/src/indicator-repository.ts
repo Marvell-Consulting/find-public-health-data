@@ -7,6 +7,7 @@ import {
 import type { Polarity } from '@fphd/utils/polarity';
 import { isShortId, SHORT_ID_PATTERN } from '@fphd/utils/short-id';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
+import type { IndicatorSourcePart } from '@fphd/utils/source-part';
 import type { UpdateFrequency } from '@fphd/utils/update-frequency';
 import { unitLabel } from '@fphd/utils/value-type-and-unit';
 import {
@@ -30,7 +31,6 @@ import {
   listClassificationsForIndicator,
   listTopicsForIndicator,
 } from './indicator-topic-repository.ts';
-import type { IndicatorSourcePart } from './schema/index.ts';
 import {
   publishedArea as area,
   publishedAreaType as areaType,

@@ -15,22 +15,30 @@ import {
 
 import { dimensionValue } from './dimension.ts';
 import { area } from './geography.ts';
-import { uuidPrimaryKey } from './helpers.ts';
+import { literals, uuidPrimaryKey } from './helpers.ts';
 import { indicator } from './indicator.ts';
 import { uploadBatch } from './upload.ts';
+
+/** What an observation's note is about. */
+export const NOTE_TYPE_CATEGORIES = [
+  'disclosure',
+  'quality',
+  'geographic',
+  'methodological',
+  'estimation',
+  'missing',
+  'contextual',
+] as const;
 
 export const noteType = pgTable(
   'note_type',
   {
     id: uuidPrimaryKey(),
     text: text().notNull(),
-    category: text().notNull(),
+    category: text({ enum: NOTE_TYPE_CATEGORIES }).notNull(),
   },
   (t) => [
-    check(
-      'note_type_category_check',
-      sql`${t.category} IN ('disclosure', 'quality', 'geographic', 'methodological', 'estimation', 'missing', 'contextual')`,
-    ),
+    check('note_type_category_check', sql`${t.category} IN (${literals(NOTE_TYPE_CATEGORIES)})`),
   ],
 );
 

@@ -1,3 +1,8 @@
+import { INDICATOR_CALCULATED_BY, type IndicatorCalculatedBy } from '@fphd/utils/calculated-by';
+import {
+  INDICATOR_DISCLOSURE_CONTROL,
+  type IndicatorDisclosureControl,
+} from '@fphd/utils/disclosure-control';
 import {
   PERIOD_TYPES,
   PERIOD_TYPES_WITH_YEAR_TYPE,
@@ -5,12 +10,21 @@ import {
   type YearType,
 } from '@fphd/utils/period-type';
 import { GOAL_POLARITIES, POLARITIES } from '@fphd/utils/polarity';
-import { AGE_TYPES, AGE_UNIT_DAYS, AGE_UNITS, MAX_AGE, SEXES } from '@fphd/utils/sex-and-ages';
+import {
+  AGE_TYPES,
+  AGE_UNIT_DAYS,
+  AGE_UNITS,
+  type AgeType,
+  MAX_AGE,
+  SEXES,
+} from '@fphd/utils/sex-and-ages';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
+import { INDICATOR_SOURCE_PARTS } from '@fphd/utils/source-part';
 import { UPDATE_FREQUENCIES } from '@fphd/utils/update-frequency';
 import {
   INDIRECTLY_STANDARDISED_VALUE_TYPE_IDS,
   STANDARD_POPULATIONS,
+  type StandardPopulation,
   UNIT_DETAIL_MAX_LENGTH,
   UNIT_IDS,
   VALUE_TYPE_IDS,
@@ -24,7 +38,6 @@ import {
   foreignKey,
   index,
   integer,
-  jsonb,
   pgSequence,
   pgTable,
   pgView,
@@ -53,11 +66,18 @@ export const INDICATOR_VERSION_STATUSES = ['draft', 'published'] as const;
 
 export type IndicatorVersionStatus = (typeof INDICATOR_VERSION_STATUSES)[number];
 
-/** Who calculated an indicator: OHID, DHSC, or organisations named in `calculated_by_detail`. */
-export const INDICATOR_CALCULATED_BY = ['ohid', 'dhsc', 'other'] as const;
+/** The confidence levels of a version's intervals, which no page asks for yet. */
+export const CI_CONFIDENCE_LEVELS = ['95', '99.8', 'both'] as const;
 
-/** Whether disclosure control was applied, described in `disclosure_control_detail` when it was. */
-export const INDICATOR_DISCLOSURE_CONTROL = ['yes', 'no', 'not-applicable'] as const;
+/** A yes whose detail the contract requires: the detail is kept beside a yes and nothing else. */
+function detailBesideYes(answer: AnyPgColumn, detail: AnyPgColumn): SQL {
+  return sql`(${answer} IS TRUE) = (${detail} IS NOT NULL)`;
+}
+
+/** A choice whose detail the contract requires, kept beside that choice and nothing else. */
+function detailBesideChoice(column: AnyPgColumn, choice: string, detail: AnyPgColumn): SQL {
+  return sql`(${column} IS NOT DISTINCT FROM ${literals([choice])}) = (${detail} IS NOT NULL)`;
+}
 
 /** An age in days, as the contract compares ages; null when either part is. */
 function ageInDays(age: AnyPgColumn, unit: AnyPgColumn): SQL {
@@ -126,17 +146,15 @@ export const indicatorVersion = pgTable(
     polarity: text({ enum: POLARITIES }),
     updateFrequency: text({ enum: UPDATE_FREQUENCIES }),
     comparatorMethodId: uuid().references(() => comparatorMethod.id),
-    disclosureThreshold: smallint(),
-    ciConfidenceLevel: text(),
-    config: jsonb(),
+    ciConfidenceLevel: text({ enum: CI_CONFIDENCE_LEVELS }),
     definition: text(),
     rationale: text(),
     methodology: text(),
     calculatedBy: text({ enum: INDICATOR_CALCULATED_BY }),
     calculatedByDetail: text(),
-    // Null until answered, so "no links" is told apart from a question not yet asked.
+    // The answered state of lists held in child tables, which a check cannot compare with the
+    // rows, so the API keeps them in step: null until asked, false for an answered no.
     hasLinks: boolean(),
-    // Null until answered; the risk factors and frameworks are rows of indicator_version_classification.
     hasRiskFactor: boolean(),
     hasFramework: boolean(),
     sexes: text({ enum: SEXES }).array(),
@@ -147,7 +165,7 @@ export const indicatorVersion = pgTable(
     ageDetail: text(),
     numeratorDefinition: text(),
     denominatorDefinition: text(),
-    // Each answer's detail is asked for, and kept, only when the answer is yes.
+    // Each answer's detail is asked for, and required, only when the answer is yes.
     disclosureControl: text({ enum: INDICATOR_DISCLOSURE_CONTROL }),
     disclosureControlDetail: text(),
     hasRounding: boolean(),
@@ -192,16 +210,16 @@ export const indicatorVersion = pgTable(
   (t) => [
     check(
       'indicator_version_ci_confidence_level_check',
-      sql`${t.ciConfidenceLevel} IN ('95', '99.8', 'both')`,
+      sql`${t.ciConfidenceLevel} IN (${literals(CI_CONFIDENCE_LEVELS)})`,
     ),
-    check('indicator_version_status_check', sql`${t.status} IN ('draft', 'published')`),
     check(
-      'indicator_version_polarity_check',
-      sql`${t.polarity} IN (${sql.raw(POLARITIES.map((value) => `'${value}'`).join(', '))})`,
+      'indicator_version_status_check',
+      sql`${t.status} IN (${literals(INDICATOR_VERSION_STATUSES)})`,
     ),
+    check('indicator_version_polarity_check', sql`${t.polarity} IN (${literals(POLARITIES)})`),
     check(
       'indicator_version_update_frequency_check',
-      sql`${t.updateFrequency} IN (${sql.raw(UPDATE_FREQUENCIES.map((value) => `'${value}'`).join(', '))})`,
+      sql`${t.updateFrequency} IN (${literals(UPDATE_FREQUENCIES)})`,
     ),
     check(
       'indicator_version_standard_population_check',
@@ -214,60 +232,68 @@ export const indicatorVersion = pgTable(
     // Beside an other standard population, or an indirectly standardised value type, alone.
     check(
       'indicator_version_standard_population_detail_check',
-      sql`${t.standardPopulationDetail} IS NULL OR ${t.standardPopulation} IS NOT DISTINCT FROM 'other' OR ${t.valueTypeId} IN (${literals(INDIRECTLY_STANDARDISED_VALUE_TYPE_IDS)})`,
+      sql`${t.standardPopulationDetail} IS NULL OR ${t.standardPopulation} IS NOT DISTINCT FROM ${literals(['other' satisfies StandardPopulation])} OR ${t.valueTypeId} IN (${literals(INDIRECTLY_STANDARDISED_VALUE_TYPE_IDS)})`,
     ),
     check(
       'indicator_version_standard_population_other_check',
-      sql`${t.standardPopulation} IS DISTINCT FROM 'other' OR ${t.standardPopulationDetail} IS NOT NULL`,
+      sql`${t.standardPopulation} IS DISTINCT FROM ${literals(['other' satisfies StandardPopulation])} OR ${t.standardPopulationDetail} IS NOT NULL`,
     ),
     check(
-      'indicator_version_unit_other_check',
+      'indicator_version_unit_detail_check',
       sql`(${t.unitDetail} IS NOT NULL) = (${t.unitId} IS NOT DISTINCT FROM ${literals([UNIT_IDS.other])})`,
     ),
     check(
-      'indicator_version_unit_other_length_check',
+      'indicator_version_unit_detail_length_check',
       sql`length(${t.unitDetail}) <= ${sql.raw(String(UNIT_DETAIL_MAX_LENGTH))}`,
     ),
     check(
-      'indicator_version_calculated_by_check',
-      sql`${t.calculatedBy} IN ('ohid', 'dhsc', 'other')`,
+      'indicator_version_ci_method_modifications_detail_check',
+      detailBesideYes(t.hasCiMethodModifications, t.ciMethodModificationsDetail),
     ),
-    // Other organisations only beside "other"; null-safe, so no choice refuses them too.
     check(
-      'indicator_version_calculated_by_other_check',
-      sql`${t.calculatedBy} IS NOT DISTINCT FROM 'other' OR ${t.calculatedByDetail} IS NULL`,
+      'indicator_version_calculated_by_check',
+      sql`${t.calculatedBy} IN (${literals(INDICATOR_CALCULATED_BY)})`,
+    ),
+    check(
+      'indicator_version_calculated_by_detail_check',
+      detailBesideChoice(
+        t.calculatedBy,
+        'other' satisfies IndicatorCalculatedBy,
+        t.calculatedByDetail,
+      ),
     ),
     check(
       'indicator_version_disclosure_control_check',
-      sql`${t.disclosureControl} IN ('yes', 'no', 'not-applicable')`,
+      sql`${t.disclosureControl} IN (${literals(INDICATOR_DISCLOSURE_CONTROL)})`,
     ),
     check(
       'indicator_version_disclosure_control_detail_check',
-      sql`${t.disclosureControl} IS NOT DISTINCT FROM 'yes' OR ${t.disclosureControlDetail} IS NULL`,
+      detailBesideChoice(
+        t.disclosureControl,
+        'yes' satisfies IndicatorDisclosureControl,
+        t.disclosureControlDetail,
+      ),
     ),
     check(
       'indicator_version_rounding_detail_check',
-      sql`${t.hasRounding} IS TRUE OR ${t.roundingDetail} IS NULL`,
+      detailBesideYes(t.hasRounding, t.roundingDetail),
     ),
-    check(
-      'indicator_version_caveats_detail_check',
-      sql`${t.hasCaveats} IS TRUE OR ${t.caveatsDetail} IS NULL`,
-    ),
+    check('indicator_version_caveats_detail_check', detailBesideYes(t.hasCaveats, t.caveatsDetail)),
     check(
       'indicator_version_other_notes_detail_check',
-      sql`${t.hasOtherNotes} IS TRUE OR ${t.otherNotesDetail} IS NULL`,
+      detailBesideYes(t.hasOtherNotes, t.otherNotesDetail),
     ),
     check(
-      'indicator_version_copyright_detail_check',
-      sql`${t.hasCustomCopyright} IS TRUE OR ${t.customCopyrightDetail} IS NULL`,
+      'indicator_version_custom_copyright_detail_check',
+      detailBesideYes(t.hasCustomCopyright, t.customCopyrightDetail),
     ),
     check(
-      'indicator_version_data_reuse_detail_check',
-      sql`${t.hasCustomDataReuse} IS TRUE OR ${t.customDataReuseDetail} IS NULL`,
+      'indicator_version_custom_data_reuse_detail_check',
+      detailBesideYes(t.hasCustomDataReuse, t.customDataReuseDetail),
     ),
     check(
       'indicator_version_goal_polarity_check',
-      sql`${t.goalPolarity} IN (${sql.raw(GOAL_POLARITIES.map((value) => `'${value}'`).join(', '))})`,
+      sql`${t.goalPolarity} IN (${literals(GOAL_POLARITIES)})`,
     ),
     // A yes has its goal, which is a lower value and a polarity; nothing else has one.
     check(
@@ -282,6 +308,7 @@ export const indicatorVersion = pgTable(
       'indicator_version_goal_upper_value_check',
       sql`${t.goalUpperValue} IS NULL OR (${t.goalLowerValue} IS NOT NULL AND ${t.goalUpperValue} > ${t.goalLowerValue})`,
     ),
+    // The policy detail is optional beside a yes.
     check(
       'indicator_version_goal_policy_detail_check',
       sql`${t.hasGoalBenchmark} IS TRUE OR ${t.goalPolicyDetail} IS NULL`,
@@ -293,19 +320,19 @@ export const indicatorVersion = pgTable(
     ),
     check(
       'indicator_version_source_data_issues_detail_check',
-      sql`${t.hasSourceDataIssues} IS TRUE OR ${t.sourceDataIssuesDetail} IS NULL`,
+      detailBesideYes(t.hasSourceDataIssues, t.sourceDataIssuesDetail),
     ),
     check(
       'indicator_version_exclusions_detail_check',
-      sql`${t.hasExclusions} IS TRUE OR ${t.exclusionsDetail} IS NULL`,
+      detailBesideYes(t.hasExclusions, t.exclusionsDetail),
     ),
     check(
       'indicator_version_automation_detail_check',
-      sql`${t.hasAutomation} IS TRUE OR ${t.automationDetail} IS NULL`,
+      detailBesideYes(t.hasAutomation, t.automationDetail),
     ),
     check(
       'indicator_version_reviewer_comments_detail_check',
-      sql`${t.hasReviewerComments} IS TRUE OR ${t.reviewerCommentsDetail} IS NULL`,
+      detailBesideYes(t.hasReviewerComments, t.reviewerCommentsDetail),
     ),
     check(
       'indicator_version_sexes_check',
@@ -320,18 +347,18 @@ export const indicatorVersion = pgTable(
       'indicator_version_specific_age_check',
       sql`${t.specificAge} BETWEEN 0 AND ${sql.raw(String(MAX_AGE))}`,
     ),
-    // A specific age has its unit, and is kept beside that age type alone.
+    // A specific age has its unit, and is kept beside that age type, which requires it, alone.
     check(
       'indicator_version_specific_age_pair_check',
       sql`(${t.specificAge} IS NULL) = (${t.specificAgeUnit} IS NULL)`,
     ),
     check(
       'indicator_version_specific_age_type_check',
-      sql`${t.ageType} IS NOT DISTINCT FROM 'specific' OR ${t.specificAge} IS NULL`,
+      detailBesideChoice(t.ageType, 'specific' satisfies AgeType, t.specificAge),
     ),
     check(
-      'indicator_version_age_other_detail_check',
-      sql`${t.ageType} IS NOT DISTINCT FROM 'other' OR ${t.ageDetail} IS NULL`,
+      'indicator_version_age_detail_check',
+      detailBesideChoice(t.ageType, 'other' satisfies AgeType, t.ageDetail),
     ),
     check(
       'indicator_version_period_type_check',
@@ -355,7 +382,7 @@ export const indicatorVersion = pgTable(
     // published_at never meets a null.
     check(
       'indicator_version_published_at_check',
-      sql`(${t.status} = 'published') = (${t.publishedAt} IS NOT NULL)`,
+      sql`(${t.status} = ${literals(['published' satisfies IndicatorVersionStatus])}) = (${t.publishedAt} IS NOT NULL)`,
     ),
     // The shape slugify yields and a short id cannot take; reserved words are checked by the app.
     check(
@@ -366,7 +393,7 @@ export const indicatorVersion = pgTable(
     // hold several published versions; reads take the most recently published one.
     uniqueIndex('idx_indicator_version_one_draft')
       .on(t.indicatorId)
-      .where(sql`${t.status} = 'draft'`),
+      .where(sql`${t.status} = ${literals(['draft' satisfies IndicatorVersionStatus])}`),
     index('idx_indicator_version_indicator').on(t.indicatorId),
     index('idx_indicator_version_slug').on(t.slug),
     index('idx_indicator_version_name_trgm').using('gin', t.name.op('gin_trgm_ops')),
@@ -444,11 +471,6 @@ export const indicatorVersionAgeRange = pgTable(
     ),
   ],
 );
-
-/** The two halves of a calculation, each of which names where its data comes from. */
-export const INDICATOR_SOURCE_PARTS = ['numerator', 'denominator'] as const;
-
-export type IndicatorSourcePart = (typeof INDICATOR_SOURCE_PARTS)[number];
 
 /**
  * The providers, and where named their sources, of a version's numerator and denominator, in

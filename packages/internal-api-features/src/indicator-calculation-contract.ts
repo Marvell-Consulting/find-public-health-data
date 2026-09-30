@@ -1,10 +1,11 @@
 import { z } from '@fphd/config/zod';
+import { INDICATOR_CALCULATED_BY } from '@fphd/utils/calculated-by';
 
 import type { IndicatorSection } from './indicator-section-contract.ts';
 
 const fields = z.enum(['methodology', 'calculatedBy', 'calculatedByDetail']);
 
-const calculatedBySchema = z.enum(['ohid', 'dhsc', 'other'], {
+const calculatedBySchema = z.enum(INDICATOR_CALCULATED_BY, {
   error: 'Select who calculated the indicator',
 });
 

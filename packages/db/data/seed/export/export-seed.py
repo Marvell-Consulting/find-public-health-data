@@ -16,7 +16,6 @@ the large resident-population indicator). Reference/registry tables export in fu
 
 import csv
 import gzip
-import json
 import os
 import sys
 from datetime import date, datetime
@@ -81,8 +80,8 @@ TABLES = [
     (
         "indicator",
         "SELECT id,name,value_type_id,unit_id,year_type_id,ci_method_id,polarity_id,"
-        "frequency_id,comparator_method_id,disclosure_threshold,ci_confidence_level,"
-        "supersedes_id,status,reviewed_at,reviewed_by,config,created_at,created_by,"
+        "frequency_id,comparator_method_id,ci_confidence_level,"
+        "supersedes_id,status,reviewed_at,reviewed_by,created_at,created_by,"
         f"updated_at,updated_by FROM indicator WHERE id IN ({IND})",
     ),
     (
@@ -114,22 +113,6 @@ TABLES = [
 ]
 
 
-def pholio_config_to_json(raw):
-    """fphd_new stores indicator config as Pholio-style `key:value,key:value` text;
-    the PG column is jsonb."""
-    if raw is None:
-        return None
-    obj = {}
-    for pair in raw.split(","):
-        key, _, value = pair.partition(":")
-        value = value.strip()
-        obj[key.strip()] = int(value) if value.lstrip("-").isdigit() else value
-    return json.dumps(obj)
-
-
-TRANSFORMS = {("indicator", "config"): pholio_config_to_json}
-
-
 def cell(v):
     if v is None:
         return ""
@@ -152,9 +135,6 @@ def main(out_dir):
         cur = conn.cursor()
         cur.execute(query)
         headers = [c[0] for c in cur.description]
-        transforms = {
-            i: fn for i, h in enumerate(headers) if (fn := TRANSFORMS.get((table, h)))
-        }
         path = os.path.join(out_dir, f"{table}.csv.gz")
         rows = 0
         with gzip.open(path, "wt", newline="", encoding="utf-8") as f:
@@ -164,13 +144,7 @@ def main(out_dir):
                 batch = cur.fetchmany(50_000)
                 if not batch:
                     break
-                writer.writerows(
-                    [
-                        cell(transforms[i](v) if i in transforms else v)
-                        for i, v in enumerate(row)
-                    ]
-                    for row in batch
-                )
+                writer.writerows([cell(v) for v in row] for row in batch)
                 rows += len(batch)
         cur.close()
         print(f"{table}: {rows} rows -> {path}")

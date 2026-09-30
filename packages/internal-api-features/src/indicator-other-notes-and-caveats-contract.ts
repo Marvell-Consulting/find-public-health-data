@@ -1,4 +1,5 @@
 import { z } from '@fphd/config/zod';
+import { INDICATOR_DISCLOSURE_CONTROL } from '@fphd/utils/disclosure-control';
 
 import {
   type DetailedQuestion,
@@ -48,7 +49,7 @@ export const otherNotesAndCaveatsQuestions = [
 
 const schema = requireDetails(
   z.object({
-    disclosureControl: z.enum(['yes', 'no', 'not-applicable'], {
+    disclosureControl: z.enum(INDICATOR_DISCLOSURE_CONTROL, {
       error: 'Select whether disclosure control has been applied',
     }),
     disclosureControlDetail: z.string().trim(),

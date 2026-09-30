@@ -1,7 +1,8 @@
+import { CI_METHOD_KINDS } from '@fphd/utils/ci-method-kind';
 import { sql } from 'drizzle-orm';
 import { check, pgTable, smallint, text, unique, uuid } from 'drizzle-orm/pg-core';
 
-import { timestamps, uuidPrimaryKey } from './helpers.ts';
+import { literals, timestamps, uuidPrimaryKey } from './helpers.ts';
 
 /** What an indicator's values are: core data, in the order the publisher's form lists them. */
 export const valueType = pgTable('value_type', {
@@ -19,12 +20,6 @@ export const unit = pgTable('unit', {
   ...timestamps,
 });
 
-/**
- * What choosing a method asks of a publisher next: a standard method's modifications, an
- * other method's detail, or nothing for a method that has none to describe.
- */
-export const CI_METHOD_KINDS = ['standard', 'other', 'none'] as const;
-
 export const ciMethod = pgTable(
   'ci_method',
   {
@@ -34,7 +29,7 @@ export const ciMethod = pgTable(
     kind: text({ enum: CI_METHOD_KINDS }).notNull().default('standard'),
     ...timestamps,
   },
-  (t) => [check('ci_method_kind_check', sql`${t.kind} IN ('standard', 'other', 'none')`)],
+  (t) => [check('ci_method_kind_check', sql`${t.kind} IN (${literals(CI_METHOD_KINDS)})`)],
 );
 
 /** How an area is compared with its benchmark: core data, which no page yet asks for. */

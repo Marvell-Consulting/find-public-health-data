@@ -1,4 +1,5 @@
 import { z } from '@fphd/config';
+import { CLASSIFICATION_DIMENSIONS } from '@fphd/utils/classification-dimension';
 import { SLUG_PATTERN } from '@fphd/utils/slug';
 import { sql } from 'drizzle-orm';
 import { check, foreignKey, index, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
@@ -6,23 +7,10 @@ import { check, foreignKey, index, pgTable, primaryKey, text, uuid } from 'drizz
 import { literals, timestamps, uuidPrimaryKey } from './helpers.ts';
 import { indicatorVersion } from './indicator.ts';
 
-export const CLASSIFICATION_DIMENSIONS = [
-  'indicator_type',
-  'population',
-  'risk_factor',
-  'inequality',
-  'framework',
-] as const;
-
-export type ClassificationDimension = (typeof CLASSIFICATION_DIMENSIONS)[number];
-
 /**
- * The ways an indicator is classified beyond its topic: what kind of measure it is, the
- * population it describes, the risk factor it relates to, the inequality it can be broken
- * down by, and the frameworks it reports into.
- *
- * One table rather than five, because the dimensions differ only in their vocabulary.
- * Adding one extends `CLASSIFICATION_DIMENSIONS`, with a migration for the check.
+ * The classifications of every dimension in `@fphd/utils/classification-dimension`: one table
+ * rather than five, because the dimensions differ only in their vocabulary. Adding one extends
+ * `CLASSIFICATION_DIMENSIONS`, with a migration for the check.
  */
 export const classification = pgTable(
   'classification',

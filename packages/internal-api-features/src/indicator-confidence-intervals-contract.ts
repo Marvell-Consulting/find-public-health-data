@@ -1,12 +1,9 @@
 import { z } from '@fphd/config/zod';
+import { CI_METHOD_KINDS } from '@fphd/utils/ci-method-kind';
 
 import { type IndicatorSection, indicatorSectionFormValues } from './indicator-section-contract.ts';
 
-/**
- * What choosing a method asks of the publisher next: whether a standard method was modified,
- * the detail of an other method, or nothing for a method with none to describe.
- */
-export const ciMethodKindSchema = z.enum(['standard', 'other', 'none']);
+export const ciMethodKindSchema = z.enum(CI_METHOD_KINDS);
 
 export const ciMethodSchema = z.object({
   id: z.uuid(),

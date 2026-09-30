@@ -1,20 +1,18 @@
 import { YEAR_TYPES } from '@fphd/utils/period-type';
 import { POLARITIES } from '@fphd/utils/polarity';
+import { INDICATOR_SOURCE_PARTS } from '@fphd/utils/source-part';
 import { UPDATE_FREQUENCIES } from '@fphd/utils/update-frequency';
 import {
   boolean,
   date,
   doublePrecision,
   integer,
-  jsonb,
   pgSchema,
   smallint,
   text,
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
-
-import { INDICATOR_SOURCE_PARTS } from './indicator.ts';
 
 /**
  * The only objects `public_api` may read. The views carry the predicates that keep an
@@ -46,9 +44,7 @@ export const publishedIndicator = publishedSchema
     polarity: text('polarity', { enum: POLARITIES }),
     updateFrequency: text('update_frequency', { enum: UPDATE_FREQUENCIES }),
     comparatorMethodId: uuid('comparator_method_id'),
-    disclosureThreshold: smallint('disclosure_threshold'),
     ciConfidenceLevel: text('ci_confidence_level'),
-    config: jsonb('config'),
     definition: text('definition'),
     rationale: text('rationale'),
     methodology: text('methodology'),

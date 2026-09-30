@@ -137,21 +137,6 @@ def foreign_key_indexes(table, header):
     return {header.index(col): ref for col, ref in fks.items() if col in header}
 
 
-def normalize_published_config(value):
-    """The benchmark clone stores some Pholio configs as JSON strings."""
-    if not value or value == NULL_MARKER:
-        return value
-    parsed = json.loads(value)
-    if not isinstance(parsed, str):
-        return value
-    config = {}
-    for pair in parsed.split(","):
-        key, _, raw = pair.partition(":")
-        raw = raw.strip()
-        config[key.strip()] = int(raw) if raw.lstrip("-").isdigit() else raw
-    return json.dumps(config)
-
-
 def main(seed_dir, deterministic=False):
     tables = PUBLISHED_TABLES if deterministic else TABLES
     if deterministic:
@@ -188,11 +173,6 @@ def main(seed_dir, deterministic=False):
             reader, writer = csv.reader(src), csv.writer(dst)
             header = next(reader)
             id_index = header.index("id")
-            config_index = (
-                header.index("config")
-                if deterministic and table == "indicator_version"
-                else None
-            )
             fk_indexes = foreign_key_indexes(table, header)
             if table == "indicator":
                 writer.writerow([*header[: id_index + 1], "short_id", *header[id_index + 1 :]])
@@ -205,8 +185,6 @@ def main(seed_dir, deterministic=False):
                 for i, ref_table in fk_indexes.items():
                     if row[i] not in ("", NULL_MARKER):
                         row[i] = convert(ref_table, row[i])
-                if config_index is not None:
-                    row[config_index] = normalize_published_config(row[config_index])
                 if table == "indicator":
                     row = [*row[: id_index + 1], old_id, *row[id_index + 1 :]]
                 if deterministic:

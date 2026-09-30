@@ -8,6 +8,7 @@ import {
   schema,
 } from '@fphd/db';
 import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
+import type { ClassificationDimension } from '@fphd/utils/classification-dimension';
 import { MAX_AGE } from '@fphd/utils/sex-and-ages';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -244,9 +245,7 @@ async function topicIdsOf(versionId: string): Promise<string[]> {
 }
 
 /** The first classification of a dimension, by name, from the core data. */
-async function classificationIn(
-  dimension: schema.ClassificationDimension,
-): Promise<{ id: string }> {
+async function classificationIn(dimension: ClassificationDimension): Promise<{ id: string }> {
   const [row] = await db
     .select({ id: classification.id })
     .from(classification)
@@ -768,6 +767,9 @@ describe('updateIndicatorDraft', () => {
       { ageType: 'other', specificAge: 5, specificAgeUnit: 'years' },
     ],
     ['other ages beside another age type', { ageType: 'range', ageDetail: 'Year 6' }],
+    // The contract requires the age or the detail each age type asks for.
+    ['a specific age type without its age', { ageType: 'specific' }],
+    ['other ages without their detail', { ageType: 'other' }],
     [
       'a specific age beside all ages',
       { ageType: 'all', specificAge: 5, specificAgeUnit: 'years' },

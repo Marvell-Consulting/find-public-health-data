@@ -1,4 +1,5 @@
 import { z } from '@fphd/config/zod';
+import type { IndicatorSourcePart } from '@fphd/utils/source-part';
 
 import type { IndicatorSection } from './indicator-section-contract.ts';
 
@@ -13,7 +14,7 @@ export const dataProviderListSchema = z.array(dataProviderSchema);
 export type DataProvider = z.infer<typeof dataProviderSchema>;
 
 /** The two pages, which ask the same questions of the two halves of a calculation. */
-export type IndicatorSourcePart = 'numerator' | 'denominator';
+export type { IndicatorSourcePart };
 
 export const MAX_PROVIDER_SOURCES = 20;
 

@@ -1,5 +1,10 @@
 import { type Database, schema } from '@fphd/db';
+import {
+  CLASSIFICATION_DIMENSIONS,
+  type ClassificationDimension,
+} from '@fphd/utils/classification-dimension';
 import { slugify, slugProblem } from '@fphd/utils/slug';
+import type { IndicatorSourcePart } from '@fphd/utils/source-part';
 import { and, asc, count, desc, eq, getTableColumns, inArray, type SQL, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
@@ -18,8 +23,6 @@ const {
   indicatorVersionSource,
   topic,
 } = schema;
-
-type ClassificationDimension = schema.ClassificationDimension;
 
 export interface IndicatorAdminRow {
   id: string;
@@ -278,7 +281,7 @@ async function sourcesOf(
     .from(indicatorVersionSource)
     .where(eq(indicatorVersionSource.indicatorVersionId, versionId))
     .orderBy(asc(indicatorVersionSource.position));
-  const ofPart = (part: schema.IndicatorSourcePart) =>
+  const ofPart = (part: IndicatorSourcePart) =>
     rows
       .filter((row) => row.part === part)
       .map(({ providerId, sourceId }) => ({ providerId, sourceId }));
@@ -566,7 +569,7 @@ export async function createDraftFromPublished(
       await replaceLists(tx, draft.id, {
         topicIds,
         classificationIds: Object.fromEntries(
-          schema.CLASSIFICATION_DIMENSIONS.map((dimension) => [
+          CLASSIFICATION_DIMENSIONS.map((dimension) => [
             dimension,
             classifications.filter((row) => row.dimension === dimension).map(({ id }) => id),
           ]),
@@ -642,7 +645,7 @@ async function replaceLists(
     }
   }
 
-  for (const dimension of schema.CLASSIFICATION_DIMENSIONS) {
+  for (const dimension of CLASSIFICATION_DIMENSIONS) {
     const ids = classificationIds?.[dimension];
     if (ids === undefined) continue;
 
@@ -707,7 +710,7 @@ async function replaceLists(
 async function replaceSources(
   tx: Transaction,
   versionId: string,
-  part: schema.IndicatorSourcePart,
+  part: IndicatorSourcePart,
   sources: IndicatorDraftSource[] | undefined,
 ): Promise<void> {
   if (sources === undefined) return;

@@ -11,14 +11,17 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import { uuidPrimaryKey } from './helpers.ts';
+import { literals, uuidPrimaryKey } from './helpers.ts';
+
+/** The kinds of dimension an observation can be broken down by. */
+export const DIMENSION_CLASSES = ['core', 'inequality', 'demographic', 'clinical'] as const;
 
 export const dimensionType = pgTable(
   'dimension_type',
   {
     id: uuidPrimaryKey(),
     name: text().notNull().unique(),
-    dimensionClass: text().notNull(),
+    dimensionClass: text({ enum: DIMENSION_CLASSES }).notNull(),
     classificationScheme: text(),
     granularity: text(),
     schemeVersion: text(),
@@ -27,7 +30,7 @@ export const dimensionType = pgTable(
   (t) => [
     check(
       'dimension_type_dimension_class_check',
-      sql`${t.dimensionClass} IN ('core', 'inequality', 'demographic', 'clinical')`,
+      sql`${t.dimensionClass} IN (${literals(DIMENSION_CLASSES)})`,
     ),
   ],
 );

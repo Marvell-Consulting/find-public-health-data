@@ -311,14 +311,17 @@ describe('indicator_version', () => {
     ).rejects.toMatchObject({ cause: { code: CHECK_VIOLATION } });
   });
 
-  it.each(['ohid', 'dhsc', 'other'] as const)(
-    'accepts %s as who calculated it',
-    async (calculatedBy) => {
-      const indicatorId = await newIndicatorId();
+  it.each([
+    ['ohid', {}],
+    ['dhsc', {}],
+    ['other', { calculatedByDetail: 'ONS' }],
+  ] as const)('accepts %s as who calculated it', async (calculatedBy, detail) => {
+    const indicatorId = await newIndicatorId();
 
-      await expect(addVersion(indicatorId, 'draft', { calculatedBy })).resolves.toHaveLength(1);
-    },
-  );
+    await expect(
+      addVersion(indicatorId, 'draft', { calculatedBy, ...detail }),
+    ).resolves.toHaveLength(1);
+  });
 
   it.each([
     ['nobody', null],
@@ -332,16 +335,15 @@ describe('indicator_version', () => {
     ).rejects.toMatchObject({ cause: { code: CHECK_VIOLATION } });
   });
 
-  it('accepts other organisations beside "other", named or not yet', async () => {
-    await expect(
-      addVersion(await newIndicatorId(), 'draft', {
-        calculatedBy: 'other',
-        calculatedByDetail: 'ONS',
-      }),
-    ).resolves.toHaveLength(1);
+  it('refuses "other" with no organisations named, as the contract does', async () => {
     await expect(
       addVersion(await newIndicatorId(), 'draft', { calculatedBy: 'other' }),
-    ).resolves.toHaveLength(1);
+    ).rejects.toMatchObject({
+      cause: {
+        code: CHECK_VIOLATION,
+        constraint_name: 'indicator_version_calculated_by_detail_check',
+      },
+    });
   });
 
   it('refuses a disclosure control answer the publisher form does not offer', async () => {
@@ -392,13 +394,17 @@ describe('indicator_version', () => {
     });
   });
 
-  it('accepts a detail beside a yes, given or not yet', async () => {
+  it('accepts a detail beside a yes', async () => {
     await expect(
       addVersion(await newIndicatorId(), 'draft', {
         disclosureControl: 'yes',
         disclosureControlDetail: 'Suppressed',
+        hasRounding: true,
+        roundingDetail: 'To the nearest 5',
         hasCaveats: true,
         caveatsDetail: 'Survey data',
+        hasOtherNotes: true,
+        otherNotesDetail: 'Revised',
         hasSourceDataIssues: true,
         sourceDataIssuesDetail: 'Late returns',
         hasExclusions: true,
@@ -411,14 +417,33 @@ describe('indicator_version', () => {
         customCopyrightDetail: 'NHS England',
         hasCustomDataReuse: true,
         customDataReuseDetail: 'Cite NHS England',
+        hasCiMethodModifications: true,
+        ciMethodModificationsDetail: 'Adjusted for repeat admissions',
       }),
     ).resolves.toHaveLength(1);
-    await expect(
-      addVersion(await newIndicatorId(), 'draft', {
-        disclosureControl: 'yes',
-        hasCaveats: true,
-      }),
-    ).resolves.toHaveLength(1);
+  });
+
+  // The contract requires each of these details beside a yes, so the table does too.
+  it.each([
+    ['disclosure control', { disclosureControl: 'yes' }, 'disclosure_control_detail'],
+    ['rounding', { hasRounding: true }, 'rounding_detail'],
+    ['caveats', { hasCaveats: true }, 'caveats_detail'],
+    ['other notes', { hasOtherNotes: true }, 'other_notes_detail'],
+    ['source data issues', { hasSourceDataIssues: true }, 'source_data_issues_detail'],
+    ['exclusions', { hasExclusions: true }, 'exclusions_detail'],
+    ['automation', { hasAutomation: true }, 'automation_detail'],
+    ['reviewer comments', { hasReviewerComments: true }, 'reviewer_comments_detail'],
+    ['a custom copyright', { hasCustomCopyright: true }, 'custom_copyright_detail'],
+    ['custom data re-use', { hasCustomDataReuse: true }, 'custom_data_reuse_detail'],
+    [
+      'CI method modifications',
+      { hasCiMethodModifications: true },
+      'ci_method_modifications_detail',
+    ],
+  ] as const)('refuses a yes to %s without its detail', async (_, values, check) => {
+    await expect(addVersion(await newIndicatorId(), 'draft', values)).rejects.toMatchObject({
+      cause: { code: CHECK_VIOLATION, constraint_name: `indicator_version_${check}_check` },
+    });
   });
 
   const goal = {
