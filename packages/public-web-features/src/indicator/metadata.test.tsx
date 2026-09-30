@@ -14,7 +14,7 @@ const indicator: IndicatorDetail = {
   slug: 'an-indicator',
   name: 'An indicator',
   valueType: 'Proportion',
-  unit: { name: '%', label: '%' },
+  unit: '%',
   yearType: { id: YEAR_TYPES.calendar.id, label: 'Calendar' },
   updateFrequency: 'annually',
   polarity: 'lower-is-better',
@@ -49,6 +49,10 @@ function renderBackground(detail: IndicatorDetail) {
   );
 }
 
+function attributeNames() {
+  return screen.getAllByRole('term').map((term) => term.textContent);
+}
+
 describe('BackgroundInformation', () => {
   it('lists each numerator source, naming a provider alone where it has no specific source', () => {
     renderBackground(indicator);
@@ -68,17 +72,31 @@ describe('BackgroundInformation', () => {
     expect(screen.queryByRole('heading', { name: 'Denominator' })).toBeNull();
   });
 
-  it('shows the year type', () => {
+  it('lists the value type and unit among the data attributes', () => {
     renderBackground(indicator);
 
-    expect(screen.getByText('Year type')).toBeTruthy();
+    expect(attributeNames()).toEqual(expect.arrayContaining(['Value type', 'Unit']));
+    expect(screen.getByText('%')).toBeTruthy();
+  });
+
+  it('lists no unit for values that have none', () => {
+    renderBackground({ ...indicator, unit: null });
+
+    expect(attributeNames()).toContain('Value type');
+    expect(attributeNames()).not.toContain('Unit');
+  });
+
+  it('lists the year type', () => {
+    renderBackground(indicator);
+
+    expect(attributeNames()).toContain('Year type');
     expect(screen.getByText('Calendar')).toBeTruthy();
   });
 
-  it('leaves out the year type row for an indicator of months, which has none', () => {
+  it('lists no year type for an indicator of months, which has none', () => {
     renderBackground({ ...indicator, yearType: null });
 
-    expect(screen.queryByText('Year type')).toBeNull();
-    expect(screen.getByText('Value type')).toBeTruthy();
+    expect(attributeNames()).toContain('Value type');
+    expect(attributeNames()).not.toContain('Year type');
   });
 });

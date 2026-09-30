@@ -25,6 +25,7 @@ import * as publishingDate from './indicator-publishing-date/route.tsx';
 import * as sexAndAges from './indicator-sex-and-ages/route.tsx';
 import * as tagging from './indicator-tagging/route.tsx';
 import * as updateFrequency from './indicator-update-frequency/route.tsx';
+import * as valueTypeAndUnits from './indicator-value-type-and-units/route.tsx';
 import * as varianceAndQuality from './indicator-variance-and-quality/route.tsx';
 import * as editTopic from './topic-admin/edit-route.tsx';
 import * as newTopic from './topic-admin/new-route.tsx';
@@ -136,6 +137,15 @@ const copyrightAndDataReuseUnanswered = {
 
 const providerSourcesUnanswered = { sources: [], definition: '', providerId: '', sourceId: '' };
 
+const valueTypeAndUnitsUnanswered = {
+  valueTypeId: '',
+  standardPopulation: '',
+  standardPopulationOther: '',
+  referencePopulation: '',
+  unitId: '',
+  unitOther: '',
+};
+
 const forms: {
   name: string;
   route: FormRoute;
@@ -233,6 +243,16 @@ const forms: {
     rejected: {
       values: { updateFrequency: '' },
       fieldErrors: { updateFrequency: 'Select how often this indicator will be updated' },
+    },
+  },
+  {
+    name: 'value type and units',
+    route: valueTypeAndUnits,
+    pageTitle: 'What are the value type and units used in this indicator?',
+    loaderData: { id: indicator.id, values: valueTypeAndUnitsUnanswered },
+    rejected: {
+      values: valueTypeAndUnitsUnanswered,
+      fieldErrors: { valueTypeId: 'Select the value type' },
     },
   },
   {

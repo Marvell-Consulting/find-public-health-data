@@ -134,6 +134,12 @@ export async function downloadPublishedSnapshot(
     if (archivedFiles.includes('year_type.csv.gz')) {
       throw new Error('Published snapshot predates the period type change and must be regenerated');
     }
+    // One with value_type or unit predates the service's value types and units, likewise.
+    if (archivedFiles.includes('value_type.csv.gz') || archivedFiles.includes('unit.csv.gz')) {
+      throw new Error(
+        'Published snapshot predates the value type and unit change and must be regenerated',
+      );
+    }
     if (
       archivedFiles.length !== expectedFiles.size ||
       archivedFiles.some((file) => !expectedFiles.has(file))
