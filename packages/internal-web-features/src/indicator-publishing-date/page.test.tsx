@@ -22,7 +22,7 @@ const values = {
 function renderPage(props: Partial<Parameters<typeof PublishingDatePage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <PublishingDatePage values={values} {...props} />
+      <PublishingDatePage dateExample="12 11 2027" values={values} {...props} />
     </MemoryRouter>,
   );
 }
@@ -46,7 +46,7 @@ describe('PublishingDatePage', () => {
     expect(screen.getByRole('heading', { level: 1, name: TITLE })).toBeTruthy();
     expect(screen.getByRole('group', { name: 'Date' })).toBeTruthy();
     expect(screen.getByRole('group', { name: 'Time' })).toBeTruthy();
-    expect(screen.getByText('For example, 14 9 2026')).toBeTruthy();
+    expect(screen.getByText('For example, 12 11 2027')).toBeTruthy();
     expect(screen.getByText(/This will be 09:30 local UK time by default/)).toBeTruthy();
     expect(document.title).toBe(`${TITLE} - ${serviceName} - GOV.UK`);
   });

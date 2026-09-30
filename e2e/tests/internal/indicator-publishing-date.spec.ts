@@ -191,6 +191,23 @@ test('accepts a time the autumn clock change repeats', async ({ page }) => {
   await expectShown(page, repeated);
 });
 
+test('accepts the date its hint gives as an example', async ({ page }) => {
+  const taskListPath = await openSectionPage(page, SECTION);
+  const hint = await page
+    .getByRole('group', { name: 'Date' })
+    .getByText(/^For example, /)
+    .textContent();
+  const [, day = '', month = '', year = ''] = hint?.match(/(\d+) (\d+) (\d+)$/) ?? [];
+
+  await part(page, 'Date', 'Day').fill(day);
+  await part(page, 'Date', 'Month').fill(month);
+  await part(page, 'Date', 'Year').fill(year);
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  await expect(page).toHaveURL(taskListPath);
+  await expect(taskRow(page, SECTION.taskName)).toContainText('Completed');
+});
+
 test('saves nothing until the date and time are accepted', async ({ page }) => {
   await openSectionPage(page, SECTION);
   const pagePath = new URL(page.url()).pathname;

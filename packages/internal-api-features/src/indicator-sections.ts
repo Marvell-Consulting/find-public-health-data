@@ -42,6 +42,7 @@ import {
   otherNotesAndCaveatsSection,
   type PeriodType,
   type PeriodTypeField,
+  PUBLISHING_NOTICE_DAYS,
   type PublishingDate,
   type PublishingDateField,
   periodTypeSection,
@@ -60,6 +61,7 @@ import {
   type TaggingField,
   type TaggingFormValues,
   taggingSection,
+  ukDate,
   unknownTagMessage,
   updateFrequencySection,
   type ValueTypeAndUnits,
@@ -478,23 +480,6 @@ function addIssues(
   for (const field of fields) ctx.addIssue({ code: 'custom', path: [field], message });
 }
 
-const NOTICE_DAYS = 28;
-
-const UK_DATE = new Intl.DateTimeFormat('en-GB', {
-  timeZone: 'Europe/London',
-  day: 'numeric',
-  month: 'numeric',
-  year: 'numeric',
-});
-
-/** The UK calendar date `instant` falls on, moved on `days`, as UTC midnight for comparing. */
-function ukDate(instant: Date, days: number): number {
-  const parts = UK_DATE.formatToParts(instant);
-  const part = (type: 'year' | 'month' | 'day') =>
-    Number(parts.find((found) => found.type === type)?.value);
-  return Date.UTC(part('year'), part('month') - 1, part('day') + days);
-}
-
 /** Whether the answers' date is at least the notice period after the UK date `now` falls on. */
 function givesNotice(answers: PublishingDate, now: Date): boolean {
   const chosen = Date.UTC(
@@ -502,12 +487,12 @@ function givesNotice(answers: PublishingDate, now: Date): boolean {
     Number(answers.publishingDateMonth) - 1,
     Number(answers.publishingDateDay),
   );
-  return chosen >= ukDate(now, NOTICE_DAYS);
+  return chosen >= ukDate(now, PUBLISHING_NOTICE_DAYS);
 }
 
 /**
- * The form's schema, then a date at least 28 days after today's in the UK, whatever the time,
- * and the instant the answers name, which must exist in UK time.
+ * The form's schema, then a date at least the notice period after today's in the UK, whatever
+ * the time, and the instant the answers name, which must exist in UK time.
  */
 export function publishingDateServerSection(
   indicators: InternalIndicatorRepository,
@@ -520,7 +505,7 @@ export function publishingDateServerSection(
         addIssues(
           ctx,
           ['publishingDateDay', 'publishingDateMonth', 'publishingDateYear'],
-          `Publishing date must be at least ${NOTICE_DAYS} days from today`,
+          `Publishing date must be at least ${PUBLISHING_NOTICE_DAYS} days from today`,
         );
         return z.NEVER;
       }

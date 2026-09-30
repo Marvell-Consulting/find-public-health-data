@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { publishingDateSection as section } from './indicator-publishing-date-contract.ts';
+import {
+  publishingDateExample,
+  publishingDateSection as section,
+} from './indicator-publishing-date-contract.ts';
 import { sectionFieldErrors } from './testing.ts';
 
 const answers = {
@@ -130,5 +133,12 @@ describe('publishingDateSection', () => {
       publishingTimeHour: 'Enter the publishing time',
       publishingTimeMinute: 'Enter the publishing time',
     });
+  });
+});
+
+describe('publishingDateExample', () => {
+  it('gives the UK date twice the notice period ahead, as day, month and year', () => {
+    // 00:30 BST on 15 September, still 14 September in UTC.
+    expect(publishingDateExample(new Date('2027-09-14T23:30:00.000Z'))).toBe('10 11 2027');
   });
 });
