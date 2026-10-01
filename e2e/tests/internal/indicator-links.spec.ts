@@ -10,7 +10,7 @@ import {
   type Section,
   taskRow,
 } from '../support/section-page.ts';
-import { signInAs } from '../support/sign-in.ts';
+import { PUBLISHER } from '../support/sign-in.ts';
 
 const SECTION: Section = { key: 'links', taskName: 'Links' };
 const QUESTION = 'Are there any relevant links to help users understand this indicator better?';
@@ -31,9 +31,7 @@ function addedLinks(page: Page) {
   return page.getByRole('main').getByRole('listitem').getByRole('link');
 }
 
-test.beforeEach(async ({ page }) => {
-  await signInAs(page, 'Riley Singh');
-});
+test.use({ storageState: PUBLISHER.storageState });
 
 test('is reached from the task list, where it starts as not started', async ({ page }) => {
   await createIndicator(page, uniqueIndicatorName(SECTION.key));

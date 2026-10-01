@@ -2,7 +2,7 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 import { expectErrorSummaryReady } from '../support/govuk-frontend.ts';
-import { signInAs } from '../support/sign-in.ts';
+import { ADMIN } from '../support/sign-in.ts';
 
 // Every write here creates its own topic under a slug no other spec or run can hold, so the
 // shared seeded database is only ever added to and the seeded topics stay as other specs expect.
@@ -20,9 +20,7 @@ async function createTopic(page: Page, values: { title: string; slug: string }) 
   await expect(page.getByText('Topic created')).toBeVisible();
 }
 
-test.beforeEach(async ({ page }) => {
-  await signInAs(page, 'Riley Singh');
-});
+test.use({ storageState: ADMIN.storageState });
 
 test.describe('the topic list', () => {
   test('lists topics for an admin', async ({ page }) => {

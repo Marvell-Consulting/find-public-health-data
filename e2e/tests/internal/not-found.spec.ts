@@ -1,11 +1,9 @@
 import { expect, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
-import { signInAs } from '../support/sign-in.ts';
+import { PUBLISHER } from '../support/sign-in.ts';
 
-test.beforeEach(async ({ page }) => {
-  await signInAs(page, 'Sam Taylor');
-});
+test.use({ storageState: PUBLISHER.storageState });
 
 test('answers an unknown path with the not-found page for a publisher', async ({ page }) => {
   const response = await page.goto('/no-such-page');

@@ -136,10 +136,11 @@ Each tier is its own CI job, so the jobs run `pnpm test:unit`, `pnpm test:integr
 - `pnpm test:integration` runs Vitest over every project, selecting `integration.test` files. A
   project without any still passes because of `--passWithNoTests`.
 - `pnpm test:e2e` names the one suite directly (`pnpm --filter @fphd/e2e run test:e2e`), so broken
-  e2e wiring is an error rather than a silent skip. In CI the job runs the four apps as compose
-  containers from the production images the image build job made (see
-  [Container images](#container-images)), seeds the database with the same commands a developer
-  runs, runs the suite, and uploads the Playwright report when it fails.
+  e2e wiring is an error rather than a silent skip. In CI the job is a matrix of shards, each
+  running `--shard=i/n`: every shard runs the four apps as compose containers from the production
+  images the image build job made (see [Container images](#container-images)), seeds the database
+  with the same commands a developer runs, runs its share of the suite, and uploads its own
+  Playwright report when it fails. Add a shard to the matrix as the suite grows.
 
 Both tiers are one root Vitest run over the projects declared in `vitest.config.ts`, globbed from
 `apps/*`, `packages/*` and `tools/*`. Packages declare no test scripts of their own, so a new
@@ -181,6 +182,12 @@ To add real ones:
   filters pass through the same way. Specs run in parallel workers against the shared seed, so a
   spec never mutates data another spec reads — a test of a write flow creates its own rows and
   asserts on those.
+
+  Internal specs start signed in. The `internal sign-in` setup project
+  (`e2e/tests/internal/sign-in.setup.ts`) signs each internal user in once a run and saves the
+  session under `e2e/.auth`, and a spec picks one with
+  `test.use({ storageState: PUBLISHER.storageState })` (or `ADMIN`). Only the specs that test
+  signing in, and the access-denied spec, drive the sign-in form.
 
   Every page has a spec with a test that it renders and a separate test that it has no WCAG 2.2 AA
   violations, scanned with axe-core through `expectNoAccessibilityViolations` from

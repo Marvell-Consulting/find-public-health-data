@@ -6,6 +6,7 @@ coverage/
 .react-router/
 test-results/
 playwright-report/
+e2e/.auth/
 docs
 *.tsbuildinfo
 .env

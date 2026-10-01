@@ -8,11 +8,18 @@
 // project then, not speculatively now.
 import { defineConfig, devices } from '@playwright/test';
 
+const internalUse = {
+  ...devices['Desktop Chrome'],
+  baseURL: process.env.INTERNAL_WEB_URL ?? 'http://localhost:3001',
+};
+
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
   // A flaky test is a bug in the test; retries would teach us to live with it.
   retries: 0,
+  // Playwright's default; on the 4-core CI runner, 4 workers per shard measured no faster than 2.
+  workers: '50%',
   // A stray .only must not quietly shrink the suite where nobody is watching.
   forbidOnly: !!process.env.CI,
   reporter: process.env.CI ? [['html', { open: 'never' }]] : 'list',
@@ -28,13 +35,18 @@ export default defineConfig({
         baseURL: process.env.PUBLIC_WEB_URL ?? 'http://localhost:3000',
       },
     },
+    // Signs each internal user in once a run, saving the sessions the internal specs start from.
+    {
+      name: 'internal sign-in',
+      testDir: './tests/internal',
+      testMatch: 'sign-in.setup.ts',
+      use: internalUse,
+    },
     {
       name: 'internal',
       testDir: './tests/internal',
-      use: {
-        ...devices['Desktop Chrome'],
-        baseURL: process.env.INTERNAL_WEB_URL ?? 'http://localhost:3001',
-      },
+      dependencies: ['internal sign-in'],
+      use: internalUse,
     },
   ],
 });

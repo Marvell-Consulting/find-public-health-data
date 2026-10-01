@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
-import { signInAs } from '../support/sign-in.ts';
+import { PUBLISHER } from '../support/sign-in.ts';
+
+test.use({ storageState: PUBLISHER.storageState });
 
 test.beforeEach(async ({ page }) => {
-  await signInAs(page, 'Sam Taylor');
   await page.goto('/topics');
 });
 
