@@ -168,8 +168,8 @@ To add real ones:
   `packages/*`: a package there is shared code the applications are built from, which an e2e suite
   is not. Specs drive the applications over HTTP and never import application code; the spec's
   directory picks the target — `e2e/tests/public` uses `PUBLIC_WEB_URL` (default
-  `http://localhost:3000`), `e2e/tests/internal` uses `INTERNAL_WEB_URL` (default
-  `http://localhost:3001`). Nothing starts the stack for the suite: serve it in another terminal
+  `http://127.0.0.1:3000`), `e2e/tests/internal` uses `INTERNAL_WEB_URL` (default
+  `http://127.0.0.1:3001`). Nothing starts the stack for the suite: serve it in another terminal
   and seed the database, then run the tests —
 
   ```sh

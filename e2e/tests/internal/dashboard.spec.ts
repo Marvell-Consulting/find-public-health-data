@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
-import { createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
+import { createDraft, uniqueIndicatorName } from '../support/create-indicator.ts';
 import { PUBLISHER } from '../support/sign-in.ts';
 
 test.use({ storageState: PUBLISHER.storageState });
@@ -27,7 +27,7 @@ test('lists a page of indicators for a publisher', async ({ page }) => {
 
 test('tags a new indicator as new with an incomplete draft', async ({ page }) => {
   const name = uniqueIndicatorName('dashboard');
-  await createIndicator(page, name);
+  await createDraft(page, name);
   await page.goto('/dashboard');
 
   const row = page.getByRole('table').getByRole('row').filter({ hasText: name });
