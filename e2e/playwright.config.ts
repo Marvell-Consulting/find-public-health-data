@@ -18,8 +18,8 @@ export default defineConfig({
   fullyParallel: true,
   // A flaky test is a bug in the test; retries would teach us to live with it.
   retries: 0,
-  // On trial: 4 workers per CI shard against the default half of the cores (2 on the runner).
-  workers: process.env.CI ? 4 : '50%',
+  // Playwright's default; on the 4-core CI runner, 4 workers per shard measured no faster than 2.
+  workers: '50%',
   // A stray .only must not quietly shrink the suite where nobody is watching.
   forbidOnly: !!process.env.CI,
   reporter: process.env.CI ? [['html', { open: 'never' }]] : 'list',
