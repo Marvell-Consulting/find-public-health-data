@@ -8,9 +8,10 @@
 // project then, not speculatively now.
 import { defineConfig, devices } from '@playwright/test';
 
+// Default to 127.0.0.1: the apps listen on IPv4 and the request client tries ::1 first.
 const internalUse = {
   ...devices['Desktop Chrome'],
-  baseURL: process.env.INTERNAL_WEB_URL ?? 'http://localhost:3001',
+  baseURL: process.env.INTERNAL_WEB_URL ?? 'http://127.0.0.1:3001',
 };
 
 export default defineConfig({
@@ -32,7 +33,7 @@ export default defineConfig({
       testDir: './tests/public',
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: process.env.PUBLIC_WEB_URL ?? 'http://localhost:3000',
+        baseURL: process.env.PUBLIC_WEB_URL ?? 'http://127.0.0.1:3000',
       },
     },
     // Signs each internal user in once a run, saving the sessions the internal specs start from.

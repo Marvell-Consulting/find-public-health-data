@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
-import { createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
+import { createDraft, uniqueIndicatorName } from '../support/create-indicator.ts';
 import { MORTALITY_ID, MORTALITY_NAME } from '../support/indicator-page.ts';
 import { PUBLISHER } from '../support/sign-in.ts';
 
@@ -11,7 +11,7 @@ test.use({ storageState: PUBLISHER.storageState });
 
 test('shows the indicator a publisher picked from the dashboard', async ({ page }) => {
   const name = uniqueIndicatorName('overview');
-  const id = await createIndicator(page, name);
+  const id = await createDraft(page, name);
 
   await page.goto('/dashboard');
   await page.getByRole('table').getByRole('link', { name, exact: true }).click();
@@ -63,7 +63,7 @@ test('answers an indicator that does not exist with the not-found page', async (
 
 test('has no WCAG 2.2 AA violations for a draft', async ({ page }, testInfo) => {
   const name = uniqueIndicatorName('overview');
-  const id = await createIndicator(page, name);
+  const id = await createDraft(page, name);
 
   await page.goto(`/dashboard/indicators/${id}`);
   await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
