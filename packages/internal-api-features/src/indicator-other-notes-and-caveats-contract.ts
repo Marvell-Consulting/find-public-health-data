@@ -8,6 +8,7 @@ import {
   textSection,
   yesNoSchema,
 } from './indicator-section-contract.ts';
+import { longText } from './text-contract.ts';
 
 const fields = z.enum([
   'disclosureControl',
@@ -53,13 +54,13 @@ const schema = requireDetails(
     disclosureControl: z.enum(INDICATOR_DISCLOSURE_CONTROL, {
       error: 'Select whether disclosure control has been applied',
     }),
-    disclosureControlDetail: z.string().trim(),
+    disclosureControlDetail: longText('Details of the disclosure control'),
     hasRounding: yesNoSchema('Select whether rounding has been applied'),
-    roundingDetail: z.string().trim(),
+    roundingDetail: longText('Details of the rounding'),
     hasCaveats: yesNoSchema('Select whether there are any caveats needed'),
-    caveatsDetail: z.string().trim(),
+    caveatsDetail: longText('Details of the caveats'),
     hasOtherNotes: yesNoSchema('Select whether there are any other notes needed'),
-    otherNotesDetail: z.string().trim(),
+    otherNotesDetail: longText('Details of the other notes'),
   }),
   [disclosureControlQuestion, ...otherNotesAndCaveatsQuestions],
 );

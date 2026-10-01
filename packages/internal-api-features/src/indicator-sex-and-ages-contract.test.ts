@@ -139,6 +139,14 @@ describe('sexAndAgesSection', () => {
       { specificAgeUnit: 'Select the periods' },
     ],
     [{ ageType: 'other', ageDetail: ' ' }, { ageDetail: 'Enter the ages included' }],
+    [
+      { ageType: 'specific', ageDetail: 'Year\u000b6' },
+      {
+        specificAge: 'Enter the age',
+        specificAgeUnit: 'Select the periods',
+        ageDetail: 'Ages included must not include hidden formatting characters',
+      },
+    ],
   ])('refuses %o', (answers, fieldErrors) => {
     expect(sectionFieldErrors(section, { ...form, ...answers })).toEqual(fieldErrors);
   });

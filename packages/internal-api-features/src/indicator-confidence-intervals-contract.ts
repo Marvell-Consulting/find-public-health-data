@@ -2,6 +2,7 @@ import { z } from '@fphd/config/zod';
 import { CI_METHOD_KINDS, type CiMethodKind } from '@fphd/utils/ci-method-kind';
 
 import { type IndicatorSection, textSection } from './indicator-section-contract.ts';
+import { longText } from './text-contract.ts';
 
 export const ciMethodKindSchema = z.enum(CI_METHOD_KINDS);
 
@@ -37,8 +38,8 @@ const schema = z.object({
   hasCiMethodModifications: z.enum(['', 'yes', 'no'], {
     error: 'Select whether any modifications were used',
   }),
-  ciMethodModificationsDetail: z.string().trim(),
-  ciMethodDetail: z.string().trim(),
+  ciMethodModificationsDetail: longText('Description of the modifications'),
+  ciMethodDetail: longText('Details of the other confidence interval method'),
 });
 
 export type ConfidenceIntervalsField = z.infer<typeof fields>;

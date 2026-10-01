@@ -9,6 +9,7 @@ import {
 } from '@fphd/utils/sex-and-ages';
 
 import type { IndicatorSection } from './indicator-section-contract.ts';
+import { shortText } from './text-contract.ts';
 
 export const MAX_AGE_RANGES = 20;
 
@@ -191,7 +192,7 @@ const schema = z
       .max(MAX_AGE_RANGES, `You cannot add more than ${MAX_AGE_RANGES} ranges`),
     specificAge: z.string().trim(),
     specificAgeUnit: ageUnit,
-    ageDetail: z.string().trim(),
+    ageDetail: shortText('Ages included'),
   })
   .superRefine(
     ({ ageType, ageRanges, specificAge, specificAgeUnit, ageDetail }, ctx) => {
@@ -230,10 +231,12 @@ const schema = z
         issue(['ageDetail'], 'Enter the ages included');
       }
     },
-    // Also beside unanswered sexes or age type, so every refusal shows at once.
+    // Also beside unanswered sexes or age type, or refused text, so every refusal shows at once.
     {
       when: ({ issues }) =>
-        issues.every(({ path }) => path?.[0] === 'sexes' || path?.[0] === 'ageType'),
+        issues.every(
+          ({ code, path }) => code === 'custom' || path?.[0] === 'sexes' || path?.[0] === 'ageType',
+        ),
     },
   );
 

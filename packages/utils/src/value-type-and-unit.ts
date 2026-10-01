@@ -15,8 +15,6 @@ export const UNIT_IDS = {
   other: '01a0d8a5-3ca2-7315-bfca-96e5cee57158',
 } as const;
 
-export const UNIT_DETAIL_MAX_LENGTH = 100;
-
 /** The value types standardised against a reference population the publisher names. */
 export const INDIRECTLY_STANDARDISED_VALUE_TYPE_IDS: readonly string[] = [
   VALUE_TYPE_IDS.indirectlyStandardisedProportion,

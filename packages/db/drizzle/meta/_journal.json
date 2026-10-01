@@ -295,6 +295,13 @@
       "when": 1790796885456,
       "tag": "0041_checks-mirror-contracts",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1790871075509,
+      "tag": "0042_drop-unit-detail-length-check",
+      "breakpoints": true
     }
   ]
 }

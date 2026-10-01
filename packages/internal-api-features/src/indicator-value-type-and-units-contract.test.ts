@@ -73,7 +73,7 @@ describe('valueTypeAndUnitsSection', () => {
         valueTypeId: '01a0d8a5-3ca2-7315-bfca-96c8c77cad18',
         standardPopulation: 'other',
         unitId: '01a0d8a5-3ca2-7315-bfca-96d8d8d7aec2',
-        unitDetail: 'x'.repeat(101),
+        unitDetail: 'people',
       }),
     ).toBeUndefined();
   });
@@ -105,14 +105,18 @@ describe('valueTypeAndUnitsSection', () => {
       { valueTypeId: 'Select the value type', unitDetail: 'Enter the unit' },
     ],
     [
-      'an other unit over 100 characters',
+      'an other unit over 300 characters, beside the other refusals',
       {
         ...empty,
-        valueTypeId: '01a0d8a5-3ca2-7315-bfca-96c7324d4347',
+        valueTypeId: DSR,
+        standardPopulation: 'other',
         unitId: UNIT_IDS.other,
-        unitDetail: 'x'.repeat(101),
+        unitDetail: 'x'.repeat(301),
       },
-      { unitDetail: 'Unit must be 100 characters or fewer' },
+      {
+        standardPopulationOther: ENTER_POPULATION,
+        unitDetail: 'Unit must be 300 characters or fewer',
+      },
     ],
     [
       'a value type and unit that are not ids',
@@ -131,17 +135,6 @@ describe('valueTypeAndUnitsSection', () => {
     ],
   ])('refuses %s', (_, body, fieldErrors) => {
     expect(sectionFieldErrors(section, body)).toEqual(fieldErrors);
-  });
-
-  it('takes an other unit of exactly 100 characters', () => {
-    expect(
-      sectionFieldErrors(section, {
-        ...empty,
-        valueTypeId: '01a0d8a5-3ca2-7315-bfca-96c7324d4347',
-        unitId: UNIT_IDS.other,
-        unitDetail: 'x'.repeat(100),
-      }),
-    ).toBeUndefined();
   });
 
   it.each([{}, { ...empty, unitDetail: 1 }])('refuses %o, which the form never sends', (body) => {

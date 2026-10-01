@@ -2,6 +2,7 @@ import { z } from '@fphd/config/zod';
 import type { IndicatorSourcePart } from '@fphd/utils/source-part';
 
 import type { IndicatorSection } from './indicator-section-contract.ts';
+import { longText } from './text-contract.ts';
 
 const namedSchema = z.object({ id: z.uuid(), name: z.string().min(1) });
 
@@ -51,7 +52,7 @@ function providerSourcesSchema(part: IndicatorSourcePart) {
 function schemaOf(part: IndicatorSourcePart) {
   return z.object({
     sources: providerSourcesSchema(part),
-    definition: z.string().trim().min(1, `Enter the definition of the ${part}`),
+    definition: longText(`Definition of the ${part}`).min(1, `Enter the definition of the ${part}`),
   });
 }
 

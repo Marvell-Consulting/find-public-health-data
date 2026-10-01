@@ -90,7 +90,8 @@ UNIT_NAMES_BY_LABEL = {
 
 UNKNOWN_UNIT_PREFIX = "Unknown unit "
 
-UNIT_DETAIL_MAX_LENGTH = 100
+# The form's single-line text limit, which a unit is held to.
+UNIT_DETAIL_MAX_LENGTH = 300
 
 UNIT_COLUMNS = ["unit_id", "unit_detail"]
 

@@ -7,6 +7,7 @@ import {
   textSection,
   yesNoSchema,
 } from './indicator-section-contract.ts';
+import { longText } from './text-contract.ts';
 
 const fields = z.enum([
   'variation',
@@ -27,15 +28,15 @@ export const varianceAndQualityQuestions = [
 
 const schema = requireDetails(
   z.object({
-    variation: z.string().trim().min(1, 'Enter how the indicator varies'),
-    qualityAssurance: z
-      .string()
-      .trim()
-      .min(1, 'Enter what quality assurance has been done on the indicator'),
+    variation: longText('Variation').min(1, 'Enter how the indicator varies'),
+    qualityAssurance: longText('Quality assurance').min(
+      1,
+      'Enter what quality assurance has been done on the indicator',
+    ),
     hasSourceDataIssues: yesNoSchema(
       'Select whether there are any data quality issues with the source data',
     ),
-    sourceDataIssuesDetail: z.string().trim(),
+    sourceDataIssuesDetail: longText('Details of the source data quality issues'),
   }),
   varianceAndQualityQuestions,
 );
