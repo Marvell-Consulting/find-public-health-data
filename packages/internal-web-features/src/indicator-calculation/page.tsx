@@ -1,6 +1,7 @@
 import { type CalculationField, calculationSection } from '@fphd/internal-api-features/contract';
 import { firstRadioId, Radios, Textarea } from '@fphd/ui';
 
+import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
 export function CalculationPage({
@@ -24,7 +25,7 @@ export function CalculationPage({
         rows={5}
       />
       <Radios
-        {...(fieldErrors.calculatedBy === undefined ? {} : { error: fieldErrors.calculatedBy })}
+        {...errorProp(fieldErrors.calculatedBy)}
         defaultValue={values.calculatedBy}
         // NotGovUK sizes a heading in a legend; a bare h2 would be large, the class makes it medium.
         label={<h2 className="govuk-heading-m">Who calculated the indicator?</h2>}

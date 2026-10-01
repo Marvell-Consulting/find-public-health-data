@@ -1,6 +1,7 @@
 import { z } from '@fphd/config/zod';
+import { isDayOfMonth } from '@fphd/utils/period-type';
 
-import type { IndicatorSection } from './indicator-section-contract.ts';
+import { type IndicatorSection, isSmallNumber } from './indicator-section-contract.ts';
 
 const fields = z.enum([
   'publishingDateDay',
@@ -32,6 +33,30 @@ const TIME_PARTS = [
   ['publishingTimeMinute', 'a minute'],
 ] as const;
 
+/** How many days after today's date in the UK a publishing date must be, at least. */
+export const PUBLISHING_NOTICE_DAYS = 28;
+
+const UK_DATE = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Europe/London',
+  day: 'numeric',
+  month: 'numeric',
+  year: 'numeric',
+});
+
+/** The UK calendar date `instant` falls on, moved on `days`, as UTC midnight for comparing. */
+export function ukDate(instant: Date, days: number): number {
+  const parts = UK_DATE.formatToParts(instant);
+  const part = (type: 'year' | 'month' | 'day') =>
+    Number(parts.find((found) => found.type === type)?.value);
+  return Date.UTC(part('year'), part('month') - 1, part('day') + days);
+}
+
+/** A date well past the notice period, as the hint's example gives it: "14 9 2026". */
+export function publishingDateExample(now: Date): string {
+  const example = new Date(ukDate(now, PUBLISHING_NOTICE_DAYS * 2));
+  return `${example.getUTCDate()} ${example.getUTCMonth() + 1} ${example.getUTCFullYear()}`;
+}
+
 const REAL_DATE = 'Publishing date must be a real date';
 // Also given by the API for a time the spring clock change skips.
 export const REAL_PUBLISHING_TIME = 'Publishing time must be a real time';
@@ -44,15 +69,6 @@ function each(parts: readonly PublishingDateField[], message: string): Problems 
 
 function unless(ok: boolean, field: PublishingDateField, message: string): Problems {
   return ok ? {} : { [field]: message };
-}
-
-/** Up to two digits, from min to max. */
-function isSmallNumber(text: string, min: number, max: number): boolean {
-  return /^\d{1,2}$/.test(text) && Number(text) >= min && Number(text) <= max;
-}
-
-function isDayOfMonth(day: number, month: number, year: number): boolean {
-  return new Date(Date.UTC(year, month - 1, day)).getUTCDate() === day;
 }
 
 /** What is wrong with the date, on each part the publisher should correct. */
@@ -83,8 +99,8 @@ function dateProblems(answers: Answers): Problems {
 
   if (Object.keys(problems).length > 0) return problems;
 
-  // There was no year 0, and the database refuses to name one.
-  if (Number(year) === 0) return { publishingDateYear: REAL_DATE };
+  // A year below 1000 is not a four-digit year, and the database refuses year 0 outright.
+  if (Number(year) < 1000) return { publishingDateYear: REAL_DATE };
 
   return unless(
     isDayOfMonth(Number(day), Number(month), Number(year)),

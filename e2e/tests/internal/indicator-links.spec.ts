@@ -97,8 +97,18 @@ test('adds links to a list, in the order they were added, clearing the fields', 
   await expect(page.getByLabel(TEXT_FIELD, { exact: true })).toBeEmpty();
 });
 
-test('adds the typed link when Enter is pressed in a field', async ({ page }) => {
-  await openSectionPage(page, SECTION);
+test('continues when Enter is pressed on "No", rather than adding a link', async ({ page }) => {
+  const taskListPath = await openSectionPage(page, SECTION);
+  await page.getByLabel('No', { exact: true }).check();
+
+  await page.getByLabel('No', { exact: true }).press('Enter');
+
+  await expect(page).toHaveURL(taskListPath);
+  await expect(taskRow(page, SECTION.taskName)).toContainText('Completed');
+});
+
+test('continues when Enter is pressed in a field, saving the typed link', async ({ page }) => {
+  const taskListPath = await openSectionPage(page, SECTION);
   await page.getByLabel('Yes', { exact: true }).check();
   await addLink(page, COMMENTARY);
 
@@ -106,6 +116,8 @@ test('adds the typed link when Enter is pressed in a field', async ({ page }) =>
   await page.getByLabel(TEXT_FIELD, { exact: true }).fill(FINGERTIPS.text);
   await page.getByLabel(TEXT_FIELD, { exact: true }).press('Enter');
 
+  await expect(page).toHaveURL(taskListPath);
+  await taskRow(page, SECTION.taskName).getByRole('link').click();
   await expect(addedLinks(page)).toHaveText([
     'Statistical commentary (opens in new tab)',
     'Fingertips (opens in new tab)',

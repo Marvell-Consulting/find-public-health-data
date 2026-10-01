@@ -149,12 +149,13 @@ describe('LinksPage', () => {
     expect(screen.getByRole('button', { name: 'Remove link Statistical commentary' })).toBeTruthy();
   });
 
-  it('puts the Add button before every remove button, so Enter in a field adds', () => {
+  it('lets Enter continue rather than add or remove a link', () => {
     const { container } = renderPage({ values: twoLinks });
 
-    const [first] = container.querySelectorAll('form button[type="submit"]');
+    const first = container.querySelector('form button');
 
-    expect(first?.textContent).toBe('Add link');
+    expect(first?.textContent).toBe('Continue');
+    expect(first?.getAttribute('name')).toBeNull();
   });
 
   it('shows no list while there are no links', () => {

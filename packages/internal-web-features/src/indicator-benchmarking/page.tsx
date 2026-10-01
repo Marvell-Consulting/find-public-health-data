@@ -2,6 +2,7 @@ import { type BenchmarkingField, benchmarkingSection } from '@fphd/internal-api-
 import { firstRadioId, Radios, Textarea, TextInput } from '@fphd/ui';
 import { GOAL_POLARITIES, GOAL_POLARITY_LABELS } from '@fphd/utils/polarity';
 
+import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
 export function BenchmarkingPage({
@@ -9,12 +10,6 @@ export function BenchmarkingPage({
   formError,
   values,
 }: SectionPageProps<BenchmarkingField>) {
-  // Radios take no undefined error.
-  const errorOf = (field: BenchmarkingField) => {
-    const error = fieldErrors[field];
-    return error === undefined ? {} : { error };
-  };
-
   return (
     <IndicatorSectionForm
       fieldErrors={fieldErrors}
@@ -27,7 +22,7 @@ export function BenchmarkingPage({
       title="Benchmarking"
     >
       <Radios
-        {...errorOf('hasGoalBenchmark')}
+        {...errorProp(fieldErrors.hasGoalBenchmark)}
         defaultValue={values.hasGoalBenchmark}
         // NotGovUK sizes a legend by the heading passed as its label.
         label={
@@ -62,7 +57,7 @@ export function BenchmarkingPage({
                   spellCheck={false}
                 />
                 <Radios
-                  {...errorOf('goalPolarity')}
+                  {...errorProp(fieldErrors.goalPolarity)}
                   classModifiers="small"
                   defaultValue={values.goalPolarity}
                   label={<h3 className="govuk-heading-s">Select polarity of goal</h3>}

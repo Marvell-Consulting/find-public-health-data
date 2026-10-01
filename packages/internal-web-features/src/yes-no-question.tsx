@@ -1,5 +1,6 @@
 import { Radios, Textarea } from '@fphd/ui';
 
+import { errorProp } from './error-prop.ts';
 import type { FormValues } from './indicator-section.ts';
 
 interface YesNoQuestionProps<Field extends string> {
@@ -28,11 +29,9 @@ export function YesNoQuestion<Field extends string>({
   moreOptions = [],
   values,
 }: YesNoQuestionProps<Field>) {
-  const error = fieldErrors[answer];
-
   return (
     <Radios
-      {...(error === undefined ? {} : { error })}
+      {...errorProp(fieldErrors[answer])}
       defaultValue={values[answer]}
       {...(hint === undefined ? {} : { hint })}
       // NotGovUK sizes a legend by the heading passed as its label.

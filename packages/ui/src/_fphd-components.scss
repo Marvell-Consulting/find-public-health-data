@@ -108,46 +108,6 @@
   border-color: $govuk-focus-text-colour;
 }
 
-.fphd-stat-card {
-  padding: govuk-spacing(4);
-  margin-bottom: govuk-spacing(4);
-  background-color: govuk-colour("black", $variant: "tint-95");
-}
-
-.fphd-stat-card .fphd-stat-card__description {
-  margin-bottom: govuk-spacing(1);
-}
-
-.fphd-stat-card .fphd-stat-card__change {
-  margin-top: govuk-spacing(1);
-  margin-bottom: govuk-spacing(2);
-}
-
-.fphd-stat-card__link {
-  @include govuk-font($size: 16);
-}
-
-.fphd-stat {
-  display: flex;
-  align-items: baseline;
-  gap: govuk-spacing(1);
-  margin: govuk-spacing(2) 0;
-  line-height: 1;
-}
-
-.fphd-stat__number {
-  @include govuk-font($size: 36, $weight: bold);
-  line-height: 1;
-
-  @include govuk-media-query($from: tablet) {
-    line-height: 40px;
-  }
-}
-
-.fphd-stat__unit {
-  @include govuk-font($size: 19);
-}
-
 .fphd-chart-section {
   margin-bottom: 50px;
 }
@@ -324,13 +284,6 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
   margin-bottom: 0;
 }
 
-.fphd-link-button {
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-}
-
 .fphd-tag-list {
   display: flex;
   flex-wrap: wrap;
@@ -359,27 +312,6 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
 .govuk-tag.fphd-status-tag {
   max-width: none;
   white-space: nowrap;
-}
-
-.fphd-contents-list {
-  list-style-type: "— ";
-  padding-left: govuk-spacing(4);
-}
-
-.fphd-show-more {
-  display: inline-flex;
-  align-items: center;
-  gap: govuk-spacing(2);
-  margin-bottom: govuk-spacing(4);
-}
-
-.fphd-show-more__icon {
-  flex-shrink: 0;
-}
-
-.fphd-search-heading {
-  @include govuk-font($size: 24, $weight: bold);
-  margin-bottom: govuk-spacing(3);
 }
 
 .fphd-search-bar__label-row {
@@ -412,21 +344,6 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
 @include govuk-media-query($until: tablet) {
   .fphd-search-bar {
     margin-bottom: govuk-spacing(4);
-  }
-
-  .fphd-stat__number {
-    font-size: 27px;
-    line-height: 27px;
-  }
-
-  .fphd-stat__unit {
-    font-size: 19px;
-    line-height: 25px;
-  }
-
-  .fphd-search-heading {
-    font-size: 21px;
-    line-height: 25px;
   }
 }
 
@@ -566,27 +483,8 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
   padding: 5px 35px 5px 5px;
 }
 
-// A value's magnitude relative to the largest in the comparison, so rows can be scanned
-// without reading every number.
-.fphd-bar-container {
-  display: flex;
-  align-items: center;
-  gap: govuk-spacing(2);
-}
-
-.fphd-bar {
-  height: 12px;
-  min-width: 1px;
-  background-color: govuk-colour("blue");
-}
-
 .fphd-segmentation-options__selects .govuk-form-group {
   margin-bottom: govuk-spacing(3);
-}
-
-.fphd-geo-alt__count {
-  display: inline;
-  font-size: inherit;
 }
 
 .fphd-table-note {

@@ -16,7 +16,7 @@ import type {
 import type { InternalIndicatorRepository } from './repositories.ts';
 
 /** The draft columns a section writes: never the name, whose slug is the name page's concern. */
-export type IndicatorSectionAttributes = Omit<IndicatorDraftAttributes, 'name'>;
+type IndicatorSectionAttributes = Omit<IndicatorDraftAttributes, 'name'>;
 
 /** The draft columns and lists the sections read; each section adds the ones its form writes. */
 export type IndicatorSectionDraft = Pick<

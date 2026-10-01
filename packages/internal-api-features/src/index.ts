@@ -8,50 +8,7 @@ import type { InternalRepositories } from './repositories.ts';
 import { internalTagsRouter } from './tags.ts';
 import { internalTopicsRouter } from './topics.ts';
 
-export type { CiMethodRow } from './ci-method-repository.ts';
-export type { DataProviderRow } from './data-provider-repository.ts';
-export type {
-  CreateDraftFromPublishedResult,
-  CreatedIndicatorDraft,
-  CreateIndicatorDraftResult,
-  IndicatorAdminDetailRow,
-  IndicatorAdminRow,
-  IndicatorAdminRows,
-  IndicatorDraft,
-  IndicatorDraftAttributes,
-  IndicatorDraftClassification,
-  IndicatorDraftLists,
-  IndicatorDraftSource,
-  IndicatorDraftSources,
-  IndicatorDraftStateRow,
-  IndicatorDraftVersion,
-  NewIndicatorDraftAttributes,
-  UkDateTime,
-  UpdateIndicatorDraftResult,
-} from './indicator-repository.ts';
-export {
-  type IndicatorTaskListDraft,
-  type IndicatorTaskListSource,
-  indicatorTaskList,
-} from './indicator-task-list.ts';
-export { INDICATORS_PAGE_SIZE, internalIndicatorsRouter } from './indicators.ts';
-export {
-  createInternalRepositories,
-  type InternalCiMethodRepository,
-  type InternalDataProviderRepository,
-  type InternalIndicatorRepository,
-  type InternalRepositories,
-  type InternalTagRepository,
-  type InternalTopicRepository,
-} from './repositories.ts';
-export { internalTagsRouter } from './tags.ts';
-export type {
-  CreateTopicResult,
-  DeleteTopicResult,
-  TopicUpdate,
-  UpdateTopicResult,
-} from './topic-repository.ts';
-export { internalTopicsRouter } from './topics.ts';
+export { createInternalRepositories, type InternalRepositories } from './repositories.ts';
 
 export interface InternalApiDependencies {
   repositories: InternalRepositories;

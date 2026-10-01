@@ -1,6 +1,7 @@
 import { type DataQualityField, dataQualitySection } from '@fphd/internal-api-features/contract';
 import { firstRadioId, Radios } from '@fphd/ui';
 
+import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
 const DATA_QUALITY_QUESTION = 'Are there any data quality issues with this indicator?';
@@ -11,8 +12,6 @@ export function DataQualityPage({
   formError,
   values,
 }: SectionPageProps<DataQualityField>) {
-  const error = fieldErrors.dataQualityIssues;
-
   return (
     <IndicatorSectionForm
       fieldErrors={fieldErrors}
@@ -23,7 +22,7 @@ export function DataQualityPage({
       title={DATA_QUALITY_QUESTION}
     >
       <Radios
-        {...(error === undefined ? {} : { error })}
+        {...errorProp(fieldErrors.dataQualityIssues)}
         defaultValue={values.dataQualityIssues}
         hint="If yes, you should ensure these issues are clearly explained in the 'Caveats' section."
         label={<h1>{DATA_QUALITY_QUESTION}</h1>}

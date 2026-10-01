@@ -8,6 +8,7 @@ import {
 import { Button, fieldInputId, Select, Textarea } from '@fphd/ui';
 import { useEffect, useState } from 'react';
 
+import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 import { ADD_INTENT, removeIntent } from '../list-form.ts';
 import {
@@ -112,7 +113,7 @@ export function ProviderSourcesPage({
     >
       <AddedSources providers={providers} sources={values.sources} />
       <Select
-        {...(providerError === undefined ? {} : { error: providerError })}
+        {...errorProp(providerError)}
         defaultValue={values.providerId}
         label={`Add a data provider for the ${part}`}
         name="providerId"
@@ -129,7 +130,7 @@ export function ProviderSourcesPage({
       )}
       <div hidden={provider === undefined}>
         <Select
-          {...(fieldErrors.sourceId === undefined ? {} : { error: fieldErrors.sourceId })}
+          {...errorProp(fieldErrors.sourceId)}
           defaultValue={providerId === values.providerId ? values.sourceId : ''}
           // Remounted for each provider, so the choice starts again with its sources.
           key={providerId}

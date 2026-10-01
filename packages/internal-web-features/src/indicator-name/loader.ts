@@ -18,8 +18,6 @@ import { requireIndicatorId } from '../indicator-id.ts';
 import { type FormFailure, readFormValues } from '../indicator-section.ts';
 import { indicatorTaskListPath } from '../publish-paths.ts';
 
-export type { IndicatorAdminDetail } from '@fphd/internal-api-features/contract';
-
 export type IndicatorNameFailure = FormFailure<IndicatorField>;
 
 const FIELDS = indicatorFieldSchema.options;

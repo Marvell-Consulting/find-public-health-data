@@ -4,6 +4,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { errorProp } from './error-prop.ts';
 import { IndicatorSectionForm } from './indicator-section-form.tsx';
 
 afterEach(cleanup);
@@ -26,7 +27,7 @@ function renderForm(props: Partial<Props> = {}) {
       >
         <Textarea error={fieldErrors.answer} label="An answer" name="answer" />
         <Radios
-          {...(fieldErrors.choice === undefined ? {} : { error: fieldErrors.choice })}
+          {...errorProp(fieldErrors.choice)}
           label="A choice"
           name="choice"
           options={[

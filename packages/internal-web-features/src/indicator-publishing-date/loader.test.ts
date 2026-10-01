@@ -1,7 +1,7 @@
 import type { ApiClient } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import { RouterContextProvider } from 'react-router';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { loadPublishingDate } from './loader.ts';
 
@@ -27,6 +27,18 @@ function load(answers: Record<string, string | null>) {
 }
 
 describe('loadPublishingDate', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ now: new Date('2027-09-14T08:30:00.000Z'), toFake: ['Date'] });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('gives an example date from today', async () => {
+    expect((await load(unanswered)).dateExample).toBe('9 11 2027');
+  });
+
   it('offers 09:30 on a draft with no publishing date', async () => {
     expect((await load(unanswered)).values).toEqual({
       publishingDateDay: '',
@@ -46,6 +58,6 @@ describe('loadPublishingDate', () => {
       publishingTimeMinute: '05',
     };
 
-    expect(await load(answers)).toEqual({ id, values: answers });
+    expect(await load(answers)).toEqual({ id, values: answers, dateExample: '9 11 2027' });
   });
 });

@@ -25,6 +25,16 @@ describe('isDayOfMonth', () => {
   ])('refuses %d of month %d', (day, month) => {
     expect(isDayOfMonth(day, month)).toBe(false);
   });
+
+  it('accepts 29 February only in a leap year when given the year', () => {
+    expect(isDayOfMonth(29, 2, 2028)).toBe(true);
+    expect(isDayOfMonth(29, 2, 2027)).toBe(false);
+    expect(isDayOfMonth(29, 2, 2100)).toBe(false);
+  });
+
+  it.each([2028.5, -2028, 0, 99, 10000])('refuses a year of %s', (year) => {
+    expect(isDayOfMonth(1, 1, year)).toBe(false);
+  });
 });
 
 describe('publicYearType', () => {

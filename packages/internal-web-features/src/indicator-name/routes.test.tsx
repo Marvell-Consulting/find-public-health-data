@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
+import type { IndicatorAdminDetail } from '@fphd/internal-api-features/contract';
 import { describe, expect, it } from 'vitest';
 
 import { handle as editHandle } from './edit-route.tsx';
-import type { IndicatorAdminDetail } from './loader.ts';
 import { handle as newHandle } from './new-route.tsx';
 
 const indicator: IndicatorAdminDetail = {

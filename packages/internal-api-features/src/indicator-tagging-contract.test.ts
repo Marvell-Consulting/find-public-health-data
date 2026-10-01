@@ -75,6 +75,10 @@ describe('taggingSection', () => {
       indicatorTypeIds: 'Select an indicator type from the list',
     });
   });
+
+  it.each([undefined, null, 'tags'])('refuses %o, which is not a set of answers', (body) => {
+    expect(section.schema.safeParse(body).success).toBe(false);
+  });
 });
 
 describe('unknownTagMessage', () => {

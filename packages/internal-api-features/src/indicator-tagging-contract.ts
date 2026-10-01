@@ -98,7 +98,9 @@ const schema = z
     },
     // Also beside unanswered questions and empty lists, so every refusal shows at once.
     {
-      when: ({ issues }) =>
+      when: ({ value, issues }) =>
+        typeof value === 'object' &&
+        value !== null &&
         issues.every(({ path }) => path?.[0] !== 'riskFactorIds' && path?.[0] !== 'frameworkIds'),
     },
   )

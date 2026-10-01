@@ -1,6 +1,7 @@
 import type { IndicatorLink } from '@fphd/internal-api-features/contract';
 import { Button, fieldInputId, firstRadioId, Radios, TextInput } from '@fphd/ui';
 
+import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 import { ADD_INTENT, removeIntent } from '../list-form.ts';
 import { type LinksPageField, type LinksPageValues, linkFieldName } from './form.ts';
@@ -11,10 +12,7 @@ const LINKS_QUESTION =
 // The order the error summary lists them in, which is the order the page asks.
 const FIELDS: readonly LinksPageField[] = ['hasLinks', 'linkUrl', 'linkText', 'links'];
 
-/**
- * The links added so far, each carried in hidden fields until Continue saves them. The list
- * follows the Add button, so Enter in a field adds rather than removing the first link.
- */
+/** The links added so far, each carried in hidden fields until Continue saves them. */
 function AddedLinks({ links }: { links: readonly IndicatorLink[] }) {
   if (links.length === 0) return null;
 
@@ -49,12 +47,12 @@ export function LinksPage({
   formError,
   values,
 }: SectionPageProps<LinksPageField, LinksPageValues>) {
-  const { hasLinks: hasLinksError, linkText: linkTextError } = fieldErrors;
   // "Yes" with no links is asked of the URL field, where the next link goes.
   const linkUrlError = fieldErrors.linkUrl ?? fieldErrors.links;
 
   return (
     <IndicatorSectionForm
+      continueOnEnter
       fieldErrors={fieldErrors}
       formError={formError}
       fieldIds={{ hasLinks: firstRadioId('hasLinks'), links: fieldInputId('linkUrl') }}
@@ -63,7 +61,7 @@ export function LinksPage({
       title={LINKS_QUESTION}
     >
       <Radios
-        {...(hasLinksError === undefined ? {} : { error: hasLinksError })}
+        {...errorProp(fieldErrors.hasLinks)}
         defaultValue={values.hasLinks}
         hint="For example, any statistical commentaries that will be available once this indicator is published"
         label={<h1>{LINKS_QUESTION}</h1>}
@@ -87,7 +85,7 @@ export function LinksPage({
                 <TextInput
                   autoComplete="off"
                   defaultValue={values.linkText}
-                  error={linkTextError}
+                  error={fieldErrors.linkText}
                   label="Add link text"
                   name="linkText"
                 />

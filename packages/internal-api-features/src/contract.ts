@@ -41,30 +41,6 @@ export const topicFieldSchema = z.enum(['title', 'slug', 'description']);
 
 export const topicFieldErrorsSchema = z.partialRecord(topicFieldSchema, z.string());
 
-/**
- * One message per field: a control shows one error even when a value breaks two rules.
- * `fields` is the contract's own list, so the caller gets those keys and nothing else —
- * an issue on anything the form does not show is dropped rather than sent as a field error.
- */
-export function toFieldErrors<Field extends string>(
-  error: z.ZodError,
-  fields: readonly Field[],
-): Partial<Record<Field, string>> {
-  const known = new Set<string>(fields);
-  const isField = (value: unknown): value is Field => typeof value === 'string' && known.has(value);
-  const fieldErrors: Partial<Record<Field, string>> = {};
-
-  for (const issue of error.issues) {
-    const field = issue.path[0];
-
-    if (isField(field) && !Object.hasOwn(fieldErrors, field)) {
-      fieldErrors[field] = issue.message;
-    }
-  }
-
-  return fieldErrors;
-}
-
 export const topicCreateResponseSchema = z.object({
   topic: topicAdminDetailSchema,
 });

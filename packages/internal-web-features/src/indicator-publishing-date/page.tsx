@@ -40,14 +40,18 @@ function groupError(
   return errors.length === 0 ? undefined : Object.fromEntries(errors);
 }
 
+interface PublishingDatePageProps extends SectionPageProps<PublishingDateField> {
+  /** A date the form would accept, as day, month and year numbers separated by spaces. */
+  dateExample: string;
+}
+
 // Each group shows its first message and marks only the parts given one.
 export function PublishingDatePage({
+  dateExample,
   fieldErrors = {},
   formError,
   values,
-}: SectionPageProps<PublishingDateField>) {
-  const dateError = groupError(fieldErrors, DATE);
-
+}: PublishingDatePageProps) {
   return (
     <IndicatorSectionForm
       fieldErrors={fieldErrors}
@@ -62,8 +66,8 @@ export function PublishingDatePage({
           month: values.publishingDateMonth,
           year: values.publishingDateYear,
         }}
-        {...(dateError === undefined ? {} : { error: dateError })}
-        hint="For example, 14 9 2026"
+        error={groupError(fieldErrors, DATE)}
+        hint={`For example, ${dateExample}`}
         // NotGovUK sizes a legend by the heading passed as its label.
         label={<h2 className="govuk-heading-m">Date</h2>}
         name={DATE}

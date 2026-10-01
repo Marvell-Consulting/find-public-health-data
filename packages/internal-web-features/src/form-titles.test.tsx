@@ -279,7 +279,7 @@ const forms: {
     name: 'publishing date',
     route: publishingDate,
     pageTitle: 'When should this indicator be published?',
-    loaderData: { id: indicator.id, values: publishingDateUnanswered },
+    loaderData: { id: indicator.id, values: publishingDateUnanswered, dateExample: '9 11 2027' },
     rejected: {
       values: publishingDateUnanswered,
       fieldErrors: { publishingDateDay: 'Enter the publishing date' },

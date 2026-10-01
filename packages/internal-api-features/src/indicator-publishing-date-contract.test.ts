@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { publishingDateSection as section } from './indicator-publishing-date-contract.ts';
+import {
+  publishingDateExample,
+  publishingDateSection as section,
+} from './indicator-publishing-date-contract.ts';
 import { sectionFieldErrors } from './testing.ts';
 
 const answers = {
@@ -86,6 +89,7 @@ describe('publishingDateSection', () => {
       { publishingDateYear: 'Year must include 4 numbers' },
     ],
     ['year 0', date('14', '9', '0000'), { publishingDateYear: REAL_DATE }],
+    ['a year below 1000', date('14', '9', '0999'), { publishingDateYear: REAL_DATE }],
   ])('refuses %s, on the part to correct', (_, body, errors) => {
     expect(sectionFieldErrors(section, body)).toEqual(errors);
   });
@@ -130,5 +134,12 @@ describe('publishingDateSection', () => {
       publishingTimeHour: 'Enter the publishing time',
       publishingTimeMinute: 'Enter the publishing time',
     });
+  });
+});
+
+describe('publishingDateExample', () => {
+  it('gives the UK date twice the notice period ahead, as day, month and year', () => {
+    // 00:30 BST on 15 September, still 14 September in UTC.
+    expect(publishingDateExample(new Date('2027-09-14T23:30:00.000Z'))).toBe('10 11 2027');
   });
 });
