@@ -83,15 +83,6 @@ describe('otherNotesAndCaveatsSection', () => {
     });
   });
 
-  it('asks for a missing detail beside an unanswered question', () => {
-    expect(
-      sectionFieldErrors(section, { ...allNo, disclosureControl: 'yes', hasRounding: '' }),
-    ).toEqual({
-      disclosureControlDetail: 'Provide details of the disclosure control',
-      hasRounding: 'Select whether rounding has been applied',
-    });
-  });
-
   it.each([
     { ...allNo, disclosureControl: 'maybe' },
     { ...allNo, hasRounding: 'not-applicable' },

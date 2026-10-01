@@ -1,7 +1,6 @@
 // No @fphd/ui imports here, so the loader and action unit-test without the jsdom the components need.
 import {
   sexAndAgesAnswersSchema,
-  sexAndAgesFieldErrors,
   sexAndAgesFormValues,
   sexAndAgesSection,
 } from '@fphd/internal-api-features/contract';
@@ -44,7 +43,5 @@ export async function submitSexAndAges(
   return saveIndicatorSectionValues(args.context, id, sexAndAgesSection, values, {
     answersSchema: sexAndAgesAnswersSchema,
     takeIn: (sent) => ({ values: sent, answers: sent }),
-    // A range's fields are refused by its row, which toFieldErrors cannot name.
-    fieldErrorsOf: sexAndAgesFieldErrors,
   });
 }

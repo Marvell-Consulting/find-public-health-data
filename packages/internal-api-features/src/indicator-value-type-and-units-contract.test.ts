@@ -79,11 +79,7 @@ describe('valueTypeAndUnitsSection', () => {
   });
 
   it.each([
-    [
-      'an empty form, as the prototype does',
-      empty,
-      { valueTypeId: 'Select the value type', unitId: 'Select the units' },
-    ],
+    ['an empty form', empty, { valueTypeId: 'Select the value type', unitId: 'Select the units' }],
     [
       'a directly standardised rate with no standard population, beside no unit',
       { ...empty, valueTypeId: DSR },

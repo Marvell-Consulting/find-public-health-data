@@ -62,6 +62,7 @@ import {
   type TaggingAnswers,
   type TaggingField,
   type TaggingFormValues,
+  type TagList,
   taggingSection,
   ukDate,
   unknownTagMessage,
@@ -358,18 +359,27 @@ export const taggingColumns: IndicatorSectionColumns<TaggingField, Tagging, Tagg
     hasRiskFactor: hasRiskFactor === 'yes',
     hasFramework: hasFramework === 'yes',
   }),
-  // The schema has already dropped the tags beside a "No".
-  toLists: ({ topicIds, indicatorTypeIds, riskFactorIds, frameworkIds }) => ({
-    topicIds,
-    classificationIds: {
-      indicator_type: indicatorTypeIds,
-      risk_factor: riskFactorIds,
-      framework: frameworkIds,
-    },
-  }),
+  toLists: (answers) => {
+    const kept = (list: TagList) => (isTagListAsked(answers, list) ? answers[list] : []);
+
+    return {
+      topicIds: answers.topicIds,
+      classificationIds: {
+        indicator_type: kept('indicatorTypeIds'),
+        risk_factor: kept('riskFactorIds'),
+        framework: kept('frameworkIds'),
+      },
+    };
+  },
 };
 
-/** The form's schema, then that every tag is one the page offers under its own question. */
+/** Whether the list is asked: always, or beside a yes. Tags beside a "No" are dropped. */
+function isTagListAsked(answers: Tagging, list: TagList): boolean {
+  const { question } = TAG_LIST_DETAILS[list];
+  return question === null || answers[question] === 'yes';
+}
+
+/** The form's schema, then that every tag asked for is one the page offers under its question. */
 export function taggingServerSection(
   tags: InternalTagRepository,
 ): IndicatorSection<TaggingField, Tagging, TaggingFormValues> {
@@ -379,7 +389,7 @@ export function taggingServerSection(
       const options = await tags.listOptions();
       let refused = false;
 
-      for (const list of TAG_LISTS) {
+      for (const list of TAG_LISTS.filter((asked) => isTagListAsked(answers, asked))) {
         const offered = new Set(options[TAG_LIST_DETAILS[list].options].map(({ id }) => id));
 
         if (answers[list].some((id) => !offered.has(id))) {

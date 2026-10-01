@@ -28,12 +28,6 @@ export type TaggingPageField = TaggingField | AddTagField;
 /** The page as the action re-renders it: after a refusal, or with a tag added or removed. */
 export type TaggingPageState = FormFailure<TaggingPageField, TaggingPageValues>;
 
-/** The question whose "Yes" a list's tags answer, for the lists that have one. */
-const LIST_QUESTIONS: Partial<Record<TagList, 'hasRiskFactor' | 'hasFramework'>> = {
-  riskFactorIds: 'hasRiskFactor',
-  frameworkIds: 'hasFramework',
-};
-
 /** The page with nothing chosen in the selects that add a tag. */
 export function taggingPageValues(values: TaggingFormValues): TaggingPageValues {
   return { ...values, addTopic: '', addIndicatorType: '', addRiskFactor: '', addFramework: '' };
@@ -77,9 +71,8 @@ function withChosen(values: TaggingPageValues, list: TagList): TaggingPageValues
  * a framework answers "Yes", which a form without JavaScript may not have chosen.
  */
 export function withTagAdded(values: TaggingPageValues, list: TagList): TaggingPageState {
-  const { article, noun } = TAG_LIST_DETAILS[list];
+  const { article, noun, question } = TAG_LIST_DETAILS[list];
   const field = ADD_TAG_FIELDS[list];
-  const question = LIST_QUESTIONS[list];
 
   if (values[field] === '') {
     return { values, fieldErrors: { [field]: `Select ${article} ${noun}` } };
@@ -88,7 +81,7 @@ export function withTagAdded(values: TaggingPageValues, list: TagList): TaggingP
   const added = withChosen(values, list);
 
   return {
-    values: question === undefined ? added : { ...added, [question]: 'yes' },
+    values: question === null ? added : { ...added, [question]: 'yes' },
     fieldErrors: {},
   };
 }
@@ -110,8 +103,8 @@ export function withChosenTagsTakenIn(
   sent: TaggingPageValues,
 ): SectionAnswers<TaggingPageValues, TaggingFormValues> {
   const values = TAG_LISTS.reduce((current, list) => {
-    const question = LIST_QUESTIONS[list];
-    const wanted = question === undefined || current[question] !== 'no';
+    const { question } = TAG_LIST_DETAILS[list];
+    const wanted = question === null || current[question] !== 'no';
 
     return wanted && current[ADD_TAG_FIELDS[list]] !== '' ? withChosen(current, list) : current;
   }, sent);

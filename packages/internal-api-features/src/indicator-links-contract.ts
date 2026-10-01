@@ -1,6 +1,6 @@
 import { z } from '@fphd/config/zod';
 
-import { type IndicatorSection, toFieldErrors } from './indicator-section-contract.ts';
+import { type IndicatorSection, toFieldErrors, yesNoSchema } from './indicator-section-contract.ts';
 
 export const LINK_URL_MAX_LENGTH = 2000;
 export const LINK_TEXT_MAX_LENGTH = 200;
@@ -50,7 +50,7 @@ const fields = z.enum(['hasLinks', 'links']);
 
 const schema = z
   .object({
-    hasLinks: z.enum(['yes', 'no'], { error: 'Select whether there are any relevant links' }),
+    hasLinks: yesNoSchema('Select whether there are any relevant links'),
     links: linksSchema,
   })
   .superRefine(({ hasLinks, links }, ctx) => {
@@ -96,7 +96,9 @@ export interface NewLinkFormValues {
   linkText: string;
 }
 
-export type NewLinkField = keyof NewLinkFormValues;
+const newLinkFields = z.enum(['linkUrl', 'linkText']);
+
+export type NewLinkField = z.infer<typeof newLinkFields>;
 
 const newLinkSchema = z
   .object({ linkUrl: url, linkText: text })
@@ -112,7 +114,7 @@ export function addLink(
 ): { links: IndicatorLink[] } | { fieldErrors: Partial<Record<NewLinkField, string>> } {
   const link = newLinkSchema.safeParse(newLink);
 
-  if (!link.success) return { fieldErrors: toFieldErrors(link.error, ['linkUrl', 'linkText']) };
+  if (!link.success) return { fieldErrors: toFieldErrors(link.error, newLinkFields) };
 
   const added = linksSchema.safeParse([...links, link.data]);
 

@@ -859,6 +859,19 @@ describe('taggingColumns', () => {
       },
     });
   });
+
+  it('drops the tags beside a "No", whatever the form sent', () => {
+    const sent: Tagging = {
+      ...tagging,
+      hasRiskFactor: 'no',
+      hasFramework: 'no',
+      frameworkIds: [TAGS.framework],
+    };
+
+    expect(taggingColumns.toLists?.(sent)).toMatchObject({
+      classificationIds: { risk_factor: [], framework: [] },
+    });
+  });
 });
 
 describe('taggingServerSection', () => {
@@ -868,7 +881,7 @@ describe('taggingServerSection', () => {
     });
     const section = taggingServerSection(tags);
     const result = await section.schema.safeParseAsync(body);
-    return result.success ? undefined : toFieldErrors(result.error, section.fields.options);
+    return result.success ? undefined : toFieldErrors(result.error, section.fields);
   }
 
   it('accepts tags the page offers', async () => {
@@ -914,7 +927,7 @@ describe('confidenceIntervalsServerSection', () => {
   async function fieldErrorsOf(body: object) {
     const { section, submission } = submit(body);
     const result = await submission;
-    return result.success ? undefined : toFieldErrors(result.error, section.fields.options);
+    return result.success ? undefined : toFieldErrors(result.error, section.fields);
   }
 
   it('adds the kind of the chosen method', async () => {
@@ -975,7 +988,7 @@ describe('valueTypeAndUnitsServerSection', () => {
   async function fieldErrorsOf(body: object) {
     const { section, submission } = submit(body);
     const result = await submission;
-    return result.success ? undefined : toFieldErrors(result.error, section.fields.options);
+    return result.success ? undefined : toFieldErrors(result.error, section.fields);
   }
 
   it('accepts a value type and unit the page offers', async () => {
@@ -1062,7 +1075,7 @@ describe('publishingDateServerSection', () => {
 
   async function fieldErrorsOf({ section, submission }: ReturnType<typeof submit>) {
     const result = await submission;
-    return result.success ? undefined : toFieldErrors(result.error, section.fields.options);
+    return result.success ? undefined : toFieldErrors(result.error, section.fields);
   }
 
   it('adds the instant the UK date and time name, 28 days ahead', async () => {

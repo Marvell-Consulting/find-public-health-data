@@ -21,15 +21,33 @@ export const TAG_LISTS = ['topicIds', 'indicatorTypeIds', 'riskFactorIds', 'fram
 
 export type TagList = (typeof TAG_LISTS)[number];
 
-/** Where each list's choices come from, and the words its messages use. */
+/** The questions whose yes asks for a list, and whose no drops it when saved. */
+export type TagQuestion = 'hasRiskFactor' | 'hasFramework';
+
+/** Where each list's choices come from, the question asking for it, and its messages' words. */
 export const TAG_LIST_DETAILS = {
-  topicIds: { options: 'topics', noun: 'topic', article: 'a' },
-  indicatorTypeIds: { options: 'indicatorTypes', noun: 'indicator type', article: 'an' },
-  riskFactorIds: { options: 'riskFactors', noun: 'risk factor', article: 'a' },
-  frameworkIds: { options: 'frameworks', noun: 'framework or programme', article: 'a' },
+  topicIds: { options: 'topics', question: null, noun: 'topic', article: 'a' },
+  indicatorTypeIds: {
+    options: 'indicatorTypes',
+    question: null,
+    noun: 'indicator type',
+    article: 'an',
+  },
+  riskFactorIds: {
+    options: 'riskFactors',
+    question: 'hasRiskFactor',
+    noun: 'risk factor',
+    article: 'a',
+  },
+  frameworkIds: {
+    options: 'frameworks',
+    question: 'hasFramework',
+    noun: 'framework or programme',
+    article: 'a',
+  },
 } as const satisfies Record<
   TagList,
-  { options: keyof TagOptions; noun: string; article: 'a' | 'an' }
+  { options: keyof TagOptions; question: TagQuestion | null; noun: string; article: 'a' | 'an' }
 >;
 
 /** "Select a topic from the list", for a tag the page no longer offers. */
@@ -103,13 +121,7 @@ const schema = z
         value !== null &&
         issues.every(({ path }) => path?.[0] !== 'riskFactorIds' && path?.[0] !== 'frameworkIds'),
     },
-  )
-  // A "No" drops the tags beside it, whatever the form sent.
-  .transform((answers) => ({
-    ...answers,
-    riskFactorIds: answers.hasRiskFactor === 'yes' ? answers.riskFactorIds : [],
-    frameworkIds: answers.hasFramework === 'yes' ? answers.frameworkIds : [],
-  }));
+  );
 
 export type Tagging = z.infer<typeof schema>;
 

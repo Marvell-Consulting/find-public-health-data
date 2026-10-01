@@ -68,9 +68,8 @@ function taskStatus(complete: boolean): IndicatorTaskStatus {
 }
 
 /**
- * The task list state of one draft. Only the tasks with a form appear, so a section is added
- * here as it is built, and until then the page shows its rows as not started. A section is
- * complete once its stored answers are ones its form would accept.
+ * The task list state of one draft. A section is complete once its stored answers are ones its
+ * form would accept.
  */
 export function indicatorTaskList({
   draft,

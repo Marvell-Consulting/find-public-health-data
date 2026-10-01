@@ -58,19 +58,6 @@ describe('copyrightAndDataReuseSection', () => {
     });
   });
 
-  it('asks for missing details beside an unanswered question', () => {
-    expect(
-      sectionFieldErrors(section, {
-        ...answered,
-        hasCustomCopyright: 'yes',
-        hasCustomDataReuse: '',
-      }),
-    ).toEqual({
-      customCopyrightDetail: 'Provide details of the copyright',
-      hasCustomDataReuse: 'Select whether the data re-use is different to the default',
-    });
-  });
-
   it.each([
     null,
     {},

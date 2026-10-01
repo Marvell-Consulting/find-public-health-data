@@ -72,7 +72,7 @@ export type TopicUpdateError = z.infer<typeof topicUpdateErrorSchema>;
 /** What the public has: live once any version is published, new until then. */
 export const indicatorStatusSchema = z.enum(['new', 'live']);
 
-/** The open draft's workflow state. The states after submission arrive with the workflow. */
+/** The open draft's workflow state. */
 export const draftStatusSchema = z.enum(['draft']);
 
 /**
@@ -172,13 +172,10 @@ export type IndicatorCreateResponse = z.infer<typeof indicatorCreateResponseSche
 export type IndicatorCreateError = z.infer<typeof indicatorCreateErrorSchema>;
 export type IndicatorUpdateError = z.infer<typeof indicatorUpdateErrorSchema>;
 
-/**
- * Where one task on an indicator's task list stands. The vocabulary grows with the journey:
- * incomplete, cannot_start, updated and unchanged all arrive with the sections that need them.
- */
+/** Where one task on an indicator's task list stands. */
 export const indicatorTaskStatusSchema = z.enum(['not_started', 'completed']);
 
-/** The tasks the API judges. A section joins this list when its form exists. */
+/** The tasks the API judges. */
 export const indicatorTaskKeySchema = z.enum([
   'name',
   'definition-and-rationale',

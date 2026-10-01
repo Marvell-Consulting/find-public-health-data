@@ -26,7 +26,3 @@ export const AGE_UNIT_DAYS = { days: 1, weeks: 7, months: 30.4375, years: 365.25
 export type AgeUnit = keyof typeof AGE_UNIT_DAYS;
 
 export const AGE_UNITS = Object.keys(AGE_UNIT_DAYS) as [AgeUnit, ...AgeUnit[]];
-
-export function isAgeUnit(value: string): value is AgeUnit {
-  return Object.hasOwn(AGE_UNIT_DAYS, value);
-}
