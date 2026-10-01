@@ -122,6 +122,7 @@ export const indicatorVersion = pgTable(
     // Derived from the name by slugify, and the indicator's public address. An exclusion
     // constraint, which drizzle cannot express, keeps a slug to one indicator for ever.
     slug: text().notNull(),
+    // Value type and units
     valueTypeId: uuid().references(() => valueType.id),
     // Asked of a directly standardised rate only, and the detail of an other population or of
     // the population an indirectly standardised value type is standardised against.
@@ -130,39 +131,51 @@ export const indicatorVersion = pgTable(
     unitId: uuid().references(() => unit.id),
     // The unit a publisher names under "Other".
     unitDetail: text(),
-    periodType: text({ enum: PERIOD_TYPES }),
-    // Asked of years and quarters only, and the end date only of a year ending on a specified one.
-    yearType: text({ enum: YEAR_TYPES }),
-    yearEndDay: smallint(),
-    yearEndMonth: smallint(),
-    ciMethodId: uuid().references(() => ciMethod.id),
-    // Asked of a standard CI method only, and the modifications only when there were some.
-    hasCiMethodModifications: boolean(),
-    ciMethodModificationsDetail: text(),
-    // Asked of an other CI method only.
-    ciMethodDetail: text(),
-    polarity: text({ enum: POLARITIES }),
-    updateFrequency: text({ enum: UPDATE_FREQUENCIES }),
-    comparatorMethodId: uuid().references(() => comparatorMethod.id),
-    ciConfidenceLevel: text({ enum: CI_CONFIDENCE_LEVELS }),
-    definition: text(),
-    rationale: text(),
-    methodology: text(),
-    calculatedBy: text({ enum: INDICATOR_CALCULATED_BY }),
-    calculatedByDetail: text(),
-    // The answered state of lists held in child tables, which a check cannot compare with the
-    // rows, so the API keeps them in step: null until asked, false for an answered no.
-    hasLinks: boolean(),
-    hasRiskFactor: boolean(),
-    hasFramework: boolean(),
+    // Sex and ages
     sexes: text({ enum: SEXES }).array(),
     // The ranges an age type of range gives are rows of indicator_version_age_range.
     ageType: text({ enum: AGE_TYPES }),
     specificAge: smallint(),
     specificAgeUnit: text({ enum: AGE_UNITS }),
     ageDetail: text(),
+    // Period type
+    periodType: text({ enum: PERIOD_TYPES }),
+    // Asked of years and quarters only, and the end date only of a year ending on a specified one.
+    yearType: text({ enum: YEAR_TYPES }),
+    yearEndDay: smallint(),
+    yearEndMonth: smallint(),
+    // Polarity
+    polarity: text({ enum: POLARITIES }),
+    // Data quality
+    hasDataQualityIssues: boolean(),
+    // Definition and rationale
+    definition: text(),
+    rationale: text(),
+    // Numerator and denominator
     numeratorDefinition: text(),
     denominatorDefinition: text(),
+    dataSourceId: uuid().references(() => dataSource.id),
+    // How the indicator was calculated
+    methodology: text(),
+    calculatedBy: text({ enum: INDICATOR_CALCULATED_BY }),
+    calculatedByDetail: text(),
+    // Confidence intervals
+    ciMethodId: uuid().references(() => ciMethod.id),
+    // Asked of a standard CI method only, and the modifications only when there were some.
+    hasCiMethodModifications: boolean(),
+    ciMethodModificationsDetail: text(),
+    // Asked of an other CI method only.
+    ciMethodDetail: text(),
+    ciConfidenceLevel: text({ enum: CI_CONFIDENCE_LEVELS }),
+    // Benchmarking
+    comparatorMethodId: uuid().references(() => comparatorMethod.id),
+    // A goal is kept beside a yes alone; a single goal value has no upper value.
+    hasGoalBenchmark: boolean(),
+    goalLowerValue: doublePrecision(),
+    goalUpperValue: doublePrecision(),
+    goalPolarity: text({ enum: GOAL_POLARITIES }),
+    goalPolicyDetail: text(),
+    // Other notes and caveats
     // Each answer's detail is asked for, and required, only when the answer is yes.
     disclosureControl: text({ enum: INDICATOR_DISCLOSURE_CONTROL }),
     disclosureControlDetail: text(),
@@ -172,23 +185,27 @@ export const indicatorVersion = pgTable(
     caveatsDetail: text(),
     hasOtherNotes: boolean(),
     otherNotesDetail: text(),
-    hasDataQualityIssues: boolean(),
+    // Links and tagging
+    // The answered state of lists held in child tables, which a check cannot compare with the
+    // rows, so the API keeps them in step: null until asked, false for an answered no.
+    hasLinks: boolean(),
+    hasRiskFactor: boolean(),
+    hasFramework: boolean(),
+    // Copyright and data re-use
     // True when the indicator states its own copyright or re-use terms instead of the defaults.
     hasCustomCopyright: boolean(),
     customCopyrightDetail: text(),
     hasCustomDataReuse: boolean(),
     customDataReuseDetail: text(),
-    // A goal is kept beside a yes alone; a single goal value has no upper value.
-    hasGoalBenchmark: boolean(),
-    goalLowerValue: doublePrecision(),
-    goalUpperValue: doublePrecision(),
-    goalPolarity: text({ enum: GOAL_POLARITIES }),
-    goalPolicyDetail: text(),
+    // Update frequency
+    updateFrequency: text({ enum: UPDATE_FREQUENCIES }),
     // Notes for reviewers, never published.
+    // Variance and quality
     variation: text(),
     qualityAssurance: text(),
     hasSourceDataIssues: boolean(),
     sourceDataIssuesDetail: text(),
+    // Justifications
     ciMethodJustification: text(),
     dataSourcesJustification: text(),
     inequalitiesIncluded: text(),
@@ -196,10 +213,10 @@ export const indicatorVersion = pgTable(
     exclusionsDetail: text(),
     hasAutomation: boolean(),
     automationDetail: text(),
+    // Other comments
     sponsorsAndStakeholders: text(),
     hasReviewerComments: boolean(),
     reviewerCommentsDetail: text(),
-    dataSourceId: uuid().references(() => dataSource.id),
     ...audit,
     // The writer of a version is always known: a publisher, or the seed's system actor.
     createdBy: text().notNull(),
