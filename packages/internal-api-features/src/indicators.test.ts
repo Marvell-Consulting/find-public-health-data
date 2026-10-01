@@ -3,7 +3,7 @@ import type { Express } from 'express';
 import type { Logger } from 'pino';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { IndicatorAdminDetailRow, IndicatorAdminRow } from './indicator-repository.ts';
+import type { IndicatorAdminDetailRow, IndicatorAdminRow } from './indicator-list-repository.ts';
 import { INDICATORS_PAGE_SIZE, internalIndicatorsRouter } from './indicators.ts';
 import {
   createCapturingLogger,

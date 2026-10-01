@@ -4,22 +4,26 @@ import { type CiMethodRow, getCiMethodById, listCiMethods } from './ci-method-re
 import type { TagOptions, ValueTypeAndUnitOptions } from './contract.ts';
 import { type DataProviderRow, listDataProviders } from './data-provider-repository.ts';
 import {
-  type CreateDraftFromPublishedResult,
   type CreateIndicatorDraftResult,
-  createDraftFromPublished,
   createIndicatorDraft,
-  getIndicatorById,
   getIndicatorDraftState,
-  type IndicatorAdminDetailRow,
-  type IndicatorAdminRows,
   type IndicatorDraftAttributes,
-  type IndicatorDraftLists,
   type IndicatorDraftStateRow,
-  listIndicatorsPage,
   type NewIndicatorDraftAttributes,
   type UpdateIndicatorDraftResult,
   updateIndicatorDraft,
-} from './indicator-repository.ts';
+} from './indicator-draft-repository.ts';
+import {
+  getIndicatorById,
+  type IndicatorAdminDetailRow,
+  type IndicatorAdminRows,
+  listIndicatorsPage,
+} from './indicator-list-repository.ts';
+import {
+  type CreateDraftFromPublishedResult,
+  createDraftFromPublished,
+} from './indicator-publish-repository.ts';
+import type { IndicatorDraftLists } from './indicator-version-lists-repository.ts';
 import { listTagOptions } from './tag-repository.ts';
 import {
   type CreateTopicResult,

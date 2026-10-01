@@ -1,0 +1,279 @@
+import { describe, expect, it, vi } from 'vitest';
+import { numeratorSection, publishingDateSection, toFieldErrors } from './contract.ts';
+import {
+  everyAnswer,
+  METHODS,
+  mortality,
+  ons,
+  onsAlone,
+  publishingDate,
+  TAGS,
+  tagging,
+  tagOptions,
+} from './indicator-section-fixtures.ts';
+import {
+  confidenceIntervalsServerSection,
+  providerSourcesServerSection,
+  publishingDateServerSection,
+  taggingServerSection,
+  valueTypeAndUnitsServerSection,
+} from './indicator-section-validators.ts';
+import { createFakeInternalRepositories } from './testing.ts';
+
+describe('taggingServerSection', () => {
+  async function fieldErrorsOf(body: object) {
+    const { tags } = createFakeInternalRepositories({
+      tags: { listOptions: vi.fn().mockResolvedValue(tagOptions) },
+    });
+    const section = taggingServerSection(tags);
+    const result = await section.schema.safeParseAsync(body);
+    return result.success ? undefined : toFieldErrors(result.error, section.fields);
+  }
+
+  it('accepts tags the page offers', async () => {
+    expect(await fieldErrorsOf(tagging)).toBeUndefined();
+  });
+
+  it('refuses a tag offered under another question, or not at all', async () => {
+    expect(
+      await fieldErrorsOf({
+        ...tagging,
+        topicIds: [TAGS.type],
+        riskFactorIds: ['019fa38f-073f-764e-9ac6-1c4d03b10999'],
+        hasFramework: 'yes',
+        frameworkIds: [TAGS.topic],
+      }),
+    ).toEqual({
+      topicIds: 'Select a topic from the list',
+      riskFactorIds: 'Select a risk factor from the list',
+      frameworkIds: 'Select a framework or programme from the list',
+    });
+  });
+
+  it('does not judge the tags beside a "No", which are dropped', async () => {
+    expect(
+      await fieldErrorsOf({ ...tagging, hasRiskFactor: 'no', riskFactorIds: [TAGS.topic] }),
+    ).toBeUndefined();
+  });
+});
+
+describe('confidenceIntervalsServerSection', () => {
+  function submit(
+    body: object,
+    findById = vi.fn(async (id: string) =>
+      Object.values(METHODS).find((method) => method.id === id),
+    ),
+  ) {
+    const { ciMethods } = createFakeInternalRepositories({ ciMethods: { findById } });
+    const section = confidenceIntervalsServerSection(ciMethods);
+
+    return { findById, submission: section.schema.safeParseAsync(body), section };
+  }
+
+  async function fieldErrorsOf(body: object) {
+    const { section, submission } = submit(body);
+    const result = await submission;
+    return result.success ? undefined : toFieldErrors(result.error, section.fields);
+  }
+
+  it('adds the kind of the chosen method', async () => {
+    const result = await submit({ ...everyAnswer, ciMethodId: METHODS.other.id }).submission;
+
+    expect(result.success && result.data.kind).toBe('other');
+  });
+
+  it('refuses a method that does not exist', async () => {
+    expect(
+      await fieldErrorsOf({ ...everyAnswer, ciMethodId: '00000000-0000-7000-8000-000000000999' }),
+    ).toEqual({ ciMethodId: 'Select the confidence interval method used' });
+  });
+
+  it('refuses an unchosen method without looking for it', async () => {
+    const { findById, submission } = submit({ ...everyAnswer, ciMethodId: '' });
+
+    expect((await submission).success).toBe(false);
+    expect(findById).not.toHaveBeenCalled();
+  });
+
+  it("refuses what the chosen method's kind asks for and was not given", async () => {
+    expect(
+      await fieldErrorsOf({
+        ciMethodId: METHODS.standard.id,
+        hasCiMethodModifications: '',
+        ciMethodModificationsDetail: '',
+        ciMethodDetail: '',
+      }),
+    ).toEqual({ hasCiMethodModifications: 'Select whether any modifications were used' });
+  });
+});
+
+describe('valueTypeAndUnitsServerSection', () => {
+  const options = {
+    valueTypes: [{ id: '01a0d8a5-3ca2-7315-bfca-96d2031a65e7', name: 'Proportion' }],
+    units: [{ id: '01a0d8a5-3ca2-7315-bfca-96d615820bd4', name: '%' }],
+  };
+  const answers = {
+    valueTypeId: '01a0d8a5-3ca2-7315-bfca-96d2031a65e7',
+    standardPopulation: '',
+    standardPopulationOther: '',
+    referencePopulation: '',
+    unitId: '01a0d8a5-3ca2-7315-bfca-96d615820bd4',
+    unitDetail: '',
+  };
+
+  function submit(body: object) {
+    const listOptions = vi.fn().mockResolvedValue(options);
+    const { valueTypesAndUnits } = createFakeInternalRepositories({
+      valueTypesAndUnits: { listOptions },
+    });
+    const section = valueTypeAndUnitsServerSection(valueTypesAndUnits);
+
+    return { listOptions, section, submission: section.schema.safeParseAsync(body) };
+  }
+
+  async function fieldErrorsOf(body: object) {
+    const { section, submission } = submit(body);
+    const result = await submission;
+    return result.success ? undefined : toFieldErrors(result.error, section.fields);
+  }
+
+  it('accepts a value type and unit the page offers', async () => {
+    expect(await fieldErrorsOf(answers)).toBeUndefined();
+  });
+
+  it('refuses a value type or unit the page does not offer', async () => {
+    const missing = '00000000-0000-7000-8000-000000000999';
+
+    expect(await fieldErrorsOf({ ...answers, valueTypeId: missing, unitId: missing })).toEqual({
+      valueTypeId: 'Select the value type',
+      unitId: 'Select the units',
+    });
+  });
+
+  it('refuses an unchosen value type without reading the options', async () => {
+    const { listOptions, submission } = submit({ ...answers, valueTypeId: '' });
+
+    expect((await submission).success).toBe(false);
+    expect(listOptions).not.toHaveBeenCalled();
+  });
+});
+
+describe('publishingDateServerSection', () => {
+  // 09:30 BST on 14 September 2027.
+  const now = new Date('2027-09-14T08:30:00.000Z');
+
+  function submit(body: object, at: Date = now) {
+    return publishingDateServerSection(() => at).schema.safeParse(body);
+  }
+
+  function fieldErrorsOf(body: object, at: Date = now) {
+    const result = submit(body, at);
+    return result.success ? undefined : toFieldErrors(result.error, publishingDateSection.fields);
+  }
+
+  function dated(day: string, month: string, year = '2027') {
+    return {
+      ...publishingDate,
+      publishingDateDay: day,
+      publishingDateMonth: month,
+      publishingDateYear: year,
+    };
+  }
+
+  it('adds the instant the UK date and time name, 28 days ahead', () => {
+    const result = submit(dated('12', '10'));
+
+    expect(result.success && result.data.scheduledPublishAt).toEqual(
+      new Date('2027-10-12T08:30:00.000Z'),
+    );
+  });
+
+  it.each([
+    ['27 days from today', dated('11', '10')],
+    ['today', dated('14', '9')],
+    ['in the past', dated('13', '9')],
+  ])('refuses a date %s, on the parts of the date', (_, body) => {
+    const message = 'Publishing date must be at least 28 days from today';
+
+    expect(fieldErrorsOf(body)).toEqual({
+      publishingDateDay: message,
+      publishingDateMonth: message,
+      publishingDateYear: message,
+    });
+  });
+
+  it('accepts any time on the date 28 days from today', () => {
+    // Less than 28 × 24 hours after 09:30 on 14 September.
+    const midnight = { ...dated('12', '10'), publishingTimeHour: '00', publishingTimeMinute: '00' };
+
+    expect(submit(midnight).success).toBe(true);
+  });
+
+  it("counts from today's date in the UK", () => {
+    // 00:30 BST on 15 September, still 14 September in UTC.
+    const lateEvening = new Date('2027-09-14T23:30:00.000Z');
+
+    expect(fieldErrorsOf(dated('12', '10'), lateEvening)).toBeDefined();
+    expect(submit(dated('13', '10'), lateEvening).success).toBe(true);
+  });
+
+  it('counts calendar days across a clock change', () => {
+    // 09:30 GMT on 5 March; 09:30 BST on 2 April is an hour short of 28 × 24 hours later.
+    const march = new Date('2027-03-05T09:30:00.000Z');
+
+    expect(submit(dated('2', '4'), march).success).toBe(true);
+  });
+
+  it('refuses a time the spring clock change skips, on the parts of the time', () => {
+    const skipped = { ...dated('26', '3', '2028'), publishingTimeHour: '01' };
+
+    expect(fieldErrorsOf(skipped)).toEqual({
+      publishingTimeHour: 'Publishing time must be a real time',
+      publishingTimeMinute: 'Publishing time must be a real time',
+    });
+  });
+
+  it('takes a time the autumn clock change repeats as its second, GMT, occurrence', () => {
+    const repeated = { ...dated('29', '10', '2028'), publishingTimeHour: '01' };
+    const result = submit(repeated);
+
+    expect(result.success && result.data.scheduledPublishAt).toEqual(
+      new Date('2028-10-29T01:30:00.000Z'),
+    );
+  });
+});
+
+describe('providerSourcesServerSection', () => {
+  function submit(body: object) {
+    const list = vi.fn().mockResolvedValue([ons]);
+    const { dataProviders } = createFakeInternalRepositories({ dataProviders: { list } });
+    const section = providerSourcesServerSection(numeratorSection, dataProviders);
+
+    return { list, section, submission: section.schema.safeParseAsync(body) };
+  }
+
+  it('accepts sources the providers list offers', async () => {
+    const body = { sources: [mortality, onsAlone], definition: 'Deaths' };
+
+    expect((await submit(body).submission).data).toEqual(body);
+  });
+
+  it('refuses a source the providers list does not offer', async () => {
+    const { section, submission } = submit({
+      sources: [{ providerId: ons.id, sourceId: '01a0d858-9885-764e-8d53-6826aec67999' }],
+      definition: 'Deaths',
+    });
+    const result = await submission;
+
+    expect(result.success ? undefined : toFieldErrors(result.error, section.fields)).toEqual({
+      sources: 'Select a data provider',
+    });
+  });
+
+  it('refuses an incomplete form without reading the providers', async () => {
+    const { list, submission } = submit({ sources: [], definition: '' });
+
+    expect((await submission).success).toBe(false);
+    expect(list).not.toHaveBeenCalled();
+  });
+});

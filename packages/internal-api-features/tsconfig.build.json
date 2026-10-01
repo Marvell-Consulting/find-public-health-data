@@ -7,5 +7,9 @@
     "declaration": true,
     "sourceMap": true
   },
-  "exclude": ["src/**/*.test.ts"]
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/indicator-repository-testing.ts",
+    "src/indicator-section-fixtures.ts"
+  ]
 }

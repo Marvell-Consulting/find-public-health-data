@@ -13,7 +13,7 @@ import {
   indicatorPageQuerySchema,
   toFieldErrors,
 } from './contract.ts';
-import type { IndicatorAdminDetailRow, IndicatorAdminRow } from './indicator-repository.ts';
+import type { IndicatorAdminDetailRow, IndicatorAdminRow } from './indicator-list-repository.ts';
 import { indicatorTaskList } from './indicator-task-list.ts';
 import type { InternalIndicatorRepository } from './repositories.ts';
 

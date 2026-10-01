@@ -25,8 +25,7 @@ import {
   valueTypeAndUnitsSection,
   varianceAndQualitySection,
 } from './contract.ts';
-import { denominatorColumns, numeratorColumns } from './indicator-provider-sources.ts';
-import type { IndicatorDraftVersion } from './indicator-repository.ts';
+import type { IndicatorDraftVersion } from './indicator-draft-repository.ts';
 import type { IndicatorSectionColumns, IndicatorSectionDraft } from './indicator-section.ts';
 import {
   benchmarkingColumns,
@@ -36,18 +35,22 @@ import {
   dataQualityColumns,
   definitionAndRationaleColumns,
   justificationsColumns,
-  linksColumns,
   otherCommentsColumns,
   otherNotesAndCaveatsColumns,
   periodTypeColumns,
   polarityColumns,
   publishingDateColumns,
-  sexAndAgesColumns,
-  taggingColumns,
   updateFrequencyColumns,
   valueTypeAndUnitsColumns,
   varianceAndQualityColumns,
-} from './indicator-sections.ts';
+} from './indicator-section-columns.ts';
+import {
+  denominatorColumns,
+  linksColumns,
+  numeratorColumns,
+  sexAndAgesColumns,
+  taggingColumns,
+} from './indicator-section-list-columns.ts';
 
 /** The draft columns the task list judges: the name, and those the sections read. */
 export type IndicatorTaskListDraft = Pick<IndicatorDraftVersion, 'name'> &
