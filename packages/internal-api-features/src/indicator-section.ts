@@ -3,16 +3,13 @@ import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { Router } from 'express';
 
 import { indicatorIdSchema, indicatorSectionFieldErrors } from './contract.ts';
-import type {
-  IndicatorDraft,
-  IndicatorDraftAttributes,
-  IndicatorDraftLists,
-} from './indicator-repository.ts';
+import type { IndicatorDraft, IndicatorDraftAttributes } from './indicator-draft-repository.ts';
 import type {
   DetailedQuestion,
   IndicatorSection,
   IndicatorSectionFields,
 } from './indicator-section-contract.ts';
+import type { IndicatorDraftLists } from './indicator-version-lists-repository.ts';
 import type { InternalIndicatorRepository } from './repositories.ts';
 
 /** The draft columns a section writes: never the name, whose slug is the name page's concern. */

@@ -9,7 +9,7 @@ import {
   varianceAndQualitySection,
 } from './contract.ts';
 import { indicatorSectionRouter, yesNoDetailColumns } from './indicator-section.ts';
-import { definitionAndRationaleColumns } from './indicator-sections.ts';
+import { definitionAndRationaleColumns } from './indicator-section-columns.ts';
 import {
   createCapturingLogger,
   createFakeInternalRepositories,
