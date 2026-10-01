@@ -1,7 +1,7 @@
 import type { Topic } from '@fphd/db';
 import { createFakeRepositories } from '@fphd/db/testing';
+import { request } from '@fphd/express/testing';
 import { createLogger } from '@fphd/logger';
-import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createApp } from './app.ts';

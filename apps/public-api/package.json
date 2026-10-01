@@ -22,9 +22,8 @@
     "@fphd/public-api-features": "workspace:*"
   },
   "devDependencies": {
+    "@fphd/express": "workspace:*",
     "@types/node": "catalog:",
-    "@types/supertest": "catalog:",
-    "supertest": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

@@ -1,5 +1,5 @@
+import { request } from '@fphd/express/testing';
 import { UNIT_IDS, VALUE_TYPE_IDS } from '@fphd/utils/value-type-and-unit';
-import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 import type { CiMethodRow } from './ci-method-repository.ts';
 import {

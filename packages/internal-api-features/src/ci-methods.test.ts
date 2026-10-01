@@ -1,5 +1,5 @@
+import { request } from '@fphd/express/testing';
 import type { Express } from 'express';
-import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 
 import { internalCiMethodsRouter } from './ci-methods.ts';

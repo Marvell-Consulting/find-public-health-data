@@ -280,15 +280,12 @@ importers:
         specifier: workspace:*
         version: link:../../packages/public-api-features
     devDependencies:
+      '@fphd/express':
+        specifier: workspace:*
+        version: link:../../packages/express
       '@types/node':
         specifier: 'catalog:'
         version: 24.13.3
-      '@types/supertest':
-        specifier: 'catalog:'
-        version: 7.2.0
-      supertest:
-        specifier: 'catalog:'
-        version: 7.2.2
       tsx:
         specifier: 'catalog:'
         version: 4.23.0
@@ -415,15 +412,12 @@ importers:
         specifier: workspace:*
         version: link:../../packages/public-api-features
     devDependencies:
+      '@fphd/express':
+        specifier: workspace:*
+        version: link:../../packages/express
       '@types/node':
         specifier: 'catalog:'
         version: 24.13.3
-      '@types/supertest':
-        specifier: 'catalog:'
-        version: 7.2.0
-      supertest:
-        specifier: 'catalog:'
-        version: 7.2.2
       tsx:
         specifier: 'catalog:'
         version: 4.23.0
@@ -540,15 +534,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 24.13.3
-      '@types/supertest':
-        specifier: 'catalog:'
-        version: 7.2.0
       pino:
         specifier: 'catalog:'
         version: 10.3.1
-      supertest:
-        specifier: 'catalog:'
-        version: 7.2.2
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -686,21 +674,18 @@ importers:
         specifier: 'catalog:'
         version: 5.2.1
     devDependencies:
+      '@fphd/express':
+        specifier: workspace:*
+        version: link:../express
       '@types/express':
         specifier: 'catalog:'
         version: 5.0.6
       '@types/node':
         specifier: 'catalog:'
         version: 24.13.3
-      '@types/supertest':
-        specifier: 'catalog:'
-        version: 7.2.0
       pino:
         specifier: 'catalog:'
         version: 10.3.1
-      supertest:
-        specifier: 'catalog:'
-        version: 7.2.2
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -785,18 +770,15 @@ importers:
         specifier: 'catalog:'
         version: 5.2.1
     devDependencies:
+      '@fphd/express':
+        specifier: workspace:*
+        version: link:../express
       '@types/express':
         specifier: 'catalog:'
         version: 5.0.6
       '@types/node':
         specifier: 'catalog:'
         version: 24.13.3
-      '@types/supertest':
-        specifier: 'catalog:'
-        version: 7.2.0
-      supertest:
-        specifier: 'catalog:'
-        version: 7.2.2
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -1053,12 +1035,6 @@ importers:
       '@types/react-dom':
         specifier: 'catalog:'
         version: 19.2.3(@types/react@19.2.17)
-      '@types/supertest':
-        specifier: 'catalog:'
-        version: 7.2.0
-      supertest:
-        specifier: 'catalog:'
-        version: 7.2.2
       typescript:
         specifier: 'catalog:'
         version: 6.0.3

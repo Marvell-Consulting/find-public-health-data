@@ -9,9 +9,9 @@ import {
 } from '@fphd/db';
 import { createOwnerClient } from '@fphd/db/operations';
 import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
+import { request } from '@fphd/express/testing';
 import { SLUG_PATTERN } from '@fphd/utils/slug';
 import express from 'express';
-import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { indicatorAreaDataSchema, indicatorDetailSchema } from './contract.ts';

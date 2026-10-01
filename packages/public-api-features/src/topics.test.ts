@@ -1,7 +1,7 @@
 import type { Topic } from '@fphd/db';
 import { createFakeRepositories, type FakeRepositoryOverrides } from '@fphd/db/testing';
+import { request } from '@fphd/express/testing';
 import express, { type Express } from 'express';
-import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
 import { topicsRouter } from './topics.ts';

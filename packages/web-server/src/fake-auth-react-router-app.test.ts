@@ -1,5 +1,5 @@
 import { createJwtSessionService } from '@fphd/auth/jwt-session';
-import request from 'supertest';
+import { request } from '@fphd/express/testing';
 import { describe, expect, it } from 'vitest';
 
 import { createFakeAuthReactRouterApp } from './fake-auth-react-router-app.ts';

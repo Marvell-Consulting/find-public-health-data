@@ -1,5 +1,5 @@
+import { request } from '@fphd/express/testing';
 import express from 'express';
-import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
 import { basicAuth } from './basic-auth.ts';
