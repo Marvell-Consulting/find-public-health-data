@@ -7,6 +7,7 @@ import {
   textSection,
   yesNoSchema,
 } from './indicator-section-contract.ts';
+import { longText } from './text-contract.ts';
 
 const fields = z.enum([
   'ciMethodJustification',
@@ -35,19 +36,22 @@ export const justificationsQuestions = [
 
 const schema = requireDetails(
   z.object({
-    ciMethodJustification: z
-      .string()
-      .trim()
-      .min(1, 'Enter why the confidence interval method was chosen'),
-    dataSourcesJustification: z.string().trim().min(1, 'Enter why the data sources were chosen'),
-    inequalitiesIncluded: z
-      .string()
-      .trim()
-      .min(1, 'Enter what health inequalities have been included'),
+    ciMethodJustification: longText('Reason for choosing the confidence interval method').min(
+      1,
+      'Enter why the confidence interval method was chosen',
+    ),
+    dataSourcesJustification: longText('Reason for choosing the data sources').min(
+      1,
+      'Enter why the data sources were chosen',
+    ),
+    inequalitiesIncluded: longText('Health inequalities included').min(
+      1,
+      'Enter what health inequalities have been included',
+    ),
     hasExclusions: yesNoSchema('Select whether there have been any exclusions'),
-    exclusionsDetail: z.string().trim(),
+    exclusionsDetail: longText('Reason for the exclusions'),
     hasAutomation: yesNoSchema('Select whether internal automation tools have been used'),
-    automationDetail: z.string().trim(),
+    automationDetail: longText('Details of the tools used'),
   }),
   justificationsQuestions,
 );

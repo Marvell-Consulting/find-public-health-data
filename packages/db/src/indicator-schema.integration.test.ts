@@ -587,6 +587,20 @@ describe('constraint names', () => {
   });
 });
 
+describe('length checks', () => {
+  // How long an answer may be is the contract's rule; a slug's length is part of its format.
+  it("hold no text to a length but the slug's", async () => {
+    const checks = await db.execute<{ name: string }>(sql`
+      SELECT conname AS name FROM pg_constraint
+      WHERE connamespace = 'public'::regnamespace AND contype = 'c'
+        AND pg_get_constraintdef(oid) ~* '\\mlength\\('
+      ORDER BY conname
+    `);
+
+    expect(checks.map(({ name }) => name)).toEqual(['indicator_version_slug_check']);
+  });
+});
+
 describe('ci_method', () => {
   it('takes a method as standard unless told otherwise', async () => {
     const [row] = await db

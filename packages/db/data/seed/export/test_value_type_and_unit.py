@@ -96,7 +96,7 @@ class UnitValuesTest(unittest.TestCase):
         )
 
     def test_refuses_an_unknown_placeholder_or_a_name_too_long_to_keep(self):
-        for name in ["Unknown unit 99", " ", "x" * 101]:
+        for name in ["Unknown unit 99", " ", "x" * 301]:
             with self.assertRaises(ValueError):
                 unit_values(name)
 

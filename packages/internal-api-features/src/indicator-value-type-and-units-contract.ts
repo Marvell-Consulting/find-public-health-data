@@ -1,12 +1,8 @@
 import { z } from '@fphd/config/zod';
-import {
-  STANDARD_POPULATIONS,
-  standardisationOf,
-  UNIT_DETAIL_MAX_LENGTH,
-  UNIT_IDS,
-} from '@fphd/utils/value-type-and-unit';
+import { STANDARD_POPULATIONS, standardisationOf, UNIT_IDS } from '@fphd/utils/value-type-and-unit';
 
 import { type IndicatorSection, textSection } from './indicator-section-contract.ts';
+import { shortText } from './text-contract.ts';
 
 const optionSchema = z.object({ id: z.uuid(), name: z.string().min(1) });
 
@@ -45,10 +41,10 @@ const schema = z
     standardPopulation: z.enum(['', ...STANDARD_POPULATIONS], {
       error: SELECT_STANDARD_POPULATION,
     }),
-    standardPopulationOther: z.string().trim(),
-    referencePopulation: z.string().trim(),
+    standardPopulationOther: shortText('Standard or reference population'),
+    referencePopulation: shortText('Standard or reference population'),
     unitId: z.uuid(SELECT_UNITS),
-    unitDetail: z.string().trim(),
+    unitDetail: shortText('Unit'),
   })
   .superRefine(
     (answers, ctx) => {
@@ -72,14 +68,14 @@ const schema = z
       if (answers.unitId === UNIT_IDS.other && answers.unitDetail === '') {
         issue('unitDetail', 'Enter the unit');
       }
-      if (answers.unitId === UNIT_IDS.other && answers.unitDetail.length > UNIT_DETAIL_MAX_LENGTH) {
-        issue('unitDetail', `Unit must be ${UNIT_DETAIL_MAX_LENGTH} characters or fewer`);
-      }
     },
-    // Also beside an unanswered value type or unit, so every refusal shows at once.
+    // Also beside an unanswered value type or unit, or refused text, so every refusal shows at once.
     {
       when: ({ issues }) =>
-        issues.every(({ path }) => path?.[0] === 'valueTypeId' || path?.[0] === 'unitId'),
+        issues.every(
+          ({ code, path }) =>
+            code === 'custom' || path?.[0] === 'valueTypeId' || path?.[0] === 'unitId',
+        ),
     },
   );
 

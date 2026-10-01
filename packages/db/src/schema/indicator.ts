@@ -26,7 +26,6 @@ import {
   INDIRECTLY_STANDARDISED_VALUE_TYPE_IDS,
   STANDARD_POPULATIONS,
   type StandardPopulation,
-  UNIT_DETAIL_MAX_LENGTH,
   UNIT_IDS,
   VALUE_TYPE_IDS,
 } from '@fphd/utils/value-type-and-unit';
@@ -256,10 +255,6 @@ export const indicatorVersion = pgTable(
     check(
       'indicator_version_unit_detail_check',
       sql`(${t.unitDetail} IS NOT NULL) = (${t.unitId} IS NOT DISTINCT FROM ${literals([UNIT_IDS.other])})`,
-    ),
-    check(
-      'indicator_version_unit_detail_length_check',
-      sql`length(${t.unitDetail}) <= ${sql.raw(String(UNIT_DETAIL_MAX_LENGTH))}`,
     ),
     check(
       'indicator_version_ci_method_modifications_detail_check',

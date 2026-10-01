@@ -79,6 +79,9 @@ src/
   `(has_x IS TRUE) = (x_detail IS NOT NULL)`; an optional one is only refused elsewhere,
   `has_x IS TRUE OR x_detail IS NULL`. `goal_policy_detail`, the optional detail beside
   `has_goal_benchmark`, is the one whose name predates the rule.
+- **Text length**: how long an answer may be, and which characters it may hold, is the
+  contract's rule, applied at the form and the API; no check measures a publisher's text.
+  The slug's length is part of its format, so its check keeps it.
 - **Repository functions**: pure, `db` first argument, one file per aggregate.
 - **Slugs**: `indicator_version.slug` is derived from the version's name by `slugify` in
   `@fphd/utils/slug`. An exclusion constraint,

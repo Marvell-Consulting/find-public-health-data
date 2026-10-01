@@ -149,8 +149,8 @@ test('saves nothing until the follow-ups are answered', async ({ page }) => {
   await chooseUnit(page, 'Other');
   await continueAndExpectErrors(page, [POPULATION, 'Enter the unit']);
 
-  await page.getByLabel(UNIT_OTHER).fill('x'.repeat(101));
-  await continueAndExpectErrors(page, [POPULATION, 'Unit must be 100 characters or fewer']);
+  await page.getByLabel(UNIT_OTHER).fill('x'.repeat(301));
+  await continueAndExpectErrors(page, [POPULATION, 'Unit must be 300 characters or fewer']);
 
   await page.goto(pagePath);
   await expect(page.getByLabel(VALUE_TYPE).locator('option:checked')).toHaveText('Select');

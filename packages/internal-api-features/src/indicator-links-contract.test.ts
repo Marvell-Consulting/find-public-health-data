@@ -108,19 +108,19 @@ describe('addLink', () => {
     expect(
       addLink([], {
         linkUrl: `https://www.gov.uk/${'a'.repeat(2000 - 19 + 1)}`,
-        linkText: 'a'.repeat(201),
+        linkText: 'a'.repeat(301),
       }),
     ).toEqual({
       fieldErrors: {
         linkUrl: 'URL must be 2,000 characters or fewer',
-        linkText: 'Link text must be 200 characters or fewer',
+        linkText: 'Link text must be 300 characters or fewer',
       },
     });
   });
 
   it('takes a URL and link text at their longest', () => {
     const linkUrl = `https://www.gov.uk/${'a'.repeat(2000 - 19)}`;
-    const linkText = 'a'.repeat(200);
+    const linkText = 'a'.repeat(300);
 
     expect(addLink([], { linkUrl, linkText })).toEqual({
       links: [{ url: linkUrl, text: linkText }],

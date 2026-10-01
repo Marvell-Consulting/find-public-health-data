@@ -1,6 +1,8 @@
 import { z } from '@fphd/config/zod';
 import { SLUG_PATTERN, type SlugProblem, slugProblem } from '@fphd/utils/slug';
 
+import { shortText } from './text-contract.ts';
+
 /**
  * The wire contract for the internal API, shared by its routers and the internal web app's
  * loaders. Like the public contract it imports only zod and the slug rule, on its own subpath,
@@ -122,11 +124,8 @@ const SLUG_PROBLEM_MESSAGES: Record<SlugProblem, string> = {
  * rather than at the write, where a name that yields no slug is a bug.
  */
 export const indicatorNameSchema = z.object({
-  name: z
-    .string()
-    .trim()
+  name: shortText('Indicator name')
     .min(1, 'Enter the name of the indicator')
-    .max(300, 'Indicator name must be 300 characters or fewer')
     .superRefine((name, ctx) => {
       const problem = slugProblem(name);
 

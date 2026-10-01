@@ -1,20 +1,14 @@
 import { z } from '@fphd/config/zod';
 
 import { type IndicatorSection, toFieldErrors, yesNoSchema } from './indicator-section-contract.ts';
+import { shortText } from './text-contract.ts';
 
 export const LINK_URL_MAX_LENGTH = 2000;
-export const LINK_TEXT_MAX_LENGTH = 200;
 export const MAX_LINKS = 20;
 
 // An absolute address on the web, which is all a link offered to the public may point to.
-const url = z
-  .string()
-  .trim()
+const url = shortText('URL', LINK_URL_MAX_LENGTH)
   .min(1, 'Enter a URL')
-  .max(
-    LINK_URL_MAX_LENGTH,
-    `URL must be ${LINK_URL_MAX_LENGTH.toLocaleString('en-GB')} characters or fewer`,
-  )
   .pipe(
     z.url({
       protocol: /^https?$/,
@@ -23,11 +17,7 @@ const url = z
     }),
   );
 
-const text = z
-  .string()
-  .trim()
-  .min(1, 'Enter link text')
-  .max(LINK_TEXT_MAX_LENGTH, `Link text must be ${LINK_TEXT_MAX_LENGTH} characters or fewer`);
+const text = shortText('Link text').min(1, 'Enter link text');
 
 export const indicatorLinkSchema = z.object({ url, text });
 

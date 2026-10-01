@@ -7,6 +7,7 @@ import {
   textSection,
   yesNoSchema,
 } from './indicator-section-contract.ts';
+import { longText } from './text-contract.ts';
 
 const fields = z.enum(['sponsorsAndStakeholders', 'hasReviewerComments', 'reviewerCommentsDetail']);
 
@@ -23,9 +24,9 @@ export const otherCommentsQuestions = [
 const schema = requireDetails(
   z.object({
     // Optional: not every indicator has a sponsor or stakeholder to name.
-    sponsorsAndStakeholders: z.string().trim(),
+    sponsorsAndStakeholders: longText('Sponsors or stakeholders'),
     hasReviewerComments: yesNoSchema('Select whether you have additional comments'),
-    reviewerCommentsDetail: z.string().trim(),
+    reviewerCommentsDetail: longText('Comments'),
   }),
   otherCommentsQuestions,
 );

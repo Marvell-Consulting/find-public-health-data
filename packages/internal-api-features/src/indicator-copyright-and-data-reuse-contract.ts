@@ -7,6 +7,7 @@ import {
   textSection,
   yesNoSchema,
 } from './indicator-section-contract.ts';
+import { longText } from './text-contract.ts';
 
 const fields = z.enum([
   'hasCustomCopyright',
@@ -35,9 +36,9 @@ const schema = requireDetails(
     hasCustomCopyright: yesNoSchema(
       'Select whether the copyright is anything other than Crown copyright',
     ),
-    customCopyrightDetail: z.string().trim(),
+    customCopyrightDetail: longText('Details of the copyright'),
     hasCustomDataReuse: yesNoSchema('Select whether the data re-use is different to the default'),
-    customDataReuseDetail: z.string().trim(),
+    customDataReuseDetail: longText('Details of the data re-use'),
   }),
   copyrightAndDataReuseQuestions,
 );

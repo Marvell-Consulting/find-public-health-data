@@ -69,16 +69,4 @@ describe('calculationSection', () => {
   ])('refuses %o, which the form never sends', (body) => {
     expect(sectionFieldErrors(section, body)).toBeDefined();
   });
-
-  it('accepts long answers, setting no length limit of its own', () => {
-    const long = 'a'.repeat(20_000);
-
-    expect(
-      sectionFieldErrors(section, {
-        methodology: long,
-        calculatedBy: 'other',
-        calculatedByDetail: long,
-      }),
-    ).toBeUndefined();
-  });
 });

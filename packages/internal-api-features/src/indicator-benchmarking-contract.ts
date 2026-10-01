@@ -2,6 +2,7 @@ import { z } from '@fphd/config/zod';
 import { GOAL_POLARITIES } from '@fphd/utils/polarity';
 
 import { type IndicatorSection, textSection, yesNoSchema } from './indicator-section-contract.ts';
+import { longText } from './text-contract.ts';
 
 const fields = z.enum([
   'hasGoalBenchmark',
@@ -39,7 +40,7 @@ const schema = z
     goalLowerValue: z.string().trim(),
     goalUpperValue: z.string().trim(),
     goalPolarity: z.enum([...GOAL_POLARITIES, ''], { error: 'Select the polarity of the goal' }),
-    goalPolicyDetail: z.string().trim(),
+    goalPolicyDetail: longText('Detail about the policy goal'),
   })
   .superRefine((answers, ctx) => {
     if (answers.hasGoalBenchmark !== 'yes') return;
