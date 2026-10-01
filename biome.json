@@ -32,13 +32,26 @@
               "@fphd/public-web": "Deployable apps must never import one another. Move the shared code into a packages/* workspace package.",
               "@fphd/internal-web": "Deployable apps must never import one another. Move the shared code into a packages/* workspace package.",
               "@fphd/public-api": "Deployable apps must never import one another. Move the shared code into a packages/* workspace package.",
-              "@fphd/internal-api": "Deployable apps must never import one another. Move the shared code into a packages/* workspace package."
+              "@fphd/internal-api": "Deployable apps must never import one another. Move the shared code into a packages/* workspace package.",
+              "supertest": "Use request from @fphd/express/testing: it listens on 127.0.0.1, where supertest sends requests, so no other local server can answer them."
             }
           }
         }
       }
     }
   },
+  "overrides": [
+    {
+      "includes": ["packages/express/src/testing.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": "off"
+          }
+        }
+      }
+    }
+  ],
   "assist": {
     "enabled": true,
     "actions": {

@@ -1,5 +1,5 @@
+import { request } from '@fphd/express/testing';
 import type { Express } from 'express';
-import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 import { dataProviderListSchema } from './contract.ts';
 import { internalDataProvidersRouter } from './data-providers.ts';

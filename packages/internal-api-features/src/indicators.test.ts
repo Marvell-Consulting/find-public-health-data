@@ -1,6 +1,6 @@
+import { request } from '@fphd/express/testing';
 import type { Express } from 'express';
 import type { Logger } from 'pino';
-import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { IndicatorAdminDetailRow, IndicatorAdminRow } from './indicator-repository.ts';

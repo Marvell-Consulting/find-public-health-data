@@ -1,6 +1,6 @@
 import type { Topic } from '@fphd/db';
+import { request } from '@fphd/express/testing';
 import express, { type Express } from 'express';
-import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
 import {

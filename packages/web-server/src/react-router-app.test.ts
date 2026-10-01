@@ -1,7 +1,7 @@
 import { createJwtSessionService } from '@fphd/auth/jwt-session';
+import { request } from '@fphd/express/testing';
 import express, { type Request, type Response } from 'express';
 import type { RouterContextProvider } from 'react-router';
-import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 
 interface ForwardedView {

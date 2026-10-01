@@ -1,10 +1,10 @@
 import { Writable } from 'node:stream';
 
 import { createJwtSessionService, createJwtSessionVerifier } from '@fphd/auth/jwt-session';
+import { request } from '@fphd/express/testing';
 import { createLogger } from '@fphd/logger';
 import express, { type Express } from 'express';
 import { pino } from 'pino';
-import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
 import { addFallbackHandlers, createApiApp, requireApiSession, requireJwtRole } from './index.ts';
