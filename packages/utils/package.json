@@ -5,6 +5,36 @@
   "license": "MIT",
   "type": "module",
   "exports": {
+    "./calculated-by": {
+      "browser": "./src/calculated-by.ts",
+      "development": "./src/calculated-by.ts",
+      "types": "./src/calculated-by.ts",
+      "default": "./dist/calculated-by.js"
+    },
+    "./ci-confidence-level": {
+      "browser": "./src/ci-confidence-level.ts",
+      "development": "./src/ci-confidence-level.ts",
+      "types": "./src/ci-confidence-level.ts",
+      "default": "./dist/ci-confidence-level.js"
+    },
+    "./ci-method-kind": {
+      "browser": "./src/ci-method-kind.ts",
+      "development": "./src/ci-method-kind.ts",
+      "types": "./src/ci-method-kind.ts",
+      "default": "./dist/ci-method-kind.js"
+    },
+    "./classification-dimension": {
+      "browser": "./src/classification-dimension.ts",
+      "development": "./src/classification-dimension.ts",
+      "types": "./src/classification-dimension.ts",
+      "default": "./dist/classification-dimension.js"
+    },
+    "./disclosure-control": {
+      "browser": "./src/disclosure-control.ts",
+      "development": "./src/disclosure-control.ts",
+      "types": "./src/disclosure-control.ts",
+      "default": "./dist/disclosure-control.js"
+    },
     "./indicator-path": {
       "browser": "./src/indicator-path.ts",
       "development": "./src/indicator-path.ts",
@@ -40,6 +70,12 @@
       "development": "./src/slug.ts",
       "types": "./src/slug.ts",
       "default": "./dist/slug.js"
+    },
+    "./source-part": {
+      "browser": "./src/source-part.ts",
+      "development": "./src/source-part.ts",
+      "types": "./src/source-part.ts",
+      "default": "./dist/source-part.js"
     },
     "./update-frequency": {
       "browser": "./src/update-frequency.ts",

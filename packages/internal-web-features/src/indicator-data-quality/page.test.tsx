@@ -17,7 +17,7 @@ const REFUSAL = 'Select whether there are any data quality issues with this indi
 function renderPage(props: Partial<Parameters<typeof DataQualityPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <DataQualityPage values={{ dataQualityIssues: '' }} {...props} />
+      <DataQualityPage values={{ hasDataQualityIssues: '' }} {...props} />
     </MemoryRouter>,
   );
 }
@@ -54,13 +54,13 @@ describe('DataQualityPage', () => {
 
     expect(radios.map((radio) => radio.labels?.[0]?.textContent)).toEqual(['Yes', 'No']);
     expect(radios.map((radio) => radio.value)).toEqual(['yes', 'no']);
-    expect(radios.every((radio) => radio.name === 'dataQualityIssues' && !radio.checked)).toBe(
+    expect(radios.every((radio) => radio.name === 'hasDataQualityIssues' && !radio.checked)).toBe(
       true,
     );
   });
 
   it('shows the answer it is given, so a draft can be revisited', () => {
-    renderPage({ values: { dataQualityIssues: 'no' } });
+    renderPage({ values: { hasDataQualityIssues: 'no' } });
 
     expect(option('No').checked).toBe(true);
     expect(option('Yes').checked).toBe(false);
@@ -68,7 +68,7 @@ describe('DataQualityPage', () => {
   });
 
   it('links the refusal to the first option and describes the options with it', () => {
-    const { container } = renderPage({ fieldErrors: { dataQualityIssues: REFUSAL } });
+    const { container } = renderPage({ fieldErrors: { hasDataQualityIssues: REFUSAL } });
 
     const link = within(screen.getByRole('alert')).getByRole('link');
     const error = container.querySelector('.govuk-error-message');

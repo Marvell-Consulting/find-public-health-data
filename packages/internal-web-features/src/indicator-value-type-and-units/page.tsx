@@ -1,15 +1,17 @@
 import {
   ENTER_POPULATION,
+  type ValueTypeAndUnitOptions,
   type ValueTypeAndUnitsField,
   valueTypeAndUnitsSection,
 } from '@fphd/internal-api-features/contract';
 import { fieldInputId, firstRadioId, Radios, Select, TextInput } from '@fphd/ui';
 import {
+  INDIRECTLY_STANDARDISED_VALUE_TYPE_IDS,
   STANDARD_POPULATION_LABELS,
   STANDARD_POPULATIONS,
   standardisationOf,
-  UNITS,
-  VALUE_TYPES,
+  UNIT_IDS,
+  VALUE_TYPE_IDS,
 } from '@fphd/utils/value-type-and-unit';
 import { useEffect, useState } from 'react';
 
@@ -24,6 +26,23 @@ function selected(field: ValueTypeAndUnitsField): string | undefined {
   return select instanceof HTMLSelectElement ? select.value : undefined;
 }
 
+type ValueTypeAndUnitsPageProps = SectionPageProps<ValueTypeAndUnitsField> &
+  ValueTypeAndUnitOptions;
+
+const listWithOr = new Intl.ListFormat('en-GB', { type: 'disjunction' });
+
+/** The names of the offered options among these ids, listed for a hint. */
+function namesOf(options: ValueTypeAndUnitOptions['valueTypes'], ids: readonly string[]): string {
+  return listWithOr.format(options.filter(({ id }) => ids.includes(id)).map(({ name }) => name));
+}
+
+function selectOptions(options: ValueTypeAndUnitOptions['valueTypes']) {
+  return [
+    { label: 'Select', value: '' },
+    ...options.map(({ id, name }) => ({ label: name, value: id })),
+  ];
+}
+
 /**
  * A select cannot reveal anything without JavaScript, so until the page is hydrated every
  * follow-up shows, hinted with the choice it is for; after, only the chosen ones' show.
@@ -31,8 +50,10 @@ function selected(field: ValueTypeAndUnitsField): string | undefined {
 export function ValueTypeAndUnitsPage({
   fieldErrors = {},
   formError,
+  units,
   values,
-}: SectionPageProps<ValueTypeAndUnitsField>) {
+  valueTypes,
+}: ValueTypeAndUnitsPageProps) {
   const [valueTypeId, setValueTypeId] = useState(values.valueTypeId);
   const [unitId, setUnitId] = useState(values.unitId);
   const [enhanced, setEnhanced] = useState(false);
@@ -61,14 +82,13 @@ export function ValueTypeAndUnitsPage({
         label="Select value type"
         name="valueTypeId"
         onChange={(event) => setValueTypeId(event.target.value)}
-        options={[
-          { label: 'Select', value: '' },
-          ...Object.values(VALUE_TYPES).map(({ id, name }) => ({ label: name, value: id })),
-        ]}
+        options={selectOptions(valueTypes)}
       />
       <div hidden={hides(standardisation === 'direct')}>
         <Radios
-          {...hint(`Only needed for ${VALUE_TYPES.directlyStandardisedRate.name}`)}
+          {...hint(
+            `Only needed for ${namesOf(valueTypes, [VALUE_TYPE_IDS.directlyStandardisedRate])}`,
+          )}
           {...errorProp(fieldErrors.standardPopulation)}
           defaultValue={values.standardPopulation}
           // NotGovUK sizes a heading in a legend; a bare h2 would be large, the class makes it medium.
@@ -97,7 +117,7 @@ export function ValueTypeAndUnitsPage({
       <div hidden={hides(standardisation === 'indirect')}>
         <TextInput
           {...hint(
-            `Only needed for ${VALUE_TYPES.indirectlyStandardisedProportion.name} or ${VALUE_TYPES.indirectlyStandardisedRatio.name}`,
+            `Only needed for ${namesOf(valueTypes, INDIRECTLY_STANDARDISED_VALUE_TYPE_IDS)}`,
           )}
           defaultValue={values.referencePopulation}
           error={fieldErrors.referencePopulation}
@@ -111,19 +131,16 @@ export function ValueTypeAndUnitsPage({
         label="Select units"
         name="unitId"
         onChange={(event) => setUnitId(event.target.value)}
-        options={[
-          { label: 'Select', value: '' },
-          ...Object.values(UNITS).map(({ id, name }) => ({ label: name, value: id })),
-        ]}
+        options={selectOptions(units)}
       />
-      <div hidden={hides(unitId === UNITS.other.id)}>
+      <div hidden={hides(unitId === UNIT_IDS.other)}>
         <TextInput
           {...hint('Only needed for Other units')}
           className="govuk-input--width-20"
-          defaultValue={values.unitOther}
-          error={fieldErrors.unitOther}
+          defaultValue={values.unitDetail}
+          error={fieldErrors.unitDetail}
           label="Enter unit"
-          name="unitOther"
+          name="unitDetail"
         />
       </div>
     </IndicatorSectionForm>

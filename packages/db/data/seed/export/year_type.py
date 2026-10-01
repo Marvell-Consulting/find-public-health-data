@@ -1,24 +1,14 @@
 """The service's period type, year type and year end for each Fingertips year type name.
 
-The service holds them as references to the period_type and year_type rows whose ids are
-in @fphd/utils/period-type, with a day and month for a year ending on a specified date;
-the exports translate Pholio's year type rows to them. Migration 0034 holds the same
-translation for databases that already had the Fingertips rows.
+The service holds them as the values in @fphd/utils/period-type, with a day and month for a
+year ending on a specified date; the exports translate Pholio's year type rows to them.
+Migrations 0034 and 0036 hold the same translation for databases that already had the
+Fingertips rows.
 """
 
-PERIOD_TYPE_IDS = {
-    "years": "01a0d88c-310a-7c54-b512-a99ca789cc12",
-    "quarters": "01a0d88c-310a-7c9d-b589-353d97eedb54",
-    "months": "01a0d88c-310a-7ca1-9ba4-031b00f46799",
-}
+PERIOD_TYPE_VALUES = ["years", "quarters", "months"]
 
-YEAR_TYPE_IDS = {
-    "calendar": "01a0d88c-310a-7ca5-8494-19e32c307628",
-    "financial": "01a0d88c-310a-7ca8-9a3b-40fc6f585b8a",
-    "academic": "01a0d88c-310a-7cab-8847-543e49e4c685",
-    "rolling": "01a0d88c-310a-7cae-ae91-2c6e6e6b707a",
-    "specified-end-date": "01a0d88c-310a-7cb1-af6e-3712b2958e12",
-}
+YEAR_TYPE_VALUES = ["calendar", "financial", "academic", "rolling", "specified-end-date"]
 
 # Period type, year type, and the (day, month) a year ending on a specified date ends on.
 YEAR_TYPES = {
@@ -42,7 +32,7 @@ YEAR_TYPES = {
     "Financial year end point": ("years", "specified-end-date", (31, 3)),
 }
 
-YEAR_TYPE_COLUMNS = ["period_type_id", "year_type_id", "year_end_day", "year_end_month"]
+YEAR_TYPE_COLUMNS = ["period_type", "year_type", "year_end_day", "year_end_month"]
 
 
 def year_type_values(name):
@@ -53,8 +43,8 @@ def year_type_values(name):
         raise ValueError(f"No year type value for the Fingertips year type {name!r}") from None
     day, month = year_end or (None, None)
     return {
-        "period_type_id": PERIOD_TYPE_IDS[period_type],
-        "year_type_id": YEAR_TYPE_IDS[year_type],
+        "period_type": period_type,
+        "year_type": year_type,
         "year_end_day": day,
         "year_end_month": month,
     }

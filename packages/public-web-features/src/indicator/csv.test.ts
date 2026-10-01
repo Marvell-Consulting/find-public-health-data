@@ -1,4 +1,3 @@
-import { YEAR_TYPES } from '@fphd/utils/period-type';
 import type { ApiClient } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
@@ -14,7 +13,7 @@ const detail = {
   slug: SLUG,
   name: 'Mortality, "all causes"',
   unit: 'per 100,000',
-  yearType: { id: YEAR_TYPES.calendar.id, label: 'Calendar' },
+  yearType: { value: 'calendar', label: 'Calendar' },
 };
 
 function observation(overrides = {}) {

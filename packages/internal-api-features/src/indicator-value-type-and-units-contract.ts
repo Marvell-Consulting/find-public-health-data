@@ -2,12 +2,21 @@ import { z } from '@fphd/config/zod';
 import {
   STANDARD_POPULATIONS,
   standardisationOf,
-  UNIT_OTHER_MAX_LENGTH,
-  UNITS,
-  VALUE_TYPES,
+  UNIT_DETAIL_MAX_LENGTH,
+  UNIT_IDS,
 } from '@fphd/utils/value-type-and-unit';
 
 import type { IndicatorSection } from './indicator-section-contract.ts';
+
+const optionSchema = z.object({ id: z.uuid(), name: z.string().min(1) });
+
+/** Every value type and unit a publisher may choose, each in the order the form lists them. */
+export const valueTypeAndUnitOptionsSchema = z.object({
+  valueTypes: z.array(optionSchema),
+  units: z.array(optionSchema),
+});
+
+export type ValueTypeAndUnitOptions = z.infer<typeof valueTypeAndUnitOptionsSchema>;
 
 // The directly standardised rate's other population and the indirectly standardised value
 // types' reference population are one answer, asked in two places so each shows without JavaScript.
@@ -17,29 +26,29 @@ const fields = z.enum([
   'standardPopulationOther',
   'referencePopulation',
   'unitId',
-  'unitOther',
+  'unitDetail',
 ]);
 
-type Ids = [string, ...string[]];
-
-const VALUE_TYPE_IDS = Object.values(VALUE_TYPES).map(({ id }) => id) as Ids;
-const UNIT_IDS = Object.values(UNITS).map(({ id }) => id) as Ids;
-
+export const SELECT_VALUE_TYPE = 'Select the value type';
+export const SELECT_UNITS = 'Select the units';
 export const SELECT_STANDARD_POPULATION = 'Select the standard population used';
 export const ENTER_POPULATION =
   'Enter the standard or reference population used for the standardisation calculation';
 
-/** The follow-ups are required only beside the value type or unit that asks them. */
+/**
+ * The follow-ups are required only beside the value type or unit that asks them. The form
+ * judges that a value type and unit are chosen; the API also checks that it offers them.
+ */
 const schema = z
   .object({
-    valueTypeId: z.enum(VALUE_TYPE_IDS, { error: 'Select the value type' }),
+    valueTypeId: z.uuid(SELECT_VALUE_TYPE),
     standardPopulation: z.enum(['', ...STANDARD_POPULATIONS], {
       error: SELECT_STANDARD_POPULATION,
     }),
     standardPopulationOther: z.string().trim(),
     referencePopulation: z.string().trim(),
-    unitId: z.enum(UNIT_IDS, { error: 'Select the units' }),
-    unitOther: z.string().trim(),
+    unitId: z.uuid(SELECT_UNITS),
+    unitDetail: z.string().trim(),
   })
   .superRefine(
     (answers, ctx) => {
@@ -60,11 +69,11 @@ const schema = z
       if (standardisation === 'indirect' && answers.referencePopulation === '') {
         issue('referencePopulation', ENTER_POPULATION);
       }
-      if (answers.unitId === UNITS.other.id && answers.unitOther === '') {
-        issue('unitOther', 'Enter the unit');
+      if (answers.unitId === UNIT_IDS.other && answers.unitDetail === '') {
+        issue('unitDetail', 'Enter the unit');
       }
-      if (answers.unitId === UNITS.other.id && answers.unitOther.length > UNIT_OTHER_MAX_LENGTH) {
-        issue('unitOther', `Unit must be ${UNIT_OTHER_MAX_LENGTH} characters or fewer`);
+      if (answers.unitId === UNIT_IDS.other && answers.unitDetail.length > UNIT_DETAIL_MAX_LENGTH) {
+        issue('unitDetail', `Unit must be ${UNIT_DETAIL_MAX_LENGTH} characters or fewer`);
       }
     },
     // Also beside an unanswered value type or unit, so every refusal shows at once.

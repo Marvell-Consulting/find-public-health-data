@@ -1,3 +1,4 @@
+import type { CiConfidenceLevel } from '@fphd/utils/ci-confidence-level';
 import {
   type PublicYearType,
   publicYearType,
@@ -7,6 +8,7 @@ import {
 import type { Polarity } from '@fphd/utils/polarity';
 import { isShortId, SHORT_ID_PATTERN } from '@fphd/utils/short-id';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
+import type { IndicatorSourcePart } from '@fphd/utils/source-part';
 import type { UpdateFrequency } from '@fphd/utils/update-frequency';
 import { unitLabel } from '@fphd/utils/value-type-and-unit';
 import {
@@ -30,7 +32,6 @@ import {
   listClassificationsForIndicator,
   listTopicsForIndicator,
 } from './indicator-topic-repository.ts';
-import type { IndicatorSourcePart } from './schema/index.ts';
 import {
   publishedArea as area,
   publishedAreaType as areaType,
@@ -193,7 +194,7 @@ export interface IndicatorDetail {
   updateFrequency: UpdateFrequency;
   polarity: Polarity;
   ciMethod: string | null;
-  ciConfidenceLevel: string | null;
+  ciConfidenceLevel: CiConfidenceLevel | null;
   comparatorMethod: string | null;
   dataUpdatedAt: string | null;
   definition: string | null;
@@ -258,8 +259,8 @@ export async function getPublishedIndicatorById(
       valueType: valueType.name,
       unitId: unit.id,
       unitName: unit.name,
-      unitOther: indicator.unitOther,
-      yearTypeId: indicator.yearTypeId,
+      unitDetail: indicator.unitDetail,
+      yearType: indicator.yearType,
       yearEndDay: indicator.yearEndDay,
       yearEndMonth: indicator.yearEndMonth,
       updateFrequency: indicator.updateFrequency,
@@ -323,8 +324,8 @@ export async function getPublishedIndicatorById(
     slug: row.slug,
     name: row.name,
     valueType: row.valueType,
-    unit: unitLabel({ id: row.unitId, name: row.unitName }, row.unitOther),
-    yearType: row.yearTypeId === null ? null : publicYearType(row.yearTypeId, yearEndOf(row)),
+    unit: unitLabel({ id: row.unitId, name: row.unitName }, row.unitDetail),
+    yearType: row.yearType === null ? null : publicYearType(row.yearType, yearEndOf(row)),
     updateFrequency: row.updateFrequency,
     polarity: row.polarity,
     ciMethod: row.ciMethod,
@@ -676,11 +677,11 @@ export async function searchIndicators(
       or(
         ...filters.yearTypes
           .flatMap(yearTypeValuesLabelled)
-          .map(({ yearTypeId, yearEnd }) =>
+          .map(({ yearType, yearEnd }) =>
             yearEnd === null
-              ? eq(indicator.yearTypeId, yearTypeId)
+              ? eq(indicator.yearType, yearType)
               : and(
-                  eq(indicator.yearTypeId, yearTypeId),
+                  eq(indicator.yearType, yearType),
                   eq(indicator.yearEndDay, yearEnd.day),
                   eq(indicator.yearEndMonth, yearEnd.month),
                 ),
@@ -809,14 +810,14 @@ function yearEndOf({
 async function listPublishedYearTypeLabels(db: Database): Promise<string[]> {
   const rows = await db
     .selectDistinct({
-      yearTypeId: indicator.yearTypeId,
+      yearType: indicator.yearType,
       yearEndDay: indicator.yearEndDay,
       yearEndMonth: indicator.yearEndMonth,
     })
     .from(indicator);
 
-  const labels = rows.flatMap(({ yearTypeId, ...yearEnd }) =>
-    yearTypeId === null ? [] : [publicYearType(yearTypeId, yearEndOf(yearEnd)).label],
+  const labels = rows.flatMap(({ yearType, ...yearEnd }) =>
+    yearType === null ? [] : [publicYearType(yearType, yearEndOf(yearEnd)).label],
   );
   return [...new Set(labels)].sort((a, b) => a.localeCompare(b));
 }

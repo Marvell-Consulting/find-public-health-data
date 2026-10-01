@@ -3,6 +3,7 @@ import {
   otherNotesAndCaveatsSection,
 } from '@fphd/internal-api-features/contract';
 import { firstRadioId } from '@fphd/ui';
+import { INDICATOR_DISCLOSURE_CONTROL_LABELS } from '@fphd/utils/disclosure-control';
 
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 import { YesNoQuestion } from '../yes-no-question.tsx';
@@ -12,12 +13,17 @@ const QUESTIONS = [
     answer: 'disclosureControl',
     detail: 'disclosureControlDetail',
     legend: 'Has disclosure control been applied?',
-    moreOptions: [{ value: 'not-applicable', label: 'Not applicable' }],
+    moreOptions: [
+      {
+        value: 'not-applicable',
+        label: INDICATOR_DISCLOSURE_CONTROL_LABELS['not-applicable'],
+      },
+    ],
   },
-  { answer: 'roundingApplied', detail: 'roundingDetail', legend: 'Has any rounding been applied?' },
-  { answer: 'caveatsNeeded', detail: 'caveatsDetail', legend: 'Are there any caveats needed?' },
+  { answer: 'hasRounding', detail: 'roundingDetail', legend: 'Has any rounding been applied?' },
+  { answer: 'hasCaveats', detail: 'caveatsDetail', legend: 'Are there any caveats needed?' },
   {
-    answer: 'otherNotesNeeded',
+    answer: 'hasOtherNotes',
     detail: 'otherNotesDetail',
     legend: 'Are there any other notes needed?',
   },

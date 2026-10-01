@@ -1,13 +1,17 @@
 import { type PeriodTypeField, periodTypeSection } from '@fphd/internal-api-features/contract';
 import { DayMonthInput, datePartId, datePartName, firstRadioId, Radios } from '@fphd/ui';
-import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
+import {
+  PERIOD_TYPE_LABELS,
+  PERIOD_TYPES_WITH_YEAR_TYPE,
+  YEAR_TYPE_LABELS,
+} from '@fphd/utils/period-type';
 
 import { errorProp } from '../error-prop.ts';
 import type { ControlNames } from '../indicator-section.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
 /** The period types that ask for a year type, each asking it in its own reveal. */
-type YearTypeSet = 'years' | 'quarters';
+type YearTypeSet = (typeof PERIOD_TYPES_WITH_YEAR_TYPE)[number];
 
 type YearTypeField = Exclude<PeriodTypeField, 'periodType'>;
 
@@ -21,9 +25,7 @@ function yearTypeControls(set: YearTypeSet, control: (group: string, part: strin
 }
 
 function yearTypeSetOf(periodType: string): YearTypeSet | undefined {
-  if (periodType === PERIOD_TYPES.years.id) return 'years';
-  if (periodType === PERIOD_TYPES.quarters.id) return 'quarters';
-  return undefined;
+  return PERIOD_TYPES_WITH_YEAR_TYPE.find((set) => set === periodType);
 }
 
 /** The year type answers are read from the set under the chosen period type, and no other. */
@@ -63,12 +65,13 @@ function YearTypeQuestion({ fieldErrors, set, values }: YearTypeQuestionProps) {
       label={<span className="govuk-heading-s">Select year type</span>}
       name={`${set}YearType`}
       options={[
-        ...[YEAR_TYPES.calendar, YEAR_TYPES.financial, YEAR_TYPES.academic, YEAR_TYPES.rolling].map(
-          ({ id, name }) => ({ label: name, value: id }),
-        ),
+        ...(['calendar', 'financial', 'academic', 'rolling'] as const).map((value) => ({
+          label: YEAR_TYPE_LABELS[value],
+          value,
+        })),
         {
-          label: YEAR_TYPES.specifiedEndDate.name,
-          value: YEAR_TYPES.specifiedEndDate.id,
+          label: YEAR_TYPE_LABELS['specified-end-date'],
+          value: 'specified-end-date',
           conditional: (
             <DayMonthInput
               defaultValue={{ day: values.yearEndDay, month: values.yearEndMonth }}
@@ -123,16 +126,16 @@ export function PeriodTypePage({
         name="periodType"
         options={[
           {
-            label: PERIOD_TYPES.years.name,
-            value: PERIOD_TYPES.years.id,
+            label: PERIOD_TYPE_LABELS.years,
+            value: 'years',
             conditional: question('years'),
           },
           {
-            label: PERIOD_TYPES.quarters.name,
-            value: PERIOD_TYPES.quarters.id,
+            label: PERIOD_TYPE_LABELS.quarters,
+            value: 'quarters',
             conditional: question('quarters'),
           },
-          { label: PERIOD_TYPES.months.name, value: PERIOD_TYPES.months.id },
+          { label: PERIOD_TYPE_LABELS.months, value: 'months' },
         ]}
       />
     </IndicatorSectionForm>

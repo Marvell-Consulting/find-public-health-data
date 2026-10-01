@@ -1,19 +1,19 @@
+import { CI_CONFIDENCE_LEVELS } from '@fphd/utils/ci-confidence-level';
+import { YEAR_TYPES } from '@fphd/utils/period-type';
 import { POLARITIES } from '@fphd/utils/polarity';
+import { INDICATOR_SOURCE_PARTS } from '@fphd/utils/source-part';
 import { UPDATE_FREQUENCIES } from '@fphd/utils/update-frequency';
 import {
   boolean,
   date,
   doublePrecision,
   integer,
-  jsonb,
   pgSchema,
   smallint,
   text,
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
-
-import { INDICATOR_SOURCE_PARTS } from './indicator.ts';
 
 /**
  * The only objects `public_api` may read. The views carry the predicates that keep an
@@ -37,17 +37,15 @@ export const publishedIndicator = publishedSchema
     slug: text('slug').notNull(),
     valueTypeId: uuid('value_type_id'),
     unitId: uuid('unit_id'),
-    unitOther: text('unit_other'),
-    yearTypeId: uuid('year_type_id'),
+    unitDetail: text('unit_detail'),
+    yearType: text('year_type', { enum: YEAR_TYPES }),
     yearEndDay: smallint('year_end_day'),
     yearEndMonth: smallint('year_end_month'),
     ciMethodId: uuid('ci_method_id'),
     polarity: text('polarity', { enum: POLARITIES }),
     updateFrequency: text('update_frequency', { enum: UPDATE_FREQUENCIES }),
     comparatorMethodId: uuid('comparator_method_id'),
-    disclosureThreshold: smallint('disclosure_threshold'),
-    ciConfidenceLevel: text('ci_confidence_level'),
-    config: jsonb('config'),
+    ciConfidenceLevel: text('ci_confidence_level', { enum: CI_CONFIDENCE_LEVELS }),
     definition: text('definition'),
     rationale: text('rationale'),
     methodology: text('methodology'),
@@ -113,10 +111,6 @@ export const publishedValueType = publishedSchema
 
 export const publishedUnit = publishedSchema
   .view('unit', { id: uuid('id').notNull(), name: text('name').notNull() })
-  .existing();
-
-export const publishedYearType = publishedSchema
-  .view('year_type', { id: uuid('id').notNull(), name: text('name').notNull() })
   .existing();
 
 export const publishedCiMethod = publishedSchema

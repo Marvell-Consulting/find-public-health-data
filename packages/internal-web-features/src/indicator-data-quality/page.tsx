@@ -16,17 +16,17 @@ export function DataQualityPage({
     <IndicatorSectionForm
       fieldErrors={fieldErrors}
       formError={formError}
-      fieldIds={{ dataQualityIssues: firstRadioId('dataQualityIssues') }}
+      fieldIds={{ hasDataQualityIssues: firstRadioId('hasDataQualityIssues') }}
       fields={dataQualitySection.fields.options}
       questionIsHeading
       title={DATA_QUALITY_QUESTION}
     >
       <Radios
-        {...errorProp(fieldErrors.dataQualityIssues)}
-        defaultValue={values.dataQualityIssues}
+        {...errorProp(fieldErrors.hasDataQualityIssues)}
+        defaultValue={values.hasDataQualityIssues}
         hint="If yes, you should ensure these issues are clearly explained in the 'Caveats' section."
         label={<h1>{DATA_QUALITY_QUESTION}</h1>}
-        name="dataQualityIssues"
+        name="hasDataQualityIssues"
         options={[
           { label: 'Yes', value: 'yes' },
           { label: 'No', value: 'no' },

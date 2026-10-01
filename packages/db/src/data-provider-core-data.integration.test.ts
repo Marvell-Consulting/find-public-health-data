@@ -113,6 +113,28 @@ describe('upsertDataProviders', () => {
     });
     expect(renamed.orphaned).toEqual([{ id: stray?.id, name: 'A provider no file lists' }]);
   });
+
+  it('touches updated_at only on a row it rewrites', async () => {
+    const db = createDbFromClient(sql);
+    const stamps = async () => sql<{ id: string; stamp: number }[]>`
+      SELECT id, extract(epoch FROM updated_at)::float8 AS stamp
+      FROM data_provider WHERE id = ${provider.id}
+      UNION ALL
+      SELECT id, extract(epoch FROM updated_at)::float8
+      FROM data_provider_source WHERE provider_id = ${provider.id}
+      ORDER BY id
+    `;
+    await upsertDataProviders(db, [provider]);
+    const [providerBefore, sourceBefore] = await stamps();
+
+    await upsertDataProviders(db, [
+      { ...provider, sources: [{ id: '01a0d858-9885-764e-8d53-6826aec67002', name: 'Deaths' }] },
+    ]);
+    const [providerAfter, sourceAfter] = await stamps();
+
+    expect(providerAfter?.stamp).toBe(providerBefore?.stamp);
+    expect(sourceAfter?.stamp).toBeGreaterThan(sourceBefore?.stamp ?? Number.POSITIVE_INFINITY);
+  });
 });
 
 describe('loadIndicatorVersions with Fingertips sources', () => {
@@ -133,6 +155,10 @@ describe('loadIndicatorVersions with Fingertips sources', () => {
     await writeFile(
       join(directory, 'ci_method.csv.gz'),
       gzipSync('id,name,description\n00000000-0000-7000-8000-00000000c1c1,Unknown,\n'),
+    );
+    await writeFile(
+      join(directory, 'comparator_method.csv.gz'),
+      gzipSync('id,name\n00000000-0000-7000-8000-00000000c0c0,No comparison\n'),
     );
     await writeFile(
       join(directory, 'indicator_version.csv.gz'),
@@ -170,7 +196,13 @@ describe('loadIndicatorVersions with Fingertips sources', () => {
       ORDER BY s.position
     `;
 
-    expect(loaded).toEqual({ ciMethods: 1, versions: 1, legacySources: 1, sources: 2 });
+    expect(loaded).toEqual({
+      ciMethods: 1,
+      comparatorMethods: 1,
+      versions: 1,
+      legacySources: 1,
+      sources: 2,
+    });
     expect(rows).toEqual([
       { part: 'numerator', source: 'Mid-year population estimates' },
       { part: 'numerator', source: 'Annual Population Survey (APS)' },

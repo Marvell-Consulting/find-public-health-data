@@ -1,5 +1,4 @@
-import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
-import { UNITS, VALUE_TYPES } from '@fphd/utils/value-type-and-unit';
+import { UNIT_IDS, VALUE_TYPE_IDS } from '@fphd/utils/value-type-and-unit';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 import type { CiMethodRow } from './ci-method-repository.ts';
@@ -32,6 +31,7 @@ import {
   taggingServerSection,
   updateFrequencyColumns,
   valueTypeAndUnitsColumns,
+  valueTypeAndUnitsServerSection,
   varianceAndQualityColumns,
 } from './indicator-sections.ts';
 import {
@@ -49,51 +49,51 @@ const unanswered: IndicatorSectionDraft = {
   polarity: null,
   methodology: null,
   calculatedBy: null,
-  calculatedByOther: null,
+  calculatedByDetail: null,
   ciMethodId: null,
-  ciMethodModified: null,
-  ciMethodModifications: null,
-  ciMethodOtherDetail: null,
+  hasCiMethodModifications: null,
+  ciMethodModificationsDetail: null,
+  ciMethodDetail: null,
   updateFrequency: null,
-  periodTypeId: null,
-  yearTypeId: null,
+  periodType: null,
+  yearType: null,
   yearEndDay: null,
   yearEndMonth: null,
   valueTypeId: null,
   standardPopulation: null,
   standardPopulationDetail: null,
   unitId: null,
-  unitOther: null,
+  unitDetail: null,
   disclosureControl: null,
   disclosureControlDetail: null,
-  roundingApplied: null,
+  hasRounding: null,
   roundingDetail: null,
-  caveatsNeeded: null,
+  hasCaveats: null,
   caveatsDetail: null,
-  otherNotesNeeded: null,
+  hasOtherNotes: null,
   otherNotesDetail: null,
   scheduledPublishAtUk: null,
   hasLinks: null,
   links: [],
   variation: null,
   qualityAssurance: null,
-  sourceDataIssues: null,
+  hasSourceDataIssues: null,
   sourceDataIssuesDetail: null,
-  dataQualityIssues: null,
+  hasDataQualityIssues: null,
   ciMethodJustification: null,
   dataSourcesJustification: null,
   inequalitiesIncluded: null,
   hasExclusions: null,
   exclusionsDetail: null,
-  automationUsed: null,
+  hasAutomation: null,
   automationDetail: null,
   sponsorsAndStakeholders: null,
   hasReviewerComments: null,
   reviewerCommentsDetail: null,
-  copyrightNonDefault: null,
-  copyrightDetail: null,
-  dataReuseNonDefault: null,
-  dataReuseDetail: null,
+  hasCustomCopyright: null,
+  customCopyrightDetail: null,
+  hasCustomDataReuse: null,
+  customDataReuseDetail: null,
   hasGoalBenchmark: null,
   goalLowerValue: null,
   goalUpperValue: null,
@@ -104,7 +104,7 @@ const unanswered: IndicatorSectionDraft = {
   ageRanges: [],
   specificAge: null,
   specificAgeUnit: null,
-  ageOtherDetail: null,
+  ageDetail: null,
   hasRiskFactor: null,
   hasFramework: null,
   topicIds: [],
@@ -143,9 +143,9 @@ const links = [
 
 // Every follow-up filled in, as a form without JavaScript may send them.
 const everyAnswer = {
-  ciMethodModified: 'yes',
-  ciMethodModifications: 'Adjusted for clustering',
-  ciMethodOtherDetail: 'Bootstrap intervals',
+  hasCiMethodModifications: 'yes',
+  ciMethodModificationsDetail: 'Adjusted for clustering',
+  ciMethodDetail: 'Bootstrap intervals',
 } as const;
 
 describe('indicatorSectionsRouter', () => {
@@ -227,18 +227,18 @@ describe('dataQualityColumns', () => {
     [true, 'yes'],
     [false, 'no'],
     [null, null],
-  ])('reads whether there are data quality issues, %s, as %s', (dataQualityIssues, answer) => {
-    expect(dataQualityColumns.fromDraft({ ...unanswered, dataQualityIssues })).toEqual({
-      dataQualityIssues: answer,
+  ])('reads whether there are data quality issues, %s, as %s', (hasDataQualityIssues, answer) => {
+    expect(dataQualityColumns.fromDraft({ ...unanswered, hasDataQualityIssues })).toEqual({
+      hasDataQualityIssues: answer,
     });
   });
 
   it.each([
     ['yes', true],
     ['no', false],
-  ] as const)('writes %s as %s', (dataQualityIssues, answer) => {
-    expect(dataQualityColumns.toAttributes({ dataQualityIssues })).toEqual({
-      dataQualityIssues: answer,
+  ] as const)('writes %s as %s', (hasDataQualityIssues, answer) => {
+    expect(dataQualityColumns.toAttributes({ hasDataQualityIssues })).toEqual({
+      hasDataQualityIssues: answer,
     });
   });
 });
@@ -253,15 +253,15 @@ describe('updateFrequencyColumns', () => {
 });
 
 describe('periodTypeColumns', () => {
-  const years = PERIOD_TYPES.years.id;
-  const specified = YEAR_TYPES.specifiedEndDate.id;
+  const years = 'years';
+  const specified = 'specified-end-date';
 
   it('reads the year end as the form gives it', () => {
     expect(
       periodTypeColumns.fromDraft({
         ...unanswered,
-        periodTypeId: years,
-        yearTypeId: specified,
+        periodType: years,
+        yearType: specified,
         yearEndDay: 31,
         yearEndMonth: 7,
       }),
@@ -276,20 +276,20 @@ describe('periodTypeColumns', () => {
         yearEndDay: '31',
         yearEndMonth: '07',
       }),
-    ).toEqual({ periodTypeId: years, yearTypeId: specified, yearEndDay: 31, yearEndMonth: 7 });
+    ).toEqual({ periodType: years, yearType: specified, yearEndDay: 31, yearEndMonth: 7 });
   });
 
   it('clears a year end the year type does not ask for', () => {
     expect(
       periodTypeColumns.toAttributes({
-        periodType: PERIOD_TYPES.quarters.id,
-        yearType: YEAR_TYPES.financial.id,
+        periodType: 'quarters',
+        yearType: 'financial',
         yearEndDay: '31',
         yearEndMonth: '7',
       }),
     ).toEqual({
-      periodTypeId: PERIOD_TYPES.quarters.id,
-      yearTypeId: YEAR_TYPES.financial.id,
+      periodType: 'quarters',
+      yearType: 'financial',
       yearEndDay: null,
       yearEndMonth: null,
     });
@@ -298,14 +298,14 @@ describe('periodTypeColumns', () => {
   it('clears the year type and year end of months', () => {
     expect(
       periodTypeColumns.toAttributes({
-        periodType: PERIOD_TYPES.months.id,
+        periodType: 'months',
         yearType: specified,
         yearEndDay: '31',
         yearEndMonth: '7',
       }),
     ).toEqual({
-      periodTypeId: PERIOD_TYPES.months.id,
-      yearTypeId: null,
+      periodType: 'months',
+      yearType: null,
       yearEndDay: null,
       yearEndMonth: null,
     });
@@ -313,36 +313,40 @@ describe('periodTypeColumns', () => {
 });
 
 describe('valueTypeAndUnitsColumns', () => {
-  const DSR = VALUE_TYPES.directlyStandardisedRate.id;
-  const ISR = VALUE_TYPES.indirectlyStandardisedRatio.id;
+  const DSR = VALUE_TYPE_IDS.directlyStandardisedRate;
+  const ISR = VALUE_TYPE_IDS.indirectlyStandardisedRatio;
   // Every follow-up filled in, as a form without JavaScript may send them.
   const everyFollowUp = {
     standardPopulation: 'other',
     standardPopulationOther: 'England 2021',
     referencePopulation: 'England 2019',
-    unitOther: 'people',
+    unitDetail: 'people',
   } as const;
 
   it.each([
     [
       'the 2013 European Standard Population alone beside a directly standardised rate',
-      { valueTypeId: DSR, standardPopulation: 'esp-2013', unitId: UNITS.per100000.id },
-      { standardPopulation: 'esp-2013', standardPopulationDetail: null, unitOther: null },
+      {
+        valueTypeId: DSR,
+        standardPopulation: 'esp-2013',
+        unitId: '01a0d8a5-3ca2-7315-bfca-96daa0c93ee9',
+      },
+      { standardPopulation: 'esp-2013', standardPopulationDetail: null, unitDetail: null },
     ],
     [
       'an other standard population with its detail',
-      { valueTypeId: DSR, unitId: UNITS.per100000.id },
-      { standardPopulation: 'other', standardPopulationDetail: 'England 2021', unitOther: null },
+      { valueTypeId: DSR, unitId: '01a0d8a5-3ca2-7315-bfca-96daa0c93ee9' },
+      { standardPopulation: 'other', standardPopulationDetail: 'England 2021', unitDetail: null },
     ],
     [
       'the reference population beside an indirectly standardised value type',
-      { valueTypeId: ISR, unitId: UNITS.per100.id },
-      { standardPopulation: null, standardPopulationDetail: 'England 2019', unitOther: null },
+      { valueTypeId: ISR, unitId: '01a0d8a5-3ca2-7315-bfca-96d787920e40' },
+      { standardPopulation: null, standardPopulationDetail: 'England 2019', unitDetail: null },
     ],
     [
       'no population beside any other value type, and an other unit with its name',
-      { valueTypeId: VALUE_TYPES.count.id, unitId: UNITS.other.id },
-      { standardPopulation: null, standardPopulationDetail: null, unitOther: 'people' },
+      { valueTypeId: '01a0d8a5-3ca2-7315-bfca-96c7324d4347', unitId: UNIT_IDS.other },
+      { standardPopulation: null, standardPopulationDetail: null, unitDetail: 'people' },
     ],
   ] as const)('writes %s, clearing what is not asked', (_, answers, attributes) => {
     expect(valueTypeAndUnitsColumns.toAttributes({ ...everyFollowUp, ...answers })).toEqual({
@@ -373,7 +377,7 @@ describe('calculationColumns', () => {
     const answers = {
       methodology: 'A method',
       calculatedBy: 'other',
-      calculatedByOther: 'ONS',
+      calculatedByDetail: 'ONS',
     } as const;
 
     expect(calculationColumns.fromDraft({ ...unanswered, ...answers })).toEqual(answers);
@@ -387,9 +391,9 @@ describe('calculationColumns', () => {
         calculationColumns.toAttributes({
           methodology: 'A method',
           calculatedBy,
-          calculatedByOther: 'Left from before',
+          calculatedByDetail: 'Left from before',
         }),
-      ).toEqual({ methodology: 'A method', calculatedBy, calculatedByOther: null });
+      ).toEqual({ methodology: 'A method', calculatedBy, calculatedByDetail: null });
     },
   );
 });
@@ -399,40 +403,41 @@ describe('confidenceIntervalsColumns', () => {
     [true, 'yes'],
     [false, 'no'],
     [null, null],
-  ])('reads a modifications answer of %s as %s', (ciMethodModified, answer) => {
+  ])('reads a modifications answer of %s as %s', (hasCiMethodModifications, answer) => {
     expect(
-      confidenceIntervalsColumns.fromDraft({ ...unanswered, ciMethodModified }).ciMethodModified,
+      confidenceIntervalsColumns.fromDraft({ ...unanswered, hasCiMethodModifications })
+        .hasCiMethodModifications,
     ).toBe(answer);
   });
 
   it.each([
     [
       'an unmodified standard method, clearing the answers it does not ask for',
-      { kind: 'standard', ciMethodModified: 'no' },
-      { ciMethodModified: false, ciMethodModifications: null, ciMethodOtherDetail: null },
+      { kind: 'standard', hasCiMethodModifications: 'no' },
+      { hasCiMethodModifications: false, ciMethodModificationsDetail: null, ciMethodDetail: null },
     ],
     [
       "a modified standard method with its modifications' description",
       { kind: 'standard' },
       {
-        ciMethodModified: true,
-        ciMethodModifications: 'Adjusted for clustering',
-        ciMethodOtherDetail: null,
+        hasCiMethodModifications: true,
+        ciMethodModificationsDetail: 'Adjusted for clustering',
+        ciMethodDetail: null,
       },
     ],
     [
       'an other method with its detail, clearing the modifications',
       { kind: 'other' },
       {
-        ciMethodModified: null,
-        ciMethodModifications: null,
-        ciMethodOtherDetail: 'Bootstrap intervals',
+        hasCiMethodModifications: null,
+        ciMethodModificationsDetail: null,
+        ciMethodDetail: 'Bootstrap intervals',
       },
     ],
     [
       'a method with nothing to describe alone, clearing every follow-up',
       { kind: 'none' },
-      { ciMethodModified: null, ciMethodModifications: null, ciMethodOtherDetail: null },
+      { hasCiMethodModifications: null, ciMethodModificationsDetail: null, ciMethodDetail: null },
     ],
   ] as const)('writes %s', (_, answers, attributes) => {
     expect(
@@ -449,20 +454,20 @@ describe('otherNotesAndCaveatsColumns', () => {
   const answered = {
     disclosureControl: 'yes',
     disclosureControlDetail: 'Counts under 5 are suppressed.',
-    roundingApplied: 'yes',
+    hasRounding: 'yes',
     roundingDetail: 'Rounded to the nearest 5.',
-    caveatsNeeded: 'yes',
+    hasCaveats: 'yes',
     caveatsDetail: 'Survey data.',
-    otherNotesNeeded: 'yes',
+    hasOtherNotes: 'yes',
     otherNotesDetail: 'Revised in 2024.',
   } as const;
 
   it('keeps every detail beside a yes', () => {
     expect(otherNotesAndCaveatsColumns.toAttributes(answered)).toEqual({
       ...answered,
-      roundingApplied: true,
-      caveatsNeeded: true,
-      otherNotesNeeded: true,
+      hasRounding: true,
+      hasCaveats: true,
+      hasOtherNotes: true,
     });
   });
 
@@ -473,18 +478,18 @@ describe('otherNotesAndCaveatsColumns', () => {
         otherNotesAndCaveatsColumns.toAttributes({
           ...answered,
           disclosureControl,
-          roundingApplied: 'no',
-          caveatsNeeded: 'no',
-          otherNotesNeeded: 'no',
+          hasRounding: 'no',
+          hasCaveats: 'no',
+          hasOtherNotes: 'no',
         }),
       ).toEqual({
         disclosureControl,
         disclosureControlDetail: null,
-        roundingApplied: false,
+        hasRounding: false,
         roundingDetail: null,
-        caveatsNeeded: false,
+        hasCaveats: false,
         caveatsDetail: null,
-        otherNotesNeeded: false,
+        hasOtherNotes: false,
         otherNotesDetail: null,
       });
     },
@@ -495,9 +500,9 @@ describe('otherNotesAndCaveatsColumns', () => {
       otherNotesAndCaveatsColumns.fromDraft({
         ...unanswered,
         ...answered,
-        roundingApplied: true,
-        caveatsNeeded: true,
-        otherNotesNeeded: true,
+        hasRounding: true,
+        hasCaveats: true,
+        hasOtherNotes: true,
       }),
     ).toEqual(answered);
   });
@@ -506,10 +511,10 @@ describe('otherNotesAndCaveatsColumns', () => {
     [true, 'yes'],
     [false, 'no'],
     [null, null],
-  ])('reads a stored %s as %s', (roundingApplied, answer) => {
-    expect(
-      otherNotesAndCaveatsColumns.fromDraft({ ...unanswered, roundingApplied }).roundingApplied,
-    ).toBe(answer);
+  ])('reads a stored %s as %s', (hasRounding, answer) => {
+    expect(otherNotesAndCaveatsColumns.fromDraft({ ...unanswered, hasRounding }).hasRounding).toBe(
+      answer,
+    );
   });
 });
 
@@ -518,35 +523,35 @@ describe('varianceAndQualityColumns', () => {
   const answered = {
     variation: 'Varies by area.',
     qualityAssurance: 'Checked against ONS figures.',
-    sourceDataIssues: 'yes',
+    hasSourceDataIssues: 'yes',
     sourceDataIssuesDetail: 'Late returns.',
   } as const;
 
   it('writes the text as it is, and a yes as true beside its details', () => {
     expect(varianceAndQualityColumns.toAttributes(answered)).toEqual({
       ...answered,
-      sourceDataIssues: true,
+      hasSourceDataIssues: true,
     });
   });
 
   it('writes a no as false and clears its details', () => {
-    expect(varianceAndQualityColumns.toAttributes({ ...answered, sourceDataIssues: 'no' })).toEqual(
-      { ...answered, sourceDataIssues: false, sourceDataIssuesDetail: null },
-    );
+    expect(
+      varianceAndQualityColumns.toAttributes({ ...answered, hasSourceDataIssues: 'no' }),
+    ).toEqual({ ...answered, hasSourceDataIssues: false, sourceDataIssuesDetail: null });
   });
 
   it.each([
     [true, 'yes'],
     [false, 'no'],
     [null, null],
-  ])('reads a stored %s as %s, beside the text as it is', (sourceDataIssues, answer) => {
+  ])('reads a stored %s as %s, beside the text as it is', (hasSourceDataIssues, answer) => {
     expect(
       varianceAndQualityColumns.fromDraft({
         ...unanswered,
         ...answered,
-        sourceDataIssues,
+        hasSourceDataIssues,
       }),
-    ).toEqual({ ...answered, sourceDataIssues: answer });
+    ).toEqual({ ...answered, hasSourceDataIssues: answer });
   });
 });
 
@@ -557,7 +562,7 @@ describe('justificationsColumns', () => {
     inequalitiesIncluded: 'Deprivation deciles.',
     hasExclusions: 'yes',
     exclusionsDetail: 'Areas with fewer than 5 deaths.',
-    automationUsed: 'no',
+    hasAutomation: 'no',
     automationDetail: 'Typed before No was chosen.',
   } as const;
 
@@ -565,7 +570,7 @@ describe('justificationsColumns', () => {
     expect(justificationsColumns.toAttributes(answered)).toEqual({
       ...answered,
       hasExclusions: true,
-      automationUsed: false,
+      hasAutomation: false,
       automationDetail: null,
     });
   });
@@ -576,7 +581,7 @@ describe('justificationsColumns', () => {
         ...unanswered,
         ...answered,
         hasExclusions: true,
-        automationUsed: false,
+        hasAutomation: false,
         automationDetail: null,
       }),
     ).toEqual({ ...answered, automationDetail: null });
@@ -721,7 +726,7 @@ describe('sexAndAgesColumns', () => {
     ageRanges: [{ lowerLimit: '16', lowerLimitUnit: 'years', upperLimit: '', upperLimitUnit: '' }],
     specificAge: '5',
     specificAgeUnit: 'weeks',
-    ageOtherDetail: 'School year 6',
+    ageDetail: 'School year 6',
   });
 
   it('reads unanswered sexes as none', () => {
@@ -731,7 +736,7 @@ describe('sexAndAgesColumns', () => {
       ageRanges: [],
       specificAge: null,
       specificAgeUnit: null,
-      ageOtherDetail: null,
+      ageDetail: null,
     });
   });
 
@@ -743,7 +748,7 @@ describe('sexAndAgesColumns', () => {
       ageType: 'range',
       specificAge: null,
       specificAgeUnit: null,
-      ageOtherDetail: null,
+      ageDetail: null,
     });
     expect(sexAndAgesColumns.toLists?.(values)).toEqual({
       ageRanges: [
@@ -758,7 +763,7 @@ describe('sexAndAgesColumns', () => {
     expect(sexAndAgesColumns.toAttributes(values)).toMatchObject({
       specificAge: 5,
       specificAgeUnit: 'weeks',
-      ageOtherDetail: null,
+      ageDetail: null,
     });
     expect(sexAndAgesColumns.toLists?.(values)).toEqual({ ageRanges: [] });
   });
@@ -771,7 +776,7 @@ describe('sexAndAgesColumns', () => {
       ageType: 'all',
       specificAge: null,
       specificAgeUnit: null,
-      ageOtherDetail: null,
+      ageDetail: null,
     });
     expect(sexAndAgesColumns.toLists?.(values)).toEqual({ ageRanges: [] });
   });
@@ -782,7 +787,7 @@ describe('sexAndAgesColumns', () => {
     expect(sexAndAgesColumns.toAttributes(values)).toMatchObject({
       specificAge: null,
       specificAgeUnit: null,
-      ageOtherDetail: 'School year 6',
+      ageDetail: 'School year 6',
     });
     expect(sexAndAgesColumns.toLists?.(values)).toEqual({ ageRanges: [] });
   });
@@ -935,11 +940,62 @@ describe('confidenceIntervalsServerSection', () => {
     expect(
       await fieldErrorsOf({
         ciMethodId: METHODS.standard.id,
-        ciMethodModified: '',
-        ciMethodModifications: '',
-        ciMethodOtherDetail: '',
+        hasCiMethodModifications: '',
+        ciMethodModificationsDetail: '',
+        ciMethodDetail: '',
       }),
-    ).toEqual({ ciMethodModified: 'Select whether any modifications were used' });
+    ).toEqual({ hasCiMethodModifications: 'Select whether any modifications were used' });
+  });
+});
+
+describe('valueTypeAndUnitsServerSection', () => {
+  const options = {
+    valueTypes: [{ id: '01a0d8a5-3ca2-7315-bfca-96d2031a65e7', name: 'Proportion' }],
+    units: [{ id: '01a0d8a5-3ca2-7315-bfca-96d615820bd4', name: '%' }],
+  };
+  const answers = {
+    valueTypeId: '01a0d8a5-3ca2-7315-bfca-96d2031a65e7',
+    standardPopulation: '',
+    standardPopulationOther: '',
+    referencePopulation: '',
+    unitId: '01a0d8a5-3ca2-7315-bfca-96d615820bd4',
+    unitDetail: '',
+  };
+
+  function submit(body: object) {
+    const listOptions = vi.fn().mockResolvedValue(options);
+    const { valueTypesAndUnits } = createFakeInternalRepositories({
+      valueTypesAndUnits: { listOptions },
+    });
+    const section = valueTypeAndUnitsServerSection(valueTypesAndUnits);
+
+    return { listOptions, section, submission: section.schema.safeParseAsync(body) };
+  }
+
+  async function fieldErrorsOf(body: object) {
+    const { section, submission } = submit(body);
+    const result = await submission;
+    return result.success ? undefined : toFieldErrors(result.error, section.fields.options);
+  }
+
+  it('accepts a value type and unit the page offers', async () => {
+    expect(await fieldErrorsOf(answers)).toBeUndefined();
+  });
+
+  it('refuses a value type or unit the page does not offer', async () => {
+    const missing = '00000000-0000-7000-8000-000000000999';
+
+    expect(await fieldErrorsOf({ ...answers, valueTypeId: missing, unitId: missing })).toEqual({
+      valueTypeId: 'Select the value type',
+      unitId: 'Select the units',
+    });
+  });
+
+  it('refuses an unchosen value type without reading the options', async () => {
+    const { listOptions, submission } = submit({ ...answers, valueTypeId: '' });
+
+    expect((await submission).success).toBe(false);
+    expect(listOptions).not.toHaveBeenCalled();
   });
 });
 

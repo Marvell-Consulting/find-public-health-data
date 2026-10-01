@@ -13,7 +13,7 @@ const fields = z.enum([
   'inequalitiesIncluded',
   'hasExclusions',
   'exclusionsDetail',
-  'automationUsed',
+  'hasAutomation',
   'automationDetail',
 ]);
 
@@ -26,7 +26,7 @@ export const justificationsQuestions = [
     detailRequired: 'Enter why exclusions were made',
   },
   {
-    answer: 'automationUsed',
+    answer: 'hasAutomation',
     detail: 'automationDetail',
     detailRequired: 'Enter details of the tools used',
   },
@@ -45,7 +45,7 @@ const schema = requireDetails(
       .min(1, 'Enter what health inequalities have been included'),
     hasExclusions: yesNoSchema('Select whether there have been any exclusions'),
     exclusionsDetail: z.string().trim(),
-    automationUsed: yesNoSchema('Select whether internal automation tools have been used'),
+    hasAutomation: yesNoSchema('Select whether internal automation tools have been used'),
     automationDetail: z.string().trim(),
   }),
   justificationsQuestions,

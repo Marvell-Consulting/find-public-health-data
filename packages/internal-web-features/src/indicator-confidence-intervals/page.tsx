@@ -45,7 +45,7 @@ export function ConfidenceIntervalsPage({
     <IndicatorSectionForm
       fieldErrors={fieldErrors}
       formError={formError}
-      fieldIds={{ ciMethodModified: firstRadioId('ciMethodModified') }}
+      fieldIds={{ hasCiMethodModifications: firstRadioId('hasCiMethodModifications') }}
       fields={confidenceIntervalsSection.fields.options}
       title="Confidence intervals"
     >
@@ -69,25 +69,25 @@ export function ConfidenceIntervalsPage({
         ) : null}
         <Radios
           {...hint(`Not needed for ${namesOf(({ kind }) => kind !== 'standard')}`)}
-          {...errorProp(fieldErrors.ciMethodModified)}
-          defaultValue={values.ciMethodModified}
+          {...errorProp(fieldErrors.hasCiMethodModifications)}
+          defaultValue={values.hasCiMethodModifications}
           label={
             // NotGovUK sizes a legend by the heading passed as its label.
             <h2 className="govuk-heading-m">
               Were any modifications to the described method used for this indicator?
             </h2>
           }
-          name="ciMethodModified"
+          name="hasCiMethodModifications"
           options={[
             {
               label: 'Yes',
               value: 'yes',
               conditional: (
                 <Textarea
-                  defaultValue={values.ciMethodModifications}
-                  error={fieldErrors.ciMethodModifications}
+                  defaultValue={values.ciMethodModificationsDetail}
+                  error={fieldErrors.ciMethodModificationsDetail}
                   label="Enter description of the modifications used"
-                  name="ciMethodModifications"
+                  name="ciMethodModificationsDetail"
                 />
               ),
             },
@@ -98,10 +98,10 @@ export function ConfidenceIntervalsPage({
       <div hidden={!showsFor('other')}>
         <Textarea
           {...hint(`Only needed for ${namesOf(({ kind }) => kind === 'other')}`)}
-          defaultValue={values.ciMethodOtherDetail}
-          error={fieldErrors.ciMethodOtherDetail}
+          defaultValue={values.ciMethodDetail}
+          error={fieldErrors.ciMethodDetail}
           label="Provide detail of the other confidence interval method used"
-          name="ciMethodOtherDetail"
+          name="ciMethodDetail"
         />
       </div>
     </IndicatorSectionForm>

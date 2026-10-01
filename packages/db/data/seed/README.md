@@ -7,8 +7,9 @@ additions come from the public Fingertips API and are imported through local Pos
 ## What is in it
 
 Reference and registry tables (lookups, dimension types and values, area types, note
-types) are complete. `ci_method.csv.gz` is Pholio's list and is not loaded: the methods are
-core data (`../ci-methods.json`), and the seed maps its versions onto them by name. Areas,
+types) are complete. `ci_method.csv.gz` and `comparator_method.csv.gz` are Pholio's lists and
+are not loaded: the methods are core data (`../ci-methods.json`,
+`../comparator-methods.json`), and the seed maps its versions onto them by name. Areas,
 observations and bridge rows contain:
 
 - **12 indicators**, combining broad schema coverage with the prototype's showcase data:
@@ -42,8 +43,6 @@ That yields 433,678 observations, 657,869 bridge rows and 67,978 observation not
   no fully-aggregate observations at all, so `latest_headline` — which follows the alpha
   benchmark's definition of headline = observation with zero bridge rows — only has rows
   for 92708 and 93622. Refining headline semantics is ISS106 read-model design work.
-- `indicator.config` was converted from Pholio's `key:value,key:value` text to JSON at
-  export time, and now sits on the version.
 - `indicator_version.slug` is derived from the name by the export's `slug.py`, which mirrors
   `slugify` in `@fphd/utils/slug`. A name yielding no usable slug, or two names that slugify
   alike, stop the export with the indicators named: a slug belongs to one indicator, so a
@@ -65,28 +64,28 @@ That yields 433,678 observations, 657,869 bridge rows and 67,978 observation not
   the table: the load maps each name onto the core data providers through
   `../legacy-numerator-denominator-sources.json` and writes the result to
   `indicator_version_source`.
-- `indicator_version.period_type_id` and `year_type_id` point at the service's own
-  `period_type` and `year_type` rows, which the migrations insert with the ids in
+- `indicator_version.period_type` and `year_type` hold the service's values from
   `@fphd/utils/period-type`, and a year ending on a specified date holds its day and month
   in `year_end_day` and `year_end_month`. `export/year_type.py` translates each of Pholio's
   17 year types to them, and a name it has no translation for stops the export. Neither
-  export carries a `year_type` table; migration 0034 holds the same translation for
+  export carries a `year_type` table; migrations 0034 and 0036 hold the same translation for
   databases that already had Pholio's rows.
-- `indicator_version.value_type_id` and `unit_id` point at the service's own rows, whose ids
-  are in `@fphd/utils/value-type-and-unit` and which the migrations insert, so neither export
-  carries a `value_type` or `unit` table. `export/value_type_and_unit.py` translates Pholio's
-  names; a unit outside the service's list becomes "Other", named in `unit_other` as Pholio
-  named it. Pholio's placeholders ("Unknown value type 21", "Unknown unit 54") translate as
-  the value type or unit the public Fingertips API gives that id, a unit identified by its
-  label and multiplier. `../../src/pholio-value-types-and-units.json` lists every Pholio
-  value type and unit with what it becomes. Any other value type, or a unit named with
-  another placeholder, blank or over 100 characters, stops the export; a version with no
-  unit keeps none. Migration 0035 holds the same translation.
+- `indicator_version.value_type_id` and `unit_id` point at the service's own rows, which are
+  core data in `../value-types.json` and `../units.json`, so neither export carries a
+  `value_type` or `unit` table. `export/value_type_and_unit.py` reads the ids from those files
+  and translates Pholio's names; a unit outside the service's list becomes "Other", named in
+  `unit_detail` as Pholio named it. Pholio's placeholders ("Unknown value type 21", "Unknown
+  unit 54") translate as the value type or unit the public Fingertips API gives that id, a unit
+  identified by its label and multiplier. `../../src/pholio-value-types-and-units.json` lists
+  every Pholio value type and unit with what it becomes, and a test checks that each is a name
+  the core data files hold. Any other value type, or a unit named with another placeholder,
+  blank or over 100 characters, stops the export; a version with no unit keeps none. Migration
+  0035 holds the same translation.
 - Pholio's disclosure control, caveats and notes prose becomes the service's answers:
   `export/notes_and_caveats.py` turns prose that is an answer in itself, such as "None
   applied" or "Not applicable", into that answer and drops it, matching the whole text
   against its `VOCABULARY`. Any other prose is kept as the detail of a yes
-  (`disclosure_control`, `caveats_needed`, `other_notes_needed`), and blank prose leaves the
+  (`disclosure_control`, `has_caveats`, `has_other_notes`), and blank prose leaves the
   question unanswered. Rounding has no Pholio field and stays unanswered. Migration 0022
   holds the same vocabulary for databases that already had the prose.
 

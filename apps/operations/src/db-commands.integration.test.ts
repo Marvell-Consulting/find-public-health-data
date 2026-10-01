@@ -144,6 +144,24 @@ describe('db seed-dummy-data (integration)', () => {
       );
 
       await importCoreData(context);
+      await sql`DELETE FROM value_type WHERE name = 'Mean'`;
+      await expect(seedDummyData(context)).rejects.toThrow(
+        'Value types are missing from the database — run `db import-core-data` before seeding',
+      );
+
+      await importCoreData(context);
+      await sql`DELETE FROM unit WHERE name = 'hours'`;
+      await expect(seedDummyData(context)).rejects.toThrow(
+        'Units are missing from the database — run `db import-core-data` before seeding',
+      );
+
+      await importCoreData(context);
+      await sql`DELETE FROM comparator_method WHERE name = 'Quintiles'`;
+      await expect(seedDummyData(context)).rejects.toThrow(
+        'Comparator methods are missing from the database — run `db import-core-data` before seeding',
+      );
+
+      await importCoreData(context);
       await expect(assertCoreDataPresent(sql)).resolves.toBeUndefined();
     } finally {
       await sql.end();
@@ -209,7 +227,7 @@ describe('db reset (integration)', () => {
       expect(await count(sql, 'topic')).toBeGreaterThan(0);
       expect(await count(sql, 'indicator')).toBeGreaterThan(0);
       expect(await count(sql, 'indicator_version')).toBeGreaterThan(0);
-      expect(await count(sql, 'indicator_topic')).toBeGreaterThan(0);
+      expect(await count(sql, 'indicator_version_topic')).toBeGreaterThan(0);
       expect(await count(sql, 'latest_headline')).toBeGreaterThan(0);
     } finally {
       await sql.end();

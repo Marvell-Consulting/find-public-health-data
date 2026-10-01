@@ -19,7 +19,7 @@ const fields = z.enum([
   'ageRanges',
   'specificAge',
   'specificAgeUnit',
-  'ageOtherDetail',
+  'ageDetail',
 ]);
 
 export type SexAndAgesField = z.infer<typeof fields>;
@@ -41,7 +41,7 @@ export interface SexAndAgesFormValues {
   ageRanges: AgeRangeFormValues[];
   specificAge: string;
   specificAgeUnit: string;
-  ageOtherDetail: string;
+  ageDetail: string;
 }
 
 /** A field of one range, named as its control is and as its refusal is keyed. */
@@ -180,10 +180,10 @@ const schema = z
       .max(MAX_AGE_RANGES, `You cannot add more than ${MAX_AGE_RANGES} ranges`),
     specificAge: z.string().trim(),
     specificAgeUnit: unit,
-    ageOtherDetail: z.string().trim(),
+    ageDetail: z.string().trim(),
   })
   .superRefine(
-    ({ ageType, ageRanges, specificAge, specificAgeUnit, ageOtherDetail }, ctx) => {
+    ({ ageType, ageRanges, specificAge, specificAgeUnit, ageDetail }, ctx) => {
       const issue = (path: (string | number)[], message: string) =>
         ctx.addIssue({ code: 'custom', path, message });
 
@@ -215,8 +215,8 @@ const schema = z
         for (const [field, message] of Object.entries(problems)) issue([field], message);
       }
 
-      if (ageType === 'other' && ageOtherDetail === '') {
-        issue(['ageOtherDetail'], 'Enter the ages included');
+      if (ageType === 'other' && ageDetail === '') {
+        issue(['ageDetail'], 'Enter the ages included');
       }
     },
     // Also beside unanswered sexes or age type, so every refusal shows at once.
@@ -254,7 +254,7 @@ export const sexAndAgesAnswersSchema = z.object({
   ),
   specificAge: z.number().nullable(),
   specificAgeUnit: ageUnit.nullable(),
-  ageOtherDetail: z.string().nullable(),
+  ageDetail: z.string().nullable(),
 });
 
 export type SexAndAgesAnswers = z.infer<typeof sexAndAgesAnswersSchema>;
@@ -273,7 +273,7 @@ export function sexAndAgesFormValues(answers: SexAndAgesAnswers): SexAndAgesForm
     })),
     specificAge: text(answers.specificAge),
     specificAgeUnit: text(answers.specificAgeUnit),
-    ageOtherDetail: text(answers.ageOtherDetail),
+    ageDetail: text(answers.ageDetail),
   };
 }
 

@@ -2,10 +2,10 @@ import { z } from '@fphd/config/zod';
 
 import { type IndicatorSection, yesNoSchema } from './indicator-section-contract.ts';
 
-const fields = z.enum(['dataQualityIssues']);
+const fields = z.enum(['hasDataQualityIssues']);
 
 const schema = z.object({
-  dataQualityIssues: yesNoSchema(
+  hasDataQualityIssues: yesNoSchema(
     'Select whether there are any data quality issues with this indicator',
   ),
 });

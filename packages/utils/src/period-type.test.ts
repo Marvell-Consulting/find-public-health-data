@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isDayOfMonth, publicYearType, YEAR_TYPES, yearTypeValuesLabelled } from './period-type.ts';
+import { isDayOfMonth, publicYearType, yearTypeValuesLabelled } from './period-type.ts';
 
 describe('isDayOfMonth', () => {
   it.each([
@@ -38,27 +38,25 @@ describe('isDayOfMonth', () => {
 });
 
 describe('publicYearType', () => {
-  const { academic, calendar, financial, rolling, specifiedEndDate } = YEAR_TYPES;
-
   it.each([
-    ['Calendar', calendar],
-    ['Financial', financial],
-    ['Academic', academic],
-    ['Rolling', rolling],
-  ])('labels %s by its own name', (label, yearType) => {
-    expect(publicYearType(yearType.id, null)).toEqual({ id: yearType.id, label });
+    ['Calendar', 'calendar'],
+    ['Financial', 'financial'],
+    ['Academic', 'academic'],
+    ['Rolling', 'rolling'],
+  ] as const)('labels %s by its own name', (label, yearType) => {
+    expect(publicYearType(yearType, null)).toEqual({ value: yearType, label });
   });
 
   it.each([
-    [31, 3, financial],
-    [31, 12, calendar],
-    [31, 8, academic],
-  ])('is the named year type a year ending %i/%i ends with', (day, month, yearType) => {
-    expect(publicYearType(specifiedEndDate.id, { day, month })).toEqual({
-      id: yearType.id,
-      label: yearType.name,
-    });
-  });
+    [31, 3, 'financial', 'Financial'],
+    [31, 12, 'calendar', 'Calendar'],
+    [31, 8, 'academic', 'Academic'],
+  ] as const)(
+    'is the named year type a year ending %i/%i ends with',
+    (day, month, value, label) => {
+      expect(publicYearType('specified-end-date', { day, month })).toEqual({ value, label });
+    },
+  );
 
   it.each([
     [31, 7, 'August to July'],
@@ -70,8 +68,8 @@ describe('publicYearType', () => {
   ])(
     'names the months of a year ending on the last day of a month (%i/%i)',
     (day, month, label) => {
-      expect(publicYearType(specifiedEndDate.id, { day, month })).toEqual({
-        id: specifiedEndDate.id,
+      expect(publicYearType('specified-end-date', { day, month })).toEqual({
+        value: 'specified-end-date',
         label,
       });
     },
@@ -83,30 +81,23 @@ describe('publicYearType', () => {
     [30, 3, 'Year ending 30 March'],
     [1, 1, 'Year ending 1 January'],
   ])('names the date of a year ending within a month (%i/%i)', (day, month, label) => {
-    expect(publicYearType(specifiedEndDate.id, { day, month }).label).toBe(label);
-  });
-
-  it('refuses an id that is no year type', () => {
-    expect(() => publicYearType('01a0d88c-0000-7000-8000-000000000000', null)).toThrow(
-      'Not a year type',
-    );
+    expect(publicYearType('specified-end-date', { day, month }).label).toBe(label);
   });
 });
 
 describe('yearTypeValuesLabelled', () => {
-  const { academic, calendar, financial, rolling, specifiedEndDate } = YEAR_TYPES;
   const endingOn = (day: number, month: number) => ({
-    yearTypeId: specifiedEndDate.id,
+    yearType: 'specified-end-date',
     yearEnd: { day, month },
   });
 
   it.each([
-    ['Financial', financial, [31, 3]],
-    ['Calendar', calendar, [31, 12]],
-    ['Academic', academic, [31, 8]],
+    ['Financial', 'financial', [31, 3]],
+    ['Calendar', 'calendar', [31, 12]],
+    ['Academic', 'academic', [31, 8]],
   ] as const)('finds %s and the year ending on its last day', (label, yearType, [day, month]) => {
     expect(yearTypeValuesLabelled(label)).toEqual([
-      { yearTypeId: yearType.id, yearEnd: null },
+      { yearType, yearEnd: null },
       endingOn(day, month),
     ]);
   });
@@ -120,7 +111,7 @@ describe('yearTypeValuesLabelled', () => {
   });
 
   it('finds rolling years', () => {
-    expect(yearTypeValuesLabelled('Rolling')).toEqual([{ yearTypeId: rolling.id, yearEnd: null }]);
+    expect(yearTypeValuesLabelled('Rolling')).toEqual([{ yearType: 'rolling', yearEnd: null }]);
   });
 
   it('finds years ending 28 and 29 February by the one label', () => {

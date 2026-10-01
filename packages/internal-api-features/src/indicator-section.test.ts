@@ -231,13 +231,13 @@ describe('yesNoDetailColumns', () => {
   it('needs a question for every yes/no column', () => {
     yesNoDetailColumns(
       otherNotesAndCaveatsSection,
-      // @ts-expect-error otherNotesNeeded is no question's answer
+      // @ts-expect-error hasOtherNotes is no question's answer
       [
-        { answer: 'roundingApplied', detail: 'roundingDetail', detailRequired: 'x' },
-        { answer: 'caveatsNeeded', detail: 'caveatsDetail', detailRequired: 'x' },
+        { answer: 'hasRounding', detail: 'roundingDetail', detailRequired: 'x' },
+        { answer: 'hasCaveats', detail: 'caveatsDetail', detailRequired: 'x' },
       ],
     );
-    // @ts-expect-error sourceDataIssues is no question's answer
+    // @ts-expect-error hasSourceDataIssues is no question's answer
     yesNoDetailColumns(varianceAndQualitySection, []);
   });
 
@@ -245,13 +245,13 @@ describe('yesNoDetailColumns', () => {
     yesNoDetailColumns(otherNotesAndCaveatsSection, [
       // @ts-expect-error disclosureControl is a text column
       { answer: 'disclosureControl', detail: 'disclosureControlDetail', detailRequired: 'x' },
-      { answer: 'roundingApplied', detail: 'roundingDetail', detailRequired: 'x' },
-      { answer: 'caveatsNeeded', detail: 'caveatsDetail', detailRequired: 'x' },
-      { answer: 'otherNotesNeeded', detail: 'otherNotesDetail', detailRequired: 'x' },
+      { answer: 'hasRounding', detail: 'roundingDetail', detailRequired: 'x' },
+      { answer: 'hasCaveats', detail: 'caveatsDetail', detailRequired: 'x' },
+      { answer: 'hasOtherNotes', detail: 'otherNotesDetail', detailRequired: 'x' },
     ]);
     yesNoDetailColumns(varianceAndQualitySection, [
-      // @ts-expect-error sourceDataIssues is a yes/no column
-      { answer: 'sourceDataIssues', detail: 'sourceDataIssues', detailRequired: 'x' },
+      // @ts-expect-error hasSourceDataIssues is a yes/no column
+      { answer: 'hasSourceDataIssues', detail: 'hasSourceDataIssues', detailRequired: 'x' },
     ]);
   });
 });

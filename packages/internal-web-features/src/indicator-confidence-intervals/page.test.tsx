@@ -49,9 +49,9 @@ const methods = [BYARS, CHIANG, NONE_AVAILABLE, OTHER, UNKNOWN];
 
 const empty = {
   ciMethodId: '',
-  ciMethodModified: '',
-  ciMethodModifications: '',
-  ciMethodOtherDetail: '',
+  hasCiMethodModifications: '',
+  ciMethodModificationsDetail: '',
+  ciMethodDetail: '',
 };
 
 const METHOD = 'Select the confidence interval method used';
@@ -247,9 +247,9 @@ describe('ConfidenceIntervalsPage', () => {
     renderPage({
       values: {
         ciMethodId: BYARS.id,
-        ciMethodModified: 'yes',
-        ciMethodModifications: 'Adjusted for clustering',
-        ciMethodOtherDetail: '',
+        hasCiMethodModifications: 'yes',
+        ciMethodModificationsDetail: 'Adjusted for clustering',
+        ciMethodDetail: '',
       },
     });
 
@@ -265,7 +265,7 @@ describe('ConfidenceIntervalsPage', () => {
     renderPage({
       values: { ...empty, ciMethodId: BYARS.id },
       fieldErrors: {
-        ciMethodModified: 'Select whether any modifications were used',
+        hasCiMethodModifications: 'Select whether any modifications were used',
         ciMethodId: 'Select the confidence interval method used',
       },
     });
@@ -285,9 +285,9 @@ describe('ConfidenceIntervalsPage', () => {
 
   it('marks a refused follow-up and keeps what was typed', () => {
     const { container } = renderPage({
-      values: { ...empty, ciMethodId: OTHER.id, ciMethodModifications: 'Kept' },
+      values: { ...empty, ciMethodId: OTHER.id, ciMethodModificationsDetail: 'Kept' },
       fieldErrors: {
-        ciMethodOtherDetail: 'Enter details of the other confidence interval method used',
+        ciMethodDetail: 'Enter details of the other confidence interval method used',
       },
     });
 

@@ -1,21 +1,27 @@
 import { sql } from 'drizzle-orm';
 import { check, date, index, integer, pgTable, text, uuid } from 'drizzle-orm/pg-core';
 
-import { uuidPrimaryKey } from './helpers.ts';
+import { literals, uuidPrimaryKey } from './helpers.ts';
+
+/** The hierarchies an area type belongs to. */
+export const AREA_HIERARCHY_TYPES = ['NHS', 'Administrative'] as const;
 
 export const areaType = pgTable(
   'area_type',
   {
     id: uuidPrimaryKey(),
     name: text().notNull().unique(),
-    hierarchyType: text().notNull(),
+    hierarchyType: text({ enum: AREA_HIERARCHY_TYPES }).notNull(),
     level: integer().notNull(),
     /** The user-facing level this type rolls into ("Local authorities"); null stays hidden. */
     displayGroup: text(),
     displayOrder: integer(),
   },
   (t) => [
-    check('area_type_hierarchy_type_check', sql`${t.hierarchyType} IN ('NHS', 'Administrative')`),
+    check(
+      'area_type_hierarchy_type_check',
+      sql`${t.hierarchyType} IN (${literals(AREA_HIERARCHY_TYPES)})`,
+    ),
   ],
 );
 

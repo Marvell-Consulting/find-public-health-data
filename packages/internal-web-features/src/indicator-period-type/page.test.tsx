@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 import { serviceName } from '@fphd/ui';
-import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -14,8 +13,8 @@ const TITLE = 'What is the period type in this indicator?';
 const unanswered = { periodType: '', yearType: '', yearEndDay: '', yearEndMonth: '' };
 
 const quartersEndingOn = {
-  periodType: PERIOD_TYPES.quarters.id,
-  yearType: YEAR_TYPES.specifiedEndDate.id,
+  periodType: 'quarters',
+  yearType: 'specified-end-date',
   yearEndDay: '30',
   yearEndMonth: '9',
 };
@@ -46,9 +45,9 @@ describe('PeriodTypePage', () => {
     expect(document.title).toBe(`${TITLE} - ${serviceName} - GOV.UK`);
     expect(labelsOf(radiosNamed('periodType'))).toEqual(['Years', 'Quarters', 'Months']);
     expect(radiosNamed('periodType').map(({ value }) => value)).toEqual([
-      PERIOD_TYPES.years.id,
-      PERIOD_TYPES.quarters.id,
-      PERIOD_TYPES.months.id,
+      'years',
+      'quarters',
+      'months',
     ]);
   });
 
@@ -96,7 +95,7 @@ describe('PeriodTypePage', () => {
 
   it('links a missing year type to the first year type under the chosen period type', () => {
     renderPage({
-      values: { ...unanswered, periodType: PERIOD_TYPES.years.id },
+      values: { ...unanswered, periodType: 'years' },
       fieldErrors: { yearType: 'Select the year type' },
     });
 
@@ -114,8 +113,8 @@ describe('periodTypeControlNames', () => {
   }
 
   it.each([
-    ['years', PERIOD_TYPES.years.id],
-    ['quarters', PERIOD_TYPES.quarters.id],
+    ['years', 'years'],
+    ['quarters', 'quarters'],
   ])('reads the year type from the controls under %s', (set, periodType) => {
     expect(periodTypeControlNames(formData({ periodType }))).toEqual({
       yearType: `${set}YearType`,
@@ -125,7 +124,7 @@ describe('periodTypeControlNames', () => {
   });
 
   it.each([
-    ['months', PERIOD_TYPES.months.id],
+    ['months', 'months'],
     ['no period type', ''],
   ])('reads no year type for %s', (_, periodType) => {
     expect(periodTypeControlNames(formData({ periodType }))).toEqual({});

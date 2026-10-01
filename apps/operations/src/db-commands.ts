@@ -66,7 +66,15 @@ export async function bootstrap({ sql, config }: CommandContext): Promise<void> 
  * production run this too.
  */
 export async function importCoreData({ sql, logger }: CommandContext): Promise<void> {
-  const { topics, ciMethods, classifications, dataProviders } = await importCoreDataFromFiles(sql);
+  const {
+    topics,
+    ciMethods,
+    classifications,
+    dataProviders,
+    valueTypes,
+    units,
+    comparatorMethods,
+  } = await importCoreDataFromFiles(sql);
   logger.info({ ...topics.summary }, 'Topics imported');
   for (const topic of topics.orphaned) {
     logger.warn(
@@ -97,6 +105,20 @@ export async function importCoreData({ sql, logger }: CommandContext): Promise<v
       { id: row.id, providerOrSourceName: row.name },
       'Data provider or source in the database but absent from the file; left in place',
     );
+  }
+  const lists = [
+    ['Value types', 'Value type', valueTypes],
+    ['Units', 'Unit', units],
+    ['Comparator methods', 'Comparator method', comparatorMethods],
+  ] as const;
+  for (const [plural, singular, { summary, orphaned }] of lists) {
+    logger.info({ ...summary }, `${plural} imported`);
+    for (const row of orphaned) {
+      logger.warn(
+        { id: row.id, entryName: row.name },
+        `${singular} in the database but absent from the file; left in place`,
+      );
+    }
   }
 }
 

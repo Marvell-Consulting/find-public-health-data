@@ -24,7 +24,7 @@ const unanswered = {
   ageRanges: [],
   specificAge: null,
   specificAgeUnit: null,
-  ageOtherDetail: null,
+  ageDetail: null,
 };
 
 function context(client: Partial<ApiClient>) {
@@ -86,7 +86,7 @@ describe('loadSexAndAges', () => {
         ageRanges: [sixteenPlus],
         specificAge: '',
         specificAgeUnit: '',
-        ageOtherDetail: '',
+        ageDetail: '',
       },
     });
     expect(get.mock.calls[0]?.[0]).toBe(sectionPath);
@@ -152,7 +152,7 @@ describe('submitSexAndAges', () => {
       ageRanges: [sixteenPlus],
       specificAge: '',
       specificAgeUnit: '',
-      ageOtherDetail: '',
+      ageDetail: '',
     });
     expect(outcome).toSatisfy(isRedirectToTaskList);
   });
@@ -169,7 +169,7 @@ describe('submitSexAndAges', () => {
         ageRanges: [sixteenPlus, blank],
         specificAge: '',
         specificAgeUnit: '',
-        ageOtherDetail: '',
+        ageDetail: '',
       },
       fieldErrors: {
         sexes: 'Select sexes included',
@@ -190,7 +190,7 @@ describe('submitSexAndAges', () => {
         [
           ['sexes', 'persons'],
           ['ageType', 'other'],
-          ['ageOtherDetail', 'Year 6'],
+          ['ageDetail', 'Year 6'],
         ],
         [],
         put,
@@ -210,7 +210,7 @@ describe('submitSexAndAges', () => {
         [
           ['sexes', 'persons'],
           ['ageType', 'other'],
-          ['ageOtherDetail', 'Year 6'],
+          ['ageDetail', 'Year 6'],
         ],
         [],
         put,

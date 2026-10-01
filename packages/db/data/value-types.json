@@ -1,0 +1,66 @@
+[
+  {
+    "id": "01a0d8a5-3ca2-7315-bfca-96c7324d4347",
+    "name": "Count"
+  },
+  {
+    "id": "01a0d8a5-3ca2-7315-bfca-96c8c77cad18",
+    "name": "Crude rate"
+  },
+  {
+    "id": "01a0d8a5-3ca2-7315-bfca-96c9664c846c",
+    "name": "Directly standardised rate"
+  },
+  {
+    "id": "01a0d8a5-3ca2-7315-bfca-96ca4c9608e9",
+    "name": "Excess risk"
+  },
+  {
+    "id": "01a0d8a5-3ca2-7315-bfca-96cb03846bff",
+    "name": "Gap"
+  },
+  {
+    "id": "01a0d8a5-3ca2-7315-bfca-96cc2dc711c3",
+    "name": "Indirectly standardised proportion"
+  },
+  {
+    "id": "01a0d8a5-3ca2-7315-bfca-96cda63ea940",
+    "name": "Indirectly standardised ratio"
+  },
+  {
+    "id": "01a0d8a5-3ca2-7315-bfca-96ce5ffc8d47",
+    "name": "Life expectancy"
+  },
+  {
+    "id": "01a0d8a5-3ca2-7315-bfca-96cff286704d",
+    "name": "Mean"
+  },
+  {
+    "id": "01a0d8a5-3ca2-7315-bfca-96d0928fd186",
+    "name": "Median"
+  },
+  {
+    "id": "01a0d8a5-3ca2-7315-bfca-96d1b508d83f",
+    "name": "Percentage point"
+  },
+  {
+    "id": "01a0d8a5-3ca2-7315-bfca-96d2031a65e7",
+    "name": "Proportion"
+  },
+  {
+    "id": "01a0d8a5-3ca2-7315-bfca-96d34a17c74b",
+    "name": "Ratio"
+  },
+  {
+    "id": "01a0f31b-a23f-749d-a9ea-68b179920ab3",
+    "name": "Relative index of inequality"
+  },
+  {
+    "id": "01a0d8a5-3ca2-7315-bfca-96d4cc7f7bcb",
+    "name": "Score"
+  },
+  {
+    "id": "01a0d8a5-3ca2-7315-bfca-96d54168d21f",
+    "name": "Slope index of inequality"
+  }
+]

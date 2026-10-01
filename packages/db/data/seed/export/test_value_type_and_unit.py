@@ -32,12 +32,15 @@ snapshot = runpy.run_path(str(Path(__file__).with_name("export-published-snapsho
 PHOLIO = json.loads(
     Path(__file__).parents[3].joinpath("src/pholio-value-types-and-units.json").read_text()
 )
+CORE_VALUE_TYPES = json.loads(Path(__file__).parents[2].joinpath("value-types.json").read_text())
+CORE_UNITS = json.loads(Path(__file__).parents[2].joinpath("units.json").read_text())
 
 
 class ValueTypeIdTest(unittest.TestCase):
     def test_keeps_each_service_value_type(self):
-        for name, id in VALUE_TYPE_IDS.items():
-            self.assertEqual(value_type_id(name), id)
+        for row in CORE_VALUE_TYPES:
+            with self.subTest(name=row["name"]):
+                self.assertEqual(value_type_id(row["name"]), row["id"])
 
     def test_gives_every_pholio_value_type_its_service_value(self):
         for row in PHOLIO["valueTypes"]:
@@ -59,6 +62,12 @@ class ValueTypeIdTest(unittest.TestCase):
 
 
 class UnitValuesTest(unittest.TestCase):
+    def test_gives_each_listed_fingertips_unit_a_row_the_core_data_holds(self):
+        core = {row["name"]: row["id"] for row in CORE_UNITS}
+        for name, service in UNITS.items():
+            with self.subTest(name=name):
+                self.assertEqual(unit_values(name)["unit_id"], core[service])
+
     def test_gives_each_fingertips_unit_in_the_list_its_row(self):
         self.assertEqual(
             {
@@ -74,16 +83,16 @@ class UnitValuesTest(unittest.TestCase):
                 "No unit": UNIT_IDS["No unit"],
             },
         )
-        self.assertIsNone(unit_values("Percent")["unit_other"])
+        self.assertIsNone(unit_values("Percent")["unit_detail"])
 
     def test_names_any_other_unit_as_fingertips_named_it(self):
         self.assertEqual(
             unit_values("per 1,000, per day "),
-            {"unit_id": UNIT_IDS["Other"], "unit_other": "per 1,000, per day"},
+            {"unit_id": UNIT_IDS["Other"], "unit_detail": "per 1,000, per day"},
         )
         self.assertEqual(
             unit_values("Percentage points"),
-            {"unit_id": UNIT_IDS["Other"], "unit_other": "Percentage points"},
+            {"unit_id": UNIT_IDS["Other"], "unit_detail": "Percentage points"},
         )
 
     def test_refuses_an_unknown_placeholder_or_a_name_too_long_to_keep(self):
@@ -96,7 +105,7 @@ class UnitValuesTest(unittest.TestCase):
             with self.subTest(name=row["name"]):
                 self.assertEqual(
                     unit_values(row["name"]),
-                    {"unit_id": UNIT_IDS[row["service"]], "unit_other": row["other"]},
+                    {"unit_id": UNIT_IDS[row["service"]], "unit_detail": row["other"]},
                 )
 
 
@@ -166,7 +175,7 @@ def selected_unit(name):
 
 class UnitSelectTest(unittest.TestCase):
     def test_leaves_no_unit_unanswered(self):
-        self.assertEqual(selected_unit(None), {"unit_id": None, "unit_other": None})
+        self.assertEqual(selected_unit(None), {"unit_id": None, "unit_detail": None})
 
     def test_agrees_with_unit_values(self):
         for name in [row["name"] for row in PHOLIO["units"]]:
@@ -252,7 +261,7 @@ class ReshapeTest(unittest.TestCase):
             {
                 "value_type_id": VALUE_TYPE_IDS["Directly standardised rate"],
                 "unit_id": UNIT_IDS["Other"],
-                "unit_other": "per 1,000 live births",
+                "unit_detail": "per 1,000 live births",
             },
         )
 

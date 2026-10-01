@@ -1,4 +1,8 @@
 import { type Database, schema } from '@fphd/db';
+import {
+  type ClassificationDimension,
+  TAGGING_DIMENSIONS,
+} from '@fphd/utils/classification-dimension';
 import { asc, inArray } from 'drizzle-orm';
 
 import type { TagOptions } from './contract.ts';
@@ -16,10 +20,10 @@ export async function listTagOptions(db: Database): Promise<TagOptions> {
         dimension: classification.dimension,
       })
       .from(classification)
-      .where(inArray(classification.dimension, ['indicator_type', 'risk_factor', 'framework']))
+      .where(inArray(classification.dimension, [...TAGGING_DIMENSIONS]))
       .orderBy(asc(classification.name)),
   ]);
-  const ofDimension = (dimension: string) =>
+  const ofDimension = (dimension: ClassificationDimension) =>
     classifications
       .filter((row) => row.dimension === dimension)
       .map(({ id, name }) => ({ id, name }));

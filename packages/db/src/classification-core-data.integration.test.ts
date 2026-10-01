@@ -43,7 +43,7 @@ describe('the committed core data and seed', () => {
       SELECT d.dimension,
         CASE d.dimension WHEN 'risk_factor' THEN v.has_risk_factor ELSE v.has_framework END AS answered,
         EXISTS (
-          SELECT 1 FROM indicator_classification ic
+          SELECT 1 FROM indicator_version_classification ic
           JOIN classification c ON c.id = ic.classification_id
           WHERE ic.indicator_version_id = v.id AND c.dimension = d.dimension
         ) AS linked

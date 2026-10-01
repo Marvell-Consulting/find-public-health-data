@@ -1,5 +1,6 @@
 import { type CalculationField, calculationSection } from '@fphd/internal-api-features/contract';
 import { firstRadioId, Radios, Textarea } from '@fphd/ui';
+import { INDICATOR_CALCULATED_BY_LABELS } from '@fphd/utils/calculated-by';
 
 import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
@@ -31,18 +32,18 @@ export function CalculationPage({
         label={<h2 className="govuk-heading-m">Who calculated the indicator?</h2>}
         name="calculatedBy"
         options={[
-          { value: 'ohid', label: 'Office for Health Improvement and Disparities' },
-          { value: 'dhsc', label: 'Department of Health and Social Care' },
+          { value: 'ohid', label: INDICATOR_CALCULATED_BY_LABELS.ohid },
+          { value: 'dhsc', label: INDICATOR_CALCULATED_BY_LABELS.dhsc },
           {
             value: 'other',
-            label: 'Other organisation or organisations',
+            label: INDICATOR_CALCULATED_BY_LABELS.other,
             // Shown without JavaScript; with it, only while "Other" is chosen.
             conditional: (
               <Textarea
-                defaultValue={values.calculatedByOther}
-                error={fieldErrors.calculatedByOther}
+                defaultValue={values.calculatedByDetail}
+                error={fieldErrors.calculatedByDetail}
                 label="Enter details of the other organisation or organisations"
-                name="calculatedByOther"
+                name="calculatedByDetail"
                 rows={3}
               />
             ),

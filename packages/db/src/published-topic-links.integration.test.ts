@@ -27,7 +27,7 @@ describe('published demo topic links', () => {
     const summary = await applyIndicatorTopics(createDbFromClient(sql), file);
     const [row] = await sql<
       { count: number }[]
-    >`SELECT count(*)::int AS count FROM indicator_topic`;
+    >`SELECT count(*)::int AS count FROM indicator_version_topic`;
 
     expect(summary.unknownTopics).toEqual([]);
     expect(summary.links).toBeGreaterThanOrEqual(22);
@@ -56,7 +56,7 @@ describe('an indicator with only a draft', () => {
       }),
     );
     const links = await sql<{ topic_id: string }[]>`
-      SELECT topic_id FROM indicator_topic WHERE indicator_version_id = ${draft.version_id}
+      SELECT topic_id FROM indicator_version_topic WHERE indicator_version_id = ${draft.version_id}
     `;
     // postgres.js hands a timestamptz back as text here, not as a Date.
     const [updated] = await sql<{ data_updated_at: string | null }[]>`

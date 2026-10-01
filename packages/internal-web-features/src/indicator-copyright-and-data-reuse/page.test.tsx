@@ -9,10 +9,10 @@ import { CopyrightAndDataReusePage } from './page.tsx';
 afterEach(cleanup);
 
 const empty = {
-  copyrightNonDefault: '',
-  copyrightDetail: '',
-  dataReuseNonDefault: '',
-  dataReuseDetail: '',
+  hasCustomCopyright: '',
+  customCopyrightDetail: '',
+  hasCustomDataReuse: '',
+  customDataReuseDetail: '',
 };
 
 const COPYRIGHT = 'Is the copyright different to the default?';
@@ -51,10 +51,10 @@ describe('CopyrightAndDataReusePage', () => {
         radio.value,
       ]),
     ).toEqual([
-      ['copyrightNonDefault', 'yes'],
-      ['copyrightNonDefault', 'no'],
-      ['dataReuseNonDefault', 'yes'],
-      ['dataReuseNonDefault', 'no'],
+      ['hasCustomCopyright', 'yes'],
+      ['hasCustomCopyright', 'no'],
+      ['hasCustomDataReuse', 'yes'],
+      ['hasCustomDataReuse', 'no'],
     ]);
   });
 
@@ -70,8 +70,8 @@ describe('CopyrightAndDataReusePage', () => {
   });
 
   it.each([
-    [COPYRIGHT, 'copyrightDetail'],
-    [DATA_REUSE, 'dataReuseDetail'],
+    [COPYRIGHT, 'customCopyrightDetail'],
+    [DATA_REUSE, 'customDataReuseDetail'],
   ])('asks for the details under Yes to "%s"', (legend, name) => {
     renderPage();
 
@@ -85,10 +85,10 @@ describe('CopyrightAndDataReusePage', () => {
   it('shows the answers it is given, so a draft can be revisited', () => {
     renderPage({
       values: {
-        copyrightNonDefault: 'yes',
-        copyrightDetail: 'Copyright © NHS England',
-        dataReuseNonDefault: 'no',
-        dataReuseDetail: '',
+        hasCustomCopyright: 'yes',
+        customCopyrightDetail: 'Copyright © NHS England',
+        hasCustomDataReuse: 'no',
+        customDataReuseDetail: '',
       },
     });
 
@@ -102,10 +102,10 @@ describe('CopyrightAndDataReusePage', () => {
   it('summarises every refusal in the order the form asks, linking to each control', () => {
     renderPage({
       fieldErrors: {
-        dataReuseNonDefault: 'Select whether the data re-use is different to the default',
-        copyrightDetail: 'Provide details of the copyright',
+        hasCustomDataReuse: 'Select whether the data re-use is different to the default',
+        customCopyrightDetail: 'Provide details of the copyright',
       },
-      values: { ...empty, copyrightNonDefault: 'yes' },
+      values: { ...empty, hasCustomCopyright: 'yes' },
     });
 
     const links = within(screen.getByRole('alert')).getAllByRole('link');

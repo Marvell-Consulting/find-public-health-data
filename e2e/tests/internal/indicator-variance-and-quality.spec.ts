@@ -19,7 +19,7 @@ const SOURCE_DATA_ISSUES = 'Are there any data quality issues with the source da
 const DETAILS =
   'Enter details, including what is being done to improve the quality of the source data';
 
-function sourceDataIssues(page: Page, label: 'Yes' | 'No') {
+function hasSourceDataIssues(page: Page, label: 'Yes' | 'No') {
   return page.getByRole('group', { name: SOURCE_DATA_ISSUES }).getByLabel(label, { exact: true });
 }
 
@@ -30,14 +30,14 @@ function details(page: Page) {
 async function answerEvery(page: Page) {
   await page.getByLabel(VARIATION).fill('  Varies with the age structure of each area.  ');
   await page.getByLabel(QUALITY_ASSURANCE).fill('Checked against the published ONS figures.');
-  await sourceDataIssues(page, 'Yes').check();
+  await hasSourceDataIssues(page, 'Yes').check();
   await details(page).fill('Late returns from two areas.');
 }
 
 async function submitYesWithoutDetails(page: Page) {
   await page.getByLabel(VARIATION).fill('Varies by area.');
   await page.getByLabel(QUALITY_ASSURANCE).fill('Checked.');
-  await sourceDataIssues(page, 'Yes').check();
+  await hasSourceDataIssues(page, 'Yes').check();
   await page.getByRole('button', { name: 'Continue' }).click();
 }
 
@@ -76,7 +76,7 @@ test('asks every question when Continue is selected with the form empty', async 
   await summary
     .getByRole('link', { name: 'Select whether there are any data quality issues' })
     .click();
-  await expect(sourceDataIssues(page, 'Yes')).toBeFocused();
+  await expect(hasSourceDataIssues(page, 'Yes')).toBeFocused();
 });
 
 test('reveals the details only while Yes is chosen', async ({ page }) => {
@@ -84,10 +84,10 @@ test('reveals the details only while Yes is chosen', async ({ page }) => {
 
   await expect(details(page)).toBeHidden();
 
-  await sourceDataIssues(page, 'Yes').check();
+  await hasSourceDataIssues(page, 'Yes').check();
   await expect(details(page)).toBeVisible();
 
-  await sourceDataIssues(page, 'No').check();
+  await hasSourceDataIssues(page, 'No').check();
   await expect(details(page)).toBeHidden();
 });
 
@@ -101,7 +101,7 @@ test('asks for the details of source data issues answered Yes without them', asy
     'Enter details of the data quality issues with the source data',
   ]);
   await expect(page.getByLabel(VARIATION)).toHaveValue('Varies by area.');
-  await expect(sourceDataIssues(page, 'Yes')).toBeChecked();
+  await expect(hasSourceDataIssues(page, 'Yes')).toBeChecked();
 
   await expectErrorSummaryReady(page);
   await summary.getByRole('link').click();
@@ -136,7 +136,7 @@ test('saves every answer on Continue and shows the task as completed', async ({ 
   await expect(page.getByLabel(QUALITY_ASSURANCE)).toHaveValue(
     'Checked against the published ONS figures.',
   );
-  await expect(sourceDataIssues(page, 'Yes')).toBeChecked();
+  await expect(hasSourceDataIssues(page, 'Yes')).toBeChecked();
   await expect(details(page)).toHaveValue('Late returns from two areas.');
 });
 
@@ -148,13 +148,13 @@ test('forgets the details once source data issues are answered No instead', asyn
   await expect(taskRow(page, SECTION.taskName)).toContainText('Completed');
 
   await page.goto(pagePath);
-  await sourceDataIssues(page, 'No').check();
+  await hasSourceDataIssues(page, 'No').check();
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(taskRow(page, SECTION.taskName)).toContainText('Completed');
 
   await page.goto(pagePath);
-  await expect(sourceDataIssues(page, 'No')).toBeChecked();
-  await sourceDataIssues(page, 'Yes').check();
+  await expect(hasSourceDataIssues(page, 'No')).toBeChecked();
+  await hasSourceDataIssues(page, 'Yes').check();
   await expect(details(page)).toBeEmpty();
 });
 

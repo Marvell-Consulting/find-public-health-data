@@ -3,7 +3,7 @@ import type {
   IndicatorDetail,
   IndicatorObservation,
 } from '@fphd/public-api-features/contract';
-import { type PublicYearType, YEAR_TYPES } from '@fphd/utils/period-type';
+import type { PublicYearType } from '@fphd/utils/period-type';
 import type { Polarity } from '@fphd/utils/polarity';
 
 function daysBetween(fromDate: string, toDate: string): number {
@@ -22,7 +22,7 @@ export function periodLabel(
   // A financial year spans two calendar years but is one period: 2009/10, not
   // "2009 to 2010" — that form is reserved for genuine multi-year ranges.
   const days = daysBetween(fromDate, toDate);
-  if (yearType?.id === YEAR_TYPES.financial.id && days <= 400) {
+  if (yearType?.value === 'financial' && days <= 400) {
     return `${fromYear}/${toYear.slice(2)}`;
   }
   return `${fromYear} to ${toYear}`;

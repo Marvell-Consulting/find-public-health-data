@@ -9,9 +9,9 @@ import {
   ciMethod,
   classification,
   indicator,
-  indicatorClassification,
-  indicatorTopic,
   indicatorVersion,
+  indicatorVersionClassification,
+  indicatorVersionTopic,
   topic,
 } from './schema/index.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
@@ -65,41 +65,7 @@ async function newIndicatorId(): Promise<string> {
 async function addVersion(
   indicatorId: string,
   status: 'draft' | 'published',
-  values: Partial<
-    Pick<
-      typeof indicatorVersion.$inferInsert,
-      | 'name'
-      | 'slug'
-      | 'publishedAt'
-      | 'calculatedBy'
-      | 'calculatedByOther'
-      | 'disclosureControl'
-      | 'disclosureControlDetail'
-      | 'roundingApplied'
-      | 'roundingDetail'
-      | 'caveatsNeeded'
-      | 'caveatsDetail'
-      | 'otherNotesNeeded'
-      | 'otherNotesDetail'
-      | 'sourceDataIssues'
-      | 'sourceDataIssuesDetail'
-      | 'hasExclusions'
-      | 'exclusionsDetail'
-      | 'automationUsed'
-      | 'automationDetail'
-      | 'hasReviewerComments'
-      | 'reviewerCommentsDetail'
-      | 'copyrightNonDefault'
-      | 'copyrightDetail'
-      | 'dataReuseNonDefault'
-      | 'dataReuseDetail'
-      | 'hasGoalBenchmark'
-      | 'goalLowerValue'
-      | 'goalUpperValue'
-      | 'goalPolarity'
-      | 'goalPolicyDetail'
-    >
-  > = {},
+  values: Partial<typeof indicatorVersion.$inferInsert> = {},
 ) {
   return db
     .insert(indicatorVersion)
@@ -226,6 +192,56 @@ describe('indicator_version', () => {
     ).rejects.toMatchObject({ cause: { code: CHECK_VIOLATION } });
   });
 
+  it.each([
+    ['months', { periodType: 'months' }],
+    ['quarters of a year type', { periodType: 'quarters', yearType: 'financial' }],
+    [
+      'years ending on 29 February',
+      { periodType: 'years', yearType: 'specified-end-date', yearEndDay: 29, yearEndMonth: 2 },
+    ],
+  ] as const)('holds a period type of %s', async (_, values) => {
+    await expect(addVersion(await newIndicatorId(), 'draft', values)).resolves.toHaveLength(1);
+  });
+
+  // Each case names the check that refuses it; Postgres tries the checks in name order.
+  it.each([
+    ['a period type the service does not know', { periodType: 'weeks' }, 'period_type'],
+    [
+      'a year type the service does not know',
+      { periodType: 'years', yearType: 'survey' },
+      'year_type',
+    ],
+    ['a year type on months', { periodType: 'months', yearType: 'calendar' }, 'year_type_period'],
+    ['no year type on years', { periodType: 'years' }, 'year_type_period'],
+    ['a year type with no period type', { yearType: 'calendar' }, 'year_type_period'],
+    [
+      'a year end on a calendar year',
+      { periodType: 'years', yearType: 'calendar', yearEndDay: 31, yearEndMonth: 7 },
+      'year_end',
+    ],
+    [
+      'no year end on a year ending on a date',
+      { periodType: 'years', yearType: 'specified-end-date' },
+      'year_end',
+    ],
+    [
+      'half a year end',
+      { periodType: 'years', yearType: 'specified-end-date', yearEndDay: 31 },
+      'year_end',
+    ],
+    [
+      '31 February',
+      { periodType: 'years', yearType: 'specified-end-date', yearEndDay: 31, yearEndMonth: 2 },
+      'year_end_date',
+    ],
+  ] as const)('refuses %s', async (_, values, check) => {
+    await expect(
+      addVersion(await newIndicatorId(), 'draft', values as never),
+    ).rejects.toMatchObject({
+      cause: { code: CHECK_VIOLATION, constraint_name: `indicator_version_${check}_check` },
+    });
+  });
+
   it('allows a draft alongside the published version', async () => {
     const indicatorId = await newIndicatorId();
 
@@ -295,14 +311,17 @@ describe('indicator_version', () => {
     ).rejects.toMatchObject({ cause: { code: CHECK_VIOLATION } });
   });
 
-  it.each(['ohid', 'dhsc', 'other'] as const)(
-    'accepts %s as who calculated it',
-    async (calculatedBy) => {
-      const indicatorId = await newIndicatorId();
+  it.each([
+    ['ohid', {}],
+    ['dhsc', {}],
+    ['other', { calculatedByDetail: 'ONS' }],
+  ] as const)('accepts %s as who calculated it', async (calculatedBy, detail) => {
+    const indicatorId = await newIndicatorId();
 
-      await expect(addVersion(indicatorId, 'draft', { calculatedBy })).resolves.toHaveLength(1);
-    },
-  );
+    await expect(
+      addVersion(indicatorId, 'draft', { calculatedBy, ...detail }),
+    ).resolves.toHaveLength(1);
+  });
 
   it.each([
     ['nobody', null],
@@ -312,20 +331,19 @@ describe('indicator_version', () => {
     const indicatorId = await newIndicatorId();
 
     await expect(
-      addVersion(indicatorId, 'draft', { calculatedBy, calculatedByOther: 'ONS' }),
+      addVersion(indicatorId, 'draft', { calculatedBy, calculatedByDetail: 'ONS' }),
     ).rejects.toMatchObject({ cause: { code: CHECK_VIOLATION } });
   });
 
-  it('accepts other organisations beside "other", named or not yet', async () => {
-    await expect(
-      addVersion(await newIndicatorId(), 'draft', {
-        calculatedBy: 'other',
-        calculatedByOther: 'ONS',
-      }),
-    ).resolves.toHaveLength(1);
+  it('refuses "other" with no organisations named, as the contract does', async () => {
     await expect(
       addVersion(await newIndicatorId(), 'draft', { calculatedBy: 'other' }),
-    ).resolves.toHaveLength(1);
+    ).rejects.toMatchObject({
+      cause: {
+        code: CHECK_VIOLATION,
+        constraint_name: 'indicator_version_calculated_by_detail_check',
+      },
+    });
   });
 
   it('refuses a disclosure control answer the publisher form does not offer', async () => {
@@ -345,30 +363,30 @@ describe('indicator_version', () => {
       'disclosure control that is not applicable',
       { disclosureControl: 'not-applicable', disclosureControlDetail: 'x' },
     ],
-    ['rounding not applied', { roundingApplied: false, roundingDetail: 'To the nearest 5' }],
+    ['rounding not applied', { hasRounding: false, roundingDetail: 'To the nearest 5' }],
     ['caveats of nobody', { caveatsDetail: 'Survey data' }],
-    ['caveats not needed', { caveatsNeeded: false, caveatsDetail: 'Survey data' }],
-    ['other notes not needed', { otherNotesNeeded: false, otherNotesDetail: 'Revised' }],
+    ['caveats not needed', { hasCaveats: false, caveatsDetail: 'Survey data' }],
+    ['other notes not needed', { hasOtherNotes: false, otherNotesDetail: 'Revised' }],
     ['source data issues of nobody', { sourceDataIssuesDetail: 'Late returns' }],
     [
       'source data without issues',
-      { sourceDataIssues: false, sourceDataIssuesDetail: 'Late returns' },
+      { hasSourceDataIssues: false, sourceDataIssuesDetail: 'Late returns' },
     ],
     ['exclusions of nobody', { exclusionsDetail: 'Small areas' }],
     ['no exclusions', { hasExclusions: false, exclusionsDetail: 'Small areas' }],
     ['automation of nobody', { automationDetail: 'Pipeline' }],
-    ['no automation', { automationUsed: false, automationDetail: 'Pipeline' }],
+    ['no automation', { hasAutomation: false, automationDetail: 'Pipeline' }],
     ['reviewer comments of nobody', { reviewerCommentsDetail: 'Replaces 108' }],
     [
       'no reviewer comments',
       { hasReviewerComments: false, reviewerCommentsDetail: 'Replaces 108' },
     ],
-    ['copyright of nobody', { copyrightDetail: 'NHS England' }],
-    ['the default copyright', { copyrightNonDefault: false, copyrightDetail: 'NHS England' }],
-    ['data re-use of nobody', { dataReuseDetail: 'Cite NHS England' }],
+    ['copyright of nobody', { customCopyrightDetail: 'NHS England' }],
+    ['the default copyright', { hasCustomCopyright: false, customCopyrightDetail: 'NHS England' }],
+    ['data re-use of nobody', { customDataReuseDetail: 'Cite NHS England' }],
     [
       'the default data re-use',
-      { dataReuseNonDefault: false, dataReuseDetail: 'Cite NHS England' },
+      { hasCustomDataReuse: false, customDataReuseDetail: 'Cite NHS England' },
     ],
   ] as const)('refuses a detail beside %s', async (_, values) => {
     await expect(addVersion(await newIndicatorId(), 'draft', values)).rejects.toMatchObject({
@@ -376,33 +394,56 @@ describe('indicator_version', () => {
     });
   });
 
-  it('accepts a detail beside a yes, given or not yet', async () => {
+  it('accepts a detail beside a yes', async () => {
     await expect(
       addVersion(await newIndicatorId(), 'draft', {
         disclosureControl: 'yes',
         disclosureControlDetail: 'Suppressed',
-        caveatsNeeded: true,
+        hasRounding: true,
+        roundingDetail: 'To the nearest 5',
+        hasCaveats: true,
         caveatsDetail: 'Survey data',
-        sourceDataIssues: true,
+        hasOtherNotes: true,
+        otherNotesDetail: 'Revised',
+        hasSourceDataIssues: true,
         sourceDataIssuesDetail: 'Late returns',
         hasExclusions: true,
         exclusionsDetail: 'Small areas',
-        automationUsed: true,
+        hasAutomation: true,
         automationDetail: 'Pipeline',
         hasReviewerComments: true,
         reviewerCommentsDetail: 'Replaces 108',
-        copyrightNonDefault: true,
-        copyrightDetail: 'NHS England',
-        dataReuseNonDefault: true,
-        dataReuseDetail: 'Cite NHS England',
+        hasCustomCopyright: true,
+        customCopyrightDetail: 'NHS England',
+        hasCustomDataReuse: true,
+        customDataReuseDetail: 'Cite NHS England',
+        hasCiMethodModifications: true,
+        ciMethodModificationsDetail: 'Adjusted for repeat admissions',
       }),
     ).resolves.toHaveLength(1);
-    await expect(
-      addVersion(await newIndicatorId(), 'draft', {
-        disclosureControl: 'yes',
-        caveatsNeeded: true,
-      }),
-    ).resolves.toHaveLength(1);
+  });
+
+  // The contract requires each of these details beside a yes, so the table does too.
+  it.each([
+    ['disclosure control', { disclosureControl: 'yes' }, 'disclosure_control_detail'],
+    ['rounding', { hasRounding: true }, 'rounding_detail'],
+    ['caveats', { hasCaveats: true }, 'caveats_detail'],
+    ['other notes', { hasOtherNotes: true }, 'other_notes_detail'],
+    ['source data issues', { hasSourceDataIssues: true }, 'source_data_issues_detail'],
+    ['exclusions', { hasExclusions: true }, 'exclusions_detail'],
+    ['automation', { hasAutomation: true }, 'automation_detail'],
+    ['reviewer comments', { hasReviewerComments: true }, 'reviewer_comments_detail'],
+    ['a custom copyright', { hasCustomCopyright: true }, 'custom_copyright_detail'],
+    ['custom data re-use', { hasCustomDataReuse: true }, 'custom_data_reuse_detail'],
+    [
+      'CI method modifications',
+      { hasCiMethodModifications: true },
+      'ci_method_modifications_detail',
+    ],
+  ] as const)('refuses a yes to %s without its detail', async (_, values, check) => {
+    await expect(addVersion(await newIndicatorId(), 'draft', values)).rejects.toMatchObject({
+      cause: { code: CHECK_VIOLATION, constraint_name: `indicator_version_${check}_check` },
+    });
   });
 
   const goal = {
@@ -509,6 +550,43 @@ describe('indicator_version', () => {
   });
 });
 
+describe("a version's child tables", () => {
+  // Postgres cuts a name at 63 bytes, which would cut the "_fk" off a generated one.
+  it('name every foreign key in full', async () => {
+    const keys = await db.execute<{ name: string }>(sql`
+      SELECT conname AS name FROM pg_constraint
+      WHERE contype = 'f' AND conrelid::regclass::text LIKE 'indicator_version_%'
+      ORDER BY conname
+    `);
+
+    expect(keys.map(({ name }) => name)).toEqual([
+      'indicator_version_age_range_version_fk',
+      'indicator_version_classification_classification_fk',
+      'indicator_version_classification_version_fk',
+      'indicator_version_link_version_fk',
+      'indicator_version_source_provider_fk',
+      'indicator_version_source_source_fk',
+      'indicator_version_source_version_fk',
+      'indicator_version_topic_topic_fk',
+      'indicator_version_topic_version_fk',
+    ]);
+  });
+});
+
+describe('constraint names', () => {
+  // A renamed table keeps its constraints' names, and Postgres cuts a long one at 63 bytes.
+  it("start with their table's name and are never cut short", async () => {
+    const misnamed = await db.execute<{ name: string }>(sql`
+      SELECT conname AS name FROM pg_constraint
+      WHERE connamespace = 'public'::regnamespace AND conrelid <> 0
+        AND (left(conname, length(conrelid::regclass::text) + 1) <> conrelid::regclass::text || '_'
+          OR octet_length(conname) >= 63)
+    `);
+
+    expect(misnamed.map(({ name }) => name)).toEqual([]);
+  });
+});
+
 describe('ci_method', () => {
   it('takes a method as standard unless told otherwise', async () => {
     const [row] = await db
@@ -560,11 +638,11 @@ describe('the published views', () => {
     if (!current || !superseded) throw new Error('inserted no versions');
     expect(superseded.id > current.id).toBe(true);
 
-    await db.insert(indicatorTopic).values([
+    await db.insert(indicatorVersionTopic).values([
       { topicId: currentTopic, indicatorVersionId: current.id },
       { topicId: supersededTopic, indicatorVersionId: superseded.id },
     ]);
-    await db.insert(indicatorClassification).values([
+    await db.insert(indicatorVersionClassification).values([
       { classificationId: currentClass, indicatorVersionId: current.id },
       { classificationId: supersededClass, indicatorVersionId: superseded.id },
     ]);
@@ -660,9 +738,9 @@ describe('the published views', () => {
       sql`SELECT column_name FROM information_schema.columns
           WHERE table_schema = 'published'
             AND column_name IN (
-              'variation', 'quality_assurance', 'source_data_issues', 'source_data_issues_detail',
+              'variation', 'quality_assurance', 'has_source_data_issues', 'source_data_issues_detail',
               'ci_method_justification', 'data_sources_justification', 'inequalities_included',
-              'has_exclusions', 'exclusions_detail', 'automation_used', 'automation_detail',
+              'has_exclusions', 'exclusions_detail', 'has_automation', 'automation_detail',
               'sponsors_and_stakeholders', 'has_reviewer_comments', 'reviewer_comments_detail'
             )`,
     )) as unknown as { column_name: string }[];

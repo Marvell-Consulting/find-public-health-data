@@ -1,5 +1,10 @@
 import { type Database, schema } from '@fphd/db';
+import {
+  CLASSIFICATION_DIMENSIONS,
+  type ClassificationDimension,
+} from '@fphd/utils/classification-dimension';
 import { slugify, slugProblem } from '@fphd/utils/slug';
+import type { IndicatorSourcePart } from '@fphd/utils/source-part';
 import { and, asc, count, desc, eq, getTableColumns, inArray, type SQL, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
@@ -10,16 +15,14 @@ const {
   classification,
   currentPublishedVersion,
   indicator,
-  indicatorClassification,
-  indicatorTopic,
+  indicatorVersionClassification,
+  indicatorVersionTopic,
   indicatorVersion,
   indicatorVersionAgeRange,
   indicatorVersionLink,
   indicatorVersionSource,
   topic,
 } = schema;
-
-type ClassificationDimension = schema.ClassificationDimension;
 
 export interface IndicatorAdminRow {
   id: string;
@@ -278,7 +281,7 @@ async function sourcesOf(
     .from(indicatorVersionSource)
     .where(eq(indicatorVersionSource.indicatorVersionId, versionId))
     .orderBy(asc(indicatorVersionSource.position));
-  const ofPart = (part: schema.IndicatorSourcePart) =>
+  const ofPart = (part: IndicatorSourcePart) =>
     rows
       .filter((row) => row.part === part)
       .map(({ providerId, sourceId }) => ({ providerId, sourceId }));
@@ -299,10 +302,10 @@ async function linksOf(
 
 async function topicIdsOf(db: Database | Transaction, versionId: string): Promise<string[]> {
   const rows = await db
-    .select({ id: indicatorTopic.topicId })
-    .from(indicatorTopic)
-    .innerJoin(topic, eq(topic.id, indicatorTopic.topicId))
-    .where(eq(indicatorTopic.indicatorVersionId, versionId))
+    .select({ id: indicatorVersionTopic.topicId })
+    .from(indicatorVersionTopic)
+    .innerJoin(topic, eq(topic.id, indicatorVersionTopic.topicId))
+    .where(eq(indicatorVersionTopic.indicatorVersionId, versionId))
     .orderBy(asc(topic.title));
 
   return rows.map(({ id }) => id);
@@ -314,9 +317,12 @@ async function classificationsOf(
 ): Promise<IndicatorDraftClassification[]> {
   return db
     .select({ id: classification.id, dimension: classification.dimension })
-    .from(indicatorClassification)
-    .innerJoin(classification, eq(classification.id, indicatorClassification.classificationId))
-    .where(eq(indicatorClassification.indicatorVersionId, versionId))
+    .from(indicatorVersionClassification)
+    .innerJoin(
+      classification,
+      eq(classification.id, indicatorVersionClassification.classificationId),
+    )
+    .where(eq(indicatorVersionClassification.indicatorVersionId, versionId))
     .orderBy(asc(classification.name));
 }
 
@@ -563,7 +569,7 @@ export async function createDraftFromPublished(
       await replaceLists(tx, draft.id, {
         topicIds,
         classificationIds: Object.fromEntries(
-          schema.CLASSIFICATION_DIMENSIONS.map((dimension) => [
+          CLASSIFICATION_DIMENSIONS.map((dimension) => [
             dimension,
             classifications.filter((row) => row.dimension === dimension).map(({ id }) => id),
           ]),
@@ -629,25 +635,27 @@ async function replaceLists(
   }: IndicatorDraftLists,
 ): Promise<void> {
   if (topicIds !== undefined) {
-    await tx.delete(indicatorTopic).where(eq(indicatorTopic.indicatorVersionId, versionId));
+    await tx
+      .delete(indicatorVersionTopic)
+      .where(eq(indicatorVersionTopic.indicatorVersionId, versionId));
     if (topicIds.length > 0) {
       await tx
-        .insert(indicatorTopic)
+        .insert(indicatorVersionTopic)
         .values(topicIds.map((topicId) => ({ topicId, indicatorVersionId: versionId })));
     }
   }
 
-  for (const dimension of schema.CLASSIFICATION_DIMENSIONS) {
+  for (const dimension of CLASSIFICATION_DIMENSIONS) {
     const ids = classificationIds?.[dimension];
     if (ids === undefined) continue;
 
     await tx
-      .delete(indicatorClassification)
+      .delete(indicatorVersionClassification)
       .where(
         and(
-          eq(indicatorClassification.indicatorVersionId, versionId),
+          eq(indicatorVersionClassification.indicatorVersionId, versionId),
           inArray(
-            indicatorClassification.classificationId,
+            indicatorVersionClassification.classificationId,
             tx
               .select({ id: classification.id })
               .from(classification)
@@ -657,7 +665,7 @@ async function replaceLists(
       );
     if (ids.length > 0) {
       await tx
-        .insert(indicatorClassification)
+        .insert(indicatorVersionClassification)
         .values(
           ids.map((classificationId) => ({ classificationId, indicatorVersionId: versionId })),
         );
@@ -702,7 +710,7 @@ async function replaceLists(
 async function replaceSources(
   tx: Transaction,
   versionId: string,
-  part: schema.IndicatorSourcePart,
+  part: IndicatorSourcePart,
   sources: IndicatorDraftSource[] | undefined,
 ): Promise<void> {
   if (sources === undefined) return;

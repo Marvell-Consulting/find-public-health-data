@@ -8,6 +8,7 @@ import {
   schema,
 } from '@fphd/db';
 import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
+import type { ClassificationDimension } from '@fphd/utils/classification-dimension';
 import { MAX_AGE } from '@fphd/utils/sex-and-ages';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -63,8 +64,8 @@ afterAll(async () => {
 const {
   classification,
   indicator,
-  indicatorClassification,
-  indicatorTopic,
+  indicatorVersionClassification,
+  indicatorVersionTopic,
   indicatorVersion,
   indicatorVersionAgeRange,
   indicatorVersionLink,
@@ -237,16 +238,14 @@ async function onsSources() {
 
 async function topicIdsOf(versionId: string): Promise<string[]> {
   const rows = await db
-    .select({ topicId: indicatorTopic.topicId })
-    .from(indicatorTopic)
-    .where(eq(indicatorTopic.indicatorVersionId, versionId));
+    .select({ topicId: indicatorVersionTopic.topicId })
+    .from(indicatorVersionTopic)
+    .where(eq(indicatorVersionTopic.indicatorVersionId, versionId));
   return rows.map(({ topicId }) => topicId).sort();
 }
 
 /** The first classification of a dimension, by name, from the core data. */
-async function classificationIn(
-  dimension: schema.ClassificationDimension,
-): Promise<{ id: string }> {
+async function classificationIn(dimension: ClassificationDimension): Promise<{ id: string }> {
   const [row] = await db
     .select({ id: classification.id })
     .from(classification)
@@ -261,9 +260,9 @@ const typeClassification = () => classificationIn('indicator_type');
 
 async function classificationIdsOf(versionId: string): Promise<string[]> {
   const rows = await db
-    .select({ id: indicatorClassification.classificationId })
-    .from(indicatorClassification)
-    .where(eq(indicatorClassification.indicatorVersionId, versionId));
+    .select({ id: indicatorVersionClassification.classificationId })
+    .from(indicatorVersionClassification)
+    .where(eq(indicatorVersionClassification.indicatorVersionId, versionId));
   return rows.map(({ id }) => id).sort();
 }
 
@@ -610,9 +609,9 @@ describe('updateIndicatorDraft', () => {
 
     expect(await topicIdsOf(created.versionId)).toEqual([topic.id]);
     const classifications = await db
-      .select({ id: indicatorClassification.classificationId })
-      .from(indicatorClassification)
-      .where(eq(indicatorClassification.indicatorVersionId, created.versionId));
+      .select({ id: indicatorVersionClassification.classificationId })
+      .from(indicatorVersionClassification)
+      .where(eq(indicatorVersionClassification.indicatorVersionId, created.versionId));
     expect(classifications).toEqual([{ id: classified.id }]);
     expect(await linksOf(created.versionId)).toEqual([commentary]);
   });
@@ -767,7 +766,10 @@ describe('updateIndicatorDraft', () => {
       'a specific age beside another age type',
       { ageType: 'other', specificAge: 5, specificAgeUnit: 'years' },
     ],
-    ['other ages beside another age type', { ageType: 'range', ageOtherDetail: 'Year 6' }],
+    ['other ages beside another age type', { ageType: 'range', ageDetail: 'Year 6' }],
+    // The contract requires the age or the detail each age type asks for.
+    ['a specific age type without its age', { ageType: 'specific' }],
+    ['other ages without their detail', { ageType: 'other' }],
     [
       'a specific age beside all ages',
       { ageType: 'all', specificAge: 5, specificAgeUnit: 'years' },
@@ -913,7 +915,7 @@ describe('updateIndicatorDraft', () => {
     await updateIndicatorDraft(
       db,
       created.indicatorId,
-      { methodology: 'A method', calculatedBy: 'other', calculatedByOther: 'ONS' },
+      { methodology: 'A method', calculatedBy: 'other', calculatedByDetail: 'ONS' },
       {},
       ACTOR,
     );
@@ -921,7 +923,7 @@ describe('updateIndicatorDraft', () => {
     await updateIndicatorDraft(
       db,
       created.indicatorId,
-      { calculatedBy: 'dhsc', calculatedByOther: null },
+      { calculatedBy: 'dhsc', calculatedByDetail: null },
       {},
       ACTOR,
     );
@@ -930,12 +932,12 @@ describe('updateIndicatorDraft', () => {
     expect(asOther?.draft).toMatchObject({
       methodology: 'A method',
       calculatedBy: 'other',
-      calculatedByOther: 'ONS',
+      calculatedByDetail: 'ONS',
     });
     expect(asDhsc?.draft).toMatchObject({
       methodology: 'A method',
       calculatedBy: 'dhsc',
-      calculatedByOther: null,
+      calculatedByDetail: null,
     });
   });
 
@@ -948,9 +950,9 @@ describe('updateIndicatorDraft', () => {
       created.indicatorId,
       {
         ciMethodId: methodId,
-        ciMethodModified: true,
-        ciMethodModifications: 'Adjusted for clustering',
-        ciMethodOtherDetail: null,
+        hasCiMethodModifications: true,
+        ciMethodModificationsDetail: 'Adjusted for clustering',
+        ciMethodDetail: null,
       },
       {},
       ACTOR,
@@ -960,9 +962,9 @@ describe('updateIndicatorDraft', () => {
     const state = await getIndicatorDraftState(db, created.indicatorId);
     expect(state?.draft).toMatchObject({
       ciMethodId: methodId,
-      ciMethodModified: true,
-      ciMethodModifications: 'Adjusted for clustering',
-      ciMethodOtherDetail: null,
+      hasCiMethodModifications: true,
+      ciMethodModificationsDetail: 'Adjusted for clustering',
+      ciMethodDetail: null,
     });
   });
 
@@ -971,11 +973,11 @@ describe('updateIndicatorDraft', () => {
     const answers = {
       disclosureControl: 'yes',
       disclosureControlDetail: 'Counts under 5 are suppressed.',
-      roundingApplied: false,
+      hasRounding: false,
       roundingDetail: null,
-      caveatsNeeded: true,
+      hasCaveats: true,
       caveatsDetail: 'Survey data.',
-      otherNotesNeeded: false,
+      hasOtherNotes: false,
       otherNotesDetail: null,
     } as const;
 
@@ -991,7 +993,7 @@ describe('updateIndicatorDraft', () => {
     const answers = {
       variation: 'Varies with the age structure of each area.',
       qualityAssurance: 'Checked against the published ONS figures.',
-      sourceDataIssues: true,
+      hasSourceDataIssues: true,
       sourceDataIssuesDetail: 'Late returns from two areas.',
     };
 
@@ -1005,13 +1007,13 @@ describe('updateIndicatorDraft', () => {
   it('writes whether there are data quality issues to the draft', async () => {
     const created = await newDraft('Data quality answered');
 
-    await updateIndicatorDraft(db, created.indicatorId, { dataQualityIssues: true }, {}, ACTOR);
+    await updateIndicatorDraft(db, created.indicatorId, { hasDataQualityIssues: true }, {}, ACTOR);
     const yes = await getIndicatorDraftState(db, created.indicatorId);
-    await updateIndicatorDraft(db, created.indicatorId, { dataQualityIssues: false }, {}, ACTOR);
+    await updateIndicatorDraft(db, created.indicatorId, { hasDataQualityIssues: false }, {}, ACTOR);
     const no = await getIndicatorDraftState(db, created.indicatorId);
 
-    expect(yes?.draft?.dataQualityIssues).toBe(true);
-    expect(no?.draft?.dataQualityIssues).toBe(false);
+    expect(yes?.draft?.hasDataQualityIssues).toBe(true);
+    expect(no?.draft?.hasDataQualityIssues).toBe(false);
   });
 
   it('writes the justifications to the draft', async () => {
@@ -1022,7 +1024,7 @@ describe('updateIndicatorDraft', () => {
       inequalitiesIncluded: 'Deprivation deciles.',
       hasExclusions: true,
       exclusionsDetail: 'Areas with fewer than 5 deaths.',
-      automationUsed: false,
+      hasAutomation: false,
       automationDetail: null,
     };
 
@@ -1051,10 +1053,10 @@ describe('updateIndicatorDraft', () => {
   it('writes the copyright and data re-use terms to the draft', async () => {
     const created = await newDraft('Copyright and data re-use answered');
     const answers = {
-      copyrightNonDefault: true,
-      copyrightDetail: 'Copyright © NHS England',
-      dataReuseNonDefault: false,
-      dataReuseDetail: null,
+      hasCustomCopyright: true,
+      customCopyrightDetail: 'Copyright © NHS England',
+      hasCustomDataReuse: false,
+      customDataReuseDetail: null,
     };
 
     const result = await updateIndicatorDraft(db, created.indicatorId, answers, {}, ACTOR);
@@ -1135,7 +1137,7 @@ describe('createDraftFromPublished', () => {
       .update(indicatorVersion)
       .set({ hasRiskFactor: false, hasFramework: true })
       .where(eq(indicatorVersion.id, currentId));
-    await db.insert(indicatorClassification).values([
+    await db.insert(indicatorVersionClassification).values([
       { classificationId: population.id, indicatorVersionId: currentId },
       { classificationId: framework.id, indicatorVersionId: currentId },
     ]);
@@ -1154,26 +1156,26 @@ describe('createDraftFromPublished', () => {
     const { indicatorId, currentId } = await indicatorWithTwoPublications();
     await db
       .update(indicatorVersion)
-      .set({ calculatedBy: 'other', calculatedByOther: 'ONS' })
+      .set({ calculatedBy: 'other', calculatedByDetail: 'ONS' })
       .where(eq(indicatorVersion.id, currentId));
 
     await createDraftFromPublished(db, indicatorId, ACTOR);
 
     const state = await getIndicatorDraftState(db, indicatorId);
-    expect(state?.draft).toMatchObject({ calculatedBy: 'other', calculatedByOther: 'ONS' });
+    expect(state?.draft).toMatchObject({ calculatedBy: 'other', calculatedByDetail: 'ONS' });
   });
 
   it('copies whether the published version has data quality issues', async () => {
     const { indicatorId, currentId } = await indicatorWithTwoPublications();
     await db
       .update(indicatorVersion)
-      .set({ dataQualityIssues: true })
+      .set({ hasDataQualityIssues: true })
       .where(eq(indicatorVersion.id, currentId));
 
     await createDraftFromPublished(db, indicatorId, ACTOR);
 
     const state = await getIndicatorDraftState(db, indicatorId);
-    expect(state?.draft?.dataQualityIssues).toBe(true);
+    expect(state?.draft?.hasDataQualityIssues).toBe(true);
   });
 
   it('copies the most recently published version, not the superseded one', async () => {
@@ -1184,7 +1186,7 @@ describe('createDraftFromPublished', () => {
       .from(schema.topic)
       .limit(2);
     if (!current || !superseded) throw new Error('The seed holds too few topics');
-    await db.insert(indicatorTopic).values([
+    await db.insert(indicatorVersionTopic).values([
       { topicId: current.id, indicatorVersionId: currentId },
       { topicId: superseded.id, indicatorVersionId: supersededId },
     ]);
@@ -1206,7 +1208,7 @@ describe('createDraftFromPublished', () => {
     const methodId = await ciMethodId('Other method');
     await db
       .update(indicatorVersion)
-      .set({ ciMethodId: methodId, ciMethodOtherDetail: 'Bootstrap intervals' })
+      .set({ ciMethodId: methodId, ciMethodDetail: 'Bootstrap intervals' })
       .where(eq(indicatorVersion.id, currentId));
 
     const result = await createDraftFromPublished(db, indicatorId, ACTOR);
@@ -1218,9 +1220,9 @@ describe('createDraftFromPublished', () => {
       .where(eq(indicatorVersion.id, result.versionId));
     expect(draft).toMatchObject({
       ciMethodId: methodId,
-      ciMethodModified: null,
-      ciMethodModifications: null,
-      ciMethodOtherDetail: 'Bootstrap intervals',
+      hasCiMethodModifications: null,
+      ciMethodModificationsDetail: null,
+      ciMethodDetail: 'Bootstrap intervals',
     });
   });
 
@@ -1321,7 +1323,7 @@ describe('createDraftFromPublished', () => {
   });
 });
 
-describe('indicator_classification', () => {
+describe('indicator_version_classification', () => {
   it('follows the draft rather than the indicator', async () => {
     const created = await newDraft('Classified');
     const classified = await typeClassification();
@@ -1336,9 +1338,9 @@ describe('indicator_classification', () => {
     );
 
     const rows = await db
-      .select({ versionId: indicatorClassification.indicatorVersionId })
-      .from(indicatorClassification)
-      .where(eq(indicatorClassification.indicatorVersionId, created.versionId));
+      .select({ versionId: indicatorVersionClassification.indicatorVersionId })
+      .from(indicatorVersionClassification)
+      .where(eq(indicatorVersionClassification.indicatorVersionId, created.versionId));
 
     expect(rows).toEqual([{ versionId: created.versionId }]);
   });

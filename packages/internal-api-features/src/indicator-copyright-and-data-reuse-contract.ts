@@ -8,35 +8,35 @@ import {
 } from './indicator-section-contract.ts';
 
 const fields = z.enum([
-  'copyrightNonDefault',
-  'copyrightDetail',
-  'dataReuseNonDefault',
-  'dataReuseDetail',
+  'hasCustomCopyright',
+  'customCopyrightDetail',
+  'hasCustomDataReuse',
+  'customDataReuseDetail',
 ]);
 
 export type CopyrightAndDataReuseField = z.infer<typeof fields>;
 
 export const copyrightAndDataReuseQuestions = [
   {
-    answer: 'copyrightNonDefault',
-    detail: 'copyrightDetail',
+    answer: 'hasCustomCopyright',
+    detail: 'customCopyrightDetail',
     detailRequired: 'Provide details of the copyright',
   },
   {
-    answer: 'dataReuseNonDefault',
-    detail: 'dataReuseDetail',
+    answer: 'hasCustomDataReuse',
+    detail: 'customDataReuseDetail',
     detailRequired: 'Provide details of the data re-use',
   },
 ] as const satisfies readonly DetailedQuestion<CopyrightAndDataReuseField>[];
 
 const schema = requireDetails(
   z.object({
-    copyrightNonDefault: yesNoSchema(
+    hasCustomCopyright: yesNoSchema(
       'Select whether the copyright is anything other than Crown copyright',
     ),
-    copyrightDetail: z.string().trim(),
-    dataReuseNonDefault: yesNoSchema('Select whether the data re-use is different to the default'),
-    dataReuseDetail: z.string().trim(),
+    customCopyrightDetail: z.string().trim(),
+    hasCustomDataReuse: yesNoSchema('Select whether the data re-use is different to the default'),
+    customDataReuseDetail: z.string().trim(),
   }),
   copyrightAndDataReuseQuestions,
 );

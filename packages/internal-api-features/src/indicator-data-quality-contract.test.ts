@@ -4,19 +4,19 @@ import { dataQualitySection as section } from './indicator-data-quality-contract
 import { sectionFieldErrors } from './testing.ts';
 
 describe('dataQualitySection', () => {
-  it.each(['yes', 'no'])('takes %s', (dataQualityIssues) => {
-    expect(section.schema.parse({ dataQualityIssues })).toEqual({ dataQualityIssues });
+  it.each(['yes', 'no'])('takes %s', (hasDataQualityIssues) => {
+    expect(section.schema.parse({ hasDataQualityIssues })).toEqual({ hasDataQualityIssues });
   });
 
   it.each([
-    { dataQualityIssues: '' },
+    { hasDataQualityIssues: '' },
     {},
-    { dataQualityIssues: 'maybe' },
-    { dataQualityIssues: 'Yes' },
-    { dataQualityIssues: true },
+    { hasDataQualityIssues: 'maybe' },
+    { hasDataQualityIssues: 'Yes' },
+    { hasDataQualityIssues: true },
   ])('asks whether there are data quality issues given %o', (body) => {
     expect(sectionFieldErrors(section, body)).toEqual({
-      dataQualityIssues: 'Select whether there are any data quality issues with this indicator',
+      hasDataQualityIssues: 'Select whether there are any data quality issues with this indicator',
     });
   });
 });

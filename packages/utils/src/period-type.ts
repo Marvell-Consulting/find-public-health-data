@@ -1,18 +1,42 @@
-/** How long each of an indicator's periods is. Each id is its `period_type` row's. */
-export const PERIOD_TYPES = {
-  years: { id: '01a0d88c-310a-7c54-b512-a99ca789cc12', name: 'Years' },
-  quarters: { id: '01a0d88c-310a-7c9d-b589-353d97eedb54', name: 'Quarters' },
-  months: { id: '01a0d88c-310a-7ca1-9ba4-031b00f46799', name: 'Months' },
-} as const;
+/** How long each of an indicator's periods is. */
+export const PERIOD_TYPES = ['years', 'quarters', 'months'] as const;
 
-/** The year an indicator's years or quarters belong to. Each id is its `year_type` row's. */
-export const YEAR_TYPES = {
-  calendar: { id: '01a0d88c-310a-7ca5-8494-19e32c307628', name: 'Calendar' },
-  financial: { id: '01a0d88c-310a-7ca8-9a3b-40fc6f585b8a', name: 'Financial' },
-  academic: { id: '01a0d88c-310a-7cab-8847-543e49e4c685', name: 'Academic' },
-  rolling: { id: '01a0d88c-310a-7cae-ae91-2c6e6e6b707a', name: 'Rolling' },
-  specifiedEndDate: { id: '01a0d88c-310a-7cb1-af6e-3712b2958e12', name: 'Ending a specified date' },
-} as const;
+export type PeriodType = (typeof PERIOD_TYPES)[number];
+
+export const PERIOD_TYPE_LABELS: Readonly<Record<PeriodType, string>> = {
+  years: 'Years',
+  quarters: 'Quarters',
+  months: 'Months',
+};
+
+/** The period types whose periods belong to a year type; months belong to none. */
+export const PERIOD_TYPES_WITH_YEAR_TYPE = [
+  'years',
+  'quarters',
+] as const satisfies readonly PeriodType[];
+
+/** The year an indicator's years or quarters belong to. */
+export const YEAR_TYPES = [
+  'calendar',
+  'financial',
+  'academic',
+  'rolling',
+  'specified-end-date',
+] as const;
+
+export type YearType = (typeof YEAR_TYPES)[number];
+
+export const YEAR_TYPE_LABELS: Readonly<Record<YearType, string>> = {
+  calendar: 'Calendar',
+  financial: 'Financial',
+  academic: 'Academic',
+  rolling: 'Rolling',
+  'specified-end-date': 'Ending a specified date',
+};
+
+export function isYearType(value: string): value is YearType {
+  return (YEAR_TYPES as readonly string[]).includes(value);
+}
 
 const MONTH_NAMES = [
   'January',
@@ -58,14 +82,12 @@ function monthName(month: number): string {
   return name;
 }
 
-type YearType = (typeof YEAR_TYPES)[keyof typeof YEAR_TYPES];
-
 /** The last day of each named year type's year; a year ending on one is that year type. */
 const NAMED_YEAR_ENDS: readonly (YearEnd & { yearType: YearType })[] = [
-  { day: 31, month: 12, yearType: YEAR_TYPES.calendar },
-  { day: 31, month: 3, yearType: YEAR_TYPES.financial },
+  { day: 31, month: 12, yearType: 'calendar' },
+  { day: 31, month: 3, yearType: 'financial' },
   // The UK school year runs from 1 September to 31 August.
-  { day: 31, month: 8, yearType: YEAR_TYPES.academic },
+  { day: 31, month: 8, yearType: 'academic' },
 ];
 
 function sameYearEnd(a: YearEnd, b: YearEnd): boolean {
@@ -82,9 +104,9 @@ function yearEndLabel({ day, month }: YearEnd): string {
     : `Year ending ${day} ${monthName(month)}`;
 }
 
-/** A year type as the public reads it; the id is the named year type's where one is folded in. */
+/** A year type as the public reads it; the value is the named year type's where one is folded in. */
 export interface PublicYearType {
-  id: string;
+  value: YearType;
   label: string;
 }
 
@@ -93,40 +115,38 @@ export interface PublicYearType {
  * year type ending on that date if there is one, and is otherwise named by the months it runs
  * between ("August to July") when it ends on a month's last day, and by its date otherwise.
  */
-export function publicYearType(yearTypeId: string, yearEnd: YearEnd | null): PublicYearType {
-  if (yearTypeId === YEAR_TYPES.specifiedEndDate.id && yearEnd !== null) {
+export function publicYearType(yearType: YearType, yearEnd: YearEnd | null): PublicYearType {
+  if (yearType === 'specified-end-date' && yearEnd !== null) {
     const named = NAMED_YEAR_ENDS.find((end) => sameYearEnd(end, yearEnd));
     return named
-      ? { id: named.yearType.id, label: named.yearType.name }
-      : { id: yearTypeId, label: yearEndLabel(yearEnd) };
+      ? { value: named.yearType, label: YEAR_TYPE_LABELS[named.yearType] }
+      : { value: yearType, label: yearEndLabel(yearEnd) };
   }
-  const yearType = Object.values(YEAR_TYPES).find(({ id }) => id === yearTypeId);
-  if (yearType === undefined) throw new Error(`Not a year type: ${yearTypeId}`);
-  return { id: yearType.id, label: yearType.name };
+  return { value: yearType, label: YEAR_TYPE_LABELS[yearType] };
 }
 
 /** A stored year type and year end, as a search matches versions by. */
 export interface YearTypeValues {
-  yearTypeId: string;
+  yearType: YearType;
   yearEnd: YearEnd | null;
 }
 
 /** Every year type and year end a version can hold, by the label the public reads it by. */
 function yearTypeValuesByLabel(): Map<string, YearTypeValues[]> {
-  const named = Object.values(YEAR_TYPES)
-    .filter(({ id }) => id !== YEAR_TYPES.specifiedEndDate.id)
-    .map(({ id }) => ({ yearTypeId: id, yearEnd: null }));
+  const named = YEAR_TYPES.filter((yearType) => yearType !== 'specified-end-date').map(
+    (yearType): YearTypeValues => ({ yearType, yearEnd: null }),
+  );
   // Every day of a leap year, so 29 February is among them.
   const dates = Array.from({ length: 366 }, (_, index) => {
     const date = new Date(Date.UTC(2000, 0, 1 + index));
     return {
-      yearTypeId: YEAR_TYPES.specifiedEndDate.id,
+      yearType: 'specified-end-date' as const,
       yearEnd: { day: date.getUTCDate(), month: date.getUTCMonth() + 1 },
     };
   });
   const byLabel = new Map<string, YearTypeValues[]>();
   for (const values of [...named, ...dates]) {
-    const { label } = publicYearType(values.yearTypeId, values.yearEnd);
+    const { label } = publicYearType(values.yearType, values.yearEnd);
     byLabel.set(label, [...(byLabel.get(label) ?? []), values]);
   }
   return byLabel;
@@ -140,5 +160,5 @@ const YEAR_TYPE_VALUES_BY_LABEL = yearTypeValuesByLabel();
  */
 export function yearTypeValuesLabelled(label: string): YearTypeValues[] {
   const named = NAMED_YEAR_ENDS.find((end) => yearEndLabel(end) === label);
-  return YEAR_TYPE_VALUES_BY_LABEL.get(named?.yearType.name ?? label) ?? [];
+  return YEAR_TYPE_VALUES_BY_LABEL.get(named ? YEAR_TYPE_LABELS[named.yearType] : label) ?? [];
 }

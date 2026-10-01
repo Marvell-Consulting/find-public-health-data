@@ -26,12 +26,6 @@ class PublishedCsvTest(unittest.TestCase):
 
         self.assertEqual(output.getvalue(), ',"","a,""b""","line\nbreak"\r\n')
 
-    def test_preserves_null_indicator_config(self):
-        self.assertEqual(
-            transform["normalize_published_config"](transform["NULL_MARKER"]),
-            transform["NULL_MARKER"],
-        )
-
     def test_metadata_cleanup_preserves_empty_string_and_null(self):
         with tempfile.TemporaryDirectory() as directory:
             Path(directory, "source-manifest.json").write_text(
@@ -92,8 +86,8 @@ class PublishedCsvTest(unittest.TestCase):
                 header = ["id", *foreign_keys]
                 row = ["1", *(["1"] * len(foreign_keys))]
                 if table == "indicator_version":
-                    header.extend(["config", "definition", "caveats"])
-                    row.extend([transform["NULL_MARKER"], transform["NULL_MARKER"], ""])
+                    header.extend(["definition", "caveats"])
+                    row.extend([transform["NULL_MARKER"], ""])
                 with gzip.open(Path(directory, f"{table}.csv.gz"), "wt", newline="") as output:
                     csv.writer(output).writerow(header)
                     transform["write_published_row"](output, row)

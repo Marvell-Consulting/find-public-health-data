@@ -1,5 +1,4 @@
-import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
-import { UNITS, VALUE_TYPES } from '@fphd/utils/value-type-and-unit';
+import { UNIT_IDS, VALUE_TYPE_IDS } from '@fphd/utils/value-type-and-unit';
 import { describe, expect, it } from 'vitest';
 
 import { indicatorTaskListSchema } from './contract.ts';
@@ -27,52 +26,52 @@ const source: IndicatorTaskListSource = {
     polarity: null,
     methodology: null,
     calculatedBy: null,
-    calculatedByOther: null,
+    calculatedByDetail: null,
     ciMethodId: null,
     ciMethodKind: null,
-    ciMethodModified: null,
-    ciMethodModifications: null,
-    ciMethodOtherDetail: null,
+    hasCiMethodModifications: null,
+    ciMethodModificationsDetail: null,
+    ciMethodDetail: null,
     updateFrequency: null,
-    periodTypeId: null,
-    yearTypeId: null,
+    periodType: null,
+    yearType: null,
     yearEndDay: null,
     yearEndMonth: null,
     valueTypeId: null,
     standardPopulation: null,
     standardPopulationDetail: null,
     unitId: null,
-    unitOther: null,
+    unitDetail: null,
     disclosureControl: null,
     disclosureControlDetail: null,
-    roundingApplied: null,
+    hasRounding: null,
     roundingDetail: null,
-    caveatsNeeded: null,
+    hasCaveats: null,
     caveatsDetail: null,
-    otherNotesNeeded: null,
+    hasOtherNotes: null,
     otherNotesDetail: null,
     scheduledPublishAtUk: null,
     hasLinks: null,
     links: [],
     variation: null,
     qualityAssurance: null,
-    sourceDataIssues: null,
+    hasSourceDataIssues: null,
     sourceDataIssuesDetail: null,
-    dataQualityIssues: null,
+    hasDataQualityIssues: null,
     ciMethodJustification: null,
     dataSourcesJustification: null,
     inequalitiesIncluded: null,
     hasExclusions: null,
     exclusionsDetail: null,
-    automationUsed: null,
+    hasAutomation: null,
     automationDetail: null,
     sponsorsAndStakeholders: null,
     hasReviewerComments: null,
     reviewerCommentsDetail: null,
-    copyrightNonDefault: null,
-    copyrightDetail: null,
-    dataReuseNonDefault: null,
-    dataReuseDetail: null,
+    hasCustomCopyright: null,
+    customCopyrightDetail: null,
+    hasCustomDataReuse: null,
+    customDataReuseDetail: null,
     hasGoalBenchmark: null,
     goalLowerValue: null,
     goalUpperValue: null,
@@ -83,7 +82,7 @@ const source: IndicatorTaskListSource = {
     ageRanges: [],
     specificAge: null,
     specificAgeUnit: null,
-    ageOtherDetail: null,
+    ageDetail: null,
     hasRiskFactor: null,
     hasFramework: null,
     topicIds: [],
@@ -102,52 +101,52 @@ const complete: IndicatorTaskListDraft = {
   polarity: 'lower-is-better',
   methodology: 'Calculated from mortality rates by single year of age.',
   calculatedBy: 'ohid',
-  calculatedByOther: null,
+  calculatedByDetail: null,
   ciMethodId,
   ciMethodKind: 'standard',
-  ciMethodModified: false,
-  ciMethodModifications: null,
-  ciMethodOtherDetail: null,
+  hasCiMethodModifications: false,
+  ciMethodModificationsDetail: null,
+  ciMethodDetail: null,
   updateFrequency: 'quarterly',
-  periodTypeId: PERIOD_TYPES.years.id,
-  yearTypeId: YEAR_TYPES.specifiedEndDate.id,
+  periodType: 'years',
+  yearType: 'specified-end-date',
   yearEndDay: 31,
   yearEndMonth: 7,
-  valueTypeId: VALUE_TYPES.directlyStandardisedRate.id,
+  valueTypeId: VALUE_TYPE_IDS.directlyStandardisedRate,
   standardPopulation: 'esp-2013',
   standardPopulationDetail: null,
-  unitId: UNITS.per100000.id,
-  unitOther: null,
+  unitId: '01a0d8a5-3ca2-7315-bfca-96daa0c93ee9',
+  unitDetail: null,
   disclosureControl: 'not-applicable',
   disclosureControlDetail: null,
-  roundingApplied: false,
+  hasRounding: false,
   roundingDetail: null,
-  caveatsNeeded: true,
+  hasCaveats: true,
   caveatsDetail: 'Survey data.',
-  otherNotesNeeded: false,
+  hasOtherNotes: false,
   otherNotesDetail: null,
   scheduledPublishAtUk: '2027-09-14T09:30:00+01:00',
   hasLinks: true,
   links: [{ url: 'https://www.gov.uk/', text: 'Statistical commentary' }],
   variation: 'Varies with the age structure of each area.',
   qualityAssurance: 'Checked against the published ONS figures.',
-  sourceDataIssues: true,
+  hasSourceDataIssues: true,
   sourceDataIssuesDetail: 'Late returns from two areas.',
-  dataQualityIssues: false,
+  hasDataQualityIssues: false,
   ciMethodJustification: 'The standard method for rates.',
   dataSourcesJustification: 'The only national source.',
   inequalitiesIncluded: 'Deprivation deciles.',
   hasExclusions: false,
   exclusionsDetail: null,
-  automationUsed: true,
+  hasAutomation: true,
   automationDetail: 'The shared indicator pipeline.',
   sponsorsAndStakeholders: 'The national screening committee.',
   hasReviewerComments: false,
   reviewerCommentsDetail: null,
-  copyrightNonDefault: true,
-  copyrightDetail: 'Copyright © NHS England',
-  dataReuseNonDefault: false,
-  dataReuseDetail: null,
+  hasCustomCopyright: true,
+  customCopyrightDetail: 'Copyright © NHS England',
+  hasCustomDataReuse: false,
+  customDataReuseDetail: null,
   hasGoalBenchmark: true,
   goalLowerValue: 90,
   goalUpperValue: 95,
@@ -158,7 +157,7 @@ const complete: IndicatorTaskListDraft = {
   ageRanges: [{ lowerLimit: 16, lowerLimitUnit: 'years', upperLimit: null, upperLimitUnit: null }],
   specificAge: null,
   specificAgeUnit: null,
-  ageOtherDetail: null,
+  ageDetail: null,
   hasRiskFactor: true,
   hasFramework: false,
   topicIds: ['019fa38f-073f-764e-9ac6-1c4d03b10001'],
@@ -225,7 +224,7 @@ describe('indicatorTaskList', () => {
   });
 
   it.each([true, false])('counts data quality as complete once answered, %s', (answer) => {
-    const state = indicatorTaskList(withDraft({ dataQualityIssues: answer }));
+    const state = indicatorTaskList(withDraft({ hasDataQualityIssues: answer }));
 
     expect(state.tasks['data-quality']).toBe('completed');
   });
@@ -245,32 +244,26 @@ describe('indicatorTaskList', () => {
   });
 
   it.each([
-    ['months', { periodTypeId: PERIOD_TYPES.months.id }],
-    [
-      'quarters of a year type',
-      { periodTypeId: PERIOD_TYPES.quarters.id, yearTypeId: YEAR_TYPES.financial.id },
-    ],
+    ['months', { periodType: 'months' }],
+    ['quarters of a year type', { periodType: 'quarters', yearType: 'financial' }],
     [
       'years ending on a date',
       {
-        periodTypeId: PERIOD_TYPES.years.id,
-        yearTypeId: YEAR_TYPES.specifiedEndDate.id,
+        periodType: 'years',
+        yearType: 'specified-end-date',
         yearEndDay: 29,
         yearEndMonth: 2,
       },
     ],
-  ])('counts the period type as complete with %s', (_, draft) => {
+  ] as const)('counts the period type as complete with %s', (_, draft) => {
     expect(indicatorTaskList(withDraft(draft)).tasks['period-type']).toBe('completed');
   });
 
   it.each([
     ['nothing', {}],
-    ['years of no year type', { periodTypeId: PERIOD_TYPES.years.id }],
-    [
-      'years ending on a date not given',
-      { periodTypeId: PERIOD_TYPES.years.id, yearTypeId: YEAR_TYPES.specifiedEndDate.id },
-    ],
-  ])('leaves the period type not started with %s', (_, draft) => {
+    ['years of no year type', { periodType: 'years' }],
+    ['years ending on a date not given', { periodType: 'years', yearType: 'specified-end-date' }],
+  ] as const)('leaves the period type not started with %s', (_, draft) => {
     expect(indicatorTaskList(withDraft(draft)).tasks['period-type']).toBe('not_started');
   });
 
@@ -278,7 +271,10 @@ describe('indicatorTaskList', () => {
     ['nothing', {}, 'not_started'],
     [
       'a value type and unit that ask nothing more',
-      { valueTypeId: VALUE_TYPES.proportion.id, unitId: UNITS.percent.id },
+      {
+        valueTypeId: '01a0d8a5-3ca2-7315-bfca-96d2031a65e7',
+        unitId: '01a0d8a5-3ca2-7315-bfca-96d615820bd4',
+      },
       'completed',
     ],
     [
@@ -297,15 +293,19 @@ describe('indicatorTaskList', () => {
     ],
     [
       'an indirectly standardised ratio without its reference population',
-      { valueTypeId: VALUE_TYPES.indirectlyStandardisedRatio.id, unitId: complete.unitId },
+      { valueTypeId: VALUE_TYPE_IDS.indirectlyStandardisedRatio, unitId: complete.unitId },
       'not_started',
     ],
     [
       'an other unit with its name',
-      { valueTypeId: VALUE_TYPES.count.id, unitId: UNITS.other.id, unitOther: 'people' },
+      {
+        valueTypeId: '01a0d8a5-3ca2-7315-bfca-96c7324d4347',
+        unitId: UNIT_IDS.other,
+        unitDetail: 'people',
+      },
       'completed',
     ],
-    ['a value type alone', { valueTypeId: VALUE_TYPES.count.id }, 'not_started'],
+    ['a value type alone', { valueTypeId: '01a0d8a5-3ca2-7315-bfca-96c7324d4347' }, 'not_started'],
   ] as const)('judges the value type and units with %s', (_, draft, status) => {
     expect(indicatorTaskList(withDraft(draft)).tasks['value-type-and-units']).toBe(status);
   });
@@ -313,7 +313,7 @@ describe('indicatorTaskList', () => {
   it.each([
     ['OHID', { calculatedBy: 'ohid' }],
     ['DHSC', { calculatedBy: 'dhsc' }],
-    ['other organisations it names', { calculatedBy: 'other', calculatedByOther: 'ONS' }],
+    ['other organisations it names', { calculatedBy: 'other', calculatedByDetail: 'ONS' }],
   ] as const)('counts the calculation as complete with a methodology and %s', (_, answer) => {
     const state = indicatorTaskList(withDraft({ methodology: complete.methodology, ...answer }));
 
@@ -331,7 +331,7 @@ describe('indicatorTaskList', () => {
     ],
     [
       'blank details of the other organisations',
-      { methodology: complete.methodology, calculatedBy: 'other', calculatedByOther: '\n' },
+      { methodology: complete.methodology, calculatedBy: 'other', calculatedByDetail: '\n' },
     ],
   ] as const)('leaves the calculation not started with %s', (_, draft) => {
     expect(indicatorTaskList(withDraft(draft)).tasks.calculation).toBe('not_started');
@@ -341,7 +341,7 @@ describe('indicatorTaskList', () => {
     ['no method is chosen', {}, 'not_started'],
     [
       'a standard method is unmodified',
-      { ciMethodId, ciMethodKind: 'standard', ciMethodModified: false },
+      { ciMethodId, ciMethodKind: 'standard', hasCiMethodModifications: false },
       'completed',
     ],
     [
@@ -349,24 +349,29 @@ describe('indicatorTaskList', () => {
       {
         ciMethodId,
         ciMethodKind: 'standard',
-        ciMethodModified: true,
-        ciMethodModifications: 'Adjusted',
+        hasCiMethodModifications: true,
+        ciMethodModificationsDetail: 'Adjusted',
       },
       'completed',
     ],
     [
       'a standard method is modified with no description',
-      { ciMethodId, ciMethodKind: 'standard', ciMethodModified: true, ciMethodModifications: ' ' },
+      {
+        ciMethodId,
+        ciMethodKind: 'standard',
+        hasCiMethodModifications: true,
+        ciMethodModificationsDetail: ' ',
+      },
       'not_started',
     ],
     [
       'a standard method has no answer on modifications',
-      { ciMethodId, ciMethodKind: 'standard', ciMethodModified: null },
+      { ciMethodId, ciMethodKind: 'standard', hasCiMethodModifications: null },
       'not_started',
     ],
     [
       'an other method is detailed',
-      { ciMethodId, ciMethodKind: 'other', ciMethodOtherDetail: 'Bootstrap intervals' },
+      { ciMethodId, ciMethodKind: 'other', ciMethodDetail: 'Bootstrap intervals' },
       'completed',
     ],
     ['an other method has no detail', { ciMethodId, ciMethodKind: 'other' }, 'not_started'],
@@ -384,7 +389,7 @@ describe('indicatorTaskList', () => {
   it.each([
     ['nothing', {}],
     ['disclosure control unanswered', { ...complete, disclosureControl: null }],
-    ['rounding unanswered', { ...complete, roundingApplied: null }],
+    ['rounding unanswered', { ...complete, hasRounding: null }],
     ['caveats needed without their details', { ...complete, caveatsDetail: null }],
     ['caveats needed with blank details', { ...complete, caveatsDetail: ' ' }],
   ] as const)('leaves the other notes and caveats not started with %s', (_, draft) => {
@@ -420,7 +425,7 @@ describe('indicatorTaskList', () => {
     ['nothing', {}],
     ['a blank variation', { ...complete, variation: ' ' }],
     ['quality assurance unanswered', { ...complete, qualityAssurance: null }],
-    ['source data issues unanswered', { ...complete, sourceDataIssues: null }],
+    ['source data issues unanswered', { ...complete, hasSourceDataIssues: null }],
     ['source data issues without their details', { ...complete, sourceDataIssuesDetail: null }],
   ] as const)('leaves the variance and quality not started with %s', (_, draft) => {
     expect(indicatorTaskList(withDraft(draft)).tasks['variance-and-quality']).toBe('not_started');
@@ -462,10 +467,10 @@ describe('indicatorTaskList', () => {
 
   it.each([
     ['nothing', {}],
-    ['copyright unanswered', { ...complete, copyrightNonDefault: null }],
-    ['a different copyright without its details', { ...complete, copyrightDetail: null }],
-    ['data re-use unanswered', { ...complete, dataReuseNonDefault: null }],
-    ['a different data re-use without its details', { ...complete, dataReuseNonDefault: true }],
+    ['copyright unanswered', { ...complete, hasCustomCopyright: null }],
+    ['a different copyright without its details', { ...complete, customCopyrightDetail: null }],
+    ['data re-use unanswered', { ...complete, hasCustomDataReuse: null }],
+    ['a different data re-use without its details', { ...complete, hasCustomDataReuse: true }],
   ] as const)('leaves the copyright and data re-use not started with %s', (_, draft) => {
     expect(indicatorTaskList(withDraft(draft)).tasks['copyright-and-data-reuse']).toBe(
       'not_started',
@@ -511,7 +516,7 @@ describe('indicatorTaskList', () => {
     ],
     [
       'sexes and other ages',
-      { sexes: complete.sexes, ageType: 'other', ageOtherDetail: 'School year 6' },
+      { sexes: complete.sexes, ageType: 'other', ageDetail: 'School year 6' },
       'completed',
     ],
     ['no sexes', { ageType: 'range', ageRanges: complete.ageRanges }, 'not_started'],

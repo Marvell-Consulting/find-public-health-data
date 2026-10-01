@@ -1,5 +1,5 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
-import { UNITS } from '@fphd/utils/value-type-and-unit';
+import { UNIT_IDS } from '@fphd/utils/value-type-and-unit';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -189,7 +189,7 @@ describe('getPublishedIndicatorById', () => {
       name: expect.stringContaining('Under 75 mortality rate'),
       valueType: 'Directly standardised rate',
       unit: 'per 100,000',
-      yearType: { id: expect.any(String), label: expect.any(String) },
+      yearType: { value: expect.any(String), label: expect.any(String) },
       updateFrequency: 'annually',
       polarity: expect.any(String),
       definition: expect.any(String),
@@ -213,7 +213,7 @@ describe('getPublishedIndicatorById', () => {
   it('names an other unit as its publisher did', async () => {
     const id = await resolvedId(GASTROENTERITIS_ADMISSIONS);
     await db.execute(
-      sql`UPDATE indicator_version SET unit_id = ${UNITS.other.id}, unit_other = 'per 1,000 live births'
+      sql`UPDATE indicator_version SET unit_id = ${UNIT_IDS.other}, unit_detail = 'per 1,000 live births'
           WHERE indicator_id = ${id}`,
     );
 

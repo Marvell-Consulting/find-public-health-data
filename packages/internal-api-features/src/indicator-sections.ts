@@ -1,7 +1,7 @@
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { z } from '@fphd/config/zod';
-import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
-import { standardisationOf, UNITS } from '@fphd/utils/value-type-and-unit';
+import { isYearType } from '@fphd/utils/period-type';
+import { standardisationOf, UNIT_IDS } from '@fphd/utils/value-type-and-unit';
 import { Router } from 'express';
 
 import {
@@ -50,6 +50,8 @@ import {
   publishingDateSection,
   REAL_PUBLISHING_TIME,
   SELECT_CI_METHOD,
+  SELECT_UNITS,
+  SELECT_VALUE_TYPE,
   type SexAndAges,
   type SexAndAgesAnswers,
   type SexAndAgesField,
@@ -90,6 +92,7 @@ import type {
   InternalIndicatorRepository,
   InternalRepositories,
   InternalTagRepository,
+  InternalValueTypeAndUnitRepository,
 } from './repositories.ts';
 
 export const definitionAndRationaleColumns = sameNamedColumns(definitionAndRationaleSection.fields);
@@ -101,10 +104,10 @@ export const updateFrequencyColumns = sameNamedColumns(updateFrequencySection.fi
 export const calculationColumns: IndicatorSectionColumns<CalculationField, Calculation> = {
   ...sameNamedColumns(calculationSection.fields),
   // Details typed under "Other" are dropped once another organisation is chosen.
-  toAttributes: ({ methodology, calculatedBy, calculatedByOther }) => ({
+  toAttributes: ({ methodology, calculatedBy, calculatedByDetail }) => ({
     methodology,
     calculatedBy,
-    calculatedByOther: calculatedBy === 'other' ? calculatedByOther : null,
+    calculatedByDetail: calculatedBy === 'other' ? calculatedByDetail : null,
   }),
 };
 
@@ -122,7 +125,7 @@ export const valueTypeAndUnitsColumns: IndicatorSectionColumns<
       standardPopulationOther: indirect ? null : draft.standardPopulationDetail,
       referencePopulation: indirect ? draft.standardPopulationDetail : null,
       unitId: draft.unitId,
-      unitOther: draft.unitOther,
+      unitDetail: draft.unitDetail,
     };
   },
   // Answers the chosen value type or unit does not ask for are cleared, whatever the form sent.
@@ -143,7 +146,7 @@ export const valueTypeAndUnitsColumns: IndicatorSectionColumns<
             ? answers.referencePopulation
             : null,
       unitId: answers.unitId,
-      unitOther: answers.unitId === UNITS.other.id ? answers.unitOther : null,
+      unitDetail: answers.unitId === UNIT_IDS.other ? answers.unitDetail : null,
     };
   },
 };
@@ -156,32 +159,34 @@ export const confidenceIntervalsColumns: IndicatorSectionColumns<
 > = {
   fromDraft: (draft) => ({
     ciMethodId: draft.ciMethodId,
-    ciMethodModified: yesNoAnswer(draft.ciMethodModified),
-    ciMethodModifications: draft.ciMethodModifications,
-    ciMethodOtherDetail: draft.ciMethodOtherDetail,
+    hasCiMethodModifications: yesNoAnswer(draft.hasCiMethodModifications),
+    ciMethodModificationsDetail: draft.ciMethodModificationsDetail,
+    ciMethodDetail: draft.ciMethodDetail,
   }),
   // Answers the chosen method does not ask for are cleared, whatever the form sent.
   toAttributes: ({
     ciMethodId,
-    ciMethodModified,
-    ciMethodModifications,
-    ciMethodOtherDetail,
+    hasCiMethodModifications,
+    ciMethodModificationsDetail,
+    ciMethodDetail,
     kind,
   }) => {
-    const modified = kind === 'standard' ? ciMethodModified === 'yes' : null;
+    const modified = kind === 'standard' ? hasCiMethodModifications === 'yes' : null;
 
     return {
       ciMethodId,
-      ciMethodModified: modified,
-      ciMethodModifications: modified ? ciMethodModifications : null,
-      ciMethodOtherDetail: kind === 'other' ? ciMethodOtherDetail : null,
+      hasCiMethodModifications: modified,
+      ciMethodModificationsDetail: modified ? ciMethodModificationsDetail : null,
+      ciMethodDetail: kind === 'other' ? ciMethodDetail : null,
     };
   },
 };
 
 export const dataQualityColumns: IndicatorSectionColumns<DataQualityField, IndicatorDataQuality> = {
-  fromDraft: (draft) => ({ dataQualityIssues: yesNoAnswer(draft.dataQualityIssues) }),
-  toAttributes: ({ dataQualityIssues }) => ({ dataQualityIssues: dataQualityIssues === 'yes' }),
+  fromDraft: (draft) => ({ hasDataQualityIssues: yesNoAnswer(draft.hasDataQualityIssues) }),
+  toAttributes: ({ hasDataQualityIssues }) => ({
+    hasDataQualityIssues: hasDataQualityIssues === 'yes',
+  }),
 };
 
 function numberText(value: number | null): string | null {
@@ -190,19 +195,20 @@ function numberText(value: number | null): string | null {
 
 export const periodTypeColumns: IndicatorSectionColumns<PeriodTypeField, PeriodType> = {
   fromDraft: (draft) => ({
-    periodType: draft.periodTypeId,
-    yearType: draft.yearTypeId,
+    periodType: draft.periodType,
+    yearType: draft.yearType,
     yearEndDay: numberText(draft.yearEndDay),
     yearEndMonth: numberText(draft.yearEndMonth),
   }),
   // Answers the chosen period and year types do not ask for are cleared, whatever the form sent.
   toAttributes: ({ periodType, yearType, yearEndDay, yearEndMonth }) => {
-    const yearTypeId = periodType === PERIOD_TYPES.months.id ? null : yearType;
-    const endsOnDate = yearTypeId === YEAR_TYPES.specifiedEndDate.id;
+    // The schema has refused any other year type beside years or quarters.
+    const kept = periodType === 'months' || !isYearType(yearType) ? null : yearType;
+    const endsOnDate = kept === 'specified-end-date';
 
     return {
-      periodTypeId: periodType,
-      yearTypeId,
+      periodType,
+      yearType: kept,
       yearEndDay: endsOnDate ? Number(yearEndDay) : null,
       yearEndMonth: endsOnDate ? Number(yearEndMonth) : null,
     };
@@ -305,10 +311,10 @@ export const sexAndAgesColumns: IndicatorSectionColumns<
     ageRanges: draft.ageRanges,
     specificAge: draft.specificAge,
     specificAgeUnit: draft.specificAgeUnit,
-    ageOtherDetail: draft.ageOtherDetail,
+    ageDetail: draft.ageDetail,
   }),
   // Answers the chosen age type does not ask for are cleared, whatever the form sent.
-  toAttributes: ({ sexes, ageType, specificAge, specificAgeUnit, ageOtherDetail }) => {
+  toAttributes: ({ sexes, ageType, specificAge, specificAgeUnit, ageDetail }) => {
     const specific = ageType === 'specific';
 
     return {
@@ -316,7 +322,7 @@ export const sexAndAgesColumns: IndicatorSectionColumns<
       ageType,
       specificAge: specific ? age(specificAge) : null,
       specificAgeUnit: specific && specificAgeUnit !== '' ? specificAgeUnit : null,
-      ageOtherDetail: ageType === 'other' ? ageOtherDetail : null,
+      ageDetail: ageType === 'other' ? ageDetail : null,
     };
   },
   toLists: ({ ageType, ageRanges }) => ({
@@ -408,6 +414,31 @@ export function confidenceIntervalsServerSection(
       }
 
       return missing.length > 0 ? z.NEVER : { ...answers, kind: method.kind };
+    }),
+  };
+}
+
+/** The form's schema, then that the value type and unit are ones the page offers. */
+export function valueTypeAndUnitsServerSection(
+  valueTypesAndUnits: InternalValueTypeAndUnitRepository,
+): IndicatorSection<ValueTypeAndUnitsField, ValueTypeAndUnits> {
+  return {
+    ...valueTypeAndUnitsSection,
+    schema: valueTypeAndUnitsSection.schema.transform(async (answers, ctx) => {
+      const { valueTypes, units } = await valueTypesAndUnits.listOptions();
+      const offers = (options: { id: string }[], id: string) => options.some((o) => o.id === id);
+      let refused = false;
+
+      if (!offers(valueTypes, answers.valueTypeId)) {
+        ctx.addIssue({ code: 'custom', path: ['valueTypeId'], message: SELECT_VALUE_TYPE });
+        refused = true;
+      }
+      if (!offers(units, answers.unitId)) {
+        ctx.addIssue({ code: 'custom', path: ['unitId'], message: SELECT_UNITS });
+        refused = true;
+      }
+
+      return refused ? z.NEVER : answers;
     }),
   };
 }
@@ -529,7 +560,11 @@ export function indicatorSectionsRouter(
     ciMethods,
     tags,
     dataProviders,
-  }: Pick<InternalRepositories, 'indicators' | 'ciMethods' | 'tags' | 'dataProviders'>,
+    valueTypesAndUnits,
+  }: Pick<
+    InternalRepositories,
+    'indicators' | 'ciMethods' | 'tags' | 'dataProviders' | 'valueTypesAndUnits'
+  >,
   session: JwtSessionVerifier,
   now: () => Date = () => new Date(),
 ): Router {
@@ -563,7 +598,12 @@ export function indicatorSectionsRouter(
     ),
     indicatorSectionRouter(indicators, session, updateFrequencySection, updateFrequencyColumns),
     indicatorSectionRouter(indicators, session, periodTypeSection, periodTypeColumns),
-    indicatorSectionRouter(indicators, session, valueTypeAndUnitsSection, valueTypeAndUnitsColumns),
+    indicatorSectionRouter(
+      indicators,
+      session,
+      valueTypeAndUnitsServerSection(valueTypesAndUnits),
+      valueTypeAndUnitsColumns,
+    ),
     indicatorSectionRouter(
       indicators,
       session,

@@ -1,9 +1,10 @@
 import { z } from '@fphd/config';
+import { CI_METHOD_KINDS } from '@fphd/utils/ci-method-kind';
 import { sql } from 'drizzle-orm';
 
 import type { Database } from './client.ts';
 import { findDuplicates } from './parse-topics-file.ts';
-import { CI_METHOD_KINDS, ciMethod } from './schema/index.ts';
+import { ciMethod } from './schema/index.ts';
 import { summarizeUpsert, type UpsertSummary } from './topic-repository.ts';
 
 /** A confidence interval method as the core data file states it, under the service's names. */
@@ -59,6 +60,7 @@ export async function upsertCiMethods(
         name: sql`excluded.name`,
         kind: sql`excluded.kind`,
         description: sql`excluded.description`,
+        updatedAt: sql`now()`,
       },
       setWhere: sql`(${ciMethod.name}, ${ciMethod.kind}, ${ciMethod.description}) IS DISTINCT FROM (excluded.name, excluded.kind, excluded.description)`,
     })

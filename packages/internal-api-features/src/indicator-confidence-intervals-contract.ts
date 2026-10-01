@@ -1,12 +1,9 @@
 import { z } from '@fphd/config/zod';
+import { CI_METHOD_KINDS } from '@fphd/utils/ci-method-kind';
 
 import { type IndicatorSection, indicatorSectionFormValues } from './indicator-section-contract.ts';
 
-/**
- * What choosing a method asks of the publisher next: whether a standard method was modified,
- * the detail of an other method, or nothing for a method with none to describe.
- */
-export const ciMethodKindSchema = z.enum(['standard', 'other', 'none']);
+export const ciMethodKindSchema = z.enum(CI_METHOD_KINDS);
 
 export const ciMethodSchema = z.object({
   id: z.uuid(),
@@ -24,9 +21,9 @@ export type CiMethod = z.infer<typeof ciMethodSchema>;
 
 const fields = z.enum([
   'ciMethodId',
-  'ciMethodModified',
-  'ciMethodModifications',
-  'ciMethodOtherDetail',
+  'hasCiMethodModifications',
+  'ciMethodModificationsDetail',
+  'ciMethodDetail',
 ]);
 
 export const SELECT_CI_METHOD = 'Select the confidence interval method used';
@@ -37,9 +34,9 @@ export const SELECT_CI_METHOD = 'Select the confidence interval method used';
  */
 const schema = z.object({
   ciMethodId: z.uuid(SELECT_CI_METHOD),
-  ciMethodModified: z.enum(['', 'yes', 'no'], 'Select whether any modifications were used'),
-  ciMethodModifications: z.string().trim(),
-  ciMethodOtherDetail: z.string().trim(),
+  hasCiMethodModifications: z.enum(['', 'yes', 'no'], 'Select whether any modifications were used'),
+  ciMethodModificationsDetail: z.string().trim(),
+  ciMethodDetail: z.string().trim(),
 });
 
 export type ConfidenceIntervalsField = z.infer<typeof fields>;
@@ -52,23 +49,23 @@ export const confidenceIntervalsSection: IndicatorSection<
 
 /** The answers a method of each kind requires beyond itself, and the message for each missing. */
 export function missingCiMethodFollowUps(
-  { ciMethodModified, ciMethodModifications, ciMethodOtherDetail }: ConfidenceIntervals,
+  { hasCiMethodModifications, ciMethodModificationsDetail, ciMethodDetail }: ConfidenceIntervals,
   kind: CiMethodKind,
 ): Partial<Record<ConfidenceIntervalsField, string>> {
   if (kind === 'other') {
-    return ciMethodOtherDetail === ''
-      ? { ciMethodOtherDetail: 'Enter details of the other confidence interval method used' }
+    return ciMethodDetail === ''
+      ? { ciMethodDetail: 'Enter details of the other confidence interval method used' }
       : {};
   }
 
   if (kind === 'none') return {};
 
-  if (ciMethodModified === '') {
-    return { ciMethodModified: 'Select whether any modifications were used' };
+  if (hasCiMethodModifications === '') {
+    return { hasCiMethodModifications: 'Select whether any modifications were used' };
   }
 
-  return ciMethodModified === 'yes' && ciMethodModifications === ''
-    ? { ciMethodModifications: 'Enter a description of the modifications used' }
+  return hasCiMethodModifications === 'yes' && ciMethodModificationsDetail === ''
+    ? { ciMethodModificationsDetail: 'Enter a description of the modifications used' }
     : {};
 }
 

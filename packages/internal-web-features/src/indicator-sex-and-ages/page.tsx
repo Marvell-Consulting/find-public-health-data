@@ -46,7 +46,7 @@ function pageFields(rangeCount: number): SexAndAgesPageField[] {
     ).flat(),
     'specificAge',
     'specificAgeUnit',
-    'ageOtherDetail',
+    'ageDetail',
   ];
 }
 
@@ -214,10 +214,10 @@ export function SexAndAgesPage({
             label: 'Other',
             conditional: (
               <TextInput
-                defaultValue={values.ageOtherDetail}
-                error={fieldErrors.ageOtherDetail}
+                defaultValue={values.ageDetail}
+                error={fieldErrors.ageDetail}
                 label={<span className="govuk-visually-hidden">Other</span>}
-                name="ageOtherDetail"
+                name="ageDetail"
               />
             ),
           },

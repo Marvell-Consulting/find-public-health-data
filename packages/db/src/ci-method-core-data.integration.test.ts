@@ -109,6 +109,25 @@ describe('upsertCiMethods', () => {
     expect(renamed.summary).toEqual({ inserted: 0, updated: 1, unchanged: 0 });
     expect(renamed.orphaned).toEqual([{ id: stray?.id, name: 'A method no file lists' }]);
   });
+
+  it('touches updated_at only on a method it rewrites', async () => {
+    const db = createDbFromClient(sql);
+    const stamp = async () => {
+      const [row] = await sql<{ stamp: number }[]>`
+        SELECT extract(epoch FROM updated_at)::float8 AS stamp FROM ci_method WHERE id = ${method.id}
+      `;
+      return row?.stamp ?? 0;
+    };
+    await upsertCiMethods(db, [method]);
+    const before = await stamp();
+
+    await upsertCiMethods(db, [method]);
+    const unchanged = await stamp();
+    await upsertCiMethods(db, [{ ...method, description: 'A description.' }]);
+
+    expect(unchanged).toBe(before);
+    expect(await stamp()).toBeGreaterThan(before);
+  });
 });
 
 describe('loadIndicatorVersions', () => {
@@ -140,6 +159,10 @@ describe('loadIndicatorVersions', () => {
       gzipSync(`id,name,description\n${methodId},${methodName},\n`),
     );
     await writeFile(
+      join(directory, 'comparator_method.csv.gz'),
+      gzipSync('id,name\n00000000-0000-7000-8000-00000000c0c0,No comparison\n'),
+    );
+    await writeFile(
       join(directory, 'indicator_version.csv.gz'),
       gzipSync(
         `indicator_id,status,published_at,name,slug,ci_method_id,created_by,updated_by${extraColumn ? `,${extraColumn}` : ''}\n` +
@@ -157,7 +180,13 @@ describe('loadIndicatorVersions', () => {
       WHERE v.indicator_id = ${indicatorId}
     `;
 
-    expect(loaded).toEqual({ ciMethods: 1, versions: 1, legacySources: 0, sources: 0 });
+    expect(loaded).toEqual({
+      ciMethods: 1,
+      comparatorMethods: 1,
+      versions: 1,
+      legacySources: 0,
+      sources: 0,
+    });
     expect(rows).toEqual([{ name: 'Wald normal approximation' }]);
     await sql`DELETE FROM indicator_version WHERE indicator_id = ${indicatorId}`;
   });

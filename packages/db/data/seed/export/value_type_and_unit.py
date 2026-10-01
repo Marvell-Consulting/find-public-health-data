@@ -1,48 +1,24 @@
 """The service's value type and unit for each Fingertips value type and unit name.
 
-The service holds them as references to the value_type and unit rows whose ids are in
-@fphd/utils/value-type-and-unit, with the unit's own name in unit_other when it is not one
-of the service's; the exports translate Pholio's lookup rows to them. Migration 0035 holds
-the same translation for databases that already had the Fingertips rows.
+The service holds them as references to its value_type and unit rows, which are core data
+in data/value-types.json and data/units.json, with the unit's own name in unit_detail when it
+is not one of the service's; the exports translate Pholio's lookup rows to them. Migration
+0035 holds the same translation for databases that already had the Fingertips rows.
 """
 
-VALUE_TYPE_IDS = {
-    "Count": "01a0d8a5-3ca2-7315-bfca-96c7324d4347",
-    "Crude rate": "01a0d8a5-3ca2-7315-bfca-96c8c77cad18",
-    "Directly standardised rate": "01a0d8a5-3ca2-7315-bfca-96c9664c846c",
-    "Excess risk": "01a0d8a5-3ca2-7315-bfca-96ca4c9608e9",
-    "Gap": "01a0d8a5-3ca2-7315-bfca-96cb03846bff",
-    "Indirectly standardised proportion": "01a0d8a5-3ca2-7315-bfca-96cc2dc711c3",
-    "Indirectly standardised ratio": "01a0d8a5-3ca2-7315-bfca-96cda63ea940",
-    "Life expectancy": "01a0d8a5-3ca2-7315-bfca-96ce5ffc8d47",
-    "Mean": "01a0d8a5-3ca2-7315-bfca-96cff286704d",
-    "Median": "01a0d8a5-3ca2-7315-bfca-96d0928fd186",
-    "Percentage point": "01a0d8a5-3ca2-7315-bfca-96d1b508d83f",
-    "Proportion": "01a0d8a5-3ca2-7315-bfca-96d2031a65e7",
-    "Ratio": "01a0d8a5-3ca2-7315-bfca-96d34a17c74b",
-    "Relative index of inequality": "01a0f31b-a23f-749d-a9ea-68b179920ab3",
-    "Score": "01a0d8a5-3ca2-7315-bfca-96d4cc7f7bcb",
-    "Slope index of inequality": "01a0d8a5-3ca2-7315-bfca-96d54168d21f",
-}
+import json
+from pathlib import Path
 
-UNIT_IDS = {
-    "%": "01a0d8a5-3ca2-7315-bfca-96d615820bd4",
-    "per 100": "01a0d8a5-3ca2-7315-bfca-96d787920e40",
-    "per 1,000": "01a0d8a5-3ca2-7315-bfca-96d8d8d7aec2",
-    "per 10,000": "01a0d8a5-3ca2-7315-bfca-96d97b88dbff",
-    "per 100,000": "01a0d8a5-3ca2-7315-bfca-96daa0c93ee9",
-    "per 1,000,000": "01a0d8a5-3ca2-7315-bfca-96dbaf432da2",
-    "minutes": "01a0d8a5-3ca2-7315-bfca-96dca2ab3487",
-    "hours": "01a0d8a5-3ca2-7315-bfca-96dd9ae52dc5",
-    "days": "01a0d8a5-3ca2-7315-bfca-96de5fe00871",
-    "weeks": "01a0d8a5-3ca2-7315-bfca-96df3a570e5d",
-    "months": "01a0d8a5-3ca2-7315-bfca-96e0128fd88d",
-    "years": "01a0d8a5-3ca2-7315-bfca-96e1a3b040d3",
-    "£": "01a0d8a5-3ca2-7315-bfca-96e2d3cf5df0",
-    "£ per capita": "01a0d8a5-3ca2-7315-bfca-96e3aae4dc98",
-    "No unit": "01a0d8a5-3ca2-7315-bfca-96e4a96bfc8e",
-    "Other": "01a0d8a5-3ca2-7315-bfca-96e5cee57158",
-}
+CORE_DATA = Path(__file__).resolve().parents[2]
+
+
+def _ids_by_name(file):
+    return {row["name"]: row["id"] for row in json.loads((CORE_DATA / file).read_text())}
+
+
+VALUE_TYPE_IDS = _ids_by_name("value-types.json")
+
+UNIT_IDS = _ids_by_name("units.json")
 
 # Any other Fingertips value type stops the export.
 VALUE_TYPES = {
@@ -114,9 +90,9 @@ UNIT_NAMES_BY_LABEL = {
 
 UNKNOWN_UNIT_PREFIX = "Unknown unit "
 
-UNIT_OTHER_MAX_LENGTH = 100
+UNIT_DETAIL_MAX_LENGTH = 100
 
-UNIT_COLUMNS = ["unit_id", "unit_other"]
+UNIT_COLUMNS = ["unit_id", "unit_detail"]
 
 
 def value_type_id(name):
@@ -131,12 +107,12 @@ def unit_values(name):
     """The unit columns' values for a Fingertips unit name; one it cannot keep stops the export."""
     name = UNIT_PLACEHOLDERS.get(name, name)
     if name in UNITS:
-        return {"unit_id": UNIT_IDS[UNITS[name]], "unit_other": None}
+        return {"unit_id": UNIT_IDS[UNITS[name]], "unit_detail": None}
     # Spaces only, as Postgres's btrim in unit_select and migration 0035 trims.
     other = name.strip(" ")
-    if not other or other.startswith(UNKNOWN_UNIT_PREFIX) or len(other) > UNIT_OTHER_MAX_LENGTH:
+    if not other or other.startswith(UNKNOWN_UNIT_PREFIX) or len(other) > UNIT_DETAIL_MAX_LENGTH:
         raise ValueError(f"No unit for the Fingertips unit {name!r}")
-    return {"unit_id": UNIT_IDS["Other"], "unit_other": other}
+    return {"unit_id": UNIT_IDS["Other"], "unit_detail": other}
 
 
 def unit_name_for_label(label):
@@ -185,7 +161,7 @@ def unit_select(unit_id_expression):
         f"ELSE CASE {name} {cases} ELSE {other} END END AS unit_id, "
         f"CASE WHEN {name} IS NULL THEN NULL "
         f"WHEN {name} IN ({', '.join(_sql_literal(source) for source in UNITS)}) THEN NULL "
-        f"ELSE btrim({name}) END AS unit_other"
+        f"ELSE btrim({name}) END AS unit_detail"
     )
 
 

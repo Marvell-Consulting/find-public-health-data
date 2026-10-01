@@ -28,7 +28,7 @@ describe('internal API database connection', () => {
 
   it('cannot write reference data such as value types', async () => {
     await expect(
-      db.insert(schema.valueType).values({ name: 'integration-test-denied' }),
+      db.insert(schema.valueType).values({ name: 'integration-test-denied', position: 0 }),
     ).rejects.toMatchObject({ cause: { code: '42501' } });
   });
 

@@ -7,9 +7,9 @@ import {
   classification,
   currentPublishedVersion,
   indicator,
-  indicatorClassification,
-  indicatorTopic,
   indicatorVersion,
+  indicatorVersionClassification,
+  indicatorVersionTopic,
   publishedClassification,
   publishedIndicatorClassification,
   publishedIndicatorTopic,
@@ -133,8 +133,10 @@ export async function applyIndicatorTopics(
 
   const versionIds = [...new Set(links.map(({ indicatorVersionId }) => indicatorVersionId))];
   if (versionIds.length > 0) {
-    await db.delete(indicatorTopic).where(inArray(indicatorTopic.indicatorVersionId, versionIds));
-    await db.insert(indicatorTopic).values(links);
+    await db
+      .delete(indicatorVersionTopic)
+      .where(inArray(indicatorVersionTopic.indicatorVersionId, versionIds));
+    await db.insert(indicatorVersionTopic).values(links);
   }
 
   let timestamps = 0;
@@ -197,9 +199,9 @@ async function applyIndicatorClassifications(
 
   if (versionIds.length > 0) {
     await db
-      .delete(indicatorClassification)
-      .where(inArray(indicatorClassification.indicatorVersionId, versionIds));
-    await db.insert(indicatorClassification).values(
+      .delete(indicatorVersionClassification)
+      .where(inArray(indicatorVersionClassification.indicatorVersionId, versionIds));
+    await db.insert(indicatorVersionClassification).values(
       links.map(({ indicatorVersionId, classificationId }) => ({
         indicatorVersionId,
         classificationId,

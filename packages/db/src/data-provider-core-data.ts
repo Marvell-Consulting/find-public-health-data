@@ -76,7 +76,7 @@ export async function upsertDataProviders(
           .values(records.map(({ id, name }) => ({ id, name })))
           .onConflictDoUpdate({
             target: dataProvider.id,
-            set: { name: sql`excluded.name` },
+            set: { name: sql`excluded.name`, updatedAt: sql`now()` },
             setWhere: sql`${dataProvider.name} IS DISTINCT FROM excluded.name`,
           })
           .returning({ id: dataProvider.id, wasInsert: sql<boolean>`xmax = 0` });
@@ -88,7 +88,11 @@ export async function upsertDataProviders(
           .values(sources)
           .onConflictDoUpdate({
             target: dataProviderSource.id,
-            set: { providerId: sql`excluded.provider_id`, name: sql`excluded.name` },
+            set: {
+              providerId: sql`excluded.provider_id`,
+              name: sql`excluded.name`,
+              updatedAt: sql`now()`,
+            },
             setWhere: sql`(${dataProviderSource.providerId}, ${dataProviderSource.name}) IS DISTINCT FROM (excluded.provider_id, excluded.name)`,
           })
           .returning({ id: dataProviderSource.id, wasInsert: sql<boolean>`xmax = 0` });

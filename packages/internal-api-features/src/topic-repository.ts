@@ -1,7 +1,7 @@
 import { type Database, schema, type Topic } from '@fphd/db';
 import { eq, sql } from 'drizzle-orm';
 
-const { indicatorTopic, topic } = schema;
+const { indicatorVersionTopic, topic } = schema;
 
 /** Writes address a topic by id rather than slug, because the slug is itself editable. */
 export async function getTopicById(db: Database, id: string): Promise<Topic | undefined> {
@@ -98,7 +98,7 @@ export async function createTopic(
 /** The links go first or the foreign key refuses the delete; the indicators themselves stay. */
 export async function deleteTopic(db: Database, id: string): Promise<DeleteTopicResult> {
   return db.transaction(async (tx) => {
-    await tx.delete(indicatorTopic).where(eq(indicatorTopic.topicId, id));
+    await tx.delete(indicatorVersionTopic).where(eq(indicatorVersionTopic.topicId, id));
 
     const deleted = await tx.delete(topic).where(eq(topic.id, id)).returning({ id: topic.id });
 

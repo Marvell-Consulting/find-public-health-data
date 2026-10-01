@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { ENTER_POPULATION } from '@fphd/internal-api-features/contract';
 import { serviceName } from '@fphd/ui';
-import { UNITS, VALUE_TYPES } from '@fphd/utils/value-type-and-unit';
+import { UNIT_IDS, VALUE_TYPE_IDS } from '@fphd/utils/value-type-and-unit';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { MemoryRouter } from 'react-router';
@@ -23,10 +23,26 @@ const empty = {
   standardPopulationOther: '',
   referencePopulation: '',
   unitId: '',
-  unitOther: '',
+  unitDetail: '',
 };
 
 const STANDARD_POPULATION = 'What standard population has been used?';
+
+const VALUE_TYPES = [
+  { id: '01a0d8a5-3ca2-7315-bfca-96c8c77cad18', name: 'Crude rate' },
+  { id: VALUE_TYPE_IDS.directlyStandardisedRate, name: 'Directly standardised rate' },
+  {
+    id: VALUE_TYPE_IDS.indirectlyStandardisedProportion,
+    name: 'Indirectly standardised proportion',
+  },
+  { id: VALUE_TYPE_IDS.indirectlyStandardisedRatio, name: 'Indirectly standardised ratio' },
+];
+
+const UNITS = [
+  { id: '01a0d8a5-3ca2-7315-bfca-96daa0c93ee9', name: 'per 100,000' },
+  { id: UNIT_IDS.noUnit, name: 'No unit' },
+  { id: UNIT_IDS.other, name: 'Other' },
+];
 
 type Props = Parameters<typeof ValueTypeAndUnitsPage>[0];
 
@@ -34,7 +50,7 @@ function page(props: Partial<Props>) {
   // The error summary's links read router state, so the page renders inside a router.
   return (
     <MemoryRouter>
-      <ValueTypeAndUnitsPage values={empty} {...props} />
+      <ValueTypeAndUnitsPage units={UNITS} values={empty} valueTypes={VALUE_TYPES} {...props} />
     </MemoryRouter>
   );
 }
@@ -82,7 +98,7 @@ function standardPopulationOther() {
   return document.getElementById('standardPopulationOther-input') as HTMLInputElement;
 }
 
-function unitOther() {
+function unitDetail() {
   return screen.getByLabelText('Enter unit') as HTMLInputElement;
 }
 
@@ -99,34 +115,19 @@ function optionsOf(select: HTMLSelectElement) {
 }
 
 describe('ValueTypeAndUnitsPage', () => {
-  it("offers the prototype's value types and units, and No unit, after an empty choice", () => {
+  it('offers the value types and units it is given, in order, after an empty choice', () => {
     renderPage();
 
     expect(screen.getByRole('heading', { level: 1, name: TITLE })).toBeTruthy();
     expect(valueTypeSelect().getAttribute('name')).toBe('valueTypeId');
     expect(optionsOf(valueTypeSelect())).toEqual([
       ['', 'Select'],
-      ...Object.values(VALUE_TYPES).map(({ id, name }) => [id, name]),
+      ...VALUE_TYPES.map(({ id, name }) => [id, name]),
     ]);
     expect(unitSelect().getAttribute('name')).toBe('unitId');
-    expect(optionsOf(unitSelect()).map(([, text]) => text)).toEqual([
-      'Select',
-      '%',
-      'per 100',
-      'per 1,000',
-      'per 10,000',
-      'per 100,000',
-      'per 1,000,000',
-      'minutes',
-      'hours',
-      'days',
-      'weeks',
-      'months',
-      'years',
-      '£',
-      '£ per capita',
-      'No unit',
-      'Other',
+    expect(optionsOf(unitSelect())).toEqual([
+      ['', 'Select'],
+      ...UNITS.map(({ id, name }) => [id, name]),
     ]);
   });
 
@@ -136,13 +137,13 @@ describe('ValueTypeAndUnitsPage', () => {
 
       expect(shown(standardPopulationQuestion())).toBe(false);
       expect(shown(referencePopulation())).toBe(false);
-      expect(shown(unitOther())).toBe(false);
+      expect(shown(unitDetail())).toBe(false);
     });
 
     it('asks a directly standardised rate for its standard population', () => {
       renderPage();
 
-      chooseValueType(VALUE_TYPES.directlyStandardisedRate.id);
+      chooseValueType(VALUE_TYPE_IDS.directlyStandardisedRate);
 
       expect(shown(standardPopulationQuestion())).toBe(true);
       expect(
@@ -154,10 +155,7 @@ describe('ValueTypeAndUnitsPage', () => {
       expect(shown(referencePopulation())).toBe(false);
     });
 
-    it.each([
-      VALUE_TYPES.indirectlyStandardisedProportion,
-      VALUE_TYPES.indirectlyStandardisedRatio,
-    ])('asks an $name for its reference population alone', ({ id }) => {
+    it.each(VALUE_TYPES.slice(2))('asks an $name for its reference population alone', ({ id }) => {
       renderPage();
 
       chooseValueType(id);
@@ -169,7 +167,7 @@ describe('ValueTypeAndUnitsPage', () => {
     it('asks nothing more of any other value type', () => {
       renderPage();
 
-      chooseValueType(VALUE_TYPES.crudeRate.id);
+      chooseValueType('01a0d8a5-3ca2-7315-bfca-96c8c77cad18');
 
       expect(shown(standardPopulationQuestion())).toBe(false);
       expect(shown(referencePopulation())).toBe(false);
@@ -178,17 +176,17 @@ describe('ValueTypeAndUnitsPage', () => {
     it('asks an other unit for its name', () => {
       renderPage();
 
-      chooseUnit(UNITS.other.id);
+      chooseUnit(UNIT_IDS.other);
 
-      expect(shown(unitOther())).toBe(true);
+      expect(shown(unitDetail())).toBe(true);
 
-      chooseUnit(UNITS.noUnit.id);
+      chooseUnit(UNIT_IDS.noUnit);
 
-      expect(shown(unitOther())).toBe(false);
+      expect(shown(unitDetail())).toBe(false);
     });
 
     it('reveals the name of an other standard population under Other', () => {
-      renderPage({ values: { ...empty, valueTypeId: VALUE_TYPES.directlyStandardisedRate.id } });
+      renderPage({ values: { ...empty, valueTypeId: VALUE_TYPE_IDS.directlyStandardisedRate } });
 
       const conditional = standardPopulationOther().closest('.govuk-radios__conditional');
 
@@ -205,14 +203,14 @@ describe('ValueTypeAndUnitsPage', () => {
       document.body.append(container);
       const [valueType, unit] = container.querySelectorAll('select');
       if (valueType === undefined || unit === undefined) throw new Error('no selects');
-      valueType.value = VALUE_TYPES.indirectlyStandardisedRatio.id;
-      unit.value = UNITS.other.id;
+      valueType.value = VALUE_TYPE_IDS.indirectlyStandardisedRatio;
+      unit.value = UNIT_IDS.other;
 
       render(page({}), { container, hydrate: true });
 
       expect(shown(referencePopulation())).toBe(true);
       expect(shown(standardPopulationQuestion())).toBe(false);
-      expect(shown(unitOther())).toBe(true);
+      expect(shown(unitDetail())).toBe(true);
     });
 
     it('drops the hints that name the choice each follow-up is for', () => {
@@ -228,7 +226,7 @@ describe('ValueTypeAndUnitsPage', () => {
 
       expect(shown(standardPopulationQuestion())).toBe(true);
       expect(shown(referencePopulation())).toBe(true);
-      expect(shown(unitOther())).toBe(true);
+      expect(shown(unitDetail())).toBe(true);
       expect(
         within(standardPopulationQuestion()).getByText(
           'Only needed for Directly standardised rate',
@@ -256,25 +254,25 @@ describe('ValueTypeAndUnitsPage', () => {
     renderPage({
       values: {
         ...empty,
-        valueTypeId: VALUE_TYPES.directlyStandardisedRate.id,
+        valueTypeId: VALUE_TYPE_IDS.directlyStandardisedRate,
         standardPopulation: 'other',
         standardPopulationOther: 'England 2021',
-        unitId: UNITS.other.id,
-        unitOther: 'people',
+        unitId: UNIT_IDS.other,
+        unitDetail: 'people',
       },
     });
 
-    expect(valueTypeSelect().value).toBe(VALUE_TYPES.directlyStandardisedRate.id);
+    expect(valueTypeSelect().value).toBe(VALUE_TYPE_IDS.directlyStandardisedRate);
     expect((screen.getByLabelText('Other') as HTMLInputElement).checked).toBe(true);
     expect(standardPopulationOther().value).toBe('England 2021');
-    expect(unitSelect().value).toBe(UNITS.other.id);
-    expect(unitOther().value).toBe('people');
+    expect(unitSelect().value).toBe(UNIT_IDS.other);
+    expect(unitDetail().value).toBe('people');
     expect(document.title).toBe(`${TITLE} - ${serviceName} - GOV.UK`);
   });
 
   it('summarises every refusal in the order the form asks, linking to each field', () => {
     renderPage({
-      values: { ...empty, valueTypeId: VALUE_TYPES.directlyStandardisedRate.id },
+      values: { ...empty, valueTypeId: VALUE_TYPE_IDS.directlyStandardisedRate },
       fieldErrors: {
         unitId: 'Select the units',
         standardPopulation: 'Select the standard population used',
@@ -296,7 +294,7 @@ describe('ValueTypeAndUnitsPage', () => {
 
   it('marks a refused reference population and links to it', () => {
     const { container } = renderPage({
-      values: { ...empty, valueTypeId: VALUE_TYPES.indirectlyStandardisedRatio.id },
+      values: { ...empty, valueTypeId: VALUE_TYPE_IDS.indirectlyStandardisedRatio },
       fieldErrors: { referencePopulation: ENTER_POPULATION },
     });
 
@@ -312,6 +310,6 @@ describe('ValueTypeAndUnitsPage', () => {
   it('keeps the width the prototype gives the unit name', () => {
     renderPage();
 
-    expect(unitOther().className).toContain('govuk-input--width-20');
+    expect(unitDetail().className).toContain('govuk-input--width-20');
   });
 });

@@ -29,7 +29,7 @@ const empty: SexAndAgesFormValues = {
   ageRanges: [],
   specificAge: '',
   specificAgeUnit: '',
-  ageOtherDetail: '',
+  ageDetail: '',
 };
 
 function formData(fields: [string, string][], ranges: AgeRangeFormValues[] = []): FormData {
@@ -53,7 +53,7 @@ describe('readSexAndAgesForm', () => {
           ['ageType', 'range'],
           ['specificAge', ' 5 '],
           ['specificAgeUnit', 'weeks'],
-          ['ageOtherDetail', 'Year 6'],
+          ['ageDetail', 'Year 6'],
         ],
         [sixteenPlus, underFive],
       ),
@@ -65,7 +65,7 @@ describe('readSexAndAgesForm', () => {
       ageRanges: [sixteenPlus, underFive],
       specificAge: ' 5 ',
       specificAgeUnit: 'weeks',
-      ageOtherDetail: 'Year 6',
+      ageDetail: 'Year 6',
     });
   });
 

@@ -11,9 +11,9 @@ const methodId = '019fa38f-073f-764e-9ac6-1c4d03b1cb92';
 
 const unanswered: ConfidenceIntervals = {
   ciMethodId: methodId,
-  ciMethodModified: '',
-  ciMethodModifications: '',
-  ciMethodOtherDetail: '',
+  hasCiMethodModifications: '',
+  ciMethodModificationsDetail: '',
+  ciMethodDetail: '',
 };
 
 describe('confidenceIntervalsSection', () => {
@@ -21,15 +21,15 @@ describe('confidenceIntervalsSection', () => {
     expect(
       section.schema.parse({
         ciMethodId: methodId,
-        ciMethodModified: 'yes',
-        ciMethodModifications: '  Adjusted for clustering  ',
-        ciMethodOtherDetail: '  Bootstrap intervals\n',
+        hasCiMethodModifications: 'yes',
+        ciMethodModificationsDetail: '  Adjusted for clustering  ',
+        ciMethodDetail: '  Bootstrap intervals\n',
       }),
     ).toEqual({
       ciMethodId: methodId,
-      ciMethodModified: 'yes',
-      ciMethodModifications: 'Adjusted for clustering',
-      ciMethodOtherDetail: 'Bootstrap intervals',
+      hasCiMethodModifications: 'yes',
+      ciMethodModificationsDetail: 'Adjusted for clustering',
+      ciMethodDetail: 'Bootstrap intervals',
     });
   });
 
@@ -42,8 +42,8 @@ describe('confidenceIntervalsSection', () => {
   it.each([
     {},
     { ...unanswered, ciMethodId: 'byars' },
-    { ...unanswered, ciMethodModified: 'maybe' },
-    { ...unanswered, ciMethodOtherDetail: 108 },
+    { ...unanswered, hasCiMethodModifications: 'maybe' },
+    { ...unanswered, ciMethodDetail: 108 },
   ])('refuses %o, which the form never sends', (body) => {
     expect(sectionFieldErrors(section, body)).toBeDefined();
   });
@@ -56,20 +56,20 @@ describe('missingCiMethodFollowUps', () => {
       'standard',
       {},
       {
-        ciMethodModified: 'Select whether any modifications were used',
+        hasCiMethodModifications: 'Select whether any modifications were used',
       },
     ],
-    ['an unmodified standard method', 'standard', { ciMethodModified: 'no' }, {}],
+    ['an unmodified standard method', 'standard', { hasCiMethodModifications: 'no' }, {}],
     [
       'a modified standard method with no description of the modifications',
       'standard',
-      { ciMethodModified: 'yes' },
-      { ciMethodModifications: 'Enter a description of the modifications used' },
+      { hasCiMethodModifications: 'yes' },
+      { ciMethodModificationsDetail: 'Enter a description of the modifications used' },
     ],
     [
       'a modified standard method described',
       'standard',
-      { ciMethodModified: 'yes', ciMethodModifications: 'Adjusted' },
+      { hasCiMethodModifications: 'yes', ciMethodModificationsDetail: 'Adjusted' },
       {},
     ],
     [
@@ -77,10 +77,10 @@ describe('missingCiMethodFollowUps', () => {
       'other',
       {},
       {
-        ciMethodOtherDetail: 'Enter details of the other confidence interval method used',
+        ciMethodDetail: 'Enter details of the other confidence interval method used',
       },
     ],
-    ['an other method detailed', 'other', { ciMethodOtherDetail: 'Bootstrap' }, {}],
+    ['an other method detailed', 'other', { ciMethodDetail: 'Bootstrap' }, {}],
     ['a method with nothing to describe', 'none', {}, {}],
   ] as const)('asks of %s', (_, kind, answers, missing) => {
     expect(missingCiMethodFollowUps({ ...unanswered, ...answers }, kind)).toEqual(missing);

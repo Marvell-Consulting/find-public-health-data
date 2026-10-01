@@ -18,10 +18,10 @@ import { READ_MODEL_TABLES } from './read-models.ts';
 
 // Topological FK order: every table loads after the tables it references.
 // Self-references (dimension_value.parent_id etc.) resolve within a single COPY
-// because FK checks run at end of statement. The files carry ci_method and
+// because FK checks run at end of statement. The files carry ci_method, comparator_method and
 // numerator_denominator_source, but the service's lists are core data: the source's rows are
-// read only to point its versions at ours. The period and year types, value types and units
-// are the migrations' rows, which the versions already point at.
+// read only to point its versions at ours. The value types and units are core data too, and
+// the versions already carry their ids.
 export const SEED_TABLES = [
   'ci_method',
   'comparator_method',
@@ -43,6 +43,9 @@ export const SEED_TABLES = [
 
 // Staged from the files but never loaded: the service keeps no table of that name.
 const STAGED_ONLY_TABLES: readonly string[] = ['numerator_denominator_source'];
+
+// Staged from the files, whose versions are pointed at the core data rows of the same name.
+const CORE_DATA_TABLES: readonly string[] = ['ci_method', 'comparator_method'];
 
 /** Every table a seed writes, in load order, for a caller that analyzes them afterwards. */
 export const SEEDED_TABLES = [
@@ -241,7 +244,7 @@ export async function seedPublishedTables(
 }
 
 function analyzableTables(): string {
-  return [...SEEDED_TABLES, 'indicator_topic', 'indicator_classification']
+  return [...SEEDED_TABLES, 'indicator_version_topic', 'indicator_version_classification']
     .map((table) => `"${table}"`)
     .join(', ');
 }
@@ -252,16 +255,20 @@ async function seedTables(
   idleTimeoutMs = COPY_IDLE_TIMEOUT_MS,
   completionTimeoutMs = idleTimeoutMs,
 ): Promise<Record<string, number>> {
-  const replaced = [...SEEDED_TABLES.filter((t) => t !== 'ci_method'), ...READ_MODEL_TABLES];
+  const replaced = [
+    ...SEEDED_TABLES.filter((t) => !CORE_DATA_TABLES.includes(t)),
+    ...READ_MODEL_TABLES,
+  ];
   await tx.unsafe(`TRUNCATE ${replaced.map((t) => `"${t}"`).join(', ')} CASCADE`);
 
   const counts: Record<string, number> = {};
   for (const table of SEED_TABLES) {
-    if (table === 'ci_method' || STAGED_ONLY_TABLES.includes(table)) continue;
+    if (CORE_DATA_TABLES.includes(table) || STAGED_ONLY_TABLES.includes(table)) continue;
 
     if (table === 'indicator_version') {
       const loaded = await loadIndicatorVersions(tx, directory, idleTimeoutMs, completionTimeoutMs);
       counts.ci_method = loaded.ciMethods;
+      counts.comparator_method = loaded.comparatorMethods;
       counts.indicator_version = loaded.versions;
       counts.numerator_denominator_source = loaded.legacySources;
       counts.indicator_version_source = loaded.sources;
@@ -281,8 +288,41 @@ const PHOLIO_CI_METHOD_NAMES: Record<string, string> = {
 /** The Fingertips columns naming a version's single numerator and denominator source. */
 const LEGACY_SOURCE_COLUMNS = ['numerator_source_id', 'denominator_source_id'];
 
+/** A list the source carries its own rows of, whose versions point at the core rows instead. */
+interface CoreDataLookup {
+  table: 'ci_method' | 'comparator_method';
+  column: 'ci_method_id' | 'comparator_method_id';
+  /** The columns the source's file carries. */
+  columns: string;
+  label: string;
+  file: string;
+  /** The source's names for rows the service names differently. */
+  renames: Record<string, string>;
+}
+
+const CI_METHOD_LOOKUP: CoreDataLookup = {
+  table: 'ci_method',
+  column: 'ci_method_id',
+  columns: 'id uuid, name text, description text',
+  label: 'CI method',
+  file: 'data/ci-methods.json',
+  renames: PHOLIO_CI_METHOD_NAMES,
+};
+
+const COMPARATOR_METHOD_LOOKUP: CoreDataLookup = {
+  table: 'comparator_method',
+  column: 'comparator_method_id',
+  columns: 'id uuid, name text',
+  label: 'comparator method',
+  file: 'data/comparator-methods.json',
+  renames: {},
+};
+
+const CORE_DATA_LOOKUPS = [CI_METHOD_LOOKUP, COMPARATOR_METHOD_LOOKUP];
+
 export interface LoadedIndicatorVersions {
   ciMethods: number;
+  comparatorMethods: number;
   versions: number;
   /** Rows of the source's own numerator and denominator source list. */
   legacySources: number;
@@ -291,11 +331,74 @@ export interface LoadedIndicatorVersions {
 }
 
 /**
- * Loads the versions through staging tables, pointing each at the core CI method its source
- * method names and giving it the core providers and sources its numerator and denominator
- * sources map to, and answers how many rows each file held. The source's own ids exist
- * nowhere else, so a direct COPY would break the foreign keys; a method or source with no
- * core counterpart stops the load rather than being dropped.
+ * Stages the source's rows of a core data list and maps each one its staged versions name onto
+ * the core row of the same name, in `source_<table>_map`, and answers how many rows the file
+ * held. A row with no core counterpart stops the load rather than being dropped.
+ */
+async function mapToCoreData(
+  tx: postgres.TransactionSql,
+  { table, column, columns, label, file, renames }: CoreDataLookup,
+  directory: string,
+  idleTimeoutMs: number,
+  completionTimeoutMs: number,
+): Promise<number> {
+  await tx.unsafe(`CREATE TEMP TABLE source_${table} (${columns}) ON COMMIT DROP`);
+  const loaded = await loadTable(
+    tx,
+    table,
+    directory,
+    idleTimeoutMs,
+    completionTimeoutMs,
+    `source_${table}`,
+  );
+
+  const sourceRows = await tx.unsafe<{ id: string; name: string }[]>(`
+    SELECT DISTINCT s.id, s.name FROM source_${table} s
+    JOIN source_indicator_version v ON v.${column} = s.id
+  `);
+  const coreRows = await tx.unsafe<{ id: string; name: string }[]>(`SELECT id, name FROM ${table}`);
+  const coreIds = new Map(coreRows.map(({ id, name }) => [name, id]));
+  const mapping = sourceRows.map(({ id, name }) => ({
+    sourceId: id,
+    coreId: coreIds.get(renames[name] ?? name),
+    name,
+  }));
+  const unmatched = mapping.filter(({ coreId }) => coreId === undefined).map(({ name }) => name);
+
+  if (unmatched.length > 0) {
+    throw new Error(
+      `No core ${label} for ${unmatched.join(', ')}: add it to ${file} or map its name here, and run \`db import-core-data\``,
+    );
+  }
+
+  await tx.unsafe(
+    `CREATE TEMP TABLE source_${table}_map (source_id uuid, core_id uuid) ON COMMIT DROP`,
+  );
+  if (mapping.length > 0) {
+    await tx`INSERT INTO ${tx(`source_${table}_map`)} ${tx(
+      mapping.map(({ sourceId, coreId }) => ({ source_id: sourceId, core_id: coreId })),
+    )}`;
+  }
+
+  const [dangling] = await tx.unsafe<{ count: number }[]>(`
+    SELECT count(*)::int AS count FROM source_indicator_version v
+    WHERE v.${column} IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM source_${table}_map m WHERE m.source_id = v.${column})
+  `);
+
+  if (dangling?.count) {
+    throw new Error(`${dangling.count} seeded versions name a ${label} the source does not hold`);
+  }
+
+  return loaded;
+}
+
+/**
+ * Loads the versions through staging tables, pointing each at the core CI method and
+ * comparator method its source's rows name and giving it the core providers and sources its
+ * numerator and denominator sources map to, and answers how many rows each file held. The
+ * source's own ids exist nowhere else, so a direct COPY would break the foreign keys; a row
+ * or source with no core counterpart stops the load rather than being dropped.
  */
 export async function loadIndicatorVersions(
   tx: postgres.TransactionSql,
@@ -304,17 +407,8 @@ export async function loadIndicatorVersions(
   completionTimeoutMs = idleTimeoutMs,
   legacySourceMap: LegacySourceMap = readLegacySourceMap(),
 ): Promise<LoadedIndicatorVersions> {
-  await tx`CREATE TEMP TABLE source_ci_method (id uuid, name text, description text) ON COMMIT DROP`;
   await tx`CREATE TEMP TABLE source_indicator_version (LIKE indicator_version INCLUDING DEFAULTS) ON COMMIT DROP`;
   await tx`ALTER TABLE source_indicator_version ADD COLUMN numerator_source_id uuid, ADD COLUMN denominator_source_id uuid`;
-  const ciMethods = await loadTable(
-    tx,
-    'ci_method',
-    directory,
-    idleTimeoutMs,
-    completionTimeoutMs,
-    'source_ci_method',
-  );
   await loadTable(
     tx,
     'indicator_version',
@@ -324,53 +418,37 @@ export async function loadIndicatorVersions(
     'source_indicator_version',
   );
 
-  const sourceMethods = await tx<{ id: string; name: string }[]>`
-    SELECT DISTINCT s.id, s.name FROM source_ci_method s
-    JOIN source_indicator_version v ON v.ci_method_id = s.id
-  `;
-  const coreMethods = await tx<{ id: string; name: string }[]>`SELECT id, name FROM ci_method`;
-  const coreIds = new Map(coreMethods.map(({ id, name }) => [name, id]));
-  const mapping = sourceMethods.map(({ id, name }) => ({
-    sourceId: id,
-    coreId: coreIds.get(PHOLIO_CI_METHOD_NAMES[name] ?? name),
-    name,
-  }));
-  const unmatched = mapping.filter(({ coreId }) => coreId === undefined).map(({ name }) => name);
-
-  if (unmatched.length > 0) {
-    throw new Error(
-      `No core CI method for ${unmatched.join(', ')}: add it to data/ci-methods.json or map its name here, and run \`db import-core-data\``,
-    );
-  }
-
-  await tx`CREATE TEMP TABLE source_ci_method_map (source_id uuid, core_id uuid) ON COMMIT DROP`;
-  if (mapping.length > 0) {
-    await tx`INSERT INTO source_ci_method_map ${tx(
-      mapping.map(({ sourceId, coreId }) => ({ source_id: sourceId, core_id: coreId })),
-    )}`;
-  }
-
-  const [dangling] = await tx<{ count: number }[]>`
-    SELECT count(*)::int AS count FROM source_indicator_version v
-    WHERE v.ci_method_id IS NOT NULL
-      AND NOT EXISTS (SELECT 1 FROM source_ci_method_map m WHERE m.source_id = v.ci_method_id)
-  `;
-
-  if (dangling?.count) {
-    throw new Error(`${dangling.count} seeded versions name a CI method the source does not hold`);
-  }
+  const ciMethods = await mapToCoreData(
+    tx,
+    CI_METHOD_LOOKUP,
+    directory,
+    idleTimeoutMs,
+    completionTimeoutMs,
+  );
+  const comparatorMethods = await mapToCoreData(
+    tx,
+    COMPARATOR_METHOD_LOOKUP,
+    directory,
+    idleTimeoutMs,
+    completionTimeoutMs,
+  );
 
   const header = await readCsvHeader(`${directory}/indicator_version.csv.gz`);
   // The id is always carried over, so the sources below find the versions they belong to.
   const columns = ['id', ...header.filter((c) => c !== 'id' && !LEGACY_SOURCE_COLUMNS.includes(c))];
   const columnList = columns.map((c) => `"${c}"`).join(', ');
-  const selectList = columns
-    .map((c) => (c === 'ci_method_id' ? 'm.core_id' : `v."${c}"`))
-    .join(', ');
+  const mapped = new Map<string, string>(
+    CORE_DATA_LOOKUPS.map(({ table, column }) => [column, `${table}_map.core_id`]),
+  );
+  const selectList = columns.map((c) => mapped.get(c) ?? `v."${c}"`).join(', ');
+  const joins = CORE_DATA_LOOKUPS.map(
+    ({ table, column }) =>
+      `LEFT JOIN source_${table}_map ${table}_map ON ${table}_map.source_id = v.${column}`,
+  ).join('\n    ');
   const inserted = await tx.unsafe(`
     INSERT INTO indicator_version (${columnList})
     SELECT ${selectList} FROM source_indicator_version v
-    LEFT JOIN source_ci_method_map m ON m.source_id = v.ci_method_id
+    ${joins}
   `);
 
   const hasLegacySources = header.some((c) => LEGACY_SOURCE_COLUMNS.includes(c));
@@ -378,7 +456,7 @@ export async function loadIndicatorVersions(
     ? await loadLegacySources(tx, directory, idleTimeoutMs, completionTimeoutMs, legacySourceMap)
     : { legacySources: 0, sources: 0 };
 
-  return { ciMethods, versions: inserted.count, ...sources };
+  return { ciMethods, comparatorMethods, versions: inserted.count, ...sources };
 }
 
 /** Gives the staged versions the core providers and sources their Fingertips sources map to. */

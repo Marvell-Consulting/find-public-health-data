@@ -8,7 +8,7 @@ import { CalculationPage } from './page.tsx';
 
 afterEach(cleanup);
 
-const empty = { methodology: '', calculatedBy: '', calculatedByOther: '' };
+const empty = { methodology: '', calculatedBy: '', calculatedByDetail: '' };
 
 const detailsError = 'Enter details of the other organisation or organisations';
 
@@ -85,7 +85,7 @@ describe('CalculationPage', () => {
   it('asks for the other organisations inside the reveal that "Other" controls', () => {
     renderPage();
 
-    expect(detailsField().getAttribute('name')).toBe('calculatedByOther');
+    expect(detailsField().getAttribute('name')).toBe('calculatedByDetail');
     expect(detailsField().getAttribute('rows')).toBe('3');
     expect(otherOption().getAttribute('aria-controls')).toBe(conditional().id);
   });
@@ -108,7 +108,7 @@ describe('CalculationPage', () => {
 
   it('shows the answers it is given, so a draft can be revisited', () => {
     renderPage({
-      values: { methodology: 'A method', calculatedBy: 'other', calculatedByOther: 'ONS' },
+      values: { methodology: 'A method', calculatedBy: 'other', calculatedByDetail: 'ONS' },
     });
 
     expect(methodologyField().value).toBe('A method');
@@ -164,8 +164,8 @@ describe('CalculationPage', () => {
 
   it('shows the details error inside the open reveal, linked from the summary', () => {
     renderPage({
-      fieldErrors: { calculatedByOther: detailsError },
-      values: { methodology: 'A method', calculatedBy: 'other', calculatedByOther: '' },
+      fieldErrors: { calculatedByDetail: detailsError },
+      values: { methodology: 'A method', calculatedBy: 'other', calculatedByDetail: '' },
     });
 
     const link = within(screen.getByRole('alert')).getByRole('link', { name: detailsError });
@@ -182,7 +182,7 @@ describe('CalculationPage', () => {
   it('keeps what was typed after a refusal', () => {
     renderPage({
       fieldErrors: { methodology: 'Enter the methodology' },
-      values: { methodology: '', calculatedBy: 'other', calculatedByOther: 'ONS' },
+      values: { methodology: '', calculatedBy: 'other', calculatedByDetail: 'ONS' },
     });
 
     expect(otherOption().checked).toBe(true);

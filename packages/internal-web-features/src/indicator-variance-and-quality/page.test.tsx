@@ -11,7 +11,7 @@ afterEach(cleanup);
 const empty = {
   variation: '',
   qualityAssurance: '',
-  sourceDataIssues: '',
+  hasSourceDataIssues: '',
   sourceDataIssuesDetail: '',
 };
 
@@ -34,7 +34,7 @@ function textarea(label: string) {
   return screen.getByLabelText(label) as HTMLTextAreaElement;
 }
 
-function sourceDataIssues() {
+function hasSourceDataIssues() {
   return within(screen.getByRole('group', { name: SOURCE_DATA_ISSUES }));
 }
 
@@ -49,13 +49,13 @@ describe('VarianceAndQualityPage', () => {
     ]);
     expect(textarea(VARIATION).getAttribute('rows')).toBe('5');
     expect(
-      (sourceDataIssues().getAllByRole('radio') as HTMLInputElement[]).map((radio) => [
+      (hasSourceDataIssues().getAllByRole('radio') as HTMLInputElement[]).map((radio) => [
         radio.name,
         radio.value,
       ]),
     ).toEqual([
-      ['sourceDataIssues', 'yes'],
-      ['sourceDataIssues', 'no'],
+      ['hasSourceDataIssues', 'yes'],
+      ['hasSourceDataIssues', 'no'],
     ]);
     expect(screen.getByRole('heading', { level: 2, name: SOURCE_DATA_ISSUES })).toBeTruthy();
   });
@@ -63,12 +63,12 @@ describe('VarianceAndQualityPage', () => {
   it('asks for the details of the source data issues under Yes', () => {
     renderPage();
 
-    const details = sourceDataIssues().getByLabelText(DETAILS) as HTMLTextAreaElement;
+    const details = hasSourceDataIssues().getByLabelText(DETAILS) as HTMLTextAreaElement;
 
     expect(details.name).toBe('sourceDataIssuesDetail');
     expect(details.getAttribute('rows')).toBe('5');
     expect(details.closest('.govuk-radios__conditional')?.id).toBe(
-      sourceDataIssues().getByLabelText('Yes').getAttribute('aria-controls'),
+      hasSourceDataIssues().getByLabelText('Yes').getAttribute('aria-controls'),
     );
   });
 
@@ -77,15 +77,15 @@ describe('VarianceAndQualityPage', () => {
       values: {
         variation: 'Varies by area.',
         qualityAssurance: 'Checked.',
-        sourceDataIssues: 'yes',
+        hasSourceDataIssues: 'yes',
         sourceDataIssuesDetail: 'Late returns.',
       },
     });
 
     expect(textarea(VARIATION).value).toBe('Varies by area.');
     expect(textarea(QUALITY_ASSURANCE).value).toBe('Checked.');
-    expect((sourceDataIssues().getByLabelText('Yes') as HTMLInputElement).checked).toBe(true);
-    expect((sourceDataIssues().getByLabelText(DETAILS) as HTMLTextAreaElement).value).toBe(
+    expect((hasSourceDataIssues().getByLabelText('Yes') as HTMLInputElement).checked).toBe(true);
+    expect((hasSourceDataIssues().getByLabelText(DETAILS) as HTMLTextAreaElement).value).toBe(
       'Late returns.',
     );
     expect(screen.queryByRole('alert')).toBeNull();
@@ -95,7 +95,8 @@ describe('VarianceAndQualityPage', () => {
   it('summarises every refusal in the order the form asks, linking to each control', () => {
     renderPage({
       fieldErrors: {
-        sourceDataIssues: 'Select whether there are any data quality issues with the source data',
+        hasSourceDataIssues:
+          'Select whether there are any data quality issues with the source data',
         variation: 'Enter how the indicator varies',
       },
     });
@@ -108,7 +109,7 @@ describe('VarianceAndQualityPage', () => {
     ]);
     expect(links.map((link) => link.getAttribute('href'))).toEqual([
       `#${textarea(VARIATION).id}`,
-      `#${sourceDataIssues().getByLabelText('Yes').id}`,
+      `#${hasSourceDataIssues().getByLabelText('Yes').id}`,
     ]);
     expect(textarea(VARIATION).className).toContain('govuk-textarea--error');
     expect(document.title).toBe(`Error: Variance and quality - ${serviceName} - GOV.UK`);
@@ -119,11 +120,11 @@ describe('VarianceAndQualityPage', () => {
       fieldErrors: {
         sourceDataIssuesDetail: 'Enter details of the data quality issues with the source data',
       },
-      values: { ...empty, sourceDataIssues: 'yes' },
+      values: { ...empty, hasSourceDataIssues: 'yes' },
     });
 
     expect(within(screen.getByRole('alert')).getByRole('link').getAttribute('href')).toBe(
-      `#${sourceDataIssues().getByLabelText(DETAILS).id}`,
+      `#${hasSourceDataIssues().getByLabelText(DETAILS).id}`,
     );
   });
 });

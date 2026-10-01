@@ -9,7 +9,7 @@ const answered = {
   inequalitiesIncluded: 'Deprivation deciles.',
   hasExclusions: 'no',
   exclusionsDetail: '',
-  automationUsed: 'no',
+  hasAutomation: 'no',
   automationDetail: '',
 };
 
@@ -22,7 +22,7 @@ describe('justificationsSection', () => {
         inequalitiesIncluded: ' Deciles.',
         hasExclusions: 'yes',
         exclusionsDetail: ' Small areas. ',
-        automationUsed: 'yes',
+        hasAutomation: 'yes',
         automationDetail: 'Pipeline. ',
       }),
     ).toEqual({
@@ -31,7 +31,7 @@ describe('justificationsSection', () => {
       inequalitiesIncluded: 'Deciles.',
       hasExclusions: 'yes',
       exclusionsDetail: 'Small areas.',
-      automationUsed: 'yes',
+      hasAutomation: 'yes',
       automationDetail: 'Pipeline.',
     });
   });
@@ -48,7 +48,7 @@ describe('justificationsSection', () => {
         inequalitiesIncluded: '',
         hasExclusions: '',
         exclusionsDetail: '',
-        automationUsed: '',
+        hasAutomation: '',
         automationDetail: '',
       }),
     ).toEqual({
@@ -56,7 +56,7 @@ describe('justificationsSection', () => {
       dataSourcesJustification: 'Enter why the data sources were chosen',
       inequalitiesIncluded: 'Enter what health inequalities have been included',
       hasExclusions: 'Select whether there have been any exclusions',
-      automationUsed: 'Select whether internal automation tools have been used',
+      hasAutomation: 'Select whether internal automation tools have been used',
     });
   });
 
@@ -66,7 +66,7 @@ describe('justificationsSection', () => {
         ...answered,
         hasExclusions: 'yes',
         exclusionsDetail: ' \n',
-        automationUsed: 'yes',
+        hasAutomation: 'yes',
       }),
     ).toEqual({
       exclusionsDetail: 'Enter why exclusions were made',
@@ -78,7 +78,7 @@ describe('justificationsSection', () => {
     null,
     {},
     { ...answered, hasExclusions: 'not-applicable' },
-    { ...answered, automationUsed: false },
+    { ...answered, hasAutomation: false },
     { ...answered, inequalitiesIncluded: 108 },
   ])('refuses %o, which the form never sends', (body) => {
     expect(sectionFieldErrors(section, body)).toBeDefined();

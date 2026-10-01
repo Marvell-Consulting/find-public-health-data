@@ -1,15 +1,23 @@
-import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
 import type postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { migrateToLatest } from './migrations.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
-import { createTestDatabase, migrateBefore, type TestDatabase } from './testing.ts';
+import { createTestDatabase, migrateBefore, migrateThrough, type TestDatabase } from './testing.ts';
 
 const MIGRATION = '0034_period-type';
 
-const { months, quarters, years } = PERIOD_TYPES;
-const { academic, calendar, financial, rolling, specifiedEndDate } = YEAR_TYPES;
+// The rows this migration inserted, which a later migration turns into values.
+const months = { id: '01a0d88c-310a-7ca1-9ba4-031b00f46799', name: 'Months' };
+const quarters = { id: '01a0d88c-310a-7c9d-b589-353d97eedb54', name: 'Quarters' };
+const years = { id: '01a0d88c-310a-7c54-b512-a99ca789cc12', name: 'Years' };
+const academic = { id: '01a0d88c-310a-7cab-8847-543e49e4c685', name: 'Academic' };
+const calendar = { id: '01a0d88c-310a-7ca5-8494-19e32c307628', name: 'Calendar' };
+const financial = { id: '01a0d88c-310a-7ca8-9a3b-40fc6f585b8a', name: 'Financial' };
+const rolling = { id: '01a0d88c-310a-7cae-ae91-2c6e6e6b707a', name: 'Rolling' };
+const specifiedEndDate = {
+  id: '01a0d88c-310a-7cb1-af6e-3712b2958e12',
+  name: 'Ending a specified date',
+};
 
 // Each Fingertips year type, and the period type, year type and year end it becomes.
 const TRANSLATIONS: [string, string, string, number | null, number | null][] = [
@@ -61,7 +69,7 @@ describe(`migration ${MIGRATION}`, () => {
 
   beforeAll(async () => {
     [testDb, sql] = await withLegacyYearTypes(TRANSLATIONS.map(([name]) => name));
-    await migrateToLatest(sql);
+    await migrateThrough(sql, MIGRATION);
   });
 
   afterAll(async () => {
@@ -71,7 +79,7 @@ describe(`migration ${MIGRATION}`, () => {
 
   it.each(TRANSLATIONS.map((translation, index) => [translation[0], index + 1, translation]))(
     'translates %s',
-    async (_, shortId, [, periodTypeId, yearTypeId, yearEndDay, yearEndMonth]) => {
+    async (_, shortId, [, periodType, yearType, yearEndDay, yearEndMonth]) => {
       const [version] = await sql`
         SELECT v.period_type_id, v.year_type_id, v.year_end_day, v.year_end_month
         FROM indicator_version v JOIN indicator i ON i.id = v.indicator_id
@@ -79,8 +87,8 @@ describe(`migration ${MIGRATION}`, () => {
       `;
 
       expect(version).toEqual({
-        period_type_id: periodTypeId,
-        year_type_id: yearTypeId,
+        period_type_id: periodType,
+        year_type_id: yearType,
         year_end_day: yearEndDay,
         year_end_month: yearEndMonth,
       });
@@ -149,6 +157,6 @@ describe(`migration ${MIGRATION} over a year type it cannot translate`, () => {
   });
 
   it('stops rather than drop the answer', async () => {
-    await expect(migrateToLatest(sql)).rejects.toThrow(/no value to translate it to/);
+    await expect(migrateThrough(sql, MIGRATION)).rejects.toThrow(/no value to translate it to/);
   });
 });

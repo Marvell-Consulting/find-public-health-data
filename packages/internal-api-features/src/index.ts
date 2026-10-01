@@ -7,6 +7,7 @@ import { internalIndicatorsRouter } from './indicators.ts';
 import type { InternalRepositories } from './repositories.ts';
 import { internalTagsRouter } from './tags.ts';
 import { internalTopicsRouter } from './topics.ts';
+import { internalValueTypesAndUnitsRouter } from './value-types-and-units.ts';
 
 export { createInternalRepositories, type InternalRepositories } from './repositories.ts';
 
@@ -28,6 +29,7 @@ export function internalApiRoutes({ repositories, session }: InternalApiDependen
   router.use(internalTagsRouter(repositories.tags, session));
   router.use(internalDataProvidersRouter(repositories.dataProviders, session));
   router.use(internalTopicsRouter(repositories.topics, session));
+  router.use(internalValueTypesAndUnitsRouter(repositories.valueTypesAndUnits, session));
 
   return router;
 }

@@ -9,7 +9,6 @@ import {
 } from '@fphd/db';
 import { createOwnerClient } from '@fphd/db/operations';
 import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
-import { PERIOD_TYPES, YEAR_TYPES } from '@fphd/utils/period-type';
 import { SLUG_PATTERN } from '@fphd/utils/slug';
 import express from 'express';
 import request from 'supertest';
@@ -64,10 +63,10 @@ async function insertDraftOnlyIndicator(
       INSERT INTO indicator (short_id) VALUES (${shortId}) RETURNING id, short_id
     )
     INSERT INTO indicator_version
-      (indicator_id, status, name, slug, value_type_id, unit_id, period_type_id, year_type_id,
+      (indicator_id, status, name, slug, value_type_id, unit_id, period_type, year_type,
        polarity, update_frequency, created_by, updated_by)
-    SELECT i.id, 'draft', ${name}, ${slug}, vt.id, u.id, ${PERIOD_TYPES.years.id},
-           ${YEAR_TYPES.calendar.id}, 'lower-is-better', 'annually',
+    SELECT i.id, 'draft', ${name}, ${slug}, vt.id, u.id, 'years', 'calendar',
+           'lower-is-better', 'annually',
            'integration-test', 'integration-test'
     FROM new_indicator i, value_type vt, unit u
     WHERE u.name <> 'Other'
@@ -292,7 +291,7 @@ describe('public routers against the seeded database', () => {
 
   it('connects with a read-only role', async () => {
     await expect(
-      db.insert(schema.valueType).values({ name: 'integration-test-denied' }),
+      db.insert(schema.valueType).values({ name: 'integration-test-denied', position: 0 }),
     ).rejects.toMatchObject({ cause: { code: '42501' } });
   });
 

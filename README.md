@@ -89,6 +89,7 @@ pnpm dev:internal
 pnpm check
 pnpm check:artefacts   # assert no internal code or secret reaches the public artifacts
 pnpm check:e2e-coverage # assert every page route has an e2e spec and every spec scans with axe
+pnpm check:migrations  # assert the schema holds no change its migrations do not
 pnpm build
 pnpm test              # all three tiers below, in order
 pnpm test:unit         # unit tests
@@ -102,11 +103,11 @@ unambiguous artifacts.
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs lint, typecheck, unit tests, integration tests, e2e tests,
-`pnpm audit`, build, the image builds and scans, the public artifact boundary check and the e2e
-coverage checks as parallel jobs, except that the e2e tests and the image scans wait for the image
-build. A final `All checks pass` job aggregates them and is the single required status check for
-merging, so the required-check list does not need editing whenever a job is added — but a new job
-must be added to that job's `needs` list, or it gates nothing.
+`pnpm audit`, build, the image builds and scans, the public artifact boundary check, the migration
+drift check and the e2e coverage checks as parallel jobs, except that the e2e tests and the image
+scans wait for the image build. A final `All checks pass` job aggregates them and is the single
+required status check for merging, so the required-check list does not need editing whenever a job
+is added — but a new job must be added to that job's `needs` list, or it gates nothing.
 
 Runs are triggered on every pull request (on open, on every push to the branch, on reopening, and
 when a draft is marked ready for review) and on every push to `main`. A draft pull request skips the
@@ -299,7 +300,7 @@ Schema and migrations are managed with Drizzle in `packages/db`:
 ```sh
 pnpm db:generate              # generate a migration from the schema
 pnpm db:migrate               # apply pending migrations
-pnpm db:import-core-data      # load required core data (topics) — idempotent, any environment
+pnpm db:import-core-data      # load required core data (topics and lists) — idempotent, any environment
 pnpm db:seed-dummy-data       # replace dummy data with the committed seed and rebuild read models
 pnpm db:rebuild-read-models   # rebuild the derived cache tables from canonical data
 pnpm db:reset                 # back to a freshly created database, for db:migrate to rebuild
@@ -382,18 +383,20 @@ Four commands are worth noting:
   CI's integration job and a managed server all create the per-API roles through it. It is
   idempotent — safe against a server where the roles already exist — and it sets the passwords
   every time, so it is also how a credential is rotated.
-- `db import-core-data` loads the required starting data the service relies on — topics, CI
-  methods and the classifications indicators are tagged with, from `packages/db/data/`. It is
-  idempotent (upserts keyed on stable ids, rows absent from the file are reported rather than
-  deleted) and runs in any environment: this is permanent content preview and production need,
-  not dummy data.
+- `db import-core-data` loads the required starting data the service relies on from
+  `packages/db/data/`: topics, the classifications indicators are tagged with, and the lists a
+  publisher chooses from — CI methods, data providers, value types, units and comparator
+  methods. It is idempotent (upserts keyed on stable ids, rows absent from the file are reported
+  rather than deleted) and runs in any environment: this is permanent content preview and
+  production need, not dummy data.
 - `db seed-dummy-data` replaces the dummy data — the committed indicators, observations and the
   links tying those indicators to topics — and rebuilds the read models, in one command and one
   transaction. A job runs one command, and a seeded database whose read models are still empty
   serves an empty site. It refuses to run unless `APP_ENV` is `local`, `test` or `dev`, and fails
-  if the core data has not been imported (no topics or CI methods, or any classification in the
-  file missing): dummy data may depend on core data, never the reverse. The core-data tables are
-  left alone.
+  if the core data has not been imported: no topics, CI methods or data providers, or any
+  classification, value type, unit or comparator method whose id its file holds missing from the
+  database. Dummy data may depend on core data, never the reverse. The core-data tables are left
+  alone.
 - `db import-published-snapshot` replaces the dev seed with the approved-only
   `PHOLIO_LIVE_A`-derived benchmark clone. Set `PUBLISHED_SNAPSHOT_URL` to a private HTTPS
   archive and `PUBLISHED_SNAPSHOT_SHA256` to its checksum. The command checks the source,

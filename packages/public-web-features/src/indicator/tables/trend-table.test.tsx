@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import { YEAR_TYPES } from '@fphd/utils/period-type';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -12,7 +11,7 @@ function indicator(unit: string | null) {
   return {
     name: 'Resident population',
     unit,
-    yearType: { id: YEAR_TYPES.calendar.id, label: 'Calendar' },
+    yearType: { value: 'calendar', label: 'Calendar' },
     polarity: 'no-comparison-possible',
     comparatorMethod: null,
   } as IndicatorDetail;

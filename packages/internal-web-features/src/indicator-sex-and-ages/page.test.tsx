@@ -31,7 +31,7 @@ const empty: SexAndAgesFormValues = {
   ageRanges: [blank],
   specificAge: '',
   specificAgeUnit: '',
-  ageOtherDetail: '',
+  ageDetail: '',
 };
 
 // The error summary's links read router state, so the page renders inside a router.
@@ -145,7 +145,7 @@ describe('SexAndAgesPage', () => {
 
   it('asks for a specific age and its period, and for other ages in words', () => {
     renderPage({
-      values: { ...empty, specificAge: '5', specificAgeUnit: 'weeks', ageOtherDetail: 'Year 6' },
+      values: { ...empty, specificAge: '5', specificAgeUnit: 'weeks', ageDetail: 'Year 6' },
     });
 
     expect(field('Age').value).toBe('5');
@@ -166,7 +166,7 @@ describe('SexAndAgesPage', () => {
     renderPage({
       values: { ...empty, ageType: 'range', ageRanges: [blank, blank] },
       fieldErrors: {
-        ageOtherDetail: 'Enter the ages included',
+        ageDetail: 'Enter the ages included',
         [ageRangeFieldName(1, 'lowerLimit')]:
           'You must enter at least a lower or upper limit for range 2',
         sexes: 'Select sexes included',
