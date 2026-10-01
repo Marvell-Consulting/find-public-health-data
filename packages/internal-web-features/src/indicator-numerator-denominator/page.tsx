@@ -86,7 +86,7 @@ export function NumeratorDenominatorPage({
   ...form
 }: NumeratorDenominatorPageProps) {
   const { fieldErrors, values } = form;
-  const selected = useSelectedValue('providerId', values.providerId);
+  const selected = useSelectedValue<NumeratorDenominatorPageField>('providerId', values.providerId);
   const provider = providers.find(({ id }) => id === selected.value);
   // Nothing added yet is asked of the provider select, where the first source is chosen.
   const providerError = fieldErrors.providerId ?? fieldErrors.sources;

@@ -4,6 +4,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { VarianceAndQualityPage } from './page.tsx';
 
 afterEach(cleanup);
@@ -25,7 +26,7 @@ const DETAILS =
 function renderPage(props: Partial<Parameters<typeof VarianceAndQualityPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <VarianceAndQualityPage fieldErrors={{}} formError={undefined} values={empty} {...props} />
+      <VarianceAndQualityPage {...noRefusal} values={empty} {...props} />
     </MemoryRouter>,
   );
 }

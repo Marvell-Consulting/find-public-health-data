@@ -4,6 +4,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { PolarityPage } from './page.tsx';
 
 afterEach(cleanup);
@@ -14,7 +15,7 @@ const QUESTION = 'What is the polarity of this indicator?';
 function renderPage(props: Partial<Parameters<typeof PolarityPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <PolarityPage fieldErrors={{}} formError={undefined} values={{ polarity: '' }} {...props} />
+      <PolarityPage {...noRefusal} values={{ polarity: '' }} {...props} />
     </MemoryRouter>,
   );
 }

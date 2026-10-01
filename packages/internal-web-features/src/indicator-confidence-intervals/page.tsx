@@ -17,7 +17,7 @@ const listWithOr = new Intl.ListFormat('en-GB', { type: 'disjunction' });
 /** Each follow-up is asked only of the methods that need it, once a method is chosen. */
 export function ConfidenceIntervalsPage({ methods, ...form }: ConfidenceIntervalsPageProps) {
   const { fieldErrors, values } = form;
-  const selected = useSelectedValue('ciMethodId', values.ciMethodId);
+  const selected = useSelectedValue<ConfidenceIntervalsField>('ciMethodId', values.ciMethodId);
   const method = methods.find(({ id }) => id === selected.value);
   const namesOf = (test: (method: CiMethod) => boolean) =>
     listWithOr.format(methods.filter(test).map(({ name }) => name));

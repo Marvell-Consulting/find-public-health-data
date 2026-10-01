@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { CalculationPage } from './page.tsx';
 
 afterEach(cleanup);
@@ -16,7 +17,7 @@ const detailsError = 'Enter details of the other organisation or organisations';
 function renderPage(props: Partial<Parameters<typeof CalculationPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <CalculationPage fieldErrors={{}} formError={undefined} values={empty} {...props} />
+      <CalculationPage {...noRefusal} values={empty} {...props} />
     </MemoryRouter>,
   );
 }

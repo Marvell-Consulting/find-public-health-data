@@ -39,8 +39,8 @@ function selectOptions(options: ValueTypeAndUnitOptions['valueTypes']) {
 /** Each follow-up is asked only of the value type or unit that needs it, once one is chosen. */
 export function ValueTypeAndUnitsPage({ units, valueTypes, ...form }: ValueTypeAndUnitsPageProps) {
   const { fieldErrors, values } = form;
-  const valueType = useSelectedValue('valueTypeId', values.valueTypeId);
-  const unit = useSelectedValue('unitId', values.unitId);
+  const valueType = useSelectedValue<ValueTypeAndUnitsField>('valueTypeId', values.valueTypeId);
+  const unit = useSelectedValue<ValueTypeAndUnitsField>('unitId', values.unitId);
   const standardisation = standardisationOf(valueType.value);
 
   return (

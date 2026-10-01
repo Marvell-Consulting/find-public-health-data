@@ -4,6 +4,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { PublishingDatePage, publishingDateControlNames } from './page.tsx';
 
 afterEach(cleanup);
@@ -22,13 +23,7 @@ const values = {
 function renderPage(props: Partial<Parameters<typeof PublishingDatePage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <PublishingDatePage
-        fieldErrors={{}}
-        formError={undefined}
-        dateExample="12 11 2027"
-        values={values}
-        {...props}
-      />
+      <PublishingDatePage {...noRefusal} dateExample="12 11 2027" values={values} {...props} />
     </MemoryRouter>,
   );
 }

@@ -4,6 +4,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { PeriodTypePage, periodTypeControlNames } from './page.tsx';
 
 afterEach(cleanup);
@@ -23,7 +24,7 @@ const quartersEndingOn = {
 function renderPage(props: Partial<Parameters<typeof PeriodTypePage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <PeriodTypePage fieldErrors={{}} formError={undefined} values={unanswered} {...props} />
+      <PeriodTypePage {...noRefusal} values={unanswered} {...props} />
     </MemoryRouter>,
   );
 }

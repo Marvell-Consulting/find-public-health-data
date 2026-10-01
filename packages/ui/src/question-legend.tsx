@@ -8,7 +8,7 @@ interface QuestionLegendProps {
 }
 
 /** A question's text as the label of a NotGovUK fieldset, sized as GOV.UK sizes a legend. */
-// NotGovUK sizes a legend by the heading in it; upstream: daniel-ac-martin/NotGovUK#2057 (FPH-445).
+// NotGovUK sizes a legend by the heading in it; upstream: daniel-ac-martin/NotGovUK#2057.
 export function QuestionLegend({ as: Heading = 'h2', children, size = 'm' }: QuestionLegendProps) {
   return <Heading className={`govuk-heading-${size}`}>{children}</Heading>;
 }

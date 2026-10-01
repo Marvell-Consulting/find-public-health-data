@@ -16,7 +16,7 @@ interface IndicatorNamePageProps {
 }
 
 // The heading is the field's label, as GOV.UK asks of a page with a single question, which
-// TextInput cannot do; upstream: daniel-ac-martin/NotGovUK#2057 (FPH-445).
+// TextInput cannot do; upstream: daniel-ac-martin/NotGovUK#2057.
 export function IndicatorNamePage({
   fieldErrors = {},
   formError,

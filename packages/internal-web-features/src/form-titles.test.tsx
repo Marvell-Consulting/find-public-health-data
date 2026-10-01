@@ -3,6 +3,7 @@ import {
   calculationSection,
   confidenceIntervalsSection,
   copyrightAndDataReuseSection,
+  DEFAULT_PUBLISHING_TIME,
   dataQualitySection,
   definitionAndRationaleSection,
   type IndicatorSectionFields,
@@ -85,9 +86,8 @@ function sectionForm<Field extends string>(
   pageTitle: string,
   fieldErrors: Partial<Record<Field, string>>,
   loaderData: object = {},
+  values: Record<Field, string> = unanswered(section),
 ) {
-  const values = unanswered(section);
-
   return {
     name,
     route,
@@ -211,6 +211,7 @@ const forms: {
     'When should this indicator be published?',
     { publishingDateDay: 'Enter the publishing date' },
     { dateExample: '9 11 2027' },
+    { ...unanswered(publishingDateSection), ...DEFAULT_PUBLISHING_TIME },
   ),
   {
     name: 'links',

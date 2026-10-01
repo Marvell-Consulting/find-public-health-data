@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { removeIntent } from '../list-form.ts';
+import { noRefusal } from '../testing.ts';
 import type { NumeratorDenominatorPageValues } from './form.ts';
 import { NumeratorDenominatorPage } from './page.tsx';
 
@@ -37,8 +38,7 @@ function renderPage(props: Partial<Parameters<typeof NumeratorDenominatorPage>[0
   return render(
     <MemoryRouter>
       <NumeratorDenominatorPage
-        fieldErrors={{}}
-        formError={undefined}
+        {...noRefusal}
         part="numerator"
         providers={providers}
         values={empty}

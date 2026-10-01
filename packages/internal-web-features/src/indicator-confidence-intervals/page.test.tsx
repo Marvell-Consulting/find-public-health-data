@@ -6,6 +6,7 @@ import { renderToString } from 'react-dom/server';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { ConfidenceIntervalsPage } from './page.tsx';
 
 afterEach(() => {
@@ -65,13 +66,7 @@ function page(props: Partial<Props>) {
   // The error summary's links read router state, so the page renders inside a router.
   return (
     <MemoryRouter>
-      <ConfidenceIntervalsPage
-        fieldErrors={{}}
-        formError={undefined}
-        methods={methods}
-        values={empty}
-        {...props}
-      />
+      <ConfidenceIntervalsPage {...noRefusal} methods={methods} values={empty} {...props} />
     </MemoryRouter>
   );
 }

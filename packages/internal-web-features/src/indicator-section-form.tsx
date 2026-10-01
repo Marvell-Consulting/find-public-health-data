@@ -27,10 +27,12 @@ type IndicatorSectionFormProps<Field extends string> = {
   | {
       /** The section the page answers, whose fields it asks in their order. */
       section: { fields: { options: readonly Field[] } };
+      fields?: never;
     }
   | {
       /** Every field, in the order the page asks them, where they are not its section's alone. */
       fields: readonly Field[];
+      section?: never;
     }
 );
 
@@ -46,7 +48,7 @@ export function IndicatorSectionForm<Field extends string>(
     title,
   } = props;
   const fieldIds: Partial<Record<Field, string>> = props.fieldIds ?? {};
-  const fields = 'fields' in props ? props.fields : props.section.fields.options;
+  const fields = props.fields ?? props.section.fields.options;
   // A message given on several fields, such as the parts of a date, links to the first of them.
   const errors = fields.flatMap((name, index) => {
     const message = fieldErrors[name];

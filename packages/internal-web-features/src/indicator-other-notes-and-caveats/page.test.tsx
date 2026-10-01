@@ -4,6 +4,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { OtherNotesAndCaveatsPage } from './page.tsx';
 
 afterEach(cleanup);
@@ -30,7 +31,7 @@ const QUESTIONS = [
 function renderPage(props: Partial<Parameters<typeof OtherNotesAndCaveatsPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <OtherNotesAndCaveatsPage fieldErrors={{}} formError={undefined} values={empty} {...props} />
+      <OtherNotesAndCaveatsPage {...noRefusal} values={empty} {...props} />
     </MemoryRouter>,
   );
 }

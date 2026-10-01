@@ -79,7 +79,7 @@ const DAY_MONTH_PARTS = [
 ] as const;
 
 /** A day and month with no year, as GOV.UK's date input allows by leaving the year out. */
-// NotGovUK's DateInput always shows a year; upstream: daniel-ac-martin/NotGovUK#2064 (FPH-452).
+// NotGovUK's DateInput always shows a year; upstream: daniel-ac-martin/NotGovUK#2064.
 export function DayMonthInput(props: PartsInputProps<keyof DayMonthInputValue>) {
   return <PartsInput parts={DAY_MONTH_PARTS} {...props} />;
 }

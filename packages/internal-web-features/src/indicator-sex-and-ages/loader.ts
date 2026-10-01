@@ -43,6 +43,7 @@ export async function submitSexAndAges(
 
   return saveIndicatorSectionValues(args.context, id, sexAndAgesSection, values, {
     answersSchema: sexAndAgesAnswersSchema,
+    takeIn: (sent) => ({ values: sent, answers: sent }),
     // A range's fields are refused by its row, which toFieldErrors cannot name.
     fieldErrorsOf: sexAndAgesFieldErrors,
   });

@@ -4,6 +4,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { DataQualityPage } from './page.tsx';
 
 afterEach(cleanup);
@@ -17,12 +18,7 @@ const REFUSAL = 'Select whether there are any data quality issues with this indi
 function renderPage(props: Partial<Parameters<typeof DataQualityPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <DataQualityPage
-        fieldErrors={{}}
-        formError={undefined}
-        values={{ hasDataQualityIssues: '' }}
-        {...props}
-      />
+      <DataQualityPage {...noRefusal} values={{ hasDataQualityIssues: '' }} {...props} />
     </MemoryRouter>,
   );
 }

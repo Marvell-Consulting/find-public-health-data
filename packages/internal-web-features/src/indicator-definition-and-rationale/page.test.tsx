@@ -4,6 +4,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { DefinitionAndRationalePage } from './page.tsx';
 
 afterEach(cleanup);
@@ -14,12 +15,7 @@ const empty = { definition: '', rationale: '' };
 function renderPage(props: Partial<Parameters<typeof DefinitionAndRationalePage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <DefinitionAndRationalePage
-        fieldErrors={{}}
-        formError={undefined}
-        values={empty}
-        {...props}
-      />
+      <DefinitionAndRationalePage {...noRefusal} values={empty} {...props} />
     </MemoryRouter>,
   );
 }

@@ -20,7 +20,7 @@ interface TaskListProps {
  * The GOV.UK task list, following govuk-frontend's own template, including the
  * aria-describedby that reads a task's status out with its link.
  */
-// NotGovUK has no task list; upstream: daniel-ac-martin/NotGovUK#2055 (FPH-444).
+// NotGovUK has no task list; upstream: daniel-ac-martin/NotGovUK#2055.
 export function TaskList({ idPrefix = 'task-list', items }: TaskListProps) {
   return (
     <ul className="govuk-task-list">

@@ -4,6 +4,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { BenchmarkingPage } from './page.tsx';
 
 afterEach(cleanup);
@@ -26,7 +27,7 @@ const DETAIL = 'Provide detail about the policy goal';
 function renderPage(props: Partial<Parameters<typeof BenchmarkingPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <BenchmarkingPage fieldErrors={{}} formError={undefined} values={empty} {...props} />
+      <BenchmarkingPage {...noRefusal} values={empty} {...props} />
     </MemoryRouter>,
   );
 }

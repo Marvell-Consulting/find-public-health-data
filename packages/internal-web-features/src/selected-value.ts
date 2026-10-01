@@ -6,7 +6,7 @@ import { type ChangeEvent, useEffect, useState } from 'react';
  * A select cannot reveal anything without JavaScript, so until the page is hydrated every
  * follow-up shows, with a hint naming the choice it is for; after, only the chosen one's show.
  */
-export function useSelectedValue(name: string, initial: string) {
+export function useSelectedValue<Field extends string>(name: Field, initial: string) {
   const [value, setValue] = useState(initial);
   const [enhanced, setEnhanced] = useState(false);
 

@@ -7,6 +7,7 @@ import { renderToString } from 'react-dom/server';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { ValueTypeAndUnitsPage } from './page.tsx';
 
 afterEach(() => {
@@ -51,8 +52,7 @@ function page(props: Partial<Props>) {
   return (
     <MemoryRouter>
       <ValueTypeAndUnitsPage
-        fieldErrors={{}}
-        formError={undefined}
+        {...noRefusal}
         units={UNITS}
         values={empty}
         valueTypes={VALUE_TYPES}

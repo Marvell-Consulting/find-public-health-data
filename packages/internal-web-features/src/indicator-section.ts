@@ -66,11 +66,11 @@ export async function loadIndicatorSection<Field extends string, Values>(
  * Saves answers the form has accepted and returns to the task list, or answers why the API
  * refused them, in which case it saved nothing.
  */
-async function putIndicatorSection<Field extends string, Values, Input>(
+async function putIndicatorSection<Field extends string>(
   context: Readonly<RouterContextProvider>,
   id: string,
-  section: IndicatorSection<Field, Values, Input>,
-  answers: Values,
+  section: IndicatorSection<Field, unknown, unknown>,
+  answers: unknown,
   answersSchema: ApiResponseSchema<unknown>,
 ): Promise<Response | FormRefusal<Field>> {
   const result = await context
@@ -93,37 +93,36 @@ export interface SectionAnswers<Values, Input> {
 
 type SchemaError = Parameters<typeof toFieldErrors>[0];
 
+/** How a page saves its section; `Field` covers every field the page names. */
 interface SaveSectionOptions<Field extends string, Values, Input> {
   /** The API's answer to a save, which is the section's answers. */
   answersSchema: ApiResponseSchema<unknown>;
-  /** Takes in an item typed or chosen but not yet added to a list, or refuses it. */
-  takeIn?: (values: Values) => SectionAnswers<Values, Input> | FormFailure<Field, Values>;
-  /** Each refused field's message, where the page names fields the section does not. */
+  /** The answers to save, taking in an item typed or chosen but not yet added, or its refusal. */
+  takeIn: (values: Values) => SectionAnswers<Values, Input> | FormFailure<Field, Values>;
+  /** Each refused field's message, for a page whose fields the section's list cannot name. */
   fieldErrorsOf?: (error: SchemaError) => Partial<Record<Field, string>>;
 }
 
 /**
  * Saves the page's answers and returns to the task list, or saves nothing and re-renders the
- * page as sent. The API's schema is applied here first, so an incomplete form costs no round
- * trip.
+ * page. The API's schema is applied here first, so an incomplete form costs no round trip.
  */
 export async function saveIndicatorSectionValues<
   Field extends string,
-  Values,
   Input,
-  PageValues extends Input,
+  Values,
   PageField extends string = Field,
 >(
   context: Readonly<RouterContextProvider>,
   id: string,
-  section: IndicatorSection<Field, Values, Input>,
-  sent: PageValues,
+  section: IndicatorSection<Field, unknown, Input>,
+  sent: Values,
   {
     answersSchema,
-    takeIn = (values) => ({ values, answers: values }),
-    fieldErrorsOf,
-  }: SaveSectionOptions<PageField, PageValues, Input>,
-): Promise<FormFailure<Field, PageValues> | FormFailure<PageField, PageValues> | Response> {
+    takeIn,
+    fieldErrorsOf = (error) => toFieldErrors<Field | PageField>(error, section.fields.options),
+  }: SaveSectionOptions<Field | PageField, Values, Input>,
+): Promise<FormFailure<Field | PageField, Values> | Response> {
   const taken = takeIn(sent);
 
   if ('fieldErrors' in taken) return taken;
@@ -131,15 +130,14 @@ export async function saveIndicatorSectionValues<
   const { values, answers } = taken;
   const submission = section.schema.safeParse(answers);
 
-  if (!submission.success) {
-    return fieldErrorsOf === undefined
-      ? { values, fieldErrors: toFieldErrors(submission.error, section.fields.options) }
-      : { values, fieldErrors: fieldErrorsOf(submission.error) };
-  }
+  if (!submission.success) return { values, fieldErrors: fieldErrorsOf(submission.error) };
 
   const saved = await putIndicatorSection(context, id, section, submission.data, answersSchema);
 
-  return saved instanceof Response ? saved : { values, ...saved };
+  // The API names only the section's fields, which are among the page's.
+  return saved instanceof Response
+    ? saved
+    : { values, ...(saved as FormRefusal<Field | PageField>) };
 }
 
 /** Saves every answer of a section whose page asks only its own fields, as text. */
@@ -155,5 +153,6 @@ export async function saveIndicatorSection<Field extends string, Values>(
 
   return saveIndicatorSectionValues(context, id, section, values, {
     answersSchema: indicatorSectionAnswersSchema(section.fields),
+    takeIn: (sent) => ({ values: sent, answers: sent }),
   });
 }

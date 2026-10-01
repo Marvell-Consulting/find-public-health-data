@@ -4,6 +4,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { JustificationsPage } from './page.tsx';
 
 afterEach(cleanup);
@@ -31,7 +32,7 @@ const AUTOMATION = 'Have internal automation tools been used to create this indi
 function renderPage(props: Partial<Parameters<typeof JustificationsPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <JustificationsPage fieldErrors={{}} formError={undefined} values={empty} {...props} />
+      <JustificationsPage {...noRefusal} values={empty} {...props} />
     </MemoryRouter>,
   );
 }

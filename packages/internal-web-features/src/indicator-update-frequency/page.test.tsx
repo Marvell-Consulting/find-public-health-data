@@ -4,6 +4,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { UpdateFrequencyPage } from './page.tsx';
 
 afterEach(cleanup);
@@ -14,12 +15,7 @@ const QUESTION = 'How often will this indicator be updated?';
 function renderPage(props: Partial<Parameters<typeof UpdateFrequencyPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <UpdateFrequencyPage
-        fieldErrors={{}}
-        formError={undefined}
-        values={{ updateFrequency: '' }}
-        {...props}
-      />
+      <UpdateFrequencyPage {...noRefusal} values={{ updateFrequency: '' }} {...props} />
     </MemoryRouter>,
   );
 }

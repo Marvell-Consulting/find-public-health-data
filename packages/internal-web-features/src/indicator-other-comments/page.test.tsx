@@ -4,6 +4,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { OtherCommentsPage } from './page.tsx';
 
 afterEach(cleanup);
@@ -17,7 +18,7 @@ const COMMENTS = 'Are there any other comments for the reviewers?';
 function renderPage(props: Partial<Parameters<typeof OtherCommentsPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <OtherCommentsPage fieldErrors={{}} formError={undefined} values={empty} {...props} />
+      <OtherCommentsPage {...noRefusal} values={empty} {...props} />
     </MemoryRouter>,
   );
 }

@@ -10,6 +10,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { SexAndAgesPage } from './page.tsx';
 
 afterEach(cleanup);
@@ -38,7 +39,7 @@ const empty: SexAndAgesFormValues = {
 function renderPage(props: Partial<Parameters<typeof SexAndAgesPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <SexAndAgesPage fieldErrors={{}} formError={undefined} values={empty} {...props} />
+      <SexAndAgesPage {...noRefusal} values={empty} {...props} />
     </MemoryRouter>,
   );
 }
