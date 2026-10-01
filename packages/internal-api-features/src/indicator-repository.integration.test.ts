@@ -990,8 +990,6 @@ describe('updateIndicatorDraft', () => {
         sourceDataIssuesDetail: 'Late returns from two areas.',
       },
     ],
-    ['that there are data quality issues', { hasDataQualityIssues: true }],
-    ['that there are no data quality issues', { hasDataQualityIssues: false }],
     [
       'the justifications',
       {
@@ -1039,6 +1037,18 @@ describe('updateIndicatorDraft', () => {
     expect(result).toEqual({ ok: true });
     const state = await getIndicatorDraftState(db, created.indicatorId);
     expect(state?.draft).toMatchObject(attributes);
+  });
+
+  it('writes whether there are data quality issues, replacing the answer before', async () => {
+    const created = await newDraft('Data quality answered');
+
+    await updateIndicatorDraft(db, created.indicatorId, { hasDataQualityIssues: true }, {}, ACTOR);
+    const yes = await getIndicatorDraftState(db, created.indicatorId);
+    await updateIndicatorDraft(db, created.indicatorId, { hasDataQualityIssues: false }, {}, ACTOR);
+    const no = await getIndicatorDraftState(db, created.indicatorId);
+
+    expect(yes?.draft?.hasDataQualityIssues).toBe(true);
+    expect(no?.draft?.hasDataQualityIssues).toBe(false);
   });
 
   it('refuses an indicator with no draft', async () => {
@@ -1117,6 +1127,8 @@ describe('createDraftFromPublished', () => {
       'its confidence interval answers',
       async () => ({
         ciMethodId: await ciMethodId('Other method'),
+        hasCiMethodModifications: null,
+        ciMethodModificationsDetail: null,
         ciMethodDetail: 'Bootstrap intervals',
       }),
     ],

@@ -1,6 +1,5 @@
 import { z } from '@fphd/config/zod';
 import { isDayOfMonth } from '@fphd/utils/period-type';
-import { ukDateAfter } from '@fphd/utils/uk-time';
 
 import { type IndicatorSection, isSmallNumber, textSection } from './indicator-section-contract.ts';
 
@@ -36,12 +35,6 @@ const TIME_PARTS = [
 
 /** How many days after today's date in the UK a publishing date must be, at least. */
 export const PUBLISHING_NOTICE_DAYS = 28;
-
-/** A date well past the notice period, as the hint's example gives it: "14 9 2026". */
-export function publishingDateExample(now: Date): string {
-  const { day, month, year } = ukDateAfter(now, PUBLISHING_NOTICE_DAYS * 2);
-  return `${day} ${month} ${year}`;
-}
 
 const REAL_DATE = 'Publishing date must be a real date';
 // Also given by the API for a time the spring clock change skips.
