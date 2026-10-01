@@ -4,7 +4,6 @@ import {
   AGE_UNIT_DAYS,
   AGE_UNITS,
   type AgeUnit,
-  isAgeUnit,
   MAX_AGE,
   SEXES,
 } from '@fphd/utils/sex-and-ages';
@@ -50,18 +49,6 @@ export type AgeRangeField = `ageRanges[${number}].${AgeRangePart}`;
 export function ageRangeFieldName(index: number, part: AgeRangePart): AgeRangeField {
   return `ageRanges[${index}].${part}`;
 }
-
-/** A unit the form does not offer is read as none chosen, so it is asked for again. */
-const unit = z.string().transform((value): AgeUnit | '' => (isAgeUnit(value) ? value : ''));
-
-const ageRange = z.object({
-  lowerLimit: z.string().trim(),
-  lowerLimitUnit: unit,
-  upperLimit: z.string().trim(),
-  upperLimitUnit: unit,
-});
-
-type AgeRange = z.infer<typeof ageRange>;
 
 const SELECT_SEXES = 'Select sexes included';
 
@@ -112,6 +99,30 @@ function limitName(bound: AgeLimitBound, index: number): string {
   return index === 0 ? `the ${bound} limit` : `${bound} limit ${index + 1}`;
 }
 
+function selectLimitUnit(bound: AgeLimitBound, index: number): string {
+  return `Select the periods for ${limitName(bound, index)}`;
+}
+
+const SELECT_AGE_UNIT = 'Select the periods';
+
+const ageUnit = z.enum(['', ...AGE_UNITS], { error: SELECT_AGE_UNIT });
+
+/** A limit's unit, refused by the limit's own name, as the empty unit is. */
+function limitUnit(bound: AgeLimitBound) {
+  return z.enum(['', ...AGE_UNITS], {
+    error: ({ path }) => selectLimitUnit(bound, typeof path?.[1] === 'number' ? path[1] : 0),
+  });
+}
+
+const ageRange = z.object({
+  lowerLimit: z.string().trim(),
+  lowerLimitUnit: limitUnit('lower'),
+  upperLimit: z.string().trim(),
+  upperLimitUnit: limitUnit('upper'),
+});
+
+type AgeRange = z.infer<typeof ageRange>;
+
 /** Why one limit of a range is refused; one left wholly empty is fine beside the other. */
 function limitProblems(
   range: AgeRange,
@@ -127,7 +138,7 @@ function limitProblems(
   return ageProblems(AGE_LIMIT_FIELDS[bound], value, unit, {
     enter: `Enter ${limitName(bound, index)}`,
     wholeNumber: `${ageLimitLabel(bound, index)} must be a whole number from 0 to ${MAX_AGE}`,
-    select: `Select the periods for ${limitName(bound, index)}`,
+    select: selectLimitUnit(bound, index),
   });
 }
 
@@ -171,15 +182,15 @@ const schema = z
   .object({
     // Kept in the order the page lists them, once each, whatever order they were sent in.
     sexes: z
-      .array(z.string(), { error: SELECT_SEXES })
-      .transform((sent) => SEXES.filter((sex) => sent.includes(sex)))
-      .pipe(z.array(z.enum(SEXES)).min(1, SELECT_SEXES)),
+      .array(z.enum(SEXES, { error: SELECT_SEXES }), { error: SELECT_SEXES })
+      .min(1, SELECT_SEXES)
+      .transform((sent) => SEXES.filter((sex) => sent.includes(sex))),
     ageType: z.enum(AGE_TYPES, { error: 'Select the age type' }),
     ageRanges: z
       .array(ageRange)
       .max(MAX_AGE_RANGES, `You cannot add more than ${MAX_AGE_RANGES} ranges`),
     specificAge: z.string().trim(),
-    specificAgeUnit: unit,
+    specificAgeUnit: ageUnit,
     ageDetail: z.string().trim(),
   })
   .superRefine(
@@ -208,7 +219,7 @@ const schema = z
           {
             enter: 'Enter the age',
             wholeNumber: `Age must be a whole number from 0 to ${MAX_AGE}`,
-            select: 'Select the periods',
+            select: SELECT_AGE_UNIT,
           },
         );
 
@@ -228,17 +239,33 @@ const schema = z
 
 export type SexAndAges = z.infer<typeof schema>;
 
+/** The page's fields: a range's are named by its row, and the list itself refuses as a whole. */
+export type SexAndAgesPageField = SexAndAgesField | AgeRangeField;
+
+/** A range's fields in the order the page asks them. */
+export const AGE_RANGE_PARTS: readonly AgeRangePart[] = [
+  ...AGE_LIMIT_FIELDS.lower,
+  ...AGE_LIMIT_FIELDS.upper,
+];
+
+const errorFields = z.union([
+  fields,
+  z.templateLiteral(['ageRanges[', z.number().int().min(0), '].', z.enum(AGE_RANGE_PARTS)]),
+]);
+
 export const sexAndAgesSection: IndicatorSection<
   SexAndAgesField,
   SexAndAges,
-  SexAndAgesFormValues
+  SexAndAgesFormValues,
+  SexAndAgesPageField
 > = {
   key: 'sex-and-ages',
   fields,
   schema,
+  errorFields,
 };
 
-const ageUnit = z.enum(AGE_UNITS);
+const storedAgeUnit = z.enum(AGE_UNITS);
 
 /** The draft's answers: null or empty until answered, with each age as a number. */
 export const sexAndAgesAnswersSchema = z.object({
@@ -247,13 +274,13 @@ export const sexAndAgesAnswersSchema = z.object({
   ageRanges: z.array(
     z.object({
       lowerLimit: z.number().nullable(),
-      lowerLimitUnit: ageUnit.nullable(),
+      lowerLimitUnit: storedAgeUnit.nullable(),
       upperLimit: z.number().nullable(),
-      upperLimitUnit: ageUnit.nullable(),
+      upperLimitUnit: storedAgeUnit.nullable(),
     }),
   ),
   specificAge: z.number().nullable(),
-  specificAgeUnit: ageUnit.nullable(),
+  specificAgeUnit: storedAgeUnit.nullable(),
   ageDetail: z.string().nullable(),
 });
 
@@ -279,36 +306,4 @@ export function sexAndAgesFormValues(answers: SexAndAgesAnswers): SexAndAgesForm
 
 export function areSexAndAgesComplete(answers: SexAndAgesAnswers): boolean {
   return schema.safeParse(sexAndAgesFormValues(answers)).success;
-}
-
-/** The page's fields: a range's are named by its row, and the list itself refuses as a whole. */
-export type SexAndAgesPageField = SexAndAgesField | AgeRangeField;
-
-/** A range's fields in the order the page asks them. */
-export const AGE_RANGE_PARTS: readonly AgeRangePart[] = [
-  ...AGE_LIMIT_FIELDS.lower,
-  ...AGE_LIMIT_FIELDS.upper,
-];
-
-function isAgeRangePart(value: unknown): value is AgeRangePart {
-  return (AGE_RANGE_PARTS as readonly unknown[]).includes(value);
-}
-
-/** A message for each field refused, keyed as the page names it; the first for a field wins. */
-export function sexAndAgesFieldErrors(
-  error: z.ZodError,
-): Partial<Record<SexAndAgesPageField, string>> {
-  const fieldErrors: Partial<Record<SexAndAgesPageField, string>> = {};
-
-  for (const { path, message } of error.issues) {
-    const [field, index, part] = path;
-    const key =
-      field === 'ageRanges' && typeof index === 'number' && isAgeRangePart(part)
-        ? ageRangeFieldName(index, part)
-        : fields.safeParse(field).data;
-
-    if (key !== undefined) fieldErrors[key] ??= message;
-  }
-
-  return fieldErrors;
 }

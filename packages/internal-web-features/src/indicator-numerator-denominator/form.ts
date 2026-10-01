@@ -131,7 +131,7 @@ function refuseUnaddedSource(
   });
   const { sources: _refusedList, ...sectionErrors } = submission.success
     ? {}
-    : toFieldErrors(submission.error, section.fields.options);
+    : toFieldErrors(submission.error, section.fields);
 
   return { values, fieldErrors: { ...sectionErrors, ...addErrors } };
 }

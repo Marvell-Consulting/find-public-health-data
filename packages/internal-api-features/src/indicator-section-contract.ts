@@ -12,10 +12,17 @@ export type IndicatorSectionFields<Field extends string> = z.ZodEnum<{ [K in Fie
  * them, which is its text unless the section says otherwise, and is applied at the form and
  * again at the API.
  */
-export interface IndicatorSection<Field extends string, Values, Input = Record<Field, string>> {
+export interface IndicatorSection<
+  Field extends string,
+  Values,
+  Input = Record<Field, string>,
+  ErrorField extends string = Field,
+> {
   key: IndicatorTaskKey;
   fields: IndicatorSectionFields<Field>;
   schema: z.ZodType<Values, Input>;
+  /** What a refusal is keyed by, for a section that names its list items' fields as well. */
+  errorFields?: z.ZodType<ErrorField, string>;
 }
 
 /** Whether the text is up to two digits, from min to max. */
@@ -82,18 +89,25 @@ export function isIndicatorSectionComplete<Field extends string, Values>(
   return section.schema.safeParse(indicatorSectionFormValues(section.fields, answers)).success;
 }
 
+/** The keys a section's refusal names: its fields, or its own wider list. */
+function errorFieldsOf<Field extends string, ErrorField extends string>(
+  section: IndicatorSection<Field, unknown, unknown, ErrorField>,
+): z.ZodType<Field | ErrorField, string> {
+  return section.errorFields ?? section.fields;
+}
+
 /**
  * The 400 answers. A refused answer is always named; only a bad id names no field. A missing
  * indicator or draft is a 404, which the client throws.
  */
-export function indicatorSectionErrorSchema<Field extends string>(
-  fields: IndicatorSectionFields<Field>,
-): z.ZodType<IndicatorSectionError<Field>> {
+export function indicatorSectionErrorSchema<Field extends string, ErrorField extends string>(
+  section: IndicatorSection<Field, unknown, unknown, ErrorField>,
+): z.ZodType<IndicatorSectionError<Field | ErrorField>> {
   return z.discriminatedUnion('error', [
     z.object({ error: z.literal('invalid_id') }),
     z.object({
       error: z.literal('validation_failed'),
-      fieldErrors: z.partialRecord(fields, z.string()),
+      fieldErrors: z.partialRecord(errorFieldsOf(section), z.string()),
     }),
   ]);
 }
@@ -102,26 +116,42 @@ type IndicatorSectionError<Field extends string> =
   | { error: 'invalid_id' }
   | { error: 'validation_failed'; fieldErrors: Partial<Record<Field, string>> };
 
+/** The names an issue may be shown under, most specific first: `list[0].part`, then `list`. */
+function issueKeys([field, index, part]: readonly PropertyKey[]): string[] {
+  if (typeof field !== 'string') return [];
+  return typeof index === 'number' && typeof part === 'string'
+    ? [`${field}[${index}].${part}`, field]
+    : [field];
+}
+
 /**
  * One message per field: a control shows one error even when a value breaks two rules.
- * `fields` is the contract's own list, so the caller gets those keys and nothing else —
- * an issue on anything the form does not show is dropped rather than sent as a field error.
+ * `fields` names the keys the form shows, so the caller gets those and nothing else — an
+ * issue on anything the form does not show is dropped rather than sent as a field error.
  */
 export function toFieldErrors<Field extends string>(
   error: z.ZodError,
-  fields: readonly Field[],
+  fields: z.ZodType<Field, string>,
 ): Partial<Record<Field, string>> {
-  const known = new Set<string>(fields);
-  const isField = (value: unknown): value is Field => typeof value === 'string' && known.has(value);
   const fieldErrors: Partial<Record<Field, string>> = {};
 
   for (const issue of error.issues) {
-    const field = issue.path[0];
+    const field = issueKeys(issue.path)
+      .map((key) => fields.safeParse(key).data)
+      .find((key) => key !== undefined);
 
-    if (isField(field) && !Object.hasOwn(fieldErrors, field)) {
+    if (field !== undefined && !Object.hasOwn(fieldErrors, field)) {
       fieldErrors[field] = issue.message;
     }
   }
 
   return fieldErrors;
+}
+
+/** A refusal of the section's schema, keyed as its page names its fields. */
+export function indicatorSectionFieldErrors<Field extends string, ErrorField extends string>(
+  section: IndicatorSection<Field, unknown, unknown, ErrorField>,
+  error: z.ZodError,
+): Partial<Record<Field | ErrorField, string>> {
+  return toFieldErrors(error, errorFieldsOf(section));
 }

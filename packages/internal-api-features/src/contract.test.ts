@@ -1,3 +1,4 @@
+import { z } from '@fphd/config/zod';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -8,6 +9,7 @@ import {
   indicatorSectionErrorSchema,
   indicatorTaskListSchema,
   indicatorUpdateErrorSchema,
+  sexAndAgesSection,
   toFieldErrors,
   topicFieldSchema,
   topicUpdateErrorSchema,
@@ -25,7 +27,7 @@ describe('indicatorNameSchema', () => {
     const result = indicatorNameSchema.safeParse({ name });
 
     expect(result.success).toBe(false);
-    expect(!result.success && toFieldErrors(result.error, indicatorFieldSchema.options)).toEqual({
+    expect(!result.success && toFieldErrors(result.error, indicatorFieldSchema)).toEqual({
       name: 'Enter the name of the indicator',
     });
   });
@@ -34,7 +36,7 @@ describe('indicatorNameSchema', () => {
     const result = indicatorNameSchema.safeParse({ name });
 
     expect(result.success).toBe(false);
-    expect(!result.success && toFieldErrors(result.error, indicatorFieldSchema.options)).toEqual({
+    expect(!result.success && toFieldErrors(result.error, indicatorFieldSchema)).toEqual({
       name: 'Enter a name that is not only numbers',
     });
   });
@@ -43,7 +45,7 @@ describe('indicatorNameSchema', () => {
     const result = indicatorNameSchema.safeParse({ name });
 
     expect(result.success).toBe(false);
-    expect(!result.success && toFieldErrors(result.error, indicatorFieldSchema.options)).toEqual({
+    expect(!result.success && toFieldErrors(result.error, indicatorFieldSchema)).toEqual({
       name: 'Enter a name that includes letters or numbers',
     });
   });
@@ -52,7 +54,7 @@ describe('indicatorNameSchema', () => {
     const result = indicatorNameSchema.safeParse({ name });
 
     expect(result.success).toBe(false);
-    expect(!result.success && toFieldErrors(result.error, indicatorFieldSchema.options)).toEqual({
+    expect(!result.success && toFieldErrors(result.error, indicatorFieldSchema)).toEqual({
       name: 'Enter a different name, this one is reserved for the service',
     });
   });
@@ -74,7 +76,7 @@ describe('indicatorNameSchema', () => {
     const result = indicatorNameSchema.safeParse({ name: 'a'.repeat(301) });
 
     expect(result.success).toBe(false);
-    expect(!result.success && toFieldErrors(result.error, indicatorFieldSchema.options)).toEqual({
+    expect(!result.success && toFieldErrors(result.error, indicatorFieldSchema)).toEqual({
       name: 'Indicator name must be 300 characters or fewer',
     });
   });
@@ -92,7 +94,7 @@ describe('toFieldErrors', () => {
   function topicErrors(submission: unknown) {
     const result = topicUpdateSchema.safeParse(submission);
     if (result.success) throw new Error('expected the submission to be refused');
-    return toFieldErrors(result.error, topicFieldSchema.options);
+    return toFieldErrors(result.error, topicFieldSchema);
   }
 
   it('reports one message per field, in the order the schema states them', () => {
@@ -116,9 +118,21 @@ describe('toFieldErrors', () => {
     if (reported === undefined) throw new Error('expected an issue to copy');
     result.error.issues.push({ ...reported, path: ['unknown'] });
 
-    expect(toFieldErrors(result.error, topicFieldSchema.options)).toEqual({
+    expect(toFieldErrors(result.error, topicFieldSchema)).toEqual({
       title: 'Enter a topic name',
     });
+  });
+
+  it("names a list item's field where the keys name it, and the list where they do not", () => {
+    const schema = z.object({
+      items: z.array(z.object({ name: z.string().min(1, 'Enter a name') })),
+    });
+    const result = schema.safeParse({ items: [{ name: 'A' }, { name: '' }] });
+    if (result.success) throw new Error('expected the submission to be refused');
+    const itemKeys = z.templateLiteral(['items[', z.number().int(), '].name']);
+
+    expect(toFieldErrors(result.error, itemKeys)).toEqual({ 'items[1].name': 'Enter a name' });
+    expect(toFieldErrors(result.error, z.enum(['items']))).toEqual({ items: 'Enter a name' });
   });
 });
 
@@ -128,7 +142,7 @@ describe.each([
   ['indicatorUpdateErrorSchema', indicatorUpdateErrorSchema, ['validation_failed', 'slug_taken']],
   [
     'indicatorSectionErrorSchema',
-    indicatorSectionErrorSchema(definitionAndRationaleSection.fields),
+    indicatorSectionErrorSchema(definitionAndRationaleSection),
     ['validation_failed'],
   ],
 ])('%s', (_name, schema, refusals) => {
@@ -138,11 +152,30 @@ describe.each([
   });
 });
 
+describe('indicatorSectionErrorSchema', () => {
+  it("accepts a refusal of a list item's field from a section that names them", () => {
+    const fieldErrors = { 'ageRanges[1].lowerLimit': 'Enter lower limit 2' };
+
+    expect(
+      indicatorSectionErrorSchema(sexAndAgesSection).safeParse({
+        error: 'validation_failed',
+        fieldErrors,
+      }).success,
+    ).toBe(true);
+    expect(
+      indicatorSectionErrorSchema(definitionAndRationaleSection).safeParse({
+        error: 'validation_failed',
+        fieldErrors,
+      }).success,
+    ).toBe(false);
+  });
+});
+
 describe('invalid_id', () => {
   it.each([
     topicUpdateErrorSchema,
     indicatorUpdateErrorSchema,
-    indicatorSectionErrorSchema(definitionAndRationaleSection.fields),
+    indicatorSectionErrorSchema(definitionAndRationaleSection),
   ])('is accepted with no fields, as no field is at fault', (schema) => {
     expect(schema.safeParse({ error: 'invalid_id' }).success).toBe(true);
   });

@@ -43,13 +43,12 @@ export function internalTopicsRouter(
   });
 
   router.post('/api/internal/topics', requireAdmin, async (request, response) => {
-    // Validated here as well as at the form: the API is reachable without going through it.
     const submission = topicUpdateSchema.safeParse(request.body);
 
     if (!submission.success) {
       response.status(400).json({
         error: 'validation_failed',
-        fieldErrors: toFieldErrors(submission.error, topicFieldSchema.options),
+        fieldErrors: toFieldErrors(submission.error, topicFieldSchema),
       });
       return;
     }
@@ -99,7 +98,7 @@ export function internalTopicsRouter(
     if (!submission.success) {
       response.status(400).json({
         error: 'validation_failed',
-        fieldErrors: toFieldErrors(submission.error, topicFieldSchema.options),
+        fieldErrors: toFieldErrors(submission.error, topicFieldSchema),
       });
       return;
     }

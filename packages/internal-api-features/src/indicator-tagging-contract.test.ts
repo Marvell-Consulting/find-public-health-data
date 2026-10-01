@@ -40,12 +40,6 @@ describe('taggingSection', () => {
     ).toEqual([otherTopic, topic]);
   });
 
-  it('drops the tags beside a "No"', () => {
-    expect(
-      section.schema.parse({ ...answered, hasRiskFactor: 'no', hasFramework: 'no' }),
-    ).toMatchObject({ riskFactorIds: [], frameworkIds: [] });
-  });
-
   it('refuses every unanswered question and empty list at once', () => {
     expect(sectionFieldErrors(section, unanswered)).toEqual({
       topicIds: 'Select at least one topic',

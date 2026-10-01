@@ -34,7 +34,7 @@ function yearEndProblems(day: string, month: string): Partial<Record<PeriodTypeF
  */
 const schema = z
   .object({
-    periodType: z.enum(PERIOD_TYPES, 'Select the period type'),
+    periodType: z.enum(PERIOD_TYPES, { error: 'Select the period type' }),
     yearType: z.string(),
     yearEndDay: z.string().trim(),
     yearEndMonth: z.string().trim(),

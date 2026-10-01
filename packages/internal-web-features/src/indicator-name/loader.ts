@@ -39,7 +39,7 @@ export async function createIndicator({
   const submission = indicatorNameSchema.safeParse(values);
 
   if (!submission.success) {
-    return { values, fieldErrors: toFieldErrors(submission.error, FIELDS) };
+    return { values, fieldErrors: toFieldErrors(submission.error, indicatorFieldSchema) };
   }
 
   const result = await context
@@ -81,7 +81,7 @@ export async function saveIndicatorName({
   const submission = indicatorNameSchema.safeParse(values);
 
   if (!submission.success) {
-    return { values, fieldErrors: toFieldErrors(submission.error, FIELDS) };
+    return { values, fieldErrors: toFieldErrors(submission.error, indicatorFieldSchema) };
   }
 
   const result = await context

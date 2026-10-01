@@ -1,5 +1,5 @@
 import { z } from '@fphd/config/zod';
-import { CI_METHOD_KINDS } from '@fphd/utils/ci-method-kind';
+import { CI_METHOD_KINDS, type CiMethodKind } from '@fphd/utils/ci-method-kind';
 
 import { type IndicatorSection, indicatorSectionFormValues } from './indicator-section-contract.ts';
 
@@ -16,7 +16,7 @@ export const ciMethodSchema = z.object({
 /** Every method a publisher may choose, in the order the form lists them. */
 export const ciMethodListSchema = z.array(ciMethodSchema);
 
-export type CiMethodKind = z.infer<typeof ciMethodKindSchema>;
+export type { CiMethodKind };
 export type CiMethod = z.infer<typeof ciMethodSchema>;
 
 const fields = z.enum([
@@ -34,7 +34,9 @@ export const SELECT_CI_METHOD = 'Select the confidence interval method used';
  */
 const schema = z.object({
   ciMethodId: z.uuid(SELECT_CI_METHOD),
-  hasCiMethodModifications: z.enum(['', 'yes', 'no'], 'Select whether any modifications were used'),
+  hasCiMethodModifications: z.enum(['', 'yes', 'no'], {
+    error: 'Select whether any modifications were used',
+  }),
   ciMethodModificationsDetail: z.string().trim(),
   ciMethodDetail: z.string().trim(),
 });

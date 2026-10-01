@@ -68,9 +68,9 @@ describe('providerSourcesServerSection', () => {
     });
     const result = await submission;
 
-    expect(
-      result.success ? undefined : toFieldErrors(result.error, section.fields.options),
-    ).toEqual({ sources: 'Select a data provider' });
+    expect(result.success ? undefined : toFieldErrors(result.error, section.fields)).toEqual({
+      sources: 'Select a data provider',
+    });
   });
 
   it('refuses an incomplete form without reading the providers', async () => {

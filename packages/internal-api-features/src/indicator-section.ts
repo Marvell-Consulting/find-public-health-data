@@ -2,7 +2,7 @@ import { requireApiSession, requireJwtRole } from '@fphd/api-server';
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { Router } from 'express';
 
-import { indicatorIdSchema, toFieldErrors } from './contract.ts';
+import { indicatorIdSchema, indicatorSectionFieldErrors } from './contract.ts';
 import type {
   IndicatorDraft,
   IndicatorDraftAttributes,
@@ -198,10 +198,16 @@ export function yesNoDetailColumns<
  * draft first, so until then the section does not exist: 404 `no_draft`, told apart from an
  * indicator that does not exist at all.
  */
-export function indicatorSectionRouter<Field extends string, Values, Input, Answers>(
+export function indicatorSectionRouter<
+  Field extends string,
+  Values,
+  Input,
+  ErrorField extends string,
+  Answers,
+>(
   indicators: InternalIndicatorRepository,
   session: JwtSessionVerifier,
-  section: IndicatorSection<Field, Values, Input>,
+  section: IndicatorSection<Field, Values, Input, ErrorField>,
   columns: IndicatorSectionColumns<Field, Values, Answers>,
 ): Router {
   const router = Router();
@@ -234,14 +240,13 @@ export function indicatorSectionRouter<Field extends string, Values, Input, Answ
       return;
     }
 
-    // Validated here as well as at the form: the API is reachable without going through it.
     // Async, because a section's API-side schema may check an answer against a lookup.
     const submission = await section.schema.safeParseAsync(request.body);
 
     if (!submission.success) {
       response.status(400).json({
         error: 'validation_failed',
-        fieldErrors: toFieldErrors(submission.error, section.fields.options),
+        fieldErrors: indicatorSectionFieldErrors(section, submission.error),
       });
       return;
     }

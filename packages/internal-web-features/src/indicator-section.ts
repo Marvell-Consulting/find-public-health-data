@@ -4,8 +4,8 @@ import {
   type IndicatorTaskKey,
   indicatorSectionAnswersSchema,
   indicatorSectionErrorSchema,
+  indicatorSectionFieldErrors,
   indicatorSectionFormValues,
-  toFieldErrors,
 } from '@fphd/internal-api-features/contract';
 import { type ApiResponseSchema, apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
@@ -66,20 +66,20 @@ export async function loadIndicatorSection<Field extends string, Values>(
  * Saves answers the form has accepted and returns to the task list, or answers why the API
  * refused them, in which case it saved nothing.
  */
-async function putIndicatorSection<Field extends string>(
+async function putIndicatorSection<Field extends string, ErrorField extends string>(
   context: Readonly<RouterContextProvider>,
   id: string,
-  section: IndicatorSection<Field, unknown, unknown>,
+  section: IndicatorSection<Field, unknown, unknown, ErrorField>,
   answers: unknown,
   answersSchema: ApiResponseSchema<unknown>,
-): Promise<Response | FormRefusal<Field>> {
+): Promise<Response | FormRefusal<Field | ErrorField>> {
   const result = await context
     .get(apiContext)
     .put(
       sectionApiPath(id, section.key),
       answers,
       answersSchema,
-      indicatorSectionErrorSchema(section.fields),
+      indicatorSectionErrorSchema(section),
     );
 
   return result.ok ? redirect(indicatorTaskListPath(id)) : formRefusal(result.error);
@@ -91,16 +91,12 @@ export interface SectionAnswers<Values, Input> {
   answers: Input;
 }
 
-type SchemaError = Parameters<typeof toFieldErrors>[0];
-
 /** How a page saves its section; `Field` covers every field the page names. */
 interface SaveSectionOptions<Field extends string, Values, Input> {
   /** The API's answer to a save, which is the section's answers. */
   answersSchema: ApiResponseSchema<unknown>;
   /** The answers to save, taking in an item typed or chosen but not yet added, or its refusal. */
   takeIn: (values: Values) => SectionAnswers<Values, Input> | FormFailure<Field, Values>;
-  /** Each refused field's message, for a page whose fields the section's list cannot name. */
-  fieldErrorsOf?: (error: SchemaError) => Partial<Record<Field, string>>;
 }
 
 /**
@@ -111,18 +107,17 @@ export async function saveIndicatorSectionValues<
   Field extends string,
   Input,
   Values,
-  PageField extends string = Field,
+  ErrorField extends string = Field,
+  PageField extends string = Field | ErrorField,
 >(
   context: Readonly<RouterContextProvider>,
   id: string,
-  section: IndicatorSection<Field, unknown, Input>,
+  section: IndicatorSection<Field, unknown, Input, ErrorField>,
   sent: Values,
-  {
-    answersSchema,
-    takeIn,
-    fieldErrorsOf = (error) => toFieldErrors<Field | PageField>(error, section.fields.options),
-  }: SaveSectionOptions<Field | PageField, Values, Input>,
-): Promise<FormFailure<Field | PageField, Values> | Response> {
+  { answersSchema, takeIn }: SaveSectionOptions<Field | ErrorField | PageField, Values, Input>,
+): Promise<FormFailure<Field | ErrorField | PageField, Values> | Response> {
+  // The section names only its own fields, which are among the page's.
+  type PageRefusal = FormRefusal<Field | ErrorField | PageField>;
   const taken = takeIn(sent);
 
   if ('fieldErrors' in taken) return taken;
@@ -130,14 +125,14 @@ export async function saveIndicatorSectionValues<
   const { values, answers } = taken;
   const submission = section.schema.safeParse(answers);
 
-  if (!submission.success) return { values, fieldErrors: fieldErrorsOf(submission.error) };
+  if (!submission.success) {
+    const refusal = { fieldErrors: indicatorSectionFieldErrors(section, submission.error) };
+    return { values, ...(refusal as PageRefusal) };
+  }
 
   const saved = await putIndicatorSection(context, id, section, submission.data, answersSchema);
 
-  // The API names only the section's fields, which are among the page's.
-  return saved instanceof Response
-    ? saved
-    : { values, ...(saved as FormRefusal<Field | PageField>) };
+  return saved instanceof Response ? saved : { values, ...(saved as PageRefusal) };
 }
 
 /** Saves every answer of a section whose page asks only its own fields, as text. */

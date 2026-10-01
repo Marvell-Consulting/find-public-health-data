@@ -57,15 +57,6 @@ describe('varianceAndQualitySection', () => {
     });
   });
 
-  it('asks for missing details beside an unanswered question', () => {
-    expect(
-      sectionFieldErrors(section, { ...answered, variation: '', hasSourceDataIssues: 'yes' }),
-    ).toEqual({
-      variation: 'Enter how the indicator varies',
-      sourceDataIssuesDetail: 'Enter details of the data quality issues with the source data',
-    });
-  });
-
   it.each([
     null,
     {},

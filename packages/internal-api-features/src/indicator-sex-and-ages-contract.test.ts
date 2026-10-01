@@ -8,7 +8,6 @@ import {
   type SexAndAgesAnswers,
   type SexAndAgesFormValues,
   sexAndAgesSection as section,
-  sexAndAgesFieldErrors,
   sexAndAgesFormValues,
 } from './indicator-sex-and-ages-contract.ts';
 import { sectionFieldErrors } from './testing.ts';
@@ -36,12 +35,6 @@ const form: SexAndAgesFormValues = {
   specificAgeUnit: '',
   ageDetail: '',
 };
-
-/** The page's refusals of a submission, or undefined when the section accepts it. */
-function pageErrors(body: SexAndAgesFormValues) {
-  const submission = section.schema.safeParse(body);
-  return submission.success ? undefined : sexAndAgesFieldErrors(submission.error);
-}
 
 describe('sexAndAgesSection', () => {
   it('takes the sexes once each, in the order the page lists them', () => {
@@ -78,15 +71,22 @@ describe('sexAndAgesSection', () => {
     ['zero', { lowerLimit: '0', lowerLimitUnit: 'days' }],
     ['999', { upperLimit: '999', upperLimitUnit: 'days' }],
   ])('accepts a range with %s', (_, given) => {
-    expect(pageErrors(ranges(given))).toBeUndefined();
+    expect(sectionFieldErrors(section, ranges(given))).toBeUndefined();
   });
 
   it('accepts all ages, a specific age and other ages', () => {
-    expect(pageErrors({ ...form, ageType: 'all' })).toBeUndefined();
+    expect(sectionFieldErrors(section, { ...form, ageType: 'all' })).toBeUndefined();
     expect(
-      pageErrors({ ...form, ageType: 'specific', specificAge: '5', specificAgeUnit: 'years' }),
+      sectionFieldErrors(section, {
+        ...form,
+        ageType: 'specific',
+        specificAge: '5',
+        specificAgeUnit: 'years',
+      }),
     ).toBeUndefined();
-    expect(pageErrors({ ...form, ageType: 'other', ageDetail: 'Year 6' })).toBeUndefined();
+    expect(
+      sectionFieldErrors(section, { ...form, ageType: 'other', ageDetail: 'Year 6' }),
+    ).toBeUndefined();
   });
 
   it.each([
@@ -94,7 +94,7 @@ describe('sexAndAgesSection', () => {
     ['all ages', { ageType: 'all' }],
   ])('asks nothing of the age types not chosen beside %s', (_, given) => {
     expect(
-      pageErrors({
+      sectionFieldErrors(section, {
         ...form,
         ageRanges: [range({ lowerLimit: 'abc' })],
         specificAge: 'abc',
@@ -113,6 +113,10 @@ describe('sexAndAgesSection', () => {
   it.each([
     [
       { sexes: ['everyone'], ageType: 'other', ageDetail: 'Year 6' },
+      { sexes: 'Select sexes included' },
+    ],
+    [
+      { sexes: ['persons', 'everyone'], ageType: 'other', ageDetail: 'Year 6' },
       { sexes: 'Select sexes included' },
     ],
     [
@@ -145,6 +149,10 @@ describe('sexAndAgesSection', () => {
   it.each([
     [[blankRange], { lowerLimit: 'You must enter at least a lower or upper limit' }],
     [[{ lowerLimit: '5' }], { lowerLimitUnit: 'Select the periods for the lower limit' }],
+    [
+      [{ lowerLimit: '5', lowerLimitUnit: 'decades' }],
+      { lowerLimitUnit: 'Select the periods for the lower limit' },
+    ],
     [[{ upperLimitUnit: 'years' }], { upperLimit: 'Enter the upper limit' }],
     [
       [{ lowerLimit: '-1', lowerLimitUnit: 'years' }],
@@ -173,14 +181,15 @@ describe('sexAndAgesSection', () => {
       ]),
     );
 
-    expect(pageErrors(ranges(...given))).toEqual(expected);
+    expect(sectionFieldErrors(section, ranges(...given))).toEqual(expected);
   });
 
   it('names the range from the second on, so every refusal is told apart', () => {
     const valid = { lowerLimit: '16', lowerLimitUnit: 'years' };
 
     expect(
-      pageErrors(
+      sectionFieldErrors(
+        section,
         ranges(
           valid,
           blankRange,
@@ -200,7 +209,7 @@ describe('sexAndAgesSection', () => {
   });
 
   it('refuses a range answer with no ranges where the first one goes', () => {
-    expect(pageErrors(ranges())).toEqual({
+    expect(sectionFieldErrors(section, ranges())).toEqual({
       [ageRangeFieldName(0, 'lowerLimit')]: 'You must enter at least a lower or upper limit',
     });
   });
@@ -216,9 +225,14 @@ describe('sexAndAgesSection', () => {
     });
   });
 
-  it('answers the API by field, a range refused as the list', () => {
-    expect(sectionFieldErrors(section, ranges({ lowerLimit: '5' }))).toEqual({
-      ageRanges: 'Select the periods for the lower limit',
+  it('refuses a unit the page does not offer by the limit it belongs to', () => {
+    expect(
+      sectionFieldErrors(
+        section,
+        ranges({ lowerLimit: '16', lowerLimitUnit: 'years' }, { upperLimitUnit: 'decades' }),
+      ),
+    ).toEqual({
+      [ageRangeFieldName(1, 'upperLimitUnit')]: 'Select the periods for upper limit 2',
     });
   });
 

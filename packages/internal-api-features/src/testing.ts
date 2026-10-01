@@ -6,7 +6,7 @@ import { withThrowingDefaults } from '@fphd/db/testing';
 import type { Express, Router } from 'express';
 import { type Logger, pino } from 'pino';
 
-import { toFieldErrors } from './contract.ts';
+import { indicatorSectionFieldErrors } from './contract.ts';
 import type { IndicatorSection } from './indicator-section-contract.ts';
 import type { InternalRepositories } from './repositories.ts';
 
@@ -83,10 +83,10 @@ export async function handlerLogLines(
 }
 
 /** The field errors a section's schema gives a submission, or undefined when it accepts it. */
-export function sectionFieldErrors<Field extends string, Values, Input>(
-  section: IndicatorSection<Field, Values, Input>,
+export function sectionFieldErrors<Field extends string, Values, Input, ErrorField extends string>(
+  section: IndicatorSection<Field, Values, Input, ErrorField>,
   body: unknown,
-): Partial<Record<Field, string>> | undefined {
+): Partial<Record<Field | ErrorField, string>> | undefined {
   const submission = section.schema.safeParse(body);
-  return submission.success ? undefined : toFieldErrors(submission.error, section.fields.options);
+  return submission.success ? undefined : indicatorSectionFieldErrors(section, submission.error);
 }

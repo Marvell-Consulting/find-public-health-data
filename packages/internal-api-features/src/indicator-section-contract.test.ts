@@ -61,6 +61,32 @@ describe('requireDetails', () => {
       [['detail'], 'Enter the detail'],
     ]);
   });
+
+  it('refuses the details beside an unanswered question', () => {
+    const twoQuestions = requireDetails(
+      z.object({
+        answer: yesNoSchema('Select an answer'),
+        detail: z.string().trim(),
+        second: yesNoSchema('Select a second answer'),
+        secondDetail: z.string().trim(),
+      }),
+      [
+        { answer: 'answer', detail: 'detail', detailRequired: 'Enter the detail' },
+        { answer: 'second', detail: 'secondDetail', detailRequired: 'Enter the second detail' },
+      ],
+    );
+    const result = twoQuestions.safeParse({
+      answer: 'yes',
+      detail: '',
+      second: '',
+      secondDetail: '',
+    });
+
+    expect(result.error?.issues.map(({ path, message }) => [path, message])).toEqual([
+      [['second'], 'Select a second answer'],
+      [['detail'], 'Enter the detail'],
+    ]);
+  });
 });
 
 describe('yesNoSchema', () => {

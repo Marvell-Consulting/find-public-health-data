@@ -69,13 +69,12 @@ export function internalIndicatorsRouter(
   });
 
   router.post('/api/internal/indicators', requirePublisher, async (request, response) => {
-    // Validated here as well as at the form: the API is reachable without going through it.
     const submission = indicatorNameSchema.safeParse(request.body);
 
     if (!submission.success) {
       response.status(400).json({
         error: 'validation_failed',
-        fieldErrors: toFieldErrors(submission.error, indicatorFieldSchema.options),
+        fieldErrors: toFieldErrors(submission.error, indicatorFieldSchema),
       });
       return;
     }
@@ -108,13 +107,12 @@ export function internalIndicatorsRouter(
       return;
     }
 
-    // Validated here as well as at the form: the API is reachable without going through it.
     const submission = indicatorNameSchema.safeParse(request.body);
 
     if (!submission.success) {
       response.status(400).json({
         error: 'validation_failed',
-        fieldErrors: toFieldErrors(submission.error, indicatorFieldSchema.options),
+        fieldErrors: toFieldErrors(submission.error, indicatorFieldSchema),
       });
       return;
     }

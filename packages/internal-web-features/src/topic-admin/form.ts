@@ -34,5 +34,5 @@ export function parseTopicForm(formData: FormData): TopicFormResult {
 
   return result.success
     ? { ok: true, values: result.data }
-    : { ok: false, fieldErrors: toFieldErrors(result.error, topicFieldSchema.options) };
+    : { ok: false, fieldErrors: toFieldErrors(result.error, topicFieldSchema) };
 }
