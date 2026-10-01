@@ -6,6 +6,8 @@ import {
 import type { IndicatorSourcePart } from '@fphd/utils/source-part';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 
+import type { Transaction } from './indicator-repository-sql.ts';
+
 const {
   classification,
   indicatorVersionClassification,
@@ -15,8 +17,6 @@ const {
   indicatorVersionSource,
   topic,
 } = schema;
-
-export type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
 
 export type IndicatorDraftLink = Pick<typeof indicatorVersionLink.$inferSelect, 'url' | 'text'>;
 

@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import { numeratorSection, publishingDateSection, toFieldErrors } from './contract.ts';
 import {
+  confidenceIntervalsServerSection,
+  providerSourcesServerSection,
+  publishingDateServerSection,
+  taggingServerSection,
+  valueTypeAndUnitsServerSection,
+} from './indicator-section-validators.ts';
+import {
   everyAnswer,
   METHODS,
   mortality,
@@ -10,14 +17,7 @@ import {
   TAGS,
   tagging,
   tagOptions,
-} from './indicator-section-fixtures.ts';
-import {
-  confidenceIntervalsServerSection,
-  providerSourcesServerSection,
-  publishingDateServerSection,
-  taggingServerSection,
-  valueTypeAndUnitsServerSection,
-} from './indicator-section-validators.ts';
+} from './indicator-sections.testing.ts';
 import { createFakeInternalRepositories } from './testing.ts';
 
 describe('taggingServerSection', () => {

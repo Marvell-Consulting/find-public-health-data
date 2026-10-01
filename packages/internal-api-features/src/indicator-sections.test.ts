@@ -23,7 +23,7 @@ import {
   valueTypeAndUnitsSection,
   varianceAndQualitySection,
 } from './contract.ts';
-import { links } from './indicator-section-fixtures.ts';
+import { links } from './indicator-sections.testing.ts';
 import { indicatorSectionsRouter } from './indicator-sections.ts';
 import {
   createFakeInternalRepositories,

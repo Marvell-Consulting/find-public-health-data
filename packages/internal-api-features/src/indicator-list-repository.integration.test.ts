@@ -10,7 +10,7 @@ import {
   indicatorWithTwoPublications,
   newDraft,
   repositoryTest,
-} from './indicator-repository-testing.ts';
+} from './indicator-repository.testing.ts';
 
 describe('listIndicatorsPage', () => {
   repositoryTest('pages through every indicator, most recently edited first', async ({ db }) => {

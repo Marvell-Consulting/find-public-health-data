@@ -16,7 +16,7 @@ import {
   valueTypeAndUnitsColumns,
   varianceAndQualityColumns,
 } from './indicator-section-columns.ts';
-import { everyAnswer, METHODS, publishingDate } from './indicator-section-fixtures.ts';
+import { everyAnswer, METHODS, publishingDate } from './indicator-sections.testing.ts';
 import { unansweredDraft } from './testing.ts';
 
 describe('definitionAndRationaleColumns', () => {

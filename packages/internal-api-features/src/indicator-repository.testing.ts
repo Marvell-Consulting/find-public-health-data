@@ -143,7 +143,7 @@ export const commentary = { url: 'https://www.gov.uk/statistics', text: 'Statist
 export const fingertips = { url: 'https://fingertips.phe.org.uk/', text: 'Fingertips' };
 
 /** A version's links as the table holds them, in order. */
-export async function linksOf(
+export async function storedLinksOf(
   db: Database,
   versionId: string,
 ): Promise<{ url: string; text: string }[]> {
@@ -168,7 +168,7 @@ export const underFive = {
 } as const;
 
 /** A version's age ranges as the table holds them, in order. */
-export async function ageRangesOf(db: Database, versionId: string) {
+export async function storedAgeRangesOf(db: Database, versionId: string) {
   return db
     .select({
       lowerLimit: indicatorVersionAgeRange.lowerLimit,
@@ -200,7 +200,7 @@ export async function onsSources(db: Database) {
   return { liveBirths: row, onsAlone: { providerId: row.providerId, sourceId: null } };
 }
 
-export async function topicIdsOf(db: Database, versionId: string): Promise<string[]> {
+export async function storedTopicIdsOf(db: Database, versionId: string): Promise<string[]> {
   const rows = await db
     .select({ topicId: indicatorVersionTopic.topicId })
     .from(indicatorVersionTopic)
@@ -225,7 +225,10 @@ export async function classificationIn(
 
 export const typeClassification = (db: Database) => classificationIn(db, 'indicator_type');
 
-export async function classificationIdsOf(db: Database, versionId: string): Promise<string[]> {
+export async function storedClassificationIdsOf(
+  db: Database,
+  versionId: string,
+): Promise<string[]> {
   const rows = await db
     .select({ id: indicatorVersionClassification.classificationId })
     .from(indicatorVersionClassification)

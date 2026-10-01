@@ -7,9 +7,12 @@ import {
   draftJoin,
   draftStatus,
   draftVersion,
+  EXCLUSION_VIOLATION,
+  hasSqlState,
   indicatorStatus,
   publishedJoin,
-} from './indicator-list-repository.ts';
+  type Transaction,
+} from './indicator-repository-sql.ts';
 import {
   ageRangesOf,
   classificationsOf,
@@ -21,7 +24,6 @@ import {
   linksOf,
   replaceLists,
   sourcesOf,
-  type Transaction,
   topicIdsOf,
 } from './indicator-version-lists-repository.ts';
 
@@ -138,21 +140,8 @@ export type UpdateIndicatorDraftResult =
   | { ok: true }
   | { ok: false; reason: 'no_draft' | 'slug_taken' };
 
-// The slug exclusion constraint: another indicator already holds the slug this name yields.
-const EXCLUSION_VIOLATION = '23P01';
 // Scopes the slug locks within the two-key advisory lock space; no other lock uses this first key.
 export const SLUG_LOCK_NAMESPACE = 0x736c7567; // 'slug'
-
-/** Drizzle wraps the driver error, so the SQLSTATE is on a `cause` rather than the error thrown. */
-export function hasSqlState(error: unknown, sqlState: string): boolean {
-  for (let current = error; current !== null && current !== undefined; ) {
-    if (typeof current !== 'object') return false;
-    if ('code' in current && (current as { code?: unknown }).code === sqlState) return true;
-    current = (current as { cause?: unknown }).cause;
-  }
-
-  return false;
-}
 
 /**
  * The slug a draft takes. The name page refuses a name that yields none, so reaching this

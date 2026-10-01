@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SexAndAges, Tagging } from './contract.ts';
 import type { IndicatorSectionDraft } from './indicator-section.ts';
-import { links, mortality, onsAlone, TAGS, tagging } from './indicator-section-fixtures.ts';
 import {
   denominatorColumns,
   linksColumns,
@@ -9,6 +8,7 @@ import {
   sexAndAgesColumns,
   taggingColumns,
 } from './indicator-section-list-columns.ts';
+import { links, mortality, onsAlone, TAGS, tagging } from './indicator-sections.testing.ts';
 import { unansweredDraft } from './testing.ts';
 
 const draft = {

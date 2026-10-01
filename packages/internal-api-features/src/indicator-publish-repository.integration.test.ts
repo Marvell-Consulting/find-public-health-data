@@ -9,21 +9,21 @@ import {
 import { createDraftFromPublished } from './indicator-publish-repository.ts';
 import {
   ACTOR,
-  ageRangesOf,
   ciMethodId,
-  classificationIdsOf,
   classificationIn,
   commentary,
   fingertips,
   indicatorWithTwoPublications,
-  linksOf,
   newDraft,
   onsSources,
   repositoryTest,
   sixteenPlus,
-  topicIdsOf,
+  storedAgeRangesOf,
+  storedClassificationIdsOf,
+  storedLinksOf,
+  storedTopicIdsOf,
   underFive,
-} from './indicator-repository-testing.ts';
+} from './indicator-repository.testing.ts';
 
 const {
   indicatorVersionClassification,
@@ -54,7 +54,7 @@ describe('createDraftFromPublished', () => {
       const target = seededIds[0];
       if (target === undefined) throw new Error('The seed holds no indicators');
       const publishedId = await publishedVersionId(db, target);
-      const publishedTopics = await topicIdsOf(db, publishedId);
+      const publishedTopics = await storedTopicIdsOf(db, publishedId);
       expect(publishedTopics.length).toBeGreaterThan(0);
 
       const result = await createDraftFromPublished(db, target, ACTOR);
@@ -81,7 +81,7 @@ describe('createDraftFromPublished', () => {
         valueTypeId: published?.valueTypeId,
         createdBy: ACTOR,
       });
-      expect(await topicIdsOf(db, result.versionId)).toEqual(publishedTopics);
+      expect(await storedTopicIdsOf(db, result.versionId)).toEqual(publishedTopics);
     },
   );
 
@@ -104,7 +104,7 @@ describe('createDraftFromPublished', () => {
     const result = await createDraftFromPublished(db, indicatorId, ACTOR);
 
     if (!result.ok) throw new Error('expected a draft');
-    expect(await classificationIdsOf(db, result.versionId)).toEqual(
+    expect(await storedClassificationIdsOf(db, result.versionId)).toEqual(
       [population.id, framework.id].sort(),
     );
     const state = await getIndicatorDraftState(db, indicatorId);
@@ -158,7 +158,7 @@ describe('createDraftFromPublished', () => {
         .from(indicatorVersion)
         .where(eq(indicatorVersion.id, result.versionId));
       expect(draft?.name).toBe(currentName);
-      expect(await topicIdsOf(db, result.versionId)).toEqual([current.id]);
+      expect(await storedTopicIdsOf(db, result.versionId)).toEqual([current.id]);
     },
   );
 
@@ -209,7 +209,7 @@ describe('createDraftFromPublished', () => {
       if (!result.ok) throw new Error('expected a draft');
       const state = await getIndicatorDraftState(db, indicatorId);
       expect(state?.draft).toMatchObject({ hasLinks: true, links: [fingertips, commentary] });
-      expect(await linksOf(db, currentId)).toEqual([fingertips, commentary]);
+      expect(await storedLinksOf(db, currentId)).toEqual([fingertips, commentary]);
     },
   );
 
@@ -239,7 +239,7 @@ describe('createDraftFromPublished', () => {
         ageType: 'range',
         ageRanges: [sixteenPlus, underFive],
       });
-      expect(await ageRangesOf(db, currentId)).toEqual([sixteenPlus, underFive]);
+      expect(await storedAgeRangesOf(db, currentId)).toEqual([sixteenPlus, underFive]);
     },
   );
 

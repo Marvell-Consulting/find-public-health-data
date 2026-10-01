@@ -6,20 +6,20 @@ import { describe, expect } from 'vitest';
 import { getIndicatorDraftState, updateIndicatorDraft } from './indicator-draft-repository.ts';
 import {
   ACTOR,
-  ageRangesOf,
-  classificationIdsOf,
   classificationIn,
   commentary,
   fingertips,
-  linksOf,
   newDraft,
   onsSources,
   repositoryTest,
   sixteenPlus,
-  topicIdsOf,
+  storedAgeRangesOf,
+  storedClassificationIdsOf,
+  storedLinksOf,
+  storedTopicIdsOf,
   typeClassification,
   underFive,
-} from './indicator-repository-testing.ts';
+} from './indicator-repository.testing.ts';
 import type { IndicatorDraftAgeRange } from './indicator-version-lists-repository.ts';
 
 const { indicatorVersionClassification } = schema;
@@ -50,13 +50,13 @@ describe('updateIndicatorDraft', () => {
       ACTOR,
     );
 
-    expect(await topicIdsOf(db, created.versionId)).toEqual([topic.id]);
+    expect(await storedTopicIdsOf(db, created.versionId)).toEqual([topic.id]);
     const classifications = await db
       .select({ id: indicatorVersionClassification.classificationId })
       .from(indicatorVersionClassification)
       .where(eq(indicatorVersionClassification.indicatorVersionId, created.versionId));
     expect(classifications).toEqual([{ id: classified.id }]);
-    expect(await linksOf(db, created.versionId)).toEqual([commentary]);
+    expect(await storedLinksOf(db, created.versionId)).toEqual([commentary]);
   });
 
   repositoryTest(
@@ -82,7 +82,7 @@ describe('updateIndicatorDraft', () => {
         ACTOR,
       );
 
-      expect(await classificationIdsOf(db, created.versionId)).toEqual(
+      expect(await storedClassificationIdsOf(db, created.versionId)).toEqual(
         [population.id, type.id].sort(),
       );
     },
@@ -246,7 +246,7 @@ describe('updateIndicatorDraft', () => {
         ACTOR,
       );
 
-      expect(await ageRangesOf(db, created.versionId)).toEqual([firstYear]);
+      expect(await storedAgeRangesOf(db, created.versionId)).toEqual([firstYear]);
     },
   );
 

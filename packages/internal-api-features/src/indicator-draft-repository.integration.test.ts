@@ -18,9 +18,9 @@ import {
   indicatorWithTwoPublications,
   newDraft,
   repositoryTest,
-  topicIdsOf,
+  storedTopicIdsOf,
   typeClassification,
-} from './indicator-repository-testing.ts';
+} from './indicator-repository.testing.ts';
 
 const { indicator, indicatorVersion } = schema;
 
@@ -158,11 +158,11 @@ describe('updateIndicatorDraft', () => {
       createdBy: ACTOR,
       updatedBy: 'someone-else',
     });
-    expect(await topicIdsOf(db, created.versionId)).toEqual([topic.id]);
+    expect(await storedTopicIdsOf(db, created.versionId)).toEqual([topic.id]);
 
     await updateIndicatorDraft(db, created.indicatorId, {}, { topicIds: [] }, ACTOR);
 
-    expect(await topicIdsOf(db, created.versionId)).toEqual([]);
+    expect(await storedTopicIdsOf(db, created.versionId)).toEqual([]);
   });
 
   repositoryTest('re-slugs a renamed draft', async ({ db }) => {

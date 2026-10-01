@@ -1,10 +1,20 @@
 import { type Database, schema } from '@fphd/db';
-import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
+import { asc, count, desc, eq } from 'drizzle-orm';
 
 import type { DraftStatus, IndicatorStatus } from './contract.ts';
+import {
+  currentName,
+  draftJoin,
+  draftStatus,
+  draftVersion,
+  indicatorStatus,
+  latestUpdatedAt,
+  publishedJoin,
+  publishedVersion,
+  publishedVersionJoin,
+} from './indicator-repository-sql.ts';
 
-const { currentPublishedVersion, indicator, indicatorVersion } = schema;
+const { currentPublishedVersion, indicator } = schema;
 
 export interface IndicatorAdminRow {
   id: string;
@@ -24,34 +34,6 @@ export interface IndicatorAdminDetailRow extends IndicatorAdminRow {
   /** The published version's slug, and so its public address; null while none is published. */
   publishedSlug: string | null;
 }
-
-/**
- * The one-draft index makes the draft join one row, and currentPublishedVersion is one row
- * per indicator, so an indicator's draft and published versions can be read side by side.
- * The view names the published version; its columns come from the version table by id.
- */
-export const draftVersion = alias(indicatorVersion, 'draft_version');
-const publishedVersion = alias(indicatorVersion, 'published_version');
-
-export const draftJoin = and(
-  eq(draftVersion.indicatorId, indicator.id),
-  eq(draftVersion.status, 'draft'),
-);
-export const publishedJoin = eq(currentPublishedVersion.indicatorId, indicator.id);
-const publishedVersionJoin = eq(publishedVersion.id, currentPublishedVersion.id);
-
-// The draft is what a publisher is working on, so it names the indicator while it exists.
-const currentName = sql<string>`coalesce(${draftVersion.name}, ${publishedVersion.name})`;
-// greatest() ignores nulls, so an indicator with only one version still reports its date.
-// mapWith, because a bare sql fragment arrives as the driver's string, not a Date.
-const latestUpdatedAt =
-  sql`greatest(${draftVersion.updatedAt}, ${publishedVersion.updatedAt})`.mapWith(
-    indicatorVersion.updatedAt,
-  );
-// Both statuses are read from the versions as SQL, so a filter or sort on either is a WHERE clause.
-export const indicatorStatus = sql<IndicatorStatus>`case when ${currentPublishedVersion.id} is not null then 'live' else 'new' end`;
-// The draft join fixes the status it matches, which narrows the column from the version enum.
-export const draftStatus = sql<DraftStatus | null>`${draftVersion.status}`;
 
 /** Every indicator whatever its status, newest edit first; the id breaks any remaining tie. */
 export async function listIndicatorsPage(

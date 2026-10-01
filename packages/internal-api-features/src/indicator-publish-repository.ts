@@ -2,7 +2,7 @@ import { type Database, schema } from '@fphd/db';
 import { CLASSIFICATION_DIMENSIONS } from '@fphd/utils/classification-dimension';
 import { eq, getTableColumns } from 'drizzle-orm';
 
-import { hasSqlState } from './indicator-draft-repository.ts';
+import { hasSqlState, UNIQUE_VIOLATION } from './indicator-repository-sql.ts';
 import {
   ageRangesOf,
   classificationsOf,
@@ -17,8 +17,6 @@ const { currentPublishedVersion, indicatorVersion } = schema;
 export type CreateDraftFromPublishedResult =
   | { ok: true; versionId: string }
   | { ok: false; reason: 'draft_exists' | 'not_published' };
-
-const UNIQUE_VIOLATION = '23505';
 
 /**
  * Opens a draft from the most recently published version: columns, slug and lists alike. The one-draft index refuses a second one rather than this reading first and racing.
