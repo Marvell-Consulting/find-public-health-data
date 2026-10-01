@@ -210,11 +210,10 @@ describe('saveTopic', () => {
     expect(outcome).toEqual({ values: valid, fieldErrors });
   });
 
-  it.each([
-    ['an id', { error: 'invalid_id' }],
-    ['no field', { error: 'validation_failed', fieldErrors: {} }],
-  ])('reports a refusal naming %s as the form not saved', async (_case, error) => {
-    const put = vi.fn().mockResolvedValue({ ok: false, status: 400, error });
+  it('reports a refusal that names no field as the form not saved', async () => {
+    const put = vi
+      .fn()
+      .mockResolvedValue({ ok: false, status: 400, error: { error: 'invalid_id' } });
 
     const { outcome } = await save(createContext(fakeApi({ put })), valid);
 

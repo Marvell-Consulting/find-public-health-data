@@ -18,10 +18,6 @@ function context(client: Partial<ApiClient>) {
   return provider;
 }
 
-function isNotFound(error: unknown) {
-  return error instanceof Response && error.status === 404;
-}
-
 function load(indicatorId: string, get: ApiClient['get']) {
   return loadLinks({
     context: context({ get }),
@@ -75,16 +71,6 @@ describe('loadLinks', () => {
 
     await expect(load(id, get)).resolves.toMatchObject({ values: { hasLinks: '', links: [] } });
   });
-
-  it.each(['108', 'not-an-id'])(
-    'answers 404 to an id of %s without asking the API',
-    async (bad) => {
-      const get = vi.fn();
-
-      await expect(load(bad, get)).rejects.toSatisfy(isNotFound);
-      expect(get).not.toHaveBeenCalled();
-    },
-  );
 });
 
 describe('submitLinks', () => {

@@ -12,7 +12,7 @@ export interface TopicFormValues {
   description: string;
 }
 
-export type TopicFormResult =
+type TopicFormResult =
   | { ok: true; values: TopicUpdate }
   | { ok: false; fieldErrors: TopicFieldErrors };
 

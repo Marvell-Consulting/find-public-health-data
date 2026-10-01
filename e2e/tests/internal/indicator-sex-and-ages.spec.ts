@@ -1,11 +1,9 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
-import { createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
 import { expectErrorSummaryReady } from '../support/govuk-frontend.ts';
 import {
-  expectBackToTaskList,
-  expectNotFoundWithoutDraft,
+  describeSectionPage,
   openSectionPage,
   type Section,
   taskRow,
@@ -36,40 +34,20 @@ function otherField(page: Page) {
 
 test.use({ storageState: PUBLISHER.storageState });
 
-test('is reached from the task list, where it starts as not started', async ({ page }) => {
-  await createIndicator(page, uniqueIndicatorName(SECTION.key));
-  await expect(taskRow(page, SECTION.taskName)).toContainText('Not started');
-
-  await taskRow(page, SECTION.taskName).getByRole('link').click();
-
-  await expect(page.getByRole('heading', { level: 1, name: TITLE })).toBeVisible();
-  for (const sex of ['Persons', 'Females', 'Males']) {
-    await expect(label(page, sex)).not.toBeChecked();
-  }
-  for (const name of ['All ages', 'Age range', 'Specific age', 'Other']) {
-    await expect(ageType(page, name)).not.toBeChecked();
-  }
-});
-
-test('asks for the sexes and the age type when Continue is selected with the form empty', async ({
-  page,
-}) => {
-  await openSectionPage(page, SECTION);
-  const pagePath = new URL(page.url()).pathname;
-
-  await page.getByRole('button', { name: 'Continue' }).click();
-
-  await expect(page).toHaveURL(pagePath);
-  await expect(page).toHaveTitle(/^Error: /);
-  const summary = page.getByRole('alert');
-  await expect(summary.getByRole('link')).toHaveText([
-    'Select sexes included',
-    'Select the age type',
-  ]);
-
-  await expectErrorSummaryReady(page);
-  await summary.getByRole('link', { name: 'Select sexes included' }).click();
-  await expect(label(page, 'Persons')).toBeFocused();
+describeSectionPage(SECTION, {
+  expectUnanswered: async (page) => {
+    await expect(page.getByRole('heading', { level: 1, name: TITLE })).toBeVisible();
+    for (const sex of ['Persons', 'Females', 'Males']) {
+      await expect(label(page, sex)).not.toBeChecked();
+    }
+    for (const name of ['All ages', 'Age range', 'Specific age', 'Other']) {
+      await expect(ageType(page, name)).not.toBeChecked();
+    }
+  },
+  refusal: {
+    messages: ['Select sexes included', 'Select the age type'],
+    focuses: (page) => label(page, 'Persons'),
+  },
 });
 
 test('reveals the fields of each age type only while it is chosen', async ({ page }) => {
@@ -268,16 +246,6 @@ test('saves another age type and forgets the ranges saved before', async ({ page
   await expect(otherField(page)).toHaveValue('School year 6');
   await ageType(page, 'Age range').check();
   await expect(label(page, 'Lower limit')).toHaveValue('');
-});
-
-test('goes back to the task list', async ({ page }) => {
-  const taskListPath = await openSectionPage(page, SECTION);
-
-  await expectBackToTaskList(page, taskListPath);
-});
-
-test('answers an indicator with no draft with the not-found page', async ({ page }) => {
-  await expectNotFoundWithoutDraft(page, SECTION.key);
 });
 
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {

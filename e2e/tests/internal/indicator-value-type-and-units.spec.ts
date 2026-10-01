@@ -1,11 +1,8 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
-import { createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
-import { expectErrorSummaryReady } from '../support/govuk-frontend.ts';
 import {
-  expectBackToTaskList,
-  expectNotFoundWithoutDraft,
+  describeSectionPage,
   openSectionPage,
   type Section,
   taskRow,
@@ -59,18 +56,20 @@ async function continueAndExpectErrors(page: Page, messages: string[]) {
 
 test.use({ storageState: PUBLISHER.storageState });
 
-test('is reached from the task list, where it starts as not started', async ({ page }) => {
-  await createIndicator(page, uniqueIndicatorName(SECTION.key));
-  await expect(taskRow(page, SECTION.taskName)).toContainText('Not started');
-
-  await taskRow(page, SECTION.taskName).getByRole('link').click();
-
-  await expect(page.getByRole('heading', { level: 1, name: TITLE })).toBeVisible();
-  await expect(page.getByLabel(VALUE_TYPE).locator('option:checked')).toHaveText('Select');
-  await expect(page.getByLabel(UNITS).locator('option:checked')).toHaveText('Select');
+describeSectionPage(SECTION, {
+  expectUnanswered: async (page) => {
+    await expect(page.getByRole('heading', { level: 1, name: TITLE })).toBeVisible();
+    await expect(page.getByLabel(VALUE_TYPE).locator('option:checked')).toHaveText('Select');
+    await expect(page.getByLabel(UNITS).locator('option:checked')).toHaveText('Select');
+  },
+  refusal: {
+    messages: ['Select the value type', 'Select the units'],
+    follow: 'Select the units',
+    focuses: (page) => page.getByLabel(UNITS),
+  },
 });
 
-test('lists the value types and units in the order the prototype does, with No unit', async ({
+test('lists the value types alphabetically and the units by kind, ending with No unit and Other', async ({
   page,
 }) => {
   await openSectionPage(page, SECTION);
@@ -137,16 +136,6 @@ test('shows only the questions the chosen value type and unit ask', async ({ pag
   await expect(page.getByLabel(UNIT_OTHER)).toBeVisible();
   await chooseUnit(page, 'No unit');
   await expect(page.getByLabel(UNIT_OTHER)).toBeHidden();
-});
-
-test('asks for a value type and units when Continue is selected with neither', async ({ page }) => {
-  await openSectionPage(page, SECTION);
-
-  await continueAndExpectErrors(page, ['Select the value type', 'Select the units']);
-
-  await expectErrorSummaryReady(page);
-  await page.getByRole('alert').getByRole('link', { name: 'Select the units' }).click();
-  await expect(page.getByLabel(UNITS)).toBeFocused();
 });
 
 test('saves nothing until the follow-ups are answered', async ({ page }) => {
@@ -222,16 +211,6 @@ test('saves an indirectly standardised value type with its reference population'
 
   await taskRow(page, SECTION.taskName).getByRole('link').click();
   await expect(referencePopulation(page)).toHaveValue('England 2019');
-});
-
-test('goes back to the task list', async ({ page }) => {
-  const taskListPath = await openSectionPage(page, SECTION);
-
-  await expectBackToTaskList(page, taskListPath);
-});
-
-test('answers an indicator with no draft with the not-found page', async ({ page }) => {
-  await expectNotFoundWithoutDraft(page, SECTION.key);
 });
 
 // Each scan shows the standard population question, whose radio carries the FPH-446 violation.

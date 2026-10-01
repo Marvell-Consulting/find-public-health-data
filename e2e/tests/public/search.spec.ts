@@ -293,7 +293,9 @@ test('a complete long data source remains selected and narrows results', async (
   ).toBeVisible();
 });
 
-test('geography levels and areas match the compact prototype tree', async ({ page }) => {
+test('lays out the geography levels and their first 100 areas as a compact tree', async ({
+  page,
+}) => {
   await ready(page);
   const geography = card(page, 'Geography');
   await geography.getByRole('button', { name: /Expand$/ }).click();
