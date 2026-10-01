@@ -105,12 +105,18 @@ jobs:
           # internal-api's config requires it at import; CI-only value, not a secret.
           SESSION_JWT_SECRET: ci-only-jwt-session-secret-at-least-32-bytes
 
+  # Each shard starts its own stack and runs its share of the suite; add shards as the suite grows.
   e2e:
-    name: E2E tests
+    name: E2E tests (${{ matrix.shard }}/${{ strategy.job-total }})
     needs: build-app-images
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    strategy:
+      # One shard's failures must not hide the state of the others.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -180,13 +186,16 @@ jobs:
           INTERNAL_API_PASSWORD: internal_api
         run: pnpm db:bootstrap && pnpm db:migrate && pnpm db:import-core-data && pnpm db:seed-dummy-data
 
-      - run: pnpm test:e2e
+      - name: Run the e2e tests
+        env:
+          SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
+        run: pnpm test:e2e --shard="${SHARD}"
 
       - name: Upload the Playwright report
         if: ${{ failure() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: e2e/playwright-report
 
   audit:

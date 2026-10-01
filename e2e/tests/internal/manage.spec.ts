@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
-import { signInAs, submitSignIn } from '../support/sign-in.ts';
+import { ADMIN, submitSignIn } from '../support/sign-in.ts';
 
 // Proof of life for internal-web: the fake sign-in is drivable, the session survives the
 // redirect back, and the admin-gated route renders — the wiring every internal test needs.
@@ -21,18 +21,21 @@ test('bounces to sign in and returns an admin to the manage page', async ({ page
   ).toBeVisible();
 });
 
-test('links to topic administration', async ({ page }) => {
-  await signInAs(page, 'Riley Singh');
-  await page.goto('/manage');
+test.describe('as an admin', () => {
+  test.use({ storageState: ADMIN.storageState });
 
-  await page.getByRole('link', { name: 'Manage topics' }).click();
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/manage');
+  });
 
-  await expect(page).toHaveURL('/manage/topics');
-  await expect(page.getByRole('heading', { level: 1, name: 'Manage topics' })).toBeVisible();
-});
+  test('links to topic administration', async ({ page }) => {
+    await page.getByRole('link', { name: 'Manage topics' }).click();
 
-test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
-  await signInAs(page, 'Riley Singh');
-  await page.goto('/manage');
-  await expectNoAccessibilityViolations(page, testInfo);
+    await expect(page).toHaveURL('/manage/topics');
+    await expect(page.getByRole('heading', { level: 1, name: 'Manage topics' })).toBeVisible();
+  });
+
+  test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
+    await expectNoAccessibilityViolations(page, testInfo);
+  });
 });

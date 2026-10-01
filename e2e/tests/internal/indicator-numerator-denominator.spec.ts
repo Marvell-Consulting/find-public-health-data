@@ -10,7 +10,7 @@ import {
   type Section,
   taskRow,
 } from '../support/section-page.ts';
-import { signInAs } from '../support/sign-in.ts';
+import { PUBLISHER } from '../support/sign-in.ts';
 
 const NUMERATOR: Section = { key: 'numerator', taskName: 'Numerator' };
 const DENOMINATOR: Section = { key: 'denominator', taskName: 'Denominator' };
@@ -38,9 +38,7 @@ function addedSources(page: Page) {
   return page.getByRole('main').getByRole('listitem').locator('span:not(.govuk-visually-hidden)');
 }
 
-test.beforeEach(async ({ page }) => {
-  await signInAs(page, 'Riley Singh');
-});
+test.use({ storageState: PUBLISHER.storageState });
 
 test('is reached from the task list, where it starts as not started', async ({ page }) => {
   await createIndicator(page, uniqueIndicatorName(NUMERATOR.key));

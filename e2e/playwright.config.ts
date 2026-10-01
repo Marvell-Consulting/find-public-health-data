@@ -8,6 +8,11 @@
 // project then, not speculatively now.
 import { defineConfig, devices } from '@playwright/test';
 
+const internalUse = {
+  ...devices['Desktop Chrome'],
+  baseURL: process.env.INTERNAL_WEB_URL ?? 'http://localhost:3001',
+};
+
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
@@ -28,13 +33,18 @@ export default defineConfig({
         baseURL: process.env.PUBLIC_WEB_URL ?? 'http://localhost:3000',
       },
     },
+    // Signs each internal user in once a run, saving the sessions the internal specs start from.
+    {
+      name: 'internal sign-in',
+      testDir: './tests/internal',
+      testMatch: 'sign-in.setup.ts',
+      use: internalUse,
+    },
     {
       name: 'internal',
       testDir: './tests/internal',
-      use: {
-        ...devices['Desktop Chrome'],
-        baseURL: process.env.INTERNAL_WEB_URL ?? 'http://localhost:3001',
-      },
+      dependencies: ['internal sign-in'],
+      use: internalUse,
     },
   ],
 });

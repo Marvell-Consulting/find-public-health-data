@@ -4,7 +4,7 @@ import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 import { createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
 import { expectErrorSummaryReady } from '../support/govuk-frontend.ts';
 import { expectBackToTaskList, expectNotFoundWithoutDraft } from '../support/section-page.ts';
-import { signInAs } from '../support/sign-in.ts';
+import { PUBLISHER } from '../support/sign-in.ts';
 
 function uniqueName() {
   return uniqueIndicatorName('indicator');
@@ -16,9 +16,7 @@ async function openNamePage(page: Page) {
   await expect(page).toHaveURL('/publish/indicators/new');
 }
 
-test.beforeEach(async ({ page }) => {
-  await signInAs(page, 'Riley Singh');
-});
+test.use({ storageState: PUBLISHER.storageState });
 
 test('starts the journey from the indicator dashboard', async ({ page }) => {
   await openNamePage(page);

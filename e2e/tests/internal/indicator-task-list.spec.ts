@@ -3,15 +3,13 @@ import { expect, test } from '@playwright/test';
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 import { createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
 import { expectNotFoundWithoutDraft, taskRow } from '../support/section-page.ts';
-import { signInAs } from '../support/sign-in.ts';
+import { PUBLISHER } from '../support/sign-in.ts';
 
 function uniqueName() {
   return uniqueIndicatorName('task list');
 }
 
-test.beforeEach(async ({ page }) => {
-  await signInAs(page, 'Riley Singh');
-});
+test.use({ storageState: PUBLISHER.storageState });
 
 test('lists the fields a publisher completes, grouped', async ({ page }) => {
   await createIndicator(page, uniqueName());

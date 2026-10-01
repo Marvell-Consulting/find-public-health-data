@@ -20,3 +20,20 @@ export async function createIndicator(page: Page, name: string): Promise<string>
   if (id === undefined) throw new Error(`no indicator id in ${page.url()}`);
   return id;
 }
+
+/**
+ * Creates an indicator by posting the name page's form, without loading the name page or the task
+ * list it redirects to, and returns its id. For tests whose subject is a later page.
+ */
+export async function createDraft(page: Page, name: string): Promise<string> {
+  const response = await page.request.post('/publish/indicators/new', {
+    form: { name },
+    maxRedirects: 0,
+  });
+  const location = response.headers().location ?? '';
+  const [, id] = location.match(/^\/publish\/indicators\/([0-9a-f-]{36})\/task-list$/) ?? [];
+  if (id === undefined) {
+    throw new Error(`creating ${name} answered ${response.status()}, not the task list`);
+  }
+  return id;
+}

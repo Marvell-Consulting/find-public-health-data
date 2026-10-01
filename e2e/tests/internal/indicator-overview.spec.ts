@@ -3,13 +3,11 @@ import { expect, test } from '@playwright/test';
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 import { createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
 import { MORTALITY_ID, MORTALITY_NAME } from '../support/indicator-page.ts';
-import { signInAs } from '../support/sign-in.ts';
+import { PUBLISHER } from '../support/sign-in.ts';
 
 const PUBLISHED_OVERVIEW_PATH = `/dashboard/indicators/${MORTALITY_ID}`;
 
-test.beforeEach(async ({ page }) => {
-  await signInAs(page, 'Riley Singh');
-});
+test.use({ storageState: PUBLISHER.storageState });
 
 test('shows the indicator a publisher picked from the dashboard', async ({ page }) => {
   const name = uniqueIndicatorName('overview');

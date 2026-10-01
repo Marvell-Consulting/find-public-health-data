@@ -10,14 +10,12 @@ import {
   type Section,
   taskRow,
 } from '../support/section-page.ts';
-import { signInAs } from '../support/sign-in.ts';
+import { PUBLISHER } from '../support/sign-in.ts';
 
 const SECTION: Section = { key: 'polarity', taskName: 'Polarity' };
 const QUESTION = 'What is the polarity of this indicator?';
 
-test.beforeEach(async ({ page }) => {
-  await signInAs(page, 'Riley Singh');
-});
+test.use({ storageState: PUBLISHER.storageState });
 
 test('is reached from the task list, where it starts as not started', async ({ page }) => {
   await createIndicator(page, uniqueIndicatorName(SECTION.key));

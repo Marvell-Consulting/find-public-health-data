@@ -10,7 +10,7 @@ import {
   type Section,
   taskRow,
 } from '../support/section-page.ts';
-import { signInAs } from '../support/sign-in.ts';
+import { PUBLISHER } from '../support/sign-in.ts';
 
 const SECTION: Section = { key: 'sex-and-ages', taskName: 'Sex and ages' };
 const TITLE = 'What are the sexes and ages included in this indicator?';
@@ -34,9 +34,7 @@ function otherField(page: Page) {
   return page.getByRole('textbox', { name: 'Other', exact: true });
 }
 
-test.beforeEach(async ({ page }) => {
-  await signInAs(page, 'Riley Singh');
-});
+test.use({ storageState: PUBLISHER.storageState });
 
 test('is reached from the task list, where it starts as not started', async ({ page }) => {
   await createIndicator(page, uniqueIndicatorName(SECTION.key));

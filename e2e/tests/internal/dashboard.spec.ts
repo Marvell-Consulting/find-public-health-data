@@ -2,10 +2,11 @@ import { expect, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 import { createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
-import { signInAs } from '../support/sign-in.ts';
+import { PUBLISHER } from '../support/sign-in.ts';
+
+test.use({ storageState: PUBLISHER.storageState });
 
 test.beforeEach(async ({ page }) => {
-  await signInAs(page, 'Riley Singh');
   await page.goto('/dashboard');
 });
 

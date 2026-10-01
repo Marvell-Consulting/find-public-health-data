@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
-import { signInAs, submitSignIn } from '../support/sign-in.ts';
+import { ADMIN, PUBLISHER, submitSignIn } from '../support/sign-in.ts';
 
 test.describe('signed out', () => {
   test('offers to sign in to manage indicators', async ({ page }) => {
@@ -56,8 +56,9 @@ test.describe('signed out', () => {
 });
 
 test.describe('as a publisher', () => {
+  test.use({ storageState: PUBLISHER.storageState });
+
   test.beforeEach(async ({ page }) => {
-    await signInAs(page, 'Sam Taylor');
     await page.goto('/');
   });
 
@@ -84,8 +85,9 @@ test.describe('as a publisher', () => {
 });
 
 test.describe('as an admin', () => {
+  test.use({ storageState: ADMIN.storageState });
+
   test.beforeEach(async ({ page }) => {
-    await signInAs(page, 'Riley Singh');
     await page.goto('/');
   });
 

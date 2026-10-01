@@ -10,7 +10,7 @@ import {
   type Section,
   taskRow,
 } from '../support/section-page.ts';
-import { signInAs } from '../support/sign-in.ts';
+import { PUBLISHER } from '../support/sign-in.ts';
 
 const SECTION: Section = { key: 'value-type-and-units', taskName: 'Value type and units' };
 const TITLE = 'What are the value type and units used in this indicator?';
@@ -57,9 +57,7 @@ async function continueAndExpectErrors(page: Page, messages: string[]) {
   await expect(page.getByRole('alert').getByRole('link')).toHaveText(messages);
 }
 
-test.beforeEach(async ({ page }) => {
-  await signInAs(page, 'Riley Singh');
-});
+test.use({ storageState: PUBLISHER.storageState });
 
 test('is reached from the task list, where it starts as not started', async ({ page }) => {
   await createIndicator(page, uniqueIndicatorName(SECTION.key));

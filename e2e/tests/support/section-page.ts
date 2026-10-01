@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 
-import { createIndicator, uniqueIndicatorName } from './create-indicator.ts';
+import { createDraft, uniqueIndicatorName } from './create-indicator.ts';
 import { MORTALITY_ID } from './indicator-page.ts';
 
 /** A page of a draft's task list: its path segment and the name of its task row. */
@@ -11,17 +11,17 @@ export function taskRow(page: Page, taskName: string) {
   return page.getByRole('main').getByRole('listitem').filter({ hasText: taskName }).first();
 }
 
-/** A new draft's section page, opened from its task list; returns the task list's path. */
-export async function openSectionPage(page: Page, { key, taskName }: Section): Promise<string> {
-  await createIndicator(page, uniqueIndicatorName(key));
-  const taskListPath = new URL(page.url()).pathname;
+/**
+ * Opens a new draft's section page by its address; returns the draft's task list path. Each
+ * section spec reaches its page from the task list once, in a test of its own.
+ */
+export async function openSectionPage(page: Page, { key }: Section): Promise<string> {
+  const id = await createDraft(page, uniqueIndicatorName(key));
 
-  await taskRow(page, taskName).getByRole('link').click();
-  await expect(page).toHaveURL(new RegExp(`/publish/indicators/[0-9a-f-]{36}/${key}$`));
-  // The address changes before the page renders, and the task list has no Continue button.
+  await page.goto(`/publish/indicators/${id}/${key}`);
   await expect(page.getByRole('button', { name: 'Continue' })).toBeVisible();
 
-  return taskListPath;
+  return `/publish/indicators/${id}/task-list`;
 }
 
 export async function expectBackToTaskList(page: Page, taskListPath: string) {
