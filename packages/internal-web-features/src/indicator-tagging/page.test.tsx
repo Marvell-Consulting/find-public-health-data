@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { addIntent, removeIntent } from '../list-form.ts';
+import { noRefusal } from '../testing.ts';
 import type { TaggingPageValues } from './form.ts';
 import { TaggingPage } from './page.tsx';
 
@@ -46,7 +47,7 @@ const empty: TaggingPageValues = {
 function renderPage(props: Partial<Parameters<typeof TaggingPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <TaggingPage formError={undefined} options={options} values={empty} {...props} />
+      <TaggingPage {...noRefusal} options={options} values={empty} {...props} />
     </MemoryRouter>,
   );
 }

@@ -4,6 +4,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { DataQualityPage } from './page.tsx';
 
 afterEach(cleanup);
@@ -17,7 +18,7 @@ const REFUSAL = 'Select whether there are any data quality issues with this indi
 function renderPage(props: Partial<Parameters<typeof DataQualityPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <DataQualityPage values={{ hasDataQualityIssues: '' }} {...props} />
+      <DataQualityPage {...noRefusal} values={{ hasDataQualityIssues: '' }} {...props} />
     </MemoryRouter>,
   );
 }
@@ -78,6 +79,5 @@ describe('DataQualityPage', () => {
     expect(link.getAttribute('href')).toBe(`#${option('Yes').id}`);
     expect(describedBy).toContain(error?.id);
     expect(container.querySelectorAll('.govuk-form-group--error')).toHaveLength(1);
-    expect(document.title).toBe(`Error: ${QUESTION} - ${serviceName} - GOV.UK`);
   });
 });

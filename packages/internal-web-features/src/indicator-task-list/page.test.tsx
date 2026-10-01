@@ -132,222 +132,35 @@ describe('IndicatorTaskListPage', () => {
     ]);
   });
 
-  it('links the data quality to its page, with the status the API reports', () => {
-    renderPage({ tasks: { name: 'completed', 'data-quality': 'completed' } });
+  const NOTES = 'Notes for reviewers (for internal use only)';
 
-    const row = group('Data').getByRole('link', { name: 'Data quality' });
+  it.each([
+    ['Data', 'Value type and units', 'value-type-and-units'],
+    ['Data', 'Sex and ages', 'sex-and-ages'],
+    ['Data', 'Period type', 'period-type'],
+    ['Data', 'Polarity', 'polarity'],
+    ['Data', 'Data quality', 'data-quality'],
+    ['Metadata', 'Definition and rationale', 'definition-and-rationale'],
+    ['Metadata', 'Numerator', 'numerator'],
+    ['Metadata', 'Denominator', 'denominator'],
+    ['Metadata', 'How the indicator was calculated', 'calculation'],
+    ['Metadata', 'Confidence intervals', 'confidence-intervals'],
+    ['Metadata', 'Benchmarking', 'benchmarking'],
+    ['Metadata', 'Other notes and caveats', 'other-notes-and-caveats'],
+    ['Metadata', 'Links', 'links'],
+    ['Metadata', 'Tagging', 'tagging'],
+    ['Metadata', 'Copyright and data re-use', 'copyright-and-data-reuse'],
+    ['Publishing', 'Update frequency', 'update-frequency'],
+    ['Publishing', 'Publishing date', 'publishing-date'],
+    [NOTES, 'Variance and quality', 'variance-and-quality'],
+    [NOTES, 'Justifications', 'justifications'],
+    [NOTES, 'Other comments', 'other-comments'],
+  ] as const)('links %s: %s to its page, with the status the API reports', (title, name, key) => {
+    renderPage({ tasks: { name: 'completed', [key]: 'completed' } });
 
-    expect(row.getAttribute('href')).toBe(
-      `/publish/indicators/${taskList.indicator.id}/data-quality`,
-    );
-    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
-      'Completed',
-    );
-  });
+    const row = group(title).getByRole('link', { name });
 
-  it('links the period type to its page, with the status the API reports', () => {
-    renderPage({ tasks: { name: 'completed', 'period-type': 'completed' } });
-
-    const row = group('Data').getByRole('link', { name: 'Period type' });
-
-    expect(row.getAttribute('href')).toBe(
-      `/publish/indicators/${taskList.indicator.id}/period-type`,
-    );
-    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
-      'Completed',
-    );
-  });
-
-  it('links the update frequency to its page, with the status the API reports', () => {
-    renderPage({ tasks: { name: 'completed', 'update-frequency': 'completed' } });
-
-    const row = group('Publishing').getByRole('link', { name: 'Update frequency' });
-
-    expect(row.getAttribute('href')).toBe(
-      `/publish/indicators/${taskList.indicator.id}/update-frequency`,
-    );
-    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
-      'Completed',
-    );
-  });
-
-  it('links the benchmarking to its page, with the status the API reports', () => {
-    renderPage({ tasks: { name: 'completed', benchmarking: 'completed' } });
-
-    const row = group('Metadata').getByRole('link', { name: 'Benchmarking' });
-
-    expect(row.getAttribute('href')).toBe(
-      `/publish/indicators/${taskList.indicator.id}/benchmarking`,
-    );
-    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
-      'Completed',
-    );
-  });
-
-  it('links the value type and units to their page, with the status the API reports', () => {
-    renderPage({ tasks: { name: 'completed', 'value-type-and-units': 'completed' } });
-
-    const row = group('Data').getByRole('link', { name: 'Value type and units' });
-
-    expect(row.getAttribute('href')).toBe(
-      `/publish/indicators/${taskList.indicator.id}/value-type-and-units`,
-    );
-    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
-      'Completed',
-    );
-  });
-
-  it('links the confidence intervals to their page, with the status the API reports', () => {
-    renderPage({ tasks: { name: 'completed', 'confidence-intervals': 'completed' } });
-
-    const row = group('Metadata').getByRole('link', { name: 'Confidence intervals' });
-
-    expect(row.getAttribute('href')).toBe(
-      `/publish/indicators/${taskList.indicator.id}/confidence-intervals`,
-    );
-    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
-      'Completed',
-    );
-  });
-
-  it('links the other notes and caveats to their page, with the status the API reports', () => {
-    renderPage({ tasks: { name: 'completed', 'other-notes-and-caveats': 'completed' } });
-
-    const row = group('Metadata').getByRole('link', { name: 'Other notes and caveats' });
-
-    expect(row.getAttribute('href')).toBe(
-      `/publish/indicators/${taskList.indicator.id}/other-notes-and-caveats`,
-    );
-    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
-      'Completed',
-    );
-  });
-
-  it('links the publishing date to its page, with the status the API reports', () => {
-    renderPage({ tasks: { name: 'completed', 'publishing-date': 'completed' } });
-
-    const row = group('Publishing').getByRole('link', { name: 'Publishing date' });
-
-    expect(row.getAttribute('href')).toBe(
-      `/publish/indicators/${taskList.indicator.id}/publishing-date`,
-    );
-    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
-      'Completed',
-    );
-  });
-
-  it('links the polarity to its page, with the status the API reports', () => {
-    renderPage({ tasks: { name: 'completed', polarity: 'completed' } });
-
-    const row = group('Data').getByRole('link', { name: 'Polarity' });
-
-    expect(row.getAttribute('href')).toBe(`/publish/indicators/${taskList.indicator.id}/polarity`);
-    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
-      'Completed',
-    );
-  });
-
-  it('links the definition and rationale to its page, with the status the API reports', () => {
-    renderPage({ tasks: { name: 'completed', 'definition-and-rationale': 'not_started' } });
-
-    const row = group('Metadata').getByRole('link', { name: 'Definition and rationale' });
-
-    expect(row.getAttribute('href')).toBe(
-      `/publish/indicators/${taskList.indicator.id}/definition-and-rationale`,
-    );
-    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
-      'Not started',
-    );
-  });
-
-  it('links the links to their page, with the status the API reports', () => {
-    renderPage({ tasks: { name: 'completed', links: 'completed' } });
-
-    const row = group('Metadata').getByRole('link', { name: 'Links' });
-
-    expect(row.getAttribute('href')).toBe(`/publish/indicators/${taskList.indicator.id}/links`);
-    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
-      'Completed',
-    );
-  });
-
-  it('links the variance and quality to its page, with the status the API reports', () => {
-    renderPage({ tasks: { name: 'completed', 'variance-and-quality': 'completed' } });
-
-    const row = group('Notes for reviewers (for internal use only)').getByRole('link', {
-      name: 'Variance and quality',
-    });
-
-    expect(row.getAttribute('href')).toBe(
-      `/publish/indicators/${taskList.indicator.id}/variance-and-quality`,
-    );
-    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
-      'Completed',
-    );
-  });
-
-  it('links the justifications to their page, with the status the API reports', () => {
-    renderPage({ tasks: { name: 'completed', justifications: 'completed' } });
-
-    const row = group('Notes for reviewers (for internal use only)').getByRole('link', {
-      name: 'Justifications',
-    });
-
-    expect(row.getAttribute('href')).toBe(
-      `/publish/indicators/${taskList.indicator.id}/justifications`,
-    );
-    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
-      'Completed',
-    );
-  });
-
-  it('links the other comments to their page, with the status the API reports', () => {
-    renderPage({ tasks: { name: 'completed', 'other-comments': 'completed' } });
-
-    const row = group('Notes for reviewers (for internal use only)').getByRole('link', {
-      name: 'Other comments',
-    });
-
-    expect(row.getAttribute('href')).toBe(
-      `/publish/indicators/${taskList.indicator.id}/other-comments`,
-    );
-    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
-      'Completed',
-    );
-  });
-
-  it('links the copyright and data re-use to its page, with the status the API reports', () => {
-    renderPage({ tasks: { name: 'completed', 'copyright-and-data-reuse': 'completed' } });
-
-    const row = group('Metadata').getByRole('link', { name: 'Copyright and data re-use' });
-
-    expect(row.getAttribute('href')).toBe(
-      `/publish/indicators/${taskList.indicator.id}/copyright-and-data-reuse`,
-    );
-    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
-      'Completed',
-    );
-  });
-
-  it('links the sex and ages to their page, with the status the API reports', () => {
-    renderPage({ tasks: { name: 'completed', 'sex-and-ages': 'completed' } });
-
-    const row = group('Data').getByRole('link', { name: 'Sex and ages' });
-
-    expect(row.getAttribute('href')).toBe(
-      `/publish/indicators/${taskList.indicator.id}/sex-and-ages`,
-    );
-    expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
-      'Completed',
-    );
-  });
-
-  it('links the tagging to its page, with the status the API reports', () => {
-    renderPage({ tasks: { name: 'completed', tagging: 'completed' } });
-
-    const row = group('Metadata').getByRole('link', { name: 'Tagging' });
-
-    expect(row.getAttribute('href')).toBe(`/publish/indicators/${taskList.indicator.id}/tagging`);
+    expect(row.getAttribute('href')).toBe(`/publish/indicators/${taskList.indicator.id}/${key}`);
     expect(document.getElementById(row.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
       'Completed',
     );

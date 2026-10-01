@@ -6,16 +6,13 @@ import { Textarea } from '@fphd/ui';
 
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
-export function DefinitionAndRationalePage({
-  fieldErrors = {},
-  formError,
-  values,
-}: SectionPageProps<DefinitionAndRationaleField>) {
+export function DefinitionAndRationalePage(form: SectionPageProps<DefinitionAndRationaleField>) {
+  const { fieldErrors, values } = form;
+
   return (
     <IndicatorSectionForm
-      fieldErrors={fieldErrors}
-      formError={formError}
-      fields={definitionAndRationaleSection.fields.options}
+      form={form}
+      section={definitionAndRationaleSection}
       title="Definition and rationale"
     >
       <Textarea

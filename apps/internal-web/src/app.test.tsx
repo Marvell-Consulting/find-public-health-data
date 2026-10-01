@@ -186,50 +186,29 @@ describe('the role-gated route tables', () => {
     return undefined;
   }
 
+  function pathsIn(entries: RouteConfigEntry[]): string[] {
+    return entries.flatMap((entry) => [
+      ...(entry.path === undefined ? [] : [entry.path]),
+      ...pathsIn(entry.children ?? []),
+    ]);
+  }
+
   // Each role middleware is declared once, on its layout. If a route escapes it the page is
   // reachable by any internal user, and nothing else in the app would say so.
-  it('keeps every dashboard route under the publisher layout', () => {
+  it('keeps every dashboard and publishing route under the publisher layout', () => {
     const publisher = findLayout(routes, 'publisher.tsx');
+    const gated = pathsIn(routes).filter((path) => /^(dashboard|publish)(\/|$)/.test(path));
 
-    expect(publisher?.children?.map((child) => child.path)).toEqual([
-      'dashboard',
-      'dashboard/indicators/:id',
-      'publish/indicators/new',
-      'publish/indicators/:id/name',
-      'publish/indicators/:id/task-list',
-      'publish/indicators/:id/definition-and-rationale',
-      'publish/indicators/:id/polarity',
-      'publish/indicators/:id/data-quality',
-      'publish/indicators/:id/numerator',
-      'publish/indicators/:id/denominator',
-      'publish/indicators/:id/calculation',
-      'publish/indicators/:id/confidence-intervals',
-      'publish/indicators/:id/update-frequency',
-      'publish/indicators/:id/period-type',
-      'publish/indicators/:id/value-type-and-units',
-      'publish/indicators/:id/other-notes-and-caveats',
-      'publish/indicators/:id/publishing-date',
-      'publish/indicators/:id/links',
-      'publish/indicators/:id/variance-and-quality',
-      'publish/indicators/:id/justifications',
-      'publish/indicators/:id/other-comments',
-      'publish/indicators/:id/copyright-and-data-reuse',
-      'publish/indicators/:id/benchmarking',
-      'publish/indicators/:id/sex-and-ages',
-      'publish/indicators/:id/tagging',
-    ]);
+    expect(publisher?.children?.map((child) => child.path)).toEqual(gated);
+    expect(gated).toContain('publish/indicators/:id/task-list');
   });
 
   it('keeps every manage route under the admin layout', () => {
     const admin = findLayout(routes, 'admin.tsx');
+    const gated = pathsIn(routes).filter((path) => /^manage(\/|$)/.test(path));
 
-    expect(admin?.children?.map((child) => child.path)).toEqual([
-      'manage',
-      'manage/topics',
-      'manage/topics/new',
-      'manage/topics/:id',
-      'manage/topics/:id/delete',
-    ]);
+    expect(admin?.children?.map((child) => child.path)).toEqual(gated);
+    expect(gated).toContain('manage');
   });
 
   it('nests both role layouts inside the authenticated one', () => {

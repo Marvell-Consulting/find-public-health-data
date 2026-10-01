@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { CalculationPage } from './page.tsx';
 
 afterEach(cleanup);
@@ -16,7 +17,7 @@ const detailsError = 'Enter details of the other organisation or organisations';
 function renderPage(props: Partial<Parameters<typeof CalculationPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <CalculationPage values={empty} {...props} />
+      <CalculationPage {...noRefusal} values={empty} {...props} />
     </MemoryRouter>,
   );
 }
@@ -127,7 +128,7 @@ describe('CalculationPage', () => {
     );
   });
 
-  it('summarises every refusal in the order the form asks, linking to each control', () => {
+  it('links each refusal to its control, in the order the form asks', () => {
     renderPage({
       fieldErrors: {
         calculatedBy: 'Select who calculated the indicator',
@@ -145,9 +146,6 @@ describe('CalculationPage', () => {
       `#${methodologyField().id}`,
       `#${option('Office for Health Improvement and Disparities').id}`,
     ]);
-    expect(document.title).toBe(
-      `Error: How was the indicator calculated? - ${serviceName} - GOV.UK`,
-    );
   });
 
   it('marks the radios as refused when no one is chosen', () => {

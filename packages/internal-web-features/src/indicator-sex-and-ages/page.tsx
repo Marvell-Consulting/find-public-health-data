@@ -12,9 +12,11 @@ import {
 import {
   Button,
   Checkboxes,
+  errorProp,
   fieldInputId,
   firstCheckboxId,
   firstRadioId,
+  QuestionLegend,
   Radios,
   Select,
   TextInput,
@@ -22,7 +24,6 @@ import {
 import { AGE_UNITS, SEX_LABELS, SEXES } from '@fphd/utils/sex-and-ages';
 import type { ReactNode } from 'react';
 
-import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 import { ADD_INTENT, removeIntent } from '../list-form.ts';
 
@@ -134,38 +135,32 @@ function AgeRanges({
   );
 }
 
-export function SexAndAgesPage({
-  fieldErrors = {},
-  formError,
-  values,
-}: SectionPageProps<SexAndAgesPageField, SexAndAgesFormValues>) {
-  const { sexes: sexesError, ageType: ageTypeError } = fieldErrors;
+export function SexAndAgesPage(form: SectionPageProps<SexAndAgesPageField, SexAndAgesFormValues>) {
+  const { fieldErrors, values } = form;
 
   return (
     <IndicatorSectionForm
       continueOnEnter
-      fieldErrors={fieldErrors}
-      formError={formError}
       fieldIds={{
         sexes: firstCheckboxId('sexes'),
         ageType: firstRadioId('ageType'),
         ageRanges: fieldInputId(ageRangeFieldName(0, 'lowerLimit')),
       }}
       fields={pageFields(values.ageRanges.length)}
+      form={form}
       title={TITLE}
     >
       <Checkboxes
-        {...errorProp(sexesError)}
+        {...errorProp(fieldErrors.sexes)}
         defaultValue={values.sexes}
-        // NotGovUK sizes a legend by the heading passed as its label.
-        label={<h2 className="govuk-heading-m">Select sexes included</h2>}
+        label={<QuestionLegend>Select sexes included</QuestionLegend>}
         name="sexes"
         options={SEXES.map((sex) => ({ value: sex, label: SEX_LABELS[sex] }))}
       />
       <Radios
-        {...errorProp(ageTypeError)}
+        {...errorProp(fieldErrors.ageType)}
         defaultValue={values.ageType}
-        label={<h2 className="govuk-heading-m">Select age type</h2>}
+        label={<QuestionLegend>Select age type</QuestionLegend>}
         name="ageType"
         options={[
           { value: 'all', label: 'All ages' },

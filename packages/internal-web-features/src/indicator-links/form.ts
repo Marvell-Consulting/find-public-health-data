@@ -8,8 +8,9 @@ import {
   type NewLinkFormValues,
 } from '@fphd/internal-api-features/contract';
 
-import type { FormFailure } from '../indicator-section.ts';
-import { type ListIntent, readListIntent } from '../list-form.ts';
+import { readFormValues } from '../form-values.ts';
+import type { FormFailure, SectionAnswers } from '../indicator-section.ts';
+import { type ListIntent, readListIntent, readListItems } from '../list-form.ts';
 
 /** The page's answers, the links added so far, and the two fields that add another. */
 export type LinksPageValues = LinksFormValues & NewLinkFormValues;
@@ -29,20 +30,13 @@ export function linkFieldName(index: number, part: keyof IndicatorLink): string 
  * fails the rules was not sent by the page, and the request is refused whole.
  */
 function readLinks(formData: FormData): IndicatorLink[] {
-  const links: IndicatorLink[] = [];
-
-  for (let index = 0; formData.has(linkFieldName(index, 'url')); index++) {
-    const link = indicatorLinkSchema.safeParse({
-      url: formData.get(linkFieldName(index, 'url')),
-      text: formData.get(linkFieldName(index, 'text')),
-    });
+  return readListItems(formData, ['url', 'text'], linkFieldName).map((item) => {
+    const link = indicatorLinkSchema.safeParse(item);
 
     if (!link.success) throw new Response('Bad Request', { status: 400 });
 
-    links.push(link.data);
-  }
-
-  return links;
+    return link.data;
+  });
 }
 
 /** The form as sent, and which of its buttons sent it; a field not sent is empty. */
@@ -50,17 +44,10 @@ export function readLinksForm(formData: FormData): {
   values: LinksPageValues;
   intent: ListIntent;
 } {
-  const text = (name: 'hasLinks' | NewLinkField) => {
-    const value = formData.get(name);
-    return typeof value === 'string' ? value : '';
-  };
-
   return {
     values: {
-      hasLinks: text('hasLinks'),
+      ...readFormValues(formData, ['hasLinks', 'linkUrl', 'linkText']),
       links: readLinks(formData),
-      linkUrl: text('linkUrl'),
-      linkText: text('linkText'),
     },
     intent: readListIntent(formData),
   };
@@ -85,4 +72,16 @@ export function withLinkRemoved(values: LinksPageValues, index: number): LinksPa
     values: { ...values, links: values.links.filter((_, at) => at !== index) },
     fieldErrors: {},
   };
+}
+
+/** The answers with a link typed but not yet added taken in, or that link's refusal. */
+export function withTypedLinkTakenIn(
+  values: LinksPageValues,
+): SectionAnswers<LinksPageValues, LinksFormValues> | LinksPageState {
+  const typed = values.linkUrl.trim() !== '' || values.linkText.trim() !== '';
+  const added = values.hasLinks === 'yes' && typed ? addLink(values.links, values) : values;
+
+  return 'fieldErrors' in added
+    ? { values, fieldErrors: added.fieldErrors }
+    : { values, answers: { hasLinks: values.hasLinks, links: added.links } };
 }

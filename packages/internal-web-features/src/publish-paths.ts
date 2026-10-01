@@ -1,7 +1,7 @@
 import type { IndicatorTaskKey } from '@fphd/internal-api-features/contract';
 
 /** The publishing journey, which is separate from the dashboard the indicators are listed on. */
-export const PUBLISH_PATH = '/publish';
+const PUBLISH_PATH = '/publish';
 
 export const NEW_INDICATOR_PATH = `${PUBLISH_PATH}/indicators/new`;
 

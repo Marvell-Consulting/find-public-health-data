@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { FORM_NOT_SAVED } from '../form-refusal.ts';
 import { ADD_INTENT, removeIntent } from '../list-form.ts';
 import { SHOW_SOURCES_INTENT, sourceFieldName } from './form.ts';
-import { loadProviderSources, submitProviderSources } from './loader.ts';
+import { loadNumeratorDenominator, submitNumeratorDenominator } from './loader.ts';
 
 const id = '00000000-0000-7000-8000-000000000001';
 const sectionPath = `/api/internal/indicators/${id}/numerator`;
@@ -46,7 +46,7 @@ function isBadRequest(error: unknown) {
 }
 
 function load(indicatorId: string, get: ApiClient['get'], section = numeratorSection) {
-  return loadProviderSources(
+  return loadNumeratorDenominator(
     {
       context: context({ get }),
       params: { id: indicatorId },
@@ -67,7 +67,7 @@ function submit(
     body.set(sourceFieldName(index, 'sourceId'), sourceId ?? '');
   });
 
-  return submitProviderSources(
+  return submitNumeratorDenominator(
     {
       context: context({ get: getting(undefined), put }),
       params: { id },
@@ -90,7 +90,7 @@ function isRedirectToTaskList(outcome: unknown) {
 
 const nothingChosen = { providerId: '', sourceId: '' };
 
-describe('loadProviderSources', () => {
+describe('loadNumeratorDenominator', () => {
   it("fills the form with the draft's answers, nothing chosen, and the providers offered", async () => {
     const get = getting({ sources: [mortality], definition: 'Deaths' });
 
@@ -124,7 +124,7 @@ describe('loadProviderSources', () => {
   );
 });
 
-describe('submitProviderSources', () => {
+describe('submitNumeratorDenominator', () => {
   it("shows the chosen provider's sources without saving anything", async () => {
     const put = vi.fn();
 

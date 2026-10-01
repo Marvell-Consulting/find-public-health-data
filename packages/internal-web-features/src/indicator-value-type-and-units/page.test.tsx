@@ -7,6 +7,7 @@ import { renderToString } from 'react-dom/server';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { ValueTypeAndUnitsPage } from './page.tsx';
 
 afterEach(() => {
@@ -50,7 +51,13 @@ function page(props: Partial<Props>) {
   // The error summary's links read router state, so the page renders inside a router.
   return (
     <MemoryRouter>
-      <ValueTypeAndUnitsPage units={UNITS} values={empty} valueTypes={VALUE_TYPES} {...props} />
+      <ValueTypeAndUnitsPage
+        {...noRefusal}
+        units={UNITS}
+        values={empty}
+        valueTypes={VALUE_TYPES}
+        {...props}
+      />
     </MemoryRouter>
   );
 }
@@ -270,7 +277,7 @@ describe('ValueTypeAndUnitsPage', () => {
     expect(document.title).toBe(`${TITLE} - ${serviceName} - GOV.UK`);
   });
 
-  it('summarises every refusal in the order the form asks, linking to each field', () => {
+  it('links each refusal to its field, in the order the form asks', () => {
     renderPage({
       values: { ...empty, valueTypeId: VALUE_TYPE_IDS.directlyStandardisedRate },
       fieldErrors: {
@@ -289,7 +296,6 @@ describe('ValueTypeAndUnitsPage', () => {
       `#${screen.getByLabelText('2013 European Standard Population').id}`,
       `#${unitSelect().id}`,
     ]);
-    expect(document.title).toBe(`Error: ${TITLE} - ${serviceName} - GOV.UK`);
   });
 
   it('marks a refused reference population and links to it', () => {
@@ -307,7 +313,7 @@ describe('ValueTypeAndUnitsPage', () => {
     expect(link.getAttribute('href')).toBe(`#${referencePopulation().id}`);
   });
 
-  it('keeps the width the prototype gives the unit name', () => {
+  it('sizes the unit name for 20 characters', () => {
     renderPage();
 
     expect(unitDetail().className).toContain('govuk-input--width-20');

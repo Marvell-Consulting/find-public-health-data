@@ -29,17 +29,14 @@ const QUESTIONS = [
   },
 ] as const;
 
-export function OtherNotesAndCaveatsPage({
-  fieldErrors = {},
-  formError,
-  values,
-}: SectionPageProps<OtherNotesAndCaveatsField>) {
+export function OtherNotesAndCaveatsPage(form: SectionPageProps<OtherNotesAndCaveatsField>) {
+  const { fieldErrors, values } = form;
+
   return (
     <IndicatorSectionForm
-      fieldErrors={fieldErrors}
-      formError={formError}
+      form={form}
       fieldIds={Object.fromEntries(QUESTIONS.map(({ answer }) => [answer, firstRadioId(answer)]))}
-      fields={otherNotesAndCaveatsSection.fields.options}
+      section={otherNotesAndCaveatsSection}
       title="Provide any other notes and caveats"
     >
       {QUESTIONS.map((question) => (

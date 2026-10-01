@@ -1,23 +1,19 @@
 import { type DataQualityField, dataQualitySection } from '@fphd/internal-api-features/contract';
-import { firstRadioId, Radios } from '@fphd/ui';
+import { errorProp, firstRadioId, Radios } from '@fphd/ui';
 
-import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
 const DATA_QUALITY_QUESTION = 'Are there any data quality issues with this indicator?';
 
 // The question is the page's h1, inside the legend, where NotGovUK sizes it.
-export function DataQualityPage({
-  fieldErrors = {},
-  formError,
-  values,
-}: SectionPageProps<DataQualityField>) {
+export function DataQualityPage(form: SectionPageProps<DataQualityField>) {
+  const { fieldErrors, values } = form;
+
   return (
     <IndicatorSectionForm
-      fieldErrors={fieldErrors}
-      formError={formError}
+      form={form}
       fieldIds={{ hasDataQualityIssues: firstRadioId('hasDataQualityIssues') }}
-      fields={dataQualitySection.fields.options}
+      section={dataQualitySection}
       questionIsHeading
       title={DATA_QUALITY_QUESTION}
     >

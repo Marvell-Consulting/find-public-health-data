@@ -22,20 +22,17 @@ const QUESTIONS = [
   },
 ] as const;
 
-export function CopyrightAndDataReusePage({
-  fieldErrors = {},
-  formError,
-  values,
-}: SectionPageProps<CopyrightAndDataReuseField>) {
+export function CopyrightAndDataReusePage(form: SectionPageProps<CopyrightAndDataReuseField>) {
+  const { fieldErrors, values } = form;
+
   return (
     <IndicatorSectionForm
-      fieldErrors={fieldErrors}
-      formError={formError}
+      form={form}
       fieldIds={{
         hasCustomCopyright: firstRadioId('hasCustomCopyright'),
         hasCustomDataReuse: firstRadioId('hasCustomDataReuse'),
       }}
-      fields={copyrightAndDataReuseSection.fields.options}
+      section={copyrightAndDataReuseSection}
       title="Copyright and data re-use"
     >
       {QUESTIONS.map((question) => (

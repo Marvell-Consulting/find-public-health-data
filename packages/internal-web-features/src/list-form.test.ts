@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ADD_INTENT, addIntent, readListIntent, removeIntent } from './list-form.ts';
+import { ADD_INTENT, addIntent, readListIntent, readListItems, removeIntent } from './list-form.ts';
 
 function formData(fields: Record<string, string>): FormData {
   const data = new FormData();
@@ -27,5 +27,27 @@ describe('readListIntent', () => {
     [{ intent: addIntent('unknown') }, { to: 'continue' }],
   ])('reads the list a button names on a form with several: %o', (fields, intent) => {
     expect(readListIntent(formData(fields), ['topics', 'frameworks'])).toEqual(intent);
+  });
+});
+
+describe('readListItems', () => {
+  const name = (index: number, part: string) => `items[${index}].${part}`;
+
+  it('reads each item in order until one is missing, a part not sent being empty', () => {
+    const data = formData({
+      'items[0].url': 'https://a.test',
+      'items[0].text': 'A',
+      'items[1].url': 'https://b.test',
+      'items[3].url': 'https://d.test',
+    });
+
+    expect(readListItems(data, ['url', 'text'], name)).toEqual([
+      { url: 'https://a.test', text: 'A' },
+      { url: 'https://b.test', text: '' },
+    ]);
+  });
+
+  it('reads no items from a form carrying none', () => {
+    expect(readListItems(formData({ 'items[0].text': 'A' }), ['url', 'text'], name)).toEqual([]);
   });
 });

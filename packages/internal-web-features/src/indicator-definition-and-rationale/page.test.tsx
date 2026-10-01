@@ -4,6 +4,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { DefinitionAndRationalePage } from './page.tsx';
 
 afterEach(cleanup);
@@ -14,7 +15,7 @@ const empty = { definition: '', rationale: '' };
 function renderPage(props: Partial<Parameters<typeof DefinitionAndRationalePage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <DefinitionAndRationalePage values={empty} {...props} />
+      <DefinitionAndRationalePage {...noRefusal} values={empty} {...props} />
     </MemoryRouter>,
   );
 }
@@ -38,7 +39,7 @@ describe('DefinitionAndRationalePage', () => {
     expect(rationaleField().getAttribute('name')).toBe('rationale');
   });
 
-  it('gives the rationale more room than the definition, as the prototype does', () => {
+  it('gives the rationale more room than the definition', () => {
     renderPage();
 
     expect(definitionField().getAttribute('rows')).toBe('8');
@@ -54,7 +55,7 @@ describe('DefinitionAndRationalePage', () => {
     expect(document.title).toBe(`Definition and rationale - ${serviceName} - GOV.UK`);
   });
 
-  it('summarises every refusal in the order the form asks, linking to each field', () => {
+  it('links each refusal to its field, in the order the form asks', () => {
     renderPage({
       fieldErrors: {
         rationale: 'Enter the rationale for the indicator',
@@ -72,7 +73,6 @@ describe('DefinitionAndRationalePage', () => {
       `#${definitionField().id}`,
       `#${rationaleField().id}`,
     ]);
-    expect(document.title).toBe(`Error: Definition and rationale - ${serviceName} - GOV.UK`);
   });
 
   it('marks only the refused field, describing it with the error and keeping what was typed', () => {

@@ -4,9 +4,16 @@ import {
   type TagOption,
   type TagOptions,
 } from '@fphd/internal-api-features/contract';
-import { Button, fieldInputId, firstRadioId, Radios, Select } from '@fphd/ui';
+import {
+  Button,
+  errorProp,
+  fieldInputId,
+  firstRadioId,
+  QuestionLegend,
+  Radios,
+  Select,
+} from '@fphd/ui';
 
-import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 import { addIntent, removeIntent } from '../list-form.ts';
 import { ADD_TAG_FIELDS, type TaggingPageField, type TaggingPageValues } from './form.ts';
@@ -97,7 +104,8 @@ interface TaggingPageProps extends SectionPageProps<TaggingPageField, TaggingPag
   options: TagOptions;
 }
 
-export function TaggingPage({ fieldErrors = {}, formError, options, values }: TaggingPageProps) {
+export function TaggingPage({ options, ...form }: TaggingPageProps) {
+  const { fieldErrors, values } = form;
   const picker = (list: TagList) => (
     <TagPicker
       fieldErrors={fieldErrors}
@@ -110,7 +118,6 @@ export function TaggingPage({ fieldErrors = {}, formError, options, values }: Ta
   return (
     <IndicatorSectionForm
       continueOnEnter
-      fieldErrors={fieldErrors}
       fieldIds={{
         topicIds: fieldInputId('addTopic'),
         indicatorTypeIds: fieldInputId('addIndicatorType'),
@@ -120,7 +127,7 @@ export function TaggingPage({ fieldErrors = {}, formError, options, values }: Ta
         frameworkIds: fieldInputId('addFramework'),
       }}
       fields={FIELDS}
-      formError={formError}
+      form={form}
       title="Add tags for this indicator"
     >
       {picker('topicIds')}
@@ -128,8 +135,7 @@ export function TaggingPage({ fieldErrors = {}, formError, options, values }: Ta
       <Radios
         {...errorProp(fieldErrors.hasRiskFactor)}
         defaultValue={values.hasRiskFactor}
-        // NotGovUK sizes a legend by the heading passed as its label.
-        label={<h2 className="govuk-heading-m">{RISK_FACTOR_QUESTION}</h2>}
+        label={<QuestionLegend>{RISK_FACTOR_QUESTION}</QuestionLegend>}
         name="hasRiskFactor"
         options={[
           // Shown without JavaScript; with it, only while "Yes" is chosen.
@@ -140,7 +146,7 @@ export function TaggingPage({ fieldErrors = {}, formError, options, values }: Ta
       <Radios
         {...errorProp(fieldErrors.hasFramework)}
         defaultValue={values.hasFramework}
-        label={<h2 className="govuk-heading-m">{FRAMEWORK_QUESTION}</h2>}
+        label={<QuestionLegend>{FRAMEWORK_QUESTION}</QuestionLegend>}
         name="hasFramework"
         options={[
           { label: 'Yes', value: 'yes', conditional: picker('frameworkIds') },

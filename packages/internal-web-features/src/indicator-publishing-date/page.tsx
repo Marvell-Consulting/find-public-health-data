@@ -2,7 +2,7 @@ import {
   type PublishingDateField,
   publishingDateSection,
 } from '@fphd/internal-api-features/contract';
-import { DateInput, datePartId, datePartName, TimeInput } from '@fphd/ui';
+import { DateInput, datePartId, datePartName, QuestionLegend, TimeInput } from '@fphd/ui';
 
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
@@ -46,18 +46,14 @@ interface PublishingDatePageProps extends SectionPageProps<PublishingDateField> 
 }
 
 // Each group shows its first message and marks only the parts given one.
-export function PublishingDatePage({
-  dateExample,
-  fieldErrors = {},
-  formError,
-  values,
-}: PublishingDatePageProps) {
+export function PublishingDatePage({ dateExample, ...form }: PublishingDatePageProps) {
+  const { fieldErrors, values } = form;
+
   return (
     <IndicatorSectionForm
-      fieldErrors={fieldErrors}
-      formError={formError}
       fieldIds={eachPart(datePartId)}
-      fields={publishingDateSection.fields.options}
+      form={form}
+      section={publishingDateSection}
       title="When should this indicator be published?"
     >
       <DateInput
@@ -68,15 +64,14 @@ export function PublishingDatePage({
         }}
         error={groupError(fieldErrors, DATE)}
         hint={`For example, ${dateExample}`}
-        // NotGovUK sizes a legend by the heading passed as its label.
-        label={<h2 className="govuk-heading-m">Date</h2>}
+        label={<QuestionLegend>Date</QuestionLegend>}
         name={DATE}
       />
       <TimeInput
         defaultValue={{ hour: values.publishingTimeHour, minute: values.publishingTimeMinute }}
         error={groupError(fieldErrors, TIME)}
         hint="This will be 09:30 local UK time by default. Only change this if a different publication time is needed. Use 24 hour clock format, for example 15:00."
-        label={<h2 className="govuk-heading-m">Time</h2>}
+        label={<QuestionLegend>Time</QuestionLegend>}
         name={TIME}
       />
     </IndicatorSectionForm>

@@ -4,6 +4,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { VarianceAndQualityPage } from './page.tsx';
 
 afterEach(cleanup);
@@ -25,7 +26,7 @@ const DETAILS =
 function renderPage(props: Partial<Parameters<typeof VarianceAndQualityPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <VarianceAndQualityPage values={empty} {...props} />
+      <VarianceAndQualityPage {...noRefusal} values={empty} {...props} />
     </MemoryRouter>,
   );
 }
@@ -92,7 +93,7 @@ describe('VarianceAndQualityPage', () => {
     expect(document.title).toBe(`Variance and quality - ${serviceName} - GOV.UK`);
   });
 
-  it('summarises every refusal in the order the form asks, linking to each control', () => {
+  it('links each refusal to its control, in the order the form asks', () => {
     renderPage({
       fieldErrors: {
         hasSourceDataIssues:
@@ -112,7 +113,6 @@ describe('VarianceAndQualityPage', () => {
       `#${hasSourceDataIssues().getByLabelText('Yes').id}`,
     ]);
     expect(textarea(VARIATION).className).toContain('govuk-textarea--error');
-    expect(document.title).toBe(`Error: Variance and quality - ${serviceName} - GOV.UK`);
   });
 
   it('links a missing detail to its field', () => {

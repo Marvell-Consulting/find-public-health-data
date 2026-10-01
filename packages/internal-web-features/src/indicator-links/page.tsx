@@ -1,7 +1,6 @@
 import type { IndicatorLink } from '@fphd/internal-api-features/contract';
-import { Button, fieldInputId, firstRadioId, Radios, TextInput } from '@fphd/ui';
+import { Button, errorProp, fieldInputId, firstRadioId, Radios, TextInput } from '@fphd/ui';
 
-import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 import { ADD_INTENT, removeIntent } from '../list-form.ts';
 import { type LinksPageField, type LinksPageValues, linkFieldName } from './form.ts';
@@ -42,21 +41,17 @@ function AddedLinks({ links }: { links: readonly IndicatorLink[] }) {
 }
 
 // The question is the page's h1, inside the legend, where NotGovUK sizes it.
-export function LinksPage({
-  fieldErrors = {},
-  formError,
-  values,
-}: SectionPageProps<LinksPageField, LinksPageValues>) {
+export function LinksPage(form: SectionPageProps<LinksPageField, LinksPageValues>) {
+  const { fieldErrors, values } = form;
   // "Yes" with no links is asked of the URL field, where the next link goes.
   const linkUrlError = fieldErrors.linkUrl ?? fieldErrors.links;
 
   return (
     <IndicatorSectionForm
       continueOnEnter
-      fieldErrors={fieldErrors}
-      formError={formError}
       fieldIds={{ hasLinks: firstRadioId('hasLinks'), links: fieldInputId('linkUrl') }}
       fields={FIELDS}
+      form={form}
       questionIsHeading
       title={LINKS_QUESTION}
     >

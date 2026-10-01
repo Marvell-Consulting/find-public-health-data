@@ -1,3 +1,5 @@
+import { type ControlNames, type FormValues, readFormValues } from './form-values.ts';
+
 /**
  * Which button sent a form that builds lists: an Add, the Remove of one item, or Continue.
  * Continue has no name, so a form sent any other way continues. A form with several lists
@@ -38,4 +40,26 @@ export function readListIntent<List extends string = never>(
     return { to: 'remove', index: Number(index), ...named };
 
   return { to: 'continue' };
+}
+
+/**
+ * Each item of a list the form carries, one field per part named by `name`, from the first
+ * until one whose first part was not sent.
+ */
+export function readListItems<Part extends string>(
+  formData: FormData,
+  parts: readonly Part[],
+  name: (index: number, part: Part) => string,
+): FormValues<Part>[] {
+  const [first] = parts;
+  const items: FormValues<Part>[] = [];
+
+  for (let index = 0; first !== undefined && formData.has(name(index, first)); index++) {
+    const names = Object.fromEntries(
+      parts.map((part) => [part, name(index, part)]),
+    ) as ControlNames<Part>;
+    items.push(readFormValues(formData, parts, names));
+  }
+
+  return items;
 }

@@ -1,7 +1,8 @@
 import { backLinkHandle } from '@fphd/ui';
 import { useActionData, useLoaderData } from 'react-router';
 
-import type { FormFailure, FormValues } from './indicator-section.ts';
+import type { FormValues } from './form-values.ts';
+import type { FormFailure } from './indicator-section.ts';
 import type { SectionPageProps } from './indicator-section-form.tsx';
 import { indicatorTaskListPath } from './publish-paths.ts';
 
@@ -19,7 +20,7 @@ export function useSectionForm<
   const rejected = useActionData<FormFailure<Field, Values> | undefined>();
 
   return {
-    fieldErrors: rejected?.fieldErrors,
+    fieldErrors: rejected?.fieldErrors ?? {},
     formError: rejected?.formError,
     values: rejected?.values ?? values,
   };

@@ -1,21 +1,17 @@
 import { type CalculationField, calculationSection } from '@fphd/internal-api-features/contract';
-import { firstRadioId, Radios, Textarea } from '@fphd/ui';
+import { errorProp, firstRadioId, QuestionLegend, Radios, Textarea } from '@fphd/ui';
 import { INDICATOR_CALCULATED_BY_LABELS } from '@fphd/utils/calculated-by';
 
-import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
-export function CalculationPage({
-  fieldErrors = {},
-  formError,
-  values,
-}: SectionPageProps<CalculationField>) {
+export function CalculationPage(form: SectionPageProps<CalculationField>) {
+  const { fieldErrors, values } = form;
+
   return (
     <IndicatorSectionForm
-      fieldErrors={fieldErrors}
-      formError={formError}
+      form={form}
       fieldIds={{ calculatedBy: firstRadioId('calculatedBy') }}
-      fields={calculationSection.fields.options}
+      section={calculationSection}
       title="How was the indicator calculated?"
     >
       <Textarea
@@ -28,8 +24,7 @@ export function CalculationPage({
       <Radios
         {...errorProp(fieldErrors.calculatedBy)}
         defaultValue={values.calculatedBy}
-        // NotGovUK sizes a heading in a legend; a bare h2 would be large, the class makes it medium.
-        label={<h2 className="govuk-heading-m">Who calculated the indicator?</h2>}
+        label={<QuestionLegend>Who calculated the indicator?</QuestionLegend>}
         name="calculatedBy"
         options={[
           { value: 'ohid', label: INDICATOR_CALCULATED_BY_LABELS.ohid },

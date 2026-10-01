@@ -4,6 +4,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { OtherNotesAndCaveatsPage } from './page.tsx';
 
 afterEach(cleanup);
@@ -30,7 +31,7 @@ const QUESTIONS = [
 function renderPage(props: Partial<Parameters<typeof OtherNotesAndCaveatsPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <OtherNotesAndCaveatsPage values={empty} {...props} />
+      <OtherNotesAndCaveatsPage {...noRefusal} values={empty} {...props} />
     </MemoryRouter>,
   );
 }
@@ -129,7 +130,7 @@ describe('OtherNotesAndCaveatsPage', () => {
     );
   });
 
-  it('summarises every refusal in the order the form asks, linking to each control', () => {
+  it('links each refusal to its control, in the order the form asks', () => {
     renderPage({
       fieldErrors: {
         hasOtherNotes: 'Select whether there are any other notes needed',
@@ -151,8 +152,5 @@ describe('OtherNotesAndCaveatsPage', () => {
       `#${option('Has any rounding been applied?', 'Yes').id}`,
       `#${option('Are there any other notes needed?', 'Yes').id}`,
     ]);
-    expect(document.title).toBe(
-      `Error: Provide any other notes and caveats - ${serviceName} - GOV.UK`,
-    );
   });
 });

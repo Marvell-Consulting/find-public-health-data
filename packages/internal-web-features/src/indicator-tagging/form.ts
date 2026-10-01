@@ -6,10 +6,11 @@ import {
   type TagList,
 } from '@fphd/internal-api-features/contract';
 
-import type { FormFailure } from '../indicator-section.ts';
+import { readFormValues } from '../form-values.ts';
+import type { FormFailure, SectionAnswers } from '../indicator-section.ts';
 import { type ListIntent, readListIntent } from '../list-form.ts';
 
-/** The select that adds a tag to each list, named as the prototype names it. */
+/** The select that adds a tag to each list. */
 export const ADD_TAG_FIELDS = {
   topicIds: 'addTopic',
   indicatorTypeIds: 'addIndicatorType',
@@ -17,7 +18,7 @@ export const ADD_TAG_FIELDS = {
   frameworkIds: 'addFramework',
 } as const satisfies Record<TagList, string>;
 
-export type AddTagField = (typeof ADD_TAG_FIELDS)[TagList];
+type AddTagField = (typeof ADD_TAG_FIELDS)[TagList];
 
 /** The page's answers, and the tag chosen in each select but not yet added. */
 export type TaggingPageValues = TaggingFormValues & Record<AddTagField, string>;
@@ -43,25 +44,20 @@ export function readTaggingForm(formData: FormData): {
   values: TaggingPageValues;
   intent: ListIntent<TagList>;
 } {
-  const text = (name: 'hasRiskFactor' | 'hasFramework' | AddTagField) => {
-    const value = formData.get(name);
-    return typeof value === 'string' ? value : '';
-  };
   const ids = (list: TagList) =>
     formData.getAll(list).filter((id): id is string => typeof id === 'string');
 
   return {
     values: {
+      ...readFormValues(formData, [
+        'hasRiskFactor',
+        'hasFramework',
+        ...Object.values(ADD_TAG_FIELDS),
+      ]),
       topicIds: ids('topicIds'),
       indicatorTypeIds: ids('indicatorTypeIds'),
-      hasRiskFactor: text('hasRiskFactor'),
       riskFactorIds: ids('riskFactorIds'),
-      hasFramework: text('hasFramework'),
       frameworkIds: ids('frameworkIds'),
-      addTopic: text('addTopic'),
-      addIndicatorType: text('addIndicatorType'),
-      addRiskFactor: text('addRiskFactor'),
-      addFramework: text('addFramework'),
     },
     intent: readListIntent(formData, TAG_LISTS),
   };
@@ -109,12 +105,16 @@ export function withTagRemoved(
   };
 }
 
-/** The values with every tag chosen but not added taken in, except beside a "No". */
-export function withChosenTagsAdded(values: TaggingPageValues): TaggingPageValues {
-  return TAG_LISTS.reduce((current, list) => {
+/** The answers with every tag chosen but not added taken in, except beside a "No". */
+export function withChosenTagsTakenIn(
+  sent: TaggingPageValues,
+): SectionAnswers<TaggingPageValues, TaggingFormValues> {
+  const values = TAG_LISTS.reduce((current, list) => {
     const question = LIST_QUESTIONS[list];
     const wanted = question === undefined || current[question] !== 'no';
 
     return wanted && current[ADD_TAG_FIELDS[list]] !== '' ? withChosen(current, list) : current;
-  }, values);
+  }, sent);
+
+  return { values, answers: values };
 }

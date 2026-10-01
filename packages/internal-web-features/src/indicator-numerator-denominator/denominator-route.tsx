@@ -3,13 +3,15 @@ import { titleFromPage } from '@fphd/ui';
 import { type ActionFunctionArgs, type LoaderFunctionArgs, useLoaderData } from 'react-router';
 
 import { sectionBackLinkHandle, useSectionForm } from '../indicator-section-route.ts';
-import type { ProviderSourcesPageField, ProviderSourcesPageValues } from './form.ts';
-import { loadProviderSources, submitProviderSources } from './loader.ts';
-import { ProviderSourcesPage } from './page.tsx';
+import type { NumeratorDenominatorPageField, NumeratorDenominatorPageValues } from './form.ts';
+import { loadNumeratorDenominator, submitNumeratorDenominator } from './loader.ts';
+import { NumeratorDenominatorPage } from './page.tsx';
 
-export const loader = (args: LoaderFunctionArgs) => loadProviderSources(args, denominatorSection);
+export const loader = (args: LoaderFunctionArgs) =>
+  loadNumeratorDenominator(args, denominatorSection);
 
-export const action = (args: ActionFunctionArgs) => submitProviderSources(args, denominatorSection);
+export const action = (args: ActionFunctionArgs) =>
+  submitNumeratorDenominator(args, denominatorSection);
 
 export const meta = titleFromPage;
 
@@ -19,10 +21,10 @@ export function DenominatorRoute() {
   const { providers } = useLoaderData<typeof loader>();
 
   return (
-    <ProviderSourcesPage
+    <NumeratorDenominatorPage
       part="denominator"
       providers={providers}
-      {...useSectionForm<ProviderSourcesPageField, ProviderSourcesPageValues>()}
+      {...useSectionForm<NumeratorDenominatorPageField, NumeratorDenominatorPageValues>()}
     />
   );
 }

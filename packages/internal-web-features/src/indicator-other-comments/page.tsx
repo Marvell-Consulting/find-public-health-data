@@ -7,17 +7,14 @@ import { firstRadioId, Textarea } from '@fphd/ui';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 import { YesNoQuestion } from '../yes-no-question.tsx';
 
-export function OtherCommentsPage({
-  fieldErrors = {},
-  formError,
-  values,
-}: SectionPageProps<OtherCommentsField>) {
+export function OtherCommentsPage(form: SectionPageProps<OtherCommentsField>) {
+  const { fieldErrors, values } = form;
+
   return (
     <IndicatorSectionForm
-      fieldErrors={fieldErrors}
-      formError={formError}
+      form={form}
       fieldIds={{ hasReviewerComments: firstRadioId('hasReviewerComments') }}
-      fields={otherCommentsSection.fields.options}
+      section={otherCommentsSection}
       title="Other comments"
     >
       <Textarea

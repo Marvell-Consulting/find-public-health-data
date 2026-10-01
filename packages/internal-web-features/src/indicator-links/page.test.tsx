@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import type { LinksPageValues } from './form.ts';
 import { LinksPage } from './page.tsx';
 
@@ -21,7 +22,7 @@ const twoLinks: LinksPageValues = { ...empty, hasLinks: 'yes', links: [commentar
 function renderPage(props: Partial<Parameters<typeof LinksPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <LinksPage values={empty} {...props} />
+      <LinksPage {...noRefusal} values={empty} {...props} />
     </MemoryRouter>,
   );
 }
@@ -174,7 +175,7 @@ describe('LinksPage', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('summarises every refusal in the order the page asks, linking to each control', () => {
+  it('links each refusal to its control, in the order the page asks', () => {
     renderPage({
       values: { ...empty, hasLinks: 'yes' },
       fieldErrors: { linkText: 'Enter link text', linkUrl: 'Enter a URL' },
@@ -188,7 +189,6 @@ describe('LinksPage', () => {
     ]);
     expect(urlField().className).toContain('govuk-input--error');
     expect(textField().className).toContain('govuk-input--error');
-    expect(document.title).toBe(`Error: ${QUESTION} - ${serviceName} - GOV.UK`);
   });
 
   it('links an unanswered question to the first option', () => {

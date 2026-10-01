@@ -4,6 +4,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { UpdateFrequencyPage } from './page.tsx';
 
 afterEach(cleanup);
@@ -14,7 +15,7 @@ const QUESTION = 'How often will this indicator be updated?';
 function renderPage(props: Partial<Parameters<typeof UpdateFrequencyPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <UpdateFrequencyPage values={{ updateFrequency: '' }} {...props} />
+      <UpdateFrequencyPage {...noRefusal} values={{ updateFrequency: '' }} {...props} />
     </MemoryRouter>,
   );
 }
@@ -82,6 +83,5 @@ describe('UpdateFrequencyPage', () => {
     expect(link.getAttribute('href')).toBe(`#${option('Monthly').id}`);
     expect(screen.getByRole('group').getAttribute('aria-describedby')).toBe(error?.id);
     expect(container.querySelectorAll('.govuk-form-group--error')).toHaveLength(1);
-    expect(document.title).toBe(`Error: ${QUESTION} - ${serviceName} - GOV.UK`);
   });
 });

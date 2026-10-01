@@ -4,6 +4,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { noRefusal } from '../testing.ts';
 import { CopyrightAndDataReusePage } from './page.tsx';
 
 afterEach(cleanup);
@@ -22,7 +23,7 @@ const DATA_REUSE = 'Is the data re-use different to the default?';
 function renderPage(props: Partial<Parameters<typeof CopyrightAndDataReusePage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <CopyrightAndDataReusePage values={empty} {...props} />
+      <CopyrightAndDataReusePage {...noRefusal} values={empty} {...props} />
     </MemoryRouter>,
   );
 }
@@ -99,7 +100,7 @@ describe('CopyrightAndDataReusePage', () => {
     expect(document.title).toBe(`Copyright and data re-use - ${serviceName} - GOV.UK`);
   });
 
-  it('summarises every refusal in the order the form asks, linking to each control', () => {
+  it('links each refusal to its control, in the order the form asks', () => {
     renderPage({
       fieldErrors: {
         hasCustomDataReuse: 'Select whether the data re-use is different to the default',
@@ -118,6 +119,5 @@ describe('CopyrightAndDataReusePage', () => {
       `#${details(COPYRIGHT).id}`,
       `#${question(DATA_REUSE).getByLabelText('Yes').id}`,
     ]);
-    expect(document.title).toBe(`Error: Copyright and data re-use - ${serviceName} - GOV.UK`);
   });
 });

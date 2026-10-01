@@ -5,21 +5,20 @@ import {
   type ProviderSource,
   providerSourceLabel,
 } from '@fphd/internal-api-features/contract';
-import { Button, fieldInputId, Select, Textarea } from '@fphd/ui';
-import { useEffect, useState } from 'react';
+import { Button, errorProp, fieldInputId, Select, Textarea } from '@fphd/ui';
 
-import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 import { ADD_INTENT, removeIntent } from '../list-form.ts';
+import { useSelectedValue } from '../selected-value.ts';
 import {
-  type ProviderSourcesPageField,
-  type ProviderSourcesPageValues,
+  type NumeratorDenominatorPageField,
+  type NumeratorDenominatorPageValues,
   SHOW_SOURCES_INTENT,
   sourceFieldName,
 } from './form.ts';
 
 // The order the error summary lists them in, which is the order the page asks.
-const FIELDS: readonly ProviderSourcesPageField[] = [
+const FIELDS: readonly NumeratorDenominatorPageField[] = [
   'sources',
   'providerId',
   'sourceId',
@@ -70,8 +69,8 @@ function AddedSources({
   );
 }
 
-interface ProviderSourcesPageProps
-  extends SectionPageProps<ProviderSourcesPageField, ProviderSourcesPageValues> {
+interface NumeratorDenominatorPageProps
+  extends SectionPageProps<NumeratorDenominatorPageField, NumeratorDenominatorPageValues> {
   part: IndicatorSourcePart;
   providers: readonly DataProvider[];
 }
@@ -81,34 +80,23 @@ interface ProviderSourcesPageProps
  * once it is chosen: in the browser as soon as it is, and without JavaScript by Show sources,
  * which sends the form back with the provider chosen.
  */
-export function ProviderSourcesPage({
-  fieldErrors = {},
-  formError,
+export function NumeratorDenominatorPage({
   part,
   providers,
-  values,
-}: ProviderSourcesPageProps) {
-  const [providerId, setProviderId] = useState(values.providerId);
-  const [enhanced, setEnhanced] = useState(false);
-
-  useEffect(() => {
-    // A provider chosen before hydration is in the select but not yet in state.
-    const select = document.getElementById(fieldInputId('providerId'));
-    if (select instanceof HTMLSelectElement) setProviderId(select.value);
-    setEnhanced(true);
-  }, []);
-
-  const provider = providers.find(({ id }) => id === providerId);
+  ...form
+}: NumeratorDenominatorPageProps) {
+  const { fieldErrors, values } = form;
+  const selected = useSelectedValue<NumeratorDenominatorPageField>('providerId', values.providerId);
+  const provider = providers.find(({ id }) => id === selected.value);
   // Nothing added yet is asked of the provider select, where the first source is chosen.
   const providerError = fieldErrors.providerId ?? fieldErrors.sources;
 
   return (
     <IndicatorSectionForm
       continueOnEnter
-      fieldErrors={fieldErrors}
       fieldIds={{ sources: fieldInputId('providerId') }}
       fields={FIELDS}
-      formError={formError}
+      form={form}
       title={`What are the details of the ${part}?`}
     >
       <AddedSources providers={providers} sources={values.sources} />
@@ -117,13 +105,13 @@ export function ProviderSourcesPage({
         defaultValue={values.providerId}
         label={`Add a data provider for the ${part}`}
         name="providerId"
-        onChange={(event) => setProviderId(event.target.value)}
+        onChange={selected.onChange}
         options={[
           { label: 'Select a data provider', value: '' },
           ...providers.map(({ id, name }) => ({ label: name, value: id })),
         ]}
       />
-      {enhanced ? null : (
+      {selected.enhanced ? null : (
         <Button classModifiers="secondary" name="intent" value={SHOW_SOURCES_INTENT}>
           Show sources
         </Button>
@@ -131,9 +119,9 @@ export function ProviderSourcesPage({
       <div hidden={provider === undefined}>
         <Select
           {...errorProp(fieldErrors.sourceId)}
-          defaultValue={providerId === values.providerId ? values.sourceId : ''}
+          defaultValue={selected.value === values.providerId ? values.sourceId : ''}
           // Remounted for each provider, so the choice starts again with its sources.
-          key={providerId}
+          key={selected.value}
           label={
             provider === undefined
               ? 'Add the specific source'

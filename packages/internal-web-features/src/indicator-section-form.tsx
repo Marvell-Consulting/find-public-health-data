@@ -1,43 +1,54 @@
 import { Button, DocumentTitle, ErrorSummary, GridColumn, GridRow } from '@fphd/ui';
 import type { ReactNode } from 'react';
 
-import type { FormValues } from './indicator-section.ts';
+import type { FormValues } from './form-values.ts';
 
 /** What every section page is given: its answers, and any refusals of the last submission. */
 export interface SectionPageProps<Field extends string, Values = FormValues<Field>> {
-  fieldErrors?: Partial<Record<Field, string>> | undefined;
-  formError?: string | undefined;
+  fieldErrors: Partial<Record<Field, string>>;
+  /** Required, so no page can drop a refusal that names no field. */
+  formError: string | undefined;
   values: Values;
 }
 
-interface IndicatorSectionFormProps<Field extends string> {
+type IndicatorSectionFormProps<Field extends string> = {
   /** The page's h1 and its document title. */
   title: string;
   /** Set when the page asks one question whose label or legend is the h1, so none is added. */
   questionIsHeading?: boolean;
-  /** Every field, in the order the form asks them, which the error summary follows. */
-  fields: readonly Field[];
-  fieldErrors: Partial<Record<Field, string>>;
-  /** Required, so no page can drop a refusal that names no field. */
-  formError: string | undefined;
+  /** The page's refusals, which the error summary lists. */
+  form: Omit<SectionPageProps<Field, unknown>, 'values'>;
   /** Where a summary link goes when it is not the field's own input, such as `firstRadioId`. */
   fieldIds?: Partial<Record<Field, string>>;
   /** Set when the form has buttons of its own before Continue, which Enter would otherwise press. */
   continueOnEnter?: boolean;
   children: ReactNode;
-}
+} & (
+  | {
+      /** The section the page answers, whose fields it asks in their order. */
+      section: { fields: { options: readonly Field[] } };
+      fields?: never;
+    }
+  | {
+      /** Every field, in the order the page asks them, where they are not its section's alone. */
+      fields: readonly Field[];
+      section?: never;
+    }
+);
 
 /** The frame of a section page: title, error summary, and a form that continues to the task list. */
-export function IndicatorSectionForm<Field extends string>({
-  children,
-  continueOnEnter = false,
-  fieldErrors,
-  fieldIds = {},
-  fields,
-  formError,
-  questionIsHeading = false,
-  title,
-}: IndicatorSectionFormProps<Field>) {
+export function IndicatorSectionForm<Field extends string>(
+  props: IndicatorSectionFormProps<Field>,
+) {
+  const {
+    children,
+    continueOnEnter = false,
+    form: { fieldErrors, formError },
+    questionIsHeading = false,
+    title,
+  } = props;
+  const fieldIds: Partial<Record<Field, string>> = props.fieldIds ?? {};
+  const fields = props.fields ?? props.section.fields.options;
   // A message given on several fields, such as the parts of a date, links to the first of them.
   const errors = fields.flatMap((name, index) => {
     const message = fieldErrors[name];

@@ -1,13 +1,20 @@
 import { type PeriodTypeField, periodTypeSection } from '@fphd/internal-api-features/contract';
-import { DayMonthInput, datePartId, datePartName, firstRadioId, Radios } from '@fphd/ui';
+import {
+  DayMonthInput,
+  datePartId,
+  datePartName,
+  errorProp,
+  firstRadioId,
+  QuestionLegend,
+  Radios,
+} from '@fphd/ui';
 import {
   PERIOD_TYPE_LABELS,
   PERIOD_TYPES_WITH_YEAR_TYPE,
   YEAR_TYPE_LABELS,
 } from '@fphd/utils/period-type';
 
-import { errorProp } from '../error-prop.ts';
-import type { ControlNames } from '../indicator-section.ts';
+import type { ControlNames } from '../form-values.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
 /** The period types that ask for a year type, each asking it in its own reveal. */
@@ -61,8 +68,11 @@ function YearTypeQuestion({ fieldErrors, set, values }: YearTypeQuestionProps) {
       {...errorProp(yearTypeError)}
       classModifiers="small"
       defaultValue={values.yearType}
-      // NotGovUK sizes a legend by its label's heading level or class; an h3 would be medium.
-      label={<span className="govuk-heading-s">Select year type</span>}
+      label={
+        <QuestionLegend as="span" size="s">
+          Select year type
+        </QuestionLegend>
+      }
       name={`${set}YearType`}
       options={[
         ...(['calendar', 'financial', 'academic', 'rolling'] as const).map((value) => ({
@@ -87,11 +97,8 @@ function YearTypeQuestion({ fieldErrors, set, values }: YearTypeQuestionProps) {
 }
 
 // The same year type question sits under both Years and Quarters; only the chosen one is read.
-export function PeriodTypePage({
-  fieldErrors = {},
-  formError,
-  values,
-}: SectionPageProps<PeriodTypeField>) {
+export function PeriodTypePage(form: SectionPageProps<PeriodTypeField>) {
+  const { fieldErrors, values } = form;
   const chosenSet = yearTypeSetOf(values.periodType);
 
   const question = (set: YearTypeSet) => (
@@ -104,8 +111,7 @@ export function PeriodTypePage({
 
   return (
     <IndicatorSectionForm
-      fieldErrors={fieldErrors}
-      formError={formError}
+      form={form}
       fieldIds={{
         periodType: firstRadioId('periodType'),
         ...(chosenSet === undefined
@@ -115,14 +121,13 @@ export function PeriodTypePage({
               yearType: firstRadioId(`${chosenSet}YearType`),
             }),
       }}
-      fields={periodTypeSection.fields.options}
+      section={periodTypeSection}
       title="What is the period type in this indicator?"
     >
       <Radios
         {...errorProp(fieldErrors.periodType)}
         defaultValue={values.periodType}
-        // NotGovUK sizes a legend by the heading passed as its label.
-        label={<h2 className="govuk-heading-m">Select period type</h2>}
+        label={<QuestionLegend>Select period type</QuestionLegend>}
         name="periodType"
         options={[
           {
