@@ -68,12 +68,6 @@ export interface LinksFormValues {
   links: IndicatorLink[];
 }
 
-export const linksSection: IndicatorSection<LinksField, Links, LinksFormValues> = {
-  key: 'links',
-  fields,
-  schema,
-};
-
 /** The draft's answers: null until the question is answered, and no links until some are. */
 export const linksAnswersSchema = z.object({
   hasLinks: z.enum(['yes', 'no']).nullable(),
@@ -82,13 +76,18 @@ export const linksAnswersSchema = z.object({
 
 export type LinksAnswers = z.infer<typeof linksAnswersSchema>;
 
-export function linksFormValues({ hasLinks, links }: LinksAnswers): LinksFormValues {
-  return { hasLinks: hasLinks ?? '', links };
-}
-
-export function areLinksComplete(answers: LinksAnswers): boolean {
-  return schema.safeParse(linksFormValues(answers)).success;
-}
+export const linksSection: IndicatorSection<
+  LinksField,
+  Links,
+  LinksFormValues,
+  LinksField,
+  LinksAnswers
+> = {
+  key: 'links',
+  fields,
+  schema,
+  formValues: ({ hasLinks, links }) => ({ hasLinks: hasLinks ?? '', links }),
+};
 
 /** The two fields that add a link to the list, as typed. */
 export interface NewLinkFormValues {

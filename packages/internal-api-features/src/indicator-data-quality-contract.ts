@@ -1,6 +1,6 @@
 import { z } from '@fphd/config/zod';
 
-import { type IndicatorSection, yesNoSchema } from './indicator-section-contract.ts';
+import { type IndicatorSection, textSection, yesNoSchema } from './indicator-section-contract.ts';
 
 const fields = z.enum(['hasDataQualityIssues']);
 
@@ -13,8 +13,5 @@ const schema = z.object({
 export type DataQualityField = z.infer<typeof fields>;
 export type IndicatorDataQuality = z.infer<typeof schema>;
 
-export const dataQualitySection: IndicatorSection<DataQualityField, IndicatorDataQuality> = {
-  key: 'data-quality',
-  fields,
-  schema,
-};
+export const dataQualitySection: IndicatorSection<DataQualityField, IndicatorDataQuality> =
+  textSection({ key: 'data-quality', fields, schema });

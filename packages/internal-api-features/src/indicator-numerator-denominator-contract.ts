@@ -63,21 +63,6 @@ export interface ProviderSourcesFormValues {
   definition: string;
 }
 
-/** One of the two sections, keyed by the part of the calculation it asks about. */
-export type ProviderSourcesSection = IndicatorSection<
-  ProviderSourcesField,
-  ProviderSources,
-  ProviderSourcesFormValues
-> & { key: IndicatorSourcePart };
-
-function providerSourcesSection(part: IndicatorSourcePart): ProviderSourcesSection {
-  return { key: part, fields, schema: schemaOf(part) };
-}
-
-export const numeratorSection = providerSourcesSection('numerator');
-
-export const denominatorSection = providerSourcesSection('denominator');
-
 /** The draft's answers: no sources until some are added, and no definition until typed. */
 export const providerSourcesAnswersSchema = z.object({
   sources: z.array(providerSourceSchema),
@@ -86,19 +71,27 @@ export const providerSourcesAnswersSchema = z.object({
 
 export type ProviderSourcesAnswers = z.infer<typeof providerSourcesAnswersSchema>;
 
-export function providerSourcesFormValues({
-  sources,
-  definition,
-}: ProviderSourcesAnswers): ProviderSourcesFormValues {
-  return { sources, definition: definition ?? '' };
+/** One of the two sections, keyed by the part of the calculation it asks about. */
+export type ProviderSourcesSection = IndicatorSection<
+  ProviderSourcesField,
+  ProviderSources,
+  ProviderSourcesFormValues,
+  ProviderSourcesField,
+  ProviderSourcesAnswers
+> & { key: IndicatorSourcePart };
+
+function providerSourcesSection(part: IndicatorSourcePart): ProviderSourcesSection {
+  return {
+    key: part,
+    fields,
+    schema: schemaOf(part),
+    formValues: ({ sources, definition }) => ({ sources, definition: definition ?? '' }),
+  };
 }
 
-export function areProviderSourcesComplete(
-  section: ProviderSourcesSection,
-  answers: ProviderSourcesAnswers,
-): boolean {
-  return section.schema.safeParse(providerSourcesFormValues(answers)).success;
-}
+export const numeratorSection = providerSourcesSection('numerator');
+
+export const denominatorSection = providerSourcesSection('denominator');
 
 /** The select's value for a provider chosen with no specific source. */
 export const NO_SPECIFIC_SOURCE = 'none';

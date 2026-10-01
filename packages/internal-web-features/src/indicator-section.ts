@@ -5,7 +5,6 @@ import {
   indicatorSectionAnswersSchema,
   indicatorSectionErrorSchema,
   indicatorSectionFieldErrors,
-  indicatorSectionFormValues,
 } from '@fphd/internal-api-features/contract';
 import { type ApiResponseSchema, apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
@@ -59,7 +58,7 @@ export async function loadIndicatorSection<Field extends string, Values>(
     indicatorSectionAnswersSchema(section.fields),
   );
 
-  return { id, values: indicatorSectionFormValues(section.fields, answers) };
+  return { id, values: section.formValues(answers) };
 }
 
 /**
@@ -69,7 +68,7 @@ export async function loadIndicatorSection<Field extends string, Values>(
 async function putIndicatorSection<Field extends string, ErrorField extends string>(
   context: Readonly<RouterContextProvider>,
   id: string,
-  section: IndicatorSection<Field, unknown, unknown, ErrorField>,
+  section: IndicatorSection<Field, unknown, unknown, ErrorField, never>,
   answers: unknown,
   answersSchema: ApiResponseSchema<unknown>,
 ): Promise<Response | FormRefusal<Field | ErrorField>> {
@@ -112,7 +111,7 @@ export async function saveIndicatorSectionValues<
 >(
   context: Readonly<RouterContextProvider>,
   id: string,
-  section: IndicatorSection<Field, unknown, Input, ErrorField>,
+  section: IndicatorSection<Field, unknown, Input, ErrorField, never>,
   sent: Values,
   { answersSchema, takeIn }: SaveSectionOptions<Field | ErrorField | PageField, Values, Input>,
 ): Promise<FormFailure<Field | ErrorField | PageField, Values> | Response> {

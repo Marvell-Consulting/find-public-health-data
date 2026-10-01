@@ -5,7 +5,6 @@ import {
   dataProviderListSchema,
   type ProviderSourcesSection,
   providerSourcesAnswersSchema,
-  providerSourcesFormValues,
 } from '@fphd/internal-api-features/contract';
 import { apiContext } from '@fphd/web-server/api-context';
 import type { ActionFunctionArgs, LoaderFunctionArgs, RouterContextProvider } from 'react-router';
@@ -39,7 +38,7 @@ export async function loadNumeratorDenominator(
     loadDataProviders(args.context),
   ]);
   const values: NumeratorDenominatorPageValues = {
-    ...providerSourcesFormValues(answers),
+    ...section.formValues(answers),
     providerId: '',
     sourceId: '',
   };

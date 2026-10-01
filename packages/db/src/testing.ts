@@ -3,6 +3,7 @@ import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:f
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { getTableColumns, type Table } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import type postgres from 'postgres';
@@ -224,4 +225,11 @@ export function withThrowingDefaults<T extends object>(name: string, stubs: Part
       };
     },
   });
+}
+
+/** Every column of a table as null, as a row with nothing yet filled in. */
+export function nullColumns<T extends Table>(table: T): Record<keyof T['$inferSelect'], null> {
+  return Object.fromEntries(
+    Object.keys(getTableColumns(table)).map((column) => [column, null]),
+  ) as Record<keyof T['$inferSelect'], null>;
 }

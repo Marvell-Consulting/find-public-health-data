@@ -4,6 +4,7 @@ import {
   type DetailedQuestion,
   type IndicatorSection,
   requireDetails,
+  textSection,
   yesNoSchema,
 } from './indicator-section-contract.ts';
 
@@ -54,8 +55,5 @@ const schema = requireDetails(
 export type Justifications = z.infer<typeof schema>;
 
 /** Notes for reviewers on why the indicator was built as it was. */
-export const justificationsSection: IndicatorSection<JustificationsField, Justifications> = {
-  key: 'justifications',
-  fields,
-  schema,
-};
+export const justificationsSection: IndicatorSection<JustificationsField, Justifications> =
+  textSection({ key: 'justifications', fields, schema });

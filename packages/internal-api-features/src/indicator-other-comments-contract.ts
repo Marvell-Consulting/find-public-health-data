@@ -4,6 +4,7 @@ import {
   type DetailedQuestion,
   type IndicatorSection,
   requireDetails,
+  textSection,
   yesNoSchema,
 } from './indicator-section-contract.ts';
 
@@ -32,8 +33,5 @@ const schema = requireDetails(
 export type OtherComments = z.infer<typeof schema>;
 
 /** Notes for reviewers: who sponsors the indicator, and anything else they should know. */
-export const otherCommentsSection: IndicatorSection<OtherCommentsField, OtherComments> = {
-  key: 'other-comments',
-  fields,
-  schema,
-};
+export const otherCommentsSection: IndicatorSection<OtherCommentsField, OtherComments> =
+  textSection({ key: 'other-comments', fields, schema });

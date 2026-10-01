@@ -1,7 +1,6 @@
 // No @fphd/ui imports here, so the loader and action unit-test without the jsdom the components need.
 import {
   taggingAnswersSchema,
-  taggingFormValues,
   taggingSection,
   tagOptionsSchema,
 } from '@fphd/internal-api-features/contract';
@@ -29,7 +28,7 @@ export async function loadTagging(args: LoaderFunctionArgs) {
     args.context.get(apiContext).get('/api/internal/tags', tagOptionsSchema),
   ]);
 
-  return { id, options, values: taggingPageValues(taggingFormValues(answers)) };
+  return { id, options, values: taggingPageValues(taggingSection.formValues(answers)) };
 }
 
 /**

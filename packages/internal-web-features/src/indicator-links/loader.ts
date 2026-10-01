@@ -1,9 +1,5 @@
 // No @fphd/ui imports here, so the loader and action unit-test without the jsdom the components need.
-import {
-  linksAnswersSchema,
-  linksFormValues,
-  linksSection,
-} from '@fphd/internal-api-features/contract';
+import { linksAnswersSchema, linksSection } from '@fphd/internal-api-features/contract';
 import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 
 import { requireIndicatorId } from '../indicator-id.ts';
@@ -24,7 +20,11 @@ export async function loadLinks(args: LoaderFunctionArgs) {
     linksSection.key,
     linksAnswersSchema,
   );
-  const values: LinksPageValues = { ...linksFormValues(answers), linkUrl: '', linkText: '' };
+  const values: LinksPageValues = {
+    ...linksSection.formValues(answers),
+    linkUrl: '',
+    linkText: '',
+  };
 
   return { id, values };
 }

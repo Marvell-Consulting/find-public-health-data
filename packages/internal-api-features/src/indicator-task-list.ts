@@ -1,11 +1,8 @@
 import {
-  areConfidenceIntervalsComplete,
-  areLinksComplete,
-  areProviderSourcesComplete,
-  areSexAndAgesComplete,
   benchmarkingSection,
   type CiMethodKind,
   calculationSection,
+  confidenceIntervalsSectionFor,
   copyrightAndDataReuseSection,
   dataQualitySection,
   definitionAndRationaleSection,
@@ -14,15 +11,16 @@ import {
   type IndicatorTaskList,
   type IndicatorTaskStatus,
   type IndicatorTaskStatuses,
-  isIndicatorSectionComplete,
-  isTaggingComplete,
   justificationsSection,
+  linksSection,
   numeratorSection,
   otherCommentsSection,
   otherNotesAndCaveatsSection,
   periodTypeSection,
   polaritySection,
   publishingDateSection,
+  sexAndAgesSection,
+  taggingSection,
   updateFrequencySection,
   valueTypeAndUnitsSection,
   varianceAndQualitySection,
@@ -63,10 +61,6 @@ export interface IndicatorTaskListSource {
   draft: IndicatorTaskListDraft;
 }
 
-function taskStatus(complete: boolean): IndicatorTaskStatus {
-  return complete ? 'completed' : 'not_started';
-}
-
 /**
  * The task list state of one draft. A section is complete once its stored answers are ones its
  * form would accept.
@@ -75,10 +69,13 @@ export function indicatorTaskList({
   draft,
   indicator,
 }: IndicatorTaskListSource): IndicatorTaskList {
-  const complete = <Field extends string, Values>(
-    section: IndicatorSection<Field, Values>,
-    columns: IndicatorSectionColumns<Field, unknown>,
-  ) => taskStatus(isIndicatorSectionComplete(section, columns.fromDraft(draft)));
+  const complete = <Field extends string, Input, ErrorField extends string, Answers>(
+    section: IndicatorSection<Field, unknown, Input, ErrorField, Answers>,
+    columns: IndicatorSectionColumns<Field, never, Answers>,
+  ): IndicatorTaskStatus =>
+    section.schema.safeParse(section.formValues(columns.fromDraft(draft))).success
+      ? 'completed'
+      : 'not_started';
 
   // A draft is created by the page that asks for a name, so it always has one.
   const tasks: IndicatorTaskStatuses = {
@@ -90,24 +87,18 @@ export function indicatorTaskList({
     'period-type': complete(periodTypeSection, periodTypeColumns),
     polarity: complete(polaritySection, polarityColumns),
     'data-quality': complete(dataQualitySection, dataQualityColumns),
-    numerator: taskStatus(
-      areProviderSourcesComplete(numeratorSection, numeratorColumns.fromDraft(draft)),
-    ),
-    denominator: taskStatus(
-      areProviderSourcesComplete(denominatorSection, denominatorColumns.fromDraft(draft)),
-    ),
+    numerator: complete(numeratorSection, numeratorColumns),
+    denominator: complete(denominatorSection, denominatorColumns),
     calculation: complete(calculationSection, calculationColumns),
-    'confidence-intervals': taskStatus(
-      areConfidenceIntervalsComplete(
-        confidenceIntervalsColumns.fromDraft(draft),
-        draft.ciMethodKind,
-      ),
+    'confidence-intervals': complete(
+      confidenceIntervalsSectionFor(draft.ciMethodKind),
+      confidenceIntervalsColumns,
     ),
     'update-frequency': complete(updateFrequencySection, updateFrequencyColumns),
     'value-type-and-units': complete(valueTypeAndUnitsSection, valueTypeAndUnitsColumns),
     'other-notes-and-caveats': complete(otherNotesAndCaveatsSection, otherNotesAndCaveatsColumns),
     'publishing-date': complete(publishingDateSection, publishingDateColumns),
-    links: taskStatus(areLinksComplete(linksColumns.fromDraft(draft))),
+    links: complete(linksSection, linksColumns),
     'variance-and-quality': complete(varianceAndQualitySection, varianceAndQualityColumns),
     justifications: complete(justificationsSection, justificationsColumns),
     'other-comments': complete(otherCommentsSection, otherCommentsColumns),
@@ -116,8 +107,8 @@ export function indicatorTaskList({
       copyrightAndDataReuseColumns,
     ),
     benchmarking: complete(benchmarkingSection, benchmarkingColumns),
-    'sex-and-ages': taskStatus(areSexAndAgesComplete(sexAndAgesColumns.fromDraft(draft))),
-    tagging: taskStatus(isTaggingComplete(taggingColumns.fromDraft(draft))),
+    'sex-and-ages': complete(sexAndAgesSection, sexAndAgesColumns),
+    tagging: complete(taggingSection, taggingColumns),
   };
 
   return {

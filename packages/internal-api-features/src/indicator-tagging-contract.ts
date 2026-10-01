@@ -125,12 +125,6 @@ const schema = z
 
 export type Tagging = z.infer<typeof schema>;
 
-export const taggingSection: IndicatorSection<TaggingField, Tagging, TaggingFormValues> = {
-  key: 'tagging',
-  fields,
-  schema,
-};
-
 /** The draft's answers: null until a question is answered, and no tags until some are chosen. */
 export const taggingAnswersSchema = z.object({
   topicIds: z.array(z.string()),
@@ -143,14 +137,19 @@ export const taggingAnswersSchema = z.object({
 
 export type TaggingAnswers = z.infer<typeof taggingAnswersSchema>;
 
-export function taggingFormValues(answers: TaggingAnswers): TaggingFormValues {
-  return {
+export const taggingSection: IndicatorSection<
+  TaggingField,
+  Tagging,
+  TaggingFormValues,
+  TaggingField,
+  TaggingAnswers
+> = {
+  key: 'tagging',
+  fields,
+  schema,
+  formValues: (answers) => ({
     ...answers,
     hasRiskFactor: answers.hasRiskFactor ?? '',
     hasFramework: answers.hasFramework ?? '',
-  };
-}
-
-export function isTaggingComplete(answers: TaggingAnswers): boolean {
-  return schema.safeParse(taggingFormValues(answers)).success;
-}
+  }),
+};

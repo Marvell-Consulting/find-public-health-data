@@ -1,7 +1,7 @@
 import { z } from '@fphd/config/zod';
 import { GOAL_POLARITIES } from '@fphd/utils/polarity';
 
-import { type IndicatorSection, yesNoSchema } from './indicator-section-contract.ts';
+import { type IndicatorSection, textSection, yesNoSchema } from './indicator-section-contract.ts';
 
 const fields = z.enum([
   'hasGoalBenchmark',
@@ -65,8 +65,8 @@ export type BenchmarkingField = z.infer<typeof fields>;
 export type Benchmarking = z.infer<typeof schema>;
 
 /** Whether the indicator has a policy goal, and the values and direction that meet it. */
-export const benchmarkingSection: IndicatorSection<BenchmarkingField, Benchmarking> = {
+export const benchmarkingSection: IndicatorSection<BenchmarkingField, Benchmarking> = textSection({
   key: 'benchmarking',
   fields,
   schema,
-};
+});

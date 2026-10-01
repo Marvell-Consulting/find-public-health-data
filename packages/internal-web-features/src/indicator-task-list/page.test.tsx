@@ -3,6 +3,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { taskStatuses } from '../testing.ts';
 import type { IndicatorTaskList } from './loader.ts';
 import { IndicatorTaskListPage } from './page.tsx';
 
@@ -18,7 +19,7 @@ const taskList: IndicatorTaskList = {
   },
   isUpdate: false,
   canSubmit: true,
-  tasks: { name: 'completed' },
+  tasks: { ...taskStatuses('not_started'), name: 'completed' },
 };
 
 function renderPage(overrides: Partial<IndicatorTaskList> = {}) {
@@ -87,7 +88,7 @@ describe('IndicatorTaskListPage', () => {
   });
 
   it('follows the API when it reports a task as not started', () => {
-    renderPage({ tasks: { name: 'not_started' } });
+    renderPage({ tasks: taskStatuses('not_started') });
 
     const name = group('Metadata').getByRole('link', { name: 'Name' });
     const status = document.getElementById(name.getAttribute('aria-describedby') ?? '');
@@ -156,7 +157,7 @@ describe('IndicatorTaskListPage', () => {
     [NOTES, 'Justifications', 'justifications'],
     [NOTES, 'Other comments', 'other-comments'],
   ] as const)('links %s: %s to its page, with the status the API reports', (title, name, key) => {
-    renderPage({ tasks: { name: 'completed', [key]: 'completed' } });
+    renderPage({ tasks: { ...taskList.tasks, [key]: 'completed' } });
 
     const row = group(title).getByRole('link', { name });
 

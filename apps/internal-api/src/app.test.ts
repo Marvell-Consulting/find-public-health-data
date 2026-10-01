@@ -1,7 +1,10 @@
 import { createJwtSessionService, createJwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { createFakeRepositories } from '@fphd/db/testing';
 import { indicatorTaskKeySchema } from '@fphd/internal-api-features/contract';
-import { createFakeInternalRepositories } from '@fphd/internal-api-features/testing';
+import {
+  createFakeInternalRepositories,
+  unansweredDraft,
+} from '@fphd/internal-api-features/testing';
 import { createLogger } from '@fphd/logger';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
@@ -27,74 +30,6 @@ function createTestApp(
 }
 
 const app = createTestApp();
-
-// A draft as the name page leaves it: every section's columns unanswered.
-const unansweredDraft = {
-  definition: null,
-  rationale: null,
-  polarity: null,
-  methodology: null,
-  calculatedBy: null,
-  calculatedByDetail: null,
-  ciMethodId: null,
-  hasCiMethodModifications: null,
-  ciMethodModificationsDetail: null,
-  ciMethodDetail: null,
-  updateFrequency: null,
-  periodType: null,
-  yearType: null,
-  yearEndDay: null,
-  yearEndMonth: null,
-  disclosureControl: null,
-  disclosureControlDetail: null,
-  hasRounding: null,
-  roundingDetail: null,
-  hasCaveats: null,
-  caveatsDetail: null,
-  hasOtherNotes: null,
-  otherNotesDetail: null,
-  scheduledPublishAtUk: null,
-  hasLinks: null,
-  links: [],
-  variation: null,
-  qualityAssurance: null,
-  hasSourceDataIssues: null,
-  sourceDataIssuesDetail: null,
-  hasDataQualityIssues: null,
-  ciMethodJustification: null,
-  dataSourcesJustification: null,
-  inequalitiesIncluded: null,
-  hasExclusions: null,
-  exclusionsDetail: null,
-  hasAutomation: null,
-  automationDetail: null,
-  sponsorsAndStakeholders: null,
-  hasReviewerComments: null,
-  reviewerCommentsDetail: null,
-  hasCustomCopyright: null,
-  customCopyrightDetail: null,
-  hasCustomDataReuse: null,
-  customDataReuseDetail: null,
-  hasGoalBenchmark: null,
-  goalLowerValue: null,
-  goalUpperValue: null,
-  goalPolarity: null,
-  goalPolicyDetail: null,
-  sexes: null,
-  ageType: null,
-  ageRanges: [],
-  specificAge: null,
-  specificAgeUnit: null,
-  ageDetail: null,
-  hasRiskFactor: null,
-  hasFramework: null,
-  topicIds: [],
-  classifications: [],
-  numeratorSources: [],
-  numeratorDefinition: null,
-  denominatorSources: [],
-  denominatorDefinition: null,
-};
 
 async function createCookie(roles: readonly string[]): Promise<string> {
   const token = await session.issueToken({

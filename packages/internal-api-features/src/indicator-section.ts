@@ -18,78 +18,19 @@ import type { InternalIndicatorRepository } from './repositories.ts';
 /** The draft columns a section writes: never the name, whose slug is the name page's concern. */
 type IndicatorSectionAttributes = Omit<IndicatorDraftAttributes, 'name'>;
 
-/** The draft columns and lists the sections read; each section adds the ones its form writes. */
-export type IndicatorSectionDraft = Pick<
+/** The draft as the sections read it: all but its identity, name and audit trail. */
+export type IndicatorSectionDraft = Omit<
   IndicatorDraft,
-  | 'definition'
-  | 'rationale'
-  | 'polarity'
-  | 'methodology'
-  | 'calculatedBy'
-  | 'calculatedByDetail'
-  | 'ciMethodId'
-  | 'hasCiMethodModifications'
-  | 'ciMethodModificationsDetail'
-  | 'ciMethodDetail'
-  | 'updateFrequency'
-  | 'valueTypeId'
-  | 'standardPopulation'
-  | 'standardPopulationDetail'
-  | 'unitId'
-  | 'unitDetail'
-  | 'periodType'
-  | 'yearType'
-  | 'yearEndDay'
-  | 'yearEndMonth'
-  | 'disclosureControl'
-  | 'disclosureControlDetail'
-  | 'hasRounding'
-  | 'roundingDetail'
-  | 'hasCaveats'
-  | 'caveatsDetail'
-  | 'hasOtherNotes'
-  | 'otherNotesDetail'
-  | 'hasCustomCopyright'
-  | 'customCopyrightDetail'
-  | 'hasCustomDataReuse'
-  | 'customDataReuseDetail'
-  | 'scheduledPublishAtUk'
-  | 'hasLinks'
-  | 'links'
-  | 'variation'
-  | 'qualityAssurance'
-  | 'hasSourceDataIssues'
-  | 'sourceDataIssuesDetail'
-  | 'hasDataQualityIssues'
-  | 'ciMethodJustification'
-  | 'dataSourcesJustification'
-  | 'inequalitiesIncluded'
-  | 'hasExclusions'
-  | 'exclusionsDetail'
-  | 'hasAutomation'
-  | 'automationDetail'
-  | 'sponsorsAndStakeholders'
-  | 'hasReviewerComments'
-  | 'reviewerCommentsDetail'
-  | 'hasGoalBenchmark'
-  | 'goalLowerValue'
-  | 'goalUpperValue'
-  | 'goalPolarity'
-  | 'goalPolicyDetail'
-  | 'hasRiskFactor'
-  | 'hasFramework'
-  | 'topicIds'
-  | 'classifications'
-  | 'sexes'
-  | 'ageType'
-  | 'ageRanges'
-  | 'specificAge'
-  | 'specificAgeUnit'
-  | 'ageDetail'
-  | 'numeratorSources'
-  | 'numeratorDefinition'
-  | 'denominatorSources'
-  | 'denominatorDefinition'
+  | 'createdAt'
+  | 'createdBy'
+  | 'id'
+  | 'indicatorId'
+  | 'name'
+  | 'publishedAt'
+  | 'slug'
+  | 'status'
+  | 'updatedAt'
+  | 'updatedBy'
 >;
 
 /**
@@ -207,7 +148,7 @@ export function indicatorSectionRouter<
 >(
   indicators: InternalIndicatorRepository,
   session: JwtSessionVerifier,
-  section: IndicatorSection<Field, Values, Input, ErrorField>,
+  section: IndicatorSection<Field, Values, Input, ErrorField, Answers>,
   columns: IndicatorSectionColumns<Field, Values, Answers>,
 ): Router {
   const router = Router();

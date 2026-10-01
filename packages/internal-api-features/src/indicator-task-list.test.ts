@@ -1,12 +1,13 @@
-import { UNIT_IDS, VALUE_TYPE_IDS } from '@fphd/utils/value-type-and-unit';
+import { VALUE_TYPE_IDS } from '@fphd/utils/value-type-and-unit';
 import { describe, expect, it } from 'vitest';
 
-import { indicatorTaskListSchema } from './contract.ts';
+import { indicatorTaskKeySchema, indicatorTaskListSchema } from './contract.ts';
 import {
   type IndicatorTaskListDraft,
   type IndicatorTaskListSource,
   indicatorTaskList,
 } from './indicator-task-list.ts';
+import { unansweredDraft } from './testing.ts';
 
 const ciMethodId = '019fa38f-073f-764e-9ac6-1c4d03b1cb92';
 const ons = { providerId: '01a0d858-9885-764e-8d53-6826aec6729e', sourceId: null };
@@ -19,83 +20,12 @@ const source: IndicatorTaskListSource = {
     indicatorStatus: 'new',
     draftStatus: 'draft',
   },
-  draft: {
-    name: 'Life expectancy at birth',
-    definition: null,
-    rationale: null,
-    polarity: null,
-    methodology: null,
-    calculatedBy: null,
-    calculatedByDetail: null,
-    ciMethodId: null,
-    ciMethodKind: null,
-    hasCiMethodModifications: null,
-    ciMethodModificationsDetail: null,
-    ciMethodDetail: null,
-    updateFrequency: null,
-    periodType: null,
-    yearType: null,
-    yearEndDay: null,
-    yearEndMonth: null,
-    valueTypeId: null,
-    standardPopulation: null,
-    standardPopulationDetail: null,
-    unitId: null,
-    unitDetail: null,
-    disclosureControl: null,
-    disclosureControlDetail: null,
-    hasRounding: null,
-    roundingDetail: null,
-    hasCaveats: null,
-    caveatsDetail: null,
-    hasOtherNotes: null,
-    otherNotesDetail: null,
-    scheduledPublishAtUk: null,
-    hasLinks: null,
-    links: [],
-    variation: null,
-    qualityAssurance: null,
-    hasSourceDataIssues: null,
-    sourceDataIssuesDetail: null,
-    hasDataQualityIssues: null,
-    ciMethodJustification: null,
-    dataSourcesJustification: null,
-    inequalitiesIncluded: null,
-    hasExclusions: null,
-    exclusionsDetail: null,
-    hasAutomation: null,
-    automationDetail: null,
-    sponsorsAndStakeholders: null,
-    hasReviewerComments: null,
-    reviewerCommentsDetail: null,
-    hasCustomCopyright: null,
-    customCopyrightDetail: null,
-    hasCustomDataReuse: null,
-    customDataReuseDetail: null,
-    hasGoalBenchmark: null,
-    goalLowerValue: null,
-    goalUpperValue: null,
-    goalPolarity: null,
-    goalPolicyDetail: null,
-    sexes: null,
-    ageType: null,
-    ageRanges: [],
-    specificAge: null,
-    specificAgeUnit: null,
-    ageDetail: null,
-    hasRiskFactor: null,
-    hasFramework: null,
-    topicIds: [],
-    classifications: [],
-    numeratorSources: [],
-    numeratorDefinition: null,
-    denominatorSources: [],
-    denominatorDefinition: null,
-  },
+  draft: { ...unansweredDraft, name: 'Life expectancy at birth', ciMethodKind: null },
 };
 
+// Every section answered as its form would accept.
 const complete: IndicatorTaskListDraft = {
-  name: 'Life expectancy at birth',
+  ...source.draft,
   definition: 'The average number of years a newborn would live.',
   rationale: 'A summary measure of mortality across the whole population.',
   polarity: 'lower-is-better',
@@ -125,7 +55,7 @@ const complete: IndicatorTaskListDraft = {
   caveatsDetail: 'Survey data.',
   hasOtherNotes: false,
   otherNotesDetail: null,
-  scheduledPublishAtUk: '2027-09-14T09:30:00+01:00',
+  scheduledPublishAt: new Date('2027-09-14T08:30:00.000Z'),
   hasLinks: true,
   links: [{ url: 'https://www.gov.uk/', text: 'Statistical commentary' }],
   variation: 'Varies with the age structure of each area.',
@@ -196,349 +126,40 @@ describe('indicatorTaskList', () => {
     expect(indicatorTaskList(source).tasks.name).toBe('completed');
   });
 
-  it('counts the definition and rationale as complete once both hold text', () => {
-    expect(indicatorTaskList(withDraft(complete)).tasks['definition-and-rationale']).toBe(
-      'completed',
-    );
+  const sectionKeys = indicatorTaskKeySchema.options.filter((key) => key !== 'name');
+
+  // Each section's required answers are its schema's, tested in its contract.
+  it.each(sectionKeys)('counts %s as complete once its form would accept its answers', (key) => {
+    expect(indicatorTaskList(withDraft(complete)).tasks[key]).toBe('completed');
+  });
+
+  it.each(sectionKeys)('leaves %s not started while it is unanswered', (key) => {
+    expect(indicatorTaskList(source).tasks[key]).toBe('not_started');
   });
 
   it.each([
-    ['neither', {}],
-    ['only the definition', { definition: complete.definition }],
-    ['only the rationale', { rationale: complete.rationale }],
-    ['a blank definition', { definition: '  ', rationale: complete.rationale }],
-  ])('leaves the definition and rationale not started with %s', (_, draft) => {
-    expect(indicatorTaskList(withDraft(draft)).tasks['definition-and-rationale']).toBe(
-      'not_started',
-    );
-  });
-
-  it('counts the polarity as complete once one is chosen', () => {
-    expect(indicatorTaskList(withDraft({ polarity: complete.polarity })).tasks.polarity).toBe(
-      'completed',
-    );
-  });
-
-  it('leaves the polarity not started until one is chosen', () => {
-    expect(indicatorTaskList(source).tasks.polarity).toBe('not_started');
-  });
-
-  it.each([true, false])('counts data quality as complete once answered, %s', (answer) => {
-    const state = indicatorTaskList(withDraft({ hasDataQualityIssues: answer }));
-
-    expect(state.tasks['data-quality']).toBe('completed');
-  });
-
-  it('leaves data quality not started until answered', () => {
-    expect(indicatorTaskList(source).tasks['data-quality']).toBe('not_started');
-  });
-
-  it('counts the update frequency as complete once one is chosen', () => {
-    const state = indicatorTaskList(withDraft({ updateFrequency: complete.updateFrequency }));
-
-    expect(state.tasks['update-frequency']).toBe('completed');
-  });
-
-  it('leaves the update frequency not started until one is chosen', () => {
-    expect(indicatorTaskList(source).tasks['update-frequency']).toBe('not_started');
-  });
-
-  it.each([
-    ['months', { periodType: 'months' }],
-    ['quarters of a year type', { periodType: 'quarters', yearType: 'financial' }],
-    [
-      'years ending on a date',
-      {
-        periodType: 'years',
-        yearType: 'specified-end-date',
-        yearEndDay: 29,
-        yearEndMonth: 2,
-      },
-    ],
-  ] as const)('counts the period type as complete with %s', (_, draft) => {
-    expect(indicatorTaskList(withDraft(draft)).tasks['period-type']).toBe('completed');
-  });
-
-  it.each([
-    ['nothing', {}],
-    ['years of no year type', { periodType: 'years' }],
-    ['years ending on a date not given', { periodType: 'years', yearType: 'specified-end-date' }],
-  ] as const)('leaves the period type not started with %s', (_, draft) => {
-    expect(indicatorTaskList(withDraft(draft)).tasks['period-type']).toBe('not_started');
-  });
-
-  it.each([
-    ['nothing', {}, 'not_started'],
-    [
-      'a value type and unit that ask nothing more',
-      {
-        valueTypeId: '01a0d8a5-3ca2-7315-bfca-96d2031a65e7',
-        unitId: '01a0d8a5-3ca2-7315-bfca-96d615820bd4',
-      },
-      'completed',
-    ],
-    [
-      'a directly standardised rate with its standard population',
-      {
-        valueTypeId: complete.valueTypeId,
-        standardPopulation: 'esp-2013',
-        unitId: complete.unitId,
-      },
-      'completed',
-    ],
-    [
-      'a directly standardised rate without its standard population',
-      { valueTypeId: complete.valueTypeId, unitId: complete.unitId },
-      'not_started',
-    ],
-    [
-      'an indirectly standardised ratio without its reference population',
-      { valueTypeId: VALUE_TYPE_IDS.indirectlyStandardisedRatio, unitId: complete.unitId },
-      'not_started',
-    ],
-    [
-      'an other unit with its name',
-      {
-        valueTypeId: '01a0d8a5-3ca2-7315-bfca-96c7324d4347',
-        unitId: UNIT_IDS.other,
-        unitDetail: 'people',
-      },
-      'completed',
-    ],
-    ['a value type alone', { valueTypeId: '01a0d8a5-3ca2-7315-bfca-96c7324d4347' }, 'not_started'],
-  ] as const)('judges the value type and units with %s', (_, draft, status) => {
-    expect(indicatorTaskList(withDraft(draft)).tasks['value-type-and-units']).toBe(status);
-  });
-
-  it.each([
-    ['OHID', { calculatedBy: 'ohid' }],
-    ['DHSC', { calculatedBy: 'dhsc' }],
-    ['other organisations it names', { calculatedBy: 'other', calculatedByDetail: 'ONS' }],
-  ] as const)('counts the calculation as complete with a methodology and %s', (_, answer) => {
-    const state = indicatorTaskList(withDraft({ methodology: complete.methodology, ...answer }));
-
-    expect(state.tasks.calculation).toBe('completed');
-  });
-
-  it.each([
-    ['nothing', {}],
-    ['only the methodology', { methodology: complete.methodology }],
-    ['only who calculated it', { calculatedBy: 'dhsc' }],
-    ['a blank methodology', { methodology: ' ', calculatedBy: 'dhsc' }],
-    [
-      'other organisations it does not name',
-      { methodology: complete.methodology, calculatedBy: 'other' },
-    ],
-    [
-      'blank details of the other organisations',
-      { methodology: complete.methodology, calculatedBy: 'other', calculatedByDetail: '\n' },
-    ],
-  ] as const)('leaves the calculation not started with %s', (_, draft) => {
-    expect(indicatorTaskList(withDraft(draft)).tasks.calculation).toBe('not_started');
-  });
-
-  it.each([
-    ['no method is chosen', {}, 'not_started'],
-    [
-      'a standard method is unmodified',
-      { ciMethodId, ciMethodKind: 'standard', hasCiMethodModifications: false },
-      'completed',
-    ],
-    [
-      'a standard method is modified as described',
-      {
-        ciMethodId,
-        ciMethodKind: 'standard',
-        hasCiMethodModifications: true,
-        ciMethodModificationsDetail: 'Adjusted',
-      },
-      'completed',
-    ],
-    [
-      'a standard method is modified with no description',
-      {
-        ciMethodId,
-        ciMethodKind: 'standard',
-        hasCiMethodModifications: true,
-        ciMethodModificationsDetail: ' ',
-      },
-      'not_started',
-    ],
+    ['its kind is unknown', { ciMethodId, ciMethodKind: null }, 'not_started'],
     [
       'a standard method has no answer on modifications',
       { ciMethodId, ciMethodKind: 'standard', hasCiMethodModifications: null },
       'not_started',
     ],
     [
+      'a standard method is modified with no description',
+      { ciMethodId, ciMethodKind: 'standard', hasCiMethodModifications: true },
+      'not_started',
+    ],
+    ['an other method has no detail', { ciMethodId, ciMethodKind: 'other' }, 'not_started'],
+    [
       'an other method is detailed',
       { ciMethodId, ciMethodKind: 'other', ciMethodDetail: 'Bootstrap intervals' },
       'completed',
     ],
-    ['an other method has no detail', { ciMethodId, ciMethodKind: 'other' }, 'not_started'],
     ['the method has nothing to describe', { ciMethodId, ciMethodKind: 'none' }, 'completed'],
-  ] as const)('judges the confidence intervals when %s', (_, draft, status) => {
-    expect(indicatorTaskList(withDraft(draft)).tasks['confidence-intervals']).toBe(status);
-  });
-
-  it('counts the other notes and caveats as complete once every question is answered', () => {
-    expect(indicatorTaskList(withDraft(complete)).tasks['other-notes-and-caveats']).toBe(
-      'completed',
-    );
-  });
-
-  it.each([
-    ['nothing', {}],
-    ['disclosure control unanswered', { ...complete, disclosureControl: null }],
-    ['rounding unanswered', { ...complete, hasRounding: null }],
-    ['caveats needed without their details', { ...complete, caveatsDetail: null }],
-    ['caveats needed with blank details', { ...complete, caveatsDetail: ' ' }],
-  ] as const)('leaves the other notes and caveats not started with %s', (_, draft) => {
-    expect(indicatorTaskList(withDraft(draft)).tasks['other-notes-and-caveats']).toBe(
-      'not_started',
-    );
-  });
-
-  it('counts the publishing date as complete once one is scheduled', () => {
-    const draft = { scheduledPublishAtUk: complete.scheduledPublishAtUk };
-
-    expect(indicatorTaskList(withDraft(draft)).tasks['publishing-date']).toBe('completed');
-  });
-
-  it('leaves the publishing date not started until one is scheduled', () => {
-    expect(indicatorTaskList(source).tasks['publishing-date']).toBe('not_started');
-  });
-
-  it.each([
-    ['unanswered', {}, 'not_started'],
-    ['no links', { hasLinks: false }, 'completed'],
-    ['links', { hasLinks: true, links: complete.links }, 'completed'],
-    ['links it does not hold', { hasLinks: true }, 'not_started'],
-  ] as const)('judges the links when there are %s', (_, draft, status) => {
-    expect(indicatorTaskList(withDraft(draft)).tasks.links).toBe(status);
-  });
-
-  it('counts the variance and quality as complete once every question is answered', () => {
-    expect(indicatorTaskList(withDraft(complete)).tasks['variance-and-quality']).toBe('completed');
-  });
-
-  it.each([
-    ['nothing', {}],
-    ['a blank variation', { ...complete, variation: ' ' }],
-    ['quality assurance unanswered', { ...complete, qualityAssurance: null }],
-    ['source data issues unanswered', { ...complete, hasSourceDataIssues: null }],
-    ['source data issues without their details', { ...complete, sourceDataIssuesDetail: null }],
-  ] as const)('leaves the variance and quality not started with %s', (_, draft) => {
-    expect(indicatorTaskList(withDraft(draft)).tasks['variance-and-quality']).toBe('not_started');
-  });
-
-  it('counts the justifications as complete once every question is answered', () => {
-    expect(indicatorTaskList(withDraft(complete)).tasks.justifications).toBe('completed');
-  });
-
-  it.each([
-    ['nothing', {}],
-    ['a blank inequalities answer', { ...complete, inequalitiesIncluded: ' ' }],
-    ['exclusions unanswered', { ...complete, hasExclusions: null }],
-    ['automation used without its details', { ...complete, automationDetail: null }],
-  ] as const)('leaves the justifications not started with %s', (_, draft) => {
-    expect(indicatorTaskList(withDraft(draft)).tasks.justifications).toBe('not_started');
-  });
-
-  it.each([
-    ['every question answered', complete],
-    ['no sponsors or stakeholders', { ...complete, sponsorsAndStakeholders: null }],
-  ] as const)('counts the other comments as complete with %s', (_, draft) => {
-    expect(indicatorTaskList(withDraft(draft)).tasks['other-comments']).toBe('completed');
-  });
-
-  it.each([
-    ['nothing', {}],
-    ['comments unanswered', { ...complete, hasReviewerComments: null }],
-    ['comments without their details', { ...complete, hasReviewerComments: true }],
-  ] as const)('leaves the other comments not started with %s', (_, draft) => {
-    expect(indicatorTaskList(withDraft(draft)).tasks['other-comments']).toBe('not_started');
-  });
-
-  it('counts the copyright and data re-use as complete once both questions are answered', () => {
-    expect(indicatorTaskList(withDraft(complete)).tasks['copyright-and-data-reuse']).toBe(
-      'completed',
-    );
-  });
-
-  it.each([
-    ['nothing', {}],
-    ['copyright unanswered', { ...complete, hasCustomCopyright: null }],
-    ['a different copyright without its details', { ...complete, customCopyrightDetail: null }],
-    ['data re-use unanswered', { ...complete, hasCustomDataReuse: null }],
-    ['a different data re-use without its details', { ...complete, hasCustomDataReuse: true }],
-  ] as const)('leaves the copyright and data re-use not started with %s', (_, draft) => {
-    expect(indicatorTaskList(withDraft(draft)).tasks['copyright-and-data-reuse']).toBe(
-      'not_started',
-    );
-  });
-
-  it.each([
-    ['a goal', complete],
-    ['a single goal value', { ...complete, goalUpperValue: null }],
-    [
-      'tiny values JavaScript writes with an exponent',
-      { ...complete, goalLowerValue: 5e-324, goalUpperValue: 1e-101 },
-    ],
-    [
-      'a huge value JavaScript writes with an exponent',
-      { ...complete, goalUpperValue: Number.MAX_VALUE },
-    ],
-    ['no goal', { hasGoalBenchmark: false }],
-  ] as const)('counts the benchmarking as complete with %s', (_, draft) => {
-    expect(indicatorTaskList(withDraft(draft)).tasks.benchmarking).toBe('completed');
-  });
-
-  it.each([
-    ['nothing', {}],
-    ['a goal without its lower value', { ...complete, goalLowerValue: null }],
-    ['a goal without its polarity', { ...complete, goalPolarity: null }],
-  ] as const)('leaves the benchmarking not started with %s', (_, draft) => {
-    expect(indicatorTaskList(withDraft(draft)).tasks.benchmarking).toBe('not_started');
-  });
-
-  it.each([
-    ['unanswered', {}, 'not_started'],
-    ['sexes and all ages', { sexes: complete.sexes, ageType: 'all' }, 'completed'],
-    [
-      'sexes and an age range',
-      { sexes: complete.sexes, ageType: 'range', ageRanges: complete.ageRanges },
-      'completed',
-    ],
-    [
-      'sexes and a specific age',
-      { sexes: complete.sexes, ageType: 'specific', specificAge: 5, specificAgeUnit: 'years' },
-      'completed',
-    ],
-    [
-      'sexes and other ages',
-      { sexes: complete.sexes, ageType: 'other', ageDetail: 'School year 6' },
-      'completed',
-    ],
-    ['no sexes', { ageType: 'range', ageRanges: complete.ageRanges }, 'not_started'],
-    ['an age range it does not hold', { sexes: complete.sexes, ageType: 'range' }, 'not_started'],
-  ] as const)('judges the sex and ages when there are %s', (_, draft, status) => {
-    expect(indicatorTaskList(withDraft(draft)).tasks['sex-and-ages']).toBe(status);
-  });
-
-  it.each([
-    ['unanswered', {}, 'not_started'],
-    ['every answer', complete, 'completed'],
-    ['no topics', { ...complete, topicIds: [] }, 'not_started'],
-    [
-      'a risk factor it does not hold',
-      { ...complete, classifications: complete.classifications.slice(0, 1) },
-      'not_started',
-    ],
-    ['no answer on frameworks', { ...complete, hasFramework: null }, 'not_started'],
   ] satisfies [string, Partial<IndicatorTaskListDraft>, string][])(
-    'judges the tagging when there are %s',
+    "judges the confidence intervals by the method's kind when %s",
     (_, draft, status) => {
-      expect(indicatorTaskList(withDraft(draft)).tasks.tagging).toBe(status);
+      expect(indicatorTaskList(withDraft(draft)).tasks['confidence-intervals']).toBe(status);
     },
   );
 
@@ -572,11 +193,11 @@ describe('indicatorTaskList', () => {
     expect(indicatorTaskList(withIndicatorStatus(status)).isUpdate).toBe(isUpdate);
   });
 
-  it('allows submission once every task it carries is complete', () => {
+  it('allows submission once every task is complete', () => {
     expect(indicatorTaskList(withDraft(complete)).canSubmit).toBe(true);
   });
 
-  it('holds submission back while any task it carries is not started', () => {
+  it('holds submission back while any task is not started', () => {
     expect(indicatorTaskList(source).canSubmit).toBe(false);
   });
 

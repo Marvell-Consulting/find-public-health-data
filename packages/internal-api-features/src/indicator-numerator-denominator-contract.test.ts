@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
   addProviderSource,
-  areProviderSourcesComplete,
   areProviderSourcesOffered,
   type DataProvider,
   denominatorSection,
@@ -78,14 +77,12 @@ describe('denominatorSection', () => {
   });
 });
 
-describe('areProviderSourcesComplete', () => {
-  it('holds a section complete once it has sources and a definition', () => {
-    expect(
-      areProviderSourcesComplete(numeratorSection, { sources: [mortality], definition: 'Deaths' }),
-    ).toBe(true);
-    expect(
-      areProviderSourcesComplete(numeratorSection, { sources: [mortality], definition: null }),
-    ).toBe(false);
+describe('numeratorSection.formValues', () => {
+  it('gives an unanswered definition to the form as empty, with the sources held', () => {
+    expect(numeratorSection.formValues({ sources: [mortality], definition: null })).toEqual({
+      sources: [mortality],
+      definition: '',
+    });
   });
 });
 

@@ -1,6 +1,7 @@
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { z } from '@fphd/config/zod';
 import { isYearType } from '@fphd/utils/period-type';
+import { ukDateTime, ukDaysUntil, ukInstant } from '@fphd/utils/uk-time';
 import { standardisationOf, UNIT_IDS } from '@fphd/utils/value-type-and-unit';
 import { Router } from 'express';
 
@@ -15,6 +16,7 @@ import {
   type ConfidenceIntervalsField,
   calculationSection,
   confidenceIntervalsSection,
+  confidenceIntervalsSectionFor,
   copyrightAndDataReuseQuestions,
   copyrightAndDataReuseSection,
   type DataQualityField,
@@ -30,7 +32,6 @@ import {
   type LinksAnswers,
   type LinksField,
   linksSection,
-  missingCiMethodFollowUps,
   numeratorSection,
   type OtherComments,
   type OtherCommentsField,
@@ -49,7 +50,6 @@ import {
   polaritySection,
   publishingDateSection,
   REAL_PUBLISHING_TIME,
-  SELECT_CI_METHOD,
   SELECT_UNITS,
   SELECT_VALUE_TYPE,
   type SexAndAges,
@@ -64,7 +64,6 @@ import {
   type TaggingFormValues,
   type TagList,
   taggingSection,
-  ukDate,
   unknownTagMessage,
   updateFrequencySection,
   type ValueTypeAndUnits,
@@ -78,7 +77,7 @@ import {
   numeratorColumns,
   providerSourcesServerSection,
 } from './indicator-provider-sources.ts';
-import type { IndicatorDraftClassification, UkDateTime } from './indicator-repository.ts';
+import type { IndicatorDraftClassification } from './indicator-repository.ts';
 import {
   detailOf,
   type IndicatorSectionColumns,
@@ -90,7 +89,6 @@ import {
 import type { IndicatorSection } from './indicator-section-contract.ts';
 import type {
   InternalCiMethodRepository,
-  InternalIndicatorRepository,
   InternalRepositories,
   InternalTagRepository,
   InternalValueTypeAndUnitRepository,
@@ -382,7 +380,7 @@ function isTagListAsked(answers: Tagging, list: TagList): boolean {
 /** The form's schema, then that every tag asked for is one the page offers under its question. */
 export function taggingServerSection(
   tags: InternalTagRepository,
-): IndicatorSection<TaggingField, Tagging, TaggingFormValues> {
+): IndicatorSection<TaggingField, Tagging, TaggingFormValues, TaggingField, TaggingAnswers> {
   return {
     ...taggingSection,
     schema: taggingSection.schema.transform(async (answers, ctx) => {
@@ -410,20 +408,15 @@ export function confidenceIntervalsServerSection(
   return {
     ...confidenceIntervalsSection,
     schema: confidenceIntervalsSection.schema.transform(async (answers, ctx) => {
-      const method = await ciMethods.findById(answers.ciMethodId);
+      const kind = (await ciMethods.findById(answers.ciMethodId))?.kind ?? null;
+      const checked = confidenceIntervalsSectionFor(kind).schema.safeParse(answers);
 
-      if (method === undefined) {
-        ctx.addIssue({ code: 'custom', path: ['ciMethodId'], message: SELECT_CI_METHOD });
-        return z.NEVER;
+      if (checked.success && kind !== null) return { ...checked.data, kind };
+
+      for (const { path, message } of checked.error?.issues ?? []) {
+        ctx.addIssue({ code: 'custom', path, message });
       }
-
-      const missing = Object.entries(missingCiMethodFollowUps(answers, method.kind));
-
-      for (const [field, message] of missing) {
-        ctx.addIssue({ code: 'custom', path: [field], message });
-      }
-
-      return missing.length > 0 ? z.NEVER : { ...answers, kind: method.kind };
+      return z.NEVER;
     }),
   };
 }
@@ -453,17 +446,14 @@ export function valueTypeAndUnitsServerSection(
   };
 }
 
-/** The publishing date as an instant: ISO 8601 with the UK offset in force on that date. */
-type PublishingDateWithInstant = PublishingDate & { scheduledPublishAt: string };
-
-// The instant as the repository reads it back, whose local date and time are the answers.
-const UK_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):\d{2}[+-]\d{2}:\d{2}$/;
+/** The publishing date with the instant it names. */
+type PublishingDateWithInstant = PublishingDate & { scheduledPublishAt: Date };
 
 /** The date and time a publisher typed, from the instant they name in UK time. */
 function publishingDateAnswers(
-  scheduledPublishAtUk: string | null,
+  scheduledPublishAt: Date | null,
 ): Record<PublishingDateField, string | null> {
-  if (scheduledPublishAtUk === null) {
+  if (scheduledPublishAt === null) {
     return {
       publishingDateDay: null,
       publishingDateMonth: null,
@@ -473,25 +463,16 @@ function publishingDateAnswers(
     };
   }
 
-  const parts = UK_INSTANT.exec(scheduledPublishAtUk);
-
-  if (parts === null) throw new Error(`Not a UK instant: ${scheduledPublishAtUk}`);
-
-  const [year, month, day, hour, minute] = parts.slice(1) as [
-    string,
-    string,
-    string,
-    string,
-    string,
-  ];
+  const { year, month, day, hour, minute } = ukDateTime(scheduledPublishAt);
+  const twoDigits = (value: number) => String(value).padStart(2, '0');
 
   // Day and month as the hint's example gives them; hour and minute as the clock shows them.
   return {
-    publishingDateDay: String(Number(day)),
-    publishingDateMonth: String(Number(month)),
-    publishingDateYear: year,
-    publishingTimeHour: hour,
-    publishingTimeMinute: minute,
+    publishingDateDay: String(day),
+    publishingDateMonth: String(month),
+    publishingDateYear: String(year),
+    publishingTimeHour: twoDigits(hour),
+    publishingTimeMinute: twoDigits(minute),
   };
 }
 
@@ -499,19 +480,9 @@ export const publishingDateColumns: IndicatorSectionColumns<
   PublishingDateField,
   PublishingDateWithInstant
 > = {
-  fromDraft: (draft) => publishingDateAnswers(draft.scheduledPublishAtUk),
-  toAttributes: ({ scheduledPublishAt }) => ({ scheduledPublishAt: new Date(scheduledPublishAt) }),
+  fromDraft: (draft) => publishingDateAnswers(draft.scheduledPublishAt),
+  toAttributes: ({ scheduledPublishAt }) => ({ scheduledPublishAt }),
 };
-
-function ukDateTime(answers: PublishingDate): UkDateTime {
-  return {
-    year: Number(answers.publishingDateYear),
-    month: Number(answers.publishingDateMonth),
-    day: Number(answers.publishingDateDay),
-    hour: Number(answers.publishingTimeHour),
-    minute: Number(answers.publishingTimeMinute),
-  };
-}
 
 function addIssues(
   ctx: z.RefinementCtx,
@@ -521,28 +492,23 @@ function addIssues(
   for (const field of fields) ctx.addIssue({ code: 'custom', path: [field], message });
 }
 
-/** Whether the answers' date is at least the notice period after the UK date `now` falls on. */
-function givesNotice(answers: PublishingDate, now: Date): boolean {
-  const chosen = Date.UTC(
-    Number(answers.publishingDateYear),
-    Number(answers.publishingDateMonth) - 1,
-    Number(answers.publishingDateDay),
-  );
-  return chosen >= ukDate(now, PUBLISHING_NOTICE_DAYS);
-}
-
 /**
  * The form's schema, then a date at least the notice period after today's in the UK, whatever
  * the time, and the instant the answers name, which must exist in UK time.
  */
 export function publishingDateServerSection(
-  indicators: InternalIndicatorRepository,
   now: () => Date,
 ): IndicatorSection<PublishingDateField, PublishingDateWithInstant> {
   return {
     ...publishingDateSection,
-    schema: publishingDateSection.schema.transform(async (answers, ctx) => {
-      if (!givesNotice(answers, now())) {
+    schema: publishingDateSection.schema.transform((answers, ctx) => {
+      const date = {
+        year: Number(answers.publishingDateYear),
+        month: Number(answers.publishingDateMonth),
+        day: Number(answers.publishingDateDay),
+      };
+
+      if (ukDaysUntil(now(), date) < PUBLISHING_NOTICE_DAYS) {
         addIssues(
           ctx,
           ['publishingDateDay', 'publishingDateMonth', 'publishingDateYear'],
@@ -551,7 +517,11 @@ export function publishingDateServerSection(
         return z.NEVER;
       }
 
-      const scheduledPublishAt = await indicators.ukInstant(ukDateTime(answers));
+      const scheduledPublishAt = ukInstant({
+        ...date,
+        hour: Number(answers.publishingTimeHour),
+        minute: Number(answers.publishingTimeMinute),
+      });
 
       if (scheduledPublishAt === null) {
         addIssues(ctx, ['publishingTimeHour', 'publishingTimeMinute'], REAL_PUBLISHING_TIME);
@@ -623,7 +593,7 @@ export function indicatorSectionsRouter(
     indicatorSectionRouter(
       indicators,
       session,
-      publishingDateServerSection(indicators, now),
+      publishingDateServerSection(now),
       publishingDateColumns,
     ),
     indicatorSectionRouter(indicators, session, linksSection, linksColumns),

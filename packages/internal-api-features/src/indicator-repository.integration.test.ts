@@ -23,7 +23,6 @@ import {
   type IndicatorDraftAttributes,
   listIndicatorsPage,
   SLUG_LOCK_NAMESPACE,
-  ukInstant,
   updateIndicatorDraft,
 } from './indicator-repository.ts';
 
@@ -968,119 +967,78 @@ describe('updateIndicatorDraft', () => {
     });
   });
 
-  it('writes the other notes and caveats answers to the draft', async () => {
-    const created = await newDraft('Notes and caveats answered');
-    const answers = {
-      disclosureControl: 'yes',
-      disclosureControlDetail: 'Counts under 5 are suppressed.',
-      hasRounding: false,
-      roundingDetail: null,
-      hasCaveats: true,
-      caveatsDetail: 'Survey data.',
-      hasOtherNotes: false,
-      otherNotesDetail: null,
-    } as const;
+  it.each<[string, IndicatorDraftAttributes]>([
+    [
+      'the other notes and caveats answers',
+      {
+        disclosureControl: 'yes',
+        disclosureControlDetail: 'Counts under 5 are suppressed.',
+        hasRounding: false,
+        roundingDetail: null,
+        hasCaveats: true,
+        caveatsDetail: 'Survey data.',
+        hasOtherNotes: false,
+        otherNotesDetail: null,
+      },
+    ],
+    [
+      'the variance and quality notes',
+      {
+        variation: 'Varies with the age structure of each area.',
+        qualityAssurance: 'Checked against the published ONS figures.',
+        hasSourceDataIssues: true,
+        sourceDataIssuesDetail: 'Late returns from two areas.',
+      },
+    ],
+    ['that there are data quality issues', { hasDataQualityIssues: true }],
+    ['that there are no data quality issues', { hasDataQualityIssues: false }],
+    [
+      'the justifications',
+      {
+        ciMethodJustification: 'The standard method for rates.',
+        dataSourcesJustification: 'The only national source.',
+        inequalitiesIncluded: 'Deprivation deciles.',
+        hasExclusions: true,
+        exclusionsDetail: 'Areas with fewer than 5 deaths.',
+        hasAutomation: false,
+        automationDetail: null,
+      },
+    ],
+    [
+      'the other comments',
+      {
+        sponsorsAndStakeholders: 'The national screening committee.',
+        hasReviewerComments: true,
+        reviewerCommentsDetail: 'Replaces indicator 108.',
+      },
+    ],
+    [
+      'the copyright and data re-use terms',
+      {
+        hasCustomCopyright: true,
+        customCopyrightDetail: 'Copyright © NHS England',
+        hasCustomDataReuse: false,
+        customDataReuseDetail: null,
+      },
+    ],
+    [
+      'a goal, its values as they were given',
+      {
+        hasGoalBenchmark: true,
+        goalLowerValue: 0.956000001,
+        goalUpperValue: 1.161000001,
+        goalPolarity: 'lower-is-better',
+        goalPolicyDetail: 'Below the England value for 2013/14.',
+      },
+    ],
+  ])('writes %s to the draft', async (answers, attributes) => {
+    const created = await newDraft(`Answered with ${answers}`);
 
-    const result = await updateIndicatorDraft(db, created.indicatorId, answers, {}, ACTOR);
-
-    expect(result).toEqual({ ok: true });
-    const state = await getIndicatorDraftState(db, created.indicatorId);
-    expect(state?.draft).toMatchObject(answers);
-  });
-
-  it('writes the variance and quality notes to the draft', async () => {
-    const created = await newDraft('Variance and quality answered');
-    const answers = {
-      variation: 'Varies with the age structure of each area.',
-      qualityAssurance: 'Checked against the published ONS figures.',
-      hasSourceDataIssues: true,
-      sourceDataIssuesDetail: 'Late returns from two areas.',
-    };
-
-    const result = await updateIndicatorDraft(db, created.indicatorId, answers, {}, ACTOR);
-
-    expect(result).toEqual({ ok: true });
-    const state = await getIndicatorDraftState(db, created.indicatorId);
-    expect(state?.draft).toMatchObject(answers);
-  });
-
-  it('writes whether there are data quality issues to the draft', async () => {
-    const created = await newDraft('Data quality answered');
-
-    await updateIndicatorDraft(db, created.indicatorId, { hasDataQualityIssues: true }, {}, ACTOR);
-    const yes = await getIndicatorDraftState(db, created.indicatorId);
-    await updateIndicatorDraft(db, created.indicatorId, { hasDataQualityIssues: false }, {}, ACTOR);
-    const no = await getIndicatorDraftState(db, created.indicatorId);
-
-    expect(yes?.draft?.hasDataQualityIssues).toBe(true);
-    expect(no?.draft?.hasDataQualityIssues).toBe(false);
-  });
-
-  it('writes the justifications to the draft', async () => {
-    const created = await newDraft('Justifications answered');
-    const answers = {
-      ciMethodJustification: 'The standard method for rates.',
-      dataSourcesJustification: 'The only national source.',
-      inequalitiesIncluded: 'Deprivation deciles.',
-      hasExclusions: true,
-      exclusionsDetail: 'Areas with fewer than 5 deaths.',
-      hasAutomation: false,
-      automationDetail: null,
-    };
-
-    const result = await updateIndicatorDraft(db, created.indicatorId, answers, {}, ACTOR);
-
-    expect(result).toEqual({ ok: true });
-    const state = await getIndicatorDraftState(db, created.indicatorId);
-    expect(state?.draft).toMatchObject(answers);
-  });
-
-  it('writes the other comments to the draft', async () => {
-    const created = await newDraft('Other comments answered');
-    const answers = {
-      sponsorsAndStakeholders: 'The national screening committee.',
-      hasReviewerComments: true,
-      reviewerCommentsDetail: 'Replaces indicator 108.',
-    };
-
-    const result = await updateIndicatorDraft(db, created.indicatorId, answers, {}, ACTOR);
+    const result = await updateIndicatorDraft(db, created.indicatorId, attributes, {}, ACTOR);
 
     expect(result).toEqual({ ok: true });
     const state = await getIndicatorDraftState(db, created.indicatorId);
-    expect(state?.draft).toMatchObject(answers);
-  });
-
-  it('writes the copyright and data re-use terms to the draft', async () => {
-    const created = await newDraft('Copyright and data re-use answered');
-    const answers = {
-      hasCustomCopyright: true,
-      customCopyrightDetail: 'Copyright © NHS England',
-      hasCustomDataReuse: false,
-      customDataReuseDetail: null,
-    };
-
-    const result = await updateIndicatorDraft(db, created.indicatorId, answers, {}, ACTOR);
-
-    expect(result).toEqual({ ok: true });
-    const state = await getIndicatorDraftState(db, created.indicatorId);
-    expect(state?.draft).toMatchObject(answers);
-  });
-
-  it('writes a goal to the draft, its values as they were given', async () => {
-    const created = await newDraft('Benchmarking answered');
-    const answers = {
-      hasGoalBenchmark: true,
-      goalLowerValue: 0.956000001,
-      goalUpperValue: 1.161000001,
-      goalPolarity: 'lower-is-better',
-      goalPolicyDetail: 'Below the England value for 2013/14.',
-    } as const;
-
-    const result = await updateIndicatorDraft(db, created.indicatorId, answers, {}, ACTOR);
-
-    expect(result).toEqual({ ok: true });
-    const state = await getIndicatorDraftState(db, created.indicatorId);
-    expect(state?.draft).toMatchObject(answers);
+    expect(state?.draft).toMatchObject(attributes);
   });
 
   it('refuses an indicator with no draft', async () => {
@@ -1152,30 +1110,25 @@ describe('createDraftFromPublished', () => {
     expect(state?.draft).toMatchObject({ hasRiskFactor: false, hasFramework: true });
   });
 
-  it('copies who calculated the published version', async () => {
+  it.each<[string, () => Promise<IndicatorDraftAttributes>]>([
+    ['who calculated it', async () => ({ calculatedBy: 'other', calculatedByDetail: 'ONS' })],
+    ['whether it has data quality issues', async () => ({ hasDataQualityIssues: true })],
+    [
+      'its confidence interval answers',
+      async () => ({
+        ciMethodId: await ciMethodId('Other method'),
+        ciMethodDetail: 'Bootstrap intervals',
+      }),
+    ],
+  ])('copies %s from the published version', async (_, columnsOf) => {
     const { indicatorId, currentId } = await indicatorWithTwoPublications();
-    await db
-      .update(indicatorVersion)
-      .set({ calculatedBy: 'other', calculatedByDetail: 'ONS' })
-      .where(eq(indicatorVersion.id, currentId));
+    const columns = await columnsOf();
+    await db.update(indicatorVersion).set(columns).where(eq(indicatorVersion.id, currentId));
 
     await createDraftFromPublished(db, indicatorId, ACTOR);
 
     const state = await getIndicatorDraftState(db, indicatorId);
-    expect(state?.draft).toMatchObject({ calculatedBy: 'other', calculatedByDetail: 'ONS' });
-  });
-
-  it('copies whether the published version has data quality issues', async () => {
-    const { indicatorId, currentId } = await indicatorWithTwoPublications();
-    await db
-      .update(indicatorVersion)
-      .set({ hasDataQualityIssues: true })
-      .where(eq(indicatorVersion.id, currentId));
-
-    await createDraftFromPublished(db, indicatorId, ACTOR);
-
-    const state = await getIndicatorDraftState(db, indicatorId);
-    expect(state?.draft?.hasDataQualityIssues).toBe(true);
+    expect(state?.draft).toMatchObject(columns);
   });
 
   it('copies the most recently published version, not the superseded one', async () => {
@@ -1203,29 +1156,6 @@ describe('createDraftFromPublished', () => {
     expect(await topicIdsOf(result.versionId)).toEqual([current.id]);
   });
 
-  it('copies the confidence interval answers of the published version', async () => {
-    const { indicatorId, currentId } = await indicatorWithTwoPublications();
-    const methodId = await ciMethodId('Other method');
-    await db
-      .update(indicatorVersion)
-      .set({ ciMethodId: methodId, ciMethodDetail: 'Bootstrap intervals' })
-      .where(eq(indicatorVersion.id, currentId));
-
-    const result = await createDraftFromPublished(db, indicatorId, ACTOR);
-
-    if (!result.ok) throw new Error('expected a draft');
-    const [draft] = await db
-      .select()
-      .from(indicatorVersion)
-      .where(eq(indicatorVersion.id, result.versionId));
-    expect(draft).toMatchObject({
-      ciMethodId: methodId,
-      hasCiMethodModifications: null,
-      ciMethodModificationsDetail: null,
-      ciMethodDetail: 'Bootstrap intervals',
-    });
-  });
-
   it('leaves the new draft unscheduled, whenever the published version was scheduled for', async () => {
     const { indicatorId, currentId } = await indicatorWithTwoPublications();
     await db
@@ -1237,7 +1167,7 @@ describe('createDraftFromPublished', () => {
 
     if (!result.ok) throw new Error('expected a draft');
     const state = await getIndicatorDraftState(db, indicatorId);
-    expect(state?.draft).toMatchObject({ scheduledPublishAt: null, scheduledPublishAtUk: null });
+    expect(state?.draft?.scheduledPublishAt).toBeNull();
   });
 
   it('copies the links of the published version in order, leaving them on it too', async () => {
@@ -1407,7 +1337,7 @@ describe('getIndicatorDraftState', () => {
     expect(after?.draftCiMethodKind).toBe('none');
   });
 
-  it('reads the scheduled publication as it was written, and in UK time', async () => {
+  it('reads the scheduled publication as it was written', async () => {
     const created = await newDraft('A draft with a publishing date');
 
     const before = await getIndicatorDraftState(db, created.indicatorId);
@@ -1420,84 +1350,13 @@ describe('getIndicatorDraftState', () => {
     );
     const after = await getIndicatorDraftState(db, created.indicatorId);
 
-    expect(before?.draft).toMatchObject({ scheduledPublishAt: null, scheduledPublishAtUk: null });
-    expect(after?.draft).toMatchObject({
-      scheduledPublishAt: new Date('2027-09-14T08:30:00.000Z'),
-      scheduledPublishAtUk: '2027-09-14T09:30:00+01:00',
-    });
+    expect(before?.draft?.scheduledPublishAt).toBeNull();
+    expect(after?.draft?.scheduledPublishAt).toEqual(new Date('2027-09-14T08:30:00.000Z'));
   });
 
   it('finds nothing for an indicator that does not exist', async () => {
     await expect(
       getIndicatorDraftState(db, '00000000-0000-7000-8000-000000000000'),
     ).resolves.toBeUndefined();
-  });
-});
-
-describe('ukInstant', () => {
-  /** The instant as the draft reads it back in UK time. */
-  async function readBack(instant: string): Promise<string | null | undefined> {
-    const created = await newDraft(`A draft scheduled for ${instant}`);
-    await updateIndicatorDraft(
-      db,
-      created.indicatorId,
-      { scheduledPublishAt: new Date(instant) },
-      {},
-      ACTOR,
-    );
-    return (await getIndicatorDraftState(db, created.indicatorId))?.draft?.scheduledPublishAtUk;
-  }
-
-  it.each([
-    [
-      'a BST date an hour ahead of UTC',
-      [2027, 9, 14, 9, 30],
-      '2027-09-14T09:30:00+01:00',
-      '2027-09-14T08:30:00.000Z',
-    ],
-    [
-      'a GMT date at UTC',
-      [2027, 1, 14, 9, 30],
-      '2027-01-14T09:30:00+00:00',
-      '2027-01-14T09:30:00.000Z',
-    ],
-    [
-      'the last minute before the spring change in GMT',
-      [2027, 3, 28, 0, 59],
-      '2027-03-28T00:59:00+00:00',
-      '2027-03-28T00:59:00.000Z',
-    ],
-    [
-      'the first minute after the spring change in BST',
-      [2027, 3, 28, 2, 0],
-      '2027-03-28T02:00:00+01:00',
-      '2027-03-28T01:00:00.000Z',
-    ],
-    [
-      'the last minute before the autumn change in BST',
-      [2027, 10, 31, 0, 59],
-      '2027-10-31T00:59:00+01:00',
-      '2027-10-30T23:59:00.000Z',
-    ],
-    [
-      'a time the autumn change repeats as its second, GMT, occurrence',
-      [2027, 10, 31, 1, 30],
-      '2027-10-31T01:30:00+00:00',
-      '2027-10-31T01:30:00.000Z',
-    ],
-  ] as const)('reads %s', async (_, [year, month, day, hour, minute], uk, utc) => {
-    const instant = await ukInstant(db, { year, month, day, hour, minute });
-
-    expect(instant).toBe(uk);
-    expect(new Date(instant ?? '').toISOString()).toBe(utc);
-    expect(await readBack(uk)).toBe(uk);
-  });
-
-  it.each([
-    [1, 0],
-    [1, 30],
-    [1, 59],
-  ])('finds no instant for %i:%i on the day the spring change skips it', async (hour, minute) => {
-    expect(await ukInstant(db, { year: 2027, month: 3, day: 28, hour, minute })).toBeNull();
   });
 });

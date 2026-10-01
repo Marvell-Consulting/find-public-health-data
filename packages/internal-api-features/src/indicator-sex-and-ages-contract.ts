@@ -253,18 +253,6 @@ const errorFields = z.union([
   z.templateLiteral(['ageRanges[', z.number().int().min(0), '].', z.enum(AGE_RANGE_PARTS)]),
 ]);
 
-export const sexAndAgesSection: IndicatorSection<
-  SexAndAgesField,
-  SexAndAges,
-  SexAndAgesFormValues,
-  SexAndAgesPageField
-> = {
-  key: 'sex-and-ages',
-  fields,
-  schema,
-  errorFields,
-};
-
 const storedAgeUnit = z.enum(AGE_UNITS);
 
 /** The draft's answers: null or empty until answered, with each age as a number. */
@@ -288,8 +276,18 @@ export type SexAndAgesAnswers = z.infer<typeof sexAndAgesAnswersSchema>;
 
 const text = (value: number | string | null): string => (value === null ? '' : String(value));
 
-export function sexAndAgesFormValues(answers: SexAndAgesAnswers): SexAndAgesFormValues {
-  return {
+export const sexAndAgesSection: IndicatorSection<
+  SexAndAgesField,
+  SexAndAges,
+  SexAndAgesFormValues,
+  SexAndAgesPageField,
+  SexAndAgesAnswers
+> = {
+  key: 'sex-and-ages',
+  fields,
+  schema,
+  errorFields,
+  formValues: (answers) => ({
     sexes: answers.sexes,
     ageType: text(answers.ageType),
     ageRanges: answers.ageRanges.map((range) => ({
@@ -301,9 +299,5 @@ export function sexAndAgesFormValues(answers: SexAndAgesAnswers): SexAndAgesForm
     specificAge: text(answers.specificAge),
     specificAgeUnit: text(answers.specificAgeUnit),
     ageDetail: text(answers.ageDetail),
-  };
-}
-
-export function areSexAndAgesComplete(answers: SexAndAgesAnswers): boolean {
-  return schema.safeParse(sexAndAgesFormValues(answers)).success;
-}
+  }),
+};

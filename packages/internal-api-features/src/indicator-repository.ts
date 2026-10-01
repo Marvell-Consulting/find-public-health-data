@@ -5,7 +5,7 @@ import {
 } from '@fphd/utils/classification-dimension';
 import { slugify, slugProblem } from '@fphd/utils/slug';
 import type { IndicatorSourcePart } from '@fphd/utils/source-part';
-import { and, asc, count, desc, eq, getTableColumns, inArray, type SQL, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import type { CiMethodKind, DraftStatus, IndicatorStatus } from './contract.ts';
@@ -142,14 +142,9 @@ export interface IndicatorDraftSources {
   denominatorSources: IndicatorDraftSource[];
 }
 
-/**
- * A draft as the sections read it: its columns, its scheduled publication in UK time, and the
- * lists held in tables of their own.
- */
+/** A draft as the sections read it: its columns, and the lists held in tables of their own. */
 export type IndicatorDraft = IndicatorDraftVersion &
   IndicatorDraftSources & {
-    /** `scheduledPublishAt` as ISO 8601 with the UK offset then in force, such as `+01:00`. */
-    scheduledPublishAtUk: string | null;
     links: IndicatorDraftLink[];
     ageRanges: IndicatorDraftAgeRange[];
     /** Ordered by title, as the tagging page lists them. */
@@ -161,51 +156,6 @@ export type IndicatorDraft = IndicatorDraftVersion &
 export interface IndicatorDraftClassification {
   id: string;
   dimension: ClassificationDimension;
-}
-
-/** A date and time as a publisher in the UK gives it, whether GMT or BST is in force. */
-export interface UkDateTime {
-  year: number;
-  month: number;
-  day: number;
-  hour: number;
-  minute: number;
-}
-
-// Publishers give and read times in UK local time; the database resolves its clock changes.
-const UK_TIME_ZONE = 'Europe/London';
-
-/** An instant as ISO 8601 in UK local time, with its offset: never negative in the UK. */
-function inUkTime(instant: SQL): SQL<string | null> {
-  const local = sql`(${instant} AT TIME ZONE ${UK_TIME_ZONE})`;
-  return sql<
-    string | null
-  >`to_char(${local}, 'YYYY-MM-DD"T"HH24:MI:SS') || to_char(${local} - (${instant} AT TIME ZONE 'UTC'), '"+"HH24:MI')`;
-}
-
-/**
- * The instant a UK date and time names, as ISO 8601 with its UK offset, or null for a time
- * the spring clock change skips. A time the autumn change repeats is its second, GMT,
- * occurrence, which is what make_timestamptz gives.
- */
-export async function ukInstant(
-  db: Database,
-  { year, month, day, hour, minute }: UkDateTime,
-): Promise<string | null> {
-  const [row] = await db.execute<{ instant: string | null }>(sql`
-    SELECT CASE WHEN (t.instant AT TIME ZONE ${UK_TIME_ZONE}) = t.local
-      THEN ${inUkTime(sql`t.instant`)} END AS instant
-    FROM (
-      SELECT
-        make_timestamptz(${year}::int, ${month}::int, ${day}::int, ${hour}::int, ${minute}::int, 0, ${UK_TIME_ZONE}) AS instant,
-        make_timestamp(${year}::int, ${month}::int, ${day}::int, ${hour}::int, ${minute}::int, 0) AS local
-    ) AS t
-  `);
-
-  if (row === undefined) throw new Error('ukInstant returned no row');
-
-  // A skipped time is moved an hour on, so it reads back as a different local time.
-  return row.instant;
 }
 
 export interface IndicatorDraftStateRow {
@@ -229,7 +179,6 @@ export async function getIndicatorDraftState(
       id: indicator.id,
       shortId: indicator.shortId,
       draft: draftVersion,
-      draftScheduledPublishAtUk: inUkTime(sql`${draftVersion.scheduledPublishAt}`),
       draftCiMethodKind: ciMethod.kind,
       indicatorStatus,
       draftStatus,
@@ -242,7 +191,7 @@ export async function getIndicatorDraftState(
 
   if (row === undefined) return undefined;
 
-  const { draft, draftScheduledPublishAtUk: scheduledPublishAtUk, ...state } = row;
+  const { draft, ...state } = row;
 
   if (draft === null) return { ...state, draft: null };
 
@@ -259,7 +208,6 @@ export async function getIndicatorDraftState(
     draft: {
       ...draft,
       ...sources,
-      scheduledPublishAtUk,
       links,
       ageRanges,
       topicIds,
