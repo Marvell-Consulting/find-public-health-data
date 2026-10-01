@@ -1,7 +1,7 @@
 import { z } from '@fphd/config/zod';
 import { UPDATE_FREQUENCIES } from '@fphd/utils/update-frequency';
 
-import type { IndicatorSection } from './indicator-section-contract.ts';
+import { type IndicatorSection, textSection } from './indicator-section-contract.ts';
 
 const fields = z.enum(['updateFrequency']);
 
@@ -17,8 +17,4 @@ export type IndicatorUpdateFrequency = z.infer<typeof schema>;
 export const updateFrequencySection: IndicatorSection<
   UpdateFrequencyField,
   IndicatorUpdateFrequency
-> = {
-  key: 'update-frequency',
-  fields,
-  schema,
-};
+> = textSection({ key: 'update-frequency', fields, schema });

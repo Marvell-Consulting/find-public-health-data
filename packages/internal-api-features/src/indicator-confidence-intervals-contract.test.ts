@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   type ConfidenceIntervals,
-  missingCiMethodFollowUps,
+  confidenceIntervalsSectionFor,
   confidenceIntervalsSection as section,
 } from './indicator-confidence-intervals-contract.ts';
 import { sectionFieldErrors } from './testing.ts';
@@ -49,8 +49,14 @@ describe('confidenceIntervalsSection', () => {
   });
 });
 
-describe('missingCiMethodFollowUps', () => {
+describe('confidenceIntervalsSectionFor', () => {
   it.each([
+    [
+      'no method, as before one is chosen',
+      null,
+      {},
+      { ciMethodId: 'Select the confidence interval method used' },
+    ],
     [
       'a standard method with no answer on modifications',
       'standard',
@@ -59,7 +65,7 @@ describe('missingCiMethodFollowUps', () => {
         hasCiMethodModifications: 'Select whether any modifications were used',
       },
     ],
-    ['an unmodified standard method', 'standard', { hasCiMethodModifications: 'no' }, {}],
+    ['an unmodified standard method', 'standard', { hasCiMethodModifications: 'no' }, undefined],
     [
       'a modified standard method with no description of the modifications',
       'standard',
@@ -70,7 +76,7 @@ describe('missingCiMethodFollowUps', () => {
       'a modified standard method described',
       'standard',
       { hasCiMethodModifications: 'yes', ciMethodModificationsDetail: 'Adjusted' },
-      {},
+      undefined,
     ],
     [
       'an other method with no detail',
@@ -80,9 +86,11 @@ describe('missingCiMethodFollowUps', () => {
         ciMethodDetail: 'Enter details of the other confidence interval method used',
       },
     ],
-    ['an other method detailed', 'other', { ciMethodDetail: 'Bootstrap' }, {}],
-    ['a method with nothing to describe', 'none', {}, {}],
+    ['an other method detailed', 'other', { ciMethodDetail: 'Bootstrap' }, undefined],
+    ['a method with nothing to describe', 'none', {}, undefined],
   ] as const)('asks of %s', (_, kind, answers, missing) => {
-    expect(missingCiMethodFollowUps({ ...unanswered, ...answers }, kind)).toEqual(missing);
+    expect(
+      sectionFieldErrors(confidenceIntervalsSectionFor(kind), { ...unanswered, ...answers }),
+    ).toEqual(missing);
   });
 });

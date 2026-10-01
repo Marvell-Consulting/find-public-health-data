@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  isTaggingComplete,
   taggingSection as section,
-  type TaggingAnswers,
   type TaggingFormValues,
   unknownTagMessage,
 } from './indicator-tagging-contract.ts';
@@ -82,22 +80,24 @@ describe('unknownTagMessage', () => {
   });
 });
 
-describe('isTaggingComplete', () => {
-  const complete: TaggingAnswers = {
-    topicIds: [topic],
-    indicatorTypeIds: [type],
-    hasRiskFactor: 'no',
-    riskFactorIds: [],
-    hasFramework: 'yes',
-    frameworkIds: [framework],
-  };
-
-  it.each([
-    ['every question answered', complete, true],
-    ['no topic', { ...complete, topicIds: [] }, false],
-    ['a framework question never answered', { ...complete, hasFramework: null }, false],
-    ['a "Yes" with nothing tagged', { ...complete, hasRiskFactor: 'yes' }, false],
-  ] satisfies [string, TaggingAnswers, boolean][])('is %s: %s', (_, answers, expected) => {
-    expect(isTaggingComplete(answers)).toBe(expected);
+describe('taggingSection.formValues', () => {
+  it('gives each unanswered question to the form as empty, with the tags held', () => {
+    expect(
+      section.formValues({
+        topicIds: [topic],
+        indicatorTypeIds: [type],
+        hasRiskFactor: null,
+        riskFactorIds: [],
+        hasFramework: 'yes',
+        frameworkIds: [framework],
+      }),
+    ).toEqual({
+      topicIds: [topic],
+      indicatorTypeIds: [type],
+      hasRiskFactor: '',
+      riskFactorIds: [],
+      hasFramework: 'yes',
+      frameworkIds: [framework],
+    });
   });
 });

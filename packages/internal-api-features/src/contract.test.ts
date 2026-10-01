@@ -7,6 +7,7 @@ import {
   indicatorFieldSchema,
   indicatorNameSchema,
   indicatorSectionErrorSchema,
+  indicatorTaskKeySchema,
   indicatorTaskListSchema,
   indicatorUpdateErrorSchema,
   sexAndAgesSection,
@@ -182,6 +183,7 @@ describe('invalid_id', () => {
 });
 
 describe('indicatorTaskListSchema', () => {
+  const tasks = Object.fromEntries(indicatorTaskKeySchema.options.map((key) => [key, 'completed']));
   const state = {
     indicator: {
       id: '00000000-0000-7000-8000-000000000001',
@@ -192,30 +194,35 @@ describe('indicatorTaskListSchema', () => {
     },
     isUpdate: false,
     canSubmit: true,
-    tasks: { name: 'completed' },
+    tasks,
   };
 
-  it('accepts a state naming only the tasks that exist', () => {
-    const result = indicatorTaskListSchema.safeParse({ ...state, tasks: {} });
+  it('requires every task', () => {
+    const { name: _name, ...withoutName } = tasks;
 
-    expect(result.success && result.data.tasks).toEqual({});
+    expect(indicatorTaskListSchema.safeParse(state).success).toBe(true);
+    expect(indicatorTaskListSchema.safeParse({ ...state, tasks: withoutName }).success).toBe(false);
   });
 
   it.each(['not_started', 'completed'])('accepts a task status of %s', (status) => {
-    expect(indicatorTaskListSchema.safeParse({ ...state, tasks: { name: status } }).success).toBe(
-      true,
-    );
+    expect(
+      indicatorTaskListSchema.safeParse({ ...state, tasks: { ...tasks, name: status } }).success,
+    ).toBe(true);
   });
 
   it('refuses a status the vocabulary does not hold yet', () => {
     expect(
-      indicatorTaskListSchema.safeParse({ ...state, tasks: { name: 'incomplete' } }).success,
+      indicatorTaskListSchema.safeParse({ ...state, tasks: { ...tasks, name: 'incomplete' } })
+        .success,
     ).toBe(false);
   });
 
   it('refuses a task the API does not judge', () => {
     expect(
-      indicatorTaskListSchema.safeParse({ ...state, tasks: { 'not-a-task': 'completed' } }).success,
+      indicatorTaskListSchema.safeParse({
+        ...state,
+        tasks: { ...tasks, 'not-a-task': 'completed' },
+      }).success,
     ).toBe(false);
   });
 

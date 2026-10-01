@@ -1,7 +1,7 @@
 import { z } from '@fphd/config/zod';
 import { INDICATOR_CALCULATED_BY } from '@fphd/utils/calculated-by';
 
-import type { IndicatorSection } from './indicator-section-contract.ts';
+import { type IndicatorSection, textSection } from './indicator-section-contract.ts';
 
 const fields = z.enum(['methodology', 'calculatedBy', 'calculatedByDetail']);
 
@@ -29,8 +29,8 @@ const schema = z
 export type CalculationField = z.infer<typeof fields>;
 export type Calculation = z.infer<typeof schema>;
 
-export const calculationSection: IndicatorSection<CalculationField, Calculation> = {
+export const calculationSection: IndicatorSection<CalculationField, Calculation> = textSection({
   key: 'calculation',
   fields,
   schema,
-};
+});

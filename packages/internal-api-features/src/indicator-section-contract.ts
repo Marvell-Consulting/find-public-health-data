@@ -10,19 +10,23 @@ export type IndicatorSectionFields<Field extends string> = z.ZodEnum<{ [K in Fie
  * the page (`/publish/indicators/:id/<key>`) and the endpoint
  * (`/api/internal/indicators/:id/<key>`). The schema takes the answers as the form holds
  * them, which is its text unless the section says otherwise, and is applied at the form and
- * again at the API.
+ * again at the API. The draft holds the answers as the endpoint gives them, each field's text
+ * or null unless the section says otherwise.
  */
 export interface IndicatorSection<
   Field extends string,
   Values,
   Input = Record<Field, string>,
   ErrorField extends string = Field,
+  Answers = Record<Field, string | null>,
 > {
   key: IndicatorTaskKey;
   fields: IndicatorSectionFields<Field>;
   schema: z.ZodType<Values, Input>;
   /** What a refusal is keyed by, for a section that names its list items' fields as well. */
   errorFields?: z.ZodType<ErrorField, string>;
+  /** The draft's answers as the form holds them. */
+  formValues(answers: Answers): Input;
 }
 
 /** Whether the text is up to two digits, from min to max. */
@@ -81,17 +85,19 @@ export function indicatorSectionFormValues<Field extends string>(
   >;
 }
 
-/** Complete once the stored answers are ones the section's form would accept. */
-export function isIndicatorSectionComplete<Field extends string, Values>(
-  section: IndicatorSection<Field, Values>,
-  answers: Record<Field, string | null>,
-): boolean {
-  return section.schema.safeParse(indicatorSectionFormValues(section.fields, answers)).success;
+/** A section whose answers are each field's text, or null until it is answered. */
+export function textSection<Field extends string, Values>(
+  section: Omit<IndicatorSection<Field, Values>, 'formValues'>,
+): IndicatorSection<Field, Values> {
+  return {
+    ...section,
+    formValues: (answers) => indicatorSectionFormValues(section.fields, answers),
+  };
 }
 
 /** The keys a section's refusal names: its fields, or its own wider list. */
 function errorFieldsOf<Field extends string, ErrorField extends string>(
-  section: IndicatorSection<Field, unknown, unknown, ErrorField>,
+  section: IndicatorSection<Field, unknown, unknown, ErrorField, never>,
 ): z.ZodType<Field | ErrorField, string> {
   return section.errorFields ?? section.fields;
 }
@@ -101,7 +107,7 @@ function errorFieldsOf<Field extends string, ErrorField extends string>(
  * indicator or draft is a 404, which the client throws.
  */
 export function indicatorSectionErrorSchema<Field extends string, ErrorField extends string>(
-  section: IndicatorSection<Field, unknown, unknown, ErrorField>,
+  section: IndicatorSection<Field, unknown, unknown, ErrorField, never>,
 ): z.ZodType<IndicatorSectionError<Field | ErrorField>> {
   return z.discriminatedUnion('error', [
     z.object({ error: z.literal('invalid_id') }),
@@ -150,7 +156,7 @@ export function toFieldErrors<Field extends string>(
 
 /** A refusal of the section's schema, keyed as its page names its fields. */
 export function indicatorSectionFieldErrors<Field extends string, ErrorField extends string>(
-  section: IndicatorSection<Field, unknown, unknown, ErrorField>,
+  section: IndicatorSection<Field, unknown, unknown, ErrorField, never>,
   error: z.ZodError,
 ): Partial<Record<Field | ErrorField, string>> {
   return toFieldErrors(error, errorFieldsOf(section));

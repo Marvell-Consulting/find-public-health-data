@@ -1,7 +1,7 @@
 import { z } from '@fphd/config/zod';
 import { isDayOfMonth, isYearType, PERIOD_TYPES } from '@fphd/utils/period-type';
 
-import { type IndicatorSection, isSmallNumber } from './indicator-section-contract.ts';
+import { type IndicatorSection, isSmallNumber, textSection } from './indicator-section-contract.ts';
 
 const fields = z.enum(['periodType', 'yearType', 'yearEndDay', 'yearEndMonth']);
 
@@ -56,8 +56,8 @@ const schema = z
 
 export type PeriodType = z.infer<typeof schema>;
 
-export const periodTypeSection: IndicatorSection<PeriodTypeField, PeriodType> = {
+export const periodTypeSection: IndicatorSection<PeriodTypeField, PeriodType> = textSection({
   key: 'period-type',
   fields,
   schema,
-};
+});

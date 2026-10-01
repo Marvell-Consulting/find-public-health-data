@@ -13,6 +13,7 @@ import {
   handlerLogLines,
   testSessionCookie,
   testSessionVerifier,
+  unansweredDraft,
 } from './testing.ts';
 
 const row: IndicatorAdminRow = {
@@ -236,22 +237,6 @@ describe('POST /api/internal/indicators', () => {
     expect(createDraft).toHaveBeenCalledWith({ name: 'Life expectancy at birth' }, 'test-user');
   });
 
-  it.each([{}, { name: '' }, { name: '   ' }, { name: 108 }])(
-    'rejects %s without creating anything',
-    async (body) => {
-      const createDraft = vi.fn();
-
-      const response = await request(createTestApp({ createDraft }))
-        .post('/api/internal/indicators')
-        .set('Cookie', await publisherCookie())
-        .send(body);
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toBe('validation_failed');
-      expect(createDraft).not.toHaveBeenCalled();
-    },
-  );
-
   it('reports a name another indicator already holds against the field', async () => {
     const createDraft = vi.fn().mockResolvedValue({ ok: false, reason: 'slug_taken' });
     const findById = vi.fn();
@@ -269,30 +254,18 @@ describe('POST /api/internal/indicators', () => {
     expect(findById).not.toHaveBeenCalled();
   });
 
-  it('names the field a rejected submission failed on', async () => {
-    const response = await request(createTestApp({ createDraft: vi.fn() }))
-      .post('/api/internal/indicators')
-      .set('Cookie', await publisherCookie())
-      .send({ name: '' });
-
-    expect(response.body).toEqual({
-      error: 'validation_failed',
-      fieldErrors: { name: 'Enter the name of the indicator' },
-    });
-  });
-
-  it('refuses a name over 300 characters without creating anything', async () => {
+  it('refuses a name the rules refuse, naming the field, without creating anything', async () => {
     const createDraft = vi.fn();
 
     const response = await request(createTestApp({ createDraft }))
       .post('/api/internal/indicators')
       .set('Cookie', await publisherCookie())
-      .send({ name: 'a'.repeat(301) });
+      .send({ name: '' });
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       error: 'validation_failed',
-      fieldErrors: { name: 'Indicator name must be 300 characters or fewer' },
+      fieldErrors: { name: 'Enter the name of the indicator' },
     });
     expect(createDraft).not.toHaveBeenCalled();
   });
@@ -397,7 +370,7 @@ describe('PATCH /api/internal/indicators/:id', () => {
     expect(updateDraft).not.toHaveBeenCalled();
   });
 
-  it('asks for a name when the submission has none', async () => {
+  it('refuses a name the rules refuse, naming the field, without renaming', async () => {
     const updateDraft = vi.fn();
 
     const response = await request(createTestApp({ updateDraft }))
@@ -464,22 +437,6 @@ describe('PATCH /api/internal/indicators/:id', () => {
     expect(response.body).toEqual({ error: 'no_draft' });
   });
 
-  it('refuses a name over 300 characters without touching the repository', async () => {
-    const updateDraft = vi.fn();
-
-    const response = await request(createTestApp({ updateDraft }))
-      .patch(path)
-      .set('Cookie', await publisherCookie())
-      .send({ name: 'a'.repeat(301) });
-
-    expect(response.status).toBe(400);
-    expect(response.body).toEqual({
-      error: 'validation_failed',
-      fieldErrors: { name: 'Indicator name must be 300 characters or fewer' },
-    });
-    expect(updateDraft).not.toHaveBeenCalled();
-  });
-
   it('logs the rename under the request id, by the ids alone', async () => {
     const { logger, lines } = createCapturingLogger();
 
@@ -527,77 +484,10 @@ describe('PATCH /api/internal/indicators/:id', () => {
 });
 
 describe('GET /api/internal/indicators/:id/task-list', () => {
-  // The handler reads the columns the task list judges; the rest of the row is beside the point.
   const draftState = {
     id: row.id,
     shortId: 90366,
-    draft: {
-      name: 'Life expectancy at birth',
-      definition: null,
-      rationale: null,
-      polarity: null,
-      methodology: null,
-      calculatedBy: null,
-      calculatedByDetail: null,
-      ciMethodId: null,
-      hasCiMethodModifications: null,
-      ciMethodModificationsDetail: null,
-      ciMethodDetail: null,
-      updateFrequency: null,
-      periodType: null,
-      yearType: null,
-      yearEndDay: null,
-      yearEndMonth: null,
-      disclosureControl: null,
-      disclosureControlDetail: null,
-      hasRounding: null,
-      roundingDetail: null,
-      hasCaveats: null,
-      caveatsDetail: null,
-      hasOtherNotes: null,
-      otherNotesDetail: null,
-      scheduledPublishAtUk: null,
-      hasLinks: null,
-      links: [],
-      variation: null,
-      qualityAssurance: null,
-      hasSourceDataIssues: null,
-      sourceDataIssuesDetail: null,
-      hasDataQualityIssues: null,
-      ciMethodJustification: null,
-      dataSourcesJustification: null,
-      inequalitiesIncluded: null,
-      hasExclusions: null,
-      exclusionsDetail: null,
-      hasAutomation: null,
-      automationDetail: null,
-      sponsorsAndStakeholders: null,
-      hasReviewerComments: null,
-      reviewerCommentsDetail: null,
-      hasCustomCopyright: null,
-      customCopyrightDetail: null,
-      hasCustomDataReuse: null,
-      customDataReuseDetail: null,
-      hasGoalBenchmark: null,
-      goalLowerValue: null,
-      goalUpperValue: null,
-      goalPolarity: null,
-      goalPolicyDetail: null,
-      sexes: null,
-      ageType: null,
-      ageRanges: [],
-      specificAge: null,
-      specificAgeUnit: null,
-      ageDetail: null,
-      hasRiskFactor: null,
-      hasFramework: null,
-      topicIds: [],
-      classifications: [],
-      numeratorSources: [],
-      numeratorDefinition: null,
-      denominatorSources: [],
-      denominatorDefinition: null,
-    },
+    draft: { ...unansweredDraft, name: 'Life expectancy at birth' },
     draftCiMethodKind: null,
     indicatorStatus: 'new',
     draftStatus: 'draft',

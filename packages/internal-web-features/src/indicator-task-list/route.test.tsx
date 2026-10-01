@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
 
+import { taskStatuses } from '../testing.ts';
 import type { IndicatorTaskList } from './loader.ts';
 import { handle } from './route.tsx';
 
@@ -14,7 +15,7 @@ const taskList: IndicatorTaskList = {
   },
   isUpdate: false,
   canSubmit: true,
-  tasks: { name: 'completed' },
+  tasks: { ...taskStatuses('not_started'), name: 'completed' },
 };
 
 describe('the task list route', () => {

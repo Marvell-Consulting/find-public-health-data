@@ -200,7 +200,7 @@ export const indicatorTaskKeySchema = z.enum([
   'tagging',
 ]);
 
-export const indicatorTaskStatusesSchema = z.partialRecord(
+export const indicatorTaskStatusesSchema = z.record(
   indicatorTaskKeySchema,
   indicatorTaskStatusSchema,
 );
@@ -208,8 +208,7 @@ export const indicatorTaskStatusesSchema = z.partialRecord(
 /**
  * Everything the task list page shows about a draft in one answer: what the indicator is
  * called and its statuses, as the detail response gives them, whether this edit changes a
- * published indicator, and where each task stands. A task the API does not name has no form
- * yet, so the page shows it as not started.
+ * published indicator, and where each task stands.
  */
 export const indicatorTaskListSchema = z.object({
   indicator: indicatorAdminDetailSchema.pick({
@@ -222,7 +221,7 @@ export const indicatorTaskListSchema = z.object({
   }),
   /** True when the indicator is live, so this edit revises what the public has. */
   isUpdate: z.boolean(),
-  /** True once every task the state carries is complete. */
+  /** True once every task is complete. */
   canSubmit: z.boolean(),
   tasks: indicatorTaskStatusesSchema,
 });

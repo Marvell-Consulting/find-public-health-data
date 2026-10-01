@@ -3,13 +3,32 @@ import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 import type { CiMethodRow } from './ci-method-repository.ts';
 import {
+  benchmarkingSection,
+  calculationSection,
+  confidenceIntervalsSection,
+  copyrightAndDataReuseSection,
+  dataQualitySection,
+  definitionAndRationaleSection,
+  denominatorSection,
   indicatorTaskKeySchema,
+  justificationsSection,
+  linksSection,
+  numeratorSection,
+  otherCommentsSection,
+  otherNotesAndCaveatsSection,
+  periodTypeSection,
+  polaritySection,
+  publishingDateSection,
   type SexAndAges,
+  sexAndAgesSection,
   type Tagging,
   type TagOptions,
+  taggingSection,
   toFieldErrors,
+  updateFrequencySection,
+  valueTypeAndUnitsSection,
+  varianceAndQualitySection,
 } from './contract.ts';
-import type { IndicatorSectionDraft } from './indicator-section.ts';
 import {
   benchmarkingColumns,
   calculationColumns,
@@ -39,81 +58,10 @@ import {
   createRouterTestApp,
   testSessionCookie,
   testSessionVerifier,
+  unansweredDraft,
 } from './testing.ts';
 
 // The HTTP behaviour every section shares is tested in indicator-section.test.ts.
-
-const unanswered: IndicatorSectionDraft = {
-  definition: null,
-  rationale: null,
-  polarity: null,
-  methodology: null,
-  calculatedBy: null,
-  calculatedByDetail: null,
-  ciMethodId: null,
-  hasCiMethodModifications: null,
-  ciMethodModificationsDetail: null,
-  ciMethodDetail: null,
-  updateFrequency: null,
-  periodType: null,
-  yearType: null,
-  yearEndDay: null,
-  yearEndMonth: null,
-  valueTypeId: null,
-  standardPopulation: null,
-  standardPopulationDetail: null,
-  unitId: null,
-  unitDetail: null,
-  disclosureControl: null,
-  disclosureControlDetail: null,
-  hasRounding: null,
-  roundingDetail: null,
-  hasCaveats: null,
-  caveatsDetail: null,
-  hasOtherNotes: null,
-  otherNotesDetail: null,
-  scheduledPublishAtUk: null,
-  hasLinks: null,
-  links: [],
-  variation: null,
-  qualityAssurance: null,
-  hasSourceDataIssues: null,
-  sourceDataIssuesDetail: null,
-  hasDataQualityIssues: null,
-  ciMethodJustification: null,
-  dataSourcesJustification: null,
-  inequalitiesIncluded: null,
-  hasExclusions: null,
-  exclusionsDetail: null,
-  hasAutomation: null,
-  automationDetail: null,
-  sponsorsAndStakeholders: null,
-  hasReviewerComments: null,
-  reviewerCommentsDetail: null,
-  hasCustomCopyright: null,
-  customCopyrightDetail: null,
-  hasCustomDataReuse: null,
-  customDataReuseDetail: null,
-  hasGoalBenchmark: null,
-  goalLowerValue: null,
-  goalUpperValue: null,
-  goalPolarity: null,
-  goalPolicyDetail: null,
-  sexes: null,
-  ageType: null,
-  ageRanges: [],
-  specificAge: null,
-  specificAgeUnit: null,
-  ageDetail: null,
-  hasRiskFactor: null,
-  hasFramework: null,
-  topicIds: [],
-  classifications: [],
-  numeratorSources: [],
-  numeratorDefinition: null,
-  denominatorSources: [],
-  denominatorDefinition: null,
-};
 
 const METHODS: Record<CiMethodRow['kind'], CiMethodRow> = {
   standard: {
@@ -148,28 +96,55 @@ const everyAnswer = {
   ciMethodDetail: 'Bootstrap intervals',
 } as const;
 
-describe('indicatorSectionsRouter', () => {
-  const sectionKeys = indicatorTaskKeySchema.options.filter((key) => key !== 'name');
+// Every section the router serves.
+const sections = [
+  benchmarkingSection,
+  calculationSection,
+  confidenceIntervalsSection,
+  copyrightAndDataReuseSection,
+  dataQualitySection,
+  definitionAndRationaleSection,
+  denominatorSection,
+  justificationsSection,
+  linksSection,
+  numeratorSection,
+  otherCommentsSection,
+  otherNotesAndCaveatsSection,
+  periodTypeSection,
+  polaritySection,
+  publishingDateSection,
+  sexAndAgesSection,
+  taggingSection,
+  updateFrequencySection,
+  valueTypeAndUnitsSection,
+  varianceAndQualitySection,
+];
 
-  it.each(sectionKeys)(
-    'serves the %s section, answering every unanswered field as null and every list as empty',
-    async (key) => {
+describe('indicatorSectionsRouter', () => {
+  it('serves every task but the name', () => {
+    expect(sections.map(({ key }) => key).sort()).toEqual(
+      indicatorTaskKeySchema.options.filter((key) => key !== 'name').sort(),
+    );
+  });
+
+  it.each(sections)(
+    'serves the $key section, answering every field as null or an empty list',
+    async (section) => {
       const repositories = createFakeInternalRepositories({
-        indicators: { findDraftState: vi.fn().mockResolvedValue({ draft: unanswered }) },
+        indicators: { findDraftState: vi.fn().mockResolvedValue({ draft: unansweredDraft }) },
       });
 
       const response = await request(
         createRouterTestApp(indicatorSectionsRouter(repositories, testSessionVerifier)),
       )
-        .get(`/api/internal/indicators/00000000-0000-7000-8000-000000000001/${key}`)
+        .get(`/api/internal/indicators/00000000-0000-7000-8000-000000000001/${section.key}`)
         .set('Cookie', await testSessionCookie(['internal', 'publisher']));
 
       expect(response.status).toBe(200);
-      expect(
-        Object.values(response.body).every(
-          (answer) => answer === null || (Array.isArray(answer) && answer.length === 0),
-        ),
-      ).toBe(true);
+      expect(Object.keys(response.body).sort()).toEqual([...section.fields.options].sort());
+      for (const answer of Object.values(response.body)) {
+        expect(answer === null || (Array.isArray(answer) && answer.length === 0)).toBe(true);
+      }
     },
   );
 
@@ -180,7 +155,7 @@ describe('indicatorSectionsRouter', () => {
         updateDraft,
         findDraftState: vi
           .fn()
-          .mockResolvedValue({ draft: { ...unanswered, hasLinks: true, links } }),
+          .mockResolvedValue({ draft: { ...unansweredDraft, hasLinks: true, links } }),
       },
     });
 
@@ -206,14 +181,16 @@ describe('definitionAndRationaleColumns', () => {
   it('reads and writes the columns of the same name', () => {
     const answers = { definition: 'A definition', rationale: 'A rationale' };
 
-    expect(definitionAndRationaleColumns.fromDraft({ ...unanswered, ...answers })).toEqual(answers);
+    expect(definitionAndRationaleColumns.fromDraft({ ...unansweredDraft, ...answers })).toEqual(
+      answers,
+    );
     expect(definitionAndRationaleColumns.toAttributes(answers)).toEqual(answers);
   });
 });
 
 describe('polarityColumns', () => {
   it('reads and writes the column of the same name', () => {
-    expect(polarityColumns.fromDraft({ ...unanswered, polarity: 'no-polarity' })).toEqual({
+    expect(polarityColumns.fromDraft({ ...unansweredDraft, polarity: 'no-polarity' })).toEqual({
       polarity: 'no-polarity',
     });
     expect(polarityColumns.toAttributes({ polarity: 'no-polarity' })).toEqual({
@@ -228,7 +205,7 @@ describe('dataQualityColumns', () => {
     [false, 'no'],
     [null, null],
   ])('reads whether there are data quality issues, %s, as %s', (hasDataQualityIssues, answer) => {
-    expect(dataQualityColumns.fromDraft({ ...unanswered, hasDataQualityIssues })).toEqual({
+    expect(dataQualityColumns.fromDraft({ ...unansweredDraft, hasDataQualityIssues })).toEqual({
       hasDataQualityIssues: answer,
     });
   });
@@ -247,7 +224,7 @@ describe('updateFrequencyColumns', () => {
   it('reads and writes the column of the same name', () => {
     const answers = { updateFrequency: 'no-longer-updated' } as const;
 
-    expect(updateFrequencyColumns.fromDraft({ ...unanswered, ...answers })).toEqual(answers);
+    expect(updateFrequencyColumns.fromDraft({ ...unansweredDraft, ...answers })).toEqual(answers);
     expect(updateFrequencyColumns.toAttributes(answers)).toEqual(answers);
   });
 });
@@ -259,7 +236,7 @@ describe('periodTypeColumns', () => {
   it('reads the year end as the form gives it', () => {
     expect(
       periodTypeColumns.fromDraft({
-        ...unanswered,
+        ...unansweredDraft,
         periodType: years,
         yearType: specified,
         yearEndDay: 31,
@@ -368,7 +345,9 @@ describe('valueTypeAndUnitsColumns', () => {
       { standardPopulationOther: null, referencePopulation: 'England 2019' },
     ],
   ] as const)('reads %s back into its own field', (_, draft, answers) => {
-    expect(valueTypeAndUnitsColumns.fromDraft({ ...unanswered, ...draft })).toMatchObject(answers);
+    expect(valueTypeAndUnitsColumns.fromDraft({ ...unansweredDraft, ...draft })).toMatchObject(
+      answers,
+    );
   });
 });
 
@@ -380,7 +359,7 @@ describe('calculationColumns', () => {
       calculatedByDetail: 'ONS',
     } as const;
 
-    expect(calculationColumns.fromDraft({ ...unanswered, ...answers })).toEqual(answers);
+    expect(calculationColumns.fromDraft({ ...unansweredDraft, ...answers })).toEqual(answers);
     expect(calculationColumns.toAttributes(answers)).toEqual(answers);
   });
 
@@ -405,7 +384,7 @@ describe('confidenceIntervalsColumns', () => {
     [null, null],
   ])('reads a modifications answer of %s as %s', (hasCiMethodModifications, answer) => {
     expect(
-      confidenceIntervalsColumns.fromDraft({ ...unanswered, hasCiMethodModifications })
+      confidenceIntervalsColumns.fromDraft({ ...unansweredDraft, hasCiMethodModifications })
         .hasCiMethodModifications,
     ).toBe(answer);
   });
@@ -498,7 +477,7 @@ describe('otherNotesAndCaveatsColumns', () => {
   it('reads the stored answers back as the form gives them', () => {
     expect(
       otherNotesAndCaveatsColumns.fromDraft({
-        ...unanswered,
+        ...unansweredDraft,
         ...answered,
         hasRounding: true,
         hasCaveats: true,
@@ -512,9 +491,9 @@ describe('otherNotesAndCaveatsColumns', () => {
     [false, 'no'],
     [null, null],
   ])('reads a stored %s as %s', (hasRounding, answer) => {
-    expect(otherNotesAndCaveatsColumns.fromDraft({ ...unanswered, hasRounding }).hasRounding).toBe(
-      answer,
-    );
+    expect(
+      otherNotesAndCaveatsColumns.fromDraft({ ...unansweredDraft, hasRounding }).hasRounding,
+    ).toBe(answer);
   });
 });
 
@@ -547,7 +526,7 @@ describe('varianceAndQualityColumns', () => {
   ])('reads a stored %s as %s, beside the text as it is', (hasSourceDataIssues, answer) => {
     expect(
       varianceAndQualityColumns.fromDraft({
-        ...unanswered,
+        ...unansweredDraft,
         ...answered,
         hasSourceDataIssues,
       }),
@@ -578,7 +557,7 @@ describe('justificationsColumns', () => {
   it('reads the stored answers back as the form gives them', () => {
     expect(
       justificationsColumns.fromDraft({
-        ...unanswered,
+        ...unansweredDraft,
         ...answered,
         hasExclusions: true,
         hasAutomation: false,
@@ -619,7 +598,11 @@ describe('otherCommentsColumns', () => {
 
   it('reads the stored answers back as the form gives them', () => {
     expect(
-      otherCommentsColumns.fromDraft({ ...unanswered, ...answered, hasReviewerComments: true }),
+      otherCommentsColumns.fromDraft({
+        ...unansweredDraft,
+        ...answered,
+        hasReviewerComments: true,
+      }),
     ).toEqual(answered);
   });
 });
@@ -664,7 +647,7 @@ describe('benchmarkingColumns', () => {
   it('reads a goal back as the form shows it', () => {
     expect(
       benchmarkingColumns.fromDraft({
-        ...unanswered,
+        ...unansweredDraft,
         hasGoalBenchmark: true,
         goalLowerValue: 2400,
         goalUpperValue: 1e21,
@@ -684,7 +667,7 @@ describe('benchmarkingColumns', () => {
     [false, 'no'],
     [null, null],
   ])('reads a stored %s as %s', (hasGoalBenchmark, answer) => {
-    expect(benchmarkingColumns.fromDraft({ ...unanswered, hasGoalBenchmark })).toEqual({
+    expect(benchmarkingColumns.fromDraft({ ...unansweredDraft, hasGoalBenchmark })).toEqual({
       hasGoalBenchmark: answer,
       goalLowerValue: null,
       goalUpperValue: null,
@@ -700,11 +683,13 @@ describe('linksColumns', () => {
     [false, 'no'],
     [null, null],
   ])('reads whether there are links, %s, as %s', (hasLinks, answer) => {
-    expect(linksColumns.fromDraft({ ...unanswered, hasLinks }).hasLinks).toBe(answer);
+    expect(linksColumns.fromDraft({ ...unansweredDraft, hasLinks }).hasLinks).toBe(answer);
   });
 
   it('reads the links in the order they are held', () => {
-    expect(linksColumns.fromDraft({ ...unanswered, hasLinks: true, links }).links).toEqual(links);
+    expect(linksColumns.fromDraft({ ...unansweredDraft, hasLinks: true, links }).links).toEqual(
+      links,
+    );
   });
 
   it('writes the links beside "Yes"', () => {
@@ -730,7 +715,7 @@ describe('sexAndAgesColumns', () => {
   });
 
   it('reads unanswered sexes as none', () => {
-    expect(sexAndAgesColumns.fromDraft(unanswered)).toEqual({
+    expect(sexAndAgesColumns.fromDraft(unansweredDraft)).toEqual({
       sexes: [],
       ageType: null,
       ageRanges: [],
@@ -824,7 +809,7 @@ describe('taggingColumns', () => {
   it('reads each dimension of the classifications as its own list', () => {
     expect(
       taggingColumns.fromDraft({
-        ...unanswered,
+        ...unansweredDraft,
         hasRiskFactor: true,
         hasFramework: false,
         topicIds: [TAGS.topic],
@@ -1022,10 +1007,10 @@ const publishingDate = {
 
 describe('publishingDateColumns', () => {
   it.each([
-    ['in BST', '2027-09-14T09:30:00+01:00', publishingDate],
+    ['in BST', '2027-09-14T08:30:00.000Z', publishingDate],
     [
       'in GMT, as the clock showed it',
-      '2027-01-04T15:05:00+00:00',
+      '2027-01-04T15:05:00.000Z',
       {
         publishingDateDay: '4',
         publishingDateMonth: '1',
@@ -1034,26 +1019,24 @@ describe('publishingDateColumns', () => {
         publishingTimeMinute: '05',
       },
     ],
-  ])(
-    'reads a scheduled publication %s as its UK date and time',
-    (_, scheduledPublishAtUk, answers) => {
-      expect(publishingDateColumns.fromDraft({ ...unanswered, scheduledPublishAtUk })).toEqual(
-        answers,
-      );
-    },
-  );
+  ])('reads a scheduled publication %s as its UK date and time', (_, instant, answers) => {
+    const draft = { ...unansweredDraft, scheduledPublishAt: new Date(instant) };
+
+    expect(publishingDateColumns.fromDraft(draft)).toEqual(answers);
+  });
 
   it('reads an unscheduled publication as unanswered', () => {
-    expect(Object.values(publishingDateColumns.fromDraft(unanswered))).toEqual(Array(5).fill(null));
+    expect(Object.values(publishingDateColumns.fromDraft(unansweredDraft))).toEqual(
+      Array(5).fill(null),
+    );
   });
 
   it('writes the instant the answers name', () => {
-    expect(
-      publishingDateColumns.toAttributes({
-        ...publishingDate,
-        scheduledPublishAt: '2027-09-14T09:30:00+01:00',
-      }),
-    ).toEqual({ scheduledPublishAt: new Date('2027-09-14T08:30:00.000Z') });
+    const scheduledPublishAt = new Date('2027-09-14T08:30:00.000Z');
+
+    expect(publishingDateColumns.toAttributes({ ...publishingDate, scheduledPublishAt })).toEqual({
+      scheduledPublishAt,
+    });
   });
 });
 
@@ -1061,34 +1044,14 @@ describe('publishingDateServerSection', () => {
   // 09:30 BST on 14 September 2027.
   const now = new Date('2027-09-14T08:30:00.000Z');
 
-  function submit(
-    body: object,
-    instant: string | null = '2027-10-12T09:30:00+01:00',
-    at: Date = now,
-  ) {
-    const ukInstant = vi.fn().mockResolvedValue(instant);
-    const { indicators } = createFakeInternalRepositories({ indicators: { ukInstant } });
-    const section = publishingDateServerSection(indicators, () => at);
-
-    return { section, submission: section.schema.safeParseAsync(body), ukInstant };
+  function submit(body: object, at: Date = now) {
+    return publishingDateServerSection(() => at).schema.safeParse(body);
   }
 
-  async function fieldErrorsOf({ section, submission }: ReturnType<typeof submit>) {
-    const result = await submission;
-    return result.success ? undefined : toFieldErrors(result.error, section.fields);
+  function fieldErrorsOf(body: object, at: Date = now) {
+    const result = submit(body, at);
+    return result.success ? undefined : toFieldErrors(result.error, publishingDateSection.fields);
   }
-
-  it('adds the instant the UK date and time name, 28 days ahead', async () => {
-    const { submission, ukInstant } = submit({
-      ...publishingDate,
-      publishingDateDay: '12',
-      publishingDateMonth: '10',
-    });
-    const result = await submission;
-
-    expect(ukInstant).toHaveBeenCalledWith({ year: 2027, month: 10, day: 12, hour: 9, minute: 30 });
-    expect(result.success && result.data.scheduledPublishAt).toBe('2027-10-12T09:30:00+01:00');
-  });
 
   function dated(day: string, month: string, year = '2027') {
     return {
@@ -1099,68 +1062,65 @@ describe('publishingDateServerSection', () => {
     };
   }
 
+  it('adds the instant the UK date and time name, 28 days ahead', () => {
+    const result = submit(dated('12', '10'));
+
+    expect(result.success && result.data.scheduledPublishAt).toEqual(
+      new Date('2027-10-12T08:30:00.000Z'),
+    );
+  });
+
   it.each([
     ['27 days from today', dated('11', '10')],
     ['today', dated('14', '9')],
     ['in the past', dated('13', '9')],
-  ])('refuses a date %s, on the parts of the date', async (_, body) => {
-    const submitted = submit(body);
+  ])('refuses a date %s, on the parts of the date', (_, body) => {
     const message = 'Publishing date must be at least 28 days from today';
 
-    expect(await fieldErrorsOf(submitted)).toEqual({
+    expect(fieldErrorsOf(body)).toEqual({
       publishingDateDay: message,
       publishingDateMonth: message,
       publishingDateYear: message,
     });
-    expect(submitted.ukInstant).not.toHaveBeenCalled();
   });
 
-  it('accepts any time on the date 28 days from today', async () => {
+  it('accepts any time on the date 28 days from today', () => {
     // Less than 28 × 24 hours after 09:30 on 14 September.
     const midnight = { ...dated('12', '10'), publishingTimeHour: '00', publishingTimeMinute: '00' };
 
-    expect((await submit(midnight, '2027-10-12T00:00:00+01:00').submission).success).toBe(true);
+    expect(submit(midnight).success).toBe(true);
   });
 
-  it("counts from today's date in the UK", async () => {
+  it("counts from today's date in the UK", () => {
     // 00:30 BST on 15 September, still 14 September in UTC.
     const lateEvening = new Date('2027-09-14T23:30:00.000Z');
 
-    expect(await fieldErrorsOf(submit(dated('12', '10'), undefined, lateEvening))).toBeDefined();
-    expect((await submit(dated('13', '10'), undefined, lateEvening).submission).success).toBe(true);
+    expect(fieldErrorsOf(dated('12', '10'), lateEvening)).toBeDefined();
+    expect(submit(dated('13', '10'), lateEvening).success).toBe(true);
   });
 
-  it('counts calendar days across a clock change', async () => {
+  it('counts calendar days across a clock change', () => {
     // 09:30 GMT on 5 March; 09:30 BST on 2 April is an hour short of 28 × 24 hours later.
     const march = new Date('2027-03-05T09:30:00.000Z');
-    const submitted = submit(dated('2', '4'), '2027-04-02T09:30:00+01:00', march);
 
-    expect((await submitted.submission).success).toBe(true);
+    expect(submit(dated('2', '4'), march).success).toBe(true);
   });
 
-  it('refuses a time the spring clock change skips, on the parts of the time', async () => {
-    const skipped = {
-      publishingDateDay: '26',
-      publishingDateMonth: '3',
-      publishingDateYear: '2028',
-      publishingTimeHour: '01',
-      publishingTimeMinute: '30',
-    };
+  it('refuses a time the spring clock change skips, on the parts of the time', () => {
+    const skipped = { ...dated('26', '3', '2028'), publishingTimeHour: '01' };
 
-    expect(await fieldErrorsOf(submit(skipped, null))).toEqual({
+    expect(fieldErrorsOf(skipped)).toEqual({
       publishingTimeHour: 'Publishing time must be a real time',
       publishingTimeMinute: 'Publishing time must be a real time',
     });
   });
 
-  it('refuses a date that is not real without converting it', async () => {
-    const { submission, ukInstant } = submit({
-      ...publishingDate,
-      publishingDateDay: '31',
-      publishingDateMonth: '2',
-    });
+  it('takes a time the autumn clock change repeats as its second, GMT, occurrence', () => {
+    const repeated = { ...dated('29', '10', '2028'), publishingTimeHour: '01' };
+    const result = submit(repeated);
 
-    expect((await submission).success).toBe(false);
-    expect(ukInstant).not.toHaveBeenCalled();
+    expect(result.success && result.data.scheduledPublishAt).toEqual(
+      new Date('2028-10-29T01:30:00.000Z'),
+    );
   });
 });

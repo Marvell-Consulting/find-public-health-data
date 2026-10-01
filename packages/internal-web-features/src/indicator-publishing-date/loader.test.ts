@@ -3,7 +3,7 @@ import { apiContext } from '@fphd/web-server/api-context';
 import { RouterContextProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { loadPublishingDate } from './loader.ts';
+import { loadPublishingDate, publishingDateExample } from './loader.ts';
 
 const id = '00000000-0000-7000-8000-000000000001';
 
@@ -59,5 +59,12 @@ describe('loadPublishingDate', () => {
     };
 
     expect(await load(answers)).toEqual({ id, values: answers, dateExample: '9 11 2027' });
+  });
+});
+
+describe('publishingDateExample', () => {
+  it('gives the UK date twice the notice period ahead, as day, month and year', () => {
+    // 00:30 BST on 15 September, still 14 September in UTC.
+    expect(publishingDateExample(new Date('2027-09-14T23:30:00.000Z'))).toBe('10 11 2027');
   });
 });

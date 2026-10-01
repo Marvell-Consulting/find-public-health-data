@@ -3,12 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   type AgeRangeFormValues,
   ageRangeFieldName,
-  areSexAndAgesComplete,
   MAX_AGE_RANGES,
-  type SexAndAgesAnswers,
   type SexAndAgesFormValues,
   sexAndAgesSection as section,
-  sexAndAgesFormValues,
 } from './indicator-sex-and-ages-contract.ts';
 import { sectionFieldErrors } from './testing.ts';
 
@@ -246,55 +243,10 @@ describe('sexAndAgesSection', () => {
   });
 });
 
-describe('areSexAndAgesComplete', () => {
-  const unanswered: SexAndAgesAnswers = {
-    sexes: [],
-    ageType: null,
-    ageRanges: [],
-    specificAge: null,
-    specificAgeUnit: null,
-    ageDetail: null,
-  };
-  const sixteenPlus = {
-    lowerLimit: 16,
-    lowerLimitUnit: 'years',
-    upperLimit: null,
-    upperLimitUnit: null,
-  } as const;
-
-  it.each([
-    [unanswered, false],
-    [{ ...unanswered, sexes: ['persons'] }, false],
-    [{ ...unanswered, sexes: ['persons'], ageType: 'range' }, false],
-    [{ ...unanswered, sexes: ['persons'], ageType: 'range', ageRanges: [sixteenPlus] }, true],
-    [{ ...unanswered, ageType: 'range', ageRanges: [sixteenPlus] }, false],
-    [{ ...unanswered, sexes: ['persons'], ageType: 'all' }, true],
-    [{ ...unanswered, ageType: 'all' }, false],
-    [
-      {
-        ...unanswered,
-        sexes: ['males'],
-        ageType: 'specific',
-        specificAge: 0,
-        specificAgeUnit: 'days',
-      },
-      true,
-    ],
-  ] as const)('judges %o complete: %s', (answers, complete) => {
+describe('sexAndAgesSection.formValues', () => {
+  it('gives each stored age to the form as text, and each unanswered one as empty', () => {
     expect(
-      areSexAndAgesComplete({
-        ...answers,
-        sexes: [...answers.sexes],
-        ageRanges: [...answers.ageRanges],
-      }),
-    ).toBe(complete);
-  });
-});
-
-describe('sexAndAgesFormValues', () => {
-  it('gives each stored age as text, and each unanswered one as empty', () => {
-    expect(
-      sexAndAgesFormValues({
+      section.formValues({
         sexes: ['females'],
         ageType: 'range',
         ageRanges: [

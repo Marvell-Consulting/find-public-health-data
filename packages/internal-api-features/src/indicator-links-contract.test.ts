@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
   addLink,
-  areLinksComplete,
   type IndicatorLink,
   MAX_LINKS,
   linksSection as section,
@@ -56,14 +55,12 @@ describe('linksSection', () => {
   });
 });
 
-describe('areLinksComplete', () => {
-  it.each([
-    [{ hasLinks: null, links: [] }, false],
-    [{ hasLinks: 'no', links: [] }, true],
-    [{ hasLinks: 'yes', links: [] }, false],
-    [{ hasLinks: 'yes', links: [commentary] }, true],
-  ] as const)('judges %o complete: %s', (answers, complete) => {
-    expect(areLinksComplete({ ...answers, links: [...answers.links] })).toBe(complete);
+describe('linksSection.formValues', () => {
+  it('gives an unanswered question to the form as empty, with the links held', () => {
+    expect(section.formValues({ hasLinks: null, links: [commentary] })).toEqual({
+      hasLinks: '',
+      links: [commentary],
+    });
   });
 });
 

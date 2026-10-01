@@ -4,6 +4,7 @@ import {
   type DetailedQuestion,
   type IndicatorSection,
   requireDetails,
+  textSection,
   yesNoSchema,
 } from './indicator-section-contract.ts';
 
@@ -47,4 +48,4 @@ export type CopyrightAndDataReuse = z.infer<typeof schema>;
 export const copyrightAndDataReuseSection: IndicatorSection<
   CopyrightAndDataReuseField,
   CopyrightAndDataReuse
-> = { key: 'copyright-and-data-reuse', fields, schema };
+> = textSection({ key: 'copyright-and-data-reuse', fields, schema });

@@ -2,11 +2,13 @@ import { Writable } from 'node:stream';
 
 import { createApiApp } from '@fphd/api-server';
 import { createJwtSessionService, createJwtSessionVerifier } from '@fphd/auth/jwt-session';
-import { withThrowingDefaults } from '@fphd/db/testing';
+import { schema } from '@fphd/db';
+import { nullColumns, withThrowingDefaults } from '@fphd/db/testing';
 import type { Express, Router } from 'express';
 import { type Logger, pino } from 'pino';
 
 import { indicatorSectionFieldErrors } from './contract.ts';
+import type { IndicatorSectionDraft } from './indicator-section.ts';
 import type { IndicatorSection } from './indicator-section-contract.ts';
 import type { InternalRepositories } from './repositories.ts';
 
@@ -84,9 +86,20 @@ export async function handlerLogLines(
 
 /** The field errors a section's schema gives a submission, or undefined when it accepts it. */
 export function sectionFieldErrors<Field extends string, Values, Input, ErrorField extends string>(
-  section: IndicatorSection<Field, Values, Input, ErrorField>,
+  section: IndicatorSection<Field, Values, Input, ErrorField, never>,
   body: unknown,
 ): Partial<Record<Field | ErrorField, string>> | undefined {
   const submission = section.schema.safeParse(body);
   return submission.success ? undefined : indicatorSectionFieldErrors(section, submission.error);
 }
+
+/** A draft as the name page leaves it: every column unanswered and every list empty. */
+export const unansweredDraft: IndicatorSectionDraft = {
+  ...nullColumns(schema.indicatorVersion),
+  links: [],
+  ageRanges: [],
+  topicIds: [],
+  classifications: [],
+  numeratorSources: [],
+  denominatorSources: [],
+};

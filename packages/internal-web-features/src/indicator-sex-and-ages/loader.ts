@@ -1,9 +1,5 @@
 // No @fphd/ui imports here, so the loader and action unit-test without the jsdom the components need.
-import {
-  sexAndAgesAnswersSchema,
-  sexAndAgesFormValues,
-  sexAndAgesSection,
-} from '@fphd/internal-api-features/contract';
+import { sexAndAgesAnswersSchema, sexAndAgesSection } from '@fphd/internal-api-features/contract';
 import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 
 import { requireIndicatorId } from '../indicator-id.ts';
@@ -24,7 +20,7 @@ export async function loadSexAndAges(args: LoaderFunctionArgs) {
     sexAndAgesAnswersSchema,
   );
 
-  return { id, values: withAgeRangeShown(sexAndAgesFormValues(answers)) };
+  return { id, values: withAgeRangeShown(sexAndAgesSection.formValues(answers)) };
 }
 
 /**

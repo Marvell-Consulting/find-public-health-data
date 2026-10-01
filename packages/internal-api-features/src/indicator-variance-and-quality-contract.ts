@@ -4,6 +4,7 @@ import {
   type DetailedQuestion,
   type IndicatorSection,
   requireDetails,
+  textSection,
   yesNoSchema,
 } from './indicator-section-contract.ts';
 
@@ -45,4 +46,4 @@ export type VarianceAndQuality = z.infer<typeof schema>;
 export const varianceAndQualitySection: IndicatorSection<
   VarianceAndQualityField,
   VarianceAndQuality
-> = { key: 'variance-and-quality', fields, schema };
+> = textSection({ key: 'variance-and-quality', fields, schema });

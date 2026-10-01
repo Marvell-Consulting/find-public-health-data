@@ -6,7 +6,7 @@ import {
   UNIT_IDS,
 } from '@fphd/utils/value-type-and-unit';
 
-import type { IndicatorSection } from './indicator-section-contract.ts';
+import { type IndicatorSection, textSection } from './indicator-section-contract.ts';
 
 const optionSchema = z.object({ id: z.uuid(), name: z.string().min(1) });
 
@@ -87,4 +87,4 @@ export type ValueTypeAndUnitsField = z.infer<typeof fields>;
 export type ValueTypeAndUnits = z.infer<typeof schema>;
 
 export const valueTypeAndUnitsSection: IndicatorSection<ValueTypeAndUnitsField, ValueTypeAndUnits> =
-  { key: 'value-type-and-units', fields, schema };
+  textSection({ key: 'value-type-and-units', fields, schema });

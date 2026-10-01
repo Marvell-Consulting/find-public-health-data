@@ -77,6 +77,12 @@
       "types": "./src/source-part.ts",
       "default": "./dist/source-part.js"
     },
+    "./uk-time": {
+      "browser": "./src/uk-time.ts",
+      "development": "./src/uk-time.ts",
+      "types": "./src/uk-time.ts",
+      "default": "./dist/uk-time.js"
+    },
     "./update-frequency": {
       "browser": "./src/update-frequency.ts",
       "development": "./src/update-frequency.ts",
@@ -98,6 +104,10 @@
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@date-fns/tz": "catalog:",
+    "date-fns": "catalog:"
   },
   "devDependencies": {
     "typescript": "catalog:",

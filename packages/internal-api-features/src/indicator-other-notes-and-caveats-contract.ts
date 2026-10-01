@@ -5,6 +5,7 @@ import {
   type DetailedQuestion,
   type IndicatorSection,
   requireDetails,
+  textSection,
   yesNoSchema,
 } from './indicator-section-contract.ts';
 
@@ -68,4 +69,4 @@ export type OtherNotesAndCaveats = z.infer<typeof schema>;
 export const otherNotesAndCaveatsSection: IndicatorSection<
   OtherNotesAndCaveatsField,
   OtherNotesAndCaveats
-> = { key: 'other-notes-and-caveats', fields, schema };
+> = textSection({ key: 'other-notes-and-caveats', fields, schema });

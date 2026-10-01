@@ -1,7 +1,7 @@
 import { z } from '@fphd/config/zod';
 import { CI_METHOD_KINDS, type CiMethodKind } from '@fphd/utils/ci-method-kind';
 
-import { type IndicatorSection, indicatorSectionFormValues } from './indicator-section-contract.ts';
+import { type IndicatorSection, textSection } from './indicator-section-contract.ts';
 
 export const ciMethodKindSchema = z.enum(CI_METHOD_KINDS);
 
@@ -26,7 +26,7 @@ const fields = z.enum([
   'ciMethodDetail',
 ]);
 
-export const SELECT_CI_METHOD = 'Select the confidence interval method used';
+const SELECT_CI_METHOD = 'Select the confidence interval method used';
 
 /**
  * What the form can judge alone: that a method is chosen. Which of the other answers are
@@ -47,10 +47,10 @@ export type ConfidenceIntervals = z.infer<typeof schema>;
 export const confidenceIntervalsSection: IndicatorSection<
   ConfidenceIntervalsField,
   ConfidenceIntervals
-> = { key: 'confidence-intervals', fields, schema };
+> = textSection({ key: 'confidence-intervals', fields, schema });
 
 /** The answers a method of each kind requires beyond itself, and the message for each missing. */
-export function missingCiMethodFollowUps(
+function missingCiMethodFollowUps(
   { hasCiMethodModifications, ciMethodModificationsDetail, ciMethodDetail }: ConfidenceIntervals,
   kind: CiMethodKind,
 ): Partial<Record<ConfidenceIntervalsField, string>> {
@@ -71,16 +71,22 @@ export function missingCiMethodFollowUps(
     : {};
 }
 
-/** Complete once a method is chosen and every answer its kind asks for is held. */
-export function areConfidenceIntervalsComplete(
-  answers: Record<ConfidenceIntervalsField, string | null>,
+/**
+ * The section once the chosen method's kind is known: the form's schema, then the answers that
+ * kind asks for. With no kind, no method is chosen.
+ */
+export function confidenceIntervalsSectionFor(
   kind: CiMethodKind | null,
-): boolean {
-  if (kind === null) return false;
+): IndicatorSection<ConfidenceIntervalsField, ConfidenceIntervals> {
+  return {
+    ...confidenceIntervalsSection,
+    schema: schema.superRefine((answers, ctx) => {
+      const missing =
+        kind === null ? { ciMethodId: SELECT_CI_METHOD } : missingCiMethodFollowUps(answers, kind);
 
-  const submission = schema.safeParse(indicatorSectionFormValues(fields, answers));
-
-  return (
-    submission.success && Object.keys(missingCiMethodFollowUps(submission.data, kind)).length === 0
-  );
+      for (const [field, message] of Object.entries(missing)) {
+        ctx.addIssue({ code: 'custom', path: [field], message });
+      }
+    }),
+  };
 }

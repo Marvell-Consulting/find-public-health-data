@@ -1,6 +1,6 @@
 import { z } from '@fphd/config/zod';
 
-import type { IndicatorSection } from './indicator-section-contract.ts';
+import { type IndicatorSection, textSection } from './indicator-section-contract.ts';
 
 const fields = z.enum(['definition', 'rationale']);
 
@@ -15,4 +15,4 @@ export type DefinitionAndRationale = z.infer<typeof schema>;
 export const definitionAndRationaleSection: IndicatorSection<
   DefinitionAndRationaleField,
   DefinitionAndRationale
-> = { key: 'definition-and-rationale', fields, schema };
+> = textSection({ key: 'definition-and-rationale', fields, schema });
