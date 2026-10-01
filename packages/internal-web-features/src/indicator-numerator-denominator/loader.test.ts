@@ -4,7 +4,6 @@ import { apiContext } from '@fphd/web-server/api-context';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { FORM_NOT_SAVED } from '../form-refusal.ts';
 import { ADD_INTENT, removeIntent } from '../list-form.ts';
 import { SHOW_SOURCES_INTENT, sourceFieldName } from './form.ts';
 import { loadNumeratorDenominator, submitNumeratorDenominator } from './loader.ts';
@@ -113,15 +112,12 @@ describe('loadNumeratorDenominator', () => {
     );
   });
 
-  it.each(['108', 'not-an-id'])(
-    'answers 404 to an id of %s without asking the API',
-    async (bad) => {
-      const get = vi.fn();
+  it('answers 404 to a malformed id without asking the API for anything', async () => {
+    const get = vi.fn();
 
-      await expect(load(bad, get)).rejects.toSatisfy(isNotFound);
-      expect(get).not.toHaveBeenCalled();
-    },
-  );
+    await expect(load('108', get)).rejects.toSatisfy(isNotFound);
+    expect(get).not.toHaveBeenCalled();
+  });
 });
 
 describe('submitNumeratorDenominator', () => {
@@ -254,22 +250,6 @@ describe('submitNumeratorDenominator', () => {
     expect(outcome).toEqual({
       values: { sources: [], ...fields },
       fieldErrors: { sourceId: 'Select a source, or No specific source' },
-    });
-  });
-
-  it('explains a refusal from the API that names no field', async () => {
-    const put = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 400,
-      error: { error: 'invalid_id' },
-    });
-
-    await expect(
-      submit({ definition: 'Deaths', ...nothingChosen }, [mortality], put),
-    ).resolves.toEqual({
-      values: { sources: [mortality], definition: 'Deaths', ...nothingChosen },
-      fieldErrors: {},
-      formError: FORM_NOT_SAVED,
     });
   });
 

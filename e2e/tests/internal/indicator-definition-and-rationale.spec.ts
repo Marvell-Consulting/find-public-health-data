@@ -1,11 +1,8 @@
 import { expect, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
-import { createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
-import { expectErrorSummaryReady } from '../support/govuk-frontend.ts';
 import {
-  expectBackToTaskList,
-  expectNotFoundWithoutDraft,
+  describeSectionPage,
   openSectionPage,
   type Section,
   taskRow,
@@ -18,36 +15,19 @@ const RATIONALE = 'What is the rationale for this indicator?';
 
 test.use({ storageState: PUBLISHER.storageState });
 
-test('is reached from the task list, where it starts as not started', async ({ page }) => {
-  await createIndicator(page, uniqueIndicatorName(SECTION.key));
-  await expect(taskRow(page, SECTION.taskName)).toContainText('Not started');
-
-  await taskRow(page, SECTION.taskName).getByRole('link').click();
-
-  await expect(
-    page.getByRole('heading', { level: 1, name: 'Definition and rationale' }),
-  ).toBeVisible();
-  await expect(page.getByLabel(DEFINITION)).toBeEmpty();
-  await expect(page.getByLabel(RATIONALE)).toBeEmpty();
-});
-
-test('asks for both answers when Continue is selected with the form empty', async ({ page }) => {
-  await openSectionPage(page, SECTION);
-  const pagePath = new URL(page.url()).pathname;
-
-  await page.getByRole('button', { name: 'Continue' }).click();
-
-  await expect(page).toHaveURL(pagePath);
-  await expect(page).toHaveTitle(/^Error: /);
-  const summary = page.getByRole('alert');
-  await expect(summary.getByRole('link')).toHaveText([
-    'Enter the definition of the indicator',
-    'Enter the rationale for the indicator',
-  ]);
-
-  await expectErrorSummaryReady(page);
-  await summary.getByRole('link', { name: 'Enter the rationale for the indicator' }).click();
-  await expect(page.getByLabel(RATIONALE)).toBeFocused();
+describeSectionPage(SECTION, {
+  expectUnanswered: async (page) => {
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Definition and rationale' }),
+    ).toBeVisible();
+    await expect(page.getByLabel(DEFINITION)).toBeEmpty();
+    await expect(page.getByLabel(RATIONALE)).toBeEmpty();
+  },
+  refusal: {
+    messages: ['Enter the definition of the indicator', 'Enter the rationale for the indicator'],
+    follow: 'Enter the rationale for the indicator',
+    focuses: (page) => page.getByLabel(RATIONALE),
+  },
 });
 
 test('saves nothing until both are answered, keeping what was typed', async ({ page }) => {
@@ -81,16 +61,6 @@ test('saves both answers on Continue and shows the task as completed', async ({ 
     'The average number of years a newborn would live.',
   );
   await expect(page.getByLabel(RATIONALE)).toHaveValue('A summary measure of mortality.');
-});
-
-test('goes back to the task list', async ({ page }) => {
-  const taskListPath = await openSectionPage(page, SECTION);
-
-  await expectBackToTaskList(page, taskListPath);
-});
-
-test('answers an indicator with no draft with the not-found page', async ({ page }) => {
-  await expectNotFoundWithoutDraft(page, SECTION.key);
 });
 
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {

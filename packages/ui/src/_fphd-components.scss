@@ -368,8 +368,7 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
   margin-bottom: govuk-spacing(3);
 }
 
-// Match the prototype's compact geography rows while retaining the standard
-// NotGovUK checkbox component and its semantics.
+// Shrinks the small checkboxes to compact rows so a long geography tree stays scannable.
 .fphd-geo-alt__tree .govuk-checkboxes--small .govuk-checkboxes__input {
   width: 24px;
   height: 36px;

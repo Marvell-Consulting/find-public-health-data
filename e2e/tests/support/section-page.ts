@@ -1,6 +1,7 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 
-import { createDraft, uniqueIndicatorName } from './create-indicator.ts';
+import { createDraft, createIndicator, uniqueIndicatorName } from './create-indicator.ts';
+import { expectErrorSummaryReady } from './govuk-frontend.ts';
 import { MORTALITY_ID } from './indicator-page.ts';
 
 /** A page of a draft's task list: its path segment and the name of its task row. */
@@ -41,4 +42,59 @@ export async function expectNotFoundWithoutDraft(page: Page, key: string) {
     expect(response?.status(), path).toBe(404);
     await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
   }
+}
+
+type SharedCases = {
+  /** Checks the page a new draft opens on: its heading and every answer empty. */
+  expectUnanswered: (page: Page) => Promise<void>;
+  /**
+   * The empty form's refusal: the summary's messages in order, the one whose link is followed
+   * (the first unless named) and the field that link moves focus to.
+   */
+  refusal: { messages: [string, ...string[]]; follow?: string; focuses: (page: Page) => Locator };
+};
+
+/**
+ * Declares the tests every section page shares: reached from the task list, the empty form
+ * refused, the back link and not-found for an indicator with no draft. The spec adds its own
+ * questions' tests and the accessibility scans.
+ */
+export function describeSectionPage(section: Section, { expectUnanswered, refusal }: SharedCases) {
+  test('is reached from the task list, where it starts as not started', async ({ page }) => {
+    await createIndicator(page, uniqueIndicatorName(section.key));
+    await expect(taskRow(page, section.taskName)).toContainText('Not started');
+
+    await taskRow(page, section.taskName).getByRole('link').click();
+
+    await expectUnanswered(page);
+  });
+
+  test('asks for every required answer when Continue is selected with the form empty', async ({
+    page,
+  }) => {
+    await openSectionPage(page, section);
+    const pagePath = new URL(page.url()).pathname;
+
+    await page.getByRole('button', { name: 'Continue' }).click();
+
+    await expect(page).toHaveURL(pagePath);
+    await expect(page).toHaveTitle(/^Error: /);
+    const summary = page.getByRole('alert');
+    await expect(summary.getByRole('link')).toHaveText(refusal.messages);
+
+    await expectErrorSummaryReady(page);
+    const follow = refusal.follow ?? refusal.messages[0];
+    await summary.getByRole('link', { name: follow, exact: true }).click();
+    await expect(refusal.focuses(page)).toBeFocused();
+  });
+
+  test('goes back to the task list', async ({ page }) => {
+    const taskListPath = await openSectionPage(page, section);
+
+    await expectBackToTaskList(page, taskListPath);
+  });
+
+  test('answers an indicator with no draft with the not-found page', async ({ page }) => {
+    await expectNotFoundWithoutDraft(page, section.key);
+  });
 }

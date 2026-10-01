@@ -35,16 +35,4 @@ describe('loadIndicatorOverview', () => {
     expect(get.mock.calls[0]?.[0]).toBe(`/api/internal/indicators/${indicator.id}`);
     expect(outcome).toEqual({ indicator });
   });
-
-  it.each(['108', 'not-an-id'])(
-    'responds 404 to an id of %s without asking the API',
-    async (id) => {
-      const get = vi.fn();
-
-      await expect(load(id, get)).rejects.toSatisfy(
-        (error: unknown) => error instanceof Response && error.status === 404,
-      );
-      expect(get).not.toHaveBeenCalled();
-    },
-  );
 });

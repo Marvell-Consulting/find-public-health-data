@@ -1,11 +1,9 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
-import { createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
 import { expectErrorSummaryReady } from '../support/govuk-frontend.ts';
 import {
-  expectBackToTaskList,
-  expectNotFoundWithoutDraft,
+  describeSectionPage,
   openSectionPage,
   type Section,
   taskRow,
@@ -27,40 +25,21 @@ async function submitOtherWithoutDetails(page: Page) {
 
 test.use({ storageState: PUBLISHER.storageState });
 
-test('is reached from the task list, where it starts as not started', async ({ page }) => {
-  await createIndicator(page, uniqueIndicatorName(SECTION.key));
-  await expect(taskRow(page, SECTION.taskName)).toContainText('Not started');
-
-  await taskRow(page, SECTION.taskName).getByRole('link').click();
-
-  await expect(
-    page.getByRole('heading', { level: 1, name: 'How was the indicator calculated?' }),
-  ).toBeVisible();
-  await expect(page.getByLabel(METHODOLOGY, { exact: true })).toBeEmpty();
-  for (const option of [OHID, DHSC, OTHER]) {
-    await expect(page.getByLabel(option, { exact: true })).not.toBeChecked();
-  }
-});
-
-test('asks for the methodology and who calculated it when Continue is selected with the form empty', async ({
-  page,
-}) => {
-  await openSectionPage(page, SECTION);
-  const pagePath = new URL(page.url()).pathname;
-
-  await page.getByRole('button', { name: 'Continue' }).click();
-
-  await expect(page).toHaveURL(pagePath);
-  await expect(page).toHaveTitle(/^Error: /);
-  const summary = page.getByRole('alert');
-  await expect(summary.getByRole('link')).toHaveText([
-    'Enter the methodology',
-    'Select who calculated the indicator',
-  ]);
-
-  await expectErrorSummaryReady(page);
-  await summary.getByRole('link', { name: 'Select who calculated the indicator' }).click();
-  await expect(page.getByLabel(OHID, { exact: true })).toBeFocused();
+describeSectionPage(SECTION, {
+  expectUnanswered: async (page) => {
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'How was the indicator calculated?' }),
+    ).toBeVisible();
+    await expect(page.getByLabel(METHODOLOGY, { exact: true })).toBeEmpty();
+    for (const option of [OHID, DHSC, OTHER]) {
+      await expect(page.getByLabel(option, { exact: true })).not.toBeChecked();
+    }
+  },
+  refusal: {
+    messages: ['Enter the methodology', 'Select who calculated the indicator'],
+    follow: 'Select who calculated the indicator',
+    focuses: (page) => page.getByLabel(OHID, { exact: true }),
+  },
 });
 
 test('reveals the other organisations only while "Other" is chosen', async ({ page }) => {
@@ -145,16 +124,6 @@ test('forgets the other organisations once OHID or DHSC is chosen instead', asyn
   await expect(page.getByLabel(OHID, { exact: true })).toBeChecked();
   await page.getByLabel(OTHER, { exact: true }).check();
   await expect(page.getByLabel(DETAILS, { exact: true })).toBeEmpty();
-});
-
-test('goes back to the task list', async ({ page }) => {
-  const taskListPath = await openSectionPage(page, SECTION);
-
-  await expectBackToTaskList(page, taskListPath);
-});
-
-test('answers an indicator with no draft with the not-found page', async ({ page }) => {
-  await expectNotFoundWithoutDraft(page, SECTION.key);
 });
 
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {

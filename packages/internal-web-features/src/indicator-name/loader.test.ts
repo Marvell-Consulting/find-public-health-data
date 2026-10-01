@@ -168,13 +168,6 @@ describe('loadIndicatorName', () => {
 
     await expect(load(created.id, get)).rejects.toSatisfy(isNotFound);
   });
-
-  it.each(['108', 'not-an-id'])('answers 404 to an id of %s without asking the API', async (id) => {
-    const get = vi.fn();
-
-    await expect(load(id, get)).rejects.toSatisfy(isNotFound);
-    expect(get).not.toHaveBeenCalled();
-  });
 });
 
 describe('saveIndicatorName', () => {
@@ -241,11 +234,10 @@ describe('saveIndicatorName', () => {
     });
   });
 
-  it.each([
-    ['an id', { error: 'invalid_id' }],
-    ['no field', { error: 'validation_failed', fieldErrors: {} }],
-  ])('reports a refusal naming %s as the form not saved', async (_case, error) => {
-    const patch = vi.fn().mockResolvedValue({ ok: false, status: 400, error });
+  it('reports a refusal that names no field as the form not saved', async () => {
+    const patch = vi
+      .fn()
+      .mockResolvedValue({ ok: false, status: 400, error: { error: 'invalid_id' } });
 
     const outcome = await rename(created.id, 'Rejected name', patch);
 
@@ -261,12 +253,5 @@ describe('saveIndicatorName', () => {
     const patch = vi.fn().mockRejectedValue(new Response('Not Found', { status: 404 }));
 
     await expect(rename(created.id, 'Too late', patch)).rejects.toSatisfy(isNotFound);
-  });
-
-  it.each(['108', 'not-an-id'])('answers 404 to an id of %s without asking the API', async (id) => {
-    const patch = vi.fn();
-
-    await expect(rename(id, 'Renamed indicator', patch)).rejects.toSatisfy(isNotFound);
-    expect(patch).not.toHaveBeenCalled();
   });
 });

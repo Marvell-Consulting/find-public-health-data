@@ -1,11 +1,8 @@
 import { expect, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
-import { createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
-import { expectErrorSummaryReady } from '../support/govuk-frontend.ts';
 import {
-  expectBackToTaskList,
-  expectNotFoundWithoutDraft,
+  describeSectionPage,
   openSectionPage,
   type Section,
   taskRow,
@@ -18,39 +15,20 @@ const NO_LONGER_UPDATED = 'This indicator will no longer be updated';
 
 test.use({ storageState: PUBLISHER.storageState });
 
-test('is reached from the task list, where it starts as not started', async ({ page }) => {
-  await createIndicator(page, uniqueIndicatorName(SECTION.key));
-  await expect(taskRow(page, SECTION.taskName)).toContainText('Not started');
-
-  await taskRow(page, SECTION.taskName).getByRole('link').click();
-
-  await expect(page.getByRole('heading', { level: 1, name: QUESTION })).toBeVisible();
-  const options = page.getByRole('group', { name: QUESTION }).getByRole('radio');
-  await expect(options).toHaveCount(6);
-  for (const option of await options.all()) {
-    await expect(option).not.toBeChecked();
-  }
-  await expect(page.locator('.govuk-radios__divider')).toHaveText('or');
-});
-
-test('asks how often it will be updated when Continue is selected with none chosen', async ({
-  page,
-}) => {
-  await openSectionPage(page, SECTION);
-  const pagePath = new URL(page.url()).pathname;
-
-  await page.getByRole('button', { name: 'Continue' }).click();
-
-  await expect(page).toHaveURL(pagePath);
-  await expect(page).toHaveTitle(/^Error: /);
-  const summary = page.getByRole('alert');
-  await expect(summary.getByRole('link')).toHaveText([
-    'Select how often this indicator will be updated',
-  ]);
-
-  await expectErrorSummaryReady(page);
-  await summary.getByRole('link').click();
-  await expect(page.getByLabel('Monthly', { exact: true })).toBeFocused();
+describeSectionPage(SECTION, {
+  expectUnanswered: async (page) => {
+    await expect(page.getByRole('heading', { level: 1, name: QUESTION })).toBeVisible();
+    const options = page.getByRole('group', { name: QUESTION }).getByRole('radio');
+    await expect(options).toHaveCount(6);
+    for (const option of await options.all()) {
+      await expect(option).not.toBeChecked();
+    }
+    await expect(page.locator('.govuk-radios__divider')).toHaveText('or');
+  },
+  refusal: {
+    messages: ['Select how often this indicator will be updated'],
+    focuses: (page) => page.getByLabel('Monthly', { exact: true }),
+  },
 });
 
 test('saves the update frequency on Continue and shows the task as completed', async ({ page }) => {
@@ -64,16 +42,6 @@ test('saves the update frequency on Continue and shows the task as completed', a
 
   await taskRow(page, SECTION.taskName).getByRole('link').click();
   await expect(page.getByLabel(NO_LONGER_UPDATED)).toBeChecked();
-});
-
-test('goes back to the task list', async ({ page }) => {
-  const taskListPath = await openSectionPage(page, SECTION);
-
-  await expectBackToTaskList(page, taskListPath);
-});
-
-test('answers an indicator with no draft with the not-found page', async ({ page }) => {
-  await expectNotFoundWithoutDraft(page, SECTION.key);
 });
 
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {

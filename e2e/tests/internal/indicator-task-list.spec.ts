@@ -5,6 +5,41 @@ import { createIndicator, uniqueIndicatorName } from '../support/create-indicato
 import { expectNotFoundWithoutDraft, taskRow } from '../support/section-page.ts';
 import { PUBLISHER } from '../support/sign-in.ts';
 
+// The one task with no page yet.
+const DATA_TABLE = 'Data table';
+
+/** A draft's task rows, in the order the task list shows them. */
+const TASK_GROUPS = {
+  Data: [
+    DATA_TABLE,
+    'Value type and units',
+    'Sex and ages',
+    'Period type',
+    'Polarity',
+    'Data quality',
+  ],
+  Metadata: [
+    'Name',
+    'Definition and rationale',
+    'Numerator',
+    'Denominator',
+    'How the indicator was calculated',
+    'Confidence intervals',
+    'Benchmarking',
+    'Other notes and caveats',
+    'Links',
+    'Tagging',
+    'Copyright and data re-use',
+  ],
+  Publishing: ['Update frequency', 'Publishing date'],
+  'Notes for reviewers (for internal use only)': [
+    'Variance and quality',
+    'Justifications',
+    'Other comments',
+  ],
+};
+const TASKS = Object.values(TASK_GROUPS).flat();
+
 function uniqueName() {
   return uniqueIndicatorName('task list');
 }
@@ -14,13 +49,12 @@ test.use({ storageState: PUBLISHER.storageState });
 test('lists the fields a publisher completes, grouped', async ({ page }) => {
   await createIndicator(page, uniqueName());
 
-  await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toHaveText([
-    'Data',
-    'Metadata',
-    'Publishing',
-    'Notes for reviewers (for internal use only)',
-  ]);
-  await expect(page.getByRole('main').getByRole('listitem')).toHaveCount(22);
+  await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toHaveText(
+    Object.keys(TASK_GROUPS),
+  );
+  const rows = page.getByRole('main').getByRole('listitem');
+  await expect(rows).toHaveCount(TASKS.length);
+  await expect(rows).toContainText(TASKS);
 });
 
 test('shows the indicator name and number on its task list', async ({ page }) => {
@@ -46,37 +80,13 @@ test('marks the name as complete and everything else as not started', async ({ p
   await createIndicator(page, uniqueName());
 
   await expect(taskRow(page, 'Name')).toContainText('Completed');
-  await expect(taskRow(page, 'Name').getByRole('link')).toBeVisible();
-  await expect(taskRow(page, 'Definition and rationale')).toContainText('Not started');
-  await expect(taskRow(page, 'Definition and rationale').getByRole('link')).toBeVisible();
-  await expect(taskRow(page, 'How the indicator was calculated')).toContainText('Not started');
-  await expect(taskRow(page, 'How the indicator was calculated').getByRole('link')).toBeVisible();
-  await expect(taskRow(page, 'Confidence intervals')).toContainText('Not started');
-  await expect(taskRow(page, 'Confidence intervals').getByRole('link')).toBeVisible();
-  await expect(taskRow(page, 'Other notes and caveats')).toContainText('Not started');
-  await expect(taskRow(page, 'Other notes and caveats').getByRole('link')).toBeVisible();
-  await expect(taskRow(page, 'Period type')).toContainText('Not started');
-  await expect(taskRow(page, 'Period type').getByRole('link')).toBeVisible();
-  await expect(taskRow(page, 'Value type and units')).toContainText('Not started');
-  await expect(taskRow(page, 'Value type and units').getByRole('link')).toBeVisible();
-  await expect(taskRow(page, 'Polarity')).toContainText('Not started');
-  await expect(taskRow(page, 'Polarity').getByRole('link')).toBeVisible();
-  await expect(taskRow(page, 'Data quality')).toContainText('Not started');
-  await expect(taskRow(page, 'Data quality').getByRole('link')).toBeVisible();
-  await expect(taskRow(page, 'Update frequency')).toContainText('Not started');
-  await expect(taskRow(page, 'Update frequency').getByRole('link')).toBeVisible();
-  await expect(taskRow(page, 'Publishing date')).toContainText('Not started');
-  await expect(taskRow(page, 'Publishing date').getByRole('link')).toBeVisible();
-  await expect(taskRow(page, 'Variance and quality')).toContainText('Not started');
-  await expect(taskRow(page, 'Variance and quality').getByRole('link')).toBeVisible();
-  await expect(taskRow(page, 'Justifications')).toContainText('Not started');
-  await expect(taskRow(page, 'Justifications').getByRole('link')).toBeVisible();
-  await expect(taskRow(page, 'Other comments')).toContainText('Not started');
-  await expect(taskRow(page, 'Other comments').getByRole('link')).toBeVisible();
-  await expect(taskRow(page, 'Copyright and data re-use')).toContainText('Not started');
-  await expect(taskRow(page, 'Copyright and data re-use').getByRole('link')).toBeVisible();
-  await expect(taskRow(page, 'Benchmarking')).toContainText('Not started');
-  await expect(taskRow(page, 'Benchmarking').getByRole('link')).toBeVisible();
+  for (const taskName of TASKS.filter((name) => name !== 'Name')) {
+    await expect(taskRow(page, taskName)).toContainText('Not started');
+  }
+  for (const taskName of TASKS.filter((name) => name !== DATA_TABLE)) {
+    await expect(taskRow(page, taskName).getByRole('link')).toBeVisible();
+  }
+  await expect(taskRow(page, DATA_TABLE).getByRole('link')).toHaveCount(0);
 });
 
 test('opens the name from the task list and comes back to it renamed', async ({ page }) => {

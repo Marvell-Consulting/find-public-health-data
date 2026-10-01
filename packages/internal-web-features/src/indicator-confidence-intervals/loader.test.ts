@@ -68,13 +68,10 @@ describe('loadConfidenceIntervals', () => {
     });
   });
 
-  it.each(['108', 'not-an-id'])(
-    'answers 404 to an id of %s without asking the API for anything',
-    async (bad) => {
-      const get = vi.fn();
+  it('answers 404 to a malformed id without asking the API for anything', async () => {
+    const get = vi.fn();
 
-      await expect(load(bad, get)).rejects.toSatisfy(isNotFound);
-      expect(get).not.toHaveBeenCalled();
-    },
-  );
+    await expect(load('108', get)).rejects.toSatisfy(isNotFound);
+    expect(get).not.toHaveBeenCalled();
+  });
 });

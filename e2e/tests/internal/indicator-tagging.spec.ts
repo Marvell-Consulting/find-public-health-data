@@ -1,11 +1,9 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
-import { createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
 import { expectErrorSummaryReady } from '../support/govuk-frontend.ts';
 import {
-  expectBackToTaskList,
-  expectNotFoundWithoutDraft,
+  describeSectionPage,
   openSectionPage,
   type Section,
   taskRow,
@@ -57,36 +55,21 @@ async function tagEverything(page: Page) {
 
 test.use({ storageState: PUBLISHER.storageState });
 
-test('is reached from the task list, where it starts as not started', async ({ page }) => {
-  await createIndicator(page, uniqueIndicatorName(SECTION.key));
-  await expect(taskRow(page, SECTION.taskName)).toContainText('Not started');
-
-  await taskRow(page, SECTION.taskName).getByRole('link').click();
-
-  await expect(page.getByRole('heading', { level: 1, name: TITLE })).toBeVisible();
-  await expect(page.getByLabel(LISTS.topic.label, { exact: true })).toHaveValue('');
-  await expect(question(page, RISK_FACTOR_QUESTION).getByLabel('Yes')).not.toBeChecked();
-});
-
-test('asks every question when Continue is selected with the form empty', async ({ page }) => {
-  await openSectionPage(page, SECTION);
-  const pagePath = new URL(page.url()).pathname;
-
-  await page.getByRole('button', { name: 'Continue' }).click();
-
-  await expect(page).toHaveURL(pagePath);
-  await expect(page).toHaveTitle(/^Error: /);
-  const summary = page.getByRole('alert');
-  await expect(summary.getByRole('link')).toHaveText([
-    'Select at least one topic',
-    'Select at least one indicator type',
-    'Select whether this indicator includes a risk factor',
-    'Select whether this indicator is part of a framework or programme',
-  ]);
-
-  await expectErrorSummaryReady(page);
-  await summary.getByRole('link', { name: 'Select at least one topic' }).click();
-  await expect(page.getByLabel(LISTS.topic.label, { exact: true })).toBeFocused();
+describeSectionPage(SECTION, {
+  expectUnanswered: async (page) => {
+    await expect(page.getByRole('heading', { level: 1, name: TITLE })).toBeVisible();
+    await expect(page.getByLabel(LISTS.topic.label, { exact: true })).toHaveValue('');
+    await expect(question(page, RISK_FACTOR_QUESTION).getByLabel('Yes')).not.toBeChecked();
+  },
+  refusal: {
+    messages: [
+      'Select at least one topic',
+      'Select at least one indicator type',
+      'Select whether this indicator includes a risk factor',
+      'Select whether this indicator is part of a framework or programme',
+    ],
+    focuses: (page) => page.getByLabel(LISTS.topic.label, { exact: true }),
+  },
 });
 
 test('reveals the risk factors and frameworks only while "Yes" is chosen', async ({ page }) => {
@@ -203,16 +186,6 @@ test('saves "No" and forgets any risk factors saved before', async ({ page }) =>
   await page.goto(pagePath);
   await expect(question(page, RISK_FACTOR_QUESTION).getByLabel('No')).toBeChecked();
   await expect(removeButtons(page, 'risk factor')).toHaveCount(0);
-});
-
-test('goes back to the task list', async ({ page }) => {
-  const taskListPath = await openSectionPage(page, SECTION);
-
-  await expectBackToTaskList(page, taskListPath);
-});
-
-test('answers an indicator with no draft with the not-found page', async ({ page }) => {
-  await expectNotFoundWithoutDraft(page, SECTION.key);
 });
 
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {

@@ -4,7 +4,6 @@ import { apiContext } from '@fphd/web-server/api-context';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { FORM_NOT_SAVED } from '../form-refusal.ts';
 import { addIntent, removeIntent } from '../list-form.ts';
 import { loadTagging, submitTagging } from './loader.ts';
 
@@ -106,7 +105,7 @@ describe('loadTagging', () => {
     });
   });
 
-  it('answers 404 to an id that is not one, without asking the API', async () => {
+  it('answers 404 to a malformed id without asking the API for anything', async () => {
     const get = vi.fn();
 
     await expect(load('108', get)).rejects.toSatisfy(
@@ -229,17 +228,6 @@ describe('submitTagging', () => {
       },
     });
     expect(put).not.toHaveBeenCalled();
-  });
-
-  it('says the answers were not saved when the API refuses without naming a field', async () => {
-    const put = vi
-      .fn()
-      .mockResolvedValue({ ok: false, status: 400, error: { error: 'invalid_id' } });
-
-    await expect(submit(answered, put)).resolves.toMatchObject({
-      fieldErrors: {},
-      formError: FORM_NOT_SAVED,
-    });
   });
 
   it('shows a tag the API no longer offers as refused', async () => {

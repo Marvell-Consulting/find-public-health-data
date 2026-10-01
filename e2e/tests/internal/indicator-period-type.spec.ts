@@ -1,11 +1,9 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
-import { createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
 import { expectErrorSummaryReady } from '../support/govuk-frontend.ts';
 import {
-  expectBackToTaskList,
-  expectNotFoundWithoutDraft,
+  describeSectionPage,
   openSectionPage,
   type Section,
   taskRow,
@@ -48,33 +46,18 @@ function continueButton(page: Page) {
 
 test.use({ storageState: PUBLISHER.storageState });
 
-test('is reached from the task list, where it starts as not started', async ({ page }) => {
-  await createIndicator(page, uniqueIndicatorName(SECTION.key));
-  await expect(taskRow(page, SECTION.taskName)).toContainText('Not started');
-
-  await taskRow(page, SECTION.taskName).getByRole('link').click();
-
-  await expect(page.getByRole('heading', { level: 1, name: TITLE })).toBeVisible();
-  await expect(page.getByRole('main').getByRole('radio', { checked: true })).toHaveCount(0);
-  for (const label of ['Years', 'Quarters', 'Months'] as const) {
-    await expect(periodType(page, label)).toBeVisible();
-  }
-});
-
-test('asks for the period type when Continue is selected with the form empty', async ({ page }) => {
-  await openSectionPage(page, SECTION);
-  const pagePath = new URL(page.url()).pathname;
-
-  await continueButton(page).click();
-
-  await expect(page).toHaveURL(pagePath);
-  await expect(page).toHaveTitle(/^Error: /);
-  const summary = page.getByRole('alert');
-  await expect(summary.getByRole('link')).toHaveText(['Select the period type']);
-
-  await expectErrorSummaryReady(page);
-  await summary.getByRole('link').click();
-  await expect(periodType(page, 'Years')).toBeFocused();
+describeSectionPage(SECTION, {
+  expectUnanswered: async (page) => {
+    await expect(page.getByRole('heading', { level: 1, name: TITLE })).toBeVisible();
+    await expect(page.getByRole('main').getByRole('radio', { checked: true })).toHaveCount(0);
+    for (const label of ['Years', 'Quarters', 'Months'] as const) {
+      await expect(periodType(page, label)).toBeVisible();
+    }
+  },
+  refusal: {
+    messages: ['Select the period type'],
+    focuses: (page) => periodType(page, 'Years'),
+  },
 });
 
 test('asks years and quarters for the year type, and months for nothing more', async ({ page }) => {
@@ -194,16 +177,6 @@ test('saves months and forgets the year type once months are chosen', async ({ p
   await expect(periodType(page, 'Months')).toBeChecked();
   await periodType(page, 'Quarters').check();
   await expect(yearTypes(page, 'Quarters').getByRole('radio', { checked: true })).toHaveCount(0);
-});
-
-test('goes back to the task list', async ({ page }) => {
-  const taskListPath = await openSectionPage(page, SECTION);
-
-  await expectBackToTaskList(page, taskListPath);
-});
-
-test('answers an indicator with no draft with the not-found page', async ({ page }) => {
-  await expectNotFoundWithoutDraft(page, SECTION.key);
 });
 
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {

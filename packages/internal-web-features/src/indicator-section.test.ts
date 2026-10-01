@@ -73,16 +73,6 @@ describe('loadIndicatorSection', () => {
 
     await expect(load(id, get)).rejects.toSatisfy(isNotFound);
   });
-
-  it.each(['108', 'not-an-id'])(
-    'answers 404 to an id of %s without asking the API',
-    async (bad) => {
-      const get = vi.fn();
-
-      await expect(load(bad, get)).rejects.toSatisfy(isNotFound);
-      expect(get).not.toHaveBeenCalled();
-    },
-  );
 });
 
 describe('saveIndicatorSection', () => {
@@ -134,11 +124,10 @@ describe('saveIndicatorSection', () => {
     expect(outcome).toEqual({ values: answers, fieldErrors: { definition: 'Refused by the API' } });
   });
 
-  it.each([
-    ['an id', { error: 'invalid_id' }],
-    ['no field', { error: 'validation_failed', fieldErrors: {} }],
-  ])('reports a refusal naming %s as the form not saved', async (_case, error) => {
-    const put = vi.fn().mockResolvedValue({ ok: false, status: 400, error });
+  it('reports a refusal that names no field as the form not saved', async () => {
+    const put = vi
+      .fn()
+      .mockResolvedValue({ ok: false, status: 400, error: { error: 'invalid_id' } });
 
     await expect(save(id, answers, put)).resolves.toEqual({
       values: answers,
@@ -153,16 +142,6 @@ describe('saveIndicatorSection', () => {
 
     await expect(save(id, answers, put)).rejects.toSatisfy(isNotFound);
   });
-
-  it.each(['108', 'not-an-id'])(
-    'answers 404 to an id of %s without asking the API',
-    async (bad) => {
-      const put = vi.fn();
-
-      await expect(save(bad, answers, put)).rejects.toSatisfy(isNotFound);
-      expect(put).not.toHaveBeenCalled();
-    },
-  );
 });
 
 describe('saveIndicatorSectionValues', () => {

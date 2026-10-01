@@ -1,10 +1,9 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
-import { createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
 import { expectErrorSummaryReady } from '../support/govuk-frontend.ts';
 import {
-  expectBackToTaskList,
+  describeSectionPage,
   expectNotFoundWithoutDraft,
   openSectionPage,
   type Section,
@@ -40,17 +39,21 @@ function addedSources(page: Page) {
 
 test.use({ storageState: PUBLISHER.storageState });
 
-test('is reached from the task list, where it starts as not started', async ({ page }) => {
-  await createIndicator(page, uniqueIndicatorName(NUMERATOR.key));
-  await expect(taskRow(page, NUMERATOR.taskName)).toContainText('Not started');
-
-  await taskRow(page, NUMERATOR.taskName).getByRole('link').click();
-
-  await expect(
-    page.getByRole('heading', { level: 1, name: 'What are the details of the numerator?' }),
-  ).toBeVisible();
-  await expect(page.getByLabel(PROVIDER_FIELD, { exact: true })).toHaveValue('');
-  await expect(page.getByLabel(DEFINITION_FIELD, { exact: true })).toBeEmpty();
+describeSectionPage(NUMERATOR, {
+  expectUnanswered: async (page) => {
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'What are the details of the numerator?' }),
+    ).toBeVisible();
+    await expect(page.getByLabel(PROVIDER_FIELD, { exact: true })).toHaveValue('');
+    await expect(page.getByLabel(DEFINITION_FIELD, { exact: true })).toBeEmpty();
+  },
+  refusal: {
+    messages: [
+      'Add at least one data provider for the numerator',
+      'Enter the definition of the numerator',
+    ],
+    focuses: (page) => page.getByLabel(PROVIDER_FIELD, { exact: true }),
+  },
 });
 
 test("offers a provider's sources once the provider is chosen", async ({ page }) => {
@@ -86,27 +89,6 @@ test('removes a source from the list', async ({ page }) => {
   await page.getByRole('button', { name: `Remove ${ONS}: Live births` }).click();
 
   await expect(addedSources(page)).toHaveText([DEFRA]);
-});
-
-test('asks for a data provider and a definition when Continue is selected with the form empty', async ({
-  page,
-}) => {
-  await openSectionPage(page, NUMERATOR);
-  const pagePath = new URL(page.url()).pathname;
-
-  await page.getByRole('button', { name: 'Continue' }).click();
-
-  await expect(page).toHaveURL(pagePath);
-  await expect(page).toHaveTitle(/^Error: /);
-  const summary = page.getByRole('alert');
-  await expect(summary.getByRole('link')).toHaveText([
-    'Add at least one data provider for the numerator',
-    'Enter the definition of the numerator',
-  ]);
-
-  await expectErrorSummaryReady(page);
-  await summary.getByRole('link', { name: 'Add at least one data provider' }).click();
-  await expect(page.getByLabel(PROVIDER_FIELD, { exact: true })).toBeFocused();
 });
 
 test('asks for a source when Add source is selected without one', async ({ page }) => {
@@ -205,14 +187,9 @@ test('asks the same of the denominator and saves it apart from the numerator', a
   await expect(taskRow(page, NUMERATOR.taskName)).toContainText('Not started');
 });
 
-test('goes back to the task list', async ({ page }) => {
-  const taskListPath = await openSectionPage(page, NUMERATOR);
-
-  await expectBackToTaskList(page, taskListPath);
-});
-
-test('answers an indicator with no draft with the not-found page', async ({ page }) => {
-  await expectNotFoundWithoutDraft(page, NUMERATOR.key);
+test('answers the denominator of an indicator with no draft with the not-found page', async ({
+  page,
+}) => {
   await expectNotFoundWithoutDraft(page, DENOMINATOR.key);
 });
 

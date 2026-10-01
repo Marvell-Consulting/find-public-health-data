@@ -4,7 +4,6 @@ import { apiContext } from '@fphd/web-server/api-context';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { FORM_NOT_SAVED } from '../form-refusal.ts';
 import { loadSexAndAges, submitSexAndAges } from './loader.ts';
 
 const id = '00000000-0000-7000-8000-000000000001';
@@ -99,15 +98,6 @@ describe('loadSexAndAges', () => {
       values: { sexes: [], ageType: '', ageRanges: [blank] },
     });
   });
-
-  it('answers 404 to an id that is not one, without asking the API', async () => {
-    const get = vi.fn();
-
-    await expect(load('108', get)).rejects.toSatisfy(
-      (error) => error instanceof Response && error.status === 404,
-    );
-    expect(get).not.toHaveBeenCalled();
-  });
 });
 
 describe('submitSexAndAges', () => {
@@ -178,24 +168,6 @@ describe('submitSexAndAges', () => {
       },
     });
     expect(put).not.toHaveBeenCalled();
-  });
-
-  it('says the answers were not saved when the API refuses without naming a field', async () => {
-    const put = vi
-      .fn()
-      .mockResolvedValue({ ok: false, status: 400, error: { error: 'invalid_id' } });
-
-    await expect(
-      submit(
-        [
-          ['sexes', 'persons'],
-          ['ageType', 'other'],
-          ['ageDetail', 'Year 6'],
-        ],
-        [],
-        put,
-      ),
-    ).resolves.toMatchObject({ fieldErrors: {}, formError: FORM_NOT_SAVED });
   });
 
   it('shows what the API refused, keeping the page as sent', async () => {

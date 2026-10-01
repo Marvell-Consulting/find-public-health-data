@@ -1,11 +1,8 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
-import { createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
-import { expectErrorSummaryReady } from '../support/govuk-frontend.ts';
 import {
-  expectBackToTaskList,
-  expectNotFoundWithoutDraft,
+  describeSectionPage,
   openSectionPage,
   type Section,
   taskRow,
@@ -46,14 +43,17 @@ async function continueAndExpectErrors(page: Page, messages: string[]) {
 
 test.use({ storageState: PUBLISHER.storageState });
 
-test('is reached from the task list, where it starts as not started', async ({ page }) => {
-  await createIndicator(page, uniqueIndicatorName(SECTION.key));
-  await expect(taskRow(page, SECTION.taskName)).toContainText('Not started');
-
-  await taskRow(page, SECTION.taskName).getByRole('link').click();
-
-  await expect(page.getByRole('heading', { level: 1, name: 'Confidence intervals' })).toBeVisible();
-  await expect(page.getByLabel(METHOD).locator('option:checked')).toHaveText('Select');
+describeSectionPage(SECTION, {
+  expectUnanswered: async (page) => {
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Confidence intervals' }),
+    ).toBeVisible();
+    await expect(page.getByLabel(METHOD).locator('option:checked')).toHaveText('Select');
+  },
+  refusal: {
+    messages: [METHOD],
+    focuses: (page) => page.getByLabel(METHOD),
+  },
 });
 
 test('shows only the questions the chosen method asks', async ({ page }) => {
@@ -77,7 +77,7 @@ test('shows only the questions the chosen method asks', async ({ page }) => {
   await expect(page.getByLabel(OTHER_DETAIL)).toBeHidden();
 });
 
-test('lists the methods in the order the prototype does', async ({ page }) => {
+test('lists the methods in alphabetical order', async ({ page }) => {
   await openSectionPage(page, SECTION);
 
   await expect(page.getByLabel(METHOD).locator('option')).toHaveText([
@@ -96,16 +96,6 @@ test('lists the methods in the order the prototype does', async ({ page }) => {
     'Wald normal approximation',
     'Wilson Score method',
   ]);
-});
-
-test('asks for a method when Continue is selected with none chosen', async ({ page }) => {
-  await openSectionPage(page, SECTION);
-
-  await continueAndExpectErrors(page, [METHOD]);
-
-  await expectErrorSummaryReady(page);
-  await page.getByRole('alert').getByRole('link', { name: METHOD }).click();
-  await expect(page.getByLabel(METHOD)).toBeFocused();
 });
 
 test('saves nothing until the chosen method is fully answered', async ({ page }) => {
@@ -162,16 +152,6 @@ test('saves a method with nothing to describe on its own', async ({ page }) => {
 
   await expect(page).toHaveURL(taskListPath);
   await expect(taskRow(page, SECTION.taskName)).toContainText('Completed');
-});
-
-test('goes back to the task list', async ({ page }) => {
-  const taskListPath = await openSectionPage(page, SECTION);
-
-  await expectBackToTaskList(page, taskListPath);
-});
-
-test('answers an indicator with no draft with the not-found page', async ({ page }) => {
-  await expectNotFoundWithoutDraft(page, SECTION.key);
 });
 
 // Each scan shows the modifications question, whose radio carries the FPH-446 known violation.
