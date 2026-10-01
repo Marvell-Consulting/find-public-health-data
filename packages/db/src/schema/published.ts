@@ -1,3 +1,4 @@
+import { CI_CONFIDENCE_LEVELS } from '@fphd/utils/ci-confidence-level';
 import { YEAR_TYPES } from '@fphd/utils/period-type';
 import { POLARITIES } from '@fphd/utils/polarity';
 import { INDICATOR_SOURCE_PARTS } from '@fphd/utils/source-part';
@@ -44,7 +45,7 @@ export const publishedIndicator = publishedSchema
     polarity: text('polarity', { enum: POLARITIES }),
     updateFrequency: text('update_frequency', { enum: UPDATE_FREQUENCIES }),
     comparatorMethodId: uuid('comparator_method_id'),
-    ciConfidenceLevel: text('ci_confidence_level'),
+    ciConfidenceLevel: text('ci_confidence_level', { enum: CI_CONFIDENCE_LEVELS }),
     definition: text('definition'),
     rationale: text('rationale'),
     methodology: text('methodology'),

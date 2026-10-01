@@ -1,4 +1,5 @@
 import { INDICATOR_CALCULATED_BY, type IndicatorCalculatedBy } from '@fphd/utils/calculated-by';
+import { CI_CONFIDENCE_LEVELS } from '@fphd/utils/ci-confidence-level';
 import {
   INDICATOR_DISCLOSURE_CONTROL,
   type IndicatorDisclosureControl,
@@ -65,9 +66,6 @@ import {
 export const INDICATOR_VERSION_STATUSES = ['draft', 'published'] as const;
 
 export type IndicatorVersionStatus = (typeof INDICATOR_VERSION_STATUSES)[number];
-
-/** The confidence levels of a version's intervals, which no page asks for yet. */
-export const CI_CONFIDENCE_LEVELS = ['95', '99.8', 'both'] as const;
 
 /** A yes whose detail the contract requires: the detail is kept beside a yes and nothing else. */
 function detailBesideYes(answer: AnyPgColumn, detail: AnyPgColumn): SQL {

@@ -11,6 +11,12 @@
       "types": "./src/calculated-by.ts",
       "default": "./dist/calculated-by.js"
     },
+    "./ci-confidence-level": {
+      "browser": "./src/ci-confidence-level.ts",
+      "development": "./src/ci-confidence-level.ts",
+      "types": "./src/ci-confidence-level.ts",
+      "default": "./dist/ci-confidence-level.js"
+    },
     "./ci-method-kind": {
       "browser": "./src/ci-method-kind.ts",
       "development": "./src/ci-method-kind.ts",

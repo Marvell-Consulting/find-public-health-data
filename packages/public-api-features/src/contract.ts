@@ -1,4 +1,5 @@
 import { z } from '@fphd/config/zod';
+import { CI_CONFIDENCE_LEVELS } from '@fphd/utils/ci-confidence-level';
 import { YEAR_TYPES } from '@fphd/utils/period-type';
 import { POLARITIES } from '@fphd/utils/polarity';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
@@ -95,7 +96,7 @@ export const indicatorDetailSchema = z.object({
   updateFrequency: z.enum(UPDATE_FREQUENCIES),
   polarity: z.enum(POLARITIES),
   ciMethod: z.string().nullable(),
-  ciConfidenceLevel: z.string().nullable(),
+  ciConfidenceLevel: z.enum(CI_CONFIDENCE_LEVELS).nullable(),
   comparatorMethod: z.string().nullable(),
   dataUpdatedAt: z.iso.datetime().nullable(),
   definition: z.string().nullable(),

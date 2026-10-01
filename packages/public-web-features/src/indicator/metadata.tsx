@@ -1,16 +1,11 @@
 import { A, formatDate, SectionBreak, SummaryList } from '@fphd/ui';
+import { CI_CONFIDENCE_LEVEL_LABELS } from '@fphd/utils/ci-confidence-level';
 import { POLARITY_LABELS } from '@fphd/utils/polarity';
 import { UPDATE_FREQUENCY_LABELS } from '@fphd/utils/update-frequency';
 import type { ReactNode } from 'react';
 import { periodCovered, recentTrend } from './data.ts';
 import type { IndicatorDetail, IndicatorObservation, IndicatorProviderSource } from './loader.ts';
 import { TrendTag } from './trend-tag.tsx';
-
-const CONFIDENCE_LEVEL_LABELS: Record<string, string> = {
-  '95': '95%',
-  '99.8': '99.8%',
-  both: '95% and 99.8%',
-};
 
 export function DefinitionBlock({ title, text }: { title: string; text: string | null }) {
   if (!text) {
@@ -181,7 +176,7 @@ function CalculationPart({
 /** About tab: Overview, Data attributes, Calculation, Other notes. */
 export function BackgroundInformation({ indicator }: { indicator: IndicatorDetail }) {
   const confidenceLevel = indicator.ciConfidenceLevel
-    ? (CONFIDENCE_LEVEL_LABELS[indicator.ciConfidenceLevel] ?? indicator.ciConfidenceLevel)
+    ? CI_CONFIDENCE_LEVEL_LABELS[indicator.ciConfidenceLevel]
     : null;
   const attribute = (name: string, value: string | null) =>
     value ? [{ name, children: value }] : [];

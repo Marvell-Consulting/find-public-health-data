@@ -15,7 +15,7 @@ const indicatorDetail = {
   updateFrequency: 'annually' as const,
   polarity: 'lower-is-better' as const,
   ciMethod: "Dobson & Byar's methods",
-  ciConfidenceLevel: '95',
+  ciConfidenceLevel: '95' as const,
   comparatorMethod: null,
   dataUpdatedAt: '2026-04-20T16:25:18.000Z',
   definition: 'Directly age-standardised mortality rate for all deaths.',

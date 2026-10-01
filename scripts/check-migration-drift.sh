@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Fails when the schema differs from the latest snapshot in packages/db/drizzle/meta: drizzle-kit
 # generate, run against a copy of packages/db/drizzle, would write a new migration. drizzle-kit
-# check runs first, for migrations that collide with each other. Needs no database.
+# check runs first, for migrations that collide with each other. Needs no database: drizzle-kit
+# takes its settings from the flags below rather than drizzle.config.ts, which needs the connection
+# env, so the flags must say what the config says (dialect, schema, casing).
 set -euo pipefail
 cd "$(dirname "$0")/../packages/db"
 

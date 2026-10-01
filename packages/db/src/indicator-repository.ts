@@ -1,3 +1,4 @@
+import type { CiConfidenceLevel } from '@fphd/utils/ci-confidence-level';
 import {
   type PublicYearType,
   publicYearType,
@@ -193,7 +194,7 @@ export interface IndicatorDetail {
   updateFrequency: UpdateFrequency;
   polarity: Polarity;
   ciMethod: string | null;
-  ciConfidenceLevel: string | null;
+  ciConfidenceLevel: CiConfidenceLevel | null;
   comparatorMethod: string | null;
   dataUpdatedAt: string | null;
   definition: string | null;
