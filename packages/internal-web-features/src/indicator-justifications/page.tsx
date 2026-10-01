@@ -13,20 +13,17 @@ const TEXT_QUESTIONS = [
   { name: 'inequalitiesIncluded', label: 'What health inequalities have been included?' },
 ] as const;
 
-export function JustificationsPage({
-  fieldErrors = {},
-  formError,
-  values,
-}: SectionPageProps<JustificationsField>) {
+export function JustificationsPage(form: SectionPageProps<JustificationsField>) {
+  const { fieldErrors, values } = form;
+
   return (
     <IndicatorSectionForm
-      fieldErrors={fieldErrors}
-      formError={formError}
+      form={form}
       fieldIds={{
         hasExclusions: firstRadioId('hasExclusions'),
         hasAutomation: firstRadioId('hasAutomation'),
       }}
-      fields={justificationsSection.fields.options}
+      section={justificationsSection}
       title="Justifications"
     >
       {TEXT_QUESTIONS.map(({ name, label }) => (

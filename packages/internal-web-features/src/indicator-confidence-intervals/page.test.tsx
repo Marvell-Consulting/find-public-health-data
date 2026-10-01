@@ -65,7 +65,13 @@ function page(props: Partial<Props>) {
   // The error summary's links read router state, so the page renders inside a router.
   return (
     <MemoryRouter>
-      <ConfidenceIntervalsPage methods={methods} values={empty} {...props} />
+      <ConfidenceIntervalsPage
+        fieldErrors={{}}
+        formError={undefined}
+        methods={methods}
+        values={empty}
+        {...props}
+      />
     </MemoryRouter>
   );
 }
@@ -190,7 +196,7 @@ describe('ConfidenceIntervalsPage', () => {
       expect(screen.queryByText(/Only needed for/)).toBeNull();
     });
 
-    it('asks about modifications under a medium heading, as the prototype does', () => {
+    it('asks about modifications under a medium heading', () => {
       renderPage();
 
       const legend = within(modifiedQuestion()).getByRole('heading', {
@@ -261,7 +267,7 @@ describe('ConfidenceIntervalsPage', () => {
     expect(document.title).toBe(`Confidence intervals - ${serviceName} - GOV.UK`);
   });
 
-  it('summarises every refusal in the order the form asks, linking to each field', () => {
+  it('links each refusal to its field, in the order the form asks', () => {
     renderPage({
       values: { ...empty, ciMethodId: BYARS.id },
       fieldErrors: {
@@ -280,7 +286,6 @@ describe('ConfidenceIntervalsPage', () => {
       `#${methodSelect().id}`,
       `#${screen.getByLabelText('Yes').id}`,
     ]);
-    expect(document.title).toBe(`Error: Confidence intervals - ${serviceName} - GOV.UK`);
   });
 
   it('marks a refused follow-up and keeps what was typed', () => {

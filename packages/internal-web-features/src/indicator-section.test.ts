@@ -8,8 +8,8 @@ import { FORM_NOT_SAVED } from './form-refusal.ts';
 import {
   type ControlNamesOf,
   loadIndicatorSection,
-  readFormValues,
   saveIndicatorSection,
+  saveIndicatorSectionValues,
 } from './indicator-section.ts';
 
 // What every section's loader and action share, shown through the first section built on them.
@@ -57,33 +57,6 @@ function save(
 function isNotFound(error: unknown) {
   return error instanceof Response && error.status === 404;
 }
-
-describe('readFormValues', () => {
-  it('reads each field as typed, and one the browser did not send as empty', () => {
-    const formData = new FormData();
-    formData.set('definition', '  As typed  ');
-
-    expect(readFormValues(formData, ['definition', 'rationale'])).toEqual({
-      definition: '  As typed  ',
-      rationale: '',
-    });
-  });
-
-  it('ignores anything posted that is not one of the fields', () => {
-    const formData = new FormData();
-    formData.set('definition', 'A definition');
-    formData.set('extra', 'Not a field');
-
-    expect(readFormValues(formData, ['definition'])).toEqual({ definition: 'A definition' });
-  });
-
-  it('reads a field from the control named for it', () => {
-    const formData = new FormData();
-    formData.set('date[day]', '14');
-
-    expect(readFormValues(formData, ['day'], { day: 'date[day]' })).toEqual({ day: '14' });
-  });
-});
 
 describe('loadIndicatorSection', () => {
   it('fills an unanswered field with nothing', async () => {
@@ -190,4 +163,54 @@ describe('saveIndicatorSection', () => {
       expect(put).not.toHaveBeenCalled();
     },
   );
+});
+
+describe('saveIndicatorSectionValues', () => {
+  function saveValues(
+    values: { definition: string; rationale: string; typed: string },
+    put: ApiClient['put'],
+  ) {
+    const context = new RouterContextProvider();
+    context.set(apiContext, { put } as unknown as ApiClient);
+
+    return saveIndicatorSectionValues(context, id, section, values, {
+      answersSchema: {} as never,
+      // Takes in what was typed as the rationale, refusing a typed "refuse".
+      takeIn: (sent) =>
+        sent.typed === 'refuse'
+          ? { values: sent, fieldErrors: { typed: 'Refused before saving' } }
+          : { values: { ...sent, typed: '' }, answers: { ...sent, rationale: sent.typed } },
+    });
+  }
+
+  it('saves the answers the page takes in', async () => {
+    const put = vi.fn().mockResolvedValue({ ok: true, data: answers });
+
+    await saveValues({ definition: 'A definition', rationale: '', typed: 'Typed' }, put);
+
+    expect(put.mock.calls[0]?.[1]).toEqual({ definition: 'A definition', rationale: 'Typed' });
+  });
+
+  it('re-renders the page as taken in when the answers are refused', async () => {
+    const put = vi.fn();
+
+    const outcome = await saveValues({ definition: '', rationale: '', typed: 'Typed' }, put);
+
+    expect(outcome).toEqual({
+      values: { definition: '', rationale: '', typed: '' },
+      fieldErrors: { definition: 'Enter the definition of the indicator' },
+    });
+    expect(put).not.toHaveBeenCalled();
+  });
+
+  it('saves nothing when the page refuses what it would take in', async () => {
+    const put = vi.fn();
+    const values = { definition: 'A definition', rationale: '', typed: 'refuse' };
+
+    await expect(saveValues(values, put)).resolves.toEqual({
+      values,
+      fieldErrors: { typed: 'Refused before saving' },
+    });
+    expect(put).not.toHaveBeenCalled();
+  });
 });

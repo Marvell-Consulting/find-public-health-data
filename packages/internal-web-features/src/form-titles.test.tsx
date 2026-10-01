@@ -1,3 +1,22 @@
+import {
+  benchmarkingSection,
+  calculationSection,
+  confidenceIntervalsSection,
+  copyrightAndDataReuseSection,
+  dataQualitySection,
+  definitionAndRationaleSection,
+  type IndicatorSectionFields,
+  indicatorSectionFormValues,
+  justificationsSection,
+  otherCommentsSection,
+  otherNotesAndCaveatsSection,
+  periodTypeSection,
+  polaritySection,
+  publishingDateSection,
+  updateFrequencySection,
+  valueTypeAndUnitsSection,
+  varianceAndQualitySection,
+} from '@fphd/internal-api-features/contract';
 import { createDocumentMeta, serviceName } from '@fphd/ui';
 import type { ComponentType } from 'react';
 import { renderToString } from 'react-dom/server';
@@ -33,6 +52,7 @@ import * as newTopic from './topic-admin/new-route.tsx';
 interface FormRoute {
   default: ComponentType;
   meta: MetaFunction;
+  handle?: unknown;
 }
 
 const indicator = {
@@ -51,6 +71,31 @@ const topic = {
   slug: 'smoking',
   description: 'About smoking.',
 };
+
+/** A section's form with nothing answered, as its loader gives it for a new draft. */
+function unanswered<Field extends string>(section: { fields: IndicatorSectionFields<Field> }) {
+  return indicatorSectionFormValues(section.fields, {} as Record<Field, null>);
+}
+
+/** A page asking only its section's own fields, refused with `fieldErrors`. */
+function sectionForm<Field extends string>(
+  name: string,
+  route: FormRoute,
+  section: { fields: IndicatorSectionFields<Field> },
+  pageTitle: string,
+  fieldErrors: Partial<Record<Field, string>>,
+  loaderData: object = {},
+) {
+  const values = unanswered(section);
+
+  return {
+    name,
+    route,
+    pageTitle,
+    loaderData: { id: indicator.id, values, ...loaderData },
+    rejected: { values, fieldErrors },
+  };
+}
 
 const sexAndAgesUnanswered = {
   sexes: [],
@@ -76,75 +121,9 @@ const taggingUnanswered = {
 
 const tagOptions = { topics: [], indicatorTypes: [], riskFactors: [], frameworks: [] };
 
-const notesAndCaveatsUnanswered = {
-  disclosureControl: '',
-  disclosureControlDetail: '',
-  hasRounding: '',
-  roundingDetail: '',
-  hasCaveats: '',
-  caveatsDetail: '',
-  hasOtherNotes: '',
-  otherNotesDetail: '',
-};
-
-const periodTypeUnanswered = { periodType: '', yearType: '', yearEndDay: '', yearEndMonth: '' };
-
-const publishingDateUnanswered = {
-  publishingDateDay: '',
-  publishingDateMonth: '',
-  publishingDateYear: '',
-  publishingTimeHour: '09',
-  publishingTimeMinute: '30',
-};
-
-const benchmarkingUnanswered = {
-  hasGoalBenchmark: '',
-  goalLowerValue: '',
-  goalUpperValue: '',
-  goalPolarity: '',
-  goalPolicyDetail: '',
-};
-
-const varianceAndQualityUnanswered = {
-  variation: '',
-  qualityAssurance: '',
-  hasSourceDataIssues: '',
-  sourceDataIssuesDetail: '',
-};
-
-const justificationsUnanswered = {
-  ciMethodJustification: '',
-  dataSourcesJustification: '',
-  inequalitiesIncluded: '',
-  hasExclusions: '',
-  exclusionsDetail: '',
-  hasAutomation: '',
-  automationDetail: '',
-};
-
-const otherCommentsUnanswered = {
-  sponsorsAndStakeholders: '',
-  hasReviewerComments: '',
-  reviewerCommentsDetail: '',
-};
-
-const copyrightAndDataReuseUnanswered = {
-  hasCustomCopyright: '',
-  customCopyrightDetail: '',
-  hasCustomDataReuse: '',
-  customDataReuseDetail: '',
-};
+const linksUnanswered = { hasLinks: '', links: [], linkUrl: '', linkText: '' };
 
 const providerSourcesUnanswered = { sources: [], definition: '', providerId: '', sourceId: '' };
-
-const valueTypeAndUnitsUnanswered = {
-  valueTypeId: '',
-  standardPopulation: '',
-  standardPopulationOther: '',
-  referencePopulation: '',
-  unitId: '',
-  unitDetail: '',
-};
 
 const forms: {
   name: string;
@@ -166,141 +145,80 @@ const forms: {
     loaderData: { indicator },
     rejected: { values: { name: '' }, fieldErrors: { name: 'Enter the name of the indicator' } },
   },
-  {
-    name: 'definition and rationale',
-    route: definitionAndRationale,
-    pageTitle: 'Definition and rationale',
-    loaderData: { id: indicator.id, values: { definition: '', rationale: '' } },
-    rejected: {
-      values: { definition: '', rationale: '' },
-      fieldErrors: { definition: 'Enter the definition of the indicator' },
+  sectionForm(
+    'definition and rationale',
+    definitionAndRationale,
+    definitionAndRationaleSection,
+    'Definition and rationale',
+    { definition: 'Enter the definition of the indicator' },
+  ),
+  sectionForm('polarity', polarity, polaritySection, 'What is the polarity of this indicator?', {
+    polarity: 'Select the polarity of the indicator',
+  }),
+  sectionForm(
+    'data quality',
+    dataQuality,
+    dataQualitySection,
+    'Are there any data quality issues with this indicator?',
+    {
+      hasDataQualityIssues: 'Select whether there are any data quality issues with this indicator',
     },
-  },
-  {
-    name: 'polarity',
-    route: polarity,
-    pageTitle: 'What is the polarity of this indicator?',
-    loaderData: { id: indicator.id, values: { polarity: '' } },
-    rejected: {
-      values: { polarity: '' },
-      fieldErrors: { polarity: 'Select the polarity of the indicator' },
-    },
-  },
-  {
-    name: 'data quality',
-    route: dataQuality,
-    pageTitle: 'Are there any data quality issues with this indicator?',
-    loaderData: { id: indicator.id, values: { hasDataQualityIssues: '' } },
-    rejected: {
-      values: { hasDataQualityIssues: '' },
-      fieldErrors: {
-        hasDataQualityIssues:
-          'Select whether there are any data quality issues with this indicator',
-      },
-    },
-  },
-  {
-    name: 'calculation',
-    route: calculation,
-    pageTitle: 'How was the indicator calculated?',
-    loaderData: {
-      id: indicator.id,
-      values: { methodology: '', calculatedBy: '', calculatedByDetail: '' },
-    },
-    rejected: {
-      values: { methodology: '', calculatedBy: '', calculatedByDetail: '' },
-      fieldErrors: { methodology: 'Enter the methodology' },
-    },
-  },
-  {
-    name: 'confidence intervals',
-    route: confidenceIntervals,
-    pageTitle: 'Confidence intervals',
-    loaderData: {
-      id: indicator.id,
-      values: {
-        ciMethodId: '',
-        hasCiMethodModifications: '',
-        ciMethodModificationsDetail: '',
-        ciMethodDetail: '',
-      },
-      methods: [],
-    },
-    rejected: {
-      values: {
-        ciMethodId: '',
-        hasCiMethodModifications: '',
-        ciMethodModificationsDetail: '',
-        ciMethodDetail: '',
-      },
-      fieldErrors: { ciMethodId: 'Select the confidence interval method used' },
-    },
-  },
-  {
-    name: 'update frequency',
-    route: updateFrequency,
-    pageTitle: 'How often will this indicator be updated?',
-    loaderData: { id: indicator.id, values: { updateFrequency: '' } },
-    rejected: {
-      values: { updateFrequency: '' },
-      fieldErrors: { updateFrequency: 'Select how often this indicator will be updated' },
-    },
-  },
-  {
-    name: 'value type and units',
-    route: valueTypeAndUnits,
-    pageTitle: 'What are the value type and units used in this indicator?',
-    loaderData: {
-      id: indicator.id,
-      values: valueTypeAndUnitsUnanswered,
-      valueTypes: [],
-      units: [],
-    },
-    rejected: {
-      values: valueTypeAndUnitsUnanswered,
-      fieldErrors: { valueTypeId: 'Select the value type' },
-    },
-  },
-  {
-    name: 'period type',
-    route: periodType,
-    pageTitle: 'What is the period type in this indicator?',
-    loaderData: { id: indicator.id, values: periodTypeUnanswered },
-    rejected: {
-      values: periodTypeUnanswered,
-      fieldErrors: { periodType: 'Select the period type' },
-    },
-  },
-  {
-    name: 'other notes and caveats',
-    route: otherNotesAndCaveats,
-    pageTitle: 'Provide any other notes and caveats',
-    loaderData: { id: indicator.id, values: notesAndCaveatsUnanswered },
-    rejected: {
-      values: notesAndCaveatsUnanswered,
-      fieldErrors: { disclosureControl: 'Select whether disclosure control has been applied' },
-    },
-  },
-  {
-    name: 'publishing date',
-    route: publishingDate,
-    pageTitle: 'When should this indicator be published?',
-    loaderData: { id: indicator.id, values: publishingDateUnanswered, dateExample: '9 11 2027' },
-    rejected: {
-      values: publishingDateUnanswered,
-      fieldErrors: { publishingDateDay: 'Enter the publishing date' },
-    },
-  },
+  ),
+  sectionForm('calculation', calculation, calculationSection, 'How was the indicator calculated?', {
+    methodology: 'Enter the methodology',
+  }),
+  sectionForm(
+    'confidence intervals',
+    confidenceIntervals,
+    confidenceIntervalsSection,
+    'Confidence intervals',
+    { ciMethodId: 'Select the confidence interval method used' },
+    { methods: [] },
+  ),
+  sectionForm(
+    'update frequency',
+    updateFrequency,
+    updateFrequencySection,
+    'How often will this indicator be updated?',
+    { updateFrequency: 'Select how often this indicator will be updated' },
+  ),
+  sectionForm(
+    'value type and units',
+    valueTypeAndUnits,
+    valueTypeAndUnitsSection,
+    'What are the value type and units used in this indicator?',
+    { valueTypeId: 'Select the value type' },
+    { valueTypes: [], units: [] },
+  ),
+  sectionForm(
+    'period type',
+    periodType,
+    periodTypeSection,
+    'What is the period type in this indicator?',
+    { periodType: 'Select the period type' },
+  ),
+  sectionForm(
+    'other notes and caveats',
+    otherNotesAndCaveats,
+    otherNotesAndCaveatsSection,
+    'Provide any other notes and caveats',
+    { disclosureControl: 'Select whether disclosure control has been applied' },
+  ),
+  sectionForm(
+    'publishing date',
+    publishingDate,
+    publishingDateSection,
+    'When should this indicator be published?',
+    { publishingDateDay: 'Enter the publishing date' },
+    { dateExample: '9 11 2027' },
+  ),
   {
     name: 'links',
     route: links,
     pageTitle: 'Are there any relevant links to help users understand this indicator better?',
-    loaderData: {
-      id: indicator.id,
-      values: { hasLinks: '', links: [], linkUrl: '', linkText: '' },
-    },
+    loaderData: { id: indicator.id, values: linksUnanswered },
     rejected: {
-      values: { hasLinks: '', links: [], linkUrl: '', linkText: '' },
+      values: linksUnanswered,
       fieldErrors: { hasLinks: 'Select whether there are any relevant links' },
     },
   },
@@ -319,60 +237,29 @@ const forms: {
       fieldErrors: { sources: `Add at least one data provider for the ${part}` },
     },
   })),
-  {
-    name: 'variance and quality',
-    route: varianceAndQuality,
-    pageTitle: 'Variance and quality',
-    loaderData: { id: indicator.id, values: varianceAndQualityUnanswered },
-    rejected: {
-      values: varianceAndQualityUnanswered,
-      fieldErrors: { variation: 'Enter how the indicator varies' },
-    },
-  },
-  {
-    name: 'justifications',
-    route: justifications,
-    pageTitle: 'Justifications',
-    loaderData: { id: indicator.id, values: justificationsUnanswered },
-    rejected: {
-      values: justificationsUnanswered,
-      fieldErrors: { hasExclusions: 'Select whether there have been any exclusions' },
-    },
-  },
-  {
-    name: 'other comments',
-    route: otherComments,
-    pageTitle: 'Other comments',
-    loaderData: { id: indicator.id, values: otherCommentsUnanswered },
-    rejected: {
-      values: otherCommentsUnanswered,
-      fieldErrors: { hasReviewerComments: 'Select whether you have additional comments' },
-    },
-  },
-  {
-    name: 'copyright and data re-use',
-    route: copyrightAndDataReuse,
-    pageTitle: 'Copyright and data re-use',
-    loaderData: { id: indicator.id, values: copyrightAndDataReuseUnanswered },
-    rejected: {
-      values: copyrightAndDataReuseUnanswered,
-      fieldErrors: {
-        hasCustomCopyright: 'Select whether the copyright is anything other than Crown copyright',
-      },
-    },
-  },
-  {
-    name: 'benchmarking',
-    route: benchmarking,
-    pageTitle: 'Benchmarking',
-    loaderData: { id: indicator.id, values: benchmarkingUnanswered },
-    rejected: {
-      values: benchmarkingUnanswered,
-      fieldErrors: {
-        hasGoalBenchmark: 'Select whether there are any goal benchmarks for this indicator',
-      },
-    },
-  },
+  sectionForm(
+    'variance and quality',
+    varianceAndQuality,
+    varianceAndQualitySection,
+    'Variance and quality',
+    { variation: 'Enter how the indicator varies' },
+  ),
+  sectionForm('justifications', justifications, justificationsSection, 'Justifications', {
+    hasExclusions: 'Select whether there have been any exclusions',
+  }),
+  sectionForm('other comments', otherComments, otherCommentsSection, 'Other comments', {
+    hasReviewerComments: 'Select whether you have additional comments',
+  }),
+  sectionForm(
+    'copyright and data re-use',
+    copyrightAndDataReuse,
+    copyrightAndDataReuseSection,
+    'Copyright and data re-use',
+    { hasCustomCopyright: 'Select whether the copyright is anything other than Crown copyright' },
+  ),
+  sectionForm('benchmarking', benchmarking, benchmarkingSection, 'Benchmarking', {
+    hasGoalBenchmark: 'Select whether there are any goal benchmarks for this indicator',
+  }),
   {
     name: 'sex and ages',
     route: sexAndAges,
@@ -454,6 +341,10 @@ function titlesIn(html: string) {
 }
 
 describe.each(forms)('the $name form', (form) => {
+  it('declares its back link', () => {
+    expect(form.route.handle).toHaveProperty('backHref');
+  });
+
   it('server-renders one title, named after the page', () => {
     expect(titlesIn(renderDocument(form))).toEqual([`${form.pageTitle} - ${serviceName} - GOV.UK`]);
   });

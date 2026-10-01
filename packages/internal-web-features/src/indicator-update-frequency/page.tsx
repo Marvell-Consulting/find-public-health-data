@@ -2,14 +2,13 @@ import {
   type UpdateFrequencyField,
   updateFrequencySection,
 } from '@fphd/internal-api-features/contract';
-import { firstRadioId, Radios } from '@fphd/ui';
+import { errorProp, firstRadioId, Radios } from '@fphd/ui';
 import {
   UPDATE_FREQUENCIES,
   UPDATE_FREQUENCY_LABELS,
   type UpdateFrequency,
 } from '@fphd/utils/update-frequency';
 
-import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
 const UPDATE_FREQUENCY_QUESTION = 'How often will this indicator be updated?';
@@ -26,17 +25,14 @@ const OPTIONS = [
 ];
 
 // The question is the page's h1, inside the legend, where NotGovUK sizes it.
-export function UpdateFrequencyPage({
-  fieldErrors = {},
-  formError,
-  values,
-}: SectionPageProps<UpdateFrequencyField>) {
+export function UpdateFrequencyPage(form: SectionPageProps<UpdateFrequencyField>) {
+  const { fieldErrors, values } = form;
+
   return (
     <IndicatorSectionForm
-      fieldErrors={fieldErrors}
-      formError={formError}
+      form={form}
       fieldIds={{ updateFrequency: firstRadioId('updateFrequency') }}
-      fields={updateFrequencySection.fields.options}
+      section={updateFrequencySection}
       questionIsHeading
       title={UPDATE_FREQUENCY_QUESTION}
     >

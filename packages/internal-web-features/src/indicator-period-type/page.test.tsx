@@ -23,7 +23,7 @@ const quartersEndingOn = {
 function renderPage(props: Partial<Parameters<typeof PeriodTypePage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <PeriodTypePage values={unanswered} {...props} />
+      <PeriodTypePage fieldErrors={{}} formError={undefined} values={unanswered} {...props} />
     </MemoryRouter>,
   );
 }
@@ -89,7 +89,6 @@ describe('PeriodTypePage', () => {
     const link = within(screen.getByRole('alert')).getByRole('link');
 
     expect(link.getAttribute('href')).toBe('#quartersYearEnd-day');
-    expect(document.title).toBe(`Error: ${TITLE} - ${serviceName} - GOV.UK`);
     expect(document.querySelectorAll('.govuk-input--error')).toHaveLength(1);
   });
 

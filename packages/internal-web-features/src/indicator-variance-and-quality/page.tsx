@@ -7,17 +7,14 @@ import { firstRadioId, Textarea } from '@fphd/ui';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 import { YesNoQuestion } from '../yes-no-question.tsx';
 
-export function VarianceAndQualityPage({
-  fieldErrors = {},
-  formError,
-  values,
-}: SectionPageProps<VarianceAndQualityField>) {
+export function VarianceAndQualityPage(form: SectionPageProps<VarianceAndQualityField>) {
+  const { fieldErrors, values } = form;
+
   return (
     <IndicatorSectionForm
-      fieldErrors={fieldErrors}
-      formError={formError}
+      form={form}
       fieldIds={{ hasSourceDataIssues: firstRadioId('hasSourceDataIssues') }}
-      fields={varianceAndQualitySection.fields.options}
+      section={varianceAndQualitySection}
       title="Variance and quality"
     >
       <Textarea

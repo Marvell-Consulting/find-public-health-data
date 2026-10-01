@@ -22,7 +22,13 @@ const values = {
 function renderPage(props: Partial<Parameters<typeof PublishingDatePage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <PublishingDatePage dateExample="12 11 2027" values={values} {...props} />
+      <PublishingDatePage
+        fieldErrors={{}}
+        formError={undefined}
+        dateExample="12 11 2027"
+        values={values}
+        {...props}
+      />
     </MemoryRouter>,
   );
 }
@@ -89,7 +95,6 @@ describe('PublishingDatePage', () => {
     ]);
     expect(marked(container)).toEqual(['publishingDate[day]', 'publishingDate[month]']);
     expect(within(screen.getByRole('group', { name: 'Date' })).getByText(message)).toBeTruthy();
-    expect(document.title).toBe(`Error: ${TITLE} - ${serviceName} - GOV.UK`);
   });
 
   it('shows a refusal of the time on the time, marking only its refused part', () => {

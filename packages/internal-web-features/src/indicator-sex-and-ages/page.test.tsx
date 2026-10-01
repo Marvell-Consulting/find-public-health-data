@@ -38,7 +38,7 @@ const empty: SexAndAgesFormValues = {
 function renderPage(props: Partial<Parameters<typeof SexAndAgesPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <SexAndAgesPage values={empty} {...props} />
+      <SexAndAgesPage fieldErrors={{}} formError={undefined} values={empty} {...props} />
     </MemoryRouter>,
   );
 }
@@ -162,7 +162,7 @@ describe('SexAndAgesPage', () => {
     expect(first?.getAttribute('name')).toBeNull();
   });
 
-  it('summarises refusals in the order the page asks, linking each to its field', () => {
+  it('links each refusal to its field, in the order the page asks', () => {
     renderPage({
       values: { ...empty, ageType: 'range', ageRanges: [blank, blank] },
       fieldErrors: {
@@ -185,7 +185,6 @@ describe('SexAndAgesPage', () => {
       ],
       ['Enter the ages included', `#${screen.getByRole('textbox', { name: 'Other' }).id}`],
     ]);
-    expect(document.title).toBe(`Error: ${TITLE} - ${serviceName} - GOV.UK`);
   });
 
   it('shows a refusal of the ranges as a whole at the first range', () => {

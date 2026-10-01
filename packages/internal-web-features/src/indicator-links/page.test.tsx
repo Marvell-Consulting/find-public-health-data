@@ -21,7 +21,7 @@ const twoLinks: LinksPageValues = { ...empty, hasLinks: 'yes', links: [commentar
 function renderPage(props: Partial<Parameters<typeof LinksPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <LinksPage values={empty} {...props} />
+      <LinksPage fieldErrors={{}} formError={undefined} values={empty} {...props} />
     </MemoryRouter>,
   );
 }
@@ -174,7 +174,7 @@ describe('LinksPage', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('summarises every refusal in the order the page asks, linking to each control', () => {
+  it('links each refusal to its control, in the order the page asks', () => {
     renderPage({
       values: { ...empty, hasLinks: 'yes' },
       fieldErrors: { linkText: 'Enter link text', linkUrl: 'Enter a URL' },
@@ -188,7 +188,6 @@ describe('LinksPage', () => {
     ]);
     expect(urlField().className).toContain('govuk-input--error');
     expect(textField().className).toContain('govuk-input--error');
-    expect(document.title).toBe(`Error: ${QUESTION} - ${serviceName} - GOV.UK`);
   });
 
   it('links an unanswered question to the first option', () => {

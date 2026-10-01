@@ -63,14 +63,6 @@ describe('IndicatorNamePage', () => {
     expect(document.title).toBe(`What is the name of the indicator? - ${serviceName} - GOV.UK`);
   });
 
-  it('starts the title with "Error: " when the submission is rejected', () => {
-    renderPage({ fieldErrors: { name: 'Enter the name of the indicator' }, name: '' });
-
-    expect(document.title).toBe(
-      `Error: What is the name of the indicator? - ${serviceName} - GOV.UK`,
-    );
-  });
-
   it('summarises a rejected submission and links to the field', () => {
     renderPage({ fieldErrors: { name: 'Enter the name of the indicator' }, name: '' });
 

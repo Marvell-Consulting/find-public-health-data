@@ -17,7 +17,7 @@ const COMMENTS = 'Are there any other comments for the reviewers?';
 function renderPage(props: Partial<Parameters<typeof OtherCommentsPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <OtherCommentsPage values={empty} {...props} />
+      <OtherCommentsPage fieldErrors={{}} formError={undefined} values={empty} {...props} />
     </MemoryRouter>,
   );
 }
@@ -79,7 +79,7 @@ describe('OtherCommentsPage', () => {
     expect(document.title).toBe(`Other comments - ${serviceName} - GOV.UK`);
   });
 
-  it('summarises every refusal in the order the form asks, linking to each control', () => {
+  it('links each refusal to its control, in the order the form asks', () => {
     renderPage({
       fieldErrors: {
         reviewerCommentsDetail: 'Enter your comments',
@@ -98,6 +98,5 @@ describe('OtherCommentsPage', () => {
       `#${comments().getByLabelText('Yes').id}`,
       `#${comments().getByLabelText('Enter comments').id}`,
     ]);
-    expect(document.title).toBe(`Error: Other comments - ${serviceName} - GOV.UK`);
   });
 });

@@ -31,7 +31,7 @@ const AUTOMATION = 'Have internal automation tools been used to create this indi
 function renderPage(props: Partial<Parameters<typeof JustificationsPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <JustificationsPage values={empty} {...props} />
+      <JustificationsPage fieldErrors={{}} formError={undefined} values={empty} {...props} />
     </MemoryRouter>,
   );
 }
@@ -108,7 +108,7 @@ describe('JustificationsPage', () => {
     expect(document.title).toBe(`Justifications - ${serviceName} - GOV.UK`);
   });
 
-  it('summarises every refusal in the order the form asks, linking to each control', () => {
+  it('links each refusal to its control, in the order the form asks', () => {
     renderPage({
       fieldErrors: {
         hasAutomation: 'Select whether internal automation tools have been used',
@@ -130,6 +130,5 @@ describe('JustificationsPage', () => {
       `#${question(EXCLUSIONS).getByLabelText('Enter why exclusions were made').id}`,
       `#${question(AUTOMATION).getByLabelText('Yes').id}`,
     ]);
-    expect(document.title).toBe(`Error: Justifications - ${serviceName} - GOV.UK`);
   });
 });

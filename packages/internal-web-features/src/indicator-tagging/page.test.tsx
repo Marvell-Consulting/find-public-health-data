@@ -46,7 +46,13 @@ const empty: TaggingPageValues = {
 function renderPage(props: Partial<Parameters<typeof TaggingPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <TaggingPage formError={undefined} options={options} values={empty} {...props} />
+      <TaggingPage
+        fieldErrors={{}}
+        formError={undefined}
+        options={options}
+        values={empty}
+        {...props}
+      />
     </MemoryRouter>,
   );
 }

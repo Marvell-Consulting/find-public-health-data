@@ -26,7 +26,7 @@ const DETAIL = 'Provide detail about the policy goal';
 function renderPage(props: Partial<Parameters<typeof BenchmarkingPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <BenchmarkingPage values={empty} {...props} />
+      <BenchmarkingPage fieldErrors={{}} formError={undefined} values={empty} {...props} />
     </MemoryRouter>,
   );
 }
@@ -133,7 +133,7 @@ describe('BenchmarkingPage', () => {
     expect(document.title).toBe(`Benchmarking - ${serviceName} - GOV.UK`);
   });
 
-  it('summarises every refusal in the order the form asks, linking to each control', () => {
+  it('links each refusal to its control, in the order the form asks', () => {
     renderPage({
       fieldErrors: {
         goalPolarity: 'Select the polarity of the goal',
@@ -151,7 +151,6 @@ describe('BenchmarkingPage', () => {
       ['Select the polarity of the goal', `#${polarity().getByLabelText('High is good').id}`],
     ]);
     expect(input(LOWER).className).toContain('govuk-input--error');
-    expect(document.title).toBe(`Error: Benchmarking - ${serviceName} - GOV.UK`);
   });
 
   it('links an unanswered question to its first radio', () => {

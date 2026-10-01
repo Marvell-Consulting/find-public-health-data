@@ -42,7 +42,7 @@ describe('DashboardPage', () => {
     expect(tags).toEqual(['Live', 'Update incomplete']);
   });
 
-  it('names the columns of the prototype that have data behind them', () => {
+  it('names the columns that have data behind them', () => {
     renderPage();
 
     for (const heading of [

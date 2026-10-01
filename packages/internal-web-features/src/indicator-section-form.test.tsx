@@ -1,27 +1,30 @@
 // @vitest-environment jsdom
-import { firstRadioId, Radios, serviceName, Textarea } from '@fphd/ui';
+import { errorProp, firstRadioId, Radios, serviceName, Textarea } from '@fphd/ui';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { errorProp } from './error-prop.ts';
 import { IndicatorSectionForm } from './indicator-section-form.tsx';
 
 afterEach(cleanup);
 
-type Props = Parameters<typeof IndicatorSectionForm<'answer' | 'choice'>>[0];
+type Field = 'answer' | 'choice';
+
+interface FormProps {
+  fieldErrors?: Partial<Record<Field, string>>;
+  formError?: string;
+  questionIsHeading?: boolean;
+  continueOnEnter?: boolean;
+}
 
 // Radios as well as a textarea, because GOV.UK links a radios error to its first option.
-function renderForm(props: Partial<Props> = {}) {
-  const fieldErrors = props.fieldErrors ?? {};
-
+function renderForm({ fieldErrors = {}, formError, ...props }: FormProps = {}) {
   return render(
     <MemoryRouter>
       <IndicatorSectionForm
-        fields={['answer', 'choice']}
-        fieldErrors={fieldErrors}
         fieldIds={{ choice: firstRadioId('choice') }}
-        formError={undefined}
+        form={{ fieldErrors, formError }}
+        section={{ fields: { options: ['answer', 'choice'] } }}
         title="A section"
         {...props}
       >
@@ -137,5 +140,26 @@ describe('IndicatorSectionForm', () => {
     expect(summary.getByRole('link', { name: 'Choose one' }).getAttribute('href')).toBe(
       `#${firstOption.id}`,
     );
+  });
+
+  it("asks the fields it is given in place of its section's", () => {
+    render(
+      <MemoryRouter>
+        <IndicatorSectionForm
+          fields={['choice', 'answer']}
+          form={{
+            fieldErrors: { answer: 'Enter an answer', choice: 'Choose one' },
+            formError: undefined,
+          }}
+          title="A section"
+        >
+          <Textarea label="An answer" name="answer" />
+        </IndicatorSectionForm>
+      </MemoryRouter>,
+    );
+
+    const links = within(screen.getByRole('alert')).getAllByRole('link');
+
+    expect(links.map((link) => link.textContent)).toEqual(['Choose one', 'Enter an answer']);
   });
 });

@@ -1,33 +1,26 @@
 import { type BenchmarkingField, benchmarkingSection } from '@fphd/internal-api-features/contract';
-import { firstRadioId, Radios, Textarea, TextInput } from '@fphd/ui';
+import { errorProp, firstRadioId, QuestionLegend, Radios, Textarea, TextInput } from '@fphd/ui';
 import { GOAL_POLARITIES, GOAL_POLARITY_LABELS } from '@fphd/utils/polarity';
 
-import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
-export function BenchmarkingPage({
-  fieldErrors = {},
-  formError,
-  values,
-}: SectionPageProps<BenchmarkingField>) {
+export function BenchmarkingPage(form: SectionPageProps<BenchmarkingField>) {
+  const { fieldErrors, values } = form;
+
   return (
     <IndicatorSectionForm
-      fieldErrors={fieldErrors}
-      formError={formError}
+      form={form}
       fieldIds={{
         hasGoalBenchmark: firstRadioId('hasGoalBenchmark'),
         goalPolarity: firstRadioId('goalPolarity'),
       }}
-      fields={benchmarkingSection.fields.options}
+      section={benchmarkingSection}
       title="Benchmarking"
     >
       <Radios
         {...errorProp(fieldErrors.hasGoalBenchmark)}
         defaultValue={values.hasGoalBenchmark}
-        // NotGovUK sizes a legend by the heading passed as its label.
-        label={
-          <h2 className="govuk-heading-m">Are there any goal benchmarks for this indicator?</h2>
-        }
+        label={<QuestionLegend>Are there any goal benchmarks for this indicator?</QuestionLegend>}
         name="hasGoalBenchmark"
         options={[
           {
@@ -60,7 +53,11 @@ export function BenchmarkingPage({
                   {...errorProp(fieldErrors.goalPolarity)}
                   classModifiers="small"
                   defaultValue={values.goalPolarity}
-                  label={<h3 className="govuk-heading-s">Select polarity of goal</h3>}
+                  label={
+                    <QuestionLegend as="h3" size="s">
+                      Select polarity of goal
+                    </QuestionLegend>
+                  }
                   name="goalPolarity"
                   options={GOAL_POLARITIES.map((value) => ({
                     value,

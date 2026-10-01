@@ -4,7 +4,7 @@ import {
   type ValueTypeAndUnitsField,
   valueTypeAndUnitsSection,
 } from '@fphd/internal-api-features/contract';
-import { fieldInputId, firstRadioId, Radios, Select, TextInput } from '@fphd/ui';
+import { errorProp, firstRadioId, QuestionLegend, Radios, Select, TextInput } from '@fphd/ui';
 import {
   INDIRECTLY_STANDARDISED_VALUE_TYPE_IDS,
   STANDARD_POPULATION_LABELS,
@@ -13,18 +13,11 @@ import {
   UNIT_IDS,
   VALUE_TYPE_IDS,
 } from '@fphd/utils/value-type-and-unit';
-import { useEffect, useState } from 'react';
 
-import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
+import { useSelectedValue } from '../selected-value.ts';
 
 const VALUE_TYPE_AND_UNITS_TITLE = 'What are the value type and units used in this indicator?';
-
-/** The value type or unit in its select, which may be ahead of state before hydration. */
-function selected(field: ValueTypeAndUnitsField): string | undefined {
-  const select = document.getElementById(fieldInputId(field));
-  return select instanceof HTMLSelectElement ? select.value : undefined;
-}
 
 type ValueTypeAndUnitsPageProps = SectionPageProps<ValueTypeAndUnitsField> &
   ValueTypeAndUnitOptions;
@@ -43,37 +36,18 @@ function selectOptions(options: ValueTypeAndUnitOptions['valueTypes']) {
   ];
 }
 
-/**
- * A select cannot reveal anything without JavaScript, so until the page is hydrated every
- * follow-up shows, hinted with the choice it is for; after, only the chosen ones' show.
- */
-export function ValueTypeAndUnitsPage({
-  fieldErrors = {},
-  formError,
-  units,
-  values,
-  valueTypes,
-}: ValueTypeAndUnitsPageProps) {
-  const [valueTypeId, setValueTypeId] = useState(values.valueTypeId);
-  const [unitId, setUnitId] = useState(values.unitId);
-  const [enhanced, setEnhanced] = useState(false);
-
-  useEffect(() => {
-    setValueTypeId((current) => selected('valueTypeId') ?? current);
-    setUnitId((current) => selected('unitId') ?? current);
-    setEnhanced(true);
-  }, []);
-
-  const standardisation = standardisationOf(valueTypeId);
-  const hint = (text: string) => (enhanced ? {} : { hint: text });
-  const hides = (shown: boolean) => enhanced && !shown;
+/** Each follow-up is asked only of the value type or unit that needs it, once one is chosen. */
+export function ValueTypeAndUnitsPage({ units, valueTypes, ...form }: ValueTypeAndUnitsPageProps) {
+  const { fieldErrors, values } = form;
+  const valueType = useSelectedValue('valueTypeId', values.valueTypeId);
+  const unit = useSelectedValue('unitId', values.unitId);
+  const standardisation = standardisationOf(valueType.value);
 
   return (
     <IndicatorSectionForm
-      fieldErrors={fieldErrors}
-      formError={formError}
       fieldIds={{ standardPopulation: firstRadioId('standardPopulation') }}
-      fields={valueTypeAndUnitsSection.fields.options}
+      form={form}
+      section={valueTypeAndUnitsSection}
       title={VALUE_TYPE_AND_UNITS_TITLE}
     >
       <Select
@@ -81,18 +55,17 @@ export function ValueTypeAndUnitsPage({
         defaultValue={values.valueTypeId}
         label="Select value type"
         name="valueTypeId"
-        onChange={(event) => setValueTypeId(event.target.value)}
+        onChange={valueType.onChange}
         options={selectOptions(valueTypes)}
       />
-      <div hidden={hides(standardisation === 'direct')}>
+      <div hidden={valueType.hides(standardisation === 'direct')}>
         <Radios
-          {...hint(
+          {...valueType.hint(
             `Only needed for ${namesOf(valueTypes, [VALUE_TYPE_IDS.directlyStandardisedRate])}`,
           )}
           {...errorProp(fieldErrors.standardPopulation)}
           defaultValue={values.standardPopulation}
-          // NotGovUK sizes a heading in a legend; a bare h2 would be large, the class makes it medium.
-          label={<h2 className="govuk-heading-m">What standard population has been used?</h2>}
+          label={<QuestionLegend>What standard population has been used?</QuestionLegend>}
           name="standardPopulation"
           options={STANDARD_POPULATIONS.map((value) => ({
             label: STANDARD_POPULATION_LABELS[value],
@@ -102,7 +75,7 @@ export function ValueTypeAndUnitsPage({
                   // Shown without JavaScript; with it, only while "Other" is chosen.
                   conditional: (
                     <TextInput
-                      {...hint('Only needed for Other standard populations')}
+                      {...valueType.hint('Only needed for Other standard populations')}
                       defaultValue={values.standardPopulationOther}
                       error={fieldErrors.standardPopulationOther}
                       label={ENTER_POPULATION}
@@ -114,9 +87,9 @@ export function ValueTypeAndUnitsPage({
           }))}
         />
       </div>
-      <div hidden={hides(standardisation === 'indirect')}>
+      <div hidden={valueType.hides(standardisation === 'indirect')}>
         <TextInput
-          {...hint(
+          {...valueType.hint(
             `Only needed for ${namesOf(valueTypes, INDIRECTLY_STANDARDISED_VALUE_TYPE_IDS)}`,
           )}
           defaultValue={values.referencePopulation}
@@ -130,12 +103,12 @@ export function ValueTypeAndUnitsPage({
         defaultValue={values.unitId}
         label="Select units"
         name="unitId"
-        onChange={(event) => setUnitId(event.target.value)}
+        onChange={unit.onChange}
         options={selectOptions(units)}
       />
-      <div hidden={hides(unitId === UNIT_IDS.other)}>
+      <div hidden={unit.hides(unit.value === UNIT_IDS.other)}>
         <TextInput
-          {...hint('Only needed for Other units')}
+          {...unit.hint('Only needed for Other units')}
           className="govuk-input--width-20"
           defaultValue={values.unitDetail}
           error={fieldErrors.unitDetail}

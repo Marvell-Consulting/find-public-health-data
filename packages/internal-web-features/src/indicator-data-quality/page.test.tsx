@@ -17,7 +17,12 @@ const REFUSAL = 'Select whether there are any data quality issues with this indi
 function renderPage(props: Partial<Parameters<typeof DataQualityPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <DataQualityPage values={{ hasDataQualityIssues: '' }} {...props} />
+      <DataQualityPage
+        fieldErrors={{}}
+        formError={undefined}
+        values={{ hasDataQualityIssues: '' }}
+        {...props}
+      />
     </MemoryRouter>,
   );
 }
@@ -78,6 +83,5 @@ describe('DataQualityPage', () => {
     expect(link.getAttribute('href')).toBe(`#${option('Yes').id}`);
     expect(describedBy).toContain(error?.id);
     expect(container.querySelectorAll('.govuk-form-group--error')).toHaveLength(1);
-    expect(document.title).toBe(`Error: ${QUESTION} - ${serviceName} - GOV.UK`);
   });
 });

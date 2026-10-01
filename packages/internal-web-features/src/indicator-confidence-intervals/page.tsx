@@ -3,11 +3,10 @@ import {
   type ConfidenceIntervalsField,
   confidenceIntervalsSection,
 } from '@fphd/internal-api-features/contract';
-import { fieldInputId, firstRadioId, Radios, Select, Textarea } from '@fphd/ui';
-import { useEffect, useState } from 'react';
+import { errorProp, firstRadioId, QuestionLegend, Radios, Select, Textarea } from '@fphd/ui';
 
-import { errorProp } from '../error-prop.ts';
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
+import { useSelectedValue } from '../selected-value.ts';
 
 interface ConfidenceIntervalsPageProps extends SectionPageProps<ConfidenceIntervalsField> {
   methods: readonly CiMethod[];
@@ -15,38 +14,20 @@ interface ConfidenceIntervalsPageProps extends SectionPageProps<ConfidenceInterv
 
 const listWithOr = new Intl.ListFormat('en-GB', { type: 'disjunction' });
 
-/**
- * A select cannot reveal anything without JavaScript, so until the page is hydrated every
- * follow-up shows, hinted with the methods it is for; after, only the chosen method's show.
- */
-export function ConfidenceIntervalsPage({
-  fieldErrors = {},
-  formError,
-  methods,
-  values,
-}: ConfidenceIntervalsPageProps) {
-  const [methodId, setMethodId] = useState(values.ciMethodId);
-  const [enhanced, setEnhanced] = useState(false);
-
-  useEffect(() => {
-    // A method chosen before hydration is in the select but not yet in state.
-    const select = document.getElementById(fieldInputId('ciMethodId'));
-    if (select instanceof HTMLSelectElement) setMethodId(select.value);
-    setEnhanced(true);
-  }, []);
-
-  const method = methods.find(({ id }) => id === methodId);
+/** Each follow-up is asked only of the methods that need it, once a method is chosen. */
+export function ConfidenceIntervalsPage({ methods, ...form }: ConfidenceIntervalsPageProps) {
+  const { fieldErrors, values } = form;
+  const selected = useSelectedValue('ciMethodId', values.ciMethodId);
+  const method = methods.find(({ id }) => id === selected.value);
   const namesOf = (test: (method: CiMethod) => boolean) =>
     listWithOr.format(methods.filter(test).map(({ name }) => name));
-  const hint = (text: string) => (enhanced ? {} : { hint: text });
-  const showsFor = (kind: CiMethod['kind']) => !enhanced || method?.kind === kind;
+  const hidesFor = (kind: CiMethod['kind']) => selected.hides(method?.kind === kind);
 
   return (
     <IndicatorSectionForm
-      fieldErrors={fieldErrors}
-      formError={formError}
       fieldIds={{ hasCiMethodModifications: firstRadioId('hasCiMethodModifications') }}
-      fields={confidenceIntervalsSection.fields.options}
+      form={form}
+      section={confidenceIntervalsSection}
       title="Confidence intervals"
     >
       <Select
@@ -54,13 +35,13 @@ export function ConfidenceIntervalsPage({
         defaultValue={values.ciMethodId}
         label="Select the confidence interval method used"
         name="ciMethodId"
-        onChange={(event) => setMethodId(event.target.value)}
+        onChange={selected.onChange}
         options={[
           { label: 'Select', value: '' },
           ...methods.map(({ id, name }) => ({ label: name, value: id })),
         ]}
       />
-      <div hidden={!showsFor('standard')}>
+      <div hidden={hidesFor('standard')}>
         {method?.kind === 'standard' && method.description !== null ? (
           <>
             <h2 className="govuk-heading-s">Standard description</h2>
@@ -68,14 +49,13 @@ export function ConfidenceIntervalsPage({
           </>
         ) : null}
         <Radios
-          {...hint(`Not needed for ${namesOf(({ kind }) => kind !== 'standard')}`)}
+          {...selected.hint(`Not needed for ${namesOf(({ kind }) => kind !== 'standard')}`)}
           {...errorProp(fieldErrors.hasCiMethodModifications)}
           defaultValue={values.hasCiMethodModifications}
           label={
-            // NotGovUK sizes a legend by the heading passed as its label.
-            <h2 className="govuk-heading-m">
+            <QuestionLegend>
               Were any modifications to the described method used for this indicator?
-            </h2>
+            </QuestionLegend>
           }
           name="hasCiMethodModifications"
           options={[
@@ -95,9 +75,9 @@ export function ConfidenceIntervalsPage({
           ]}
         />
       </div>
-      <div hidden={!showsFor('other')}>
+      <div hidden={hidesFor('other')}>
         <Textarea
-          {...hint(`Only needed for ${namesOf(({ kind }) => kind === 'other')}`)}
+          {...selected.hint(`Only needed for ${namesOf(({ kind }) => kind === 'other')}`)}
           defaultValue={values.ciMethodDetail}
           error={fieldErrors.ciMethodDetail}
           label="Provide detail of the other confidence interval method used"

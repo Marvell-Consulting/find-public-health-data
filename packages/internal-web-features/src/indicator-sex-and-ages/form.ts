@@ -1,4 +1,5 @@
 import {
+  AGE_RANGE_PARTS,
   type AgeRangeFormValues,
   ageRangeFieldName,
   MAX_AGE_RANGES,
@@ -6,8 +7,9 @@ import {
   type SexAndAgesPageField,
 } from '@fphd/internal-api-features/contract';
 
+import { readFormValues } from '../form-values.ts';
 import type { FormFailure } from '../indicator-section.ts';
-import { type ListIntent, readListIntent } from '../list-form.ts';
+import { type ListIntent, readListIntent, readListItems } from '../list-form.ts';
 
 /** The page as the action re-renders it: after a refusal, or with a range added or removed. */
 export type SexAndAgesPageState = FormFailure<SexAndAgesPageField, SexAndAgesFormValues>;
@@ -24,44 +26,16 @@ export function withAgeRangeShown(values: SexAndAgesFormValues): SexAndAgesFormV
   return values.ageRanges.length > 0 ? values : { ...values, ageRanges: [BLANK_AGE_RANGE] };
 }
 
-function readAgeRanges(formData: FormData): AgeRangeFormValues[] {
-  const ranges: AgeRangeFormValues[] = [];
-
-  for (let index = 0; formData.has(ageRangeFieldName(index, 'lowerLimit')); index++) {
-    const part = (name: keyof AgeRangeFormValues) => {
-      const value = formData.get(ageRangeFieldName(index, name));
-      return typeof value === 'string' ? value : '';
-    };
-
-    ranges.push({
-      lowerLimit: part('lowerLimit'),
-      lowerLimitUnit: part('lowerLimitUnit'),
-      upperLimit: part('upperLimit'),
-      upperLimitUnit: part('upperLimitUnit'),
-    });
-  }
-
-  return ranges;
-}
-
 /** The form as sent, and which of its buttons sent it; a field not sent is empty. */
 export function readSexAndAgesForm(formData: FormData): {
   values: SexAndAgesFormValues;
   intent: ListIntent;
 } {
-  const text = (name: 'ageType' | 'specificAge' | 'specificAgeUnit' | 'ageDetail') => {
-    const value = formData.get(name);
-    return typeof value === 'string' ? value : '';
-  };
-
   return {
     values: {
+      ...readFormValues(formData, ['ageType', 'specificAge', 'specificAgeUnit', 'ageDetail']),
       sexes: formData.getAll('sexes').filter((sex) => typeof sex === 'string'),
-      ageType: text('ageType'),
-      ageRanges: readAgeRanges(formData),
-      specificAge: text('specificAge'),
-      specificAgeUnit: text('specificAgeUnit'),
-      ageDetail: text('ageDetail'),
+      ageRanges: readListItems(formData, AGE_RANGE_PARTS, ageRangeFieldName),
     },
     intent: readListIntent(formData),
   };

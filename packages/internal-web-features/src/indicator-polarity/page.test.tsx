@@ -14,7 +14,7 @@ const QUESTION = 'What is the polarity of this indicator?';
 function renderPage(props: Partial<Parameters<typeof PolarityPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <PolarityPage values={{ polarity: '' }} {...props} />
+      <PolarityPage fieldErrors={{}} formError={undefined} values={{ polarity: '' }} {...props} />
     </MemoryRouter>,
   );
 }
@@ -35,7 +35,7 @@ describe('PolarityPage', () => {
     expect(document.title).toBe(`${QUESTION} - ${serviceName} - GOV.UK`);
   });
 
-  it('offers the four polarities in the order the prototype lists them', () => {
+  it('offers the four polarities in a fixed order', () => {
     renderPage();
 
     const radios = within(screen.getByRole('group')).getAllByRole('radio') as HTMLInputElement[];
@@ -75,6 +75,5 @@ describe('PolarityPage', () => {
     expect(link.getAttribute('href')).toBe(`#${option('Higher is better').id}`);
     expect(screen.getByRole('group').getAttribute('aria-describedby')).toBe(error?.id);
     expect(container.querySelectorAll('.govuk-form-group--error')).toHaveLength(1);
-    expect(document.title).toBe(`Error: ${QUESTION} - ${serviceName} - GOV.UK`);
   });
 });

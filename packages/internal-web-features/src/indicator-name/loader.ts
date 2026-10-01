@@ -14,8 +14,9 @@ import { apiContext } from '@fphd/web-server/api-context';
 import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from 'react-router';
 
 import { formRefusal } from '../form-refusal.ts';
+import { readFormValues } from '../form-values.ts';
 import { requireIndicatorId } from '../indicator-id.ts';
-import { type FormFailure, readFormValues } from '../indicator-section.ts';
+import type { FormFailure } from '../indicator-section.ts';
 import { indicatorTaskListPath } from '../publish-paths.ts';
 
 export type IndicatorNameFailure = FormFailure<IndicatorField>;

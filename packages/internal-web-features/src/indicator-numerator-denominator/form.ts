@@ -7,36 +7,40 @@ import {
   type ProviderSource,
   type ProviderSourcesField,
   type ProviderSourcesFormValues,
+  type ProviderSourcesSection,
   providerSourceSchema,
   SELECT_DATA_PROVIDER,
+  toFieldErrors,
 } from '@fphd/internal-api-features/contract';
 
-import type { FormFailure } from '../indicator-section.ts';
-import { type ListIntent, readListIntent } from '../list-form.ts';
+import { readFormValues } from '../form-values.ts';
+import type { FormFailure, SectionAnswers } from '../indicator-section.ts';
+import { type ListIntent, readListIntent, readListItems } from '../list-form.ts';
 
 /** The page's answers, the sources added so far, and the two selects that add another. */
-export type ProviderSourcesPageValues = ProviderSourcesFormValues & NewProviderSourceFormValues;
+export type NumeratorDenominatorPageValues = ProviderSourcesFormValues &
+  NewProviderSourceFormValues;
 
-export type ProviderSourcesPageField = ProviderSourcesField | NewProviderSourceField;
+export type NumeratorDenominatorPageField = ProviderSourcesField | NewProviderSourceField;
 
 /** The page as the action re-renders it: after a refusal, or with its list or selects changed. */
-export type ProviderSourcesPageState = FormFailure<
-  ProviderSourcesPageField,
-  ProviderSourcesPageValues
+export type NumeratorDenominatorPageState = FormFailure<
+  NumeratorDenominatorPageField,
+  NumeratorDenominatorPageValues
 >;
 
 /** The value of the button that offers the chosen provider's sources without JavaScript. */
 export const SHOW_SOURCES_INTENT = 'show-sources';
 
 /** Which button sent the form: Show sources, or one of the list's. */
-export type ProviderSourcesIntent = { to: 'show-sources' } | ListIntent;
+type NumeratorDenominatorIntent = { to: 'show-sources' } | ListIntent;
 
 /** The name of the hidden field holding one part of the source at `index`. */
 export function sourceFieldName(index: number, part: keyof ProviderSource): string {
   return `sources[${index}].${part}`;
 }
 
-function readIntent(formData: FormData): ProviderSourcesIntent {
+function readIntent(formData: FormData): NumeratorDenominatorIntent {
   return formData.get('intent') === SHOW_SOURCES_INTENT
     ? { to: 'show-sources' }
     : readListIntent(formData);
@@ -48,39 +52,29 @@ function readIntent(formData: FormData): ProviderSourcesIntent {
  * request is refused whole.
  */
 function readSources(formData: FormData): ProviderSource[] {
-  const sources: ProviderSource[] = [];
+  return readListItems(formData, ['providerId', 'sourceId'], sourceFieldName).map(
+    ({ providerId, sourceId }) => {
+      const source = providerSourceSchema.safeParse({
+        providerId,
+        sourceId: sourceId === '' ? null : sourceId,
+      });
 
-  for (let index = 0; formData.has(sourceFieldName(index, 'providerId')); index++) {
-    const sourceId = formData.get(sourceFieldName(index, 'sourceId'));
-    const source = providerSourceSchema.safeParse({
-      providerId: formData.get(sourceFieldName(index, 'providerId')),
-      sourceId: sourceId === '' ? null : sourceId,
-    });
+      if (!source.success) throw new Response('Bad Request', { status: 400 });
 
-    if (!source.success) throw new Response('Bad Request', { status: 400 });
-
-    sources.push(source.data);
-  }
-
-  return sources;
+      return source.data;
+    },
+  );
 }
 
 /** The form as sent, and which of its buttons sent it; a field not sent is empty. */
-export function readProviderSourcesForm(formData: FormData): {
-  values: ProviderSourcesPageValues;
-  intent: ProviderSourcesIntent;
+export function readNumeratorDenominatorForm(formData: FormData): {
+  values: NumeratorDenominatorPageValues;
+  intent: NumeratorDenominatorIntent;
 } {
-  const text = (name: 'definition' | NewProviderSourceField) => {
-    const value = formData.get(name);
-    return typeof value === 'string' ? value : '';
-  };
-
   return {
     values: {
+      ...readFormValues(formData, ['definition', 'providerId', 'sourceId']),
       sources: readSources(formData),
-      definition: text('definition'),
-      providerId: text('providerId'),
-      sourceId: text('sourceId'),
     },
     intent: readIntent(formData),
   };
@@ -88,9 +82,9 @@ export function readProviderSourcesForm(formData: FormData): {
 
 /** The page offering the chosen provider's sources, as a browser without JavaScript asks. */
 export function withSourcesShown(
-  values: ProviderSourcesPageValues,
+  values: NumeratorDenominatorPageValues,
   providers: readonly DataProvider[],
-): ProviderSourcesPageState {
+): NumeratorDenominatorPageState {
   const shown = { ...values, sourceId: '' };
 
   return providers.some(({ id }) => id === values.providerId)
@@ -101,9 +95,9 @@ export function withSourcesShown(
 /** The page with the chosen provider and source added and the selects cleared, or refused. */
 export function withSourceAdded(
   part: IndicatorSourcePart,
-  values: ProviderSourcesPageValues,
+  values: NumeratorDenominatorPageValues,
   providers: readonly DataProvider[],
-): ProviderSourcesPageState {
+): NumeratorDenominatorPageState {
   const added = addProviderSource(part, values.sources, values, providers);
 
   return 'fieldErrors' in added
@@ -116,11 +110,46 @@ export function withSourceAdded(
 
 /** The page without the source at `index`, keeping anything chosen or typed. */
 export function withSourceRemoved(
-  values: ProviderSourcesPageValues,
+  values: NumeratorDenominatorPageValues,
   index: number,
-): ProviderSourcesPageState {
+): NumeratorDenominatorPageState {
   return {
     values: { ...values, sources: values.sources.filter((_, at) => at !== index) },
     fieldErrors: {},
   };
+}
+
+/** A refused add's errors and the section's others; the add's stand in for the list's. */
+function refuseUnaddedSource(
+  section: ProviderSourcesSection,
+  values: NumeratorDenominatorPageValues,
+  addErrors: Partial<Record<NumeratorDenominatorPageField, string>>,
+): NumeratorDenominatorPageState {
+  const submission = section.schema.safeParse({
+    sources: values.sources,
+    definition: values.definition,
+  });
+  const { sources: _refusedList, ...sectionErrors } = submission.success
+    ? {}
+    : toFieldErrors(submission.error, section.fields.options);
+
+  return { values, fieldErrors: { ...sectionErrors, ...addErrors } };
+}
+
+/** The answers with a provider and source chosen but not yet added taken in, or refused. */
+export function withChosenSourceTakenIn(
+  section: ProviderSourcesSection,
+  values: NumeratorDenominatorPageValues,
+  providers: readonly DataProvider[],
+):
+  | SectionAnswers<NumeratorDenominatorPageValues, ProviderSourcesFormValues>
+  | NumeratorDenominatorPageState {
+  const chosen = values.providerId !== '' || values.sourceId !== '';
+  const added = chosen
+    ? addProviderSource(section.key, values.sources, values, providers)
+    : { sources: values.sources };
+
+  return 'fieldErrors' in added
+    ? refuseUnaddedSource(section, values, added.fieldErrors)
+    : { values, answers: { sources: added.sources, definition: values.definition } };
 }

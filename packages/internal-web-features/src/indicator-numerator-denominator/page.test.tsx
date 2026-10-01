@@ -5,8 +5,8 @@ import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { removeIntent } from '../list-form.ts';
-import type { ProviderSourcesPageValues } from './form.ts';
-import { ProviderSourcesPage } from './page.tsx';
+import type { NumeratorDenominatorPageValues } from './form.ts';
+import { NumeratorDenominatorPage } from './page.tsx';
 
 afterEach(cleanup);
 
@@ -18,13 +18,13 @@ const ons = {
 const estimated = { id: '01a0d858-9885-764e-8d53-6826aec67004', name: 'Estimated', sources: [] };
 const providers = [ons, estimated];
 
-const empty: ProviderSourcesPageValues = {
+const empty: NumeratorDenominatorPageValues = {
   sources: [],
   definition: '',
   providerId: '',
   sourceId: '',
 };
-const twoSources: ProviderSourcesPageValues = {
+const twoSources: NumeratorDenominatorPageValues = {
   ...empty,
   sources: [
     { providerId: ons.id, sourceId: ons.sources[0]?.id ?? null },
@@ -33,10 +33,17 @@ const twoSources: ProviderSourcesPageValues = {
 };
 
 // The error summary's links read router state, so the page renders inside a router.
-function renderPage(props: Partial<Parameters<typeof ProviderSourcesPage>[0]> = {}) {
+function renderPage(props: Partial<Parameters<typeof NumeratorDenominatorPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <ProviderSourcesPage part="numerator" providers={providers} values={empty} {...props} />
+      <NumeratorDenominatorPage
+        fieldErrors={{}}
+        formError={undefined}
+        part="numerator"
+        providers={providers}
+        values={empty}
+        {...props}
+      />
     </MemoryRouter>,
   );
 }
@@ -53,7 +60,7 @@ function optionsOf(select: HTMLSelectElement) {
   return [...select.options].map((option) => option.text);
 }
 
-describe('ProviderSourcesPage', () => {
+describe('NumeratorDenominatorPage', () => {
   it('asks about the part it is given, as the page heading and title', () => {
     renderPage({ part: 'denominator' });
 
@@ -148,11 +155,5 @@ describe('ProviderSourcesPage', () => {
 
     expect(summaryLink.getAttribute('href')).toBe(`#${providerSelect().id}`);
     expect(providerSelect().getAttribute('aria-describedby')).toContain('providerId-error');
-  });
-
-  it('shows a refusal that names no field in the summary', () => {
-    renderPage({ formError: 'Your answers could not be saved. Try again.' });
-
-    expect(within(screen.getByRole('alert')).getByText(/could not be saved/)).toBeTruthy();
   });
 });

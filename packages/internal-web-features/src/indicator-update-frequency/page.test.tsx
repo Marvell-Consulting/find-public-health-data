@@ -14,7 +14,12 @@ const QUESTION = 'How often will this indicator be updated?';
 function renderPage(props: Partial<Parameters<typeof UpdateFrequencyPage>[0]> = {}) {
   return render(
     <MemoryRouter>
-      <UpdateFrequencyPage values={{ updateFrequency: '' }} {...props} />
+      <UpdateFrequencyPage
+        fieldErrors={{}}
+        formError={undefined}
+        values={{ updateFrequency: '' }}
+        {...props}
+      />
     </MemoryRouter>,
   );
 }
@@ -82,6 +87,5 @@ describe('UpdateFrequencyPage', () => {
     expect(link.getAttribute('href')).toBe(`#${option('Monthly').id}`);
     expect(screen.getByRole('group').getAttribute('aria-describedby')).toBe(error?.id);
     expect(container.querySelectorAll('.govuk-form-group--error')).toHaveLength(1);
-    expect(document.title).toBe(`Error: ${QUESTION} - ${serviceName} - GOV.UK`);
   });
 });
