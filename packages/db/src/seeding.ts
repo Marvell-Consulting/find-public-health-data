@@ -67,7 +67,11 @@ export async function readCsvHeader(file: string): Promise<string[]> {
     const newline = text.indexOf('\n');
     if (newline !== -1) {
       stream.destroy();
-      return text.slice(0, newline).trim().split(',');
+      return text
+        .slice(0, newline)
+        .trim()
+        .split(',')
+        .map((column) => column.replace(/^"|"$/g, '').replaceAll('""', '"'));
     }
   }
   throw new Error(`No header row in ${file}`);
