@@ -6,13 +6,10 @@ packages:
 
 # Supply-chain guard: a version must be this old (minutes: 3 days) before pnpm resolves it or
 # installs it from the lockfile, transitive dependencies included. A deliberately fresh version is
-# listed below as name@version and removed once it has aged past the window (README, "Continuous
-# integration").
+# listed in minimumReleaseAgeExclude as name@version and removed once it has aged past the window
+# (README, "Continuous integration").
 minimumReleaseAge: 4320
 minimumReleaseAgeStrict: true
-minimumReleaseAgeExclude:
-  # Remove on or after 2026-09-03.
-  - electron-to-chromium@1.5.417
 
 overrides:
   # GHSA-67mh-4wv8-2f99 esbuild <=0.24.2 dev server answers any origin. Transitive via
