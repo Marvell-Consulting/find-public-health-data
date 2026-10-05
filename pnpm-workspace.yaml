@@ -6,28 +6,20 @@ packages:
 
 # Supply-chain guard: a version must be this old (minutes: 3 days) before pnpm resolves it or
 # installs it from the lockfile, transitive dependencies included. A deliberately fresh version is
-# listed below as name@version and removed once it has aged past the window (README, "Continuous
-# integration").
+# listed in minimumReleaseAgeExclude as name@version and removed once it has aged past the window
+# (README, "Continuous integration").
 minimumReleaseAge: 4320
 minimumReleaseAgeStrict: true
-minimumReleaseAgeExclude:
-  # Remove on or after 2026-09-03.
-  - electron-to-chromium@1.5.417
 
 overrides:
   # GHSA-67mh-4wv8-2f99 esbuild <=0.24.2 dev server answers any origin. Transitive via
   # drizzle-kit's deprecated @esbuild-kit loader, which pins ~0.18 and was merged into tsx, so
   # no fixed release is coming. Scoped so drizzle-kit's and tsx's own esbuild stay untouched.
   '@esbuild-kit/core-utils>esbuild': '>=0.24.3 <0.26'
-  # chokidar v4+ dropped fsevents, so react-router dev's typegen watcher opens a kqueue
-  # descriptor per directory, crawls the pnpm symlink tree and dies on EMFILE — killing
-  # hot reload. v3 watches via fsevents on macOS.
-  '@react-router/dev>chokidar': '^3.6.0'
 
 allowBuilds:
   '@parcel/watcher': true
   esbuild: true
-  fsevents: true
 
 catalog:
   '@axe-core/playwright': 4.13.0
