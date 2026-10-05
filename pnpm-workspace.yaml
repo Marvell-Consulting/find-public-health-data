@@ -16,15 +16,10 @@ overrides:
   # drizzle-kit's deprecated @esbuild-kit loader, which pins ~0.18 and was merged into tsx, so
   # no fixed release is coming. Scoped so drizzle-kit's and tsx's own esbuild stay untouched.
   '@esbuild-kit/core-utils>esbuild': '>=0.24.3 <0.26'
-  # chokidar v4+ dropped fsevents, so react-router dev's typegen watcher opens a kqueue
-  # descriptor per directory, crawls the pnpm symlink tree and dies on EMFILE — killing
-  # hot reload. v3 watches via fsevents on macOS.
-  '@react-router/dev>chokidar': '^3.6.0'
 
 allowBuilds:
   '@parcel/watcher': true
   esbuild: true
-  fsevents: true
 
 catalog:
   '@axe-core/playwright': 4.13.0
