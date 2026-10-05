@@ -92,6 +92,7 @@ export async function applyIndicatorTopics(
       ...file.indicatorTopics.map(({ fingertipsId }) => fingertipsId),
       ...file.indicatorClassifications.map(({ fingertipsId }) => fingertipsId),
       ...Object.keys(file.indicatorDataUpdatedAt).map(Number),
+      ...file.indicatorClassifications.map(({ fingertipsId }) => fingertipsId),
     ]),
   ];
 
