@@ -159,7 +159,11 @@ describe('downloadPublishedSnapshot', () => {
     directories.push(join(archive, '..'));
     await runFile('tar', ['-cf', archive, '-C', directory, ...(await readdir(directory))]);
     const bytes = await readFile(archive);
-    vi.stubGlobal('fetch', async () => new Response(bytes));
+    vi.stubGlobal('fetch', async () => {
+      const response = new Response(bytes);
+      Object.defineProperty(response, 'url', { value: 'https://example.test/a' });
+      return response;
+    });
     return createHash('sha256').update(bytes).digest('hex');
   }
 
