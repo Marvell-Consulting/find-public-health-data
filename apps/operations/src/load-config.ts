@@ -22,6 +22,11 @@ const envSchema = z
       .string()
       .regex(/^[a-f0-9]{64}$/)
       .optional(),
+    DATA_MIGRATION_URL: z.url().optional(),
+    DATA_MIGRATION_SHA256: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
   })
   .superRefine((env, ctx) => {
     if (isDeployedEnv(env.APP_ENV) && env.POSTGRES_USER === undefined) {
@@ -60,6 +65,10 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
     publishedSnapshot: {
       url: parsed.PUBLISHED_SNAPSHOT_URL,
       sha256: parsed.PUBLISHED_SNAPSHOT_SHA256,
+    },
+    dataMigration: {
+      url: parsed.DATA_MIGRATION_URL,
+      sha256: parsed.DATA_MIGRATION_SHA256,
     },
   } as const;
 }

@@ -19,6 +19,7 @@ describe('loadConfig', () => {
       },
       roles: { publicApiPassword: undefined, internalApiPassword: undefined },
       publishedSnapshot: { url: undefined, sha256: undefined },
+      dataMigration: { url: undefined, sha256: undefined },
     });
   });
 
@@ -74,6 +75,18 @@ describe('loadConfig', () => {
     expect(config.publishedSnapshot).toEqual({
       url: 'https://example.blob.core.windows.net/import/snapshot.tar',
       sha256: 'a'.repeat(64),
+    });
+  });
+
+  it('parses the live data migration URL and checksum only when provided', () => {
+    const config = loadConfig({
+      ...local,
+      DATA_MIGRATION_URL: 'https://example.blob.core.windows.net/import/live.tar',
+      DATA_MIGRATION_SHA256: 'b'.repeat(64),
+    });
+    expect(config.dataMigration).toEqual({
+      url: 'https://example.blob.core.windows.net/import/live.tar',
+      sha256: 'b'.repeat(64),
     });
   });
 });

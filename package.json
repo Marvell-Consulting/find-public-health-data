@@ -21,6 +21,7 @@
     "db:import-core-data": "pnpm --filter @fphd/operations cli db import-core-data",
     "db:migrate": "pnpm --filter @fphd/operations cli db migrate",
     "db:rebuild-read-models": "pnpm --filter @fphd/operations cli db rebuild-read-models",
+    "db:migrate-live-data": "pnpm --filter @fphd/operations cli db migrate-live-data",
     "db:reset": "pnpm --filter @fphd/operations cli db reset",
     "db:seed-dummy-data": "pnpm --filter @fphd/operations cli db seed-dummy-data",
     "db:studio": "pnpm --filter @fphd/config --filter @fphd/utils build && pnpm --filter @fphd/db db:studio",
