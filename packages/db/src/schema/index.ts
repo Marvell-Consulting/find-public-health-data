@@ -1,5 +1,6 @@
 export * from './cache.ts';
 export * from './classification.ts';
+export * from './data-migration.ts';
 export * from './dimension.ts';
 export * from './geography.ts';
 export * from './helpers.ts';
