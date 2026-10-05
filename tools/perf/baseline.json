@@ -35,23 +35,17 @@
     "rows": 33,
     "bytes": 47679
   },
-  "public-api /api/areas?displayGroup=GP%20practices": {
-    "statements": 1,
-    "buffers": 84,
-    "rows": 6168,
-    "bytes": 310737
-  },
   "public-api /api/areas/search?q=leeds": {
     "statements": 1,
     "buffers": 89,
     "rows": 5,
     "bytes": 510
   },
-  "public-api /api/indicators?q=mortality": {
+  "public-api /api/areas?displayGroup=GP%20practices": {
     "statements": 1,
-    "buffers": 21,
-    "rows": 4,
-    "bytes": 596
+    "buffers": 84,
+    "rows": 6168,
+    "bytes": 310737
   },
   "public-api /api/indicators/241": {
     "statements": 6,
@@ -77,6 +71,12 @@
     "rows": 23,
     "bytes": 2051
   },
+  "public-api /api/indicators?q=mortality": {
+    "statements": 1,
+    "buffers": 21,
+    "rows": 4,
+    "bytes": 596
+  },
   "public-api /api/topics": {
     "statements": 1,
     "buffers": 2,
@@ -88,18 +88,6 @@
     "buffers": 0,
     "rows": 0,
     "bytes": 27754
-  },
-  "public-web /indicators?as=E07000223&as=E07000032&is=92443&is=241&cmp-compare=england&cr-compare=no": {
-    "statements": 36,
-    "buffers": 26457,
-    "rows": 6120,
-    "bytes": 784871
-  },
-  "public-web /indicators?find=mortality": {
-    "statements": 3,
-    "buffers": 104,
-    "rows": 270,
-    "bytes": 54725
   },
   "public-web /indicators/diabetes-qof-prevalence": {
     "statements": 12,
@@ -118,6 +106,18 @@
     "buffers": 23228,
     "rows": 5217,
     "bytes": 269866
+  },
+  "public-web /indicators?as=E07000223&as=E07000032&is=92443&is=241&cmp-compare=england&cr-compare=no": {
+    "statements": 36,
+    "buffers": 26457,
+    "rows": 6120,
+    "bytes": 784871
+  },
+  "public-web /indicators?find=mortality": {
+    "statements": 3,
+    "buffers": 104,
+    "rows": 270,
+    "bytes": 54725
   },
   "public-web /search?q=mortality": {
     "statements": 11,

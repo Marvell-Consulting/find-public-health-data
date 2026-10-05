@@ -61,8 +61,10 @@ pnpm perf:accept <run-id>
 
 It downloads the run's `perf-baseline` artifact with the GitHub CLI and writes it over
 `baseline.json`. Commit the result, and the diff shows the reviewer exactly which routes cost more.
-Every run uploads the artifact, passing or not, so the same command tightens the baseline after an
-improvement.
+Every run that measures all the routes uploads the artifact, within budget or not, so the same
+command tightens the baseline after an improvement. A run that stops on a route error writes none,
+as it has no complete set of numbers to adopt. The artifact holds counts only: a route meant to be
+slower needs its `limitMs` raised in [`src/routes.ts`](src/routes.ts).
 
 ## Running it locally
 

@@ -71,10 +71,10 @@ export function compareToBaseline(measured: Baseline, baseline: Baseline): Compa
   return { failures, notices };
 }
 
-/** Keys sorted, so a regenerated baseline diffs only where a number changed. */
+/** Keys in code-point order, so the file diffs only where a number changed, whatever the locale. */
 export function serialiseBaseline(baseline: Baseline): string {
   const sorted = Object.fromEntries(
-    Object.entries(baseline).sort(([a], [b]) => a.localeCompare(b)),
+    Object.entries(baseline).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
   );
   return `${JSON.stringify(sorted, null, 2)}\n`;
 }

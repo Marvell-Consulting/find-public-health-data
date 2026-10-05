@@ -26,7 +26,6 @@ type Result = { route: Route; work: Work; timing: Timing };
 async function main(): Promise<void> {
   const { values } = parseArgs({
     options: {
-      update: { type: 'boolean', default: false },
       measured: { type: 'string' },
     },
   });
@@ -52,32 +51,26 @@ async function main(): Promise<void> {
     await mkdir(path.dirname(values.measured), { recursive: true });
     await writeFile(values.measured, serialiseBaseline(measured));
   }
-  if (values.update) {
-    await writeFile(baselinePath, serialiseBaseline(measured));
-    console.log(`\nWrote ${path.relative(process.cwd(), baselinePath)}.`);
-    return;
-  }
 
   const baseline = await readBaseline();
   const { failures, notices } = compareToBaseline(measured, baseline);
-  for (const { route, timing } of results) {
-    if (timing.median > route.limitMs) {
-      failures.push(
+  const slow = results
+    .filter(({ route, timing }) => timing.median > route.limitMs)
+    .map(
+      ({ route, timing }) =>
         `${routeKey(route)} median ${timing.median} ms, over its ${route.limitMs} ms limit`,
-      );
-    }
-  }
+    );
 
-  await writeSummary(results, baseline, failures, notices);
+  await writeSummary(results, baseline, failures, slow, notices);
 
   for (const notice of notices) console.log(`note: ${notice}`);
-  if (failures.length === 0) {
+  if (failures.length === 0 && slow.length === 0) {
     console.log('\nEvery route is within its budget and time limit.');
     return;
   }
   console.error('\nRoute budgets exceeded:\n');
-  for (const failure of failures) console.error(`  ${failure}`);
-  console.error(`\n${acceptHint()}`);
+  for (const failure of [...failures, ...slow]) console.error(`  ${failure}`);
+  for (const line of advice(failures, slow)) console.error(`\n${line}`);
   process.exitCode = 1;
 }
 
@@ -106,10 +99,19 @@ function describe(work: Work): string {
   return `${work.statements} statements, ${work.buffers} buffers, ${work.rows} rows, ${work.bytes} bytes`;
 }
 
-function acceptHint(): string {
-  const runId = process.env.GITHUB_RUN_ID;
-  const run = runId ? runId : '<run-id>';
-  return `If the change is intended, accept the new numbers with \`pnpm perf:accept ${run}\` and commit tools/perf/baseline.json.`;
+/** Accepting a run adopts its counts only: a time limit is raised in routes.ts. */
+function advice(failures: string[], slow: string[]): string[] {
+  const run = process.env.GITHUB_RUN_ID ?? '<run-id>';
+  return [
+    ...(failures.length > 0
+      ? [
+          `If the change is intended, accept the new numbers with \`pnpm perf:accept ${run}\` and commit tools/perf/baseline.json.`,
+        ]
+      : []),
+    ...(slow.length > 0
+      ? ['If a route is meant to be slower, raise its `limitMs` in tools/perf/src/routes.ts.']
+      : []),
+  ];
 }
 
 /** The job summary: every route's numbers against its budget, then what failed. */
@@ -117,6 +119,7 @@ async function writeSummary(
   results: Result[],
   baseline: Baseline,
   failures: string[],
+  slow: string[],
   notices: string[],
 ): Promise<void> {
   const file = process.env.GITHUB_STEP_SUMMARY;
@@ -136,8 +139,14 @@ async function writeSummary(
     }),
     '',
   ];
-  if (failures.length > 0) {
-    lines.push('**Failures**', '', ...failures.map((f) => `- ${f}`), '', acceptHint(), '');
+  if (failures.length > 0 || slow.length > 0) {
+    lines.push(
+      '**Failures**',
+      '',
+      ...[...failures, ...slow].map((f) => `- ${f}`),
+      '',
+      ...advice(failures, slow).flatMap((line) => [line, '']),
+    );
   }
   if (notices.length > 0) {
     lines.push('**Could be tightened**', '', ...notices.map((n) => `- ${n}`), '');

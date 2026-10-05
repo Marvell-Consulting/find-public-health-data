@@ -75,6 +75,11 @@ describe('serialiseBaseline', () => {
     expect(Object.keys(JSON.parse(text))).toEqual(['GET /a', 'GET /b']);
     expect(text.endsWith('}\n')).toBe(true);
   });
+
+  it('sorts by code point, where a locale would put a query before a subpath', () => {
+    const text = serialiseBaseline({ 'GET /a?q=1': work(), 'GET /a/b': work() });
+    expect(Object.keys(JSON.parse(text))).toEqual(['GET /a/b', 'GET /a?q=1']);
+  });
 });
 
 describe('percentile', () => {

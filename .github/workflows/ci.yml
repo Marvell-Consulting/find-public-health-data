@@ -263,7 +263,7 @@ jobs:
           POSTGRES_PASSWORD: fphd
         run: pnpm check:perf --measured "${RUNNER_TEMP}/perf-baseline/baseline.json"
 
-      # Always, so `pnpm perf:accept <run-id>` can adopt any run's numbers, passing or not.
+      # Always, so `pnpm perf:accept <run-id>` can adopt a run's numbers whether it passed or not.
       - name: Upload the measured numbers
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

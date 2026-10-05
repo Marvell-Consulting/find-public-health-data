@@ -19,8 +19,10 @@ export async function signIn(): Promise<string> {
   }
   const finished = await fetch(new URL(callback, origin), { redirect: 'manual' });
   const cookies = finished.headers.getSetCookie().map((cookie) => cookie.split(';')[0]);
-  if (cookies.length === 0) {
-    throw new Error(`The sign-in callback answered ${finished.status} without setting a session`);
+  if (finished.status !== 303 || cookies.length === 0) {
+    throw new Error(
+      `The sign-in callback answered ${finished.status}, expected a 303 setting a session`,
+    );
   }
   return cookies.join('; ');
 }
