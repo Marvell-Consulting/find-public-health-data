@@ -30,6 +30,7 @@ describe('commands', () => {
       'db import-core-data',
       'db seed-dummy-data',
       'db import-published-snapshot',
+      'db migrate-live-data',
       'db rebuild-read-models',
       'db reset',
     ]);
