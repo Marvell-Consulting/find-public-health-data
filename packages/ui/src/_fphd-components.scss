@@ -267,19 +267,21 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  column-gap: govuk-spacing(4);
+  gap: govuk-spacing(4);
+  margin-bottom: govuk-spacing(4);
 }
 
+// The row spaces its fields: GOV.UK drops the margin of the last form group nested in another.
 .fphd-field-row > .govuk-form-group {
-  margin-bottom: govuk-spacing(4);
+  margin-bottom: 0;
 }
 
 // A select beside the button that acts on its choice: level at the foot, spaced as one control.
 .fphd-field-row--with-button {
   row-gap: govuk-spacing(2);
+  margin-bottom: 0;
 }
 
-.fphd-field-row--with-button > .govuk-form-group,
 .fphd-field-row--with-button > .govuk-button {
   margin-bottom: 0;
 }
