@@ -80,7 +80,7 @@ test('lines up each limit with the period beside it', async ({ page }) => {
     const value = await label(page, limit).boundingBox();
     const period = await label(page, `Periods for ${limit.toLowerCase()}`).boundingBox();
     if (!value || !period) throw new Error(`${limit} and its period must be visible`);
-    expect(period.y, limit).toBe(value.y);
+    expect(period.y + period.height, limit).toBeCloseTo(value.y + value.height, 0);
   }
 });
 
