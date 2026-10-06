@@ -71,6 +71,19 @@ test('reveals the fields of each age type only while it is chosen', async ({ pag
   await expect(otherField(page)).toBeVisible();
 });
 
+test('lines up each limit with the period beside it', async ({ page }) => {
+  await openSectionPage(page, SECTION);
+  await ageType(page, 'Age range').check();
+
+  for (const limit of ['Lower limit', 'Upper limit']) {
+    await expect(label(page, limit)).toBeVisible();
+    const value = await label(page, limit).boundingBox();
+    const period = await label(page, `Periods for ${limit.toLowerCase()}`).boundingBox();
+    if (!value || !period) throw new Error(`${limit} and its period must be visible`);
+    expect(period.y, limit).toBe(value.y);
+  }
+});
+
 test('adds and removes age ranges, keeping what was typed', async ({ page }) => {
   await openSectionPage(page, SECTION);
   await ageType(page, 'Age range').check();
