@@ -1,0 +1,6 @@
+# Findings judged false positives, by fingerprint (commit:file:rule:line), so each covers only that
+# one historical line. Add an entry only after checking the hit is not a secret.
+
+# A unit's UUID beside "£ per capita": generic-api-key matches the "api" in "capita".
+504072950d4856353aca4246fa03772e2f954ae4:packages/db/data/seed/export/value_type_and_unit.py:generic-api-key:41
+504072950d4856353aca4246fa03772e2f954ae4:packages/db/drizzle/0035_value-type-and-units.sql:generic-api-key:84
