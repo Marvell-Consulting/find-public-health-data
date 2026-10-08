@@ -393,17 +393,23 @@ def add_indicators(cur, metadata, seed_dir):
         cur.execute(
             """
             INSERT INTO upload_batch
-              (id, indicator_id, original_filename, uploaded_by, uploaded_at, status,
-               validation_result)
-            VALUES (%s, %s, %s, 'fingertips-api-seed', %s, 'processed', %s)
+              (id, indicator_id, indicator_version_id, original_filename, uploaded_by,
+               uploaded_at, status, validation_result)
+            VALUES (%s, %s, %s, %s, 'fingertips-api-seed', %s, 'processed', %s)
             """,
             (
                 batch_id,
                 indicator_id,
+                version_id,
                 f"fingertips-{fingertips_id}.csv",
                 updated_at,
                 Json({"source": "Public Fingertips API", "validated": True}),
             ),
+        )
+        cur.execute(
+            "UPDATE indicator_version SET upload_batch_id = %s, data_table_confirmed_at = %s "
+            "WHERE id = %s",
+            (batch_id, updated_at, version_id),
         )
     return indicator_ids, batch_ids, version_sources
 
@@ -439,6 +445,26 @@ def add_observations(cur, csv_path, registry, area_ids, metadata, indicator_ids,
             observation_id = uuid7()
             from_date, to_date = parse_period(row["Time period"])
             published_at = metadata[fingertips_id]["DataChange"]["LastUploadedAt"]
+
+            dimension_names = {}
+            if row["Sex"] and row["Sex"] != "Persons":
+                dimension_names["Sex"] = row["Sex"]
+            if row["Age"]:
+                dimension_names["Age"] = row["Age"]
+            if row["Category Type"] and row["Category"]:
+                dimension_names[row["Category Type"].strip()] = row["Category"]
+
+            value_ids = []
+            for type_name, value_name in dimension_names.items():
+                key = (type_name, value_name)
+                if key not in dimensions:
+                    raise ValueError(f"Missing dimension value: {key}")
+                value_id, type_id, aggregate = dimensions[key]
+                if aggregate:
+                    continue
+                value_ids.append(str(value_id))
+                observation_dimensions.append((uuid7(), observation_id, value_id, type_id))
+
             observations.append(
                 (
                     observation_id,
@@ -455,27 +481,12 @@ def add_observations(cur, csv_path, registry, area_ids, metadata, indicator_ids,
                     number(row["Upper CI 99.8 limit"]),
                     published_at,
                     batch_ids[fingertips_id],
+                    # dimensionKey in @fphd/db: the dimension value ids sorted and joined.
+                    ",".join(sorted(value_ids)),
                     published_at,
                     "fingertips-api-seed",
                 )
             )
-
-            dimension_names = {}
-            if row["Sex"] and row["Sex"] != "Persons":
-                dimension_names["Sex"] = row["Sex"]
-            if row["Age"]:
-                dimension_names["Age"] = row["Age"]
-            if row["Category Type"] and row["Category"]:
-                dimension_names[row["Category Type"].strip()] = row["Category"]
-
-            for type_name, value_name in dimension_names.items():
-                key = (type_name, value_name)
-                if key not in dimensions:
-                    raise ValueError(f"Missing dimension value: {key}")
-                value_id, type_id, aggregate = dimensions[key]
-                if aggregate:
-                    continue
-                observation_dimensions.append((uuid7(), observation_id, value_id, type_id))
 
             if row["Value note"]:
                 if row["Value note"] not in notes:
@@ -491,7 +502,7 @@ def add_observations(cur, csv_path, registry, area_ids, metadata, indicator_ids,
         INSERT INTO observation
           (id, indicator_id, area_id, from_date, to_date, value, count, denominator,
            lower_ci_95, upper_ci_95, lower_ci_998, upper_ci_998, published_at,
-           upload_batch_id, created_at, created_by)
+           upload_batch_id, dimension_key, created_at, created_by)
         VALUES %s
         """,
         observations,
