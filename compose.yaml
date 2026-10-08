@@ -1,6 +1,6 @@
 # Local development services. Not for production.
 #
-# `docker compose up` starts only the database; the four app services sit behind
+# `docker compose up` starts only the database and Azurite; the four app services sit behind
 # profiles matching their names, so they start only when asked for:
 #   docker compose --profile public-api --profile public-web up -d --build
 # scripts/dev.sh derives the profile set from whichever apps you run locally.
@@ -38,6 +38,22 @@ services:
       - fphd-pgdata:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-fphd} -d ${POSTGRES_DB:-fphd}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Blob Storage emulator; its version is pinned with @azure/storage-blob in pnpm-workspace.yaml.
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.37.0
+    container_name: fphd-azurite
+    restart: unless-stopped
+    command: ['azurite-blob', '--blobHost', '0.0.0.0', '--location', '/data']
+    ports:
+      - '${AZURITE_PORT:-10000}:10000'
+    volumes:
+      - fphd-azurite-data:/data
+    healthcheck:
+      test: ['CMD', 'nc', '-z', '127.0.0.1', '10000']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -150,12 +166,17 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-fphd}
       INTERNAL_API_PASSWORD: ${INTERNAL_API_PASSWORD:?set INTERNAL_API_PASSWORD in .env (see .env.example)}
       SESSION_JWT_SECRET: ${SESSION_JWT_SECRET:?set SESSION_JWT_SECRET in .env (see .env.example)}
+      STORAGE_CONTAINER: ${STORAGE_CONTAINER:-uploads}
+      # Azurite's published development account, reached by service name; not a secret.
+      STORAGE_CONNECTION_STRING: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
     ports:
       - '4001:4001'
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     depends_on:
       db:
+        condition: service_healthy
+      azurite:
         condition: service_healthy
     healthcheck:
       test:
@@ -171,3 +192,4 @@ services:
 
 volumes:
   fphd-pgdata:
+  fphd-azurite-data:

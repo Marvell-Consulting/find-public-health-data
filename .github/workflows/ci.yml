@@ -71,6 +71,16 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 5
+      # Runs the image's default command; a service container cannot override it.
+      azurite:
+        image: mcr.microsoft.com/azure-storage/azurite:3.37.0
+        ports:
+          - 10000:10000
+        options: >-
+          --health-cmd "nc -z 127.0.0.1 10000"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -104,6 +114,9 @@ jobs:
           INTERNAL_API_PASSWORD: internal_api
           # internal-api's config requires it at import; CI-only value, not a secret.
           SESSION_JWT_SECRET: ci-only-jwt-session-secret-at-least-32-bytes
+          # Azurite's published development account; internal-api's config requires storage too.
+          STORAGE_CONTAINER: uploads
+          STORAGE_CONNECTION_STRING: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;
 
   # Each shard starts its own stack and runs its share of the suite; add shards as the suite grows.
   e2e:
