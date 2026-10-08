@@ -34,6 +34,35 @@ let member: postgres.Sql;
 let draftIndicatorId: string;
 let draftObservationId: string;
 
+/** An observation with one dimension value and one note, in the batch given. */
+async function insertObservation(
+  indicatorId: string,
+  batchId: string,
+  fromDate: string,
+): Promise<string> {
+  const [observation] = await owner<{ id: string }[]>`
+    WITH dv AS (SELECT id, dimension_type_id FROM dimension_value ORDER BY id LIMIT 1),
+      o AS (
+        INSERT INTO observation
+          (indicator_id, area_id, from_date, to_date, value, upload_batch_id, dimension_key,
+           created_by)
+        SELECT ${indicatorId}, a.id, ${fromDate}, ${fromDate}::date + 364, 1.5, ${batchId},
+               dv.id::text, 'grants-test'
+        FROM (SELECT id FROM area ORDER BY id LIMIT 1) a, dv
+        RETURNING id
+      ),
+      d AS (
+        INSERT INTO observation_dimension (observation_id, dimension_value_id, dimension_type_id)
+        SELECT o.id, dv.id, dv.dimension_type_id FROM o, dv
+      )
+    INSERT INTO observation_note (observation_id, note_type_id)
+    SELECT o.id, (SELECT id FROM note_type ORDER BY id LIMIT 1) FROM o
+    RETURNING observation_id AS id
+  `;
+  if (!observation) throw new Error('inserted no observation');
+  return observation.id;
+}
+
 /** An indicator whose only version is a draft, with data and read-model rows behind it. */
 async function insertDraftOnlyIndicator(): Promise<void> {
   const [indicator] = await owner<{ id: string }[]>`
@@ -70,28 +99,14 @@ async function insertDraftOnlyIndicator(): Promise<void> {
   `;
 
   const [batch] = await owner<{ id: string }[]>`
-    INSERT INTO upload_batch (indicator_id, original_filename, uploaded_by)
-    VALUES (${draftIndicatorId}, 'grants-test.csv', 'grants-test')
+    INSERT INTO upload_batch (indicator_id, indicator_version_id, original_filename, uploaded_by)
+    VALUES (${draftIndicatorId}, ${versionId}, 'grants-test.csv', 'grants-test')
     RETURNING id
   `;
-  const [observation] = await owner<{ id: string }[]>`
-    INSERT INTO observation
-      (indicator_id, area_id, from_date, to_date, value, published_at, upload_batch_id, created_by)
-    SELECT ${draftIndicatorId}, a.id, '2024-01-01', '2024-12-31', 1.5, now(), ${batch?.id ?? ''},
-           'grants-test'
-    FROM area a LIMIT 1
-    RETURNING id
-  `;
-  draftObservationId = observation?.id ?? '';
-
   await owner`
-    INSERT INTO observation_dimension (observation_id, dimension_value_id, dimension_type_id)
-    SELECT ${draftObservationId}, dv.id, dv.dimension_type_id FROM dimension_value dv LIMIT 1
+    UPDATE indicator_version SET upload_batch_id = ${batch?.id ?? ''} WHERE id = ${versionId}
   `;
-  await owner`
-    INSERT INTO observation_note (observation_id, note_type_id)
-    SELECT ${draftObservationId}, nt.id FROM note_type nt LIMIT 1
-  `;
+  draftObservationId = await insertObservation(draftIndicatorId, batch?.id ?? '', '2024-01-01');
 
   await owner`
     INSERT INTO latest_headline (indicator_id, area_id, from_date, to_date, value)
@@ -250,6 +265,16 @@ describe('the public role', () => {
     );
   });
 
+  it('reads no publication time on an observation, which the batch pointer replaces', async () => {
+    const columns = await member<{ column_name: string }[]>`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_schema = 'published' AND table_name = 'observation'
+        AND column_name = 'published_at'
+    `;
+
+    expect(columns).toEqual([]);
+  });
+
   it('sees no upload batch, which is internal detail', async () => {
     const columns = await member<{ table_name: string }[]>`
       SELECT table_name FROM information_schema.columns
@@ -283,6 +308,19 @@ describe('the internal role', () => {
   it.each(
     ['indicator_version_link', 'indicator_version_age_range', 'indicator_version_source'].flatMap(
       (table) => ['SELECT', 'INSERT', 'UPDATE', 'DELETE'].map((privilege) => [privilege, table]),
+    ),
+  )('may %s %s', async (privilege, table) => {
+    const [row] = await owner<{ granted: boolean }[]>`
+      SELECT has_table_privilege(${API_ROLES.internalApi}, ${`public.${table}`}, ${privilege}) AS granted
+    `;
+
+    expect(row?.granted).toBe(true);
+  });
+
+  // The upload writes batches and their rows.
+  it.each(
+    ['observation', 'observation_dimension', 'observation_note', 'upload_batch'].flatMap((table) =>
+      ['SELECT', 'INSERT', 'UPDATE', 'DELETE'].map((privilege) => [privilege, table]),
     ),
   )('may %s %s', async (privilege, table) => {
     const [row] = await owner<{ granted: boolean }[]>`
@@ -342,5 +380,116 @@ describe('an indicator whose only version is a draft', () => {
     `;
 
     expect(seeded?.rows).toBe(12);
+  });
+});
+
+describe('a published indicator whose draft has a batch of its own', () => {
+  let indicatorId: string;
+  let pendingObservationId: string;
+
+  beforeAll(async () => {
+    const [published] = await owner<{ id: string; indicatorId: string }[]>`
+      SELECT cpv.id, cpv.indicator_id AS "indicatorId"
+      FROM current_published_version cpv ORDER BY cpv.indicator_id LIMIT 1
+    `;
+    if (!published) throw new Error('The seed holds no published version');
+    indicatorId = published.indicatorId;
+
+    const [draft] = await owner<{ id: string }[]>`
+      INSERT INTO indicator_version (indicator_id, status, name, slug, created_by, updated_by)
+      SELECT indicator_id, 'draft', name, slug, 'grants-test', 'grants-test'
+      FROM indicator_version WHERE id = ${published.id}
+      RETURNING id
+    `;
+    const [batch] = await owner<{ id: string }[]>`
+      INSERT INTO upload_batch (indicator_id, indicator_version_id, original_filename, uploaded_by)
+      VALUES (${indicatorId}, ${draft?.id ?? ''}, 'grants-test-update.csv', 'grants-test')
+      RETURNING id
+    `;
+    await owner`
+      UPDATE indicator_version SET upload_batch_id = ${batch?.id ?? ''} WHERE id = ${draft?.id ?? ''}
+    `;
+    pendingObservationId = await insertObservation(indicatorId, batch?.id ?? '', '2099-01-01');
+  });
+
+  it("keeps the draft's rows out of every observation view", async () => {
+    const counts = await member<{ view: string; rows: number }[]>`
+      SELECT 'observation' AS view, count(*)::int AS rows
+        FROM published.observation WHERE id = ${pendingObservationId}
+      UNION ALL SELECT 'observation_dimension', count(*)::int
+        FROM published.observation_dimension WHERE observation_id = ${pendingObservationId}
+      UNION ALL SELECT 'observation_note', count(*)::int
+        FROM published.observation_note WHERE observation_id = ${pendingObservationId}
+    `;
+
+    expect(counts.filter(({ rows }) => rows > 0)).toEqual([]);
+    expect(counts).toHaveLength(3);
+  });
+
+  it('still serves every seeded row, all of them in the published batch', async () => {
+    const [expected] = await owner<{ rows: number }[]>`
+      SELECT count(*)::int AS rows FROM observation
+      WHERE indicator_id = ${indicatorId} AND id <> ${pendingObservationId}
+    `;
+    const [served] = await member<{ rows: number }[]>`
+      SELECT count(*)::int AS rows FROM published.observation WHERE indicator_id = ${indicatorId}
+    `;
+
+    expect(expected?.rows).toBeGreaterThan(0);
+    expect(served?.rows).toBe(expected?.rows);
+  });
+});
+
+describe('an indicator published again with new data', () => {
+  let indicatorId: string;
+
+  /** Publishes a version of the indicator with a batch of its own holding one row. */
+  async function publishWithData(publishedAt: string, fromDate: string): Promise<string> {
+    const [version] = await owner<{ id: string }[]>`
+      INSERT INTO indicator_version
+        (indicator_id, status, published_at, name, slug, created_by, updated_by)
+      VALUES (${indicatorId}, 'published', ${publishedAt}, 'grants-test republished indicator',
+              'grants-test-republished-indicator', 'grants-test', 'grants-test')
+      RETURNING id
+    `;
+    const [batch] = await owner<{ id: string }[]>`
+      INSERT INTO upload_batch (indicator_id, indicator_version_id, original_filename, uploaded_by)
+      VALUES (${indicatorId}, ${version?.id ?? ''}, 'grants-test.csv', 'grants-test')
+      RETURNING id
+    `;
+    await owner`
+      UPDATE indicator_version SET upload_batch_id = ${batch?.id ?? ''} WHERE id = ${version?.id ?? ''}
+    `;
+    return insertObservation(indicatorId, batch?.id ?? '', fromDate);
+  }
+
+  beforeAll(async () => {
+    const [indicator] = await owner<{ id: string }[]>`
+      INSERT INTO indicator (short_id) VALUES (999996) RETURNING id
+    `;
+    indicatorId = indicator?.id ?? '';
+  });
+
+  /** The observation views that show the public role the observation given. */
+  async function viewsShowing(id: string): Promise<string[]> {
+    const rows = await member<{ view: string }[]>`
+      SELECT 'observation' AS view FROM published.observation WHERE id = ${id}
+      UNION ALL SELECT 'observation_dimension'
+        FROM published.observation_dimension WHERE observation_id = ${id}
+      UNION ALL SELECT 'observation_note'
+        FROM published.observation_note WHERE observation_id = ${id}
+    `;
+    return rows.map(({ view }) => view).sort();
+  }
+
+  it("switches every observation view from the old batch's rows to the new one's", async () => {
+    const everyView = ['observation', 'observation_dimension', 'observation_note'];
+    const first = await publishWithData('2030-01-01T00:00:00Z', '2023-01-01');
+    expect(await viewsShowing(first)).toEqual(everyView);
+
+    const second = await publishWithData('2031-01-01T00:00:00Z', '2024-01-01');
+
+    expect(await viewsShowing(first)).toEqual([]);
+    expect(await viewsShowing(second)).toEqual(everyView);
   });
 });

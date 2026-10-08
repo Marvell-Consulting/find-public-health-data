@@ -332,10 +332,10 @@ registries for dimension types and values, observations linked to dimension valu
 bridge records, and three derived read-model tables rebuilt from canonical data. Surrogate
 keys are UUIDv7 (native `uuidv7()` default in PostgreSQL 18); the public indicator
 number lives in `indicator.short_id`, carried over from Fingertips where there was one
-and minted by a sequence otherwise. Grants are explicit and read-only:
-`public_api` sees the published surface (not `upload_batch`), `internal_api` additionally
-sees upload state, and a table added by a future migration gets no access until granted
-deliberately. Write grants wait for the publisher workflow design.
+and minted by a sequence otherwise. Grants are explicit: `public_api` reads only the
+published surface (not `upload_batch`), `internal_api` additionally reads and writes the
+publisher's tables and upload state, and a table added by a future migration gets no access
+until granted deliberately.
 
 The package layout, naming conventions, the add-a-table checklist and the core data
 import's semantics are documented in [`packages/db/README.md`](packages/db/README.md).

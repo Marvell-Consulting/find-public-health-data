@@ -10,6 +10,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 
@@ -65,8 +66,10 @@ export const observation = pgTable(
     lowerCi998: doublePrecision('lower_ci_998'),
     upperCi998: doublePrecision('upper_ci_998'),
     distributionRank: smallint(),
-    publishedAt: timestamp({ withTimezone: true }).notNull(),
+    publishedAt: timestamp({ withTimezone: true }),
     uploadBatchId: uuid().notNull(),
+    // Written by whoever inserts the row, from the dimension values it is about to bridge to.
+    dimensionKey: text().notNull(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     createdBy: text().notNull(),
     deletedAt: timestamp({ withTimezone: true }),
@@ -80,7 +83,15 @@ export const observation = pgTable(
       name: 'observation_upload_batch_indicator_fk',
     }),
     check('observation_date_order_check', sql`${t.fromDate} <= ${t.toDate}`),
-    index('idx_obs_upload_batch').on(t.uploadBatchId),
+    // The natural key: one row per area, period and dimension values within a batch. Leading with
+    // the batch, it also serves lookups by batch.
+    uniqueIndex('idx_observation_batch_area_dates_dimension_key').on(
+      t.uploadBatchId,
+      t.areaId,
+      t.fromDate,
+      t.toDate,
+      t.dimensionKey,
+    ),
     index('idx_obs_indicator_dates')
       .on(t.indicatorId, t.fromDate, t.toDate)
       .where(sql`${t.deletedAt} IS NULL`),

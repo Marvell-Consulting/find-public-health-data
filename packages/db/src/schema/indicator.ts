@@ -61,6 +61,7 @@ import {
   unit,
   valueType,
 } from './lookup.ts';
+import { uploadBatch } from './upload.ts';
 
 export const INDICATOR_VERSION_STATUSES = ['draft', 'published'] as const;
 
@@ -116,6 +117,10 @@ export const indicatorVersion = pgTable(
     publishedAt: timestamp({ withTimezone: true }),
     // When the publisher asks for this version to be published; published_at records when it was.
     scheduledPublishAt: timestamp({ withTimezone: true }),
+    // The batch holding this version's data, which later versions share until a new upload.
+    uploadBatchId: uuid(),
+    // When the publisher confirmed the data table; an upload clears it.
+    dataTableConfirmedAt: timestamp({ withTimezone: true }),
     // A draft is only ever created from the page that asks for a name.
     name: text().notNull(),
     // Derived from the name by slugify, and the indicator's public address. An exclusion
@@ -388,6 +393,18 @@ export const indicatorVersion = pgTable(
       'indicator_version_year_end_date_check',
       sql`${t.yearEndMonth} BETWEEN 1 AND 12 AND ${t.yearEndDay} BETWEEN 1 AND CASE WHEN ${t.yearEndMonth} = 2 THEN 29 WHEN ${t.yearEndMonth} IN (4, 6, 9, 11) THEN 30 ELSE 31 END`,
     ),
+    check(
+      'indicator_version_data_table_confirmed_check',
+      sql`${t.dataTableConfirmedAt} IS NULL OR ${t.uploadBatchId} IS NOT NULL`,
+    ),
+    // Target for upload_batch's composite (version, indicator) foreign key.
+    unique().on(t.id, t.indicatorId),
+    // Pairing the batch with indicator_id keeps a version on a batch of its own indicator.
+    foreignKey({
+      name: 'indicator_version_upload_batch_fk',
+      columns: [t.uploadBatchId, t.indicatorId],
+      foreignColumns: [uploadBatch.id, uploadBatch.indicatorId],
+    }),
     // A published version always says when, and nothing else does, so ordering by
     // published_at never meets a null.
     check(

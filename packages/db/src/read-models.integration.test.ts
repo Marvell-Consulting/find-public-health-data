@@ -48,8 +48,8 @@ describe('bridge/registry schema', () => {
   it('rejects an observation referencing an unknown indicator', async () => {
     await expect(sql`
       INSERT INTO observation
-        (indicator_id, area_id, from_date, to_date, published_at, upload_batch_id, created_by)
-      SELECT ${MISSING_UUID}, a.id, '2024-01-01', '2024-12-31', now(), ub.id, 'integration-test'
+        (indicator_id, area_id, from_date, to_date, upload_batch_id, dimension_key, created_by)
+      SELECT ${MISSING_UUID}, a.id, '2024-01-01', '2024-12-31', ub.id, '', 'integration-test'
       FROM area a, upload_batch ub LIMIT 1
     `).rejects.toMatchObject({ code: '23503' });
   });
@@ -90,10 +90,10 @@ describe('bridge/registry schema', () => {
       const target = rows[0];
       await tx`
         INSERT INTO observation
-          (indicator_id, area_id, from_date, to_date, published_at, upload_batch_id, created_by)
+          (indicator_id, area_id, from_date, to_date, upload_batch_id, dimension_key, created_by)
         VALUES
-          (${target?.indicator_id}, ${target?.area_id}, '2024-01-01', '2024-12-31', now(),
-           ${target?.other_batch}, 'integration-test')
+          (${target?.indicator_id}, ${target?.area_id}, '2024-01-01', '2024-12-31',
+           ${target?.other_batch}, '', 'integration-test')
       `;
     });
     await expect(failed).rejects.toMatchObject({ code: '23503' });
@@ -109,10 +109,10 @@ describe('bridge/registry schema', () => {
       const target = rows[0];
       await tx`
         INSERT INTO observation
-          (indicator_id, area_id, from_date, to_date, published_at, upload_batch_id, created_by)
+          (indicator_id, area_id, from_date, to_date, upload_batch_id, dimension_key, created_by)
         VALUES
-          (${target?.indicator_id}, ${target?.area_id}, '2024-12-31', '2024-01-01', now(),
-           ${target?.batch}, 'integration-test')
+          (${target?.indicator_id}, ${target?.area_id}, '2024-12-31', '2024-01-01',
+           ${target?.batch}, '', 'integration-test')
       `;
     });
     await expect(failed).rejects.toMatchObject({ code: '23514' });

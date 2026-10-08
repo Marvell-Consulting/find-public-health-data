@@ -232,7 +232,6 @@ export const publishedObservation = publishedSchema
     lowerCi998: doublePrecision('lower_ci_998'),
     upperCi998: doublePrecision('upper_ci_998'),
     distributionRank: smallint('distribution_rank'),
-    publishedAt: timestamp('published_at', { withTimezone: true }).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
   })
   .existing();
