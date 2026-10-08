@@ -1,0 +1,303 @@
+#!/usr/bin/env python3
+"""Tidy the whitespace in dimension type, dimension value and note type names.
+
+Uploaded data is matched to these names with whitespace tidied (trimmed, each run of
+whitespace one space), so every name is stored in that form and no two may match once
+tidied. Rows whose names differ only in whitespace merge into the one with the lowest id,
+and the rows pointing at them follow. A dimension type merges only when its class and
+whether it is required agree and each of its values has a namesake in the survivor, and
+note types only when their categories agree; anything else stops the run with the names
+listed. tidyName in @fphd/utils and the tidy-reference-names migration hold the same rule.
+
+Run after export-seed.py / transform-uuids.py, or after export-published-snapshot.py and
+before transform-uuids.py, whose row-count check reads the source-manifest.json entries
+this step rewrites for the files it changes:
+
+    python3 tidy-reference-names.py /tmp/published-out
+"""
+
+import csv
+import gzip
+import hashlib
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
+from published_csv import published_null_marker, write_published_row
+
+# JavaScript's \s, as tidyName in @fphd/utils writes it out.
+WHITESPACE = re.compile(
+    "[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+"
+)
+
+
+def tidy(name):
+    return WHITESPACE.sub(" ", name).strip(" ")
+
+
+def id_order(id):
+    """Lowest first: numerically for the export's integer keys, as text for UUIDv7."""
+    return int(id) if id.lstrip("-").isdigit() else id
+
+
+def survivors(rows, key):
+    """Map each row's id to the lowest id among the rows sharing its tidied key."""
+    lowest = {}
+    for row in rows:
+        group = key(row)
+        if group not in lowest or id_order(row["id"]) < id_order(lowest[group]):
+            lowest[group] = row["id"]
+    return {row["id"]: lowest[key(row)] for row in rows}
+
+
+def refuse_mixed(rows, key, fields, problem):
+    """Stop if rows sharing a tidied key differ in any of `fields`."""
+    found = {}
+    for row in rows:
+        found.setdefault(key(row), set()).add(tuple(row[field] for field in fields))
+    mixed = sorted(name for name, kinds in found.items() if len(kinds) > 1)
+    if mixed:
+        raise ValueError(f"{problem}: " + ", ".join(mixed))
+
+
+def type_merges(types):
+    refuse_mixed(
+        types,
+        lambda row: tidy(row["name"]),
+        ["dimension_class", "is_required"],
+        "Dimension types differing only in whitespace have different classes or requirements",
+    )
+    return survivors(types, lambda row: tidy(row["name"]))
+
+
+def value_merges(values, type_survivor):
+    """Map each value's id to the survivor type's value of the same tidied name."""
+    by_name = {}
+    clashes = []
+    for row in values:
+        key = (row["dimension_type_id"], tidy(row["name"]))
+        if key in by_name:
+            clashes.append(key[1])
+        by_name[key] = row["id"]
+    if clashes:
+        raise ValueError(
+            "Values of one dimension type differ only in whitespace: " + ", ".join(clashes)
+        )
+    merges = {}
+    unpaired = []
+    for row in values:
+        survivor_type = type_survivor[row["dimension_type_id"]]
+        survivor = by_name.get((survivor_type, tidy(row["name"])))
+        if survivor is None:
+            unpaired.append(row["name"])
+        else:
+            merges[row["id"]] = survivor
+    if unpaired:
+        raise ValueError(
+            "A dimension type merging into another has values the other lacks: "
+            + ", ".join(unpaired)
+        )
+    return merges
+
+
+def note_merges(notes):
+    refuse_mixed(
+        notes,
+        lambda row: tidy(row["text"]),
+        ["category"],
+        "Note types differing only in whitespace have different categories",
+    )
+    return survivors(notes, lambda row: tidy(row["text"]))
+
+
+def line_ending(path):
+    with gzip.open(path, "rb") as f:
+        return "\r\n" if f.readline().endswith(b"\r\n") else "\n"
+
+
+def read_table(directory, table):
+    with gzip.open(Path(directory, f"{table}.csv.gz"), "rt", encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f)
+        return list(reader), list(reader.fieldnames or [])
+
+
+def open_writer(output, fields, null_marker, ending):
+    """Write the header and return a function writing one row, as the file was written."""
+    if null_marker:
+        csv.writer(output).writerow(fields)
+        return lambda row: write_published_row(output, [row[field] for field in fields])
+    writer = csv.DictWriter(output, fieldnames=fields, lineterminator=ending)
+    writer.writeheader()
+    return writer.writerow
+
+
+def write_table(directory, table, fields, rows, null_marker):
+    path = Path(directory, f"{table}.csv.gz")
+    ending = line_ending(path)
+    tmp = f"{path}.tmp"
+    with gzip.open(tmp, "wt", encoding="utf-8", newline="") as f:
+        write = open_writer(f, fields, null_marker, ending)
+        for row in rows:
+            write(row)
+    os.replace(tmp, path)
+    return len(rows)
+
+
+def read_bridge(path):
+    with gzip.open(path, "rt", encoding="utf-8", newline="") as src:
+        yield from csv.DictReader(src)
+
+
+def rewrite_bridge(directory, table, remap, null_marker):
+    """Stream a bridge table through `remap`, which returns a row to keep or None to drop it.
+
+    Returns the rows kept, or None when no row changed and the file is left as it was.
+    """
+    path = Path(directory, f"{table}.csv.gz")
+    ending = line_ending(path)
+    with gzip.open(path, "rt", encoding="utf-8", newline="") as src:
+        fields = next(csv.reader(src))
+    tmp = f"{path}.tmp"
+    rows = 0
+    changed = False
+    with gzip.open(tmp, "wt", encoding="utf-8", newline="") as dst:
+        write = open_writer(dst, fields, null_marker, ending)
+        for row in read_bridge(path):
+            kept = remap(row)
+            changed = changed or kept != row
+            if kept is not None:
+                write(kept)
+                rows += 1
+    if not changed:
+        os.remove(tmp)
+        return None
+    os.replace(tmp, path)
+    return rows
+
+
+def dimension_remap(value_survivor, type_survivor):
+    merged_types = {survivor for id, survivor in type_survivor.items() if id != survivor}
+    seen = set()
+
+    def remap(row):
+        survivor_type = type_survivor[row["dimension_type_id"]]
+        if survivor_type in merged_types:
+            if (row["observation_id"], survivor_type) in seen:
+                raise ValueError(
+                    f"Observation {row['observation_id']} has a value in two dimension types "
+                    "that merge"
+                )
+            seen.add((row["observation_id"], survivor_type))
+        return {
+            **row,
+            "dimension_value_id": value_survivor[row["dimension_value_id"]],
+            "dimension_type_id": survivor_type,
+        }
+
+    return remap
+
+
+def note_remap(path, note_survivor):
+    """Repoint each note at its survivor, keeping the lowest-id row of an observation's repeats."""
+    merged = {survivor for id, survivor in note_survivor.items() if id != survivor}
+    kept = {}
+    for row in read_bridge(path):
+        key = (row["observation_id"], note_survivor[row["note_type_id"]])
+        if key[1] in merged and (key not in kept or id_order(row["id"]) < id_order(kept[key])):
+            kept[key] = row["id"]
+
+    def remap(row):
+        key = (row["observation_id"], note_survivor[row["note_type_id"]])
+        if key[1] in merged and kept[key] != row["id"]:
+            return None
+        return {**row, "note_type_id": key[1]}
+
+    return remap
+
+
+def file_entry(path, rows):
+    digest = hashlib.sha256()
+    with path.open("rb") as file:
+        while chunk := file.read(1024 * 1024):
+            digest.update(chunk)
+    return {"rows": rows, "bytes": path.stat().st_size, "sha256": digest.hexdigest()}
+
+
+def tidy_reference_names(directory):
+    null_marker = published_null_marker(directory)
+    types, type_fields = read_table(directory, "dimension_type")
+    values, value_fields = read_table(directory, "dimension_value")
+    notes, note_fields = read_table(directory, "note_type")
+
+    type_survivor = type_merges(types)
+    value_survivor = value_merges(values, type_survivor)
+    note_survivor = note_merges(notes)
+
+    counts = {
+        "dimension_type": write_table(
+            directory,
+            "dimension_type",
+            type_fields,
+            [
+                {**row, "name": tidy(row["name"])}
+                for row in types
+                if type_survivor[row["id"]] == row["id"]
+            ],
+            null_marker,
+        ),
+        "dimension_value": write_table(
+            directory,
+            "dimension_value",
+            value_fields,
+            [
+                {
+                    **row,
+                    "name": tidy(row["name"]),
+                    "parent_id": value_survivor.get(row["parent_id"], row["parent_id"]),
+                }
+                for row in values
+                if value_survivor[row["id"]] == row["id"]
+            ],
+            null_marker,
+        ),
+        "note_type": write_table(
+            directory,
+            "note_type",
+            note_fields,
+            [
+                {**row, "text": tidy(row["text"])}
+                for row in notes
+                if note_survivor[row["id"]] == row["id"]
+            ],
+            null_marker,
+        ),
+    }
+    if any(id != survivor for id, survivor in value_survivor.items()):
+        counts["observation_dimension"] = rewrite_bridge(
+            directory,
+            "observation_dimension",
+            dimension_remap(value_survivor, type_survivor),
+            null_marker,
+        )
+    if any(id != survivor for id, survivor in note_survivor.items()):
+        path = Path(directory, "observation_note.csv.gz")
+        counts["observation_note"] = rewrite_bridge(
+            directory, "observation_note", note_remap(path, note_survivor), null_marker
+        )
+    counts = {table: rows for table, rows in counts.items() if rows is not None}
+
+    manifest_path = Path(directory, "source-manifest.json")
+    if manifest_path.exists():
+        manifest = json.loads(manifest_path.read_text())
+        for table, rows in counts.items():
+            manifest["tables"][table] = file_entry(Path(directory, f"{table}.csv.gz"), rows)
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+
+    for table, rows in counts.items():
+        print(f"{table}: {rows} rows")
+
+
+if __name__ == "__main__":
+    tidy_reference_names(sys.argv[1] if len(sys.argv) > 1 else ".")

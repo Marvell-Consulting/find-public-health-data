@@ -88,6 +88,14 @@ That yields 433,678 observations, 657,869 bridge rows and 67,978 observation not
   (`disclosure_control`, `has_caveats`, `has_other_notes`), and blank prose leaves the
   question unanswered. Rounding has no Pholio field and stays unanswered. Migration 0022
   holds the same vocabulary for databases that already had the prose.
+- Dimension type, dimension value and note type names are stored with their whitespace
+  tidied (trimmed, each run of whitespace one space), the form uploaded data is matched in,
+  and no two match once tidied. `export/tidy-reference-names.py` tidies them and merges rows
+  that differ only in whitespace into the lowest id: a dimension type when its class and
+  whether it is required agree and each of its values has a namesake in the survivor, a note
+  type when the categories agree. Anything else that would merge stops it. The
+  tidy-reference-names migration does the same to databases that already held the names, and
+  a TypeScript test checks the committed CSVs against `tidyName` in `@fphd/utils`.
 
 ## Regenerating the base snapshot
 
@@ -105,8 +113,10 @@ of a pair that shares its name with a newer indicator (90366, 90776, 92774 and
 built with a different list. The export emits the identity and version split
 directly, one `published` version per exported source indicator, so unlike the
 seed pipeline below this path has no `reshape-indicator-versions.py` step. Run `strip-metadata-html.py`,
-`add-version-slugs.py` and `enrich-area-display.py` against its output, then run
-`transform-uuids.py --deterministic` to rekey all tables with bounded memory.
+`add-version-slugs.py`, `enrich-area-display.py` and `tidy-reference-names.py` against its
+output, then run `transform-uuids.py --deterministic` to rekey all tables with bounded memory.
+`tidy-reference-names.py` rewrites the `source-manifest.json` entries (rows, bytes and checksum)
+of the files it changes, since the transform and the importer check row counts against them.
 `add-version-slugs.py` stamps the slug column the import insists on; an archive
 without it is refused before any data is loaded.
 An archive exported before the period types carries a `year_type` table, and is
@@ -136,13 +146,15 @@ scp 'fphd@<vm-ip>:/tmp/seed-out/*.csv.gz' .
 python3 export/transform-uuids.py .
 python3 export/strip-metadata-html.py .
 python3 export/enrich-area-display.py .
+python3 export/tidy-reference-names.py .
 python3 export/reshape-indicator-versions.py .
 ```
 
 `strip-metadata-html.py` converts the metadata prose from Pholio's HTML to the plain
 text the pages store and render; `enrich-area-display.py` stamps each area type's display
-group and strips the level suffixes from area names. Skipping either commits seeds the
-site would show wrong. `reshape-indicator-versions.py` runs last and splits the Pholio
+group and strips the level suffixes from area names; `tidy-reference-names.py` tidies the
+names uploaded data is matched to. Skipping any of them commits seeds the site would show
+or match wrong. `reshape-indicator-versions.py` runs last and splits the Pholio
 shape into the identity and version tables this service holds: `indicator.csv.gz` keeps
 only the identity columns, `indicator_version.csv.gz` carries one published version per
 indicator with the slug derived from its name, and `indicator_metadata.csv.gz` is folded
