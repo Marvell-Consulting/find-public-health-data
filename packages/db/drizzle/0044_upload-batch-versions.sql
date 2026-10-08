@@ -107,7 +107,10 @@ ALTER TABLE "upload_batch" ADD CONSTRAINT "upload_batch_superseded_check" CHECK 
 ALTER TABLE "upload_batch" ADD CONSTRAINT "upload_batch_sha256_check" CHECK ("upload_batch"."sha256" ~ '^[0-9a-f]{64}$');--> statement-breakpoint
 
 -- A row is public when its batch is the one the indicator's current published version points
--- at, so publishing switches the data over in one step and a draft's rows never show. Dropping
+-- at, so publishing switches the data over in one step and a draft's rows never show. The
+-- published batches are gathered once per query rather than joined per row, which a lookup by
+-- observation id, as the two views below make, would otherwise pay on every row. A batch belongs
+-- to one indicator, so matching on it alone shows no other indicator's rows. Dropping
 -- published_at means recreating the view, the two views that read it, and their grants.
 DROP VIEW published.observation_note;--> statement-breakpoint
 DROP VIEW published.observation_dimension;--> statement-breakpoint
@@ -130,9 +133,12 @@ SELECT
   o.distribution_rank,
   o.created_at
 FROM observation o
-JOIN current_published_version cpv ON cpv.indicator_id = o.indicator_id
-JOIN indicator_version v ON v.id = cpv.id AND v.upload_batch_id = o.upload_batch_id
-WHERE o.deleted_at IS NULL;--> statement-breakpoint
+WHERE o.deleted_at IS NULL
+  AND o.upload_batch_id = ANY (ARRAY(
+    SELECT v.upload_batch_id
+    FROM current_published_version cpv
+    JOIN indicator_version v ON v.id = cpv.id
+  ));--> statement-breakpoint
 
 CREATE VIEW published.observation_dimension AS
 SELECT od.id, od.observation_id, od.dimension_value_id, od.dimension_type_id
