@@ -77,6 +77,12 @@
       "types": "./src/source-part.ts",
       "default": "./dist/source-part.js"
     },
+    "./tidy-name": {
+      "browser": "./src/tidy-name.ts",
+      "development": "./src/tidy-name.ts",
+      "types": "./src/tidy-name.ts",
+      "default": "./dist/tidy-name.js"
+    },
     "./uk-time": {
       "browser": "./src/uk-time.ts",
       "development": "./src/uk-time.ts",
