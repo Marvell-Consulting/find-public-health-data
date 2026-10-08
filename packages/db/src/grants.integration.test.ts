@@ -374,6 +374,22 @@ describe('an indicator whose only version is a draft', () => {
     expect(counts).toHaveLength(12);
   });
 
+  it.each(['latest_headline', 'available_data', 'indicator_dimension_values', 'observation_range'])(
+    'serves every row %s holds for a published indicator',
+    async (readModel) => {
+      const [stored] = await owner.unsafe<{ rows: number }[]>(
+        `SELECT count(*)::int AS rows FROM public.${readModel} WHERE indicator_id <> $1`,
+        [draftIndicatorId],
+      );
+      const [served] = await member.unsafe<{ rows: number }[]>(
+        `SELECT count(*)::int AS rows FROM published.${readModel}`,
+      );
+
+      expect(stored?.rows).toBeGreaterThan(0);
+      expect(served?.rows).toBe(stored?.rows);
+    },
+  );
+
   it('does not stop the seeded published indicators being served', async () => {
     const [seeded] = await member<{ rows: number }[]>`
       SELECT count(*)::int AS rows FROM published.indicator

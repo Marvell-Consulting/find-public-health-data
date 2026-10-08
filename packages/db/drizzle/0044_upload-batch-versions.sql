@@ -153,6 +153,33 @@ WHERE EXISTS (SELECT 1 FROM published.observation o WHERE o.id = onote.observati
 GRANT SELECT ON published.observation, published.observation_dimension, published.observation_note
 TO public_api, internal_api;--> statement-breakpoint
 
+-- The read-model views likewise gather the published indicators once per query rather than
+-- scanning the versions for every row; columns, rows and grants are unchanged.
+CREATE OR REPLACE VIEW published.latest_headline AS
+SELECT lh.indicator_id, lh.area_id, lh.from_date, lh.to_date, lh.value, lh.lower_ci_95, lh.upper_ci_95
+FROM latest_headline lh
+WHERE lh.indicator_id = ANY (ARRAY(
+  SELECT indicator_id FROM indicator_version WHERE status = 'published'
+));--> statement-breakpoint
+CREATE OR REPLACE VIEW published.available_data AS
+SELECT ad.indicator_id, ad.area_type_id, ad.area_type_name, ad.area_count
+FROM available_data ad
+WHERE ad.indicator_id = ANY (ARRAY(
+  SELECT indicator_id FROM indicator_version WHERE status = 'published'
+));--> statement-breakpoint
+CREATE OR REPLACE VIEW published.indicator_dimension_values AS
+SELECT idv.indicator_id, idv.dimension_type_id, idv.dimension_type_name, idv.dimension_value_id, idv.dimension_value_name, idv.sort_order
+FROM indicator_dimension_values idv
+WHERE idv.indicator_id = ANY (ARRAY(
+  SELECT indicator_id FROM indicator_version WHERE status = 'published'
+));--> statement-breakpoint
+CREATE OR REPLACE VIEW published.observation_range AS
+SELECT orng.indicator_id, orng.display_group, orng.from_date, orng.to_date, orng.segment, orng.min, orng.max
+FROM observation_range orng
+WHERE orng.indicator_id = ANY (ARRAY(
+  SELECT indicator_id FROM indicator_version WHERE status = 'published'
+));--> statement-breakpoint
+
 -- The upload writes batches and their rows: whole tables, as the other publisher writes are.
 GRANT SELECT, INSERT, UPDATE, DELETE ON
   observation, observation_dimension, observation_note, upload_batch
