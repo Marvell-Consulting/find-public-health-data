@@ -329,8 +329,9 @@ jobs:
           sudo tar -xzf gitleaks.tar.gz -C /usr/local/bin gitleaks
           rm gitleaks.tar.gz
       # --redact keeps hits out of the log, which anyone can read on a public repo.
+      # HEAD only: by default gitleaks scans every fetched branch, other pull requests' included.
       - name: Scan git history
-        run: gitleaks git . --redact --verbose
+        run: gitleaks git . --redact --verbose --log-opts=HEAD
 
   compile:
     name: Compile apps
