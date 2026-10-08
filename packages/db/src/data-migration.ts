@@ -627,6 +627,25 @@ async function applyRelationships(
   ) {
     throw new Error('Reviewed indicator relationships did not apply completely');
   }
+  const withoutTopics = await tx<{ shortId: number; name: string | null }[]>`
+    SELECT i.short_id AS "shortId", v.name
+    FROM indicator i
+    LEFT JOIN current_published_version current ON current.indicator_id = i.id
+    LEFT JOIN indicator_version v ON v.id = current.id
+    WHERE NOT EXISTS (
+      SELECT 1 FROM indicator_version_topic t
+      JOIN indicator_version linked ON linked.id = t.indicator_version_id
+      WHERE linked.indicator_id = i.id
+    )
+    ORDER BY i.short_id
+  `;
+  if (withoutTopics.length > 0) {
+    throw new Error(
+      `Migrated indicators have no topic: ${withoutTopics
+        .map(({ shortId, name }) => (name ? `${shortId} (${name})` : String(shortId)))
+        .join(', ')}`,
+    );
+  }
   report({ table: 'indicator_relationships', phase: 'relationships', state: 'complete' });
 }
 
