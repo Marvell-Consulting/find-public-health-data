@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
@@ -20,11 +20,17 @@ import { createTestDatabase, type TestDatabase } from './testing.ts';
 let database: TestDatabase;
 let sql: postgres.Sql;
 let directory: string;
+let topicId: string;
 
 beforeAll(async () => {
   database = await createTestDatabase({ template: 'schema' });
   sql = createOwnerClient(database.name);
   directory = await mkdtemp(join(tmpdir(), 'fphd-data-migration-test-'));
+  const [topic] = await sql<{ id: string }[]>`
+    INSERT INTO topic (slug, title, description)
+    VALUES ('migration', 'Migration topic', 'Integration fixture') RETURNING id
+  `;
+  topicId = topic?.id ?? '';
 });
 
 afterAll(async () => {
@@ -56,7 +62,7 @@ async function incremental(
         basis: 'integration fixture',
       },
       indicators,
-      indicatorTopics: [],
+      indicatorTopics: indicators.map((fingertipsId) => ({ topicId, fingertipsId })),
       indicatorDataUpdatedAt: {},
       classifications: [],
       indicatorClassifications: [],
@@ -286,18 +292,15 @@ describe('applyDataMigration', () => {
 
     const testDir = await mkdtemp(join(tmpdir(), 'fphd-dm-core-map-'));
     try {
+      const [indicator] = await sql<{ shortId: number }[]>`
+        SELECT short_id AS "shortId" FROM indicator WHERE id = ${indicatorId}
+      `;
       await writeFile(
         join(testDir, 'indicator-relationships.json'),
         JSON.stringify({
           approval: { approvedBy: 'test', approvedAt: '2026-09-25T10:00:00Z', basis: 'test' },
-          indicators: [
-            await sql<
-              { shortId: number }[]
-            >`SELECT short_id AS "shortId" FROM indicator WHERE id = ${indicatorId}`.then(
-              (rows) => rows[0]?.shortId ?? 0,
-            ),
-          ],
-          indicatorTopics: [],
+          indicators: [indicator?.shortId ?? 0],
+          indicatorTopics: [{ topicId, fingertipsId: indicator?.shortId ?? 0 }],
           indicatorDataUpdatedAt: {},
           classifications: [],
           indicatorClassifications: [],
@@ -374,6 +377,33 @@ describe('applyDataMigration', () => {
     } finally {
       await rm(testDir, { recursive: true });
     }
+  });
+
+  it('refuses indicators without topics and rolls back the relationships and ledger', async () => {
+    const manifest = await incremental(
+      'increment-core-map',
+      'increment-without-topics',
+      '2026-09-26T10:00:00Z',
+    );
+    const path = join(directory, 'indicator-relationships.json');
+    const relationships = JSON.parse(await readFile(path, 'utf8'));
+    await writeFile(path, JSON.stringify({ ...relationships, indicatorTopics: [] }));
+    const [indicator] = await sql<{ shortId: number; name: string }[]>`
+      SELECT i.short_id AS "shortId", v.name
+      FROM indicator i JOIN indicator_version v ON v.indicator_id = i.id
+    `;
+
+    await expect(
+      sql.begin((tx) => applyDataMigration(tx, directory, manifest, '2'.repeat(64))),
+    ).rejects.toThrow(
+      `Migrated indicators have no topic: ${indicator?.shortId} (${indicator?.name})`,
+    );
+    const [remaining] = await sql<{ topics: number; migrations: number }[]>`
+      SELECT (SELECT count(*)::int FROM indicator_version_topic) AS topics,
+        (SELECT count(*)::int FROM data_migration
+         WHERE id = 'increment-without-topics') AS migrations
+    `;
+    expect(remaining).toEqual({ topics: 1, migrations: 0 });
   });
 
   it('deletes a version with the rows the migration wrote against it, unless publishers added to it', async () => {
