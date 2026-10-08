@@ -8,11 +8,13 @@ import {
   z,
 } from '@fphd/config';
 import { dbEnvFields, resolveDbTls } from '@fphd/db';
+import { resolveStorage, storageEnvFields } from '@fphd/internal-storage';
 
 const envSchema = z.object({
   ...serverEnvFields({ port: 4001 }),
   ...logEnvFields,
   ...dbEnvFields,
+  ...storageEnvFields,
   INTERNAL_API_PASSWORD: z.string().min(1),
   SESSION_JWT_SECRET: z.string().min(32),
 });
@@ -43,6 +45,7 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
       password: parsed.INTERNAL_API_PASSWORD,
       ssl: resolveDbTls(parsed.APP_ENV, parsed.DB_TLS),
     },
+    storage: resolveStorage(parsed.APP_ENV, parsed),
   } as const;
 }
 

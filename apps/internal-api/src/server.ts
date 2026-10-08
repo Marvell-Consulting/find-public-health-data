@@ -3,6 +3,7 @@ import { sessionCookieName } from '@fphd/auth';
 import { createJwtSessionService, createJwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { createRepositories } from '@fphd/db';
 import { createInternalRepositories } from '@fphd/internal-api-features';
+import { createAzureBlobStorage } from '@fphd/internal-storage';
 import { createLogger } from '@fphd/logger';
 
 import { createApp } from './app.ts';
@@ -30,6 +31,7 @@ startServer({
         ...config.session,
       }),
     ),
+    storage: await createAzureBlobStorage(config.storage),
   }),
   host: config.host,
   port: config.port,

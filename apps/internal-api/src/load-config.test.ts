@@ -4,13 +4,24 @@ import { loadConfig } from './load-config.ts';
 
 describe('loadConfig', () => {
   const sessionSecret = 'a-jwt-session-secret-that-is-long-enough';
-  const local = {
-    APP_ENV: 'local',
+  const required = {
     INTERNAL_API_PASSWORD: 'pw',
     SESSION_JWT_SECRET: sessionSecret,
+    STORAGE_CONTAINER: 'uploads',
+  };
+  const local = {
+    ...required,
+    APP_ENV: 'local',
+    STORAGE_CONNECTION_STRING: 'UseDevelopmentStorage=true',
+  };
+  const deployed = {
+    ...required,
+    APP_ENV: 'dev',
+    STORAGE_ACCOUNT_URL: 'https://fphddev.blob.core.windows.net',
+    AZURE_CLIENT_ID: '00000000-0000-0000-0000-000000000000',
   };
 
-  it('applies local defaults when only APP_ENV, the password and the secret are set', () => {
+  it('applies local defaults when only APP_ENV, the password, the secret and storage are set', () => {
     expect(loadConfig({ ...local })).toEqual({
       appEnv: 'local',
       host: '0.0.0.0',
@@ -26,6 +37,7 @@ describe('loadConfig', () => {
         password: 'pw',
         ssl: false,
       },
+      storage: { container: 'uploads', connectionString: 'UseDevelopmentStorage=true' },
     });
   });
 
@@ -41,6 +53,9 @@ describe('loadConfig', () => {
       POSTGRES_DB: 'fphd_prod',
       INTERNAL_API_PASSWORD: 'pw',
       SESSION_JWT_SECRET: sessionSecret,
+      STORAGE_CONTAINER: 'uploads',
+      STORAGE_ACCOUNT_URL: 'https://fphdprod.blob.core.windows.net',
+      AZURE_CLIENT_ID: '00000000-0000-0000-0000-000000000000',
     });
 
     expect(config).toEqual({
@@ -58,30 +73,35 @@ describe('loadConfig', () => {
         password: 'pw',
         ssl: true,
       },
+      storage: {
+        container: 'uploads',
+        accountUrl: 'https://fphdprod.blob.core.windows.net',
+        clientId: '00000000-0000-0000-0000-000000000000',
+      },
     });
   });
 
   it('turns database TLS on everywhere but this machine, and lets DB_TLS override', () => {
     expect(loadConfig({ ...local }).db.ssl).toBe(false);
     expect(loadConfig({ ...local, APP_ENV: 'test' }).db.ssl).toBe(false);
-    expect(loadConfig({ ...local, APP_ENV: 'dev' }).db.ssl).toBe(true);
-    expect(loadConfig({ ...local, APP_ENV: 'production' }).db.ssl).toBe(true);
+    expect(loadConfig({ ...deployed }).db.ssl).toBe(true);
+    expect(loadConfig({ ...deployed, APP_ENV: 'production' }).db.ssl).toBe(true);
     expect(loadConfig({ ...local, DB_TLS: '1' }).db.ssl).toBe(true);
-    expect(loadConfig({ ...local, APP_ENV: 'production', DB_TLS: '0' }).db.ssl).toBe(false);
+    expect(loadConfig({ ...deployed, APP_ENV: 'production', DB_TLS: '0' }).db.ssl).toBe(false);
   });
 
   it('secures session cookies everywhere but this machine', () => {
     expect(loadConfig({ ...local }).session.secure).toBe(false);
     expect(loadConfig({ ...local, APP_ENV: 'test' }).session.secure).toBe(false);
-    expect(loadConfig({ ...local, APP_ENV: 'dev' }).session.secure).toBe(true);
+    expect(loadConfig({ ...deployed }).session.secure).toBe(true);
   });
 
   it('allows pretty logging only locally, where it defaults on', () => {
     expect(loadConfig({ ...local }).log.pretty).toBe(true);
     expect(loadConfig({ ...local, LOG_PRETTY: '0' }).log.pretty).toBe(false);
-    expect(loadConfig({ ...local, APP_ENV: 'dev' }).log.pretty).toBe(false);
+    expect(loadConfig({ ...deployed }).log.pretty).toBe(false);
     // pino-pretty is absent from deployed installs; LOG_PRETTY must not be able to force it.
-    expect(loadConfig({ ...local, APP_ENV: 'dev', LOG_PRETTY: '1' }).log.pretty).toBe(false);
+    expect(loadConfig({ ...deployed, LOG_PRETTY: '1' }).log.pretty).toBe(false);
   });
 
   it('requires APP_ENV rather than assuming the environment that relaxes TLS', () => {
@@ -94,6 +114,10 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ APP_ENV: 'local', SESSION_JWT_SECRET: sessionSecret })).toThrow(
       /INTERNAL_API_PASSWORD/,
     );
+  });
+
+  it('refuses the Azurite connection string in a deployed environment', () => {
+    expect(() => loadConfig({ ...local, APP_ENV: 'dev' })).toThrow(/STORAGE_CONNECTION_STRING/);
   });
 
   it('rejects an invalid PORT', () => {

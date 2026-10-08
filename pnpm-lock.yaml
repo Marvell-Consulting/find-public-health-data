@@ -278,6 +278,9 @@ importers:
       '@fphd/internal-api-features':
         specifier: workspace:*
         version: link:../../packages/internal-api-features
+      '@fphd/internal-storage':
+        specifier: workspace:*
+        version: link:../../packages/internal-storage
       '@fphd/logger':
         specifier: workspace:*
         version: link:../../packages/logger
@@ -669,6 +672,9 @@ importers:
       '@fphd/db':
         specifier: workspace:*
         version: link:../db
+      '@fphd/internal-storage':
+        specifier: workspace:*
+        version: link:../internal-storage
       '@fphd/utils':
         specifier: workspace:*
         version: link:../utils

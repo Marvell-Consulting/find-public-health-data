@@ -36,6 +36,7 @@
     "@fphd/auth": "workspace:*",
     "@fphd/config": "workspace:*",
     "@fphd/db": "workspace:*",
+    "@fphd/internal-storage": "workspace:*",
     "@fphd/utils": "workspace:*",
     "drizzle-orm": "catalog:",
     "express": "catalog:"
