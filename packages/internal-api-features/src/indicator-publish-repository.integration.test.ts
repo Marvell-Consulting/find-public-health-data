@@ -85,6 +85,36 @@ describe('createDraftFromPublished', () => {
     },
   );
 
+  repositoryTest(
+    "points the new draft at the published version's data, as confirmed",
+    async ({ db, seededIds }) => {
+      // The first test drafts the newest one.
+      const target = seededIds[1];
+      if (target === undefined) throw new Error('The seed holds no indicators');
+      const [published] = await db
+        .select({
+          uploadBatchId: indicatorVersion.uploadBatchId,
+          dataTableConfirmedAt: indicatorVersion.dataTableConfirmedAt,
+        })
+        .from(indicatorVersion)
+        .where(eq(indicatorVersion.id, await publishedVersionId(db, target)));
+      expect(published?.uploadBatchId).toEqual(expect.any(String));
+      expect(published?.dataTableConfirmedAt).toEqual(expect.any(Date));
+
+      const result = await createDraftFromPublished(db, target, ACTOR);
+
+      if (!result.ok) throw new Error('expected a draft');
+      const [draft] = await db
+        .select({
+          uploadBatchId: indicatorVersion.uploadBatchId,
+          dataTableConfirmedAt: indicatorVersion.dataTableConfirmedAt,
+        })
+        .from(indicatorVersion)
+        .where(eq(indicatorVersion.id, result.versionId));
+      expect(draft).toEqual(published);
+    },
+  );
+
   repositoryTest('copies the tags of every dimension and their answers', async ({ db }) => {
     const { indicatorId, currentId } = await indicatorWithTwoPublications(
       db,
