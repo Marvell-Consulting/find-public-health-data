@@ -246,6 +246,7 @@ class TidyReferenceNamesTest(unittest.TestCase):
                 [["10", "1", NULL_MARKER, "Most deprived"]],
             )
             manifest = json.loads(Path(directory, "source-manifest.json").read_text())
+            self.assertEqual(manifest["reference_names"], "tidied")
             for table, entry in manifest["tables"].items():
                 path = Path(directory, f"{table}.csv.gz")
                 self.assertEqual(
@@ -256,6 +257,17 @@ class TidyReferenceNamesTest(unittest.TestCase):
                         "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
                     },
                 )
+
+    def test_refuses_an_archive_the_uuid_transform_has_rekeyed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            write_seed(directory, types=[["1", "Sex ", "core", "t"]], values=[], notes=[])
+            Path(directory, "manifest.json").write_text(
+                json.dumps({"id_mapping": "deterministic-uuidv7-v1"})
+            )
+
+            with self.assertRaisesRegex(ValueError, "before the transform"):
+                tidy_reference_names(directory)
+            self.assertEqual(read_table(directory, "dimension_type"), [["1", "Sex ", "core", "t"]])
 
 
 if __name__ == "__main__":

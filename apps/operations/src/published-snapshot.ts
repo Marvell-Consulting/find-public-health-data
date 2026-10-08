@@ -31,6 +31,8 @@ const sourceManifestSchema = z.object({
   excluded_indicators: z.array(z.number().int()),
   excluded_observations: z.number().int().nonnegative(),
   source_csv_null: z.literal(publishedCsvNull),
+  // Stamped by tidy-reference-names.py; absent from an archive exported before that step.
+  reference_names: z.literal('tidied').optional(),
   tables: z.record(
     z.string(),
     z.object({
@@ -71,6 +73,11 @@ export async function verifyPublishedSnapshot(directory: string): Promise<Publis
     Object.keys(sourceManifest.tables).sort().join(',') !== expectedTables
   ) {
     throw new Error('Published snapshot table list does not match the seed schema');
+  }
+  if (sourceManifest.reference_names !== 'tidied') {
+    throw new Error(
+      'Published snapshot predates the tidied reference names and must be regenerated',
+    );
   }
   if (!sameMembers(sourceManifest.excluded_indicators, excludedIndicators)) {
     throw new Error('Published snapshot was exported with a different exclusion list');

@@ -116,7 +116,9 @@ seed pipeline below this path has no `reshape-indicator-versions.py` step. Run `
 `add-version-slugs.py`, `enrich-area-display.py` and `tidy-reference-names.py` against its
 output, then run `transform-uuids.py --deterministic` to rekey all tables with bounded memory.
 `tidy-reference-names.py` rewrites the `source-manifest.json` entries (rows, bytes and checksum)
-of the files it changes, since the transform and the importer check row counts against them.
+of the files it changes, since the transform and the importer check row counts against them, and
+marks the manifest as tidied. The importer refuses an archive without the mark, so one exported
+before the step must be exported again; the step itself refuses an archive already rekeyed.
 `add-version-slugs.py` stamps the slug column the import insists on; an archive
 without it is refused before any data is loaded.
 An archive exported before the period types carries a `year_type` table, and is

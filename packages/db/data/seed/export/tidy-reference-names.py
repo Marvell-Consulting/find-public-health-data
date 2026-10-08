@@ -11,7 +11,8 @@ listed. tidyName in @fphd/utils and the tidy-reference-names migration hold the 
 
 Run after export-seed.py / transform-uuids.py, or after export-published-snapshot.py and
 before transform-uuids.py, whose row-count check reads the source-manifest.json entries
-this step rewrites for the files it changes:
+this step rewrites for the files it changes. It marks source-manifest.json as tidied, which
+the transform carries into manifest.json, and refuses an archive the transform has rekeyed:
 
     python3 tidy-reference-names.py /tmp/published-out
 """
@@ -226,6 +227,11 @@ def file_entry(path, rows):
 
 
 def tidy_reference_names(directory):
+    if Path(directory, "manifest.json").exists():
+        raise ValueError(
+            "This archive has been through transform-uuids.py; run the step on the export, "
+            "before the transform"
+        )
     null_marker = published_null_marker(directory)
     types, type_fields = read_table(directory, "dimension_type")
     values, value_fields = read_table(directory, "dimension_value")
@@ -293,6 +299,8 @@ def tidy_reference_names(directory):
         manifest = json.loads(manifest_path.read_text())
         for table, rows in counts.items():
             manifest["tables"][table] = file_entry(Path(directory, f"{table}.csv.gz"), rows)
+        # The importer refuses an archive without this mark.
+        manifest["reference_names"] = "tidied"
         manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
 
     for table, rows in counts.items():
