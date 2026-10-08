@@ -1,0 +1,8 @@
+# The default rules, plus allowlists for values that are published rather than secret.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Azurite's development account key, published in Microsoft's documentation"
+regexTarget = "line"
+regexes = ['''AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==''']
