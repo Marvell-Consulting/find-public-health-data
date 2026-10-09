@@ -59,12 +59,45 @@ numbers:
 pnpm perf:accept <run-id>
 ```
 
-It downloads the run's `perf-baseline` artifact with the GitHub CLI and writes it over
-`baseline.json`. Commit the result, and the diff shows the reviewer exactly which routes cost more.
-Every run that measures all the routes uploads the artifact, within budget or not, so the same
-command tightens the baseline after an improvement. A run that stops on a route error writes none,
-as it has no complete set of numbers to adopt. The artifact holds counts only: a route meant to be
-slower needs its `limitMs` raised in [`src/routes.ts`](src/routes.ts).
+It downloads the run's `perf-baseline` artifact with the GitHub CLI and updates `baseline.json`
+from it, taking only what the run failed on: routes over their allowance on any metric, routes new
+to the run, and routes it no longer measures, which are removed. Every other route keeps its
+committed numbers, so small drift on passing routes is never adopted and the baseline does not
+creep upwards. The command lists the routes it updated, added and removed. Commit the result, and
+the diff shows the reviewer exactly which routes cost more.
+
+To take every route's numbers from the run instead, add `--all`:
+
+```sh
+pnpm perf:accept <run-id> --all
+```
+
+Use it to tighten the baseline after an improvement, which the summary lists under "Could be
+tightened", or after a change to the seed data moves every route. It also takes any routes over
+budget in that run.
+
+The routes are chosen by comparing the run with your `baseline.json`, so it must be the one CI
+checked against. Bring the branch up to date with `main` before the run you accept, and accept it
+from the commit it measured: the command refuses when `HEAD` is a different commit or
+`baseline.json` has uncommitted changes. Every run that measures all the routes uploads the
+artifact, within budget or not. A run that stops on a route error writes none, as it has no complete
+set of numbers to adopt. The artifact holds counts only: a route meant to be slower needs its
+`limitMs` raised in [`src/routes.ts`](src/routes.ts).
+
+### Explaining it in the pull request
+
+A pull request that changes `baseline.json` must say why in its body, under a heading of its own:
+
+```md
+## Route budgets
+
+The indicator list now joins topics, one more statement per request.
+```
+
+The `Baseline changes carry a reason` check in
+[`.github/workflows/pr-body.yml`](../../.github/workflows/pr-body.yml) fails until the body has a
+`## Route budgets` heading with at least one line of text under it, before the next heading. It
+runs again whenever the body is edited.
 
 ## Running it locally
 

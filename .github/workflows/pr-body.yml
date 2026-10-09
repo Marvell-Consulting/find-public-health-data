@@ -1,0 +1,58 @@
+name: Pull request body
+
+# Checks on the pull request body, re-run when it is edited.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # A change to tools/perf/baseline.json needs a line of text under "## Route budgets" in the body.
+  baseline-changes-explained:
+    name: Baseline changes carry a reason
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check the pull request body
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          files=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files?per_page=100" --jq '.[] | .filename, (.previous_filename // empty)')
+          if ! grep -qx 'tools/perf/baseline.json' <<<"${files}"; then
+            echo 'tools/perf/baseline.json is unchanged.'
+            exit 0
+          fi
+          body=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.body // ""')
+          # Skips fenced code and HTML comments; a line that is only spaces or non-breaking spaces is blank.
+          reason=$(awk -v nbsp="$(printf '\302\240')" '
+            { gsub(/\r/, ""); gsub(nbsp, " ") }
+            fenced { if ($0 ~ /^[[:space:]]*(```|~~~)/) fenced = 0; next }
+            commented { stop = index($0, "-->"); if (!stop) next; $0 = substr($0, stop + 3); commented = 0 }
+            {
+              while (start = index($0, "<!--")) {
+                stop = index(substr($0, start + 4), "-->")
+                if (!stop) { $0 = substr($0, 1, start - 1); commented = 1; break }
+                $0 = substr($0, 1, start - 1) substr($0, start + stop + 6)
+              }
+            }
+            /^[[:space:]]*(```|~~~)/ { fenced = 1; next }
+            /^#+[[:space:]]/ { if (found) exit; found = tolower($0) ~ /^##[[:space:]]+route budgets[[:space:]]*$/; next }
+            found && NF { print; exit }
+          ' <<<"${body}")
+          if [ -z "${reason}" ]; then
+            echo '::error::This pull request changes tools/perf/baseline.json. Add a "## Route budgets" heading to its body with a line under it saying why the numbers changed.'
+            exit 1
+          fi
+          # Prefixed so a body line can never be read as a workflow command.
+          printf 'Route budgets: %s\n' "${reason}"
