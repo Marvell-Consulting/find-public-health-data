@@ -6,7 +6,7 @@ import {
   dataUploadLatestSchema,
   indicatorAdminDetailSchema,
 } from '@fphd/internal-api-features/contract';
-import { apiPath } from '@fphd/web-server/api-client';
+import { ApiTimeoutError, apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from 'react-router';
 
@@ -21,6 +21,8 @@ import {
 export type { DataTableProblem } from '@fphd/internal-api-features/contract';
 
 export type DataTableUploadFailure = FormRefusal<DataUploadField>;
+
+export const DATA_TABLE_TOO_SLOW = 'Your data table took too long to check. Try again.';
 
 /** Only a draft takes a data table, so a published indicator has no upload page. */
 export async function loadDataTableUpload({ context, params }: LoaderFunctionArgs) {
@@ -53,7 +55,13 @@ export async function uploadDataTable({
       dataUploadCreatedSchema,
       dataUploadErrorSchema,
       request.signal,
-    );
+    )
+    .catch((error: unknown) => {
+      if (error instanceof ApiTimeoutError) return undefined;
+      throw error;
+    });
+
+  if (result === undefined) return { fieldErrors: {}, formError: DATA_TABLE_TOO_SLOW };
 
   if (result.ok) return redirect(indicatorTaskListPath(id));
   if (result.error.error === 'invalid_data_table') {

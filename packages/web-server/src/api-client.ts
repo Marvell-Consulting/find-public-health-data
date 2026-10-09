@@ -60,9 +60,10 @@ export interface ApiClient {
   ): Promise<ApiWriteResult<T, E>>;
 
   /**
-   * POST a body to `path` as it arrives, without reading it first, and wait up to the upload
-   * timeout. A 400 or 422 comes back as a value parsed with `errorSchema`; otherwise as `put`.
-   * Aborting `signal`, as a browser abandoning its request does, abandons this one too.
+   * POST a body to `path` as it arrives, without reading it first, then wait up to the upload
+   * timeout for the answer, throwing `ApiTimeoutError` after it. A 400 or 422 comes back as a
+   * value parsed with `errorSchema`; otherwise as `put`. Aborting `signal`, as a browser
+   * abandoning its request does, abandons this one too.
    */
   postStream<T, E>(
     path: string,
@@ -77,6 +78,14 @@ export interface ApiClient {
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000;
+
+/** The API took longer to answer an upload than the upload timeout allows. */
+export class ApiTimeoutError extends Error {
+  constructor(path: string) {
+    super(`No answer from ${path} within the upload timeout`);
+    this.name = 'ApiTimeoutError';
+  }
+}
 
 // Front Door waits 60 seconds for an origin to answer, so nothing answered later is ever seen.
 const DEFAULT_UPLOAD_TIMEOUT_MS = 60_000;
@@ -232,34 +241,51 @@ export function createApiClient({
     },
 
     async postStream(path, { body, contentType }, schema, errorSchema, signal) {
-      const timeout = AbortSignal.timeout(uploadTimeoutMs);
+      // The timeout covers the API's answer, not the browser's upload, so it starts once the
+      // body has been sent.
+      const timeout = new AbortController();
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const startTimer = () => {
+        timer = setTimeout(() => timeout.abort(), uploadTimeoutMs);
+      };
+      const sent = body?.pipeThrough(new TransformStream({ flush: startTimer })) ?? null;
+      if (sent === null) startTimer();
+
       // `duplex` is required of a streamed body, and missing from the DOM library's RequestInit.
       const init: RequestInit & { duplex: 'half' } = {
         method: 'POST',
         headers: { ...headers, 'content-type': contentType },
-        body,
+        body: sent,
         duplex: 'half',
-        signal: signal === undefined ? timeout : AbortSignal.any([timeout, signal]),
+        signal: signal === undefined ? timeout.signal : AbortSignal.any([timeout.signal, signal]),
       };
-      const response = await fetch(`${baseUrl}${path}`, init);
 
-      if (response.status === 404) {
-        throw new Response('Not Found', { status: 404 });
+      try {
+        const response = await fetch(`${baseUrl}${path}`, init);
+
+        if (response.status === 404) {
+          throw new Response('Not Found', { status: 404 });
+        }
+
+        if (response.status === 400 || response.status === 422) {
+          return {
+            ok: false,
+            status: response.status,
+            error: parseOrFail(path, errorSchema, await readJson(path, response)),
+          };
+        }
+
+        if (!response.ok) {
+          throw new Response('Bad Gateway', { status: 502 });
+        }
+
+        return { ok: true, data: parseOrFail(path, schema, await readJson(path, response)) };
+      } catch (error) {
+        if (timeout.signal.aborted) throw new ApiTimeoutError(path);
+        throw error;
+      } finally {
+        clearTimeout(timer);
       }
-
-      if (response.status === 400 || response.status === 422) {
-        return {
-          ok: false,
-          status: response.status,
-          error: parseOrFail(path, errorSchema, await readJson(path, response)),
-        };
-      }
-
-      if (!response.ok) {
-        throw new Response('Bad Gateway', { status: 502 });
-      }
-
-      return { ok: true, data: parseOrFail(path, schema, await readJson(path, response)) };
     },
 
     async delete(path) {
