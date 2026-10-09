@@ -30,8 +30,9 @@ const parseOptions = {
 
 /**
  * Reads a CSV data table as a stream, so a file of any length is held a record at a time: its
- * headings and what is wrong with them, then each row as it is loaded or what is wrong with it. A file that is not CSV
- * yields one `unreadable` finding; a failure of the stream itself is thrown.
+ * headings and what is wrong with them, then each row as it is loaded or what is wrong with
+ * it. A file that is not CSV yields one `unreadable` finding; a failure of the stream itself
+ * is thrown.
  */
 export async function* readDataTable(
   file: Readable,
