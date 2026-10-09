@@ -94,9 +94,11 @@ export async function receiveDataTable(
       resolve(stored ?? { ok: false, message: DATA_TABLE_MESSAGES.missing });
     });
 
+    // A whole request that is not a well-formed form carries no file the form can use.
     busboy.on('error', (error: unknown) => {
       abandon?.();
-      reject(error);
+      if (request.complete) resolve({ ok: false, message: DATA_TABLE_MESSAGES.missing });
+      else reject(error);
     });
 
     request.on('close', () => {
