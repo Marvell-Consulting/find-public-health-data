@@ -102,7 +102,7 @@ const DIRTY: Fixture = {
   types: [
     { id: DECILES, name: 'Deciles within area (IMD trend)\n' },
     { id: DECILES_COPY, name: 'Deciles within area (IMD trend)' },
-    { id: CLUSTERS, name: 'GP cluster\u00a0 shapes\u202f' },
+    { id: CLUSTERS, name: 'GP\u000bcluster\u00a0 shapes\u202f' },
   ],
   values: [
     { id: MOST, dimension_type_id: DECILES, name: 'Most deprived decile' },

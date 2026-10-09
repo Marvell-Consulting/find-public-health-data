@@ -16,6 +16,7 @@ describe('tidyName', () => {
     ],
     ['\u00a0Other\u202f \ufeff', 'Other'],
     ['Year\u00a0\u20033-6', 'Year 3-6'],
+    ['Vertical\u000btab\u000b', 'Vertical tab'],
   ])('tidies %j to %j', (name, tidy) => {
     expect(tidyName(name)).toBe(tidy);
   });
