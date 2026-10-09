@@ -2,7 +2,7 @@ import { type Readable, Writable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
 import { type Database, dimensionKey } from '@fphd/db';
-import type { TransactionSql } from 'postgres';
+import type { PendingQuery, TransactionSql } from 'postgres';
 
 import { type DataTableEvent, readDataTable } from './data-table.ts';
 import { createProblemTally } from './data-table-problems.ts';
@@ -131,9 +131,7 @@ function loadInTransaction(
         ${upload.actor}, ${upload.blobName}, ${upload.byteSize}, ${upload.sha256})`;
 
     const staged = await stageRows(tx, readDataTable(await openFile(), references), signal);
-    const problems = [...staged.problems, ...(await duplicateRows(tx))];
-    // Each step below runs to its end, so an abandoned upload is caught between them.
-    signal.throwIfAborted();
+    const problems = [...staged.problems, ...(await duplicateRows(tx, signal))];
 
     if (problems.length > 0) {
       // Drizzle's client passes json parameters through unserialised, so they are sent as text.
@@ -144,8 +142,7 @@ function loadInTransaction(
       return { ok: false, reason: 'invalid', problems };
     }
 
-    await loadStagedRows(tx, upload);
-    signal.throwIfAborted();
+    await loadStagedRows(tx, upload, signal);
     await tx`
       UPDATE upload_batch
       SET status = 'processed', row_count = ${staged.rowCount}, column_names = ${staged.columnNames}
@@ -160,7 +157,8 @@ function loadInTransaction(
     const replacedBlobName =
       draft.uploadBatchId === null
         ? null
-        : await deleteReplacedBatch(tx, draft.uploadBatchId, draft.id);
+        : await deleteReplacedBatch(tx, draft.uploadBatchId, draft.id, signal);
+    // Abandoned after its last statement, the upload still rolls back rather than commit.
     signal.throwIfAborted();
 
     return { ok: true, rowCount: staged.rowCount, replacedBlobName };
@@ -256,9 +254,29 @@ function endedUnawaited(copy: Writable): Writable {
   return writer;
 }
 
+/**
+ * Runs a statement that an abandoned upload cancels on the server, so a long insert or delete
+ * stops and the transaction rolls back rather than running to its end first.
+ */
+export async function cancellable<T extends readonly (object | undefined)[]>(
+  signal: AbortSignal,
+  query: PendingQuery<T>,
+): Promise<T> {
+  signal.throwIfAborted();
+  const cancel = () => {
+    query.cancel();
+  };
+  signal.addEventListener('abort', cancel, { once: true });
+  try {
+    return await query;
+  } finally {
+    signal.removeEventListener('abort', cancel);
+  }
+}
+
 /** Rows repeating an earlier row's area, period and dimension values: the natural key. */
-async function duplicateRows(tx: TransactionSql): Promise<DataTableProblem[]> {
-  const repeats = await tx<{ line: number; total: string }[]>`
+async function duplicateRows(tx: TransactionSql, signal: AbortSignal): Promise<DataTableProblem[]> {
+  const query = tx<{ line: number; total: string }[]>`
     SELECT line, count(*) OVER () AS total
     FROM (
       SELECT line, row_number() OVER (
@@ -269,6 +287,7 @@ async function duplicateRows(tx: TransactionSql): Promise<DataTableProblem[]> {
     WHERE occurrence > 1
     ORDER BY line
     LIMIT ${DATA_TABLE_PROBLEM_ITEMS}`;
+  const repeats = await cancellable(signal, query);
 
   const [first] = repeats;
   if (first === undefined) return [];
@@ -282,8 +301,12 @@ async function duplicateRows(tx: TransactionSql): Promise<DataTableProblem[]> {
   ];
 }
 
-async function loadStagedRows(tx: TransactionSql, upload: DataUpload): Promise<void> {
-  await tx`
+async function loadStagedRows(
+  tx: TransactionSql,
+  upload: DataUpload,
+  signal: AbortSignal,
+): Promise<void> {
+  const observations = tx`
     INSERT INTO observation (
       id, indicator_id, area_id, from_date, to_date, value, count, denominator,
       lower_ci_95, upper_ci_95, lower_ci_998, upper_ci_998, upload_batch_id, dimension_key, created_by
@@ -292,15 +315,20 @@ async function loadStagedRows(tx: TransactionSql, upload: DataUpload): Promise<v
       id, ${upload.indicatorId}, area_id, from_date, to_date, value, count, denominator,
       lower_ci_95, upper_ci_95, lower_ci_998, upper_ci_998, ${upload.batchId}, dimension_key, ${upload.actor}
     FROM upload_row`;
-  await tx`
+  const dimensions = tx`
     INSERT INTO observation_dimension (observation_id, dimension_value_id, dimension_type_id)
     SELECT r.id, dv.id, dv.dimension_type_id
     FROM upload_row r
     CROSS JOIN LATERAL (VALUES (r.sex_id), (r.age_id), (r.category_id)) AS v (id)
     JOIN dimension_value dv ON dv.id = v.id`;
-  await tx`
+  const notes = tx`
     INSERT INTO observation_note (observation_id, note_type_id)
     SELECT id, note_type_id FROM upload_row WHERE note_type_id IS NOT NULL`;
+
+  // Each is sent only when awaited, so they run in turn.
+  for (const statement of [observations, dimensions, notes]) {
+    await cancellable(signal, statement);
+  }
 }
 
 /**
@@ -312,6 +340,7 @@ async function deleteReplacedBatch(
   tx: TransactionSql,
   batchId: string,
   draftId: string,
+  signal: AbortSignal,
 ): Promise<string | null> {
   const [replaced] = await tx<{ blobName: string | null }[]>`
     SELECT blob_name AS "blobName"
@@ -322,8 +351,8 @@ async function deleteReplacedBatch(
 
   if (replaced === undefined) return null;
 
-  await tx`DELETE FROM observation WHERE upload_batch_id = ${batchId}`;
-  await tx`DELETE FROM upload_batch WHERE id = ${batchId}`;
+  await cancellable(signal, tx`DELETE FROM observation WHERE upload_batch_id = ${batchId}`);
+  await cancellable(signal, tx`DELETE FROM upload_batch WHERE id = ${batchId}`);
 
   return replaced.blobName;
 }

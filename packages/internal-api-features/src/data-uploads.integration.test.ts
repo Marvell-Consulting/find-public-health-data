@@ -15,7 +15,7 @@ import { v7 as randomUuidV7 } from 'uuid';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import type { DataTableEvent } from './data-table.ts';
-import { processDataUpload, stageRows } from './data-upload-load-repository.ts';
+import { cancellable, processDataUpload, stageRows } from './data-upload-load-repository.ts';
 import { dataUploadsRouter } from './data-uploads.ts';
 import { updateIndicatorDraft } from './indicator-draft-repository.ts';
 import { createDraftFromPublished } from './indicator-publish-repository.ts';
@@ -537,5 +537,34 @@ describe('stageRows', () => {
         stageRows(tx, rows('1e-400', ...many), new AbortController().signal),
       ),
     ).rejects.toThrow();
+  });
+});
+
+describe('cancellable', () => {
+  it('cancels a long statement when the upload is abandoned, rolling back promptly', async () => {
+    const LOCK = [0x74657374, 2] as const;
+    const abandoned = new AbortController();
+    const started = Date.now();
+    setTimeout(() => abandoned.abort(), 200);
+
+    await expect(
+      internalDb.$client.begin(async (tx) => {
+        await tx`SELECT pg_advisory_xact_lock(${LOCK[0]}, ${LOCK[1]})`;
+        await cancellable(abandoned.signal, tx`SELECT pg_sleep(30)`);
+      }),
+    ).rejects.toMatchObject({ code: '57014' });
+
+    expect(Date.now() - started).toBeLessThan(5000);
+    const [lock] = await ownerDb.execute<{ taken: boolean }>(
+      sql`SELECT pg_try_advisory_lock(${LOCK[0]}, ${LOCK[1]}) AS taken`,
+    );
+    expect(lock?.taken).toBe(true);
+    await ownerDb.execute(sql`SELECT pg_advisory_unlock(${LOCK[0]}, ${LOCK[1]})`);
+  });
+
+  it('runs nothing once the upload is already abandoned', async () => {
+    await expect(
+      internalDb.$client.begin((tx) => cancellable(AbortSignal.abort(), tx`SELECT 1`)),
+    ).rejects.toMatchObject({ name: 'AbortError' });
   });
 });
