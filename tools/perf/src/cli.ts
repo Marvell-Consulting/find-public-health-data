@@ -99,13 +99,14 @@ function describe(work: Work): string {
   return `${work.statements} statements, ${work.buffers} buffers, ${work.rows} rows, ${work.bytes} bytes`;
 }
 
+const runId = process.env.GITHUB_RUN_ID ?? '<run-id>';
+
 /** Accepting a run adopts its counts only: a time limit is raised in routes.ts. */
 function advice(failures: string[], slow: string[]): string[] {
-  const run = process.env.GITHUB_RUN_ID ?? '<run-id>';
   return [
     ...(failures.length > 0
       ? [
-          `If the change is intended, accept the new numbers with \`pnpm perf:accept ${run}\` and commit tools/perf/baseline.json.`,
+          `If the change is intended, \`pnpm perf:accept ${runId}\` takes this run’s numbers for the failing routes. Commit tools/perf/baseline.json.`,
         ]
       : []),
     ...(slow.length > 0
@@ -149,7 +150,14 @@ async function writeSummary(
     );
   }
   if (notices.length > 0) {
-    lines.push('**Could be tightened**', '', ...notices.map((n) => `- ${n}`), '');
+    lines.push(
+      '**Could be tightened**',
+      '',
+      ...notices.map((n) => `- ${n}`),
+      '',
+      `\`pnpm perf:accept ${runId} --all\` takes every route’s numbers from this run, including any over budget.`,
+      '',
+    );
   }
   await appendFile(file, `${lines.join('\n')}\n`);
 }
