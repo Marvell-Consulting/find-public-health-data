@@ -22,6 +22,7 @@ export function loadOwnerEnv() {
       POSTGRES_USER: z.string().default('fphd'),
       POSTGRES_PASSWORD: z.string().default('fphd'),
     }),
+    // biome-ignore lint/style/noProcessEnv: the owner-role loader for operations and test harnesses
     process.env,
   );
 }

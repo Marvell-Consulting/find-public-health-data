@@ -1,0 +1,2 @@
+# drizzle-kit writes these; GitHub collapses them in diffs and leaves them out of PR stats.
+packages/db/drizzle/meta/*_snapshot.json linguist-generated=true

@@ -29,6 +29,7 @@ function prettyTransport(
 ): LoggerOptions['transport'] {
   // `process` is undefined in the browser bundles used by the web apps.
   const isNodeRuntime = typeof process !== 'undefined' && process.versions?.node !== undefined;
+  // biome-ignore lint/style/noProcessEnv: pino-pretty is absent from production installs
   if (!pretty || !isNodeRuntime || process.env.NODE_ENV === 'production') {
     return undefined;
   }
