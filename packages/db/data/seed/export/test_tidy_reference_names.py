@@ -57,6 +57,7 @@ class TidyTest(unittest.TestCase):
     def test_counts_the_same_characters_as_whitespace_as_tidy_name(self):
         self.assertEqual(step["tidy"]("\u00a0Other\u202f \ufeff"), "Other")
         self.assertEqual(step["tidy"]("Year\u00a0\u20033-6"), "Year 3-6")
+        self.assertEqual(step["tidy"]("Vertical\u000btab\u000b"), "Vertical tab")
         self.assertEqual(step["tidy"]("Next line\u0085kept"), "Next line\u0085kept")
         self.assertEqual(step["tidy"]("Separator\u001ckept"), "Separator\u001ckept")
 
@@ -218,9 +219,17 @@ class TidyReferenceNamesTest(unittest.TestCase):
                 notes=[],
                 dimensions=[["100", "1000", "10", "1"], ["101", "1000", "20", "2"]],
             )
+            Path(directory, "source-manifest.json").write_text(
+                json.dumps({"source_csv_null": NULL_MARKER, "tables": {}})
+            )
+            before = {path.name: path.read_bytes() for path in Path(directory).iterdir()}
 
-            with self.assertRaisesRegex(ValueError, "Observation 1000 has a value in two"):
-                tidy_reference_names(directory)
+            for _ in range(2):
+                with self.assertRaisesRegex(ValueError, "Observation 1000 has a value in two"):
+                    tidy_reference_names(directory)
+
+                after = {path.name: path.read_bytes() for path in Path(directory).iterdir()}
+                self.assertEqual(after, before)
 
     def test_keeps_the_published_null_marker_and_records_the_rewritten_files(self):
         with tempfile.TemporaryDirectory() as directory:

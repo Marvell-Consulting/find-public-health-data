@@ -84,7 +84,8 @@ def value_merges(values, type_survivor):
         by_name[key] = row["id"]
     if clashes:
         raise ValueError(
-            "Values of one dimension type differ only in whitespace: " + ", ".join(clashes)
+            "Values of one dimension type differ only in whitespace: "
+            + ", ".join(sorted(set(clashes)))
         )
     merges = {}
     unpaired = []
@@ -134,16 +135,32 @@ def open_writer(output, fields, null_marker, ending):
     return writer.writerow
 
 
+def stage(path, write):
+    """Write `path`'s replacement to a .tmp beside it, returning that path and write's result.
+
+    The .tmp is removed if writing fails; the caller moves it into place once every file is staged.
+    """
+    tmp = Path(f"{path}.tmp")
+    try:
+        with gzip.open(tmp, "wt", encoding="utf-8", newline="") as f:
+            result = write(f)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
+    return tmp, result
+
+
 def write_table(directory, table, fields, rows, null_marker):
     path = Path(directory, f"{table}.csv.gz")
     ending = line_ending(path)
-    tmp = f"{path}.tmp"
-    with gzip.open(tmp, "wt", encoding="utf-8", newline="") as f:
-        write = open_writer(f, fields, null_marker, ending)
+
+    def write(f):
+        write_row = open_writer(f, fields, null_marker, ending)
         for row in rows:
-            write(row)
-    os.replace(tmp, path)
-    return len(rows)
+            write_row(row)
+        return len(rows)
+
+    return stage(path, write)
 
 
 def read_bridge(path):
@@ -152,30 +169,32 @@ def read_bridge(path):
 
 
 def rewrite_bridge(directory, table, remap, null_marker):
-    """Stream a bridge table through `remap`, which returns a row to keep or None to drop it.
+    """Stage a bridge table streamed through `remap`, which returns a row to keep or None to drop.
 
-    Returns the rows kept, or None when no row changed and the file is left as it was.
+    Returns the staged path and the rows kept, or None when no row changed.
     """
     path = Path(directory, f"{table}.csv.gz")
     ending = line_ending(path)
     with gzip.open(path, "rt", encoding="utf-8", newline="") as src:
         fields = next(csv.reader(src))
-    tmp = f"{path}.tmp"
-    rows = 0
-    changed = False
-    with gzip.open(tmp, "wt", encoding="utf-8", newline="") as dst:
-        write = open_writer(dst, fields, null_marker, ending)
+
+    def write(dst):
+        write_row = open_writer(dst, fields, null_marker, ending)
+        rows = 0
+        changed = False
         for row in read_bridge(path):
             kept = remap(row)
             changed = changed or kept != row
             if kept is not None:
-                write(kept)
+                write_row(kept)
                 rows += 1
+        return rows, changed
+
+    tmp, (rows, changed) = stage(path, write)
     if not changed:
-        os.remove(tmp)
+        tmp.unlink()
         return None
-    os.replace(tmp, path)
-    return rows
+    return tmp, rows
 
 
 def dimension_remap(value_survivor, type_survivor):
@@ -241,8 +260,9 @@ def tidy_reference_names(directory):
     value_survivor = value_merges(values, type_survivor)
     note_survivor = note_merges(notes)
 
-    counts = {
-        "dimension_type": write_table(
+    staged = {}
+    try:
+        staged["dimension_type"] = write_table(
             directory,
             "dimension_type",
             type_fields,
@@ -252,8 +272,8 @@ def tidy_reference_names(directory):
                 if type_survivor[row["id"]] == row["id"]
             ],
             null_marker,
-        ),
-        "dimension_value": write_table(
+        )
+        staged["dimension_value"] = write_table(
             directory,
             "dimension_value",
             value_fields,
@@ -267,8 +287,8 @@ def tidy_reference_names(directory):
                 if value_survivor[row["id"]] == row["id"]
             ],
             null_marker,
-        ),
-        "note_type": write_table(
+        )
+        staged["note_type"] = write_table(
             directory,
             "note_type",
             note_fields,
@@ -278,21 +298,30 @@ def tidy_reference_names(directory):
                 if note_survivor[row["id"]] == row["id"]
             ],
             null_marker,
-        ),
-    }
-    if any(id != survivor for id, survivor in value_survivor.items()):
-        counts["observation_dimension"] = rewrite_bridge(
-            directory,
-            "observation_dimension",
-            dimension_remap(value_survivor, type_survivor),
-            null_marker,
         )
-    if any(id != survivor for id, survivor in note_survivor.items()):
-        path = Path(directory, "observation_note.csv.gz")
-        counts["observation_note"] = rewrite_bridge(
-            directory, "observation_note", note_remap(path, note_survivor), null_marker
-        )
-    counts = {table: rows for table, rows in counts.items() if rows is not None}
+        if any(id != survivor for id, survivor in value_survivor.items()):
+            staged["observation_dimension"] = rewrite_bridge(
+                directory,
+                "observation_dimension",
+                dimension_remap(value_survivor, type_survivor),
+                null_marker,
+            )
+        if any(id != survivor for id, survivor in note_survivor.items()):
+            path = Path(directory, "observation_note.csv.gz")
+            staged["observation_note"] = rewrite_bridge(
+                directory, "observation_note", note_remap(path, note_survivor), null_marker
+            )
+    except BaseException:
+        for entry in staged.values():
+            if entry is not None:
+                entry[0].unlink(missing_ok=True)
+        raise
+    # Nothing is replaced until every file has staged, so a refusal leaves the archive as it was.
+    counts = {}
+    for table, entry in staged.items():
+        if entry is not None:
+            os.replace(entry[0], Path(directory, f"{table}.csv.gz"))
+            counts[table] = entry[1]
 
     manifest_path = Path(directory, "source-manifest.json")
     if manifest_path.exists():
