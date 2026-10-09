@@ -7,6 +7,7 @@ export {
   type Schema,
   type SqlClient,
 } from './client.ts';
+export { dimensionKey } from './dimension-key.ts';
 export { dbEnvFields, resolveDbTls } from './env.ts';
 export {
   getIndicatorObservations,

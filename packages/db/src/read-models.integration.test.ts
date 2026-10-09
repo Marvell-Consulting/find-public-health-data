@@ -48,8 +48,8 @@ describe('bridge/registry schema', () => {
   it('rejects an observation referencing an unknown indicator', async () => {
     await expect(sql`
       INSERT INTO observation
-        (indicator_id, area_id, from_date, to_date, published_at, upload_batch_id, created_by)
-      SELECT ${MISSING_UUID}, a.id, '2024-01-01', '2024-12-31', now(), ub.id, 'integration-test'
+        (indicator_id, area_id, from_date, to_date, upload_batch_id, dimension_key, created_by)
+      SELECT ${MISSING_UUID}, a.id, '2024-01-01', '2024-12-31', ub.id, '', 'integration-test'
       FROM area a, upload_batch ub LIMIT 1
     `).rejects.toMatchObject({ code: '23503' });
   });
@@ -90,10 +90,10 @@ describe('bridge/registry schema', () => {
       const target = rows[0];
       await tx`
         INSERT INTO observation
-          (indicator_id, area_id, from_date, to_date, published_at, upload_batch_id, created_by)
+          (indicator_id, area_id, from_date, to_date, upload_batch_id, dimension_key, created_by)
         VALUES
-          (${target?.indicator_id}, ${target?.area_id}, '2024-01-01', '2024-12-31', now(),
-           ${target?.other_batch}, 'integration-test')
+          (${target?.indicator_id}, ${target?.area_id}, '2024-01-01', '2024-12-31',
+           ${target?.other_batch}, '', 'integration-test')
       `;
     });
     await expect(failed).rejects.toMatchObject({ code: '23503' });
@@ -109,10 +109,10 @@ describe('bridge/registry schema', () => {
       const target = rows[0];
       await tx`
         INSERT INTO observation
-          (indicator_id, area_id, from_date, to_date, published_at, upload_batch_id, created_by)
+          (indicator_id, area_id, from_date, to_date, upload_batch_id, dimension_key, created_by)
         VALUES
-          (${target?.indicator_id}, ${target?.area_id}, '2024-12-31', '2024-01-01', now(),
-           ${target?.batch}, 'integration-test')
+          (${target?.indicator_id}, ${target?.area_id}, '2024-12-31', '2024-01-01',
+           ${target?.batch}, '', 'integration-test')
       `;
     });
     await expect(failed).rejects.toMatchObject({ code: '23514' });
@@ -173,5 +173,95 @@ describe('bridge/registry schema', () => {
       `;
       expect(differences).toHaveLength(0);
     });
+  });
+});
+
+describe('the read-model rebuild', () => {
+  // Its own database, since the draft's rows would reach the migration query's parity check.
+  let draftDb: TestDatabase;
+  let draftSql: postgres.Sql;
+
+  beforeAll(async () => {
+    draftDb = await createTestDatabase({ template: 'seeded' });
+    draftSql = createOwnerClient(draftDb.name);
+  });
+
+  afterAll(async () => {
+    await draftSql.end();
+    await draftDb.drop();
+  });
+
+  it("leaves a draft's rows out of every read model", async () => {
+    const [published] = await draftSql<{ id: string; indicatorId: string }[]>`
+      SELECT cpv.id, cpv.indicator_id AS "indicatorId"
+      FROM current_published_version cpv
+      JOIN latest_headline lh ON lh.indicator_id = cpv.indicator_id
+      LIMIT 1
+    `;
+    if (!published) throw new Error('The seed holds no indicator with headline rows');
+    const [draft] = await draftSql<{ id: string }[]>`
+      INSERT INTO indicator_version (indicator_id, status, name, slug, created_by, updated_by)
+      SELECT indicator_id, 'draft', name, slug, 'integration-test', 'integration-test'
+      FROM indicator_version WHERE id = ${published.id}
+      RETURNING id
+    `;
+    const [batch] = await draftSql<{ id: string }[]>`
+      INSERT INTO upload_batch (indicator_id, indicator_version_id, original_filename, uploaded_by)
+      VALUES (${published.indicatorId}, ${draft?.id ?? ''}, 'draft.csv', 'integration-test')
+      RETURNING id
+    `;
+    await draftSql`UPDATE indicator_version SET upload_batch_id = ${batch?.id ?? ''} WHERE id = ${draft?.id ?? ''}`;
+    // A headline for every area type, in a year no published row reaches.
+    await draftSql`
+      INSERT INTO observation
+        (indicator_id, area_id, from_date, to_date, value, upload_batch_id, dimension_key, created_by)
+      SELECT DISTINCT ON (a.area_type_id)
+             ${published.indicatorId}::uuid, a.id, '2099-01-01'::date, '2099-12-31'::date,
+             -1, ${batch?.id ?? ''}::uuid, '', 'integration-test'
+      FROM area a
+      ORDER BY a.area_type_id, a.id
+    `;
+    // And a dimension value none of the indicator's published rows has.
+    const [unused] = await draftSql<{ id: string }[]>`
+      WITH dv AS (
+        SELECT dv.id, dv.dimension_type_id FROM dimension_value dv
+        WHERE NOT EXISTS (
+          SELECT 1 FROM indicator_dimension_values idv
+          WHERE idv.indicator_id = ${published.indicatorId} AND idv.dimension_value_id = dv.id
+        )
+        ORDER BY dv.id LIMIT 1
+      ),
+      o AS (
+        INSERT INTO observation
+          (indicator_id, area_id, from_date, to_date, value, upload_batch_id, dimension_key,
+           created_by)
+        SELECT ${published.indicatorId}, a.id, '2099-01-01', '2099-12-31', -1, ${batch?.id ?? ''},
+               dv.id::text, 'integration-test'
+        FROM (SELECT id FROM area ORDER BY id LIMIT 1) a, dv
+        RETURNING id
+      )
+      INSERT INTO observation_dimension (observation_id, dimension_value_id, dimension_type_id)
+      SELECT o.id, dv.id, dv.dimension_type_id FROM o, dv
+      RETURNING dimension_value_id AS id
+    `;
+    if (!unused) throw new Error('Every dimension value is in the published rows');
+
+    await rebuildReadModels(draftSql);
+
+    const leaked = await draftSql`
+      SELECT 'latest_headline' AS model FROM latest_headline
+        WHERE indicator_id = ${published.indicatorId} AND from_date = '2099-01-01'
+      UNION ALL SELECT 'observation_range' FROM observation_range
+        WHERE indicator_id = ${published.indicatorId} AND from_date = '2099-01-01'
+      UNION ALL SELECT 'available_data' FROM available_data ad
+        WHERE ad.indicator_id = ${published.indicatorId}
+          AND NOT EXISTS (
+            SELECT 1 FROM published.observation o JOIN area a ON a.id = o.area_id
+            WHERE o.indicator_id = ad.indicator_id AND a.area_type_id = ad.area_type_id
+          )
+      UNION ALL SELECT 'indicator_dimension_values' FROM indicator_dimension_values
+        WHERE indicator_id = ${published.indicatorId} AND dimension_value_id = ${unused.id}
+    `;
+    expect(leaked).toEqual([]);
   });
 });

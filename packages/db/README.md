@@ -29,7 +29,8 @@ src/
                       uses; the runnable commands live in apps/operations
   client.ts           createDb + Database/Schema types
   env.ts              dbEnvFields — shared connection env fragment
-  read-models.ts      rebuildReadModels — repopulates the cache.ts tables from canonical data
+  dimension-key.ts    dimensionKey — an observation's dimension_key from its dimension values
+  read-models.ts      rebuildReadModels — repopulates the cache.ts tables from the published views
   core-data.ts        importCoreData — loads the required core content (topics, CI methods,
                       classifications, data providers, value types, units, comparator
                       methods)
@@ -82,6 +83,11 @@ src/
 - **Text length**: how long an answer may be, and which characters it may hold, is the
   contract's rule, applied at the form and the API; no check measures a publisher's text.
   The slug's length is part of its format, so its check keeps it.
+- **Observation keys**: `observation.dimension_key` is the row's dimension value ids sorted
+  and joined, empty for a total; with the batch, area and dates it is the row's natural key,
+  held unique by an index. Whatever inserts an observation writes it, from the dimension values
+  it is about to bridge to: `dimensionKey` in TypeScript, or the `string_agg` it documents in
+  SQL, as the seed load does.
 - **Repository functions**: pure, `db` first argument, one file per aggregate.
 - **Slugs**: `indicator_version.slug` is derived from the version's name by `slugify` in
   `@fphd/utils/slug`. An exclusion constraint,
@@ -102,7 +108,13 @@ is the one definition of which: the most recently published, ties broken by id. 
 the version's `id` and `indicator_id`, so a new `indicator_version` column never changes it or the
 views built on it. The published views join it, and the internal reads join
 `currentPublishedVersion` for the same rule, each then joining `indicator_version` by `id` for the
-version's columns. `published.indicator`
+version's columns. Observations follow the current published version's batch: each version points at the
+upload batch holding its data (`indicator_version.upload_batch_id`, shared by a later version
+until it uploads its own), and `published.observation` shows the undeleted rows of the batch the
+current published version points at, with `published.observation_dimension` and
+`published.observation_note` following it. Publishing therefore switches an indicator's data
+over in one step, and a draft's rows never show. The read-model rebuild reads the published
+views, so the read models hold published data alone. `published.indicator`
 carries that version's `slug` as the indicator's canonical address, while
 `published.indicator_slug` lists every slug any published version carries, so an address a later
 publication replaced still resolves. The definitions are hand-written in the migration;

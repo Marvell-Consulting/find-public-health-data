@@ -52,6 +52,11 @@ That yields 433,678 observations, 657,869 bridge rows and 67,978 observation not
 - Every seeded indicator loads as a single `published` version, under the system actor the
   export carries (`pholio-migration` or `fingertips-api-seed`). There are no draft rows in
   the seed.
+- The files carry no `upload_batch.indicator_version_id`, `indicator_version.upload_batch_id`
+  or `observation.dimension_key`; the load derives them. Each batch belongs to its indicator's
+  published version, each version points at its indicator's batch with the data table
+  confirmed when the batch was uploaded, and each observation is keyed by its dimension values.
+  The load stops if a published observation would fall outside its version's batch.
 - `indicator_version.polarity` holds one of the service's values from `@fphd/utils/polarity`,
   not a reference to Pholio's polarity lookup. Both exports translate the lookup row's name
   with `export/polarity.py` and carry no `polarity` table; a name it has no value for stops

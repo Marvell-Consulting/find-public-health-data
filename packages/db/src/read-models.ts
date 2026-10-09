@@ -10,7 +10,9 @@ export const READ_MODEL_TABLES = [
 ] as const;
 
 /**
- * Rebuild the derived read-model tables from the canonical tables, atomically.
+ * Rebuild the derived read-model tables from the published views, atomically, so they hold
+ * only what the public site may show. Dimension rows are reached only through
+ * published.observation: published.observation_dimension would join the observations again.
  *
  * The queries mirror the alpha benchmark's cache builds. A headline observation is one
  * with no dimension bridge rows at all; indicators that publish every observation with
@@ -37,9 +39,8 @@ export async function rebuildReadModelTables(tx: postgres.TransactionSql): Promi
         (indicator_id, area_id, from_date, to_date, value, lower_ci_95, upper_ci_95)
       SELECT DISTINCT ON (indicator_id, area_id)
         indicator_id, area_id, from_date, to_date, value, lower_ci_95, upper_ci_95
-      FROM observation o
-      WHERE o.deleted_at IS NULL
-        AND NOT EXISTS (
+      FROM published.observation o
+      WHERE NOT EXISTS (
           SELECT 1 FROM observation_dimension od WHERE od.observation_id = o.id
         )
       ORDER BY indicator_id, area_id, from_date DESC, to_date DESC, id DESC
@@ -48,10 +49,9 @@ export async function rebuildReadModelTables(tx: postgres.TransactionSql): Promi
   await tx`
       INSERT INTO available_data (indicator_id, area_type_id, area_type_name, area_count)
       SELECT o.indicator_id, a.area_type_id, MAX(at.name), COUNT(DISTINCT o.area_id)
-      FROM observation o
-      JOIN area a ON a.id = o.area_id
-      JOIN area_type at ON at.id = a.area_type_id
-      WHERE o.deleted_at IS NULL
+      FROM published.observation o
+      JOIN published.area a ON a.id = o.area_id
+      JOIN published.area_type at ON at.id = a.area_type_id
       GROUP BY o.indicator_id, a.area_type_id
     `;
 
@@ -60,14 +60,14 @@ export async function rebuildReadModelTables(tx: postgres.TransactionSql): Promi
         (indicator_id, dimension_type_id, dimension_type_name,
          dimension_value_id, dimension_value_name, sort_order)
       SELECT DISTINCT o.indicator_id, dt.id, dt.name, dv.id, dv.name, dv.sort_order
-      FROM observation o
+      FROM published.observation o
       JOIN observation_dimension od ON od.observation_id = o.id
-      JOIN dimension_value dv ON dv.id = od.dimension_value_id
-      JOIN dimension_type dt ON dt.id = dv.dimension_type_id
-      WHERE o.deleted_at IS NULL
+      JOIN published.dimension_value dv ON dv.id = od.dimension_value_id
+      JOIN published.dimension_type dt ON dt.id = dv.dimension_type_id
     `;
 
-  // Keep aligned with the newest migration inserting into observation_range; a test runs both.
+  // Keep aligned with the newest migration inserting into observation_range, which reads the
+  // tables; a test runs both against a seed whose data is all published.
   await tx`
       INSERT INTO observation_range
         (indicator_id, display_group, from_date, to_date, segment, min, max)
@@ -82,14 +82,13 @@ export async function rebuildReadModelTables(tx: postgres.TransactionSql): Promi
             string_agg(dv.name, '|' ORDER BY dt.name COLLATE "C"),
             ''
           ) AS segment
-        FROM observation o
-        JOIN area a ON a.id = o.area_id
-        JOIN area_type at ON at.id = a.area_type_id
+        FROM published.observation o
+        JOIN published.area a ON a.id = o.area_id
+        JOIN published.area_type at ON at.id = a.area_type_id
         LEFT JOIN observation_dimension od ON od.observation_id = o.id
-        LEFT JOIN dimension_type dt ON dt.id = od.dimension_type_id
-        LEFT JOIN dimension_value dv ON dv.id = od.dimension_value_id
-        WHERE o.deleted_at IS NULL
-          AND o.value IS NOT NULL
+        LEFT JOIN published.dimension_type dt ON dt.id = od.dimension_type_id
+        LEFT JOIN published.dimension_value dv ON dv.id = od.dimension_value_id
+        WHERE o.value IS NOT NULL
           AND at.display_group IS NOT NULL
         GROUP BY o.id, o.indicator_id, at.display_group, o.from_date, o.to_date, o.value
       )

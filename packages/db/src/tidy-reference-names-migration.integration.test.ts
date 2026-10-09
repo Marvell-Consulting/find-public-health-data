@@ -52,6 +52,13 @@ async function withReferenceRows(fixture: Fixture): Promise<[TestDatabase, postg
   await sql`INSERT INTO dimension_value ${sql(values)}`;
   await sql`INSERT INTO note_type ${sql(fixture.notes)}`;
   await sql`INSERT INTO indicator (id, short_id) VALUES (${INDICATOR}, 1)`;
+  // Published, since the read models hold only what the public site shows.
+  await sql`
+    INSERT INTO indicator_version
+      (indicator_id, status, published_at, name, slug, created_by, updated_by)
+    VALUES (${INDICATOR}, 'published', now(), 'Indicator 1', 'indicator-1', 'migration-test',
+            'migration-test')
+  `;
   await sql`
     INSERT INTO upload_batch (id, indicator_id, original_filename, uploaded_by)
     VALUES (${BATCH}, ${INDICATOR}, 'data.csv', 'migration-test')

@@ -59,7 +59,7 @@ export const commands: Record<string, Command> = {
     run: importPublishedSnapshot,
   },
   'db rebuild-read-models': {
-    description: 'Rebuild the read models from the canonical tables',
+    description: 'Rebuild the read models from the published views',
     run: rebuildReadModels,
   },
   'db reset': {

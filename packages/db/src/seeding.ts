@@ -272,11 +272,145 @@ async function seedTables(
       counts.indicator_version = loaded.versions;
       counts.numerator_denominator_source = loaded.legacySources;
       counts.indicator_version_source = loaded.sources;
-    } else {
+    } else if (table === 'upload_batch') {
+      counts.upload_batch = await loadUploadBatches(
+        tx,
+        directory,
+        idleTimeoutMs,
+        completionTimeoutMs,
+      );
+    } else if (table === 'observation') {
+      const loaded = await loadObservations(tx, directory, idleTimeoutMs, completionTimeoutMs);
+      counts.observation = loaded.observations;
+      counts.observation_dimension = loaded.dimensions;
+    } else if (table !== 'observation_dimension') {
       counts[table] = await loadTable(tx, table, directory, idleTimeoutMs, completionTimeoutMs);
     }
   }
+  await pointVersionsAtBatches(tx);
   return counts;
+}
+
+/**
+ * Loads the batches through a staging table, crediting each to a version: the files predate
+ * versions, so each batch goes to its indicator's current published version, or to its draft
+ * when nothing is published.
+ */
+async function loadUploadBatches(
+  tx: postgres.TransactionSql,
+  directory: string,
+  idleTimeoutMs: number,
+  completionTimeoutMs: number,
+): Promise<number> {
+  await tx`CREATE TEMP TABLE source_upload_batch (LIKE upload_batch INCLUDING DEFAULTS) ON COMMIT DROP`;
+  await tx`ALTER TABLE source_upload_batch ALTER COLUMN indicator_version_id DROP NOT NULL`;
+  await loadTable(
+    tx,
+    'upload_batch',
+    directory,
+    idleTimeoutMs,
+    completionTimeoutMs,
+    'source_upload_batch',
+  );
+  await tx`
+    UPDATE source_upload_batch b
+    SET indicator_version_id = coalesce(
+      (SELECT cpv.id FROM current_published_version cpv WHERE cpv.indicator_id = b.indicator_id),
+      (SELECT v.id FROM indicator_version v WHERE v.indicator_id = b.indicator_id AND v.status = 'draft')
+    )
+    WHERE indicator_version_id IS NULL
+  `;
+  const inserted = await tx`INSERT INTO upload_batch SELECT * FROM source_upload_batch`;
+  return inserted.count;
+}
+
+/**
+ * Loads the observations and their dimension values through staging tables, so each
+ * observation is inserted with the dimension_key its dimension values make, as `dimensionKey`
+ * builds it; the files predate the column.
+ */
+async function loadObservations(
+  tx: postgres.TransactionSql,
+  directory: string,
+  idleTimeoutMs: number,
+  completionTimeoutMs: number,
+): Promise<{ observations: number; dimensions: number }> {
+  await tx`CREATE TEMP TABLE source_observation (LIKE observation INCLUDING DEFAULTS) ON COMMIT DROP`;
+  await tx`ALTER TABLE source_observation ALTER COLUMN dimension_key DROP NOT NULL`;
+  await tx`CREATE TEMP TABLE source_observation_dimension (LIKE observation_dimension INCLUDING DEFAULTS) ON COMMIT DROP`;
+  await loadTable(
+    tx,
+    'observation',
+    directory,
+    idleTimeoutMs,
+    completionTimeoutMs,
+    'source_observation',
+  );
+  await loadTable(
+    tx,
+    'observation_dimension',
+    directory,
+    idleTimeoutMs,
+    completionTimeoutMs,
+    'source_observation_dimension',
+  );
+
+  const columns = await tx<{ name: string }[]>`
+    SELECT attname AS name FROM pg_attribute
+    WHERE attrelid = 'observation'::regclass AND attnum > 0 AND NOT attisdropped
+    ORDER BY attnum
+  `;
+  const columnList = columns.map(({ name }) => `"${name}"`).join(', ');
+  const selectList = columns
+    .map(({ name }) =>
+      name === 'dimension_key' ? `coalesce(o.dimension_key, k.dimension_key, '')` : `o."${name}"`,
+    )
+    .join(', ');
+  const observations = await tx.unsafe(`
+    INSERT INTO observation (${columnList})
+    SELECT ${selectList}
+    FROM source_observation o
+    LEFT JOIN (
+      SELECT observation_id,
+             string_agg(dimension_value_id::text, ',' ORDER BY dimension_value_id) AS dimension_key
+      FROM source_observation_dimension
+      GROUP BY observation_id
+    ) k ON k.observation_id = o.id
+  `);
+  const dimensions =
+    await tx`INSERT INTO observation_dimension SELECT * FROM source_observation_dimension`;
+  return { observations: observations.count, dimensions: dimensions.count };
+}
+
+/**
+ * Points every version at its indicator's latest processed batch, as confirmed, by the rule
+ * drizzle/0044_upload-batch-versions.sql applies to existing data. Stops where that would hide a
+ * published observation.
+ */
+async function pointVersionsAtBatches(tx: postgres.TransactionSql): Promise<void> {
+  await tx`
+    UPDATE indicator_version v
+    SET upload_batch_id = b.id, data_table_confirmed_at = b.uploaded_at
+    FROM (
+      SELECT DISTINCT ON (indicator_id) id, indicator_id, uploaded_at
+      FROM upload_batch
+      WHERE status = 'processed'
+      ORDER BY indicator_id, uploaded_at DESC, id DESC
+    ) b
+    WHERE b.indicator_id = v.indicator_id AND v.upload_batch_id IS NULL
+  `;
+  const [hidden] = await tx<{ count: number }[]>`
+    SELECT count(*)::int AS count
+    FROM observation o
+    JOIN current_published_version cpv ON cpv.indicator_id = o.indicator_id
+    JOIN indicator_version v ON v.id = cpv.id
+    WHERE o.deleted_at IS NULL AND o.upload_batch_id IS DISTINCT FROM v.upload_batch_id
+  `;
+  if (hidden?.count) {
+    throw new Error(
+      `${hidden.count} seeded observations lie outside the batch their published version points at`,
+    );
+  }
 }
 
 /** Pholio's names for the CI methods the service names differently; the rest match as they are. */
