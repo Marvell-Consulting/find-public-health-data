@@ -110,6 +110,12 @@ async function applyDeletes(
     { table, phase: 'delete' },
     report,
   );
+  const [staged] = await tx.unsafe<{ count: number }[]>(
+    `SELECT count(*)::int AS count FROM "${stage}"`,
+  );
+  if (Number(staged?.count) !== expected) {
+    throw new Error(`${table} staged ${staged?.count ?? 0} deletes; package declares ${expected}`);
+  }
   if (table === 'indicator_version') {
     const [unpublished] = await tx.unsafe<{ count: number }[]>(`
       SELECT count(*)::int AS count FROM indicator_version
@@ -138,7 +144,7 @@ async function applyDeletes(
     }
   }
   const deleting =
-    expected > 0
+    Number(staged?.count) > 0
       ? await tx.unsafe<{ id: string }[]>(`SELECT id FROM "${stage}" ORDER BY id LIMIT 20`)
       : [];
   let result: { count: number };

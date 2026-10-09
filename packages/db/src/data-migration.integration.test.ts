@@ -274,6 +274,21 @@ describe('applyDataMigration', () => {
     );
     await assertRolledBack();
   });
+  it.each([0, 2])(
+    'rejects a declared delete count of %s before deleting its staged row',
+    async (rows) => {
+      await baseline();
+      await sql`INSERT INTO upload_batch (indicator_id, original_filename, uploaded_by) VALUES (${INDICATOR_ID}, 'publisher.csv', 'publisher')`;
+      await expect(
+        apply({
+          deletes: { indicator: [INDICATOR_ID], indicator_version: [VERSION_ID] },
+          deleteRows: { indicator: rows },
+          relationships: { indicators: [], indicatorTopics: [] },
+        }),
+      ).rejects.toThrow(`indicator staged 1 deletes; package declares ${rows}`);
+      await assertRolledBack();
+    },
+  );
   it('refuses a mislabeled delete header and retains the target row', async () => {
     await baseline({
       upserts: { data_source: { columns: ['id', 'name'], rows: [[SOURCE_ID, 'Retained source']] } },
