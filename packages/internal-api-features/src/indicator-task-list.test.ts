@@ -23,9 +23,11 @@ const source: IndicatorTaskListSource = {
   draft: { ...unansweredDraft, name: 'Life expectancy at birth', ciMethodKind: null },
 };
 
-// Every section answered as its form would accept.
+// Every section answered as its form would accept, and the data table confirmed.
 const complete: IndicatorTaskListDraft = {
   ...source.draft,
+  uploadBatchId: '019fa38f-073f-764e-9ac6-1c4d03b1cb93',
+  dataTableConfirmedAt: new Date('2026-10-09T10:00:00.000Z'),
   definition: 'The average number of years a newborn would live.',
   rationale: 'A summary measure of mortality across the whole population.',
   polarity: 'lower-is-better',
@@ -126,7 +128,9 @@ describe('indicatorTaskList', () => {
     expect(indicatorTaskList(source).tasks.name).toBe('completed');
   });
 
-  const sectionKeys = indicatorTaskKeySchema.options.filter((key) => key !== 'name');
+  const sectionKeys = indicatorTaskKeySchema.options.filter(
+    (key) => key !== 'name' && key !== 'data-table',
+  );
 
   // Each section's required answers are its schema's, tested in its contract.
   it.each(sectionKeys)('counts %s as complete once its form would accept its answers', (key) => {
@@ -135,6 +139,34 @@ describe('indicatorTaskList', () => {
 
   it.each(sectionKeys)('leaves %s not started while it is unanswered', (key) => {
     expect(indicatorTaskList(source).tasks[key]).toBe('not_started');
+  });
+
+  it.each([
+    ['not started before an upload', {}, 'not_started'],
+    [
+      'in progress once a file has loaded',
+      { uploadBatchId: complete.uploadBatchId },
+      'in_progress',
+    ],
+    [
+      'complete once the publisher has confirmed it',
+      {
+        uploadBatchId: complete.uploadBatchId,
+        dataTableConfirmedAt: complete.dataTableConfirmedAt,
+      },
+      'completed',
+    ],
+  ] satisfies [string, Partial<IndicatorTaskListDraft>, string][])(
+    'counts the data table as %s',
+    (_, draft, status) => {
+      expect(indicatorTaskList(withDraft(draft)).tasks['data-table']).toBe(status);
+    },
+  );
+
+  it('holds submission back while the data table is unconfirmed', () => {
+    expect(
+      indicatorTaskList(withDraft({ ...complete, dataTableConfirmedAt: null })).canSubmit,
+    ).toBe(false);
   });
 
   it.each([

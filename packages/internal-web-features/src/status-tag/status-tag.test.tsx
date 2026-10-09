@@ -84,6 +84,12 @@ describe('StatusTag', () => {
     expect(tag('Not started')).toContain('govuk-tag--blue');
   });
 
+  it('shows a task in progress as incomplete, in the tag GOV.UK gives it', () => {
+    render(<StatusTag type="task" status="in_progress" />);
+
+    expect(tag('Incomplete')).toContain('govuk-tag--blue');
+  });
+
   it('shows a completed task as plain text, as GOV.UK does', () => {
     const { container } = render(<StatusTag type="task" status="completed" />);
 

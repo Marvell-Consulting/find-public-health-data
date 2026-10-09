@@ -52,8 +52,11 @@ import {
   taggingColumns,
 } from './indicator-section-list-columns.ts';
 
-/** The draft columns the task list judges: the name, and those the sections read. */
-export type IndicatorTaskListDraft = Pick<IndicatorDraftVersion, 'name'> &
+/** The draft columns the task list judges: the name, the data table's, and those the sections read. */
+export type IndicatorTaskListDraft = Pick<
+  IndicatorDraftVersion,
+  'name' | 'uploadBatchId' | 'dataTableConfirmedAt'
+> &
   IndicatorSectionDraft & {
     /** The kind of the draft's CI method, null while none is chosen. */
     ciMethodKind: CiMethodKind | null;
@@ -62,6 +65,15 @@ export type IndicatorTaskListDraft = Pick<IndicatorDraftVersion, 'name'> &
 export interface IndicatorTaskListSource {
   indicator: Omit<IndicatorTaskList['indicator'], 'name'>;
   draft: IndicatorTaskListDraft;
+}
+
+/** Loaded but not yet confirmed on the check page is in progress. */
+function dataTableStatus({
+  uploadBatchId,
+  dataTableConfirmedAt,
+}: Pick<IndicatorTaskListDraft, 'uploadBatchId' | 'dataTableConfirmedAt'>): IndicatorTaskStatus {
+  if (dataTableConfirmedAt !== null) return 'completed';
+  return uploadBatchId === null ? 'not_started' : 'in_progress';
 }
 
 /**
@@ -83,6 +95,7 @@ export function indicatorTaskList({
   // A draft is created by the page that asks for a name, so it always has one.
   const tasks: IndicatorTaskStatuses = {
     name: 'completed',
+    'data-table': dataTableStatus(draft),
     'definition-and-rationale': complete(
       definitionAndRationaleSection,
       definitionAndRationaleColumns,

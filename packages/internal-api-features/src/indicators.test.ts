@@ -532,6 +532,7 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
       canSubmit: false,
       tasks: {
         name: 'completed',
+        'data-table': 'not_started',
         'definition-and-rationale': 'not_started',
         polarity: 'not_started',
         'data-quality': 'not_started',
