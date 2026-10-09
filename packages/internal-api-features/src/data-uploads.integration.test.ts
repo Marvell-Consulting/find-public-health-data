@@ -14,7 +14,8 @@ import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { v7 as randomUuidV7 } from 'uuid';
 import { afterAll, describe, expect, it } from 'vitest';
 
-import { processDataUpload } from './data-upload-load-repository.ts';
+import type { DataTableEvent } from './data-table.ts';
+import { processDataUpload, stageRows } from './data-upload-load-repository.ts';
 import { dataUploadsRouter } from './data-uploads.ts';
 import { createDraftFromPublished } from './indicator-publish-repository.ts';
 import { ACTOR, newDraft } from './indicator-repository.testing.ts';
@@ -431,5 +432,55 @@ describe('processDataUpload', () => {
     expect(await batchOf(batchId)).toBeUndefined();
     expect(await rowsOf(batchId)).toEqual([]);
     expect((await draftOf(ownerDb, indicatorId)).uploadBatchId).toBeNull();
+  });
+});
+
+describe('stageRows', () => {
+  const LOCK = [0x74657374, 1] as const;
+  const row = {
+    line: 2,
+    areaId: '019fa38f-073f-764e-9ac6-1c4d03b10001',
+    fromDate: '2019-04-01',
+    toDate: '2020-03-31',
+    value: '1',
+    count: null,
+    denominator: null,
+    lower_ci_95: null,
+    upper_ci_95: null,
+    lower_ci_998: null,
+    upper_ci_998: null,
+    sexId: null,
+    ageId: null,
+    categoryId: null,
+    noteTypeId: null,
+  };
+
+  async function* rows(...values: string[]): AsyncGenerator<DataTableEvent> {
+    for (const value of values) yield { kind: 'row', row: { ...row, value } };
+  }
+
+  it('rejects and rolls back, freeing its locks, when the server refuses a value', async () => {
+    await expect(
+      internalDb.$client.begin(async (tx) => {
+        await tx`SELECT pg_advisory_xact_lock(${LOCK[0]}, ${LOCK[1]})`;
+        await stageRows(tx, rows('1', '1e-400'), new AbortController().signal);
+      }),
+    ).rejects.toThrow('The rows could not be copied into the staging table');
+
+    const [lock] = await ownerDb.execute<{ taken: boolean }>(
+      sql`SELECT pg_try_advisory_lock(${LOCK[0]}, ${LOCK[1]}) AS taken`,
+    );
+    expect(lock?.taken).toBe(true);
+    await ownerDb.execute(sql`SELECT pg_advisory_unlock(${LOCK[0]}, ${LOCK[1]})`);
+  });
+
+  it('rejects when the server refuses a value while rows are still being sent', async () => {
+    const many = Array.from({ length: 100_000 }, () => '1');
+
+    await expect(
+      internalDb.$client.begin((tx) =>
+        stageRows(tx, rows('1e-400', ...many), new AbortController().signal),
+      ),
+    ).rejects.toThrow();
   });
 });

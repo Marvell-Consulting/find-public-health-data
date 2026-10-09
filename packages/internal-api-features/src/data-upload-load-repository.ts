@@ -1,4 +1,4 @@
-import type { Readable } from 'node:stream';
+import { type Readable, Writable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
 import { type Database, dimensionKey } from '@fphd/db';
@@ -143,7 +143,7 @@ export async function processDataUpload(
 }
 
 /** Streams the readable rows into a temporary table and tallies everything wrong with the rest. */
-async function stageRows(
+export async function stageRows(
   tx: TransactionSql,
   events: AsyncIterable<DataTableEvent>,
   signal: AbortSignal,
@@ -194,11 +194,41 @@ async function stageRows(
       }
       if (chunk !== '') yield chunk;
     },
-    copy,
+    endedUnawaited(copy),
     { signal },
   );
 
+  // Runs once the COPY has, so it fails if the server refused the rows.
+  try {
+    await tx`SELECT 1`;
+  } catch (error) {
+    throw new Error('The rows could not be copied into the staging table', { cause: error });
+  }
+
   return { rowCount, columnNames, problems: tally.problems() };
+}
+
+/**
+ * Writes through to a COPY stream and ends it without waiting for it to finish: postgres.js
+ * drops a refusal the server sends after the last write, and the stream then never finishes.
+ */
+function endedUnawaited(copy: Writable): Writable {
+  const writer = new Writable({
+    write(chunk, _encoding, callback) {
+      copy.write(chunk, callback);
+    },
+    final(callback) {
+      copy.end();
+      callback();
+    },
+    destroy(error, callback) {
+      // An abandoned upload fails the COPY; a finished one leaves it be.
+      if (error !== null) copy.destroy(error);
+      callback(error);
+    },
+  });
+  copy.on('error', (error) => writer.destroy(error));
+  return writer;
 }
 
 /** Rows repeating an earlier row's area, period and dimension values: the natural key. */
