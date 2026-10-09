@@ -23,6 +23,7 @@ export function createFakeInternalRepositories(
   return {
     ciMethods: withThrowingDefaults('ciMethods', overrides.ciMethods),
     dataProviders: withThrowingDefaults('dataProviders', overrides.dataProviders),
+    dataUploads: withThrowingDefaults('dataUploads', overrides.dataUploads),
     indicators: withThrowingDefaults('indicators', overrides.indicators),
     tags: withThrowingDefaults('tags', overrides.tags),
     topics: withThrowingDefaults('topics', overrides.topics),
