@@ -20,6 +20,34 @@ const topics = [
 }));
 
 describe('TopicsPage', () => {
+  it('preserves and filters text entered before hydration through later renders', async () => {
+    const page = (currentTopics = topics) => (
+      <MemoryRouter>
+        <TopicsPage topics={currentTopics} />
+      </MemoryRouter>
+    );
+    const container = document.createElement('div');
+    container.innerHTML = renderToString(page());
+    document.body.append(container);
+    const input = container.querySelector('input');
+    if (!input) throw new Error('Expected the server-rendered search input');
+    input.value = 'quitting';
+    const onRecoverableError = vi.fn();
+    const root = await act(() => hydrateRoot(container, page(), { onRecoverableError }));
+    try {
+      await act(() => root.render(page([...topics])));
+      expect(container.querySelector('input')).toBe(input);
+      expect(input.value).toBe('quitting');
+      expect(
+        screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent),
+      ).toEqual(['Smoking']);
+      expect(onRecoverableError).not.toHaveBeenCalled();
+    } finally {
+      await act(() => root.unmount());
+      container.remove();
+    }
+  });
+
   it.each(['', '  ', 'health'])(
     'shows an unavailable message for an empty dataset with query %s',
     (initialQuery) => {

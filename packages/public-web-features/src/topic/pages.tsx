@@ -8,7 +8,7 @@ import {
   PageIntro,
   searchPattern,
 } from '@fphd/ui';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { TopicDetail, TopicSummary } from './loader.ts';
 
@@ -24,6 +24,11 @@ export function TopicsPage({
   initialQuery?: string;
 }) {
   const [query, setQuery] = useState(initialQuery);
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    const input = formRef.current?.elements.namedItem('q');
+    if (input instanceof HTMLInputElement) setQuery(input.value);
+  }, []);
   const pattern = searchPattern(query);
   const filteredTopics = pattern
     ? topics.filter((topic) => pattern.test(topic.title) || pattern.test(topic.description))
@@ -35,6 +40,7 @@ export function TopicsPage({
         <h1 className="govuk-heading-xl">Public health topics</h1>
         <search>
           <form
+            ref={formRef}
             action="/topics"
             className="govuk-form-group"
             method="get"
@@ -46,11 +52,11 @@ export function TopicsPage({
             <Input
               autoComplete="off"
               classModifiers="width-20"
+              defaultValue={initialQuery}
               id="topic-search"
               name="q"
               onChange={(event) => setQuery(event.currentTarget.value)}
               type="search"
-              value={query}
             />
             <noscript>
               <Button type="submit">Search</Button>

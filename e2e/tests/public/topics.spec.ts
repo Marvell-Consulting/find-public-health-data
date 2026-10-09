@@ -39,6 +39,29 @@ test('hydrates topic search without errors', async ({ page }, testInfo) => {
   expect(errors).toEqual([]);
 });
 
+test('preserves and filters text entered before hydration', async ({ page }, testInfo) => {
+  const scripts = Promise.withResolvers<void>();
+  await page.route('**/*', async (route) => {
+    if (route.request().resourceType() === 'script') await scripts.promise;
+    await route.continue();
+  });
+  try {
+    await page.reload({ waitUntil: 'commit' });
+    const search = page.getByRole('searchbox', { name: 'Search for topics' });
+    await search.fill('quitting');
+    await expect(page.getByRole('link', { name: 'Alcohol', exact: true })).toBeVisible();
+
+    scripts.resolve();
+    await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toHaveText(
+      'Smoking and tobacco',
+    );
+    await expect(search).toHaveValue('quitting');
+    await expectNoAccessibilityViolations(page, testInfo);
+  } finally {
+    scripts.resolve();
+  }
+});
+
 test('filters topics as you type and highlights matches in titles and descriptions', async ({
   page,
 }, testInfo) => {
