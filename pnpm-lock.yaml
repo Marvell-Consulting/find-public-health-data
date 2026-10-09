@@ -21,6 +21,9 @@ catalogs:
     '@date-fns/tz':
       specifier: 1.5.0
       version: 1.5.0
+    '@fastify/busboy':
+      specifier: 3.2.2
+      version: 3.2.2
     '@not-govuk/back-link':
       specifier: 0.19.1
       version: 0.19.1
@@ -147,6 +150,9 @@ catalogs:
     cross-env:
       specifier: 10.1.0
       version: 10.1.0
+    csv-parse:
+      specifier: 7.0.3
+      version: 7.0.3
     csv-stringify:
       specifier: 6.8.3
       version: 6.8.3
@@ -660,6 +666,9 @@ importers:
 
   packages/internal-api-features:
     dependencies:
+      '@fastify/busboy':
+        specifier: 'catalog:'
+        version: 3.2.2
       '@fphd/api-server':
         specifier: workspace:*
         version: link:../api-server
@@ -678,13 +687,25 @@ importers:
       '@fphd/utils':
         specifier: workspace:*
         version: link:../utils
+      csv-parse:
+        specifier: 'catalog:'
+        version: 7.0.3
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.2(postgres@3.4.9)
       express:
         specifier: 'catalog:'
         version: 5.2.1
+      postgres:
+        specifier: 'catalog:'
+        version: 3.4.9
+      uuid:
+        specifier: 'catalog:'
+        version: 14.0.2
     devDependencies:
+      '@azure/storage-blob':
+        specifier: 'catalog:'
+        version: 12.33.0
       '@fphd/express':
         specifier: workspace:*
         version: link:../express
@@ -1792,6 +1813,9 @@ packages:
       '@noble/hashes':
         optional: true
 
+  '@fastify/busboy@3.2.2':
+    resolution: {integrity: sha512-yXSS27qPExaXeuLvMRMXOLtpipzfQYNjG3FkunDWKGfMYjKuhFXko9CVzqxm8jcF+lmtS9Fd89QNdh9XDjnbNg==}
+
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
 
@@ -2846,6 +2870,9 @@ packages:
 
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
+
+  csv-parse@7.0.3:
+    resolution: {integrity: sha512-YFd3QM/yo17vH91L1IOZuvl09zM0zEEtdfTcOCKWcMdM++MNaQSyp09slXyFCLaPXvHstQFx/xC8myiFHSMUvw==}
 
   csv-stringify@6.8.3:
     resolution: {integrity: sha512-gIeSCvq5F4VtXV3naV3VAewLhBkiZBz+PPhTOA8H3Y8h/ELa+R1ml0GZck/4/Nzo9ep2lvOluilJ6MJlbZsKMA==}
@@ -4636,6 +4663,8 @@ snapshots:
     optionalDependencies:
       '@noble/hashes': 1.8.0
 
+  '@fastify/busboy@3.2.2': {}
+
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
@@ -5546,6 +5575,8 @@ snapshots:
       source-map-js: 1.2.2
 
   csstype@3.2.3: {}
+
+  csv-parse@7.0.3: {}
 
   csv-stringify@6.8.3: {}
 

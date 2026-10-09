@@ -32,16 +32,21 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fastify/busboy": "catalog:",
     "@fphd/api-server": "workspace:*",
     "@fphd/auth": "workspace:*",
     "@fphd/config": "workspace:*",
     "@fphd/db": "workspace:*",
     "@fphd/internal-storage": "workspace:*",
     "@fphd/utils": "workspace:*",
+    "csv-parse": "catalog:",
     "drizzle-orm": "catalog:",
-    "express": "catalog:"
+    "express": "catalog:",
+    "postgres": "catalog:",
+    "uuid": "catalog:"
   },
   "devDependencies": {
+    "@azure/storage-blob": "catalog:",
     "@fphd/express": "workspace:*",
     "@types/express": "catalog:",
     "@types/node": "catalog:",
