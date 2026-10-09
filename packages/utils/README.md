@@ -14,8 +14,11 @@ There is no root export; import each module by its subpath.
 | `./indicator-path` | `indicatorPath`, the address of the public indicator page for a slug, which both web apps serve                                                                                                                                             |
 | `./short-id`       | `SHORT_ID_PATTERN`, `MAX_SHORT_ID` and `isShortId`, the one definition of the public indicator number — a run of digits an integer column can hold                                                                                          |
 | `./slug`           | `SLUG_PATTERN` and `SLUG_MAX_LENGTH`, the one definition of a URL slug; `slugify` and `slugProblem`, which derive one from a name and say why a name yields none; `RESERVED_SLUGS`/`isReservedSlug`, the path segments a slug may not take |
+| `./tidy-name`      | `tidyName`, the form in which uploaded names are matched to reference data — trimmed, each run of whitespace one space                                                                                                                     |
 
 The seed export's `packages/db/data/seed/export/slug.py` mirrors `./slug` and must change with it.
+`packages/db/data/seed/export/tidy-reference-names.py` and the tidy-reference-names migration
+mirror `./tidy-name` likewise.
 
 ## Prerequisites
 

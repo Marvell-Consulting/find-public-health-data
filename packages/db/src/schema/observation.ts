@@ -34,7 +34,7 @@ export const noteType = pgTable(
   'note_type',
   {
     id: uuidPrimaryKey(),
-    text: text().notNull(),
+    text: text().notNull().unique(),
     category: text({ enum: NOTE_TYPE_CATEGORIES }).notNull(),
   },
   (t) => [

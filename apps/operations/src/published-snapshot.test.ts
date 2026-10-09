@@ -52,6 +52,7 @@ async function snapshot(
     excluded_indicators: [90_366, 90_776, 92_774, 93_280],
     excluded_observations: 380_899,
     source_csv_null: '__FPHD_NULL_5f92c66de4b849b4a717c23f5cbdb8a1__',
+    reference_names: 'tidied',
     tables,
   };
   await writeFile(join(directory, 'source-manifest.json'), JSON.stringify(sourceManifest));
@@ -81,6 +82,17 @@ describe('verifyPublishedSnapshot', () => {
     await writeFile(path, JSON.stringify(manifest));
 
     await expect(verifyPublishedSnapshot(directory)).rejects.toThrow('carries no slug column');
+  });
+
+  it('rejects an archive exported before its reference names were tidied', async () => {
+    const directory = await snapshot();
+    const path = join(directory, 'source-manifest.json');
+    const { reference_names: _, ...sourceManifest } = JSON.parse(await readFile(path, 'utf8'));
+    await writeFile(path, JSON.stringify(sourceManifest));
+
+    await expect(verifyPublishedSnapshot(directory)).rejects.toThrow(
+      'Published snapshot predates the tidied reference names and must be regenerated',
+    );
   });
 
   it('rejects a staging export even when its files are intact', async () => {
