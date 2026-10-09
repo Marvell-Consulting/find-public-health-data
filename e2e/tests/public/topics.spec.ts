@@ -21,3 +21,110 @@ test('opens a topic from its card', async ({ page }) => {
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
   await expectNoAccessibilityViolations(page, testInfo);
 });
+
+test('hydrates topic search without errors', async ({ page }, testInfo) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.reload();
+
+  await page
+    .getByRole('search')
+    .getByRole('searchbox', { name: 'Search for topics' })
+    .fill('quitting');
+  await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toHaveText(
+    'Smoking and tobacco',
+  );
+  await expect(page.getByRole('button', { name: 'Search', exact: true })).toHaveCount(0);
+  await expectNoAccessibilityViolations(page, testInfo);
+  expect(errors).toEqual([]);
+});
+
+test('preserves and filters text entered before hydration', async ({ page }, testInfo) => {
+  const scripts = Promise.withResolvers<void>();
+  await page.route('**/*', async (route) => {
+    if (route.request().resourceType() === 'script') await scripts.promise;
+    await route.continue();
+  });
+  try {
+    await page.reload({ waitUntil: 'commit' });
+    const search = page.getByRole('searchbox', { name: 'Search for topics' });
+    await search.fill('quitting');
+    await expect(page.getByRole('link', { name: 'Alcohol', exact: true })).toBeVisible();
+
+    scripts.resolve();
+    const headings = page.getByRole('main').getByRole('heading', { level: 2 });
+    await expect(headings).toHaveCount(1);
+    await expect(headings).toHaveText('Smoking and tobacco');
+    await expect(search).toHaveValue('quitting');
+    await expectNoAccessibilityViolations(page, testInfo);
+  } finally {
+    scripts.resolve();
+  }
+});
+
+test('filters topics as you type and highlights matches in titles and descriptions', async ({
+  page,
+}, testInfo) => {
+  const search = page.getByRole('searchbox', { name: 'Search for topics' });
+  await search.fill('  SMOK  ');
+
+  await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toHaveCount(1);
+  await expect(page.getByRole('link', { name: 'Smoking and tobacco' }).locator('mark')).toHaveText(
+    'Smok',
+  );
+  await expect(page.locator('.fphd-card-list__description mark')).toHaveText([
+    'Smok',
+    'smok',
+    'smok',
+  ]);
+  await expectNoAccessibilityViolations(page, testInfo);
+
+  await page.getByRole('link', { name: 'Smoking and tobacco' }).click();
+  await expect(page).toHaveURL('/topics/smoking-and-tobacco');
+});
+
+test('finds topics by their descriptions', async ({ page }, testInfo) => {
+  await page.getByRole('searchbox', { name: 'Search for topics' }).fill('quitting');
+
+  await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toHaveText(
+    'Smoking and tobacco',
+  );
+  await expect(page.locator('.fphd-card-list__description mark')).toHaveText('quitting');
+  await expectNoAccessibilityViolations(page, testInfo);
+});
+
+test('shows no matching topics and restores all topics when the search is cleared', async ({
+  page,
+}, testInfo) => {
+  const search = page.getByRole('searchbox', { name: 'Search for topics' });
+  const headings = page.getByRole('main').getByRole('heading', { level: 2 });
+  const topicCount = await headings.count();
+  await search.fill('unlikely topic');
+
+  await expect(page.getByText('No topics match your search.')).toBeVisible();
+  await expect(headings).toHaveCount(0);
+  await expectNoAccessibilityViolations(page, testInfo);
+
+  await search.fill('');
+  await expect(headings).toHaveCount(topicCount);
+  await expect(page.locator('mark')).toHaveCount(0);
+  await expect(page.getByText('No topics match your search.')).not.toBeVisible();
+  await expectNoAccessibilityViolations(page, testInfo);
+});
+
+test.describe('without JavaScript', () => {
+  test.use({ javaScriptEnabled: false });
+
+  test('searches and opens topics without JavaScript', async ({ page }) => {
+    await expect(page.getByRole('link', { name: 'Alcohol' })).toBeVisible();
+    await page.getByRole('searchbox', { name: 'Search for topics' }).fill('quitting');
+    await page.getByRole('button', { name: 'Search', exact: true }).click();
+    await expect(page).toHaveURL('/topics?q=quitting');
+    await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toHaveText(
+      'Smoking and tobacco',
+    );
+    await expect(page.locator('.fphd-card-list__description mark')).toHaveText('quitting');
+    await page.getByRole('link', { name: 'Smoking and tobacco' }).click();
+    await expect(page).toHaveURL('/topics/smoking-and-tobacco');
+  });
+});
