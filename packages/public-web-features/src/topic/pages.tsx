@@ -1,4 +1,13 @@
-import { Button, CardList, GridColumn, GridRow, Input, Label, PageIntro } from '@fphd/ui';
+import {
+  Button,
+  CardList,
+  GridColumn,
+  GridRow,
+  Input,
+  Label,
+  PageIntro,
+  searchPattern,
+} from '@fphd/ui';
 import { useState } from 'react';
 
 import type { TopicDetail, TopicSummary } from './loader.ts';
@@ -15,47 +24,47 @@ export function TopicsPage({
   initialQuery?: string;
 }) {
   const [query, setQuery] = useState(initialQuery);
-  const searchTerm = query.trim().toLowerCase();
-  const filteredTopics = topics.filter(
-    (topic) =>
-      topic.title.toLowerCase().includes(searchTerm) ||
-      topic.description.toLowerCase().includes(searchTerm),
-  );
+  const pattern = searchPattern(query);
+  const filteredTopics = pattern
+    ? topics.filter((topic) => pattern.test(topic.title) || pattern.test(topic.description))
+    : topics;
 
   return (
     <GridRow>
       <GridColumn width="full">
         <h1 className="govuk-heading-xl">Public health topics</h1>
-        <form
-          action="/topics"
-          className="govuk-form-group"
-          method="get"
-          onSubmit={(event) => event.preventDefault()}
-        >
-          <Label classModifiers="s" htmlFor="topic-search">
-            Search for topics
-          </Label>
-          <Input
-            autoComplete="off"
-            classModifiers="width-20"
-            id="topic-search"
-            name="q"
-            onChange={(event) => setQuery(event.currentTarget.value)}
-            type="search"
-            value={query}
-          />
-          <noscript>
-            <Button type="submit">Search</Button>
-          </noscript>
-        </form>
-        <p aria-live="polite" role="status" className="govuk-visually-hidden">
+        <search>
+          <form
+            action="/topics"
+            className="govuk-form-group"
+            method="get"
+            onSubmit={(event) => event.preventDefault()}
+          >
+            <Label classModifiers="s" htmlFor="topic-search">
+              Search for topics
+            </Label>
+            <Input
+              autoComplete="off"
+              classModifiers="width-20"
+              id="topic-search"
+              name="q"
+              onChange={(event) => setQuery(event.currentTarget.value)}
+              type="search"
+              value={query}
+            />
+            <noscript>
+              <Button type="submit">Search</Button>
+            </noscript>
+          </form>
+        </search>
+        <p role="status" className="govuk-visually-hidden">
           {filteredTopics.length} {filteredTopics.length === 1 ? 'topic' : 'topics'} found.
         </p>
         {filteredTopics.length ? (
           <CardList
             columns="three"
             headingLevel={2}
-            searchTerm={searchTerm}
+            searchTerm={query}
             items={filteredTopics.map((topic) => ({
               description: topic.description,
               href: `/topics/${topic.slug}`,
@@ -63,7 +72,9 @@ export function TopicsPage({
             }))}
           />
         ) : (
-          <p className="govuk-body">No topics match your search.</p>
+          <p className="govuk-body">
+            {topics.length ? 'No topics match your search.' : 'No topics are available.'}
+          </p>
         )}
       </GridColumn>
     </GridRow>

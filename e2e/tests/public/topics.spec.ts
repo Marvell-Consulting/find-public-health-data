@@ -22,6 +22,23 @@ test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
   await expectNoAccessibilityViolations(page, testInfo);
 });
 
+test('hydrates topic search without errors', async ({ page }, testInfo) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.reload();
+
+  await page
+    .getByRole('search')
+    .getByRole('searchbox', { name: 'Search for topics' })
+    .fill('quitting');
+  await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toHaveText(
+    'Smoking and tobacco',
+  );
+  await expect(page.getByRole('button', { name: 'Search', exact: true })).toHaveCount(0);
+  await expectNoAccessibilityViolations(page, testInfo);
+  expect(errors).toEqual([]);
+});
+
 test('filters topics as you type and highlights matches in titles and descriptions', async ({
   page,
 }, testInfo) => {

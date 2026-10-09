@@ -82,4 +82,17 @@ describe('CardList', () => {
 
     expect(container.querySelector('mark')).toBeNull();
   });
+
+  it('highlights Unicode matches while preserving the original characters', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <CardList items={[{ href: '/example', title: 'KK' }]} searchTerm="k" />
+      </MemoryRouter>,
+    );
+
+    expect([...container.querySelectorAll('mark')].map((mark) => mark.textContent)).toEqual([
+      'K',
+      'K',
+    ]);
+  });
 });
