@@ -63,9 +63,12 @@ export async function receiveDataTable(
 
   const result = await new Promise<Stored>((resolve, reject) => {
     let stored: Promise<Stored> | undefined;
-    let abandon: (() => void) | undefined;
+    let stopFile: ((error: Error) => void) | undefined;
 
     busboy.on('file', (field, file, filename) => {
+      // A part cut short fails the form as well, which busboy's own error reports.
+      file.on('error', (error) => stopFile?.(error));
+
       if (field !== FIELD || stored !== undefined) {
         file.resume();
         return;
@@ -85,7 +88,7 @@ export async function receiveDataTable(
       }
 
       const storing = storeFile(storage, blobName, file, filename);
-      abandon = storing.abandon;
+      stopFile = storing.stop;
       stored = storing.result;
     });
 
@@ -96,14 +99,14 @@ export async function receiveDataTable(
 
     // A whole request that is not a well-formed form carries no file the form can use.
     busboy.on('error', (error: unknown) => {
-      abandon?.();
+      stopFile?.(new UploadAbortedError());
       if (request.complete) resolve({ ok: false, message: DATA_TABLE_MESSAGES.missing });
       else reject(error);
     });
 
     request.on('close', () => {
       if (request.complete) return;
-      abandon?.();
+      stopFile?.(new UploadAbortedError());
       reject(new UploadAbortedError());
     });
 
@@ -119,7 +122,7 @@ function storeFile(
   blobName: string,
   file: BusboyFileStream,
   originalFilename: string,
-): { result: Promise<Stored>; abandon: () => void } {
+): { result: Promise<Stored>; stop: (error: Error) => void } {
   const hash = createHash('sha256');
   let byteSize = 0;
   const measured = new Transform({
@@ -152,5 +155,5 @@ function storeFile(
     },
   );
 
-  return { result, abandon: () => stop(new UploadAbortedError()) };
+  return { result, stop };
 }
