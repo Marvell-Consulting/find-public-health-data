@@ -112,6 +112,22 @@ describe('requestLogging', () => {
     expect(JSON.stringify(lines[0])).not.toContain('019924a1-2c40-7000-8000-000000000001');
   });
 
+  it('mints its own id for a request Front Door relayed, since a web app never goes through it', async () => {
+    const { app, lines } = createApp({ acceptsForwardedId: true });
+
+    await request(app)
+      .get('/topics')
+      .set('X-Azure-Ref', '0abc123==')
+      .set('X-Fphd-Request-Id', '019924a1-2c40-7000-8000-000000000001');
+    await settled(lines);
+
+    expect(lines[0]?.req).toMatchObject({
+      id: expect.stringMatching(UUID_V7),
+      azureRef: '0abc123==',
+    });
+    expect(JSON.stringify(lines[0])).not.toContain('019924a1-2c40-7000-8000-000000000001');
+  });
+
   it('replaces a forwarded id that is not a uuid, rather than log what a stranger chose', async () => {
     const { app, lines } = createApp({ acceptsForwardedId: true });
 
