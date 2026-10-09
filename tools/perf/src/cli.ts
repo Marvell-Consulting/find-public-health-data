@@ -106,7 +106,7 @@ function advice(failures: string[], slow: string[]): string[] {
   return [
     ...(failures.length > 0
       ? [
-          `If the change is intended, \`pnpm perf:accept ${runId}\` takes this run’s numbers for the failing routes. Commit tools/perf/baseline.json.`,
+          `If the change is intended, \`pnpm perf:accept ${runId}\` takes this run’s numbers for the failing routes. Commit tools/perf/baseline.json and say why under a "## Route budgets" heading in the pull request body.`,
         ]
       : []),
     ...(slow.length > 0

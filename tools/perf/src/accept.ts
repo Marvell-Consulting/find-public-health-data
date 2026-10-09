@@ -73,7 +73,9 @@ try {
   } else {
     await writeFile(baselinePath, serialiseBaseline(accepted));
     console.log(`Updated tools/perf/baseline.json from run ${runId}:\n${changes.join('\n')}`);
-    console.log('Review the diff and commit it.');
+    console.log(
+      'Review the diff and commit it, and say why under a "## Route budgets" heading in the pull request body.',
+    );
   }
 } finally {
   await rm(dir, { recursive: true, force: true });

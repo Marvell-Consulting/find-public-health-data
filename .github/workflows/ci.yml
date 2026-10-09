@@ -542,8 +542,9 @@ jobs:
 
   all-checks-pass:
     name: All checks pass
-    # The only required status check in branch protection. Add every new job here — the gate can
-    # only report on what it depends on.
+    # The required status check in branch protection for every job in this workflow; pr-body.yml's
+    # jobs are required separately. Add every new job here — the gate can only report on what it
+    # depends on.
     needs:
       [
         lint,

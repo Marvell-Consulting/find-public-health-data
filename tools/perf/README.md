@@ -83,6 +83,21 @@ measures all the routes uploads the artifact, within budget or not. A run that s
 error writes none, as it has no complete set of numbers to adopt. The artifact holds counts only: a
 route meant to be slower needs its `limitMs` raised in [`src/routes.ts`](src/routes.ts).
 
+### Explaining it in the pull request
+
+A pull request that changes `baseline.json` must say why in its body, under a heading of its own:
+
+```md
+## Route budgets
+
+The indicator list now joins topics, one more statement per request.
+```
+
+The `Baseline changes carry a reason` check in
+[`.github/workflows/pr-body.yml`](../../.github/workflows/pr-body.yml) fails until the body has a
+`## Route budgets` heading with at least one line of text under it, before the next heading. It
+runs again whenever the body is edited.
+
 ## Running it locally
 
 The numbers depend on the production build and the database settings above, so the baseline should
