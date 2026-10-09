@@ -50,16 +50,43 @@ function read(cells: Cells, line = 2) {
 }
 
 describe('isNumber', () => {
-  it.each(['0', '83.8', '-1', '-0.25', '1.5e3', '2E-4', '1234567'])('accepts %s', (text) => {
+  it.each([
+    '0',
+    '83.8',
+    '-1',
+    '-0.25',
+    '1.5e3',
+    '2E-4',
+    '1234567',
+    '0.000',
+    '-0',
+    '0e-400',
+    '1e-310',
+    '1.7976931348623157e308',
+  ])('accepts %s', (text) => {
     expect(isNumber(text)).toBe(true);
   });
 
-  it.each(['1,234', '83.8%', 'NaN', 'Infinity', '1e999', '+1', '.5', '5.', '1 234', '0x10', ''])(
-    'refuses %s',
-    (text) => {
-      expect(isNumber(text)).toBe(false);
-    },
-  );
+  it.each([
+    '1,234',
+    '83.8%',
+    'NaN',
+    'Infinity',
+    '1e999',
+    '1e309',
+    '1.8e308',
+    '1e-400',
+    '1e-324',
+    `0.${'0'.repeat(400)}1`,
+    '+1',
+    '.5',
+    '5.',
+    '1 234',
+    '0x10',
+    '',
+  ])('refuses %s', (text) => {
+    expect(isNumber(text)).toBe(false);
+  });
 });
 
 describe('isIsoDate', () => {
