@@ -339,6 +339,111 @@ describe('ApiClient.delete', () => {
   });
 });
 
+describe('ApiClient.postStream', () => {
+  const body = () =>
+    new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('--b--\r\n'));
+        controller.close();
+      },
+    });
+  const contentType = 'multipart/form-data; boundary=b';
+
+  function client() {
+    return createApiClient({ baseUrl: 'http://api:4000', headers: { cookie: 'a=b' } });
+  }
+
+  it('sends the body as it arrives with its own content type and the configured headers', async () => {
+    const fetchMock = respondWith({ slug: 'uploaded' }, 201);
+    const stream = body();
+
+    const result = await client().postStream(
+      '/api/internal/uploads',
+      { body: stream, contentType },
+      topicSchema,
+      errorSchema,
+    );
+
+    expect(result).toEqual({ ok: true, data: { slug: 'uploaded' } });
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: 'POST',
+      headers: { cookie: 'a=b', 'content-type': contentType },
+      body: stream,
+      duplex: 'half',
+    });
+  });
+
+  it.each([400, 422])('returns a %s as a refusal for the form to render', async (status) => {
+    respondWith({ error: 'refused' }, status);
+
+    await expect(
+      client().postStream(
+        '/api/internal/uploads',
+        { body: body(), contentType },
+        topicSchema,
+        errorSchema,
+      ),
+    ).resolves.toEqual({ ok: false, status, error: { error: 'refused' } });
+  });
+
+  it('passes a 404 through so a route can render its not-found boundary', async () => {
+    respondWith({}, 404);
+
+    await expect(
+      client().postStream(
+        '/api/internal/uploads',
+        { body: body(), contentType },
+        topicSchema,
+        errorSchema,
+      ),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it.each([401, 409, 413, 500])('turns a %s into a 502', async (status) => {
+    respondWith({}, status);
+
+    await expect(
+      client().postStream(
+        '/api/internal/uploads',
+        { body: body(), contentType },
+        topicSchema,
+        errorSchema,
+      ),
+    ).rejects.toMatchObject({ status: 502 });
+  });
+
+  it("abandons the API's request when the caller's signal aborts", async () => {
+    const fetchMock = respondWith({ slug: 'uploaded' }, 201);
+    const abandoned = new AbortController();
+
+    await client().postStream(
+      '/api/internal/uploads',
+      { body: body(), contentType },
+      topicSchema,
+      errorSchema,
+      abandoned.signal,
+    );
+    const signal: AbortSignal = fetchMock.mock.calls[0]?.[1].signal;
+    abandoned.abort();
+
+    expect(signal.aborted).toBe(true);
+  });
+
+  it('gives up after the upload timeout, not the shorter one for other calls', async () => {
+    respondWith({ slug: 'uploaded' }, 201);
+    const timeout = vi.spyOn(AbortSignal, 'timeout');
+
+    await createApiClient({
+      baseUrl: 'http://api:4000',
+      timeoutMs: 10,
+      uploadTimeoutMs: 1000,
+    }).postStream('/api/internal/uploads', { body: body(), contentType }, topicSchema, errorSchema);
+
+    expect(timeout).toHaveBeenCalledWith(1000);
+    timeout.mockRestore();
+  });
+});
+
 describe('forwardedCookieHeaders', () => {
   it('carries only the named cookie, not the rest of the browser header', () => {
     expect(
