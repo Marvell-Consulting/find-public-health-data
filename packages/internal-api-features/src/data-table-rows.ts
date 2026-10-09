@@ -57,9 +57,15 @@ const REQUIRED_CELLS = [
 const NUMBER = /^-?\d+(\.\d+)?([eE][+-]?\d+)?$/;
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
-/** Digits with an optional minus sign, decimal part and exponent, and finite once read. */
+/**
+ * Digits with an optional minus sign, decimal part and exponent, that a double precision column
+ * can hold: finite, and not so small it reads as zero unless it is written as zero.
+ */
 export function isNumber(text: string): boolean {
-  return NUMBER.test(text) && Number.isFinite(Number(text));
+  if (!NUMBER.test(text)) return false;
+  const number = Number(text);
+  const writtenAsZero = !/[1-9]/.test(text.replace(/[eE].*$/, ''));
+  return Number.isFinite(number) && (number !== 0 || writtenAsZero);
 }
 
 /** A real calendar date written as YYYY-MM-DD. */
