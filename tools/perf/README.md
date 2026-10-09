@@ -78,10 +78,11 @@ budget in that run.
 
 The routes are chosen by comparing the run with your `baseline.json`, so it must be the one CI
 checked against. Bring the branch up to date with `main` before the run you accept, and accept it
-from the commit it measured: the command refuses when `HEAD` is a different commit. Every run that
-measures all the routes uploads the artifact, within budget or not. A run that stops on a route
-error writes none, as it has no complete set of numbers to adopt. The artifact holds counts only: a
-route meant to be slower needs its `limitMs` raised in [`src/routes.ts`](src/routes.ts).
+from the commit it measured: the command refuses when `HEAD` is a different commit or
+`baseline.json` has uncommitted changes. Every run that measures all the routes uploads the
+artifact, within budget or not. A run that stops on a route error writes none, as it has no complete
+set of numbers to adopt. The artifact holds counts only: a route meant to be slower needs its
+`limitMs` raised in [`src/routes.ts`](src/routes.ts).
 
 ### Explaining it in the pull request
 

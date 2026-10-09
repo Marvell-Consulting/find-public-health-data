@@ -50,6 +50,13 @@ if (headSha !== head) {
 }
 
 const baselinePath = path.resolve(import.meta.dirname, '..', 'baseline.json');
+// Kept routes are written back from this file, so it must be the baseline the run was checked against.
+if (output('git', ['status', '--porcelain', '--', baselinePath]).trim() !== '') {
+  console.error(
+    'tools/perf/baseline.json has uncommitted changes. Commit or discard them first, so the run is compared with the baseline CI used.',
+  );
+  process.exit(1);
+}
 const dir = await mkdtemp(path.join(tmpdir(), 'fphd-perf-'));
 try {
   execFileSync('gh', ['run', 'download', runId, '--name', 'perf-baseline', '--dir', dir], {
