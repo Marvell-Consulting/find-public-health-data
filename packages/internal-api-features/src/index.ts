@@ -3,6 +3,7 @@ import type { BlobStorage } from '@fphd/internal-storage';
 import { Router } from 'express';
 import { internalCiMethodsRouter } from './ci-methods.ts';
 import { internalDataProvidersRouter } from './data-providers.ts';
+import { dataUploadsRouter } from './data-uploads.ts';
 import { indicatorSectionsRouter } from './indicator-sections.ts';
 import { internalIndicatorsRouter } from './indicators.ts';
 import type { InternalRepositories } from './repositories.ts';
@@ -22,11 +23,16 @@ export interface InternalApiDependencies {
  * Every route on the internal-only surface, in one router. `public-api` never mounts this,
  * and `tools/artefact-boundary` checks that no public artifact can reach it.
  */
-export function internalApiRoutes({ repositories, session }: InternalApiDependencies): Router {
+export function internalApiRoutes({
+  repositories,
+  session,
+  storage,
+}: InternalApiDependencies): Router {
   const router = Router();
 
   router.use(internalIndicatorsRouter(repositories.indicators, session));
   router.use(indicatorSectionsRouter(repositories, session));
+  router.use(dataUploadsRouter(repositories.dataUploads, storage, session));
   router.use(internalCiMethodsRouter(repositories.ciMethods, session));
   router.use(internalTagsRouter(repositories.tags, session));
   router.use(internalDataProvidersRouter(repositories.dataProviders, session));
