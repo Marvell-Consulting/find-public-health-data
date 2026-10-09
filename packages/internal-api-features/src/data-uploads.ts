@@ -63,7 +63,7 @@ export function dataUploadsRouter(
       const { sub } = requireApiSession(response);
       const batchId = uuidv7();
       const blobName = `${indicatorId}/${batchId}.csv`;
-      const log = { indicatorId, uploadBatchId: batchId };
+      const logFields = { indicatorId, uploadBatchId: batchId };
 
       const abandoned = new AbortController();
       response.on('close', () => {
@@ -104,7 +104,7 @@ export function dataUploadsRouter(
 
         if (!result.ok) {
           request.log.info(
-            { ...log, problems: result.problems.map(({ code }) => code) },
+            { ...logFields, problems: result.problems.map(({ code }) => code) },
             'Data table refused',
           );
           response.status(422).json({
@@ -115,7 +115,7 @@ export function dataUploadsRouter(
           return;
         }
 
-        request.log.info({ ...log, rowCount: result.rowCount }, 'Data table uploaded');
+        request.log.info({ ...logFields, rowCount: result.rowCount }, 'Data table uploaded');
         response
           .status(201)
           .json({ id: batchId, rowCount: result.rowCount } satisfies DataUploadCreated);
@@ -125,7 +125,7 @@ export function dataUploadsRouter(
       } catch (error) {
         await deleteBlob(blobName);
         if (abandoned.signal.aborted || error instanceof UploadAbortedError) {
-          request.log.info(log, 'Data table upload abandoned');
+          request.log.info(logFields, 'Data table upload abandoned');
           return;
         }
         throw error;
