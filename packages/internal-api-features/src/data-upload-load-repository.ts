@@ -108,6 +108,8 @@ export async function processDataUpload(
 
     const staged = await stageRows(tx, readDataTable(await openFile(), references), signal);
     const problems = [...staged.problems, ...(await duplicateRows(tx))];
+    // Each step below runs to its end, so an abandoned upload is caught between them.
+    signal.throwIfAborted();
 
     if (problems.length > 0) {
       // Drizzle's client passes json parameters through unserialised, so they are sent as text.
@@ -119,6 +121,7 @@ export async function processDataUpload(
     }
 
     await loadStagedRows(tx, upload);
+    signal.throwIfAborted();
     await tx`
       UPDATE upload_batch
       SET status = 'processed', row_count = ${staged.rowCount}, column_names = ${staged.columnNames}
@@ -133,6 +136,7 @@ export async function processDataUpload(
       draft.uploadBatchId === null
         ? null
         : await deleteReplacedBatch(tx, draft.uploadBatchId, draft.id);
+    signal.throwIfAborted();
 
     return { ok: true, rowCount: staged.rowCount, replacedBlobName };
   });

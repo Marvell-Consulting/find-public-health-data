@@ -11,6 +11,7 @@ import { createTestDatabase } from '@fphd/db/testing';
 import { request } from '@fphd/express/testing';
 import { BlobNotFoundError, createAzureBlobStorage } from '@fphd/internal-storage';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+import { v7 as randomUuidV7 } from 'uuid';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import { processDataUpload } from './data-upload-load-repository.ts';
@@ -386,30 +387,49 @@ describe('GET /api/internal/indicators/:id/data-uploads/latest', () => {
 });
 
 describe('processDataUpload', () => {
-  it('rolls back, recording nothing, when the upload is abandoned', async () => {
-    const { indicatorId } = await newDraft(internalDb, 'Upload abandoned');
-    const batchId = '019fa38f-073f-764e-9ac6-1c4d03b1ffff';
+  async function storedUpload(name: string) {
+    const { indicatorId } = await newDraft(internalDb, name);
+    const batchId = randomUuidV7();
     const blobName = `${indicatorId}/${batchId}.csv`;
     await storage.put(blobName, Readable.from([VALID_CSV]));
+    const upload = {
+      batchId,
+      indicatorId,
+      blobName,
+      originalFilename: 'data.csv',
+      byteSize: Buffer.byteLength(VALID_CSV),
+      sha256: '0'.repeat(64),
+      actor: ACTOR,
+    };
+    return { indicatorId, batchId, blobName, upload };
+  }
+
+  it('rolls back, recording nothing, when the upload is abandoned before it loads', async () => {
+    const { indicatorId, batchId, blobName, upload } = await storedUpload('Upload abandoned');
 
     await expect(
-      processDataUpload(
-        internalDb,
-        {
-          batchId,
-          indicatorId,
-          blobName,
-          originalFilename: 'data.csv',
-          byteSize: 1,
-          sha256: '0'.repeat(64),
-          actor: ACTOR,
-        },
-        () => storage.get(blobName),
-        AbortSignal.abort(),
-      ),
+      processDataUpload(internalDb, upload, () => storage.get(blobName), AbortSignal.abort()),
     ).rejects.toThrow();
 
     expect(await batchOf(batchId)).toBeUndefined();
+    expect((await draftOf(ownerDb, indicatorId)).uploadBatchId).toBeNull();
+  });
+
+  it('rolls back when the upload is abandoned as its rows are read', async () => {
+    const { indicatorId, batchId, blobName, upload } = await storedUpload('Upload abandoned late');
+    const abandoned = new AbortController();
+    const openFile = async () => {
+      const file = await storage.get(blobName);
+      file.on('end', () => abandoned.abort());
+      return file;
+    };
+
+    await expect(
+      processDataUpload(internalDb, upload, openFile, abandoned.signal),
+    ).rejects.toThrow();
+
+    expect(await batchOf(batchId)).toBeUndefined();
+    expect(await rowsOf(batchId)).toEqual([]);
     expect((await draftOf(ownerDb, indicatorId)).uploadBatchId).toBeNull();
   });
 });
