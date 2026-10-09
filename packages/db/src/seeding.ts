@@ -292,9 +292,9 @@ async function seedTables(
 }
 
 /**
- * Loads the batches through a staging table, giving each the version it was uploaded to: the
- * files predate the column, and every seeded batch belongs to its indicator's published
- * version, or its draft where nothing is published.
+ * Loads the batches through a staging table, crediting each to a version: the files predate
+ * versions, so each batch goes to its indicator's current published version, or to its draft
+ * when nothing is published.
  */
 async function loadUploadBatches(
   tx: postgres.TransactionSql,

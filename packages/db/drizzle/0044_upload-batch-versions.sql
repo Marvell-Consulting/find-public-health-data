@@ -32,8 +32,8 @@ FROM (
 WHERE k.observation_id = o.id;--> statement-breakpoint
 ALTER TABLE "observation" ALTER COLUMN "dimension_key" DROP DEFAULT;--> statement-breakpoint
 
--- Each existing batch was uploaded to the indicator's published version, or to its draft when
--- nothing is published.
+-- Batches predate versions, so each existing batch is credited to its indicator's current
+-- published version, or to its draft when nothing is published.
 UPDATE "upload_batch" b
 SET "indicator_version_id" = coalesce(
   (SELECT cpv.id FROM current_published_version cpv WHERE cpv.indicator_id = b.indicator_id),
