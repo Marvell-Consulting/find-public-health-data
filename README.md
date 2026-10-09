@@ -143,6 +143,10 @@ CI. To take a version that is still inside the window, add a `name@version` entr
 `minimumReleaseAgeExclude` with a note of when it can go, and remove it once the version has aged
 out. Do not pass `--trust-lockfile`: it skips the verification entirely.
 
+`postgres@3.4.9` has a pnpm patch for [upstream COPY error handling](https://github.com/porsager/postgres/pull/1183):
+a server error after COPY finishes sending must reject the writable so the transaction rolls back.
+Remove the patch when a released version includes that fix.
+
 Each tier is its own CI job, so the jobs run `pnpm test:unit`, `pnpm test:integration` and
 `pnpm test:e2e` individually rather than `pnpm test`.
 
@@ -323,6 +327,7 @@ pnpm db:migrate               # apply pending migrations
 pnpm db:import-core-data      # load required core data (topics and lists) — idempotent, any environment
 pnpm db:seed-dummy-data       # replace dummy data with the committed seed and rebuild read models
 pnpm db:rebuild-read-models   # rebuild the derived cache tables from canonical data
+pnpm db:migrate-live-data     # apply a live data migration package (DATA_MIGRATION_URL/_SHA256)
 pnpm db:reset                 # back to a freshly created database, for db:migrate to rebuild
 pnpm db:studio                # browse the database
 ```
@@ -383,6 +388,7 @@ pnpm --filter @fphd/operations cli db status                # report migration s
 pnpm --filter @fphd/operations cli db import-core-data      # load required core data (topics)
 pnpm --filter @fphd/operations cli db seed-dummy-data       # replace all dummy data with the seed
 pnpm --filter @fphd/operations cli db import-published-snapshot # dev only: load a verified published benchmark archive
+pnpm --filter @fphd/operations cli db migrate-live-data       # apply a live baseline or increment
 pnpm --filter @fphd/operations cli db rebuild-read-models
 pnpm --filter @fphd/operations cli db reset                 # dev-class only: drop all schema objects
 ```
@@ -397,7 +403,7 @@ That image also carries `psql`, because a database with no public endpoint makes
 the network the only route to an ad-hoc query. It is version 18, matching the server — `pg_dump`
 refuses to run against a server newer than itself.
 
-Four commands are worth noting:
+These commands are worth noting:
 
 - `db bootstrap` is the only bootstrap path: the local compose database (via `pnpm db:bootstrap`),
   CI's integration job and a managed server all create the per-API roles through it. It is
@@ -427,6 +433,10 @@ Four commands are worth noting:
   The transaction holds table locks during the load, so beta requests may time out until
   it commits. Run it when an interruption to the beta site is acceptable. The benchmark
   clone is a historical published snapshot, not a live Pholio feed.
+- `db migrate-live-data` applies a checksum-verified approved-live baseline to empty
+  canonical tables, or the next incremental package in its recorded predecessor chain.
+  It applies reviewed topic and classification relationships, rebuilds the read models and
+  records the package in `data_migration` in one transaction.
 - `db reset` returns the database to its freshly created state (recreating the `public` schema
   and dropping the migration watermark) so `db migrate` rebuilds from empty — recreate rather than
   truncate, so it also recovers from a broken migration state. It refuses outside
@@ -448,6 +458,7 @@ db status
 db import-core-data
 db seed-dummy-data
 db import-published-snapshot # dev only; requires the two PUBLISHED_SNAPSHOT_* values
+db migrate-live-data       # requires DATA_MIGRATION_URL and DATA_MIGRATION_SHA256
 db rebuild-read-models
 db reset
 ```

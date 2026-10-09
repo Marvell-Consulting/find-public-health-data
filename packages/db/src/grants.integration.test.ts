@@ -224,16 +224,17 @@ describe('the public role', () => {
 
   // The catalogue check above could miss a privilege arriving some other way; a real read
   // cannot.
-  it.each(['indicator', 'indicator_version', 'current_published_version', 'observation'])(
-    'is refused a direct read of %s',
-    async (relation) => {
-      await expect(member.unsafe(`SELECT 1 FROM public.${relation} LIMIT 1`)).rejects.toMatchObject(
-        {
-          code: '42501',
-        },
-      );
-    },
-  );
+  it.each([
+    'indicator',
+    'indicator_version',
+    'current_published_version',
+    'observation',
+    'data_migration',
+  ])('is refused a direct read of %s', async (relation) => {
+    await expect(member.unsafe(`SELECT 1 FROM public.${relation} LIMIT 1`)).rejects.toMatchObject({
+      code: '42501',
+    });
+  });
 
   it('reads the same columns of each indicator view as it always has', async () => {
     const columns = await member<{ table_name: string; column_name: string; data_type: string }[]>`
@@ -279,6 +280,15 @@ describe('the internal role', () => {
 
     expect(row?.readable).toBe(true);
   });
+  it('holds no privilege on the data migration ledger', async () => {
+    const [row] = await owner<{ held: boolean }[]>`
+      SELECT has_table_privilege(${API_ROLES.internalApi}, 'public.data_migration', 'SELECT')
+        OR has_table_privilege(${API_ROLES.internalApi}, 'public.data_migration', 'INSERT') AS held
+    `;
+
+    expect(row?.held).toBe(false);
+  });
+
   // Table-level, as the other publisher writes are.
   it.each(
     ['indicator_version_link', 'indicator_version_age_range', 'indicator_version_source'].flatMap(

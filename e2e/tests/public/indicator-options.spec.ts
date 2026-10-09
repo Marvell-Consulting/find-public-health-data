@@ -57,7 +57,13 @@ for (const javaScriptEnabled of [true, false]) {
 
     async function apply(options: Locator) {
       if (!javaScriptEnabled) {
+        const page = options.page();
+        const navigation = page.waitForEvent('framenavigated', {
+          predicate: (frame) => frame === page.mainFrame(),
+        });
         await options.getByRole('button', { name: 'Apply options' }).click();
+        await navigation;
+        await page.waitForLoadState();
       }
     }
 

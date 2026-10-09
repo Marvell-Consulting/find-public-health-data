@@ -93,9 +93,14 @@ catalog:
   supertest: 7.2.2
   tsx: 4.23.0
   uuid: 14.0.2
+  undici: 8.11.2
   # React Router 8.2 supports TypeScript 5 and 6; TypeScript 7 produces unmet peers.
   typescript: 6.0.3
   vite: 8.3.1
   vitest: 4.1.11
   yaml: 2.9.0
   zod: 4.4.3
+
+patchedDependencies:
+  # COPY errors must settle the writable: https://github.com/porsager/postgres/pull/1183.
+  postgres@3.4.9: patches/postgres@3.4.9.patch

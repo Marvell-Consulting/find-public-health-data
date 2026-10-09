@@ -6,6 +6,7 @@ import {
   bootstrap,
   importCoreData,
   importPublishedSnapshot,
+  migrateLiveData,
   rebuildReadModels,
   reset,
   seedDummyData,
@@ -57,6 +58,10 @@ export const commands: Record<string, Command> = {
   'db import-published-snapshot': {
     description: 'Replace dev data with the approved-only published benchmark snapshot',
     run: importPublishedSnapshot,
+  },
+  'db migrate-live-data': {
+    description: 'Apply an ordered approved-live baseline or incremental migration package',
+    run: migrateLiveData,
   },
   'db rebuild-read-models': {
     description: 'Rebuild the read models from the canonical tables',

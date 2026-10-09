@@ -1,14 +1,15 @@
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { createReadStream, createWriteStream } from 'node:fs';
+import { createReadStream } from 'node:fs';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { pipeline } from 'node:stream/promises';
 import { promisify } from 'node:util';
 
 import { z } from '@fphd/config';
 import { readCsvHeader, SEED_TABLES } from '@fphd/db/operations';
+
+import { type DownloadResume, downloadFile } from './download.ts';
 
 const runFile = promisify(execFile);
 const publishedSource = 'PHOLIO_LIVE_A-derived fphd_new benchmark clone';
@@ -109,16 +110,12 @@ export async function verifyPublishedSnapshot(directory: string): Promise<Publis
 export async function downloadPublishedSnapshot(
   url: string,
   expectedSha256: string,
+  onResume?: (resume: DownloadResume) => void,
 ): Promise<{ directory: string; manifest: PublishedManifest; cleanup: () => Promise<void> }> {
-  if (new URL(url).protocol !== 'https:') throw new Error('Published snapshot URL must use HTTPS');
   const directory = await mkdtemp(join(tmpdir(), 'fphd-published-'));
   try {
     const archive = join(directory, 'snapshot.tar');
-    const response = await fetch(url);
-    if (!response.ok || !response.body) {
-      throw new Error(`Published snapshot download returned HTTP ${response.status}`);
-    }
-    await pipeline(response.body, createWriteStream(archive));
+    await downloadFile(url, archive, 'Published snapshot', { onResume });
     if ((await sha256(archive)) !== expectedSha256) {
       throw new Error('Published snapshot archive checksum failed');
     }

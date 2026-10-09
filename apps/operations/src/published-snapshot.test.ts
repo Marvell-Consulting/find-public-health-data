@@ -11,12 +11,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { downloadPublishedSnapshot, verifyPublishedSnapshot } from './published-snapshot.ts';
 
+const mocks = vi.hoisted(() => ({ download: vi.fn() }));
+vi.mock('./download.ts', () => ({ downloadFile: mocks.download }));
+
 const runFile = promisify(execFile);
 
 const directories: string[] = [];
 
 afterEach(async () => {
-  vi.unstubAllGlobals();
+  vi.resetAllMocks();
   await Promise.all(
     directories.splice(0).map((directory) => rm(directory, { recursive: true, force: true })),
   );
@@ -159,7 +162,9 @@ describe('downloadPublishedSnapshot', () => {
     directories.push(join(archive, '..'));
     await runFile('tar', ['-cf', archive, '-C', directory, ...(await readdir(directory))]);
     const bytes = await readFile(archive);
-    vi.stubGlobal('fetch', async () => new Response(bytes));
+    mocks.download.mockImplementation(async (_url: string, path: string) => {
+      await writeFile(path, bytes);
+    });
     return createHash('sha256').update(bytes).digest('hex');
   }
 

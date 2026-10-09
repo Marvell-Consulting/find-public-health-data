@@ -147,7 +147,7 @@ export async function applyIndicatorTopics(
     }
     await db
       .update(indicator)
-      .set({ dataUpdatedAt: new Date(`${updatedAt}Z`) })
+      .set({ dataUpdatedAt: new Date(updatedAt.endsWith('Z') ? updatedAt : `${updatedAt}Z`) })
       .where(eq(indicator.id, indicatorId));
     timestamps += 1;
   }

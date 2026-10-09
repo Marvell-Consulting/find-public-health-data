@@ -1,9 +1,21 @@
 import type { SqlClient } from '@fphd/db';
-import { SEED_TABLES, SEEDED_TABLES } from '@fphd/db/operations';
+import {
+  DATA_MIGRATION_FORMAT_VERSION,
+  DATA_MIGRATION_NULL,
+  DATA_MIGRATION_SCHEMA,
+  type DataMigrationManifest,
+  SEED_TABLES,
+  SEEDED_TABLES,
+} from '@fphd/db/operations';
 import { createLogger, type Logger } from '@fphd/logger';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { CommandContext } from './commands.ts';
-import { importCoreData, importPublishedSnapshot, rolesToBootstrap } from './db-commands.ts';
+import {
+  importCoreData,
+  importPublishedSnapshot,
+  migrateLiveData,
+  rolesToBootstrap,
+} from './db-commands.ts';
 import type { Config } from './load-config.ts';
 import type { PublishedManifest } from './published-snapshot.ts';
 
@@ -14,9 +26,14 @@ const mocks = vi.hoisted(() => ({
   rebuild: vi.fn(),
   analyze: vi.fn(),
   importCoreData: vi.fn(),
+  migrationDownload: vi.fn(),
+  migrationApply: vi.fn(),
 }));
 
 vi.mock('./published-snapshot.ts', () => ({ downloadPublishedSnapshot: mocks.download }));
+vi.mock('./data-migration-package.ts', () => ({
+  downloadDataMigration: mocks.migrationDownload,
+}));
 vi.mock('@fphd/db/operations', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@fphd/db/operations')>()),
   assertCoreDataPresent: mocks.assertCoreData,
@@ -24,6 +41,7 @@ vi.mock('@fphd/db/operations', async (importOriginal) => ({
   rebuildReadModelTables: mocks.rebuild,
   analyzeReadModels: mocks.analyze,
   importCoreData: mocks.importCoreData,
+  applyDataMigration: mocks.migrationApply,
 }));
 
 afterEach(() => vi.clearAllMocks());
@@ -71,6 +89,59 @@ function seededTables(count: (table: string) => number) {
   return {
     tables: Object.fromEntries(SEED_TABLES.map((table) => [table, count(table)])),
     relationships: { links: 1 },
+  };
+}
+
+function migrationManifest(): DataMigrationManifest {
+  const file = (name: string) => ({
+    file: name,
+    rows: 0,
+    bytes: 0,
+    sha256: 'a'.repeat(64),
+  });
+  return {
+    format_version: DATA_MIGRATION_FORMAT_VERSION,
+    schema: DATA_MIGRATION_SCHEMA,
+    migration_id: 'baseline-1',
+    kind: 'baseline',
+    predecessor: null,
+    source: {
+      system: 'fingertips',
+      environment: 'live',
+      database: 'fphd_new',
+      snapshot_at: '2026-09-22T10:00:00Z',
+      cutoff_at: '2026-09-22T10:00:00Z',
+    },
+    source_csv_null: DATA_MIGRATION_NULL,
+    id_mapping: 'deterministic-uuidv7-v1',
+    relationships: {
+      file: 'indicator-relationships.json',
+      rows: 0,
+      bytes: 0,
+      sha256: 'a'.repeat(64),
+    },
+    tables: Object.fromEntries(SEED_TABLES.map((table) => [table, file(`${table}.csv.gz`)])),
+  };
+}
+
+function migrationContext() {
+  let committed = false;
+  const tx = { unsafe: vi.fn(async (_statement: string) => []) };
+  const sql = {
+    begin: vi.fn(async (run: (transaction: typeof tx) => Promise<unknown>) => {
+      const result = await run(tx);
+      committed = true;
+      return result;
+    }),
+  } as unknown as SqlClient;
+  const config = {
+    appEnv: 'production',
+    dataMigration: { url: 'https://example.test/migration.tar', sha256: 'b'.repeat(64) },
+  } as Config;
+  return {
+    context: { sql, config, logger } satisfies CommandContext,
+    tx,
+    wasCommitted: () => committed,
   };
 }
 
@@ -169,7 +240,7 @@ describe('importPublishedSnapshot', () => {
     await importPublishedSnapshot(context);
 
     expect(mocks.seedPublished).toHaveBeenCalledWith(tx, '/tmp/fixture');
-    expect(tx.unsafe).toHaveBeenCalledTimes(SEEDED_TABLES.length + 2);
+    expect(tx.unsafe).toHaveBeenCalledTimes(SEEDED_TABLES.length + 4);
     expect(mocks.rebuild).toHaveBeenCalledWith(tx);
     expect(wasCommitted()).toBe(true);
     expect(mocks.analyze).toHaveBeenCalledWith(context.sql);
@@ -211,6 +282,72 @@ describe('importPublishedSnapshot', () => {
     );
     expect(wasCommitted()).toBe(false);
     expect(mocks.rebuild).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+});
+
+describe('migrateLiveData', () => {
+  it('applies a verified package, rebuilds read models and cleans up', async () => {
+    const { context, tx, wasCommitted } = migrationContext();
+    const cleanup = vi.fn(async () => {});
+    const manifest = migrationManifest();
+    mocks.migrationDownload.mockResolvedValue({ directory: '/tmp/migration', manifest, cleanup });
+    mocks.migrationApply.mockResolvedValue({ applied: true, changes: {} });
+
+    await migrateLiveData(context);
+
+    expect(mocks.migrationApply).toHaveBeenCalledWith(
+      tx,
+      '/tmp/migration',
+      manifest,
+      'b'.repeat(64),
+      expect.any(Function),
+    );
+    // Only tables the service keeps: the staged-only legacy source list has none to analyze.
+    expect(tx.unsafe.mock.calls.map(([statement]) => statement)).toEqual(
+      [...SEEDED_TABLES, 'indicator_version_topic', 'indicator_version_classification'].map(
+        (table) => `ANALYZE "${table}"`,
+      ),
+    );
+    expect(mocks.rebuild).toHaveBeenCalledWith(tx);
+    expect(mocks.analyze).toHaveBeenCalledWith(context.sql);
+    expect(wasCommitted()).toBe(true);
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it('leaves read models alone when the package was already applied', async () => {
+    const { context, tx } = migrationContext();
+    const cleanup = vi.fn(async () => {});
+    mocks.migrationDownload.mockResolvedValue({
+      directory: '/tmp/migration',
+      manifest: migrationManifest(),
+      cleanup,
+    });
+    mocks.migrationApply.mockResolvedValue({ applied: false, changes: {} });
+
+    await migrateLiveData(context);
+
+    expect(tx.unsafe).not.toHaveBeenCalled();
+    expect(mocks.rebuild).not.toHaveBeenCalled();
+    expect(mocks.analyze).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it('rolls back and cleans up when package application fails', async () => {
+    const { context, wasCommitted } = migrationContext();
+    const cleanup = vi.fn(async () => {});
+    mocks.migrationDownload.mockResolvedValue({
+      directory: '/tmp/migration',
+      manifest: migrationManifest(),
+      cleanup,
+    });
+    mocks.migrationApply.mockRejectedValue(new Error('migration failed'));
+
+    await expect(migrateLiveData(context)).rejects.toThrow('migration failed');
+
+    expect(wasCommitted()).toBe(false);
+    expect(mocks.rebuild).not.toHaveBeenCalled();
+    expect(mocks.analyze).not.toHaveBeenCalled();
     expect(cleanup).toHaveBeenCalledOnce();
   });
 });
