@@ -5,7 +5,6 @@ import type { DataTableProblem } from './loader.ts';
 
 /** One row of the problems table. */
 export interface ProblemRow {
-  key: string;
   problem: string;
   detail: ReactNode;
   actions: readonly string[];
@@ -202,7 +201,6 @@ const CONTENT: Record<Exclude<DataTableProblemCode, 'missing_column'>, Content> 
 /** A missing column is a row of its own, as each is its own fix. */
 function missingColumnRows(problem: DataTableProblem): ProblemRow[] {
   return problem.items.map((column) => ({
-    key: `missing_column:${column}`,
     problem: `${column} column missing`,
     detail: (
       <>
@@ -227,7 +225,6 @@ export function problemRows(problems: readonly DataTableProblem[]): ProblemRow[]
     const content = CONTENT[problem.code];
     return [
       {
-        key: problem.code,
         problem: content.problem,
         detail: content.detail(problem),
         actions: content.actions,

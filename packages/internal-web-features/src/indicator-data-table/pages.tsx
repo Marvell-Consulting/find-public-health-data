@@ -40,13 +40,13 @@ function useUploading(): [boolean, () => void] {
   return [uploading, () => setUploading(true)];
 }
 
-// The heading is the field's label, as GOV.UK asks of a page with a single question, which
-// FileUpload cannot do; upstream: daniel-ac-martin/NotGovUK#2057.
 interface UploadDataTablePageProps {
   fieldErrors?: DataTableUploadFailure['fieldErrors'] | undefined;
   formError?: string | undefined;
 }
 
+// The heading is the field's label, as GOV.UK asks of a page with a single question, which
+// FileUpload cannot do; upstream: daniel-ac-martin/NotGovUK#2057.
 export function UploadDataTablePage({ fieldErrors = {}, formError }: UploadDataTablePageProps) {
   const error = fieldErrors[FIELD];
   const inputId = fieldInputId(FIELD);
@@ -95,7 +95,7 @@ export function UploadDataTablePage({ fieldErrors = {}, formError }: UploadDataT
   );
 }
 
-const PROBLEMS_HEADING = 'There is a problem with the indicator data table you uploaded';
+export const PROBLEMS_HEADING = 'There is a problem with the indicator data table you uploaded';
 
 export function DataTableProblemsPage({
   id,
