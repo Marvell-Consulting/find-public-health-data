@@ -1,4 +1,5 @@
 import A from '@not-govuk/link';
+import type { ReactNode } from 'react';
 
 export interface CardListItem {
   description?: string;
@@ -11,15 +12,41 @@ interface CardListProps {
   /** The card titles' heading level, so a page can keep its outline sequential. Appearance is
    * fixed by `govuk-heading-s` and does not follow the level. */
   headingLevel?: 2 | 3;
+  searchTerm?: string;
   items: readonly CardListItem[];
+}
+
+function highlightMatches(text: string, searchTerm: string): ReactNode {
+  if (!searchTerm) return text;
+
+  const pattern = new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+  const parts: ReactNode[] = [];
+  let start = 0;
+  for (const match of text.matchAll(pattern)) {
+    parts.push(text.slice(start, match.index));
+    parts.push(
+      <mark className="fphd-search-highlight" key={match.index}>
+        {match[0]}
+      </mark>,
+    );
+    start = match.index + match[0].length;
+  }
+  parts.push(text.slice(start));
+  return parts;
 }
 
 /**
  * The whole card is clickable: the link's ::after covers the wrapper. Anything else placed in a
  * card would sit under that overlay, so a card holds only its heading link and description.
  */
-export function CardList({ columns = 'one', headingLevel = 3, items }: CardListProps) {
+export function CardList({
+  columns = 'one',
+  headingLevel = 3,
+  items,
+  searchTerm = '',
+}: CardListProps) {
   const Heading = headingLevel === 2 ? 'h2' : 'h3';
+  const query = searchTerm.trim();
 
   return (
     <ul className={`fphd-card-list fphd-card-list--${columns}-column`}>
@@ -28,11 +55,13 @@ export function CardList({ columns = 'one', headingLevel = 3, items }: CardListP
           <div className="fphd-card-list__item-wrapper">
             <Heading className="govuk-heading-s fphd-card-list__heading">
               <A className="fphd-card-list__link" href={item.href}>
-                {item.title}
+                {highlightMatches(item.title, query)}
               </A>
             </Heading>
             {item.description ? (
-              <p className="govuk-body fphd-card-list__description">{item.description}</p>
+              <p className="govuk-body fphd-card-list__description">
+                {highlightMatches(item.description, query)}
+              </p>
             ) : null}
           </div>
         </li>

@@ -1,5 +1,5 @@
 import { createDocumentMeta } from '@fphd/ui';
-import { useLoaderData } from 'react-router';
+import { useLoaderData, useSearchParams } from 'react-router';
 import { loadTopics } from './loader.ts';
 import { TopicsPage } from './pages.tsx';
 
@@ -9,7 +9,9 @@ export const meta = createDocumentMeta('Topics');
 
 export function TopicsRoute() {
   const topics = useLoaderData<typeof loader>();
-  return <TopicsPage topics={topics} />;
+  const [searchParams] = useSearchParams();
+  const initialQuery = searchParams.get('q') ?? '';
+  return <TopicsPage key={initialQuery} topics={topics} initialQuery={initialQuery} />;
 }
 
 export default TopicsRoute;

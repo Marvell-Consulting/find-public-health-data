@@ -48,4 +48,38 @@ describe('CardList', () => {
     expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(2);
     expect(screen.queryByRole('heading', { level: 3 })).toBeNull();
   });
+
+  it('highlights every case-insensitive match in titles and descriptions', () => {
+    const { container } = renderCards({ searchTerm: '  I  ' });
+
+    expect([...container.querySelectorAll('mark')].map((mark) => mark.textContent)).toEqual([
+      'i',
+      'i',
+      'i',
+      'i',
+    ]);
+    expect(screen.getByRole('link', { name: 'Smoking' })).toBeTruthy();
+    expect(screen.getByRole('paragraph').textContent).toBe('Prevalence and quitting.');
+  });
+
+  it('treats search punctuation and content as literal text', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <CardList
+          items={[{ href: '/example', title: '<script>A&E (care)</script>' }]}
+          searchTerm="(care)"
+        />
+      </MemoryRouter>,
+    );
+
+    expect(container.querySelector('mark')?.textContent).toBe('(care)');
+    expect(container.querySelector('script')).toBeNull();
+    expect(screen.getByRole('link', { name: '<script>A&E (care)</script>' })).toBeTruthy();
+  });
+
+  it('leaves content unmarked when the search term is empty', () => {
+    const { container } = renderCards({ searchTerm: '  ' });
+
+    expect(container.querySelector('mark')).toBeNull();
+  });
 });
