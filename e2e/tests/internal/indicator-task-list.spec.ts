@@ -5,7 +5,6 @@ import { createIndicator, uniqueIndicatorName } from '../support/create-indicato
 import { expectNotFoundWithoutDraft, taskRow } from '../support/section-page.ts';
 import { PUBLISHER } from '../support/sign-in.ts';
 
-// The one task with no page yet.
 const DATA_TABLE = 'Data table';
 
 /** A draft's task rows, in the order the task list shows them. */
@@ -83,10 +82,9 @@ test('marks the name as complete and everything else as not started', async ({ p
   for (const taskName of TASKS.filter((name) => name !== 'Name')) {
     await expect(taskRow(page, taskName)).toContainText('Not started');
   }
-  for (const taskName of TASKS.filter((name) => name !== DATA_TABLE)) {
+  for (const taskName of TASKS) {
     await expect(taskRow(page, taskName).getByRole('link')).toBeVisible();
   }
-  await expect(taskRow(page, DATA_TABLE).getByRole('link')).toHaveCount(0);
 });
 
 test('opens the name from the task list and comes back to it renamed', async ({ page }) => {
