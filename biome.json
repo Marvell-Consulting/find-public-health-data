@@ -107,6 +107,7 @@
         "**/*.config.ts",
         "vitest.*.ts",
         "**/*.test.ts",
+        "**/*.test.tsx",
         "**/*.testing.ts",
         "e2e/**",
         "tools/**"
