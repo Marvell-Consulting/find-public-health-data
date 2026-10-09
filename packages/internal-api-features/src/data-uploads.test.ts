@@ -1,3 +1,5 @@
+import { createServer, request as httpRequest } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { Readable } from 'node:stream';
 import { text } from 'node:stream/consumers';
 
@@ -220,6 +222,52 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
     expect(response.status).toBe(500);
     const [blobName] = deleted.mock.calls[0] ?? [];
     await expect(storage.get(String(blobName))).rejects.toThrow(BlobNotFoundError);
+  });
+});
+
+describe('an abandoned upload', () => {
+  it('deletes its blob and logs the abandonment when the client goes', async () => {
+    const storage = createFakeBlobStorage();
+    const deleted = vi.spyOn(storage, 'delete');
+    const { logger, lines } = createCapturingLogger();
+    let processing: () => void = () => {};
+    const started = new Promise<void>((resolve) => {
+      processing = resolve;
+    });
+    const process = vi.fn(
+      (_upload: DataUpload, _openFile: unknown, signal: AbortSignal) =>
+        new Promise<never>((_resolve, reject) => {
+          signal.addEventListener('abort', () => reject(signal.reason));
+          processing();
+        }),
+    );
+    const server = createServer(createTestApp({ process }, storage, logger));
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+
+    const client = httpRequest({
+      host: '127.0.0.1',
+      port: (server.address() as AddressInfo).port,
+      method: 'POST',
+      path: UPLOADS,
+      headers: {
+        cookie: await publisherCookie(),
+        'content-type': 'multipart/form-data; boundary=b',
+      },
+    });
+    client.on('error', () => {});
+    client.end(
+      `--b\r\nContent-Disposition: form-data; name="dataTable"; filename="data.csv"\r\n\r\n${CSV}\r\n--b--\r\n`,
+    );
+    await started;
+    client.destroy();
+
+    await expect
+      .poll(async () => (await handlerLogLines(lines)).map(({ msg }) => msg))
+      .toContain('Data table upload abandoned');
+    const [blobName] = deleted.mock.calls[0] ?? [];
+    await expect(storage.get(String(blobName))).rejects.toThrow(BlobNotFoundError);
+    expect(lines).not.toContainEqual(expect.objectContaining({ level: 50 }));
+    server.close();
   });
 });
 
