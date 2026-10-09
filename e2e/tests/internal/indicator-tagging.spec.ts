@@ -29,9 +29,16 @@ function question(page: Page, name: string) {
   return page.getByRole('group', { name });
 }
 
-async function addTag(page: Page, list: List, name: string) {
+async function addTag(page: Page, list: List, name: string, navigates = false) {
   await page.getByLabel(LISTS[list].label, { exact: true }).selectOption({ label: name });
+  const navigation = navigates
+    ? page.waitForEvent('framenavigated', { predicate: (frame) => frame === page.mainFrame() })
+    : undefined;
   await page.getByRole('button', { name: LISTS[list].add, exact: true }).click();
+  if (navigation) {
+    await navigation;
+    await page.waitForLoadState();
+  }
   await expect(page.getByRole('button', { name: new RegExp(` ${name}$`) })).toBeVisible();
 }
 
@@ -216,11 +223,11 @@ test.describe('without JavaScript', () => {
     // Conditional reveals stay open without JavaScript.
     await expect(page.getByLabel(LISTS.framework.label, { exact: true })).toBeVisible();
 
-    await addTag(page, 'topic', 'Alcohol');
-    await addTag(page, 'type', 'Outcome');
-    await addTag(page, 'riskFactor', 'Gambling');
+    await addTag(page, 'topic', 'Alcohol', true);
+    await addTag(page, 'type', 'Outcome', true);
+    await addTag(page, 'riskFactor', 'Gambling', true);
     await expect(question(page, RISK_FACTOR_QUESTION).getByLabel('Yes')).toBeChecked();
-    await addTag(page, 'framework', 'Healthy Child');
+    await addTag(page, 'framework', 'Healthy Child', true);
     await page.getByRole('button', { name: 'Remove framework or programme Healthy Child' }).click();
     await answer(page, FRAMEWORK_QUESTION, 'No');
     await page.getByRole('button', { name: 'Continue' }).click();
