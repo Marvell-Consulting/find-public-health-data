@@ -2,7 +2,7 @@ import { pipeline, type Readable } from 'node:stream';
 
 import { CsvError, type Info, parse } from 'csv-parse';
 
-import { type ColumnPositions, readHeader } from './data-table-columns.ts';
+import { type Header, readHeader } from './data-table-columns.ts';
 import type { DataTableFinding } from './data-table-problems.ts';
 import { type DataTableReferences, type DataTableRow, readRow } from './data-table-rows.ts';
 
@@ -30,7 +30,7 @@ const parseOptions = {
 
 /**
  * Reads a CSV data table as a stream, so a file of any length is held a record at a time: its
- * headings, then each row as it is loaded or what is wrong with it. A file that is not CSV
+ * headings and what is wrong with them, then each row as it is loaded or what is wrong with it. A file that is not CSV
  * yields one `unreadable` finding; a failure of the stream itself is thrown.
  */
 export async function* readDataTable(
@@ -39,7 +39,7 @@ export async function* readDataTable(
 ): AsyncGenerator<DataTableEvent> {
   // pipeline, so a failing file fails the parser and a parser left early stops the file.
   const records = pipeline(file, parse(parseOptions), () => {});
-  let positions: ColumnPositions | undefined;
+  let header: Header | undefined;
   let rowCount = 0;
 
   try {
@@ -47,19 +47,15 @@ export async function* readDataTable(
       record: string[];
       info: Info;
     }>) {
-      if (positions === undefined) {
+      if (header === undefined) {
         yield { kind: 'columns', names: record };
-        const header = readHeader(record);
-        if (!header.ok) {
-          for (const finding of header.findings) yield { kind: 'finding', finding };
-          return;
-        }
-        positions = header.positions;
+        header = readHeader(record);
+        for (const finding of header.findings) yield { kind: 'finding', finding };
         continue;
       }
 
       rowCount += 1;
-      const reading = readRow(record, positions, references, info.lines);
+      const reading = readRow(record, header, references, info.lines);
       if (reading.ok) {
         yield { kind: 'row', row: reading.row };
       } else {
