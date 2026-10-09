@@ -212,7 +212,12 @@ export async function importPublishedSnapshot({
       }
       // The dummy seed's planner statistics would give the full-data
       // read-model rebuild a misleading plan. Analyze before those large queries.
-      for (const table of SEEDED_TABLES) await tx.unsafe(`ANALYZE "${table}"`);
+      for (const table of [
+        ...SEEDED_TABLES,
+        'indicator_version_topic',
+        'indicator_version_classification',
+      ])
+        await tx.unsafe(`ANALYZE "${table}"`);
       await rebuildReadModelTables(tx);
       return result;
     });
@@ -251,7 +256,12 @@ export async function migrateLiveData({ sql, config, logger }: CommandContext): 
         (progress) => logger.info(progress, 'Live data migration progress'),
       );
       if (!applied.applied) return applied;
-      for (const table of SEEDED_TABLES) await tx.unsafe(`ANALYZE "${table}"`);
+      for (const table of [
+        ...SEEDED_TABLES,
+        'indicator_version_topic',
+        'indicator_version_classification',
+      ])
+        await tx.unsafe(`ANALYZE "${table}"`);
       await rebuildReadModelTables(tx);
       return applied;
     });

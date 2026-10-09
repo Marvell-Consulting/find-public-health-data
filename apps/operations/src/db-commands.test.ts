@@ -240,7 +240,7 @@ describe('importPublishedSnapshot', () => {
     await importPublishedSnapshot(context);
 
     expect(mocks.seedPublished).toHaveBeenCalledWith(tx, '/tmp/fixture');
-    expect(tx.unsafe).toHaveBeenCalledTimes(SEEDED_TABLES.length + 2);
+    expect(tx.unsafe).toHaveBeenCalledTimes(SEEDED_TABLES.length + 4);
     expect(mocks.rebuild).toHaveBeenCalledWith(tx);
     expect(wasCommitted()).toBe(true);
     expect(mocks.analyze).toHaveBeenCalledWith(context.sql);
@@ -305,7 +305,9 @@ describe('migrateLiveData', () => {
     );
     // Only tables the service keeps: the staged-only legacy source list has none to analyze.
     expect(tx.unsafe.mock.calls.map(([statement]) => statement)).toEqual(
-      SEEDED_TABLES.map((table) => `ANALYZE "${table}"`),
+      [...SEEDED_TABLES, 'indicator_version_topic', 'indicator_version_classification'].map(
+        (table) => `ANALYZE "${table}"`,
+      ),
     );
     expect(mocks.rebuild).toHaveBeenCalledWith(tx);
     expect(mocks.analyze).toHaveBeenCalledWith(context.sql);

@@ -92,7 +92,6 @@ export async function applyIndicatorTopics(
       ...file.indicatorTopics.map(({ fingertipsId }) => fingertipsId),
       ...file.indicatorClassifications.map(({ fingertipsId }) => fingertipsId),
       ...Object.keys(file.indicatorDataUpdatedAt).map(Number),
-      ...file.indicatorClassifications.map(({ fingertipsId }) => fingertipsId),
     ]),
   ];
 
@@ -148,7 +147,7 @@ export async function applyIndicatorTopics(
     }
     await db
       .update(indicator)
-      .set({ dataUpdatedAt: new Date(`${updatedAt}Z`) })
+      .set({ dataUpdatedAt: new Date(updatedAt.endsWith('Z') ? updatedAt : `${updatedAt}Z`) })
       .where(eq(indicator.id, indicatorId));
     timestamps += 1;
   }
