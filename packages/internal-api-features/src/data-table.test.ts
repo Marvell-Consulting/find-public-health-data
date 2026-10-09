@@ -65,13 +65,13 @@ describe('readDataTable', () => {
     expect(findingsOf(found)).toContainEqual({ code: 'invalid_periods', item: '4' });
   });
 
-  it('reads no rows once the headings are refused', async () => {
-    const found = await events('area_code,value\nE92000001,83.8\n');
+  it('reads the rows of a file whose headings are refused for what else they show', async () => {
+    const found = await events('area_code,period_start,value\nE99999999,2019-04-01,83.8\n');
 
     expect(rowsOf(found)).toEqual([]);
     expect(findingsOf(found)).toEqual([
-      { code: 'missing_column', item: 'period_start' },
       { code: 'missing_column', item: 'period_end' },
+      { code: 'unmatched_area_codes', item: 'E99999999' },
     ]);
   });
 

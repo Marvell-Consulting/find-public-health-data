@@ -31,16 +31,22 @@ const REQUIRED_COLUMNS: readonly DataTableColumn[] = [
 /** Where each column is in a row, for the columns the table has. */
 export type ColumnPositions = Partial<Record<DataTableColumn, number>>;
 
-export type HeaderReading =
-  | { ok: true; positions: ColumnPositions }
-  | { ok: false; findings: DataTableFinding[] };
+/** The headings as rows are read against them. */
+export interface Header {
+  /** Where each recognised column first appears. */
+  positions: ColumnPositions;
+  /** How many cells every row must have: one per heading. */
+  columnCount: number;
+  /** Everything wrong with the headings. The rows are still read for what else they show. */
+  findings: DataTableFinding[];
+}
 
 function isColumn(heading: string): heading is DataTableColumn {
   return (DATA_TABLE_COLUMNS as readonly string[]).includes(heading);
 }
 
 /** Headings match whatever their case and surrounding spaces; anything unknown refuses the file. */
-export function readHeader(cells: readonly string[]): HeaderReading {
+export function readHeader(cells: readonly string[]): Header {
   const headings = cells.map((cell) => cell.trim().toLowerCase());
   const recognised = headings.filter(isColumn);
   const repeated = recognised.filter((heading, index) => recognised.indexOf(heading) !== index);
@@ -62,10 +68,13 @@ export function readHeader(cells: readonly string[]): HeaderReading {
       : [{ code: 'unpaired_category' as const }]),
   ];
 
-  if (findings.length > 0) return { ok: false, findings };
-
   return {
-    ok: true,
-    positions: Object.fromEntries(headings.map((column, index) => [column, index])),
+    positions: Object.fromEntries(
+      headings.flatMap((heading, index) =>
+        isColumn(heading) && headings.indexOf(heading) === index ? [[heading, index]] : [],
+      ),
+    ),
+    columnCount: headings.length,
+    findings,
   };
 }

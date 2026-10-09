@@ -1,6 +1,6 @@
 import { tidyName } from '@fphd/utils/tidy-name';
 
-import type { ColumnPositions, DataTableColumn } from './data-table-columns.ts';
+import type { DataTableColumn, Header } from './data-table-columns.ts';
 import type { DataTableFinding } from './data-table-problems.ts';
 
 /** The reference data a row's names and codes are matched to, keyed by tidied name or code. */
@@ -47,6 +47,13 @@ export type RowReading =
 const ALL_SEXES = 'Persons';
 const ALL_AGES = 'All ages';
 
+// The cells a row cannot do without, in the columns the header has.
+const REQUIRED_CELLS = [
+  'area_code',
+  'period_start',
+  'period_end',
+] as const satisfies readonly DataTableColumn[];
+
 const NUMBER = /^-?\d+(\.\d+)?([eE][+-]?\d+)?$/;
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
@@ -87,21 +94,23 @@ function lookUpName(
 }
 
 /**
- * Reads one row of a data table whose header has already been accepted: either the row as it
- * is loaded, or everything wrong with it. Every cell is trimmed, and names are tidied to match.
+ * Reads one row of a data table: either the row as it is loaded, or everything wrong with it.
+ * A column the header lacks is not checked, as the header's own findings report it. Every cell
+ * is trimmed, and names are tidied to match.
  */
 export function readRow(
   cells: readonly string[],
-  positions: ColumnPositions,
+  { positions, columnCount }: Header,
   references: DataTableReferences,
   line: number,
 ): RowReading {
   const row = String(line);
 
-  if (cells.length !== Object.keys(positions).length) {
+  if (cells.length !== columnCount) {
     return { ok: false, findings: [{ code: 'wrong_cell_count', item: row }] };
   }
 
+  const has = (column: DataTableColumn) => positions[column] !== undefined;
   const cell = (column: DataTableColumn): string => {
     const position = positions[column];
     return position === undefined ? '' : (cells[position] ?? '').trim();
@@ -112,12 +121,17 @@ export function readRow(
   const fromDate = cell('period_start');
   const toDate = cell('period_end');
   const areaId = references.areaIds.get(areaCode);
+  const period = isPeriod(fromDate, toDate);
 
-  if (areaCode === '' || fromDate === '' || toDate === '') {
+  if (REQUIRED_CELLS.some((column) => has(column) && cell(column) === '')) {
     findings.push({ code: 'missing_cells', item: row });
   } else {
-    if (areaId === undefined) findings.push({ code: 'unmatched_area_codes', item: areaCode });
-    if (!isPeriod(fromDate, toDate)) findings.push({ code: 'invalid_periods', item: row });
+    if (has('area_code') && areaId === undefined) {
+      findings.push({ code: 'unmatched_area_codes', item: areaCode });
+    }
+    if (has('period_start') && has('period_end') && !period) {
+      findings.push({ code: 'invalid_periods', item: row });
+    }
   }
 
   const numbers = Object.fromEntries(
@@ -142,10 +156,13 @@ export function readRow(
     (categoryType === '') === (categoryName === '')
       ? lookUpName(categoryName, references.categoryIds.get(categoryType))
       : undefined;
-  if (category === undefined) {
-    findings.push({ code: 'unpaired_category', item: row });
-  } else if (!category.found) {
-    findings.push({ code: 'unmatched_categories', item: `${categoryType}: ${categoryName}` });
+  // A header with one of the pair is reported once, not on every row.
+  if (has('category_type') === has('category')) {
+    if (category === undefined) {
+      findings.push({ code: 'unpaired_category', item: row });
+    } else if (!category.found) {
+      findings.push({ code: 'unmatched_categories', item: `${categoryType}: ${categoryName}` });
+    }
   }
 
   const noteName = tidyName(cell('value_note'));
@@ -155,6 +172,7 @@ export function readRow(
   if (
     findings.length > 0 ||
     areaId === undefined ||
+    !period ||
     !sex.found ||
     !age.found ||
     category === undefined ||

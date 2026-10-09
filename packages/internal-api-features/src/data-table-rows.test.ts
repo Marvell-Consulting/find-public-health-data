@@ -30,7 +30,6 @@ const HEADER = [
 ];
 
 const header = readHeader(HEADER);
-if (!header.ok) throw new Error('the test header is refused');
 
 type Cells = Partial<Record<(typeof HEADER)[number], string>>;
 
@@ -44,7 +43,7 @@ const VALID: Cells = {
 function read(cells: Cells, line = 2) {
   return readRow(
     HEADER.map((column) => cells[column] ?? ''),
-    header.ok ? header.positions : {},
+    header,
     references,
     line,
   );
@@ -176,9 +175,10 @@ describe('readRow', () => {
   });
 
   it('refuses a row with more or fewer cells than headings and reads nothing else', () => {
-    expect(
-      readRow(['E92000001', '2019-04-01'], header.ok ? header.positions : {}, references, 4),
-    ).toEqual({ ok: false, findings: [{ code: 'wrong_cell_count', item: '4' }] });
+    expect(readRow(['E92000001', '2019-04-01'], header, references, 4)).toEqual({
+      ok: false,
+      findings: [{ code: 'wrong_cell_count', item: '4' }],
+    });
   });
 
   it.each([['area_code'], ['period_start'], ['period_end']])(
@@ -263,6 +263,23 @@ describe('readRow', () => {
         { code: 'unmatched_sexes', item: 'Neither' },
         { code: 'unmatched_value_notes', item: 'Odd' },
       ],
+    });
+  });
+
+  it('checks the columns a refused header has, and not the ones it lacks', () => {
+    const partial = readHeader(['area_code', 'period_start', 'value', 'category_type']);
+
+    expect(
+      readRow(['E99999999', '2019-04-01', '1', 'Ethnic groups'], partial, references, 2),
+    ).toEqual({ ok: false, findings: [{ code: 'unmatched_area_codes', item: 'E99999999' }] });
+  });
+
+  it('never loads a row read against a header without a period', () => {
+    const partial = readHeader(['area_code', 'period_start', 'value']);
+
+    expect(readRow(['E92000001', '2019-04-01', '1'], partial, references, 2)).toEqual({
+      ok: false,
+      findings: [],
     });
   });
 });
