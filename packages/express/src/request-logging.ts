@@ -28,7 +28,8 @@ function singleHeader(value: string | string[] | undefined): string | undefined 
 
 export interface RequestLoggingOptions {
   /** Keep the id a web app forwarded, so its line and this one share it. Off for the web apps
-   * themselves: a browser's header is never trusted. */
+   * themselves: a browser's header is never trusted. A request relayed by Front Door came from
+   * outside, not from a web app, so its id is never kept. */
   acceptsForwardedId?: boolean;
 }
 
@@ -41,9 +42,10 @@ export function requestLogging(
   return pinoHttp({
     logger,
     genReqId: (request, response) => {
-      const forwarded = acceptsForwardedId
-        ? readRequestIdHeader(request.headers[REQUEST_ID_HEADER])
-        : undefined;
+      const forwarded =
+        acceptsForwardedId && request.headers['x-azure-ref'] === undefined
+          ? readRequestIdHeader(request.headers[REQUEST_ID_HEADER])
+          : undefined;
       const id = forwarded ?? uuidv7();
       // Echoed to the caller, so whoever made the request can find its lines.
       response.setHeader(REQUEST_ID_HEADER, id);
