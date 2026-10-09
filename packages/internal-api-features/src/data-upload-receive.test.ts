@@ -94,6 +94,20 @@ describe('receiveDataTable', () => {
     expect(response.body).toEqual({ ok: false, message: DATA_TABLE_MESSAGES.missing });
   });
 
+  it('asks for a file when the form is cut short, storing nothing', async () => {
+    const storage = createFakeBlobStorage();
+
+    const response = await request(createTestApp(storage))
+      .post('/upload')
+      .set('Content-Type', 'multipart/form-data; boundary=b')
+      .send(
+        `--b\r\nContent-Disposition: form-data; name="dataTable"; filename="data.csv"\r\n\r\n${CSV}`,
+      );
+
+    expect(response.body).toEqual({ ok: false, message: DATA_TABLE_MESSAGES.missing });
+    await expect(storage.get(BLOB)).rejects.toThrow(BlobNotFoundError);
+  });
+
   it('refuses a file that is not a CSV, storing nothing', async () => {
     const storage = createFakeBlobStorage();
 
