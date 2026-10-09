@@ -109,7 +109,7 @@ describe('internal API', () => {
     '/api/internal/data-providers',
     '/api/internal/value-types-and-units',
     ...indicatorTaskKeySchema.options
-      .filter((key) => key !== 'name')
+      .filter((key) => key !== 'name' && key !== 'data-table')
       .map((key) => `/api/internal/indicators/00000000-0000-7000-8000-000000000001/${key}`),
   ])('mounts %s behind the publisher role', async (path) => {
     const internalRepositories = createFakeInternalRepositories({

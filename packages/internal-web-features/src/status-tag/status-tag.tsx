@@ -28,6 +28,7 @@ const PUBLISHED: TagFace = { label: 'Published', colour: 'green' };
 // GOV.UK shows a completed task as plain text, and anything still to do as a tag.
 const TASK_STATUS: Record<IndicatorTaskStatus, TagFace | string> = {
   not_started: { label: 'Not started', colour: 'blue' },
+  in_progress: { label: 'Incomplete', colour: 'blue' },
   completed: 'Completed',
 };
 

@@ -60,9 +60,9 @@ const sections = [
 ];
 
 describe('indicatorSectionsRouter', () => {
-  it('serves every task but the name', () => {
+  it('serves every task but the name and the data table', () => {
     expect(sections.map(({ key }) => key).sort()).toEqual(
-      indicatorTaskKeySchema.options.filter((key) => key !== 'name').sort(),
+      indicatorTaskKeySchema.options.filter((key) => key !== 'name' && key !== 'data-table').sort(),
     );
   });
 
