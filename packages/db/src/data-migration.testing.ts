@@ -59,6 +59,7 @@ export interface MigrationFixtureOptions {
   upserts?: Record<string, CsvFixture>;
   deletes?: Record<string, string[]>;
   deleteHeaders?: Record<string, string[]>;
+  deleteRows?: Record<string, number>;
   relationships?: Partial<DataMigrationRelationships>;
 }
 
@@ -129,7 +130,7 @@ export async function migrationFixture(
         upserts,
         deletes: {
           file: deleteFile,
-          rows: ids.length,
+          rows: options.deleteRows?.[table] ?? ids.length,
           bytes: deleted.length,
           sha256: digest(deleted),
         },
