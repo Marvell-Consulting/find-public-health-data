@@ -2,6 +2,7 @@ import { addFallbackHandlers, createApiApp, requireJwtRole } from '@fphd/api-ser
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import type { Repositories } from '@fphd/db';
 import { type InternalRepositories, internalApiRoutes } from '@fphd/internal-api-features';
+import type { BlobStorage } from '@fphd/internal-storage';
 import type { Logger } from '@fphd/logger';
 import { publicApiRoutes } from '@fphd/public-api-features';
 
@@ -10,6 +11,7 @@ export interface AppDependencies {
   repositories: Repositories;
   internalRepositories: InternalRepositories;
   session: JwtSessionVerifier;
+  storage: BlobStorage;
 }
 
 export function createApp({
@@ -17,6 +19,7 @@ export function createApp({
   repositories,
   internalRepositories,
   session,
+  storage,
 }: AppDependencies) {
   const app = createApiApp({ logger, serviceName: 'internal-api' });
 
@@ -29,7 +32,7 @@ export function createApp({
     });
   });
 
-  app.use(internalApiRoutes({ repositories: internalRepositories, session }));
+  app.use(internalApiRoutes({ repositories: internalRepositories, session, storage }));
 
   addFallbackHandlers(app);
   return app;

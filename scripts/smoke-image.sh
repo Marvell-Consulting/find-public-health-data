@@ -41,6 +41,9 @@ env_args=(
   -e INTERNAL_API_PASSWORD=smoke-test-only
   -e SESSION_JWT_SECRET=smoke-test-only-jwt-secret-at-least-32-bytes
   -e WEB_SESSION_SECRET=smoke-test-only-web-secret-at-least-32-bytes
+  -e STORAGE_CONTAINER=uploads
+  -e STORAGE_ACCOUNT_URL=https://smoketestonly.blob.core.windows.net
+  -e AZURE_CLIENT_ID=00000000-0000-0000-0000-000000000000
 )
 
 if [ "${app}" = 'operations' ]; then

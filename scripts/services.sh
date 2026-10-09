@@ -3,8 +3,8 @@
 # Every `dev` script runs this first, so `pnpm dev` works on a cold machine without a
 # separate `docker compose up`.
 #
-# No service is named: this starts exactly the services with no `profiles:` key (today just
-# the database). The four app containers are profile-gated and belong to scripts/dev.sh
+# No service is named: this starts exactly the services with no `profiles:` key (today the
+# database and Azurite). The four app containers are profile-gated and belong to scripts/dev.sh
 # (mixed local/Docker development), so a service added to compose.yaml without a profile
 # joins the dev prerequisites by existing rather than by being listed here too.
 set -euo pipefail

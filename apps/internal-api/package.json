@@ -20,6 +20,7 @@
     "@fphd/config": "workspace:*",
     "@fphd/db": "workspace:*",
     "@fphd/internal-api-features": "workspace:*",
+    "@fphd/internal-storage": "workspace:*",
     "@fphd/logger": "workspace:*",
     "@fphd/public-api-features": "workspace:*"
   },

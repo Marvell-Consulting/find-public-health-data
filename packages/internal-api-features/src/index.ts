@@ -1,4 +1,5 @@
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
+import type { BlobStorage } from '@fphd/internal-storage';
 import { Router } from 'express';
 import { internalCiMethodsRouter } from './ci-methods.ts';
 import { internalDataProvidersRouter } from './data-providers.ts';
@@ -14,6 +15,7 @@ export { createInternalRepositories, type InternalRepositories } from './reposit
 export interface InternalApiDependencies {
   repositories: InternalRepositories;
   session: JwtSessionVerifier;
+  storage: BlobStorage;
 }
 
 /**

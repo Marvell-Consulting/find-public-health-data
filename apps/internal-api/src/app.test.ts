@@ -6,6 +6,7 @@ import {
   createFakeInternalRepositories,
   unansweredDraft,
 } from '@fphd/internal-api-features/testing';
+import { createFakeBlobStorage } from '@fphd/internal-storage/testing';
 import { createLogger } from '@fphd/logger';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -26,7 +27,13 @@ function createTestApp(
   repositories = createFakeRepositories(),
   internalRepositories = createFakeInternalRepositories(),
 ) {
-  return createApp({ logger, repositories, internalRepositories, session: verifier });
+  return createApp({
+    logger,
+    repositories,
+    internalRepositories,
+    session: verifier,
+    storage: createFakeBlobStorage(),
+  });
 }
 
 const app = createTestApp();

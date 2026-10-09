@@ -19,7 +19,7 @@ command-line application, run as a job — see [Operational commands](#operation
 
 - Node.js 24+
 - pnpm 11.18.0
-- Docker, to run the development database
+- Docker, to run the development database and storage emulator
 
 Corepack will select the pinned pnpm version from `package.json`.
 
@@ -28,7 +28,7 @@ Corepack will select the pinned pnpm version from `package.json`.
 ```sh
 cp .env.example .env    # required — see Configuration below
 pnpm install
-pnpm services:up        # start the development database and wait for it
+pnpm services:up        # start the development database and Azurite, and wait for them
 pnpm db:bootstrap       # once per fresh database: create the per-API login roles
 pnpm dev
 ```
@@ -55,6 +55,13 @@ when deployed — database TLS and secure session cookies. A default could only 
 would let an unset variable pick the relaxed side in silence. Every runtime supplies it: `.env` for
 development, `compose.yaml` for the containers, the `test:integration` script for test runs, and the
 platform for deployed services.
+
+internal-api keeps uploaded data files in Azure Blob Storage. `STORAGE_CONTAINER` names the
+container; deployed, `STORAGE_ACCOUNT_URL` and `AZURE_CLIENT_ID` connect with the app's managed
+identity. Locally and in CI, `STORAGE_CONNECTION_STRING` connects to
+[Azurite](https://github.com/Azure/Azurite), Microsoft's storage emulator, which runs as a compose
+service beside the database; internal-api creates the container on startup if it is missing. A
+connection string is refused when `APP_ENV` is a deployed environment.
 
 `DB_TLS` turns TLS to the database on or off. Left unset it follows `APP_ENV`: off for `local` and
 `test`, where the database is the compose container and presents no certificate, and on everywhere
@@ -165,7 +172,7 @@ To add real ones:
   the extension is part of the contract, so `.integration.test.tsx` and a bare `integration.test.ts`
   both qualify. The two tiers are the same run under different filters — `test:unit` excludes that
   pattern and `test:integration` selects it — so a package needs no per-tier wiring.
-  The integration job has a Postgres service and creates the per-API login roles. The root
+  The integration job has Postgres and Azurite services and creates the per-API login roles. The root
   Vitest global setup (gated on `INTEGRATION_DB=1`, set by `test:integration`) builds a
   migrated, seeded template database once per run; each test file calls
   `createTestDatabase()` from `@fphd/db/testing` for its own copy, so files run in parallel
@@ -563,7 +570,7 @@ Ctrl-C stops the local apps and the app containers; the database stays up. Runni
 is just `pnpm dev`.
 
 Each app service in `compose.yaml` sits behind a profile of the same name, so plain
-`docker compose up` still starts only the database. The containers are built by
+`docker compose up` still starts only the database and Azurite. The containers are built by
 `docker/app.Dockerfile` from the current working tree and run the app's **production build**
 (`pnpm build` output via `pnpm start`) — no file watching, no bind mounts. They are rebuilt each
 time the script starts (cheap when nothing changed, thanks to layer caching), so a container picks
@@ -575,7 +582,8 @@ must be env-driven with a localhost default; a containerised app overrides it wi
 `host.docker.internal:<port>`, which reaches whatever runs behind that port on the host — local
 process or published container alike. This one rule is what makes every combination work without
 per-combination configuration. (The APIs' database connection is the exception: containerised APIs
-reach Postgres directly over the compose network via `DB_HOST=db`.)
+reach Postgres directly over the compose network via `DB_HOST=db`, and a containerised
+internal-api reaches Azurite there too.)
 
 ## Structure
 
@@ -594,6 +602,7 @@ Each package has a README describing its purpose and entry points:
 | [`@fphd/db`](packages/db/README.md)                              | Schema, migrations, repositories and database operations        |
 | [`@fphd/express`](packages/express/README.md)                    | The base Express app and middleware every server shares         |
 | [`@fphd/internal-api-features`](packages/internal-api-features/README.md) | Routes and queries only the internal API runs          |
+| [`@fphd/internal-storage`](packages/internal-storage/README.md)  | Blob Storage for uploaded files, kept out of the public images  |
 | [`@fphd/internal-web-features`](packages/internal-web-features/README.md) | Pages and loaders only the internal web app mounts     |
 | [`@fphd/logger`](packages/logger/README.md)                      | pino, configured once                                           |
 | [`@fphd/public-api-features`](packages/public-api-features/README.md) | The public API routes and their wire contract              |
