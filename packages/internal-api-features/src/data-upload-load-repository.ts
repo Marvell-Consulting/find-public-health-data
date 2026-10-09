@@ -6,7 +6,7 @@ import type { TransactionSql } from 'postgres';
 
 import { type DataTableEvent, readDataTable } from './data-table.ts';
 import { createProblemTally } from './data-table-problems.ts';
-import type { DataTableRow } from './data-table-rows.ts';
+import type { DataTableReferences, DataTableRow } from './data-table-rows.ts';
 import { DATA_TABLE_PROBLEM_ITEMS, type DataTableProblem } from './data-upload-contract.ts';
 import { loadDataTableReferences } from './data-upload-repository.ts';
 
@@ -89,14 +89,38 @@ export async function processDataUpload(
 ): Promise<ProcessDataUploadResult> {
   const references = await loadDataTableReferences(db);
 
+  try {
+    return await loadInTransaction(db, upload, openFile, signal, references);
+  } catch (error) {
+    if (error instanceof DraftGoneError) return { ok: false, reason: 'no_draft' };
+    throw error;
+  }
+}
+
+/** The draft stopped being a draft while its upload loaded, so nothing is kept. */
+class DraftGoneError extends Error {
+  constructor() {
+    super('The draft was no longer a draft when its upload finished loading');
+    this.name = 'DraftGoneError';
+  }
+}
+
+function loadInTransaction(
+  db: Database,
+  upload: DataUpload,
+  openFile: () => Promise<Readable>,
+  signal: AbortSignal,
+  references: DataTableReferences,
+): Promise<ProcessDataUploadResult> {
   return db.$client.begin(async (tx): Promise<ProcessDataUploadResult> => {
     await tx`SELECT pg_advisory_xact_lock(${UPLOAD_LOCK_NAMESPACE}, hashtext(${upload.indicatorId}))`;
 
+    // Not locked: the upload lock queues the only other writer of the pointer, and section saves
+    // on the draft carry on while the file loads.
     const [draft] = await tx<{ id: string; uploadBatchId: string | null }[]>`
       SELECT id, upload_batch_id AS "uploadBatchId"
       FROM indicator_version
-      WHERE indicator_id = ${upload.indicatorId} AND status = 'draft'
-      FOR UPDATE`;
+      WHERE indicator_id = ${upload.indicatorId} AND status = 'draft'`;
 
     if (draft === undefined) return { ok: false, reason: 'no_draft' };
 
@@ -126,11 +150,12 @@ export async function processDataUpload(
       UPDATE upload_batch
       SET status = 'processed', row_count = ${staged.rowCount}, column_names = ${staged.columnNames}
       WHERE id = ${upload.batchId}`;
-    await tx`
+    const pointed = await tx`
       UPDATE indicator_version
       SET upload_batch_id = ${upload.batchId}, data_table_confirmed_at = NULL,
         updated_at = now(), updated_by = ${upload.actor}
-      WHERE id = ${draft.id}`;
+      WHERE id = ${draft.id} AND status = 'draft'`;
+    if (pointed.count === 0) throw new DraftGoneError();
 
     const replacedBlobName =
       draft.uploadBatchId === null

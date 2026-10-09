@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { Readable } from 'node:stream';
+import { PassThrough, Readable } from 'node:stream';
 import { text } from 'node:stream/consumers';
 import { fileURLToPath } from 'node:url';
 
@@ -17,6 +17,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import type { DataTableEvent } from './data-table.ts';
 import { processDataUpload, stageRows } from './data-upload-load-repository.ts';
 import { dataUploadsRouter } from './data-uploads.ts';
+import { updateIndicatorDraft } from './indicator-draft-repository.ts';
 import { createDraftFromPublished } from './indicator-publish-repository.ts';
 import { ACTOR, newDraft } from './indicator-repository.testing.ts';
 import { createInternalRepositories } from './repositories.ts';
@@ -404,6 +405,60 @@ describe('processDataUpload', () => {
     };
     return { indicatorId, batchId, blobName, upload };
   }
+
+  it('leaves the draft free for section saves while its file loads', async () => {
+    const { indicatorId, blobName, upload } = await storedUpload('Upload beside a save');
+    const file = new PassThrough();
+    let loading: () => void = () => {};
+    const reached = new Promise<void>((resolve) => {
+      loading = resolve;
+    });
+    const openFile = async () => {
+      loading();
+      return file;
+    };
+
+    const uploaded = processDataUpload(internalDb, upload, openFile, new AbortController().signal);
+    await reached;
+    const saved = await Promise.race([
+      updateIndicatorDraft(internalDb, indicatorId, { definition: 'Saved meanwhile' }, {}, ACTOR),
+      new Promise((resolve) => setTimeout(() => resolve('blocked'), 2000)),
+    ]);
+    file.end(await text(await storage.get(blobName)));
+
+    expect(saved).toEqual({ ok: true });
+    expect(await uploaded).toMatchObject({ ok: true, rowCount: 3 });
+    expect((await draftOf(ownerDb, indicatorId)).definition).toBe('Saved meanwhile');
+  });
+
+  it('keeps nothing when the draft stops being a draft while its file loads', async () => {
+    const { indicatorId, batchId, blobName, upload } = await storedUpload('Upload outlives draft');
+    const file = new PassThrough();
+    let loading: () => void = () => {};
+    const reached = new Promise<void>((resolve) => {
+      loading = resolve;
+    });
+
+    const uploaded = processDataUpload(
+      internalDb,
+      upload,
+      async () => {
+        loading();
+        return file;
+      },
+      new AbortController().signal,
+    );
+    await reached;
+    await ownerDb
+      .update(indicatorVersion)
+      .set({ status: 'published', publishedAt: sql`now()` })
+      .where(eq(indicatorVersion.indicatorId, indicatorId));
+    file.end(await text(await storage.get(blobName)));
+
+    expect(await uploaded).toEqual({ ok: false, reason: 'no_draft' });
+    expect(await batchOf(batchId)).toBeUndefined();
+    expect(await rowsOf(batchId)).toEqual([]);
+  });
 
   it('rolls back, recording nothing, when the upload is abandoned before it loads', async () => {
     const { indicatorId, batchId, blobName, upload } = await storedUpload('Upload abandoned');
