@@ -52,9 +52,9 @@ test('preserves and filters text entered before hydration', async ({ page }, tes
     await expect(page.getByRole('link', { name: 'Alcohol', exact: true })).toBeVisible();
 
     scripts.resolve();
-    await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toHaveText(
-      'Smoking and tobacco',
-    );
+    const headings = page.getByRole('main').getByRole('heading', { level: 2 });
+    await expect(headings).toHaveCount(1);
+    await expect(headings).toHaveText('Smoking and tobacco');
     await expect(search).toHaveValue('quitting');
     await expectNoAccessibilityViolations(page, testInfo);
   } finally {
