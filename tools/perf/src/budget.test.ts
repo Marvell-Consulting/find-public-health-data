@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  acceptRun,
   allowance,
   compareToBaseline,
   percentile,
@@ -66,6 +67,107 @@ describe('compareToBaseline', () => {
       'GET /new has no baseline',
       'GET /old is in the baseline but no longer measured',
     ]);
+  });
+});
+
+describe('acceptRun', () => {
+  const baseline = { 'GET /a': work(), 'GET /b': work() };
+
+  it('takes a route over its allowance on any metric', () => {
+    const run = { 'GET /a': work({ bytes: 23_025 }), 'GET /b': work() };
+    expect(acceptRun(run, baseline, { all: false })).toEqual({
+      baseline: run,
+      updated: ['GET /a'],
+      added: [],
+      removed: [],
+    });
+  });
+
+  it('takes every metric of an over-allowance route, not only the one over', () => {
+    const run = { 'GET /a': work({ statements: 4, buffers: 410 }), 'GET /b': work() };
+    expect(acceptRun(run, baseline, { all: false }).baseline['GET /a']).toEqual(
+      work({ statements: 4, buffers: 410 }),
+    );
+  });
+
+  it('keeps the committed numbers of a route within its allowance', () => {
+    const committed = { 'GET /a': { bytes: 20_000, rows: 50, buffers: 400, statements: 3 } };
+    const accepted = acceptRun({ 'GET /a': work({ buffers: 500 }) }, committed, { all: false });
+    expect(accepted.updated).toEqual([]);
+    expect(accepted.baseline['GET /a']).toBe(committed['GET /a']);
+  });
+
+  it('does not tighten a metric well under its baseline', () => {
+    const accepted = acceptRun({ 'GET /a': work({ statements: 1 }), 'GET /b': work() }, baseline, {
+      all: false,
+    });
+    expect(accepted.baseline).toEqual(baseline);
+    expect(accepted.updated).toEqual([]);
+  });
+
+  it('adds a route new to the run and drops one the run no longer measures', () => {
+    const run = { 'GET /a': work(), 'GET /c': work({ rows: 7 }) };
+    expect(acceptRun(run, baseline, { all: false })).toEqual({
+      baseline: run,
+      updated: [],
+      added: ['GET /c'],
+      removed: ['GET /b'],
+    });
+  });
+
+  it('takes every route with all, tightening as well as loosening', () => {
+    const run = { 'GET /a': work({ statements: 1 }), 'GET /b': work({ bytes: 20_001 }) };
+    expect(acceptRun(run, baseline, { all: true })).toEqual({
+      baseline: run,
+      updated: ['GET /a', 'GET /b'],
+      added: [],
+      removed: [],
+    });
+  });
+
+  it('adds and removes routes with all as well', () => {
+    const run = { 'GET /a': work({ rows: 51 }), 'GET /c': work() };
+    expect(acceptRun(run, baseline, { all: true })).toEqual({
+      baseline: run,
+      updated: ['GET /a'],
+      added: ['GET /c'],
+      removed: ['GET /b'],
+    });
+  });
+
+  it('changes exactly the routes compareToBaseline fails', () => {
+    const committed = {
+      'GET /over': work(),
+      'GET /drift': work(),
+      'GET /under': work(),
+      'GET /same': work(),
+      'GET /gone': work(),
+    };
+    const run = {
+      'GET /over': work({ statements: 4, bytes: 19_000 }),
+      'GET /drift': work({ buffers: 480, rows: 60 }),
+      'GET /under': work({ buffers: 10 }),
+      'GET /same': work(),
+      'GET /new': work(),
+    };
+    const { failures } = compareToBaseline(run, committed);
+    const failed = [...Object.keys(run), ...Object.keys(committed)].filter((route) =>
+      failures.some((failure) => failure.startsWith(`${route} `)),
+    );
+    const { updated, added, removed } = acceptRun(run, committed, { all: false });
+    expect([...updated, ...added, ...removed].sort()).toEqual([...new Set(failed)].sort());
+    expect(updated).toEqual(['GET /over']);
+  });
+
+  it('reports a route as updated with all only when a number differs', () => {
+    expect(acceptRun(baseline, baseline, { all: true }).updated).toEqual([]);
+  });
+
+  it('changes nothing when no route failed', () => {
+    const run = { 'GET /a': work({ buffers: 450 }), 'GET /b': work({ bytes: 21_000 }) };
+    const accepted = acceptRun(run, baseline, { all: false });
+    expect(accepted).toEqual({ baseline, updated: [], added: [], removed: [] });
+    expect(serialiseBaseline(accepted.baseline)).toBe(serialiseBaseline(baseline));
   });
 });
 

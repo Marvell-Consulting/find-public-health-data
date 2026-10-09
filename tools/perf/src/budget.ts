@@ -38,6 +38,10 @@ export function allowance(metric: keyof Work, baseline: number): number {
   return Math.floor(baseline * ratio) + slack;
 }
 
+function exceeds(metric: keyof Work, measured: number, baseline: number): boolean {
+  return measured > allowance(metric, baseline);
+}
+
 export function compareToBaseline(measured: Baseline, baseline: Baseline): Comparison {
   const failures: string[] = [];
   const notices: string[] = [];
@@ -49,12 +53,11 @@ export function compareToBaseline(measured: Baseline, baseline: Baseline): Compa
       continue;
     }
     for (const metric of METRICS) {
-      const limit = allowance(metric, expected[metric]);
-      if (work[metric] > limit) {
+      if (exceeds(metric, work[metric], expected[metric])) {
         failures.push(
-          `${route} ${metric}: ${work[metric]}, over the budget of ${limit} (baseline ${expected[metric]})`,
+          `${route} ${metric}: ${work[metric]}, over the budget of ${allowance(metric, expected[metric])} (baseline ${expected[metric]})`,
         );
-      } else if (expected[metric] > allowance(metric, work[metric])) {
+      } else if (exceeds(metric, expected[metric], work[metric])) {
         notices.push(
           `${route} ${metric}: ${work[metric]}, well under the baseline of ${expected[metric]}`,
         );
@@ -69,6 +72,46 @@ export function compareToBaseline(measured: Baseline, baseline: Baseline): Compa
   }
 
   return { failures, notices };
+}
+
+export type Acceptance = {
+  baseline: Baseline;
+  /** Routes in both whose numbers were taken from the run. */
+  updated: string[];
+  added: string[];
+  removed: string[];
+};
+
+/**
+ * The baseline after accepting a run. By default it takes only routes over budget, new or gone,
+ * so drift on passing routes is never adopted; `all` takes every route's numbers.
+ */
+export function acceptRun(
+  run: Baseline,
+  baseline: Baseline,
+  { all }: { all: boolean },
+): Acceptance {
+  const changed = (work: Work, expected: Work) =>
+    METRICS.some((metric) =>
+      all ? work[metric] !== expected[metric] : exceeds(metric, work[metric], expected[metric]),
+    );
+  type Status = 'added' | 'updated' | 'kept';
+  const decisions = Object.entries(run).map(
+    ([route, work]): { route: string; work: Work; status: Status } => {
+      const expected = baseline[route];
+      if (expected === undefined) return { route, work, status: 'added' };
+      if (changed(work, expected)) return { route, work, status: 'updated' };
+      return { route, work: expected, status: 'kept' };
+    },
+  );
+  const withStatus = (status: Status) =>
+    decisions.filter((d) => d.status === status).map((d) => d.route);
+  return {
+    baseline: Object.fromEntries(decisions.map(({ route, work }) => [route, work])),
+    updated: withStatus('updated'),
+    added: withStatus('added'),
+    removed: Object.keys(baseline).filter((route) => !(route in run)),
+  };
 }
 
 /** Keys in code-point order, so the file diffs only where a number changed, whatever the locale. */
