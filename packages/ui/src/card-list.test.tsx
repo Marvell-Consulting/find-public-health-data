@@ -49,7 +49,7 @@ describe('CardList', () => {
     expect(screen.queryByRole('heading', { level: 3 })).toBeNull();
   });
 
-  it('highlights every case-insensitive match in titles and descriptions', () => {
+  it('highlights non-overlapping case-insensitive matches in titles and descriptions', () => {
     const { container } = renderCards({ searchTerm: '  I  ' });
 
     expect([...container.querySelectorAll('mark')].map((mark) => mark.textContent)).toEqual([

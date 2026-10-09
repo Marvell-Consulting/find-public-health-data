@@ -15,7 +15,10 @@ describe('searchPattern', () => {
     ['K', 'k', true],
     ['ς', 'σ', true],
     ['𐐀', '𐐨', true],
-  ])('matches %s against %s consistently with Unicode case folding', (text, query, matches) => {
+    ['ß', 'ss', false],
+    ['\uD800', '\uD800', true],
+    ['\uDC00', '\uDC00', true],
+  ])('matches %s against %s with simple Unicode case folding', (text, query, matches) => {
     expect(searchPattern(query)?.test(text)).toBe(matches);
   });
 
