@@ -1,18 +1,24 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { gzipSync } from 'node:zlib';
 
 import type postgres from 'postgres';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { importCoreData } from './core-data.ts';
+import {
+  INDICATOR_ID,
+  type MigrationFixtureOptions,
+  migrationFixture,
+  SOURCE_ID,
+  VERSION_COLUMNS,
+  VERSION_ID,
+  VERSION_ROW,
+} from './data-migration.testing.ts';
 import { applyDataMigration } from './data-migration.ts';
 import {
-  DATA_MIGRATION_FORMAT_VERSION,
-  DATA_MIGRATION_NULL,
-  DATA_MIGRATION_SCHEMA,
+  DATA_MIGRATION_REFERENCE_TABLES,
   DATA_MIGRATION_TABLES,
-  dataMigrationManifestSchema,
 } from './data-migration-manifest.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
@@ -21,523 +27,535 @@ let database: TestDatabase;
 let sql: postgres.Sql;
 let directory: string;
 let topicId: string;
+let frameworkId: string;
+let riskFactorId: string;
 
 beforeAll(async () => {
-  database = await createTestDatabase({ template: 'schema' });
+  database = await createTestDatabase();
+  const core = createOwnerClient(database.name);
+  try {
+    await importCoreData(core);
+  } finally {
+    await core.end();
+  }
   sql = createOwnerClient(database.name);
-  directory = await mkdtemp(join(tmpdir(), 'fphd-data-migration-test-'));
-  const [topic] = await sql<{ id: string }[]>`
-    INSERT INTO topic (slug, title, description)
-    VALUES ('migration', 'Migration topic', 'Integration fixture') RETURNING id
-  `;
-  topicId = topic?.id ?? '';
+  const [topic] = await sql<{ id: string }[]>`SELECT id FROM topic LIMIT 1`;
+  const [framework] = await sql<
+    { id: string }[]
+  >`SELECT id FROM classification WHERE dimension = 'framework' LIMIT 1`;
+  const [riskFactor] = await sql<
+    { id: string }[]
+  >`SELECT id FROM classification WHERE dimension = 'risk_factor' LIMIT 1`;
+  if (!topic || !framework || !riskFactor) throw new Error('Missing core fixture data');
+  topicId = topic.id;
+  frameworkId = framework.id;
+  riskFactorId = riskFactor.id;
 });
-
+beforeEach(async () => {
+  const tables = DATA_MIGRATION_TABLES.filter(
+    (table) => !DATA_MIGRATION_REFERENCE_TABLES.includes(table),
+  );
+  await sql.unsafe(
+    `TRUNCATE ${tables.map((table) => `"${table}"`).join(', ')}, data_migration CASCADE`,
+  );
+  await sql`ALTER SEQUENCE indicator_short_id_seq RESTART WITH 100000`;
+  directory = await mkdtemp(join(tmpdir(), 'fphd-data-migration-test-'));
+});
+afterEach(async () => {
+  await rm(directory, { recursive: true });
+});
 afterAll(async () => {
   await sql.end();
   await database.drop();
-  await rm(directory, { recursive: true });
 });
 
-/**
- * Builds a minimal incremental package in `directory`. The CSV headers list each table's columns
- * in reverse, so the importer must match them by name rather than by position.
- * ci_method and comparator_method are core data: their CSVs are present for staging but their
- * rows are never directly inserted.
- */
-async function incremental(
-  predecessor = 'baseline-1',
-  migrationId = 'increment-2',
-  cutoffAt = '2026-09-22T10:00:00Z',
-) {
-  const indicators = (
-    await sql<{ shortId: number }[]>`SELECT short_id AS "shortId" FROM indicator ORDER BY short_id`
-  ).map(({ shortId }) => shortId);
-  await writeFile(
-    join(directory, 'indicator-relationships.json'),
-    JSON.stringify({
-      approval: {
-        approvedBy: 'migration test',
-        approvedAt: '2026-09-22T10:00:00Z',
-        basis: 'integration fixture',
-      },
-      indicators,
-      indicatorTopics: indicators.map((fingertipsId) => ({ topicId, fingertipsId })),
-      indicatorDataUpdatedAt: {},
-      classifications: [],
-      indicatorClassifications: [],
-    }),
-  );
-
-  // Core data tables: exported with source columns, staged for FK mapping but never inserted.
-  const coreDataCsvs: Record<string, string> = {
-    ci_method: 'id,name,description\n',
-    comparator_method: 'id,name\n',
-  };
-
-  // numerator_denominator_source: staged for legacy source resolution, no live table.
-  const stagedOnlyCsvs: Record<string, string> = {
-    numerator_denominator_source: 'id,name,url\n',
-  };
-
-  // indicator_version requires name-based columns (may arrive in any order from the export).
-  // Required NOT NULL-without-default columns must be present; optional columns may be omitted.
-  const indicatorVersionHeader = 'id,indicator_id,status,name,slug,created_by,updated_by';
-
-  const tables: Record<
-    string,
-    {
-      upserts: { file: string; rows: number; bytes: number; sha256: string };
-      deletes: { file: string; rows: number; bytes: number; sha256: string };
-    }
-  > = {};
-
-  for (const table of DATA_MIGRATION_TABLES) {
-    let upsert: string;
-    if (table in coreDataCsvs) {
-      upsert = coreDataCsvs[table] as string;
-    } else if (table in stagedOnlyCsvs) {
-      upsert = stagedOnlyCsvs[table] as string;
-    } else if (table === 'indicator_version') {
-      upsert = `${indicatorVersionHeader}\n`;
-    } else {
-      const columns = (
-        await sql<{ column: string }[]>`
-          SELECT attname AS column
-          FROM pg_attribute
-          WHERE attrelid = ${table}::regclass AND attnum > 0 AND NOT attisdropped
-          ORDER BY attnum DESC
-        `
-      ).map(({ column }) => column);
-      upsert = `${columns.join(',')}\n`;
-    }
-
-    await writeFile(join(directory, `${table}.csv.gz`), gzipSync(upsert));
-    await writeFile(join(directory, `${table}.deletes.csv.gz`), gzipSync('id\n'));
-    tables[table] = {
-      upserts: { file: `${table}.csv.gz`, rows: 0, bytes: 1, sha256: 'a'.repeat(64) },
-      deletes: { file: `${table}.deletes.csv.gz`, rows: 0, bytes: 1, sha256: 'b'.repeat(64) },
-    };
-  }
-
-  return dataMigrationManifestSchema.parse({
-    format_version: DATA_MIGRATION_FORMAT_VERSION,
-    schema: DATA_MIGRATION_SCHEMA,
-    migration_id: migrationId,
-    kind: 'incremental',
-    predecessor,
-    source: {
-      system: 'fingertips',
-      environment: 'live',
-      database: 'source',
-      snapshot_at: cutoffAt,
-      cutoff_at: cutoffAt,
-    },
-    source_csv_null: DATA_MIGRATION_NULL,
-    id_mapping: 'deterministic-uuidv7-v1',
-    relationships: {
-      file: 'indicator-relationships.json',
-      rows: indicators.length,
-      bytes: 1,
-      sha256: 'c'.repeat(64),
-    },
-    tables,
-  });
+async function apply(options: MigrationFixtureOptions = {}) {
+  const { manifest, sha256 } = await migrationFixture(sql, directory, topicId, options);
+  return sql.begin((tx) => applyDataMigration(tx, directory, manifest, sha256));
 }
-
-/** Writes a gzipped CSV for `table` with the given header and rows to `directory`. */
-async function writeCsv(dir: string, filename: string, header: string, rows: string[] = []) {
-  const content = `${[header, ...rows].join('\n')}\n`;
-  await writeFile(join(dir, filename), gzipSync(content));
+async function baseline(options: MigrationFixtureOptions = {}) {
+  return apply({ baseline: true, ...options });
+}
+function version(sources: [string | null, string | null] = [null, null]) {
+  return { columns: VERSION_COLUMNS, rows: [[...VERSION_ROW.slice(0, -2), ...sources]] };
+}
+async function sourceCount() {
+  const [row] = await sql<
+    { count: number }[]
+  >`SELECT count(*)::int AS count FROM indicator_version_source WHERE indicator_version_id = ${VERSION_ID}`;
+  return row?.count;
+}
+async function assertRolledBack() {
+  const [row] = await sql<{ name: string; migrations: number; topics: number }[]>`
+    SELECT v.name, (SELECT count(*)::int FROM data_migration) AS migrations,
+      (SELECT count(*)::int FROM indicator_version_topic WHERE indicator_version_id = v.id) AS topics
+    FROM indicator_version v WHERE id = ${VERSION_ID}
+  `;
+  expect(row).toEqual({ name: 'Test indicator', migrations: 1, topics: 1 });
 }
 
 describe('applyDataMigration', () => {
-  it('enforces predecessor order, applies an increment and is idempotent', async () => {
-    await sql`
-      INSERT INTO data_migration
-        (id, kind, package_sha256, predecessor_id, source_snapshot_at, source_cutoff_at, table_changes)
-      VALUES ('baseline-1', 'baseline', ${'d'.repeat(64)}, NULL,
-        '2026-09-21T10:00:00Z', '2026-09-21T10:00:00Z', '{}'::jsonb)
-    `;
-    const wrong = await incremental('wrong');
-    await expect(
-      sql.begin((tx) => applyDataMigration(tx, directory, wrong, 'e'.repeat(64))),
-    ).rejects.toThrow(/predecessor/);
-
-    const manifest = await incremental();
-
+  it('loads a baseline, enforces predecessor order and preserves idempotence', async () => {
+    expect((await baseline()).applied).toBe(true);
+    await expect(apply({ predecessor: 'wrong' })).rejects.toThrow(/predecessor/);
+    const fixture = await migrationFixture(sql, directory, topicId);
     const first = await sql.begin((tx) =>
-      applyDataMigration(tx, directory, manifest, 'e'.repeat(64)),
+      applyDataMigration(tx, directory, fixture.manifest, fixture.sha256),
     );
     const second = await sql.begin((tx) =>
-      applyDataMigration(tx, directory, manifest, 'e'.repeat(64)),
+      applyDataMigration(tx, directory, fixture.manifest, fixture.sha256),
     );
-
     expect(first.applied).toBe(true);
     expect(second.applied).toBe(false);
-    const [ledger] = await sql<{ count: number }[]>`
-      SELECT count(*)::int AS count FROM data_migration WHERE id = 'increment-2'
-    `;
-    expect(ledger?.count).toBe(1);
-    const [sequence] = await sql<{ shortId: number }[]>`
-      SELECT nextval('indicator_short_id_seq')::int AS "shortId"
-    `;
-    expect(sequence?.shortId).toBe(100000);
-  });
-
-  it('refuses a CSV with an unknown column', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'fphd-dm-bad-col-'));
-    try {
-      const manifest = await incremental(
-        'increment-2',
-        'increment-bad-col',
-        '2026-09-23T10:00:00Z',
-      );
-      // Override area_type with an extra column the table does not have.
-      await writeCsv(dir, 'area_type.csv.gz', 'id,name,hierarchy_type,level,bogus_column');
-      await writeFile(join(dir, 'area_type.deletes.csv.gz'), gzipSync('id\n'));
-      // Copy the other files from the shared directory.
-      for (const table of DATA_MIGRATION_TABLES) {
-        if (table === 'area_type') continue;
-        const src = join(directory, `${table}.csv.gz`);
-        const dst = join(dir, `${table}.csv.gz`);
-        await writeFile(dst, await import('node:fs/promises').then((m) => m.readFile(src)));
-        const srcD = join(directory, `${table}.deletes.csv.gz`);
-        const dstD = join(dir, `${table}.deletes.csv.gz`);
-        await writeFile(dstD, await import('node:fs/promises').then((m) => m.readFile(srcD)));
-      }
-      await writeFile(
-        join(dir, 'indicator-relationships.json'),
-        await import('node:fs/promises').then((m) =>
-          m.readFile(join(directory, 'indicator-relationships.json')),
-        ),
-      );
-      await expect(
-        sql.begin((tx) => applyDataMigration(tx, dir, manifest, 'f'.repeat(64))),
-      ).rejects.toThrow(/area_type CSV has columns the target table does not: bogus_column/);
-    } finally {
-      await rm(dir, { recursive: true });
-    }
-  });
-
-  it('refuses a CSV missing a required NOT NULL column', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'fphd-dm-missing-col-'));
-    try {
-      const manifest = await incremental(
-        'increment-2',
-        'increment-missing-col',
-        '2026-09-24T10:00:00Z',
-      );
-      // area_type.name is NOT NULL without a default — omitting it must be refused.
-      await writeCsv(dir, 'area_type.csv.gz', 'id,hierarchy_type,level');
-      await writeFile(join(dir, 'area_type.deletes.csv.gz'), gzipSync('id\n'));
-      for (const table of DATA_MIGRATION_TABLES) {
-        if (table === 'area_type') continue;
-        const src = join(directory, `${table}.csv.gz`);
-        await writeFile(
-          join(dir, `${table}.csv.gz`),
-          await import('node:fs/promises').then((m) => m.readFile(src)),
-        );
-        const srcD = join(directory, `${table}.deletes.csv.gz`);
-        await writeFile(
-          join(dir, `${table}.deletes.csv.gz`),
-          await import('node:fs/promises').then((m) => m.readFile(srcD)),
-        );
-      }
-      await writeFile(
-        join(dir, 'indicator-relationships.json'),
-        await import('node:fs/promises').then((m) =>
-          m.readFile(join(directory, 'indicator-relationships.json')),
-        ),
-      );
-      await expect(
-        sql.begin((tx) => applyDataMigration(tx, dir, manifest, 'f'.repeat(64))),
-      ).rejects.toThrow(/area_type CSV is missing required columns: name/);
-    } finally {
-      await rm(dir, { recursive: true });
-    }
-  });
-
-  it('maps ci_method_id from source UUID to core UUID in indicator_version', async () => {
-    const sourceCiMethodId = 'bbbbbbbb-bbbb-7bbb-bbbb-bbbbbbbbbbbb';
-    // Insert a core ci_method row with a known name.
-    const coreCiMethodId = 'cccccccc-cccc-7ccc-cccc-cccccccccccc';
-    await sql.unsafe(`
-      INSERT INTO ci_method (id, name, kind) VALUES ('${coreCiMethodId}', 'Test CI Method', 'standard')
-      ON CONFLICT DO NOTHING
-    `);
-    // Insert a core area_type, area and indicator so indicator_version FKs resolve.
-    const areaTypeId = 'dddddddd-dddd-7ddd-dddd-dddddddddddd';
-    const areaId = 'eeeeeeee-eeee-7eee-eeee-eeeeeeeeeeee';
-    const indicatorId = 'ffffffff-ffff-7fff-ffff-ffffffffffff';
-    const versionId = '11111111-1111-7111-1111-111111111111';
-    await sql.unsafe(`
-      INSERT INTO area_type (id, name, hierarchy_type, level) VALUES ('${areaTypeId}', 'Test Type', 'Administrative', 1)
-      ON CONFLICT DO NOTHING
-    `);
-    await sql.unsafe(`
-      INSERT INTO area (id, code, name, area_type_id, valid_from)
-      VALUES ('${areaId}', 'E00001', 'Test Area', '${areaTypeId}', '2020-01-01')
-      ON CONFLICT DO NOTHING
-    `);
-    await sql.unsafe(`
-      INSERT INTO indicator (id) VALUES ('${indicatorId}') ON CONFLICT DO NOTHING
-    `);
-
-    // indicator_version CSV carries source ci_method_id; ci_method CSV carries source row.
-    const ivHeader =
-      'id,indicator_id,status,published_at,name,slug,created_by,updated_by,ci_method_id';
-    const ivRow = `${versionId},${indicatorId},published,2026-01-01 00:00:00+00,Test Indicator,test-indicator,system,system,${sourceCiMethodId}`;
-    const ciMethodCsv = `id,name,description\n${sourceCiMethodId},Test CI Method,A description\n`;
-
-    const testDir = await mkdtemp(join(tmpdir(), 'fphd-dm-core-map-'));
-    try {
-      const [indicator] = await sql<{ shortId: number }[]>`
-        SELECT short_id AS "shortId" FROM indicator WHERE id = ${indicatorId}
-      `;
-      await writeFile(
-        join(testDir, 'indicator-relationships.json'),
-        JSON.stringify({
-          approval: { approvedBy: 'test', approvedAt: '2026-09-25T10:00:00Z', basis: 'test' },
-          indicators: [indicator?.shortId ?? 0],
-          indicatorTopics: [{ topicId, fingertipsId: indicator?.shortId ?? 0 }],
-          indicatorDataUpdatedAt: {},
-          classifications: [],
-          indicatorClassifications: [],
-        }),
-      );
-
-      for (const table of DATA_MIGRATION_TABLES) {
-        let upsert: string;
-        if (table === 'ci_method') {
-          upsert = ciMethodCsv;
-        } else if (table === 'indicator_version') {
-          upsert = `${ivHeader}\n${ivRow}\n`;
-        } else if (table === 'comparator_method') {
-          upsert = 'id,name\n';
-        } else if (table === 'numerator_denominator_source') {
-          upsert = 'id,name,url\n';
-        } else {
-          const cols = (
-            await sql<{ column: string }[]>`
-              SELECT attname AS column FROM pg_attribute
-              WHERE attrelid = ${table}::regclass AND attnum > 0 AND NOT attisdropped
-              ORDER BY attnum
-            `
-          ).map(({ column }) => column);
-          upsert = `${cols.join(',')}\n`;
-        }
-        await writeFile(join(testDir, `${table}.csv.gz`), gzipSync(upsert));
-        await writeFile(join(testDir, `${table}.deletes.csv.gz`), gzipSync('id\n'));
-      }
-
-      const manifest = dataMigrationManifestSchema.parse({
-        format_version: DATA_MIGRATION_FORMAT_VERSION,
-        schema: DATA_MIGRATION_SCHEMA,
-        migration_id: 'increment-core-map',
-        kind: 'incremental',
-        predecessor: 'increment-2',
-        source: {
-          system: 'fingertips',
-          environment: 'live',
-          database: 'source',
-          snapshot_at: '2026-09-25T10:00:00Z',
-          cutoff_at: '2026-09-25T10:00:00Z',
-        },
-        source_csv_null: DATA_MIGRATION_NULL,
-        id_mapping: 'deterministic-uuidv7-v1',
-        relationships: {
-          file: 'indicator-relationships.json',
-          rows: 1,
-          bytes: 1,
-          sha256: 'a'.repeat(64),
-        },
-        tables: Object.fromEntries(
-          DATA_MIGRATION_TABLES.map((t) => [
-            t,
-            {
-              upserts: {
-                file: `${t}.csv.gz`,
-                rows: t === 'indicator_version' || t === 'ci_method' ? 1 : 0,
-                bytes: 1,
-                sha256: 'a'.repeat(64),
-              },
-              deletes: { file: `${t}.deletes.csv.gz`, rows: 0, bytes: 1, sha256: 'b'.repeat(64) },
-            },
-          ]),
-        ),
-      });
-
-      await sql.begin((tx) => applyDataMigration(tx, testDir, manifest, 'f'.repeat(64)));
-
-      const [loaded] = await sql<{ ciMethodId: string }[]>`
-        SELECT ci_method_id::text AS "ciMethodId" FROM indicator_version WHERE id = ${versionId}
-      `;
-      expect(loaded?.ciMethodId).toBe(coreCiMethodId);
-    } finally {
-      await rm(testDir, { recursive: true });
-    }
-  });
-
-  it('refuses indicators without topics and rolls back the relationships and ledger', async () => {
-    const manifest = await incremental(
-      'increment-core-map',
-      'increment-without-topics',
-      '2026-09-26T10:00:00Z',
-    );
-    const path = join(directory, 'indicator-relationships.json');
-    const relationships = JSON.parse(await readFile(path, 'utf8'));
-    await writeFile(path, JSON.stringify({ ...relationships, indicatorTopics: [] }));
-    const [indicator] = await sql<{ shortId: number; name: string }[]>`
-      SELECT i.short_id AS "shortId", v.name
-      FROM indicator i JOIN indicator_version v ON v.indicator_id = i.id
-    `;
-
     await expect(
-      sql.begin((tx) => applyDataMigration(tx, directory, manifest, '2'.repeat(64))),
-    ).rejects.toThrow(
-      `Migrated indicators have no topic: ${indicator?.shortId} (${indicator?.name})`,
-    );
-    const [remaining] = await sql<{ topics: number; migrations: number }[]>`
-      SELECT (SELECT count(*)::int FROM indicator_version_topic) AS topics,
-        (SELECT count(*)::int FROM data_migration
-         WHERE id = 'increment-without-topics') AS migrations
+      sql.begin((tx) => applyDataMigration(tx, directory, fixture.manifest, 'f'.repeat(64))),
+    ).rejects.toThrow('already applied with another package');
+    const [row] = await sql<{ count: number; shortId: number }[]>`
+      SELECT (SELECT count(*)::int FROM data_migration) AS count,
+        nextval('indicator_short_id_seq')::int AS "shortId"
     `;
-    expect(remaining).toEqual({ topics: 1, migrations: 0 });
+    expect(row).toEqual({ count: 2, shortId: 100000 });
   });
-
-  it('deletes a version with the rows the migration wrote against it, unless publishers added to it', async () => {
-    const indicatorId = 'ffffffff-ffff-7fff-ffff-ffffffffffff';
-    const versionId = '11111111-1111-7111-1111-111111111111';
-    const [topic] = await sql<{ id: string }[]>`
-      INSERT INTO topic (slug, title, description) VALUES ('t', 'Topic', 'A topic') RETURNING id
-    `;
-    const [classification] = await sql<{ id: string }[]>`
-      INSERT INTO classification (dimension, slug, name)
-      VALUES ('framework', 'c', 'Classification') RETURNING id
-    `;
-    const [provider] = await sql<{ id: string }[]>`
-      INSERT INTO data_provider (name) VALUES ('Provider') RETURNING id
-    `;
-    await sql`
-      INSERT INTO indicator_version_topic (topic_id, indicator_version_id)
-      VALUES (${topic?.id ?? ''}, ${versionId})
-    `;
-    await sql`
-      INSERT INTO indicator_version_classification (classification_id, indicator_version_id)
-      VALUES (${classification?.id ?? ''}, ${versionId})
-    `;
-    await sql`
-      INSERT INTO indicator_version_source (indicator_version_id, part, position, provider_id)
-      VALUES (${versionId}, 'numerator', 0, ${provider?.id ?? ''})
-    `;
-    await sql`
-      INSERT INTO indicator_version_link (indicator_version_id, position, url, text)
-      VALUES (${versionId}, 0, 'https://example.test', 'Publisher link')
-    `;
-
-    const testDir = await mkdtemp(join(tmpdir(), 'fphd-dm-delete-'));
+  it('refuses a baseline on nonempty target tables', async () => {
+    await sql`INSERT INTO indicator (id, short_id) VALUES (${INDICATOR_ID}, 108)`;
+    await expect(baseline()).rejects.toThrow('Baseline target table indicator is not empty');
+  });
+  it('checks declared baseline row counts', async () => {
+    const fixture = await migrationFixture(sql, directory, topicId, { baseline: true });
+    if (fixture.manifest.kind !== 'baseline') throw new Error('Expected baseline');
+    const entry = fixture.manifest.tables.indicator;
+    if (!entry) throw new Error('Missing indicator entry');
+    entry.rows = 2;
+    await expect(
+      sql.begin((tx) => applyDataMigration(tx, directory, fixture.manifest, fixture.sha256)),
+    ).rejects.toThrow('Baseline row count failed for indicator');
+  });
+  it.each([
+    [
+      ['id', 'name', 'hierarchy_type', 'level', 'bogus_column'],
+      'columns the target table does not: bogus_column',
+    ],
+    [['id', 'hierarchy_type', 'level'], 'missing required columns: name'],
+    [['name', 'hierarchy_type', 'level'], 'missing required columns: id'],
+  ])('refuses invalid area_type headers: %j', async (columns, error) => {
+    await baseline();
+    await expect(
+      apply({ upserts: { area_type: { columns: columns as string[] } } }),
+    ).rejects.toThrow(error as string);
+    await assertRolledBack();
+  });
+  it('requires imported numeric indicator identities', async () => {
+    await baseline();
+    await expect(apply({ upserts: { indicator: { columns: ['id'] } } })).rejects.toThrow(
+      'missing required columns: short_id',
+    );
+  });
+  it.each(
+    [VERSION_COLUMNS.slice(0, -2), VERSION_COLUMNS.slice(0, -1)].map((columns) => ({ columns })),
+  )('rejects a version header missing legacy source columns: %j', async ({ columns }) => {
+    await baseline();
+    await expect(
+      apply({
+        upserts: { indicator_version: { columns, rows: [VERSION_ROW.slice(0, columns.length)] } },
+      }),
+    ).rejects.toThrow('missing required columns:');
+    await assertRolledBack();
+  });
+  it('records zero applied rows for staged reference tables', async () => {
+    await baseline();
+    const applied = await apply({
+      upserts: {
+        numerator_denominator_source: {
+          columns: ['id', 'name', 'url'],
+          rows: [[SOURCE_ID, 'Not applicable (N/A)', null]],
+        },
+      },
+    });
+    expect(applied.changes.numerator_denominator_source).toEqual({ upserts: 0, deletes: 0 });
+    const [ledger] = await sql<
+      { changes: unknown }[]
+    >`SELECT table_changes->'numerator_denominator_source' AS changes FROM data_migration WHERE id = 'increment-2'`;
+    expect(ledger?.changes).toEqual({ upserts: 0, deletes: 0 });
+  });
+  it('preserves sequence allocations consumed by rolled-back publisher writes', async () => {
+    await baseline();
+    await expect(
+      sql.begin(async (tx) => {
+        await tx`INSERT INTO indicator DEFAULT VALUES`;
+        throw new Error('publisher rollback');
+      }),
+    ).rejects.toThrow('publisher rollback');
+    await apply();
+    const [created] = await sql<
+      { shortId: number }[]
+    >`INSERT INTO indicator DEFAULT VALUES RETURNING short_id AS "shortId"`;
+    expect(created?.shortId).toBe(100001);
+  });
+  it('waits for concurrent publisher identities and never reissues their IDs', async () => {
+    await baseline();
+    const publisher = createOwnerClient(database.name);
+    const observer = createOwnerClient(database.name);
+    let release!: () => void;
+    let ready!: () => void;
+    const acquired = new Promise<void>((resolve) => {
+      ready = resolve;
+    });
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const pending = publisher.begin(async (tx) => {
+      await tx`INSERT INTO indicator DEFAULT VALUES`;
+      ready();
+      await held;
+    });
+    let migrating: ReturnType<typeof apply> | undefined;
     try {
-      await writeFile(
-        join(testDir, 'indicator-relationships.json'),
-        JSON.stringify({
-          approval: { approvedBy: 'test', approvedAt: '2026-09-26T10:00:00Z', basis: 'test' },
-          indicators: [],
-          indicatorTopics: [],
-          indicatorDataUpdatedAt: {},
-          classifications: [],
-          indicatorClassifications: [],
-        }),
-      );
-      const deletes: Partial<Record<string, string>> = {
-        indicator: indicatorId,
-        indicator_version: versionId,
-      };
-      for (const table of DATA_MIGRATION_TABLES) {
-        let upsert: string;
-        if (table === 'indicator_version') {
-          upsert = 'id,indicator_id,status,name,slug,created_by,updated_by\n';
-        } else if (table === 'ci_method') {
-          upsert = 'id,name,description\n';
-        } else if (table === 'comparator_method') {
-          upsert = 'id,name\n';
-        } else if (table === 'numerator_denominator_source') {
-          upsert = 'id,name,url\n';
-        } else {
-          const cols = (
-            await sql<{ column: string }[]>`
-              SELECT attname AS column FROM pg_attribute
-              WHERE attrelid = ${table}::regclass AND attnum > 0 AND NOT attisdropped
-              ORDER BY attnum
-            `
-          ).map(({ column }) => column);
-          upsert = `${cols.join(',')}\n`;
-        }
-        const deleted = deletes[table];
-        await writeFile(join(testDir, `${table}.csv.gz`), gzipSync(upsert));
-        await writeFile(
-          join(testDir, `${table}.deletes.csv.gz`),
-          gzipSync(deleted ? `id\n${deleted}\n` : 'id\n'),
-        );
-      }
-      const manifest = dataMigrationManifestSchema.parse({
-        format_version: DATA_MIGRATION_FORMAT_VERSION,
-        schema: DATA_MIGRATION_SCHEMA,
-        migration_id: 'increment-delete',
-        kind: 'incremental',
-        predecessor: 'increment-core-map',
-        source: {
-          system: 'fingertips',
-          environment: 'live',
-          database: 'source',
-          snapshot_at: '2026-09-26T10:00:00Z',
-          cutoff_at: '2026-09-26T10:00:00Z',
-        },
-        source_csv_null: DATA_MIGRATION_NULL,
-        id_mapping: 'deterministic-uuidv7-v1',
-        relationships: {
-          file: 'indicator-relationships.json',
-          rows: 0,
-          bytes: 1,
-          sha256: 'a'.repeat(64),
-        },
-        tables: Object.fromEntries(
-          DATA_MIGRATION_TABLES.map((t) => [
-            t,
-            {
-              upserts: { file: `${t}.csv.gz`, rows: 0, bytes: 1, sha256: 'a'.repeat(64) },
-              deletes: {
-                file: `${t}.deletes.csv.gz`,
-                rows: deletes[t] ? 1 : 0,
-                bytes: 1,
-                sha256: 'b'.repeat(64),
-              },
-            },
-          ]),
-        ),
+      await acquired;
+      migrating = apply();
+      await vi.waitFor(async () => {
+        const [lock] = await observer<{ waiting: boolean }[]>`
+          SELECT EXISTS (SELECT 1 FROM pg_locks WHERE relation = 'indicator'::regclass
+            AND mode = 'ShareRowExclusiveLock' AND NOT granted) AS waiting
+        `;
+        expect(lock?.waiting).toBe(true);
       });
-
-      await expect(
-        sql.begin((tx) => applyDataMigration(tx, testDir, manifest, '1'.repeat(64))),
-      ).rejects.toThrow(
-        '1 publisher links or age ranges belong to indicator versions the source no longer holds',
-      );
-
-      await sql`DELETE FROM indicator_version_link WHERE indicator_version_id = ${versionId}`;
-      await sql.begin((tx) => applyDataMigration(tx, testDir, manifest, '1'.repeat(64)));
-
-      const [left] = await sql<{ count: number }[]>`
-        SELECT (SELECT count(*) FROM indicator WHERE id = ${indicatorId})
-          + (SELECT count(*) FROM indicator_version WHERE id = ${versionId})
-          + (SELECT count(*) FROM indicator_version_topic WHERE indicator_version_id = ${versionId})
-          + (SELECT count(*) FROM indicator_version_classification
-             WHERE indicator_version_id = ${versionId})
-          + (SELECT count(*) FROM indicator_version_source WHERE indicator_version_id = ${versionId})
-          AS count
-      `;
-      expect(Number(left?.count)).toBe(0);
+      release();
+      await pending;
+      await migrating;
+      const [created] = await publisher<
+        { shortId: number }[]
+      >`INSERT INTO indicator DEFAULT VALUES RETURNING short_id AS "shortId"`;
+      expect(created?.shortId).toBe(100001);
     } finally {
-      await rm(testDir, { recursive: true });
+      release();
+      await pending;
+      await migrating;
+      await publisher.end();
+      await observer.end();
     }
   });
+  it('names unknown topic and classification IDs in relationship errors', async () => {
+    await baseline();
+    await expect(
+      apply({ relationships: { indicatorTopics: [{ fingertipsId: 108, topicId: SOURCE_ID }] } }),
+    ).rejects.toThrow(`unknown topics: ${SOURCE_ID}`);
+    await expect(
+      apply({
+        relationships: {
+          indicatorClassifications: [{ fingertipsId: 108, classificationId: SOURCE_ID }],
+        },
+      }),
+    ).rejects.toThrow(`unknown classifications: ${SOURCE_ID}`);
+    await assertRolledBack();
+  });
+  it.each([
+    { indicators: [], error: 'published indicators absent from coverage: 108' },
+    { indicators: [108, 109], error: 'declared indicators without a published version: 109' },
+  ])(
+    'names mismatched indicator coverage and rolls back: $error',
+    async ({ indicators, error }) => {
+      await baseline();
+      await expect(apply({ relationships: { indicators, indicatorTopics: [] } })).rejects.toThrow(
+        error,
+      );
+      await assertRolledBack();
+    },
+  );
+  it('names identities whose deletion is blocked by publisher uploads', async () => {
+    await baseline();
+    await sql`INSERT INTO upload_batch (indicator_id, original_filename, uploaded_by) VALUES (${INDICATOR_ID}, 'publisher.csv', 'publisher')`;
+    await expect(
+      apply({
+        deletes: { indicator: [INDICATOR_ID], indicator_version: [VERSION_ID] },
+        relationships: { indicators: [], indicatorTopics: [] },
+      }),
+    ).rejects.toThrow(
+      `indicator deletion is blocked by retained references (ids: ${INDICATOR_ID})`,
+    );
+    await assertRolledBack();
+  });
+  it('refuses a mislabeled delete header and retains the target row', async () => {
+    await baseline({
+      upserts: { data_source: { columns: ['id', 'name'], rows: [[SOURCE_ID, 'Retained source']] } },
+    });
+    await expect(
+      apply({ deletes: { data_source: [SOURCE_ID] }, deleteHeaders: { data_source: ['name'] } }),
+    ).rejects.toThrow(
+      'data_migration_delete_data_source CSV has columns the target table does not: name',
+    );
+    const [row] = await sql<
+      { name: string }[]
+    >`SELECT name FROM data_source WHERE id = ${SOURCE_ID}`;
+    expect(row?.name).toBe('Retained source');
+    await assertRolledBack();
+  });
+  it('maps source CI method names to core UUIDs', async () => {
+    await baseline();
+    const row = [...VERSION_ROW];
+    row[8] = SOURCE_ID;
+    await apply({
+      upserts: {
+        indicator_version: { columns: VERSION_COLUMNS, rows: [row] },
+        ci_method: {
+          columns: ['id', 'name', 'description'],
+          rows: [[SOURCE_ID, 'Normal approximation', null]],
+        },
+      },
+    });
+    const [loaded] = await sql<{ name: string }[]>`
+      SELECT c.name FROM indicator_version v JOIN ci_method c ON c.id = v.ci_method_id WHERE v.id = ${VERSION_ID}
+    `;
+    expect(loaded?.name).toBe('Wald normal approximation');
+  });
+  it('leaves sources of unchanged versions intact', async () => {
+    await baseline({
+      upserts: {
+        indicator_version: version([SOURCE_ID, null]),
+        numerator_denominator_source: {
+          columns: ['id', 'name', 'url'],
+          rows: [[SOURCE_ID, 'Care Quality Commission (CQC), Care directory', null]],
+        },
+      },
+    });
+    await apply();
+    expect(await sourceCount()).toBe(1);
+  });
+  it.each([null, 'Not applicable (N/A)'])(
+    'removes obsolete numerator and denominator sources for %s',
+    async (name) => {
+      await baseline({
+        upserts: {
+          indicator_version: version([SOURCE_ID, SOURCE_ID]),
+          numerator_denominator_source: {
+            columns: ['id', 'name', 'url'],
+            rows: [[SOURCE_ID, 'Care Quality Commission (CQC), Care directory', null]],
+          },
+        },
+      });
+      expect(await sourceCount()).toBe(2);
+      await apply({
+        upserts: {
+          indicator_version: version(name === null ? [null, null] : [SOURCE_ID, SOURCE_ID]),
+          numerator_denominator_source: {
+            columns: ['id', 'name', 'url'],
+            rows: name === null ? [] : [[SOURCE_ID, name, null]],
+          },
+        },
+      });
+      expect(await sourceCount()).toBe(0);
+    },
+  );
+  it('shrinks source mappings and reads a reordered legacy source header by name', async () => {
+    await baseline({
+      upserts: {
+        indicator_version: version([SOURCE_ID, null]),
+        numerator_denominator_source: {
+          columns: ['name', 'url', 'id'],
+          rows: [
+            [
+              'Ministry of Housing, Communities and Local Government (MHCLG), Homelessness statistics and Department for Energy Security and Net Zero (DESNZ), Fuel poverty statistics',
+              null,
+              SOURCE_ID,
+            ],
+          ],
+        },
+      },
+    });
+    expect(await sourceCount()).toBe(2);
+    await apply({
+      upserts: {
+        indicator_version: version([SOURCE_ID, null]),
+        numerator_denominator_source: {
+          columns: ['name', 'id', 'url'],
+          rows: [['Care Quality Commission (CQC), Care directory', SOURCE_ID, null]],
+        },
+      },
+    });
+    expect(await sourceCount()).toBe(1);
+    const [provider] = await sql<{ name: string }[]>`
+      SELECT p.name FROM indicator_version_source s JOIN data_provider p ON p.id = s.provider_id WHERE s.indicator_version_id = ${VERSION_ID}
+    `;
+    expect(provider?.name).toBe('Care Quality Commission (CQC)');
+  });
+  it.each([
+    { columns: ['id', 'name'], rows: [['invalid-uuid', 'Bad source']], code: '22P02' },
+    { columns: ['id', 'name'], rows: [[SOURCE_ID, 'Bad source', 'extra']], code: '22P04' },
+  ])(
+    'rejects COPY errors after EOF and leaves the connection usable: $code',
+    async ({ columns, rows, code }) => {
+      await baseline();
+      await expect(apply({ upserts: { data_source: { columns, rows } } })).rejects.toMatchObject({
+        code,
+      });
+      await assertRolledBack();
+      expect((await apply()).applied).toBe(true);
+    },
+  );
+  it('preserves historical and draft topics, classifications and answers', async () => {
+    await baseline();
+    const preserved = await sql<{ id: string }[]>`
+      INSERT INTO indicator_version (indicator_id, status, published_at, name, slug, created_by, updated_by, has_framework)
+      VALUES (${INDICATOR_ID}, 'published', '2025-01-01', 'History', 'test-indicator', 'publisher', 'publisher', true),
+        (${INDICATOR_ID}, 'draft', NULL, 'Draft', 'test-indicator', 'publisher', 'publisher', true)
+      RETURNING id
+    `;
+    for (const { id } of preserved) {
+      await sql`INSERT INTO indicator_version_topic (indicator_version_id, topic_id) VALUES (${id}, ${topicId})`;
+      await sql`INSERT INTO indicator_version_classification (indicator_version_id, classification_id) VALUES (${id}, ${frameworkId})`;
+    }
+    await apply({ upserts: { indicator_version: version() } });
+    const rows = await sql<
+      { status: string; topics: number; classifications: number; hasFramework: boolean }[]
+    >`
+      SELECT v.status, v.has_framework AS "hasFramework",
+        (SELECT count(*)::int FROM indicator_version_topic t WHERE t.indicator_version_id = v.id) AS topics,
+        (SELECT count(*)::int FROM indicator_version_classification c WHERE c.indicator_version_id = v.id) AS classifications
+      FROM indicator_version v WHERE v.id IN ${sql(preserved.map(({ id }) => id))} ORDER BY status
+    `;
+    expect(rows).toEqual([
+      { status: 'draft', hasFramework: true, topics: 1, classifications: 1 },
+      { status: 'published', hasFramework: true, topics: 1, classifications: 1 },
+    ]);
+  });
+  it('allows unrelated draft-only indicators without changing them', async () => {
+    await baseline();
+    const [identity] = await sql<
+      { id: string }[]
+    >`INSERT INTO indicator DEFAULT VALUES RETURNING id`;
+    const [draft] = await sql<{ id: string }[]>`
+      INSERT INTO indicator_version (indicator_id, name, slug, created_by, updated_by)
+      VALUES (${identity?.id ?? ''}, 'Publisher draft', 'publisher-draft', 'publisher', 'publisher') RETURNING id
+    `;
+    await sql`INSERT INTO indicator_version_topic (indicator_version_id, topic_id) VALUES (${draft?.id ?? ''}, ${topicId})`;
+    await apply();
+    const [row] = await sql<{ name: string; topics: number }[]>`
+      SELECT name, (SELECT count(*)::int FROM indicator_version_topic WHERE indicator_version_id = v.id) AS topics
+      FROM indicator_version v WHERE id = ${draft?.id ?? ''}
+    `;
+    expect(row).toEqual({ name: 'Publisher draft', topics: 1 });
+  });
+  it('refuses non-published source versions and rolls back the increment', async () => {
+    await baseline();
+    const row = [...VERSION_ROW];
+    row[2] = 'draft';
+    row[3] = null;
+    await expect(
+      apply({ upserts: { indicator_version: { columns: VERSION_COLUMNS, rows: [row] } } }),
+    ).rejects.toThrow('contains a non-published indicator version');
+    await assertRolledBack();
+  });
+  it('refuses source versions that would overwrite a publisher draft', async () => {
+    await baseline();
+    const [draft] = await sql<{ id: string }[]>`
+      INSERT INTO indicator_version (indicator_id, name, slug, created_by, updated_by)
+      VALUES (${INDICATOR_ID}, 'Publisher draft', 'test-indicator', 'publisher', 'publisher') RETURNING id
+    `;
+    const row = [...VERSION_ROW];
+    row[0] = draft?.id ?? '';
+    await expect(
+      apply({ upserts: { indicator_version: { columns: VERSION_COLUMNS, rows: [row] } } }),
+    ).rejects.toThrow('would overwrite a non-published indicator version');
+    await assertRolledBack();
+  });
+  it('refuses source deletions that would remove a publisher draft', async () => {
+    await baseline();
+    const [draft] = await sql<{ id: string }[]>`
+      INSERT INTO indicator_version (indicator_id, name, slug, created_by, updated_by)
+      VALUES (${INDICATOR_ID}, 'Publisher draft', 'test-indicator', 'publisher', 'publisher') RETURNING id
+    `;
+    await expect(apply({ deletes: { indicator_version: [draft?.id ?? ''] } })).rejects.toThrow(
+      'would delete a non-published indicator version',
+    );
+    await assertRolledBack();
+    const [remaining] = await sql<
+      { name: string }[]
+    >`SELECT name FROM indicator_version WHERE id = ${draft?.id ?? ''}`;
+    expect(remaining?.name).toBe('Publisher draft');
+  });
+  it('refuses source indicators with no published version or reviewed topic coverage', async () => {
+    await baseline();
+    await expect(
+      apply({ upserts: { indicator: { columns: ['id', 'short_id'], rows: [[SOURCE_ID, 109]] } } }),
+    ).rejects.toThrow('source indicators are missing from reviewed relationship coverage: 109');
+    await assertRolledBack();
+  });
+  it('clears removed classification answers and retains answers backed by assignments', async () => {
+    await baseline({
+      relationships: {
+        indicatorClassifications: [
+          { fingertipsId: 108, classificationId: frameworkId },
+          { fingertipsId: 108, classificationId: riskFactorId },
+        ],
+      },
+    });
+    await apply({
+      relationships: {
+        indicatorClassifications: [{ fingertipsId: 108, classificationId: riskFactorId }],
+      },
+    });
+    const [row] = await sql<{ framework: boolean | null; risk: boolean | null }[]>`
+      SELECT has_framework AS framework, has_risk_factor AS risk FROM indicator_version WHERE id = ${VERSION_ID}
+    `;
+    expect(row).toEqual({ framework: null, risk: true });
+    await apply({
+      predecessor: 'increment-2',
+      migrationId: 'increment-3',
+      cutoffAt: '2026-09-23T10:00:00Z',
+    });
+    const [removed] = await sql<
+      { risk: boolean | null }[]
+    >`SELECT has_risk_factor AS risk FROM indicator_version WHERE id = ${VERSION_ID}`;
+    expect(removed?.risk).toBeNull();
+  });
+  it('retains explicit negative classification answers', async () => {
+    await baseline();
+    await sql`UPDATE indicator_version SET has_framework = false, has_risk_factor = false WHERE id = ${VERSION_ID}`;
+    await apply();
+    const [row] = await sql<{ framework: boolean; risk: boolean }[]>`
+      SELECT has_framework AS framework, has_risk_factor AS risk FROM indicator_version WHERE id = ${VERSION_ID}
+    `;
+    expect(row).toEqual({ framework: false, risk: false });
+  });
+  it('refuses missing topics and rolls back source edits, relationships and the ledger', async () => {
+    await baseline();
+    const [history] = await sql<{ id: string }[]>`
+      INSERT INTO indicator_version (indicator_id, status, published_at, name, slug, created_by, updated_by)
+      VALUES (${INDICATOR_ID}, 'published', '2025-01-01', 'History', 'test-indicator', 'publisher', 'publisher') RETURNING id
+    `;
+    await sql`INSERT INTO indicator_version_topic (indicator_version_id, topic_id) VALUES (${history?.id ?? ''}, ${topicId})`;
+    const row = [...VERSION_ROW];
+    row[4] = 'Changed name';
+    await expect(
+      apply({
+        relationships: { indicatorTopics: [] },
+        upserts: { indicator_version: { columns: VERSION_COLUMNS, rows: [row] } },
+      }),
+    ).rejects.toThrow('Migrated indicators have no topic: 108 (Changed name)');
+    await assertRolledBack();
+  });
+  it.each(['link', 'age range'])(
+    'protects publisher %s rows when source versions are deleted',
+    async (child) => {
+      await baseline();
+      if (child === 'link') {
+        await sql`INSERT INTO indicator_version_link (indicator_version_id, position, url, text) VALUES (${VERSION_ID}, 0, 'https://example.test', 'Publisher link')`;
+      } else {
+        await sql`INSERT INTO indicator_version_age_range (indicator_version_id, position, lower_limit, lower_limit_unit) VALUES (${VERSION_ID}, 0, 18, 'years')`;
+      }
+      const options = {
+        deletes: { indicator: [INDICATOR_ID], indicator_version: [VERSION_ID] },
+        relationships: { indicators: [], indicatorTopics: [] },
+      };
+      await expect(apply(options)).rejects.toThrow('publisher links or age ranges');
+      await assertRolledBack();
+      await sql`DELETE FROM indicator_version_link WHERE indicator_version_id = ${VERSION_ID}`;
+      await sql`DELETE FROM indicator_version_age_range WHERE indicator_version_id = ${VERSION_ID}`;
+      await apply(options);
+      const [row] = await sql<{ indicators: number; topics: number }[]>`
+      SELECT (SELECT count(*)::int FROM indicator) AS indicators,
+        (SELECT count(*)::int FROM indicator_version_topic) AS topics
+    `;
+      expect(row).toEqual({ indicators: 0, topics: 0 });
+    },
+  );
 });
