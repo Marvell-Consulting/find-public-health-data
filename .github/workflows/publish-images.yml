@@ -51,8 +51,8 @@ jobs:
       # list; lowercased because image references must be and an owner or repository name need
       # not be. The packages are linked to that repository and inherit its permissions because
       # their first push comes from this workflow's token — the prefixes alone do nothing. They
-      # are public, so deployments pull anonymously, but GHCR creates each package private: a new
-      # one must be flipped to public by hand before anything can pull it.
+      # are public, so deployments pull anonymously. GHCR does not reliably create a new package
+      # public, so check a new one's visibility after its first push.
       - name: Derive the image name from this repository
         env:
           APP: ${{ matrix.app }}

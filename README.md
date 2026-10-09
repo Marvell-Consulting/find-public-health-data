@@ -512,9 +512,9 @@ GitHub Container Registry under the repository that ran it —
 `latest`. The `fphd-` prefix groups the five in the organisation's package list. OCI labels carry
 the repository, commit and build time rather than encoding them in the tag. There is no registry
 credential on either side: the workflow authenticates with its own run-scoped `GITHUB_TOKEN`, and
-the packages are public, so deployments pull anonymously. The one manual step is at creation: GHCR
-makes a package private on its first push, so a brand-new package must be flipped to public in its
-settings before anything can pull it.
+the packages are public, so deployments pull anonymously. GHCR does not reliably create a new
+package public, so check a brand-new package's visibility in its settings after its first push; a
+private one cannot be pulled anonymously.
 
 Write access to the packages is repository access: they are linked to this repository on that first
 push and inherit its permissions, so anyone with maintain or admin here can push to them, from any
