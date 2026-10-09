@@ -96,14 +96,11 @@ async function packageArchive(
   return { contents, digest: sha256(contents) };
 }
 
-function response(contents: Buffer, url = 'https://example.test/migration.tar'): Response {
-  const value = new Response(contents, { status: 200 });
-  Object.defineProperty(value, 'url', { value: url });
-  return value;
-}
+const mocks = vi.hoisted(() => ({ download: vi.fn() }));
+vi.mock('./download.ts', () => ({ downloadFile: mocks.download }));
 
 afterEach(async () => {
-  vi.unstubAllGlobals();
+  vi.resetAllMocks();
   await Promise.all(
     directories.splice(0).map((directory) => rm(directory, { recursive: true, force: true })),
   );
@@ -112,10 +109,9 @@ afterEach(async () => {
 describe('downloadDataMigration', () => {
   it('downloads and verifies every declared package file', async () => {
     const archive = await packageArchive();
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => response(archive.contents)),
-    );
+    mocks.download.mockImplementation(async (_url: string, path: string) => {
+      await writeFile(path, archive.contents);
+    });
 
     const migration = await downloadDataMigration(
       'https://example.test/migration.tar',
@@ -128,10 +124,9 @@ describe('downloadDataMigration', () => {
 
   it('rejects a declared file size that does not match the archive', async () => {
     const archive = await packageArchive({ wrongBytes: true });
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => response(archive.contents)),
-    );
+    mocks.download.mockImplementation(async (_url: string, path: string) => {
+      await writeFile(path, archive.contents);
+    });
 
     await expect(
       downloadDataMigration('https://example.test/migration.tar', archive.digest),
@@ -140,10 +135,9 @@ describe('downloadDataMigration', () => {
 
   it('rejects an archive containing an undeclared file', async () => {
     const archive = await packageArchive({ unexpectedFile: true });
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => response(archive.contents)),
-    );
+    mocks.download.mockImplementation(async (_url: string, path: string) => {
+      await writeFile(path, archive.contents);
+    });
 
     await expect(
       downloadDataMigration('https://example.test/migration.tar', archive.digest),
@@ -152,25 +146,19 @@ describe('downloadDataMigration', () => {
 
   it('rejects a declared file stored as a link', async () => {
     const archive = await packageArchive({ linkedFile: true });
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => response(archive.contents)),
-    );
+    mocks.download.mockImplementation(async (_url: string, path: string) => {
+      await writeFile(path, archive.contents);
+    });
 
     await expect(
       downloadDataMigration('https://example.test/migration.tar', archive.digest),
     ).rejects.toThrow('Data migration archive contains a link');
   });
 
-  it('rejects a download redirected away from HTTPS', async () => {
-    const archive = await packageArchive();
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => response(archive.contents, 'http://example.test/migration.tar')),
-    );
-
+  it('propagates a failed download', async () => {
+    mocks.download.mockRejectedValue(new Error('download failed'));
     await expect(
-      downloadDataMigration('https://example.test/migration.tar', archive.digest),
-    ).rejects.toThrow('Data migration download redirected away from HTTPS');
+      downloadDataMigration('https://example.test/migration.tar', 'a'.repeat(64)),
+    ).rejects.toThrow('download failed');
   });
 });

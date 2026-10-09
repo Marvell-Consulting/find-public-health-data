@@ -136,6 +136,10 @@ CI. To take a version that is still inside the window, add a `name@version` entr
 `minimumReleaseAgeExclude` with a note of when it can go, and remove it once the version has aged
 out. Do not pass `--trust-lockfile`: it skips the verification entirely.
 
+`postgres@3.4.9` has a pnpm patch for [upstream COPY error handling](https://github.com/porsager/postgres/pull/1183):
+a server error after COPY finishes sending must reject the writable so the transaction rolls back.
+Remove the patch when a released version includes that fix.
+
 Each tier is its own CI job, so the jobs run `pnpm test:unit`, `pnpm test:integration` and
 `pnpm test:e2e` individually rather than `pnpm test`.
 
