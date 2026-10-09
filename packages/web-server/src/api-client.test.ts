@@ -1,7 +1,7 @@
 import { z } from '@fphd/config/zod';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { apiPath, createApiClient, forwardedCookieHeaders } from './api-client.ts';
+import { ApiTimeoutError, apiPath, createApiClient, forwardedCookieHeaders } from './api-client.ts';
 
 const schema = z.array(z.object({ slug: z.string() }));
 const topicSchema = z.object({ slug: z.string() });
@@ -355,22 +355,22 @@ describe('ApiClient.postStream', () => {
 
   it('sends the body as it arrives with its own content type and the configured headers', async () => {
     const fetchMock = respondWith({ slug: 'uploaded' }, 201);
-    const stream = body();
 
     const result = await client().postStream(
       '/api/internal/uploads',
-      { body: stream, contentType },
+      { body: body(), contentType },
       topicSchema,
       errorSchema,
     );
 
     expect(result).toEqual({ ok: true, data: { slug: 'uploaded' } });
-    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+    const init = fetchMock.mock.calls[0]?.[1];
+    expect(init).toMatchObject({
       method: 'POST',
       headers: { cookie: 'a=b', 'content-type': contentType },
-      body: stream,
       duplex: 'half',
     });
+    expect(await new Response(init.body).text()).toBe('--b--\r\n');
   });
 
   it.each([400, 422])('returns a %s as a refusal for the form to render', async (status) => {
@@ -429,18 +429,47 @@ describe('ApiClient.postStream', () => {
     expect(signal.aborted).toBe(true);
   });
 
-  it('gives up after the upload timeout, not the shorter one for other calls', async () => {
-    respondWith({ slug: 'uploaded' }, 201);
-    const timeout = vi.spyOn(AbortSignal, 'timeout');
+  /** A fetch that answers only when its signal aborts, and reads the body when told to. */
+  function hangingFetch() {
+    let readBody: () => Promise<string> = async () => '';
+    const fetchMock = vi.fn((_url: string, init: RequestInit) => {
+      readBody = () => new Response(init.body).text();
+      return new Promise((_resolve, reject) => {
+        init.signal?.addEventListener('abort', () => reject(init.signal?.reason));
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    return { readBody: () => readBody() };
+  }
 
-    await createApiClient({
-      baseUrl: 'http://api:4000',
-      timeoutMs: 10,
-      uploadTimeoutMs: 1000,
-    }).postStream('/api/internal/uploads', { body: body(), contentType }, topicSchema, errorSchema);
+  it('times the answer from when the body has been sent, then gives up', async () => {
+    vi.useFakeTimers();
+    try {
+      const { readBody } = hangingFetch();
+      const outcome = createApiClient({ baseUrl: 'http://api:4000', uploadTimeoutMs: 1000 })
+        .postStream(
+          '/api/internal/uploads',
+          { body: body(), contentType },
+          topicSchema,
+          errorSchema,
+        )
+        .catch((error: unknown) => error);
 
-    expect(timeout).toHaveBeenCalledWith(1000);
-    timeout.mockRestore();
+      await vi.advanceTimersByTimeAsync(5000);
+      let settled = false;
+      void outcome.then(() => {
+        settled = true;
+      });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(settled).toBe(false);
+
+      await readBody();
+      await vi.advanceTimersByTimeAsync(1000);
+
+      expect(await outcome).toBeInstanceOf(ApiTimeoutError);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

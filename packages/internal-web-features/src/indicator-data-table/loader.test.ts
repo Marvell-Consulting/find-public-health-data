@@ -1,10 +1,15 @@
-import type { ApiClient } from '@fphd/web-server/api-client';
+import { type ApiClient, ApiTimeoutError } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 import { FORM_NOT_SAVED } from '../form-refusal.ts';
-import { loadDataTableProblems, loadDataTableUpload, uploadDataTable } from './loader.ts';
+import {
+  DATA_TABLE_TOO_SLOW,
+  loadDataTableProblems,
+  loadDataTableUpload,
+  uploadDataTable,
+} from './loader.ts';
 
 const ID = '00000000-0000-7000-8000-000000000001';
 const PROBLEMS = [{ code: 'no_rows', items: [], count: 1 }];
@@ -114,6 +119,14 @@ describe('uploadDataTable', () => {
     const { outcome } = await upload(postStream);
 
     expect(outcome).toEqual({ fieldErrors: { dataTable: 'Select a data table' } });
+  });
+
+  it('says the check took too long when the API does not answer in time', async () => {
+    const postStream = vi.fn().mockRejectedValue(new ApiTimeoutError('/api/internal/uploads'));
+
+    const { outcome } = await upload(postStream);
+
+    expect(outcome).toEqual({ fieldErrors: {}, formError: DATA_TABLE_TOO_SLOW });
   });
 
   it('answers a refusal that names no field for the whole form', async () => {
