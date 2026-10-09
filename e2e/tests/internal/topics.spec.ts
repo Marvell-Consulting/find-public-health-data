@@ -16,3 +16,13 @@ test('lists the public health topics to a publisher', async ({ page }) => {
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
   await expectNoAccessibilityViolations(page, testInfo);
 });
+
+test('filters and highlights topics for a publisher', async ({ page }, testInfo) => {
+  await page.getByRole('searchbox', { name: 'Search for topics' }).fill('quitting');
+
+  await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toHaveText(
+    'Smoking and tobacco',
+  );
+  await expect(page.locator('.fphd-card-list__description mark')).toHaveText('quitting');
+  await expectNoAccessibilityViolations(page, testInfo);
+});
