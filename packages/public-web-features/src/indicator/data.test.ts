@@ -1,3 +1,4 @@
+import { publicYearType } from '@fphd/utils/period-type';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -16,6 +17,7 @@ import {
   inequalityCategoryOptions,
   inequalityPeriods,
   inequalitySegments,
+  periodCovered,
   segmentLabel,
   trendSeries,
   unitNote,
@@ -42,6 +44,38 @@ function obs(overrides = {}) {
 function dim(type: string, value: string, overrides = {}) {
   return { type, value, dimensionClass: 'core', sortOrder: 0, ...overrides };
 }
+
+describe('periodCovered', () => {
+  it('labels one span from the first start to the last end', () => {
+    const rolling = [
+      obs({ fromDate: '2013-04-01', toDate: '2018-03-31' }),
+      obs({ fromDate: '2017-04-01', toDate: '2022-03-31' }),
+      obs({ fromDate: '2014-04-01', toDate: '2019-03-31' }),
+    ];
+
+    expect(periodCovered(rolling, publicYearType('financial', null))).toBe('2013/14 to 2021/22');
+  });
+
+  it('takes the latest end even when a later start ends sooner', () => {
+    const mixed = [
+      obs({ fromDate: '2015-01-01', toDate: '2017-12-31' }),
+      obs({ fromDate: '2016-01-01', toDate: '2016-12-31' }),
+    ];
+
+    expect(periodCovered(mixed)).toBe('2015 to 2017');
+  });
+
+  it('labels a single period as that period', () => {
+    expect(periodCovered([obs()])).toBe('2023');
+    expect(periodCovered([obs({ fromDate: '2026-01-01', toDate: '2026-03-31' })])).toBe(
+      'January to March 2026',
+    );
+  });
+
+  it('is empty without observations', () => {
+    expect(periodCovered([])).toBe('');
+  });
+});
 
 describe('segmentLabel', () => {
   it('joins dimension values', () => {
