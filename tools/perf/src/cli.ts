@@ -10,6 +10,7 @@ import {
   serialiseBaseline,
   type Work,
 } from './budget.ts';
+import { deleteDataTableDraft } from './fixtures.ts';
 import { connect, measureWork, prepare, request, signIn } from './measure.ts';
 import { ROUTES, type Route, routeKey } from './routes.ts';
 
@@ -43,6 +44,7 @@ async function main(): Promise<void> {
       console.log(`${routeKey(route)}: ${describe(work)}, median ${timing.median} ms`);
     }
   } finally {
+    await deleteDataTableDraft(sql);
     await sql.end();
   }
 

@@ -10,7 +10,8 @@ indicator in the seed. Internal routes are requested as the fake admin user.
 
 The seed has no drafts, so before measuring the script adds one with a loaded data table of about
 105,000 rows ([`src/fixtures.ts`](src/fixtures.ts)) for the data table check page and the API
-behind it. It is written once per database and dated in the past, so the dashboard lists it last.
+behind it. It is dated in the past, so the dashboard lists it last, and is deleted once the routes are
+measured.
 
 ## What is measured
 

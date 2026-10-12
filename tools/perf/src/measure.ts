@@ -56,13 +56,15 @@ export function connect(): postgres.Sql {
 }
 
 /**
- * The data the seed lacks, then fresh planner statistics, so plans do not shift under an
- * autovacuum mid-run (CI turns it off), and the statistics extension, which needs
- * `shared_preload_libraries` (compose.perf.yaml).
+ * Fresh planner statistics and a vacuumed seed, so plans do not shift under an autovacuum mid-run
+ * (CI turns it off); then the data the seed lacks, analysed but not vacuumed, as a batch stands
+ * just after its upload; and the statistics extension, which needs `shared_preload_libraries`
+ * (compose.perf.yaml).
  */
 export async function prepare(sql: postgres.Sql): Promise<void> {
-  await createDataTableDraft(sql);
   await sql`vacuum analyze`.simple();
+  await createDataTableDraft(sql);
+  await sql`analyze indicator, indicator_version, upload_batch, observation, observation_dimension`;
   await sql`create extension if not exists pg_stat_statements`;
 }
 
