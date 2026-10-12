@@ -7,7 +7,7 @@ import {
   type DataTableCheckRefusal,
   loadDataTableCheck,
 } from './check-loader.ts';
-import { CheckDataTablePage } from './check-page.tsx';
+import { CheckDataTablePage } from './pages.tsx';
 
 export const loader = loadDataTableCheck;
 
