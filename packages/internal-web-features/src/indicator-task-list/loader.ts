@@ -6,7 +6,11 @@ import type { LoaderFunctionArgs } from 'react-router';
 
 import { requireIndicatorId } from '../indicator-id.ts';
 
-export type { IndicatorTaskKey, IndicatorTaskList } from '@fphd/internal-api-features/contract';
+export type {
+  IndicatorTaskKey,
+  IndicatorTaskList,
+  IndicatorTaskStatus,
+} from '@fphd/internal-api-features/contract';
 
 /**
  * The whole page in one call. The API answers 404 for an indicator that is missing or has no

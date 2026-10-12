@@ -1,15 +1,19 @@
 import { GridColumn, GridRow, InsetText, TaskList } from '@fphd/ui';
 
-import { indicatorDataTablePath, indicatorSectionPath } from '../publish-paths.ts';
+import {
+  indicatorDataTableCheckPath,
+  indicatorDataTablePath,
+  indicatorSectionPath,
+} from '../publish-paths.ts';
 import { IndicatorHeading } from '../status-tag/indicator-heading.tsx';
 import { StatusTag } from '../status-tag/status-tag.tsx';
-import type { IndicatorTaskKey, IndicatorTaskList } from './loader.ts';
+import type { IndicatorTaskKey, IndicatorTaskList, IndicatorTaskStatus } from './loader.ts';
 
 interface TaskRow {
   key: IndicatorTaskKey;
   title: string;
-  /** The page that completes the task. */
-  path: (id: string) => string;
+  /** The page that completes the task, which can depend on how far it has got. */
+  path: (id: string, status: IndicatorTaskStatus) => string;
 }
 
 interface TaskGroup {
@@ -22,13 +26,18 @@ function sectionPath(section: IndicatorTaskKey) {
   return (id: string) => indicatorSectionPath(id, section);
 }
 
+/** Once a file has loaded, the task continues on the check page. */
+function dataTablePath(id: string, status: IndicatorTaskStatus): string {
+  return status === 'not_started' ? indicatorDataTablePath(id) : indicatorDataTableCheckPath(id);
+}
+
 /** Every field a publisher completes, grouped as the publishing journey asks for them. */
 const TASK_GROUPS: readonly TaskGroup[] = [
   {
     id: 'data',
     title: 'Data',
     tasks: [
-      { key: 'data-table', title: 'Data table', path: indicatorDataTablePath },
+      { key: 'data-table', title: 'Data table', path: dataTablePath },
       {
         key: 'value-type-and-units',
         title: 'Value type and units',
@@ -123,7 +132,7 @@ export function IndicatorTaskListPage({ taskList }: { taskList: IndicatorTaskLis
               items={group.tasks.map(({ key, path, title }) => ({
                 id: key,
                 title,
-                href: path(indicator.id),
+                href: path(indicator.id, tasks[key]),
                 status: <StatusTag type="task" status={tasks[key]} />,
               }))}
             />
