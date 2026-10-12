@@ -102,11 +102,9 @@ describe('checkColumns', () => {
 });
 
 describe('uploadSummary', () => {
-  it('counts the columns and rows, the rows with separators', () => {
-    expect(uploadSummary(DATA_TABLE)).toBe('Your upload contains 8 columns and 52,365 rows');
-    expect(uploadSummary({ ...DATA_TABLE, rowCount: 1 })).toBe(
-      'Your upload contains 8 columns and 1 row',
-    );
+  it('counts the rows, with separators', () => {
+    expect(uploadSummary(DATA_TABLE)).toBe('Your upload contains 52,365 rows');
+    expect(uploadSummary({ ...DATA_TABLE, rowCount: 1 })).toBe('Your upload contains 1 row');
   });
 });
 
