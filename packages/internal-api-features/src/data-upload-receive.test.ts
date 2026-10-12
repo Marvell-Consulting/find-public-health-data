@@ -66,6 +66,32 @@ describe('receiveDataTable', () => {
     expect(await text(await storage.get(BLOB))).toBe(CSV);
   });
 
+  it('stores the file and ignores the parts beyond the limit of ten', async () => {
+    const storage = createFakeBlobStorage();
+    const test = request(createTestApp(storage))
+      .post('/upload')
+      .attach('dataTable', Buffer.from(CSV), 'data.csv');
+    for (let part = 0; part < 12; part += 1) test.field(`extra${part}`, 'x');
+
+    const response = await test;
+
+    expect(response.status).toBe(200);
+    expect(response.body.ok).toBe(true);
+    expect(await text(await storage.get(BLOB))).toBe(CSV);
+  });
+
+  it('asks for a file when it comes after the limit of ten parts', async () => {
+    const storage = createFakeBlobStorage();
+    const test = request(createTestApp(storage)).post('/upload');
+    for (let part = 0; part < 12; part += 1) test.field(`extra${part}`, 'x');
+
+    const response = await test.attach('dataTable', Buffer.from(CSV), 'data.csv');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ ok: false, message: DATA_TABLE_MESSAGES.missing });
+    await expect(storage.get(BLOB)).rejects.toThrow(BlobNotFoundError);
+  });
+
   it('asks for a file when the form has none', async () => {
     const response = await request(createTestApp(createFakeBlobStorage()))
       .post('/upload')
