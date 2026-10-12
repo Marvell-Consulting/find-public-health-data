@@ -86,6 +86,18 @@ describe('receiveDataTable', () => {
     expect(response.body).toEqual({ ok: false, message: DATA_TABLE_MESSAGES.missing });
   });
 
+  it('asks for a file when the file part has no filename at all', async () => {
+    const response = await request(createTestApp(createFakeBlobStorage()))
+      .post('/upload')
+      .set('Content-Type', 'multipart/form-data; boundary=b')
+      .send(
+        '--b\r\nContent-Disposition: form-data; name="dataTable"\r\n' +
+          `Content-Type: application/octet-stream\r\n\r\n${CSV}\r\n--b--\r\n`,
+      );
+
+    expect(response.body).toEqual({ ok: false, message: DATA_TABLE_MESSAGES.missing });
+  });
+
   it('asks for a file when the body is not a multipart form', async () => {
     const response = await request(createTestApp(createFakeBlobStorage()))
       .post('/upload')

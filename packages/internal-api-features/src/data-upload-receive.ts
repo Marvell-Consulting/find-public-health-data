@@ -74,12 +74,12 @@ export async function receiveDataTable(
         return;
       }
 
-      const refusal =
-        filename === ''
-          ? DATA_TABLE_MESSAGES.missing
-          : /\.csv$/i.test(filename)
-            ? undefined
-            : DATA_TABLE_MESSAGES.notCsv;
+      // A part with no filename at all, as well as an empty one, carries no chosen file.
+      const refusal = !filename
+        ? DATA_TABLE_MESSAGES.missing
+        : /\.csv$/i.test(filename)
+          ? undefined
+          : DATA_TABLE_MESSAGES.notCsv;
 
       if (refusal !== undefined) {
         file.resume();
