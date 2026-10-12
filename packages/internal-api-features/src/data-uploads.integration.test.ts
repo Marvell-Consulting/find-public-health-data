@@ -10,7 +10,7 @@ import { createDb, type Database, dbEnvFields, dimensionKey, resolveDbTls, schem
 import { createTestDatabase } from '@fphd/db/testing';
 import { request } from '@fphd/express/testing';
 import { BlobNotFoundError, createAzureBlobStorage } from '@fphd/internal-storage';
-import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { v7 as randomUuidV7 } from 'uuid';
 import { afterAll, describe, expect, it } from 'vitest';
 
@@ -40,7 +40,11 @@ const env = parseEnv(
 );
 
 const {
+  area,
+  dimensionType,
+  dimensionValue,
   indicatorVersion,
+  noteType,
   observation,
   observationDimension,
   observationNote,
@@ -197,6 +201,65 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
       { value: 83.8, count: 1234, createdBy: 'test-user' },
       { value: null, count: null, createdBy: 'test-user' },
     ]);
+  });
+
+  it('reads the columns by their headings, in any order and case', async () => {
+    const { indicatorId } = await newDraft(internalDb, 'Upload in any column order');
+    const csv = [
+      ' Value_Note ,Category, COUNT ,period_end,Sex,value,Area_Code,Category_Type,age, PERIOD_START ,' +
+        'denominator,upper_ci_95,lower_ci_95,upper_ci_998,lower_ci_998',
+      'Aggregated from values for merged CCGs,White,1234,2020-03-31,Female,83.8,E08000035,' +
+        'Ethnic groups [4],<75 yrs,2019-04-01,56789,84.1,83.5,84.4,83.2',
+    ].join('\n');
+
+    const response = await upload(indicatorId, csv);
+
+    expect(response.status).toBe(201);
+    const [row, ...others] = await rowsOf(response.body.id);
+    expect(others).toEqual([]);
+    const [leeds] = await ownerDb
+      .select({ id: area.id })
+      .from(area)
+      .where(and(eq(area.code, 'E08000035'), isNull(area.validTo)));
+    expect(row).toMatchObject({
+      areaId: leeds?.id,
+      fromDate: '2019-04-01',
+      toDate: '2020-03-31',
+      value: 83.8,
+      count: 1234,
+      denominator: 56789,
+      lowerCi95: 83.5,
+      upperCi95: 84.1,
+      lowerCi998: 83.2,
+      upperCi998: 84.4,
+    });
+
+    const valueId = async (type: string, name: string) => {
+      const [found] = await ownerDb
+        .select({ id: dimensionValue.id })
+        .from(dimensionValue)
+        .innerJoin(dimensionType, eq(dimensionType.id, dimensionValue.dimensionTypeId))
+        .where(and(eq(dimensionType.name, type), eq(dimensionValue.name, name)));
+      return found?.id;
+    };
+    const expected = [
+      await valueId('Sex', 'Female'),
+      await valueId('Age', '<75 yrs'),
+      await valueId('Ethnic groups [4]', 'White'),
+    ];
+    const dimensions = await ownerDb
+      .select({ id: observationDimension.dimensionValueId })
+      .from(observationDimension)
+      .where(eq(observationDimension.observationId, row?.id ?? ''));
+    expect(dimensions.map(({ id }) => id).sort()).toEqual([...expected].sort());
+    expect(row?.dimensionKey).toBe(dimensionKey(expected.map(String)));
+
+    const [note] = await ownerDb
+      .select({ text: noteType.text })
+      .from(observationNote)
+      .innerJoin(noteType, eq(noteType.id, observationNote.noteTypeId))
+      .where(eq(observationNote.observationId, row?.id ?? ''));
+    expect(note?.text).toBe('Aggregated from values for merged CCGs');
   });
 
   it('stores totals without the dimension and keys each row by its dimension values', async () => {
