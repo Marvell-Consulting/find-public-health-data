@@ -9,6 +9,7 @@ import {
   WHITE,
 } from './data-table.testing.ts';
 import { readHeader } from './data-table-columns.ts';
+import { nameIndex, nameKey } from './data-table-names.ts';
 import { isIsoDate, isNumber, readRow } from './data-table-rows.ts';
 
 const HEADER = [
@@ -40,11 +41,11 @@ const VALID: Cells = {
 };
 
 /** A row of the full header, from the cells given. */
-function read(cells: Cells, line = 2) {
+function read(cells: Cells, line = 2, against = references) {
   return readRow(
     HEADER.map((column) => cells[column] ?? ''),
     header,
-    references,
+    against,
     line,
   );
 }
@@ -194,10 +195,41 @@ describe('readRow', () => {
     });
   });
 
-  it('matches names in the case reference data gives them', () => {
-    expect(read({ ...VALID, sex: 'female' })).toEqual({
+  it('matches names whatever their case', () => {
+    expect(
+      read({
+        ...VALID,
+        sex: 'female',
+        age: '<75 YRS',
+        category_type: 'ethnic GROUPS',
+        category: 'WHITE',
+        value_note: 'value suppressed for DISCLOSURE control',
+      }),
+    ).toMatchObject({
+      ok: true,
+      row: { sexId: FEMALE, ageId: UNDER_75, categoryId: WHITE, noteTypeId: SMALL_COUNT },
+    });
+  });
+
+  it('takes the totals whatever their case', () => {
+    expect(read({ ...VALID, sex: 'PERSONS', age: 'ALL AGES' })).toMatchObject({
+      ok: true,
+      row: { sexId: null, ageId: null },
+    });
+  });
+
+  it('refuses a name that matches two records differing only in case, picking neither', () => {
+    const twoFemales = {
+      ...references,
+      sexIds: nameIndex([
+        [nameKey('Female'), FEMALE],
+        [nameKey('FEMALE'), UNDER_75],
+      ]),
+    };
+
+    expect(read({ ...VALID, sex: 'Female' }, 2, twoFemales)).toEqual({
       ok: false,
-      findings: [{ code: 'unmatched_sexes', item: 'female' }],
+      findings: [{ code: 'ambiguous_names', item: 'Female' }],
     });
   });
 

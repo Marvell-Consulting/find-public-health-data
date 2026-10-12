@@ -1,17 +1,18 @@
 import { tidyName } from '@fphd/utils/tidy-name';
 
 import type { DataTableColumn, Header } from './data-table-columns.ts';
+import { AMBIGUOUS, categoryKey, type NameIndex, nameKey } from './data-table-names.ts';
 import type { DataTableFinding } from './data-table-problems.ts';
 
-/** The reference data a row's names and codes are matched to, keyed by tidied name or code. */
+/** The reference data a row's codes and names are matched to, names by `nameKey`. */
 export interface DataTableReferences {
   /** The current area for each code. */
   areaIds: ReadonlyMap<string, string>;
-  sexIds: ReadonlyMap<string, string>;
-  ageIds: ReadonlyMap<string, string>;
-  /** Every dimension type but sex and age, which have columns of their own, to its values. */
-  categoryIds: ReadonlyMap<string, ReadonlyMap<string, string>>;
-  noteTypeIds: ReadonlyMap<string, string>;
+  sexIds: NameIndex;
+  ageIds: NameIndex;
+  /** The values of every dimension type but sex and age, by `categoryKey`. */
+  categoryIds: NameIndex;
+  noteTypeIds: NameIndex;
 }
 
 const NUMBER_COLUMNS = [
@@ -44,8 +45,8 @@ export type RowReading =
   | { ok: false; findings: DataTableFinding[] };
 
 // These mark a total, which is stored without the dimension, as an empty cell is.
-const ALL_SEXES = 'Persons';
-const ALL_AGES = 'All ages';
+const ALL_SEXES = nameKey('Persons');
+const ALL_AGES = nameKey('All ages');
 
 // The cells a row cannot do without, in the columns the header has.
 const REQUIRED_CELLS = [
@@ -86,17 +87,20 @@ function isPeriod(start: string, end: string): boolean {
   return isIsoDate(start) && isIsoDate(end) && start <= end;
 }
 
-type Lookup<T> = { found: true; value: T } | { found: false };
+type Lookup = { found: true; id: string | null } | { found: false; ambiguous: boolean };
 
 /** A name that is empty or marks the total stands for no dimension value. */
-function lookUpName(
-  name: string,
-  ids: ReadonlyMap<string, string> | undefined,
-  total?: string,
-): Lookup<string | null> {
-  if (name === '' || name === total) return { found: true, value: null };
-  const id = ids?.get(name);
-  return id === undefined ? { found: false } : { found: true, value: id };
+function lookUp(key: string, index: NameIndex, total?: string): Lookup {
+  if (key === '' || key === total) return { found: true, id: null };
+  const id = index.get(key);
+  if (id === undefined) return { found: false, ambiguous: false };
+  return id === AMBIGUOUS ? { found: false, ambiguous: true } : { found: true, id };
+}
+
+/** The finding for a name that did not match, which may be one that matched two. */
+function unmatched(lookup: Lookup, code: DataTableFinding['code'], item: string) {
+  if (lookup.found) return [];
+  return [{ code: lookup.ambiguous ? ('ambiguous_names' as const) : code, item }];
 }
 
 /**
@@ -149,31 +153,35 @@ export function readRow(
   }
 
   const sexName = tidyName(cell('sex'));
-  const sex = lookUpName(sexName, references.sexIds, ALL_SEXES);
-  if (!sex.found) findings.push({ code: 'unmatched_sexes', item: sexName });
+  const sex = lookUp(nameKey(sexName), references.sexIds, ALL_SEXES);
+  findings.push(...unmatched(sex, 'unmatched_sexes', sexName));
 
   const ageName = tidyName(cell('age'));
-  const age = lookUpName(ageName, references.ageIds, ALL_AGES);
-  if (!age.found) findings.push({ code: 'unmatched_ages', item: ageName });
+  const age = lookUp(nameKey(ageName), references.ageIds, ALL_AGES);
+  findings.push(...unmatched(age, 'unmatched_ages', ageName));
 
   const categoryType = tidyName(cell('category_type'));
   const categoryName = tidyName(cell('category'));
   const category =
-    (categoryType === '') === (categoryName === '')
-      ? lookUpName(categoryName, references.categoryIds.get(categoryType))
-      : undefined;
+    categoryType === '' && categoryName === ''
+      ? ({ found: true, id: null } as const)
+      : categoryType !== '' && categoryName !== ''
+        ? lookUp(categoryKey(categoryType, categoryName), references.categoryIds)
+        : undefined;
   // A header with one of the pair is reported once, not on every row.
   if (has('category_type') === has('category')) {
     if (category === undefined) {
       findings.push({ code: 'unpaired_category', item: row });
-    } else if (!category.found) {
-      findings.push({ code: 'unmatched_categories', item: `${categoryType}: ${categoryName}` });
+    } else {
+      findings.push(
+        ...unmatched(category, 'unmatched_categories', `${categoryType}: ${categoryName}`),
+      );
     }
   }
 
   const noteName = tidyName(cell('value_note'));
-  const note = lookUpName(noteName, references.noteTypeIds);
-  if (!note.found) findings.push({ code: 'unmatched_value_notes', item: noteName });
+  const note = lookUp(nameKey(noteName), references.noteTypeIds);
+  findings.push(...unmatched(note, 'unmatched_value_notes', noteName));
 
   if (
     findings.length > 0 ||
@@ -196,10 +204,10 @@ export function readRow(
       fromDate,
       toDate,
       ...numbers,
-      sexId: sex.value,
-      ageId: age.value,
-      categoryId: category.value,
-      noteTypeId: note.value,
+      sexId: sex.id,
+      ageId: age.id,
+      categoryId: category.id,
+      noteTypeId: note.id,
     },
   };
 }
