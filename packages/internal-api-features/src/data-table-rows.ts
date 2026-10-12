@@ -4,7 +4,6 @@ import { tidyName } from '@fphd/utils/tidy-name';
 import type { DataTableColumn, Header } from './data-table-columns.ts';
 import { AMBIGUOUS, categoryKey, type NameIndex, nameKey } from './data-table-names.ts';
 import type { DataTableFinding } from './data-table-problems.ts';
-import { DATA_TABLE_TOTALS } from './data-upload-contract.ts';
 
 /** The reference data a row's codes and names are matched to, names by `nameKey`. */
 export interface DataTableReferences {
@@ -46,8 +45,9 @@ export type RowReading =
   | { ok: true; row: DataTableRow }
   | { ok: false; findings: DataTableFinding[] };
 
-const ALL_SEXES = nameKey(DATA_TABLE_TOTALS.sex);
-const ALL_AGES = nameKey(DATA_TABLE_TOTALS.age);
+// These mark a total, which is stored without the dimension, as an empty cell is.
+const ALL_SEXES = nameKey('Persons');
+const ALL_AGES = nameKey('All ages');
 
 // The cells a row cannot do without, in the columns the header has.
 const REQUIRED_CELLS = [

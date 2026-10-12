@@ -35,9 +35,6 @@ export function dataTableFileRefusal(file: {
   return file.size > DATA_TABLE_MAX_BYTES ? DATA_TABLE_MESSAGES.tooLarge : undefined;
 }
 
-/** The sex and age that mark a total, which is stored without the dimension, as an empty cell is. */
-export const DATA_TABLE_TOTALS = { sex: 'Persons', age: 'All ages' } as const;
-
 /** What can be wrong with a data table's content, in the order the problems page lists them. */
 export const DATA_TABLE_PROBLEM_CODES = [
   'unreadable',
