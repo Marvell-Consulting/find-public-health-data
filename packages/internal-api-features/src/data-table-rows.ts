@@ -1,3 +1,4 @@
+import { z } from '@fphd/config/zod';
 import { tidyName } from '@fphd/utils/tidy-name';
 
 import type { DataTableColumn, Header } from './data-table-columns.ts';
@@ -56,40 +57,28 @@ const REQUIRED_CELLS = [
 ] as const satisfies readonly DataTableColumn[];
 
 const NUMBER = /^-?\d+(\.\d+)?([eE][+-]?\d+)?$/;
-const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+// YYYY-MM-DD and a real calendar date, month lengths and leap years included.
+const ISO_DATE = z.iso.date();
 
 /**
  * Digits with an optional minus sign, decimal part and exponent, that a double precision column
  * can hold: finite, and not so small it reads as zero unless it is written as zero.
  */
-export function isNumber(text: string): boolean {
+export function isStorableNumber(text: string): boolean {
   if (!NUMBER.test(text)) return false;
   const number = Number(text);
   const writtenAsZero = !/[1-9]/.test(text.replace(/[eE].*$/, ''));
   return Number.isFinite(number) && (number !== 0 || writtenAsZero);
 }
 
-/** A real calendar date written as YYYY-MM-DD, from year 1, as Postgres has no year 0. */
-export function isIsoDate(text: string): boolean {
-  const parts = ISO_DATE.exec(text);
-  if (parts === null) return false;
-
-  const [year, month, day] = parts.slice(1).map(Number) as [number, number, number];
-  // setUTCFullYear, as Date.UTC would read years 0 to 99 as 1900 to 1999.
-  const date = new Date(0);
-  date.setUTCFullYear(year, month - 1, day);
-
-  return (
-    year >= 1 &&
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
-  );
+/** A date a period can have: ISO and real, and from year 1, as Postgres has no year 0. */
+function isStorableDate(text: string): boolean {
+  return ISO_DATE.safeParse(text).success && !text.startsWith('0000');
 }
 
 /** Both ends of a period, inclusive, so one that ends the day it starts is a day long. */
 function isPeriod(start: string, end: string): boolean {
-  return isIsoDate(start) && isIsoDate(end) && start <= end;
+  return isStorableDate(start) && isStorableDate(end) && start <= end;
 }
 
 type Lookup = { found: true; id: string | null } | { found: false; ambiguous: boolean };
@@ -153,7 +142,7 @@ export function readRow(
     NUMBER_COLUMNS.map((column) => [column, cell(column) === '' ? null : cell(column)]),
   ) as Record<NumberColumn, string | null>;
 
-  if (Object.values(numbers).some((number) => number !== null && !isNumber(number))) {
+  if (Object.values(numbers).some((number) => number !== null && !isStorableNumber(number))) {
     findings.push({ code: 'invalid_numbers', item: row });
   }
 

@@ -10,7 +10,7 @@ import {
 } from './data-table.testing.ts';
 import { readHeader } from './data-table-columns.ts';
 import { nameIndex, nameKey } from './data-table-names.ts';
-import { isIsoDate, isNumber, readRow } from './data-table-rows.ts';
+import { isStorableNumber, readRow } from './data-table-rows.ts';
 
 const HEADER = [
   'area_code',
@@ -50,7 +50,7 @@ function read(cells: Cells, line = 2, against = references) {
   );
 }
 
-describe('isNumber', () => {
+describe('isStorableNumber', () => {
   it.each([
     '0',
     '83.8',
@@ -65,7 +65,7 @@ describe('isNumber', () => {
     '1e-310',
     '1.7976931348623157e308',
   ])('accepts %s', (text) => {
-    expect(isNumber(text)).toBe(true);
+    expect(isStorableNumber(text)).toBe(true);
   });
 
   it.each([
@@ -86,29 +86,7 @@ describe('isNumber', () => {
     '0x10',
     '',
   ])('refuses %s', (text) => {
-    expect(isNumber(text)).toBe(false);
-  });
-});
-
-describe('isIsoDate', () => {
-  it.each(['2019-04-01', '2024-02-29', '1999-12-31', '0001-01-01', '0050-03-01', '0099-12-31'])(
-    'accepts %s',
-    (text) => {
-      expect(isIsoDate(text)).toBe(true);
-    },
-  );
-
-  it.each([
-    '2019/20',
-    '01/04/2019',
-    '2023-02-29',
-    '2019-13-01',
-    '2019-4-1',
-    '20190401',
-    '0000-01-01',
-    '0050-02-29',
-  ])('refuses %s', (text) => {
-    expect(isIsoDate(text)).toBe(false);
+    expect(isStorableNumber(text)).toBe(false);
   });
 });
 
@@ -269,12 +247,21 @@ describe('readRow', () => {
   it.each([
     ['a label', '2019/20', '2019/20'],
     ['a date that does not exist', '2019-02-30', '2019-03-31'],
+    ['29 February outside a leap year', '2023-02-01', '2023-02-29'],
+    ['year 0, which Postgres has no date for', '0000-01-01', '0000-12-31'],
     ['a period ending before it starts', '2020-04-01', '2020-03-31'],
   ])('refuses %s as a period', (_case, start, end) => {
     expect(read({ ...VALID, period_start: start, period_end: end }, 6)).toEqual({
       ok: false,
       findings: [{ code: 'invalid_periods', item: '6' }],
     });
+  });
+
+  it.each([
+    ['29 February in a leap year', '2024-02-01', '2024-02-29'],
+    ['years 1 to 99, as written', '0050-04-01', '0051-03-31'],
+  ])('accepts %s', (_case, start, end) => {
+    expect(read({ ...VALID, period_start: start, period_end: end }).ok).toBe(true);
   });
 
   it('accepts a period of one day', () => {
