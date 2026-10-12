@@ -81,9 +81,10 @@ export async function findDraftDataTable(
 
 /**
  * One page of a batch's rows, in the order of its natural key. The page is found from the key's
- * index alone, read from whichever end of the batch is nearer, so a page deep into a large batch
- * skips at most half its index entries and no rows. A batch is deleted whole, never row by row,
- * so deleted_at is not read.
+ * index, read from whichever end of the batch is nearer, so a page deep into a large batch skips
+ * at most half its entries. Until the batch is vacuumed each skipped entry also reads its row to
+ * check visibility, so a new batch's deep pages cost several times more. A batch is deleted whole,
+ * never row by row, so deleted_at is not read.
  */
 export async function listDataTableRows(
   db: Database,
