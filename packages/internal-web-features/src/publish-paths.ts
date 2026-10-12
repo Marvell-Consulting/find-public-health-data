@@ -27,3 +27,15 @@ export function indicatorDataTablePath(id: string): string {
 export function indicatorDataTableProblemsPath(id: string): string {
   return indicatorPublishPath(id, 'data-table/problems');
 }
+
+/** Where a loaded data table is played back for the publisher to confirm. */
+export function indicatorDataTableCheckPath(
+  id: string,
+  { page = 1, rowsPerPage = 10 }: { page?: number; rowsPerPage?: number } = {},
+): string {
+  const query = new URLSearchParams({
+    ...(page === 1 ? {} : { page: String(page) }),
+    ...(rowsPerPage === 10 ? {} : { rowsPerPage: String(rowsPerPage) }),
+  }).toString();
+  return `${indicatorPublishPath(id, 'data-table/check')}${query === '' ? '' : `?${query}`}`;
+}

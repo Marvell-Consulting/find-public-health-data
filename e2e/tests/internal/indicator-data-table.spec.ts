@@ -55,14 +55,15 @@ test('is reached from the data table task on the task list', async ({ page }) =>
   await expect(page.getByRole('heading', { level: 1, name: HEADING })).toBeVisible();
 });
 
-test('uploads a data table and returns to the task list with the task incomplete', async ({
+test('uploads a data table and moves on to check it, leaving the task incomplete', async ({
   page,
 }) => {
   const id = await openUploadPage(page);
 
   await continueWithFile(page, 'life-expectancy.csv', VALID_CSV);
 
-  await expect(page).toHaveURL(`/publish/indicators/${id}/task-list`);
+  await expect(page).toHaveURL(`/publish/indicators/${id}/data-table/check`);
+  await page.goto(`/publish/indicators/${id}/task-list`);
   await expect(taskRow(page, 'Data table')).toContainText('Incomplete');
 });
 
@@ -135,13 +136,12 @@ test('refuses a file over 100MB without sending it', async ({ page }) => {
 test.describe('without JavaScript', () => {
   test.use({ javaScriptEnabled: false });
 
-  test('uploads a data table and returns to the task list', async ({ page }) => {
+  test('uploads a data table and moves on to check it', async ({ page }) => {
     const id = await openUploadPage(page);
 
     await continueWithFile(page, 'life-expectancy.csv', VALID_CSV);
 
-    await expect(page).toHaveURL(`/publish/indicators/${id}/task-list`);
-    await expect(taskRow(page, 'Data table')).toContainText('Incomplete');
+    await expect(page).toHaveURL(`/publish/indicators/${id}/data-table/check`);
   });
 
   for (const [what, name, message] of [
@@ -208,7 +208,7 @@ test('offers a different or corrected data table from the problems page', async 
   await expect(page).toHaveURL(`/publish/indicators/${id}/data-table`);
   await continueWithFile(page, 'life-expectancy.csv', VALID_CSV);
 
-  await expect(page).toHaveURL(`/publish/indicators/${id}/task-list`);
+  await expect(page).toHaveURL(`/publish/indicators/${id}/data-table/check`);
   await page.goto(`/publish/indicators/${id}/data-table/problems`);
   await expect(page).toHaveURL(`/publish/indicators/${id}/data-table`);
 });

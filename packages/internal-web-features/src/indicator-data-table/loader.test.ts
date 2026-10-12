@@ -125,12 +125,12 @@ describe('uploadDataTable', () => {
     expect(request.bodyUsed).toBe(false);
   });
 
-  it('returns to the task list once the file has loaded', async () => {
+  it('moves on to the check page once the file has loaded', async () => {
     const postStream = vi.fn().mockResolvedValue({ ok: true, data: { id: ID, rowCount: 3 } });
 
     const { outcome } = await upload(postStream);
 
-    expect(locationOf(outcome)).toBe(`/publish/indicators/${ID}/task-list`);
+    expect(locationOf(outcome)).toBe(`/publish/indicators/${ID}/data-table/check`);
   });
 
   it('shows the problems page when the file was refused', async () => {

@@ -15,9 +15,9 @@ import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from 'reac
 import { type FormRefusal, formRefusal } from '../form-refusal.ts';
 import { requireIndicatorId } from '../indicator-id.ts';
 import {
+  indicatorDataTableCheckPath,
   indicatorDataTablePath,
   indicatorDataTableProblemsPath,
-  indicatorTaskListPath,
 } from '../publish-paths.ts';
 
 export type { DataTableProblem } from '@fphd/internal-api-features/contract';
@@ -51,8 +51,8 @@ export async function loadDataTableUpload({ context, params }: LoaderFunctionArg
 
 /**
  * Streams the form to the API unread, which stores, checks and loads the file while the
- * publisher waits. A refused file's problems have a page of their own; a loaded one returns to
- * the task list. A form that says it is too big is refused here without reaching the API.
+ * publisher waits. A refused file's problems have a page of their own; a loaded one is played
+ * back on the check page. A form that says it is too big is refused here without reaching the API.
  */
 export async function uploadDataTable({
   context,
@@ -83,7 +83,7 @@ export async function uploadDataTable({
 
   if (result === undefined) return { fieldErrors: {}, formError: DATA_TABLE_TOO_SLOW };
 
-  if (result.ok) return redirect(indicatorTaskListPath(id));
+  if (result.ok) return redirect(indicatorDataTableCheckPath(id));
   if (result.error.error === 'invalid_data_table') {
     return redirect(indicatorDataTableProblemsPath(id));
   }
