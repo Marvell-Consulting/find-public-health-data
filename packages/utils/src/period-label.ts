@@ -18,7 +18,9 @@ function dayOf(date: string): Day {
 }
 
 function nextDay({ year, month, day }: Day): Day {
-  const next = new Date(Date.UTC(year, month - 1, day + 1));
+  // Date.UTC reads years 0 to 99 as 1900 to 1999; setUTCFullYear takes them as written.
+  const next = new Date(0);
+  next.setUTCFullYear(year, month - 1, day + 1);
   return { year: next.getUTCFullYear(), month: next.getUTCMonth() + 1, day: next.getUTCDate() };
 }
 
