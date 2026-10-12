@@ -6,7 +6,7 @@ import { appEnvFields, parseEnv, z } from '@fphd/config';
 import { createDb, type Database, dbEnvFields, resolveDbTls, schema } from '@fphd/db';
 import { createTestDatabase } from '@fphd/db/testing';
 import { request } from '@fphd/express/testing';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { v7 as randomUuidV7 } from 'uuid';
 import { afterAll, describe, expect, it } from 'vitest';
 
@@ -103,6 +103,18 @@ async function draftOf(db: Database, indicatorId: string) {
     );
   if (draft === undefined) throw new Error(`indicator ${indicatorId} has no draft`);
   return draft;
+}
+
+/** The nth seeded published indicator by id, so each test that opens a draft takes its own. */
+async function seededPublished(nth: number) {
+  const [published] = await ownerDb
+    .select({ indicatorId: currentPublishedVersion.indicatorId, id: currentPublishedVersion.id })
+    .from(currentPublishedVersion)
+    .orderBy(asc(currentPublishedVersion.indicatorId))
+    .offset(nth)
+    .limit(1);
+  if (published === undefined) throw new Error(`the seed has no published indicator ${nth}`);
+  return published;
 }
 
 async function check(indicatorId: string, query = '') {
@@ -240,12 +252,9 @@ describe('GET /api/internal/indicators/:id/data-table', () => {
   });
 
   it('answers 404 for an indicator with no draft', async () => {
-    const [published] = await ownerDb
-      .select({ indicatorId: currentPublishedVersion.indicatorId })
-      .from(currentPublishedVersion)
-      .limit(1);
+    const { indicatorId } = await seededPublished(0);
 
-    const response = await check(published?.indicatorId ?? '');
+    const response = await check(indicatorId);
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'no_draft' });
@@ -298,14 +307,7 @@ describe('PUT /api/internal/indicators/:id/data-table/confirmation', () => {
   });
 
   it("confirms an update draft's copy of the published batch on the draft alone", async () => {
-    const [published] = await ownerDb
-      .select({
-        indicatorId: currentPublishedVersion.indicatorId,
-        id: currentPublishedVersion.id,
-      })
-      .from(currentPublishedVersion)
-      .limit(1);
-    if (published === undefined) throw new Error('the seed has no published indicator');
+    const published = await seededPublished(1);
     await ownerDb
       .update(indicatorVersion)
       .set({ dataTableConfirmedAt: null })
