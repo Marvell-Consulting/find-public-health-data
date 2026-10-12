@@ -33,6 +33,48 @@ describe('readHeader', () => {
     expect(readHeader(header).findings).toEqual([]);
   });
 
+  it('places every column of a shuffled header where it is, whatever the order', () => {
+    const header = [
+      'value',
+      'Category',
+      'period_end',
+      'count',
+      ' AGE ',
+      'period_start',
+      'upper_ci_95',
+      'lower_ci_95',
+      'denominator',
+      'value_note',
+      'sex',
+      'upper_ci_998',
+      'area_code',
+      'lower_ci_998',
+      'Category_Type',
+    ];
+
+    expect(readHeader(header)).toEqual({
+      positions: {
+        value: 0,
+        category: 1,
+        period_end: 2,
+        count: 3,
+        age: 4,
+        period_start: 5,
+        upper_ci_95: 6,
+        lower_ci_95: 7,
+        denominator: 8,
+        value_note: 9,
+        sex: 10,
+        upper_ci_998: 11,
+        area_code: 12,
+        lower_ci_998: 13,
+        category_type: 14,
+      },
+      columnCount: 15,
+      findings: [],
+    });
+  });
+
   it('names each required column that is missing', () => {
     expect(readHeader(['area_code', 'value']).findings).toEqual([
       { code: 'missing_column', item: 'period_start' },
