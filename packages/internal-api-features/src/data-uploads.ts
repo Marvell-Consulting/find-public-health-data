@@ -102,7 +102,12 @@ export function dataUploadsRouter(
           return;
         }
 
-        if (!result.ok) {
+        if (result.ok) {
+          request.log.info({ ...logFields, rowCount: result.rowCount }, 'Data table uploaded');
+          response
+            .status(201)
+            .json({ id: batchId, rowCount: result.rowCount } satisfies DataUploadCreated);
+        } else {
           request.log.info(
             { ...logFields, problems: result.problems.map(({ code }) => code) },
             'Data table refused',
@@ -112,16 +117,10 @@ export function dataUploadsRouter(
             id: batchId,
             problems: result.problems,
           } satisfies DataUploadError);
-          return;
         }
 
-        request.log.info({ ...logFields, rowCount: result.rowCount }, 'Data table uploaded');
-        response
-          .status(201)
-          .json({ id: batchId, rowCount: result.rowCount } satisfies DataUploadCreated);
-
-        // Only now the new batch is committed: a failure leaves an orphan blob, never a lost one.
-        if (result.replacedBlobName !== null) await deleteBlob(result.replacedBlobName);
+        // Only now are the deletions committed: a failure leaves an orphan blob, never a lost one.
+        for (const name of result.deletedBlobNames) await deleteBlob(name);
       } catch (error) {
         await deleteBlob(blobName);
         if (abandoned.signal.aborted || error instanceof UploadAbortedError) {

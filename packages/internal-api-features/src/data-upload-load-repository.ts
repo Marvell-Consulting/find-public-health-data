@@ -25,8 +25,8 @@ export interface DataUpload {
 }
 
 export type ProcessDataUploadResult =
-  | { ok: true; rowCount: number; replacedBlobName: string | null }
-  | { ok: false; reason: 'invalid'; problems: DataTableProblem[] }
+  | { ok: true; rowCount: number; deletedBlobNames: string[] }
+  | { ok: false; reason: 'invalid'; problems: DataTableProblem[]; deletedBlobNames: string[] }
   | { ok: false; reason: 'no_draft' };
 
 const STAGED_COLUMNS = [
@@ -78,8 +78,8 @@ const COPY_CHUNK = 64 * 1024;
 /**
  * Stores the file's rows under a new batch and points the draft at it, in one transaction
  * under a lock per draft, so concurrent uploads queue. A refused file keeps its batch, marked
- * failed with its problems, and loads nothing. On success the draft's previous batch is deleted
- * unless another version points at it; its blob name is returned for deleting after commit.
+ * failed with its problems, and loads nothing. Either way the uploads it replaces are deleted
+ * (see deleteEarlierBatches) and their blob names returned for deleting after commit.
  */
 export async function processDataUpload(
   db: Database,
@@ -117,8 +117,8 @@ function loadInTransaction(
 
     // Not locked: the upload lock queues the only other writer of the pointer, and section saves
     // on the draft carry on while the file loads.
-    const [draft] = await tx<{ id: string; uploadBatchId: string | null }[]>`
-      SELECT id, upload_batch_id AS "uploadBatchId"
+    const [draft] = await tx<{ id: string }[]>`
+      SELECT id
       FROM indicator_version
       WHERE indicator_id = ${upload.indicatorId} AND status = 'draft'`;
 
@@ -139,7 +139,15 @@ function loadInTransaction(
         UPDATE upload_batch
         SET status = 'failed', validation_result = ${JSON.stringify(problems)}::jsonb, column_names = ${staged.columnNames}
         WHERE id = ${upload.batchId}`;
-      return { ok: false, reason: 'invalid', problems };
+      const deletedBlobNames = await deleteEarlierBatches(
+        tx,
+        draft.id,
+        upload.batchId,
+        'failed',
+        signal,
+      );
+      signal.throwIfAborted();
+      return { ok: false, reason: 'invalid', problems, deletedBlobNames };
     }
 
     await loadStagedRows(tx, upload, signal);
@@ -154,14 +162,17 @@ function loadInTransaction(
       WHERE id = ${draft.id} AND status = 'draft'`;
     if (pointed.count === 0) throw new DraftGoneError();
 
-    const replacedBlobName =
-      draft.uploadBatchId === null
-        ? null
-        : await deleteReplacedBatch(tx, draft.uploadBatchId, draft.id, signal);
+    const deletedBlobNames = await deleteEarlierBatches(
+      tx,
+      draft.id,
+      upload.batchId,
+      'all',
+      signal,
+    );
     // Abandoned after its last statement, the upload still rolls back rather than commit.
     signal.throwIfAborted();
 
-    return { ok: true, rowCount: staged.rowCount, replacedBlobName };
+    return { ok: true, rowCount: staged.rowCount, deletedBlobNames };
   });
 }
 
@@ -332,27 +343,34 @@ async function loadStagedRows(
 }
 
 /**
- * Deletes the batch the draft pointed at before, with its rows, when the draft uploaded it and
- * no version points at it now, and answers its blob name. The published batch an update draft
- * started from is kept.
+ * Deletes the draft's earlier uploads, with their rows, now a newer one replaces them: every one
+ * after a load, the failed ones after a failure. A batch uploaded to another version, or one any
+ * version points at, such as the published batch an update draft started from, is kept. Answers
+ * the deleted batches' blob names, for deleting after commit.
  */
-async function deleteReplacedBatch(
+async function deleteEarlierBatches(
   tx: TransactionSql,
-  batchId: string,
   draftId: string,
+  newBatchId: string,
+  which: 'all' | 'failed',
   signal: AbortSignal,
-): Promise<string | null> {
-  const [replaced] = await tx<{ blobName: string | null }[]>`
-    SELECT blob_name AS "blobName"
+): Promise<string[]> {
+  const earlier = await tx<{ id: string; blobName: string | null }[]>`
+    SELECT id, blob_name AS "blobName"
     FROM upload_batch b
-    WHERE b.id = ${batchId}
-      AND b.indicator_version_id = ${draftId}
+    WHERE b.indicator_version_id = ${draftId}
+      AND b.id <> ${newBatchId}
+      ${which === 'failed' ? tx`AND b.status = 'failed'` : tx``}
       AND NOT EXISTS (SELECT 1 FROM indicator_version v WHERE v.upload_batch_id = b.id)`;
 
-  if (replaced === undefined) return null;
+  if (earlier.length === 0) return [];
 
-  await cancellable(signal, tx`DELETE FROM observation WHERE upload_batch_id = ${batchId}`);
-  await cancellable(signal, tx`DELETE FROM upload_batch WHERE id = ${batchId}`);
+  const ids = earlier.map(({ id }) => id);
+  await cancellable(
+    signal,
+    tx`DELETE FROM observation WHERE upload_batch_id = ANY(${ids}::uuid[])`,
+  );
+  await cancellable(signal, tx`DELETE FROM upload_batch WHERE id = ANY(${ids}::uuid[])`);
 
-  return replaced.blobName;
+  return earlier.flatMap(({ blobName }) => (blobName === null ? [] : [blobName]));
 }

@@ -299,6 +299,64 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
     expect(await rowsOf(second.body.id)).toHaveLength(1);
   });
 
+  const REFUSED_CSV = `${HEADER}\nE99999999,2019-04-01,2020-03-31,1,,,,,,`;
+
+  async function batchIdsOf(versionId: string): Promise<string[]> {
+    const batches = await ownerDb
+      .select({ id: uploadBatch.id })
+      .from(uploadBatch)
+      .where(eq(uploadBatch.indicatorVersionId, versionId));
+    return batches.map(({ id }) => id).sort();
+  }
+
+  it('deletes the earlier failed uploads, with their files, once an upload loads', async () => {
+    const { indicatorId, versionId } = await newDraft(internalDb, 'Upload clears failures');
+    const loaded = await upload(indicatorId, VALID_CSV);
+    const failed = await upload(indicatorId, REFUSED_CSV);
+    const failedBlob = `${indicatorId}/${failed.body.id}.csv`;
+
+    const latest = await upload(indicatorId, VALID_CSV);
+
+    expect(latest.status).toBe(201);
+    expect(await batchIdsOf(versionId)).toEqual([latest.body.id]);
+    expect(await rowsOf(loaded.body.id)).toEqual([]);
+    await expect.poll(() => blobExists(failedBlob)).toBe(false);
+    await expect.poll(() => blobExists(`${indicatorId}/${loaded.body.id}.csv`)).toBe(false);
+  });
+
+  it('replaces an earlier failed upload with a newer one, keeping the loaded batch', async () => {
+    const { indicatorId, versionId } = await newDraft(internalDb, 'Upload replaces failure');
+    const loaded = await upload(indicatorId, VALID_CSV);
+    const first = await upload(indicatorId, REFUSED_CSV);
+
+    const second = await upload(indicatorId, REFUSED_CSV);
+
+    expect(second.status).toBe(422);
+    expect(await batchIdsOf(versionId)).toEqual([loaded.body.id, second.body.id].sort());
+    expect((await draftOf(ownerDb, indicatorId)).uploadBatchId).toBe(loaded.body.id);
+    expect(await rowsOf(loaded.body.id)).toHaveLength(3);
+    await expect.poll(() => blobExists(`${indicatorId}/${first.body.id}.csv`)).toBe(false);
+    expect(await blobExists(`${indicatorId}/${loaded.body.id}.csv`)).toBe(true);
+  });
+
+  it("keeps the published batch through an update draft's failed and loaded uploads", async () => {
+    const indicatorId = await publishedWithoutDraft(2);
+    const draftResult = await createDraftFromPublished(internalDb, indicatorId, ACTOR);
+    if (!draftResult.ok) throw new Error('expected an update draft');
+    const publishedBatchId = (await draftOf(ownerDb, indicatorId)).uploadBatchId;
+    if (publishedBatchId === null) throw new Error('the update draft copied no batch');
+    const publishedRows = (await rowsOf(publishedBatchId)).length;
+
+    await upload(indicatorId, REFUSED_CSV);
+    await upload(indicatorId, REFUSED_CSV);
+    const loaded = await upload(indicatorId, VALID_CSV);
+
+    expect(loaded.status).toBe(201);
+    expect(await batchOf(publishedBatchId)).toMatchObject({ status: 'processed' });
+    expect(await rowsOf(publishedBatchId)).toHaveLength(publishedRows);
+    expect(await batchIdsOf(draftResult.versionId)).toEqual([loaded.body.id]);
+  });
+
   it('clears the confirmation when a confirmed table is replaced', async () => {
     const { indicatorId, versionId } = await newDraft(internalDb, 'Upload clears confirmation');
     const first = await upload(indicatorId, VALID_CSV);
