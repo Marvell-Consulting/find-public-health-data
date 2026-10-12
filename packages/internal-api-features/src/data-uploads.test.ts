@@ -11,7 +11,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { DATA_TABLE_MESSAGES } from './data-upload-contract.ts';
 import type { DataUpload } from './data-upload-load-repository.ts';
-import { dataUploadsRouter } from './data-uploads.ts';
+import { dataUploadsRouter, findUploadDraft } from './data-uploads.ts';
 import type { InternalDataUploadRepository } from './repositories.ts';
 import {
   createCapturingLogger,
@@ -57,6 +57,34 @@ async function processedUpload(process: ReturnType<typeof vi.fn>) {
   const [upload, openFile] = process.mock.calls[0] as [DataUpload, () => Promise<Readable>];
   return { upload, content: await text(await openFile()) };
 }
+
+describe('findUploadDraft', () => {
+  function lookUp(draftId: string | null | undefined, rawId: unknown = INDICATOR) {
+    const { dataUploads } = createFakeInternalRepositories({
+      dataUploads: { findDraftId: async () => draftId },
+    });
+    return findUploadDraft(dataUploads, rawId);
+  }
+
+  it('finds the draft of the indicator the id names', async () => {
+    expect(await lookUp(DRAFT)).toEqual({ ok: true, indicatorId: INDICATOR, draftId: DRAFT });
+  });
+
+  it('answers 400 for an id that is not one', async () => {
+    expect(await lookUp(DRAFT, 'not-an-id')).toEqual({
+      ok: false,
+      status: 400,
+      body: { error: 'invalid_id' },
+    });
+  });
+
+  it.each([
+    [undefined, 'not_found'],
+    [null, 'no_draft'],
+  ])('answers 404 when the draft is %s', async (draftId, error) => {
+    expect(await lookUp(draftId)).toEqual({ ok: false, status: 404, body: { error } });
+  });
+});
 
 describe('POST /api/internal/indicators/:id/data-uploads', () => {
   it('rejects a signed-in non-publisher', async () => {

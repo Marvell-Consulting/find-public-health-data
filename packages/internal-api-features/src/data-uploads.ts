@@ -13,31 +13,34 @@ import type {
 import { drainRequest, receiveDataTable, UploadAbortedError } from './data-upload-receive.ts';
 import type { InternalDataUploadRepository } from './repositories.ts';
 
-/** The indicator's draft version id, having answered the request itself when there is none. */
-async function draftIdOrAnswer(
-  dataUploads: InternalDataUploadRepository,
-  request: Request,
-  response: Response,
-): Promise<{ indicatorId: string; draftId: string } | undefined> {
-  const id = indicatorIdSchema.safeParse(request.params.id);
+/** An upload route's draft, or the answer to give when the address names none. */
+export type UploadDraftLookup =
+  | { ok: true; indicatorId: string; draftId: string }
+  | { ok: false; status: 400; body: Extract<DataUploadError, { error: 'invalid_id' }> }
+  | { ok: false; status: 404; body: { error: 'not_found' | 'no_draft' } };
 
-  if (!id.success) {
-    await drainRequest(request);
-    response.status(400).json({ error: 'invalid_id' } satisfies DataUploadError);
-    return undefined;
-  }
+/** Finds the draft an upload route's id names, without answering the request. */
+export async function findUploadDraft(
+  dataUploads: InternalDataUploadRepository,
+  rawId: unknown,
+): Promise<UploadDraftLookup> {
+  const id = indicatorIdSchema.safeParse(rawId);
+  if (!id.success) return { ok: false, status: 400, body: { error: 'invalid_id' } };
 
   const draftId = await dataUploads.findDraftId(id.data);
 
   // A published indicator is edited by opening a draft first, so until then there is nothing
   // to upload to.
-  if (draftId === undefined || draftId === null) {
-    await drainRequest(request);
-    response.status(404).json({ error: draftId === null ? 'no_draft' : 'not_found' });
-    return undefined;
-  }
+  if (draftId === undefined) return { ok: false, status: 404, body: { error: 'not_found' } };
+  if (draftId === null) return { ok: false, status: 404, body: { error: 'no_draft' } };
 
-  return { indicatorId: id.data, draftId };
+  return { ok: true, indicatorId: id.data, draftId };
+}
+
+/** Answers once the request is read to its end, so the answer never races an upload body. */
+async function refuse(request: Request, response: Response, status: number, body: object) {
+  await drainRequest(request);
+  response.status(status).json(body);
 }
 
 /**
@@ -56,8 +59,11 @@ export function dataUploadsRouter(
     '/api/internal/indicators/:id/data-uploads',
     requirePublisher,
     async (request, response) => {
-      const draft = await draftIdOrAnswer(dataUploads, request, response);
-      if (draft === undefined) return;
+      const draft = await findUploadDraft(dataUploads, request.params.id);
+      if (!draft.ok) {
+        await refuse(request, response, draft.status, draft.body);
+        return;
+      }
 
       const { indicatorId } = draft;
       const { sub } = requireApiSession(response);
@@ -136,8 +142,11 @@ export function dataUploadsRouter(
     '/api/internal/indicators/:id/data-uploads/latest',
     requirePublisher,
     async (request, response) => {
-      const draft = await draftIdOrAnswer(dataUploads, request, response);
-      if (draft === undefined) return;
+      const draft = await findUploadDraft(dataUploads, request.params.id);
+      if (!draft.ok) {
+        await refuse(request, response, draft.status, draft.body);
+        return;
+      }
 
       const latest = await dataUploads.findLatest(draft.draftId);
       const body: DataUploadLatest = {
