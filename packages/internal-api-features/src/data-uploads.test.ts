@@ -94,7 +94,7 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
 
   it('stores the file, loads it as the signed-in user and answers with the batch', async () => {
     const storage = createFakeBlobStorage();
-    const process = vi.fn().mockResolvedValue({ ok: true, rowCount: 1, replacedBlobName: null });
+    const process = vi.fn().mockResolvedValue({ ok: true, rowCount: 1, deletedBlobNames: [] });
 
     const response = await upload(createTestApp({ process }, storage), CSV, 'life.csv');
 
@@ -113,13 +113,13 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
     expect(content).toBe(CSV);
   });
 
-  it('deletes the blob of the batch it replaced, and logs the upload', async () => {
+  it('deletes the blobs of the uploads it replaced, and logs the upload', async () => {
     const storage = createFakeBlobStorage();
     await storage.put(`${INDICATOR}/old.csv`, Readable.from(['old']));
     const { logger, lines } = createCapturingLogger();
     const process = vi
       .fn()
-      .mockResolvedValue({ ok: true, rowCount: 1, replacedBlobName: `${INDICATOR}/old.csv` });
+      .mockResolvedValue({ ok: true, rowCount: 1, deletedBlobNames: [`${INDICATOR}/old.csv`] });
 
     const response = await upload(createTestApp({ process }, storage, logger));
 
@@ -146,7 +146,7 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
     const { logger, lines } = createCapturingLogger();
     const process = vi
       .fn()
-      .mockResolvedValue({ ok: true, rowCount: 1, replacedBlobName: `${INDICATOR}/old.csv` });
+      .mockResolvedValue({ ok: true, rowCount: 1, deletedBlobNames: [`${INDICATOR}/old.csv`] });
 
     const response = await upload(createTestApp({ process }, storage, logger));
 
@@ -162,7 +162,12 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
   it('answers 422 with the problems, keeping the file the failed batch records', async () => {
     const storage = createFakeBlobStorage();
     const { logger, lines } = createCapturingLogger();
-    const process = vi.fn().mockResolvedValue({ ok: false, reason: 'invalid', problems: PROBLEMS });
+    const process = vi.fn().mockResolvedValue({
+      ok: false,
+      reason: 'invalid',
+      problems: PROBLEMS,
+      deletedBlobNames: [],
+    });
 
     const response = await upload(createTestApp({ process }, storage, logger));
 
@@ -176,6 +181,24 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
     expect(await handlerLogLines(lines)).toEqual([
       expect.objectContaining({ msg: 'Data table refused', problems: ['unmatched_area_codes'] }),
     ]);
+  });
+
+  it('deletes the blobs of the earlier failed uploads a refused one replaces', async () => {
+    const storage = createFakeBlobStorage();
+    await storage.put(`${INDICATOR}/failed.csv`, Readable.from(['failed']));
+    const process = vi.fn().mockResolvedValue({
+      ok: false,
+      reason: 'invalid',
+      problems: PROBLEMS,
+      deletedBlobNames: [`${INDICATOR}/failed.csv`],
+    });
+
+    const response = await upload(createTestApp({ process }, storage));
+
+    expect(response.status).toBe(422);
+    await expect
+      .poll(() => storage.get(`${INDICATOR}/failed.csv`).catch((error) => error))
+      .toBeInstanceOf(BlobNotFoundError);
   });
 
   it.each([
