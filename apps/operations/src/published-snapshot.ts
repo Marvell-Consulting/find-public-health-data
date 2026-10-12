@@ -12,12 +12,13 @@ import { readCsvHeader, SEED_TABLES } from '@fphd/db/operations';
 import { type DownloadResume, downloadFile } from './download.ts';
 
 const runFile = promisify(execFile);
-const publishedSource = 'PHOLIO_LIVE_A-derived fphd_new benchmark clone';
+const publishedSource = 'PHOLIO_LIVE_B export';
 const publishedCsvNull = '__FPHD_NULL_5f92c66de4b849b4a717c23f5cbdb8a1__';
 // These independently recorded benchmark counts reject accidental source mix-ups.
 // The benchmark setup establishes lineage; these counts are not a provenance signature.
-const expectedApprovedIndicators = 1_290;
-const expectedObservations = 29_380_899;
+const expectedApprovedIndicators = 1_329;
+// The indicator count omits test indicator 94204, as the exporter always does.
+const expectedObservations = 29_656_329;
 // The approved indicators the export leaves out, each the retired half of a pair sharing a
 // name and so a slug. The export holds the same list; an archive built with another is refused.
 const excludedIndicators = [90_366, 90_776, 92_774, 93_280];
@@ -25,7 +26,7 @@ const expectedExportedIndicators = expectedApprovedIndicators - excludedIndicato
 
 const sourceManifestSchema = z.object({
   source: z.literal(publishedSource),
-  source_database: z.literal('fphd_new'),
+  source_database: z.literal('pholio_live_b'),
   approved_indicators: z.literal(expectedApprovedIndicators),
   // The source's count before exclusion: the fingerprint of the clone the archive came from.
   source_observations: z.literal(expectedObservations),

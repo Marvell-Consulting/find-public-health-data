@@ -1,0 +1,26 @@
+{
+  "name": "@fphd/data-migration",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "data-migration": "tsx --conditions=development src/cli.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fphd/config": "workspace:*",
+    "@fphd/db": "workspace:*",
+    "@fphd/utils": "workspace:*",
+    "csv-parse": "catalog:",
+    "entities": "catalog:",
+    "mssql": "catalog:",
+    "postgres": "catalog:"
+  },
+  "devDependencies": {
+    "@types/mssql": "catalog:",
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

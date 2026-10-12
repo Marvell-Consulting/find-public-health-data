@@ -26,7 +26,7 @@ afterEach(async () => {
 });
 
 async function snapshot(
-  source = 'PHOLIO_LIVE_A-derived fphd_new benchmark clone',
+  source = 'PHOLIO_LIVE_B export',
   tableNames: readonly string[] = SEED_TABLES,
 ) {
   const directory = await mkdtemp(join(tmpdir(), 'fphd-snapshot-test-'));
@@ -39,9 +39,9 @@ async function snapshot(
     tables[table] = {
       rows:
         table === 'indicator' || table === 'indicator_version'
-          ? 1_286
+          ? 1_325
           : table === 'observation'
-            ? 29_000_000
+            ? 29_529_814
             : 1,
       bytes: data.length,
       sha256: createHash('sha256').update(data).digest('hex'),
@@ -49,11 +49,11 @@ async function snapshot(
   }
   const sourceManifest = {
     source,
-    source_database: 'fphd_new',
-    approved_indicators: 1_290,
-    source_observations: 29_380_899,
+    source_database: 'pholio_live_b',
+    approved_indicators: 1_329,
+    source_observations: 29_656_329,
     excluded_indicators: [90_366, 90_776, 92_774, 93_280],
-    excluded_observations: 380_899,
+    excluded_observations: 126_515,
     source_csv_null: '__FPHD_NULL_5f92c66de4b849b4a717c23f5cbdb8a1__',
     reference_names: 'tidied',
     tables,
@@ -70,7 +70,7 @@ describe('verifyPublishedSnapshot', () => {
   it('accepts a complete published clone with matching checksums', async () => {
     const directory = await snapshot();
     await expect(verifyPublishedSnapshot(directory)).resolves.toMatchObject({
-      approved_indicators: 1_290,
+      approved_indicators: 1_329,
     });
   });
 
@@ -100,6 +100,11 @@ describe('verifyPublishedSnapshot', () => {
 
   it('rejects a staging export even when its files are intact', async () => {
     const directory = await snapshot('PHOLIO_STAGING');
+    await expect(verifyPublishedSnapshot(directory)).rejects.toThrow();
+  });
+
+  it('rejects the older A snapshot even when its files are intact', async () => {
+    const directory = await snapshot('PHOLIO_LIVE_A-derived fphd_new benchmark clone');
     await expect(verifyPublishedSnapshot(directory)).rejects.toThrow();
   });
 
@@ -140,7 +145,7 @@ describe('verifyPublishedSnapshot', () => {
     sourceManifest.excluded_indicators = [93_280, 90_366, 92_774, 90_776];
     await writeFile(path, JSON.stringify(sourceManifest));
     await expect(verifyPublishedSnapshot(directory)).resolves.toMatchObject({
-      approved_indicators: 1_290,
+      approved_indicators: 1_329,
     });
   });
 
@@ -185,7 +190,7 @@ describe('downloadPublishedSnapshot', () => {
     const { manifest, cleanup } = await downloadPublishedSnapshot('https://example.test/a', sha256);
     await cleanup();
 
-    expect(manifest.approved_indicators).toBe(1_290);
+    expect(manifest.approved_indicators).toBe(1_329);
   });
 
   it('refuses an archive exported before the period types, which carries year_type', async () => {
