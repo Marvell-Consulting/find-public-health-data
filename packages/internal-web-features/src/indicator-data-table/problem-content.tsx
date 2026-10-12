@@ -188,6 +188,16 @@ const CONTENT: Record<Exclude<DataTableProblemCode, 'missing_column'>, Content> 
     'value notes',
     'names',
   ),
+  ambiguous_names: {
+    problem: 'Names match more than one reference data record',
+    detail: (found) => (
+      <Examples
+        lead={`${thereAre(found.count, 'instance of a name', 'instances of names')} in your data table that match more than one reference data record, which differ only in capital letters`}
+        problem={found}
+      />
+    ),
+    actions: [CHECK_FILE, 'ask the service team to correct the reference data'],
+  },
   invalid_numbers: rowsContent(
     'Numbers could not be read',
     'with a number that could not be read, such as one with a thousands separator, a unit or words',

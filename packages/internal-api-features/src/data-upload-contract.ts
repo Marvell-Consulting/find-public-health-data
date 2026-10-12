@@ -29,6 +29,7 @@ export const DATA_TABLE_PROBLEM_CODES = [
   'unmatched_ages',
   'unmatched_categories',
   'unmatched_value_notes',
+  'ambiguous_names',
   'invalid_numbers',
   'duplicate_rows',
 ] as const;
