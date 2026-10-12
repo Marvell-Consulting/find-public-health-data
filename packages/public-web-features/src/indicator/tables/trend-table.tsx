@@ -1,12 +1,7 @@
+import { periodLabel } from '@fphd/utils/period-label';
 import { Fragment } from 'react';
 import type { BenchmarkChoice } from '../comparison.ts';
-import {
-  type ConfidenceLevel,
-  formatCalculatedValue,
-  formatValue,
-  periodLabel,
-  segmentLabel,
-} from '../data.ts';
+import { type ConfidenceLevel, formatCalculatedValue, formatValue, segmentLabel } from '../data.ts';
 import type {
   BenchmarkGeography,
   IndicatorAreaData,
