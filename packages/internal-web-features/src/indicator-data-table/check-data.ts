@@ -1,8 +1,7 @@
-import {
-  DATA_TABLE_TOTALS,
-  type DataTableCheck,
-  type DataTableColumn,
-  type DataTableRow,
+import type {
+  DataTableCheck,
+  DataTableColumn,
+  DataTableRow,
 } from '@fphd/internal-api-features/contract';
 import { periodLabel } from '@fphd/utils/period-label';
 
@@ -63,9 +62,8 @@ const COLUMNS: readonly CheckColumn[] = [
     cell: (row, yearType) => periodLabel(row, yearType),
   },
   { key: 'areaCode', heading: 'Area code', from: ['area_code'], cell: (row) => row.areaCode },
-  // A total is stored without the dimension, so a row with none is the total the file named.
-  { key: 'sex', heading: 'Sex', from: ['sex'], cell: (row) => row.sex ?? DATA_TABLE_TOTALS.sex },
-  { key: 'age', heading: 'Age', from: ['age'], cell: (row) => row.age ?? DATA_TABLE_TOTALS.age },
+  { key: 'sex', heading: 'Sex', from: ['sex'], cell: (row) => row.sex ?? '' },
+  { key: 'age', heading: 'Age', from: ['age'], cell: (row) => row.age ?? '' },
   {
     key: 'categoryType',
     heading: 'Category type',
