@@ -489,34 +489,42 @@ describe('processDataUpload', () => {
     expect((await draftOf(ownerDb, indicatorId)).definition).toBe('Saved meanwhile');
   });
 
-  it('keeps nothing when the draft stops being a draft while its file loads', async () => {
-    const { indicatorId, batchId, blobName, upload } = await storedUpload('Upload outlives draft');
-    const file = new PassThrough();
-    let loading: () => void = () => {};
-    const reached = new Promise<void>((resolve) => {
-      loading = resolve;
-    });
+  it.each([
+    ['loads', VALID_CSV],
+    ['is refused', `${HEADER}\nE99999999,2019-04-01,2020-03-31,1,,,,,,`],
+  ])(
+    'keeps nothing when the draft stops being a draft while a file that %s loads',
+    async (outcome, content) => {
+      const { indicatorId, batchId, upload } = await storedUpload(
+        `Upload outlives draft ${outcome}`,
+      );
+      const file = new PassThrough();
+      let loading: () => void = () => {};
+      const reached = new Promise<void>((resolve) => {
+        loading = resolve;
+      });
 
-    const uploaded = processDataUpload(
-      internalDb,
-      upload,
-      async () => {
-        loading();
-        return file;
-      },
-      new AbortController().signal,
-    );
-    await reached;
-    await ownerDb
-      .update(indicatorVersion)
-      .set({ status: 'published', publishedAt: sql`now()` })
-      .where(eq(indicatorVersion.indicatorId, indicatorId));
-    file.end(await text(await storage.get(blobName)));
+      const uploaded = processDataUpload(
+        internalDb,
+        upload,
+        async () => {
+          loading();
+          return file;
+        },
+        new AbortController().signal,
+      );
+      await reached;
+      await ownerDb
+        .update(indicatorVersion)
+        .set({ status: 'published', publishedAt: sql`now()` })
+        .where(eq(indicatorVersion.indicatorId, indicatorId));
+      file.end(content);
 
-    expect(await uploaded).toEqual({ ok: false, reason: 'no_draft' });
-    expect(await batchOf(batchId)).toBeUndefined();
-    expect(await rowsOf(batchId)).toEqual([]);
-  });
+      expect(await uploaded).toEqual({ ok: false, reason: 'no_draft' });
+      expect(await batchOf(batchId)).toBeUndefined();
+      expect(await rowsOf(batchId)).toEqual([]);
+    },
+  );
 
   it('rolls back, recording nothing, when the upload is abandoned before it loads', async () => {
     const { indicatorId, batchId, blobName, upload } = await storedUpload('Upload abandoned');

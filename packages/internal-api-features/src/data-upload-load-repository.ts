@@ -139,6 +139,10 @@ function loadInTransaction(
         UPDATE upload_batch
         SET status = 'failed', validation_result = ${JSON.stringify(problems)}::jsonb, column_names = ${staged.columnNames}
         WHERE id = ${upload.batchId}`;
+      // Held until commit, so the version cannot stop being a draft before the failure is kept.
+      const [stillDraft] = await tx`
+        SELECT id FROM indicator_version WHERE id = ${draft.id} AND status = 'draft' FOR SHARE`;
+      if (stillDraft === undefined) throw new DraftGoneError();
       const deletedBlobNames = await deleteEarlierBatches(
         tx,
         draft.id,
