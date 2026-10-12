@@ -1,4 +1,7 @@
-import { dataTableFileRefusal } from '@fphd/internal-api-features/contract';
+import {
+  DATA_TABLE_ROWS_PER_PAGE,
+  dataTableFileRefusal,
+} from '@fphd/internal-api-features/contract';
 import {
   Button,
   DocumentTitle,
@@ -10,11 +13,16 @@ import {
   Input,
   initNewErrorSummaries,
   Label,
+  Pagination,
+  Select,
   Table,
+  TableScrollRegion,
 } from '@fphd/ui';
 import { type FormEvent, useEffect, useState } from 'react';
 
-import { indicatorDataTablePath } from '../publish-paths.ts';
+import { indicatorDataTableCheckPath, indicatorDataTablePath } from '../publish-paths.ts';
+import { checkColumns, rowsShowing, uploadSummary } from './check-data.ts';
+import type { DataTableCheckData } from './check-loader.ts';
 import type { DataTableProblem, DataTableUploadFailure } from './loader.ts';
 import { problemRows } from './problem-content.tsx';
 
@@ -174,5 +182,123 @@ export function DataTableProblemsPage({
         <Button href={indicatorDataTablePath(id)}>Upload different or corrected data table</Button>
       </GridColumn>
     </GridRow>
+  );
+}
+
+export const CHECK_HEADING = 'Check the indicator data table';
+
+/**
+ * Links to the pages Pagination shows: the first, the last and those either side of the current.
+ * The rest are left as holes, which it skips, so a large table does not build a link per page.
+ */
+export function pageLinks<Link>(
+  totalPages: number,
+  current: number,
+  link: (page: number) => Link,
+): Link[] {
+  const links = new Array<Link>(totalPages);
+  for (const page of [1, current - 1, current, current + 1, totalPages]) {
+    if (page >= 1 && page <= totalPages) links[page - 1] = link(page);
+  }
+  return links;
+}
+
+interface CheckDataTablePageProps extends DataTableCheckData {
+  formError?: string | undefined;
+}
+
+export function CheckDataTablePage({
+  id,
+  dataTable,
+  totalPages,
+  formError,
+}: CheckDataTablePageProps) {
+  const { page, rowsPerPage, yearType } = dataTable;
+  const columns = checkColumns(dataTable.columns);
+
+  // Plain anchors: the router-aware link would also mark every link to the bare path as current.
+  const pageLink = (number: number) => ({
+    href: indicatorDataTableCheckPath(id, { page: number, rowsPerPage }),
+    forceExternal: true,
+    ...(number === page ? { 'aria-current': 'page' as const } : {}),
+  });
+
+  return (
+    <>
+      <DocumentTitle hasErrors={formError !== undefined} pageTitle={CHECK_HEADING} />
+      <ErrorSummary errors={[]} formError={formError} />
+      <GridRow>
+        <GridColumn width="full">
+          <h1 className="govuk-heading-xl">{CHECK_HEADING}</h1>
+          <div className="fphd-table-controls">
+            <p className="govuk-body">{uploadSummary(dataTable)}</p>
+            {/* Asks for the first page in the new size, without JavaScript too. */}
+            <form className="fphd-table-controls__form" method="get">
+              <Select
+                defaultValue={String(rowsPerPage)}
+                label="Rows per page"
+                name="rowsPerPage"
+                options={DATA_TABLE_ROWS_PER_PAGE.map((value) => ({ value, label: value }))}
+              />
+              <Button classModifiers="secondary" type="submit">
+                Apply
+              </Button>
+            </form>
+          </div>
+          {/* No row headers: no one column names a row, and a suppressed value is empty. */}
+          <TableScrollRegion label="Data table">
+            <table className="govuk-table">
+              <thead className="govuk-table__head">
+                <tr className="govuk-table__row">
+                  {columns.map(({ key, heading }) => (
+                    <th key={key} scope="col" className="govuk-table__header">
+                      {heading}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="govuk-table__body">
+                {dataTable.rows.map((row) => (
+                  <tr
+                    key={[row.areaCode, row.fromDate, row.toDate, row.sex, row.age, row.category]
+                      .map(String)
+                      .join('|')}
+                    className="govuk-table__row"
+                  >
+                    {columns.map(({ key, cell }) => (
+                      <td key={key} className="govuk-table__cell">
+                        {cell(row, yearType)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableScrollRegion>
+          <div className="fphd-table-controls">
+            <p className="govuk-body">{rowsShowing(dataTable)}</p>
+            {totalPages > 1 ? (
+              <Pagination
+                currentPage={page}
+                landmarkLabel="Data table pages"
+                links={pageLinks(totalPages, page, pageLink)}
+              />
+            ) : null}
+          </div>
+          <p className="govuk-body govuk-!-font-weight-bold">
+            By continuing, you confirm the data table is correct.
+          </p>
+          <form action={indicatorDataTableCheckPath(id)} method="post">
+            <input name="batchId" type="hidden" value={dataTable.batchId} />
+            <div className="govuk-button-group">
+              <Button type="submit">Continue</Button>
+              <Button classModifiers="secondary" href={indicatorDataTablePath(id)}>
+                Choose a different data table
+              </Button>
+            </div>
+          </form>
+        </GridColumn>
+      </GridRow>
+    </>
   );
 }
