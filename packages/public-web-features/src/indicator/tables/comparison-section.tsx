@@ -1,4 +1,4 @@
-import { Button, ChartSection, Tabs } from '@fphd/ui';
+import { Button, ChartSection, TableScrollRegion, Tabs } from '@fphd/ui';
 import { Fragment } from 'react';
 import { Form } from 'react-router';
 import { comparisonTable } from '../comparison.ts';
@@ -8,7 +8,6 @@ import { PanelOptionsPanel, usePanelOptions } from '../options.tsx';
 import { TrendTag } from '../trend-tag.tsx';
 import { BenchmarkCells, BenchmarkHeaderCells } from './benchmark-cells.tsx';
 import { NoteFootnotes, noteMarker } from './note-markers.tsx';
-import { TableScrollRegion } from './table-scroll-region.tsx';
 
 /** Only shown for two or more indicators: their latest values side by side. */
 export function ComparisonSection({
