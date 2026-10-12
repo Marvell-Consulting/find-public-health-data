@@ -91,16 +91,25 @@ describe('isNumber', () => {
 });
 
 describe('isIsoDate', () => {
-  it.each(['2019-04-01', '2024-02-29', '1999-12-31'])('accepts %s', (text) => {
-    expect(isIsoDate(text)).toBe(true);
-  });
-
-  it.each(['2019/20', '01/04/2019', '2023-02-29', '2019-13-01', '2019-4-1', '20190401'])(
-    'refuses %s',
+  it.each(['2019-04-01', '2024-02-29', '1999-12-31', '0001-01-01', '0050-03-01', '0099-12-31'])(
+    'accepts %s',
     (text) => {
-      expect(isIsoDate(text)).toBe(false);
+      expect(isIsoDate(text)).toBe(true);
     },
   );
+
+  it.each([
+    '2019/20',
+    '01/04/2019',
+    '2023-02-29',
+    '2019-13-01',
+    '2019-4-1',
+    '20190401',
+    '0000-01-01',
+    '0050-02-29',
+  ])('refuses %s', (text) => {
+    expect(isIsoDate(text)).toBe(false);
+  });
 });
 
 describe('readRow', () => {
