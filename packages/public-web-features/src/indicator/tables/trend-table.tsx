@@ -1,3 +1,4 @@
+import { TableScrollRegion } from '@fphd/ui';
 import { periodLabel } from '@fphd/utils/period-label';
 import { Fragment } from 'react';
 import type { BenchmarkChoice } from '../comparison.ts';
@@ -11,7 +12,6 @@ import type {
 import { trendTableModel } from '../trend.ts';
 import { BenchmarkCells, BenchmarkHeaderCells } from './benchmark-cells.tsx';
 import { NoteFootnotes, noteMarker } from './note-markers.tsx';
-import { TableScrollRegion } from './table-scroll-region.tsx';
 
 /** The unit after a value column's heading, or nothing when the values have none. */
 function UnitNote({ unit }: { unit: string | null }) {
