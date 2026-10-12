@@ -237,6 +237,7 @@ export type IndicatorTaskStatuses = z.infer<typeof indicatorTaskStatusesSchema>;
 export type IndicatorTaskList = z.infer<typeof indicatorTaskListSchema>;
 export type IndicatorTaskListError = z.infer<typeof indicatorTaskListErrorSchema>;
 
+export * from './data-table-check-contract.ts';
 export * from './data-upload-contract.ts';
 export * from './indicator-benchmarking-contract.ts';
 export * from './indicator-calculation-contract.ts';
