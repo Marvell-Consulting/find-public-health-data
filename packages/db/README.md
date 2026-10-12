@@ -10,6 +10,10 @@ and `createOwnerClient` for the test harness. The per-API roles are created by
 locally, `operations db bootstrap` deployed), which must run against a fresh server before
 the first migration: the grant migrations reference the roles.
 
+The `@fphd/db/data-migration-contract` subpath exposes package manifests, reviewed relationship
+schemas and CSV table names without database operations. Export tooling uses it to share the
+receiver's format.
+
 ## Layout
 
 ```
