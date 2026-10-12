@@ -263,14 +263,14 @@ describe('applyDataMigration', () => {
   );
   it('names identities whose deletion is blocked by publisher uploads', async () => {
     await baseline();
-    await sql`INSERT INTO upload_batch (indicator_id, original_filename, uploaded_by) VALUES (${INDICATOR_ID}, 'publisher.csv', 'publisher')`;
+    await sql`INSERT INTO upload_batch (indicator_id, indicator_version_id, original_filename, uploaded_by) VALUES (${INDICATOR_ID}, ${VERSION_ID}, 'publisher.csv', 'publisher')`;
     await expect(
       apply({
         deletes: { indicator: [INDICATOR_ID], indicator_version: [VERSION_ID] },
         relationships: { indicators: [], indicatorTopics: [] },
       }),
     ).rejects.toThrow(
-      `indicator deletion is blocked by retained references (ids: ${INDICATOR_ID})`,
+      `indicator_version deletion is blocked by retained references (ids: ${VERSION_ID})`,
     );
     await assertRolledBack();
   });
@@ -278,14 +278,14 @@ describe('applyDataMigration', () => {
     'rejects a declared delete count of %s before deleting its staged row',
     async (rows) => {
       await baseline();
-      await sql`INSERT INTO upload_batch (indicator_id, original_filename, uploaded_by) VALUES (${INDICATOR_ID}, 'publisher.csv', 'publisher')`;
+      await sql`INSERT INTO upload_batch (indicator_id, indicator_version_id, original_filename, uploaded_by) VALUES (${INDICATOR_ID}, ${VERSION_ID}, 'publisher.csv', 'publisher')`;
       await expect(
         apply({
           deletes: { indicator: [INDICATOR_ID], indicator_version: [VERSION_ID] },
-          deleteRows: { indicator: rows },
+          deleteRows: { indicator_version: rows },
           relationships: { indicators: [], indicatorTopics: [] },
         }),
-      ).rejects.toThrow(`indicator staged 1 deletes; package declares ${rows}`);
+      ).rejects.toThrow(`indicator_version staged 1 deletes; package declares ${rows}`);
       await assertRolledBack();
     },
   );
