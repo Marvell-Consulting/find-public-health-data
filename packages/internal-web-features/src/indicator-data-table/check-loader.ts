@@ -15,7 +15,7 @@ import { indicatorDataTablePath, indicatorTaskListPath } from '../publish-paths.
 import { queryObject } from '../query-object.ts';
 
 export const DATA_TABLE_CHANGED =
-  'The data table was replaced while you were checking it. Check the new data table.';
+  'Another data table was uploaded while you were checking this one. Check the new data table.';
 
 export interface DataTableCheckRefusal {
   formError: string;
