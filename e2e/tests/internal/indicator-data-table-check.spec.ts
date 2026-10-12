@@ -162,7 +162,7 @@ test('shows the new data table when another upload replaced it before Continue',
 
   await expect(page).toHaveTitle(/^Error: /);
   await expect(page.getByRole('alert')).toContainText(
-    'The data table was replaced while you were checking it. Check the new data table.',
+    'Another data table was uploaded while you were checking this one. Check the new data table.',
   );
   await expect(page.getByText('Your upload contains 1 row')).toBeVisible();
   await expect(dataRows(page).first().locator('th, td')).toHaveText([
