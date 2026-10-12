@@ -315,7 +315,7 @@ describe('CheckDataTablePage', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'Check the indicator data table' }),
     ).toBeTruthy();
-    expect(screen.getByText('Your upload contains 8 columns and 52,365 rows')).toBeTruthy();
+    expect(screen.getByText('Your upload contains 52,365 rows')).toBeTruthy();
   });
 
   it('shows the page of rows under the headings of the columns the file had', () => {

@@ -93,8 +93,8 @@ function rows(n: number): string {
 }
 
 /** What the upload holds, as the page introduces the table. */
-export function uploadSummary({ columns, rowCount }: CheckedTable): string {
-  return `Your upload contains ${columns.length} columns and ${rows(rowCount)}`;
+export function uploadSummary({ rowCount }: CheckedTable): string {
+  return `Your upload contains ${rows(rowCount)}`;
 }
 
 /** Which of the rows the page shows. */

@@ -65,7 +65,7 @@ test('is reached by uploading a data table', async ({ page }) => {
 test('shows a preview of the uploaded data table', async ({ page }) => {
   await openCheckPage(page);
 
-  await expect(page.getByText('Your upload contains 7 columns and 23 rows')).toBeVisible();
+  await expect(page.getByText('Your upload contains 23 rows')).toBeVisible();
   const table = page.getByRole('region', { name: 'Data table' }).getByRole('table');
   await expect(table.getByRole('columnheader')).toHaveText([
     'Data values',
@@ -164,7 +164,7 @@ test('shows the new data table when another upload replaced it before Continue',
   await expect(page.getByRole('alert')).toContainText(
     'The data table was replaced while you were checking it. Check the new data table.',
   );
-  await expect(page.getByText('Your upload contains 4 columns and 1 row')).toBeVisible();
+  await expect(page.getByText('Your upload contains 1 row')).toBeVisible();
   await expect(dataRows(page).first().locator('th, td')).toHaveText([
     '83.8',
     '2019/20',
