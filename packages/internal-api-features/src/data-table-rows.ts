@@ -69,16 +69,21 @@ export function isNumber(text: string): boolean {
   return Number.isFinite(number) && (number !== 0 || writtenAsZero);
 }
 
-/** A real calendar date written as YYYY-MM-DD. */
+/** A real calendar date written as YYYY-MM-DD, from year 1, as Postgres has no year 0. */
 export function isIsoDate(text: string): boolean {
   const parts = ISO_DATE.exec(text);
   if (parts === null) return false;
 
   const [year, month, day] = parts.slice(1).map(Number) as [number, number, number];
-  const date = new Date(Date.UTC(year, month - 1, day));
+  // setUTCFullYear, as Date.UTC would read years 0 to 99 as 1900 to 1999.
+  const date = new Date(0);
+  date.setUTCFullYear(year, month - 1, day);
 
   return (
-    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+    year >= 1 &&
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
   );
 }
 
