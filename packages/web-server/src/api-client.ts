@@ -7,8 +7,8 @@ export interface ApiClientOptions {
   headers?: Record<string, string>;
   /** Abort and fail rather than hold a page render open indefinitely. */
   timeoutMs?: number;
-  /** As `timeoutMs`, for `postStream`, which waits for a file to arrive and be processed. */
-  uploadTimeoutMs?: number;
+  /** As `timeoutMs`, for `postStream`'s answer once its body is sent; undefined takes the default. */
+  uploadTimeoutMs?: number | undefined;
 }
 
 /** A request body passed on as it arrives, such as a browser's file upload. */
@@ -87,8 +87,8 @@ export class ApiTimeoutError extends Error {
   }
 }
 
-// Front Door waits 60 seconds for an origin to answer, so nothing answered later is ever seen.
-const DEFAULT_UPLOAD_TIMEOUT_MS = 60_000;
+// Under Front Door's 60 seconds for an origin to answer, so the page's own message wins its 504.
+const DEFAULT_UPLOAD_TIMEOUT_MS = 50_000;
 
 /** A `Cookie` header carrying only the named cookie, so the API never sees the browser's others. */
 export function forwardedCookieHeaders(

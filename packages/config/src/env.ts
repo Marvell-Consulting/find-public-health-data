@@ -167,6 +167,8 @@ export function loadWebServerConfig(
         ...serverEnvFields(defaults),
         ...logEnvFields,
         API_URL: apiUrlSchema.default(defaults.apiUrl),
+        // How long the web app waits for the API to answer an upload once it has been sent.
+        API_UPLOAD_TIMEOUT_MS: z.coerce.number().int().positive().optional(),
         NODE_ENV: nodeEnvSchema,
         SESSION_JWT_SECRET: z.string().min(32),
         // Proxies between the client and the app, whose X-Forwarded-* headers are trusted:
@@ -197,6 +199,7 @@ export function loadWebServerConfig(
     host: parsed.HOST,
     port: parsed.PORT,
     apiUrl: parsed.API_URL,
+    apiUploadTimeoutMs: parsed.API_UPLOAD_TIMEOUT_MS,
     trustedProxyHops: parsed.TRUSTED_PROXY_HOPS,
     shutdown: resolveShutdown(parsed.APP_ENV, parsed),
     log: resolveLog(parsed.APP_ENV, parsed),

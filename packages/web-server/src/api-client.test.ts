@@ -471,6 +471,34 @@ describe('ApiClient.postStream', () => {
       vi.useRealTimers();
     }
   });
+
+  it('waits 50 seconds by default, under Front Door’s 60', async () => {
+    vi.useFakeTimers();
+    try {
+      const { readBody } = hangingFetch();
+      const outcome = createApiClient({ baseUrl: 'http://api:4000', uploadTimeoutMs: undefined })
+        .postStream(
+          '/api/internal/uploads',
+          { body: body(), contentType },
+          topicSchema,
+          errorSchema,
+        )
+        .catch((error: unknown) => error);
+      await readBody();
+
+      let settled = false;
+      void outcome.then(() => {
+        settled = true;
+      });
+      await vi.advanceTimersByTimeAsync(49_999);
+      expect(settled).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+
+      expect(await outcome).toBeInstanceOf(ApiTimeoutError);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe('forwardedCookieHeaders', () => {
