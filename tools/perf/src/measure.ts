@@ -1,6 +1,7 @@
 import postgres from 'postgres';
 
 import type { Work } from './budget.ts';
+import { createDataTableDraft } from './fixtures.ts';
 import { ORIGINS, type Route } from './routes.ts';
 
 export type Response = { status: number; bytes: number; ms: number };
@@ -55,10 +56,12 @@ export function connect(): postgres.Sql {
 }
 
 /**
- * Fresh planner statistics, so plans do not shift under an autovacuum mid-run (CI turns it off),
- * and the statistics extension, which needs `shared_preload_libraries` (compose.perf.yaml).
+ * The data the seed lacks, then fresh planner statistics, so plans do not shift under an
+ * autovacuum mid-run (CI turns it off), and the statistics extension, which needs
+ * `shared_preload_libraries` (compose.perf.yaml).
  */
 export async function prepare(sql: postgres.Sql): Promise<void> {
+  await createDataTableDraft(sql);
   await sql`vacuum analyze`.simple();
   await sql`create extension if not exists pg_stat_statements`;
 }
