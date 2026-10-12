@@ -580,25 +580,26 @@ export function inequalityBreakdown(
     );
 }
 
-/** The span an indicator's data covers, as the summary table states it. */
+/**
+ * The span an indicator's data covers, as the summary table states it: one period from the first
+ * period's start to the last period's end, labelled as any period is.
+ */
 export function periodCovered(
   observations: IndicatorObservation[],
   yearType?: PublicYearType | null,
 ): string {
-  if (observations.length === 0) {
+  const [first, ...rest] = observations;
+  if (first === undefined) {
     return '';
   }
-  const sorted = [...observations].sort(
-    (a, b) => a.fromDate.localeCompare(b.fromDate) || a.toDate.localeCompare(b.toDate),
+  const span = rest.reduce(
+    (covered, { fromDate, toDate }) => ({
+      fromDate: fromDate < covered.fromDate ? fromDate : covered.fromDate,
+      toDate: toDate > covered.toDate ? toDate : covered.toDate,
+    }),
+    { fromDate: first.fromDate, toDate: first.toDate },
   );
-  const first = sorted[0];
-  const last = sorted.at(-1);
-  if (!first || !last) {
-    return '';
-  }
-  const from = periodLabel(first, yearType);
-  const to = periodLabel(last, yearType);
-  return from === to ? from : `${from} to ${to}`;
+  return periodLabel(span, yearType);
 }
 
 export type RecentTrend =
