@@ -87,6 +87,8 @@ test('asks for a data table when Continue is selected without one', async ({ pag
   await expect(page).toHaveTitle(/^Error: /);
   const summary = page.getByRole('alert');
   await expect(summary.getByRole('link')).toHaveText(['Select a data table']);
+  // The refused form is a fresh page, so it no longer says an upload is under way.
+  await expect(page.getByRole('status')).toHaveText('');
   await expectErrorSummaryReady(page);
   await summary.getByRole('link', { name: 'Select a data table' }).click();
   await expect(page.getByLabel(HEADING)).toBeFocused();
