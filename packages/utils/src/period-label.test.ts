@@ -96,4 +96,11 @@ describe('periodLabel', () => {
       '15 January 2023 to 14 February 2023',
     );
   });
+
+  it('reads years 1 to 99 as written', () => {
+    expect(periodLabel(period('0050-01-01', '0050-12-31'))).toBe('50');
+    expect(periodLabel(period('0050-04-01', '0051-03-31'))).toBe('50/51');
+    expect(periodLabel(period('0099-01-01', '0099-01-31'))).toBe('January 99');
+    expect(periodLabel(period('0001-01-01', '0003-12-31'))).toBe('1 to 3');
+  });
 });
