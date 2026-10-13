@@ -21,6 +21,8 @@ export const dataTableRowSchema = z.object({
   areaCode: z.string(),
   fromDate: z.iso.date(),
   toDate: z.iso.date(),
+  /** With the area and dates, the row's natural key: unique in its batch. */
+  dimensionKey: z.string(),
   value: number,
   count: number,
   denominator: number,

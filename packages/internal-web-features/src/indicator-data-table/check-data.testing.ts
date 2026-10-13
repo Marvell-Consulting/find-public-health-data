@@ -6,6 +6,7 @@ export const ROW: DataTableRow = {
   areaCode: 'E92000001',
   fromDate: '2019-04-01',
   toDate: '2020-03-31',
+  dimensionKey: '00000000-0000-7000-8000-000000000004',
   value: 83.8,
   count: null,
   denominator: null,

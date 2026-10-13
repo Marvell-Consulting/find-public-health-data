@@ -4,9 +4,9 @@ import { DATA_TABLE_MAX_BYTES, DATA_TABLE_MESSAGES } from '@fphd/internal-api-fe
 import { serviceName } from '@fphd/ui';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { BATCH, DATA_TABLE } from './check-data.testing.ts';
+import { BATCH, DATA_TABLE, ROW } from './check-data.testing.ts';
 import { DATA_TABLE_CHANGED } from './check-loader.ts';
 import type { DataTableProblem } from './loader.ts';
 import {
@@ -316,6 +316,41 @@ describe('CheckDataTablePage', () => {
       screen.getByRole('heading', { level: 1, name: 'Check the indicator data table' }),
     ).toBeTruthy();
     expect(screen.getByText('Your upload contains 52,365 rows')).toBeTruthy();
+  });
+
+  it('tells apart rows that differ only by category type, in a column of its own', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const decile = { ...ROW, sex: null, category: 'Most deprived decile' };
+    renderCheck({
+      dataTable: {
+        ...DATA_TABLE,
+        columns: ['area_code', 'period_start', 'period_end', 'value', 'category_type', 'category'],
+        rows: [
+          { ...decile, dimensionKey: 'imd-2019-decile-1', categoryType: 'IMD 2019 deciles' },
+          { ...decile, dimensionKey: 'imd-2015-decile-1', categoryType: 'IMD 2015 deciles' },
+        ],
+      },
+    });
+
+    const table = within(screen.getByRole('region', { name: 'Data table' })).getByRole('table');
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map((header) => header.textContent),
+    ).toEqual(['Data values', 'Period', 'Area code', 'Category type', 'Category']);
+    const rows = within(table).getAllByRole('row').slice(1);
+    expect(
+      rows.map((row) =>
+        within(row)
+          .getAllByRole('cell')
+          .map((cell) => cell.textContent),
+      ),
+    ).toEqual([
+      ['83.8', '2019/20', 'E92000001', 'IMD 2019 deciles', 'Most deprived decile'],
+      ['83.8', '2019/20', 'E92000001', 'IMD 2015 deciles', 'Most deprived decile'],
+    ]);
+    expect(consoleError).not.toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 
   it('shows the page of rows under the headings of the columns the file had', () => {
