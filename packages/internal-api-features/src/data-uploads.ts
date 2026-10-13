@@ -11,6 +11,7 @@ import type {
   DataUploadLatest,
 } from './data-upload-contract.ts';
 import { drainRequest, receiveDataTable, UploadAbortedError } from './data-upload-receive.ts';
+import { elapsedMs, TimedUploadError, type UploadTimings } from './data-upload-timings.ts';
 import type { InternalDataUploadRepository } from './repositories.ts';
 
 /** An upload route's draft, or the answer to give when the address names none. */
@@ -59,11 +60,20 @@ export function dataUploadsRouter(
     '/api/internal/indicators/:id/data-uploads',
     requirePublisher,
     async (request, response) => {
+      const started = performance.now();
       const draft = await findUploadDraft(dataUploads, request.params.id);
       if (!draft.ok) {
         await refuse(request, response, draft.status, draft.body);
         return;
       }
+
+      // The stages' timings for the log line, with the receipt and the whole request around them.
+      let receiveMs: number | undefined;
+      const timingsWith = (stages: UploadTimings): UploadTimings => ({
+        ...(receiveMs === undefined ? {} : { receiveMs }),
+        ...stages,
+        totalMs: elapsedMs(started),
+      });
 
       const { indicatorId } = draft;
       const { sub } = requireApiSession(response);
@@ -85,6 +95,7 @@ export function dataUploadsRouter(
 
       try {
         const received = await receiveDataTable(request, storage, blobName);
+        receiveMs = elapsedMs(started);
 
         if (!received.ok) {
           await deleteBlob(blobName);
@@ -108,14 +119,23 @@ export function dataUploadsRouter(
           return;
         }
 
+        const timings = timingsWith(result.timings);
         if (result.ok) {
-          request.log.info({ ...logFields, rowCount: result.rowCount }, 'Data table uploaded');
+          request.log.info(
+            { ...logFields, byteSize: file.byteSize, rowCount: result.rowCount, timings },
+            'Data table uploaded',
+          );
           response
             .status(201)
             .json({ id: batchId, rowCount: result.rowCount } satisfies DataUploadCreated);
         } else {
           request.log.info(
-            { ...logFields, problems: result.problems.map(({ code }) => code) },
+            {
+              ...logFields,
+              byteSize: file.byteSize,
+              problems: result.problems.map(({ code }) => code),
+              timings,
+            },
             'Data table refused',
           );
           response.status(422).json({
@@ -129,11 +149,13 @@ export function dataUploadsRouter(
         for (const name of result.deletedBlobNames) await deleteBlob(name);
       } catch (error) {
         await deleteBlob(blobName);
+        const timings = timingsWith(error instanceof TimedUploadError ? error.timings : {});
         if (abandoned.signal.aborted || error instanceof UploadAbortedError) {
-          request.log.info(logFields, 'Data table upload abandoned');
+          request.log.info({ ...logFields, timings }, 'Data table upload abandoned');
           return;
         }
-        throw error;
+        request.log.info({ ...logFields, timings }, 'Data table upload failed');
+        throw error instanceof TimedUploadError ? error.cause : error;
       }
     },
   );

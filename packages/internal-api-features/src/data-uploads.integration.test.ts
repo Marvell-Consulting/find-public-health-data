@@ -21,7 +21,13 @@ import { updateIndicatorDraft } from './indicator-draft-repository.ts';
 import { createDraftFromPublished } from './indicator-publish-repository.ts';
 import { ACTOR, newDraft } from './indicator-repository.testing.ts';
 import { createInternalRepositories } from './repositories.ts';
-import { createRouterTestApp, testSessionCookie, testSessionVerifier } from './testing.ts';
+import {
+  createCapturingLogger,
+  createRouterTestApp,
+  handlerLogLines,
+  testSessionCookie,
+  testSessionVerifier,
+} from './testing.ts';
 
 const envFile = fileURLToPath(new URL('../../../.env', import.meta.url));
 if (existsSync(envFile)) {
@@ -260,6 +266,49 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
       .innerJoin(noteType, eq(noteType.id, observationNote.noteTypeId))
       .where(eq(observationNote.observationId, row?.id ?? ''));
     expect(note?.text).toBe('Aggregated from values for merged CCGs');
+  });
+
+  it('logs how long each stage of the upload took, in whole milliseconds', async () => {
+    const { indicatorId } = await newDraft(internalDb, 'Upload logs its timings');
+    const { logger, lines } = createCapturingLogger();
+    const logged = createRouterTestApp(
+      dataUploadsRouter(
+        createInternalRepositories(internalDb).dataUploads,
+        storage,
+        testSessionVerifier,
+      ),
+      logger,
+    );
+
+    const response = await request(logged)
+      .post(`/api/internal/indicators/${indicatorId}/data-uploads`)
+      .set('Cookie', await testSessionCookie(['internal', 'publisher']))
+      .attach('dataTable', Buffer.from(VALID_CSV), 'data.csv');
+
+    expect(response.status).toBe(201);
+    const [line] = (await handlerLogLines(lines)).filter(
+      ({ msg }) => msg === 'Data table uploaded',
+    );
+    expect(line).toMatchObject({ byteSize: Buffer.byteLength(VALID_CSV), rowCount: 3 });
+    const timings = line?.timings as Record<string, unknown>;
+    expect(Object.keys(timings).sort()).toEqual(
+      [
+        'receiveMs',
+        'lockWaitMs',
+        'stageMs',
+        'duplicatesMs',
+        'insertMs',
+        'observationMs',
+        'dimensionMs',
+        'noteMs',
+        'deleteEarlierMs',
+        'commitMs',
+        'totalMs',
+      ].sort(),
+    );
+    for (const ms of Object.values(timings)) {
+      expect(Number.isInteger(ms) && (ms as number) >= 0).toBe(true);
+    }
   });
 
   it('stores totals without the dimension and keys each row by its dimension values', async () => {
@@ -583,7 +632,7 @@ describe('processDataUpload', () => {
         .where(eq(indicatorVersion.indicatorId, indicatorId));
       file.end(content);
 
-      expect(await uploaded).toEqual({ ok: false, reason: 'no_draft' });
+      expect(await uploaded).toMatchObject({ ok: false, reason: 'no_draft' });
       expect(await batchOf(batchId)).toBeUndefined();
       expect(await rowsOf(batchId)).toEqual([]);
     },
