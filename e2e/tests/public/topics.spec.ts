@@ -28,7 +28,8 @@ test('hydrates topic search without errors', async ({ page }, testInfo) => {
   await page.reload();
 
   await page.getByRole('search').getByRole('searchbox', { name: 'Search for topics' }).fill('smok');
-  await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toHaveText(
+  await expect(page.locator('.fphd-card-list').getByRole('heading', { level: 2 })).toHaveCount(1);
+  await expect(page.locator('.fphd-card-list').getByRole('heading', { level: 2 })).toHaveText(
     'Smoking and tobacco',
   );
   await expect(page.getByRole('button', { name: 'Search', exact: true })).toHaveCount(0);
@@ -50,7 +51,7 @@ test('preserves and filters text entered before hydration', async ({ page }, tes
     await expect(page.getByRole('link', { name: 'Alcohol', exact: true })).toBeVisible();
 
     scripts.resolve();
-    const headings = page.getByRole('main').getByRole('heading', { level: 2 });
+    const headings = page.locator('.fphd-card-list').getByRole('heading', { level: 2 });
     await expect(headings).toHaveCount(1);
     await expect(headings).toHaveText('Smoking and tobacco');
     await expect(search).toHaveValue('smok');
@@ -67,7 +68,7 @@ test('filters topics as you type and keeps highlighted titles in the link colour
   const search = page.getByRole('searchbox', { name: 'Search for topics' });
   await search.fill('  SMOK  ');
 
-  await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toHaveCount(1);
+  await expect(page.locator('.fphd-card-list').getByRole('heading', { level: 2 })).toHaveCount(1);
   await expect(page.getByRole('link', { name: 'Smoking and tobacco' }).locator('mark')).toHaveText(
     'Smok',
   );
@@ -118,7 +119,8 @@ test('keeps the edited search when returning from a topic without adding typing 
   await expect(page).toHaveURL('/topics/smoking-and-tobacco');
   await page.goBack();
   await expect(search).toHaveValue('smoking');
-  await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toHaveText(
+  await expect(page.locator('.fphd-card-list').getByRole('heading', { level: 2 })).toHaveCount(1);
+  await expect(page.locator('.fphd-card-list').getByRole('heading', { level: 2 })).toHaveText(
     'Smoking and tobacco',
   );
   await expectNoAccessibilityViolations(page, testInfo);
@@ -139,7 +141,8 @@ test('keeps a working Search button when client scripts fail to load', async ({
   await page.getByRole('searchbox', { name: 'Search for topics' }).fill('smok');
   await button.click();
   await expect(page).toHaveURL('/topics?q=smok');
-  await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toHaveText(
+  await expect(page.locator('.fphd-card-list').getByRole('heading', { level: 2 })).toHaveCount(1);
+  await expect(page.locator('.fphd-card-list').getByRole('heading', { level: 2 })).toHaveText(
     'Smoking and tobacco',
   );
   await expect(button).toBeVisible();
@@ -158,7 +161,7 @@ test('shows no matching topics and restores all topics when the search is cleare
   page,
 }, testInfo) => {
   const search = page.getByRole('searchbox', { name: 'Search for topics' });
-  const headings = page.getByRole('main').getByRole('heading', { level: 2 });
+  const headings = page.locator('.fphd-card-list').getByRole('heading', { level: 2 });
   const topicCount = await headings.count();
   await search.fill('unlikely topic');
 
@@ -168,7 +171,7 @@ test('shows no matching topics and restores all topics when the search is cleare
 
   await search.fill('');
   await expect(headings).toHaveCount(topicCount);
-  await expect(page.locator('mark')).toHaveCount(0);
+  await expect(page.locator('.fphd-card-list mark')).toHaveCount(0);
   await expect(page.getByText('No topics match your search.')).not.toBeVisible();
   await expectNoAccessibilityViolations(page, testInfo);
 });
@@ -181,7 +184,8 @@ test.describe('without JavaScript', () => {
     await page.getByRole('searchbox', { name: 'Search for topics' }).fill('smok');
     await page.getByRole('button', { name: 'Search', exact: true }).click();
     await expect(page).toHaveURL('/topics?q=smok');
-    await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toHaveText(
+    await expect(page.locator('.fphd-card-list').getByRole('heading', { level: 2 })).toHaveCount(1);
+    await expect(page.locator('.fphd-card-list').getByRole('heading', { level: 2 })).toHaveText(
       'Smoking and tobacco',
     );
     await expect(
