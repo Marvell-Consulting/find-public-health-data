@@ -1,3 +1,4 @@
+import { dataTableFileRefusal } from '@fphd/internal-api-features/contract';
 import {
   Button,
   DocumentTitle,
@@ -7,10 +8,11 @@ import {
   GridColumn,
   GridRow,
   Input,
+  initNewErrorSummaries,
   Label,
   Table,
 } from '@fphd/ui';
-import { useEffect, useState } from 'react';
+import { type FormEvent, useEffect, useState } from 'react';
 
 import { indicatorDataTablePath } from '../publish-paths.ts';
 import type { DataTableProblem, DataTableUploadFailure } from './loader.ts';
@@ -40,6 +42,26 @@ function useUploading(): [boolean, () => void] {
   return [uploading, () => setUploading(true)];
 }
 
+/** The browser's own refusal of the chosen file, counted so each one is announced afresh. */
+function useBrowserRefusal(): [
+  { message: string; count: number } | undefined,
+  (message: string | undefined) => void,
+] {
+  const [refusal, setRefusal] = useState<{ message: string; count: number }>();
+
+  useEffect(() => {
+    if (refusal !== undefined) void initNewErrorSummaries();
+  }, [refusal]);
+
+  return [
+    refusal,
+    (message) =>
+      setRefusal((last) =>
+        message === undefined ? undefined : { message, count: (last?.count ?? 0) + 1 },
+      ),
+  ];
+}
+
 interface UploadDataTablePageProps {
   fieldErrors?: DataTableUploadFailure['fieldErrors'] | undefined;
   formError?: string | undefined;
@@ -48,24 +70,44 @@ interface UploadDataTablePageProps {
 // The heading is the field's label, as GOV.UK asks of a page with a single question, which
 // FileUpload cannot do; upstream: daniel-ac-martin/NotGovUK#2057.
 export function UploadDataTablePage({ fieldErrors = {}, formError }: UploadDataTablePageProps) {
-  const error = fieldErrors[FIELD];
-  const inputId = fieldInputId(FIELD);
   const [uploading, startUploading] = useUploading();
+  const [refusal, refuse] = useBrowserRefusal();
+  // Once a file is on its way, the last refusal no longer applies.
+  const error = uploading ? undefined : (refusal?.message ?? fieldErrors[FIELD]);
+  const shownFormError = uploading || refusal !== undefined ? undefined : formError;
+  const inputId = fieldInputId(FIELD);
+
+  // The browser refuses what the API would, before sending a file it would only send back.
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    const input = event.currentTarget.elements.namedItem(FIELD);
+    const file = input instanceof HTMLInputElement ? input.files?.[0] : undefined;
+    const message = dataTableFileRefusal(file ?? { name: '', size: 0 });
+
+    if (message === undefined) {
+      refuse(undefined);
+      startUploading();
+    } else {
+      event.preventDefault();
+      refuse(message);
+    }
+  };
 
   return (
     <>
       <DocumentTitle
-        hasErrors={error !== undefined || formError !== undefined}
+        hasErrors={error !== undefined || shownFormError !== undefined}
         pageTitle={UPLOAD_HEADING}
       />
       <ErrorSummary
+        // A new summary for each refusal, so GOV.UK Frontend sets it up and focuses it again.
+        key={refusal?.count ?? 'server'}
         errors={error === undefined ? [] : [{ name: FIELD, message: error }]}
-        formError={formError}
+        formError={shownFormError}
       />
       <GridRow>
         <GridColumn width="two-thirds">
           {/* A plain form posting back to its own page, so it works without JavaScript. */}
-          <form method="post" encType="multipart/form-data" onSubmit={startUploading}>
+          <form method="post" encType="multipart/form-data" onSubmit={submit}>
             <div
               className={`govuk-form-group${error === undefined ? '' : ' govuk-form-group--error'}`}
             >
@@ -76,6 +118,7 @@ export function UploadDataTablePage({ fieldErrors = {}, formError }: UploadDataT
               </h1>
               {error === undefined ? null : <ErrorMessage id={ERROR_ID}>{error}</ErrorMessage>}
               <Input
+                accept=".csv"
                 aria-describedby={error === undefined ? undefined : ERROR_ID}
                 classBlock="govuk-file-upload"
                 classModifiers={error === undefined ? [] : 'error'}
