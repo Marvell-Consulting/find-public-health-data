@@ -13,6 +13,28 @@ export const DATA_TABLE_MESSAGES = {
   tooLarge: 'The selected file must be smaller than 100MB',
 } as const;
 
+export type DataTableMessage = (typeof DATA_TABLE_MESSAGES)[keyof typeof DATA_TABLE_MESSAGES];
+
+/** Why the form refuses a file by its name: none at all, or not a CSV. */
+export function dataTableNameRefusal(name: string | undefined): DataTableMessage | undefined {
+  if (!name) return DATA_TABLE_MESSAGES.missing;
+  return /\.csv$/i.test(name) ? undefined : DATA_TABLE_MESSAGES.notCsv;
+}
+
+/**
+ * Why the form refuses a chosen file outright, or undefined when it may be sent to be checked.
+ * The browser knows the size up front; the API, reading a stream, checks it as the file arrives.
+ */
+export function dataTableFileRefusal(file: {
+  name: string;
+  size: number;
+}): DataTableMessage | undefined {
+  const nameRefusal = dataTableNameRefusal(file.name);
+  if (nameRefusal !== undefined) return nameRefusal;
+  if (file.size === 0) return DATA_TABLE_MESSAGES.empty;
+  return file.size > DATA_TABLE_MAX_BYTES ? DATA_TABLE_MESSAGES.tooLarge : undefined;
+}
+
 /** What can be wrong with a data table's content, in the order the problems page lists them. */
 export const DATA_TABLE_PROBLEM_CODES = [
   'unreadable',

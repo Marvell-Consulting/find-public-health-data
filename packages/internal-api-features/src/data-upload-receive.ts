@@ -6,7 +6,11 @@ import { finished } from 'node:stream/promises';
 import { Busboy, type BusboyFileStream } from '@fastify/busboy';
 import type { BlobStorage } from '@fphd/internal-storage';
 
-import { DATA_TABLE_MAX_BYTES, DATA_TABLE_MESSAGES } from './data-upload-contract.ts';
+import {
+  DATA_TABLE_MAX_BYTES,
+  DATA_TABLE_MESSAGES,
+  dataTableNameRefusal,
+} from './data-upload-contract.ts';
 
 /** The stored file, or why the form refuses it, in which case nothing is stored. */
 export type ReceivedDataTable =
@@ -75,11 +79,7 @@ export async function receiveDataTable(
       }
 
       // A part with no filename at all, as well as an empty one, carries no chosen file.
-      const refusal = !filename
-        ? DATA_TABLE_MESSAGES.missing
-        : /\.csv$/i.test(filename)
-          ? undefined
-          : DATA_TABLE_MESSAGES.notCsv;
+      const refusal = dataTableNameRefusal(filename);
 
       if (refusal !== undefined) {
         file.resume();
