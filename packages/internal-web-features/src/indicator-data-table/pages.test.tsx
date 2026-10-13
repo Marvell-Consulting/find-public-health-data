@@ -1,13 +1,20 @@
 // @vitest-environment jsdom
+
+import { DATA_TABLE_MAX_BYTES, DATA_TABLE_MESSAGES } from '@fphd/internal-api-features/contract';
 import { serviceName } from '@fphd/ui';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { DataTableProblem } from './loader.ts';
 import { DataTableProblemsPage, UploadDataTablePage } from './pages.tsx';
 
 afterEach(cleanup);
+
+// What the document's inline script sets in a browser GOV.UK Frontend supports.
+beforeEach(() => {
+  document.body.classList.add('govuk-frontend-supported');
+});
 
 const ID = '00000000-0000-7000-8000-000000000001';
 
@@ -21,6 +28,18 @@ function renderUpload(props: Parameters<typeof UploadDataTablePage>[0] = {}) {
 
 function fileField() {
   return screen.getByLabelText('Upload indicator data table') as HTMLInputElement;
+}
+
+/** Chooses a file, as the browser's picker would; `size` stands in for a file too big to make. */
+function chooseFile(name: string, content = 'area_code\n', size?: number) {
+  const file = new File([content], name, { type: 'text/csv' });
+  if (size !== undefined) Object.defineProperty(file, 'size', { value: size });
+  Object.defineProperty(fileField(), 'files', { value: [file], configurable: true });
+}
+
+/** Submits the form, answering whether the browser would go on to send it. */
+function submit(): boolean {
+  return fireEvent.submit(fileField().closest('form') as HTMLFormElement);
 }
 
 describe('UploadDataTablePage', () => {
@@ -67,7 +86,8 @@ describe('UploadDataTablePage', () => {
     const status = screen.getByRole('status');
     expect(status.textContent).toBe('');
 
-    fireEvent.submit(fileField().closest('form') as HTMLFormElement);
+    chooseFile('data.csv');
+    submit();
 
     expect(status.textContent).toBe(
       'Uploading and checking your data table. This can take a few minutes.',
@@ -76,13 +96,75 @@ describe('UploadDataTablePage', () => {
 
   it('forgets the upload was under way when the page comes back from the browser cache', () => {
     renderUpload();
-    fireEvent.submit(fileField().closest('form') as HTMLFormElement);
+    chooseFile('data.csv');
+    submit();
 
     const restored = new Event('pageshow');
     Object.assign(restored, { persisted: true });
     fireEvent(window, restored);
 
     expect(screen.getByRole('status').textContent).toBe('');
+  });
+
+  it('steers the file picker to CSV files', () => {
+    renderUpload();
+
+    expect(fileField().getAttribute('accept')).toBe('.csv');
+  });
+
+  it.each([
+    ['no file is chosen', undefined, DATA_TABLE_MESSAGES.missing],
+    ['the file is not a CSV', () => chooseFile('data.xlsx'), DATA_TABLE_MESSAGES.notCsv],
+    ['the file is empty', () => chooseFile('data.csv', ''), DATA_TABLE_MESSAGES.empty],
+    [
+      'the file is over the limit',
+      () => chooseFile('data.csv', 'a', DATA_TABLE_MAX_BYTES + 1),
+      DATA_TABLE_MESSAGES.tooLarge,
+    ],
+  ])(
+    'refuses without sending anything when %s, as the server would',
+    async (_case, choose, message) => {
+      renderUpload();
+      choose?.();
+
+      expect(submit()).toBe(false);
+
+      const summary = await screen.findByRole('alert');
+      expect(within(summary).getByRole('link', { name: message })).toBeTruthy();
+      expect(document.getElementById('dataTable-error')?.textContent).toContain(message);
+      expect(fileField().className).toContain('govuk-file-upload--error');
+      expect(document.title).toBe(`Error: Upload indicator data table - ${serviceName} - GOV.UK`);
+      expect(screen.getByRole('status').textContent).toBe('');
+      await waitFor(() =>
+        expect(document.activeElement).toBe(summary.closest('.govuk-error-summary')),
+      );
+    },
+  );
+
+  it('shows the latest refusal in place of an earlier one', async () => {
+    renderUpload({ fieldErrors: { dataTable: DATA_TABLE_MESSAGES.empty } });
+    chooseFile('data.xlsx');
+
+    submit();
+
+    const summary = await screen.findByRole('alert');
+    expect(
+      within(summary)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual([DATA_TABLE_MESSAGES.notCsv]);
+  });
+
+  it('sends an acceptable file, clearing the refusal and saying the upload is under way', () => {
+    renderUpload();
+    submit();
+    chooseFile('data.csv');
+
+    expect(submit()).toBe(true);
+
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(fileField().className).not.toContain('govuk-file-upload--error');
+    expect(screen.getByRole('status').textContent).toContain('Uploading and checking');
   });
 });
 
