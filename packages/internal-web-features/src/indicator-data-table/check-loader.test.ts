@@ -69,12 +69,26 @@ describe('loadDataTableCheck', () => {
     expect(locationOf(outcome)).toBe(`/publish/indicators/${ID}/data-table`);
   });
 
-  it('is not found past the last page', async () => {
+  it('sends a page past the last to the last page, keeping the rows per page', async () => {
+    const get = vi.fn().mockResolvedValue({
+      dataTable: { ...DATA_TABLE, page: 40, rowsPerPage: 25, rowCount: 60, rows: [] },
+    });
+
+    const outcome = await load(get, '?page=40&rowsPerPage=25').catch((thrown: unknown) => thrown);
+
+    expect(locationOf(outcome)).toBe(
+      `/publish/indicators/${ID}/data-table/check?page=3&rowsPerPage=25`,
+    );
+  });
+
+  it('sends a page past the end of a one-page table to the first page', async () => {
     const get = vi.fn().mockResolvedValue({
       dataTable: { ...DATA_TABLE, page: 2, rowCount: 10, rows: [] },
     });
 
-    await expect(load(get, '?page=2')).rejects.toMatchObject({ status: 404 });
+    const outcome = await load(get, '?page=2').catch((thrown: unknown) => thrown);
+
+    expect(locationOf(outcome)).toBe(`/publish/indicators/${ID}/data-table/check`);
   });
 
   it.each(['?page=0', '?rowsPerPage=20', '?page=1&page=2'])(

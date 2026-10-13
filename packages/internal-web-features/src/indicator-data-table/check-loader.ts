@@ -11,7 +11,11 @@ import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from 'reac
 
 import { FORM_NOT_SAVED } from '../form-refusal.ts';
 import { requireIndicatorId } from '../indicator-id.ts';
-import { indicatorDataTablePath, indicatorTaskListPath } from '../publish-paths.ts';
+import {
+  indicatorDataTableCheckPath,
+  indicatorDataTablePath,
+  indicatorTaskListPath,
+} from '../publish-paths.ts';
 import { queryObject } from '../query-object.ts';
 
 export const DATA_TABLE_CHANGED =
@@ -27,7 +31,8 @@ function notFound(): Response {
 
 /**
  * A page of the draft's loaded data table. Before a file has loaded there is nothing to check,
- * so the publisher is sent to upload one; a page that cannot exist is a 404.
+ * so the publisher is sent to upload one. A page past the last goes to the last; a malformed
+ * query is a 404.
  */
 export async function loadDataTableCheck({ context, params, request }: LoaderFunctionArgs) {
   const id = requireIndicatorId(params);
@@ -47,7 +52,10 @@ export async function loadDataTableCheck({ context, params, request }: LoaderFun
 
   const totalPages = Math.max(1, Math.ceil(dataTable.rowCount / rowsPerPage));
 
-  if (page > totalPages) throw notFound();
+  // Another upload can leave fewer pages than the publisher was on, so they land on its last.
+  if (page > totalPages) {
+    throw redirect(indicatorDataTableCheckPath(id, { page: totalPages, rowsPerPage }));
+  }
 
   return { id, dataTable, totalPages };
 }
