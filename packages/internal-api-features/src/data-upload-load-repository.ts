@@ -9,6 +9,7 @@ import { createProblemTally } from './data-table-problems.ts';
 import type { DataTableReferences, DataTableRow } from './data-table-rows.ts';
 import { DATA_TABLE_PROBLEM_ITEMS, type DataTableProblem } from './data-upload-contract.ts';
 import { loadDataTableReferences } from './data-upload-repository.ts';
+import { elapsedMs, TimedUploadError, timed, type UploadTimings } from './data-upload-timings.ts';
 
 // Scopes the per-draft upload locks within the two-key advisory lock space.
 const UPLOAD_LOCK_NAMESPACE = 0x75706c64; // 'upld'
@@ -24,10 +25,11 @@ export interface DataUpload {
   actor: string;
 }
 
-export type ProcessDataUploadResult =
+export type ProcessDataUploadResult = (
   | { ok: true; rowCount: number; deletedBlobNames: string[] }
   | { ok: false; reason: 'invalid'; problems: DataTableProblem[]; deletedBlobNames: string[] }
-  | { ok: false; reason: 'no_draft' };
+  | { ok: false; reason: 'no_draft' }
+) & { timings: UploadTimings };
 
 const STAGED_COLUMNS = [
   'line',
@@ -79,7 +81,8 @@ const COPY_CHUNK = 64 * 1024;
  * Stores the file's rows under a new batch and points the draft at it, in one transaction
  * under a lock per draft, so concurrent uploads queue. A refused file keeps its batch, marked
  * failed with its problems, and loads nothing. Either way the uploads it replaces are deleted
- * (see deleteEarlierBatches) and their blob names returned for deleting after commit.
+ * (see deleteEarlierBatches) and their blob names returned for deleting after commit. Answers
+ * how long each stage took; a failure part way throws `TimedUploadError` with the stages reached.
  */
 export async function processDataUpload(
   db: Database,
@@ -88,12 +91,20 @@ export async function processDataUpload(
   signal: AbortSignal,
 ): Promise<ProcessDataUploadResult> {
   const references = await loadDataTableReferences(db);
+  let finished = 0;
 
   try {
-    return await loadInTransaction(db, upload, openFile, signal, references);
+    const result = await db.$client.begin(async (tx) => {
+      const loaded = await loadInTransaction(tx, upload, openFile, signal, references);
+      finished = performance.now();
+      return loaded;
+    });
+    return { ...result, timings: { ...result.timings, commitMs: elapsedMs(finished) } };
   } catch (error) {
-    if (error instanceof DraftGoneError) return { ok: false, reason: 'no_draft' };
-    throw error;
+    const timings = error instanceof TimedUploadError ? error.timings : {};
+    const cause = error instanceof TimedUploadError ? error.cause : error;
+    if (cause instanceof DraftGoneError) return { ok: false, reason: 'no_draft', timings };
+    throw error instanceof TimedUploadError ? error : new TimedUploadError(timings, error);
   }
 }
 
@@ -105,24 +116,36 @@ class DraftGoneError extends Error {
   }
 }
 
-function loadInTransaction(
-  db: Database,
+/** The transaction's work, answering how long each stage took or failing with the stages reached. */
+async function loadInTransaction(
+  tx: TransactionSql,
   upload: DataUpload,
   openFile: () => Promise<Readable>,
   signal: AbortSignal,
   references: DataTableReferences,
 ): Promise<ProcessDataUploadResult> {
-  return db.$client.begin(async (tx): Promise<ProcessDataUploadResult> => {
-    await tx`SELECT pg_advisory_xact_lock(${UPLOAD_LOCK_NAMESPACE}, hashtext(${upload.indicatorId}))`;
+  let timings: UploadTimings = {};
+  const time = async <T>(stage: keyof UploadTimings, step: () => Promise<T>): Promise<T> => {
+    const [result, ms] = await timed(step);
+    timings = { ...timings, [stage]: ms };
+    return result;
+  };
 
-    // Not locked: the upload lock queues the only other writer of the pointer, and section saves
-    // on the draft carry on while the file loads.
+  try {
+    await time(
+      'lockWaitMs',
+      () =>
+        tx`SELECT pg_advisory_xact_lock(${UPLOAD_LOCK_NAMESPACE}, hashtext(${upload.indicatorId}))`,
+    );
+
+    // Not locked: the upload lock queues the only other writer of the pointer, and section
+    // saves on the draft carry on while the file loads.
     const [draft] = await tx<{ id: string }[]>`
       SELECT id
       FROM indicator_version
       WHERE indicator_id = ${upload.indicatorId} AND status = 'draft'`;
 
-    if (draft === undefined) return { ok: false, reason: 'no_draft' };
+    if (draft === undefined) return { ok: false, reason: 'no_draft', timings };
 
     await tx`
       INSERT INTO upload_batch
@@ -130,8 +153,11 @@ function loadInTransaction(
       VALUES (${upload.batchId}, ${upload.indicatorId}, ${draft.id}, ${upload.originalFilename},
         ${upload.actor}, ${upload.blobName}, ${upload.byteSize}, ${upload.sha256})`;
 
-    const staged = await stageRows(tx, readDataTable(await openFile(), references), signal);
-    const problems = [...staged.problems, ...(await duplicateRows(tx, signal))];
+    const staged = await time('stageMs', async () =>
+      stageRows(tx, readDataTable(await openFile(), references), signal),
+    );
+    const duplicates = await time('duplicatesMs', () => duplicateRows(tx, signal));
+    const problems = [...staged.problems, ...duplicates];
 
     if (problems.length > 0) {
       // Drizzle's client passes json parameters through unserialised, so they are sent as text.
@@ -143,18 +169,15 @@ function loadInTransaction(
       const [stillDraft] = await tx`
         SELECT id FROM indicator_version WHERE id = ${draft.id} AND status = 'draft' FOR SHARE`;
       if (stillDraft === undefined) throw new DraftGoneError();
-      const deletedBlobNames = await deleteEarlierBatches(
-        tx,
-        draft.id,
-        upload.batchId,
-        'failed',
-        signal,
+      const deletedBlobNames = await time('deleteEarlierMs', () =>
+        deleteEarlierBatches(tx, draft.id, upload.batchId, 'failed', signal),
       );
       signal.throwIfAborted();
-      return { ok: false, reason: 'invalid', problems, deletedBlobNames };
+      return { ok: false, reason: 'invalid', problems, deletedBlobNames, timings };
     }
 
-    await loadStagedRows(tx, upload, signal);
+    const inserts = await time('insertMs', () => loadStagedRows(tx, upload, signal));
+    timings = { ...timings, ...inserts };
     await tx`
       UPDATE upload_batch
       SET status = 'processed', row_count = ${staged.rowCount}, column_names = ${staged.columnNames}
@@ -166,18 +189,16 @@ function loadInTransaction(
       WHERE id = ${draft.id} AND status = 'draft'`;
     if (pointed.count === 0) throw new DraftGoneError();
 
-    const deletedBlobNames = await deleteEarlierBatches(
-      tx,
-      draft.id,
-      upload.batchId,
-      'all',
-      signal,
+    const deletedBlobNames = await time('deleteEarlierMs', () =>
+      deleteEarlierBatches(tx, draft.id, upload.batchId, 'all', signal),
     );
     // Abandoned after its last statement, the upload still rolls back rather than commit.
     signal.throwIfAborted();
 
-    return { ok: true, rowCount: staged.rowCount, deletedBlobNames };
-  });
+    return { ok: true, rowCount: staged.rowCount, deletedBlobNames, timings };
+  } catch (error) {
+    throw new TimedUploadError(timings, error);
+  }
 }
 
 /** Streams the readable rows into a temporary table and tallies everything wrong with the rest. */
@@ -320,7 +341,7 @@ async function loadStagedRows(
   tx: TransactionSql,
   upload: DataUpload,
   signal: AbortSignal,
-): Promise<void> {
+): Promise<Pick<UploadTimings, 'observationMs' | 'dimensionMs' | 'noteMs'>> {
   const observations = tx`
     INSERT INTO observation (
       id, indicator_id, area_id, from_date, to_date, value, count, denominator,
@@ -341,9 +362,10 @@ async function loadStagedRows(
     SELECT id, note_type_id FROM upload_row WHERE note_type_id IS NOT NULL`;
 
   // Each is sent only when awaited, so they run in turn.
-  for (const statement of [observations, dimensions, notes]) {
-    await cancellable(signal, statement);
-  }
+  const [, observationMs] = await timed(() => cancellable(signal, observations));
+  const [, dimensionMs] = await timed(() => cancellable(signal, dimensions));
+  const [, noteMs] = await timed(() => cancellable(signal, notes));
+  return { observationMs, dimensionMs, noteMs };
 }
 
 /**
