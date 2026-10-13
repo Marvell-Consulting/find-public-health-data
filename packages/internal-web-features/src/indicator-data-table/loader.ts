@@ -1,5 +1,7 @@
 // No @fphd/ui imports here, so the loaders and the action unit-test without the jsdom the components need.
 import {
+  DATA_TABLE_MAX_BYTES,
+  DATA_TABLE_MESSAGES,
   type DataUploadField,
   dataUploadCreatedSchema,
   dataUploadErrorSchema,
@@ -24,6 +26,17 @@ export type DataTableUploadFailure = FormRefusal<DataUploadField>;
 
 export const DATA_TABLE_TOO_SLOW = 'Your data table took too long to check. Try again.';
 
+// The form wraps the file in a boundary and a few part headers, a few hundred bytes; a megabyte
+// more than the file's own cap is generous, so a file just under it is never refused here.
+const MAX_FORM_BYTES = DATA_TABLE_MAX_BYTES + 1_000_000;
+
+/** True when a request's Content-Length says no form with an acceptable file could be that big. */
+export function exceedsFormLimit(contentLength: string | null): boolean {
+  return (
+    contentLength !== null && /^\d+$/.test(contentLength) && Number(contentLength) > MAX_FORM_BYTES
+  );
+}
+
 /** Only a draft takes a data table, so a published indicator has no upload page. */
 export async function loadDataTableUpload({ context, params }: LoaderFunctionArgs) {
   const id = requireIndicatorId(params);
@@ -39,7 +52,7 @@ export async function loadDataTableUpload({ context, params }: LoaderFunctionArg
 /**
  * Streams the form to the API unread, which stores, checks and loads the file while the
  * publisher waits. A refused file's problems have a page of their own; a loaded one returns to
- * the task list.
+ * the task list. A form that says it is too big is refused here without reaching the API.
  */
 export async function uploadDataTable({
   context,
@@ -47,6 +60,13 @@ export async function uploadDataTable({
   request,
 }: ActionFunctionArgs): Promise<DataTableUploadFailure | Response> {
   const id = requireIndicatorId(params);
+
+  if (exceedsFormLimit(request.headers.get('content-length'))) {
+    // Read to the end, so the browser gets the page rather than a reset connection.
+    await request.body?.pipeTo(new WritableStream()).catch(() => {});
+    return { fieldErrors: { dataTable: DATA_TABLE_MESSAGES.tooLarge } };
+  }
+
   const result = await context
     .get(apiContext)
     .postStream(

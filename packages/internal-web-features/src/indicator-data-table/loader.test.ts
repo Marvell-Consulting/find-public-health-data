@@ -1,3 +1,4 @@
+import { DATA_TABLE_MAX_BYTES, DATA_TABLE_MESSAGES } from '@fphd/internal-api-features/contract';
 import { type ApiClient, ApiTimeoutError } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import { RouterContextProvider } from 'react-router';
@@ -6,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { FORM_NOT_SAVED } from '../form-refusal.ts';
 import {
   DATA_TABLE_TOO_SLOW,
+  exceedsFormLimit,
   loadDataTableProblems,
   loadDataTableUpload,
   uploadDataTable,
@@ -28,11 +30,11 @@ function load<T>(loader: (args: never) => T, client: Partial<ApiClient>, id = ID
   } as never);
 }
 
-function upload(postStream: ApiClient['postStream']) {
+function upload(postStream: ApiClient['postStream'], headers: Record<string, string> = {}) {
   const abandoned = new AbortController();
   const request = new Request(`https://internal.test/publish/indicators/${ID}/data-table`, {
     method: 'POST',
-    headers: { 'content-type': 'multipart/form-data; boundary=b' },
+    headers: { 'content-type': 'multipart/form-data; boundary=b', ...headers },
     body: '--b--\r\n',
     signal: abandoned.signal,
   });
@@ -73,6 +75,19 @@ describe('loadDataTableUpload', () => {
   });
 });
 
+describe('exceedsFormLimit', () => {
+  it.each([
+    ['no Content-Length', null, false],
+    ['a form just over the file cap', String(DATA_TABLE_MAX_BYTES + 1), false],
+    ['a form a megabyte over the file cap', String(DATA_TABLE_MAX_BYTES + 1_000_000), false],
+    ['a form more than a megabyte over it', String(DATA_TABLE_MAX_BYTES + 1_000_001), true],
+    ['a Content-Length that is not a number', 'lots', false],
+    ['a negative Content-Length', '-1', false],
+  ])('answers %s with %s', (_case, contentLength, exceeds) => {
+    expect(exceedsFormLimit(contentLength)).toBe(exceeds);
+  });
+});
+
 describe('uploadDataTable', () => {
   it("passes the form on unread, with its content type and the browser's signal", async () => {
     const postStream = vi.fn().mockResolvedValue({ ok: true, data: { id: ID, rowCount: 3 } });
@@ -87,6 +102,27 @@ describe('uploadDataTable', () => {
     });
     expect(request.bodyUsed).toBe(false);
     expect(signal).toBe(request.signal);
+  });
+
+  it('refuses a form too big for any acceptable file without calling the API', async () => {
+    const postStream = vi.fn();
+
+    const { outcome, request } = await upload(postStream, {
+      'content-length': String(DATA_TABLE_MAX_BYTES + 2_000_000),
+    });
+
+    expect(postStream).not.toHaveBeenCalled();
+    expect(outcome).toEqual({ fieldErrors: { dataTable: DATA_TABLE_MESSAGES.tooLarge } });
+    expect(request.bodyUsed).toBe(true);
+  });
+
+  it('passes on a form whose Content-Length is within the limit', async () => {
+    const postStream = vi.fn().mockResolvedValue({ ok: true, data: { id: ID, rowCount: 3 } });
+
+    const { request } = await upload(postStream, { 'content-length': '7' });
+
+    expect(postStream).toHaveBeenCalled();
+    expect(request.bodyUsed).toBe(false);
   });
 
   it('returns to the task list once the file has loaded', async () => {
