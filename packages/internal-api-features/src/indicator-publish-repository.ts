@@ -1,6 +1,6 @@
 import { type Database, schema } from '@fphd/db';
 import { CLASSIFICATION_DIMENSIONS } from '@fphd/utils/classification-dimension';
-import { eq, getTableColumns } from 'drizzle-orm';
+import { eq, getTableColumns, sql } from 'drizzle-orm';
 
 import { hasSqlState, UNIQUE_VIOLATION } from './indicator-repository-sql.ts';
 import {
@@ -30,6 +30,8 @@ export async function createDraftFromPublished(
     // Copy publication attributes and lists from the same snapshot during a refresh.
     return await db.transaction(
       async (tx) => {
+        // Wait for a live refresh before taking the publication snapshot.
+        await tx.execute(sql`LOCK TABLE indicator_version IN ROW EXCLUSIVE MODE`);
         const [published] = await tx
           .select(getTableColumns(indicatorVersion))
           .from(currentPublishedVersion)

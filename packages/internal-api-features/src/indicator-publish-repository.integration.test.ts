@@ -49,14 +49,36 @@ async function publishedVersionId(db: Database, indicatorId: string): Promise<st
 
 describe('createDraftFromPublished', () => {
   repositoryTest(
-    'copies columns and lists from one publication snapshot during a concurrent refresh',
+    'waits for a live refresh before reading the publication to copy',
     async ({ db }) => {
-      const { indicatorId, currentId, currentName } = await indicatorWithTwoPublications(
+      const { indicatorId, currentId } = await indicatorWithTwoPublications(
         db,
         'Concurrent publication refresh',
       );
       const [before, after] = await db.select({ id: schema.topic.id }).from(schema.topic).limit(2);
       if (!before || !after) throw new Error('The seed holds too few topics');
+      const [original, replacement] = await db
+        .insert(schema.uploadBatch)
+        .values([
+          {
+            indicatorId,
+            indicatorVersionId: currentId,
+            originalFilename: 'original.csv',
+            uploadedBy: ACTOR,
+          },
+          {
+            indicatorId,
+            indicatorVersionId: currentId,
+            originalFilename: 'replacement.csv',
+            uploadedBy: ACTOR,
+          },
+        ])
+        .returning({ id: schema.uploadBatch.id });
+      if (!original || !replacement) throw new Error('Missing refresh batches');
+      await db
+        .update(indicatorVersion)
+        .set({ uploadBatchId: original.id })
+        .where(eq(indicatorVersion.id, currentId));
       await db.insert(indicatorVersionTopic).values({
         indicatorVersionId: currentId,
         topicId: before.id,
@@ -76,7 +98,7 @@ describe('createDraftFromPublished', () => {
           });
           await tx
             .update(indicatorVersion)
-            .set({ name: 'Refreshed publication' })
+            .set({ name: 'Refreshed publication', uploadBatchId: replacement.id })
             .where(eq(indicatorVersion.id, currentId));
           await tx
             .delete(indicatorVersionTopic)
@@ -85,15 +107,16 @@ describe('createDraftFromPublished', () => {
             indicatorVersionId: currentId,
             topicId: after.id,
           });
+          await tx.delete(schema.uploadBatch).where(eq(schema.uploadBatch.id, original.id));
         });
         const result = await copying;
         if (!result?.ok) throw new Error('Expected the concurrent draft copy to succeed');
         const [draft] = await db
-          .select({ name: indicatorVersion.name })
+          .select({ name: indicatorVersion.name, uploadBatchId: indicatorVersion.uploadBatchId })
           .from(indicatorVersion)
           .where(eq(indicatorVersion.id, result.versionId));
-        expect(draft?.name).toBe(currentName);
-        expect(await storedTopicIdsOf(db, result.versionId)).toEqual([before.id]);
+        expect(draft).toEqual({ name: 'Refreshed publication', uploadBatchId: replacement.id });
+        expect(await storedTopicIdsOf(db, result.versionId)).toEqual([after.id]);
         expect(await storedTopicIdsOf(db, currentId)).toEqual([after.id]);
       } finally {
         await copying;
