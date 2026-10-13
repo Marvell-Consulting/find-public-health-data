@@ -13,9 +13,9 @@
   },
   "internal-api /api/internal/indicators/01a00000-0000-7000-8000-0000000f4040/data-table?page=1048&rowsPerPage=50": {
     "statements": 4,
-    "buffers": 5328,
+    "buffers": 5329,
     "rows": 101,
-    "bytes": 13176
+    "bytes": 15876
   },
   "internal-api /api/internal/indicators/01a00ab4-ce0a-70c1-b22b-f8192c94a59d": {
     "statements": 1,
