@@ -18,11 +18,13 @@ test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
 });
 
 test('filters and highlights topics for a publisher', async ({ page }, testInfo) => {
-  await page.getByRole('searchbox', { name: 'Search for topics' }).fill('quitting');
+  await page.getByRole('searchbox', { name: 'Search for topics' }).fill('smok');
 
   await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toHaveText(
     'Smoking and tobacco',
   );
-  await expect(page.locator('.fphd-card-list__description mark')).toHaveText('quitting');
+  await expect(page.getByRole('link', { name: 'Smoking and tobacco' }).locator('mark')).toHaveText(
+    'Smok',
+  );
   await expectNoAccessibilityViolations(page, testInfo);
 });

@@ -8,7 +8,8 @@ import {
   PageIntro,
   searchPattern,
 } from '@fphd/ui';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigationType, useSearchParams } from 'react-router';
 
 import type { TopicDetail, TopicSummary } from './loader.ts';
 
@@ -16,29 +17,59 @@ import type { TopicDetail, TopicSummary } from './loader.ts';
  * Full width rather than PageIntro's reading measure, because the cards need the whole grid to
  * form three columns.
  */
-export function TopicsPage({
-  topics,
-  initialQuery = '',
-}: {
-  topics: TopicSummary[];
-  initialQuery?: string;
-}) {
-  const [query, setQuery] = useState(initialQuery);
+export function TopicsPage({ topics }: { topics: TopicSummary[] }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigationType = useNavigationType();
+  const query = searchParams.get('q') ?? '';
+  const [hydrated, setHydrated] = useState(false);
+  const hasHydrated = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const updateQuery = useCallback(
+    (value: string) => {
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          if (value) next.set('q', value);
+          else next.delete('q');
+          return next;
+        },
+        { replace: true, preventScrollReset: true },
+      );
+    },
+    [setSearchParams],
+  );
   useEffect(() => {
+    // Input's public props do not expose a typed input ref.
     const input = formRef.current?.elements.namedItem('q');
-    if (input instanceof HTMLInputElement) setQuery(input.value);
-  }, []);
+    if (!(input instanceof HTMLInputElement)) return;
+    if (!hasHydrated.current) {
+      hasHydrated.current = true;
+      setHydrated(true);
+      if (input.value !== query) updateQuery(input.value);
+    } else if (navigationType !== 'REPLACE') {
+      // Typing replacements may still be catching up with newer keystrokes.
+      input.value = query;
+    }
+  }, [navigationType, query, updateQuery]);
   const pattern = searchPattern(query);
   const filteredTopics = pattern
     ? topics.filter((topic) => pattern.test(topic.title) || pattern.test(topic.description))
     : topics;
+  const resultCount = topics.length
+    ? `${filteredTopics.length} ${filteredTopics.length === 1 ? 'topic' : 'topics'} found.`
+    : '';
+  const [announcement, setAnnouncement] = useState(resultCount);
+  useEffect(() => {
+    const timer = setTimeout(() => setAnnouncement(resultCount), 300);
+    return () => clearTimeout(timer);
+  }, [query, resultCount]);
 
   return (
     <GridRow>
       <GridColumn width="full">
         <h1 className="govuk-heading-xl">Public health topics</h1>
-        <search>
+        {/* biome-ignore lint/a11y/noRedundantRoles: Explicit landmark supports browsers predating the search element. */}
+        <search role="search">
           <form
             ref={formRef}
             action="/topics"
@@ -52,19 +83,18 @@ export function TopicsPage({
             <Input
               autoComplete="off"
               classModifiers="width-20"
-              defaultValue={initialQuery}
+              defaultValue={query}
               id="topic-search"
               name="q"
-              onChange={(event) => setQuery(event.currentTarget.value)}
+              maxLength={200}
+              onChange={(event) => updateQuery(event.currentTarget.value)}
               type="search"
             />
-            <noscript>
-              <Button type="submit">Search</Button>
-            </noscript>
+            {!hydrated && <Button type="submit">Search</Button>}
           </form>
         </search>
         <p role="status" className="govuk-visually-hidden">
-          {filteredTopics.length} {filteredTopics.length === 1 ? 'topic' : 'topics'} found.
+          {announcement}
         </p>
         {filteredTopics.length ? (
           <CardList

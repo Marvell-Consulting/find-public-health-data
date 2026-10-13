@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { hydrateRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { MemoryRouter } from 'react-router';
@@ -7,7 +7,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { TopicsPage } from './pages.tsx';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 const topics = [
   { slug: 'smoking', title: 'Smoking', description: 'Smoking prevalence and quitting.' },
@@ -52,13 +55,14 @@ describe('TopicsPage', () => {
     'shows an unavailable message for an empty dataset with query %s',
     (initialQuery) => {
       render(
-        <MemoryRouter>
-          <TopicsPage topics={[]} initialQuery={initialQuery} />
+        <MemoryRouter initialEntries={[`/topics?q=${encodeURIComponent(initialQuery)}`]}>
+          <TopicsPage topics={[]} />
         </MemoryRouter>,
       );
 
       expect(screen.getByText('No topics are available.')).toBeTruthy();
       expect(screen.queryByText('No topics match your search.')).toBeNull();
+      expect(screen.getByRole('status').textContent).toBe('');
     },
   );
 
@@ -90,7 +94,7 @@ describe('TopicsPage', () => {
     expect(container.querySelector('mark')?.textContent).toBe('K');
   });
 
-  it('hydrates the server-rendered no-script fallback without errors or replacing the input', async () => {
+  it('renders a search button until hydration completes without replacing the input', async () => {
     const page = (
       <MemoryRouter>
         <TopicsPage topics={topics} />
@@ -101,12 +105,13 @@ describe('TopicsPage', () => {
     document.body.append(container);
     const input = container.querySelector('input');
     const onRecoverableError = vi.fn();
-    expect(container.querySelector('noscript')?.firstChild?.nodeType).toBe(Node.TEXT_NODE);
+    expect(container.querySelector('button')?.textContent).toBe('Search');
 
     const root = await act(() => hydrateRoot(container, page, { onRecoverableError }));
     try {
       expect(onRecoverableError).not.toHaveBeenCalled();
       expect(container.querySelector('input')).toBe(input);
+      expect(container.querySelector('button')).toBeNull();
       fireEvent.change(screen.getByRole('searchbox', { name: 'Search for topics' }), {
         target: { value: 'quitting' },
       });
@@ -120,7 +125,7 @@ describe('TopicsPage', () => {
     }
   });
 
-  it('filters by title and description as the user types, ignoring case and surrounding spaces', () => {
+  it('filters by title and description as the user types, ignoring case and surrounding spaces', async () => {
     render(
       <MemoryRouter>
         <TopicsPage topics={topics} />
@@ -137,10 +142,10 @@ describe('TopicsPage', () => {
     expect(
       screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent),
     ).toEqual(['Smoking']);
-    expect(screen.getByRole('status').textContent).toBe('1 topic found.');
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('1 topic found.'));
   });
 
-  it('shows an empty result message and restores the original list when the search is cleared', () => {
+  it('shows an empty result message and restores the original list when the search is cleared', async () => {
     const { container } = render(
       <MemoryRouter>
         <TopicsPage topics={topics} />
@@ -151,7 +156,7 @@ describe('TopicsPage', () => {
     fireEvent.change(input, { target: { value: '[nothing]' } });
     expect(screen.getByText('No topics match your search.')).toBeTruthy();
     expect(screen.queryByRole('list')).toBeNull();
-    expect(screen.getByRole('status').textContent).toBe('0 topics found.');
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('0 topics found.'));
 
     fireEvent.change(input, { target: { value: ' ' } });
     expect(
@@ -159,6 +164,26 @@ describe('TopicsPage', () => {
     ).toEqual(topics.map((topic) => topic.title));
     expect(screen.queryByText('No topics match your search.')).toBeNull();
     expect(container.querySelector('mark')).toBeNull();
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('3 topics found.'));
+  });
+
+  it('filters immediately but announces only the result after typing pauses', async () => {
+    vi.useFakeTimers();
+    render(
+      <MemoryRouter>
+        <TopicsPage topics={topics} />
+      </MemoryRouter>,
+    );
+    const input = screen.getByRole('searchbox', { name: 'Search for topics' });
+    fireEvent.change(input, { target: { value: 'alco' } });
+    expect(screen.getByRole('link', { name: 'Alcohol' })).toBeTruthy();
+    await act(() => vi.advanceTimersByTime(200));
     expect(screen.getByRole('status').textContent).toBe('3 topics found.');
+    fireEvent.change(input, { target: { value: 'unmatched' } });
+    expect(screen.queryByRole('link')).toBeNull();
+    await act(() => vi.advanceTimersByTime(200));
+    expect(screen.getByRole('status').textContent).toBe('3 topics found.');
+    await act(() => vi.advanceTimersByTime(100));
+    expect(screen.getByRole('status').textContent).toBe('0 topics found.');
   });
 });
