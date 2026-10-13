@@ -2,7 +2,7 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 import { createDraft, createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
-import { expectErrorSummaryReady } from '../support/govuk-frontend.ts';
+import { expectHydrated } from '../support/govuk-frontend.ts';
 import { expectNotFoundWithoutDraft, taskRow } from '../support/section-page.ts';
 import { PUBLISHER } from '../support/sign-in.ts';
 
@@ -66,6 +66,72 @@ test('uploads a data table and returns to the task list with the task incomplete
   await expect(taskRow(page, 'Data table')).toContainText('Incomplete');
 });
 
+/** Counts the forms the page sends to the upload page, which a browser refusal sends none of. */
+function countUploads(page: Page): () => number {
+  let uploads = 0;
+  page.on('request', (request) => {
+    if (
+      request.method() === 'POST' &&
+      /\/data-table(\.data)?$/.test(new URL(request.url()).pathname)
+    ) {
+      uploads += 1;
+    }
+  });
+  return () => uploads;
+}
+
+test('asks for a data table when Continue is selected without one, sending nothing', async ({
+  page,
+}) => {
+  await openUploadPage(page);
+  await expectHydrated(page);
+  const uploads = countUploads(page);
+
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  await expect(page).toHaveTitle(/^Error: /);
+  const summary = page.getByRole('alert');
+  await expect(summary.getByRole('link')).toHaveText(['Select a data table']);
+  await expect(page.locator('.govuk-error-summary')).toBeFocused();
+  await expect(page.getByRole('status')).toHaveText('');
+  expect(uploads()).toBe(0);
+  await summary.getByRole('link', { name: 'Select a data table' }).click();
+  await expect(page.getByLabel(HEADING)).toBeFocused();
+});
+
+test('refuses a file that is not a CSV, or is empty, without sending it', async ({ page }) => {
+  await openUploadPage(page);
+  await expectHydrated(page);
+  const uploads = countUploads(page);
+
+  await continueWithFile(page, 'life-expectancy.xlsx', VALID_CSV);
+  await expect(page.getByRole('alert')).toContainText('The selected file must be a CSV');
+
+  await continueWithFile(page, 'empty.csv', '');
+  await expect(page.getByRole('alert')).toContainText('The selected file is empty');
+  expect(uploads()).toBe(0);
+});
+
+test('refuses a file over 100MB without sending it', async ({ page }) => {
+  await openUploadPage(page);
+  await expectHydrated(page);
+  const uploads = countUploads(page);
+
+  // Made in the page, one byte over the cap, rather than sent from here.
+  await page.getByLabel(HEADING).evaluate((input: HTMLInputElement) => {
+    const files = new DataTransfer();
+    files.items.add(new File([new Uint8Array(100_000_001)], 'large.csv', { type: 'text/csv' }));
+    input.files = files.files;
+  });
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  await expect(page.getByRole('alert')).toContainText(
+    'The selected file must be smaller than 100MB',
+  );
+  await expect(page.getByRole('status')).toHaveText('');
+  expect(uploads()).toBe(0);
+});
+
 test.describe('without JavaScript', () => {
   test.use({ javaScriptEnabled: false });
 
@@ -77,37 +143,38 @@ test.describe('without JavaScript', () => {
     await expect(page).toHaveURL(`/publish/indicators/${id}/task-list`);
     await expect(taskRow(page, 'Data table')).toContainText('Incomplete');
   });
+
+  for (const [what, name, message] of [
+    ['no file', undefined, 'Select a data table'],
+    ['a file that is not a CSV', 'life-expectancy.xlsx', 'The selected file must be a CSV'],
+    ['an empty file', 'empty.csv', 'The selected file is empty'],
+  ] as const) {
+    test(`refuses ${what} with the same error from the server`, async ({ page }) => {
+      await openUploadPage(page);
+
+      if (name !== undefined) await chooseFile(page, name, name === 'empty.csv' ? '' : VALID_CSV);
+      await page.getByRole('button', { name: 'Continue' }).click();
+
+      await expect(page).toHaveTitle(/^Error: /);
+      await expect(page.getByRole('alert').getByRole('link')).toHaveText([message]);
+      await expect(page.getByRole('status')).toHaveText('');
+    });
+  }
 });
 
-test('asks for a data table when Continue is selected without one', async ({ page }) => {
-  await openUploadPage(page);
+test('answers a form too big for any acceptable file with the error page, not a reset', async ({
+  page,
+}) => {
+  const id = await openUploadPage(page);
 
-  await page.getByRole('button', { name: 'Continue' }).click();
+  const response = await page.request.post(`/publish/indicators/${id}/data-table`, {
+    multipart: {
+      dataTable: { name: 'large.csv', mimeType: 'text/csv', buffer: Buffer.alloc(101_500_000) },
+    },
+  });
 
-  await expect(page).toHaveTitle(/^Error: /);
-  const summary = page.getByRole('alert');
-  await expect(summary.getByRole('link')).toHaveText(['Select a data table']);
-  // The refused form is a fresh page, so it no longer says an upload is under way.
-  await expect(page.getByRole('status')).toHaveText('');
-  await expectErrorSummaryReady(page);
-  await summary.getByRole('link', { name: 'Select a data table' }).click();
-  await expect(page.getByLabel(HEADING)).toBeFocused();
-});
-
-test('refuses a file that is not a CSV', async ({ page }) => {
-  await openUploadPage(page);
-
-  await continueWithFile(page, 'life-expectancy.xlsx', VALID_CSV);
-
-  await expect(page.getByRole('alert')).toContainText('The selected file must be a CSV');
-});
-
-test('refuses an empty file', async ({ page }) => {
-  await openUploadPage(page);
-
-  await continueWithFile(page, 'empty.csv', '');
-
-  await expect(page.getByRole('alert')).toContainText('The selected file is empty');
+  expect(response.status()).toBe(200);
+  expect(await response.text()).toContain('The selected file must be smaller than 100MB');
 });
 
 test('lists the problems with a data table that fails validation', async ({ page }) => {
