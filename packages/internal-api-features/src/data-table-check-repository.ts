@@ -120,6 +120,7 @@ export async function listDataTableRows(
       areaCode: area.code,
       fromDate: observation.fromDate,
       toDate: observation.toDate,
+      dimensionKey: observation.dimensionKey,
       value: observation.value,
       count: observation.count,
       denominator: observation.denominator,

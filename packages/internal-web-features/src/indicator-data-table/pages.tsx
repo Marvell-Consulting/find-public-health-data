@@ -260,9 +260,7 @@ export function CheckDataTablePage({
               <tbody className="govuk-table__body">
                 {dataTable.rows.map((row) => (
                   <tr
-                    key={[row.areaCode, row.fromDate, row.toDate, row.sex, row.age, row.category]
-                      .map(String)
-                      .join('|')}
+                    key={`${row.areaCode}|${row.fromDate}|${row.toDate}|${row.dimensionKey}`}
                     className="govuk-table__row"
                   >
                     {columns.map(({ key, cell }) => (

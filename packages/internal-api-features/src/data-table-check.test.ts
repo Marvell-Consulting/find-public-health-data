@@ -30,6 +30,7 @@ const ROW: DataTableRow = {
   areaCode: 'E92000001',
   fromDate: '2019-04-01',
   toDate: '2020-03-31',
+  dimensionKey: '',
   value: 83.8,
   count: null,
   denominator: null,
