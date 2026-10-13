@@ -436,7 +436,10 @@ These commands are worth noting:
 - `db migrate-live-data` applies a checksum-verified approved-live baseline to empty
   canonical tables, or the next incremental package in its recorded predecessor chain.
   It applies reviewed topic and classification relationships, rebuilds the read models and
-  records the package in `data_migration` in one transaction.
+  records the package in `data_migration` in one transaction. Publisher writes to indicators,
+  versions, topic assignments and classification assignments wait until the transaction finishes.
+  Version batch pointers are connected after the batches load, allowing their mutual references
+  and batch replacements.
 - `db reset` returns the database to its freshly created state (recreating the `public` schema
   and dropping the migration watermark) so `db migrate` rebuilds from empty — recreate rather than
   truncate, so it also recovers from a broken migration state. It refuses outside

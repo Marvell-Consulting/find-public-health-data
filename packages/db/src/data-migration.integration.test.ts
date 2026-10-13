@@ -79,6 +79,25 @@ async function baseline(options: MigrationFixtureOptions = {}) {
 function version(sources: [string | null, string | null] = [null, null]) {
   return { columns: VERSION_COLUMNS, rows: [[...VERSION_ROW.slice(0, -2), ...sources]] };
 }
+function versionWithBatch(batchId: string | null, confirmedAt: string | null) {
+  return {
+    columns: [...VERSION_COLUMNS, 'upload_batch_id', 'data_table_confirmed_at'],
+    rows: [[...VERSION_ROW, batchId, confirmedAt]],
+  };
+}
+function batch(id: string) {
+  return {
+    columns: [
+      'id',
+      'indicator_id',
+      'indicator_version_id',
+      'original_filename',
+      'uploaded_by',
+      'status',
+    ],
+    rows: [[id, INDICATOR_ID, VERSION_ID, 'migration.csv', 'migration', 'processed']],
+  };
+}
 async function sourceCount() {
   const [row] = await sql<
     { count: number }[]
@@ -95,6 +114,124 @@ async function assertRolledBack() {
 }
 
 describe('applyDataMigration', () => {
+  it('connects mutually referencing versions and batches and switches published observations', async () => {
+    const firstBatch = '22222222-2222-7222-8222-222222222222';
+    const secondBatch = '33333333-3333-7333-8333-333333333333';
+    const areaId = '44444444-4444-7444-8444-444444444444';
+    const observationId = '55555555-5555-7555-8555-555555555555';
+    const confirmedAt = '2026-01-01T00:00:00Z';
+    const observation = (batchId: string, value: number) => ({
+      columns: [
+        'id',
+        'indicator_id',
+        'area_id',
+        'upload_batch_id',
+        'from_date',
+        'to_date',
+        'value',
+        'dimension_key',
+        'created_by',
+      ],
+      rows: [
+        [
+          observationId,
+          INDICATOR_ID,
+          areaId,
+          batchId,
+          '2025-01-01',
+          '2025-12-31',
+          value,
+          '',
+          'migration',
+        ],
+      ],
+    });
+    await baseline({
+      upserts: {
+        indicator_version: versionWithBatch(firstBatch, confirmedAt),
+        upload_batch: batch(firstBatch),
+        area_type: {
+          columns: ['id', 'name', 'hierarchy_type', 'level'],
+          rows: [[areaId, 'Country', 'Administrative', 1]],
+        },
+        area: {
+          columns: ['id', 'area_type_id', 'code', 'name', 'valid_from'],
+          rows: [[areaId, areaId, 'E92000001', 'England', '2010-01-01']],
+        },
+        observation: observation(firstBatch, 10),
+      },
+    });
+    expect(await sql`SELECT value FROM published.observation`).toEqual([{ value: 10 }]);
+    expect(
+      await sql`SELECT v.upload_batch_id, b.indicator_version_id,
+      v.data_table_confirmed_at IS NOT NULL AS confirmed
+      FROM indicator_version v JOIN upload_batch b ON b.id = v.upload_batch_id`,
+    ).toEqual([{ upload_batch_id: firstBatch, indicator_version_id: VERSION_ID, confirmed: true }]);
+    await apply({
+      upserts: {
+        indicator_version: versionWithBatch(secondBatch, confirmedAt),
+        upload_batch: batch(secondBatch),
+        observation: observation(secondBatch, 20),
+      },
+      deletes: { upload_batch: [firstBatch] },
+    });
+    expect(await sql`SELECT value FROM published.observation`).toEqual([{ value: 20 }]);
+    expect(await sql`SELECT upload_batch_id FROM indicator_version`).toEqual([
+      { upload_batch_id: secondBatch },
+    ]);
+    expect(await sql`SELECT id FROM upload_batch`).toEqual([{ id: secondBatch }]);
+    await apply({
+      migrationId: 'increment-3',
+      predecessor: 'increment-2',
+      cutoffAt: '2026-09-23T10:00:00Z',
+      upserts: { indicator_version: version() },
+    });
+    expect(
+      await sql`SELECT upload_batch_id, data_table_confirmed_at IS NOT NULL AS confirmed FROM indicator_version`,
+    ).toEqual([{ upload_batch_id: secondBatch, confirmed: true }]);
+    await apply({
+      migrationId: 'increment-4',
+      predecessor: 'increment-3',
+      cutoffAt: '2026-09-24T10:00:00Z',
+      upserts: { indicator_version: versionWithBatch(null, null) },
+      deletes: { upload_batch: [secondBatch], observation: [observationId] },
+    });
+    expect(
+      await sql`SELECT upload_batch_id, data_table_confirmed_at FROM indicator_version`,
+    ).toEqual([{ upload_batch_id: null, data_table_confirmed_at: null }]);
+    expect(await sql`SELECT id FROM published.observation`).toEqual([]);
+  });
+  it('rolls back a version pointing at a missing batch', async () => {
+    await baseline();
+    await expect(
+      apply({
+        upserts: { indicator_version: versionWithBatch(SOURCE_ID, '2026-01-01T00:00:00Z') },
+      }),
+    ).rejects.toThrow('indicator_version_upload_batch_fk');
+    await assertRolledBack();
+    expect(
+      await sql`SELECT upload_batch_id, data_table_confirmed_at FROM indicator_version`,
+    ).toEqual([{ upload_batch_id: null, data_table_confirmed_at: null }]);
+  });
+  it.each(['upload_batch_id', 'data_table_confirmed_at'])(
+    'requires the paired batch field when a version header includes %s',
+    async (column) => {
+      await baseline();
+      await expect(
+        apply({
+          upserts: {
+            indicator_version: {
+              columns: [...VERSION_COLUMNS, column],
+              rows: [[...VERSION_ROW, null]],
+            },
+          },
+        }),
+      ).rejects.toThrow(
+        `missing required columns: ${column === 'upload_batch_id' ? 'data_table_confirmed_at' : 'upload_batch_id'}`,
+      );
+      await assertRolledBack();
+    },
+  );
   it('loads a baseline, enforces predecessor order and preserves idempotence', async () => {
     expect((await baseline()).applied).toBe(true);
     await expect(apply({ predecessor: 'wrong' })).rejects.toThrow(/predecessor/);
@@ -230,6 +367,127 @@ describe('applyDataMigration', () => {
       release();
       await pending;
       await migrating;
+      await publisher.end();
+      await observer.end();
+    }
+  });
+  it.each(['indicator_version', 'indicator_version_topic', 'indicator_version_classification'])(
+    'holds concurrent publisher writes to %s until the package commits',
+    async (table) => {
+      await baseline();
+      const fixture = await migrationFixture(sql, directory, topicId);
+      const publisher = createOwnerClient(database.name);
+      const observer = createOwnerClient(database.name);
+      const [otherTopic] = await sql<
+        { id: string }[]
+      >`SELECT id FROM topic WHERE id <> ${topicId} LIMIT 1`;
+      if (!otherTopic) throw new Error('Missing second core topic');
+      let release!: () => void;
+      let ready!: () => void;
+      const acquired = new Promise<void>((resolve) => {
+        ready = resolve;
+      });
+      const held = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const migrating = sql.begin(async (tx) => {
+        await applyDataMigration(tx, directory, fixture.manifest, fixture.sha256);
+        ready();
+        await held;
+      });
+      let writing: Promise<unknown> | undefined;
+      try {
+        await acquired;
+        writing = publisher.begin(async (tx) => {
+          if (table === 'indicator_version') {
+            await tx`INSERT INTO indicator_version (id, indicator_id, name, slug, created_by, updated_by)
+              VALUES (${SOURCE_ID}, ${INDICATOR_ID}, 'Publisher draft', 'test-indicator', 'publisher', 'publisher')`;
+          } else if (table === 'indicator_version_topic') {
+            await tx`INSERT INTO indicator_version_topic (indicator_version_id, topic_id)
+              VALUES (${VERSION_ID}, ${otherTopic.id})`;
+          } else {
+            await tx`INSERT INTO indicator_version_classification (indicator_version_id, classification_id)
+              VALUES (${VERSION_ID}, ${frameworkId})`;
+          }
+        });
+        await vi.waitFor(async () => {
+          const [lock] = await observer<{ waiting: boolean }[]>`
+            SELECT EXISTS (SELECT 1 FROM pg_locks WHERE relation = ${table}::regclass
+              AND mode = 'RowExclusiveLock' AND NOT granted) AS waiting
+          `;
+          expect(lock?.waiting).toBe(true);
+        });
+        expect(await observer`SELECT name FROM published.indicator`).toEqual([
+          { name: 'Test indicator' },
+        ]);
+        release();
+        await migrating;
+        await writing;
+        if (table === 'indicator_version') {
+          expect(await sql`SELECT status FROM indicator_version WHERE id = ${SOURCE_ID}`).toEqual([
+            { status: 'draft' },
+          ]);
+        } else if (table === 'indicator_version_topic') {
+          expect(
+            await sql`SELECT topic_id FROM indicator_version_topic
+            WHERE indicator_version_id = ${VERSION_ID} AND topic_id = ${otherTopic.id}`,
+          ).toEqual([{ topic_id: otherTopic.id }]);
+        } else {
+          expect(
+            await sql`SELECT classification_id FROM indicator_version_classification
+            WHERE indicator_version_id = ${VERSION_ID}`,
+          ).toEqual([{ classification_id: frameworkId }]);
+        }
+      } finally {
+        release();
+        await migrating;
+        await writing;
+        await publisher.end();
+        await observer.end();
+      }
+    },
+  );
+  it('checks publisher version changes committed while the migration waits', async () => {
+    await baseline();
+    const publisher = createOwnerClient(database.name);
+    const observer = createOwnerClient(database.name);
+    let release!: () => void;
+    let ready!: () => void;
+    const acquired = new Promise<void>((resolve) => {
+      ready = resolve;
+    });
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const writing = publisher.begin(async (tx) => {
+      await tx`UPDATE indicator_version SET status = 'draft', published_at = NULL WHERE id = ${VERSION_ID}`;
+      ready();
+      await held;
+    });
+    let rejected: Promise<void> | undefined;
+    try {
+      await acquired;
+      rejected = expect(apply({ upserts: { indicator_version: version() } })).rejects.toThrow(
+        'would overwrite a non-published indicator version',
+      );
+      await vi.waitFor(async () => {
+        const [lock] = await observer<{ waiting: boolean }[]>`
+          SELECT EXISTS (SELECT 1 FROM pg_locks WHERE relation = 'indicator_version'::regclass
+            AND mode = 'ShareRowExclusiveLock' AND NOT granted) AS waiting
+        `;
+        expect(lock?.waiting).toBe(true);
+      });
+      release();
+      await writing;
+      await rejected;
+      expect(await sql`SELECT status FROM indicator_version WHERE id = ${VERSION_ID}`).toEqual([
+        { status: 'draft' },
+      ]);
+      expect(await sql`SELECT count(*)::int AS count FROM data_migration`).toEqual([{ count: 1 }]);
+    } finally {
+      release();
+      await writing;
+      await rejected;
       await publisher.end();
       await observer.end();
     }

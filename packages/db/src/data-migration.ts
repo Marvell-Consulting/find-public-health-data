@@ -11,6 +11,7 @@ import { applyLegacySources } from './data-migration-sources.ts';
 import {
   applyIndicatorVersionRows,
   applyUpserts,
+  applyVersionBatchPointers,
   validateMigrationHeader,
 } from './data-migration-table-import.ts';
 import { type LegacySourceMap, readLegacySourceMap } from './legacy-sources.ts';
@@ -44,6 +45,7 @@ async function applyBaseline(
 
   const changes: Record<string, { upserts: number; deletes: number }> = {};
   let indicatorVersionHasLegacySources = false;
+  let indicatorVersionHasBatchPointers = false;
   for (const table of DATA_MIGRATION_TABLES) {
     const entry = manifest.tables[table];
     if (!entry) throw new Error(`Baseline has no ${table} entry`);
@@ -52,13 +54,14 @@ async function applyBaseline(
       continue;
     }
     if (table === 'indicator_version') {
-      const { hasLegacySources } = await applyIndicatorVersionRows(
+      const { hasLegacySources, hasBatchPointers } = await applyIndicatorVersionRows(
         tx,
         directory,
         'baseline',
         report,
       );
       indicatorVersionHasLegacySources = hasLegacySources;
+      indicatorVersionHasBatchPointers = hasBatchPointers;
       const [row] = await tx.unsafe<{ count: number }[]>(
         `SELECT count(*)::int AS count FROM indicator_version`,
       );
@@ -85,6 +88,7 @@ async function applyBaseline(
       throw new Error(`Baseline row count failed for ${table}`);
     changes[table] = { upserts: entry.rows, deletes: 0 };
   }
+  if (indicatorVersionHasBatchPointers) await applyVersionBatchPointers(tx);
   if (indicatorVersionHasLegacySources) {
     await applyLegacySources(tx, directory, legacySourceMap);
   }
@@ -175,13 +179,20 @@ async function applyIncremental(
   // source snapshot. Deleting first would fail when an unchanged row still referenced a parent
   // until its upsert changed the foreign key.
   let indicatorVersionHasLegacySources = false;
+  let indicatorVersionHasBatchPointers = false;
   for (const table of DATA_MIGRATION_TABLES) {
     if (referenceTables.has(table)) continue;
     const entry = manifest.tables[table];
     if (!entry) throw new Error(`Incremental package has no ${table} entry`);
     if (table === 'indicator_version') {
-      const { hasLegacySources } = await applyIndicatorVersionRows(tx, directory, 'upsert', report);
+      const { hasLegacySources, hasBatchPointers } = await applyIndicatorVersionRows(
+        tx,
+        directory,
+        'upsert',
+        report,
+      );
       indicatorVersionHasLegacySources = hasLegacySources;
+      indicatorVersionHasBatchPointers = hasBatchPointers;
       const [staged] = await tx.unsafe<{ count: number }[]>(
         `SELECT count(*)::int AS count FROM migration_source_indicator_version`,
       );
@@ -201,6 +212,7 @@ async function applyIncremental(
     );
     if (hasLegacySources) indicatorVersionHasLegacySources = true;
   }
+  if (indicatorVersionHasBatchPointers) await applyVersionBatchPointers(tx);
   if (indicatorVersionHasLegacySources) {
     await applyLegacySources(tx, directory, legacySourceMap);
   }
@@ -269,8 +281,11 @@ export async function applyDataMigration(
     }
   }
 
-  // Identity writes must finish before the migration reads or advances their sequence.
-  await tx`LOCK TABLE indicator IN SHARE ROW EXCLUSIVE MODE`;
+  // Keep publisher writes outside the package's version checks and relationship replacement.
+  await tx`
+    LOCK TABLE indicator, indicator_version, indicator_version_topic,
+      indicator_version_classification IN SHARE ROW EXCLUSIVE MODE
+  `;
 
   const changes =
     manifest.kind === 'baseline'

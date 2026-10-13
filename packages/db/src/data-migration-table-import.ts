@@ -72,6 +72,10 @@ export async function validateMigrationHeader(
     .filter((name) => !columnSet.has(name));
   if (table === 'indicator_version') {
     missing.push(...LEGACY_SOURCE_COLUMNS.filter((column) => !rawHeader.includes(column)));
+    const batchColumns = ['upload_batch_id', 'data_table_confirmed_at'];
+    if (batchColumns.some((column) => columnSet.has(column))) {
+      missing.push(...batchColumns.filter((column) => !columnSet.has(column)));
+    }
   }
   if (missing.length > 0) {
     throw new Error(`${table} CSV is missing required columns: ${missing.join(', ')}`);
@@ -154,7 +158,7 @@ export async function applyIndicatorVersionRows(
   directory: string,
   phase: 'baseline' | 'upsert',
   report: DataMigrationProgressReporter,
-): Promise<{ hasLegacySources: boolean }> {
+): Promise<{ hasLegacySources: boolean; hasBatchPointers: boolean }> {
   const file = `${directory}/indicator_version.csv.gz`;
   const { rawHeader, columns, hasLegacySources } = await validateMigrationHeader(
     tx,
@@ -202,8 +206,11 @@ export async function applyIndicatorVersionRows(
   const mapped = new Map<string, string>(
     CORE_DATA_LOOKUPS.map(({ table, column }) => [column, `migration_${table}_map.core_id`]),
   );
-  const columnList = quoteIdentifiers(columns);
-  const selectList = columns.map((c) => mapped.get(c) ?? `v."${c}"`).join(', ');
+  const insertColumns = columns.filter(
+    (c) => c !== 'upload_batch_id' && c !== 'data_table_confirmed_at',
+  );
+  const columnList = quoteIdentifiers(insertColumns);
+  const selectList = insertColumns.map((c) => mapped.get(c) ?? `v."${c}"`).join(', ');
   const joins = CORE_DATA_LOOKUPS.map(
     ({ table, column }) =>
       `LEFT JOIN migration_${table}_map ON migration_${table}_map.source_id = v.${column}`,
@@ -216,7 +223,7 @@ export async function applyIndicatorVersionRows(
       ${joins}
     `);
   } else {
-    const assignments = columns
+    const assignments = insertColumns
       .filter((c) => c !== 'id')
       .map((c) => `"${c}" = EXCLUDED."${c}"`)
       .join(', ');
@@ -229,7 +236,18 @@ export async function applyIndicatorVersionRows(
     `);
   }
 
-  return { hasLegacySources };
+  return { hasLegacySources, hasBatchPointers: columns.includes('upload_batch_id') };
+}
+
+/** Connects staged versions after their batches exist, resolving their mutual foreign keys. */
+export async function applyVersionBatchPointers(tx: postgres.TransactionSql): Promise<void> {
+  await tx`
+    UPDATE indicator_version v
+    SET upload_batch_id = staged.upload_batch_id,
+        data_table_confirmed_at = staged.data_table_confirmed_at
+    FROM migration_source_indicator_version staged
+    WHERE v.id = staged.id
+  `;
 }
 
 export async function applyUpserts(
