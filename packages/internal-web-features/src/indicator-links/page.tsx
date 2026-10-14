@@ -1,5 +1,5 @@
 import type { IndicatorLink } from '@fphd/internal-api-features/contract';
-import { Button, errorProp, fieldInputId, firstRadioId, Radios, TextInput } from '@fphd/ui';
+import { Button, fieldInputId, firstRadioId, Radios, TextInput } from '@fphd/ui';
 
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 import { ADD_INTENT, removeIntent } from '../list-form.ts';
@@ -56,8 +56,8 @@ export function LinksPage(form: SectionPageProps<LinksPageField, LinksPageValues
       title={LINKS_QUESTION}
     >
       <Radios
-        {...errorProp(fieldErrors.hasLinks)}
         defaultValue={values.hasLinks}
+        error={fieldErrors.hasLinks}
         hint="For example, any statistical commentaries that will be available once this indicator is published"
         label={<h1>{LINKS_QUESTION}</h1>}
         name="hasLinks"

@@ -1,4 +1,4 @@
-import { errorProp, QuestionLegend, Radios, Textarea } from '@fphd/ui';
+import { QuestionLegend, Radios, Textarea } from '@fphd/ui';
 
 import type { FormValues } from './form-values.ts';
 
@@ -30,8 +30,8 @@ export function YesNoQuestion<Field extends string>({
 }: YesNoQuestionProps<Field>) {
   return (
     <Radios
-      {...errorProp(fieldErrors[answer])}
       defaultValue={values[answer]}
+      error={fieldErrors[answer]}
       {...(hint === undefined ? {} : { hint })}
       label={<QuestionLegend>{legend}</QuestionLegend>}
       name={answer}

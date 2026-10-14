@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { errorProp, firstRadioId, Radios, serviceName, Textarea } from '@fphd/ui';
+import { firstRadioId, Radios, serviceName, Textarea } from '@fphd/ui';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -30,7 +30,7 @@ function renderForm({ fieldErrors = {}, formError, ...props }: FormProps = {}) {
       >
         <Textarea error={fieldErrors.answer} label="An answer" name="answer" />
         <Radios
-          {...errorProp(fieldErrors.choice)}
+          error={fieldErrors.choice}
           label="A choice"
           name="choice"
           options={[

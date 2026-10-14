@@ -4,15 +4,7 @@ import {
   type TagOption,
   type TagOptions,
 } from '@fphd/internal-api-features/contract';
-import {
-  Button,
-  errorProp,
-  fieldInputId,
-  firstRadioId,
-  QuestionLegend,
-  Radios,
-  Select,
-} from '@fphd/ui';
+import { Button, fieldInputId, firstRadioId, QuestionLegend, Radios, Select } from '@fphd/ui';
 
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 import { addIntent, removeIntent } from '../list-form.ts';
@@ -62,8 +54,8 @@ function TagPicker({
       <div className="fphd-field-row fphd-field-row--with-button">
         <Select
           // A list refused as a whole is shown on the select that adds to it.
-          {...errorProp(fieldErrors[field] ?? fieldErrors[list])}
           defaultValue={values[field]}
+          error={fieldErrors[field] ?? fieldErrors[list]}
           label={`Select ${article} ${noun}`}
           name={field}
           options={[
@@ -133,8 +125,8 @@ export function TaggingPage({ options, ...form }: TaggingPageProps) {
       {picker('topicIds')}
       {picker('indicatorTypeIds')}
       <Radios
-        {...errorProp(fieldErrors.hasRiskFactor)}
         defaultValue={values.hasRiskFactor}
+        error={fieldErrors.hasRiskFactor}
         label={<QuestionLegend>{RISK_FACTOR_QUESTION}</QuestionLegend>}
         name="hasRiskFactor"
         options={[
@@ -144,8 +136,8 @@ export function TaggingPage({ options, ...form }: TaggingPageProps) {
         ]}
       />
       <Radios
-        {...errorProp(fieldErrors.hasFramework)}
         defaultValue={values.hasFramework}
+        error={fieldErrors.hasFramework}
         label={<QuestionLegend>{FRAMEWORK_QUESTION}</QuestionLegend>}
         name="hasFramework"
         options={[

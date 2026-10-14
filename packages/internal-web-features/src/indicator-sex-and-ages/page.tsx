@@ -12,7 +12,6 @@ import {
 import {
   Button,
   Checkboxes,
-  errorProp,
   fieldInputId,
   firstCheckboxId,
   firstRadioId,
@@ -88,8 +87,8 @@ function AgeLimit({
         name={valueName}
       />
       <Select
-        {...errorProp(fieldErrors[unitName])}
         defaultValue={range[unitField]}
+        error={fieldErrors[unitName]}
         label={periodsLabel(label.toLowerCase())}
         name={unitName}
         options={UNIT_OPTIONS}
@@ -151,15 +150,15 @@ export function SexAndAgesPage(form: SectionPageProps<SexAndAgesPageField, SexAn
       title={TITLE}
     >
       <Checkboxes
-        {...errorProp(fieldErrors.sexes)}
         defaultValue={values.sexes}
+        error={fieldErrors.sexes}
         label={<QuestionLegend>Select sexes included</QuestionLegend>}
         name="sexes"
         options={SEXES.map((sex) => ({ value: sex, label: SEX_LABELS[sex] }))}
       />
       <Radios
-        {...errorProp(fieldErrors.ageType)}
         defaultValue={values.ageType}
+        error={fieldErrors.ageType}
         label={<QuestionLegend>Select age type</QuestionLegend>}
         name="ageType"
         options={[
@@ -195,8 +194,8 @@ export function SexAndAgesPage(form: SectionPageProps<SexAndAgesPageField, SexAn
                   name="specificAge"
                 />
                 <Select
-                  {...errorProp(fieldErrors.specificAgeUnit)}
                   defaultValue={values.specificAgeUnit}
+                  error={fieldErrors.specificAgeUnit}
                   label={periodsLabel('age')}
                   name="specificAgeUnit"
                   options={UNIT_OPTIONS}

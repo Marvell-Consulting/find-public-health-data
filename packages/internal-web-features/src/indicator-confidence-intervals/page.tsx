@@ -3,7 +3,7 @@ import {
   type ConfidenceIntervalsField,
   confidenceIntervalsSection,
 } from '@fphd/internal-api-features/contract';
-import { errorProp, firstRadioId, QuestionLegend, Radios, Select, Textarea } from '@fphd/ui';
+import { firstRadioId, QuestionLegend, Radios, Select, Textarea } from '@fphd/ui';
 
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 import { useSelectedValue } from '../selected-value.ts';
@@ -31,8 +31,8 @@ export function ConfidenceIntervalsPage({ methods, ...form }: ConfidenceInterval
       title="Confidence intervals"
     >
       <Select
-        {...errorProp(fieldErrors.ciMethodId)}
         defaultValue={values.ciMethodId}
+        error={fieldErrors.ciMethodId}
         label="Select the confidence interval method used"
         name="ciMethodId"
         onChange={selected.onChange}
@@ -50,8 +50,8 @@ export function ConfidenceIntervalsPage({ methods, ...form }: ConfidenceInterval
         ) : null}
         <Radios
           {...selected.hint(`Not needed for ${namesOf(({ kind }) => kind !== 'standard')}`)}
-          {...errorProp(fieldErrors.hasCiMethodModifications)}
           defaultValue={values.hasCiMethodModifications}
+          error={fieldErrors.hasCiMethodModifications}
           label={
             <QuestionLegend>
               Were any modifications to the described method used for this indicator?

@@ -4,7 +4,7 @@ import {
   type ValueTypeAndUnitsField,
   valueTypeAndUnitsSection,
 } from '@fphd/internal-api-features/contract';
-import { errorProp, firstRadioId, QuestionLegend, Radios, Select, TextInput } from '@fphd/ui';
+import { firstRadioId, QuestionLegend, Radios, Select, TextInput } from '@fphd/ui';
 import {
   INDIRECTLY_STANDARDISED_VALUE_TYPE_IDS,
   STANDARD_POPULATION_LABELS,
@@ -51,8 +51,8 @@ export function ValueTypeAndUnitsPage({ units, valueTypes, ...form }: ValueTypeA
       title={VALUE_TYPE_AND_UNITS_TITLE}
     >
       <Select
-        {...errorProp(fieldErrors.valueTypeId)}
         defaultValue={values.valueTypeId}
+        error={fieldErrors.valueTypeId}
         label="Select value type"
         name="valueTypeId"
         onChange={valueType.onChange}
@@ -63,8 +63,8 @@ export function ValueTypeAndUnitsPage({ units, valueTypes, ...form }: ValueTypeA
           {...valueType.hint(
             `Only needed for ${namesOf(valueTypes, [VALUE_TYPE_IDS.directlyStandardisedRate])}`,
           )}
-          {...errorProp(fieldErrors.standardPopulation)}
           defaultValue={values.standardPopulation}
+          error={fieldErrors.standardPopulation}
           label={<QuestionLegend>What standard population has been used?</QuestionLegend>}
           name="standardPopulation"
           options={STANDARD_POPULATIONS.map((value) => ({
@@ -99,8 +99,8 @@ export function ValueTypeAndUnitsPage({ units, valueTypes, ...form }: ValueTypeA
         />
       </div>
       <Select
-        {...errorProp(fieldErrors.unitId)}
         defaultValue={values.unitId}
+        error={fieldErrors.unitId}
         label="Select units"
         name="unitId"
         onChange={unit.onChange}

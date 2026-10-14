@@ -1,5 +1,5 @@
 import { type PolarityField, polaritySection } from '@fphd/internal-api-features/contract';
-import { errorProp, firstRadioId, Radios } from '@fphd/ui';
+import { firstRadioId, Radios } from '@fphd/ui';
 import { POLARITIES, POLARITY_LABELS } from '@fphd/utils/polarity';
 
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
@@ -19,8 +19,8 @@ export function PolarityPage(form: SectionPageProps<PolarityField>) {
       title={POLARITY_QUESTION}
     >
       <Radios
-        {...errorProp(fieldErrors.polarity)}
         defaultValue={values.polarity}
+        error={fieldErrors.polarity}
         label={<h1>{POLARITY_QUESTION}</h1>}
         name="polarity"
         options={POLARITIES.map((value) => ({ label: POLARITY_LABELS[value], value }))}

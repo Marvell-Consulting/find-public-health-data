@@ -3,7 +3,6 @@ import {
   DayMonthInput,
   datePartId,
   datePartName,
-  errorProp,
   firstRadioId,
   QuestionLegend,
   Radios,
@@ -65,9 +64,9 @@ function YearTypeQuestion({ fieldErrors, set, values }: YearTypeQuestionProps) {
 
   return (
     <Radios
-      {...errorProp(yearTypeError)}
       classModifiers="small"
       defaultValue={values.yearType}
+      error={yearTypeError}
       label={
         <QuestionLegend as="span" size="s">
           Select year type
@@ -125,8 +124,8 @@ export function PeriodTypePage(form: SectionPageProps<PeriodTypeField>) {
       title="What is the period type in this indicator?"
     >
       <Radios
-        {...errorProp(fieldErrors.periodType)}
         defaultValue={values.periodType}
+        error={fieldErrors.periodType}
         label={<QuestionLegend>Select period type</QuestionLegend>}
         name="periodType"
         options={[

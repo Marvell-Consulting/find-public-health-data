@@ -39,7 +39,6 @@ export {
   formatDocumentTitle,
   titleFromPage,
 } from './document-title.tsx';
-export { errorProp } from './error-prop.ts';
 export {
   ErrorSummary,
   type FieldError,

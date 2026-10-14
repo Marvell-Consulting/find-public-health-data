@@ -2,7 +2,7 @@ import {
   type UpdateFrequencyField,
   updateFrequencySection,
 } from '@fphd/internal-api-features/contract';
-import { errorProp, firstRadioId, Radios } from '@fphd/ui';
+import { firstRadioId, Radios } from '@fphd/ui';
 import {
   UPDATE_FREQUENCIES,
   UPDATE_FREQUENCY_LABELS,
@@ -37,8 +37,8 @@ export function UpdateFrequencyPage(form: SectionPageProps<UpdateFrequencyField>
       title={UPDATE_FREQUENCY_QUESTION}
     >
       <Radios
-        {...errorProp(fieldErrors.updateFrequency)}
         defaultValue={values.updateFrequency}
+        error={fieldErrors.updateFrequency}
         label={<h1>{UPDATE_FREQUENCY_QUESTION}</h1>}
         name="updateFrequency"
         options={OPTIONS}
