@@ -8,6 +8,8 @@ export type Route = {
   path: string;
   /** A median slower than this fails the route: 5–10 times CI's usual median (see the README). */
   limitMs: number;
+  /** Who an internal route is requested as: the admin for admin pages, otherwise the publisher. */
+  as?: 'admin';
 };
 
 export const ORIGINS: Record<App, string> = {
@@ -53,7 +55,7 @@ export const ROUTES: Route[] = [
 
   { app: 'internal-web', path: '/dashboard', limitMs: 500 },
   { app: 'internal-web', path: `/dashboard/indicators/${DIABETES.id}`, limitMs: 500 },
-  { app: 'internal-web', path: '/manage/topics', limitMs: 500 },
+  { app: 'internal-web', path: '/manage/topics', limitMs: 500, as: 'admin' },
   {
     app: 'internal-web',
     path: `/publish/indicators/${DATA_TABLE_DRAFT.indicatorId}/data-table/check`,
@@ -79,7 +81,7 @@ export const ROUTES: Route[] = [
 
   { app: 'internal-api', path: '/api/internal/indicators', limitMs: 250 },
   { app: 'internal-api', path: `/api/internal/indicators/${DIABETES.id}`, limitMs: 250 },
-  { app: 'internal-api', path: '/api/internal/topics', limitMs: 250 },
+  { app: 'internal-api', path: '/api/internal/topics', limitMs: 250, as: 'admin' },
   { app: 'internal-api', path: DATA_TABLE, limitMs: 250 },
   { app: 'internal-api', path: `${DATA_TABLE}?${DEEPEST_DATA_TABLE_PAGE}`, limitMs: 250 },
 ];

@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 import { createDraft, uniqueIndicatorName } from '../support/create-indicator.ts';
 import { MORTALITY_ID, MORTALITY_NAME } from '../support/indicator-page.ts';
-import { PUBLISHER } from '../support/sign-in.ts';
+import { ADMIN, PUBLISHER, TEAM_B_PUBLISHER } from '../support/sign-in.ts';
 
 const PUBLISHED_OVERVIEW_PATH = `/dashboard/indicators/${MORTALITY_ID}`;
 
@@ -76,4 +76,37 @@ test('has no WCAG 2.2 AA violations for a published indicator', async ({ page },
   await expect(page.getByRole('heading', { level: 1, name: MORTALITY_NAME })).toBeVisible();
 
   await expectNoAccessibilityViolations(page, testInfo);
+});
+
+test.describe('as someone who may not edit the indicator', () => {
+  test.use({ storageState: ADMIN.storageState });
+
+  test('lets an admin see an indicator without offering its task list', async ({
+    browser,
+    page,
+  }) => {
+    const name = uniqueIndicatorName('overview');
+    const publisher = await browser.newContext({ storageState: PUBLISHER.storageState });
+    const id = await createDraft(await publisher.newPage(), name);
+    await publisher.close();
+
+    await page.goto(`/dashboard/indicators/${id}`);
+
+    await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
+    await expect(page.getByRole('link', { name: /^Continue/ })).toHaveCount(0);
+    await expect(
+      page.getByText('There are no actions available for this indicator yet.'),
+    ).toBeVisible();
+  });
+});
+
+test.describe('as a publisher in another team', () => {
+  test.use({ storageState: TEAM_B_PUBLISHER.storageState });
+
+  test("answers another team's indicator with the not-found page", async ({ page }) => {
+    const response = await page.goto(PUBLISHED_OVERVIEW_PATH);
+
+    expect(response?.status()).toBe(404);
+    await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
+  });
 });

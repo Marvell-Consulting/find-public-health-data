@@ -21,7 +21,10 @@ export async function createDataTableDraft(sql: postgres.Sql): Promise<void> {
   await deleteDataTableDraft(sql);
 
   await sql.begin(async (tx) => {
-    await tx`insert into indicator (id, created_at) values (${indicatorId}, '2000-01-01')`;
+    // Team A, which every indicator is in for now (DEFAULT_INDICATOR_TEAM_ID in @fphd/db).
+    await tx`
+      insert into indicator (id, created_at, team_id)
+      values (${indicatorId}, '2000-01-01', '01a13c69-96aa-70af-81f9-10856a4023b2')`;
     await tx`
       insert into indicator_version
         (id, indicator_id, name, slug, created_at, updated_at, created_by, updated_by)

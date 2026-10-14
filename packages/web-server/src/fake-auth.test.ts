@@ -1,4 +1,4 @@
-import { fakeUsersForAudience, TEAM_IDS } from '@fphd/auth';
+import { FAKE_USER_IDS, fakeUsersForAudience, TEAM_IDS } from '@fphd/auth';
 import { createJwtSessionService } from '@fphd/auth/jwt-session';
 import { request } from '@fphd/express/testing';
 import express from 'express';
@@ -38,7 +38,7 @@ describe('fake authentication backend', () => {
     const app = createTestApp();
     const start = await request(app).post('/auth/sign-in').type('form').send({
       returnTo: '/manage?view=drafts',
-      userId: 'internal-publisher',
+      userId: FAKE_USER_IDS.publisherTeamA,
     });
 
     expect(start.status).toBe(303);
@@ -54,7 +54,7 @@ describe('fake authentication backend', () => {
 
     await expect(session.verifyToken(token)).resolves.toMatchObject({
       roles: ['public', 'internal', 'publisher'],
-      sub: 'internal-publisher',
+      sub: FAKE_USER_IDS.publisherTeamA,
       teams: [TEAM_IDS.teamA],
     });
     expect((await request(app).get(callbackPath)).status).toBe(400);
@@ -62,7 +62,7 @@ describe('fake authentication backend', () => {
 
   it('does not allow a public-only fake user to sign into the internal service', async () => {
     const response = await request(createTestApp()).post('/auth/sign-in').type('form').send({
-      userId: 'public-user',
+      userId: FAKE_USER_IDS.publicUser,
     });
 
     expect(response.status).toBe(403);
@@ -73,7 +73,7 @@ describe('fake authentication backend', () => {
     const app = createTestApp();
     const start = await request(app).post('/auth/sign-in').type('form').send({
       returnTo: '/auth/sign-out',
-      userId: 'internal-publisher',
+      userId: FAKE_USER_IDS.publisherTeamA,
     });
     const callback = await request(app).get(requireHeader(start.get('Location'), 'Location'));
 
@@ -84,7 +84,7 @@ describe('fake authentication backend', () => {
     const app = createTestApp();
     const start = await request(app).post('/auth/sign-in').type('form').send({
       returnTo: '//example.com/steal-session',
-      userId: 'internal-publisher',
+      userId: FAKE_USER_IDS.publisherTeamA,
     });
     const callback = await request(app).get(requireHeader(start.get('Location'), 'Location'));
 
