@@ -13,6 +13,7 @@ import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from 'react-router';
 
+import { requireEditableIndicator } from '../editable-indicator.ts';
 import { formRefusal } from '../form-refusal.ts';
 import { readFormValues } from '../form-values.ts';
 import { requireIndicatorId } from '../indicator-id.ts';
@@ -66,6 +67,7 @@ export async function loadIndicatorName({ context, params }: LoaderFunctionArgs)
     .get(apiPath`/api/internal/indicators/${id}`, indicatorAdminDetailSchema);
 
   if (indicator.draftStatus === null) throw notFound();
+  requireEditableIndicator(context, indicator);
 
   return { indicator };
 }

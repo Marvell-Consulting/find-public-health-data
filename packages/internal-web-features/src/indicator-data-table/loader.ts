@@ -12,6 +12,7 @@ import { ApiTimeoutError, apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from 'react-router';
 
+import { requireEditableIndicator } from '../editable-indicator.ts';
 import { type FormRefusal, formRefusal } from '../form-refusal.ts';
 import { requireIndicatorId } from '../indicator-id.ts';
 import {
@@ -45,6 +46,7 @@ export async function loadDataTableUpload({ context, params }: LoaderFunctionArg
     .get(apiPath`/api/internal/indicators/${id}`, indicatorAdminDetailSchema);
 
   if (indicator.draftStatus === null) throw new Response('Not Found', { status: 404 });
+  requireEditableIndicator(context, indicator);
 
   return { id };
 }

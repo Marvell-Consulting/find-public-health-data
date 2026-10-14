@@ -1,15 +1,18 @@
+import { TEAM_IDS } from '@fphd/auth';
 import type { ApiClient } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 import { FORM_NOT_SAVED } from '../form-refusal.ts';
+import { signedInContext } from '../session.testing.ts';
 import { createIndicator, loadIndicatorName, saveIndicatorName } from './loader.ts';
 
 const created = {
   id: '00000000-0000-7000-8000-000000000001',
   shortId: 90366,
   name: 'Life expectancy at birth',
+  teamId: TEAM_IDS.teamA,
   publishedSlug: null,
   updatedAt: '2026-01-02T00:00:00.000Z',
   indicatorStatus: 'new',
@@ -124,8 +127,12 @@ describe('createIndicator', () => {
   });
 });
 
-function load(id: string, get: ApiClient['get']) {
-  const context = new RouterContextProvider();
+async function load(
+  id: string,
+  get: ApiClient['get'],
+  teams: readonly string[] = [TEAM_IDS.teamA],
+) {
+  const context = await signedInContext(['publisher'], teams);
   context.set(apiContext, { get } as unknown as ApiClient);
 
   return loadIndicatorName({
@@ -161,6 +168,12 @@ describe('loadIndicatorName', () => {
 
     expect(get.mock.calls[0]?.[0]).toBe(`/api/internal/indicators/${created.id}`);
     expect(outcome).toEqual({ indicator: created });
+  });
+
+  it("answers 404 for another team's draft, which the publisher may not edit", async () => {
+    const get = vi.fn().mockResolvedValue(created);
+
+    await expect(load(created.id, get, [TEAM_IDS.teamB])).rejects.toSatisfy(isNotFound);
   });
 
   it('answers 404 for a published indicator, which has no name to edit', async () => {

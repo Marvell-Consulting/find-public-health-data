@@ -19,6 +19,7 @@ import {
   indicatorPageQuerySchema,
   toFieldErrors,
 } from './contract.ts';
+import { requireIndicatorEditor } from './indicator-editor.ts';
 import type { IndicatorAdminDetailRow, IndicatorAdminRow } from './indicator-list-repository.ts';
 import { indicatorTaskList } from './indicator-task-list.ts';
 import type { InternalIndicatorRepository } from './repositories.ts';
@@ -56,6 +57,7 @@ export function internalIndicatorsRouter(
   const router = Router();
   const requirePublisher = requireJwtRole(session, 'publisher');
   const requireLister = requireJwtSession(session, canListIndicators);
+  const requireEditor = requireIndicatorEditor(session, indicators);
 
   router.get('/api/internal/indicators', requireLister, async (request, response) => {
     const query = indicatorPageQuerySchema.safeParse(request.query);
@@ -119,7 +121,7 @@ export function internalIndicatorsRouter(
     response.status(201).json(toDetail(row));
   });
 
-  router.patch('/api/internal/indicators/:id', requirePublisher, async (request, response) => {
+  router.patch('/api/internal/indicators/:id', requireEditor, async (request, response) => {
     const id = indicatorIdSchema.safeParse(request.params.id);
 
     if (!id.success) {
@@ -163,44 +165,40 @@ export function internalIndicatorsRouter(
     response.status(200).json(toDetail(row));
   });
 
-  router.get(
-    '/api/internal/indicators/:id/task-list',
-    requirePublisher,
-    async (request, response) => {
-      const id = indicatorIdSchema.safeParse(request.params.id);
+  router.get('/api/internal/indicators/:id/task-list', requireEditor, async (request, response) => {
+    const id = indicatorIdSchema.safeParse(request.params.id);
 
-      if (!id.success) {
-        response.status(400).json({ error: 'invalid_id' });
-        return;
-      }
+    if (!id.success) {
+      response.status(400).json({ error: 'invalid_id' });
+      return;
+    }
 
-      const row = await indicators.findDraftState(id.data);
+    const row = await indicators.findDraftState(id.data);
 
-      if (!row) {
-        response.status(404).json({ error: 'not_found' });
-        return;
-      }
+    if (!row) {
+      response.status(404).json({ error: 'not_found' });
+      return;
+    }
 
-      // A published indicator is edited by opening a draft first, so until then there is no
-      // task list to show and the page the publisher asked for does not exist.
-      if (!row.draft) {
-        response.status(404).json({ error: 'no_draft' });
-        return;
-      }
+    // A published indicator is edited by opening a draft first, so until then there is no
+    // task list to show and the page the publisher asked for does not exist.
+    if (!row.draft) {
+      response.status(404).json({ error: 'no_draft' });
+      return;
+    }
 
-      const body: IndicatorTaskList = indicatorTaskList({
-        indicator: {
-          id: row.id,
-          shortId: row.shortId,
-          indicatorStatus: row.indicatorStatus,
-          draftStatus: row.draftStatus,
-        },
-        draft: { ...row.draft, ciMethodKind: row.draftCiMethodKind },
-      });
+    const body: IndicatorTaskList = indicatorTaskList({
+      indicator: {
+        id: row.id,
+        shortId: row.shortId,
+        indicatorStatus: row.indicatorStatus,
+        draftStatus: row.draftStatus,
+      },
+      draft: { ...row.draft, ciMethodKind: row.draftCiMethodKind },
+    });
 
-      response.status(200).json(body);
-    },
-  );
+    response.status(200).json(body);
+  });
 
   router.get('/api/internal/indicators/:id', requireLister, async (request, response) => {
     const id = indicatorIdSchema.safeParse(request.params.id);

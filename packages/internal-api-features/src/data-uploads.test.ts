@@ -18,6 +18,7 @@ import {
   createFakeInternalRepositories,
   createRouterTestApp,
   handlerLogLines,
+  inTestTeam,
   TEST_USER_ID,
   testSessionCookie,
   testSessionVerifier,
@@ -39,7 +40,10 @@ function createTestApp(
     dataUploads: { findDraftId: async () => DRAFT, ...overrides },
   });
 
-  return createRouterTestApp(dataUploadsRouter(dataUploads, storage, testSessionVerifier), logger);
+  return createRouterTestApp(
+    dataUploadsRouter(dataUploads, inTestTeam, storage, testSessionVerifier),
+    logger,
+  );
 }
 
 function publisherCookie(roles: readonly string[] = ['internal', 'publisher']) {

@@ -19,6 +19,7 @@ import { ACTOR, newDraft } from './indicator-repository.testing.ts';
 import { createInternalRepositories } from './repositories.ts';
 import {
   createRouterTestApp,
+  TEST_TEAM_ID,
   TEST_USER_ID,
   testSessionCookie,
   testSessionVerifier,
@@ -61,7 +62,11 @@ const ownerDb = createDb({
 });
 
 const app = createRouterTestApp(
-  dataTableCheckRouter(createInternalRepositories(internalDb).dataUploads, testSessionVerifier),
+  dataTableCheckRouter(
+    createInternalRepositories(internalDb).dataUploads,
+    createInternalRepositories(internalDb).indicators,
+    testSessionVerifier,
+  ),
 );
 
 afterAll(async () => {
@@ -110,7 +115,10 @@ async function draftOf(db: Database, indicatorId: string) {
   return draft;
 }
 
-/** The nth seeded published indicator by id, so each test that opens a draft takes its own. */
+/**
+ * The nth seeded published indicator by id, so each test that opens a draft takes its own, moved
+ * from Fingertips into the test session's team so its publisher may edit it.
+ */
 async function seededPublished(nth: number) {
   const [published] = await ownerDb
     .select({ indicatorId: currentPublishedVersion.indicatorId, id: currentPublishedVersion.id })
@@ -119,6 +127,10 @@ async function seededPublished(nth: number) {
     .offset(nth)
     .limit(1);
   if (published === undefined) throw new Error(`the seed has no published indicator ${nth}`);
+  await ownerDb
+    .update(schema.indicator)
+    .set({ teamId: TEST_TEAM_ID })
+    .where(eq(schema.indicator.id, published.indicatorId));
   return published;
 }
 

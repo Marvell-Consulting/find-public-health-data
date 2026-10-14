@@ -11,13 +11,15 @@ import {
   createRouterTestApp,
   type FakeInternalRepositoryOverrides,
   handlerLogLines,
+  inTestTeam,
+  TEST_TEAM_ID,
   TEST_USER_ID,
   testSessionCookie,
   testSessionVerifier,
   unansweredDraft,
 } from './testing.ts';
 
-const TEAM_ID = '00000000-0000-7000-8000-00000000000a';
+const TEAM_ID = TEST_TEAM_ID;
 const OTHER_TEAM_ID = '00000000-0000-7000-8000-00000000000b';
 
 const row: IndicatorAdminRow = {
@@ -40,7 +42,9 @@ function createTestApp(
   overrides: FakeInternalRepositoryOverrides['indicators'] = {},
   logger?: Logger,
 ): Express {
-  const repositories = createFakeInternalRepositories({ indicators: overrides });
+  const repositories = createFakeInternalRepositories({
+    indicators: { ...inTestTeam, ...overrides },
+  });
 
   return createRouterTestApp(
     internalIndicatorsRouter(repositories.indicators, testSessionVerifier),

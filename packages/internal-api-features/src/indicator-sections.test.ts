@@ -28,6 +28,7 @@ import { indicatorSectionsRouter } from './indicator-sections.ts';
 import {
   createFakeInternalRepositories,
   createRouterTestApp,
+  inTestTeam,
   TEST_USER_ID,
   testSessionCookie,
   testSessionVerifier,
@@ -71,7 +72,10 @@ describe('indicatorSectionsRouter', () => {
     'serves the $key section, answering every field as null or an empty list',
     async (section) => {
       const repositories = createFakeInternalRepositories({
-        indicators: { findDraftState: vi.fn().mockResolvedValue({ draft: unansweredDraft }) },
+        indicators: {
+          ...inTestTeam,
+          findDraftState: vi.fn().mockResolvedValue({ draft: unansweredDraft }),
+        },
       });
 
       const response = await request(
@@ -92,6 +96,7 @@ describe('indicatorSectionsRouter', () => {
     const updateDraft = vi.fn().mockResolvedValue({ ok: true });
     const repositories = createFakeInternalRepositories({
       indicators: {
+        ...inTestTeam,
         updateDraft,
         findDraftState: vi
           .fn()

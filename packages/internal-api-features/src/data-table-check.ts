@@ -1,4 +1,4 @@
-import { requireApiSession, requireJwtRole } from '@fphd/api-server';
+import { requireApiSession } from '@fphd/api-server';
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { Router } from 'express';
 
@@ -10,19 +10,21 @@ import {
   dataTableConfirmationSchema,
   dataTablePageQuerySchema,
 } from './data-table-check-contract.ts';
+import { type IndicatorTeams, requireIndicatorEditor } from './indicator-editor.ts';
 import type { InternalDataUploadRepository } from './repositories.ts';
 
 /** The draft's loaded data table, a page at a time, and the publisher's confirmation of it. */
 export function dataTableCheckRouter(
   dataUploads: InternalDataUploadRepository,
+  indicators: IndicatorTeams,
   session: JwtSessionVerifier,
 ): Router {
   const router = Router();
-  const requirePublisher = requireJwtRole(session, 'publisher');
+  const requireEditor = requireIndicatorEditor(session, indicators);
 
   router.get(
     '/api/internal/indicators/:id/data-table',
-    requirePublisher,
+    requireEditor,
     async (request, response) => {
       const id = indicatorIdSchema.safeParse(request.params.id);
 
@@ -64,7 +66,7 @@ export function dataTableCheckRouter(
 
   router.put(
     '/api/internal/indicators/:id/data-table/confirmation',
-    requirePublisher,
+    requireEditor,
     async (request, response) => {
       const id = indicatorIdSchema.safeParse(request.params.id);
 
