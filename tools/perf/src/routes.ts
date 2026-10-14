@@ -8,7 +8,10 @@ export type Route = {
   path: string;
   /** A median slower than this fails the route: 5–10 times CI's usual median (see the README). */
   limitMs: number;
-  /** Who an internal route is requested as: the admin for admin pages, otherwise the publisher. */
+  /**
+   * Who an internal route is requested as: the admin for admin pages and for the seeded indicators,
+   * which are in Fingertips and so hidden from publishers, otherwise the publisher.
+   */
   as?: 'admin';
 };
 
@@ -53,8 +56,8 @@ export const ROUTES: Route[] = [
   { app: 'public-web', path: `/indicators/${DIABETES_SLUG}/table.csv`, limitMs: 1000 },
   { app: 'public-web', path: `/indicators/${MORTALITY_SLUG}/all-data.csv`, limitMs: 1000 },
 
-  { app: 'internal-web', path: '/dashboard', limitMs: 500 },
-  { app: 'internal-web', path: `/dashboard/indicators/${DIABETES.id}`, limitMs: 500 },
+  { app: 'internal-web', path: '/dashboard', limitMs: 500, as: 'admin' },
+  { app: 'internal-web', path: `/dashboard/indicators/${DIABETES.id}`, limitMs: 500, as: 'admin' },
   { app: 'internal-web', path: '/manage/topics', limitMs: 500, as: 'admin' },
   {
     app: 'internal-web',
@@ -79,8 +82,13 @@ export const ROUTES: Route[] = [
   { app: 'public-api', path: `/api/areas?${GP_PRACTICES}`, limitMs: 250 },
   { app: 'public-api', path: '/api/areas/search?q=leeds', limitMs: 250 },
 
-  { app: 'internal-api', path: '/api/internal/indicators', limitMs: 250 },
-  { app: 'internal-api', path: `/api/internal/indicators/${DIABETES.id}`, limitMs: 250 },
+  { app: 'internal-api', path: '/api/internal/indicators', limitMs: 250, as: 'admin' },
+  {
+    app: 'internal-api',
+    path: `/api/internal/indicators/${DIABETES.id}`,
+    limitMs: 250,
+    as: 'admin',
+  },
   { app: 'internal-api', path: '/api/internal/topics', limitMs: 250, as: 'admin' },
   { app: 'internal-api', path: DATA_TABLE, limitMs: 250 },
   { app: 'internal-api', path: `${DATA_TABLE}?${DEEPEST_DATA_TABLE_PAGE}`, limitMs: 250 },

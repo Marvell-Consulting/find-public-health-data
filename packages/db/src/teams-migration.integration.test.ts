@@ -1,8 +1,8 @@
-import { TEAMS } from '@fphd/auth';
+import { TEAM_IDS, TEAMS } from '@fphd/auth';
 import type postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { DEFAULT_INDICATOR_TEAM_ID } from './schema/index.ts';
+import { IMPORTED_INDICATOR_TEAM_ID } from './schema/index.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
 import { createTestDatabase, migrateThrough, type TestDatabase } from './testing.ts';
 
@@ -24,16 +24,18 @@ describe(`migration ${MIGRATION}`, () => {
   });
 
   it('inserts the teams @fphd/auth names, with their ids', async () => {
-    const rows = await sql<{ id: string; name: string }[]>`SELECT id, name FROM team ORDER BY name`;
+    const rows = await sql<{ id: string; name: string }[]>`SELECT id, name FROM team ORDER BY id`;
+    const named = TEAMS.map(({ id, name }) => ({ id, name }));
 
-    expect(rows).toEqual(TEAMS.map(({ id, name }) => ({ id, name })));
+    expect(rows).toEqual(named.toSorted((a, b) => a.id.localeCompare(b.id)));
   });
 
-  it('inserts the default team, which is Team A', async () => {
+  it('inserts the team imported indicators join, which is Fingertips', async () => {
     const [row] = await sql<{ name: string }[]>`
-      SELECT name FROM team WHERE id = ${DEFAULT_INDICATOR_TEAM_ID}
+      SELECT name FROM team WHERE id = ${IMPORTED_INDICATOR_TEAM_ID}
     `;
 
-    expect(row?.name).toBe('Team A');
+    expect(IMPORTED_INDICATOR_TEAM_ID).toBe(TEAM_IDS.fingertips);
+    expect(row?.name).toBe('Fingertips');
   });
 });

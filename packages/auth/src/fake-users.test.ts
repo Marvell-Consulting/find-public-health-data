@@ -8,7 +8,7 @@ import {
   findFakeUser,
   sessionAccessForAudience,
 } from './fake-users.ts';
-import { TEAM_IDS } from './teams.ts';
+import { TEAM_IDS, TEAMS } from './teams.ts';
 
 function requireFakeUser(id: string) {
   const user = findFakeUser(id);
@@ -46,6 +46,14 @@ describe('fake users', () => {
     for (const user of fakeUsers) {
       expect(user.teamIds.length > 0, user.name).toBe(user.roles.includes('publisher'));
     }
+  });
+
+  it('gives every team a publisher but Fingertips, which holds imported indicators', () => {
+    const staffed = new Set(fakeUsers.flatMap((user) => user.teamIds));
+
+    expect(TEAMS.filter(({ id }) => !staffed.has(id)).map(({ name }) => name)).toEqual([
+      'Fingertips',
+    ]);
   });
 
   it('keeps publisher off the admin', () => {
