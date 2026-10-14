@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { assertCoreDataPresent, importCoreData } from './core-data.ts';
 import { migrateToLatest } from './migrations.ts';
+import { SYSTEM_USER_IDS } from './schema/index.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
 import { createTestDatabase, migrateBefore, migrateThrough, type TestDatabase } from './testing.ts';
 
@@ -40,7 +41,7 @@ async function withSnapshotRows(
     INSERT INTO indicator_version
       (indicator_id, name, slug, comparator_method_id, created_by, updated_by)
     SELECT created.id, 'Indicator 1', 'indicator-1', ${versionComparatorId},
-           'migration-test', 'migration-test'
+           ${SYSTEM_USER_IDS.pholioMigration}, ${SYSTEM_USER_IDS.pholioMigration}
     FROM created
   `;
 

@@ -12,9 +12,12 @@ import {
   indicatorVersion,
   indicatorVersionClassification,
   indicatorVersionTopic,
+  SYSTEM_USER_IDS,
   topic,
 } from './schema/index.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
+
+const ACTOR = SYSTEM_USER_IDS.pholioMigration;
 
 const env = parseEnv(
   z.object({
@@ -75,8 +78,8 @@ async function addVersion(
       name: 'Schema test indicator',
       slug: `schema-test-${indicatorId}`,
       publishedAt: status === 'published' ? new Date() : null,
-      createdBy: 'schema-test',
-      updatedBy: 'schema-test',
+      createdBy: ACTOR,
+      updatedBy: ACTOR,
       ...values,
     })
     .returning();
@@ -146,7 +149,7 @@ describe('indicator_version', () => {
     await expect(
       db.execute(
         sql`INSERT INTO indicator_version (indicator_id, created_by, updated_by)
-            VALUES (${indicatorId}, 'schema-test', 'schema-test')`,
+            VALUES (${indicatorId}, ${ACTOR}, ${ACTOR})`,
       ),
     ).rejects.toMatchObject({ cause: { code: NOT_NULL_VIOLATION } });
   });
@@ -544,7 +547,7 @@ describe('indicator_version', () => {
     await expect(
       db.execute(
         sql`INSERT INTO indicator_version (indicator_id, name, created_by, updated_by)
-            VALUES (${indicatorId}, 'no slug', 'schema-test', 'schema-test')`,
+            VALUES (${indicatorId}, 'no slug', ${ACTOR}, ${ACTOR})`,
       ),
     ).rejects.toMatchObject({ cause: { code: NOT_NULL_VIOLATION } });
   });

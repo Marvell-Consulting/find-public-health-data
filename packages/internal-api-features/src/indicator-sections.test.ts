@@ -28,6 +28,7 @@ import { indicatorSectionsRouter } from './indicator-sections.ts';
 import {
   createFakeInternalRepositories,
   createRouterTestApp,
+  TEST_USER_ID,
   testSessionCookie,
   testSessionVerifier,
   unansweredDraft,
@@ -110,7 +111,7 @@ describe('indicatorSectionsRouter', () => {
       '00000000-0000-7000-8000-000000000001',
       { hasLinks: true },
       { links },
-      'test-user',
+      TEST_USER_ID,
     );
     expect(response.body).toEqual({ hasLinks: 'yes', links });
   });

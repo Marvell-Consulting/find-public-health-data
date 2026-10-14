@@ -17,6 +17,7 @@ import {
   ciMethodId,
   indicatorWithTwoPublications,
   newDraft,
+  OTHER_ACTOR,
   repositoryTest,
   storedTopicIdsOf,
   typeClassification,
@@ -145,7 +146,7 @@ describe('updateIndicatorDraft', () => {
       created.indicatorId,
       { name: 'After', definition: 'A definition' },
       { topicIds: [topic.id], classificationIds: { indicator_type: [classified.id] } },
-      'someone-else',
+      OTHER_ACTOR,
     );
 
     expect(result).toEqual({ ok: true });
@@ -157,7 +158,7 @@ describe('updateIndicatorDraft', () => {
       name: 'After',
       definition: 'A definition',
       createdBy: ACTOR,
-      updatedBy: 'someone-else',
+      updatedBy: OTHER_ACTOR,
     });
     expect(await storedTopicIdsOf(db, created.versionId)).toEqual([topic.id]);
 
@@ -304,7 +305,7 @@ describe('updateIndicatorDraft', () => {
         indicatorId,
         { definition: 'A new definition', rationale: 'A new rationale' },
         {},
-        'someone-else',
+        OTHER_ACTOR,
       );
 
       expect(result).toEqual({ ok: true });
@@ -314,7 +315,7 @@ describe('updateIndicatorDraft', () => {
         slug: currentSlug,
         definition: 'A new definition',
         rationale: 'A new rationale',
-        updatedBy: 'someone-else',
+        updatedBy: OTHER_ACTOR,
       });
       const [after] = await db
         .select()

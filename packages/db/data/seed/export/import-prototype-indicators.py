@@ -86,6 +86,8 @@ EXPORT_TABLES = [
 ]
 
 LOCAL_DB_HOSTS = {"localhost", "127.0.0.1", "::1"}
+# SYSTEM_USER_IDS.testSeed in @fphd/db: the user the imported records are written by.
+TEST_SEED_USER_ID = "01a13c69-96ab-7598-9ce0-f5fa1e68080a"
 
 
 def uuid7():
@@ -354,7 +356,7 @@ def add_indicators(cur, metadata, seed_dir):
             VALUES
               (%s, %s, 'published', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-               %s, 'fingertips-api-seed', %s, 'fingertips-api-seed')
+               %s, %s, %s, %s)
             """,
             (
                 version_id,
@@ -384,7 +386,9 @@ def add_indicators(cur, metadata, seed_dir):
                 ).values(),
                 optional_id(cur, "data_source", descriptive.get("DataSource")),
                 updated_at,
+                TEST_SEED_USER_ID,
                 updated_at,
+                TEST_SEED_USER_ID,
             ),
         )
         add_version_sources(cur, version_id, "numerator", numerator_pairs)
@@ -395,13 +399,14 @@ def add_indicators(cur, metadata, seed_dir):
             INSERT INTO upload_batch
               (id, indicator_id, indicator_version_id, original_filename, uploaded_by,
                uploaded_at, status, validation_result)
-            VALUES (%s, %s, %s, %s, 'fingertips-api-seed', %s, 'processed', %s)
+            VALUES (%s, %s, %s, %s, %s, %s, 'processed', %s)
             """,
             (
                 batch_id,
                 indicator_id,
                 version_id,
                 f"fingertips-{fingertips_id}.csv",
+                TEST_SEED_USER_ID,
                 updated_at,
                 Json({"source": "Public Fingertips API", "validated": True}),
             ),
@@ -484,7 +489,6 @@ def add_observations(cur, csv_path, registry, area_ids, metadata, indicator_ids,
                     # dimensionKey in @fphd/db: the dimension value ids sorted and joined.
                     ",".join(sorted(value_ids)),
                     published_at,
-                    "fingertips-api-seed",
                 )
             )
 
@@ -502,7 +506,7 @@ def add_observations(cur, csv_path, registry, area_ids, metadata, indicator_ids,
         INSERT INTO observation
           (id, indicator_id, area_id, from_date, to_date, value, count, denominator,
            lower_ci_95, upper_ci_95, lower_ci_998, upper_ci_998, published_at,
-           upload_batch_id, dimension_key, created_at, created_by)
+           upload_batch_id, dimension_key, created_at)
         VALUES %s
         """,
         observations,
@@ -572,6 +576,9 @@ def export_tables(conn, seed_dir, out_dir, new_version_sources):
             source_path = seed_dir / f"{table}.csv.gz"
             with gzip.open(source_path, "rt", newline="") as source:
                 columns = next(csv.reader(source))
+            # The table has no created_by for observations: the batch's uploader is the writer.
+            if table == "observation":
+                columns = [column for column in columns if column != "created_by"]
             if table == "indicator_version":
                 selected = ", ".join(
                     f'l."{column}"' if column in LEGACY_COLUMNS else f't."{column}"'

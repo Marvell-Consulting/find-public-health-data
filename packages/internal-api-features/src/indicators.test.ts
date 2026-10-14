@@ -11,6 +11,7 @@ import {
   createRouterTestApp,
   type FakeInternalRepositoryOverrides,
   handlerLogLines,
+  TEST_USER_ID,
   testSessionCookie,
   testSessionVerifier,
   unansweredDraft,
@@ -262,7 +263,7 @@ describe('POST /api/internal/indicators', () => {
       .send({ name: 'Life expectancy at birth' });
 
     expect(response.status).toBe(201);
-    expect(createDraft).toHaveBeenCalledWith({ name: 'Life expectancy at birth' }, 'test-user');
+    expect(createDraft).toHaveBeenCalledWith({ name: 'Life expectancy at birth' }, TEST_USER_ID);
     expect(response.body).toEqual({
       id: row.id,
       shortId: 90366,
@@ -283,7 +284,7 @@ describe('POST /api/internal/indicators', () => {
       .set('Cookie', await publisherCookie())
       .send({ name: '  Life expectancy at birth  ' });
 
-    expect(createDraft).toHaveBeenCalledWith({ name: 'Life expectancy at birth' }, 'test-user');
+    expect(createDraft).toHaveBeenCalledWith({ name: 'Life expectancy at birth' }, TEST_USER_ID);
   });
 
   it('reports a name another indicator already holds against the field', async () => {
@@ -340,7 +341,7 @@ describe('POST /api/internal/indicators', () => {
       }),
     ]);
     expect(JSON.stringify(lines)).not.toContain('Life expectancy');
-    expect(JSON.stringify(lines)).not.toContain('test-user');
+    expect(JSON.stringify(lines)).not.toContain(TEST_USER_ID);
   });
 
   it('logs nothing when the name is taken', async () => {
@@ -394,7 +395,7 @@ describe('PATCH /api/internal/indicators/:id', () => {
       .send({ name: '  A better name  ' });
 
     expect(response.status).toBe(200);
-    expect(updateDraft).toHaveBeenCalledWith(row.id, { name: 'A better name' }, {}, 'test-user');
+    expect(updateDraft).toHaveBeenCalledWith(row.id, { name: 'A better name' }, {}, TEST_USER_ID);
     expect(response.body).toEqual({
       id: row.id,
       shortId: 90366,
@@ -510,7 +511,7 @@ describe('PATCH /api/internal/indicators/:id', () => {
       }),
     ]);
     expect(JSON.stringify(lines)).not.toContain('A better name');
-    expect(JSON.stringify(lines)).not.toContain('test-user');
+    expect(JSON.stringify(lines)).not.toContain(TEST_USER_ID);
   });
 
   it('logs nothing when the rename is refused', async () => {

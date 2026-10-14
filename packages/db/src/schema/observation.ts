@@ -71,7 +71,6 @@ export const observation = pgTable(
     // Written by whoever inserts the row, from the dimension values it is about to bridge to.
     dimensionKey: text().notNull(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    createdBy: text().notNull(),
     deletedAt: timestamp({ withTimezone: true }),
   },
   (t) => [

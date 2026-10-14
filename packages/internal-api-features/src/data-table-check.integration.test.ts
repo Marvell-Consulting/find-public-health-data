@@ -17,7 +17,12 @@ import { updateIndicatorDraft } from './indicator-draft-repository.ts';
 import { createDraftFromPublished } from './indicator-publish-repository.ts';
 import { ACTOR, newDraft } from './indicator-repository.testing.ts';
 import { createInternalRepositories } from './repositories.ts';
-import { createRouterTestApp, testSessionCookie, testSessionVerifier } from './testing.ts';
+import {
+  createRouterTestApp,
+  TEST_USER_ID,
+  testSessionCookie,
+  testSessionVerifier,
+} from './testing.ts';
 
 const envFile = fileURLToPath(new URL('../../../.env', import.meta.url));
 if (existsSync(envFile)) {
@@ -272,7 +277,7 @@ describe('PUT /api/internal/indicators/:id/data-table/confirmation', () => {
     expect(response.status).toBe(200);
     const draft = await draftOf(ownerDb, indicatorId);
     expect(draft.dataTableConfirmedAt?.toISOString()).toBe(response.body.confirmedAt);
-    expect(draft.updatedBy).toBe('test-user');
+    expect(draft.updatedBy).toBe(TEST_USER_ID);
   });
 
   it('refuses a batch another upload has replaced, confirming neither', async () => {

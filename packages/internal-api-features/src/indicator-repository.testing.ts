@@ -1,3 +1,4 @@
+import { FAKE_USER_IDS } from '@fphd/auth';
 import { appEnvFields, parseEnv, z } from '@fphd/config';
 import { createDb, type Database, dbEnvFields, resolveDbTls, schema } from '@fphd/db';
 import { createTestDatabase } from '@fphd/db/testing';
@@ -54,7 +55,9 @@ const {
   indicatorVersionLink,
 } = schema;
 
-export const ACTOR = 'integration-test';
+/** Who the repository tests write as, and someone else who writes after them. */
+export const ACTOR = FAKE_USER_IDS.publisherTeamA;
+export const OTHER_ACTOR = FAKE_USER_IDS.publisherTeamsAAndB;
 
 /** Every case here names its indicator distinctly, so the slug is free. */
 export async function newDraft(db: Database, name: string): Promise<CreatedIndicatorDraft> {
