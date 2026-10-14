@@ -5,6 +5,7 @@ import {
   canCreateIndicator,
   canEditIndicator,
   canListIndicators,
+  canManage,
   canMoveIndicatorBetweenTeams,
   canReviewIndicator,
   canSeeIndicator,
@@ -93,6 +94,13 @@ describe('the role-wide checks', () => {
   it('lets an IMRG manager assign reviewers', () => {
     expect(canAssignReviewers(manager)).toBe(true);
     expect(canAssignReviewers(admin)).toBe(false);
+  });
+
+  it('lets an admin, and no one else, manage the shared content', () => {
+    expect(canManage(admin)).toBe(true);
+    for (const asking of [publisherAB, manager, reviewer]) {
+      expect(canManage(asking), asking.sub).toBe(false);
+    }
   });
 
   it('lets an admin move indicators and see teams and users', () => {
