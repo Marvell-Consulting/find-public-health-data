@@ -15,7 +15,7 @@ import {
 } from './indicator-topic-repository.ts';
 import { type LegacySourceMap, mapLegacySources, readLegacySourceMap } from './legacy-sources.ts';
 import { READ_MODEL_TABLES } from './read-models.ts';
-import { DEFAULT_INDICATOR_TEAM_ID } from './schema/index.ts';
+import { IMPORTED_INDICATOR_TEAM_ID } from './schema/index.ts';
 
 import { SEED_TABLES } from './seed-tables.ts';
 
@@ -271,8 +271,7 @@ async function seedTables(
       counts[table] = await loadTable(tx, table, directory, idleTimeoutMs, completionTimeoutMs);
     }
   }
-  // The files carry no team, so each indicator joins the default one.
-  await tx`UPDATE indicator SET team_id = ${DEFAULT_INDICATOR_TEAM_ID} WHERE team_id IS NULL`;
+  await tx`UPDATE indicator SET team_id = ${IMPORTED_INDICATOR_TEAM_ID} WHERE team_id IS NULL`;
   await pointVersionsAtBatches(tx);
   return counts;
 }
