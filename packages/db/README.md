@@ -27,7 +27,9 @@ src/
   schema/             One file per domain group, re-exported by schema/index.ts: lookup.ts
                       holds the reference tables, observation.ts the observation family,
                       cache.ts the derived read models
-    helpers.ts        Column helpers shared across tables (uuidPrimaryKey, timestamps, audit)
+    helpers.ts        Column helpers shared across tables (uuidPrimaryKey, timestamps)
+    user.ts           app_user, the system user ids, and the actor columns (actorId, audit)
+    team.ts           team, and the team every indicator joins for now
     published.ts      The public read surface: views declared as already existing
   scripts/            owner-client.ts — the owner-role connection helper the test harness
                       uses; the runnable commands live in apps/operations
@@ -68,10 +70,17 @@ src/
   publisher chooses from) spreads `timestamps` from `schema/helpers.ts` (`created_at` /
   `updated_at`, timestamptz). `updated_at` is app-maintained: the import's conditional upsert
   bumps it only on a row the file changes, as the topics import shows. A table a publisher
-  edits spreads `audit` where the actor columns matter too, as `indicator_version` does. A
+  edits spreads `audit` from `schema/user.ts` where the actor columns matter too, as
+  `indicator_version` does: `created_by` and `updated_by` are foreign keys to `app_user`, and
+  any other column naming who wrote a row is an `actorId()`, as `upload_batch.uploaded_by` is. A
   version's child tables carry neither: their rows are deleted and reinserted on every save,
   and the version's own `updated_at` records that. `observation` records only creation,
-  since a correction supersedes a row rather than editing it.
+  since a correction supersedes a row rather than editing it, and its batch's uploader is its
+  writer.
+- **Users and teams**: `app_user` and `team` rows are inserted by migration with fixed ids,
+  which `@fphd/auth` uses for its fake users and their teams; `SYSTEM_USER_IDS` names the
+  system users imports write as. Roles and team memberships are not stored: they live in
+  `@fphd/auth` until sign-in through Entra decides where they come from.
 - **Vocabularies**: a closed set whose values the code behaves on is a checked text column,
   `text({ enum })` beside a check written with `literals()` over the list in its
   `@fphd/utils` module, which also holds the labels and which the contracts and pages import,
