@@ -104,6 +104,7 @@ export function NumeratorDenominatorPage({
         defaultValue={values.providerId}
         error={providerError}
         label={`Add a data provider for the ${part}`}
+        labelHeading="h2"
         name="providerId"
         onChange={selected.onChange}
         options={[
@@ -142,6 +143,7 @@ export function NumeratorDenominatorPage({
         defaultValue={values.definition}
         error={fieldErrors.definition}
         label={`Enter the definition of the ${part}`}
+        labelHeading="h2"
         name="definition"
         rows={5}
       />

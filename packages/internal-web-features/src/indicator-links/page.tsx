@@ -1,7 +1,11 @@
 import type { IndicatorLink } from '@fphd/internal-api-features/contract';
 import { Button, fieldInputId, firstRadioId, Radios, TextInput } from '@fphd/ui';
 
-import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
+import {
+  IndicatorSectionForm,
+  QUESTION_HEADING_SIZE,
+  type SectionPageProps,
+} from '../indicator-section-form.tsx';
 import { ADD_INTENT, removeIntent } from '../list-form.ts';
 import { type LinksPageField, type LinksPageValues, linkFieldName } from './form.ts';
 
@@ -40,7 +44,7 @@ function AddedLinks({ links }: { links: readonly IndicatorLink[] }) {
   );
 }
 
-// The question is the page's h1, inside the legend, where NotGovUK sizes it.
+// The question is the page's h1, inside the legend.
 export function LinksPage(form: SectionPageProps<LinksPageField, LinksPageValues>) {
   const { fieldErrors, values } = form;
   // "Yes" with no links is asked of the URL field, where the next link goes.
@@ -59,7 +63,9 @@ export function LinksPage(form: SectionPageProps<LinksPageField, LinksPageValues
         defaultValue={values.hasLinks}
         error={fieldErrors.hasLinks}
         hint="For example, any statistical commentaries that will be available once this indicator is published"
-        label={<h1>{LINKS_QUESTION}</h1>}
+        label={LINKS_QUESTION}
+        labelClassModifiers={QUESTION_HEADING_SIZE}
+        labelHeading="h1"
         name="hasLinks"
         options={[
           {

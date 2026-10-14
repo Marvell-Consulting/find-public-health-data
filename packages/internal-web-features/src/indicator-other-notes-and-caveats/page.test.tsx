@@ -65,8 +65,12 @@ describe('OtherNotesAndCaveatsPage', () => {
     expect(
       screen
         .getAllByRole('heading', { level: 2 })
-        .map((heading) => [heading.textContent, heading.className, heading.parentElement?.tagName]),
-    ).toEqual(QUESTIONS.map(([legend]) => [legend, 'govuk-heading-m', 'LEGEND']));
+        .map((heading) => [
+          heading.textContent,
+          heading.parentElement?.tagName,
+          heading.parentElement?.className.includes('govuk-fieldset__legend--m'),
+        ]),
+    ).toEqual(QUESTIONS.map(([legend]) => [legend, 'LEGEND', true]));
     expect(container.querySelectorAll('h1, h2, h3, h4, h5, h6')).toHaveLength(5);
   });
 

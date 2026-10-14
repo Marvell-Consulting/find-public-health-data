@@ -4,7 +4,8 @@ import {
   type TagOption,
   type TagOptions,
 } from '@fphd/internal-api-features/contract';
-import { Button, fieldInputId, firstRadioId, QuestionLegend, Radios, Select } from '@fphd/ui';
+import { Button, fieldInputId, firstRadioId, Radios, Select } from '@fphd/ui';
+import type { ElementType } from 'react';
 
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 import { addIntent, removeIntent } from '../list-form.ts';
@@ -38,11 +39,14 @@ function TagPicker({
   options,
   values,
   fieldErrors,
+  labelHeading,
 }: {
   list: TagList;
   options: readonly TagOption[];
   values: TaggingPageValues;
   fieldErrors: FieldErrors;
+  /** Set where the picker asks a question of its own, rather than answering one above it. */
+  labelHeading?: ElementType | undefined;
 }) {
   const { article, noun } = TAG_LIST_DETAILS[list];
   const field = ADD_TAG_FIELDS[list];
@@ -57,6 +61,7 @@ function TagPicker({
           defaultValue={values[field]}
           error={fieldErrors[field] ?? fieldErrors[list]}
           label={`Select ${article} ${noun}`}
+          {...(labelHeading === undefined ? {} : { labelHeading })}
           name={field}
           options={[
             { label: 'Select', value: '' },
@@ -98,10 +103,11 @@ interface TaggingPageProps extends SectionPageProps<TaggingPageField, TaggingPag
 
 export function TaggingPage({ options, ...form }: TaggingPageProps) {
   const { fieldErrors, values } = form;
-  const picker = (list: TagList) => (
+  const picker = (list: TagList, labelHeading?: ElementType) => (
     <TagPicker
       fieldErrors={fieldErrors}
       list={list}
+      {...(labelHeading === undefined ? {} : { labelHeading })}
       options={options[TAG_LIST_DETAILS[list].options]}
       values={values}
     />
@@ -122,12 +128,13 @@ export function TaggingPage({ options, ...form }: TaggingPageProps) {
       form={form}
       title="Add tags for this indicator"
     >
-      {picker('topicIds')}
-      {picker('indicatorTypeIds')}
+      {picker('topicIds', 'h2')}
+      {picker('indicatorTypeIds', 'h2')}
       <Radios
         defaultValue={values.hasRiskFactor}
         error={fieldErrors.hasRiskFactor}
-        label={<QuestionLegend>{RISK_FACTOR_QUESTION}</QuestionLegend>}
+        label={RISK_FACTOR_QUESTION}
+        labelHeading="h2"
         name="hasRiskFactor"
         options={[
           // Shown without JavaScript; with it, only while "Yes" is chosen.
@@ -138,7 +145,8 @@ export function TaggingPage({ options, ...form }: TaggingPageProps) {
       <Radios
         defaultValue={values.hasFramework}
         error={fieldErrors.hasFramework}
-        label={<QuestionLegend>{FRAMEWORK_QUESTION}</QuestionLegend>}
+        label={FRAMEWORK_QUESTION}
+        labelHeading="h2"
         name="hasFramework"
         options={[
           { label: 'Yes', value: 'yes', conditional: picker('frameworkIds') },

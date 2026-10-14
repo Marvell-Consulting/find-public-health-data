@@ -1,7 +1,7 @@
 import FormGroup from '@not-govuk/form-group';
 import Input from '@not-govuk/input';
 import Label from '@not-govuk/label';
-import type { ReactNode } from 'react';
+import type { ElementType, ReactNode } from 'react';
 
 // NotGovUK's DateInput names each part `name[part]` and gives it the id `name-part`.
 export function datePartName(name: string, part: string): string {
@@ -18,6 +18,8 @@ interface PartsInputProps<Part extends string> {
   error?: Partial<Record<Part, string>> | undefined;
   hint?: ReactNode;
   label: ReactNode;
+  /** Component to wrap the legend in, making it a heading. */
+  labelHeading?: ElementType | undefined;
   name: string;
 }
 
@@ -27,13 +29,22 @@ function PartsInput<Part extends string>({
   error = {},
   hint,
   label,
+  labelHeading,
   name,
   parts,
 }: PartsInputProps<Part> & { parts: readonly (readonly [Part, string])[] }) {
   const message = parts.map(([part]) => error[part]).find((text) => text !== undefined);
 
   return (
-    <FormGroup error={message} hint={hint} id={name} label={label}>
+    // FormGroup types labelHeading without undefined, which exactOptionalPropertyTypes
+    // will not pass through, so it is added only when there is one.
+    <FormGroup
+      error={message}
+      hint={hint}
+      id={name}
+      label={label}
+      {...(labelHeading === undefined ? {} : { labelHeading })}
+    >
       <div className="govuk-date-input">
         {parts.map(([part, text]) => (
           <div className="govuk-date-input__item" key={part}>

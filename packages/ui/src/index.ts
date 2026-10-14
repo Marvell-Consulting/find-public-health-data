@@ -51,7 +51,6 @@ export { type DateFormat, DISPLAY_TIME_ZONE, formatDate } from './format-date.ts
 export { type GeographyArea, GeographyTree } from './geography-tree.tsx';
 export { GridColumn, GridRow, SectionBreak } from './layout.tsx';
 export { NonceProvider, useNonce } from './nonce.tsx';
-export { QuestionLegend } from './question-legend.tsx';
 export { RootErrorBoundary } from './root-error-boundary.tsx';
 export { SearchField } from './search-field.tsx';
 export { Tabs } from './tabs.tsx';

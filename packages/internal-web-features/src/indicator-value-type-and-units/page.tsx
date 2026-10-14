@@ -4,7 +4,7 @@ import {
   type ValueTypeAndUnitsField,
   valueTypeAndUnitsSection,
 } from '@fphd/internal-api-features/contract';
-import { firstRadioId, QuestionLegend, Radios, Select, TextInput } from '@fphd/ui';
+import { firstRadioId, Radios, Select, TextInput } from '@fphd/ui';
 import {
   INDIRECTLY_STANDARDISED_VALUE_TYPE_IDS,
   STANDARD_POPULATION_LABELS,
@@ -54,6 +54,7 @@ export function ValueTypeAndUnitsPage({ units, valueTypes, ...form }: ValueTypeA
         defaultValue={values.valueTypeId}
         error={fieldErrors.valueTypeId}
         label="Select value type"
+        labelHeading="h2"
         name="valueTypeId"
         onChange={valueType.onChange}
         options={selectOptions(valueTypes)}
@@ -65,7 +66,8 @@ export function ValueTypeAndUnitsPage({ units, valueTypes, ...form }: ValueTypeA
           )}
           defaultValue={values.standardPopulation}
           error={fieldErrors.standardPopulation}
-          label={<QuestionLegend>What standard population has been used?</QuestionLegend>}
+          label="What standard population has been used?"
+          labelHeading="h2"
           name="standardPopulation"
           options={STANDARD_POPULATIONS.map((value) => ({
             label: STANDARD_POPULATION_LABELS[value],
@@ -102,6 +104,7 @@ export function ValueTypeAndUnitsPage({ units, valueTypes, ...form }: ValueTypeA
         defaultValue={values.unitId}
         error={fieldErrors.unitId}
         label="Select units"
+        labelHeading="h2"
         name="unitId"
         onChange={unit.onChange}
         options={selectOptions(units)}

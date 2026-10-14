@@ -3,6 +3,13 @@ import type { ReactNode } from 'react';
 
 import type { FormValues } from './form-values.ts';
 
+/**
+ * The size a question keeps when it is the page heading. NotGovUK sizes an h1 label or legend
+ * `l`, as the GOV.UK question page pattern does; we are a step larger everywhere, so pinning it
+ * here holds the page as it was. Remove once FPH-510 settles the scale for the whole application.
+ */
+export const QUESTION_HEADING_SIZE = 'xl';
+
 /** What every section page is given: its answers, and any refusals of the last submission. */
 export interface SectionPageProps<Field extends string, Values = FormValues<Field>> {
   fieldErrors: Partial<Record<Field, string>>;

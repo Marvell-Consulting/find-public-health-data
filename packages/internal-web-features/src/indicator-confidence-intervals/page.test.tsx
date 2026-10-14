@@ -200,7 +200,7 @@ describe('ConfidenceIntervalsPage', () => {
         hidden: true,
       });
 
-      expect(legend.className).toBe('govuk-heading-m');
+      expect(legend.parentElement?.className).toContain('govuk-fieldset__legend--m');
     });
 
     it('reveals the description of the modifications under Yes', () => {

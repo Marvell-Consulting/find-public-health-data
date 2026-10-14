@@ -50,8 +50,8 @@ describe('YesNoQuestion', () => {
 
     const heading = screen.getByRole('heading', { level: 2, name: LEGEND });
 
-    expect(heading.className).toBe('govuk-heading-m');
     expect(heading.parentElement?.tagName).toBe('LEGEND');
+    expect(heading.parentElement?.className).toContain('govuk-fieldset__legend--m');
   });
 
   it('describes the question with its hint', () => {

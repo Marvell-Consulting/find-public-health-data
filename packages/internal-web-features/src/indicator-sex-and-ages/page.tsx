@@ -15,7 +15,6 @@ import {
   fieldInputId,
   firstCheckboxId,
   firstRadioId,
-  QuestionLegend,
   Radios,
   Select,
   TextInput,
@@ -152,14 +151,16 @@ export function SexAndAgesPage(form: SectionPageProps<SexAndAgesPageField, SexAn
       <Checkboxes
         defaultValue={values.sexes}
         error={fieldErrors.sexes}
-        label={<QuestionLegend>Select sexes included</QuestionLegend>}
+        label="Select sexes included"
+        labelHeading="h2"
         name="sexes"
         options={SEXES.map((sex) => ({ value: sex, label: SEX_LABELS[sex] }))}
       />
       <Radios
         defaultValue={values.ageType}
         error={fieldErrors.ageType}
-        label={<QuestionLegend>Select age type</QuestionLegend>}
+        label="Select age type"
+        labelHeading="h2"
         name="ageType"
         options={[
           { value: 'all', label: 'All ages' },

@@ -9,7 +9,11 @@ import {
   type UpdateFrequency,
 } from '@fphd/utils/update-frequency';
 
-import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
+import {
+  IndicatorSectionForm,
+  QUESTION_HEADING_SIZE,
+  type SectionPageProps,
+} from '../indicator-section-form.tsx';
 
 const UPDATE_FREQUENCY_QUESTION = 'How often will this indicator be updated?';
 
@@ -24,7 +28,7 @@ const OPTIONS = [
   option('no-longer-updated'),
 ];
 
-// The question is the page's h1, inside the legend, where NotGovUK sizes it.
+// The question is the page's h1, inside the legend.
 export function UpdateFrequencyPage(form: SectionPageProps<UpdateFrequencyField>) {
   const { fieldErrors, values } = form;
 
@@ -39,7 +43,9 @@ export function UpdateFrequencyPage(form: SectionPageProps<UpdateFrequencyField>
       <Radios
         defaultValue={values.updateFrequency}
         error={fieldErrors.updateFrequency}
-        label={<h1>{UPDATE_FREQUENCY_QUESTION}</h1>}
+        label={UPDATE_FREQUENCY_QUESTION}
+        labelClassModifiers={QUESTION_HEADING_SIZE}
+        labelHeading="h1"
         name="updateFrequency"
         options={OPTIONS}
       />

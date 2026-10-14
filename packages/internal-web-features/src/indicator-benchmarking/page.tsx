@@ -1,5 +1,5 @@
 import { type BenchmarkingField, benchmarkingSection } from '@fphd/internal-api-features/contract';
-import { firstRadioId, QuestionLegend, Radios, Textarea, TextInput } from '@fphd/ui';
+import { firstRadioId, Radios, Textarea, TextInput } from '@fphd/ui';
 import { GOAL_POLARITIES, GOAL_POLARITY_LABELS } from '@fphd/utils/polarity';
 
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
@@ -20,7 +20,8 @@ export function BenchmarkingPage(form: SectionPageProps<BenchmarkingField>) {
       <Radios
         defaultValue={values.hasGoalBenchmark}
         error={fieldErrors.hasGoalBenchmark}
-        label={<QuestionLegend>Are there any goal benchmarks for this indicator?</QuestionLegend>}
+        label="Are there any goal benchmarks for this indicator?"
+        labelHeading="h2"
         name="hasGoalBenchmark"
         options={[
           {
@@ -53,11 +54,8 @@ export function BenchmarkingPage(form: SectionPageProps<BenchmarkingField>) {
                   classModifiers="small"
                   defaultValue={values.goalPolarity}
                   error={fieldErrors.goalPolarity}
-                  label={
-                    <QuestionLegend as="h3" size="s">
-                      Select polarity of goal
-                    </QuestionLegend>
-                  }
+                  label="Select polarity of goal"
+                  labelHeading="h3"
                   name="goalPolarity"
                   options={GOAL_POLARITIES.map((value) => ({
                     value,

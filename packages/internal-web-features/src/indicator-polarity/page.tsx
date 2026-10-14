@@ -2,11 +2,15 @@ import { type PolarityField, polaritySection } from '@fphd/internal-api-features
 import { firstRadioId, Radios } from '@fphd/ui';
 import { POLARITIES, POLARITY_LABELS } from '@fphd/utils/polarity';
 
-import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
+import {
+  IndicatorSectionForm,
+  QUESTION_HEADING_SIZE,
+  type SectionPageProps,
+} from '../indicator-section-form.tsx';
 
 const POLARITY_QUESTION = 'What is the polarity of this indicator?';
 
-// The question is the page's h1, inside the legend, where NotGovUK sizes it.
+// The question is the page's h1, inside the legend.
 export function PolarityPage(form: SectionPageProps<PolarityField>) {
   const { fieldErrors, values } = form;
 
@@ -21,7 +25,9 @@ export function PolarityPage(form: SectionPageProps<PolarityField>) {
       <Radios
         defaultValue={values.polarity}
         error={fieldErrors.polarity}
-        label={<h1>{POLARITY_QUESTION}</h1>}
+        label={POLARITY_QUESTION}
+        labelClassModifiers={QUESTION_HEADING_SIZE}
+        labelHeading="h1"
         name="polarity"
         options={POLARITIES.map((value) => ({ label: POLARITY_LABELS[value], value }))}
       />
