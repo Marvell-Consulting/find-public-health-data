@@ -7,7 +7,13 @@ import express, { type Express } from 'express';
 import { pino } from 'pino';
 import { describe, expect, it } from 'vitest';
 
-import { addFallbackHandlers, createApiApp, requireApiSession, requireJwtRole } from './index.ts';
+import {
+  addFallbackHandlers,
+  createApiApp,
+  requireApiSession,
+  requireJwtRole,
+  requireJwtSession,
+} from './index.ts';
 
 const logger = createLogger({ name: 'test-api', level: 'silent' });
 
@@ -179,6 +185,13 @@ function createGuardedApp(): Express {
   app.get('/guarded', requireJwtRole(verifier, 'publisher'), (_request, response) => {
     response.status(200).json(requireApiSession(response));
   });
+  app.get(
+    '/checked',
+    requireJwtSession(verifier, (asking) => asking.teams.includes('team-1')),
+    (_request, response) => {
+      response.status(200).json(requireApiSession(response));
+    },
+  );
   app.get('/unguarded', (_request, response) => {
     response.status(200).json(requireApiSession(response));
   });
@@ -229,6 +242,23 @@ describe('requireJwtRole', () => {
       sub: 'publisher-1',
       teams: ['team-1'],
     });
+  });
+});
+
+describe('requireJwtSession', () => {
+  it('admits the sessions its check admits and refuses the rest', async () => {
+    const app = createGuardedApp();
+    const admitted = await request(app)
+      .get('/checked')
+      .set('Cookie', await cookieFor('in-team', ['internal'], ['team-1']));
+    const refused = await request(app)
+      .get('/checked')
+      .set('Cookie', await cookieFor('elsewhere', ['internal'], ['team-2']));
+
+    expect(admitted.status).toBe(200);
+    expect(admitted.body).toMatchObject({ sub: 'in-team' });
+    expect(refused.status).toBe(403);
+    expect(refused.body).toEqual({ error: 'forbidden' });
   });
 });
 

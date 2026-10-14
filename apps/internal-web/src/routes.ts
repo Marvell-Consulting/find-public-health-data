@@ -29,12 +29,14 @@ export default [
     route('indicators/:slug', '../../../packages/public-web-features/src/indicator/route.tsx', {
       id: 'indicator-detail',
     }),
-    layout('./publisher.tsx', [
+    layout('./dashboard.tsx', [
       route('dashboard', '../../../packages/internal-web-features/src/dashboard/route.tsx'),
       route(
         'dashboard/indicators/:id',
         '../../../packages/internal-web-features/src/indicator-overview/route.tsx',
       ),
+    ]),
+    layout('./publisher.tsx', [
       route(
         'publish/indicators/new',
         '../../../packages/internal-web-features/src/indicator-name/new-route.tsx',

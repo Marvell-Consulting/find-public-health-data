@@ -11,8 +11,8 @@ export const meta = createDocumentMeta('Indicator overview');
 export const handle = backLinkHandle(DASHBOARD_PATH, 'Back to indicators');
 
 export function IndicatorOverviewRoute() {
-  const { indicator } = useLoaderData<typeof loader>();
-  return <IndicatorOverviewPage indicator={indicator} />;
+  const { canEdit, indicator } = useLoaderData<typeof loader>();
+  return <IndicatorOverviewPage canEdit={canEdit} indicator={indicator} />;
 }
 
 export default IndicatorOverviewRoute;

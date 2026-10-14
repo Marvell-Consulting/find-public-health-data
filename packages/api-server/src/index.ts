@@ -90,18 +90,26 @@ function sessionLocals(response: Response): { apiSession?: ApiSession } {
   return response.locals;
 }
 
-/** The session `requireJwtRole` verified; only a handler mounted behind it can ask for it. */
+/** The session a guard verified; only a handler mounted behind one can ask for it. */
 export function requireApiSession(response: Response): ApiSession {
   const session = sessionLocals(response).apiSession;
 
   if (session === undefined) {
-    throw new Error('requireApiSession called outside a route guarded by requireJwtRole');
+    throw new Error('requireApiSession called outside a guarded route');
   }
 
   return session;
 }
 
 export function requireJwtRole(verifier: JwtSessionVerifier, role: string): RequestHandler {
+  return requireJwtSession(verifier, (session) => session.roles.includes(role));
+}
+
+/** Admits a verified session that `allows` admits, such as a check from `@fphd/auth/permissions`. */
+export function requireJwtSession(
+  verifier: JwtSessionVerifier,
+  allows: (session: ApiSession) => boolean,
+): RequestHandler {
   return async (request, response, next) => {
     const token = verifier.readToken(request.headers.cookie ?? null);
 
@@ -111,18 +119,15 @@ export function requireJwtRole(verifier: JwtSessionVerifier, role: string): Requ
     }
 
     try {
-      const session = await verifier.verifyToken(token);
+      const { roles, sub, teams } = await verifier.verifyToken(token);
+      const session = { roles, sub, teams };
 
-      if (!session.roles.includes(role)) {
+      if (!allows(session)) {
         response.status(403).json({ error: 'forbidden' });
         return;
       }
 
-      sessionLocals(response).apiSession = {
-        roles: session.roles,
-        sub: session.sub,
-        teams: session.teams,
-      };
+      sessionLocals(response).apiSession = session;
 
       next();
     } catch (error) {

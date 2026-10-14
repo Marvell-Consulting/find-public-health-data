@@ -1,8 +1,9 @@
+import { TEAM_IDS } from '@fphd/auth';
 import type { ApiClient } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
-import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
+import { signedInContext } from '../session.testing.ts';
 import { loadIndicatorOverview } from './loader.ts';
 
 const indicator = {
@@ -10,13 +11,19 @@ const indicator = {
   shortId: 90366,
   publishedSlug: 'life-expectancy-at-birth',
   name: 'Life expectancy at birth',
+  teamId: TEAM_IDS.teamA,
   indicatorStatus: 'live',
   draftStatus: null,
   updatedAt: '2026-01-02T00:00:00.000Z',
 };
 
-function load(id: string, get: ApiClient['get']) {
-  const context = new RouterContextProvider();
+async function load(
+  id: string,
+  get: ApiClient['get'],
+  roles: readonly string[] = ['publisher'],
+  teams: readonly string[] = [indicator.teamId],
+) {
+  const context = await signedInContext(roles, teams);
   context.set(apiContext, { get } as unknown as ApiClient);
 
   return loadIndicatorOverview({
@@ -33,6 +40,15 @@ describe('loadIndicatorOverview', () => {
     const outcome = await load(indicator.id, get);
 
     expect(get.mock.calls[0]?.[0]).toBe(`/api/internal/indicators/${indicator.id}`);
-    expect(outcome).toEqual({ indicator });
+    expect(outcome).toEqual({ canEdit: true, indicator });
+  });
+
+  it.each([
+    ['an admin', ['admin'], []],
+    ['a publisher in another team', ['publisher'], [TEAM_IDS.teamB]],
+  ])('offers %s no editing action', async (_who, roles, teams) => {
+    const outcome = await load(indicator.id, vi.fn().mockResolvedValue(indicator), roles, teams);
+
+    expect(outcome.canEdit).toBe(false);
   });
 });

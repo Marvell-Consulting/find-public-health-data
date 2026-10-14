@@ -84,6 +84,8 @@ export const draftStatusSchema = z.enum(['draft']);
 export const indicatorAdminSummarySchema = z.object({
   id: z.uuid(),
   name: z.string().min(1),
+  /** The team whose publishers own it. */
+  teamId: z.uuid().nullable(),
   updatedAt: z.iso.datetime(),
   indicatorStatus: indicatorStatusSchema,
   /** Null while the indicator has no draft, which for a live one means it is published as is. */

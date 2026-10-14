@@ -1,5 +1,6 @@
-import { requireApiSession, requireJwtRole } from '@fphd/api-server';
+import { requireApiSession, requireJwtRole, requireJwtSession } from '@fphd/api-server';
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
+import { canListIndicators, canSeeIndicator, indicatorListScope } from '@fphd/auth/permissions';
 import { Router } from 'express';
 
 import {
@@ -28,9 +29,10 @@ function toSummary({
   id,
   indicatorStatus,
   name,
+  teamId,
   updatedAt,
 }: IndicatorAdminRow): IndicatorAdminSummary {
-  return { id, name, updatedAt: updatedAt.toISOString(), indicatorStatus, draftStatus };
+  return { id, name, teamId, updatedAt: updatedAt.toISOString(), indicatorStatus, draftStatus };
 }
 
 function toDetail(row: IndicatorAdminDetailRow): IndicatorAdminDetail {
@@ -38,8 +40,9 @@ function toDetail(row: IndicatorAdminDetailRow): IndicatorAdminDetail {
 }
 
 /**
- * The publisher's view of indicators: every one, including the unpublished ones the public
- * API never serves. Mounted only by `internal-api`; `public-api` must 404 every path.
+ * The internal view of indicators, including the unpublished ones the public API never serves,
+ * each user seeing those their roles allow. Mounted only by `internal-api`; `public-api` must
+ * 404 every path.
  */
 export function internalIndicatorsRouter(
   indicators: InternalIndicatorRepository,
@@ -47,8 +50,9 @@ export function internalIndicatorsRouter(
 ): Router {
   const router = Router();
   const requirePublisher = requireJwtRole(session, 'publisher');
+  const requireLister = requireJwtSession(session, canListIndicators);
 
-  router.get('/api/internal/indicators', requirePublisher, async (request, response) => {
+  router.get('/api/internal/indicators', requireLister, async (request, response) => {
     const query = indicatorPageQuerySchema.safeParse(request.query);
 
     if (!query.success) {
@@ -57,7 +61,11 @@ export function internalIndicatorsRouter(
     }
 
     const { page } = query.data;
-    const rows = await indicators.listPage(page, INDICATORS_PAGE_SIZE);
+    const rows = await indicators.listPage(
+      page,
+      INDICATORS_PAGE_SIZE,
+      indicatorListScope(requireApiSession(response)),
+    );
     const body: IndicatorAdminPage = {
       indicators: rows.indicators.map(toSummary),
       page,
@@ -182,7 +190,7 @@ export function internalIndicatorsRouter(
     },
   );
 
-  router.get('/api/internal/indicators/:id', requirePublisher, async (request, response) => {
+  router.get('/api/internal/indicators/:id', requireLister, async (request, response) => {
     const id = indicatorIdSchema.safeParse(request.params.id);
 
     // Handing an unparseable id to the database would surface as a 500; it is a bad request.
@@ -193,7 +201,8 @@ export function internalIndicatorsRouter(
 
     const row = await indicators.findById(id.data);
 
-    if (!row) {
+    // One the user may not see answers as one that does not exist. No reviewer is assigned yet.
+    if (!row || !canSeeIndicator(requireApiSession(response), { ...row, reviewerIds: [] })) {
       response.status(404).json({ error: 'not_found' });
       return;
     }

@@ -1,6 +1,6 @@
 import { TEAM_IDS } from './teams.ts';
 
-export { JOB_ROLES, type JobRole, ROLES, type Role } from './roles.ts';
+export { ROLES, type Role } from './roles.ts';
 export { TEAM_IDS, TEAMS, type Team } from './teams.ts';
 
 export type AppAudience = 'internal' | 'public';

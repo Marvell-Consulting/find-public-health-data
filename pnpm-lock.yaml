@@ -773,6 +773,9 @@ importers:
 
   packages/internal-web-features:
     dependencies:
+      '@fphd/auth':
+        specifier: workspace:*
+        version: link:../auth
       '@fphd/internal-api-features':
         specifier: workspace:*
         version: link:../internal-api-features

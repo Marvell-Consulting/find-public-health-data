@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { TEAM_IDS } from '@fphd/auth';
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -10,6 +11,7 @@ afterEach(cleanup);
 const indicator = {
   id: '019a1b2c-3d4e-7f60-8a9b-0c1d2e3f4a5b',
   name: 'Life expectancy at birth',
+  teamId: TEAM_IDS.teamA,
   updatedAt: '2026-08-04T23:30:00.000Z',
   indicatorStatus: 'live',
   draftStatus: null,
@@ -19,7 +21,7 @@ const indicator = {
 function renderPage(props: Partial<Parameters<typeof DashboardPage>[0]> = {}, url = '/dashboard') {
   return render(
     <MemoryRouter initialEntries={[url]}>
-      <DashboardPage indicators={[indicator]} page={1} totalPages={1} {...props} />
+      <DashboardPage canCreate indicators={[indicator]} page={1} totalPages={1} {...props} />
     </MemoryRouter>,
   );
 }
@@ -29,7 +31,7 @@ describe('DashboardPage', () => {
     renderPage();
 
     expect(
-      screen.getByRole('table', { name: 'Every indicator, most recently edited first' }),
+      screen.getByRole('table', { name: 'Indicators, most recently edited first' }),
     ).toBeTruthy();
   });
 
@@ -79,10 +81,16 @@ describe('DashboardPage', () => {
     );
   });
 
+  it('offers no create action to someone who may not create an indicator', () => {
+    renderPage({ canCreate: false });
+
+    expect(screen.queryByRole('button', { name: 'Create new indicator' })).toBeNull();
+  });
+
   it('says so when there are no indicators', () => {
     renderPage({ indicators: [] });
 
-    expect(screen.getByText('There are no indicators yet.')).toBeTruthy();
+    expect(screen.getByText('There are no indicators for you to see yet.')).toBeTruthy();
     expect(screen.queryByRole('table')).toBeNull();
   });
 

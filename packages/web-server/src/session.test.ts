@@ -6,6 +6,7 @@ import {
 import type { RouterContextProvider } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import {
+  createRequireSessionMiddleware,
   createRequireSessionRoleMiddleware,
   createSessionContext,
   getSession,
@@ -274,6 +275,50 @@ describe('session role middleware', () => {
 
     expect(response.status).toBe(200);
     expect(await response.text()).toBe('Internal content');
+  });
+});
+
+describe('session check middleware', () => {
+  async function outcome(teams: readonly string[]): Promise<string> {
+    const service = createTestService();
+    const token = await service.issueToken({
+      expiresInSeconds: 900,
+      roles: ['internal'],
+      subject: 'user-123',
+      teams,
+    });
+    const request = new Request('https://example.test/dashboard', {
+      headers: { Cookie: service.createCookieHeader(token, 900) },
+    });
+    const args = {
+      context: createSessionContext(service),
+      params: {},
+      pattern: '/dashboard',
+      request,
+      url: new URL(request.url),
+    };
+    const requireTeam = createRequireSessionMiddleware({
+      allows: (session) => session.teams.includes('team-1'),
+      forbiddenPath: '/access-denied',
+      signInPath: '/sign-in',
+    });
+
+    try {
+      const response = await sessionMiddleware(args, async () => {
+        const admitted = await requireTeam(args, async () => new Response('Team content'));
+        if (!(admitted instanceof Response)) throw new Error('The check returned no response');
+        return admitted;
+      });
+      return response instanceof Response ? await response.text() : 'no response';
+    } catch (error) {
+      if (error instanceof Response) return error.headers.get('Location') ?? '';
+      throw error;
+    }
+  }
+
+  it('admits a session its check admits and turns any other away', async () => {
+    expect(await outcome(['team-1'])).toBe('Team content');
+    expect(await outcome(['team-2'])).toBe('/access-denied');
   });
 });
 
