@@ -10,3 +10,4 @@ export * from './published.ts';
 export * from './team.ts';
 export * from './topic.ts';
 export * from './upload.ts';
+export * from './user.ts';

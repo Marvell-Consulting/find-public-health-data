@@ -1,6 +1,7 @@
 import { Writable } from 'node:stream';
 
 import { createApiApp } from '@fphd/api-server';
+import { FAKE_USER_IDS } from '@fphd/auth';
 import { createJwtSessionService, createJwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { schema } from '@fphd/db';
 import { nullColumns, withThrowingDefaults } from '@fphd/db/testing';
@@ -42,7 +43,10 @@ const testSession = createJwtSessionService({
 
 export const testSessionVerifier = createJwtSessionVerifier(testSession);
 
-/** A session cookie for `test-user` holding the given roles and teams. */
+/** The signed-in user of a test session: a fake user, so the rows it writes have a writer. */
+export const TEST_USER_ID = FAKE_USER_IDS.publisherTeamA;
+
+/** A session cookie for `TEST_USER_ID` holding the given roles and teams. */
 export async function testSessionCookie(
   roles: readonly string[],
   teams: readonly string[] = [],
@@ -50,7 +54,7 @@ export async function testSessionCookie(
   const token = await testSession.issueToken({
     expiresInSeconds: 900,
     roles,
-    subject: 'test-user',
+    subject: TEST_USER_ID,
     teams,
   });
   return testSession.createCookieHeader(token, 900);

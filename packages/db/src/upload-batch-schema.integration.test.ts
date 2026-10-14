@@ -2,8 +2,11 @@ import type postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { dimensionKey } from './dimension-key.ts';
+import { SYSTEM_USER_IDS } from './schema/index.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
+
+const ACTOR = SYSTEM_USER_IDS.pholioMigration;
 
 const UNIQUE_VIOLATION = '23505';
 const FOREIGN_KEY_VIOLATION = '23503';
@@ -109,7 +112,7 @@ describe('the upload tables', () => {
         indicator_id: indicatorId,
         indicator_version_id: versionId,
         original_filename: 'data.csv',
-        uploaded_by: 'schema-test',
+        uploaded_by: ACTOR,
         ...columns,
       })}
     `;
@@ -118,9 +121,8 @@ describe('the upload tables', () => {
   async function insertObservation(batch: string, dimensionKeyValue: string) {
     return sql`
       INSERT INTO observation
-        (indicator_id, area_id, from_date, to_date, upload_batch_id, dimension_key, created_by)
-      SELECT ${indicatorId}, a.id, '2099-01-01', '2099-12-31', ${batch}, ${dimensionKeyValue},
-             'schema-test'
+        (indicator_id, area_id, from_date, to_date, upload_batch_id, dimension_key)
+      SELECT ${indicatorId}, a.id, '2099-01-01', '2099-12-31', ${batch}, ${dimensionKeyValue}
       FROM (SELECT id FROM area ORDER BY id LIMIT 1) a
     `;
   }
@@ -182,7 +184,7 @@ describe('the upload tables', () => {
   it('takes the same area and period with other dimension values, or in another batch', async () => {
     const [another] = await sql<{ id: string }[]>`
       INSERT INTO upload_batch (indicator_id, indicator_version_id, original_filename, uploaded_by)
-      VALUES (${indicatorId}, ${versionId}, 'another.csv', 'schema-test')
+      VALUES (${indicatorId}, ${versionId}, 'another.csv', ${ACTOR})
       RETURNING id
     `;
     await insertObservation(batchId, 'first');

@@ -51,7 +51,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import { audit, literals, uuidPrimaryKey } from './helpers.ts';
+import { literals, uuidPrimaryKey } from './helpers.ts';
 import {
   ciMethod,
   comparatorMethod,
@@ -63,6 +63,7 @@ import {
 } from './lookup.ts';
 import { team } from './team.ts';
 import { uploadBatch } from './upload.ts';
+import { audit } from './user.ts';
 
 export const INDICATOR_VERSION_STATUSES = ['draft', 'published'] as const;
 
@@ -224,10 +225,8 @@ export const indicatorVersion = pgTable(
     sponsorsAndStakeholders: text(),
     hasReviewerComments: boolean(),
     reviewerCommentsDetail: text(),
+    // The writer of a version is always known: a publisher, or the system user of an import.
     ...audit,
-    // The writer of a version is always known: a publisher, or the seed's system actor.
-    createdBy: text().notNull(),
-    updatedBy: text().notNull(),
   },
   (t) => [
     check(

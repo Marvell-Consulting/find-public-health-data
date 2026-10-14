@@ -25,6 +25,7 @@ import {
   createCapturingLogger,
   createRouterTestApp,
   handlerLogLines,
+  TEST_USER_ID,
   testSessionCookie,
   testSessionVerifier,
 } from './testing.ts';
@@ -184,7 +185,7 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
       indicatorId,
       status: 'processed',
       originalFilename: 'life.csv',
-      uploadedBy: 'test-user',
+      uploadedBy: TEST_USER_ID,
       blobName: `${indicatorId}/${batchId}.csv`,
       byteSize: Buffer.byteLength(VALID_CSV),
       sha256: expect.stringMatching(/^[0-9a-f]{64}$/),
@@ -198,14 +199,14 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
     expect(await draftOf(ownerDb, indicatorId)).toMatchObject({
       uploadBatchId: batchId,
       dataTableConfirmedAt: null,
-      updatedBy: 'test-user',
+      updatedBy: TEST_USER_ID,
     });
 
     const rows = await rowsOf(batchId);
-    expect(rows.map(({ value, count, createdBy }) => ({ value, count, createdBy }))).toEqual([
-      { value: 83.1, count: 1200, createdBy: 'test-user' },
-      { value: 83.8, count: 1234, createdBy: 'test-user' },
-      { value: null, count: null, createdBy: 'test-user' },
+    expect(rows.map(({ value, count }) => ({ value, count }))).toEqual([
+      { value: 83.1, count: 1200 },
+      { value: 83.8, count: 1234 },
+      { value: null, count: null },
     ]);
   });
 

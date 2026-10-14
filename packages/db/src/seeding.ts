@@ -340,6 +340,8 @@ async function loadObservations(
 ): Promise<{ observations: number; dimensions: number }> {
   await tx`CREATE TEMP TABLE source_observation (LIKE observation INCLUDING DEFAULTS) ON COMMIT DROP`;
   await tx`ALTER TABLE source_observation ALTER COLUMN dimension_key DROP NOT NULL`;
+  // The files give each observation a writer, which its batch's uploader stands for; it is dropped.
+  await tx`ALTER TABLE source_observation ADD COLUMN created_by text`;
   await tx`CREATE TEMP TABLE source_observation_dimension (LIKE observation_dimension INCLUDING DEFAULTS) ON COMMIT DROP`;
   await loadTable(
     tx,

@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createDbFromClient } from './client.ts';
 import { importCoreData } from './core-data.ts';
 import { type DataProviderRecord, upsertDataProviders } from './data-provider-core-data.ts';
+import { SYSTEM_USER_IDS } from './schema/index.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
 import { loadIndicatorVersions } from './seeding.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
@@ -164,7 +165,7 @@ describe('loadIndicatorVersions with Fingertips sources', () => {
       join(directory, 'indicator_version.csv.gz'),
       gzipSync(
         'indicator_id,status,published_at,name,slug,numerator_source_id,denominator_source_id,created_by,updated_by\n' +
-          `${indicatorId},published,2026-01-01T00:00:00Z,A seeded indicator,a-seeded-indicator,${legacyId},,seed,seed\n`,
+          `${indicatorId},published,2026-01-01T00:00:00Z,A seeded indicator,a-seeded-indicator,${legacyId},,${SYSTEM_USER_IDS.pholioMigration},${SYSTEM_USER_IDS.pholioMigration}\n`,
       ),
     );
   });
