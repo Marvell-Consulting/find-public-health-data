@@ -714,62 +714,72 @@ body.govuk-frontend-supported .fphd-add-geo-button[data-empty] {
   margin-bottom: govuk-spacing(4);
 }
 
-// The fieldset wrapping the result rows; its legend names the set.
+// Checkboxes wraps the group in a form group and a fieldset, both reached through our own
+// class. The legend only names the list for a screen reader, so it comes out of the flow
+// rather than keeping its margin, and the list spaces its own results, so the form group's
+// bottom margin would sit under the last one.
+.govuk-form-group:has(> .govuk-fieldset > .fphd-search-results) {
+  margin-bottom: 0;
+
+  > .govuk-fieldset > .govuk-fieldset__legend {
+    @include govuk-visually-hidden;
+  }
+}
+
+// One group of checkboxes, a result to each option: the box on the left, and the title and
+// metadata as the option's content beside it rather than under it.
 .fphd-search-results {
-  min-width: 0;
-  margin: govuk-spacing(4) 0 0;
-  border: 0;
-  padding: 0;
-}
+  margin-top: govuk-spacing(4);
 
-// One checkbox per result, its visible title the link in the body beside it.
-.fphd-search-result {
-  display: flex;
-  align-items: flex-start;
-  gap: govuk-spacing(3);
-  padding: govuk-spacing(3) 0;
-
-  > .govuk-form-group {
-    flex: 0 0 44px;
-    width: 44px;
+  // Spaced with a margin, not padding: the box is positioned against the item, so padding
+  // above it would drop the content below the box it belongs to.
+  .govuk-checkboxes__item {
+    align-items: flex-start;
+    margin: 0 0 govuk-spacing(6);
+    padding: 0;
   }
 
-  .govuk-form-group {
-    margin-bottom: 0;
-  }
-}
-
-.fphd-search-result__body {
-  flex: 1;
-  min-width: 0;
-  padding: 7px govuk-spacing(3) 7px 0;
-
-  .fphd-filter-chips {
-    gap: 4px;
-    margin-top: 2px;
+  // The input holds the column the box is drawn in; the label only carries the name that
+  // reads the option out, so it takes no width of its own.
+  .govuk-checkboxes__label {
+    flex: 0 0 0;
+    padding: 0;
   }
 
-  .govuk-summary-list {
-    margin-top: govuk-spacing(2);
-  }
+  .govuk-checkboxes__content {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+    margin-top: 0;
+    padding: 7px govuk-spacing(3);
 
-  .govuk-summary-list__key {
-    @include govuk-font($size: 16, $weight: bold);
-    padding-top: 8px;
-    padding-bottom: 8px;
-  }
+    .fphd-filter-chips {
+      gap: 4px;
+      margin-top: 2px;
+    }
 
-  .govuk-summary-list__value {
-    @include govuk-font($size: 16);
-    padding-top: 8px;
-    padding-bottom: 8px;
-  }
+    .govuk-summary-list {
+      margin-top: govuk-spacing(2);
+    }
 
-  .govuk-summary-list__key,
-  .govuk-summary-list__value,
-  .fphd-filter-chip {
-    font-size: 1rem;
-    line-height: 1.25;
+    .govuk-summary-list__key {
+      @include govuk-font($size: 16, $weight: bold);
+      padding-top: 8px;
+      padding-bottom: 8px;
+    }
+
+    .govuk-summary-list__value {
+      @include govuk-font($size: 16);
+      padding-top: 8px;
+      padding-bottom: 8px;
+    }
+
+    .govuk-summary-list__key,
+    .govuk-summary-list__value,
+    .fphd-filter-chip {
+      font-size: 1rem;
+      line-height: 1.25;
+    }
   }
 }
 

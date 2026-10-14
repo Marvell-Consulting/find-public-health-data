@@ -133,27 +133,21 @@ export function SearchResults({
             </p>
           ) : null}
 
-          {/* Metadata sits outside the checkbox label so the label contains phrasing content only. */}
-          <fieldset className="fphd-search-results">
-            <legend className="govuk-visually-hidden">Indicators</legend>
-            {indicators.map((indicator) => {
+          {/* The title and metadata are the option's content, so its label holds only the
+              name it is read out by, which has to be phrasing content. */}
+          <Checkboxes
+            className="fphd-search-results"
+            id="is"
+            label={<span className="govuk-visually-hidden">Indicators</span>}
+            name="is"
+            onChange={(event) => toggle(Number(event.target.value), event.target.checked)}
+            options={indicators.map((indicator) => {
               const isSelected = ticked.includes(indicator.shortId);
-              const option = {
+
+              return {
                 checked: isSelected,
-                disabled: !isSelected && ticked.length >= MAX_SELECTED_INDICATORS,
-                label: <span className="govuk-visually-hidden">{indicator.name}</span>,
-                value: String(indicator.shortId),
-              };
-              return (
-                <div className="fphd-search-result" key={indicator.shortId}>
-                  <Checkboxes
-                    id={`is-${indicator.shortId}`}
-                    label=""
-                    name="is"
-                    onChange={(event) => toggle(Number(event.target.value), event.target.checked)}
-                    options={[option]}
-                  />
-                  <div className="fphd-search-result__body">
+                content: (
+                  <>
                     <Link
                       className="govuk-link fphd-search-result__title"
                       to={`${indicatorPath(indicator.slug)}${geography ? `?${geography}` : ''}`}
@@ -161,11 +155,14 @@ export function SearchResults({
                       {indicator.name}
                     </Link>
                     <ResultMeta indicator={indicator} />
-                  </div>
-                </div>
-              );
+                  </>
+                ),
+                disabled: !isSelected && ticked.length >= MAX_SELECTED_INDICATORS,
+                label: <span className="govuk-visually-hidden">{indicator.name}</span>,
+                value: String(indicator.shortId),
+              };
             })}
-          </fieldset>
+          />
 
           {capped ? (
             <p className="govuk-body govuk-!-margin-top-3">
