@@ -27,7 +27,13 @@ import {
   topicIdsOf,
 } from './indicator-version-lists-repository.ts';
 
-const { ciMethod, currentPublishedVersion, indicator, indicatorVersion } = schema;
+const {
+  DEFAULT_INDICATOR_TEAM_ID,
+  ciMethod,
+  currentPublishedVersion,
+  indicator,
+  indicatorVersion,
+} = schema;
 
 /** Every column of one version, as a section reads its answers from the draft. */
 export type IndicatorDraftVersion = typeof indicatorVersion.$inferSelect;
@@ -171,7 +177,7 @@ export async function createIndicatorDraft(
 
       const [identity] = await tx
         .insert(indicator)
-        .values({})
+        .values({ teamId: DEFAULT_INDICATOR_TEAM_ID })
         .returning({ id: indicator.id, shortId: indicator.shortId });
 
       if (identity === undefined) throw new Error('createIndicatorDraft inserted no indicator');

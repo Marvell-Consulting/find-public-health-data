@@ -15,6 +15,7 @@ import {
 } from './indicator-topic-repository.ts';
 import { type LegacySourceMap, mapLegacySources, readLegacySourceMap } from './legacy-sources.ts';
 import { READ_MODEL_TABLES } from './read-models.ts';
+import { DEFAULT_INDICATOR_TEAM_ID } from './schema/index.ts';
 
 // Topological FK order: every table loads after the tables it references.
 // Self-references (dimension_value.parent_id etc.) resolve within a single COPY
@@ -287,6 +288,8 @@ async function seedTables(
       counts[table] = await loadTable(tx, table, directory, idleTimeoutMs, completionTimeoutMs);
     }
   }
+  // The files carry no team, and an indicator is the default team's until one can be chosen.
+  await tx`UPDATE indicator SET team_id = ${DEFAULT_INDICATOR_TEAM_ID} WHERE team_id IS NULL`;
   await pointVersionsAtBatches(tx);
   return counts;
 }

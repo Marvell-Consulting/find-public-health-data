@@ -3,6 +3,7 @@ import type postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { READ_MODEL_TABLES, rebuildReadModels } from './read-models.ts';
+import { DEFAULT_INDICATOR_TEAM_ID } from './schema/index.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
 
@@ -25,6 +26,13 @@ describe('bridge/registry schema', () => {
   it('holds the seeded indicators', async () => {
     const rows = await sql`SELECT count(*)::int AS count FROM indicator`;
     expect(rows[0]?.count).toBe(12);
+  });
+
+  it('puts every seeded indicator in the default team', async () => {
+    const rows = await sql<{ teamId: string | null }[]>`
+      SELECT DISTINCT team_id AS "teamId" FROM indicator
+    `;
+    expect(rows).toEqual([{ teamId: DEFAULT_INDICATOR_TEAM_ID }]);
   });
 
   it('holds observations for every seeded indicator', async () => {

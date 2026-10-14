@@ -61,6 +61,7 @@ import {
   unit,
   valueType,
 } from './lookup.ts';
+import { team } from './team.ts';
 import { uploadBatch } from './upload.ts';
 
 export const INDICATOR_VERSION_STATUSES = ['draft', 'published'] as const;
@@ -98,6 +99,8 @@ export const indicator = pgTable('indicator', {
   // When the source system last published data for this indicator. It describes the data,
   // not the editorial content, so it stays off the version.
   dataUpdatedAt: timestamp({ withTimezone: true }),
+  // The team whose publishers own it.
+  teamId: uuid().references(() => team.id),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 
