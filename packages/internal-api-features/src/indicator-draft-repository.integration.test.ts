@@ -1,3 +1,4 @@
+import { TEAM_IDS } from '@fphd/auth';
 import { type Database, schema } from '@fphd/db';
 import { MAX_AGE } from '@fphd/utils/sex-and-ages';
 import { eq, sql } from 'drizzle-orm';
@@ -82,7 +83,7 @@ describe('createIndicatorDraft', () => {
       .where(eq(indicatorVersion.indicatorId, created.indicatorId));
 
     expect(identity?.shortId).toBe(created.shortId);
-    expect(identity?.teamId).toBe(schema.DEFAULT_INDICATOR_TEAM_ID);
+    expect(identity?.teamId).toBe(TEAM_IDS.teamA);
     expect(versions).toHaveLength(1);
     expect(versions[0]).toMatchObject({
       id: created.versionId,
@@ -94,10 +95,29 @@ describe('createIndicatorDraft', () => {
     });
   });
 
+  repositoryTest('puts the indicator in the team it is given', async ({ db }) => {
+    const created = await createIndicatorDraft(
+      db,
+      { name: 'A Team B indicator' },
+      ACTOR,
+      TEAM_IDS.teamB,
+    );
+    if (!created.ok) throw new Error('createIndicatorDraft refused the name');
+
+    const [identity] = await db
+      .select({ teamId: indicator.teamId })
+      .from(indicator)
+      .where(eq(indicator.id, created.indicatorId));
+
+    expect(identity?.teamId).toBe(TEAM_IDS.teamB);
+  });
+
   repositoryTest('refuses a name whose slug another indicator already holds', async ({ db }) => {
     await newDraft(db, 'A contested name');
 
-    await expect(createIndicatorDraft(db, { name: 'A contested name' }, ACTOR)).resolves.toEqual({
+    await expect(
+      createIndicatorDraft(db, { name: 'A contested name' }, ACTOR, TEAM_IDS.teamA),
+    ).resolves.toEqual({
       ok: false,
       reason: 'slug_taken',
     });
@@ -105,7 +125,7 @@ describe('createIndicatorDraft', () => {
 
   repositoryTest('waits for another writer of the slug, then creates', async ({ db }) => {
     const result = await writeWhileSlugHeld(db, 'a-held-name', () =>
-      createIndicatorDraft(db, { name: 'A held name' }, ACTOR),
+      createIndicatorDraft(db, { name: 'A held name' }, ACTOR, TEAM_IDS.teamA),
     );
 
     expect(result).toMatchObject({ ok: true });
@@ -115,7 +135,7 @@ describe('createIndicatorDraft', () => {
     const result = await writeWhileSlugHeld(
       db,
       'a-name-created-twice',
-      () => createIndicatorDraft(db, { name: 'A name created twice' }, ACTOR),
+      () => createIndicatorDraft(db, { name: 'A name created twice' }, ACTOR, TEAM_IDS.teamA),
       async (tx) => {
         const [identity] = await tx.insert(indicator).values({}).returning({ id: indicator.id });
         if (!identity) throw new Error('inserted no indicator');

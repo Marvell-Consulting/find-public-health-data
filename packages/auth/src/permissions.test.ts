@@ -13,6 +13,7 @@ import {
   type IndicatorAccess,
   indicatorListScope,
   type SessionUser,
+  teamForNewIndicator,
 } from './permissions.ts';
 
 const teamA = 'team-a';
@@ -79,6 +80,15 @@ describe('canCreateIndicator', () => {
     expect(canCreateIndicator(publisherA)).toBe(true);
     expect(canCreateIndicator(teamless)).toBe(false);
     expect(canCreateIndicator(admin)).toBe(false);
+  });
+});
+
+describe('teamForNewIndicator', () => {
+  it("puts a publisher's new indicator in their first team", () => {
+    expect(teamForNewIndicator(publisherAB)).toBe(teamA);
+    expect(teamForNewIndicator(publisherReviewer)).toBe(teamB);
+    expect(teamForNewIndicator(teamless)).toBeUndefined();
+    expect(teamForNewIndicator(admin)).toBeUndefined();
   });
 });
 

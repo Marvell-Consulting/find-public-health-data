@@ -1,4 +1,4 @@
-import { FAKE_USER_IDS } from '@fphd/auth';
+import { FAKE_USER_IDS, TEAM_IDS } from '@fphd/auth';
 import { appEnvFields, parseEnv, z } from '@fphd/config';
 import { createDb, type Database, dbEnvFields, resolveDbTls, schema } from '@fphd/db';
 import { createTestDatabase } from '@fphd/db/testing';
@@ -61,7 +61,7 @@ export const OTHER_ACTOR = FAKE_USER_IDS.publisherTeamsAAndB;
 
 /** Every case here names its indicator distinctly, so the slug is free. */
 export async function newDraft(db: Database, name: string): Promise<CreatedIndicatorDraft> {
-  const created = await createIndicatorDraft(db, { name }, ACTOR);
+  const created = await createIndicatorDraft(db, { name }, ACTOR, TEAM_IDS.teamA);
   if (!created.ok) throw new Error(`createIndicatorDraft refused the name: ${created.reason}`);
   return created;
 }

@@ -271,7 +271,7 @@ async function seedTables(
       counts[table] = await loadTable(tx, table, directory, idleTimeoutMs, completionTimeoutMs);
     }
   }
-  // The files carry no team, and an indicator is the default team's until one can be chosen.
+  // The files carry no team, so each indicator joins the default one.
   await tx`UPDATE indicator SET team_id = ${DEFAULT_INDICATOR_TEAM_ID} WHERE team_id IS NULL`;
   await pointVersionsAtBatches(tx);
   return counts;
