@@ -1,4 +1,4 @@
-import { fakeUsersForAudience } from '@fphd/auth';
+import { fakeUsersForAudience, TEAM_IDS } from '@fphd/auth';
 import { createJwtSessionService } from '@fphd/auth/jwt-session';
 import { request } from '@fphd/express/testing';
 import express from 'express';
@@ -55,6 +55,7 @@ describe('fake authentication backend', () => {
     await expect(session.verifyToken(token)).resolves.toMatchObject({
       roles: ['public', 'internal', 'publisher'],
       sub: 'internal-publisher',
+      teams: [TEAM_IDS.teamA],
     });
     expect((await request(app).get(callbackPath)).status).toBe(400);
   });

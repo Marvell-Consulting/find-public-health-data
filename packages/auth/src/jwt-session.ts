@@ -12,12 +12,15 @@ export interface JwtSessionClaims {
   readonly jti: string;
   readonly roles: readonly string[];
   readonly sub: string;
+  /** The ids of the teams the user belongs to. */
+  readonly teams: readonly string[];
 }
 
 export interface IssueJwtSessionOptions {
   expiresInSeconds: number;
   roles: readonly string[];
   subject: string;
+  teams: readonly string[];
 }
 
 export interface JwtSessionServiceOptions {
@@ -110,18 +113,21 @@ export function createJwtSessionService({
       return serializeCookie(validatedCookieName, token, secure, [`Max-Age=${maxAgeSeconds}`]);
     },
 
-    async issueToken({ expiresInSeconds, roles, subject }) {
+    async issueToken({ expiresInSeconds, roles, subject, teams }) {
       if (!Number.isInteger(expiresInSeconds) || expiresInSeconds <= 0) {
         throw new Error('JWT session lifetime must be a positive integer');
       }
       if (!isStringArray(roles) || roles.some((role) => role.trim() === '')) {
         throw new Error('JWT session roles must be non-empty strings');
       }
+      if (!isStringArray(teams) || teams.some((team) => team.trim() === '')) {
+        throw new Error('JWT session teams must be non-empty strings');
+      }
 
       const validatedSubject = requireNonEmpty(subject, 'JWT session subject');
       const issuedAt = Math.floor(clock().getTime() / 1_000);
 
-      return new SignJWT({ roles: [...roles] })
+      return new SignJWT({ roles: [...roles], teams: [...teams] })
         .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
         .setIssuer(validatedIssuer)
         .setAudience(validatedAudience)
@@ -154,7 +160,8 @@ export function createJwtSessionService({
           typeof payload.iss !== 'string' ||
           typeof payload.jti !== 'string' ||
           typeof payload.sub !== 'string' ||
-          !isStringArray(payload.roles)
+          !isStringArray(payload.roles) ||
+          !isStringArray(payload.teams)
         ) {
           throw new InvalidJwtSessionError();
         }
@@ -167,6 +174,7 @@ export function createJwtSessionService({
           jti: payload.jti,
           roles: Object.freeze([...payload.roles]),
           sub: payload.sub,
+          teams: Object.freeze([...payload.teams]),
         });
       } catch {
         throw new InvalidJwtSessionError();

@@ -71,6 +71,7 @@ async function issueCookie(
     expiresInSeconds,
     roles: options.roles ?? ['viewer'],
     subject: options.subject ?? 'user-123',
+    teams: [],
   });
   const [cookie] = service.createCookieHeader(token, expiresInSeconds).split(';', 1);
 
@@ -103,12 +104,13 @@ describe('JWT session service', () => {
     ).toThrow('SESSION_JWT_SECRET must be at least 32 bytes');
   });
 
-  it('issues and validates an expiring HS256 JWT with identity and roles', async () => {
+  it('issues and validates an expiring HS256 JWT with identity, roles and teams', async () => {
     const service = createTestService();
     const token = await service.issueToken({
       expiresInSeconds: 900,
       roles: ['publisher', 'viewer'],
       subject: 'user-123',
+      teams: ['team-1'],
     });
     const claims = await service.verifyToken(token);
 
@@ -120,10 +122,12 @@ describe('JWT session service', () => {
       iss: 'fphd-auth',
       roles: ['publisher', 'viewer'],
       sub: 'user-123',
+      teams: ['team-1'],
     });
     expect(claims.jti).not.toBe('');
     expect(Object.isFrozen(claims)).toBe(true);
     expect(Object.isFrozen(claims.roles)).toBe(true);
+    expect(Object.isFrozen(claims.teams)).toBe(true);
   });
 
   it('gives web applications validation operations only', () => {
@@ -138,6 +142,7 @@ describe('JWT session service', () => {
       expiresInSeconds: 900,
       roles: ['viewer'],
       subject: 'user-123',
+      teams: [],
     });
     const cookie = service.createCookieHeader(token, 900);
 
@@ -158,6 +163,7 @@ describe('JWT session service', () => {
       expiresInSeconds: 30,
       roles: ['viewer'],
       subject: 'user-123',
+      teams: [],
     });
 
     await expect(verifier.verifyToken(token)).rejects.toThrow('Invalid JWT session');
@@ -170,6 +176,7 @@ describe('JWT session service', () => {
       expiresInSeconds: 900,
       roles: ['viewer'],
       subject: 'user-123',
+      teams: [],
     });
 
     await expect(verifier.verifyToken(token)).rejects.toThrow('Invalid JWT session');

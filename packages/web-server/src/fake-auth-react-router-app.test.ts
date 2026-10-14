@@ -41,6 +41,7 @@ describe('fake-auth React Router application', () => {
     await expect(session.verifyToken(token)).resolves.toMatchObject({
       roles: ['public'],
       sub: 'internal-publisher',
+      teams: [],
     });
     expect(signIn.headers['cache-control']).toBe('private, no-store');
     expect(callback.headers['cache-control']).toBe('private, no-store');

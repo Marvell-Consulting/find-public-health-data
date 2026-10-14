@@ -82,6 +82,7 @@ export function addFallbackHandlers(app: Express) {
 export interface ApiSession {
   roles: readonly string[];
   sub: string;
+  teams: readonly string[];
 }
 
 // Express types every local as `any`, so both ends of the one key we set go through this view.
@@ -117,7 +118,11 @@ export function requireJwtRole(verifier: JwtSessionVerifier, role: string): Requ
         return;
       }
 
-      sessionLocals(response).apiSession = { roles: session.roles, sub: session.sub };
+      sessionLocals(response).apiSession = {
+        roles: session.roles,
+        sub: session.sub,
+        teams: session.teams,
+      };
 
       next();
     } catch (error) {

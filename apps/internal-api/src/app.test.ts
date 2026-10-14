@@ -43,6 +43,7 @@ async function createCookie(roles: readonly string[]): Promise<string> {
     expiresInSeconds: 900,
     roles,
     subject: 'test-user',
+    teams: [],
   });
   return session.createCookieHeader(token, 900);
 }
