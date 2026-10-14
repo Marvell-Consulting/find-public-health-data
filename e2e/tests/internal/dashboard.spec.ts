@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 import { createDraft, uniqueIndicatorName } from '../support/create-indicator.ts';
-import { PUBLISHER } from '../support/sign-in.ts';
+import { ADMIN, PUBLISHER, TEAM_B_PUBLISHER } from '../support/sign-in.ts';
 
 test.use({ storageState: PUBLISHER.storageState });
 
@@ -49,4 +49,22 @@ test('moves between pages', async ({ page }) => {
 
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
   await expectNoAccessibilityViolations(page, testInfo);
+});
+
+test.describe('as a publisher in another team', () => {
+  test.use({ storageState: TEAM_B_PUBLISHER.storageState });
+
+  test("shows a publisher only their own teams' indicators", async ({ page }) => {
+    await expect(page.getByText('There are no indicators for you to see yet.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Create new indicator' })).toBeVisible();
+  });
+});
+
+test.describe('as an admin', () => {
+  test.use({ storageState: ADMIN.storageState });
+
+  test('shows an admin every indicator but no create action', async ({ page }) => {
+    await expect(page.getByRole('table').getByRole('row')).toHaveCount(11);
+    await expect(page.getByRole('button', { name: 'Create new indicator' })).toHaveCount(0);
+  });
 });

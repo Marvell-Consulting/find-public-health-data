@@ -1,3 +1,4 @@
+import { FAKE_USER_IDS } from '@fphd/auth';
 import { createJwtSessionService } from '@fphd/auth/jwt-session';
 import { request } from '@fphd/express/testing';
 import { describe, expect, it } from 'vitest';
@@ -30,7 +31,7 @@ describe('fake-auth React Router application', () => {
       secure: false,
     });
     const signIn = await request(app).post('/auth/sign-in').type('form').send({
-      userId: 'internal-publisher',
+      userId: FAKE_USER_IDS.publisherTeamA,
     });
     const callback = await request(app).get(requireHeader(signIn.get('Location'), 'Location'));
     const cookie = requireHeader(callback.get('Set-Cookie')?.[0], 'Set-Cookie');
@@ -40,7 +41,7 @@ describe('fake-auth React Router application', () => {
 
     await expect(session.verifyToken(token)).resolves.toMatchObject({
       roles: ['public'],
-      sub: 'internal-publisher',
+      sub: FAKE_USER_IDS.publisherTeamA,
       teams: [],
     });
     expect(signIn.headers['cache-control']).toBe('private, no-store');
