@@ -11,6 +11,52 @@ packages:
 minimumReleaseAge: 4320
 minimumReleaseAgeStrict: true
 
+# All published 2026-10-14, so all of these can go on 2026-10-17.
+minimumReleaseAgeExclude:
+  - '@not-govuk/back-link@0.19.3'
+  - '@not-govuk/breadcrumbs@0.19.3'
+  - '@not-govuk/button@0.19.3'
+  - '@not-govuk/checkboxes@0.19.3'
+  - '@not-govuk/date-input@0.19.3'
+  - '@not-govuk/details@0.19.3'
+  - '@not-govuk/error-message@0.19.3'
+  - '@not-govuk/error-summary@0.19.3'
+  - '@not-govuk/fieldset@0.19.3'
+  - '@not-govuk/footer@0.19.3'
+  - '@not-govuk/form-group@0.19.3'
+  - '@not-govuk/generic-header@0.19.3'
+  - '@not-govuk/header@0.19.3'
+  - '@not-govuk/hint@0.19.3'
+  - '@not-govuk/input@0.19.3'
+  - '@not-govuk/inset-text@0.19.3'
+  - '@not-govuk/label@0.19.3'
+  - '@not-govuk/link@0.19.3'
+  - '@not-govuk/notification-banner@0.19.3'
+  - '@not-govuk/page@0.19.3'
+  - '@not-govuk/pagination@0.19.3'
+  - '@not-govuk/phase-banner@0.19.3'
+  - '@not-govuk/radios@0.19.3'
+  - '@not-govuk/sass-base@0.19.3'
+  - '@not-govuk/search-box@0.19.3'
+  - '@not-govuk/select@0.19.3'
+  - '@not-govuk/service-navigation@0.19.3'
+  - '@not-govuk/skip-link@0.19.3'
+  - '@not-govuk/standalone-input@0.19.3'
+  - '@not-govuk/summary-list@0.19.3'
+  - '@not-govuk/table@0.19.3'
+  - '@not-govuk/tag@0.19.3'
+  - '@not-govuk/text-input@0.19.3'
+  - '@not-govuk/textarea@0.19.3'
+  - '@not-govuk/visually-hidden@0.19.3'
+  - '@not-govuk/width-container@0.19.3'
+  - '@react-foundry/anchor-list@0.6.3'
+  - '@react-foundry/anchor@0.6.3'
+  - '@react-foundry/client-component-helpers@0.6.3'
+  - '@react-foundry/component-helpers@0.6.3'
+  - '@react-foundry/router@0.6.3'
+  - '@react-foundry/simple-table@0.6.3'
+  - '@react-foundry/uri@0.6.3'
+
 overrides:
   # GHSA-67mh-4wv8-2f99 esbuild <=0.24.2 dev server answers any origin. Transitive via
   # drizzle-kit's deprecated @esbuild-kit loader, which pins ~0.18 and was merged into tsx, so
@@ -30,31 +76,31 @@ catalog:
   '@biomejs/biome': 2.5.9
   '@date-fns/tz': 1.5.0
   accessible-autocomplete: 3.0.1
-  '@not-govuk/back-link': 0.19.1
-  '@not-govuk/button': 0.19.1
-  '@not-govuk/checkboxes': 0.19.1
-  '@not-govuk/date-input': 0.19.1
-  '@not-govuk/details': 0.19.1
-  '@not-govuk/error-message': 0.19.1
-  '@not-govuk/error-summary': 0.19.1
-  '@not-govuk/form-group': 0.19.1
-  '@not-govuk/hint': 0.19.1
-  '@not-govuk/input': 0.19.1
-  '@not-govuk/inset-text': 0.19.1
-  '@not-govuk/label': 0.19.1
-  '@not-govuk/link': 0.19.1
-  '@not-govuk/notification-banner': 0.19.1
-  '@not-govuk/page': 0.19.1
-  '@not-govuk/pagination': 0.19.1
-  '@not-govuk/radios': 0.19.1
-  '@not-govuk/sass-base': 0.19.1
-  '@not-govuk/search-box': 0.19.1
-  '@not-govuk/select': 0.19.1
-  '@not-govuk/summary-list': 0.19.1
-  '@not-govuk/table': 0.19.1
-  '@not-govuk/tag': 0.19.1
-  '@not-govuk/text-input': 0.19.1
-  '@not-govuk/textarea': 0.19.1
+  '@not-govuk/back-link': 0.19.3
+  '@not-govuk/button': 0.19.3
+  '@not-govuk/checkboxes': 0.19.3
+  '@not-govuk/date-input': 0.19.3
+  '@not-govuk/details': 0.19.3
+  '@not-govuk/error-message': 0.19.3
+  '@not-govuk/error-summary': 0.19.3
+  '@not-govuk/form-group': 0.19.3
+  '@not-govuk/hint': 0.19.3
+  '@not-govuk/input': 0.19.3
+  '@not-govuk/inset-text': 0.19.3
+  '@not-govuk/label': 0.19.3
+  '@not-govuk/link': 0.19.3
+  '@not-govuk/notification-banner': 0.19.3
+  '@not-govuk/page': 0.19.3
+  '@not-govuk/pagination': 0.19.3
+  '@not-govuk/radios': 0.19.3
+  '@not-govuk/sass-base': 0.19.3
+  '@not-govuk/search-box': 0.19.3
+  '@not-govuk/select': 0.19.3
+  '@not-govuk/summary-list': 0.19.3
+  '@not-govuk/table': 0.19.3
+  '@not-govuk/tag': 0.19.3
+  '@not-govuk/text-input': 0.19.3
+  '@not-govuk/textarea': 0.19.3
   '@playwright/test': 1.62.1
   '@react-router/dev': 8.3.0
   '@react-router/express': 8.3.0
@@ -65,8 +111,8 @@ catalog:
   '@types/govuk-frontend': 5.11.0
   # Match the minimum supported Node runtime; newer Node APIs must not enter accidentally.
   '@types/node': 24.13.3
-  '@types/react': 19.2.17
-  '@types/react-dom': 19.2.3
+  '@types/react': 19.3.0
+  '@types/react-dom': 19.3.0
   '@types/compression': 1.8.1
   '@types/supertest': 7.2.0
   basic-auth: 3.0.0
@@ -77,7 +123,7 @@ catalog:
   drizzle-kit: 0.31.10
   drizzle-orm: 0.45.2
   express: 5.2.1
-  govuk-frontend: 6.5.0
+  govuk-frontend: 6.5.1
   http-graceful-shutdown: 4.0.0
   isbot: 5.2.0
   jsdom: 30.1.1
@@ -86,8 +132,8 @@ catalog:
   pino-http: 11.0.0
   pino-pretty: 13.1.3
   postgres: 3.4.9
-  react: 19.2.8
-  react-dom: 19.2.8
+  react: 19.3.0
+  react-dom: 19.3.0
   react-router: 8.3.0
   sass: 1.101.0
   supertest: 7.2.2
