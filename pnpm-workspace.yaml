@@ -45,6 +45,7 @@ minimumReleaseAgeExclude:
   - '@not-govuk/summary-list@0.19.3'
   - '@not-govuk/table@0.19.3'
   - '@not-govuk/tag@0.19.3'
+  - '@not-govuk/task-list@0.19.3'
   - '@not-govuk/text-input@0.19.3'
   - '@not-govuk/textarea@0.19.3'
   - '@not-govuk/visually-hidden@0.19.3'
@@ -99,6 +100,7 @@ catalog:
   '@not-govuk/summary-list': 0.19.3
   '@not-govuk/table': 0.19.3
   '@not-govuk/tag': 0.19.3
+  '@not-govuk/task-list': 0.19.3
   '@not-govuk/text-input': 0.19.3
   '@not-govuk/textarea': 0.19.3
   '@playwright/test': 1.62.1

@@ -42,6 +42,7 @@
     "@not-govuk/summary-list": "catalog:",
     "@not-govuk/table": "catalog:",
     "@not-govuk/tag": "catalog:",
+    "@not-govuk/task-list": "catalog:",
     "@not-govuk/text-input": "catalog:",
     "@not-govuk/textarea": "catalog:",
     "accessible-autocomplete": "catalog:",
