@@ -77,6 +77,7 @@ export interface InternalIndicatorRepository {
   createDraft(
     attributes: NewIndicatorDraftAttributes,
     actor: string,
+    teamId: string,
   ): Promise<CreateIndicatorDraftResult>;
   updateDraft(
     indicatorId: string,
@@ -167,7 +168,8 @@ export function createInternalRepositories(db: Database): InternalRepositories {
       listPage: (page, pageSize, scope) => listIndicatorsPage(db, page, pageSize, scope),
       findById: (id) => getIndicatorById(db, id),
       findDraftState: (id) => getIndicatorDraftState(db, id),
-      createDraft: (attributes, actor) => createIndicatorDraft(db, attributes, actor),
+      createDraft: (attributes, actor, teamId) =>
+        createIndicatorDraft(db, attributes, actor, teamId),
       updateDraft: (indicatorId, attributes, lists, actor) =>
         updateIndicatorDraft(db, indicatorId, attributes, lists, actor),
       draftFromPublished: (indicatorId, actor) => createDraftFromPublished(db, indicatorId, actor),

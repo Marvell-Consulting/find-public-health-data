@@ -49,10 +49,10 @@ That yields 433,678 observations, 657,869 bridge rows and 67,978 observation not
   collision is settled in the source by renaming or excluding one of the pair, never by a
   suffix. A TypeScript test reads these CSVs and checks every slug against the TypeScript
   rule, so the two implementations cannot drift.
-- Every seeded indicator loads as a single `published` version in Team A, the team every
-  indicator is in until a publisher can choose one. The files name the writer of each version
-  and batch by user id: the PHOLIO migration system user for the nine Pholio indicators, and
-  Test seed for the three from the Fingertips API. There are no draft rows in the seed.
+- Every seeded indicator loads as a single `published` version in Team A, the team an
+  indicator that arrives without one joins. The files name the writer of each version and
+  batch by user id: the PHOLIO migration system user for the nine Pholio indicators, and Test
+  seed for the three from the Fingertips API. There are no draft rows in the seed.
 - `observation.csv.gz` carries a `created_by` column, which the load ignores: an
   observation's writer is its batch's uploader.
 - The files carry no `upload_batch.indicator_version_id`, `indicator_version.upload_batch_id`

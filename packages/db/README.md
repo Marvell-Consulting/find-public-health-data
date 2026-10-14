@@ -25,7 +25,7 @@ src/
                       cache.ts the derived read models
     helpers.ts        Column helpers shared across tables (uuidPrimaryKey, timestamps)
     user.ts           app_user, the system user ids, and the actor columns (actorId, audit)
-    team.ts           team, and the team every indicator joins for now
+    team.ts           team, and the team an indicator without one joins
     published.ts      The public read surface: views declared as already existing
   scripts/            owner-client.ts — the owner-role connection helper the test harness
                       uses; the runnable commands live in apps/operations

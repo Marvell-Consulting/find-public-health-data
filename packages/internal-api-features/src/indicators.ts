@@ -1,6 +1,11 @@
 import { requireApiSession, requireJwtRole, requireJwtSession } from '@fphd/api-server';
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
-import { canListIndicators, canSeeIndicator, indicatorListScope } from '@fphd/auth/permissions';
+import {
+  canListIndicators,
+  canSeeIndicator,
+  indicatorListScope,
+  teamForNewIndicator,
+} from '@fphd/auth/permissions';
 import { Router } from 'express';
 
 import {
@@ -77,6 +82,14 @@ export function internalIndicatorsRouter(
   });
 
   router.post('/api/internal/indicators', requirePublisher, async (request, response) => {
+    const session = requireApiSession(response);
+    const teamId = teamForNewIndicator(session);
+
+    if (teamId === undefined) {
+      response.status(403).json({ error: 'forbidden' });
+      return;
+    }
+
     const submission = indicatorNameSchema.safeParse(request.body);
 
     if (!submission.success) {
@@ -87,8 +100,7 @@ export function internalIndicatorsRouter(
       return;
     }
 
-    const { sub } = requireApiSession(response);
-    const created = await indicators.createDraft(submission.data, sub);
+    const created = await indicators.createDraft(submission.data, session.sub, teamId);
 
     if (!created.ok) {
       response.status(409).json({ error: 'slug_taken', fieldErrors: { name: NAME_TAKEN } });
