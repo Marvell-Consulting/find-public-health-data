@@ -25,6 +25,7 @@ import {
   createCapturingLogger,
   createRouterTestApp,
   handlerLogLines,
+  TEST_TEAM_ID,
   TEST_USER_ID,
   testSessionCookie,
   testSessionVerifier,
@@ -87,6 +88,7 @@ const storage = await createAzureBlobStorage({
 const app = createRouterTestApp(
   dataUploadsRouter(
     createInternalRepositories(internalDb).dataUploads,
+    createInternalRepositories(internalDb).indicators,
     storage,
     testSessionVerifier,
   ),
@@ -141,7 +143,10 @@ async function rowsOf(batchId: string) {
     .orderBy(asc(observation.value));
 }
 
-/** Published indicators with no draft open, the nth of them, so each test takes its own. */
+/**
+ * Published indicators with no draft open, the nth of them, so each test takes its own, moved from
+ * Fingertips into the test session's team so its publisher may edit it.
+ */
 async function publishedWithoutDraft(nth: number): Promise<string> {
   const rows = await ownerDb
     .select({ indicatorId: currentPublishedVersion.indicatorId })
@@ -158,6 +163,10 @@ async function publishedWithoutDraft(nth: number): Promise<string> {
   const row = rows[nth];
   if (row === undefined)
     throw new Error(`the seed has no published indicator ${nth} without a draft`);
+  await ownerDb
+    .update(schema.indicator)
+    .set({ teamId: TEST_TEAM_ID })
+    .where(eq(schema.indicator.id, row.indicatorId));
   return row.indicatorId;
 }
 
@@ -275,6 +284,7 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
     const logged = createRouterTestApp(
       dataUploadsRouter(
         createInternalRepositories(internalDb).dataUploads,
+        createInternalRepositories(internalDb).indicators,
         storage,
         testSessionVerifier,
       ),

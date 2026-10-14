@@ -1,3 +1,4 @@
+import { TEAM_IDS } from '@fphd/auth';
 import { createJwtSessionService, createJwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { createFakeRepositories } from '@fphd/db/testing';
 import { request } from '@fphd/express/testing';
@@ -43,7 +44,7 @@ async function createCookie(roles: readonly string[]): Promise<string> {
     expiresInSeconds: 900,
     roles,
     subject: 'test-user',
-    teams: [],
+    teams: [TEAM_IDS.teamA],
   });
   return session.createCookieHeader(token, 900);
 }
@@ -117,6 +118,7 @@ describe('internal API', () => {
     const internalRepositories = createFakeInternalRepositories({
       indicators: {
         listPage: async () => ({ indicators: [], total: 0 }),
+        findTeamId: async () => TEAM_IDS.teamA,
         // The handlers read only the draft's section columns.
         findDraftState: vi.fn().mockResolvedValue({ draft: unansweredDraft }),
       },

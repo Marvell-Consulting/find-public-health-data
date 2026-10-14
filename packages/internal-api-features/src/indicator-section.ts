@@ -1,9 +1,10 @@
-import { requireApiSession, requireJwtRole } from '@fphd/api-server';
+import { requireApiSession } from '@fphd/api-server';
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { Router } from 'express';
 
 import { indicatorIdSchema, indicatorSectionFieldErrors } from './contract.ts';
 import type { IndicatorDraft, IndicatorDraftAttributes } from './indicator-draft-repository.ts';
+import { requireIndicatorEditor } from './indicator-editor.ts';
 import type {
   DetailedQuestion,
   IndicatorSection,
@@ -149,10 +150,10 @@ export function indicatorSectionRouter<
   columns: IndicatorSectionColumns<Field, Values, Answers>,
 ): Router {
   const router = Router();
-  const requirePublisher = requireJwtRole(session, 'publisher');
+  const requireEditor = requireIndicatorEditor(session, indicators);
   const path = `/api/internal/indicators/:id/${section.key}`;
 
-  router.get(path, requirePublisher, async (request, response) => {
+  router.get(path, requireEditor, async (request, response) => {
     const id = indicatorIdSchema.safeParse(request.params.id);
 
     if (!id.success) {
@@ -170,7 +171,7 @@ export function indicatorSectionRouter<
     response.status(200).json(columns.fromDraft(row.draft));
   });
 
-  router.put(path, requirePublisher, async (request, response) => {
+  router.put(path, requireEditor, async (request, response) => {
     const id = indicatorIdSchema.safeParse(request.params.id);
 
     if (!id.success) {

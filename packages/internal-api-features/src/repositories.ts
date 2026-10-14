@@ -36,6 +36,7 @@ import {
   updateIndicatorDraft,
 } from './indicator-draft-repository.ts';
 import {
+  findIndicatorTeamId,
   getIndicatorById,
   type IndicatorAdminDetailRow,
   type IndicatorAdminRows,
@@ -72,6 +73,8 @@ export interface InternalTopicRepository {
 export interface InternalIndicatorRepository {
   listPage(page: number, pageSize: number, scope: IndicatorListScope): Promise<IndicatorAdminRows>;
   findById(id: string): Promise<IndicatorAdminDetailRow | undefined>;
+  /** The indicator's team, null when it has none, or undefined when there is no such indicator. */
+  findTeamId(id: string): Promise<string | null | undefined>;
   /** The draft and whether anything is published, read together for the task list. */
   findDraftState(id: string): Promise<IndicatorDraftStateRow | undefined>;
   createDraft(
@@ -167,6 +170,7 @@ export function createInternalRepositories(db: Database): InternalRepositories {
     indicators: {
       listPage: (page, pageSize, scope) => listIndicatorsPage(db, page, pageSize, scope),
       findById: (id) => getIndicatorById(db, id),
+      findTeamId: (id) => findIndicatorTeamId(db, id),
       findDraftState: (id) => getIndicatorDraftState(db, id),
       createDraft: (attributes, actor, teamId) =>
         createIndicatorDraft(db, attributes, actor, teamId),

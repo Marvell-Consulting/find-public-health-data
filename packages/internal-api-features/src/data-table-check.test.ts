@@ -10,6 +10,7 @@ import {
   createFakeInternalRepositories,
   createRouterTestApp,
   handlerLogLines,
+  inTestTeam,
   TEST_USER_ID,
   testSessionCookie,
   testSessionVerifier,
@@ -57,7 +58,10 @@ function createTestApp(
     },
   });
 
-  return createRouterTestApp(dataTableCheckRouter(dataUploads, testSessionVerifier), logger);
+  return createRouterTestApp(
+    dataTableCheckRouter(dataUploads, inTestTeam, testSessionVerifier),
+    logger,
+  );
 }
 
 async function get(app: ReturnType<typeof createTestApp>, path = DATA_TABLE) {

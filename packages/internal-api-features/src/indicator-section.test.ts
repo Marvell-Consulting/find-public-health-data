@@ -16,6 +16,7 @@ import {
   createRouterTestApp,
   type FakeInternalRepositoryOverrides,
   handlerLogLines,
+  inTestTeam,
   TEST_USER_ID,
   testSessionCookie,
   testSessionVerifier,
@@ -42,7 +43,9 @@ function createTestApp(
   overrides: FakeInternalRepositoryOverrides['indicators'] = {},
   logger?: Logger,
 ): Express {
-  const repositories = createFakeInternalRepositories({ indicators: overrides });
+  const repositories = createFakeInternalRepositories({
+    indicators: { ...inTestTeam, ...overrides },
+  });
 
   return createRouterTestApp(
     indicatorSectionRouter(
