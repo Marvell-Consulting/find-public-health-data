@@ -1,5 +1,6 @@
 import '@fphd/ui/styles.scss';
 
+import { canManage } from '@fphd/auth/permissions';
 import {
   AppDocument,
   AppShell,
@@ -21,7 +22,7 @@ export function loader({ context }: Route.LoaderArgs) {
   const session = getSession(context);
 
   return {
-    canManage: session?.roles.includes('admin') === true,
+    canManage: session !== undefined && canManage(session),
     signedIn: session !== undefined,
   };
 }

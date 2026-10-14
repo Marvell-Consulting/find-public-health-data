@@ -61,6 +61,11 @@ export function canAssignReviewers(user: SessionUser): boolean {
   return holds(user, 'imrg-manager');
 }
 
+/** Whether the user may manage the service's shared content, such as its topics. */
+export function canManage(user: SessionUser): boolean {
+  return holds(user, 'admin');
+}
+
 export function canMoveIndicatorBetweenTeams(user: SessionUser): boolean {
   return holds(user, 'admin');
 }
