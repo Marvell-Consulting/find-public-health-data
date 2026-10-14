@@ -1,3 +1,7 @@
+import { TEAM_IDS } from './teams.ts';
+
+export { TEAM_IDS, TEAMS, type Team } from './teams.ts';
+
 export type AppAudience = 'internal' | 'public';
 
 /** The web app sets this cookie, and its server forwards it to the API under the same name. */
@@ -10,6 +14,7 @@ export interface FakeUser {
   readonly id: string;
   readonly name: string;
   readonly roles: readonly string[];
+  readonly teamIds: readonly string[];
 }
 
 export const fakeUsers: readonly FakeUser[] = Object.freeze([
@@ -18,18 +23,21 @@ export const fakeUsers: readonly FakeUser[] = Object.freeze([
     id: 'public-user',
     name: 'Alex Morgan',
     roles: Object.freeze(['public']),
+    teamIds: Object.freeze([]),
   }),
   Object.freeze({
     description: 'Can manage indicators in the internal service',
     id: 'internal-publisher',
     name: 'Sam Taylor',
     roles: Object.freeze(['public', 'internal', 'publisher']),
+    teamIds: Object.freeze([TEAM_IDS.teamA]),
   }),
   Object.freeze({
     description: 'Can manage indicators and administer the internal service',
     id: 'internal-admin',
     name: 'Riley Singh',
     roles: Object.freeze(['public', 'internal', 'publisher', 'admin']),
+    teamIds: Object.freeze([TEAM_IDS.teamA]),
   }),
 ]);
 
@@ -41,10 +49,19 @@ export function fakeUsersForAudience(audience: AppAudience): readonly FakeUser[]
   return fakeUsers.filter((user) => canAccessAudience(user, audience));
 }
 
-export function sessionRolesForAudience(user: FakeUser, audience: AppAudience): readonly string[] {
+export interface SessionAccess {
+  readonly roles: readonly string[];
+  readonly teams: readonly string[];
+}
+
+/** What a session for the audience grants: a public session holds no internal role or team. */
+export function sessionAccessForAudience(user: FakeUser, audience: AppAudience): SessionAccess {
   return audience === 'public'
-    ? Object.freeze(user.roles.filter((role) => role === 'public'))
-    : user.roles;
+    ? Object.freeze({
+        roles: Object.freeze(user.roles.filter((role) => role === 'public')),
+        teams: Object.freeze([]),
+      })
+    : Object.freeze({ roles: user.roles, teams: user.teamIds });
 }
 
 export function findFakeUser(id: string): FakeUser | undefined {

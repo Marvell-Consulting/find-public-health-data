@@ -42,12 +42,16 @@ const testSession = createJwtSessionService({
 
 export const testSessionVerifier = createJwtSessionVerifier(testSession);
 
-/** A session cookie for `test-user` holding the given roles. */
-export async function testSessionCookie(roles: readonly string[]): Promise<string> {
+/** A session cookie for `test-user` holding the given roles and teams. */
+export async function testSessionCookie(
+  roles: readonly string[],
+  teams: readonly string[] = [],
+): Promise<string> {
   const token = await testSession.issueToken({
     expiresInSeconds: 900,
     roles,
     subject: 'test-user',
+    teams,
   });
   return testSession.createCookieHeader(token, 900);
 }

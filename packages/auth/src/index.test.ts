@@ -6,7 +6,8 @@ import {
   fakeUsersForAudience,
   findFakeUser,
   normalizeReturnTo,
-  sessionRolesForAudience,
+  sessionAccessForAudience,
+  TEAM_IDS,
 } from './index.ts';
 
 describe('fake users', () => {
@@ -23,17 +24,15 @@ describe('fake users', () => {
     expect(fakeUsersForAudience('public')).toEqual(fakeUsers);
   });
 
-  it('scopes public sessions to public roles', () => {
+  it('scopes public sessions to public roles and no teams', () => {
     const admin = findFakeUser('internal-admin');
     if (admin === undefined) throw new Error('Missing admin fake user');
 
-    expect(sessionRolesForAudience(admin, 'public')).toEqual(['public']);
-    expect(sessionRolesForAudience(admin, 'internal')).toEqual([
-      'public',
-      'internal',
-      'publisher',
-      'admin',
-    ]);
+    expect(sessionAccessForAudience(admin, 'public')).toEqual({ roles: ['public'], teams: [] });
+    expect(sessionAccessForAudience(admin, 'internal')).toEqual({
+      roles: ['public', 'internal', 'publisher', 'admin'],
+      teams: [TEAM_IDS.teamA],
+    });
   });
 
   it('keeps admin off the publisher user', () => {

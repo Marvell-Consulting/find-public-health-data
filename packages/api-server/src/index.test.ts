@@ -186,8 +186,8 @@ function createGuardedApp(): Express {
   return app;
 }
 
-async function cookieFor(subject: string, roles: readonly string[]) {
-  const token = await session.issueToken({ expiresInSeconds: 900, roles, subject });
+async function cookieFor(subject: string, roles: readonly string[], teams: readonly string[] = []) {
+  const token = await session.issueToken({ expiresInSeconds: 900, roles, subject, teams });
   return session.createCookieHeader(token, 900);
 }
 
@@ -218,13 +218,17 @@ describe('requireJwtRole', () => {
     expect(response.body).toEqual({ error: 'forbidden' });
   });
 
-  it('hands the verified subject and roles to the handler behind it', async () => {
+  it('hands the verified subject, roles and teams to the handler behind it', async () => {
     const response = await request(createGuardedApp())
       .get('/guarded')
-      .set('Cookie', await cookieFor('publisher-1', ['internal', 'publisher']));
+      .set('Cookie', await cookieFor('publisher-1', ['internal', 'publisher'], ['team-1']));
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ roles: ['internal', 'publisher'], sub: 'publisher-1' });
+    expect(response.body).toEqual({
+      roles: ['internal', 'publisher'],
+      sub: 'publisher-1',
+      teams: ['team-1'],
+    });
   });
 });
 
