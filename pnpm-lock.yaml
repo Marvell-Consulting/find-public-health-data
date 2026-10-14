@@ -629,6 +629,9 @@ importers:
         specifier: 'catalog:'
         version: 3.4.9(patch_hash=329e577a68a6c2642e295f2d0f3bbe0bdf5d790c5a845b23e4b06064f7c2e87f)
     devDependencies:
+      '@fphd/auth':
+        specifier: workspace:*
+        version: link:../auth
       '@types/node':
         specifier: 'catalog:'
         version: 24.13.3

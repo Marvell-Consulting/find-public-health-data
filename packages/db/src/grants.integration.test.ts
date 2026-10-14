@@ -298,6 +298,7 @@ describe('the internal role', () => {
     'published.data_provider_source',
     'public.data_provider',
     'public.data_provider_source',
+    'public.team',
   ])('may select %s', async (relation) => {
     const [row] = await owner<{ readable: boolean }[]>`
       SELECT has_table_privilege(${API_ROLES.internalApi}, ${relation}, 'SELECT') AS readable
@@ -340,8 +341,8 @@ describe('the internal role', () => {
     expect(row?.granted).toBe(true);
   });
 
-  // The list is core data, which only the import writes.
-  it.each(['data_provider', 'data_provider_source'])('may not write %s', async (table) => {
+  // The provider list is core data, which only the import writes; the teams only migrations write.
+  it.each(['data_provider', 'data_provider_source', 'team'])('may not write %s', async (table) => {
     const [row] = await owner<{ granted: boolean }[]>`
       SELECT has_table_privilege(${API_ROLES.internalApi}, ${`public.${table}`}, 'INSERT') AS granted
     `;

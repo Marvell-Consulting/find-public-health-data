@@ -81,6 +81,7 @@ describe('createIndicatorDraft', () => {
       .where(eq(indicatorVersion.indicatorId, created.indicatorId));
 
     expect(identity?.shortId).toBe(created.shortId);
+    expect(identity?.teamId).toBe(schema.DEFAULT_INDICATOR_TEAM_ID);
     expect(versions).toHaveLength(1);
     expect(versions[0]).toMatchObject({
       id: created.versionId,
