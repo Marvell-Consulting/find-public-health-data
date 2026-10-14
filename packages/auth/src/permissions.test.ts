@@ -4,6 +4,7 @@ import {
   canAssignReviewers,
   canCreateIndicator,
   canEditIndicator,
+  canListIndicators,
   canMoveIndicatorBetweenTeams,
   canReviewIndicator,
   canSeeIndicator,
@@ -60,6 +61,15 @@ describe('canEditIndicator', () => {
     for (const asking of [admin, manager, reviewer]) {
       expect(canEditIndicator(asking, assigned)).toBe(false);
     }
+  });
+});
+
+describe('canListIndicators', () => {
+  it('lets anyone holding one of the four internal roles open the list', () => {
+    for (const asking of [publisherA, reviewer, manager, admin]) {
+      expect(canListIndicators(asking), asking.sub).toBe(true);
+    }
+    expect(canListIndicators(user('internal-only', []))).toBe(false);
   });
 });
 

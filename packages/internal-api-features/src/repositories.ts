@@ -1,4 +1,5 @@
 import type { Readable } from 'node:stream';
+import type { IndicatorListScope } from '@fphd/auth/permissions';
 
 import { type Database, listTopics, type Topic } from '@fphd/db';
 
@@ -69,7 +70,7 @@ export interface InternalTopicRepository {
 
 /** The publisher's view of indicators: every status, unlike the public repository. */
 export interface InternalIndicatorRepository {
-  listPage(page: number, pageSize: number): Promise<IndicatorAdminRows>;
+  listPage(page: number, pageSize: number, scope: IndicatorListScope): Promise<IndicatorAdminRows>;
   findById(id: string): Promise<IndicatorAdminDetailRow | undefined>;
   /** The draft and whether anything is published, read together for the task list. */
   findDraftState(id: string): Promise<IndicatorDraftStateRow | undefined>;
@@ -163,7 +164,7 @@ export function createInternalRepositories(db: Database): InternalRepositories {
       confirm: (indicatorId, batchId, actor) => confirmDataTable(db, indicatorId, batchId, actor),
     },
     indicators: {
-      listPage: (page, pageSize) => listIndicatorsPage(db, page, pageSize),
+      listPage: (page, pageSize, scope) => listIndicatorsPage(db, page, pageSize, scope),
       findById: (id) => getIndicatorById(db, id),
       findDraftState: (id) => getIndicatorDraftState(db, id),
       createDraft: (attributes, actor) => createIndicatorDraft(db, attributes, actor),

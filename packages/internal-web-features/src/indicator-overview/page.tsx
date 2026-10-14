@@ -5,10 +5,16 @@ import { indicatorTaskListPath } from '../publish-paths.ts';
 import { IndicatorHeading } from '../status-tag/indicator-heading.tsx';
 import type { IndicatorAdminDetail } from './loader.ts';
 
+interface OverviewProps {
+  /** Whether the user may edit it, which the task list is for. */
+  canEdit: boolean;
+  indicator: IndicatorAdminDetail;
+}
+
 // A draft is edited from its task list; an indicator with a published version has a public page, draft or not.
-function Actions({ indicator }: { indicator: IndicatorAdminDetail }) {
+function Actions({ canEdit, indicator }: OverviewProps) {
   const actions = [
-    indicator.draftStatus === null
+    !canEdit || indicator.draftStatus === null
       ? undefined
       : {
           href: indicatorTaskListPath(indicator.id),
@@ -43,13 +49,19 @@ function Actions({ indicator }: { indicator: IndicatorAdminDetail }) {
   );
 }
 
-export function IndicatorOverviewPage({ indicator }: { indicator: IndicatorAdminDetail }) {
+export function IndicatorOverviewPage({ canEdit, indicator }: OverviewProps) {
   return (
     <GridRow>
       <GridColumn width="two-thirds">
         <IndicatorHeading indicator={indicator} />
         <Tabs
-          items={[{ id: 'actions', label: 'Actions', content: <Actions indicator={indicator} /> }]}
+          items={[
+            {
+              id: 'actions',
+              label: 'Actions',
+              content: <Actions canEdit={canEdit} indicator={indicator} />,
+            },
+          ]}
           paramKey="tab"
         />
       </GridColumn>
