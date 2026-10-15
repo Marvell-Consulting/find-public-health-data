@@ -1,12 +1,18 @@
 import type postgres from 'postgres';
 
 import { copyInto, type DataMigrationProgressReporter } from './data-migration-copy.ts';
+import { applyDeletes, prepareVersionDeletes, stageDeletes } from './data-migration-deletes.ts';
 import type { DataMigrationManifest } from './data-migration-manifest.ts';
 import {
   DATA_MIGRATION_REFERENCE_TABLES,
   DATA_MIGRATION_TABLES,
 } from './data-migration-manifest.ts';
-import { applyRelationships } from './data-migration-relationship-import.ts';
+import { assertMigrationPublisherRowsUnchanged } from './data-migration-publisher-work.ts';
+import {
+  applyRelationships,
+  assertMigrationPublisherWorkUnchanged,
+  readMigrationRelationships,
+} from './data-migration-relationship-import.ts';
 import { applyLegacySources } from './data-migration-sources.ts';
 import {
   applyIndicatorVersionRows,
@@ -22,12 +28,6 @@ export type {
 } from './data-migration-copy.ts';
 
 const referenceTables = new Set(DATA_MIGRATION_REFERENCE_TABLES);
-const VERSION_CHILD_TABLES = [
-  'indicator_version_topic',
-  'indicator_version_classification',
-  'indicator_version_source',
-] as const;
-
 async function applyBaseline(
   tx: postgres.TransactionSql,
   directory: string,
@@ -44,7 +44,6 @@ async function applyBaseline(
   }
 
   const changes: Record<string, { upserts: number; deletes: number }> = {};
-  let indicatorVersionHasLegacySources = false;
   let indicatorVersionHasBatchPointers = false;
   for (const table of DATA_MIGRATION_TABLES) {
     const entry = manifest.tables[table];
@@ -54,13 +53,12 @@ async function applyBaseline(
       continue;
     }
     if (table === 'indicator_version') {
-      const { hasLegacySources, hasBatchPointers } = await applyIndicatorVersionRows(
+      const { hasBatchPointers } = await applyIndicatorVersionRows(
         tx,
         directory,
         'baseline',
         report,
       );
-      indicatorVersionHasLegacySources = hasLegacySources;
       indicatorVersionHasBatchPointers = hasBatchPointers;
       const [row] = await tx.unsafe<{ count: number }[]>(
         `SELECT count(*)::int AS count FROM indicator_version`,
@@ -89,83 +87,8 @@ async function applyBaseline(
     changes[table] = { upserts: entry.rows, deletes: 0 };
   }
   if (indicatorVersionHasBatchPointers) await applyVersionBatchPointers(tx);
-  if (indicatorVersionHasLegacySources) {
-    await applyLegacySources(tx, directory, legacySourceMap);
-  }
+  await applyLegacySources(tx, directory, legacySourceMap);
   return changes;
-}
-
-async function applyDeletes(
-  tx: postgres.TransactionSql,
-  table: string,
-  file: string,
-  expected: number,
-  report: DataMigrationProgressReporter,
-): Promise<void> {
-  const stage = `data_migration_delete_${table}`;
-  await tx.unsafe(`CREATE TEMP TABLE "${stage}" (id uuid PRIMARY KEY) ON COMMIT DROP`);
-  const { columns } = await validateMigrationHeader(tx, stage, file);
-  await copyInto(
-    tx,
-    stage,
-    columns,
-    file,
-    `loading ${table} deletes`,
-    { table, phase: 'delete' },
-    report,
-  );
-  const [staged] = await tx.unsafe<{ count: number }[]>(
-    `SELECT count(*)::int AS count FROM "${stage}"`,
-  );
-  if (Number(staged?.count) !== expected) {
-    throw new Error(`${table} staged ${staged?.count ?? 0} deletes; package declares ${expected}`);
-  }
-  if (table === 'indicator_version') {
-    const [unpublished] = await tx.unsafe<{ count: number }[]>(`
-      SELECT count(*)::int AS count FROM indicator_version
-      WHERE id IN (SELECT id FROM "${stage}") AND status <> 'published'
-    `);
-    if (unpublished?.count) {
-      throw new Error('Data migration would delete a non-published indicator version');
-    }
-    // Publishers attach links and age ranges to versions. Deleting a version would discard that
-    // work, so the migration stops for a decision instead.
-    const [published] = await tx.unsafe<{ count: number }[]>(`
-      SELECT (SELECT count(*) FROM indicator_version_link WHERE indicator_version_id IN (SELECT id FROM "${stage}"))
-        + (SELECT count(*) FROM indicator_version_age_range WHERE indicator_version_id IN (SELECT id FROM "${stage}"))
-        AS count
-    `);
-    if (Number(published?.count) > 0) {
-      throw new Error(
-        `${published?.count} publisher links or age ranges belong to indicator versions the source no longer holds`,
-      );
-    }
-    // The migration wrote these, and re-applies topics and classifications once the deletes are done.
-    for (const child of VERSION_CHILD_TABLES) {
-      await tx.unsafe(
-        `DELETE FROM ${child} WHERE indicator_version_id IN (SELECT id FROM "${stage}")`,
-      );
-    }
-  }
-  const deleting =
-    Number(staged?.count) > 0
-      ? await tx.unsafe<{ id: string }[]>(`SELECT id FROM "${stage}" ORDER BY id LIMIT 20`)
-      : [];
-  let result: { count: number };
-  try {
-    result = await tx.unsafe(`DELETE FROM "${table}" WHERE id IN (SELECT id FROM "${stage}")`);
-  } catch (error) {
-    if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23503') {
-      throw new Error(
-        `${table} deletion is blocked by retained references (ids: ${deleting.map(({ id }) => id).join(', ')}): ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error },
-      );
-    }
-    throw error;
-  }
-  if (result.count !== expected) {
-    throw new Error(`${table} deleted ${result.count} rows; package declares ${expected}`);
-  }
 }
 
 async function applyIncremental(
@@ -178,20 +101,13 @@ async function applyIncremental(
   // Move changed children onto any new parent rows before deleting parents no longer in the
   // source snapshot. Deleting first would fail when an unchanged row still referenced a parent
   // until its upsert changed the foreign key.
-  let indicatorVersionHasLegacySources = false;
   let indicatorVersionHasBatchPointers = false;
   for (const table of DATA_MIGRATION_TABLES) {
     if (referenceTables.has(table)) continue;
     const entry = manifest.tables[table];
     if (!entry) throw new Error(`Incremental package has no ${table} entry`);
     if (table === 'indicator_version') {
-      const { hasLegacySources, hasBatchPointers } = await applyIndicatorVersionRows(
-        tx,
-        directory,
-        'upsert',
-        report,
-      );
-      indicatorVersionHasLegacySources = hasLegacySources;
+      const { hasBatchPointers } = await applyIndicatorVersionRows(tx, directory, 'upsert', report);
       indicatorVersionHasBatchPointers = hasBatchPointers;
       const [staged] = await tx.unsafe<{ count: number }[]>(
         `SELECT count(*)::int AS count FROM migration_source_indicator_version`,
@@ -203,24 +119,31 @@ async function applyIncremental(
       }
       continue;
     }
-    const { hasLegacySources } = await applyUpserts(
-      tx,
-      table,
-      `${directory}/${entry.upserts.file}`,
-      entry.upserts.rows,
-      report,
-    );
-    if (hasLegacySources) indicatorVersionHasLegacySources = true;
+    await applyUpserts(tx, table, `${directory}/${entry.upserts.file}`, entry.upserts.rows, report);
   }
   if (indicatorVersionHasBatchPointers) await applyVersionBatchPointers(tx);
-  if (indicatorVersionHasLegacySources) {
-    await applyLegacySources(tx, directory, legacySourceMap);
+  await applyLegacySources(tx, directory, legacySourceMap);
+  for (const table of DATA_MIGRATION_TABLES) {
+    if (referenceTables.has(table)) continue;
+    const entry = manifest.tables[table];
+    if (!entry) throw new Error(`Incremental package has no ${table} entry`);
+    await stageDeletes(tx, table, `${directory}/${entry.deletes.file}`, entry.deletes.rows, report);
   }
+  for (const table of DATA_MIGRATION_TABLES) {
+    if (referenceTables.has(table)) continue;
+    await assertMigrationPublisherRowsUnchanged(
+      tx,
+      table,
+      `data_migration_delete_${table}`,
+      'delete',
+    );
+  }
+  await prepareVersionDeletes(tx);
   for (const table of [...DATA_MIGRATION_TABLES].reverse()) {
     if (referenceTables.has(table)) continue;
     const entry = manifest.tables[table];
     if (!entry) throw new Error(`Incremental package has no ${table} entry`);
-    await applyDeletes(tx, table, `${directory}/${entry.deletes.file}`, entry.deletes.rows, report);
+    await applyDeletes(tx, table, entry.deletes.rows);
   }
   return Object.fromEntries(
     DATA_MIGRATION_TABLES.map((table) => {
@@ -287,11 +210,15 @@ export async function applyDataMigration(
       indicator_version_classification IN SHARE ROW EXCLUSIVE MODE
   `;
 
+  const relationships = await readMigrationRelationships(directory, manifest);
+  if (manifest.kind === 'incremental') {
+    await assertMigrationPublisherWorkUnchanged(tx, relationships);
+  }
   const changes =
     manifest.kind === 'baseline'
       ? await applyBaseline(tx, directory, manifest, report)
       : await applyIncremental(tx, directory, manifest, report);
-  await applyRelationships(tx, directory, manifest, report);
+  await applyRelationships(tx, manifest, relationships, report);
   await tx.unsafe(
     "SELECT setval('indicator_short_id_seq', GREATEST(99999, (SELECT CASE WHEN is_called THEN last_value ELSE last_value - 1 END FROM indicator_short_id_seq), COALESCE((SELECT max(short_id) FROM indicator), 99999)), true)",
   );

@@ -4,6 +4,7 @@ import {
   type DataMigrationProgressReporter,
   quoteIdentifiers,
 } from './data-migration-copy.ts';
+import { assertMigrationPublisherRowsUnchanged } from './data-migration-publisher-work.ts';
 import { readCsvHeader } from './seeding.ts';
 
 const LEGACY_SOURCE_COLUMNS = ['numerator_source_id', 'denominator_source_id'] as const;
@@ -47,15 +48,14 @@ export async function validateMigrationHeader(
   tx: postgres.TransactionSql,
   table: string,
   file: string,
-): Promise<{ rawHeader: string[]; columns: string[]; hasLegacySources: boolean }> {
+): Promise<{ rawHeader: string[]; columns: string[] }> {
   const rawHeader = await readCsvHeader(file);
   const targetInfo = await tableColumnInfo(tx, table);
   const targetNames = new Set(targetInfo.map(({ name }) => name));
   const legacySet = new Set<string>(LEGACY_SOURCE_COLUMNS);
 
-  const hasLegacySources =
-    table === 'indicator_version' && rawHeader.some((col) => legacySet.has(col));
-  const columns = hasLegacySources ? rawHeader.filter((col) => !legacySet.has(col)) : rawHeader;
+  const columns =
+    table === 'indicator_version' ? rawHeader.filter((col) => !legacySet.has(col)) : rawHeader;
 
   const unknown = columns.filter((col) => !targetNames.has(col));
   if (unknown.length > 0) {
@@ -81,7 +81,7 @@ export async function validateMigrationHeader(
     throw new Error(`${table} CSV is missing required columns: ${missing.join(', ')}`);
   }
 
-  return { rawHeader, columns, hasLegacySources };
+  return { rawHeader, columns };
 }
 
 /**
@@ -158,13 +158,9 @@ export async function applyIndicatorVersionRows(
   directory: string,
   phase: 'baseline' | 'upsert',
   report: DataMigrationProgressReporter,
-): Promise<{ hasLegacySources: boolean; hasBatchPointers: boolean }> {
+): Promise<{ hasBatchPointers: boolean }> {
   const file = `${directory}/indicator_version.csv.gz`;
-  const { rawHeader, columns, hasLegacySources } = await validateMigrationHeader(
-    tx,
-    'indicator_version',
-    file,
-  );
+  const { rawHeader, columns } = await validateMigrationHeader(tx, 'indicator_version', file);
 
   await tx.unsafe(
     `CREATE TEMP TABLE migration_source_indicator_version (LIKE indicator_version INCLUDING DEFAULTS) ON COMMIT DROP`,
@@ -190,6 +186,19 @@ export async function applyIndicatorVersionRows(
     throw new Error('Data migration contains a non-published indicator version');
   }
 
+  const moved = await tx<{ id: string }[]>`
+    SELECT existing.id FROM migration_source_indicator_version staged
+    JOIN indicator_version existing ON existing.id = staged.id
+    WHERE existing.indicator_id <> staged.indicator_id
+    ORDER BY existing.id
+    LIMIT 20
+  `;
+  if (moved.length > 0) {
+    throw new Error(
+      `Data migration would move indicator versions to another indicator (ids: ${moved.map(({ id }) => id).join(', ')})`,
+    );
+  }
+
   const [draftConflict] = await tx<{ count: number }[]>`
     SELECT count(*)::int AS count FROM migration_source_indicator_version staged
     JOIN indicator_version existing ON existing.id = staged.id
@@ -197,6 +206,32 @@ export async function applyIndicatorVersionRows(
   `;
   if (draftConflict?.count) {
     throw new Error('Data migration would overwrite a non-published indicator version');
+  }
+
+  const [actorConflict] = await tx<{ count: number }[]>`
+    SELECT count(*)::int AS count FROM migration_source_indicator_version
+    WHERE created_by IS DISTINCT FROM 'pholio-migration'
+      OR updated_by IS DISTINCT FROM 'pholio-migration'
+  `;
+  if (actorConflict?.count) {
+    throw new Error('Data migration versions must name pholio-migration as their audit actor');
+  }
+  const conflicts = await tx<{ shortId: number }[]>`
+    SELECT DISTINCT i.short_id AS "shortId"
+    FROM migration_source_indicator_version staged
+    JOIN indicator i ON i.id = staged.indicator_id
+    JOIN indicator_version existing ON existing.indicator_id = i.id
+    WHERE existing.status = 'draft' OR (
+      (existing.id = staged.id OR existing.id IN (SELECT id FROM current_published_version))
+      AND (existing.created_by IS DISTINCT FROM 'pholio-migration'
+        OR existing.updated_by IS DISTINCT FROM 'pholio-migration')
+    )
+    ORDER BY i.short_id
+  `;
+  if (conflicts.length > 0) {
+    throw new Error(
+      `Data migration conflicts with FPHD publisher work on indicators: ${conflicts.map(({ shortId }) => shortId).join(', ')}`,
+    );
   }
 
   for (const lookup of CORE_DATA_LOOKUPS) {
@@ -236,7 +271,7 @@ export async function applyIndicatorVersionRows(
     `);
   }
 
-  return { hasLegacySources, hasBatchPointers: columns.includes('upload_batch_id') };
+  return { hasBatchPointers: columns.includes('upload_batch_id') };
 }
 
 /** Connects staged versions after their batches exist, resolving their mutual foreign keys. */
@@ -256,8 +291,8 @@ export async function applyUpserts(
   file: string,
   expected: number,
   report: DataMigrationProgressReporter,
-): Promise<{ hasLegacySources: boolean }> {
-  const { columns, hasLegacySources } = await validateMigrationHeader(tx, table, file);
+): Promise<void> {
+  const { columns } = await validateMigrationHeader(tx, table, file);
 
   const stage = `data_migration_upsert_${table}`;
   await tx.unsafe(
@@ -278,6 +313,7 @@ export async function applyUpserts(
   if (Number(staged?.count) !== expected) {
     throw new Error(`${table} staged ${staged?.count ?? 0} upserts; package declares ${expected}`);
   }
+  await assertMigrationPublisherRowsUnchanged(tx, table, stage, 'upsert');
   const assignments = columns
     .filter((column) => column !== 'id')
     .map((column) => `"${column}" = EXCLUDED."${column}"`)
@@ -286,5 +322,4 @@ export async function applyUpserts(
   await tx.unsafe(
     `INSERT INTO "${table}" (${quoteIdentifiers(columns)}) SELECT ${quoteIdentifiers(columns)} FROM "${stage}" ON CONFLICT (id) ${conflict}`,
   );
-  return { hasLegacySources };
 }

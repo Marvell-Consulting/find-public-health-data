@@ -201,6 +201,125 @@ describe('applyDataMigration', () => {
     ).toEqual([{ upload_batch_id: null, data_table_confirmed_at: null }]);
     expect(await sql`SELECT id FROM published.observation`).toEqual([]);
   });
+  it('withdraws an indicator, its version, batch and observations in one increment', async () => {
+    const batchId = '22222222-2222-7222-8222-222222222222';
+    const areaId = '44444444-4444-7444-8444-444444444444';
+    const observationId = '55555555-5555-7555-8555-555555555555';
+    await baseline({
+      upserts: {
+        indicator_version: versionWithBatch(batchId, '2026-01-01T00:00:00Z'),
+        upload_batch: batch(batchId),
+        area_type: {
+          columns: ['id', 'name', 'hierarchy_type', 'level'],
+          rows: [[areaId, 'Country', 'Administrative', 1]],
+        },
+        area: {
+          columns: ['id', 'area_type_id', 'code', 'name', 'valid_from'],
+          rows: [[areaId, areaId, 'E92000001', 'England', '2010-01-01']],
+        },
+        observation: {
+          columns: [
+            'id',
+            'indicator_id',
+            'area_id',
+            'upload_batch_id',
+            'from_date',
+            'to_date',
+            'value',
+            'dimension_key',
+            'created_by',
+          ],
+          rows: [
+            [
+              observationId,
+              INDICATOR_ID,
+              areaId,
+              batchId,
+              '2025-01-01',
+              '2025-12-31',
+              10,
+              '',
+              'pholio-migration',
+            ],
+          ],
+        },
+      },
+    });
+    const result = await apply({
+      deletes: {
+        indicator: [INDICATOR_ID],
+        indicator_version: [VERSION_ID],
+        upload_batch: [batchId],
+        observation: [observationId],
+      },
+      relationships: { indicators: [], indicatorTopics: [] },
+    });
+    expect(result.changes.indicator_version).toEqual({ upserts: 0, deletes: 1 });
+    expect(result.changes.upload_batch).toEqual({ upserts: 0, deletes: 1 });
+    expect(await sql`SELECT id FROM published.indicator`).toEqual([]);
+    expect(await sql`SELECT id FROM published.observation`).toEqual([]);
+    for (const table of [
+      'indicator',
+      'indicator_version',
+      'upload_batch',
+      'observation',
+      'indicator_version_topic',
+    ]) {
+      expect(await sql.unsafe(`SELECT count(*)::int AS count FROM ${table}`)).toEqual([
+        { count: 0 },
+      ]);
+    }
+    expect(await sql`SELECT count(*)::int AS count FROM data_migration`).toEqual([{ count: 2 }]);
+  });
+  it('rolls back cleared batch pointers when a later delete is blocked', async () => {
+    const batchId = '22222222-2222-7222-8222-222222222222';
+    await baseline({
+      upserts: {
+        indicator_version: versionWithBatch(batchId, '2026-01-01T00:00:00Z'),
+        upload_batch: batch(batchId),
+      },
+    });
+    await sql`INSERT INTO upload_batch (indicator_id, indicator_version_id, original_filename, uploaded_by)
+      VALUES (${INDICATOR_ID}, ${VERSION_ID}, 'publisher.csv', 'publisher')`;
+    await expect(
+      apply({
+        deletes: {
+          indicator: [INDICATOR_ID],
+          indicator_version: [VERSION_ID],
+          upload_batch: [batchId],
+        },
+        relationships: { indicators: [], indicatorTopics: [] },
+      }),
+    ).rejects.toThrow('indicator_version deletion is blocked by retained references');
+    expect(
+      await sql`SELECT upload_batch_id, data_table_confirmed_at IS NOT NULL AS confirmed FROM indicator_version`,
+    ).toEqual([{ upload_batch_id: batchId, confirmed: true }]);
+    await assertRolledBack();
+  });
+  it('loads prepared CSV NULLs separately from quoted empty strings', async () => {
+    await baseline({
+      upserts: {
+        indicator_version: {
+          columns: [...VERSION_COLUMNS, 'definition', 'rationale'],
+          rows: [[...VERSION_ROW, null, '']],
+        },
+      },
+    });
+    expect(await sql`SELECT definition, rationale FROM indicator_version`).toEqual([
+      { definition: null, rationale: '' },
+    ]);
+    await apply({
+      upserts: {
+        indicator_version: {
+          columns: [...VERSION_COLUMNS, 'definition', 'rationale'],
+          rows: [[...VERSION_ROW, '', null]],
+        },
+      },
+    });
+    expect(await sql`SELECT definition, rationale FROM indicator_version`).toEqual([
+      { definition: '', rationale: null },
+    ]);
+  });
   it('rolls back a version pointing at a missing batch', async () => {
     await baseline();
     await expect(
@@ -468,7 +587,7 @@ describe('applyDataMigration', () => {
     try {
       await acquired;
       rejected = expect(apply({ upserts: { indicator_version: version() } })).rejects.toThrow(
-        'would overwrite a non-published indicator version',
+        'conflicts with FPHD publisher work on indicators: 108',
       );
       await vi.waitFor(async () => {
         const [lock] = await observer<{ waiting: boolean }[]>`
@@ -664,12 +783,11 @@ describe('applyDataMigration', () => {
       expect((await apply()).applied).toBe(true);
     },
   );
-  it('preserves historical and draft topics, classifications and answers', async () => {
+  it('preserves historical topics, classifications and answers', async () => {
     await baseline();
     const preserved = await sql<{ id: string }[]>`
       INSERT INTO indicator_version (indicator_id, status, published_at, name, slug, created_by, updated_by, has_framework)
-      VALUES (${INDICATOR_ID}, 'published', '2025-01-01', 'History', 'test-indicator', 'publisher', 'publisher', true),
-        (${INDICATOR_ID}, 'draft', NULL, 'Draft', 'test-indicator', 'publisher', 'publisher', true)
+      VALUES (${INDICATOR_ID}, 'published', '2025-01-01', 'History', 'test-indicator', 'publisher', 'publisher', true)
       RETURNING id
     `;
     for (const { id } of preserved) {
@@ -686,9 +804,307 @@ describe('applyDataMigration', () => {
       FROM indicator_version v WHERE v.id IN ${sql(preserved.map(({ id }) => id))} ORDER BY status
     `;
     expect(rows).toEqual([
-      { status: 'draft', hasFramework: true, topics: 1, classifications: 1 },
       { status: 'published', hasFramework: true, topics: 1, classifications: 1 },
     ]);
+  });
+  it.each(['draft', 'publication', 'edit'])(
+    'refuses an increment conflicting with a publisher %s and keeps its assignments',
+    async (kind) => {
+      await baseline();
+      const [otherTopic] = await sql<
+        { id: string }[]
+      >`SELECT id FROM topic WHERE id <> ${topicId} LIMIT 1`;
+      if (!otherTopic) throw new Error('Missing second core topic');
+      let versionId = VERSION_ID;
+      if (kind === 'edit') {
+        await sql`UPDATE indicator_version SET updated_by = 'publisher', has_framework = true WHERE id = ${VERSION_ID}`;
+        await sql`DELETE FROM indicator_version_topic WHERE indicator_version_id = ${VERSION_ID}`;
+      } else {
+        const [created] = await sql<{ id: string }[]>`
+          INSERT INTO indicator_version (indicator_id, status, published_at, name, slug, created_by, updated_by, has_framework)
+          VALUES (${INDICATOR_ID}, ${kind === 'draft' ? 'draft' : 'published'},
+            ${kind === 'draft' ? null : '2026-10-01'}, 'Publisher work', 'test-indicator', 'publisher', 'publisher', true)
+          RETURNING id
+        `;
+        if (!created) throw new Error('Missing publisher version');
+        versionId = created.id;
+      }
+      await sql`INSERT INTO indicator_version_topic (indicator_version_id, topic_id) VALUES (${versionId}, ${otherTopic.id})`;
+      await sql`INSERT INTO indicator_version_classification (indicator_version_id, classification_id) VALUES (${versionId}, ${frameworkId})`;
+      const row = [...VERSION_ROW];
+      row[4] = 'Source correction';
+      await expect(
+        apply({ upserts: { indicator_version: { columns: VERSION_COLUMNS, rows: [row] } } }),
+      ).rejects.toThrow('conflicts with FPHD publisher work on indicators: 108');
+      expect(
+        await sql`SELECT topic_id FROM indicator_version_topic WHERE indicator_version_id = ${versionId}`,
+      ).toEqual([{ topic_id: otherTopic.id }]);
+      expect(
+        await sql`SELECT has_framework FROM indicator_version WHERE id = ${versionId}`,
+      ).toEqual([{ has_framework: true }]);
+      expect(
+        await sql`SELECT classification_id FROM indicator_version_classification WHERE indicator_version_id = ${versionId}`,
+      ).toEqual([{ classification_id: frameworkId }]);
+      expect(await sql`SELECT name FROM indicator_version WHERE id = ${VERSION_ID}`).toEqual([
+        { name: 'Test indicator' },
+      ]);
+      expect(await sql`SELECT count(*)::int AS count FROM data_migration`).toEqual([{ count: 1 }]);
+    },
+  );
+  it('retains FPHD-only publications and their assignments outside migration coverage', async () => {
+    await baseline();
+    const [identity] = await sql<
+      { id: string }[]
+    >`INSERT INTO indicator DEFAULT VALUES RETURNING id`;
+    if (!identity) throw new Error('Missing publisher indicator');
+    const [publication] = await sql<{ id: string }[]>`
+      INSERT INTO indicator_version (indicator_id, status, published_at, name, slug, created_by, updated_by, has_framework)
+      VALUES (${identity.id}, 'published', '2026-10-01', 'FPHD only', 'fphd-only', 'publisher', 'publisher', true) RETURNING id
+    `;
+    if (!publication) throw new Error('Missing publisher publication');
+    await sql`INSERT INTO indicator_version_topic (indicator_version_id, topic_id) VALUES (${publication.id}, ${topicId})`;
+    await sql`INSERT INTO indicator_version_classification (indicator_version_id, classification_id) VALUES (${publication.id}, ${frameworkId})`;
+    await apply();
+    expect(
+      await sql`SELECT has_framework FROM indicator_version WHERE id = ${publication.id}`,
+    ).toEqual([{ has_framework: true }]);
+    expect(
+      await sql`SELECT topic_id FROM indicator_version_topic WHERE indicator_version_id = ${publication.id}`,
+    ).toEqual([{ topic_id: topicId }]);
+    expect(
+      await sql`SELECT classification_id FROM indicator_version_classification WHERE indicator_version_id = ${publication.id}`,
+    ).toEqual([{ classification_id: frameworkId }]);
+    expect(await sql`SELECT count(*)::int AS count FROM published.indicator`).toEqual([
+      { count: 2 },
+    ]);
+  });
+  it.each(['pholio-migration', 'publisher'])(
+    'never moves an existing %s version to another indicator',
+    async (actor) => {
+      await baseline();
+      const [identity] = await sql<{ id: string }[]>`
+        INSERT INTO indicator (short_id) VALUES (109) RETURNING id
+      `;
+      if (!identity) throw new Error('Missing other indicator');
+      await sql`
+        INSERT INTO indicator_version (id, indicator_id, status, published_at, name, slug, created_by, updated_by)
+        VALUES (${SOURCE_ID}, ${identity.id}, 'published', '2026-01-01', 'Other indicator', 'other-indicator', ${actor}, ${actor})
+      `;
+      await sql`INSERT INTO indicator_version_topic (indicator_version_id, topic_id) VALUES (${SOURCE_ID}, ${topicId})`;
+      const row = [...VERSION_ROW];
+      row[0] = SOURCE_ID;
+      await expect(
+        apply({
+          upserts: { indicator_version: { columns: VERSION_COLUMNS, rows: [row] } },
+          deletes: { indicator: [identity.id] },
+        }),
+      ).rejects.toThrow('would move indicator versions to another indicator');
+      expect(
+        await sql`SELECT indicator_id, name, created_by FROM indicator_version WHERE id = ${SOURCE_ID}`,
+      ).toEqual([{ indicator_id: identity.id, name: 'Other indicator', created_by: actor }]);
+      expect(
+        await sql`SELECT topic_id FROM indicator_version_topic WHERE indicator_version_id = ${SOURCE_ID}`,
+      ).toEqual([{ topic_id: topicId }]);
+      expect(await sql`SELECT id FROM indicator WHERE id = ${identity.id}`).toEqual([
+        { id: identity.id },
+      ]);
+      await assertRolledBack();
+    },
+  );
+  it.each([
+    ['indicator', 'upsert'],
+    ['upload_batch', 'upsert'],
+    ['upload_batch', 'delete'],
+    ['observation', 'upsert'],
+    ['observation', 'delete'],
+    ['observation', 'reassign'],
+    ['observation', 'historical upsert'],
+    ['observation_dimension', 'upsert'],
+    ['observation_dimension', 'delete'],
+    ['observation_note', 'upsert'],
+    ['observation_note', 'delete'],
+  ] as const)('protects publisher-owned %s rows from migration %s', async (table, action) => {
+    await baseline();
+    const [identity] = await sql<
+      { id: string }[]
+    >`INSERT INTO indicator (short_id) VALUES (109) RETURNING id`;
+    if (!identity) throw new Error('Missing publisher indicator');
+    const publisherIndicatorId = action === 'historical upsert' ? INDICATOR_ID : identity.id;
+    const [publication] = await sql<{ id: string }[]>`
+      INSERT INTO indicator_version (indicator_id, status, published_at, name, slug, created_by, updated_by)
+      VALUES (${publisherIndicatorId}, 'published', '2025-01-01', 'FPHD only',
+        ${action === 'historical upsert' ? 'test-indicator' : 'fphd-only'}, 'publisher', 'publisher') RETURNING id
+    `;
+    if (!publication) throw new Error('Missing publisher publication');
+    const [upload] = await sql<{ id: string }[]>`
+      INSERT INTO upload_batch (indicator_id, indicator_version_id, original_filename, uploaded_by, status)
+      VALUES (${publisherIndicatorId}, ${publication.id}, 'publisher.csv', 'publisher', 'processed') RETURNING id
+    `;
+    if (!upload) throw new Error('Missing publisher upload');
+    await sql`UPDATE indicator_version SET upload_batch_id = ${upload.id}, data_table_confirmed_at = '2026-01-01' WHERE id = ${publication.id}`;
+    const [areaType] = await sql<
+      { id: string }[]
+    >`INSERT INTO area_type (name, hierarchy_type, level) VALUES ('Country', 'Administrative', 1) RETURNING id`;
+    if (!areaType) throw new Error('Missing area type');
+    const [area] = await sql<
+      { id: string }[]
+    >`INSERT INTO area (area_type_id, code, name, valid_from) VALUES (${areaType.id}, 'E92000001', 'England', '2010-01-01') RETURNING id`;
+    if (!area) throw new Error('Missing area');
+    const [observed] = await sql<{ id: string }[]>`
+      INSERT INTO observation (indicator_id, area_id, upload_batch_id, from_date, to_date, value, dimension_key, created_by)
+      VALUES (${publisherIndicatorId}, ${area.id}, ${upload.id}, '2025-01-01', '2025-12-31', 10, '', 'publisher') RETURNING id
+    `;
+    if (!observed) throw new Error('Missing observation');
+    const [dimensionType] = await sql<
+      { id: string }[]
+    >`INSERT INTO dimension_type (name, dimension_class) VALUES ('Sex', 'core') RETURNING id`;
+    if (!dimensionType) throw new Error('Missing dimension type');
+    const [dimensionValue] = await sql<
+      { id: string }[]
+    >`INSERT INTO dimension_value (dimension_type_id, name) VALUES (${dimensionType.id}, 'Female') RETURNING id`;
+    if (!dimensionValue) throw new Error('Missing dimension value');
+    const [dimension] = await sql<
+      { id: string }[]
+    >`INSERT INTO observation_dimension (observation_id, dimension_value_id, dimension_type_id) VALUES (${observed.id}, ${dimensionValue.id}, ${dimensionType.id}) RETURNING id`;
+    const [noteType] = await sql<
+      { id: string }[]
+    >`INSERT INTO note_type (text, category) VALUES ('Publisher note', 'quality') RETURNING id`;
+    if (!dimension || !noteType) throw new Error('Missing observation attributes');
+    const [note] = await sql<
+      { id: string }[]
+    >`INSERT INTO observation_note (observation_id, note_type_id) VALUES (${observed.id}, ${noteType.id}) RETURNING id`;
+    if (!note) throw new Error('Missing note');
+    const fixtures = {
+      indicator: {
+        columns: ['id', 'short_id', 'data_updated_at'],
+        rows: [[identity.id, 109, '2026-02-01']],
+      },
+      upload_batch: {
+        columns: [
+          'id',
+          'indicator_id',
+          'indicator_version_id',
+          'original_filename',
+          'uploaded_by',
+          'status',
+        ],
+        rows: [
+          [
+            upload.id,
+            publisherIndicatorId,
+            publication.id,
+            'replacement.csv',
+            'pholio-migration',
+            'processed',
+          ],
+        ],
+      },
+      observation: {
+        columns: [
+          'id',
+          'indicator_id',
+          'area_id',
+          'upload_batch_id',
+          'from_date',
+          'to_date',
+          'value',
+          'dimension_key',
+          'created_by',
+        ],
+        rows: [
+          [
+            observed.id,
+            publisherIndicatorId,
+            area.id,
+            upload.id,
+            '2025-01-01',
+            '2025-12-31',
+            999,
+            '',
+            'pholio-migration',
+          ],
+        ],
+      },
+      observation_dimension: {
+        columns: ['id', 'observation_id', 'dimension_value_id', 'dimension_type_id'],
+        rows: [[dimension.id, observed.id, dimensionValue.id, dimensionType.id]],
+      },
+      observation_note: {
+        columns: ['id', 'observation_id', 'note_type_id'],
+        rows: [[note.id, observed.id, noteType.id]],
+      },
+    };
+    const ids = {
+      indicator: identity.id,
+      upload_batch: upload.id,
+      observation: observed.id,
+      observation_dimension: dimension.id,
+      observation_note: note.id,
+    };
+    if (action === 'reassign') {
+      const [sourceBatch] = await sql<{ id: string }[]>`
+        INSERT INTO upload_batch (indicator_id, indicator_version_id, original_filename, uploaded_by, status)
+        VALUES (${INDICATOR_ID}, ${VERSION_ID}, 'source.csv', 'pholio-migration', 'processed') RETURNING id
+      `;
+      if (!sourceBatch) throw new Error('Missing source batch');
+      fixtures.observation.rows[0] = [
+        observed.id,
+        INDICATOR_ID,
+        area.id,
+        sourceBatch.id,
+        '2025-01-01',
+        '2025-12-31',
+        999,
+        '',
+        'pholio-migration',
+      ];
+    }
+    await expect(
+      apply(
+        action !== 'delete'
+          ? { upserts: { [table]: fixtures[table] } }
+          : { deletes: { [table]: [ids[table]] } },
+      ),
+    ).rejects.toThrow(
+      `conflicts with FPHD publisher work on indicators: ${action === 'historical upsert' ? 108 : 109}`,
+    );
+    expect(await sql`SELECT value FROM observation WHERE id = ${observed.id}`).toEqual([
+      { value: 10 },
+    ]);
+    expect(await sql`SELECT original_filename FROM upload_batch WHERE id = ${upload.id}`).toEqual([
+      { original_filename: 'publisher.csv' },
+    ]);
+    expect(await sql`SELECT id FROM observation_dimension WHERE id = ${dimension.id}`).toEqual([
+      { id: dimension.id },
+    ]);
+    expect(await sql`SELECT id FROM observation_note WHERE id = ${note.id}`).toEqual([
+      { id: note.id },
+    ]);
+    expect(await sql`SELECT data_updated_at FROM indicator WHERE id = ${identity.id}`).toEqual([
+      { data_updated_at: null },
+    ]);
+    await assertRolledBack();
+  });
+  it('refuses a withdrawal when its indicator has a publisher draft', async () => {
+    await baseline();
+    await sql`INSERT INTO indicator_version (indicator_id, name, slug, created_by, updated_by)
+      VALUES (${INDICATOR_ID}, 'Publisher draft', 'test-indicator', 'publisher', 'publisher')`;
+    await expect(
+      apply({
+        deletes: { indicator: [INDICATOR_ID], indicator_version: [VERSION_ID] },
+        relationships: { indicators: [], indicatorTopics: [] },
+      }),
+    ).rejects.toThrow('conflicts with FPHD publisher work on indicators: 108');
+    await assertRolledBack();
+  });
+  it('requires the source audit actor before accepting a version', async () => {
+    const row = [...VERSION_ROW];
+    row[7] = 'publisher';
+    await expect(
+      baseline({ upserts: { indicator_version: { columns: VERSION_COLUMNS, rows: [row] } } }),
+    ).rejects.toThrow('must name pholio-migration as their audit actor');
+    expect(await sql`SELECT count(*)::int AS count FROM indicator`).toEqual([{ count: 0 }]);
+    expect(await sql`SELECT count(*)::int AS count FROM data_migration`).toEqual([{ count: 0 }]);
   });
   it('allows unrelated draft-only indicators without changing them', async () => {
     await baseline();
@@ -727,7 +1143,7 @@ describe('applyDataMigration', () => {
     row[0] = draft?.id ?? '';
     await expect(
       apply({ upserts: { indicator_version: { columns: VERSION_COLUMNS, rows: [row] } } }),
-    ).rejects.toThrow('would overwrite a non-published indicator version');
+    ).rejects.toThrow('conflicts with FPHD publisher work on indicators: 108');
     await assertRolledBack();
   });
   it('refuses source deletions that would remove a publisher draft', async () => {
@@ -736,9 +1152,12 @@ describe('applyDataMigration', () => {
       INSERT INTO indicator_version (indicator_id, name, slug, created_by, updated_by)
       VALUES (${INDICATOR_ID}, 'Publisher draft', 'test-indicator', 'publisher', 'publisher') RETURNING id
     `;
-    await expect(apply({ deletes: { indicator_version: [draft?.id ?? ''] } })).rejects.toThrow(
-      'would delete a non-published indicator version',
-    );
+    await expect(
+      apply({
+        deletes: { indicator_version: [draft?.id ?? ''] },
+        relationships: { indicators: [], indicatorTopics: [] },
+      }),
+    ).rejects.toThrow('would delete a non-published indicator version');
     await assertRolledBack();
     const [remaining] = await sql<
       { name: string }[]

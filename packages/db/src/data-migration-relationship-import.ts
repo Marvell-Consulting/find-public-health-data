@@ -3,22 +3,63 @@ import type postgres from 'postgres';
 import { createDbFromTransaction } from './client.ts';
 import type { DataMigrationProgressReporter } from './data-migration-copy.ts';
 import type { DataMigrationManifest } from './data-migration-manifest.ts';
-import { parseDataMigrationRelationships } from './data-migration-relationships.ts';
+import {
+  type DataMigrationRelationships,
+  parseDataMigrationRelationships,
+} from './data-migration-relationships.ts';
 import { applyIndicatorTopics } from './indicator-topic-repository.ts';
 
-export async function applyRelationships(
-  tx: postgres.TransactionSql,
+export async function readMigrationRelationships(
   directory: string,
   manifest: DataMigrationManifest,
-  report: DataMigrationProgressReporter,
-): Promise<void> {
-  report({ table: 'indicator_relationships', phase: 'relationships', state: 'started' });
+): Promise<DataMigrationRelationships> {
   const relationships = parseDataMigrationRelationships(
     JSON.parse(await readFile(`${directory}/${manifest.relationships.file}`, 'utf8')),
   );
+  if (relationships.indicators.length !== manifest.relationships.rows) {
+    throw new Error('Reviewed relationship coverage count does not match the manifest');
+  }
+  return relationships;
+}
+
+export async function assertMigrationPublisherWorkUnchanged(
+  tx: postgres.TransactionSql,
+  relationships: DataMigrationRelationships,
+): Promise<void> {
+  const conflicts = await tx<{ shortId: number }[]>`
+    SELECT i.short_id AS "shortId" FROM indicator i
+    WHERE i.short_id = ANY (${tx.array(relationships.indicators)}::integer[])
+      AND EXISTS (
+        SELECT 1 FROM indicator_version v
+        WHERE v.indicator_id = i.id AND (
+          v.status = 'draft' OR (
+            v.id IN (SELECT id FROM current_published_version)
+            AND (v.created_by IS DISTINCT FROM 'pholio-migration'
+              OR v.updated_by IS DISTINCT FROM 'pholio-migration')
+          )
+        )
+      )
+    ORDER BY i.short_id
+  `;
+  if (conflicts.length > 0) {
+    throw new Error(
+      `Data migration conflicts with FPHD publisher work on indicators: ${conflicts.map(({ shortId }) => shortId).join(', ')}. Resolve drafts or publisher publications before retrying`,
+    );
+  }
+}
+
+export async function applyRelationships(
+  tx: postgres.TransactionSql,
+  manifest: DataMigrationManifest,
+  relationships: DataMigrationRelationships,
+  report: DataMigrationProgressReporter,
+): Promise<void> {
+  report({ table: 'indicator_relationships', phase: 'relationships', state: 'started' });
   const published = await tx<{ shortId: number; versionId: string }[]>`
     SELECT i.short_id AS "shortId", current.id AS "versionId"
     FROM indicator i JOIN current_published_version current ON current.indicator_id = i.id
+    JOIN indicator_version v ON v.id = current.id
+    WHERE v.created_by = 'pholio-migration' AND v.updated_by = 'pholio-migration'
     ORDER BY i.short_id
   `;
   const sourceIndicators =
@@ -54,9 +95,6 @@ export async function applyRelationships(
     throw new Error(
       `Reviewed relationship coverage does not match the migrated indicators (${problems.join('; ')})`,
     );
-  }
-  if (relationships.indicators.length !== manifest.relationships.rows) {
-    throw new Error('Reviewed relationship coverage count does not match the manifest');
   }
   if (published.length > 0) {
     const versionIds = published.map(({ versionId }) => versionId);
@@ -100,7 +138,8 @@ export async function applyRelationships(
     FROM indicator i
     JOIN current_published_version current ON current.indicator_id = i.id
     JOIN indicator_version v ON v.id = current.id
-    WHERE NOT EXISTS (
+    WHERE v.created_by = 'pholio-migration' AND v.updated_by = 'pholio-migration'
+      AND NOT EXISTS (
       SELECT 1 FROM indicator_version_topic t
       WHERE t.indicator_version_id = current.id
     )

@@ -439,7 +439,16 @@ These commands are worth noting:
   records the package in `data_migration` in one transaction. Publisher writes to indicators,
   versions, topic assignments and classification assignments wait until the transaction finishes.
   Version batch pointers are connected after the batches load, allowing their mutual references
-  and batch replacements.
+  and batch replacements. Versions being withdrawn have their batch pointers cleared before
+  either row is deleted. Imported versions use `pholio-migration` in both audit actor columns.
+  Increments stop and roll back when a migrated indicator has an FPHD draft or a publisher
+  publication or edit; resolve that conflict before retrying. FPHD-only published indicators
+  are outside the migration's relationship coverage and keep their topics, classifications
+  and answers. Batch, observation and observation attribute changes check both incoming and
+  existing owners before writing, including withdrawals. A version cannot move to another
+  indicator. Relationship updates leave historical versions unchanged.
+  The manifest's `source_csv_null` describes the source export only: prepared package CSVs
+  use unquoted empty fields for SQL NULL and quoted empty fields for empty strings.
 - `db reset` returns the database to its freshly created state (recreating the `public` schema
   and dropping the migration watermark) so `db migrate` rebuilds from empty — recreate rather than
   truncate, so it also recovers from a broken migration state. It refuses outside
