@@ -1,4 +1,6 @@
-import { type Database, listIndicatorFacets } from '@fphd/db';
+import { TEAM_IDS } from '@fphd/auth';
+import { type Database, listIndicatorFacets, schema } from '@fphd/db';
+import { eq } from 'drizzle-orm';
 import { describe, expect } from 'vitest';
 
 import { updateIndicatorDraft } from './indicator-draft-repository.ts';
@@ -12,13 +14,15 @@ import {
   repositoryTest,
 } from './indicator-repository.testing.ts';
 
+const EVERY_INDICATOR = { all: true } as const;
+
 describe('listIndicatorsPage', () => {
   repositoryTest('pages through every indicator, most recently edited first', async ({ db }) => {
     const expected = await idsNewestFirst(db);
     const pageSize = Math.ceil(expected.length / 2);
 
-    const first = await listIndicatorsPage(db, 1, pageSize);
-    const second = await listIndicatorsPage(db, 2, pageSize);
+    const first = await listIndicatorsPage(db, 1, pageSize, EVERY_INDICATOR);
+    const second = await listIndicatorsPage(db, 2, pageSize, EVERY_INDICATOR);
 
     expect(first.total).toBe(expected.length);
     expect(second.total).toBe(expected.length);
@@ -32,7 +36,7 @@ describe('listIndicatorsPage', () => {
     async ({ db }) => {
       const expected = await idsNewestFirst(db);
 
-      const page = await listIndicatorsPage(db, 2, expected.length);
+      const page = await listIndicatorsPage(db, 2, expected.length, EVERY_INDICATOR);
 
       expect(page.indicators).toEqual([]);
       expect(page.total).toBe(expected.length);
@@ -44,7 +48,7 @@ describe('listIndicatorsPage', () => {
     async ({ db }) => {
       const created = await newDraft(db, 'A draft-only indicator');
 
-      const page = await listIndicatorsPage(db, 1, 1);
+      const page = await listIndicatorsPage(db, 1, 1, EVERY_INDICATOR);
 
       expect(page.indicators[0]).toMatchObject({
         id: created.indicatorId,
@@ -54,10 +58,34 @@ describe('listIndicatorsPage', () => {
   );
 });
 
+describe('listIndicatorsPage within teams', () => {
+  repositoryTest("lists and counts only the given teams' indicators", async ({ db }) => {
+    const created = await newDraft(db, 'A Team B indicator');
+    await db
+      .update(schema.indicator)
+      .set({ teamId: TEAM_IDS.teamB })
+      .where(eq(schema.indicator.id, created.indicatorId));
+
+    const page = await listIndicatorsPage(db, 1, 10, { all: false, teamIds: [TEAM_IDS.teamB] });
+
+    expect(page.indicators.map((row) => row.id)).toEqual([created.indicatorId]);
+    expect(page.indicators[0]?.teamId).toBe(TEAM_IDS.teamB);
+    expect(page.total).toBe(1);
+  });
+
+  repositoryTest('lists nothing for a scope of no teams', async ({ db }) => {
+    await expect(listIndicatorsPage(db, 1, 10, { all: false, teamIds: [] })).resolves.toEqual({
+      indicators: [],
+      total: 0,
+    });
+  });
+});
+
 describe('the derived statuses', () => {
   /** The whole listing, so a case finds its own row wherever the order put it. */
   async function listed(db: Database, id: string) {
-    const page = await listIndicatorsPage(db, 1, (await idsNewestFirst(db)).length);
+    const all = (await idsNewestFirst(db)).length;
+    const page = await listIndicatorsPage(db, 1, all, EVERY_INDICATOR);
     return page.indicators.find((row) => row.id === id);
   }
 
@@ -150,7 +178,7 @@ describe('sharing one connection with the public repositories', () => {
   repositoryTest(
     'reads the indicator table and the published indicator view in one process',
     async ({ db }) => {
-      await listIndicatorsPage(db, 1, 1);
+      await listIndicatorsPage(db, 1, 1, EVERY_INDICATOR);
 
       await expect(listIndicatorFacets(db)).resolves.toMatchObject({
         sources: expect.any(Array),

@@ -16,6 +16,8 @@ import {
   createRouterTestApp,
   type FakeInternalRepositoryOverrides,
   handlerLogLines,
+  inTestTeam,
+  TEST_USER_ID,
   testSessionCookie,
   testSessionVerifier,
 } from './testing.ts';
@@ -41,7 +43,9 @@ function createTestApp(
   overrides: FakeInternalRepositoryOverrides['indicators'] = {},
   logger?: Logger,
 ): Express {
-  const repositories = createFakeInternalRepositories({ indicators: overrides });
+  const repositories = createFakeInternalRepositories({
+    indicators: { ...inTestTeam, ...overrides },
+  });
 
   return createRouterTestApp(
     indicatorSectionRouter(
@@ -150,7 +154,7 @@ describe('PUT on a section', () => {
       .send(answers);
 
     expect(response.status).toBe(200);
-    expect(updateDraft).toHaveBeenCalledWith(id, answers, {}, 'test-user');
+    expect(updateDraft).toHaveBeenCalledWith(id, answers, {}, TEST_USER_ID);
     expect(response.body).toEqual({
       definition: 'Stored definition',
       rationale: 'Stored rationale',
@@ -203,7 +207,7 @@ describe('PUT on a section', () => {
       }),
     ]);
     expect(JSON.stringify(lines)).not.toContain('A definition');
-    expect(JSON.stringify(lines)).not.toContain('test-user');
+    expect(JSON.stringify(lines)).not.toContain(TEST_USER_ID);
   });
 
   it('logs nothing when the save is refused', async () => {

@@ -10,6 +10,8 @@ import {
   createFakeInternalRepositories,
   createRouterTestApp,
   handlerLogLines,
+  inTestTeam,
+  TEST_USER_ID,
   testSessionCookie,
   testSessionVerifier,
 } from './testing.ts';
@@ -56,7 +58,10 @@ function createTestApp(
     },
   });
 
-  return createRouterTestApp(dataTableCheckRouter(dataUploads, testSessionVerifier), logger);
+  return createRouterTestApp(
+    dataTableCheckRouter(dataUploads, inTestTeam, testSessionVerifier),
+    logger,
+  );
 }
 
 async function get(app: ReturnType<typeof createTestApp>, path = DATA_TABLE) {
@@ -155,7 +160,7 @@ describe('PUT /api/internal/indicators/:id/data-table/confirmation', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ confirmedAt: '2026-10-12T10:00:00.000Z' });
-    expect(confirm).toHaveBeenCalledWith(INDICATOR, BATCH, 'test-user');
+    expect(confirm).toHaveBeenCalledWith(INDICATOR, BATCH, TEST_USER_ID);
     expect(await handlerLogLines(lines)).toEqual([
       expect.objectContaining({
         msg: 'Data table confirmed',

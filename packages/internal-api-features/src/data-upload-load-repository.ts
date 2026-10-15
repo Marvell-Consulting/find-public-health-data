@@ -345,11 +345,11 @@ async function loadStagedRows(
   const observations = tx`
     INSERT INTO observation (
       id, indicator_id, area_id, from_date, to_date, value, count, denominator,
-      lower_ci_95, upper_ci_95, lower_ci_998, upper_ci_998, upload_batch_id, dimension_key, created_by
+      lower_ci_95, upper_ci_95, lower_ci_998, upper_ci_998, upload_batch_id, dimension_key
     )
     SELECT
       id, ${upload.indicatorId}, area_id, from_date, to_date, value, count, denominator,
-      lower_ci_95, upper_ci_95, lower_ci_998, upper_ci_998, ${upload.batchId}, dimension_key, ${upload.actor}
+      lower_ci_95, upper_ci_95, lower_ci_998, upper_ci_998, ${upload.batchId}, dimension_key
     FROM upload_row`;
   const dimensions = tx`
     INSERT INTO observation_dimension (observation_id, dimension_value_id, dimension_type_id)

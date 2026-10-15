@@ -11,7 +11,7 @@ import {
   type Work,
 } from './budget.ts';
 import { deleteDataTableDraft } from './fixtures.ts';
-import { connect, measureWork, prepare, request, signIn } from './measure.ts';
+import { connect, measureWork, prepare, request, type Sessions, signIn } from './measure.ts';
 import { ROUTES, type Route, routeKey } from './routes.ts';
 
 const baselinePath = path.resolve(import.meta.dirname, '..', 'baseline.json');
@@ -31,15 +31,15 @@ async function main(): Promise<void> {
     },
   });
 
-  const session = await signIn();
+  const sessions = await signIn();
   const sql = connect();
   const results: Result[] = [];
   try {
     await prepare(sql);
     for (const route of ROUTES) {
-      for (let i = 0; i < WARM_UP; i++) await request(route, session);
-      const work = await measureWork(sql, route, session);
-      const timing = await time(route, session);
+      for (let i = 0; i < WARM_UP; i++) await request(route, sessions);
+      const work = await measureWork(sql, route, sessions);
+      const timing = await time(route, sessions);
       results.push({ route, work, timing });
       console.log(`${routeKey(route)}: ${describe(work)}, median ${timing.median} ms`);
     }
@@ -76,10 +76,10 @@ async function main(): Promise<void> {
   process.exitCode = 1;
 }
 
-async function time(route: Route, session: string): Promise<Timing> {
+async function time(route: Route, sessions: Sessions): Promise<Timing> {
   const samples: number[] = [];
   for (let i = 0; i < SAMPLES; i++) {
-    const response = await request(route, session);
+    const response = await request(route, sessions);
     if (response.status !== 200) {
       throw new Error(`${routeKey(route)} answered ${response.status}`);
     }

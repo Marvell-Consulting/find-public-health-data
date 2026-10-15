@@ -15,7 +15,7 @@ import {
   upsertComparatorMethods,
   upsertOrderedNames,
 } from './named-core-data.ts';
-import { valueType } from './schema/index.ts';
+import { SYSTEM_USER_IDS, valueType } from './schema/index.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
 import { loadIndicatorVersions } from './seeding.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
@@ -182,7 +182,7 @@ describe('loadIndicatorVersions with comparator methods', () => {
       join(directory, 'indicator_version.csv.gz'),
       gzipSync(
         'indicator_id,status,published_at,name,slug,comparator_method_id,created_by,updated_by\n' +
-          `${indicatorId},published,2026-01-01T00:00:00Z,A seeded indicator,a-seeded-indicator,${sourceId},seed,seed\n`,
+          `${indicatorId},published,2026-01-01T00:00:00Z,A seeded indicator,a-seeded-indicator,${sourceId},${SYSTEM_USER_IDS.pholioMigration},${SYSTEM_USER_IDS.pholioMigration}\n`,
       ),
     );
   });

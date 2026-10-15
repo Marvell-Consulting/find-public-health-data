@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type CiMethodRecord, upsertCiMethods } from './ci-method-core-data.ts';
 import { createDbFromClient } from './client.ts';
 import { importCoreData } from './core-data.ts';
+import { SYSTEM_USER_IDS } from './schema/index.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
 import { loadIndicatorVersions } from './seeding.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
@@ -166,7 +167,7 @@ describe('loadIndicatorVersions', () => {
       join(directory, 'indicator_version.csv.gz'),
       gzipSync(
         `indicator_id,status,published_at,name,slug,ci_method_id,created_by,updated_by${extraColumn ? `,${extraColumn}` : ''}\n` +
-          `${indicatorId},published,2026-01-01T00:00:00Z,A seeded indicator,a-seeded-indicator,${methodId},seed,seed${extraColumn ? ',x' : ''}\n`,
+          `${indicatorId},published,2026-01-01T00:00:00Z,A seeded indicator,a-seeded-indicator,${methodId},${SYSTEM_USER_IDS.pholioMigration},${SYSTEM_USER_IDS.pholioMigration}${extraColumn ? ',x' : ''}\n`,
       ),
     );
   }

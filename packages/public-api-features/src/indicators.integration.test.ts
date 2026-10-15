@@ -67,7 +67,7 @@ async function insertDraftOnlyIndicator(
        polarity, update_frequency, created_by, updated_by)
     SELECT i.id, 'draft', ${name}, ${slug}, vt.id, u.id, 'years', 'calendar',
            'lower-is-better', 'annually',
-           'integration-test', 'integration-test'
+           ${schema.SYSTEM_USER_IDS.pholioMigration}::uuid, ${schema.SYSTEM_USER_IDS.pholioMigration}::uuid
     FROM new_indicator i, value_type vt, unit u
     WHERE u.name <> 'Other'
     LIMIT 1

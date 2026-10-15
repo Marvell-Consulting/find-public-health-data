@@ -15,22 +15,23 @@ function pageLink(number: number, current: number) {
 }
 
 interface DashboardPageProps {
+  canCreate: boolean;
   indicators: IndicatorAdminSummary[];
   page: number;
   totalPages: number;
 }
 
-export function DashboardPage({ indicators, page, totalPages }: DashboardPageProps) {
+export function DashboardPage({ canCreate, indicators, page, totalPages }: DashboardPageProps) {
   return (
     <GridRow>
       <GridColumn width="full">
         <h1 className="govuk-heading-xl">Indicators</h1>
-        <Button href={NEW_INDICATOR_PATH}>Create new indicator</Button>
+        {canCreate ? <Button href={NEW_INDICATOR_PATH}>Create new indicator</Button> : null}
         {indicators.length === 0 ? (
-          <p className="govuk-body">There are no indicators yet.</p>
+          <p className="govuk-body">There are no indicators for you to see yet.</p>
         ) : (
           <Table
-            aria-label="Every indicator, most recently edited first"
+            aria-label="Indicators, most recently edited first"
             headings={{
               name: 'Indicator name',
               updatedAt: 'Last edited',

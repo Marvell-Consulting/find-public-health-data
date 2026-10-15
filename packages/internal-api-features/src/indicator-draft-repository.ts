@@ -157,11 +157,12 @@ function draftSlug(name: string): string {
   return slugify(name);
 }
 
-/** A new indicator is an identity and a draft version; the database mints both ids. */
+/** A new indicator is an identity in a team and a draft version; the database mints both ids. */
 export async function createIndicatorDraft(
   db: Database,
   attributes: NewIndicatorDraftAttributes,
   actor: string,
+  teamId: string,
 ): Promise<CreateIndicatorDraftResult> {
   const slug = draftSlug(attributes.name);
 
@@ -171,7 +172,7 @@ export async function createIndicatorDraft(
 
       const [identity] = await tx
         .insert(indicator)
-        .values({})
+        .values({ teamId })
         .returning({ id: indicator.id, shortId: indicator.shortId });
 
       if (identity === undefined) throw new Error('createIndicatorDraft inserted no indicator');

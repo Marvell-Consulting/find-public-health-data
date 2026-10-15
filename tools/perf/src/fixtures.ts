@@ -14,6 +14,8 @@ export const DATA_TABLE_DRAFT = {
 };
 
 const YEARS = 8;
+// Sam Taylor, the publisher the routes are requested as (FAKE_USER_IDS in @fphd/auth).
+const PUBLISHER = '01a13c69-96ab-7598-9ce0-f84dbec3d5dd';
 
 /** Writes the draft afresh, replacing any a stopped run left behind. */
 export async function createDataTableDraft(sql: postgres.Sql): Promise<void> {
@@ -21,17 +23,20 @@ export async function createDataTableDraft(sql: postgres.Sql): Promise<void> {
   await deleteDataTableDraft(sql);
 
   await sql.begin(async (tx) => {
-    await tx`insert into indicator (id, created_at) values (${indicatorId}, '2000-01-01')`;
+    // Team A, Sam Taylor's, so the publisher the routes are requested as may edit it.
+    await tx`
+      insert into indicator (id, created_at, team_id)
+      values (${indicatorId}, '2000-01-01', '01a13c69-96aa-70af-81f9-10856a4023b2')`;
     await tx`
       insert into indicator_version
         (id, indicator_id, name, slug, created_at, updated_at, created_by, updated_by)
       values (${versionId}, ${indicatorId}, 'Route budget data table', 'route-budget-data-table',
-        '2000-01-01', '2000-01-01', 'perf', 'perf')`;
+        '2000-01-01', '2000-01-01', ${PUBLISHER}, ${PUBLISHER})`;
     await tx`
       insert into upload_batch
         (id, indicator_id, indicator_version_id, original_filename, uploaded_by, uploaded_at,
          status, row_count, column_names)
-      values (${batchId}, ${indicatorId}, ${versionId}, 'data.csv', 'perf', '2000-01-01',
+      values (${batchId}, ${indicatorId}, ${versionId}, 'data.csv', ${PUBLISHER}, '2000-01-01',
         'processed', ${rowCount}, ${['area_code', 'period_start', 'period_end', 'value', 'sex']})`;
     const loaded = await tx`
       with sex as (
@@ -42,13 +47,12 @@ export async function createDataTableDraft(sql: postgres.Sql): Promise<void> {
       ),
       inserted as (
         insert into observation (
-          id, indicator_id, area_id, from_date, to_date, value, upload_batch_id, dimension_key,
-          created_by
+          id, indicator_id, area_id, from_date, to_date, value, upload_batch_id, dimension_key
         )
         select uuidv7(), ${indicatorId}, a.id, make_date(2015 + y, 1, 1),
           make_date(2015 + y, 12, 31),
           (row_number() over (order by a.code, y, sex.id) % 1000) / 10.0,
-          ${batchId}, lower(sex.id::text), 'perf'
+          ${batchId}, lower(sex.id::text)
         from area a
         cross join generate_series(1, ${YEARS}) y
         cross join sex

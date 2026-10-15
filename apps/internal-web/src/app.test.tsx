@@ -68,7 +68,7 @@ describe('internal application routes', () => {
       />,
     );
 
-    expect(screen.getAllByRole('radio')).toHaveLength(2);
+    expect(screen.getAllByRole('radio')).toHaveLength(7);
     expect(screen.queryByText('Alex Morgan')).toBeNull();
     expect(screen.getByText('Sam Taylor')).toBeTruthy();
     expect(screen.getByText('Riley Singh')).toBeTruthy();
@@ -195,9 +195,17 @@ describe('the role-gated route tables', () => {
 
   // Each role middleware is declared once, on its layout. If a route escapes it the page is
   // reachable by any internal user, and nothing else in the app would say so.
-  it('keeps every dashboard and publishing route under the publisher layout', () => {
+  it('keeps every dashboard route under the dashboard layout', () => {
+    const dashboard = findLayout(routes, 'dashboard.tsx');
+    const gated = pathsIn(routes).filter((path) => /^dashboard(\/|$)/.test(path));
+
+    expect(dashboard?.children?.map((child) => child.path)).toEqual(gated);
+    expect(gated).toContain('dashboard/indicators/:id');
+  });
+
+  it('keeps every publishing route under the publisher layout', () => {
     const publisher = findLayout(routes, 'publisher.tsx');
-    const gated = pathsIn(routes).filter((path) => /^(dashboard|publish)(\/|$)/.test(path));
+    const gated = pathsIn(routes).filter((path) => /^publish(\/|$)/.test(path));
 
     expect(publisher?.children?.map((child) => child.path)).toEqual(gated);
     expect(gated).toContain('publish/indicators/:id/task-list');
@@ -211,8 +219,10 @@ describe('the role-gated route tables', () => {
     expect(gated).toContain('manage');
   });
 
-  it('nests both role layouts inside the authenticated one', () => {
+  it('nests the role layouts inside the authenticated one', () => {
     const authenticated = findLayout(routes, 'authenticated.tsx');
+
+    expect(findLayout(authenticated?.children ?? [], 'dashboard.tsx')).toBeDefined();
 
     expect(findLayout(authenticated?.children ?? [], 'publisher.tsx')).toBeDefined();
     expect(findLayout(authenticated?.children ?? [], 'admin.tsx')).toBeDefined();

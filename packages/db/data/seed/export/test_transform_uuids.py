@@ -126,5 +126,30 @@ class ForeignKeyIndexesTest(unittest.TestCase):
         self.assertIn("note_type_id", str(raised.exception))
 
 
+class ActorTest(unittest.TestCase):
+    def test_finds_the_writer_columns(self):
+        self.assertEqual(
+            transform["actor_indexes"]("upload_batch", ["id", "uploaded_by", "status"]), [1]
+        )
+
+    def test_finds_none_on_the_identity_only_indicator_row(self):
+        self.assertEqual(transform["actor_indexes"]("indicator", ["id", "created_at"]), [])
+
+    def test_leaves_the_observation_writer_alone(self):
+        self.assertEqual(transform["actor_indexes"]("observation", ["id", "created_by"]), [])
+
+    def test_turns_the_pholio_migration_into_its_system_user(self):
+        self.assertEqual(
+            transform["actor_user_id"]("indicator", "pholio-migration"),
+            "01a13c69-96ab-7598-9ce0-f0c3bd77bded",
+        )
+
+    def test_refuses_a_writer_no_user_stands_for(self):
+        with self.assertRaises(ValueError) as raised:
+            transform["actor_user_id"]("upload_batch", "someone")
+
+        self.assertEqual(str(raised.exception), "upload_batch names a writer with no user: someone")
+
+
 if __name__ == "__main__":
     unittest.main()

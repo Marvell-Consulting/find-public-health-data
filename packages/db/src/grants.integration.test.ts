@@ -7,8 +7,11 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { API_ROLES } from './bootstrap.ts';
 import { createPostgresClient } from './client.ts';
 import { dbEnvFields, resolveDbTls } from './env.ts';
+import { SYSTEM_USER_IDS } from './schema/index.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
+
+const ACTOR = SYSTEM_USER_IDS.pholioMigration;
 
 const env = parseEnv(z.object({ ...dbEnvFields, ...appEnvFields }), process.env);
 
@@ -44,10 +47,9 @@ async function insertObservation(
     WITH dv AS (SELECT id, dimension_type_id FROM dimension_value ORDER BY id LIMIT 1),
       o AS (
         INSERT INTO observation
-          (indicator_id, area_id, from_date, to_date, value, upload_batch_id, dimension_key,
-           created_by)
+          (indicator_id, area_id, from_date, to_date, value, upload_batch_id, dimension_key)
         SELECT ${indicatorId}, a.id, ${fromDate}, ${fromDate}::date + 364, 1.5, ${batchId},
-               dv.id::text, 'grants-test'
+               dv.id::text
         FROM (SELECT id FROM area ORDER BY id LIMIT 1) a, dv
         RETURNING id
       ),
@@ -77,7 +79,7 @@ async function insertDraftOnlyIndicator(): Promise<void> {
     SELECT ${draftIndicatorId}, 'draft', 'grants-test draft indicator',
            'grants-test-draft-indicator',
            vt.id, u.id, 'years', 'calendar', 'lower-is-better',
-           'annually', 'a draft definition', 'grants-test', 'grants-test'
+           'annually', 'a draft definition', ${ACTOR}, ${ACTOR}
     FROM value_type vt, unit u
     WHERE u.name <> 'Other'
     LIMIT 1
@@ -100,7 +102,7 @@ async function insertDraftOnlyIndicator(): Promise<void> {
 
   const [batch] = await owner<{ id: string }[]>`
     INSERT INTO upload_batch (indicator_id, indicator_version_id, original_filename, uploaded_by)
-    VALUES (${draftIndicatorId}, ${versionId}, 'grants-test.csv', 'grants-test')
+    VALUES (${draftIndicatorId}, ${versionId}, 'grants-test.csv', ${ACTOR})
     RETURNING id
   `;
   await owner`
@@ -297,6 +299,8 @@ describe('the internal role', () => {
     'published.data_provider_source',
     'public.data_provider',
     'public.data_provider_source',
+    'public.team',
+    'public.app_user',
   ])('may select %s', async (relation) => {
     const [row] = await owner<{ readable: boolean }[]>`
       SELECT has_table_privilege(${API_ROLES.internalApi}, ${relation}, 'SELECT') AS readable
@@ -330,14 +334,17 @@ describe('the internal role', () => {
     expect(row?.granted).toBe(true);
   });
 
-  // The list is core data, which only the import writes.
-  it.each(['data_provider', 'data_provider_source'])('may not write %s', async (table) => {
-    const [row] = await owner<{ granted: boolean }[]>`
+  // The provider list is core data, which only the import writes; teams and users only migrations.
+  it.each(['data_provider', 'data_provider_source', 'team', 'app_user'])(
+    'may not write %s',
+    async (table) => {
+      const [row] = await owner<{ granted: boolean }[]>`
       SELECT has_table_privilege(${API_ROLES.internalApi}, ${`public.${table}`}, 'INSERT') AS granted
     `;
 
-    expect(row?.granted).toBe(false);
-  });
+      expect(row?.granted).toBe(false);
+    },
+  );
 });
 
 describe('an indicator whose only version is a draft', () => {
@@ -413,13 +420,13 @@ describe('a published indicator whose draft has a batch of its own', () => {
 
     const [draft] = await owner<{ id: string }[]>`
       INSERT INTO indicator_version (indicator_id, status, name, slug, created_by, updated_by)
-      SELECT indicator_id, 'draft', name, slug, 'grants-test', 'grants-test'
+      SELECT indicator_id, 'draft', name, slug, ${ACTOR}::uuid, ${ACTOR}::uuid
       FROM indicator_version WHERE id = ${published.id}
       RETURNING id
     `;
     const [batch] = await owner<{ id: string }[]>`
       INSERT INTO upload_batch (indicator_id, indicator_version_id, original_filename, uploaded_by)
-      VALUES (${indicatorId}, ${draft?.id ?? ''}, 'grants-test-update.csv', 'grants-test')
+      VALUES (${indicatorId}, ${draft?.id ?? ''}, 'grants-test-update.csv', ${ACTOR})
       RETURNING id
     `;
     await owner`
@@ -465,12 +472,12 @@ describe('an indicator published again with new data', () => {
       INSERT INTO indicator_version
         (indicator_id, status, published_at, name, slug, created_by, updated_by)
       VALUES (${indicatorId}, 'published', ${publishedAt}, 'grants-test republished indicator',
-              'grants-test-republished-indicator', 'grants-test', 'grants-test')
+              'grants-test-republished-indicator', ${ACTOR}, ${ACTOR})
       RETURNING id
     `;
     const [batch] = await owner<{ id: string }[]>`
       INSERT INTO upload_batch (indicator_id, indicator_version_id, original_filename, uploaded_by)
-      VALUES (${indicatorId}, ${version?.id ?? ''}, 'grants-test.csv', 'grants-test')
+      VALUES (${indicatorId}, ${version?.id ?? ''}, 'grants-test.csv', ${ACTOR})
       RETURNING id
     `;
     await owner`

@@ -1,5 +1,11 @@
-import { requireApiSession, requireJwtRole } from '@fphd/api-server';
+import { requireApiSession, requireJwtRole, requireJwtSession } from '@fphd/api-server';
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
+import {
+  canListIndicators,
+  canSeeIndicator,
+  indicatorListScope,
+  teamForNewIndicator,
+} from '@fphd/auth/permissions';
 import { Router } from 'express';
 
 import {
@@ -13,6 +19,7 @@ import {
   indicatorPageQuerySchema,
   toFieldErrors,
 } from './contract.ts';
+import { requireIndicatorEditor } from './indicator-editor.ts';
 import type { IndicatorAdminDetailRow, IndicatorAdminRow } from './indicator-list-repository.ts';
 import { indicatorTaskList } from './indicator-task-list.ts';
 import type { InternalIndicatorRepository } from './repositories.ts';
@@ -28,9 +35,10 @@ function toSummary({
   id,
   indicatorStatus,
   name,
+  teamId,
   updatedAt,
 }: IndicatorAdminRow): IndicatorAdminSummary {
-  return { id, name, updatedAt: updatedAt.toISOString(), indicatorStatus, draftStatus };
+  return { id, name, teamId, updatedAt: updatedAt.toISOString(), indicatorStatus, draftStatus };
 }
 
 function toDetail(row: IndicatorAdminDetailRow): IndicatorAdminDetail {
@@ -38,8 +46,9 @@ function toDetail(row: IndicatorAdminDetailRow): IndicatorAdminDetail {
 }
 
 /**
- * The publisher's view of indicators: every one, including the unpublished ones the public
- * API never serves. Mounted only by `internal-api`; `public-api` must 404 every path.
+ * The internal view of indicators, including the unpublished ones the public API never serves,
+ * each user seeing those their roles allow. Mounted only by `internal-api`; `public-api` must
+ * 404 every path.
  */
 export function internalIndicatorsRouter(
   indicators: InternalIndicatorRepository,
@@ -47,8 +56,10 @@ export function internalIndicatorsRouter(
 ): Router {
   const router = Router();
   const requirePublisher = requireJwtRole(session, 'publisher');
+  const requireLister = requireJwtSession(session, canListIndicators);
+  const requireEditor = requireIndicatorEditor(session, indicators);
 
-  router.get('/api/internal/indicators', requirePublisher, async (request, response) => {
+  router.get('/api/internal/indicators', requireLister, async (request, response) => {
     const query = indicatorPageQuerySchema.safeParse(request.query);
 
     if (!query.success) {
@@ -57,7 +68,11 @@ export function internalIndicatorsRouter(
     }
 
     const { page } = query.data;
-    const rows = await indicators.listPage(page, INDICATORS_PAGE_SIZE);
+    const rows = await indicators.listPage(
+      page,
+      INDICATORS_PAGE_SIZE,
+      indicatorListScope(requireApiSession(response)),
+    );
     const body: IndicatorAdminPage = {
       indicators: rows.indicators.map(toSummary),
       page,
@@ -69,6 +84,14 @@ export function internalIndicatorsRouter(
   });
 
   router.post('/api/internal/indicators', requirePublisher, async (request, response) => {
+    const session = requireApiSession(response);
+    const teamId = teamForNewIndicator(session);
+
+    if (teamId === undefined) {
+      response.status(403).json({ error: 'forbidden' });
+      return;
+    }
+
     const submission = indicatorNameSchema.safeParse(request.body);
 
     if (!submission.success) {
@@ -79,8 +102,7 @@ export function internalIndicatorsRouter(
       return;
     }
 
-    const { sub } = requireApiSession(response);
-    const created = await indicators.createDraft(submission.data, sub);
+    const created = await indicators.createDraft(submission.data, session.sub, teamId);
 
     if (!created.ok) {
       response.status(409).json({ error: 'slug_taken', fieldErrors: { name: NAME_TAKEN } });
@@ -99,7 +121,7 @@ export function internalIndicatorsRouter(
     response.status(201).json(toDetail(row));
   });
 
-  router.patch('/api/internal/indicators/:id', requirePublisher, async (request, response) => {
+  router.patch('/api/internal/indicators/:id', requireEditor, async (request, response) => {
     const id = indicatorIdSchema.safeParse(request.params.id);
 
     if (!id.success) {
@@ -143,46 +165,42 @@ export function internalIndicatorsRouter(
     response.status(200).json(toDetail(row));
   });
 
-  router.get(
-    '/api/internal/indicators/:id/task-list',
-    requirePublisher,
-    async (request, response) => {
-      const id = indicatorIdSchema.safeParse(request.params.id);
+  router.get('/api/internal/indicators/:id/task-list', requireEditor, async (request, response) => {
+    const id = indicatorIdSchema.safeParse(request.params.id);
 
-      if (!id.success) {
-        response.status(400).json({ error: 'invalid_id' });
-        return;
-      }
+    if (!id.success) {
+      response.status(400).json({ error: 'invalid_id' });
+      return;
+    }
 
-      const row = await indicators.findDraftState(id.data);
+    const row = await indicators.findDraftState(id.data);
 
-      if (!row) {
-        response.status(404).json({ error: 'not_found' });
-        return;
-      }
+    if (!row) {
+      response.status(404).json({ error: 'not_found' });
+      return;
+    }
 
-      // A published indicator is edited by opening a draft first, so until then there is no
-      // task list to show and the page the publisher asked for does not exist.
-      if (!row.draft) {
-        response.status(404).json({ error: 'no_draft' });
-        return;
-      }
+    // A published indicator is edited by opening a draft first, so until then there is no
+    // task list to show and the page the publisher asked for does not exist.
+    if (!row.draft) {
+      response.status(404).json({ error: 'no_draft' });
+      return;
+    }
 
-      const body: IndicatorTaskList = indicatorTaskList({
-        indicator: {
-          id: row.id,
-          shortId: row.shortId,
-          indicatorStatus: row.indicatorStatus,
-          draftStatus: row.draftStatus,
-        },
-        draft: { ...row.draft, ciMethodKind: row.draftCiMethodKind },
-      });
+    const body: IndicatorTaskList = indicatorTaskList({
+      indicator: {
+        id: row.id,
+        shortId: row.shortId,
+        indicatorStatus: row.indicatorStatus,
+        draftStatus: row.draftStatus,
+      },
+      draft: { ...row.draft, ciMethodKind: row.draftCiMethodKind },
+    });
 
-      response.status(200).json(body);
-    },
-  );
+    response.status(200).json(body);
+  });
 
-  router.get('/api/internal/indicators/:id', requirePublisher, async (request, response) => {
+  router.get('/api/internal/indicators/:id', requireLister, async (request, response) => {
     const id = indicatorIdSchema.safeParse(request.params.id);
 
     // Handing an unparseable id to the database would surface as a 500; it is a bad request.
@@ -193,7 +211,8 @@ export function internalIndicatorsRouter(
 
     const row = await indicators.findById(id.data);
 
-    if (!row) {
+    // One the user may not see answers as one that does not exist. No reviewer is assigned yet.
+    if (!row || !canSeeIndicator(requireApiSession(response), { ...row, reviewerIds: [] })) {
       response.status(404).json({ error: 'not_found' });
       return;
     }

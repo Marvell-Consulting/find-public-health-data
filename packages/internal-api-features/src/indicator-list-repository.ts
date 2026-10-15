@@ -1,5 +1,6 @@
+import type { IndicatorListScope } from '@fphd/auth/permissions';
 import { type Database, schema } from '@fphd/db';
-import { asc, count, desc, eq } from 'drizzle-orm';
+import { asc, count, desc, eq, inArray } from 'drizzle-orm';
 
 import type { DraftStatus, IndicatorStatus } from './contract.ts';
 import {
@@ -19,6 +20,7 @@ const { currentPublishedVersion, indicator } = schema;
 export interface IndicatorAdminRow {
   id: string;
   name: string;
+  teamId: string | null;
   updatedAt: Date;
   indicatorStatus: IndicatorStatus;
   draftStatus: DraftStatus | null;
@@ -35,17 +37,25 @@ export interface IndicatorAdminDetailRow extends IndicatorAdminRow {
   publishedSlug: string | null;
 }
 
-/** Every indicator whatever its status, newest edit first; the id breaks any remaining tie. */
+/**
+ * The indicators in scope whatever their status, newest edit first; the id breaks any remaining
+ * tie.
+ */
 export async function listIndicatorsPage(
   db: Database,
   page: number,
   pageSize: number,
+  scope: IndicatorListScope,
 ): Promise<IndicatorAdminRows> {
+  if (!scope.all && scope.teamIds.length === 0) return { indicators: [], total: 0 };
+
+  const inScope = scope.all ? undefined : inArray(indicator.teamId, [...scope.teamIds]);
   const [indicators, [counted]] = await Promise.all([
     db
       .select({
         id: indicator.id,
         name: currentName,
+        teamId: indicator.teamId,
         updatedAt: latestUpdatedAt,
         indicatorStatus,
         draftStatus,
@@ -54,10 +64,11 @@ export async function listIndicatorsPage(
       .leftJoin(draftVersion, draftJoin)
       .leftJoin(currentPublishedVersion, publishedJoin)
       .leftJoin(publishedVersion, publishedVersionJoin)
+      .where(inScope)
       .orderBy(desc(latestUpdatedAt), asc(currentName), asc(indicator.id))
       .limit(pageSize)
       .offset((page - 1) * pageSize),
-    db.select({ total: count() }).from(indicator),
+    db.select({ total: count() }).from(indicator).where(inScope),
   ]);
 
   return { indicators, total: counted?.total ?? 0 };
@@ -73,6 +84,7 @@ export async function getIndicatorById(
       id: indicator.id,
       shortId: indicator.shortId,
       name: currentName,
+      teamId: indicator.teamId,
       publishedSlug: publishedVersion.slug,
       updatedAt: latestUpdatedAt,
       indicatorStatus,
@@ -85,4 +97,17 @@ export async function getIndicatorById(
     .where(eq(indicator.id, id));
 
   return rows[0];
+}
+
+/** The team the indicator is in, null when it has none, or undefined when there is no such indicator. */
+export async function findIndicatorTeamId(
+  db: Database,
+  id: string,
+): Promise<string | null | undefined> {
+  const [row] = await db
+    .select({ teamId: indicator.teamId })
+    .from(indicator)
+    .where(eq(indicator.id, id));
+
+  return row?.teamId;
 }

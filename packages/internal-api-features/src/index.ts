@@ -33,8 +33,10 @@ export function internalApiRoutes({
 
   router.use(internalIndicatorsRouter(repositories.indicators, session));
   router.use(indicatorSectionsRouter(repositories, session));
-  router.use(dataUploadsRouter(repositories.dataUploads, storage, session));
-  router.use(dataTableCheckRouter(repositories.dataUploads, session));
+  router.use(
+    dataUploadsRouter(repositories.dataUploads, repositories.indicators, storage, session),
+  );
+  router.use(dataTableCheckRouter(repositories.dataUploads, repositories.indicators, session));
   router.use(internalCiMethodsRouter(repositories.ciMethods, session));
   router.use(internalTagsRouter(repositories.tags, session));
   router.use(internalDataProvidersRouter(repositories.dataProviders, session));

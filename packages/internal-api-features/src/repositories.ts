@@ -1,4 +1,5 @@
 import type { Readable } from 'node:stream';
+import type { IndicatorListScope } from '@fphd/auth/permissions';
 
 import { type Database, listTopics, type Topic } from '@fphd/db';
 
@@ -35,6 +36,7 @@ import {
   updateIndicatorDraft,
 } from './indicator-draft-repository.ts';
 import {
+  findIndicatorTeamId,
   getIndicatorById,
   type IndicatorAdminDetailRow,
   type IndicatorAdminRows,
@@ -69,13 +71,16 @@ export interface InternalTopicRepository {
 
 /** The publisher's view of indicators: every status, unlike the public repository. */
 export interface InternalIndicatorRepository {
-  listPage(page: number, pageSize: number): Promise<IndicatorAdminRows>;
+  listPage(page: number, pageSize: number, scope: IndicatorListScope): Promise<IndicatorAdminRows>;
   findById(id: string): Promise<IndicatorAdminDetailRow | undefined>;
+  /** The indicator's team, null when it has none, or undefined when there is no such indicator. */
+  findTeamId(id: string): Promise<string | null | undefined>;
   /** The draft and whether anything is published, read together for the task list. */
   findDraftState(id: string): Promise<IndicatorDraftStateRow | undefined>;
   createDraft(
     attributes: NewIndicatorDraftAttributes,
     actor: string,
+    teamId: string,
   ): Promise<CreateIndicatorDraftResult>;
   updateDraft(
     indicatorId: string,
@@ -163,10 +168,12 @@ export function createInternalRepositories(db: Database): InternalRepositories {
       confirm: (indicatorId, batchId, actor) => confirmDataTable(db, indicatorId, batchId, actor),
     },
     indicators: {
-      listPage: (page, pageSize) => listIndicatorsPage(db, page, pageSize),
+      listPage: (page, pageSize, scope) => listIndicatorsPage(db, page, pageSize, scope),
       findById: (id) => getIndicatorById(db, id),
+      findTeamId: (id) => findIndicatorTeamId(db, id),
       findDraftState: (id) => getIndicatorDraftState(db, id),
-      createDraft: (attributes, actor) => createIndicatorDraft(db, attributes, actor),
+      createDraft: (attributes, actor, teamId) =>
+        createIndicatorDraft(db, attributes, actor, teamId),
       updateDraft: (indicatorId, attributes, lists, actor) =>
         updateIndicatorDraft(db, indicatorId, attributes, lists, actor),
       draftFromPublished: (indicatorId, actor) => createDraftFromPublished(db, indicatorId, actor),

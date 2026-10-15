@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 import { createDraft, uniqueIndicatorName } from '../support/create-indicator.ts';
 import { MORTALITY_ID, MORTALITY_NAME } from '../support/indicator-page.ts';
-import { PUBLISHER } from '../support/sign-in.ts';
+import { ADMIN, PUBLISHER, TEAM_B_PUBLISHER } from '../support/sign-in.ts';
 
 const PUBLISHED_OVERVIEW_PATH = `/dashboard/indicators/${MORTALITY_ID}`;
 
@@ -19,35 +19,6 @@ test('shows the indicator a publisher picked from the dashboard', async ({ page 
   await expect(page).toHaveURL(`/dashboard/indicators/${id}`);
   await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
   await expect(page.getByText(/^ID: \d+$/)).toBeVisible();
-});
-
-test('shows a published indicator as live and published', async ({ page }) => {
-  await page.goto(PUBLISHED_OVERVIEW_PATH);
-
-  await expect(page.getByRole('heading', { level: 1, name: MORTALITY_NAME })).toBeVisible();
-  // The tags follow the public number, under the heading.
-  await expect(page.getByRole('main').locator('h1 ~ p .govuk-tag')).toHaveText([
-    'Indicator status: Live indicator',
-    'Publishing status: Published',
-  ]);
-});
-
-test('opens the published indicator from the actions tab', async ({ page }) => {
-  await page.goto(PUBLISHED_OVERVIEW_PATH);
-
-  await expect(page.getByRole('tab', { name: 'Actions' })).toBeVisible();
-  await page.getByRole('link', { name: 'View published indicator' }).click();
-
-  await expect(page).toHaveURL(/\/indicators\/[a-z0-9-]+$/);
-  await expect(page.getByRole('heading', { level: 1, name: MORTALITY_NAME })).toBeVisible();
-});
-
-test('goes back to the dashboard', async ({ page }) => {
-  await page.goto(PUBLISHED_OVERVIEW_PATH);
-
-  await page.getByRole('link', { name: 'Back', exact: true }).click();
-
-  await expect(page).toHaveURL('/dashboard');
 });
 
 test('answers an indicator that does not exist with the not-found page', async ({ page }) => {
@@ -71,9 +42,81 @@ test('has no WCAG 2.2 AA violations for a draft', async ({ page }, testInfo) => 
   await expectNoAccessibilityViolations(page, testInfo);
 });
 
-test('has no WCAG 2.2 AA violations for a published indicator', async ({ page }, testInfo) => {
-  await page.goto(PUBLISHED_OVERVIEW_PATH);
-  await expect(page.getByRole('heading', { level: 1, name: MORTALITY_NAME })).toBeVisible();
+test.describe('as an admin, who sees the seeded indicators in Fingertips', () => {
+  test.use({ storageState: ADMIN.storageState });
 
-  await expectNoAccessibilityViolations(page, testInfo);
+  test('shows a published indicator as live and published', async ({ page }) => {
+    await page.goto(PUBLISHED_OVERVIEW_PATH);
+
+    await expect(page.getByRole('heading', { level: 1, name: MORTALITY_NAME })).toBeVisible();
+    // The tags follow the public number, under the heading.
+    await expect(page.getByRole('main').locator('h1 ~ p .govuk-tag')).toHaveText([
+      'Indicator status: Live indicator',
+      'Publishing status: Published',
+    ]);
+  });
+
+  test('opens the published indicator from the actions tab', async ({ page }) => {
+    await page.goto(PUBLISHED_OVERVIEW_PATH);
+
+    await expect(page.getByRole('tab', { name: 'Actions' })).toBeVisible();
+    await page.getByRole('link', { name: 'View published indicator' }).click();
+
+    await expect(page).toHaveURL(/\/indicators\/[a-z0-9-]+$/);
+    await expect(page.getByRole('heading', { level: 1, name: MORTALITY_NAME })).toBeVisible();
+  });
+
+  test('goes back to the dashboard', async ({ page }) => {
+    await page.goto(PUBLISHED_OVERVIEW_PATH);
+
+    await page.getByRole('link', { name: 'Back', exact: true }).click();
+
+    await expect(page).toHaveURL('/dashboard');
+  });
+
+  test('has no WCAG 2.2 AA violations for a published indicator', async ({ page }, testInfo) => {
+    await page.goto(PUBLISHED_OVERVIEW_PATH);
+    await expect(page.getByRole('heading', { level: 1, name: MORTALITY_NAME })).toBeVisible();
+
+    await expectNoAccessibilityViolations(page, testInfo);
+  });
+
+  test('lets an admin see an indicator without offering its task list', async ({
+    browser,
+    page,
+  }) => {
+    const name = uniqueIndicatorName('overview');
+    const publisher = await browser.newContext({ storageState: PUBLISHER.storageState });
+    const id = await createDraft(await publisher.newPage(), name);
+    await publisher.close();
+
+    await page.goto(`/dashboard/indicators/${id}`);
+
+    await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
+    await expect(page.getByRole('link', { name: /^Continue/ })).toHaveCount(0);
+    await expect(
+      page.getByText('There are no actions available for this indicator yet.'),
+    ).toBeVisible();
+  });
+});
+
+test.describe('as a publisher in another team', () => {
+  test.use({ storageState: TEAM_B_PUBLISHER.storageState });
+
+  test("answers another team's indicator with the not-found page", async ({ browser, page }) => {
+    const publisher = await browser.newContext({ storageState: PUBLISHER.storageState });
+    const id = await createDraft(await publisher.newPage(), uniqueIndicatorName('overview'));
+    await publisher.close();
+
+    const response = await page.goto(`/dashboard/indicators/${id}`);
+
+    expect(response?.status()).toBe(404);
+    await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
+  });
+});
+
+test('hides an indicator in Fingertips from a publisher', async ({ page }) => {
+  const response = await page.goto(PUBLISHED_OVERVIEW_PATH);
+
+  expect(response?.status()).toBe(404);
 });

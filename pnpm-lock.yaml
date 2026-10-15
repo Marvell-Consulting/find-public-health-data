@@ -608,6 +608,9 @@ importers:
         specifier: 'catalog:'
         version: 3.4.9
     devDependencies:
+      '@fphd/auth':
+        specifier: workspace:*
+        version: link:../auth
       '@types/node':
         specifier: 'catalog:'
         version: 24.13.3
@@ -749,6 +752,9 @@ importers:
 
   packages/internal-web-features:
     dependencies:
+      '@fphd/auth':
+        specifier: workspace:*
+        version: link:../auth
       '@fphd/internal-api-features':
         specifier: workspace:*
         version: link:../internal-api-features

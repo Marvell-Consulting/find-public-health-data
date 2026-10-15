@@ -1,66 +1,14 @@
-export type AppAudience = 'internal' | 'public';
-
-/** The web app sets this cookie, and its server forwards it to the API under the same name. */
-export function sessionCookieName(audience: AppAudience): string {
-  return `fphd-${audience}-session`;
-}
-
-export interface FakeUser {
-  readonly description: string;
-  readonly id: string;
-  readonly name: string;
-  readonly roles: readonly string[];
-}
-
-export const fakeUsers: readonly FakeUser[] = Object.freeze([
-  Object.freeze({
-    description: 'Can use the public service only',
-    id: 'public-user',
-    name: 'Alex Morgan',
-    roles: Object.freeze(['public']),
-  }),
-  Object.freeze({
-    description: 'Can manage indicators in the internal service',
-    id: 'internal-publisher',
-    name: 'Sam Taylor',
-    roles: Object.freeze(['public', 'internal', 'publisher']),
-  }),
-  Object.freeze({
-    description: 'Can manage indicators and administer the internal service',
-    id: 'internal-admin',
-    name: 'Riley Singh',
-    roles: Object.freeze(['public', 'internal', 'publisher', 'admin']),
-  }),
-]);
-
-export function canAccessAudience(user: FakeUser, audience: AppAudience): boolean {
-  return audience === 'public' || user.roles.includes('internal');
-}
-
-export function fakeUsersForAudience(audience: AppAudience): readonly FakeUser[] {
-  return fakeUsers.filter((user) => canAccessAudience(user, audience));
-}
-
-export function sessionRolesForAudience(user: FakeUser, audience: AppAudience): readonly string[] {
-  return audience === 'public'
-    ? Object.freeze(user.roles.filter((role) => role === 'public'))
-    : user.roles;
-}
-
-export function findFakeUser(id: string): FakeUser | undefined {
-  return fakeUsers.find((user) => user.id === id);
-}
-
-export function normalizeReturnTo(value: unknown, fallback = '/'): string {
-  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) {
-    return fallback;
-  }
-
-  const base = new URL('https://local.invalid');
-  const target = new URL(value, base);
-
-  // Dot segments can collapse a local path into a protocol-relative URL: '/..//evil.com'.
-  if (target.origin !== base.origin || target.pathname.startsWith('//')) return fallback;
-
-  return `${target.pathname}${target.search}${target.hash}`;
-}
+export { type AppAudience, sessionCookieName } from './audience.ts';
+export {
+  canAccessAudience,
+  FAKE_USER_IDS,
+  type FakeUser,
+  fakeUsers,
+  fakeUsersForAudience,
+  findFakeUser,
+  type SessionAccess,
+  sessionAccessForAudience,
+} from './fake-users.ts';
+export { normalizeReturnTo } from './return-to.ts';
+export { ROLES, type Role } from './roles.ts';
+export { TEAM_IDS, TEAMS, type Team } from './teams.ts';
