@@ -50,7 +50,7 @@ afterAll(async () => {
   if (directory) await rm(directory, { recursive: true });
 });
 
-async function snapshot(id: string, cutoff: string, observations: ExportRow[]) {
+async function snapshot(id: string, cutoff: string, observations: ExportRow[], withdrawn = false) {
   const out = join(directory, id);
   await mkdir(out);
   const enteredAt = '2026-01-01T00:00:00Z';
@@ -75,8 +75,8 @@ async function snapshot(id: string, cutoff: string, observations: ExportRow[]) {
         data_table_confirmed_at: enteredAt,
         created_at: enteredAt,
         updated_at: enteredAt,
-        created_by: 'migration',
-        updated_by: 'migration',
+        created_by: 'pholio-migration',
+        updated_by: 'pholio-migration',
       },
     ],
     upload_batch: [
@@ -106,6 +106,25 @@ async function snapshot(id: string, cutoff: string, observations: ExportRow[]) {
       dimension_type_id: 1,
     })),
   };
+  if (withdrawn) {
+    rows.indicator = [];
+    rows.indicator_version = [];
+    rows.upload_batch = [];
+  }
+  rows.indicator?.push({ id: 109, created_at: enteredAt });
+  rows.indicator_version?.push({
+    id: 109,
+    indicator_id: 109,
+    status: 'published',
+    published_at: enteredAt,
+    name: 'Retained indicator',
+    upload_batch_id: null,
+    data_table_confirmed_at: null,
+    created_at: enteredAt,
+    updated_at: enteredAt,
+    created_by: 'pholio-migration',
+    updated_by: 'pholio-migration',
+  });
   const tables: Record<string, Awaited<ReturnType<TableWriter['close']>>> = {};
   for (const table of TABLES) {
     const writer = new TableWriter(out, table);
@@ -122,7 +141,7 @@ async function snapshot(id: string, cutoff: string, observations: ExportRow[]) {
         snapshot_at: cutoff,
         cutoff_at: cutoff,
       },
-      approved_indicators: 1,
+      approved_indicators: withdrawn ? 1 : 2,
       excluded_non_approved_indicators: 0,
       excluded_future_observations: 0,
       source_csv_null: DATA_MIGRATION_NULL,
@@ -138,8 +157,11 @@ async function snapshot(id: string, cutoff: string, observations: ExportRow[]) {
         approvedAt: cutoff,
         basis: 'reviewed test mapping',
       },
-      indicators: [108],
-      indicatorTopics: [{ fingertipsId: 108, topicId }],
+      indicators: withdrawn ? [109] : [108, 109],
+      indicatorTopics: [
+        ...(withdrawn ? [] : [{ fingertipsId: 108, topicId }]),
+        { fingertipsId: 109, topicId },
+      ],
     }),
   );
   await prepareBaseline(out, id, relationships);
@@ -158,7 +180,7 @@ async function apply(out: string) {
   await rebuildReadModels(sql);
 }
 
-it('imports prepared baseline and increment with public observations and resolved batch links', async () => {
+it('imports prepared baseline, corrections and withdrawal with resolved batch links', async () => {
   const first = await snapshot('baseline-1', '2026-10-01T00:00:00Z', [
     { id: 2, from_date: '2025-01-01', to_date: '2025-12-31', value: 10 },
     { id: 4, from_date: '2026-01-01', to_date: '2026-12-31', value: 11 },
@@ -195,4 +217,18 @@ it('imports prepared baseline and increment with public observations and resolve
     JSON.parse(await readFile(join(current, 'manifest.json'), 'utf8')),
   );
   expect(manifest.tables.observation?.rows).toBe(2);
+
+  const withdrawn = await snapshot('increment-3', '2026-12-01T00:00:00Z', [], true);
+  const withdrawal = join(directory, 'withdrawal');
+  await createIncremental(current, withdrawn, withdrawal, 'increment-3');
+  await apply(withdrawal);
+  for (const table of ['upload_batch', 'observation', 'observation_dimension', 'latest_headline']) {
+    expect(await sql.unsafe(`SELECT count(*)::int AS count FROM ${table}`)).toEqual([{ count: 0 }]);
+  }
+  expect(await sql`SELECT short_id FROM published.indicator`).toEqual([{ short_id: 109 }]);
+  expect(await sql`SELECT count(*)::int AS count FROM indicator_version_topic`).toEqual([
+    { count: 1 },
+  ]);
+  expect(await sql`SELECT id FROM published.observation`).toEqual([]);
+  expect((await sql`SELECT id FROM data_migration`).length).toBe(3);
 });
