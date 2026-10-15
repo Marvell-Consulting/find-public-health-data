@@ -55,5 +55,6 @@ export { NonceProvider, useNonce } from './nonce.tsx';
 export { QuestionLegend } from './question-legend.tsx';
 export { RootErrorBoundary } from './root-error-boundary.tsx';
 export { SearchField } from './search-field.tsx';
+export { searchPattern } from './search-pattern.ts';
 export { Tabs } from './tabs.tsx';
 export { TaskList, type TaskListItem } from './task-list.tsx';

@@ -24,6 +24,11 @@
   max-width: 44rem;
 }
 
+.fphd-search-highlight {
+  background-color: govuk-colour("yellow", $variant: "tint-50");
+  color: inherit;
+}
+
 
 .fphd-card-list {
   display: grid;
