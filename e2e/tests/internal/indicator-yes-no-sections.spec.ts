@@ -9,6 +9,7 @@ import {
   taskRow,
 } from '../support/section-page.ts';
 import { PUBLISHER } from '../support/sign-in.ts';
+import { ANSWER_DETAIL, expectQuestionStyles, QUESTION } from '../support/typography.ts';
 
 type TextQuestion = { label: string; refusal: string };
 
@@ -241,6 +242,27 @@ for (const { section, heading, textQuestions, optionalText = [], questions } of 
         follow: first.refusal,
         focuses: (page) => answer(page, first, 'Yes'),
       },
+    });
+
+    // The size and weight come from a class, so only a browser can tell them apart. Asserted
+    // against the values rather than against each other, so that a page losing them all together
+    // still fails.
+    test('asks every question at the same size and weight', async ({ page }) => {
+      await openSectionPage(page, section);
+
+      await expectQuestionStyles(
+        page,
+        [...allText, ...questions.map(({ legend }) => legend)],
+        QUESTION,
+      );
+
+      // The details a Yes asks for follow the question rather than asking one, so they are not
+      // headings. Benchmarking reveals further questions instead, and makes those headings.
+      await expectQuestionStyles(
+        page,
+        questions.map((question) => question.details),
+        ANSWER_DETAIL,
+      );
     });
 
     test('reveals the details of each question only while Yes is chosen', async ({ page }) => {

@@ -81,6 +81,7 @@ export function ValueTypeAndUnitsPage({ units, valueTypes, ...form }: ValueTypeA
                       defaultValue={values.standardPopulationOther}
                       error={fieldErrors.standardPopulationOther}
                       label={ENTER_POPULATION}
+                      labelHeading="h3"
                       name="standardPopulationOther"
                     />
                   ),
@@ -97,6 +98,7 @@ export function ValueTypeAndUnitsPage({ units, valueTypes, ...form }: ValueTypeA
           defaultValue={values.referencePopulation}
           error={fieldErrors.referencePopulation}
           label={ENTER_POPULATION}
+          labelHeading="h2"
           name="referencePopulation"
         />
       </div>
@@ -116,6 +118,7 @@ export function ValueTypeAndUnitsPage({ units, valueTypes, ...form }: ValueTypeA
           defaultValue={values.unitDetail}
           error={fieldErrors.unitDetail}
           label="Enter unit"
+          labelHeading="h2"
           name="unitDetail"
         />
       </div>
