@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { useLayoutEffect } from 'react';
 import { createRoutesStub, useLocation } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -8,6 +9,29 @@ import { shouldRevalidate, TopicsRoute } from './list-route.tsx';
 afterEach(cleanup);
 
 describe('TopicsRoute', () => {
+  it('does not fetch topics again when typing starts before passive effects run', async () => {
+    const loader = vi.fn(() => [
+      { slug: 'smoking', title: 'Smoking', description: 'Prevalence and quitting.' },
+    ]);
+    function FirstInputRoute() {
+      useLayoutEffect(() => {
+        const input = screen.getByRole('searchbox', { name: 'Search for topics' });
+        const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+        if (!setValue) throw new Error('Expected the native input value setter');
+        setValue.call(input, 'smok');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }, []);
+      return <TopicsRoute />;
+    }
+    const Routes = createRoutesStub([
+      { path: '/topics', loader, shouldRevalidate, Component: FirstInputRoute },
+    ]);
+    render(<Routes initialEntries={['/topics?q=old']} />);
+
+    expect(await screen.findByRole('link', { name: 'Smoking' })).toBeTruthy();
+    expect(loader).toHaveBeenCalledTimes(1);
+  });
+
   it('updates the URL without replacing the input or fetching topics again', async () => {
     const loader = vi.fn(() => [
       { slug: 'alcohol', title: 'Alcohol', description: 'Drinking and related harms.' },
