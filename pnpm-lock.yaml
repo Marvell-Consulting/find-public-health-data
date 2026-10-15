@@ -210,6 +210,9 @@ catalogs:
     typescript:
       specifier: 6.0.3
       version: 6.0.3
+    undici:
+      specifier: 8.11.2
+      version: 8.11.2
     uuid:
       specifier: 14.0.2
       version: 14.0.2
@@ -228,6 +231,9 @@ catalogs:
 
 overrides:
   '@esbuild-kit/core-utils>esbuild': '>=0.24.3 <0.26'
+
+patchedDependencies:
+  postgres@3.4.9: 329e577a68a6c2642e295f2d0f3bbe0bdf5d790c5a845b23e4b06064f7c2e87f
 
 importers:
 
@@ -388,6 +394,9 @@ importers:
       '@fphd/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+      undici:
+        specifier: 'catalog:'
+        version: 8.11.2
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -597,10 +606,10 @@ importers:
         version: link:../utils
       drizzle-orm:
         specifier: 'catalog:'
-        version: 0.45.2(postgres@3.4.9)
+        version: 0.45.2(postgres@3.4.9(patch_hash=329e577a68a6c2642e295f2d0f3bbe0bdf5d790c5a845b23e4b06064f7c2e87f))
       postgres:
         specifier: 'catalog:'
-        version: 3.4.9
+        version: 3.4.9(patch_hash=329e577a68a6c2642e295f2d0f3bbe0bdf5d790c5a845b23e4b06064f7c2e87f)
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -680,7 +689,7 @@ importers:
         version: link:../utils
       drizzle-orm:
         specifier: 'catalog:'
-        version: 0.45.2(postgres@3.4.9)
+        version: 0.45.2(postgres@3.4.9(patch_hash=329e577a68a6c2642e295f2d0f3bbe0bdf5d790c5a845b23e4b06064f7c2e87f))
       express:
         specifier: 'catalog:'
         version: 5.2.1
@@ -1115,7 +1124,7 @@ importers:
     dependencies:
       postgres:
         specifier: 'catalog:'
-        version: 3.4.9
+        version: 3.4.9(patch_hash=329e577a68a6c2642e295f2d0f3bbe0bdf5d790c5a845b23e4b06064f7c2e87f)
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -5605,9 +5614,9 @@ snapshots:
       esbuild: 0.25.12
       tsx: 4.23.0
 
-  drizzle-orm@0.45.2(postgres@3.4.9):
+  drizzle-orm@0.45.2(postgres@3.4.9(patch_hash=329e577a68a6c2642e295f2d0f3bbe0bdf5d790c5a845b23e4b06064f7c2e87f)):
     optionalDependencies:
-      postgres: 3.4.9
+      postgres: 3.4.9(patch_hash=329e577a68a6c2642e295f2d0f3bbe0bdf5d790c5a845b23e4b06064f7c2e87f)
 
   dunder-proto@1.0.1:
     dependencies:
@@ -6215,7 +6224,7 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.2
 
-  postgres@3.4.9: {}
+  postgres@3.4.9(patch_hash=329e577a68a6c2642e295f2d0f3bbe0bdf5d790c5a845b23e4b06064f7c2e87f): {}
 
   prettier@3.9.5: {}
 

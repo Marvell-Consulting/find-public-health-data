@@ -23,6 +23,8 @@ Only statements run by the `public_api` and `internal_api` roles count, so the s
 queries never do. These are counts, not timings, so they do not move with runner load. To keep them
 the same from run to run, the CI database (`compose.perf.yaml`) preloads `pg_stat_statements`,
 turns off parallel query and autovacuum, and the script runs `VACUUM ANALYZE` before measuring.
+The driver's array-type discovery query is excluded from these warmed counts: a pooled connection
+can open during measurement even after the warm-up requests. All application queries still count.
 
 Each route's numbers are compared with [`baseline.json`](baseline.json). A route fails when a
 metric exceeds its allowance:

@@ -1,6 +1,6 @@
 import { type Database, schema } from '@fphd/db';
 import { and, desc, eq, sql } from 'drizzle-orm';
-import { describe, expect } from 'vitest';
+import { describe, expect, vi } from 'vitest';
 
 import {
   getIndicatorDraftState,
@@ -48,6 +48,81 @@ async function publishedVersionId(db: Database, indicatorId: string): Promise<st
 }
 
 describe('createDraftFromPublished', () => {
+  repositoryTest(
+    'waits for a live refresh before reading the publication to copy',
+    async ({ db }) => {
+      const { indicatorId, currentId } = await indicatorWithTwoPublications(
+        db,
+        'Concurrent publication refresh',
+      );
+      const [before, after] = await db.select({ id: schema.topic.id }).from(schema.topic).limit(2);
+      if (!before || !after) throw new Error('The seed holds too few topics');
+      const [original, replacement] = await db
+        .insert(schema.uploadBatch)
+        .values([
+          {
+            indicatorId,
+            indicatorVersionId: currentId,
+            originalFilename: 'original.csv',
+            uploadedBy: ACTOR,
+          },
+          {
+            indicatorId,
+            indicatorVersionId: currentId,
+            originalFilename: 'replacement.csv',
+            uploadedBy: ACTOR,
+          },
+        ])
+        .returning({ id: schema.uploadBatch.id });
+      if (!original || !replacement) throw new Error('Missing refresh batches');
+      await db
+        .update(indicatorVersion)
+        .set({ uploadBatchId: original.id })
+        .where(eq(indicatorVersion.id, currentId));
+      await db.insert(indicatorVersionTopic).values({
+        indicatorVersionId: currentId,
+        topicId: before.id,
+      });
+      let copying: ReturnType<typeof createDraftFromPublished> | undefined;
+      try {
+        await db.transaction(async (tx) => {
+          await tx.execute(sql`LOCK TABLE indicator_version IN SHARE ROW EXCLUSIVE MODE`);
+          copying = createDraftFromPublished(db, indicatorId, ACTOR);
+          await vi.waitFor(async () => {
+            const rows = (await tx.execute(sql`
+              SELECT EXISTS (SELECT 1 FROM pg_locks
+                WHERE relation = 'indicator_version'::regclass
+                  AND mode = 'RowExclusiveLock' AND NOT granted) AS waiting
+            `)) as unknown as { waiting: boolean }[];
+            expect(rows[0]?.waiting).toBe(true);
+          });
+          await tx
+            .update(indicatorVersion)
+            .set({ name: 'Refreshed publication', uploadBatchId: replacement.id })
+            .where(eq(indicatorVersion.id, currentId));
+          await tx
+            .delete(indicatorVersionTopic)
+            .where(eq(indicatorVersionTopic.indicatorVersionId, currentId));
+          await tx.insert(indicatorVersionTopic).values({
+            indicatorVersionId: currentId,
+            topicId: after.id,
+          });
+          await tx.delete(schema.uploadBatch).where(eq(schema.uploadBatch.id, original.id));
+        });
+        const result = await copying;
+        if (!result?.ok) throw new Error('Expected the concurrent draft copy to succeed');
+        const [draft] = await db
+          .select({ name: indicatorVersion.name, uploadBatchId: indicatorVersion.uploadBatchId })
+          .from(indicatorVersion)
+          .where(eq(indicatorVersion.id, result.versionId));
+        expect(draft).toEqual({ name: 'Refreshed publication', uploadBatchId: replacement.id });
+        expect(await storedTopicIdsOf(db, result.versionId)).toEqual([after.id]);
+        expect(await storedTopicIdsOf(db, currentId)).toEqual([after.id]);
+      } finally {
+        await copying;
+      }
+    },
+  );
   repositoryTest(
     'copies the published version columns and lists into a new draft',
     async ({ db, seededIds }) => {

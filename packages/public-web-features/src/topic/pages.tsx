@@ -23,6 +23,7 @@ export function TopicsPage({ topics }: { topics: TopicSummary[] }) {
   const query = searchParams.get('q') ?? '';
   const [hydrated, setHydrated] = useState(false);
   const hasHydrated = useRef(false);
+  const hasInputChanged = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
   const updateQuery = useCallback(
     (value: string) => {
@@ -45,7 +46,7 @@ export function TopicsPage({ topics }: { topics: TopicSummary[] }) {
     if (!hasHydrated.current) {
       hasHydrated.current = true;
       setHydrated(true);
-      if (input.value !== query) updateQuery(input.value);
+      if (!hasInputChanged.current && input.value !== query) updateQuery(input.value);
     } else if (navigationType !== 'REPLACE') {
       // Typing replacements may still be catching up with newer keystrokes.
       input.value = query;
@@ -87,7 +88,10 @@ export function TopicsPage({ topics }: { topics: TopicSummary[] }) {
               id="topic-search"
               name="q"
               maxLength={200}
-              onChange={(event) => updateQuery(event.currentTarget.value)}
+              onChange={(event) => {
+                hasInputChanged.current = true;
+                updateQuery(event.currentTarget.value);
+              }}
               type="search"
             />
             {!hydrated && <Button type="submit">Search</Button>}

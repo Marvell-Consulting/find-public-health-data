@@ -1,6 +1,7 @@
 import {
   API_ROLES,
   analyzeReadModels,
+  applyDataMigration,
   assertCoreDataPresent,
   assertMigratable,
   assertResetAllowed,
@@ -22,8 +23,15 @@ import {
 } from '@fphd/db/operations';
 
 import type { CommandContext } from './commands.ts';
+import { downloadDataMigration } from './data-migration-package.ts';
 import type { Config } from './load-config.ts';
 import { downloadPublishedSnapshot } from './published-snapshot.ts';
+
+const IMPORTED_TABLES = [
+  ...SEEDED_TABLES,
+  'indicator_version_topic',
+  'indicator_version_classification',
+] as const;
 
 /**
  * The role names are fixed — the APIs connect as `public_api` and `internal_api`, and only
@@ -179,7 +187,9 @@ export async function importPublishedSnapshot({
     );
   }
 
-  const snapshot = await downloadPublishedSnapshot(url, sha256);
+  const snapshot = await downloadPublishedSnapshot(url, sha256, ({ bytes, error }) =>
+    logger.warn({ bytes, err: error }, 'Published snapshot download retrying'),
+  );
   try {
     const seeded = await sql.begin(async (tx) => {
       const result = await seedPublishedTables(tx, snapshot.directory);
@@ -208,7 +218,7 @@ export async function importPublishedSnapshot({
       }
       // The dummy seed's planner statistics would give the full-data
       // read-model rebuild a misleading plan. Analyze before those large queries.
-      for (const table of SEEDED_TABLES) await tx.unsafe(`ANALYZE "${table}"`);
+      for (const table of IMPORTED_TABLES) await tx.unsafe(`ANALYZE "${table}"`);
       await rebuildReadModelTables(tx);
       return result;
     });
@@ -219,6 +229,50 @@ export async function importPublishedSnapshot({
     );
   } finally {
     await snapshot.cleanup();
+  }
+}
+
+/** Applies an ordered, approved-live baseline or incremental package without replacing data. */
+export async function migrateLiveData({ sql, config, logger }: CommandContext): Promise<void> {
+  await assertCoreDataPresent(sql);
+  const { url, sha256 } = config.dataMigration;
+  if (!url || !sha256) {
+    throw new Error('db migrate-live-data needs DATA_MIGRATION_URL and DATA_MIGRATION_SHA256');
+  }
+  logger.info('Downloading live data migration package');
+  const migration = await downloadDataMigration(url, sha256, ({ bytes, error }) =>
+    logger.warn({ bytes, err: error }, 'Live data migration download retrying'),
+  );
+  logger.info(
+    { migration: migration.manifest.migration_id, kind: migration.manifest.kind },
+    'Live data migration package downloaded and verified',
+  );
+  try {
+    const result = await sql.begin(async (tx) => {
+      const applied = await applyDataMigration(
+        tx,
+        migration.directory,
+        migration.manifest,
+        sha256,
+        (progress) => logger.info(progress, 'Live data migration progress'),
+      );
+      if (!applied.applied) return applied;
+      for (const table of IMPORTED_TABLES) await tx.unsafe(`ANALYZE "${table}"`);
+      await rebuildReadModelTables(tx);
+      return applied;
+    });
+    if (result.applied) await analyzeReadModels(sql);
+    logger.info(
+      {
+        migration: migration.manifest.migration_id,
+        kind: migration.manifest.kind,
+        applied: result.applied,
+        changes: result.changes,
+      },
+      result.applied ? 'Live data migration applied' : 'Live data migration already applied',
+    );
+  } finally {
+    await migration.cleanup();
   }
 }
 

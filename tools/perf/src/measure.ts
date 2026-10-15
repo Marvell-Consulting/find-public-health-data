@@ -79,6 +79,8 @@ export async function measureWork(sql: postgres.Sql, route: Route, session: stri
     from pg_stat_statements s
     join pg_roles r on r.oid = s.userid
     where r.rolname in ('public_api', 'internal_api')
+      -- Exclude postgres.js connection type discovery from the warmed route counts.
+      and s.query not like '%select b.oid, b.typarray%from pg_catalog.pg_type%'
   `;
   if (counts === undefined) throw new Error('pg_stat_statements returned no row');
   return { ...counts, bytes: response.bytes };
