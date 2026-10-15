@@ -2,7 +2,7 @@ import {
   type PublishingDateField,
   publishingDateSection,
 } from '@fphd/internal-api-features/contract';
-import { DateInput, datePartId, datePartName, QuestionLegend, TimeInput } from '@fphd/ui';
+import { DateInput, datePartId, datePartName, TimeInput } from '@fphd/ui';
 
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 
@@ -64,14 +64,16 @@ export function PublishingDatePage({ dateExample, ...form }: PublishingDatePageP
         }}
         error={groupError(fieldErrors, DATE)}
         hint={`For example, ${dateExample}`}
-        label={<QuestionLegend>Date</QuestionLegend>}
+        label="Date"
+        labelHeading="h2"
         name={DATE}
       />
       <TimeInput
         defaultValue={{ hour: values.publishingTimeHour, minute: values.publishingTimeMinute }}
         error={groupError(fieldErrors, TIME)}
         hint="This will be 09:30 local UK time by default. Only change this if a different publication time is needed. Use 24 hour clock format, for example 15:00."
-        label={<QuestionLegend>Time</QuestionLegend>}
+        label="Time"
+        labelHeading="h2"
         name={TIME}
       />
     </IndicatorSectionForm>

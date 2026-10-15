@@ -19,6 +19,7 @@ export function DefinitionAndRationalePage(form: SectionPageProps<DefinitionAndR
         defaultValue={values.definition}
         error={fieldErrors.definition}
         label="What is the definition of this indicator?"
+        labelHeading="h2"
         name="definition"
         rows={8}
       />
@@ -26,6 +27,7 @@ export function DefinitionAndRationalePage(form: SectionPageProps<DefinitionAndR
         defaultValue={values.rationale}
         error={fieldErrors.rationale}
         label="What is the rationale for this indicator?"
+        labelHeading="h2"
         name="rationale"
         rows={15}
       />

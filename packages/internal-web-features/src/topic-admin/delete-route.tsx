@@ -9,8 +9,9 @@ export const action = deleteTopic;
 
 export const meta = createDocumentMeta('Delete topic');
 
-export const handle = backLinkHandle<Awaited<ReturnType<typeof loader>>>(({ topic }) =>
-  editTopicPath(topic.id),
+export const handle = backLinkHandle<Awaited<ReturnType<typeof loader>>>(
+  ({ topic }) => editTopicPath(topic.id),
+  'Back to edit topic',
 );
 
 export function DeleteTopicRoute() {

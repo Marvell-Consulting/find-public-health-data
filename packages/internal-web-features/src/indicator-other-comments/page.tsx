@@ -21,6 +21,7 @@ export function OtherCommentsPage(form: SectionPageProps<OtherCommentsField>) {
         defaultValue={values.sponsorsAndStakeholders}
         error={fieldErrors.sponsorsAndStakeholders}
         label="Enter any applicable sponsors or stakeholders for this indicator (optional)"
+        labelHeading="h2"
         name="sponsorsAndStakeholders"
         rows={5}
       />

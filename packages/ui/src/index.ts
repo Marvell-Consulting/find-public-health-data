@@ -16,12 +16,13 @@ export { default as Select } from '@not-govuk/select';
 export { default as SummaryList } from '@not-govuk/summary-list';
 export { default as Table } from '@not-govuk/table';
 export { default as Tag } from '@not-govuk/tag';
+export { default as TaskList } from '@not-govuk/task-list';
 export { default as TextInput } from '@not-govuk/text-input';
 export { default as Textarea } from '@not-govuk/textarea';
 export { AppDocument } from './app-document.tsx';
 export { type AppNavigationItem, AppShell, serviceName } from './app-shell.tsx';
 export { Autocomplete, type AutocompleteOption } from './autocomplete.tsx';
-export { type BackLinkHandle, backHrefFrom, backLinkHandle } from './back-link-handle.ts';
+export { type BackLinkHandle, backLinkFrom, backLinkHandle } from './back-link-handle.ts';
 export { CardList, type CardListItem } from './card-list.tsx';
 export { ChartSection } from './chart-section.tsx';
 export { NotFoundPage, PageIntro } from './content-page.tsx';
@@ -39,7 +40,6 @@ export {
   formatDocumentTitle,
   titleFromPage,
 } from './document-title.tsx';
-export { errorProp } from './error-prop.ts';
 export {
   ErrorSummary,
   type FieldError,
@@ -52,9 +52,7 @@ export { type DateFormat, DISPLAY_TIME_ZONE, formatDate } from './format-date.ts
 export { type GeographyArea, GeographyTree } from './geography-tree.tsx';
 export { GridColumn, GridRow, SectionBreak } from './layout.tsx';
 export { NonceProvider, useNonce } from './nonce.tsx';
-export { QuestionLegend } from './question-legend.tsx';
 export { RootErrorBoundary } from './root-error-boundary.tsx';
 export { SearchField } from './search-field.tsx';
 export { searchPattern } from './search-pattern.ts';
 export { Tabs } from './tabs.tsx';
-export { TaskList, type TaskListItem } from './task-list.tsx';

@@ -93,7 +93,9 @@ function TopicFields({ fieldErrors, values, submitLabel }: TopicFieldsProps) {
         label="Description"
         name="description"
       />
-      <Button type="submit">{submitLabel}</Button>
+      <Button preventDoubleClick type="submit">
+        {submitLabel}
+      </Button>
     </form>
   );
 }
@@ -179,7 +181,7 @@ export function DeleteTopicPage({ topic }: { topic: TopicAdminSummary }) {
       </p>
       {/* Plain form so it works without JavaScript; the POST is the confirmation. */}
       <form method="post">
-        <Button classModifiers="warning" type="submit">
+        <Button classModifiers="warning" preventDoubleClick type="submit">
           Delete topic
         </Button>
       </form>

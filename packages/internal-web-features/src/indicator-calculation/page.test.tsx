@@ -79,8 +79,8 @@ describe('CalculationPage', () => {
     });
 
     expect(heading.parentElement?.tagName).toBe('LEGEND');
-    expect(heading.className).toBe('govuk-heading-m');
-    expect(container.querySelectorAll('h1, h2, h3, h4, h5, h6')).toHaveLength(2);
+    expect(heading.parentElement?.className).toContain('govuk-fieldset__legend--m');
+    expect(container.querySelectorAll('h1, h2, h3, h4, h5, h6')).toHaveLength(3);
   });
 
   it('asks for the other organisations inside the reveal that "Other" controls', () => {

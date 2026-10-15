@@ -132,13 +132,18 @@ export function IndicatorTaskListPage({ taskList }: { taskList: IndicatorTaskLis
           <div key={group.id}>
             <h2 className="govuk-heading-m">{group.title}</h2>
             <TaskList
-              idPrefix={group.id}
-              items={group.tasks.map(({ key, path, title }) => ({
-                id: key,
-                title,
-                href: path?.(indicator.id),
-                status: <StatusTag type="task" status={statusOf(tasks, key)} />,
-              }))}
+              id={group.id}
+              // A task with no form yet has no link, and TaskList types href without
+              // undefined, which exactOptionalPropertyTypes will not pass through.
+              items={group.tasks.map(({ key, path, title }) => {
+                const href = path?.(indicator.id);
+
+                return {
+                  title,
+                  ...(href === undefined ? {} : { href }),
+                  status: <StatusTag type="task" status={statusOf(tasks, key)} />,
+                };
+              })}
             />
           </div>
         ))}

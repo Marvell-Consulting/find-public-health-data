@@ -8,7 +8,7 @@ export const action = createTopic;
 
 export const meta = titleFromPage;
 
-export const handle = backLinkHandle(TOPICS_ADMIN_PATH);
+export const handle = backLinkHandle(TOPICS_ADMIN_PATH, 'Back to topics');
 
 export function NewTopicRoute() {
   const rejected = useActionData<SaveTopicFailure | undefined>();

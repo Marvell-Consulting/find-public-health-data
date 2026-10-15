@@ -9,8 +9,9 @@ export const loader = loadIndicatorTaskList;
 
 export const meta = createDocumentMeta('Indicator task list');
 
-export const handle = backLinkHandle<Awaited<ReturnType<typeof loader>>>(({ taskList }) =>
-  indicatorOverviewPath(taskList.indicator.id),
+export const handle = backLinkHandle<Awaited<ReturnType<typeof loader>>>(
+  ({ taskList }) => indicatorOverviewPath(taskList.indicator.id),
+  'Back to indicator overview',
 );
 
 export function IndicatorTaskListRoute() {

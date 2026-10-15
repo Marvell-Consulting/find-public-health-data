@@ -21,6 +21,7 @@ export function VarianceAndQualityPage(form: SectionPageProps<VarianceAndQuality
         defaultValue={values.variation}
         error={fieldErrors.variation}
         label="How does the indicator vary?"
+        labelHeading="h2"
         name="variation"
         rows={5}
       />
@@ -28,6 +29,7 @@ export function VarianceAndQualityPage(form: SectionPageProps<VarianceAndQuality
         defaultValue={values.qualityAssurance}
         error={fieldErrors.qualityAssurance}
         label="What quality assurance has been done on the indicator?"
+        labelHeading="h2"
         name="qualityAssurance"
         rows={5}
       />

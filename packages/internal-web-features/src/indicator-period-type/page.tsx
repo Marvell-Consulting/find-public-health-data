@@ -1,13 +1,5 @@
 import { type PeriodTypeField, periodTypeSection } from '@fphd/internal-api-features/contract';
-import {
-  DayMonthInput,
-  datePartId,
-  datePartName,
-  errorProp,
-  firstRadioId,
-  QuestionLegend,
-  Radios,
-} from '@fphd/ui';
+import { DayMonthInput, datePartId, datePartName, firstRadioId, Radios } from '@fphd/ui';
 import {
   PERIOD_TYPE_LABELS,
   PERIOD_TYPES_WITH_YEAR_TYPE,
@@ -65,14 +57,11 @@ function YearTypeQuestion({ fieldErrors, set, values }: YearTypeQuestionProps) {
 
   return (
     <Radios
-      {...errorProp(yearTypeError)}
       classModifiers="small"
       defaultValue={values.yearType}
-      label={
-        <QuestionLegend as="span" size="s">
-          Select year type
-        </QuestionLegend>
-      }
+      error={yearTypeError}
+      label="Select year type"
+      labelClassModifiers="s"
       name={`${set}YearType`}
       options={[
         ...(['calendar', 'financial', 'academic', 'rolling'] as const).map((value) => ({
@@ -125,9 +114,10 @@ export function PeriodTypePage(form: SectionPageProps<PeriodTypeField>) {
       title="What is the period type in this indicator?"
     >
       <Radios
-        {...errorProp(fieldErrors.periodType)}
         defaultValue={values.periodType}
-        label={<QuestionLegend>Select period type</QuestionLegend>}
+        error={fieldErrors.periodType}
+        label="Select period type"
+        labelHeading="h2"
         name="periodType"
         options={[
           {

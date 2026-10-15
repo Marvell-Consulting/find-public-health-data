@@ -10,8 +10,9 @@ export const action = saveIndicatorName;
 
 export const meta = titleFromPage;
 
-export const handle = backLinkHandle<Awaited<ReturnType<typeof loader>>>(({ indicator }) =>
-  indicatorTaskListPath(indicator.id),
+export const handle = backLinkHandle<Awaited<ReturnType<typeof loader>>>(
+  ({ indicator }) => indicatorTaskListPath(indicator.id),
+  'Back to task list',
 );
 
 export function EditIndicatorNameRoute() {

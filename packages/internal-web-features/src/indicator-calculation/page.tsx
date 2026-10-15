@@ -1,5 +1,5 @@
 import { type CalculationField, calculationSection } from '@fphd/internal-api-features/contract';
-import { errorProp, firstRadioId, QuestionLegend, Radios, Textarea } from '@fphd/ui';
+import { firstRadioId, Radios, Textarea } from '@fphd/ui';
 import { INDICATOR_CALCULATED_BY_LABELS } from '@fphd/utils/calculated-by';
 
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
@@ -18,13 +18,15 @@ export function CalculationPage(form: SectionPageProps<CalculationField>) {
         defaultValue={values.methodology}
         error={fieldErrors.methodology}
         label="Enter methodology"
+        labelHeading="h2"
         name="methodology"
         rows={5}
       />
       <Radios
-        {...errorProp(fieldErrors.calculatedBy)}
         defaultValue={values.calculatedBy}
-        label={<QuestionLegend>Who calculated the indicator?</QuestionLegend>}
+        error={fieldErrors.calculatedBy}
+        label="Who calculated the indicator?"
+        labelHeading="h2"
         name="calculatedBy"
         options={[
           { value: 'ohid', label: INDICATOR_CALCULATED_BY_LABELS.ohid },

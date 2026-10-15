@@ -8,7 +8,7 @@ export const loader = loadIndicatorOverview;
 
 export const meta = createDocumentMeta('Indicator overview');
 
-export const handle = backLinkHandle(DASHBOARD_PATH);
+export const handle = backLinkHandle(DASHBOARD_PATH, 'Back to indicators');
 
 export function IndicatorOverviewRoute() {
   const { indicator } = useLoaderData<typeof loader>();

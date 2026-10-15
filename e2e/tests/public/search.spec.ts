@@ -102,12 +102,12 @@ test('search matches an indicator number, its slug and taxonomy slugs', async ({
   await expect(page.getByRole('heading', { name: 'Select from 1 indicator' })).toBeVisible();
 
   await page.goto('/search?q=mortality-and-life-expectancy');
-  await expect(results(page).locator('.fphd-search-result').first()).toContainText(
+  await expect(results(page).locator('.govuk-checkboxes__item').first()).toContainText(
     'Mortality and life expectancy',
   );
 
   await page.goto('/search?q=indicator-type-outcome');
-  await expect(results(page).locator('.fphd-search-result').first()).toContainText('Outcome');
+  await expect(results(page).locator('.govuk-checkboxes__item').first()).toContainText('Outcome');
 });
 
 test('ticking a result and clicking View selected indicators lands on /indicators?is=...', async ({
@@ -549,7 +549,7 @@ for (const width of [390, 768, 1024, 1440]) {
     await ready(page);
     await page.evaluate(() => document.fonts.ready);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
-    const row = results(page).locator('.fphd-search-result').first();
+    const row = results(page).locator('.govuk-checkboxes__item').first();
     const checkbox = await row.getByRole('checkbox').boundingBox();
     const title = await row.getByRole('link').first().boundingBox();
     if (!checkbox || !title) throw new Error('The result checkbox and title must be visible');

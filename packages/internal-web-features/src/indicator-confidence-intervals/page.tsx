@@ -3,7 +3,7 @@ import {
   type ConfidenceIntervalsField,
   confidenceIntervalsSection,
 } from '@fphd/internal-api-features/contract';
-import { errorProp, firstRadioId, QuestionLegend, Radios, Select, Textarea } from '@fphd/ui';
+import { firstRadioId, Radios, Select, Textarea } from '@fphd/ui';
 
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 import { useSelectedValue } from '../selected-value.ts';
@@ -31,9 +31,10 @@ export function ConfidenceIntervalsPage({ methods, ...form }: ConfidenceInterval
       title="Confidence intervals"
     >
       <Select
-        {...errorProp(fieldErrors.ciMethodId)}
         defaultValue={values.ciMethodId}
+        error={fieldErrors.ciMethodId}
         label="Select the confidence interval method used"
+        labelHeading="h2"
         name="ciMethodId"
         onChange={selected.onChange}
         options={[
@@ -50,13 +51,10 @@ export function ConfidenceIntervalsPage({ methods, ...form }: ConfidenceInterval
         ) : null}
         <Radios
           {...selected.hint(`Not needed for ${namesOf(({ kind }) => kind !== 'standard')}`)}
-          {...errorProp(fieldErrors.hasCiMethodModifications)}
           defaultValue={values.hasCiMethodModifications}
-          label={
-            <QuestionLegend>
-              Were any modifications to the described method used for this indicator?
-            </QuestionLegend>
-          }
+          error={fieldErrors.hasCiMethodModifications}
+          label="Were any modifications to the described method used for this indicator?"
+          labelHeading="h2"
           name="hasCiMethodModifications"
           options={[
             {

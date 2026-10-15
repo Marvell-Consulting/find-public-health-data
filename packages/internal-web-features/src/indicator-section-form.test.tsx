@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { errorProp, firstRadioId, Radios, serviceName, Textarea } from '@fphd/ui';
+import { firstRadioId, Radios, serviceName, Textarea } from '@fphd/ui';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -30,7 +30,7 @@ function renderForm({ fieldErrors = {}, formError, ...props }: FormProps = {}) {
       >
         <Textarea error={fieldErrors.answer} label="An answer" name="answer" />
         <Radios
-          {...errorProp(fieldErrors.choice)}
+          error={fieldErrors.choice}
           label="A choice"
           name="choice"
           options={[
@@ -65,6 +65,13 @@ describe('IndicatorSectionForm', () => {
     expect(form?.getAttribute('method')).toBe('post');
     expect(form?.getAttribute('action')).toBeNull();
     expect(within(form as HTMLElement).getByRole('button', { name: 'Continue' })).toBeTruthy();
+  });
+
+  it('debounces Continue, so a double click submits the answers once', () => {
+    const { container } = renderForm();
+    const button = container.querySelector('form button');
+
+    expect(button?.getAttribute('data-prevent-double-click')).toBe('true');
   });
 
   it('offers one Continue, which Enter in a field presses when no other button comes first', () => {
