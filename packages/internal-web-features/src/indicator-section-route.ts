@@ -7,8 +7,9 @@ import type { SectionPageProps } from './indicator-section-form.tsx';
 import { indicatorTaskListPath } from './publish-paths.ts';
 
 /** Every section page links back to its draft's task list. */
-export const sectionBackLinkHandle = backLinkHandle<{ id: string }>(({ id }) =>
-  indicatorTaskListPath(id),
+export const sectionBackLinkHandle = backLinkHandle<{ id: string }>(
+  ({ id }) => indicatorTaskListPath(id),
+  'Back to task list',
 );
 
 /** The draft's answers, or what was typed and why it was refused after a rejected submission. */

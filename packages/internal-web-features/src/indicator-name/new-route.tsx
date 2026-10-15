@@ -8,7 +8,7 @@ export const action = createIndicator;
 
 export const meta = titleFromPage;
 
-export const handle = backLinkHandle(DASHBOARD_PATH);
+export const handle = backLinkHandle(DASHBOARD_PATH, 'Back to indicators');
 
 export function NewIndicatorRoute() {
   const rejected = useActionData<IndicatorNameFailure | undefined>();

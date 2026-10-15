@@ -27,6 +27,8 @@ interface AppShellProps {
   audience: 'Public' | 'Internal';
   /** Where the back link above the main content goes, as GOV.UK places it. */
   backHref?: string | undefined;
+  /** What that link says; without it Page names it "Back". */
+  backText?: string | undefined;
   children: ReactNode;
   navigation: AppNavigationItem[];
   /** Where the service name in the header links to. */
@@ -36,6 +38,7 @@ interface AppShellProps {
 export function AppShell({
   audience,
   backHref,
+  backText,
   children,
   navigation,
   serviceHref = '/',
@@ -44,8 +47,8 @@ export function AppShell({
 
   return (
     <GovUKPage
-      // NotGovUK's Page names the back link "Back"; it takes no link text yet.
       {...(backHref === undefined ? {} : { backHref })}
+      {...(backText === undefined ? {} : { backText })}
       meta={footerLinks}
       navigation={navigation}
       phase={isInternal ? 'Internal' : 'Alpha'}

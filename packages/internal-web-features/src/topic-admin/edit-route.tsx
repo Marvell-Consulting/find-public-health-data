@@ -9,7 +9,7 @@ export const action = saveTopic;
 
 export const meta = titleFromPage;
 
-export const handle = backLinkHandle(TOPICS_ADMIN_PATH);
+export const handle = backLinkHandle(TOPICS_ADMIN_PATH, 'Back to topics');
 
 export function EditTopicRoute() {
   const { topic, notification } = useLoaderData<typeof loader>();

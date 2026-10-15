@@ -6,12 +6,20 @@ import type { UIMatch } from 'react-router';
  */
 export interface BackLinkHandle<Data = unknown> {
   backHref: string | ((data: Data) => string);
+  /** Names the destination, as GOV.UK asks of a back link; without it the link reads "Back". */
+  backText?: string;
+}
+
+export interface BackLink {
+  href: string;
+  text?: string | undefined;
 }
 
 export function backLinkHandle<Data>(
   backHref: BackLinkHandle<Data>['backHref'],
+  backText?: string,
 ): BackLinkHandle<Data> {
-  return { backHref };
+  return backText === undefined ? { backHref } : { backHref, backText };
 }
 
 function isBackLinkHandle(handle: unknown): handle is BackLinkHandle {
@@ -19,14 +27,16 @@ function isBackLinkHandle(handle: unknown): handle is BackLinkHandle {
 }
 
 /** The back link of the deepest matched route that declares one; a loader-derived link needs the loader to have run. */
-export function backHrefFrom(matches: readonly UIMatch[]): string | undefined {
+export function backLinkFrom(matches: readonly UIMatch[]): BackLink | undefined {
   for (const match of matches.toReversed()) {
     if (!isBackLinkHandle(match.handle)) continue;
 
-    const { backHref } = match.handle;
+    const { backHref, backText } = match.handle;
 
-    if (typeof backHref !== 'function') return backHref;
-    if (match.loaderData !== undefined) return backHref(match.loaderData);
+    if (typeof backHref !== 'function') return { href: backHref, text: backText };
+    if (match.loaderData !== undefined) {
+      return { href: backHref(match.loaderData), text: backText };
+    }
   }
 
   return undefined;

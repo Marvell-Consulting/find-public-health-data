@@ -55,10 +55,9 @@ test('shows a draft indicator on the dashboard', async ({ page }) => {
   const name = uniqueName();
 
   await createIndicator(page, name);
-  await page.getByRole('link', { name: 'Back', exact: true }).click();
-  // Both pages' back links share a name, so wait for the overview before following its link.
+  await page.getByRole('link', { name: 'Back to indicator overview', exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard\/indicators\/[0-9a-f-]{36}$/);
-  await page.getByRole('link', { name: 'Back', exact: true }).click();
+  await page.getByRole('link', { name: 'Back to indicators', exact: true }).click();
 
   await expect(page).toHaveURL('/dashboard');
   await expect(page.getByRole('link', { name })).toBeVisible();

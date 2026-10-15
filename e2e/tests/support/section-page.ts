@@ -26,7 +26,7 @@ export async function openSectionPage(page: Page, { key }: Section): Promise<str
 }
 
 export async function expectBackToTaskList(page: Page, taskListPath: string) {
-  await page.getByRole('link', { name: 'Back', exact: true }).click();
+  await page.getByRole('link', { name: 'Back to task list', exact: true }).click();
   await expect(page).toHaveURL(taskListPath);
 }
 
