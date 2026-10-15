@@ -27,6 +27,12 @@ import { downloadDataMigration } from './data-migration-package.ts';
 import type { Config } from './load-config.ts';
 import { downloadPublishedSnapshot } from './published-snapshot.ts';
 
+const IMPORTED_TABLES = [
+  ...SEEDED_TABLES,
+  'indicator_version_topic',
+  'indicator_version_classification',
+] as const;
+
 /**
  * The role names are fixed — the APIs connect as `public_api` and `internal_api`, and only
  * the passwords are injected — so this maps the two optional config values onto them. It
@@ -182,7 +188,7 @@ export async function importPublishedSnapshot({
   }
 
   const snapshot = await downloadPublishedSnapshot(url, sha256, ({ bytes, error }) =>
-    logger.warn({ bytes, err: error }, 'Published snapshot download dropped; resuming'),
+    logger.warn({ bytes, err: error }, 'Published snapshot download retrying'),
   );
   try {
     const seeded = await sql.begin(async (tx) => {
@@ -212,12 +218,7 @@ export async function importPublishedSnapshot({
       }
       // The dummy seed's planner statistics would give the full-data
       // read-model rebuild a misleading plan. Analyze before those large queries.
-      for (const table of [
-        ...SEEDED_TABLES,
-        'indicator_version_topic',
-        'indicator_version_classification',
-      ])
-        await tx.unsafe(`ANALYZE "${table}"`);
+      for (const table of IMPORTED_TABLES) await tx.unsafe(`ANALYZE "${table}"`);
       await rebuildReadModelTables(tx);
       return result;
     });
@@ -240,7 +241,7 @@ export async function migrateLiveData({ sql, config, logger }: CommandContext): 
   }
   logger.info('Downloading live data migration package');
   const migration = await downloadDataMigration(url, sha256, ({ bytes, error }) =>
-    logger.warn({ bytes, err: error }, 'Live data migration download dropped; resuming'),
+    logger.warn({ bytes, err: error }, 'Live data migration download retrying'),
   );
   logger.info(
     { migration: migration.manifest.migration_id, kind: migration.manifest.kind },
@@ -256,12 +257,7 @@ export async function migrateLiveData({ sql, config, logger }: CommandContext): 
         (progress) => logger.info(progress, 'Live data migration progress'),
       );
       if (!applied.applied) return applied;
-      for (const table of [
-        ...SEEDED_TABLES,
-        'indicator_version_topic',
-        'indicator_version_classification',
-      ])
-        await tx.unsafe(`ANALYZE "${table}"`);
+      for (const table of IMPORTED_TABLES) await tx.unsafe(`ANALYZE "${table}"`);
       await rebuildReadModelTables(tx);
       return applied;
     });

@@ -39,6 +39,7 @@ const commonSchema = z.object({
   schema: z.literal(DATA_MIGRATION_SCHEMA),
   migration_id: z.string().regex(/^[a-z0-9][a-z0-9._-]{0,127}$/),
   source: sourceSchema,
+  // The source export's sentinel; prepared package CSVs use unquoted empty fields for NULL.
   source_csv_null: z.literal(DATA_MIGRATION_NULL),
   id_mapping: z.literal('deterministic-uuidv7-v1'),
 });

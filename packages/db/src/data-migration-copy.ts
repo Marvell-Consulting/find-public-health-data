@@ -6,8 +6,7 @@ import { createGunzip } from 'node:zlib';
 import type postgres from 'postgres';
 
 const COPY_IDLE_TIMEOUT_MS = 30 * 60 * 1_000;
-// Matches the deployed operations job's outer execution limit.
-const COPY_COMPLETION_TIMEOUT_MS = 6 * 60 * 60 * 1_000;
+const COPY_COMPLETION_TIMEOUT_MS = 30 * 60 * 1_000;
 
 export interface DataMigrationProgress {
   table: string;

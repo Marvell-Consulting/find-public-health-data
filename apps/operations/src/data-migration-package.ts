@@ -31,26 +31,19 @@ async function verifyFiles(
   directory: string,
   manifest: DataMigrationManifest,
 ): Promise<Set<string>> {
-  assertCompleteTableSet(manifest.tables);
-  assertMigrationFileNames(manifest);
   const expected = new Set(['manifest.json']);
-  expected.add(manifest.relationships.file);
-  const entries = Object.values(manifest.tables).flatMap((table) =>
-    'file' in table ? [table] : [table.upserts, table.deletes],
-  );
+  const entries = [
+    ...Object.values(manifest.tables).flatMap((table) =>
+      'file' in table ? [table] : [table.upserts, table.deletes],
+    ),
+    manifest.relationships,
+  ];
   for (const entry of entries) {
     expected.add(entry.file);
     const path = join(directory, entry.file);
     if ((await stat(path)).size !== entry.bytes || (await sha256(path)) !== entry.sha256) {
       throw new Error(`Data migration checksum failed for ${entry.file}`);
     }
-  }
-  const relationshipsPath = join(directory, manifest.relationships.file);
-  if (
-    (await stat(relationshipsPath)).size !== manifest.relationships.bytes ||
-    (await sha256(relationshipsPath)) !== manifest.relationships.sha256
-  ) {
-    throw new Error('Data migration checksum failed for indicator relationships');
   }
   return expected;
 }
@@ -98,6 +91,7 @@ async function verifyFilesAfterExtraction(
   manifest: DataMigrationManifest,
 ): Promise<Set<string>> {
   assertCompleteTableSet(manifest.tables);
+  assertMigrationFileNames(manifest);
   const files = Object.values(manifest.tables).flatMap((table) =>
     'file' in table ? [table.file] : [table.upserts.file, table.deletes.file],
   );

@@ -24,7 +24,12 @@ function sha256(value: Buffer): string {
 }
 
 async function packageArchive(
-  options: { linkedFile?: boolean; wrongBytes?: boolean; unexpectedFile?: boolean } = {},
+  options: {
+    linkedFile?: boolean;
+    wrongBytes?: boolean;
+    wrongRelationshipBytes?: boolean;
+    unexpectedFile?: boolean;
+  } = {},
 ) {
   const directory = await mkdtemp(join(tmpdir(), 'fphd-migration-package-test-'));
   directories.push(directory);
@@ -75,7 +80,7 @@ async function packageArchive(
     relationships: {
       file: relationshipsFile,
       rows: 0,
-      bytes: relationships.length,
+      bytes: relationships.length + (options.wrongRelationshipBytes ? 1 : 0),
       sha256: sha256(relationships),
     },
     tables,
@@ -142,6 +147,16 @@ describe('downloadDataMigration', () => {
     await expect(
       downloadDataMigration('https://example.test/migration.tar', archive.digest),
     ).rejects.toThrow('Data migration archive contains unexpected files');
+  });
+
+  it('rejects a relationship file whose size does not match the manifest', async () => {
+    const archive = await packageArchive({ wrongRelationshipBytes: true });
+    mocks.download.mockImplementation(async (_url: string, path: string) => {
+      await writeFile(path, archive.contents);
+    });
+    await expect(
+      downloadDataMigration('https://example.test/migration.tar', archive.digest),
+    ).rejects.toThrow('Data migration checksum failed for indicator-relationships.json');
   });
 
   it('rejects a declared file stored as a link', async () => {
