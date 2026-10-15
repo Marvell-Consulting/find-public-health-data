@@ -67,6 +67,13 @@ describe('IndicatorSectionForm', () => {
     expect(within(form as HTMLElement).getByRole('button', { name: 'Continue' })).toBeTruthy();
   });
 
+  it('debounces Continue, so a double click submits the answers once', () => {
+    const { container } = renderForm();
+    const button = container.querySelector('form button');
+
+    expect(button?.getAttribute('data-prevent-double-click')).toBe('true');
+  });
+
   it('offers one Continue, which Enter in a field presses when no other button comes first', () => {
     const { container } = renderForm();
     const buttons = container.querySelectorAll('form button');

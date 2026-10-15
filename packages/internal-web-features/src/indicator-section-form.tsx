@@ -84,7 +84,9 @@ export function IndicatorSectionForm<Field extends string>(
               </button>
             ) : null}
             {children}
-            <Button type="submit">Continue</Button>
+            <Button preventDoubleClick type="submit">
+              Continue
+            </Button>
           </form>
         </GridColumn>
       </GridRow>

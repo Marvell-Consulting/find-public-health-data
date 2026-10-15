@@ -75,6 +75,18 @@ describe('EditTopicPage', () => {
 
     expect(document.title).toBe(`Error: Edit topic - ${serviceName} - GOV.UK`);
   });
+
+  it('debounces Save, so a double click saves the topic once', () => {
+    render(
+      <MemoryRouter>
+        <EditTopicPage topicId={topic.id} values={values} />
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Save' }).getAttribute('data-prevent-double-click'),
+    ).toBe('true');
+  });
 });
 
 describe('DeleteTopicPage', () => {
@@ -93,6 +105,7 @@ describe('DeleteTopicPage', () => {
 
     expect(button.className).toContain('govuk-button--warning');
     expect(button.closest('form')?.getAttribute('method')).toBe('post');
+    expect(button.getAttribute('data-prevent-double-click')).toBe('true');
   });
 
   it('offers a way back to editing the topic', () => {
