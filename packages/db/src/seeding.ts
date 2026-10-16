@@ -375,7 +375,8 @@ async function pointVersionsAtBatches(tx: postgres.TransactionSql): Promise<void
     SET upload_batch_id = s.upload_batch_id,
         data_table_confirmed_at = s.data_table_confirmed_at
     FROM source_indicator_version s
-    WHERE s.id = v.id AND s.upload_batch_id IS NOT NULL
+    WHERE s.id = v.id
+      AND (s.upload_batch_id IS NOT NULL OR s.data_table_confirmed_at IS NOT NULL)
   `;
   await tx`
     UPDATE indicator_version v

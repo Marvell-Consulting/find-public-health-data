@@ -1,6 +1,7 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { DATA_MIGRATION_NULL } from '@fphd/db/data-migration-contract';
 import {
   createOwnerClient,
   importCoreData,
@@ -11,6 +12,7 @@ import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
 import type postgres from 'postgres';
 import { afterAll, beforeAll, expect, it, vi } from 'vitest';
 import { verifyPublishedSnapshot } from '../../../apps/operations/src/published-snapshot.ts';
+import { transformGzipCsv } from './csv.ts';
 import { sourceConfirmation, writeDevelopmentSource } from './export-dev-snapshot.testing.ts';
 import { exportDevSnapshot } from './export-dev-snapshot.ts';
 import { exportPholio } from './pholio/export-pholio.ts';
@@ -41,15 +43,16 @@ it('imports a generated development snapshot with version batch pointers and pub
   await rebuildReadModels(sql);
   const versionId = deterministicUuid('indicator_version', '108');
   const batchId = deterministicUuid('upload_batch', '108');
-  const [version] = await sql<{ batch: string; confirmed: Date; owner: string }[]>`
-    SELECT v.upload_batch_id AS batch, v.data_table_confirmed_at AS confirmed,
+  const [version] = await sql<{ batch: string; confirmed: boolean; owner: string }[]>`
+    SELECT v.upload_batch_id AS batch,
+      v.data_table_confirmed_at = ${sourceConfirmation}::timestamptz AS confirmed,
       b.indicator_version_id AS owner
     FROM indicator_version v JOIN upload_batch b ON b.id=v.upload_batch_id
     WHERE v.id=${versionId}
   `;
   expect(version).toEqual({
     batch: batchId,
-    confirmed: new Date(sourceConfirmation),
+    confirmed: true,
     owner: versionId,
   });
   expect(
@@ -64,4 +67,23 @@ it('imports a generated development snapshot with version batch pointers and pub
   expect(await sql`SELECT count(*)::int AS count FROM published.observation_note`).toEqual([
     { count: 1 },
   ]);
+
+  await transformGzipCsv(join(directory, 'indicator_version.csv.gz'), (row, header) =>
+    row.map((value, index) =>
+      row[header.indexOf('id')] === versionId && header[index] === 'upload_batch_id'
+        ? DATA_MIGRATION_NULL
+        : value,
+    ),
+  );
+  await expect(sql.begin((tx) => seedPublishedTables(tx, directory))).rejects.toThrow(
+    /indicator_version_data_table_confirmed_check/,
+  );
+  expect(await sql`SELECT value FROM published.observation`).toEqual([{ value: 10 }]);
+  expect(
+    await sql`
+    SELECT upload_batch_id,
+      data_table_confirmed_at = ${sourceConfirmation}::timestamptz AS confirmed
+    FROM indicator_version WHERE id=${versionId}
+  `,
+  ).toEqual([{ upload_batch_id: batchId, confirmed: true }]);
 });
