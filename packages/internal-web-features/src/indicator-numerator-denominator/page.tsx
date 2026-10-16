@@ -128,6 +128,7 @@ export function NumeratorDenominatorPage({
               ? 'Add the specific source'
               : `Add the specific source from ${provider.name}`
           }
+          labelHeading="h3"
           name="sourceId"
           options={[
             { label: 'Select a source', value: '' },

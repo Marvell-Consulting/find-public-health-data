@@ -9,6 +9,7 @@ import {
   taskRow,
 } from '../support/section-page.ts';
 import { PUBLISHER } from '../support/sign-in.ts';
+import { expectQuestionStyles, QUESTION, SUB_QUESTION } from '../support/typography.ts';
 
 const SECTION: Section = { key: 'tagging', taskName: 'Tagging' };
 const TITLE = 'Add tags for this indicator';
@@ -77,6 +78,21 @@ describeSectionPage(SECTION, {
     ],
     focuses: (page) => page.getByLabel(LISTS.topic.label, { exact: true }),
   },
+});
+
+// Yes reveals a question of its own rather than the details of an answer, so it is a heading
+// like the pickers the page asks for outright, a level below them.
+test('asks the questions under Yes at the same size and weight', async ({ page }) => {
+  await openSectionPage(page, SECTION);
+  await answer(page, RISK_FACTOR_QUESTION, 'Yes');
+  await answer(page, FRAMEWORK_QUESTION, 'Yes');
+
+  await expectQuestionStyles(page, [LISTS.riskFactor.label, LISTS.framework.label], SUB_QUESTION);
+  await expectQuestionStyles(
+    page,
+    [LISTS.topic.label, LISTS.type.label, RISK_FACTOR_QUESTION, FRAMEWORK_QUESTION],
+    QUESTION,
+  );
 });
 
 test('reveals the risk factors and frameworks only while "Yes" is chosen', async ({ page }) => {

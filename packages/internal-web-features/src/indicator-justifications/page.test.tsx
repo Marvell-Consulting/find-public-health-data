@@ -56,7 +56,7 @@ describe('JustificationsPage', () => {
     expect(textarea(TEXT_QUESTIONS[0][0]).getAttribute('rows')).toBe('5');
     expect(
       screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent),
-    ).toEqual([EXCLUSIONS, AUTOMATION]);
+    ).toEqual([...TEXT_QUESTIONS.map(([label]) => label), EXCLUSIONS, AUTOMATION]);
     expect(
       (screen.getAllByRole('radio') as HTMLInputElement[]).map((radio) => [
         radio.name,
