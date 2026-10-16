@@ -123,6 +123,7 @@ function observationOptions(): ObservationExportOptions {
 it.each([
   [{ AreaCode: 'missing' }, /unknown area missing/],
   [{ ValueNoteId: 99 }, /unknown note type 99/],
+  [{ SexID: 3 }, /unknown dimension value/],
   [{ AgeID: 88 }, /unknown dimension value/],
 ])(
   'refuses unmapped source data before writing observation files (%j)',
@@ -172,6 +173,22 @@ it('keeps the benchmark exclusion count limited to otherwise eligible observatio
   expect(result.observationExclusions.excluded_indicator).toBe(1);
   expect(result.observationExclusions.note_506).toBe(1);
   expect(result.observationExclusions.year_before_1900).toBe(1);
+});
+
+it('retains observations whose sex is not applicable with their other dimensions', async () => {
+  sourceObservations([observation({ SexID: -1, AgeID: 28 })]);
+  const input = observationOptions();
+  const ageValueId = ageDimensionValueId(28);
+  input.dimensionValueIds = new Set([ageValueId]);
+
+  await exportObservations(input);
+
+  expect(await rows('observation')).toEqual([
+    expect.objectContaining({ value: '10', dimension_key: String(ageValueId) }),
+  ]);
+  expect(await rows('observation_dimension')).toEqual([
+    expect.objectContaining({ dimension_type_id: '2', dimension_value_id: String(ageValueId) }),
+  ]);
 });
 
 it('detects non-contiguous duplicate keys using the actual pre-flight', async () => {
