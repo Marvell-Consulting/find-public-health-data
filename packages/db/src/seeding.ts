@@ -366,11 +366,17 @@ async function loadObservations(
 }
 
 /**
- * Points every version at its indicator's latest processed batch, as confirmed, by the rule
- * drizzle/0044_upload-batch-versions.sql applies to existing data. Stops where that would hide a
- * published observation.
+ * Restores explicit batch pointers after loading batches; legacy files without pointers use
+ * the latest processed batch. Stops where the pointers would hide a published observation.
  */
 async function pointVersionsAtBatches(tx: postgres.TransactionSql): Promise<void> {
+  await tx`
+    UPDATE indicator_version v
+    SET upload_batch_id = s.upload_batch_id,
+        data_table_confirmed_at = s.data_table_confirmed_at
+    FROM source_indicator_version s
+    WHERE s.id = v.id AND s.upload_batch_id IS NOT NULL
+  `;
   await tx`
     UPDATE indicator_version v
     SET upload_batch_id = b.id, data_table_confirmed_at = b.uploaded_at
@@ -557,6 +563,9 @@ export async function loadIndicatorVersions(
   const mapped = new Map<string, string>(
     CORE_DATA_LOOKUPS.map(({ table, column }) => [column, `${table}_map.core_id`]),
   );
+  // Reconnect the staged pointers after their batches exist, closing the version/batch cycle.
+  mapped.set('upload_batch_id', 'NULL');
+  mapped.set('data_table_confirmed_at', 'NULL');
   const selectList = columns.map((c) => mapped.get(c) ?? `v."${c}"`).join(', ');
   const joins = CORE_DATA_LOOKUPS.map(
     ({ table, column }) =>
