@@ -141,7 +141,8 @@ async function snapshot(id: string, cutoff: string, observations: ExportRow[], w
         snapshot_at: cutoff,
         cutoff_at: cutoff,
       },
-      approved_indicators: withdrawn ? 1 : 2,
+      exported_indicators: withdrawn ? 1 : 2,
+      indicator_selection: { kind: 'approved', indicators: withdrawn ? [109] : [108, 109] },
       excluded_non_approved_indicators: 0,
       excluded_future_observations: 0,
       source_csv_null: DATA_MIGRATION_NULL,
@@ -164,8 +165,9 @@ async function snapshot(id: string, cutoff: string, observations: ExportRow[], w
       ],
     }),
   );
-  await prepareBaseline(out, id, relationships);
-  return out;
+  const prepared = `${out}-prepared`;
+  await prepareBaseline(out, id, relationships, prepared);
+  return prepared;
 }
 
 async function apply(out: string) {

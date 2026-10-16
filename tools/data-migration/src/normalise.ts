@@ -118,7 +118,7 @@ export function normaliseRow(table: string, header: readonly string[], row: stri
   }
   if (table === 'area') {
     const index = header.indexOf('name');
-    if (index !== -1 && row[index] !== undefined) row[index] = stripAreaName(row[index]);
+    return row.map((value, position) => (position === index ? stripAreaName(value) : value));
   }
   if (table === 'area_type' && !header.includes('display_group')) {
     const name = row[header.indexOf('name')] ?? '';

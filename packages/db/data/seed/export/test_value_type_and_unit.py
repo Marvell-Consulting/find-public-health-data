@@ -26,7 +26,6 @@ from value_type_and_unit import (
 
 transform = runpy.run_path(str(Path(__file__).with_name("transform-uuids.py")))
 reshape = runpy.run_path(str(Path(__file__).with_name("reshape-indicator-versions.py")))
-snapshot = runpy.run_path(str(Path(__file__).with_name("export-published-snapshot.py")))
 (migration,) = Path(__file__).parents[3].glob("drizzle/*_value-type-and-units.sql")
 # Every value type and unit row in Pholio, each with the service value it translates to.
 PHOLIO = json.loads(
@@ -188,26 +187,6 @@ class UnitSelectTest(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     unit_values(name)
                 self.assertEqual(unknown_units([name]), [name])
-
-
-class CheckValueTypesAndUnitsTest(unittest.TestCase):
-    def check(self, value_types, units):
-        check = snapshot["check_value_types_and_units"]
-        check.__globals__["psql"] = lambda query: json.dumps(
-            units if "JOIN unit" in query else value_types
-        )
-        check()
-
-    def test_passes_names_it_can_translate(self):
-        self.check(["Count", "Number"], ["Percent", "per 1,000 live births"])
-
-    def test_refuses_a_blank_unit_name(self):
-        for name in ["", " "]:
-            with self.subTest(name=name):
-                with self.assertRaises(RuntimeError) as raised:
-                    self.check(["Count"], ["Percent", name])
-
-                self.assertIn(f"unit {name!r}", str(raised.exception))
 
 
 def migration_statement(marker):

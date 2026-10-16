@@ -1,7 +1,7 @@
-import type { PholioExportContext, StageResult } from './context.ts';
+import type { ObservationExportOptions } from './context.ts';
+import { ageValueIdForObservation, sexValueIdForObservation } from './dimensions.ts';
 import {
   AGE_DIMENSION_TYPE_ID,
-  ageDimensionValueId,
   categoryDimensionTypeId,
   categoryDimensionValueId,
   compoundAgeDimensionValueId,
@@ -10,7 +10,6 @@ import {
   observationId,
   observationNoteId,
   SEX_DIMENSION_TYPE_ID,
-  sexDimensionValueId,
 } from './ids.ts';
 import { computeDates } from './period.ts';
 import { streamPholio } from './source.ts';
@@ -131,246 +130,178 @@ interface CdsRow {
   ValueNoteId: number;
 }
 
-// ─── Dedup pass (Pass 1) ──────────────────────────────────────────────────────
+interface ObservationDimension {
+  slot: (typeof DIMENSION_SLOTS)[keyof typeof DIMENSION_SLOTS];
+  typeId: number;
+  valueId: number;
+}
 
-/** Checks canonical keys before writing observations; source order bounds memory per indicator. */
-async function assertDistinctObservations(
-  context: Pick<
-    PholioExportContext,
-    'pool' | 'excludedIndicators' | 'areaIdByPholioCode' | 'indicatorIds'
-  >,
-): Promise<void> {
-  const { pool, areaIdByPholioCode, indicatorIds } = context;
-  const excludedSet = new Set(context.excludedIndicators);
-  excludedSet.add(94204);
-
-  const perIndicatorSeen = new Map<string, number>();
-  let currentIndicatorId: number | undefined;
-
-  const query = `
-    SELECT
-      c.uid, c.IndicatorID, c.AreaCode,
-      c.Year, c.Month, c.Quarter, c.YearRange,
-      im.YearTypeID,
-      c.SexID, c.AgeID, c.CategoryTypeID, c.CategoryID
-    FROM dbo.CoreDataSet c
-    JOIN dbo.IndicatorMetadata im ON c.IndicatorID = im.IndicatorID
-    WHERE c.IndicatorID != 94204
-      AND c.ValueNoteId != 506
-      AND NOT (c.Value = -1 AND c.Count = -1 AND c.Denominator = -1 AND c.ValueNoteId = 0)
-      AND c.Year >= 1900
-    ORDER BY c.IndicatorID, c.uid
-  `;
-
-  await streamPholio(pool, query, (raw) => {
-    const c = raw as unknown as Pick<
-      CdsRow,
-      | 'uid'
-      | 'IndicatorID'
-      | 'AreaCode'
-      | 'Year'
-      | 'Month'
-      | 'Quarter'
-      | 'YearRange'
-      | 'YearTypeID'
-      | 'SexID'
-      | 'AgeID'
-      | 'CategoryTypeID'
-      | 'CategoryID'
-    >;
-
-    // Clear per-indicator state at each boundary — valid by construction (ORDER BY IndicatorID).
-    if (c.IndicatorID !== currentIndicatorId) {
-      perIndicatorSeen.clear();
-      currentIndicatorId = c.IndicatorID;
-    }
-
-    if (excludedSet.has(c.IndicatorID)) return;
-    if (!indicatorIds.has(c.IndicatorID)) return;
-
-    const areaId = areaIdByPholioCode.get(c.AreaCode);
-    if (areaId === undefined) return;
-
-    const yearTypeId = c.YearTypeID ?? 1;
-    const uploadBId = c.IndicatorID;
-
-    const { fromDate, toDate } = computeDates(c.Year, c.Month, c.Quarter, c.YearRange, yearTypeId);
-
-    const checkAndMark = (obsId: number, dimIds: readonly number[]): void => {
-      const sortedIds = [...dimIds].sort((a, b) => a - b);
-      const dk = dedupKey(c.IndicatorID, areaId, fromDate, toDate, uploadBId, sortedIds);
-      const previous = perIndicatorSeen.get(dk);
-      if (previous !== undefined) {
-        throw new Error(
-          `Indicator ${c.IndicatorID} has repeated observation key ${dk} (CoreDataSet uids ${Math.floor(previous / 2)}, ${c.uid}); review the source rows before exporting`,
-        );
-      }
-      perIndicatorSeen.set(dk, obsId);
-    };
-
-    if (COMPOUND_AGE_IDS.has(c.AgeID) && c.SexID === 4) {
-      const { maleDvId, femaleDvId } = compoundAgeDimensionValueIds(c.AgeID);
-      const maleSexDvId = sexDimensionValueId(1);
-      const femaleSexDvId = sexDimensionValueId(2);
-      const catDvId =
-        c.CategoryTypeID !== -1 && c.CategoryID !== -1
-          ? categoryDimensionValueId(c.CategoryTypeID, c.CategoryID)
-          : null;
-
-      const maleDims: number[] = [maleSexDvId, maleDvId];
-      const femaleDims: number[] = [femaleSexDvId, femaleDvId];
-      if (catDvId !== null) {
-        maleDims.push(catDvId);
-        femaleDims.push(catDvId);
-      }
-
-      checkAndMark(observationId(c.uid, 0), maleDims);
-      checkAndMark(observationId(c.uid, 1), femaleDims);
-    } else {
-      const dimIds: number[] = [];
-      if (c.SexID === 1 || c.SexID === 2) dimIds.push(sexDimensionValueId(c.SexID));
-      if (!COMPOUND_AGE_IDS.has(c.AgeID) && c.AgeID !== -1 && c.AgeID !== 1) {
-        dimIds.push(ageDimensionValueId(c.AgeID === 325 ? 303 : c.AgeID));
-      }
-      if (c.CategoryTypeID !== -1 && c.CategoryID !== -1) {
-        dimIds.push(categoryDimensionValueId(c.CategoryTypeID, c.CategoryID));
-      }
-      checkAndMark(observationId(c.uid, 0), dimIds);
-    }
+export function observationDimensions(
+  c: Pick<CdsRow, 'SexID' | 'AgeID' | 'CategoryTypeID' | 'CategoryID'>,
+): ObservationDimension[][] {
+  const sexes = COMPOUND_AGE_IDS.has(c.AgeID) && c.SexID === 4 ? [1, 2] : [c.SexID];
+  return sexes.map((sex) => {
+    const dimensions: ObservationDimension[] = [];
+    const sexValue = sexValueIdForObservation(sex);
+    const ageValue = ageValueIdForObservation(
+      c.AgeID,
+      sexes.length === 2 ? (sex === 1 ? 'M' : 'F') : null,
+    );
+    if (sexValue !== null)
+      dimensions.push({
+        slot: DIMENSION_SLOTS.sex,
+        typeId: SEX_DIMENSION_TYPE_ID,
+        valueId: sexValue,
+      });
+    if (ageValue !== null)
+      dimensions.push({
+        slot: DIMENSION_SLOTS.age,
+        typeId: AGE_DIMENSION_TYPE_ID,
+        valueId: ageValue,
+      });
+    if (c.CategoryTypeID !== -1 && c.CategoryID !== -1)
+      dimensions.push({
+        slot: DIMENSION_SLOTS.category,
+        typeId: categoryDimensionTypeId(c.CategoryTypeID),
+        valueId: categoryDimensionValueId(c.CategoryTypeID, c.CategoryID),
+      });
+    return dimensions.sort((a, b) => a.valueId - b.valueId);
   });
 }
 
-// ─── Main export ──────────────────────────────────────────────────────────────
+export type ObservationExclusions = Record<
+  | 'not_approved'
+  | 'test_indicator'
+  | 'excluded_indicator'
+  | 'note_506'
+  | 'empty_observation'
+  | 'year_before_1900',
+  number
+>;
 
-/** Exports observation, observation_dimension and observation_note from Pholio. */
-export async function exportObservations(context: PholioExportContext): Promise<StageResult> {
-  const {
-    pool,
-    outDir,
-    excludedIndicators,
-    areaIdByPholioCode,
-    noteTypeCategory,
-    dimensionValueIds,
-    indicatorEnteredAt,
-  } = context;
+function exclusionReason(
+  c: CdsRow,
+  excluded: ReadonlySet<number>,
+  selection: ObservationExportOptions['indicatorSelection'],
+  selected: ReadonlySet<number>,
+): keyof ObservationExclusions | undefined {
+  if (c.IndicatorID === 94204) return 'test_indicator';
+  if (selection.kind === 'approved' && !selected.has(c.IndicatorID)) return 'not_approved';
+  if (excluded.has(c.IndicatorID)) return 'excluded_indicator';
+  if (c.ValueNoteId === 506) return 'note_506';
+  if (c.Value === -1 && c.Count === -1 && c.Denominator === -1 && c.ValueNoteId === 0)
+    return 'empty_observation';
+  if (c.Year < 1900) return 'year_before_1900';
+  return undefined;
+}
 
-  const excludedSet = new Set(excludedIndicators);
-  excludedSet.add(94204);
+const observationQuery = `
+  SELECT c.uid, c.IndicatorID, c.AreaCode,
+    c.Year, c.Month, c.Quarter, c.YearRange, im.YearTypeID,
+    c.SexID, c.AgeID, c.CategoryTypeID, c.CategoryID,
+    c.Value, c.Count, c.Denominator, c.Denominator_2,
+    c.LowerCI95, c.UpperCI95, c.LowerCI99_8, c.UpperCI99_8, c.ValueNoteId
+  FROM dbo.CoreDataSet c
+  LEFT JOIN dbo.IndicatorMetadata im ON c.IndicatorID = im.IndicatorID
+`;
 
-  await assertDistinctObservations(context);
-
-  const obsWriter = new TableWriter(outDir, 'observation');
-  const dimWriter = new TableWriter(outDir, 'observation_dimension');
-  const noteWriter = new TableWriter(outDir, 'observation_note');
-
-  let excludedCount = 0;
-
-  const query = `
-    SELECT
-      c.uid, c.IndicatorID, c.AreaCode,
-      c.Year, c.Month, c.Quarter, c.YearRange,
-      im.YearTypeID,
-      c.SexID, c.AgeID, c.CategoryTypeID, c.CategoryID,
-      c.Value, c.Count, c.Denominator, c.Denominator_2,
-      c.LowerCI95, c.UpperCI95, c.LowerCI99_8, c.UpperCI99_8,
-      c.ValueNoteId
-    FROM dbo.CoreDataSet c
-    JOIN dbo.IndicatorMetadata im ON c.IndicatorID = im.IndicatorID
-    WHERE c.IndicatorID != 94204
-      AND c.ValueNoteId != 506
-      AND NOT (c.Value = -1 AND c.Count = -1 AND c.Denominator = -1 AND c.ValueNoteId = 0)
-      AND c.Year >= 1900
-    ORDER BY c.uid
-  `;
-
-  await streamPholio(pool, query, (raw) => {
+async function assertDistinctObservations(
+  context: ObservationExportOptions,
+): Promise<ObservationExclusions> {
+  const exclusions: ObservationExclusions = {
+    not_approved: 0,
+    test_indicator: 0,
+    excluded_indicator: 0,
+    note_506: 0,
+    empty_observation: 0,
+    year_before_1900: 0,
+  };
+  const excluded = new Set(context.excludedIndicators);
+  const selected = new Set(
+    context.indicatorSelection.kind === 'approved' ? context.indicatorSelection.indicators : [],
+  );
+  const seen = new Map<string, number>();
+  let indicator: number | undefined;
+  await streamPholio(context.pool, `${observationQuery} ORDER BY c.IndicatorID, c.uid`, (raw) => {
     const c = raw as unknown as CdsRow;
-
-    if (excludedSet.has(c.IndicatorID)) {
-      excludedCount += 1;
+    const reason = exclusionReason(c, excluded, context.indicatorSelection, selected);
+    if (reason) {
+      exclusions[reason] += 1;
       return;
     }
-    const enteredAt = indicatorEnteredAt.get(c.IndicatorID);
-    if (enteredAt === undefined) return;
-
-    const areaId = areaIdByPholioCode.get(c.AreaCode);
-    if (areaId === undefined) return;
-
-    const yearTypeId = c.YearTypeID ?? 1;
-    const uploadBId = c.IndicatorID; // uploadBatchId(indicatorId) = indicatorId by design
-
-    const { fromDate, toDate } = computeDates(c.Year, c.Month, c.Quarter, c.YearRange, yearTypeId);
-
-    // ── Value / CI transforms ──
-    const rawValue = c.Value ?? -1;
-    const rawCount = c.Count ?? -1;
-    const rawDenom = c.Denominator ?? -1;
-    const rawDenom2 = c.Denominator_2 ?? null;
-
-    const value = nullIfSentinel(rawValue);
-    let count = nullIfSentinel(rawCount);
-    let denominator = nullIfSentinel(rawDenom);
-    let denominator2 = computeDenominator2(rawDenom2, rawDenom === -1 ? null : rawDenom);
-    const ci95 = computeCiPair(rawValue, c.LowerCI95 ?? -1, c.UpperCI95 ?? -1);
-    const ci998 = computeCiPair(rawValue, c.LowerCI99_8 ?? -1, c.UpperCI99_8 ?? -1);
-
-    // ── Note presence ──
-    const hasNote =
-      c.ValueNoteId !== 0 && c.ValueNoteId !== 506 && noteTypeCategory.has(c.ValueNoteId);
-    const noteIsDisclosure = hasNote && noteTypeCategory.get(c.ValueNoteId) === 'disclosure';
-
-    // ── Disclosure suppression (Step 9 + fix-migration-gaps re-application) ──
-    if (value === null && noteIsDisclosure) {
-      count = null;
-      denominator = null;
-      denominator2 = null;
+    const diagnostic = `CoreDataSet uid ${c.uid}, indicator ${c.IndicatorID}`;
+    if (!context.indicatorIds.has(c.IndicatorID))
+      throw new Error(`${diagnostic}: missing indicator metadata`);
+    const areaId = context.areaIdByPholioCode.get(c.AreaCode);
+    if (areaId === undefined) throw new Error(`${diagnostic}: unknown area ${c.AreaCode}`);
+    if (c.ValueNoteId !== 0 && !context.noteTypeCategory.has(c.ValueNoteId))
+      throw new Error(`${diagnostic}: unknown note type ${c.ValueNoteId}`);
+    if (indicator !== c.IndicatorID) {
+      seen.clear();
+      indicator = c.IndicatorID;
     }
-
-    // ── Compound sex+age split (AgeID 209/212/274, SexID=4) ──
-    if (COMPOUND_AGE_IDS.has(c.AgeID) && c.SexID === 4) {
-      return writeCompoundRow(
-        c,
+    const { fromDate, toDate } = computeDates(
+      c.Year,
+      c.Month,
+      c.Quarter,
+      c.YearRange,
+      c.YearTypeID ?? 1,
+    );
+    for (const dimensions of observationDimensions(c)) {
+      for (const dimension of dimensions) {
+        if (!context.dimensionValueIds.has(dimension.valueId))
+          throw new Error(`${diagnostic}: unknown dimension value ${dimension.valueId}`);
+      }
+      const key = dedupKey(
+        c.IndicatorID,
         areaId,
         fromDate,
         toDate,
-        uploadBId,
-        value,
-        count,
-        denominator,
-        denominator2,
-        ci95,
-        ci998,
-        hasNote,
-        obsWriter,
-        dimWriter,
-        noteWriter,
-        enteredAt,
-        dimensionValueIds,
+        c.IndicatorID,
+        dimensions.map((d) => d.valueId),
       );
+      const previous = seen.get(key);
+      if (previous !== undefined)
+        throw new Error(
+          `Indicator ${c.IndicatorID} has repeated observation key ${key} (CoreDataSet uids ${previous}, ${c.uid}); review the source rows before exporting`,
+        );
+      seen.set(key, c.uid);
     }
+  });
+  return exclusions;
+}
 
-    // ── Normal row ──
-
-    const sexIdForBridge = c.SexID === 1 || c.SexID === 2 ? c.SexID : null;
-    const ageDvId =
-      !COMPOUND_AGE_IDS.has(c.AgeID) && c.AgeID !== -1 && c.AgeID !== 1
-        ? ageDimensionValueId(c.AgeID === 325 ? 303 : c.AgeID)
-        : null;
-    const catDvId =
-      c.CategoryTypeID !== -1 && c.CategoryID !== -1
-        ? categoryDimensionValueId(c.CategoryTypeID, c.CategoryID)
-        : null;
-    const catDtId = catDvId !== null ? categoryDimensionTypeId(c.CategoryTypeID) : null;
-
-    const dimIds: number[] = [];
-    if (sexIdForBridge !== null) dimIds.push(sexDimensionValueId(sexIdForBridge));
-    if (ageDvId !== null) dimIds.push(ageDvId);
-    if (catDvId !== null) dimIds.push(catDvId);
-    dimIds.sort((a, b) => a - b);
-
-    const obsId = observationId(c.uid, 0);
-
-    return (async () => {
+export async function exportObservations(context: ObservationExportOptions) {
+  const exclusions = await assertDistinctObservations(context);
+  const obsWriter = new TableWriter(context.outDir, 'observation');
+  const dimWriter = new TableWriter(context.outDir, 'observation_dimension');
+  const noteWriter = new TableWriter(context.outDir, 'observation_note');
+  const excluded = new Set(context.excludedIndicators);
+  const selected = new Set(
+    context.indicatorSelection.kind === 'approved' ? context.indicatorSelection.indicators : [],
+  );
+  await streamPholio(context.pool, `${observationQuery} ORDER BY c.uid`, async (raw) => {
+    const c = raw as unknown as CdsRow;
+    if (exclusionReason(c, excluded, context.indicatorSelection, selected)) return;
+    const areaId = context.areaIdByPholioCode.get(c.AreaCode);
+    const enteredAt = context.indicatorEnteredAt.get(c.IndicatorID);
+    if (areaId === undefined || enteredAt === undefined)
+      throw new Error(`CoreDataSet uid ${c.uid}: source changed after pre-flight`);
+    const { fromDate, toDate } = computeDates(
+      c.Year,
+      c.Month,
+      c.Quarter,
+      c.YearRange,
+      c.YearTypeID ?? 1,
+    );
+    const value = nullIfSentinel(c.Value);
+    const suppressed =
+      value === null && context.noteTypeCategory.get(c.ValueNoteId) === 'disclosure';
+    const ci95 = computeCiPair(c.Value ?? -1, c.LowerCI95, c.UpperCI95);
+    const ci998 = computeCiPair(c.Value ?? -1, c.LowerCI99_8, c.UpperCI99_8);
+    const halves = observationDimensions(c);
+    for (const [split, dimensions] of halves.entries()) {
+      const obsId = observationId(c.uid, split as 0 | 1);
       await obsWriter.write({
         id: obsId,
         indicator_id: c.IndicatorID,
@@ -378,215 +309,45 @@ export async function exportObservations(context: PholioExportContext): Promise<
         from_date: fromDate,
         to_date: toDate,
         value,
-        count,
-        denominator,
-        denominator_2: denominator2,
+        count: suppressed ? null : nullIfSentinel(c.Count),
+        denominator: suppressed ? null : nullIfSentinel(c.Denominator),
+        denominator_2: suppressed
+          ? null
+          : computeDenominator2(c.Denominator_2, nullIfSentinel(c.Denominator)),
         lower_ci_95: ci95.lower,
         upper_ci_95: ci95.upper,
         lower_ci_998: ci998.lower,
         upper_ci_998: ci998.upper,
         distribution_rank: null,
         published_at: enteredAt,
-        upload_batch_id: uploadBId,
-        dimension_key: dimIds.join(','),
+        upload_batch_id: c.IndicatorID,
+        dimension_key: dimensions.map((d) => d.valueId).join(','),
         created_at: enteredAt,
         created_by: 'pholio-migration',
         deleted_at: null,
       });
-
-      if (sexIdForBridge !== null) {
-        const sdvId = sexDimensionValueId(sexIdForBridge);
-        dimensionValueIds.add(sdvId);
+      for (const dimension of dimensions) {
         await dimWriter.write({
-          id: observationDimensionId(obsId, DIMENSION_SLOTS.sex),
+          id: observationDimensionId(obsId, dimension.slot),
           observation_id: obsId,
-          dimension_value_id: sdvId,
-          dimension_type_id: SEX_DIMENSION_TYPE_ID,
+          dimension_value_id: dimension.valueId,
+          dimension_type_id: dimension.typeId,
         });
       }
-      if (ageDvId !== null) {
-        dimensionValueIds.add(ageDvId);
-        await dimWriter.write({
-          id: observationDimensionId(obsId, DIMENSION_SLOTS.age),
-          observation_id: obsId,
-          dimension_value_id: ageDvId,
-          dimension_type_id: AGE_DIMENSION_TYPE_ID,
-        });
-      }
-      if (catDvId !== null && catDtId !== null) {
-        dimensionValueIds.add(catDvId);
-        await dimWriter.write({
-          id: observationDimensionId(obsId, DIMENSION_SLOTS.category),
-          observation_id: obsId,
-          dimension_value_id: catDvId,
-          dimension_type_id: catDtId,
-        });
-      }
-
-      if (hasNote) {
+      if (c.ValueNoteId !== 0)
         await noteWriter.write({
           id: observationNoteId(obsId),
           observation_id: obsId,
           note_type_id: c.ValueNoteId,
         });
-      }
-    })();
+    }
   });
-
-  context.excludedObservations = excludedCount;
-
   return {
-    observation: await obsWriter.close(),
-    observation_dimension: await dimWriter.close(),
-    observation_note: await noteWriter.close(),
+    observationExclusions: exclusions,
+    tables: {
+      observation: await obsWriter.close(),
+      observation_dimension: await dimWriter.close(),
+      observation_note: await noteWriter.close(),
+    },
   };
-}
-
-// ─── Compound row writer ──────────────────────────────────────────────────────
-
-async function writeCompoundRow(
-  c: CdsRow,
-  areaId: number,
-  fromDate: string,
-  toDate: string,
-  uploadBId: number,
-  value: number | null,
-  count: number | null,
-  denominator: number | null,
-  denominator2: number | null,
-  ci95: { lower: number | null; upper: number | null },
-  ci998: { lower: number | null; upper: number | null },
-  hasNote: boolean,
-  obsWriter: TableWriter,
-  dimWriter: TableWriter,
-  noteWriter: TableWriter,
-  enteredAt: string,
-  dimensionValueIds: Set<number>,
-): Promise<void> {
-  const { maleDvId, femaleDvId } = compoundAgeDimensionValueIds(c.AgeID);
-  const maleSexDvId = sexDimensionValueId(1);
-  const femaleSexDvId = sexDimensionValueId(2);
-
-  dimensionValueIds.add(maleDvId);
-  dimensionValueIds.add(femaleDvId);
-  dimensionValueIds.add(maleSexDvId);
-  dimensionValueIds.add(femaleSexDvId);
-
-  const catDvId =
-    c.CategoryTypeID !== -1 && c.CategoryID !== -1
-      ? categoryDimensionValueId(c.CategoryTypeID, c.CategoryID)
-      : null;
-  const catDtId = catDvId !== null ? categoryDimensionTypeId(c.CategoryTypeID) : null;
-  if (catDvId !== null) dimensionValueIds.add(catDvId);
-
-  const maleObsId = observationId(c.uid, 0);
-  const femaleObsId = observationId(c.uid, 1);
-
-  // Write male (split=0) first — lower id
-  await obsWriter.write({
-    id: maleObsId,
-    indicator_id: c.IndicatorID,
-    area_id: areaId,
-    from_date: fromDate,
-    to_date: toDate,
-    value,
-    count,
-    denominator,
-    denominator_2: denominator2,
-    lower_ci_95: ci95.lower,
-    upper_ci_95: ci95.upper,
-    lower_ci_998: ci998.lower,
-    upper_ci_998: ci998.upper,
-    distribution_rank: null,
-    published_at: enteredAt,
-    upload_batch_id: uploadBId,
-    dimension_key: [maleSexDvId, maleDvId, ...(catDvId === null ? [] : [catDvId])]
-      .sort((a, b) => a - b)
-      .join(','),
-    created_at: enteredAt,
-    created_by: 'pholio-migration',
-    deleted_at: null,
-  });
-
-  await dimWriter.write({
-    id: observationDimensionId(maleObsId, DIMENSION_SLOTS.sex),
-    observation_id: maleObsId,
-    dimension_value_id: maleSexDvId,
-    dimension_type_id: SEX_DIMENSION_TYPE_ID,
-  });
-  await dimWriter.write({
-    id: observationDimensionId(maleObsId, DIMENSION_SLOTS.age),
-    observation_id: maleObsId,
-    dimension_value_id: maleDvId,
-    dimension_type_id: AGE_DIMENSION_TYPE_ID,
-  });
-  if (catDvId !== null && catDtId !== null) {
-    await dimWriter.write({
-      id: observationDimensionId(maleObsId, DIMENSION_SLOTS.category),
-      observation_id: maleObsId,
-      dimension_value_id: catDvId,
-      dimension_type_id: catDtId,
-    });
-  }
-  if (hasNote) {
-    await noteWriter.write({
-      id: observationNoteId(maleObsId),
-      observation_id: maleObsId,
-      note_type_id: c.ValueNoteId,
-    });
-  }
-
-  // Write female (split=1) second — higher id
-  await obsWriter.write({
-    id: femaleObsId,
-    indicator_id: c.IndicatorID,
-    area_id: areaId,
-    from_date: fromDate,
-    to_date: toDate,
-    value,
-    count,
-    denominator,
-    denominator_2: denominator2,
-    lower_ci_95: ci95.lower,
-    upper_ci_95: ci95.upper,
-    lower_ci_998: ci998.lower,
-    upper_ci_998: ci998.upper,
-    distribution_rank: null,
-    published_at: enteredAt,
-    upload_batch_id: uploadBId,
-    dimension_key: [femaleSexDvId, femaleDvId, ...(catDvId === null ? [] : [catDvId])]
-      .sort((a, b) => a - b)
-      .join(','),
-    created_at: enteredAt,
-    created_by: 'pholio-migration',
-    deleted_at: null,
-  });
-
-  await dimWriter.write({
-    id: observationDimensionId(femaleObsId, DIMENSION_SLOTS.sex),
-    observation_id: femaleObsId,
-    dimension_value_id: femaleSexDvId,
-    dimension_type_id: SEX_DIMENSION_TYPE_ID,
-  });
-  await dimWriter.write({
-    id: observationDimensionId(femaleObsId, DIMENSION_SLOTS.age),
-    observation_id: femaleObsId,
-    dimension_value_id: femaleDvId,
-    dimension_type_id: AGE_DIMENSION_TYPE_ID,
-  });
-  if (catDvId !== null && catDtId !== null) {
-    await dimWriter.write({
-      id: observationDimensionId(femaleObsId, DIMENSION_SLOTS.category),
-      observation_id: femaleObsId,
-      dimension_value_id: catDvId,
-      dimension_type_id: catDtId,
-    });
-  }
-  if (hasNote) {
-    await noteWriter.write({
-      id: observationNoteId(femaleObsId),
-      observation_id: femaleObsId,
-      note_type_id: c.ValueNoteId,
-    });
-  }
 }

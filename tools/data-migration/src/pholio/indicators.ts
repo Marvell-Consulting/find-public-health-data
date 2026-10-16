@@ -1,6 +1,7 @@
 import { translateFrequency, translatePolarity } from '../fingertips-lookups.ts';
 import { notesAndCaveats } from '../notes-and-caveats.ts';
-import type { PholioExportContext, StageResult } from './context.ts';
+import { plainTextFromHtml } from '../plain-text.ts';
+import type { PholioExportOptions } from './context.ts';
 import { uploadBatchId } from './ids.ts';
 import type { PholioRow } from './source.ts';
 import { queryPholio } from './source.ts';
@@ -17,48 +18,6 @@ const BOB_OVERRIDE_IDS = new Set([
 const BOB_POLARITY_ID = 99;
 // Fallback polarity_id when no grouping row selects one.
 const DEFAULT_POLARITY_ID = 1;
-
-/**
- * Reproduced from the T-SQL dbo.StripHTML function (migrate-pholio-to-fphd.sql lines 1061–1087).
- * Converts common semantic tags to markdown equivalents, then strips any remaining HTML tags
- * iteratively. Unclosed tags (no matching >) are left in place — the T-SQL BREAK on missing
- * end-angle does the same.
- */
-export function stripHtml(html: string): string {
-  let text = html;
-  // Ordered replacements matching the T-SQL exactly.
-  text = text.replaceAll('<br>', '\n').replaceAll('<br/>', '\n').replaceAll('<br />', '\n');
-  text = text.replaceAll('<p>', '\n').replaceAll('</p>', '');
-  text = text.replaceAll('<li>', '\n- ').replaceAll('</li>', '');
-  text = text.replaceAll('<b>', '**').replaceAll('</b>', '**');
-  text = text.replaceAll('<strong>', '**').replaceAll('</strong>', '**');
-  text = text.replaceAll('<em>', '*').replaceAll('</em>', '*');
-  text = text.replaceAll('<i>', '*').replaceAll('</i>', '*');
-  // Iteratively strip remaining tags. CHARINDEX finds the next '<', then CHARINDEX('>', ...) from
-  // that position finds the closing '>'. If no '>' found, the T-SQL breaks — we do the same.
-  let start = text.indexOf('<');
-  while (start !== -1) {
-    const end = text.indexOf('>', start);
-    if (end === -1) break;
-    text = text.slice(0, start) + text.slice(end + 1);
-    start = text.indexOf('<');
-  }
-  return text;
-}
-
-/**
- * Whether the T-SQL UPDATE applies StripHTML to this row. The WHERE clause checks each
- * prose column with LIKE '%<%>%' — i.e. contains a '<' followed anywhere by a '>'.
- */
-function rowNeedsStrip(columns: Array<string | null>): boolean {
-  return columns.some((v) => v?.includes('<') && v.includes('>'));
-}
-
-/** Apply stripHtml to the prose if the row triggers the LIKE condition, else pass through. */
-function maybeStrip(value: string | null, rowTriggered: boolean): string | null {
-  if (value === null) return null;
-  return rowTriggered ? stripHtml(value) : value;
-}
 
 interface PolarityRow extends PholioRow {
   IndicatorID: number;
@@ -101,9 +60,15 @@ interface TextValuesRow extends PholioRow {
 }
 
 /** Exports indicator, indicator_version and upload_batch from Pholio. */
-export async function exportIndicators(context: PholioExportContext): Promise<StageResult> {
+export async function exportIndicators(context: PholioExportOptions) {
   const { pool, outDir, excludedIndicators } = context;
+  const indicatorIds = new Set<number>();
+  const indicatorNames = new Map<number, string>();
+  const indicatorEnteredAt = new Map<number, string>();
 
+  const selected = new Set(
+    context.indicatorSelection.kind === 'approved' ? context.indicatorSelection.indicators : [],
+  );
   const excluded = new Set(excludedIndicators);
   // Always exclude the one test indicator the alpha migration hard-coded.
   excluded.add(94204);
@@ -195,58 +160,6 @@ export async function exportIndicators(context: PholioExportContext): Promise<St
     if (row.ci_confidence_level) ciLevelById.set(row.IndicatorID, row.ci_confidence_level);
   }
 
-  // Pre-flight: verify all value types, units and year types are translatable before opening writers.
-  const allValueTypeNames = await queryPholio<{ ValueType: string }>(
-    pool,
-    `SELECT DISTINCT vt.ValueType
-     FROM dbo.L_ValueTypes vt
-     WHERE EXISTS (
-       SELECT 1 FROM dbo.IndicatorMetadata im WHERE im.ValueTypeID = vt.ValueTypeID
-     )
-     UNION
-     SELECT DISTINCT CONCAT('Unknown value type ', im.ValueTypeID) AS ValueType
-     FROM dbo.IndicatorMetadata im
-     WHERE im.ValueTypeID IS NOT NULL AND im.ValueTypeID != -1
-       AND NOT EXISTS (SELECT 1 FROM dbo.L_ValueTypes vt WHERE vt.ValueTypeID = im.ValueTypeID)`,
-  );
-  const unmappableValueTypes = unknownValueTypes(allValueTypeNames.map((r) => r.ValueType));
-  if (unmappableValueTypes.length > 0) {
-    throw new Error(`Cannot translate value types: ${unmappableValueTypes.join(', ')}`);
-  }
-
-  const allUnitNames = await queryPholio<{ Unit: string }>(
-    pool,
-    `SELECT DISTINCT u.Unit
-     FROM dbo.L_Units u
-     WHERE EXISTS (
-       SELECT 1 FROM dbo.IndicatorMetadata im WHERE im.UnitID = u.UnitID
-     )
-     UNION
-     SELECT DISTINCT CONCAT('Unknown unit ', im.UnitID) AS Unit
-     FROM dbo.IndicatorMetadata im
-     WHERE im.UnitID IS NOT NULL
-       AND NOT EXISTS (SELECT 1 FROM dbo.L_Units u WHERE u.UnitID = im.UnitID)`,
-  );
-  const unmappableUnits = unknownUnits(allUnitNames.map((r) => r.Unit));
-  if (unmappableUnits.length > 0) {
-    throw new Error(`Cannot translate units: ${unmappableUnits.join(', ')}`);
-  }
-
-  const allYearTypeNames = await queryPholio<{ YearType: string }>(
-    pool,
-    `SELECT DISTINCT yt.YearType
-     FROM dbo.L_YearTypes yt
-     WHERE EXISTS (
-       SELECT 1 FROM dbo.IndicatorMetadata im WHERE im.YearTypeID = yt.YearTypeID
-     )`,
-  );
-  const unmappableYearTypes = allYearTypeNames
-    .map((r) => r.YearType)
-    .filter((name) => !(name in YEAR_TYPES));
-  if (unmappableYearTypes.length > 0) {
-    throw new Error(`Cannot translate year types: ${unmappableYearTypes.join(', ')}`);
-  }
-
   // Load indicator metadata base columns.
   const metaRows = await queryPholio<IndicatorMetaRow>(
     pool,
@@ -266,6 +179,25 @@ export async function exportIndicators(context: PholioExportContext): Promise<St
      LEFT JOIN dbo.L_YearTypes yt ON yt.YearTypeID = im.YearTypeID
      WHERE im.IndicatorID != 94204`,
   );
+
+  const selectedRows = metaRows.filter(
+    (row) =>
+      !excluded.has(row.IndicatorID) &&
+      (context.indicatorSelection.kind === 'development-snapshot' || selected.has(row.IndicatorID)),
+  );
+  const unmappableValueTypes = unknownValueTypes(
+    selectedRows.map((row) => row.ValueTypeName ?? 'Count'),
+  );
+  if (unmappableValueTypes.length)
+    throw new Error(`Cannot translate value types: ${unmappableValueTypes.join(', ')}`);
+  const unmappableUnits = unknownUnits(selectedRows.map((row) => row.UnitName ?? 'No unit'));
+  if (unmappableUnits.length)
+    throw new Error(`Cannot translate units: ${unmappableUnits.join(', ')}`);
+  const unmappableYearTypes = selectedRows
+    .map((row) => row.YearTypeName)
+    .filter((name) => name !== null && !(name in YEAR_TYPES));
+  if (unmappableYearTypes.length)
+    throw new Error(`Cannot translate year types: ${unmappableYearTypes.join(', ')}`);
 
   // Load prose text values for indicator_metadata (ProfileId IS NULL rows).
   const textRows = await queryPholio<TextValuesRow>(
@@ -289,6 +221,18 @@ export async function exportIndicators(context: PholioExportContext): Promise<St
   const textById = new Map<number, TextValuesRow>();
   for (const row of textRows) textById.set(row.IndicatorID, row);
 
+  const sourceIds = new Set(metaRows.map((row) => row.IndicatorID));
+  if (context.indicatorSelection.kind === 'approved') {
+    const missing = [...selected].filter((id) => !sourceIds.has(id) || id === 94204);
+    if (missing.length)
+      throw new Error(
+        `Approved indicators missing from Pholio or reserved for tests: ${missing.join(', ')}`,
+      );
+  }
+  const excludedNonApprovedIndicators =
+    context.indicatorSelection.kind === 'approved'
+      ? metaRows.filter((row) => row.IndicatorID !== 94204 && !selected.has(row.IndicatorID)).length
+      : 0;
   const indicatorWriter = new TableWriter(outDir, 'indicator');
   const versionWriter = new TableWriter(outDir, 'indicator_version');
   const batchWriter = new TableWriter(outDir, 'upload_batch');
@@ -299,6 +243,7 @@ export async function exportIndicators(context: PholioExportContext): Promise<St
   for (const row of metaRows) {
     const id = row.IndicatorID;
     if (excluded.has(id)) continue;
+    if (context.indicatorSelection.kind === 'approved' && !selected.has(id)) continue;
 
     const name = row.Name ?? `Indicator ${id}`;
     const polarityId = polarityById.get(id) ?? DEFAULT_POLARITY_ID;
@@ -317,24 +262,14 @@ export async function exportIndicators(context: PholioExportContext): Promise<St
     const yearTypeEntry = yearTypeName ? yearTypeValues(yearTypeName) : null;
     const ciLevel = ciLevelById.get(id) ?? null;
     const comparatorMethodId = comparatorById.get(id) ?? null;
-
     const text = textById.get(id) ?? null;
-    const proseColumns = text
-      ? [
-          text.Definition,
-          text.Rationale,
-          text.Methodology,
-          text.NumeratorDefinition,
-          text.DenominatorDefinition,
-        ]
-      : [];
-    const needsStrip = rowNeedsStrip(proseColumns);
-
-    const definition = text ? maybeStrip(text.Definition, needsStrip) : null;
-    const rationale = text ? maybeStrip(text.Rationale, needsStrip) : null;
-    const methodology = text ? maybeStrip(text.Methodology, needsStrip) : null;
-    const numeratorDefinition = text ? maybeStrip(text.NumeratorDefinition, needsStrip) : null;
-    const denominatorDefinition = text ? maybeStrip(text.DenominatorDefinition, needsStrip) : null;
+    const definition = text?.Definition == null ? null : plainTextFromHtml(text.Definition);
+    const rationale = text?.Rationale == null ? null : plainTextFromHtml(text.Rationale);
+    const methodology = text?.Methodology == null ? null : plainTextFromHtml(text.Methodology);
+    const numeratorDefinition =
+      text?.NumeratorDefinition == null ? null : plainTextFromHtml(text.NumeratorDefinition);
+    const denominatorDefinition =
+      text?.DenominatorDefinition == null ? null : plainTextFromHtml(text.DenominatorDefinition);
     const dataSourceId = text?.DataSourceID ?? null;
     const numeratorSourceId = text?.NumeratorSourceID ?? null;
     const denominatorSourceId = text?.DenominatorSourceID ?? null;
@@ -443,14 +378,20 @@ export async function exportIndicators(context: PholioExportContext): Promise<St
       superseded_by_id: null,
     });
 
-    context.indicatorIds.add(id);
-    context.indicatorEnteredAt.set(id, enteredAt);
-    context.indicatorNames.set(id, name);
+    indicatorIds.add(id);
+    indicatorEnteredAt.set(id, enteredAt);
+    indicatorNames.set(id, name);
   }
 
   return {
-    indicator: await indicatorWriter.close(),
-    indicator_version: await versionWriter.close(),
-    upload_batch: await batchWriter.close(),
+    indicatorIds,
+    indicatorNames,
+    indicatorEnteredAt,
+    excludedNonApprovedIndicators,
+    tables: {
+      indicator: await indicatorWriter.close(),
+      indicator_version: await versionWriter.close(),
+      upload_batch: await batchWriter.close(),
+    },
   };
 }

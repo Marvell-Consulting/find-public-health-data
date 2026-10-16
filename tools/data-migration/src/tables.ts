@@ -1,4 +1,4 @@
-import { DATA_MIGRATION_NULL, DATA_MIGRATION_TABLES } from '@fphd/db/data-migration-contract';
+import { DATA_MIGRATION_TABLES } from '@fphd/db/data-migration-contract';
 
 export const TABLES = DATA_MIGRATION_TABLES;
 
@@ -63,19 +63,6 @@ export const FOREIGN_KEYS: Partial<Record<(typeof TABLES)[number], Record<string
   },
   observation_note: { observation_id: 'observation', note_type_id: 'note_type' },
 };
-
-export function sourceCopyQuery(table: (typeof TABLES)[number]): string {
-  const nullMarker = DATA_MIGRATION_NULL;
-  if (table === 'observation_dimension') {
-    return `COPY (
-      SELECT od.id, od.observation_id, od.dimension_value_id, dv.dimension_type_id
-      FROM observation_dimension od
-      JOIN dimension_value dv ON dv.id = od.dimension_value_id
-      ORDER BY od.id
-    ) TO STDOUT WITH (FORMAT csv, HEADER true, NULL '${nullMarker}')`;
-  }
-  return `COPY (SELECT * FROM "${table}" ORDER BY id) TO STDOUT WITH (FORMAT csv, HEADER true, NULL '${nullMarker}')`;
-}
 
 /** Each foreign-key column's position and the table it references; a missing one stops the rekey. */
 export function foreignKeyIndexes(table: string, header: readonly string[]): [number, string][] {

@@ -4,6 +4,7 @@ import {
   areaTypeHierarchyType,
   areaTypeName,
   normalizeAreaTypeName,
+  preferredAreaOrder,
   stripLeadingN,
 } from './geography.ts';
 
@@ -67,5 +68,14 @@ describe('normalizeAreaTypeName', () => {
 
   it('makes trailing-space variant collide with canonical name', () => {
     expect(normalizeAreaTypeName('Counties & UAs')).toBe(normalizeAreaTypeName('Counties & UAs '));
+  });
+});
+
+describe('preferredAreaOrder', () => {
+  it('prefers the original Scottish and Welsh codes regardless of scan order', () => {
+    const rows = ['nW1', 'nS1', 'W1', 'S1'].map((AreaCode) => ({ AreaCode }));
+    const expected = ['S1', 'W1', 'nS1', 'nW1'];
+    expect(preferredAreaOrder(rows).map((row) => row.AreaCode)).toEqual(expected);
+    expect(preferredAreaOrder([...rows].reverse()).map((row) => row.AreaCode)).toEqual(expected);
   });
 });

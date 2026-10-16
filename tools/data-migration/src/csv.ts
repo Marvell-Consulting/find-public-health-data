@@ -31,8 +31,8 @@ export async function transformGzipCsv(
       try {
         if (header === undefined) {
           header = record;
-          // Unquoted, as Postgres writes it: the seed importer splits the header on commas.
-          callback(null, `${transformHeader(record).join(',')}\r\n`);
+          // Both migration readers accept quoted CSV headers.
+          callback(null, encodeRow(transformHeader(record)));
           return;
         }
         rows += 1;
@@ -45,7 +45,9 @@ export async function transformGzipCsv(
   await pipeline(
     createReadStream(path),
     createGunzip(),
-    parse(),
+    parse({
+      cast: (value, context) => (!context.quoting && value === '' ? DATA_MIGRATION_NULL : value),
+    }),
     output,
     createGzip({ level: 1 }),
     createWriteStream(temporary),

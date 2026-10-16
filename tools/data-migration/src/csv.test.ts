@@ -29,7 +29,7 @@ describe('transformGzipCsv', () => {
     expect(rows).toBe(1);
     expect(await readCsvHeader(path)).toEqual(['id', 'name', 'slug']);
     expect(gunzipSync(await readFile(path)).toString()).toBe(
-      'id,name,slug\r\n"1","Under 75, mortality","under-75-mortality"\r\n',
+      '"id","name","slug"\r\n"1","Under 75, mortality","under-75-mortality"\r\n',
     );
   });
 });

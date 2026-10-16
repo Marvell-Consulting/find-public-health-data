@@ -7,15 +7,16 @@ import { DATA_MIGRATION_NULL, SEED_TABLES } from '@fphd/db/data-migration-contra
 
 import { exportPholio } from './pholio/export-pholio.ts';
 import { rekeyDirectory } from './prepare-baseline.ts';
+import { tidyReferenceNames } from './reference-names.ts';
 
 const runFile = promisify(execFile);
 
 const devSource = 'PHOLIO_LIVE_B export';
 const devDatabase = 'pholio_live_b';
 // Counts omit test indicator 94204 and precede the four explicit exclusions.
-const expectedApprovedIndicators = 1_329;
+const expectedSourceIndicators = 1_329;
 const expectedObservations = 29_656_329;
-// Each is the retired half of a pair of approved indicators sharing a name, and so a slug.
+// Each is the retired half of a pair of source indicators sharing a name, and so a slug.
 const excludedIndicators = [90_366, 90_776, 92_774, 93_280];
 
 export interface ExportDevSnapshotOptions {
@@ -24,7 +25,7 @@ export interface ExportDevSnapshotOptions {
 }
 
 interface PholioSourceManifest {
-  approved_indicators: number;
+  exported_indicators: number;
   excluded_observations: number;
   tables: Record<string, { rows: number; bytes: number; sha256: string }>;
 }
@@ -37,27 +38,28 @@ export async function exportDevSnapshot(options: ExportDevSnapshotOptions): Prom
     outDir,
     expectedDatabase: devDatabase,
     excludedIndicators,
+    indicatorSelection: { kind: 'development-snapshot' },
   });
   const exported = JSON.parse(
     await readFile(join(outDir, 'source-manifest.json'), 'utf8'),
   ) as PholioSourceManifest;
-  const approvedIndicators = exported.approved_indicators + excludedIndicators.length;
+  const sourceIndicators = exported.exported_indicators + excludedIndicators.length;
   const sourceObservations =
     (exported.tables.observation?.rows ?? 0) + exported.excluded_observations;
   if (
-    approvedIndicators !== expectedApprovedIndicators ||
+    sourceIndicators !== expectedSourceIndicators ||
     sourceObservations !== expectedObservations
   ) {
     throw new Error(
-      `Pholio holds ${approvedIndicators} indicators and ${sourceObservations} observations; ` +
-        `the published benchmark has ${expectedApprovedIndicators} and ${expectedObservations}`,
+      `Pholio holds ${sourceIndicators} indicators and ${sourceObservations} observations; ` +
+        `the published benchmark has ${expectedSourceIndicators} and ${expectedObservations}`,
     );
   }
 
   const description = {
     source: devSource,
     source_database: devDatabase,
-    approved_indicators: approvedIndicators,
+    source_indicators: sourceIndicators,
     source_observations: sourceObservations,
     excluded_indicators: [...excludedIndicators].sort((a, b) => a - b),
     excluded_observations: exported.excluded_observations,
@@ -68,11 +70,15 @@ export async function exportDevSnapshot(options: ExportDevSnapshotOptions): Prom
     `${JSON.stringify({ ...description, tables: exported.tables }, null, 2)}\n`,
   );
 
+  await tidyReferenceNames(outDir);
+  const tidied = JSON.parse(
+    await readFile(join(outDir, 'source-manifest.json'), 'utf8'),
+  ) as PholioSourceManifest;
   console.log('Rekeying with deterministic UUIDs…');
-  const tables = await rekeyDirectory(outDir, exported.tables);
+  const tables = await rekeyDirectory(outDir, tidied.tables);
   await writeFile(
     join(outDir, 'manifest.json'),
-    `${JSON.stringify({ ...description, id_mapping: 'deterministic-uuidv7-v1', tables }, null, 2)}\n`,
+    `${JSON.stringify({ ...description, reference_names: 'tidied', id_mapping: 'deterministic-uuidv7-v1', tables }, null, 2)}\n`,
   );
 
   const files = ['manifest.json', 'source-manifest.json', ...SEED_TABLES.map((t) => `${t}.csv.gz`)];

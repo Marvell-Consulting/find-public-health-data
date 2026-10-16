@@ -50,7 +50,7 @@ async function snapshot(
   const sourceManifest = {
     source,
     source_database: 'pholio_live_b',
-    approved_indicators: 1_329,
+    source_indicators: 1_329,
     source_observations: 29_656_329,
     excluded_indicators: [90_366, 90_776, 92_774, 93_280],
     excluded_observations: 126_515,
@@ -70,7 +70,7 @@ describe('verifyPublishedSnapshot', () => {
   it('accepts a complete published clone with matching checksums', async () => {
     const directory = await snapshot();
     await expect(verifyPublishedSnapshot(directory)).resolves.toMatchObject({
-      approved_indicators: 1_329,
+      source_indicators: 1_329,
     });
   });
 
@@ -145,7 +145,7 @@ describe('verifyPublishedSnapshot', () => {
     sourceManifest.excluded_indicators = [93_280, 90_366, 92_774, 90_776];
     await writeFile(path, JSON.stringify(sourceManifest));
     await expect(verifyPublishedSnapshot(directory)).resolves.toMatchObject({
-      approved_indicators: 1_329,
+      source_indicators: 1_329,
     });
   });
 
@@ -190,7 +190,7 @@ describe('downloadPublishedSnapshot', () => {
     const { manifest, cleanup } = await downloadPublishedSnapshot('https://example.test/a', sha256);
     await cleanup();
 
-    expect(manifest.approved_indicators).toBe(1_329);
+    expect(manifest.source_indicators).toBe(1_329);
   });
 
   it('refuses an archive exported before the period types, which carries year_type', async () => {

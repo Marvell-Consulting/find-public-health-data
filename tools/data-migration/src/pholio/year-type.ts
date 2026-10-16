@@ -112,13 +112,6 @@ export const YEAR_TYPES: Readonly<Record<string, YearTypeEntry>> = {
   },
 };
 
-export const YEAR_TYPE_COLUMNS: readonly string[] = [
-  'period_type',
-  'year_type',
-  'year_end_day',
-  'year_end_month',
-];
-
 export function yearTypeValues(name: string): YearTypeEntry {
   const entry = YEAR_TYPES[name];
   if (entry === undefined)

@@ -9,7 +9,7 @@ whether it is required agree and each of its values has a namesake in the surviv
 note types only when their categories agree; anything else stops the run with the names
 listed. tidyName in @fphd/utils and the tidy-reference-names migration hold the same rule.
 
-Run after export-seed.py / transform-uuids.py, or after export-published-snapshot.py and
+Run after export-seed.py / transform-uuids.py, or on an integer-keyed source snapshot and
 before transform-uuids.py, whose row-count check reads the source-manifest.json entries
 this step rewrites for the files it changes. It marks source-manifest.json as tidied, which
 the transform carries into manifest.json, and refuses an archive the transform has rekeyed:

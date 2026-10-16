@@ -73,7 +73,7 @@ function publishedManifest(): PublishedManifest {
   return {
     source: 'PHOLIO_LIVE_B export',
     source_database: 'pholio_live_b',
-    approved_indicators: 1_329,
+    source_indicators: 1_329,
     source_observations: 29_656_329,
     excluded_indicators: [90_366, 90_776, 92_774, 93_280],
     excluded_observations: 126_515,

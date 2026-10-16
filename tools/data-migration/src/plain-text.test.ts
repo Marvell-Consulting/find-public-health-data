@@ -52,6 +52,12 @@ describe('plainTextFromHtml', () => {
     );
   });
 
+  it('preserves inequalities and removes emphasis without Markdown markers', () => {
+    expect(plainTextFromHtml('<p>aged <16 and >64, <b>high</b> and <em>low</em></p>')).toBe(
+      'aged <16 and >64, high and low',
+    );
+  });
+
   it('is empty for prose that holds only markup and spacing', () => {
     expect(plainTextFromHtml('\n&nbsp;')).toBe('');
     expect(plainTextFromHtml('<p> </p>')).toBe('');

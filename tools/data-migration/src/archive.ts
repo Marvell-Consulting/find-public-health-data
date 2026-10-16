@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { basename, dirname } from 'node:path';
 import { promisify } from 'node:util';
 
@@ -11,7 +11,6 @@ import { verifyPackageFiles } from './verify.ts';
 const runFile = promisify(execFile);
 
 export async function createArchive(directory: string, output: string): Promise<void> {
-  const { readFile } = await import('node:fs/promises');
   const manifest = dataMigrationManifestSchema.parse(
     JSON.parse(await readFile(`${directory}/manifest.json`, 'utf8')),
   );

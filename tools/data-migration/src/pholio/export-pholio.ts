@@ -5,7 +5,7 @@ import { DATA_MIGRATION_NULL } from '@fphd/db/data-migration-contract';
 import { ensureDirectory } from '../files.ts';
 import { checkSlugs } from '../indicator-checks.ts';
 import { TABLES } from '../tables.ts';
-import { createPholioExportContext, type StageResult } from './context.ts';
+import type { IndicatorSelection, StageResult } from './context.ts';
 import { exportDimensions } from './dimensions.ts';
 import { exportGeography } from './geography.ts';
 import { exportIndicators } from './indicators.ts';
@@ -19,6 +19,7 @@ export interface ExportPholioOptions {
   /** The Pholio database the connection must reach, checked before anything is read. */
   expectedDatabase: string;
   excludedIndicators?: readonly number[];
+  indicatorSelection: IndicatorSelection;
 }
 
 /**
@@ -26,6 +27,12 @@ export interface ExportPholioOptions {
  * the same tables and columns export-live wrote from the alpha intermediate database.
  */
 export async function exportPholio(options: ExportPholioOptions): Promise<void> {
+  if (
+    options.indicatorSelection.kind === 'approved' &&
+    options.indicatorSelection.indicators.length === 0
+  ) {
+    throw new Error('The approved indicator list is empty');
+  }
   await ensureDirectory(options.outDir);
   const pool = await connectToPholio(options.connectionString);
   try {
@@ -39,26 +46,34 @@ export async function exportPholio(options: ExportPholioOptions): Promise<void> 
       );
     }
     const snapshotAt = new Date(identity.snapshotAt).toISOString();
-    const context = createPholioExportContext(
+    const context = {
       pool,
-      options.outDir,
-      options.excludedIndicators ?? [],
-    );
-
-    const tables: StageResult = {};
-    // Each stage fills the context the later ones read, so the order is fixed.
-    const record = (written: StageResult) => {
-      for (const [table, file] of Object.entries(written)) {
-        console.log(`${table}: ${file?.rows.toLocaleString()} rows`);
-      }
-      Object.assign(tables, written);
+      outDir: options.outDir,
+      excludedIndicators: options.excludedIndicators ?? [],
+      indicatorSelection: options.indicatorSelection,
     };
-    for (const stage of [exportLookups, exportGeography, exportDimensions, exportIndicators]) {
-      record(await stage(context));
-    }
-    // Stop before the long observation pass if any name cannot carry a public address.
-    checkSlugs([...context.indicatorNames].map(([id, name]) => ({ id, name })));
-    record(await exportObservations(context));
+    const lookups = await exportLookups(context);
+    const geography = await exportGeography(context);
+    const dimensions = await exportDimensions(context);
+    const indicators = await exportIndicators(context);
+    checkSlugs([...indicators.indicatorNames].map(([id, name]) => ({ id, name })));
+    const observations = await exportObservations({
+      ...context,
+      noteTypeCategory: lookups.noteTypeCategory,
+      areaIdByPholioCode: geography.areaIdByPholioCode,
+      dimensionValueIds: dimensions.dimensionValueIds,
+      indicatorIds: indicators.indicatorIds,
+      indicatorEnteredAt: indicators.indicatorEnteredAt,
+    });
+    const tables: StageResult = {
+      ...lookups.tables,
+      ...geography.tables,
+      ...dimensions.tables,
+      ...indicators.tables,
+      ...observations.tables,
+    };
+    for (const [table, file] of Object.entries(tables))
+      console.log(`${table}: ${file?.rows.toLocaleString()} rows`);
     const missing = TABLES.filter((table) => !tables[table]);
     if (missing.length > 0) throw new Error(`Pholio export wrote no ${missing.join(', ')}`);
 
@@ -73,11 +88,12 @@ export async function exportPholio(options: ExportPholioOptions): Promise<void> 
             snapshot_at: snapshotAt,
             cutoff_at: snapshotAt,
           },
-          approved_indicators: tables.indicator?.rows,
+          exported_indicators: tables.indicator?.rows,
+          indicator_selection: options.indicatorSelection,
           excluded_indicators: [...context.excludedIndicators].sort((a, b) => a - b),
-          excluded_non_approved_indicators: 0,
-          excluded_future_observations: 0,
-          excluded_observations: context.excludedObservations,
+          excluded_non_approved_indicators: indicators.excludedNonApprovedIndicators,
+          excluded_observations: observations.observationExclusions.excluded_indicator,
+          observation_exclusions: observations.observationExclusions,
           source_csv_null: DATA_MIGRATION_NULL,
           tables,
         },

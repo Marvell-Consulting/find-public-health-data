@@ -17,13 +17,22 @@ publishing moves to this service. The operations image applies the packages with
 
 - `export-pholio` reads the source through separate requests. Export from an immutable
   restored backup so every table belongs to the same cut of the data.
-- The export takes every Pholio indicator except the excluded ones and the alpha's test
-  indicator 94204, each with all its observations. Every row must pass the canonical-key pre-flight before export. The source manifest records how many observations
-  the exclusions withheld.
+- Production `export-pholio` requires `--approved-indicators`, a JSON file containing
+  the positive integer IDs approved for launch, for example `[108, 241]`. Only those
+  indicators and their observations are eligible for publication. Explicit exclusions
+  can further narrow that list; a requested indicator missing from Pholio stops export.
+  The source manifest records the selection, exported count and non-approved count.
+- Observation pre-flight counts each intentional exclusion: non-approved indicators,
+  explicit exclusions, test indicator 94204, placeholder note 506, empty sentinel rows
+  and years before 1900. Unknown areas, notes, metadata and dimension values stop export
+  with source-row diagnostics. There is no implicit future-period exclusion: all eligible
+  source observations for approved indicators are included.
+- Area aliases prefer the non-n-prefixed code deterministically. Both source aliases map
+  to the survivor, so their observations and relationships retain the same area identity.
 - Every migrated timestamp is the indicator's `DateEnteredInPHOLIO`, never the export time,
   so re-exporting unchanged source data writes the same rows and an increment carries only
   real changes. The export time appears only in the manifest.
-- The expected live database name must match `current_database()`.
+- The expected live database name must match `DB_NAME()`.
 - UUIDs are deterministic from the source table and integer ID. The same source row keeps
   the same target ID across the baseline and every increment.
 - Each package names its schema format, source snapshot time, predecessor, row counts and
@@ -66,7 +75,7 @@ plus these fields:
 ```
 
 `indicators` must exactly match the indicators in the package, and each must have at least
-one topic assignment. Preparation checks topic coverage before modifying source files;
+one topic assignment. Preparation checks topic coverage before writing prepared output;
 the importer verifies the applied links before committing.
 
 ## Export pre-flight checks
@@ -89,6 +98,7 @@ records `excluded_indicators` and `excluded_observations` so the result is audit
 # Exclude a pair of indicators that share a name (and therefore a slug):
 pnpm --filter @fphd/data-migration data-migration export-pholio \
   --expected-database pholio_live_b \
+  --approved-indicators /secure/approved-indicator-ids.json \
   --out-dir /secure/fphd-snapshot-001 \
   --excluded-indicators '[90366, 93283]'
 ```
@@ -104,21 +114,28 @@ Keep source credentials in the environment rather than a command argument.
 export PHOLIO_CONNECTION_STRING='Server=…;Database=pholio_live_b;…'
 pnpm --filter @fphd/data-migration data-migration export-pholio \
   --expected-database pholio_live_b \
+  --approved-indicators /secure/approved-indicator-ids.json \
   --out-dir /secure/fphd-snapshot-001
 
 pnpm --filter @fphd/data-migration data-migration prepare-baseline \
   --directory /secure/fphd-snapshot-001 \
   --migration-id baseline-2026-09-22 \
-  --relationships /secure/approved-indicator-relationships.json
+  --relationships /secure/approved-indicator-relationships.json \
+  --out-dir /secure/fphd-prepared-001
 
 pnpm --filter @fphd/data-migration data-migration archive \
-  --directory /secure/fphd-snapshot-001 \
+  --directory /secure/fphd-prepared-001 \
   --output /secure/baseline-2026-09-22.tar
 ```
 
 Upload the archive to private migration storage. Pass a short-lived HTTPS URL and the
 digest from the generated `.sha256` file to the operations job as
 `DATA_MIGRATION_URL` and `DATA_MIGRATION_SHA256`.
+
+Preparation never changes the source export. It tidies names, refuses ambiguous reference
+name collisions and rekeys a staged copy, then renames the complete package into the new
+output directory. Existing output is refused; a failed attempt removes its partial output,
+so the same source can be retried or prepared under a different migration ID.
 
 ## Build transition increments
 
@@ -183,7 +200,7 @@ pnpm --filter @fphd/data-migration data-migration export-dev-snapshot \
   --out-dir /secure/fphd-dev-snapshot
 ```
 
-Four approved indicators (90366, 90776, 92774, 93280) are excluded because they share a
+Four source indicators (90366, 90776, 92774, 93280) are excluded because they share a
 name with a newer indicator; the importer refuses an archive built with a different list.
 The snapshot is not for production use; update it from Pholio when more recent content
 is required.

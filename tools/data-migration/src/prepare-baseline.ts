@@ -1,5 +1,5 @@
-import { copyFile, readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { copyFile, lstat, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { basename, dirname, join, resolve } from 'node:path';
 import { z } from '@fphd/config';
 import { dimensionKey } from '@fphd/db';
 import {
@@ -15,6 +15,7 @@ import {
 import { readGzipCsv, transformGzipCsv } from './csv.ts';
 import { fileRecord } from './files.ts';
 import { normaliseHeader, normaliseRow } from './normalise.ts';
+import { tidyReferenceNames } from './reference-names.ts';
 import { foreignKeyIndexes, TABLE_TAGS, TABLES } from './tables.ts';
 
 const sourceFileSchema = z.object({
@@ -32,10 +33,13 @@ const sourceManifestSchema = z.object({
     snapshot_at: z.iso.datetime({ offset: true }),
     cutoff_at: z.iso.datetime({ offset: true }),
   }),
-  approved_indicators: z.number().int().positive(),
+  exported_indicators: z.number().int().positive(),
+  indicator_selection: z.object({
+    kind: z.literal('approved'),
+    indicators: z.array(z.number().int().positive()).min(1),
+  }),
   excluded_indicators: z.array(z.number().int()).default([]),
   excluded_non_approved_indicators: z.number().int().nonnegative(),
-  excluded_future_observations: z.number().int().nonnegative(),
   excluded_observations: z.number().int().nonnegative().default(0),
   source_csv_null: z.literal(DATA_MIGRATION_NULL),
   tables: z.record(z.string(), sourceFileSchema),
@@ -45,7 +49,7 @@ type SourceManifest = z.infer<typeof sourceManifestSchema>;
 
 async function verifySourceExport(directory: string, source: SourceManifest): Promise<void> {
   assertCompleteTableSet(source.tables);
-  if (source.tables.indicator?.rows !== source.approved_indicators) {
+  if (source.tables.indicator?.rows !== source.exported_indicators) {
     throw new Error('Source indicator count does not match its manifest');
   }
   for (const table of TABLES) {
@@ -106,30 +110,25 @@ export async function rekeyDirectory(
         if (idIndex === -1) throw new Error(`${table} has no id column`);
         const oldId = row[idIndex];
         if (oldId === undefined) throw new Error(`${table} has an empty id`);
-        row[idIndex] = deterministicUuid(table, oldId);
-        for (const [index, target] of fkIndexes) {
-          const value = row[index];
-          if (value !== undefined && value !== '' && value !== DATA_MIGRATION_NULL) {
-            row[index] = deterministicUuid(target, value);
-          }
-        }
-        if (table === 'observation') {
-          const keyIndex = header.indexOf('dimension_key');
-          if (keyIndex !== -1) {
-            const sourceKey = row[keyIndex] ?? '';
-            row[keyIndex] = dimensionKey(
-              sourceKey === ''
+        let rekeyed = row.map((value, index) => {
+          if (index === idIndex) return deterministicUuid(table, oldId);
+          const target = fkIndexes.find(([position]) => position === index)?.[1];
+          if (target && value !== '' && value !== DATA_MIGRATION_NULL)
+            return deterministicUuid(target, value);
+          if (table === 'observation' && header[index] === 'dimension_key')
+            return dimensionKey(
+              value === ''
                 ? []
-                : sourceKey.split(',').map((id) => deterministicUuid('dimension_value', id)),
+                : value.split(',').map((id) => deterministicUuid('dimension_value', id)),
             );
-          }
-        }
+          return value;
+        });
         // Positions come from the source header, so normalising, which can add columns, runs last.
-        row = normaliseRow(table, header, row);
+        rekeyed = normaliseRow(table, header, rekeyed);
         if (table === 'indicator') {
-          return [...row.slice(0, idIndex + 1), oldId, ...row.slice(idIndex + 1)];
+          return [...rekeyed.slice(0, idIndex + 1), oldId, ...rekeyed.slice(idIndex + 1)];
         }
-        return row;
+        return rekeyed;
       },
       (header) => {
         fkIndexes = foreignKeyIndexes(table, header);
@@ -152,6 +151,7 @@ export async function prepareBaseline(
   directory: string,
   migrationId: string,
   relationshipsPath: string,
+  outputDirectory: string,
 ): Promise<void> {
   const source = sourceManifestSchema.parse(
     JSON.parse(await readFile(join(directory, 'source-manifest.json'), 'utf8')),
@@ -175,6 +175,16 @@ export async function prepareBaseline(
     if (next.done) break;
     exportedIndicators.push(Number(next.value[idIndex]));
   }
+  const selectedIndicators = source.indicator_selection.indicators
+    .filter((id) => !source.excluded_indicators.includes(id))
+    .sort((a, b) => a - b);
+  if (
+    exportedIndicators.length !== selectedIndicators.length ||
+    [...exportedIndicators]
+      .sort((a, b) => a - b)
+      .some((id, index) => id !== selectedIndicators[index])
+  )
+    throw new Error('Source export does not match the approved indicator selection');
   const declaredIndicators = [...relationships.indicators].sort((left, right) => left - right);
   exportedIndicators.sort((left, right) => left - right);
   if (
@@ -185,27 +195,50 @@ export async function prepareBaseline(
     throw new Error('Reviewed relationship coverage does not match the exported indicators');
   }
 
-  const relationshipsFile = 'indicator-relationships.json';
-  const relationshipsTarget = join(directory, relationshipsFile);
-  await copyFile(relationshipsPath, relationshipsTarget);
-  const relationshipRecord = await fileRecord(
-    relationshipsTarget,
-    relationshipsFile,
-    relationships.indicators.length,
-  );
-  const tables = await rekeyDirectory(directory, source.tables);
+  const output = resolve(outputDirectory);
+  if (output === resolve(directory))
+    throw new Error('Prepared output must be separate from the source export');
+  try {
+    await lstat(output);
+    throw new Error(`Prepared output already exists: ${output}`);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  }
+  await mkdir(dirname(output), { recursive: true });
+  const staged = await mkdtemp(join(dirname(output), `.${basename(output)}-`));
+  try {
+    for (const file of ['source-manifest.json', ...TABLES.map((table) => `${table}.csv.gz`)]) {
+      await copyFile(join(directory, file), join(staged, file));
+    }
+    await tidyReferenceNames(staged);
+    const tidiedSource = sourceManifestSchema.parse(
+      JSON.parse(await readFile(join(staged, 'source-manifest.json'), 'utf8')),
+    );
+    const relationshipsFile = 'indicator-relationships.json';
+    const relationshipsTarget = join(staged, relationshipsFile);
+    await copyFile(relationshipsPath, relationshipsTarget);
+    const relationshipRecord = await fileRecord(
+      relationshipsTarget,
+      relationshipsFile,
+      relationships.indicators.length,
+    );
+    const tables = await rekeyDirectory(staged, tidiedSource.tables);
 
-  const manifest = baselineManifestSchema.parse({
-    format_version: DATA_MIGRATION_FORMAT_VERSION,
-    schema: DATA_MIGRATION_SCHEMA,
-    migration_id: migrationId,
-    kind: 'baseline',
-    predecessor: null,
-    relationships: relationshipRecord,
-    source: source.source,
-    source_csv_null: DATA_MIGRATION_NULL,
-    id_mapping: 'deterministic-uuidv7-v1',
-    tables,
-  });
-  await writeFile(join(directory, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+    const manifest = baselineManifestSchema.parse({
+      format_version: DATA_MIGRATION_FORMAT_VERSION,
+      schema: DATA_MIGRATION_SCHEMA,
+      migration_id: migrationId,
+      kind: 'baseline',
+      predecessor: null,
+      relationships: relationshipRecord,
+      source: source.source,
+      source_csv_null: DATA_MIGRATION_NULL,
+      id_mapping: 'deterministic-uuidv7-v1',
+      tables,
+    });
+    await writeFile(join(staged, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+    await rename(staged, output);
+  } finally {
+    await rm(staged, { recursive: true, force: true });
+  }
 }

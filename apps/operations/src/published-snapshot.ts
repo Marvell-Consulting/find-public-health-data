@@ -16,24 +16,24 @@ const publishedSource = 'PHOLIO_LIVE_B export';
 const publishedCsvNull = '__FPHD_NULL_5f92c66de4b849b4a717c23f5cbdb8a1__';
 // These independently recorded benchmark counts reject accidental source mix-ups.
 // The benchmark setup establishes lineage; these counts are not a provenance signature.
-const expectedApprovedIndicators = 1_329;
 // The indicator count omits test indicator 94204, as the exporter always does.
+const expectedSourceIndicators = 1_329;
 const expectedObservations = 29_656_329;
-// The approved indicators the export leaves out, each the retired half of a pair sharing a
+// The source indicators the export leaves out, each the retired half of a pair sharing a
 // name and so a slug. The export holds the same list; an archive built with another is refused.
 const excludedIndicators = [90_366, 90_776, 92_774, 93_280];
-const expectedExportedIndicators = expectedApprovedIndicators - excludedIndicators.length;
+const expectedExportedIndicators = expectedSourceIndicators - excludedIndicators.length;
 
 const sourceManifestSchema = z.object({
   source: z.literal(publishedSource),
   source_database: z.literal('pholio_live_b'),
-  approved_indicators: z.literal(expectedApprovedIndicators),
+  source_indicators: z.literal(expectedSourceIndicators),
   // The source's count before exclusion: the fingerprint of the clone the archive came from.
   source_observations: z.literal(expectedObservations),
   excluded_indicators: z.array(z.number().int()),
   excluded_observations: z.number().int().nonnegative(),
   source_csv_null: z.literal(publishedCsvNull),
-  // Stamped by tidy-reference-names.py; absent from an archive exported before that step.
+  // Stamped by the shared reference-name preparation step.
   reference_names: z.literal('tidied').optional(),
   tables: z.record(
     z.string(),

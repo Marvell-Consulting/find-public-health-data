@@ -1,4 +1,4 @@
-import type { PholioExportContext, StageResult } from './context.ts';
+import type { PholioExportOptions } from './context.ts';
 import { queryPholio } from './source.ts';
 import { TableWriter } from './table-writer.ts';
 
@@ -15,8 +15,9 @@ export function noteCategory(text: string | null): string {
 }
 
 /** Exports ci_method, comparator_method, data_source, numerator_denominator_source and note_type from Pholio. */
-export async function exportLookups(context: PholioExportContext): Promise<StageResult> {
+export async function exportLookups(context: PholioExportOptions) {
   const { pool, outDir } = context;
+  const noteTypeCategory = new Map<number, string>();
 
   const ciMethodWriter = new TableWriter(outDir, 'ci_method');
   const comparatorMethodWriter = new TableWriter(outDir, 'comparator_method');
@@ -91,16 +92,19 @@ export async function exportLookups(context: PholioExportContext): Promise<Stage
   await noteTypeWriter.writeAll(
     noteTypeRows.map((r) => {
       const category = noteCategory(r.Text);
-      context.noteTypeCategory.set(r.ValueNoteID, category);
+      noteTypeCategory.set(r.ValueNoteID, category);
       return { id: r.ValueNoteID, text: r.Text, category };
     }),
   );
 
   return {
-    ci_method: await ciMethodWriter.close(),
-    comparator_method: await comparatorMethodWriter.close(),
-    data_source: await dataSourceWriter.close(),
-    numerator_denominator_source: await numDenSourceWriter.close(),
-    note_type: await noteTypeWriter.close(),
+    noteTypeCategory,
+    tables: {
+      ci_method: await ciMethodWriter.close(),
+      comparator_method: await comparatorMethodWriter.close(),
+      data_source: await dataSourceWriter.close(),
+      numerator_denominator_source: await numDenSourceWriter.close(),
+      note_type: await noteTypeWriter.close(),
+    },
   };
 }

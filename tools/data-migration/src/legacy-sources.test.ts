@@ -8,12 +8,7 @@ import { createGzip } from 'node:zlib';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import {
-  legacySource,
-  legacySourceIds,
-  readLegacyMap,
-  versionLegacySources,
-} from './legacy-sources.ts';
+import { legacySource, legacySourceIds, readLegacyMap } from './legacy-sources.ts';
 
 const directories: string[] = [];
 
@@ -66,7 +61,7 @@ describe('legacySource', () => {
   });
 });
 
-describe('legacySourceIds and versionLegacySources', () => {
+describe('legacySourceIds', () => {
   it('reads the CSV correctly, trims names, and maps empty denominator_source_id to null', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'legacy-sources-test-'));
     directories.push(dir);
@@ -81,21 +76,13 @@ describe('legacySourceIds and versionLegacySources', () => {
     ]);
 
     expect(await legacySourceIds(dir)).toEqual({ Estimated: 's1' });
-    expect(await versionLegacySources(dir)).toEqual({ v1: ['s1', null] });
   });
 
   it('every source name in the committed seed is present in the legacy map', async () => {
-    let ids: Record<string, string>;
-    let legacyMap: Record<string, unknown[]>;
-
     const seedDir = new URL('../../../packages/db/data/seed', import.meta.url).pathname;
 
-    try {
-      ids = await legacySourceIds(seedDir);
-      legacyMap = await readLegacyMap();
-    } catch {
-      return;
-    }
+    const ids = await legacySourceIds(seedDir);
+    const legacyMap = await readLegacyMap();
 
     const missing = Object.keys(ids).filter((name) => !(name in legacyMap));
     expect(missing).toEqual([]);

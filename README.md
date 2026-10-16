@@ -423,16 +423,15 @@ These commands are worth noting:
   classification, value type, unit or comparator method whose id its file holds missing from the
   database. Dummy data may depend on core data, never the reverse. The core-data tables are left
   alone.
-- `db import-published-snapshot` replaces the dev seed with the approved-only
-  `PHOLIO_LIVE_A`-derived benchmark clone. Set `PUBLISHED_SNAPSHOT_URL` to a private HTTPS
-  archive and `PUBLISHED_SNAPSHOT_SHA256` to its checksum. The command checks the source,
-  archive and every table checksum, requires the published clone's known counts
-  and approved indicator status, loads all canonical tables, applies provisional
-  topic links derived from public Fingertips profiles and groups, rebuilds the read
-  models, and verifies row counts in one transaction. It has the same dev-only gate as seeding.
-  The transaction holds table locks during the load, so beta requests may time out until
-  it commits. Run it when an interruption to the beta site is acceptable. The benchmark
-  clone is a historical published snapshot, not a live Pholio feed.
+- `db import-published-snapshot` replaces the dev seed with the `PHOLIO_LIVE_B`
+  development snapshot built by `export-dev-snapshot` in
+  [the migration tool](tools/data-migration/README.md). Set `PUBLISHED_SNAPSHOT_URL`
+  to its private HTTPS archive and `PUBLISHED_SNAPSHOT_SHA256` to its checksum.
+  The command verifies source lineage, recorded counts, tidied reference names and
+  every table checksum, applies provisional demo topic links and rebuilds the read
+  models in one transaction. It has the same dev-only gate as seeding. It locks
+  canonical tables during loading, so run it when a beta interruption is acceptable.
+  This development corpus is separate from the approved production indicator list.
 - `db migrate-live-data` applies a checksum-verified approved-live baseline to empty
   canonical tables, or the next incremental package in its recorded predecessor chain.
   It applies reviewed topic and classification relationships, rebuilds the read models and

@@ -104,43 +104,28 @@ That yields 433,678 observations, 657,869 bridge rows and 67,978 observation not
 
 ## Regenerating the base snapshot
 
-For a full-volume dev import, `export/export-published-snapshot.py` streams the
-`PHOLIO_LIVE_A`-derived `fphd_new` database on the benchmark VM. It refuses a
-source containing unapproved indicators or one whose 1,290 indicators and
-29,380,899 observations differ from the independently recorded benchmark
-clone. This fingerprint distinguishes the intended clone from the larger
-`PHOLIO_STAGING` corpus; update it only after verifying a refreshed published
-source. Before writing anything it checks that no two approved names slugify
-alike and stops, naming the pairs, if they do. Four approved indicators are left
-out of the archive by `EXCLUDED_INDICATORS` in the script, each the retired half
-of a pair that shares its name with a newer indicator (90366, 90776, 92774 and
-93280); their observations go with them, and the importer refuses an archive
-built with a different list. The export emits the identity and version split
-directly, one `published` version per exported source indicator, so unlike the
-seed pipeline below this path has no `reshape-indicator-versions.py` step. Run `strip-metadata-html.py`,
-`add-version-slugs.py`, `enrich-area-display.py` and `tidy-reference-names.py` against its
-output, then run `transform-uuids.py --deterministic` to rekey all tables with bounded memory.
-`tidy-reference-names.py` rewrites the `source-manifest.json` entries (rows, bytes and checksum)
-of the files it changes, since the transform and the importer check row counts against them, and
-marks the manifest as tidied. The importer refuses an archive without the mark, so one exported
-before the step must be exported again; the step itself refuses an archive already rekeyed.
-`add-version-slugs.py` stamps the slug column the import insists on; an archive
-without it is refused before any data is loaded.
-An archive exported before the period types carries a `year_type` table, and is
-refused the same way; export it again.
-The published export uses an explicit CSV NULL marker so the transform keeps
-empty metadata strings distinct from database NULLs; the manifest records it.
-The resulting `manifest.json`, `source-manifest.json` and 18 CSV files form the
-private archive consumed by `db import-published-snapshot`; do not commit it.
-The command also applies `published-indicator-topics.json`, a provisional demo
-mapping from the public Fingertips profile and group membership APIs, plus
-narrow indicator-name matches, to the 33 service topics. Regenerate it with
-`export/generate-demo-topic-links.py` when public profile membership changes.
-It retains the curated links from `indicator-topics.json`; only links for
-indicators in the imported snapshot are inserted. These topic assignments are
-for the demo, not editorially approved classification.
-The source clone is a published snapshot from May/June 2026, so refresh it from
-the published source when more recent content is required.
+The supported full-volume development path is `export-dev-snapshot` in
+[the migration tool](../../../../tools/data-migration/README.md#build-a-dev-snapshot-from-pholio).
+It reads `pholio_live_b` directly, checks the independently recorded 1,329 source
+indicators (excluding test indicator 94204) and 29,656,329 observations, then
+omits the four explicit retired-indicator exclusions. The benchmark counts are
+an acceptance check, not production publication approval.
+
+The TypeScript pipeline converts prose to plain text, normalises geography
+labels and slugs, tidies reference names, checks for ambiguous duplicates and
+rekeys the complete snapshot deterministically. It stamps both manifests with
+`reference_names: "tidied"`. The resulting private archive is accepted by
+`db import-published-snapshot`; do not commit it. The old A-clone Python snapshot
+exporter is retired because its archives do not match the current receiver.
+
+Demo topics come from the `generate-demo-topics` command, which preserves the
+curated links in `indicator-topics.json`. These assignments are provisional;
+production packages require the separate approved indicator list and reviewed
+relationships described in the migration tool's README.
+
+The legacy base-seed and prototype regeneration scripts below remain historical
+maintenance paths until their TypeScript replacements have been compared against
+a complete source regeneration. They do not build production migration packages.
 
 `export/export-seed.py` runs on the benchmark VM (`fphd-benchmark`, resource group
 `find-public-health-data-alpha` — deallocated when idle; its public IP changes on start),

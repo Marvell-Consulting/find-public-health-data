@@ -163,7 +163,11 @@ export async function generateDemoTopics(
       )?.add(slug);
   }
   const mapped = [...links].flatMap(([fingertipsId, slugs]) =>
-    [...slugs].sort().map((slug) => ({ topicId: topics[slug], fingertipsId })),
+    [...slugs].sort().map((slug) => {
+      const topicId = topics[slug];
+      if (!topicId) throw new Error(`Unknown demo topic slug: ${slug}`);
+      return { topicId, fingertipsId };
+    }),
   );
   const used = new Set(mapped.map(({ topicId }) => topicId));
   const missing = Object.entries(topics).filter(([, id]) => !used.has(id));

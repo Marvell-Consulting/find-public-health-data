@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { createArchive } from './archive.ts';
 import { generateDemoTopics } from './demo-topics.ts';
 import { createIncremental } from './diff.ts';
@@ -42,6 +43,13 @@ async function main(argv: readonly string[]): Promise<void> {
         connectionString: requiredEnvironment('PHOLIO_CONNECTION_STRING'),
         outDir: required(values, 'out-dir'),
         expectedDatabase: required(values, 'expected-database'),
+        indicatorSelection: {
+          kind: 'approved',
+          indicators: parseIndicatorIds(
+            await readFile(required(values, 'approved-indicators'), 'utf8'),
+            '--approved-indicators',
+          ),
+        },
         excludedIndicators: rawExcluded ? parseIndicatorIds(rawExcluded) : [],
       });
       return;
@@ -51,6 +59,7 @@ async function main(argv: readonly string[]): Promise<void> {
         required(values, 'directory'),
         required(values, 'migration-id'),
         required(values, 'relationships'),
+        required(values, 'out-dir'),
       );
       return;
     case 'create-incremental':

@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
@@ -38,7 +38,8 @@ async function sourceExport(): Promise<{ directory: string; relationships: strin
         snapshot_at: '2026-09-22T10:00:00Z',
         cutoff_at: '2026-09-22T10:00:00Z',
       },
-      approved_indicators: 1,
+      exported_indicators: 1,
+      indicator_selection: { kind: 'approved', indicators: [1] },
       excluded_non_approved_indicators: 2,
       excluded_future_observations: 0,
       source_csv_null: DATA_MIGRATION_NULL,
@@ -72,18 +73,69 @@ describe('prepareBaseline', () => {
   it('verifies and prepares a complete approved source snapshot', async () => {
     const source = await sourceExport();
 
-    await prepareBaseline(source.directory, 'baseline-1', source.relationships);
+    await prepareBaseline(
+      source.directory,
+      'baseline-1',
+      source.relationships,
+      join(source.directory, 'prepared'),
+    );
 
     const manifest = baselineManifestSchema.parse(
-      JSON.parse(await readFile(join(source.directory, 'manifest.json'), 'utf8')),
+      JSON.parse(await readFile(join(source.directory, 'prepared', 'manifest.json'), 'utf8')),
     );
     expect(manifest.tables.indicator?.rows).toBe(1);
     const rows: string[][] = [];
-    for await (const row of readGzipCsv(join(source.directory, 'indicator.csv.gz'))) rows.push(row);
+    for await (const row of readGzipCsv(join(source.directory, 'prepared', 'indicator.csv.gz')))
+      rows.push(row);
     expect(rows).toEqual([
       ['id', 'short_id'],
       [deterministicUuid('indicator', '1'), '1'],
     ]);
+  });
+
+  it('prepares the same source under two migration IDs without changing its files', async () => {
+    const source = await sourceExport();
+    const before = await readFile(join(source.directory, 'indicator.csv.gz'));
+    const manifestBefore = await readFile(join(source.directory, 'source-manifest.json'));
+    const first = join(source.directory, 'first');
+    const second = join(source.directory, 'second');
+    await prepareBaseline(source.directory, 'baseline-1', source.relationships, first);
+    await prepareBaseline(source.directory, 'baseline-2', source.relationships, second);
+    expect(await readFile(join(source.directory, 'indicator.csv.gz'))).toEqual(before);
+    expect(await readFile(join(source.directory, 'source-manifest.json'))).toEqual(manifestBefore);
+    const a = JSON.parse(await readFile(join(first, 'manifest.json'), 'utf8'));
+    const b = JSON.parse(await readFile(join(second, 'manifest.json'), 'utf8'));
+    expect(a.tables).toEqual(b.tables);
+    await expect(
+      prepareBaseline(source.directory, 'baseline-3', source.relationships, first),
+    ).rejects.toThrow(/already exists/);
+    expect(await readFile(join(first, 'manifest.json'), 'utf8')).toBe(
+      `${JSON.stringify(a, null, 2)}\n`,
+    );
+  });
+
+  it('removes partial preparation after a late failure and retries from the same source', async () => {
+    const source = await sourceExport();
+    const path = join(source.directory, 'area.csv.gz');
+    const original = await readFile(path);
+    const manifestPath = join(source.directory, 'source-manifest.json');
+    const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+    await writeFile(path, gzipSync('id,area_type_id\ninvalid,1\n'));
+    manifest.tables.area = await fileRecord(path, 'area.csv.gz', 1);
+    await writeFile(manifestPath, JSON.stringify(manifest));
+    const output = join(source.directory, 'prepared');
+    const indicatorBefore = await readFile(join(source.directory, 'indicator.csv.gz'));
+    await expect(
+      prepareBaseline(source.directory, 'baseline-1', source.relationships, output),
+    ).rejects.toThrow(/area id is not a positive integer/);
+    expect(await readFile(join(source.directory, 'indicator.csv.gz'))).toEqual(indicatorBefore);
+    expect((await readdir(source.directory)).some((name) => name.includes('prepared'))).toBe(false);
+    await writeFile(path, original);
+    manifest.tables.area = await fileRecord(path, 'area.csv.gz', 0);
+    await writeFile(manifestPath, JSON.stringify(manifest));
+    await expect(
+      prepareBaseline(source.directory, 'baseline-1', source.relationships, output),
+    ).resolves.toBeUndefined();
   });
 
   it('rejects a source file changed after export', async () => {
@@ -91,7 +143,12 @@ describe('prepareBaseline', () => {
     await writeFile(join(source.directory, 'indicator.csv.gz'), gzipSync('id\n2\n'));
 
     await expect(
-      prepareBaseline(source.directory, 'baseline-1', source.relationships),
+      prepareBaseline(
+        source.directory,
+        'baseline-1',
+        source.relationships,
+        join(source.directory, 'prepared'),
+      ),
     ).rejects.toThrow(/integrity check failed for indicator/);
   });
 
@@ -106,10 +163,17 @@ describe('prepareBaseline', () => {
     );
 
     await expect(
-      prepareBaseline(source.directory, 'baseline-1', source.relationships),
+      prepareBaseline(
+        source.directory,
+        'baseline-1',
+        source.relationships,
+        join(source.directory, 'prepared'),
+      ),
     ).rejects.toThrow('Reviewed indicators have no topic: 1');
     expect(await readFile(path)).toEqual(original);
-    await expect(readFile(join(source.directory, 'manifest.json'))).rejects.toMatchObject({
+    await expect(
+      readFile(join(source.directory, 'prepared', 'manifest.json')),
+    ).rejects.toMatchObject({
       code: 'ENOENT',
     });
   });
@@ -167,15 +231,22 @@ describe('rekeyDirectory', () => {
 describe('verifyPackageFiles', () => {
   it('passes the package prepareBaseline wrote and refuses one with a file changed after', async () => {
     const source = await sourceExport();
-    await prepareBaseline(source.directory, 'baseline-1', source.relationships);
+    await prepareBaseline(
+      source.directory,
+      'baseline-1',
+      source.relationships,
+      join(source.directory, 'prepared'),
+    );
     const manifest = baselineManifestSchema.parse(
-      JSON.parse(await readFile(join(source.directory, 'manifest.json'), 'utf8')),
+      JSON.parse(await readFile(join(source.directory, 'prepared', 'manifest.json'), 'utf8')),
     );
 
-    await expect(verifyPackageFiles(source.directory, manifest)).resolves.toBeUndefined();
+    await expect(
+      verifyPackageFiles(join(source.directory, 'prepared'), manifest),
+    ).resolves.toBeUndefined();
 
-    await writeFile(join(source.directory, 'observation.csv.gz'), gzipSync('id\n1\n'));
-    await expect(verifyPackageFiles(source.directory, manifest)).rejects.toThrow(
+    await writeFile(join(source.directory, 'prepared', 'observation.csv.gz'), gzipSync('id\n1\n'));
+    await expect(verifyPackageFiles(join(source.directory, 'prepared'), manifest)).rejects.toThrow(
       'Package integrity check failed for observation.csv.gz',
     );
   });

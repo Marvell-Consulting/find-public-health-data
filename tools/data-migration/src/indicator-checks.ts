@@ -1,10 +1,12 @@
 import { slugify, slugProblem } from '@fphd/utils/slug';
 
-export function parseIndicatorIds(raw: string): number[] {
+export function parseIndicatorIds(raw: string, argument = '--excluded-indicators'): number[] {
   const parsed: unknown = JSON.parse(raw);
   if (!Array.isArray(parsed) || !parsed.every((id) => Number.isSafeInteger(id) && id > 0)) {
-    throw new Error('--excluded-indicators must be a JSON array of positive integers');
+    throw new Error(`${argument} must be a JSON array of positive integers`);
   }
+  if (new Set(parsed).size !== parsed.length)
+    throw new Error(`${argument} contains duplicate indicator IDs`);
   return parsed;
 }
 

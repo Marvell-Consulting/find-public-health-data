@@ -1,4 +1,4 @@
-import type { PholioExportContext, StageResult } from './context.ts';
+import type { PholioExportOptions } from './context.ts';
 import {
   AGE_DIMENSION_TYPE_ID,
   ageDimensionValueId,
@@ -33,166 +33,6 @@ interface L_Category extends PholioRow {
   Name: string;
   Sequence: number | null;
 }
-
-// Maps from fphd_new IDENTITY dimension_type.id (as assigned during the alpha run) to the Pholio
-// CategoryTypeID it came from. Used to express all fix-dimension-types.sql corrections as Pholio
-// keys rather than SQL Server IDENTITY values. Derived by joining fphd_new.dimension_type.name
-// to pholio.L_CategoryTypes.Name (including the " [<ct_id>]" dedup suffix pattern).
-const FPHD_ID_TO_CT_ID: ReadonlyMap<number, number> = new Map([
-  [3, 1],
-  [4, 2],
-  [5, 3],
-  [6, 4],
-  [7, 5],
-  [8, 6],
-  [9, 7],
-  [10, 8],
-  [11, 9],
-  [12, 10],
-  [13, 11],
-  [14, 12],
-  [15, 13],
-  [16, 14],
-  [17, 15],
-  [18, 16],
-  [19, 17],
-  [20, 18],
-  [21, 19],
-  [22, 20],
-  [23, 21],
-  [24, 22],
-  [25, 23],
-  [26, 24],
-  [27, 25],
-  [28, 26],
-  [29, 27],
-  [30, 28],
-  [31, 29],
-  [32, 30],
-  [33, 31],
-  [34, 32],
-  [35, 33],
-  [36, 34],
-  [37, 35],
-  [38, 36],
-  [39, 37],
-  [40, 38],
-  [41, 39],
-  [42, 40],
-  [43, 41],
-  [44, 42],
-  [45, 43],
-  [46, 44],
-  [47, 45],
-  [48, 46],
-  [49, 47],
-  [50, 48],
-  [51, 49],
-  [52, 50],
-  [53, 51],
-  [54, 52],
-  [55, 53],
-  [56, 54],
-  [57, 55],
-  [58, 56],
-  [59, 57],
-  [60, 58],
-  [61, 59],
-  [62, 64],
-  [63, 66],
-  [64, 71],
-  [65, 91],
-  [66, 92],
-  [67, 93],
-  [68, 94],
-  [69, 95],
-  [70, 102],
-  [71, 103],
-  [72, 105],
-  [73, 107],
-  [74, 108],
-  [75, 109],
-  [76, 110],
-  [77, 111],
-  [78, 112],
-  [79, 113],
-  [80, 114],
-  [81, 115],
-  [82, 116],
-  [83, 117],
-  [84, 118],
-  [85, 123],
-  [86, 124],
-  [87, 125],
-  [88, 126],
-  [89, 127],
-  [90, 128],
-  [91, 129],
-  [92, 130],
-  [93, 131],
-  [94, 132],
-  [95, 133],
-  [96, 135],
-  [97, 136],
-  [98, 137],
-  [99, 140],
-  [100, 141],
-  [101, 142],
-  [102, 143],
-  [103, 146],
-  [104, 149],
-  [105, 150],
-  [106, 151],
-  [107, 152],
-  [108, 153],
-  [109, 154],
-  [110, 155],
-  [111, 156],
-  [112, 158],
-  [113, 160],
-  [114, 163],
-  [115, 164],
-  [116, 165],
-  [117, 166],
-  [118, 170],
-  [119, 173],
-  [120, 178],
-  [121, 179],
-  [122, 180],
-  [123, 181],
-  [124, 197],
-  [125, 214],
-  [126, 215],
-  [127, 217],
-  [128, 218],
-  [129, 219],
-  [130, 220],
-  [131, 221],
-  [132, 223],
-  [133, 224],
-  [134, 225],
-  [135, 226],
-  [136, 227],
-  [137, 228],
-  [138, 229],
-  [139, 230],
-  [140, 231],
-  [141, 232],
-  [142, 233],
-  [143, 234],
-  [144, 235],
-  [145, 238],
-  [146, 239],
-  [147, 240],
-  [148, 241],
-  [149, 242],
-  [150, 244],
-]);
-
-// Reverses FPHD_ID_TO_CT_ID for lookups by CategoryTypeID.
-const CT_ID_TO_FPHD_ID: ReadonlyMap<number, number> = new Map(
-  [...FPHD_ID_TO_CT_ID.entries()].map(([fphd, ct]) => [ct, fphd]),
-);
 
 // Corrections from fix-dimension-types.sql, keyed by CategoryTypeID instead of IDENTITY id.
 // Each entry contains the fields the script overrides.
@@ -519,8 +359,9 @@ export function sexValueIdForObservation(sexId: number): number | null {
 
 // ─── main export ──────────────────────────────────────────────────────────────
 
-export async function exportDimensions(context: PholioExportContext): Promise<StageResult> {
-  const { pool, outDir, dimensionValueIds } = context;
+export async function exportDimensions(context: PholioExportOptions) {
+  const { pool, outDir } = context;
+  const dimensionValueIds = new Set<number>();
 
   const dtWriter = new TableWriter(outDir, 'dimension_type');
   const dvWriter = new TableWriter(outDir, 'dimension_value');
@@ -793,7 +634,9 @@ export async function exportDimensions(context: PholioExportContext): Promise<St
   const ageRangeEntries: Array<{ dvId: number; ageId: number; min: number; max: number }> = [];
   for (const [ageId, range] of ageRangeByAgeId) {
     const dvId = ageDimensionValueId(ageId);
-    ageRangeEntries.push({ dvId, ageId, min: range.min, max: range.max });
+    if (dimValues.some((value) => Number(value.id) === dvId)) {
+      ageRangeEntries.push({ dvId, ageId, min: range.min, max: range.max });
+    }
   }
 
   const ageDvMap = new Map(
@@ -906,14 +749,14 @@ export async function exportDimensions(context: PholioExportContext): Promise<St
   await dvWriter.writeAll(dimValues);
   const dimValueFile = await dvWriter.close();
 
-  // Fill context.dimensionValueIds for the observations stage.
+  // Fill dimensionValueIds for the observations stage.
   for (const dv of dimValues) dimensionValueIds.add(Number(dv.id));
 
   return {
-    dimension_type: dimTypeFile,
-    dimension_value: dimValueFile,
+    dimensionValueIds,
+    tables: {
+      dimension_type: dimTypeFile,
+      dimension_value: dimValueFile,
+    },
   };
 }
-
-// Re-export for observations stage.
-export { CT_ID_TO_FPHD_ID, FPHD_ID_TO_CT_ID };

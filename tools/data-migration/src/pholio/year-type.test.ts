@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { PERIOD_TYPES, YEAR_TYPES as UTILS_YEAR_TYPES } from '@fphd/utils/period-type';
 import { describe, expect, it } from 'vitest';
 
-import { YEAR_TYPE_COLUMNS, YEAR_TYPES, yearTypeValues } from './year-type.ts';
+import { YEAR_TYPES, yearTypeValues } from './year-type.ts';
 
 const migrationDir = new URL('../../../../packages/db/drizzle/', import.meta.url);
 
@@ -121,26 +121,6 @@ describe('yearTypeValues', () => {
 
   it('throws for an unrecognised year type name', () => {
     expect(() => yearTypeValues('Fortnightly')).toThrow('Fortnightly');
-  });
-
-  it('returns all four YEAR_TYPE_COLUMNS in each result', () => {
-    for (const name of Object.keys(YEAR_TYPES)) {
-      const values = yearTypeValues(name);
-      for (const column of YEAR_TYPE_COLUMNS) {
-        expect(values).toHaveProperty(column);
-      }
-    }
-  });
-});
-
-describe('YEAR_TYPE_COLUMNS', () => {
-  it('contains exactly period_type, year_type, year_end_day, year_end_month', () => {
-    expect(YEAR_TYPE_COLUMNS).toEqual([
-      'period_type',
-      'year_type',
-      'year_end_day',
-      'year_end_month',
-    ]);
   });
 });
 
