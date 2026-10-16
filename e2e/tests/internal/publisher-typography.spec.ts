@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
+import { expectHydrated } from '../support/govuk-frontend.ts';
 import { openSectionPage } from '../support/section-page.ts';
 import { PUBLISHER } from '../support/sign-in.ts';
 
@@ -35,8 +37,10 @@ test.use({ storageState: PUBLISHER.storageState });
  * of one answer such as the day of a date, are not the page's own questions and are left out.
  */
 for (const key of SECTIONS) {
-  test(`asks every question on ${key} as a heading`, async ({ page }) => {
+  test(`asks every question on ${key} as a heading`, async ({ page }, testInfo) => {
     await openSectionPage(page, { key, taskName: key });
+    // Hydration hides the questions an answer reveals, which the server's markup shows.
+    await expectHydrated(page);
 
     const plain = await page.evaluate(() =>
       [...document.querySelectorAll('main label.govuk-label, main legend')]
@@ -60,5 +64,6 @@ for (const key of SECTIONS) {
     );
 
     expect(plain).toEqual([]);
+    await expectNoAccessibilityViolations(page, testInfo);
   });
 }
