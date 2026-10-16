@@ -58,6 +58,24 @@ describe('plainTextFromHtml', () => {
     );
   });
 
+  it.each([
+    ['<p>Use values where x<y and z>0.</p>', 'Use values where x<y and z>0.'],
+    ['values <a threshold are <b>suppressed</b>', 'values <a threshold are suppressed'],
+    ['<p>Use x<b and c>0.</p>', 'Use x<b and c>0.'],
+    ['<p class="body">Read <a href="/more?x=1&amp;y=2" title="More">more</a>.</p>', 'Read more.'],
+    ['&lt;p&gt;Use x&lt;y and z&gt;0.&lt;/p&gt;', 'Use x<y and z>0.'],
+  ])('preserves prose while removing complete supported tags (%s)', (html, expected) => {
+    expect(plainTextFromHtml(html)).toBe(expected);
+  });
+
+  it('keeps table cells and rows separated', () => {
+    expect(
+      plainTextFromHtml(
+        '<table><tr><th>Count</th><th>Rate</th></tr><tr><td>10</td><td>20</td></tr></table>',
+      ),
+    ).toBe('Count\tRate\n10\t20');
+  });
+
   it('is empty for prose that holds only markup and spacing', () => {
     expect(plainTextFromHtml('\n&nbsp;')).toBe('');
     expect(plainTextFromHtml('<p> </p>')).toBe('');
