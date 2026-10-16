@@ -61,7 +61,7 @@ function TagPicker({
           defaultValue={values[field]}
           error={fieldErrors[field] ?? fieldErrors[list]}
           label={`Select ${article} ${noun}`}
-          {...(labelHeading === undefined ? {} : { labelHeading })}
+          labelHeading={labelHeading}
           name={field}
           options={[
             { label: 'Select', value: '' },
@@ -107,7 +107,7 @@ export function TaggingPage({ options, ...form }: TaggingPageProps) {
     <TagPicker
       fieldErrors={fieldErrors}
       list={list}
-      {...(labelHeading === undefined ? {} : { labelHeading })}
+      labelHeading={labelHeading}
       options={options[TAG_LIST_DETAILS[list].options]}
       values={values}
     />

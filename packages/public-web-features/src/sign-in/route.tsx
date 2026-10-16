@@ -33,14 +33,7 @@ export function createSignInRoute(audience: AppAudience, readSession: SessionRea
   function SignInRoute() {
     const { returnTo, session } = useLoaderData<typeof loader>();
 
-    return (
-      <SignInPage
-        audience={audience}
-        returnTo={returnTo}
-        users={users}
-        {...(session === undefined ? {} : { session })}
-      />
-    );
+    return <SignInPage audience={audience} returnTo={returnTo} session={session} users={users} />;
   }
 
   return Object.freeze({
