@@ -4,7 +4,6 @@ import {
   AGE_DIMENSION_TYPE_ID,
   categoryDimensionTypeId,
   categoryDimensionValueId,
-  compoundAgeDimensionValueId,
   DIMENSION_SLOTS,
   observationDimensionId,
   observationId,
@@ -60,35 +59,6 @@ export function computeCiPair(
 
 /** AgeIDs that decompose into a male+female pair of observation rows. */
 export const COMPOUND_AGE_IDS = new Set([209, 212, 274]);
-
-/**
- * Dimension value ids for the two halves of a compound sex+age split.
- * AgeID 274 male intentionally reuses the 209M code (matches alpha SQL bug/design, line 848).
- */
-export function compoundAgeDimensionValueIds(ageId: number): {
-  maleDvId: number;
-  femaleDvId: number;
-} {
-  switch (ageId) {
-    case 209:
-      return {
-        maleDvId: compoundAgeDimensionValueId(209, 'M'),
-        femaleDvId: compoundAgeDimensionValueId(209, 'F'),
-      };
-    case 212:
-      return {
-        maleDvId: compoundAgeDimensionValueId(212, 'M'),
-        femaleDvId: compoundAgeDimensionValueId(212, 'F'),
-      };
-    case 274:
-      return {
-        maleDvId: compoundAgeDimensionValueId(209, 'M'),
-        femaleDvId: compoundAgeDimensionValueId(274, 'F'),
-      };
-    default:
-      throw new Error(`AgeID ${ageId} is not a compound age`);
-  }
-}
 
 // ─── Dedup key ────────────────────────────────────────────────────────────────
 

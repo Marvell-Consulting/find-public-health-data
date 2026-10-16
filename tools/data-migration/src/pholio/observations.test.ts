@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
   COMPOUND_AGE_IDS,
-  compoundAgeDimensionValueIds,
   computeCiPair,
   computeDenominator2,
   dedupKey,
@@ -68,37 +67,6 @@ describe('COMPOUND_AGE_IDS', () => {
   it('does not contain other AgeIDs', () => {
     expect(COMPOUND_AGE_IDS.has(1)).toBe(false);
     expect(COMPOUND_AGE_IDS.has(303)).toBe(false);
-  });
-});
-
-describe('compoundAgeDimensionValueIds', () => {
-  it('AgeID 209 male and female use different ids', () => {
-    const { maleDvId, femaleDvId } = compoundAgeDimensionValueIds(209);
-    expect(maleDvId).not.toBe(femaleDvId);
-  });
-  it('AgeID 212 male and female use different ids', () => {
-    const { maleDvId, femaleDvId } = compoundAgeDimensionValueIds(212);
-    expect(maleDvId).not.toBe(femaleDvId);
-  });
-  it('AgeID 274 male reuses AgeID 209 male (intentional design)', () => {
-    const { maleDvId: male274 } = compoundAgeDimensionValueIds(274);
-    const { maleDvId: male209 } = compoundAgeDimensionValueIds(209);
-    expect(male274).toBe(male209);
-  });
-  it('AgeID 274 female differs from AgeID 209 female', () => {
-    const { femaleDvId: female274 } = compoundAgeDimensionValueIds(274);
-    const { femaleDvId: female209 } = compoundAgeDimensionValueIds(209);
-    expect(female274).not.toBe(female209);
-  });
-  it('throws for unknown AgeID', () => {
-    expect(() => compoundAgeDimensionValueIds(1)).toThrow('AgeID 1 is not a compound age');
-  });
-  it('all ids are safe integers', () => {
-    for (const ageId of [209, 212, 274]) {
-      const { maleDvId, femaleDvId } = compoundAgeDimensionValueIds(ageId);
-      expect(Number.isSafeInteger(maleDvId)).toBe(true);
-      expect(Number.isSafeInteger(femaleDvId)).toBe(true);
-    }
   });
 });
 

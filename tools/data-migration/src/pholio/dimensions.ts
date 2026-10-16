@@ -327,9 +327,6 @@ export function normalizeCategoryTypeName(n: string): string {
 
 // ─── age-mapping helpers (used by observations stage) ─────────────────────────
 
-/** The five compound sex+age codes produced by decomposing AgeIDs 209, 212, 274. */
-export const COMPOUND_AGE_CODES = ['209M', '209F', '212M', '212F', '274F'] as const;
-
 /**
  * Returns the dimension_value id to use for a given (AgeID, sex) pair in an observation.
  * Handles the 325→303 remap and compound-age splits. Returns null for AgeIDs to skip

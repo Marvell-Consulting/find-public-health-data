@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { encodeRow } from './csv.ts';
 import { normaliseRow, stripAreaName } from './normalise.ts';
 import { plainTextFromHtml } from './plain-text.ts';
-import { deterministicUuid, normaliseConfig } from './prepare-baseline.ts';
+import { deterministicUuid } from './prepare-baseline.ts';
 
 describe('migration transforms', () => {
   it('keeps database null distinct from an empty string', () => {
@@ -35,13 +35,6 @@ describe('migration transforms', () => {
   it('rejects source ids outside the positive integer key space', () => {
     expect(() => deterministicUuid('indicator', '-1')).toThrow('not a positive integer');
     expect(() => deterministicUuid('indicator', '0')).toThrow('not a positive integer');
-  });
-
-  it('normalises legacy config strings but preserves null', () => {
-    expect(normaliseConfig('"key:1,other:value"')).toBe('{"key":1,"other":"value"}');
-    expect(normaliseConfig('__FPHD_NULL_5f92c66de4b849b4a717c23f5cbdb8a1__')).toContain(
-      '__FPHD_NULL_',
-    );
   });
 
   it('converts metadata HTML to display text', () => {

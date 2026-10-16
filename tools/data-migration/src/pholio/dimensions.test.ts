@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
   ageValueIdForObservation,
-  COMPOUND_AGE_CODES,
   classificationScheme,
   dimensionClass,
   granularity,
@@ -207,12 +206,6 @@ describe('sexValueIdForObservation', () => {
     expect(male).not.toBeNull();
     expect(female).not.toBeNull();
     expect(male).not.toBe(female);
-  });
-});
-
-describe('COMPOUND_AGE_CODES', () => {
-  it('contains exactly the five codes the alpha produces', () => {
-    expect([...COMPOUND_AGE_CODES].sort()).toEqual(['209F', '209M', '212F', '212M', '274F'].sort());
   });
 });
 

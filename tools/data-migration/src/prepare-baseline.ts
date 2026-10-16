@@ -80,21 +80,6 @@ export function deterministicUuid(table: string, sourceId: string): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
-export function normaliseConfig(value: string): string {
-  if (value === '' || value === DATA_MIGRATION_NULL) return value;
-  const parsed: unknown = JSON.parse(value);
-  if (typeof parsed !== 'string') return value;
-  return JSON.stringify(
-    Object.fromEntries(
-      parsed.split(',').map((pair) => {
-        const [key = '', ...parts] = pair.split(':');
-        const raw = parts.join(':').trim();
-        return [key.trim(), /^-?\d+$/.test(raw) ? Number(raw) : raw];
-      }),
-    ),
-  );
-}
-
 export async function rekeyDirectory(
   directory: string,
   expectedRows: Record<string, { rows: number }> | undefined,
