@@ -19,6 +19,11 @@
       "development": "./src/testing.ts",
       "types": "./src/testing.ts",
       "default": "./dist/testing.js"
+    },
+    "./data-migration-contract": {
+      "development": "./src/data-migration-contract.ts",
+      "types": "./src/data-migration-contract.ts",
+      "default": "./dist/data-migration-contract.js"
     }
   },
   "files": [

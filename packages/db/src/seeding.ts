@@ -16,30 +16,9 @@ import {
 import { type LegacySourceMap, mapLegacySources, readLegacySourceMap } from './legacy-sources.ts';
 import { READ_MODEL_TABLES } from './read-models.ts';
 
-// Topological FK order: every table loads after the tables it references.
-// Self-references (dimension_value.parent_id etc.) resolve within a single COPY
-// because FK checks run at end of statement. The files carry ci_method, comparator_method and
-// numerator_denominator_source, but the service's lists are core data: the source's rows are
-// read only to point its versions at ours. The value types and units are core data too, and
-// the versions already carry their ids.
-export const SEED_TABLES = [
-  'ci_method',
-  'comparator_method',
-  'data_source',
-  'numerator_denominator_source',
-  'dimension_type',
-  'dimension_value',
-  'area_type',
-  'area',
-  'area_relationship',
-  'indicator',
-  'indicator_version',
-  'upload_batch',
-  'note_type',
-  'observation',
-  'observation_dimension',
-  'observation_note',
-] as const;
+import { SEED_TABLES } from './seed-tables.ts';
+
+export { SEED_TABLES } from './seed-tables.ts';
 
 // Staged from the files but never loaded: the service keeps no table of that name.
 const STAGED_ONLY_TABLES: readonly string[] = ['numerator_denominator_source'];
@@ -387,11 +366,18 @@ async function loadObservations(
 }
 
 /**
- * Points every version at its indicator's latest processed batch, as confirmed, by the rule
- * drizzle/0044_upload-batch-versions.sql applies to existing data. Stops where that would hide a
- * published observation.
+ * Restores explicit batch pointers after loading batches; legacy files without pointers use
+ * the latest processed batch. Stops where the pointers would hide a published observation.
  */
 async function pointVersionsAtBatches(tx: postgres.TransactionSql): Promise<void> {
+  await tx`
+    UPDATE indicator_version v
+    SET upload_batch_id = s.upload_batch_id,
+        data_table_confirmed_at = s.data_table_confirmed_at
+    FROM source_indicator_version s
+    WHERE s.id = v.id
+      AND (s.upload_batch_id IS NOT NULL OR s.data_table_confirmed_at IS NOT NULL)
+  `;
   await tx`
     UPDATE indicator_version v
     SET upload_batch_id = b.id, data_table_confirmed_at = b.uploaded_at
@@ -578,6 +564,9 @@ export async function loadIndicatorVersions(
   const mapped = new Map<string, string>(
     CORE_DATA_LOOKUPS.map(({ table, column }) => [column, `${table}_map.core_id`]),
   );
+  // Reconnect the staged pointers after their batches exist, closing the version/batch cycle.
+  mapped.set('upload_batch_id', 'NULL');
+  mapped.set('data_table_confirmed_at', 'NULL');
   const selectList = columns.map((c) => mapped.get(c) ?? `v."${c}"`).join(', ');
   const joins = CORE_DATA_LOOKUPS.map(
     ({ table, column }) =>

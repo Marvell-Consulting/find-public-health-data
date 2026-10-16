@@ -1,6 +1,6 @@
 import { z } from '@fphd/config';
 
-import { indicatorTopicFileSchema } from './indicator-topic-repository.ts';
+import { indicatorTopicFileSchema } from './indicator-topic-file.ts';
 
 export const dataMigrationRelationshipsSchema = indicatorTopicFileSchema.extend({
   approval: z.object({

@@ -1,6 +1,6 @@
 import { z } from '@fphd/config';
 
-import { SEED_TABLES } from './seeding.ts';
+import { SEED_TABLES } from './seed-tables.ts';
 
 export const DATA_MIGRATION_FORMAT_VERSION = 1;
 export const DATA_MIGRATION_SCHEMA = 'canonical-v1';

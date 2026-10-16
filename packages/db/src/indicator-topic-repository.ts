@@ -1,8 +1,8 @@
-import { z } from '@fphd/config';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import type { Database } from './client.ts';
+import type { IndicatorTopicFile } from './indicator-topic-file.ts';
 import {
   classification,
   currentPublishedVersion,
@@ -17,26 +17,11 @@ import {
   topic,
 } from './schema/index.ts';
 
-/**
- * Three files rather than one, because they are three unrelated concerns: which topics an
- * indicator sits under, how it is classified, and when its data was last published. Topics
- * and classifications are referenced by id — a slug is a label that may be rewritten, the id
- * is the row. Indicators are referenced by their Fingertips number, which these exports carry
- * and which resolves against short_id.
- */
-export const indicatorTopicFileSchema = z.object({
-  indicatorTopics: z
-    .array(z.object({ topicId: z.uuidv7(), fingertipsId: z.number().int() }))
-    .default([]),
-  indicatorDataUpdatedAt: z
-    .record(z.string(), z.iso.datetime({ local: true }).nullable())
-    .default({}),
-  indicatorClassifications: z
-    .array(z.object({ fingertipsId: z.number().int(), classificationId: z.uuidv7() }))
-    .default([]),
-});
-
-export type IndicatorTopicFile = z.infer<typeof indicatorTopicFileSchema>;
+export {
+  type IndicatorTopicFile,
+  indicatorTopicFileSchema,
+  parseIndicatorTopicFile,
+} from './indicator-topic-file.ts';
 
 export interface TopicSummaryForIndicator {
   slug: string;
@@ -59,16 +44,6 @@ export interface IndicatorTopicImportSummary {
 }
 
 const draftVersion = alias(indicatorVersion, 'draft_version');
-
-export function parseIndicatorTopicFile(data: unknown): IndicatorTopicFile {
-  const result = indicatorTopicFileSchema.safeParse(data);
-
-  if (!result.success) {
-    throw new Error(`Invalid topic indicator file:\n${z.prettifyError(result.error)}`);
-  }
-
-  return result.data;
-}
 
 /**
  * Replaces the topic memberships and classifications of the indicators the file names, and

@@ -71,12 +71,12 @@ function publishedContext() {
 
 function publishedManifest(): PublishedManifest {
   return {
-    source: 'PHOLIO_LIVE_A-derived fphd_new benchmark clone',
-    source_database: 'fphd_new',
-    approved_indicators: 1_290,
-    source_observations: 29_380_899,
+    source: 'PHOLIO_LIVE_B export',
+    source_database: 'pholio_live_b',
+    source_indicators: 1_329,
+    source_observations: 29_656_329,
     excluded_indicators: [90_366, 90_776, 92_774, 93_280],
-    excluded_observations: 380_899,
+    excluded_observations: 126_515,
     source_csv_null: '__FPHD_NULL_5f92c66de4b849b4a717c23f5cbdb8a1__',
     id_mapping: 'deterministic-uuidv7-v1',
     tables: Object.fromEntries(

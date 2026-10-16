@@ -9,7 +9,7 @@ The default mode assigns sequential UUIDv7 ids following source-id order and
 reads the Pholio-shaped export from export-seed.py. `--deterministic` maps table
 and source ID directly to UUIDv7 so a full published snapshot can be converted
 with bounded memory, and reads the version-shaped export from
-export-published-snapshot.py. Every foreign key is remapped, and the indicator
+an integer-keyed source snapshot. Every foreign key is remapped, and the indicator
 keeps its public Fingertips number as `short_id`.
 """
 
