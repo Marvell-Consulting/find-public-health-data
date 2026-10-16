@@ -9,7 +9,7 @@ export interface SignInSession {
 interface SignInPageProps {
   audience: AppAudience;
   returnTo: string;
-  session?: SignInSession;
+  session?: SignInSession | undefined;
   users: readonly FakeUser[];
 }
 

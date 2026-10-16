@@ -32,7 +32,7 @@ export function YesNoQuestion<Field extends string>({
     <Radios
       defaultValue={values[answer]}
       error={fieldErrors[answer]}
-      {...(hint === undefined ? {} : { hint })}
+      hint={hint}
       label={legend}
       labelHeading="h2"
       name={answer}

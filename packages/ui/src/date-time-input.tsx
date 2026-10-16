@@ -15,7 +15,7 @@ export function datePartId(name: string, part: string): string {
 interface PartsInputProps<Part extends string> {
   defaultValue: Record<Part, string>;
   /** A message on each part to correct; the first is shown, and each part given one is marked. */
-  error?: Partial<Record<Part, string>> | undefined;
+  error?: { [K in Part]?: string | undefined } | undefined;
   hint?: ReactNode;
   label: ReactNode;
   /** Component to wrap the legend in, making it a heading. */
@@ -36,15 +36,7 @@ function PartsInput<Part extends string>({
   const message = parts.map(([part]) => error[part]).find((text) => text !== undefined);
 
   return (
-    // FormGroup types labelHeading without undefined, which exactOptionalPropertyTypes
-    // will not pass through, so it is added only when there is one.
-    <FormGroup
-      error={message}
-      hint={hint}
-      id={name}
-      label={label}
-      {...(labelHeading === undefined ? {} : { labelHeading })}
-    >
+    <FormGroup error={message} hint={hint} id={name} label={label} labelHeading={labelHeading}>
       <div className="govuk-date-input">
         {parts.map(([part, text]) => (
           <div className="govuk-date-input__item" key={part}>

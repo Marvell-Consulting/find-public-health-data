@@ -50,10 +50,7 @@ interface YearTypeQuestionProps {
 
 function YearTypeQuestion({ fieldErrors, set, values }: YearTypeQuestionProps) {
   const { yearEndDay, yearEndMonth, yearType: yearTypeError } = fieldErrors;
-  const yearEndError = {
-    ...(yearEndDay === undefined ? {} : { day: yearEndDay }),
-    ...(yearEndMonth === undefined ? {} : { month: yearEndMonth }),
-  };
+  const yearEndError = { day: yearEndDay, month: yearEndMonth };
 
   return (
     <Radios
