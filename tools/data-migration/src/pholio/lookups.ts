@@ -42,9 +42,6 @@ export async function exportLookups(context: PholioExportOptions) {
     // -1 is Pholio's "No comparison" placeholder; a version without a comparator has none.
     'SELECT ComparatorMethodID, ComparatorMethod FROM L_ComparatorMethods WHERE ComparatorMethodID != -1',
   );
-  await comparatorMethodWriter.writeAll(
-    comparatorRows.map((r) => ({ id: r.ComparatorMethodID, name: r.ComparatorMethod })),
-  );
   const existingComparatorIds = new Set(comparatorRows.map((r) => r.ComparatorMethodID));
   const gapFillRows = await queryPholio<{ ComparatorMethodID: number }>(
     pool,
@@ -56,7 +53,10 @@ export async function exportLookups(context: PholioExportOptions) {
     .map((r) => r.ComparatorMethodID)
     .filter((id) => !existingComparatorIds.has(id))
     .map((id) => ({ id, name: `Legacy comparator method ${id}` }));
-  await comparatorMethodWriter.writeAll(gapFill);
+  await comparatorMethodWriter.writeAll([
+    ...comparatorRows.map((row) => ({ id: row.ComparatorMethodID, name: row.ComparatorMethod })),
+    ...gapFill,
+  ]);
 
   // data_source: id, name (from ISNULL(DataSourceDesc, 'Unknown')), url always null
   const dataSourceRows = await queryPholio<{

@@ -10,6 +10,7 @@ import { exportDimensions } from './dimensions.ts';
 import { exportGeography } from './geography.ts';
 import { ageDimensionValueId, areaId, sexDimensionValueId } from './ids.ts';
 import { exportIndicators } from './indicators.ts';
+import { exportLookups } from './lookups.ts';
 import { exportObservations, observationDimensions } from './observations.ts';
 import { queryPholio, streamPholio } from './source.ts';
 
@@ -268,3 +269,22 @@ it.each(['', ' '])(
     expect(await readdir(directory)).toEqual([]);
   },
 );
+
+it('sorts comparator gap-fill rows together with existing lookup IDs', async () => {
+  vi.mocked(queryPholio)
+    .mockResolvedValueOnce([])
+    .mockResolvedValueOnce([
+      { ComparatorMethodID: 1, ComparatorMethod: 'One' },
+      { ComparatorMethodID: 3, ComparatorMethod: 'Three' },
+    ])
+    .mockResolvedValueOnce([{ ComparatorMethodID: 2 }, { ComparatorMethodID: 3 }])
+    .mockResolvedValueOnce([])
+    .mockResolvedValueOnce([])
+    .mockResolvedValueOnce([]);
+  await exportLookups(options);
+  expect(await rows('comparator_method')).toEqual([
+    { id: '1', name: 'One' },
+    { id: '2', name: 'Legacy comparator method 2' },
+    { id: '3', name: 'Three' },
+  ]);
+});
