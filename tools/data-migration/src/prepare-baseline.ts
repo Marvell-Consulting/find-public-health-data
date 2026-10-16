@@ -1,5 +1,5 @@
-import { copyFile, lstat, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
-import { basename, dirname, join, resolve } from 'node:path';
+import { copyFile, readFile, writeFile } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import { z } from '@fphd/config';
 import { dimensionKey } from '@fphd/db';
 import {
@@ -15,6 +15,7 @@ import {
 import { readGzipCsv, transformGzipCsv } from './csv.ts';
 import { fileRecord } from './files.ts';
 import { normaliseHeader, normaliseRow } from './normalise.ts';
+import { writePreparedDirectory } from './prepared-directory.ts';
 import { tidyReferenceNames } from './reference-names.ts';
 import { foreignKeyIndexes, TABLE_TAGS, TABLES } from './tables.ts';
 
@@ -180,18 +181,9 @@ export async function prepareBaseline(
     throw new Error('Reviewed relationship coverage does not match the exported indicators');
   }
 
-  const output = resolve(outputDirectory);
-  if (output === resolve(directory))
+  if (resolve(outputDirectory) === resolve(directory))
     throw new Error('Prepared output must be separate from the source export');
-  try {
-    await lstat(output);
-    throw new Error(`Prepared output already exists: ${output}`);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-  }
-  await mkdir(dirname(output), { recursive: true });
-  const staged = await mkdtemp(join(dirname(output), `.${basename(output)}-`));
-  try {
+  await writePreparedDirectory(outputDirectory, async (staged) => {
     for (const file of ['source-manifest.json', ...TABLES.map((table) => `${table}.csv.gz`)]) {
       await copyFile(join(directory, file), join(staged, file));
     }
@@ -222,8 +214,5 @@ export async function prepareBaseline(
       tables,
     });
     await writeFile(join(staged, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
-    await rename(staged, output);
-  } finally {
-    await rm(staged, { recursive: true, force: true });
-  }
+  });
 }

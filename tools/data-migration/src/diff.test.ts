@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
@@ -18,6 +18,20 @@ import { fileRecord } from './files.ts';
 import { deterministicUuid } from './prepare-baseline.ts';
 
 const directories: string[] = [];
+
+async function outputDirectory(): Promise<string> {
+  const parent = await mkdtemp(join(tmpdir(), 'fphd-increment-output-'));
+  directories.push(parent);
+  return join(parent, 'package');
+}
+
+async function snapshotBytes(directory: string) {
+  return Promise.all(
+    (await readdir(directory))
+      .sort()
+      .map(async (file) => [file, await readFile(join(directory, file))]),
+  );
+}
 
 async function snapshot(
   id: string,
@@ -95,8 +109,7 @@ describe('createIncremental', () => {
         [same as string, 'Same'],
       ],
     });
-    const output = await mkdtemp(join(tmpdir(), 'fphd-migration-test-'));
-    directories.push(output);
+    const output = await outputDirectory();
 
     await createIncremental(previous, current, output, 'increment-2');
 
@@ -125,8 +138,7 @@ describe('createIncremental', () => {
     const current = await snapshot('increment-2', '2026-09-21T10:00:00Z', {
       ci_method: [[kept as string, 'Kept']],
     });
-    const output = await mkdtemp(join(tmpdir(), 'fphd-migration-test-'));
-    directories.push(output);
+    const output = await outputDirectory();
 
     await createIncremental(previous, current, output, 'increment-2');
 
@@ -150,8 +162,7 @@ describe('createIncremental', () => {
       ],
     });
     const current = await snapshot('increment-2', '2026-09-21T10:00:00Z', {});
-    const output = await mkdtemp(join(tmpdir(), 'fphd-migration-test-'));
-    directories.push(output);
+    const output = await outputDirectory();
 
     await expect(createIncremental(previous, current, output, 'increment-2')).rejects.toThrow(
       /previous snapshot are not ordered by id/,
@@ -170,8 +181,7 @@ it('resends unchanged versions when reference names change', async () => {
     indicator_version: [[versionId, 'Unchanged version']],
     numerator_denominator_source: [[sourceId, 'New source']],
   });
-  const output = await mkdtemp(join(tmpdir(), 'reference-change-'));
-  directories.push(output);
+  const output = await outputDirectory();
   await createIncremental(previous, current, output, 'increment-2');
   expect(await records(join(output, 'indicator_version.csv.gz'))).toEqual([
     ['id', 'name'],
@@ -198,11 +208,66 @@ it('captures a change from SQL NULL to an empty string', async () => {
     },
     headers,
   );
-  const output = await mkdtemp(join(tmpdir(), 'null-change-'));
-  directories.push(output);
+  const output = await outputDirectory();
   await createIncremental(previous, current, output, 'increment-2');
   expect(await records(join(output, 'data_source.csv.gz'))).toEqual([
     ['id', 'name', 'url'],
     [id, 'Source', ''],
   ]);
+});
+
+it.each(['previous', 'current', 'previous symlink', 'current symlink'])(
+  'refuses output aliasing the %s snapshot without changing either input',
+  async (alias) => {
+    const previous = await snapshot('baseline-1', '2026-09-20T10:00:00Z', {});
+    const current = await snapshot('increment-2', '2026-09-21T10:00:00Z', {});
+    const before = await Promise.all([snapshotBytes(previous), snapshotBytes(current)]);
+    const target = alias.startsWith('previous') ? previous : current;
+    let output = target;
+    if (alias.endsWith('symlink')) {
+      output = await outputDirectory();
+      await symlink(target, output, 'dir');
+    }
+    await expect(createIncremental(previous, current, output, 'increment-2')).rejects.toThrow(
+      /output.*(exists|alias)/i,
+    );
+    expect(await Promise.all([snapshotBytes(previous), snapshotBytes(current)])).toEqual(before);
+  },
+);
+
+it('refuses an existing output package without changing it', async () => {
+  const previous = await snapshot('baseline-1', '2026-09-20T10:00:00Z', {});
+  const current = await snapshot('increment-2', '2026-09-21T10:00:00Z', {});
+  const output = await outputDirectory();
+  await createIncremental(previous, current, output, 'increment-2');
+  const before = await snapshotBytes(output);
+  await expect(createIncremental(previous, current, output, 'increment-2')).rejects.toThrow(
+    /output.*exists/i,
+  );
+  expect(await snapshotBytes(output)).toEqual(before);
+});
+
+it('removes staged output after a late failure and preserves both source snapshots', async () => {
+  const one = deterministicUuid('observation', '1');
+  const two = deterministicUuid('observation', '2');
+  const previous = await snapshot('baseline-1', '2026-09-20T10:00:00Z', {
+    observation: [
+      [two, 'Second'],
+      [one, 'First'],
+    ],
+  });
+  const current = await snapshot('increment-2', '2026-09-21T10:00:00Z', {});
+  const output = await outputDirectory();
+  const before = await Promise.all([snapshotBytes(previous), snapshotBytes(current)]);
+  await expect(createIncremental(previous, current, output, 'increment-2')).rejects.toThrow(
+    /previous snapshot are not ordered/,
+  );
+  expect(await readdir(join(output, '..'))).toEqual([]);
+  expect(await Promise.all([snapshotBytes(previous), snapshotBytes(current)])).toEqual(before);
+  await mkdir(output);
+  await writeFile(join(output, 'keep.txt'), 'completed output');
+  await expect(createIncremental(previous, current, output, 'increment-2')).rejects.toThrow(
+    /output.*exists/i,
+  );
+  expect(await readFile(join(output, 'keep.txt'), 'utf8')).toBe('completed output');
 });

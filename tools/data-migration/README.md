@@ -144,11 +144,15 @@ snapshot used for the preceding package:
 
 ```sh
 pnpm --filter @fphd/data-migration data-migration create-incremental \
-  --previous /secure/fphd-snapshot-001 \
-  --current /secure/fphd-snapshot-002 \
+  --previous /secure/fphd-prepared-001 \
+  --current /secure/fphd-prepared-002 \
   --out-dir /secure/fphd-increment-002 \
   --migration-id increment-2026-09-23
 ```
+
+The output must be a new directory. Increment preparation rejects existing paths, including
+symlink aliases of either input, and stages the complete package before publishing it.
+Failures remove the staged output and leave both full snapshots intact.
 
 Archive and apply that output in the same way as the baseline. Retain each prepared full
 snapshot until the next increment has been built. Comparing complete ordered snapshots
