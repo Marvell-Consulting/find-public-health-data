@@ -138,7 +138,7 @@ export function TaggingPage({ options, ...form }: TaggingPageProps) {
         name="hasRiskFactor"
         options={[
           // Shown without JavaScript; with it, only while "Yes" is chosen.
-          { label: 'Yes', value: 'yes', conditional: picker('riskFactorIds') },
+          { label: 'Yes', value: 'yes', conditional: picker('riskFactorIds', 'h3') },
           { label: 'No', value: 'no' },
         ]}
       />
@@ -149,7 +149,7 @@ export function TaggingPage({ options, ...form }: TaggingPageProps) {
         labelHeading="h2"
         name="hasFramework"
         options={[
-          { label: 'Yes', value: 'yes', conditional: picker('frameworkIds') },
+          { label: 'Yes', value: 'yes', conditional: picker('frameworkIds', 'h3') },
           { label: 'No', value: 'no' },
         ]}
       />

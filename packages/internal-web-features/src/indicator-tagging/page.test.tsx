@@ -74,6 +74,14 @@ describe('TaggingPage', () => {
     ).toBeTruthy();
   });
 
+  it('asks each question under Yes as a level 3 heading', () => {
+    renderPage();
+
+    expect(
+      screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent),
+    ).toEqual(['Select a risk factor', 'Select a framework or programme']);
+  });
+
   it('offers every tag of each list in a select with its own Add button', () => {
     renderPage();
 

@@ -55,11 +55,13 @@ for (const key of SECTIONS) {
             el.tagName === 'LABEL' && el.closest('fieldset')?.querySelector(':scope > legend')
           );
         })
-        // A plain label is 19px regular; every heading is bold, whatever its size.
-        .filter((el) => {
-          const style = getComputedStyle(el.querySelector('h1, h2, h3, h4, h5, h6') ?? el);
-          return style.fontWeight !== '700';
-        })
+        // A heading either wraps the label or sits inside the legend. Asking for the element
+        // rather than the weight it renders at also catches one styled bold without being one.
+        .filter(
+          (el) =>
+            !el.querySelector('h1, h2, h3, h4, h5, h6') &&
+            !/^H[1-6]$/.test(el.parentElement?.tagName ?? ''),
+        )
         .map((el) => el.textContent?.trim().replace(/\s+/g, ' ').slice(0, 60)),
     );
 

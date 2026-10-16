@@ -13,10 +13,9 @@ export function questionStyles(page: Page, texts: string[]): Promise<[string, st
           ...document.querySelectorAll('main label.govuk-label, main legend'),
         ].filter((el) => el.textContent?.trim().replace(/\s+/g, ' ') === text);
         return matches.map((question): [string, string] => {
-          // The size sits on the heading when the question is one, and on the label when it is not.
-          const style = getComputedStyle(
-            question.querySelector('h1, h2, h3, h4, h5, h6') ?? question,
-          );
+          // The size sits on the label or legend itself, whether a heading wraps it or sits
+          // inside it: the wrapper carries its own level's size, which is not what renders.
+          const style = getComputedStyle(question);
           return [text, `${style.fontSize} ${style.fontWeight}`];
         });
       }),
