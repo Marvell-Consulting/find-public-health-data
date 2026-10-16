@@ -187,11 +187,11 @@ function exclusionReason(
 ): keyof ObservationExclusions | undefined {
   if (c.IndicatorID === 94204) return 'test_indicator';
   if (selection.kind === 'approved' && !selected.has(c.IndicatorID)) return 'not_approved';
-  if (excluded.has(c.IndicatorID)) return 'excluded_indicator';
   if (c.ValueNoteId === 506) return 'note_506';
   if (c.Value === -1 && c.Count === -1 && c.Denominator === -1 && c.ValueNoteId === 0)
     return 'empty_observation';
   if (c.Year < 1900) return 'year_before_1900';
+  if (excluded.has(c.IndicatorID)) return 'excluded_indicator';
   return undefined;
 }
 

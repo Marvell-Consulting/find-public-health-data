@@ -102,7 +102,7 @@ export async function rekeyDirectory(
   const tables: BaselineManifest['tables'] = {};
   for (const table of TABLES) {
     const path = join(directory, `${table}.csv.gz`);
-    let fkIndexes: [number, string][] = [];
+    let fkIndexes = new Map<number, string>();
     const rows = await transformGzipCsv(
       path,
       (row, header) => {
@@ -112,7 +112,7 @@ export async function rekeyDirectory(
         if (oldId === undefined) throw new Error(`${table} has an empty id`);
         let rekeyed = row.map((value, index) => {
           if (index === idIndex) return deterministicUuid(table, oldId);
-          const target = fkIndexes.find(([position]) => position === index)?.[1];
+          const target = fkIndexes.get(index);
           if (target && value !== '' && value !== DATA_MIGRATION_NULL)
             return deterministicUuid(target, value);
           if (table === 'observation' && header[index] === 'dimension_key')
@@ -131,7 +131,7 @@ export async function rekeyDirectory(
         return rekeyed;
       },
       (header) => {
-        fkIndexes = foreignKeyIndexes(table, header);
+        fkIndexes = new Map(foreignKeyIndexes(table, header));
         header = normaliseHeader(table, header);
         if (table !== 'indicator') return header;
         const idIndex = header.indexOf('id');

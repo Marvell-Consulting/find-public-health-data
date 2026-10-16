@@ -157,6 +157,22 @@ it('counts every intentional observation exclusion separately', async () => {
   expect((await rows('observation')).length).toBe(1);
 });
 
+it('keeps the benchmark exclusion count limited to otherwise eligible observations', async () => {
+  sourceObservations([
+    observation(),
+    observation({ uid: 2, IndicatorID: 109 }),
+    observation({ uid: 3, IndicatorID: 109, ValueNoteId: 506 }),
+    observation({ uid: 4, IndicatorID: 109, Year: 1899 }),
+  ]);
+  const input = observationOptions();
+  input.indicatorSelection = { kind: 'approved', indicators: [108, 109] };
+  input.excludedIndicators = [109];
+  const result = await exportObservations(input);
+  expect(result.observationExclusions.excluded_indicator).toBe(1);
+  expect(result.observationExclusions.note_506).toBe(1);
+  expect(result.observationExclusions.year_before_1900).toBe(1);
+});
+
 it('detects non-contiguous duplicate keys using the actual pre-flight', async () => {
   sourceObservations([
     observation(),
