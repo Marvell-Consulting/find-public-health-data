@@ -1,21 +1,15 @@
 import { GridColumn, GridRow, InsetText, TaskList } from '@fphd/ui';
 
-import { indicatorSectionPath } from '../publish-paths.ts';
+import { indicatorDataTablePath, indicatorSectionPath } from '../publish-paths.ts';
 import { IndicatorHeading } from '../status-tag/indicator-heading.tsx';
 import { StatusTag } from '../status-tag/status-tag.tsx';
-import type {
-  IndicatorTaskKey,
-  IndicatorTaskList,
-  IndicatorTaskStatus,
-  IndicatorTaskStatuses,
-} from './loader.ts';
+import type { IndicatorTaskKey, IndicatorTaskList } from './loader.ts';
 
 interface TaskRow {
-  /** Matches the API's task key where the API judges the task. */
-  key: string;
+  key: IndicatorTaskKey;
   title: string;
-  /** The page that completes the task; a task with no form yet has none. */
-  path?: (id: string) => string;
+  /** The page that completes the task. */
+  path: (id: string) => string;
 }
 
 interface TaskGroup {
@@ -34,7 +28,7 @@ const TASK_GROUPS: readonly TaskGroup[] = [
     id: 'data',
     title: 'Data',
     tasks: [
-      { key: 'data-table', title: 'Data table' },
+      { key: 'data-table', title: 'Data table', path: indicatorDataTablePath },
       {
         key: 'value-type-and-units',
         title: 'Value type and units',
@@ -110,13 +104,6 @@ const TASK_GROUPS: readonly TaskGroup[] = [
   },
 ];
 
-/** The catalogue is wider than the tasks the API judges; the rest are yet to be started. */
-function statusOf(tasks: IndicatorTaskStatuses, key: string): IndicatorTaskStatus {
-  const judged: Record<string, IndicatorTaskStatus | undefined> = tasks;
-
-  return judged[key] ?? 'not_started';
-}
-
 export function IndicatorTaskListPage({ taskList }: { taskList: IndicatorTaskList }) {
   const { indicator, tasks } = taskList;
 
@@ -133,17 +120,11 @@ export function IndicatorTaskListPage({ taskList }: { taskList: IndicatorTaskLis
             <h2 className="govuk-heading-m">{group.title}</h2>
             <TaskList
               id={group.id}
-              // A task with no form yet has no link, and TaskList types href without
-              // undefined, which exactOptionalPropertyTypes will not pass through.
-              items={group.tasks.map(({ key, path, title }) => {
-                const href = path?.(indicator.id);
-
-                return {
-                  title,
-                  ...(href === undefined ? {} : { href }),
-                  status: <StatusTag type="task" status={statusOf(tasks, key)} />,
-                };
-              })}
+              items={group.tasks.map(({ key, path, title }) => ({
+                title,
+                href: path(indicator.id),
+                status: <StatusTag type="task" status={tasks[key]} />,
+              }))}
             />
           </div>
         ))}

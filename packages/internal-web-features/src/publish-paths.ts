@@ -17,3 +17,13 @@ export function indicatorTaskListPath(id: string): string {
 export function indicatorSectionPath(id: string, section: IndicatorTaskKey): string {
   return indicatorPublishPath(id, section);
 }
+
+/** The data table task's own page, where the file is uploaded. */
+export function indicatorDataTablePath(id: string): string {
+  return indicatorPublishPath(id, 'data-table');
+}
+
+/** Where a refused data table's problems are listed until a later upload loads. */
+export function indicatorDataTableProblemsPath(id: string): string {
+  return indicatorPublishPath(id, 'data-table/problems');
+}

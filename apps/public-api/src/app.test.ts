@@ -44,6 +44,7 @@ describe('public API', () => {
   it.each([
     ['get', '/api/internal'],
     ['put', `/api/internal/indicators/${anyId}/tagging`],
+    ['post', `/api/internal/indicators/${anyId}/data-uploads`],
     ['get', '/api/internal/topics'],
   ] as const)('does not expose the internal surface at %s %s', async (method, path) => {
     const response = await request(createTestApp())[method](path);

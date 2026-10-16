@@ -48,6 +48,14 @@ export default [
         '../../../packages/internal-web-features/src/indicator-task-list/route.tsx',
       ),
       route(
+        'publish/indicators/:id/data-table',
+        '../../../packages/internal-web-features/src/indicator-data-table/upload-route.tsx',
+      ),
+      route(
+        'publish/indicators/:id/data-table/problems',
+        '../../../packages/internal-web-features/src/indicator-data-table/problems-route.tsx',
+      ),
+      route(
         'publish/indicators/:id/definition-and-rationale',
         '../../../packages/internal-web-features/src/indicator-definition-and-rationale/route.tsx',
       ),

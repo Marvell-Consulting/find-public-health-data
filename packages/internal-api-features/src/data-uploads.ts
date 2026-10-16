@@ -1,0 +1,184 @@
+import { requireApiSession, requireJwtRole } from '@fphd/api-server';
+import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
+import type { BlobStorage } from '@fphd/internal-storage';
+import { type Request, type Response, Router } from 'express';
+import { v7 as uuidv7 } from 'uuid';
+
+import { indicatorIdSchema } from './contract.ts';
+import type {
+  DataUploadCreated,
+  DataUploadError,
+  DataUploadLatest,
+} from './data-upload-contract.ts';
+import { drainRequest, receiveDataTable, UploadAbortedError } from './data-upload-receive.ts';
+import { elapsedMs, TimedUploadError, type UploadTimings } from './data-upload-timings.ts';
+import type { InternalDataUploadRepository } from './repositories.ts';
+
+/** An upload route's draft, or the answer to give when the address names none. */
+export type UploadDraftLookup =
+  | { ok: true; indicatorId: string; draftId: string }
+  | { ok: false; status: 400; body: Extract<DataUploadError, { error: 'invalid_id' }> }
+  | { ok: false; status: 404; body: { error: 'not_found' | 'no_draft' } };
+
+/** Finds the draft an upload route's id names, without answering the request. */
+export async function findUploadDraft(
+  dataUploads: InternalDataUploadRepository,
+  rawId: unknown,
+): Promise<UploadDraftLookup> {
+  const id = indicatorIdSchema.safeParse(rawId);
+  if (!id.success) return { ok: false, status: 400, body: { error: 'invalid_id' } };
+
+  const draftId = await dataUploads.findDraftId(id.data);
+
+  // A published indicator is edited by opening a draft first, so until then there is nothing
+  // to upload to.
+  if (draftId === undefined) return { ok: false, status: 404, body: { error: 'not_found' } };
+  if (draftId === null) return { ok: false, status: 404, body: { error: 'no_draft' } };
+
+  return { ok: true, indicatorId: id.data, draftId };
+}
+
+/** Answers once the request is read to its end, so the answer never races an upload body. */
+async function refuse(request: Request, response: Response, status: number, body: object) {
+  await drainRequest(request);
+  response.status(status).json(body);
+}
+
+/**
+ * The data table upload: the file is streamed to storage as it arrives, then read back, checked
+ * and loaded while the publisher waits. Uploading again replaces the draft's data.
+ */
+export function dataUploadsRouter(
+  dataUploads: InternalDataUploadRepository,
+  storage: BlobStorage,
+  session: JwtSessionVerifier,
+): Router {
+  const router = Router();
+  const requirePublisher = requireJwtRole(session, 'publisher');
+
+  router.post(
+    '/api/internal/indicators/:id/data-uploads',
+    requirePublisher,
+    async (request, response) => {
+      const started = performance.now();
+      const draft = await findUploadDraft(dataUploads, request.params.id);
+      if (!draft.ok) {
+        await refuse(request, response, draft.status, draft.body);
+        return;
+      }
+
+      // The stages' timings for the log line, with the receipt and the whole request around them.
+      let receiveMs: number | undefined;
+      const timingsWith = (stages: UploadTimings): UploadTimings => ({
+        ...(receiveMs === undefined ? {} : { receiveMs }),
+        ...stages,
+        totalMs: elapsedMs(started),
+      });
+
+      const { indicatorId } = draft;
+      const { sub } = requireApiSession(response);
+      const batchId = uuidv7();
+      const blobName = `${indicatorId}/${batchId}.csv`;
+      const logFields = { indicatorId, uploadBatchId: batchId };
+
+      const abandoned = new AbortController();
+      response.on('close', () => {
+        if (!response.writableFinished) abandoned.abort(new UploadAbortedError());
+      });
+
+      const deleteBlob = (name: string) =>
+        storage
+          .delete(name)
+          .catch((error: unknown) =>
+            request.log.warn({ err: error, blobName: name }, 'Blob not deleted'),
+          );
+
+      try {
+        const received = await receiveDataTable(request, storage, blobName);
+        receiveMs = elapsedMs(started);
+
+        if (!received.ok) {
+          await deleteBlob(blobName);
+          response.status(400).json({
+            error: 'validation_failed',
+            fieldErrors: { dataTable: received.message },
+          } satisfies DataUploadError);
+          return;
+        }
+
+        const { ok: _ok, ...file } = received;
+        const result = await dataUploads.process(
+          { batchId, indicatorId, blobName, actor: sub, ...file },
+          () => storage.get(blobName),
+          abandoned.signal,
+        );
+
+        if (!result.ok && result.reason === 'no_draft') {
+          await deleteBlob(blobName);
+          response.status(404).json({ error: 'no_draft' });
+          return;
+        }
+
+        const timings = timingsWith(result.timings);
+        if (result.ok) {
+          request.log.info(
+            { ...logFields, byteSize: file.byteSize, rowCount: result.rowCount, timings },
+            'Data table uploaded',
+          );
+          response
+            .status(201)
+            .json({ id: batchId, rowCount: result.rowCount } satisfies DataUploadCreated);
+        } else {
+          request.log.info(
+            {
+              ...logFields,
+              byteSize: file.byteSize,
+              problems: result.problems.map(({ code }) => code),
+              timings,
+            },
+            'Data table refused',
+          );
+          response.status(422).json({
+            error: 'invalid_data_table',
+            id: batchId,
+            problems: result.problems,
+          } satisfies DataUploadError);
+        }
+
+        // Only now are the deletions committed: a failure leaves an orphan blob, never a lost one.
+        for (const name of result.deletedBlobNames) await deleteBlob(name);
+      } catch (error) {
+        await deleteBlob(blobName);
+        const timings = timingsWith(error instanceof TimedUploadError ? error.timings : {});
+        if (abandoned.signal.aborted || error instanceof UploadAbortedError) {
+          request.log.info({ ...logFields, timings }, 'Data table upload abandoned');
+          return;
+        }
+        request.log.info({ ...logFields, timings }, 'Data table upload failed');
+        throw error instanceof TimedUploadError ? error.cause : error;
+      }
+    },
+  );
+
+  router.get(
+    '/api/internal/indicators/:id/data-uploads/latest',
+    requirePublisher,
+    async (request, response) => {
+      const draft = await findUploadDraft(dataUploads, request.params.id);
+      if (!draft.ok) {
+        await refuse(request, response, draft.status, draft.body);
+        return;
+      }
+
+      const latest = await dataUploads.findLatest(draft.draftId);
+      const body: DataUploadLatest = {
+        latestUpload:
+          latest === undefined ? null : { ...latest, uploadedAt: latest.uploadedAt.toISOString() },
+      };
+
+      response.status(200).json(body);
+    },
+  );
+
+  return router;
+}

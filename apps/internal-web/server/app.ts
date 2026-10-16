@@ -21,6 +21,7 @@ export const app = createFakeAuthReactRouterApp(() => import('virtual:react-rout
       apiContext,
       createApiClient({
         baseUrl: config.apiUrl,
+        uploadTimeoutMs: config.apiUploadTimeoutMs,
         headers: {
           ...forwardedCookieHeaders(request.headers.cookie, sessionCookieName(audience)),
           ...forwardedRequestIdHeaders(request),

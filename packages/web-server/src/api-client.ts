@@ -7,6 +7,15 @@ export interface ApiClientOptions {
   headers?: Record<string, string>;
   /** Abort and fail rather than hold a page render open indefinitely. */
   timeoutMs?: number;
+  /** As `timeoutMs`, for `postStream`'s answer once its body is sent; undefined takes the default. */
+  uploadTimeoutMs?: number | undefined;
+}
+
+/** A request body passed on as it arrives, such as a browser's file upload. */
+export interface StreamedBody {
+  body: ReadableStream<Uint8Array> | null;
+  /** The body's own content type, which for a multipart form names its boundary. */
+  contentType: string;
 }
 
 /** A schema the client parses a response with, for callers that pass one along. */
@@ -50,11 +59,36 @@ export interface ApiClient {
     errorSchema: z.ZodType<E>,
   ): Promise<ApiWriteResult<T, E>>;
 
+  /**
+   * POST a body to `path` as it arrives, without reading it first, then wait up to the upload
+   * timeout for the answer, throwing `ApiTimeoutError` after it. A 400 or 422 comes back as a
+   * value parsed with `errorSchema`; otherwise as `put`. Aborting `signal`, as a browser
+   * abandoning its request does, abandons this one too.
+   */
+  postStream<T, E>(
+    path: string,
+    body: StreamedBody,
+    schema: z.ZodType<T>,
+    errorSchema: z.ZodType<E>,
+    signal?: AbortSignal,
+  ): Promise<ApiWriteResult<T, E>>;
+
   /** DELETE `path`. A 204 has no body; a 404 throws for the not-found boundary, the rest 502. */
   delete(path: string): Promise<void>;
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000;
+
+/** The API took longer to answer an upload than the upload timeout allows. */
+export class ApiTimeoutError extends Error {
+  constructor(path: string) {
+    super(`No answer from ${path} within the upload timeout`);
+    this.name = 'ApiTimeoutError';
+  }
+}
+
+// Under Front Door's 60 seconds for an origin to answer, so the page's own message wins its 504.
+const DEFAULT_UPLOAD_TIMEOUT_MS = 50_000;
 
 /** A `Cookie` header carrying only the named cookie, so the API never sees the browser's others. */
 export function forwardedCookieHeaders(
@@ -121,6 +155,7 @@ export function createApiClient({
   baseUrl,
   headers = {},
   timeoutMs = DEFAULT_TIMEOUT_MS,
+  uploadTimeoutMs = DEFAULT_UPLOAD_TIMEOUT_MS,
 }: ApiClientOptions): ApiClient {
   /** A write to a member of a collection: the record may be gone, so a 404 is meaningful. */
   async function writeToMember<T, E>(
@@ -203,6 +238,54 @@ export function createApiClient({
       }
 
       return { ok: true, data: parseOrFail(path, schema, await readJson(path, response)) };
+    },
+
+    async postStream(path, { body, contentType }, schema, errorSchema, signal) {
+      // The timeout covers the API's answer, not the browser's upload, so it starts once the
+      // body has been sent.
+      const timeout = new AbortController();
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const startTimer = () => {
+        timer = setTimeout(() => timeout.abort(), uploadTimeoutMs);
+      };
+      const sent = body?.pipeThrough(new TransformStream({ flush: startTimer })) ?? null;
+      if (sent === null) startTimer();
+
+      // `duplex` is required of a streamed body, and missing from the DOM library's RequestInit.
+      const init: RequestInit & { duplex: 'half' } = {
+        method: 'POST',
+        headers: { ...headers, 'content-type': contentType },
+        body: sent,
+        duplex: 'half',
+        signal: signal === undefined ? timeout.signal : AbortSignal.any([timeout.signal, signal]),
+      };
+
+      try {
+        const response = await fetch(`${baseUrl}${path}`, init);
+
+        if (response.status === 404) {
+          throw new Response('Not Found', { status: 404 });
+        }
+
+        if (response.status === 400 || response.status === 422) {
+          return {
+            ok: false,
+            status: response.status,
+            error: parseOrFail(path, errorSchema, await readJson(path, response)),
+          };
+        }
+
+        if (!response.ok) {
+          throw new Response('Bad Gateway', { status: 502 });
+        }
+
+        return { ok: true, data: parseOrFail(path, schema, await readJson(path, response)) };
+      } catch (error) {
+        if (timeout.signal.aborted) throw new ApiTimeoutError(path);
+        throw error;
+      } finally {
+        clearTimeout(timer);
+      }
     },
 
     async delete(path) {

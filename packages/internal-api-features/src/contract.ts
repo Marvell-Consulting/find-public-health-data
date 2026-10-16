@@ -171,12 +171,13 @@ export type IndicatorCreateResponse = z.infer<typeof indicatorCreateResponseSche
 export type IndicatorCreateError = z.infer<typeof indicatorCreateErrorSchema>;
 export type IndicatorUpdateError = z.infer<typeof indicatorUpdateErrorSchema>;
 
-/** Where one task on an indicator's task list stands. */
-export const indicatorTaskStatusSchema = z.enum(['not_started', 'completed']);
+/** Where one task on an indicator's task list stands; only the data table is ever in progress. */
+export const indicatorTaskStatusSchema = z.enum(['not_started', 'in_progress', 'completed']);
 
-/** The tasks the API judges. */
+/** The tasks the API judges: the name, the data table and each section. */
 export const indicatorTaskKeySchema = z.enum([
   'name',
+  'data-table',
   'definition-and-rationale',
   'polarity',
   'data-quality',
@@ -236,6 +237,7 @@ export type IndicatorTaskStatuses = z.infer<typeof indicatorTaskStatusesSchema>;
 export type IndicatorTaskList = z.infer<typeof indicatorTaskListSchema>;
 export type IndicatorTaskListError = z.infer<typeof indicatorTaskListErrorSchema>;
 
+export * from './data-upload-contract.ts';
 export * from './indicator-benchmarking-contract.ts';
 export * from './indicator-calculation-contract.ts';
 export * from './indicator-confidence-intervals-contract.ts';

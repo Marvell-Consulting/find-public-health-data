@@ -108,8 +108,9 @@ describe('internal API', () => {
     '/api/internal/tags',
     '/api/internal/data-providers',
     '/api/internal/value-types-and-units',
+    '/api/internal/indicators/00000000-0000-7000-8000-000000000001/data-uploads/latest',
     ...indicatorTaskKeySchema.options
-      .filter((key) => key !== 'name')
+      .filter((key) => key !== 'name' && key !== 'data-table')
       .map((key) => `/api/internal/indicators/00000000-0000-7000-8000-000000000001/${key}`),
   ])('mounts %s behind the publisher role', async (path) => {
     const internalRepositories = createFakeInternalRepositories({
@@ -128,6 +129,10 @@ describe('internal API', () => {
         }),
       },
       dataProviders: { list: async () => [] },
+      dataUploads: {
+        findDraftId: async () => '00000000-0000-7000-8000-000000000002',
+        findLatest: async () => undefined,
+      },
       valueTypesAndUnits: { listOptions: async () => ({ valueTypes: [], units: [] }) },
     });
     const app = createTestApp(createFakeRepositories(), internalRepositories);

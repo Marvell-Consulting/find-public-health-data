@@ -6,6 +6,7 @@ export const {
   host,
   port,
   apiUrl,
+  apiUploadTimeoutMs,
   trustedProxyHops,
   log,
   session,

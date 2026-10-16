@@ -96,19 +96,24 @@ describe('IndicatorTaskListPage', () => {
     expect(status?.textContent).toBe('Not started');
   });
 
-  it('shows a task with no form yet as not started, without a link', () => {
-    renderPage();
+  it('links the data table to its upload page, with the status the API reports', () => {
+    renderPage({ tasks: { ...taskList.tasks, 'data-table': 'in_progress' } });
 
-    const dataTable = group('Data').getByText('Data table');
+    const dataTable = group('Data').getByRole('link', { name: 'Data table' });
 
-    expect(screen.queryByRole('link', { name: 'Data table' })).toBeNull();
-    expect(dataTable.closest('li')?.textContent).toContain('Not started');
+    expect(dataTable.getAttribute('href')).toBe(
+      `/publish/indicators/${taskList.indicator.id}/data-table`,
+    );
+    expect(
+      document.getElementById(dataTable.getAttribute('aria-describedby') ?? '')?.textContent,
+    ).toBe('Incomplete');
   });
 
-  it('links only the tasks that can be worked on today', () => {
+  it('links every task to the page that completes it', () => {
     renderPage();
 
     expect(screen.getAllByRole('link').map((link) => link.textContent)).toEqual([
+      'Data table',
       'Value type and units',
       'Sex and ages',
       'Period type',

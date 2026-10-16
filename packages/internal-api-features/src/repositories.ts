@@ -1,8 +1,20 @@
+import type { Readable } from 'node:stream';
+
 import { type Database, listTopics, type Topic } from '@fphd/db';
 
 import { type CiMethodRow, getCiMethodById, listCiMethods } from './ci-method-repository.ts';
 import type { TagOptions, ValueTypeAndUnitOptions } from './contract.ts';
 import { type DataProviderRow, listDataProviders } from './data-provider-repository.ts';
+import {
+  type DataUpload,
+  type ProcessDataUploadResult,
+  processDataUpload,
+} from './data-upload-load-repository.ts';
+import {
+  findDraftVersionId,
+  getLatestDataUpload,
+  type LatestDataUploadRow,
+} from './data-upload-repository.ts';
 import {
   type CreateIndicatorDraftResult,
   createIndicatorDraft,
@@ -82,6 +94,18 @@ export interface InternalDataProviderRepository {
   list(): Promise<DataProviderRow[]>;
 }
 
+/** A draft's data table uploads: loading a stored file, and the outcome of the latest. */
+export interface InternalDataUploadRepository {
+  /** The indicator's draft version id, null without a draft, undefined with no indicator. */
+  findDraftId(indicatorId: string): Promise<string | null | undefined>;
+  findLatest(draftId: string): Promise<LatestDataUploadRow | undefined>;
+  process(
+    upload: DataUpload,
+    openFile: () => Promise<Readable>,
+    signal: AbortSignal,
+  ): Promise<ProcessDataUploadResult>;
+}
+
 /** The value types and units a publisher chooses from. */
 export interface InternalValueTypeAndUnitRepository {
   listOptions(): Promise<ValueTypeAndUnitOptions>;
@@ -94,6 +118,7 @@ export interface InternalValueTypeAndUnitRepository {
 export interface InternalRepositories {
   ciMethods: InternalCiMethodRepository;
   dataProviders: InternalDataProviderRepository;
+  dataUploads: InternalDataUploadRepository;
   indicators: InternalIndicatorRepository;
   tags: InternalTagRepository;
   topics: InternalTopicRepository;
@@ -108,6 +133,11 @@ export function createInternalRepositories(db: Database): InternalRepositories {
     },
     dataProviders: {
       list: () => listDataProviders(db),
+    },
+    dataUploads: {
+      findDraftId: (indicatorId) => findDraftVersionId(db, indicatorId),
+      findLatest: (draftId) => getLatestDataUpload(db, draftId),
+      process: (upload, openFile, signal) => processDataUpload(db, upload, openFile, signal),
     },
     indicators: {
       listPage: (page, pageSize) => listIndicatorsPage(db, page, pageSize),
