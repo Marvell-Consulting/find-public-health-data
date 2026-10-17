@@ -76,7 +76,8 @@ export interface YearEnd {
   month: number;
 }
 
-function monthName(month: number): string {
+/** A month's name, from its number (1 for January). */
+export function monthName(month: number): string {
   const name = MONTH_NAMES[month - 1];
   if (name === undefined) throw new Error(`Not a month: ${month}`);
   return name;

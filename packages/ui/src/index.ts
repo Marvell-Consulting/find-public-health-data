@@ -56,4 +56,5 @@ export { NonceProvider, useNonce } from './nonce.tsx';
 export { RootErrorBoundary } from './root-error-boundary.tsx';
 export { SearchField } from './search-field.tsx';
 export { searchPattern } from './search-pattern.ts';
+export { TableScrollRegion } from './table-scroll-region.tsx';
 export { Tabs } from './tabs.tsx';

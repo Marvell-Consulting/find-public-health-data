@@ -3,6 +3,7 @@ import type { BlobStorage } from '@fphd/internal-storage';
 import { Router } from 'express';
 import { internalCiMethodsRouter } from './ci-methods.ts';
 import { internalDataProvidersRouter } from './data-providers.ts';
+import { dataTableCheckRouter } from './data-table-check.ts';
 import { dataUploadsRouter } from './data-uploads.ts';
 import { indicatorSectionsRouter } from './indicator-sections.ts';
 import { internalIndicatorsRouter } from './indicators.ts';
@@ -33,6 +34,7 @@ export function internalApiRoutes({
   router.use(internalIndicatorsRouter(repositories.indicators, session));
   router.use(indicatorSectionsRouter(repositories, session));
   router.use(dataUploadsRouter(repositories.dataUploads, storage, session));
+  router.use(dataTableCheckRouter(repositories.dataUploads, session));
   router.use(internalCiMethodsRouter(repositories.ciMethods, session));
   router.use(internalTagsRouter(repositories.tags, session));
   router.use(internalDataProvidersRouter(repositories.dataProviders, session));

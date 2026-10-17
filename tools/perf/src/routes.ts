@@ -1,3 +1,5 @@
+import { DATA_TABLE_DRAFT } from './fixtures.ts';
+
 export type App = 'public-web' | 'internal-web' | 'public-api' | 'internal-api';
 
 export type Route = {
@@ -26,8 +28,14 @@ const DIABETES = { shortId: 241, id: '01a00ab4-ce0a-70c1-b22b-f8192c94a59d' };
 const DIABETES_SLUG = 'diabetes-qof-prevalence';
 const MORTALITY_SLUG = 'under-75-mortality-rate-from-all-causes';
 const AREAS = ['E92000001', 'E08000003', 'E07000223', 'E07000032', 'E06000047'];
+const DATA_TABLE = `/api/internal/indicators/${DATA_TABLE_DRAFT.indicatorId}/data-table`;
+// The deepest page the API reads from the start: the last whose first row is in the first half.
+const DEEPEST_DATA_TABLE_PAGE = `page=${Math.floor(DATA_TABLE_DRAFT.rowCount / 2 / 50) + 1}&rowsPerPage=50`;
 
-/** Read-only GETs over the seeded data: the common pages and the heaviest queries behind them. */
+/**
+ * Read-only GETs over the seeded data, and the draft data table the fixture adds: the common pages
+ * and the heaviest queries behind them.
+ */
 export const ROUTES: Route[] = [
   { app: 'public-web', path: '/', limitMs: 500 },
   { app: 'public-web', path: '/search?q=mortality', limitMs: 500 },
@@ -46,6 +54,11 @@ export const ROUTES: Route[] = [
   { app: 'internal-web', path: '/dashboard', limitMs: 500 },
   { app: 'internal-web', path: `/dashboard/indicators/${DIABETES.id}`, limitMs: 500 },
   { app: 'internal-web', path: '/manage/topics', limitMs: 500 },
+  {
+    app: 'internal-web',
+    path: `/publish/indicators/${DATA_TABLE_DRAFT.indicatorId}/data-table/check`,
+    limitMs: 500,
+  },
 
   { app: 'public-api', path: '/api/topics', limitMs: 250 },
   { app: 'public-api', path: '/api/indicators?q=mortality', limitMs: 250 },
@@ -67,4 +80,6 @@ export const ROUTES: Route[] = [
   { app: 'internal-api', path: '/api/internal/indicators', limitMs: 250 },
   { app: 'internal-api', path: `/api/internal/indicators/${DIABETES.id}`, limitMs: 250 },
   { app: 'internal-api', path: '/api/internal/topics', limitMs: 250 },
+  { app: 'internal-api', path: DATA_TABLE, limitMs: 250 },
+  { app: 'internal-api', path: `${DATA_TABLE}?${DEEPEST_DATA_TABLE_PAGE}`, limitMs: 250 },
 ];

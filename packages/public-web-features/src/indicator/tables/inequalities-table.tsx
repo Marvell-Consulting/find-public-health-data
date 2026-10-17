@@ -1,9 +1,9 @@
+import { periodLabel } from '@fphd/utils/period-label';
 import {
   type ConfidenceLevel,
   confidenceInterval,
   formatCalculatedValue,
   inequalityCategoryLabel,
-  periodLabel,
   segmentLabel,
   unitNote,
 } from '../data.ts';
