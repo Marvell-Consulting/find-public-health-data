@@ -157,7 +157,9 @@ jobs:
   # One Slack message per run, never one per matrix leg. Per-app conclusions come
   # from the jobs API because needs.publish.result collapses the matrix to one
   # value — and the partial publish (fail-fast: false) is the case worth spelling
-  # out, since the registry is then a mixed set under `latest`.
+  # out, since the registry is then a mixed set under `latest`. The API can lag
+  # the run, reporting a finished leg's conclusion as null, so the step waits for
+  # it and then falls back on needs.publish.result.
   notify:
     name: Notify publish outcome
     needs: [publish]
@@ -174,11 +176,29 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          PUBLISH_RESULT: ${{ needs.publish.result }}
         run: |
-          jobs=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" \
-            --jq '[.jobs[] | select(.name | startswith("Publish ")) | {app: (.name | ltrimstr("Publish ")), conclusion}]')
+          for attempt in 1 2 3 4 5 6; do
+            jobs=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" \
+              --jq '[.jobs[] | select(.name | startswith("Publish ")) | {app: (.name | ltrimstr("Publish ")), conclusion}]')
+            if ! jq --exit-status 'any(.[]; .conclusion == null)' <<<"${jobs}" > /dev/null; then
+              break
+            fi
+            if [ "${attempt}" -lt 6 ]; then
+              sleep 5
+            fi
+          done
+          # needs.publish.result is success only when every leg succeeded, so it settles a
+          # leg the API never reported; any other result leaves that leg unknown.
+          if [ "${PUBLISH_RESULT}" = success ]; then
+            fallback=success
+          else
+            fallback=unknown
+          fi
+          jobs=$(jq --arg fallback "${fallback}" 'map(.conclusion //= $fallback)' <<<"${jobs}")
           total=$(jq length <<<"${jobs}")
           published=$(jq '[.[] | select(.conclusion == "success")] | length' <<<"${jobs}")
+          unknown=$(jq '[.[] | select(.conclusion == "unknown")] | length' <<<"${jobs}")
           if [ "${total}" -eq 0 ]; then
             echo '::error::found no publish jobs in this run'
             exit 1
@@ -186,6 +206,8 @@ jobs:
           mixed=''
           if [ "${published}" -eq "${total}" ]; then
             headline=":white_check_mark: Published all ${total} images"
+          elif [ "${unknown}" -gt 0 ]; then
+            headline=":warning: Publish ${PUBLISH_RESULT} — ${published}/${total} confirmed published"
           elif [ "${published}" -eq 0 ]; then
             headline=":x: Publish failed — no images pushed"
           else
