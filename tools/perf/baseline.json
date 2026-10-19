@@ -1,9 +1,9 @@
 {
   "internal-api /api/internal/indicators": {
     "statements": 2,
-    "buffers": 23,
+    "buffers": 105,
     "rows": 11,
-    "bytes": 2015
+    "bytes": 3371
   },
   "internal-api /api/internal/indicators/01a00000-0000-7000-8000-0000000f4040/data-table": {
     "statements": 5,
@@ -31,9 +31,9 @@
   },
   "internal-web /dashboard": {
     "statements": 2,
-    "buffers": 23,
+    "buffers": 105,
     "rows": 11,
-    "bytes": 37992
+    "bytes": 40776
   },
   "internal-web /dashboard/indicators/01a00ab4-ce0a-70c1-b22b-f8192c94a59d": {
     "statements": 1,
