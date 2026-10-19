@@ -157,10 +157,17 @@ export const indicatorFieldErrorsSchema = z.partialRecord(indicatorFieldSchema, 
 /** A created or renamed indicator reads the same as one fetched by id. */
 export const indicatorCreateResponseSchema = indicatorAdminDetailSchema;
 
-export const indicatorCreateErrorSchema = z.object({
-  error: z.enum(['validation_failed', 'slug_taken']),
-  fieldErrors: indicatorFieldErrorsSchema,
-});
+/**
+ * The 400 and 409 answers. A missing or malformed team names no field: the name page never asks
+ * for one.
+ */
+export const indicatorCreateErrorSchema = z.discriminatedUnion('error', [
+  z.object({ error: z.literal('invalid_team') }),
+  z.object({
+    error: z.enum(['validation_failed', 'slug_taken']),
+    fieldErrors: indicatorFieldErrorsSchema,
+  }),
+]);
 
 /**
  * The 400 and 409 answers. A refused value is always named; only a bad id names no field. A

@@ -275,15 +275,27 @@ describe('POST /api/internal/indicators', () => {
 
   it.each([
     ['names no team', { name: 'A new indicator' }],
-    ['names a team the publisher is not in', { name: 'A new indicator', teamId: OTHER_TEAM_ID }],
     ['names a team that is not a UUID', { name: 'A new indicator', teamId: 'team-a' }],
-  ])('refuses a creation that %s, without creating anything', async (_case, body) => {
+  ])('rejects a creation that %s, without creating anything', async (_case, body) => {
     const createDraft = vi.fn();
 
     const response = await request(createTestApp({ createDraft }))
       .post('/api/internal/indicators')
       .set('Cookie', await publisherCookie())
       .send(body);
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'invalid_team' });
+    expect(createDraft).not.toHaveBeenCalled();
+  });
+
+  it('refuses a creation in a team the publisher is not in, without creating anything', async () => {
+    const createDraft = vi.fn();
+
+    const response = await request(createTestApp({ createDraft }))
+      .post('/api/internal/indicators')
+      .set('Cookie', await publisherCookie())
+      .send({ name: 'A new indicator', teamId: OTHER_TEAM_ID });
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({ error: 'forbidden' });

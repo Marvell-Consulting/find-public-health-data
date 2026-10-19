@@ -96,9 +96,16 @@ export function internalIndicatorsRouter(
 
   router.post('/api/internal/indicators', requirePublisher, async (request, response) => {
     const session = requireApiSession(response);
-    const teamId = indicatorTeamSchema.safeParse(request.body).data?.teamId;
+    const team = indicatorTeamSchema.safeParse(request.body);
 
-    if (teamId === undefined || !canCreateIndicatorInTeam(session, teamId)) {
+    if (!team.success) {
+      response.status(400).json({ error: 'invalid_team' });
+      return;
+    }
+
+    const { teamId } = team.data;
+
+    if (!canCreateIndicatorInTeam(session, teamId)) {
       response.status(403).json({ error: 'forbidden' });
       return;
     }
