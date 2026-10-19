@@ -15,6 +15,11 @@
       "types": "./src/operations.ts",
       "default": "./dist/operations.js"
     },
+    "./audit-log": {
+      "development": "./src/audit-log.ts",
+      "types": "./src/audit-log.ts",
+      "default": "./dist/audit-log.js"
+    },
     "./testing": {
       "development": "./src/testing.ts",
       "types": "./src/testing.ts",
