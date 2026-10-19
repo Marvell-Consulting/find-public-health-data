@@ -1,4 +1,5 @@
 import { type Database, schema } from '@fphd/db';
+import type { Actor } from '@fphd/db/audit-log';
 import { eq, sql } from 'drizzle-orm';
 
 const { indicatorVersionTopic, topic } = schema;
@@ -51,7 +52,7 @@ export async function updateTopic(
   db: Database,
   id: string,
   { description, slug, title }: TopicUpdate,
-  actor: string,
+  actor: Actor,
 ): Promise<UpdateTopicResult> {
   const update = { description, slug, title };
 
@@ -65,7 +66,7 @@ export async function updateTopic(
       // Named columns only: the id and creation timestamp stay the database's to set.
       const [updated] = await tx
         .update(topic)
-        .set({ ...update, updatedAt: sql`now()`, updatedBy: actor })
+        .set({ ...update, updatedAt: sql`now()`, updatedBy: actor.userId })
         .where(eq(topic.id, id))
         .returning();
 
@@ -86,12 +87,12 @@ export async function updateTopic(
 export async function createTopic(
   db: Database,
   { description, slug, title }: TopicUpdate,
-  actor: string,
+  actor: Actor,
 ): Promise<CreateTopicResult> {
   try {
     const [created] = await db
       .insert(topic)
-      .values({ description, slug, title, createdBy: actor, updatedBy: actor })
+      .values({ description, slug, title, createdBy: actor.userId, updatedBy: actor.userId })
       .returning();
 
     if (created === undefined) throw new Error('createTopic inserted no row');

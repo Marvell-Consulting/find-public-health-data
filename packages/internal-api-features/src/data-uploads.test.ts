@@ -19,7 +19,7 @@ import {
   createRouterTestApp,
   handlerLogLines,
   inTestTeam,
-  TEST_USER_ID,
+  testActor,
   testSessionCookie,
   testSessionVerifier,
 } from './testing.ts';
@@ -141,7 +141,7 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
       originalFilename: 'life.csv',
       byteSize: Buffer.byteLength(CSV),
       sha256: expect.stringMatching(/^[0-9a-f]{64}$/),
-      actor: TEST_USER_ID,
+      actor: testActor(response),
     });
     expect(content).toBe(CSV);
   });

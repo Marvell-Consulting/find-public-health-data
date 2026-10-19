@@ -15,6 +15,8 @@ import { getIndicatorById } from './indicator-list-repository.ts';
 import { createDraftFromPublished } from './indicator-publish-repository.ts';
 import {
   ACTOR,
+  AS_ACTOR,
+  AS_OTHER_ACTOR,
   ciMethodId,
   indicatorWithTwoPublications,
   newDraft,
@@ -99,7 +101,7 @@ describe('createIndicatorDraft', () => {
     const created = await createIndicatorDraft(
       db,
       { name: 'A Team B indicator' },
-      ACTOR,
+      AS_ACTOR,
       TEAM_IDS.teamB,
     );
     if (!created.ok) throw new Error('createIndicatorDraft refused the name');
@@ -116,7 +118,7 @@ describe('createIndicatorDraft', () => {
     await newDraft(db, 'A contested name');
 
     await expect(
-      createIndicatorDraft(db, { name: 'A contested name' }, ACTOR, TEAM_IDS.teamA),
+      createIndicatorDraft(db, { name: 'A contested name' }, AS_ACTOR, TEAM_IDS.teamA),
     ).resolves.toEqual({
       ok: false,
       reason: 'slug_taken',
@@ -125,7 +127,7 @@ describe('createIndicatorDraft', () => {
 
   repositoryTest('waits for another writer of the slug, then creates', async ({ db }) => {
     const result = await writeWhileSlugHeld(db, 'a-held-name', () =>
-      createIndicatorDraft(db, { name: 'A held name' }, ACTOR, TEAM_IDS.teamA),
+      createIndicatorDraft(db, { name: 'A held name' }, AS_ACTOR, TEAM_IDS.teamA),
     );
 
     expect(result).toMatchObject({ ok: true });
@@ -135,7 +137,7 @@ describe('createIndicatorDraft', () => {
     const result = await writeWhileSlugHeld(
       db,
       'a-name-created-twice',
-      () => createIndicatorDraft(db, { name: 'A name created twice' }, ACTOR, TEAM_IDS.teamA),
+      () => createIndicatorDraft(db, { name: 'A name created twice' }, AS_ACTOR, TEAM_IDS.teamA),
       async (tx) => {
         const [identity] = await tx.insert(indicator).values({}).returning({ id: indicator.id });
         if (!identity) throw new Error('inserted no indicator');
@@ -166,7 +168,7 @@ describe('updateIndicatorDraft', () => {
       created.indicatorId,
       { name: 'After', definition: 'A definition' },
       { topicIds: [topic.id], classificationIds: { indicator_type: [classified.id] } },
-      OTHER_ACTOR,
+      AS_OTHER_ACTOR,
     );
 
     expect(result).toEqual({ ok: true });
@@ -182,7 +184,7 @@ describe('updateIndicatorDraft', () => {
     });
     expect(await storedTopicIdsOf(db, created.versionId)).toEqual([topic.id]);
 
-    await updateIndicatorDraft(db, created.indicatorId, {}, { topicIds: [] }, ACTOR);
+    await updateIndicatorDraft(db, created.indicatorId, {}, { topicIds: [] }, AS_ACTOR);
 
     expect(await storedTopicIdsOf(db, created.versionId)).toEqual([]);
   });
@@ -190,7 +192,7 @@ describe('updateIndicatorDraft', () => {
   repositoryTest('re-slugs a renamed draft', async ({ db }) => {
     const created = await newDraft(db, 'An early name');
 
-    await updateIndicatorDraft(db, created.indicatorId, { name: 'A later name' }, {}, ACTOR);
+    await updateIndicatorDraft(db, created.indicatorId, { name: 'A later name' }, {}, AS_ACTOR);
 
     expect(await slugOf(db, created.versionId)).toBe('a-later-name');
   });
@@ -202,10 +204,10 @@ describe('updateIndicatorDraft', () => {
         db,
         'Renamed after publication',
       );
-      const opened = await createDraftFromPublished(db, indicatorId, ACTOR);
+      const opened = await createDraftFromPublished(db, indicatorId, AS_ACTOR);
       if (!opened.ok) throw new Error('expected a draft');
 
-      await updateIndicatorDraft(db, indicatorId, { name: 'Renamed in the draft' }, {}, ACTOR);
+      await updateIndicatorDraft(db, indicatorId, { name: 'Renamed in the draft' }, {}, AS_ACTOR);
 
       expect(await slugOf(db, currentId)).toBe(currentSlug);
       expect(await slugOf(db, opened.versionId)).toBe(currentSlug);
@@ -220,10 +222,10 @@ describe('updateIndicatorDraft', () => {
     'refuses an unusable name even though a published indicator keeps its slug',
     async ({ db }) => {
       const { indicatorId } = await indicatorWithTwoPublications(db, 'Renamed unusably');
-      await createDraftFromPublished(db, indicatorId, ACTOR);
+      await createDraftFromPublished(db, indicatorId, AS_ACTOR);
 
       await expect(
-        updateIndicatorDraft(db, indicatorId, { name: '2024' }, {}, ACTOR),
+        updateIndicatorDraft(db, indicatorId, { name: '2024' }, {}, AS_ACTOR),
       ).rejects.toThrow('no usable slug');
     },
   );
@@ -233,7 +235,7 @@ describe('updateIndicatorDraft', () => {
     const created = await newDraft(db, 'A free name');
 
     await expect(
-      updateIndicatorDraft(db, created.indicatorId, { name: 'An occupied name' }, {}, ACTOR),
+      updateIndicatorDraft(db, created.indicatorId, { name: 'An occupied name' }, {}, AS_ACTOR),
     ).resolves.toEqual({ ok: false, reason: 'slug_taken' });
   });
 
@@ -246,7 +248,8 @@ describe('updateIndicatorDraft', () => {
       const result = await writeWhileSlugHeld(
         db,
         'a-name-both-want',
-        () => updateIndicatorDraft(db, second.indicatorId, { name: 'A name both want' }, {}, ACTOR),
+        () =>
+          updateIndicatorDraft(db, second.indicatorId, { name: 'A name both want' }, {}, AS_ACTOR),
         (tx) =>
           tx
             .update(indicatorVersion)
@@ -264,7 +267,7 @@ describe('updateIndicatorDraft', () => {
     const created = await newDraft(db, 'A name being left');
 
     const result = await writeWhileSlugHeld(db, 'a-name-being-left', () =>
-      updateIndicatorDraft(db, created.indicatorId, { name: 'A name moved to' }, {}, ACTOR),
+      updateIndicatorDraft(db, created.indicatorId, { name: 'A name moved to' }, {}, AS_ACTOR),
     );
 
     expect(result).toEqual({ ok: true });
@@ -274,7 +277,7 @@ describe('updateIndicatorDraft', () => {
   repositoryTest('holds all ages', async ({ db }) => {
     const created = await newDraft(db, 'All ages');
 
-    await updateIndicatorDraft(db, created.indicatorId, { ageType: 'all' }, {}, ACTOR);
+    await updateIndicatorDraft(db, created.indicatorId, { ageType: 'all' }, {}, AS_ACTOR);
 
     expect((await getIndicatorDraftState(db, created.indicatorId))?.draft?.ageType).toBe('all');
   });
@@ -304,7 +307,7 @@ describe('updateIndicatorDraft', () => {
     const created = await newDraft(db, `Refuses ${name}`);
 
     await expect(
-      updateIndicatorDraft(db, created.indicatorId, attributes, {}, ACTOR),
+      updateIndicatorDraft(db, created.indicatorId, attributes, {}, AS_ACTOR),
     ).rejects.toThrow();
   });
 
@@ -313,7 +316,7 @@ describe('updateIndicatorDraft', () => {
     async ({ db }) => {
       const { indicatorId, currentId, currentName, currentSlug } =
         await indicatorWithTwoPublications(db, 'Answered in a new draft');
-      const opened = await createDraftFromPublished(db, indicatorId, ACTOR);
+      const opened = await createDraftFromPublished(db, indicatorId, AS_ACTOR);
       if (!opened.ok) throw new Error('expected a draft');
       const [published] = await db
         .select()
@@ -325,7 +328,7 @@ describe('updateIndicatorDraft', () => {
         indicatorId,
         { definition: 'A new definition', rationale: 'A new rationale' },
         {},
-        OTHER_ACTOR,
+        AS_OTHER_ACTOR,
       );
 
       expect(result).toEqual({ ok: true });
@@ -355,7 +358,7 @@ describe('updateIndicatorDraft', () => {
         created.indicatorId,
         { methodology: 'A method', calculatedBy: 'other', calculatedByDetail: 'ONS' },
         {},
-        ACTOR,
+        AS_ACTOR,
       );
       const asOther = await getIndicatorDraftState(db, created.indicatorId);
       await updateIndicatorDraft(
@@ -363,7 +366,7 @@ describe('updateIndicatorDraft', () => {
         created.indicatorId,
         { calculatedBy: 'dhsc', calculatedByDetail: null },
         {},
-        ACTOR,
+        AS_ACTOR,
       );
       const asDhsc = await getIndicatorDraftState(db, created.indicatorId);
 
@@ -394,7 +397,7 @@ describe('updateIndicatorDraft', () => {
         ciMethodDetail: null,
       },
       {},
-      ACTOR,
+      AS_ACTOR,
     );
 
     expect(result).toEqual({ ok: true });
@@ -472,7 +475,7 @@ describe('updateIndicatorDraft', () => {
   ])('writes %s to the draft', async ([answers, attributes], { db }) => {
     const created = await newDraft(db, `Answered with ${answers}`);
 
-    const result = await updateIndicatorDraft(db, created.indicatorId, attributes, {}, ACTOR);
+    const result = await updateIndicatorDraft(db, created.indicatorId, attributes, {}, AS_ACTOR);
 
     expect(result).toEqual({ ok: true });
     const state = await getIndicatorDraftState(db, created.indicatorId);
@@ -489,7 +492,7 @@ describe('updateIndicatorDraft', () => {
         created.indicatorId,
         { hasDataQualityIssues: true },
         {},
-        ACTOR,
+        AS_ACTOR,
       );
       const yes = await getIndicatorDraftState(db, created.indicatorId);
       await updateIndicatorDraft(
@@ -497,7 +500,7 @@ describe('updateIndicatorDraft', () => {
         created.indicatorId,
         { hasDataQualityIssues: false },
         {},
-        ACTOR,
+        AS_ACTOR,
       );
       const no = await getIndicatorDraftState(db, created.indicatorId);
 
@@ -510,7 +513,7 @@ describe('updateIndicatorDraft', () => {
     const created = await newDraft(db, 'Draftless');
     await db.delete(indicatorVersion).where(eq(indicatorVersion.indicatorId, created.indicatorId));
 
-    await expect(updateIndicatorDraft(db, created.indicatorId, {}, {}, ACTOR)).resolves.toEqual({
+    await expect(updateIndicatorDraft(db, created.indicatorId, {}, {}, AS_ACTOR)).resolves.toEqual({
       ok: false,
       reason: 'no_draft',
     });
@@ -534,7 +537,7 @@ describe('getIndicatorDraftState', () => {
 
   repositoryTest('reports the published version behind a draft being revised', async ({ db }) => {
     const published = await indicatorWithTwoPublications(db, 'Being revised');
-    await createDraftFromPublished(db, published.indicatorId, ACTOR);
+    await createDraftFromPublished(db, published.indicatorId, AS_ACTOR);
 
     const state = await getIndicatorDraftState(db, published.indicatorId);
 
@@ -562,7 +565,7 @@ describe('getIndicatorDraftState', () => {
         created.indicatorId,
         { ciMethodId: await ciMethodId(db, 'No confidence intervals available') },
         {},
-        ACTOR,
+        AS_ACTOR,
       );
       const after = await getIndicatorDraftState(db, created.indicatorId);
 
@@ -580,7 +583,7 @@ describe('getIndicatorDraftState', () => {
       created.indicatorId,
       { scheduledPublishAt: new Date('2027-09-14T08:30:00.000Z') },
       {},
-      ACTOR,
+      AS_ACTOR,
     );
     const after = await getIndicatorDraftState(db, created.indicatorId);
 

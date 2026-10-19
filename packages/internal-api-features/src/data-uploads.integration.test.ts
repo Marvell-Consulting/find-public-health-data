@@ -19,7 +19,7 @@ import { cancellable, processDataUpload, stageRows } from './data-upload-load-re
 import { dataUploadsRouter } from './data-uploads.ts';
 import { updateIndicatorDraft } from './indicator-draft-repository.ts';
 import { createDraftFromPublished } from './indicator-publish-repository.ts';
-import { ACTOR, newDraft } from './indicator-repository.testing.ts';
+import { AS_ACTOR, newDraft } from './indicator-repository.testing.ts';
 import { createInternalRepositories } from './repositories.ts';
 import {
   createCapturingLogger,
@@ -464,7 +464,7 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
 
   it("keeps the published batch through an update draft's failed and loaded uploads", async () => {
     const indicatorId = await publishedWithoutDraft(2);
-    const draftResult = await createDraftFromPublished(internalDb, indicatorId, ACTOR);
+    const draftResult = await createDraftFromPublished(internalDb, indicatorId, AS_ACTOR);
     if (!draftResult.ok) throw new Error('expected an update draft');
     const publishedBatchId = (await draftOf(ownerDb, indicatorId)).uploadBatchId;
     if (publishedBatchId === null) throw new Error('the update draft copied no batch');
@@ -501,7 +501,7 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
       WHERE indicator_id = ${indicatorId} ORDER BY id`;
     const before = await ownerDb.execute(publishedRows);
     expect(before.length).toBeGreaterThan(0);
-    const draftResult = await createDraftFromPublished(internalDb, indicatorId, ACTOR);
+    const draftResult = await createDraftFromPublished(internalDb, indicatorId, AS_ACTOR);
     if (!draftResult.ok) throw new Error('expected an update draft');
     const publishedBatchId = (await draftOf(ownerDb, indicatorId)).uploadBatchId;
     if (publishedBatchId === null) throw new Error('the update draft copied no batch');
@@ -582,7 +582,7 @@ describe('processDataUpload', () => {
       originalFilename: 'data.csv',
       byteSize: Buffer.byteLength(VALID_CSV),
       sha256: '0'.repeat(64),
-      actor: ACTOR,
+      actor: AS_ACTOR,
     };
     return { indicatorId, batchId, blobName, upload };
   }
@@ -602,7 +602,13 @@ describe('processDataUpload', () => {
     const uploaded = processDataUpload(internalDb, upload, openFile, new AbortController().signal);
     await reached;
     const saved = await Promise.race([
-      updateIndicatorDraft(internalDb, indicatorId, { definition: 'Saved meanwhile' }, {}, ACTOR),
+      updateIndicatorDraft(
+        internalDb,
+        indicatorId,
+        { definition: 'Saved meanwhile' },
+        {},
+        AS_ACTOR,
+      ),
       new Promise((resolve) => setTimeout(() => resolve('blocked'), 2000)),
     ]);
     file.end(await text(await storage.get(blobName)));

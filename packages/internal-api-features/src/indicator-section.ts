@@ -1,4 +1,4 @@
-import { requireApiSession } from '@fphd/api-server';
+import { requireApiActor } from '@fphd/api-server';
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { Router } from 'express';
 
@@ -190,10 +190,10 @@ export function indicatorSectionRouter<
       return;
     }
 
-    const { sub } = requireApiSession(response);
+    const actor = requireApiActor(request, response);
     const attributes = columns.toAttributes(submission.data);
     const lists = columns.toLists?.(submission.data) ?? {};
-    const result = await indicators.updateDraft(id.data, attributes, lists, sub);
+    const result = await indicators.updateDraft(id.data, attributes, lists, actor);
 
     // With no name in the write there is no slug to collide on, so a refusal means no draft.
     if (!result.ok) {

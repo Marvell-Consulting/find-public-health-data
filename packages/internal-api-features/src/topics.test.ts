@@ -137,7 +137,7 @@ describe('POST /api/internal/topics', () => {
 
     await post(app, validSubmission);
 
-    expect(writer).toBe(TEST_USER_ID);
+    expect(writer).toEqual({ userId: TEST_USER_ID, requestId: null });
   });
 
   it('rejects an invalid submission with a field message', async () => {
@@ -266,7 +266,7 @@ describe('PUT /api/internal/topics/:id', () => {
 
     await put(app, validSubmission);
 
-    expect(writer).toBe(TEST_USER_ID);
+    expect(writer).toEqual({ userId: TEST_USER_ID, requestId: null });
   });
 
   it.each([

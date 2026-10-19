@@ -1,4 +1,5 @@
 import { type Database, schema } from '@fphd/db';
+import type { Actor } from '@fphd/db/audit-log';
 import { CLASSIFICATION_DIMENSIONS } from '@fphd/utils/classification-dimension';
 import { eq, getTableColumns, sql } from 'drizzle-orm';
 
@@ -24,7 +25,7 @@ export type CreateDraftFromPublishedResult =
 export async function createDraftFromPublished(
   db: Database,
   indicatorId: string,
-  actor: string,
+  actor: Actor,
 ): Promise<CreateDraftFromPublishedResult> {
   try {
     // Copy publication attributes and lists from the same snapshot during a refresh.
@@ -57,8 +58,8 @@ export async function createDraftFromPublished(
             publishedAt: null,
             // A new version is published when its own publisher says.
             scheduledPublishAt: null,
-            createdBy: actor,
-            updatedBy: actor,
+            createdBy: actor.userId,
+            updatedBy: actor.userId,
           })
           .returning({ id: indicatorVersion.id });
 

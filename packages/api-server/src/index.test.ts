@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest';
 import {
   addFallbackHandlers,
   createApiApp,
+  requireApiActor,
   requireApiSession,
   requireJwtRole,
   requireJwtSession,
@@ -267,5 +268,36 @@ describe('requireApiSession', () => {
     const response = await request(createGuardedApp()).get('/unguarded');
 
     expect(response.status).toBe(500);
+  });
+});
+
+describe('requireApiActor', () => {
+  it("gives the signed-in user and the request's id", async () => {
+    const app = createApiApp({ logger, serviceName: 'test-api' });
+    app.get('/acting', requireJwtRole(verifier, 'publisher'), (request, response) => {
+      response.status(200).json(requireApiActor(request, response));
+    });
+
+    const response = await request(app)
+      .get('/acting')
+      .set('Cookie', await cookieFor('user-1', ['publisher']));
+
+    expect(response.body).toEqual({
+      userId: 'user-1',
+      requestId: response.headers['x-fphd-request-id'],
+    });
+  });
+
+  it('gives no request id where nothing assigned one', async () => {
+    const app = express();
+    app.get('/acting', requireJwtRole(verifier, 'publisher'), (request, response) => {
+      response.status(200).json(requireApiActor(request, response));
+    });
+
+    const response = await request(app)
+      .get('/acting')
+      .set('Cookie', await cookieFor('user-1', ['publisher']));
+
+    expect(response.body).toEqual({ userId: 'user-1', requestId: null });
   });
 });

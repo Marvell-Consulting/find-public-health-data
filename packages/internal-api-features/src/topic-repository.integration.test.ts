@@ -8,6 +8,7 @@ import {
   resolveDbTls,
   schema,
 } from '@fphd/db';
+import type { Actor } from '@fphd/db/audit-log';
 import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -32,6 +33,7 @@ let topicCount = 0;
 const UNKNOWN_ID = '00000000-0000-7000-8000-0000000000ff';
 const ACTOR = FAKE_USER_IDS.admin;
 const OTHER_ACTOR = FAKE_USER_IDS.imrgManager;
+const AS_ACTOR: Actor = { userId: ACTOR, requestId: null };
 
 /** A distinct row per test, so no test depends on another having run (or not run) first. */
 async function givenTopic() {
@@ -96,7 +98,7 @@ describe('updateTopic', () => {
       const topic = await givenTopic();
       const before = await getTopicById(db, topic.id);
 
-      const result = await updateTopic(db, topic.id, { ...topic, ...change }, ACTOR);
+      const result = await updateTopic(db, topic.id, { ...topic, ...change }, AS_ACTOR);
 
       expect(result).toMatchObject({ ok: true, changed: true, topic: change });
 
@@ -112,7 +114,7 @@ describe('updateTopic', () => {
     const topic = await givenTopic();
     const before = await getTopicById(db, topic.id);
 
-    const result = await updateTopic(db, topic.id, topic, ACTOR);
+    const result = await updateTopic(db, topic.id, topic, AS_ACTOR);
 
     expect(result).toMatchObject({ ok: true, changed: false });
     expect(await getTopicById(db, topic.id)).toMatchObject({
@@ -123,7 +125,7 @@ describe('updateTopic', () => {
 
   it('reports an unknown id rather than throwing', async () => {
     expect(
-      await updateTopic(db, UNKNOWN_ID, { slug: 's', title: 't', description: 'd' }, ACTOR),
+      await updateTopic(db, UNKNOWN_ID, { slug: 's', title: 't', description: 'd' }, AS_ACTOR),
     ).toEqual({
       ok: false,
       reason: 'not_found',
@@ -134,7 +136,7 @@ describe('updateTopic', () => {
     const target = await givenTopic();
     const other = await givenTopic();
 
-    const result = await updateTopic(db, target.id, { ...target, slug: other.slug }, ACTOR);
+    const result = await updateTopic(db, target.id, { ...target, slug: other.slug }, AS_ACTOR);
 
     expect(result).toEqual({ ok: false, reason: 'slug_taken' });
     expect(await getTopicById(db, target.id)).toMatchObject(target);
@@ -151,7 +153,7 @@ describe('createTopic', () => {
         title: 'A new topic',
         description: 'Freshly created.',
       },
-      ACTOR,
+      AS_ACTOR,
     );
 
     expect(result).toMatchObject({
@@ -180,7 +182,7 @@ describe('createTopic', () => {
         title: 'Different title',
         description: 'Different description.',
       },
-      ACTOR,
+      AS_ACTOR,
     );
 
     expect(result).toEqual({ ok: false, reason: 'slug_taken' });
@@ -240,7 +242,7 @@ describe('the topic write surface', () => {
           title: 'Internal API create',
           description: 'Created by the API role.',
         },
-        ACTOR,
+        AS_ACTOR,
       );
 
       expect(created).toMatchObject({ ok: true, topic: { slug: 'internal-api-create' } });

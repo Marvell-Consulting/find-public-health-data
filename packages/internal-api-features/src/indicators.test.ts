@@ -14,6 +14,7 @@ import {
   inTestTeam,
   TEST_TEAM_ID,
   TEST_USER_ID,
+  testActor,
   testSessionCookie,
   testSessionVerifier,
   unansweredDraft,
@@ -313,7 +314,7 @@ describe('POST /api/internal/indicators', () => {
     expect(response.status).toBe(201);
     expect(createDraft).toHaveBeenCalledWith(
       { name: 'Life expectancy at birth' },
-      TEST_USER_ID,
+      testActor(response),
       OTHER_TEAM_ID,
     );
   });
@@ -330,7 +331,7 @@ describe('POST /api/internal/indicators', () => {
     expect(response.status).toBe(201);
     expect(createDraft).toHaveBeenCalledWith(
       { name: 'Life expectancy at birth' },
-      TEST_USER_ID,
+      testActor(response),
       TEAM_ID,
     );
     expect(response.body).toEqual({
@@ -348,14 +349,14 @@ describe('POST /api/internal/indicators', () => {
   it('stores the name without its surrounding spaces', async () => {
     const createDraft = vi.fn().mockResolvedValue(created);
 
-    await request(createTestApp({ createDraft, findById: async () => draftRow }))
+    const response = await request(createTestApp({ createDraft, findById: async () => draftRow }))
       .post('/api/internal/indicators')
       .set('Cookie', await publisherCookie())
       .send({ name: '  Life expectancy at birth  ', teamId: TEAM_ID });
 
     expect(createDraft).toHaveBeenCalledWith(
       { name: 'Life expectancy at birth' },
-      TEST_USER_ID,
+      testActor(response),
       TEAM_ID,
     );
   });
@@ -468,7 +469,12 @@ describe('PATCH /api/internal/indicators/:id', () => {
       .send({ name: '  A better name  ' });
 
     expect(response.status).toBe(200);
-    expect(updateDraft).toHaveBeenCalledWith(row.id, { name: 'A better name' }, {}, TEST_USER_ID);
+    expect(updateDraft).toHaveBeenCalledWith(
+      row.id,
+      { name: 'A better name' },
+      {},
+      testActor(response),
+    );
     expect(response.body).toEqual({
       id: row.id,
       shortId: 90366,

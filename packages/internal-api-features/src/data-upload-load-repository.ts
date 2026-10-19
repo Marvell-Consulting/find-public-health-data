@@ -2,6 +2,7 @@ import { type Readable, Writable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
 import { type Database, dimensionKey } from '@fphd/db';
+import type { Actor } from '@fphd/db/audit-log';
 import type { PendingQuery, TransactionSql } from 'postgres';
 
 import { type DataTableEvent, readDataTable } from './data-table.ts';
@@ -22,7 +23,7 @@ export interface DataUpload {
   originalFilename: string;
   byteSize: number;
   sha256: string;
-  actor: string;
+  actor: Actor;
 }
 
 export type ProcessDataUploadResult = (
@@ -151,7 +152,7 @@ async function loadInTransaction(
       INSERT INTO upload_batch
         (id, indicator_id, indicator_version_id, original_filename, uploaded_by, blob_name, byte_size, sha256)
       VALUES (${upload.batchId}, ${upload.indicatorId}, ${draft.id}, ${upload.originalFilename},
-        ${upload.actor}, ${upload.blobName}, ${upload.byteSize}, ${upload.sha256})`;
+        ${upload.actor.userId}, ${upload.blobName}, ${upload.byteSize}, ${upload.sha256})`;
 
     const staged = await time('stageMs', async () =>
       stageRows(tx, readDataTable(await openFile(), references), signal),
@@ -185,7 +186,7 @@ async function loadInTransaction(
     const pointed = await tx`
       UPDATE indicator_version
       SET upload_batch_id = ${upload.batchId}, data_table_confirmed_at = NULL,
-        updated_at = now(), updated_by = ${upload.actor}
+        updated_at = now(), updated_by = ${upload.actor.userId}
       WHERE id = ${draft.id} AND status = 'draft'`;
     if (pointed.count === 0) throw new DraftGoneError();
 

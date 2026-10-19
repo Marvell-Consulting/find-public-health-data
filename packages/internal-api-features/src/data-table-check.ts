@@ -1,4 +1,4 @@
-import { requireApiSession } from '@fphd/api-server';
+import { requireApiActor } from '@fphd/api-server';
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { Router } from 'express';
 
@@ -83,9 +83,9 @@ export function dataTableCheckRouter(
         return;
       }
 
-      const { sub } = requireApiSession(response);
+      const actor = requireApiActor(request, response);
       const { batchId } = submission.data;
-      const result = await dataUploads.confirm(id.data, batchId, sub);
+      const result = await dataUploads.confirm(id.data, batchId, actor);
 
       if (!result.ok) {
         if (result.reason === 'data_table_changed') {

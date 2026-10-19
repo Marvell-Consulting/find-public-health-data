@@ -2,6 +2,7 @@ import type { Readable } from 'node:stream';
 import type { IndicatorListScope } from '@fphd/auth/permissions';
 
 import { type Database, listTopics, type Topic } from '@fphd/db';
+import type { Actor } from '@fphd/db/audit-log';
 
 import { type CiMethodRow, getCiMethodById, listCiMethods } from './ci-method-repository.ts';
 import type { TagOptions, ValueTypeAndUnitOptions } from './contract.ts';
@@ -65,8 +66,8 @@ import { listValueTypeAndUnitOptions } from './value-type-and-unit-repository.ts
 export interface InternalTopicRepository {
   list(): Promise<Topic[]>;
   findById(id: string): Promise<TopicRow | undefined>;
-  create(values: TopicUpdate, actor: string): Promise<CreateTopicResult>;
-  update(id: string, values: TopicUpdate, actor: string): Promise<UpdateTopicResult>;
+  create(values: TopicUpdate, actor: Actor): Promise<CreateTopicResult>;
+  update(id: string, values: TopicUpdate, actor: Actor): Promise<UpdateTopicResult>;
   delete(id: string): Promise<DeleteTopicResult>;
 }
 
@@ -80,17 +81,17 @@ export interface InternalIndicatorRepository {
   findDraftState(id: string): Promise<IndicatorDraftStateRow | undefined>;
   createDraft(
     attributes: NewIndicatorDraftAttributes,
-    actor: string,
+    actor: Actor,
     teamId: string,
   ): Promise<CreateIndicatorDraftResult>;
   updateDraft(
     indicatorId: string,
     attributes: IndicatorDraftAttributes,
     lists: IndicatorDraftLists,
-    actor: string,
+    actor: Actor,
   ): Promise<UpdateIndicatorDraftResult>;
   /** Opens a draft from the published version, copying its columns and lists. */
-  draftFromPublished(indicatorId: string, actor: string): Promise<CreateDraftFromPublishedResult>;
+  draftFromPublished(indicatorId: string, actor: Actor): Promise<CreateDraftFromPublishedResult>;
 }
 
 /** The confidence interval methods a publisher chooses from. */
@@ -129,7 +130,7 @@ export interface InternalDataUploadRepository {
     rowsPerPage: number,
   ): Promise<DataTableRow[]>;
   /** Confirms the draft's data table, as long as the draft still uses the batch named. */
-  confirm(indicatorId: string, batchId: string, actor: string): Promise<ConfirmDataTableResult>;
+  confirm(indicatorId: string, batchId: string, actor: Actor): Promise<ConfirmDataTableResult>;
 }
 
 /** The value types and units a publisher chooses from. */

@@ -1,4 +1,5 @@
 import { type Database, schema } from '@fphd/db';
+import type { Actor } from '@fphd/db/audit-log';
 import { type PublicYearType, publicYearType } from '@fphd/utils/period-type';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 
@@ -192,11 +193,11 @@ export async function confirmDataTable(
   db: Database,
   indicatorId: string,
   batchId: string,
-  actor: string,
+  actor: Actor,
 ): Promise<ConfirmDataTableResult> {
   const [confirmed] = await db
     .update(indicatorVersion)
-    .set({ dataTableConfirmedAt: sql`now()`, updatedAt: sql`now()`, updatedBy: actor })
+    .set({ dataTableConfirmedAt: sql`now()`, updatedAt: sql`now()`, updatedBy: actor.userId })
     .where(
       and(
         eq(indicatorVersion.indicatorId, indicatorId),

@@ -18,6 +18,7 @@ import {
   handlerLogLines,
   inTestTeam,
   TEST_USER_ID,
+  testActor,
   testSessionCookie,
   testSessionVerifier,
 } from './testing.ts';
@@ -154,7 +155,7 @@ describe('PUT on a section', () => {
       .send(answers);
 
     expect(response.status).toBe(200);
-    expect(updateDraft).toHaveBeenCalledWith(id, answers, {}, TEST_USER_ID);
+    expect(updateDraft).toHaveBeenCalledWith(id, answers, {}, testActor(response));
     expect(response.body).toEqual({
       definition: 'Stored definition',
       rationale: 'Stored rationale',

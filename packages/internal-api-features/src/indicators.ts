@@ -1,4 +1,9 @@
-import { requireApiSession, requireJwtRole, requireJwtSession } from '@fphd/api-server';
+import {
+  requireApiActor,
+  requireApiSession,
+  requireJwtRole,
+  requireJwtSession,
+} from '@fphd/api-server';
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import {
   canCreateIndicatorInTeam,
@@ -120,7 +125,11 @@ export function internalIndicatorsRouter(
       return;
     }
 
-    const created = await indicators.createDraft(submission.data, session.sub, teamId);
+    const created = await indicators.createDraft(
+      submission.data,
+      requireApiActor(request, response),
+      teamId,
+    );
 
     if (!created.ok) {
       response.status(409).json({ error: 'slug_taken', fieldErrors: { name: NAME_TAKEN } });
@@ -157,9 +166,9 @@ export function internalIndicatorsRouter(
       return;
     }
 
-    const { sub } = requireApiSession(response);
+    const actor = requireApiActor(request, response);
     // No lists: the repository leaves the ones it is not given alone.
-    const result = await indicators.updateDraft(id.data, submission.data, {}, sub);
+    const result = await indicators.updateDraft(id.data, submission.data, {}, actor);
 
     if (!result.ok) {
       if (result.reason === 'slug_taken') {

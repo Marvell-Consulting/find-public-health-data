@@ -1,4 +1,5 @@
 import { type Database, schema } from '@fphd/db';
+import type { Actor } from '@fphd/db/audit-log';
 import { slugify, slugProblem } from '@fphd/utils/slug';
 import { and, eq, sql } from 'drizzle-orm';
 
@@ -161,7 +162,7 @@ function draftSlug(name: string): string {
 export async function createIndicatorDraft(
   db: Database,
   attributes: NewIndicatorDraftAttributes,
-  actor: string,
+  actor: Actor,
   teamId: string,
 ): Promise<CreateIndicatorDraftResult> {
   const slug = draftSlug(attributes.name);
@@ -184,8 +185,8 @@ export async function createIndicatorDraft(
           slug,
           indicatorId: identity.id,
           status: 'draft',
-          createdBy: actor,
-          updatedBy: actor,
+          createdBy: actor.userId,
+          updatedBy: actor.userId,
         })
         .returning({ id: indicatorVersion.id });
 
@@ -215,7 +216,7 @@ export async function updateIndicatorDraft(
   indicatorId: string,
   attributes: IndicatorDraftAttributes,
   lists: IndicatorDraftLists,
-  actor: string,
+  actor: Actor,
 ): Promise<UpdateIndicatorDraftResult> {
   try {
     return await db.transaction(async (tx) => {
@@ -229,7 +230,7 @@ export async function updateIndicatorDraft(
 
       const [draft] = await tx
         .update(indicatorVersion)
-        .set({ ...attributes, ...renamed, updatedAt: sql`now()`, updatedBy: actor })
+        .set({ ...attributes, ...renamed, updatedAt: sql`now()`, updatedBy: actor.userId })
         .where(
           and(eq(indicatorVersion.indicatorId, indicatorId), eq(indicatorVersion.status, 'draft')),
         )
