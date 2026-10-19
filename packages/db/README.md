@@ -33,6 +33,7 @@ src/
     published.ts      The public read surface: views declared as already existing
   scripts/            owner-client.ts — the owner-role connection helper the test harness
                       uses; the runnable commands live in apps/operations
+  audit-log.ts        recordAudit and the change diffs every write records (@fphd/db/audit-log)
   client.ts           createDb + Database/Schema types
   env.ts              dbEnvFields — shared connection env fragment
   dimension-key.ts    dimensionKey — an observation's dimension_key from its dimension values
@@ -104,6 +105,22 @@ src/
   it is about to bridge to: `dimensionKey` in TypeScript, or the `string_agg` it documents in
   SQL, as the seed load does.
 - **Repository functions**: pure, `db` first argument, one file per aggregate.
+- **Audit log**: every write the internal API or an operations command makes records an `audit_log`
+  entry with `recordAudit` from `@fphd/db/audit-log`, in the transaction of the change, so both
+  commit or neither. The writer is an `Actor`: the `app_user` and the request id a handler gets from
+  `requireApiActor`, or a system user and no request for a command. `changes` maps each field to its
+  `before` and `after`, keyed by property name: a created row records every column
+  (`changesBetween(null, row)`), an update the columns it changed, a deleted row every column it
+  had, and a replaced list (`listChanges`) its whole contents. Before values come from the row the
+  write locks, from `RETURNING OLD` or from the rows its delete returns, never from a read another
+  write could overtake. A write that changes nothing records nothing. A bulk load, an upload's
+  observations or a live-data package, records one entry for its batch or package, with its counts,
+  never one per row loaded. The core data import is the exception: its rows are entities in their
+  own right, a few hundred at most, so it records an entry for each row it inserts or rewrites. A
+  new kind of write adds its action to `AUDIT_ACTIONS` in `schema/audit-log.ts`, whose check
+  constraint then needs a migration. `internal_api` may insert and select entries, never update or
+  delete them; entries name people by `app_user` id alone, so anonymising one never touches the log.
+  Seeding and resets rebuild the database rather than change it, and record nothing.
 - **Slugs**: `indicator_version.slug` is derived from the version's name by `slugify` in
   `@fphd/utils/slug`. An exclusion constraint,
   `EXCLUDE USING gist (slug WITH =, indicator_id WITH <>)`, keeps a slug to one indicator for
@@ -191,7 +208,9 @@ pnpm db:import-core-data         # imports topics, classifications and the publi
 Upserts matched on `id`: a rename — even one that changes the slug — updates the row in
 place without changing the primary key. Rows in the database but absent from the file
 are reported and left alone, never deleted. Re-runs are true no-ops (`updated_at`
-untouched), so the import is safe to run repeatedly, in any environment.
+untouched), so the import is safe to run repeatedly, in any environment. The import writes
+as the Core data import system user, and each row it inserts or rewrites records an audit
+entry in the upsert's transaction.
 
 Lookups a publisher chooses from are core data under the service's own names, with fixed
 ids, so every environment holds the same rows and the seed's relationship files can name
