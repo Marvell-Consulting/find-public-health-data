@@ -46,6 +46,10 @@ export const latestUpdatedAt =
   sql`greatest(${draftVersion.updatedAt}, ${publishedVersion.updatedAt})`.mapWith(
     indicatorVersion.updatedAt,
   );
+// Who made the edit latestUpdatedAt dates: the draft's editor on a tie, as it is the newer work.
+export const latestUpdatedBy = sql<string | null>`case
+  when ${publishedVersion.updatedAt} is null or ${draftVersion.updatedAt} >= ${publishedVersion.updatedAt}
+  then ${draftVersion.updatedBy} else ${publishedVersion.updatedBy} end`;
 // Both statuses are read from the versions as SQL, so a filter or sort on either is a WHERE clause.
 export const indicatorStatus = sql<IndicatorStatus>`case when ${currentPublishedVersion.id} is not null then 'live' else 'new' end`;
 // The draft join fixes the status it matches, which narrows the column from the version enum.

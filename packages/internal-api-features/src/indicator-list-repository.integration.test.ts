@@ -11,6 +11,7 @@ import {
   idsNewestFirst,
   indicatorWithTwoPublications,
   newDraft,
+  OTHER_ACTOR,
   repositoryTest,
 } from './indicator-repository.testing.ts';
 
@@ -78,6 +79,82 @@ describe('listIndicatorsPage within teams', () => {
       indicators: [],
       total: 0,
     });
+  });
+});
+
+describe('the names on each row', () => {
+  async function listed(db: Database, id: string) {
+    const all = (await idsNewestFirst(db)).length;
+    const page = await listIndicatorsPage(db, 1, all, EVERY_INDICATOR);
+    return page.indicators.find((row) => row.id === id);
+  }
+
+  async function displayName(db: Database, id: string) {
+    const [user] = await db
+      .select({ name: schema.appUser.displayName })
+      .from(schema.appUser)
+      .where(eq(schema.appUser.id, id));
+    return user?.name;
+  }
+
+  repositoryTest(
+    'names the team, who wrote the first version and who edited the draft last',
+    async ({ db }) => {
+      const created = await newDraft(db, 'Named on the dashboard');
+      await updateIndicatorDraft(
+        db,
+        created.indicatorId,
+        { definition: 'Edited' },
+        {},
+        OTHER_ACTOR,
+      );
+
+      expect(await listed(db, created.indicatorId)).toMatchObject({
+        teamName: 'Team A',
+        createdBy: await displayName(db, ACTOR),
+        lastEditedBy: await displayName(db, OTHER_ACTOR),
+      });
+    },
+  );
+
+  repositoryTest(
+    "keeps the first version's writer as the creator of a live indicator with a new draft",
+    async ({ db }) => {
+      const { indicatorId, supersededId } = await indicatorWithTwoPublications(
+        db,
+        'Live, redrafted',
+      );
+      // A later version by someone else is not the indicator's creation.
+      await db
+        .update(schema.indicatorVersion)
+        .set({ createdBy: OTHER_ACTOR })
+        .where(eq(schema.indicatorVersion.id, supersededId));
+      await createDraftFromPublished(db, indicatorId, OTHER_ACTOR);
+
+      expect((await listed(db, indicatorId))?.createdBy).toBe(await displayName(db, ACTOR));
+    },
+  );
+
+  repositoryTest("names the published version's editor while there is no draft", async ({ db }) => {
+    const { indicatorId, currentId } = await indicatorWithTwoPublications(db, 'Live, edited');
+    await db
+      .update(schema.indicatorVersion)
+      .set({ updatedBy: OTHER_ACTOR })
+      .where(eq(schema.indicatorVersion.id, currentId));
+
+    expect(await listed(db, indicatorId)).toMatchObject({
+      lastEditedBy: await displayName(db, OTHER_ACTOR),
+    });
+  });
+
+  repositoryTest('leaves the team empty for an indicator in no team', async ({ db }) => {
+    const created = await newDraft(db, 'In no team');
+    await db
+      .update(schema.indicator)
+      .set({ teamId: null })
+      .where(eq(schema.indicator.id, created.indicatorId));
+
+    expect(await listed(db, created.indicatorId)).toMatchObject({ teamName: null });
   });
 });
 

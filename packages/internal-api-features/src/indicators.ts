@@ -10,6 +10,7 @@ import { Router } from 'express';
 
 import {
   type IndicatorAdminDetail,
+  type IndicatorAdminListItem,
   type IndicatorAdminPage,
   type IndicatorAdminSummary,
   type IndicatorTaskList,
@@ -20,7 +21,11 @@ import {
   toFieldErrors,
 } from './contract.ts';
 import { requireIndicatorEditor } from './indicator-editor.ts';
-import type { IndicatorAdminDetailRow, IndicatorAdminRow } from './indicator-list-repository.ts';
+import type {
+  IndicatorAdminDetailRow,
+  IndicatorAdminListRow,
+  IndicatorAdminRow,
+} from './indicator-list-repository.ts';
 import { indicatorTaskList } from './indicator-task-list.ts';
 import type { InternalIndicatorRepository } from './repositories.ts';
 
@@ -39,6 +44,11 @@ function toSummary({
   updatedAt,
 }: IndicatorAdminRow): IndicatorAdminSummary {
   return { id, name, teamId, updatedAt: updatedAt.toISOString(), indicatorStatus, draftStatus };
+}
+
+function toListItem(row: IndicatorAdminListRow): IndicatorAdminListItem {
+  const { teamName, createdBy, lastEditedBy } = row;
+  return { ...toSummary(row), teamName, createdBy, lastEditedBy };
 }
 
 function toDetail(row: IndicatorAdminDetailRow): IndicatorAdminDetail {
@@ -74,7 +84,7 @@ export function internalIndicatorsRouter(
       indicatorListScope(requireApiSession(response)),
     );
     const body: IndicatorAdminPage = {
-      indicators: rows.indicators.map(toSummary),
+      indicators: rows.indicators.map(toListItem),
       page,
       pageSize: INDICATORS_PAGE_SIZE,
       total: rows.total,

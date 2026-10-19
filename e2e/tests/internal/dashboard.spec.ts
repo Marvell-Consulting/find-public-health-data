@@ -21,6 +21,18 @@ test('tags a new indicator as new with an incomplete draft', async ({ page }) =>
   await expect(row.locator('.govuk-tag')).toHaveText(['New', 'Incomplete']);
 });
 
+test('names the team, the creator and the last editor of a new indicator', async ({ page }) => {
+  const name = uniqueIndicatorName('dashboard');
+  await createDraft(page, name);
+  await page.goto('/dashboard');
+
+  const row = page.getByRole('table').getByRole('row').filter({ hasText: name });
+
+  await expect(row.getByRole('cell').nth(0)).toHaveText('Team A');
+  await expect(row.getByRole('cell').nth(1)).toHaveText(PUBLISHER.name);
+  await expect(row.getByRole('cell').nth(3)).toHaveText(PUBLISHER.name);
+});
+
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
   await expectNoAccessibilityViolations(page, testInfo);
 });
@@ -46,7 +58,10 @@ test.describe('as an admin, who sees every team', () => {
     await expect(rows).toHaveCount(11);
     await expect(rows.first().getByRole('columnheader')).toHaveText([
       'Indicator name',
+      'Team',
+      'Created by',
       'Last edited',
+      'Last edited by',
       'Indicator status',
       'Publishing status',
     ]);

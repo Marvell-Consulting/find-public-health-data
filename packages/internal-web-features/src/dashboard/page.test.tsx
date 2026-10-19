@@ -12,7 +12,10 @@ const indicator = {
   id: '019a1b2c-3d4e-7f60-8a9b-0c1d2e3f4a5b',
   name: 'Life expectancy at birth',
   teamId: TEAM_IDS.teamA,
+  teamName: 'Team A',
+  createdBy: 'Alex Morgan',
   updatedAt: '2026-08-04T23:30:00.000Z',
+  lastEditedBy: 'Sam Taylor',
   indicatorStatus: 'live',
   draftStatus: null,
 } as const;
@@ -49,12 +52,24 @@ describe('DashboardPage', () => {
 
     for (const heading of [
       'Indicator name',
+      'Team',
+      'Created by',
       'Last edited',
+      'Last edited by',
       'Indicator status',
       'Publishing status',
     ]) {
       expect(screen.getByRole('columnheader', { name: heading })).toBeTruthy();
     }
+  });
+
+  it('names the team, who created the indicator and who edited it last, in the design order', () => {
+    renderPage();
+
+    const row = screen.getByRole('rowheader', { name: 'Life expectancy at birth' }).closest('tr');
+    const cells = [...(row?.querySelectorAll('td') ?? [])].map((cell) => cell.textContent);
+
+    expect(cells.slice(0, 4)).toEqual(['Team A', 'Alex Morgan', '5 Aug 2026', 'Sam Taylor']);
   });
 
   it('links each indicator to its overview page', () => {

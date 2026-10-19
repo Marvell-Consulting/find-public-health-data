@@ -74,7 +74,8 @@ describe('GET /api/internal/indicators', () => {
   });
 
   it('serves the first page by default, with ISO timestamps and the page size used', async () => {
-    const listPage = vi.fn().mockResolvedValue({ indicators: [row], total: 23 });
+    const listRow = { ...row, teamName: 'Team A', createdBy: 'Alex Morgan', lastEditedBy: null };
+    const listPage = vi.fn().mockResolvedValue({ indicators: [listRow], total: 23 });
 
     const response = await request(createTestApp({ listPage }))
       .get('/api/internal/indicators')
@@ -91,7 +92,10 @@ describe('GET /api/internal/indicators', () => {
           id: row.id,
           name: 'Life expectancy at birth',
           teamId: TEAM_ID,
+          teamName: 'Team A',
+          createdBy: 'Alex Morgan',
           updatedAt: '2026-01-02T00:00:00.000Z',
+          lastEditedBy: null,
           indicatorStatus: 'live',
           draftStatus: null,
         },

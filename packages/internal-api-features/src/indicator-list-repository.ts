@@ -1,6 +1,7 @@
 import type { IndicatorListScope } from '@fphd/auth/permissions';
 import { type Database, schema } from '@fphd/db';
-import { asc, count, desc, eq, inArray } from 'drizzle-orm';
+import { asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 
 import type { DraftStatus, IndicatorStatus } from './contract.ts';
 import {
@@ -10,12 +11,16 @@ import {
   draftVersion,
   indicatorStatus,
   latestUpdatedAt,
+  latestUpdatedBy,
   publishedJoin,
   publishedVersion,
   publishedVersionJoin,
 } from './indicator-repository-sql.ts';
 
-const { currentPublishedVersion, indicator } = schema;
+const { appUser, currentPublishedVersion, indicator, indicatorVersion, team } = schema;
+
+const firstVersion = alias(indicatorVersion, 'first_version');
+const lastEditor = alias(appUser, 'last_editor');
 
 export interface IndicatorAdminRow {
   id: string;
@@ -26,8 +31,15 @@ export interface IndicatorAdminRow {
   draftStatus: DraftStatus | null;
 }
 
+/** A row of the dashboard, which names the team and the people as well as their ids. */
+export interface IndicatorAdminListRow extends IndicatorAdminRow {
+  teamName: string | null;
+  createdBy: string | null;
+  lastEditedBy: string | null;
+}
+
 export interface IndicatorAdminRows {
-  indicators: IndicatorAdminRow[];
+  indicators: IndicatorAdminListRow[];
   total: number;
 }
 
@@ -39,7 +51,8 @@ export interface IndicatorAdminDetailRow extends IndicatorAdminRow {
 
 /**
  * The indicators in scope whatever their status, newest edit first; the id breaks any remaining
- * tie.
+ * tie. The team and the people are joined into the same query, so a page costs two queries,
+ * this and its count, however many rows it shows.
  */
 export async function listIndicatorsPage(
   db: Database,
@@ -50,13 +63,25 @@ export async function listIndicatorsPage(
   if (!scope.all && scope.teamIds.length === 0) return { indicators: [], total: 0 };
 
   const inScope = scope.all ? undefined : inArray(indicator.teamId, [...scope.teamIds]);
+  // The indicator's first version, whatever has happened to it since, says who created it. As a
+  // subquery in the select list, Postgres runs it after the sort, for the page's rows alone.
+  const createdBy = sql<string | null>`(${db
+    .select({ name: appUser.displayName })
+    .from(firstVersion)
+    .innerJoin(appUser, eq(appUser.id, firstVersion.createdBy))
+    .where(eq(firstVersion.indicatorId, indicator.id))
+    .orderBy(asc(firstVersion.createdAt), asc(firstVersion.id))
+    .limit(1)})`;
   const [indicators, [counted]] = await Promise.all([
     db
       .select({
         id: indicator.id,
         name: currentName,
         teamId: indicator.teamId,
+        teamName: team.name,
+        createdBy,
         updatedAt: latestUpdatedAt,
+        lastEditedBy: lastEditor.displayName,
         indicatorStatus,
         draftStatus,
       })
@@ -64,6 +89,8 @@ export async function listIndicatorsPage(
       .leftJoin(draftVersion, draftJoin)
       .leftJoin(currentPublishedVersion, publishedJoin)
       .leftJoin(publishedVersion, publishedVersionJoin)
+      .leftJoin(team, eq(team.id, indicator.teamId))
+      .leftJoin(lastEditor, eq(lastEditor.id, latestUpdatedBy))
       .where(inScope)
       .orderBy(desc(latestUpdatedAt), asc(currentName), asc(indicator.id))
       .limit(pageSize)

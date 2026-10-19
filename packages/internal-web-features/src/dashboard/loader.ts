@@ -10,7 +10,7 @@ import type { LoaderFunctionArgs } from 'react-router';
 
 import { queryObject } from '../query-object.ts';
 
-export type { IndicatorAdminSummary } from '@fphd/internal-api-features/contract';
+export type { IndicatorAdminListItem } from '@fphd/internal-api-features/contract';
 
 function notFound(): Response {
   return new Response('Not Found', { status: 404 });
