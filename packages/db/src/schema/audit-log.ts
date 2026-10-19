@@ -5,7 +5,7 @@ import { literals, uuidPrimaryKey } from './helpers.ts';
 import { actorId } from './user.ts';
 
 /** The tables whose core data the import loads, each recording a created and an updated action. */
-const CORE_DATA_TABLES = [
+export const CORE_DATA_TABLES = [
   'ci_method',
   'classification',
   'data_provider',

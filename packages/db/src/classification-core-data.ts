@@ -73,7 +73,7 @@ export async function upsertClassifications(
           })
           .returning({ id: classification.id, wasInsert: sql<boolean>`xmax = 0`, ...upsertedRow })
       : [];
-    await recordAudit(tx, CORE_DATA_IMPORT, upsertEntries('classification', outcomes));
+    await recordAudit(tx, CORE_DATA_IMPORT, upsertEntries(classification, outcomes));
 
     return {
       summary: summarizeUpsert(records.length, outcomes),

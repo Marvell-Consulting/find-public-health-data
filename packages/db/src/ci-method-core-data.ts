@@ -68,7 +68,7 @@ export async function upsertCiMethods(
         setWhere: sql`(${ciMethod.name}, ${ciMethod.kind}, ${ciMethod.description}) IS DISTINCT FROM (excluded.name, excluded.kind, excluded.description)`,
       })
       .returning({ id: ciMethod.id, wasInsert: sql<boolean>`xmax = 0`, ...upsertedRow });
-    await recordAudit(tx, CORE_DATA_IMPORT, upsertEntries('ci_method', outcomes));
+    await recordAudit(tx, CORE_DATA_IMPORT, upsertEntries(ciMethod, outcomes));
 
     return {
       summary: summarizeUpsert(records.length, outcomes),

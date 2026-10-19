@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { changesBetween, fromColumnNames, listChanges } from './audit-log.ts';
+import { changesBetween, listChanges, rowOf } from './audit-log.ts';
+import { uploadBatch } from './schema/index.ts';
 
 const createdAt = new Date('2026-10-01T09:00:00.000Z');
 
@@ -97,10 +98,19 @@ describe('listChanges', () => {
   });
 });
 
-describe('fromColumnNames', () => {
-  it('keys a row by property names rather than column names', () => {
+describe('rowOf', () => {
+  it("keys a JSON row by the table's properties, leaving out what it does not hold", () => {
     expect(
-      fromColumnNames({ id: 'a', indicator_version_id: 'v', lower_ci_95: 1, row_count: null }),
-    ).toEqual({ id: 'a', indicatorVersionId: 'v', lowerCi95: 1, rowCount: null });
+      rowOf(uploadBatch, { id: 'a', indicator_version_id: 'v', row_count: null, not_a_column: 1 }),
+    ).toEqual({ id: 'a', indicatorVersionId: 'v', rowCount: null });
+  });
+
+  it('reads a timestamp as a Date, recorded to the millisecond as Drizzle rows are', () => {
+    const row = rowOf(uploadBatch, { uploaded_at: '2026-10-19T17:04:00.737729+00:00' });
+
+    expect(row.uploadedAt).toEqual(new Date('2026-10-19T17:04:00.737Z'));
+    expect(changesBetween(null, row)).toEqual({
+      uploadedAt: { before: null, after: '2026-10-19T17:04:00.737Z' },
+    });
   });
 });

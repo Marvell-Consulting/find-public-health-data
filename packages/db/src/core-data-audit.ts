@@ -1,7 +1,7 @@
-import { sql } from 'drizzle-orm';
+import { getTableName, sql, type Table } from 'drizzle-orm';
 
-import { type Actor, type AuditEntry, changesBetween, fromColumnNames } from './audit-log.ts';
-import { SYSTEM_USER_IDS } from './schema/index.ts';
+import { type Actor, type AuditEntry, changesBetween, rowOf } from './audit-log.ts';
+import { CORE_DATA_TABLES, SYSTEM_USER_IDS } from './schema/index.ts';
 
 /** The core data import writes as its own system user, outside any request. */
 export const CORE_DATA_IMPORT: Actor = { userId: SYSTEM_USER_IDS.coreDataImport, requestId: null };
@@ -12,27 +12,26 @@ export const upsertedRow = {
   after: sql<Record<string, unknown>>`to_jsonb(new)`,
 };
 
-type CoreDataEntity =
-  | 'topic'
-  | 'ci_method'
-  | 'classification'
-  | 'data_provider'
-  | 'data_provider_source'
-  | 'value_type'
-  | 'unit'
-  | 'comparator_method';
+type CoreDataEntity = (typeof CORE_DATA_TABLES)[number] | 'topic';
+
+function isCoreDataEntity(name: string): name is CoreDataEntity {
+  return name === 'topic' || (CORE_DATA_TABLES as readonly string[]).includes(name);
+}
 
 /** An entry for each row an upsert wrote: created where it inserted, updated where it rewrote. */
 export function upsertEntries(
-  entity: CoreDataEntity,
+  table: Table,
   rows: readonly { before: Record<string, unknown> | null; after: Record<string, unknown> }[],
 ): AuditEntry[] {
+  const entity = getTableName(table);
+  if (!isCoreDataEntity(entity)) throw new Error(`${entity} is not core data`);
+
   return rows.map(({ before, after }) => {
-    const row = fromColumnNames(after);
+    const row = rowOf(table, after);
     return {
       action: before === null ? (`${entity}.created` as const) : (`${entity}.updated` as const),
       entityId: String(row.id),
-      changes: changesBetween(before === null ? null : fromColumnNames(before), row),
+      changes: changesBetween(before === null ? null : rowOf(table, before), row),
     };
   });
 }

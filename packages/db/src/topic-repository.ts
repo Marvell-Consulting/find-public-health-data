@@ -110,7 +110,7 @@ export async function upsertTopics(db: Database, records: TopicRecord[]): Promis
           // updated" — a fresh tuple has never been superseded, so its xmax is unset.
           .returning({ id: topic.id, wasInsert: sql<boolean>`xmax = 0`, ...upsertedRow })
       : [];
-    await recordAudit(tx, CORE_DATA_IMPORT, upsertEntries('topic', outcomes));
+    await recordAudit(tx, CORE_DATA_IMPORT, upsertEntries(topic, outcomes));
 
     return { summary: summarizeUpsert(records.length, outcomes), orphaned };
   });

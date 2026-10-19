@@ -1,6 +1,7 @@
 import { isDeepStrictEqual } from 'node:util';
 
-import { sql } from 'drizzle-orm';
+import { getTableColumns, sql, type Table } from 'drizzle-orm';
+import { toSnakeCase } from 'drizzle-orm/casing';
 import type postgres from 'postgres';
 
 import { createDbFromTransaction, type Database } from './client.ts';
@@ -75,13 +76,23 @@ export function changesBetween(
   );
 }
 
-/** A row read as JSON from the database, such as `to_jsonb(old)`, keyed as Drizzle keys it. */
-export function fromColumnNames(row: Record<string, unknown>): Record<string, unknown> {
+/**
+ * A row the database gave as JSON, such as `to_jsonb(old)`, as Drizzle reads the table: keyed by
+ * property, with its timestamps as Dates, so its changes read like those of any other row.
+ */
+export function rowOf(table: Table, json: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(
-    Object.entries(row).map(([column, value]) => [
-      column.replace(/_([a-z0-9])/g, (_, next: string) => next.toUpperCase()),
-      value,
-    ]),
+    Object.entries(getTableColumns(table)).flatMap(([property, column]) => {
+      const name = column.keyAsName ? toSnakeCase(column.name) : column.name;
+      if (!(name in json)) return [];
+      const value = json[name];
+      return [
+        [
+          property,
+          column.dataType === 'date' && typeof value === 'string' ? new Date(value) : value,
+        ],
+      ];
+    }),
   );
 }
 

@@ -104,8 +104,8 @@ export async function upsertDataProviders(
               ...upsertedRow,
             });
     await recordAudit(tx, CORE_DATA_IMPORT, [
-      ...upsertEntries('data_provider', providerOutcomes),
-      ...upsertEntries('data_provider_source', sourceOutcomes),
+      ...upsertEntries(dataProvider, providerOutcomes),
+      ...upsertEntries(dataProviderSource, sourceOutcomes),
     ]);
 
     return {

@@ -1,13 +1,13 @@
 import { type Readable, Writable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
-import { type Database, dimensionKey } from '@fphd/db';
+import { type Database, dimensionKey, schema } from '@fphd/db';
 import {
   type Actor,
   type AuditEntry,
   changesBetween,
-  fromColumnNames,
   recordAudit,
+  rowOf,
 } from '@fphd/db/audit-log';
 import type { PendingQuery, TransactionSql } from 'postgres';
 
@@ -17,6 +17,8 @@ import type { DataTableReferences, DataTableRow } from './data-table-rows.ts';
 import { DATA_TABLE_PROBLEM_ITEMS, type DataTableProblem } from './data-upload-contract.ts';
 import { loadDataTableReferences } from './data-upload-repository.ts';
 import { elapsedMs, TimedUploadError, timed, type UploadTimings } from './data-upload-timings.ts';
+
+const { uploadBatch } = schema;
 
 // Scopes the per-draft upload locks within the two-key advisory lock space.
 const UPLOAD_LOCK_NAMESPACE = 0x75706c64; // 'upld'
@@ -403,12 +405,12 @@ function batchEntries(
     {
       action,
       entityId: String(batch.row.id),
-      changes: changesBetween(null, fromColumnNames(batch.row)),
+      changes: changesBetween(null, rowOf(uploadBatch, batch.row)),
     },
     ...deleted.map(({ row }) => ({
       action: 'upload_batch.deleted' as const,
       entityId: String(row.id),
-      changes: changesBetween(fromColumnNames(row), null),
+      changes: changesBetween(rowOf(uploadBatch, row), null),
     })),
   ];
 }

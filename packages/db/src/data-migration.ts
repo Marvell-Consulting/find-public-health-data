@@ -1,6 +1,6 @@
 import type postgres from 'postgres';
 
-import { changesBetween, fromColumnNames, recordAudit } from './audit-log.ts';
+import { changesBetween, recordAudit, rowOf } from './audit-log.ts';
 import { assignImportedTeam, MIGRATION_USER_ID } from './data-migration-actors.ts';
 import type { DataMigrationProgressReporter } from './data-migration-copy.ts';
 import { applyDeletes, prepareVersionDeletes, stageDeletes } from './data-migration-deletes.ts';
@@ -23,6 +23,7 @@ import {
   applyVersionBatchPointers,
 } from './data-migration-table-import.ts';
 import { type LegacySourceMap, readLegacySourceMap } from './legacy-sources.ts';
+import { dataMigration } from './schema/index.ts';
 
 export type {
   DataMigrationProgress,
@@ -230,7 +231,7 @@ export async function applyDataMigration(
     {
       action: 'data_migration.applied',
       entityId: manifest.migration_id,
-      changes: changesBetween(null, fromColumnNames(ledger.row)),
+      changes: changesBetween(null, rowOf(dataMigration, ledger.row)),
     },
   ]);
   return { applied: true, changes };

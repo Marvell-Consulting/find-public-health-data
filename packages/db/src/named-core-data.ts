@@ -5,7 +5,7 @@ import { recordAudit } from './audit-log.ts';
 import type { Database } from './client.ts';
 import { CORE_DATA_IMPORT, upsertEntries, upsertedRow } from './core-data-audit.ts';
 import { findDuplicates } from './parse-topics-file.ts';
-import { comparatorMethod, type unit, valueType } from './schema/index.ts';
+import { comparatorMethod, type unit, type valueType } from './schema/index.ts';
 import { summarizeUpsert, type UpsertSummary } from './topic-repository.ts';
 
 /** An entry of a list a publisher chooses from, as its core data file states it. */
@@ -68,11 +68,7 @@ export async function upsertOrderedNames(
               setWhere: sql`(${table.name}, ${table.position}) IS DISTINCT FROM (excluded.name, excluded.position)`,
             })
             .returning({ id: table.id, wasInsert: sql<boolean>`xmax = 0`, ...upsertedRow });
-    await recordAudit(
-      tx,
-      CORE_DATA_IMPORT,
-      upsertEntries(table === valueType ? 'value_type' : 'unit', outcomes),
-    );
+    await recordAudit(tx, CORE_DATA_IMPORT, upsertEntries(table, outcomes));
 
     return {
       summary: summarizeUpsert(records.length, outcomes),
@@ -107,7 +103,7 @@ export async function upsertComparatorMethods(
               wasInsert: sql<boolean>`xmax = 0`,
               ...upsertedRow,
             });
-    await recordAudit(tx, CORE_DATA_IMPORT, upsertEntries('comparator_method', outcomes));
+    await recordAudit(tx, CORE_DATA_IMPORT, upsertEntries(comparatorMethod, outcomes));
 
     return {
       summary: summarizeUpsert(records.length, outcomes),
