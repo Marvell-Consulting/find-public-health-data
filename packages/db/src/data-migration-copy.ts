@@ -11,7 +11,8 @@ const COPY_COMPLETION_TIMEOUT_MS = 30 * 60 * 1_000;
 export interface DataMigrationProgress {
   table: string;
   phase: 'baseline' | 'upsert' | 'delete' | 'relationships';
-  state: 'started' | 'progress' | 'complete';
+  // A staged table reports inserting once its file is copied, before the rows go into the table.
+  state: 'started' | 'progress' | 'inserting' | 'complete';
   percent?: number;
 }
 

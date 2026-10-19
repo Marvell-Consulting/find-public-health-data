@@ -15,7 +15,7 @@ import {
   VERSION_ID,
   VERSION_ROW,
 } from './data-migration.testing.ts';
-import { applyDataMigration } from './data-migration.ts';
+import { applyDataMigration, type DataMigrationProgress } from './data-migration.ts';
 import {
   DATA_MIGRATION_REFERENCE_TABLES,
   DATA_MIGRATION_TABLES,
@@ -168,16 +168,45 @@ describe('applyDataMigration', () => {
       { short_id: 109, team_id: IMPORTED_INDICATOR_TEAM_ID },
     ]);
   });
-  it('refuses an upload batch naming another uploader', async () => {
-    const batchId = '22222222-2222-7222-8222-222222222222';
-    const other = batch(batchId);
-    other.rows[0]?.splice(4, 1, 'publisher');
+  it.each(['baseline', 'increment'] as const)(
+    'refuses an upload batch naming another uploader in the %s',
+    async (kind) => {
+      const batchId = '22222222-2222-7222-8222-222222222222';
+      const other = batch(batchId);
+      other.rows[0]?.splice(4, 1, 'publisher');
+      if (kind === 'increment') await baseline();
 
-    await expect(
-      baseline({
-        upserts: { indicator_version: versionWithBatch(batchId, null), upload_batch: other },
-      }),
-    ).rejects.toThrow('Data migration upload batches must name pholio-migration as their uploader');
+      await expect(
+        kind === 'baseline'
+          ? baseline({
+              upserts: { indicator_version: versionWithBatch(batchId, null), upload_batch: other },
+            })
+          : apply({ upserts: { upload_batch: other } }),
+      ).rejects.toThrow(
+        'Data migration upload batches must name pholio-migration as their uploader',
+      );
+      expect(await sql`SELECT id FROM upload_batch`).toEqual([]);
+      expect(await sql`SELECT count(*)::int AS count FROM data_migration`).toEqual([
+        { count: kind === 'baseline' ? 0 : 1 },
+      ]);
+    },
+  );
+  it('reports a staged table complete only once its rows are in the table', async () => {
+    const batchId = '22222222-2222-7222-8222-222222222222';
+    const events: DataMigrationProgress[] = [];
+    const { manifest, sha256 } = await migrationFixture(sql, directory, topicId, {
+      baseline: true,
+      upserts: { indicator_version: versionWithBatch(batchId, null), upload_batch: batch(batchId) },
+    });
+
+    await sql.begin((tx) =>
+      applyDataMigration(tx, directory, manifest, sha256, (event) => events.push(event)),
+    );
+
+    const states = events.filter(({ table }) => table === 'upload_batch').map(({ state }) => state);
+    expect(states[0]).toBe('started');
+    expect(states.slice(-2)).toEqual(['inserting', 'complete']);
+    expect(states.filter((state) => state === 'complete')).toHaveLength(1);
   });
   it('connects mutually referencing versions and batches and switches published observations', async () => {
     const firstBatch = '22222222-2222-7222-8222-222222222222';

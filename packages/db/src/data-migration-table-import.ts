@@ -358,11 +358,18 @@ export async function applyBaselineRows(
     `CREATE TEMP TABLE "${stage}" (LIKE "${table}" INCLUDING DEFAULTS) ON COMMIT DROP`,
   );
   await shapeStage(tx, table, stage);
-  await copyInto(tx, stage, rawHeader, file, `staging ${table}`, progress, report);
+  // The table is complete once its rows are in it, not once the file is copied.
+  const staging: DataMigrationProgressReporter = (event) => {
+    if (event.state !== 'complete') report(event);
+  };
+  await copyInto(tx, stage, rawHeader, file, `staging ${table}`, progress, staging);
   await assertPackageActors(tx, table, stage);
+  // For observations the insert takes longer than the copy, so it says when it starts.
+  report({ ...progress, state: 'inserting' });
   await tx.unsafe(
     `INSERT INTO "${table}" (${quoteIdentifiers(columns)}) SELECT ${selectStaged(table, columns)} FROM "${stage}" s`,
   );
+  report({ ...progress, state: 'complete' });
   // Observations are most of a baseline, so their copy goes once they are in.
   await tx.unsafe(`DROP TABLE "${stage}"`);
 }
