@@ -38,6 +38,10 @@ export default [
     ]),
     layout('./publisher.tsx', [
       route(
+        'publish/indicators/new/team',
+        '../../../packages/internal-web-features/src/indicator-team/route.tsx',
+      ),
+      route(
         'publish/indicators/new',
         '../../../packages/internal-web-features/src/indicator-name/new-route.tsx',
       ),
