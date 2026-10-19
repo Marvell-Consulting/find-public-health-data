@@ -1,6 +1,7 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { schema } from '@fphd/db';
 import { DATA_MIGRATION_NULL } from '@fphd/db/data-migration-contract';
 import {
   createOwnerClient,
@@ -55,6 +56,15 @@ it('imports a generated development snapshot with version batch pointers and pub
     confirmed: true,
     owner: versionId,
   });
+  // The archive is seed files, which name their writers by user id.
+  const migrated = schema.SYSTEM_USER_IDS.pholioMigration;
+  expect(
+    await sql`
+    SELECT v.created_by, v.updated_by, b.uploaded_by
+    FROM indicator_version v JOIN upload_batch b ON b.id = v.upload_batch_id
+    WHERE v.id = ${versionId}
+  `,
+  ).toEqual([{ created_by: migrated, updated_by: migrated, uploaded_by: migrated }]);
   expect(
     await sql`
     SELECT p.value, o.upload_batch_id

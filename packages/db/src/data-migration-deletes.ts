@@ -1,5 +1,6 @@
 import type postgres from 'postgres';
 
+import { MIGRATION_USER_ID } from './data-migration-actors.ts';
 import { copyInto, type DataMigrationProgressReporter } from './data-migration-copy.ts';
 import { validateMigrationHeader } from './data-migration-table-import.ts';
 
@@ -51,8 +52,8 @@ export async function prepareVersionDeletes(tx: postgres.TransactionSql): Promis
     WHERE deleting.id IN (SELECT id FROM data_migration_delete_indicator_version)
       AND EXISTS (
         SELECT 1 FROM indicator_version v WHERE v.indicator_id = i.id
-          AND (v.status = 'draft' OR v.created_by IS DISTINCT FROM 'pholio-migration'
-            OR v.updated_by IS DISTINCT FROM 'pholio-migration')
+          AND (v.status = 'draft' OR v.created_by IS DISTINCT FROM ${MIGRATION_USER_ID}
+            OR v.updated_by IS DISTINCT FROM ${MIGRATION_USER_ID})
       )
     ORDER BY i.short_id
   `;

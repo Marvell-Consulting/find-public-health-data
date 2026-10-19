@@ -12,6 +12,7 @@ import { notesAndCaveats } from './notes-and-caveats.ts';
 import { unitValues, valueTypeId } from './pholio/value-type-and-unit.ts';
 import { yearTypeValues } from './pholio/year-type.ts';
 import { rekeyDirectory } from './prepare-baseline.ts';
+import { ACTOR_COLUMNS, actorUserId } from './seed-writers.ts';
 
 const indicators = [108, 40501, 90366, 90851, 92026, 92033, 92443, 92708, 93622, 94194];
 const areaTypes = [6, 15, 160, 170, 180];
@@ -62,7 +63,8 @@ const streamingQueries: readonly [string, string][] = [
   ],
 ];
 
-function valueForCsv(_table: string, _column: string, value: unknown): string | number {
+function valueForCsv(table: string, column: string, value: unknown): string | number {
+  if (ACTOR_COLUMNS[table]?.includes(column)) return actorUserId(table, value);
   if (value === null || value === undefined) return DATA_MIGRATION_NULL;
   if (value instanceof Date) return value.toISOString();
   if (typeof value === 'boolean') return value ? 't' : 'f';

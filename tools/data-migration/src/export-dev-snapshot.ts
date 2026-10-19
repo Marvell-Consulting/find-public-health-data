@@ -8,6 +8,7 @@ import { DATA_MIGRATION_NULL, SEED_TABLES } from '@fphd/db/data-migration-contra
 import { exportPholio } from './pholio/export-pholio.ts';
 import { rekeyDirectory } from './prepare-baseline.ts';
 import { tidyReferenceNames } from './reference-names.ts';
+import { writeActorsAsUsers } from './seed-writers.ts';
 
 const runFile = promisify(execFile);
 
@@ -75,7 +76,8 @@ export async function exportDevSnapshot(options: ExportDevSnapshotOptions): Prom
     await readFile(join(outDir, 'source-manifest.json'), 'utf8'),
   ) as PholioSourceManifest;
   console.log('Rekeying with deterministic UUIDs…');
-  const tables = await rekeyDirectory(outDir, tidied.tables);
+  // The archive is seed files, which name their writers by user id.
+  const tables = await writeActorsAsUsers(outDir, await rekeyDirectory(outDir, tidied.tables));
   await writeFile(
     join(outDir, 'manifest.json'),
     `${JSON.stringify({ ...description, reference_names: 'tidied', id_mapping: 'deterministic-uuidv7-v1', tables }, null, 2)}\n`,

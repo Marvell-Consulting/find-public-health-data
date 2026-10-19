@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import type postgres from 'postgres';
 import { createDbFromTransaction } from './client.ts';
+import { MIGRATION_USER_ID } from './data-migration-actors.ts';
 import type { DataMigrationProgressReporter } from './data-migration-copy.ts';
 import type { DataMigrationManifest } from './data-migration-manifest.ts';
 import {
@@ -34,8 +35,8 @@ export async function assertMigrationPublisherWorkUnchanged(
         WHERE v.indicator_id = i.id AND (
           v.status = 'draft' OR (
             v.id IN (SELECT id FROM current_published_version)
-            AND (v.created_by IS DISTINCT FROM 'pholio-migration'
-              OR v.updated_by IS DISTINCT FROM 'pholio-migration')
+            AND (v.created_by IS DISTINCT FROM ${MIGRATION_USER_ID}
+              OR v.updated_by IS DISTINCT FROM ${MIGRATION_USER_ID})
           )
         )
       )
@@ -59,7 +60,7 @@ export async function applyRelationships(
     SELECT i.short_id AS "shortId", current.id AS "versionId"
     FROM indicator i JOIN current_published_version current ON current.indicator_id = i.id
     JOIN indicator_version v ON v.id = current.id
-    WHERE v.created_by = 'pholio-migration' AND v.updated_by = 'pholio-migration'
+    WHERE v.created_by = ${MIGRATION_USER_ID} AND v.updated_by = ${MIGRATION_USER_ID}
     ORDER BY i.short_id
   `;
   const sourceIndicators =
@@ -138,7 +139,7 @@ export async function applyRelationships(
     FROM indicator i
     JOIN current_published_version current ON current.indicator_id = i.id
     JOIN indicator_version v ON v.id = current.id
-    WHERE v.created_by = 'pholio-migration' AND v.updated_by = 'pholio-migration'
+    WHERE v.created_by = ${MIGRATION_USER_ID} AND v.updated_by = ${MIGRATION_USER_ID}
       AND NOT EXISTS (
       SELECT 1 FROM indicator_version_topic t
       WHERE t.indicator_version_id = current.id

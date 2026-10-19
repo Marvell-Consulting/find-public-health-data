@@ -20,8 +20,14 @@ import {
   DATA_MIGRATION_REFERENCE_TABLES,
   DATA_MIGRATION_TABLES,
 } from './data-migration-manifest.ts';
+import { IMPORTED_INDICATOR_TEAM_ID, SYSTEM_USER_IDS } from './schema/index.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
+
+// Packages name their writer as pholio-migration and the tables name users. Any user but the
+// PHOLIO migration one stands for a publisher.
+const MIGRATED = SYSTEM_USER_IDS.pholioMigration;
+const PUBLISHER = SYSTEM_USER_IDS.testSeed;
 
 let database: TestDatabase;
 let sql: postgres.Sql;
@@ -95,7 +101,7 @@ function batch(id: string) {
       'uploaded_by',
       'status',
     ],
-    rows: [[id, INDICATOR_ID, VERSION_ID, 'migration.csv', 'migration', 'processed']],
+    rows: [[id, INDICATOR_ID, VERSION_ID, 'migration.csv', 'pholio-migration', 'processed']],
   };
 }
 async function sourceCount() {
@@ -114,6 +120,65 @@ async function assertRolledBack() {
 }
 
 describe('applyDataMigration', () => {
+  it('loads the package writer as the PHOLIO migration user and its indicators into Fingertips', async () => {
+    const batchId = '22222222-2222-7222-8222-222222222222';
+    await baseline({
+      upserts: { indicator_version: versionWithBatch(batchId, null), upload_batch: batch(batchId) },
+    });
+
+    expect(await sql`SELECT created_by, updated_by FROM indicator_version`).toEqual([
+      { created_by: MIGRATED, updated_by: MIGRATED },
+    ]);
+    expect(await sql`SELECT uploaded_by FROM upload_batch`).toEqual([{ uploaded_by: MIGRATED }]);
+    expect(await sql`SELECT team_id FROM indicator`).toEqual([
+      { team_id: IMPORTED_INDICATOR_TEAM_ID },
+    ]);
+  });
+  it("puts an increment's new indicator in Fingertips and leaves a moved one in its team", async () => {
+    await baseline();
+    const [teamB] = await sql<{ id: string }[]>`SELECT id FROM team WHERE name = 'Team B'`;
+    await sql`UPDATE indicator SET team_id = ${teamB?.id ?? null} WHERE id = ${INDICATOR_ID}`;
+    const otherId = '66666666-6666-7666-8666-666666666666';
+    const otherVersion = [...VERSION_ROW];
+    otherVersion.splice(0, 2, SOURCE_ID, otherId);
+    otherVersion.splice(4, 2, 'Other indicator', 'other-indicator');
+
+    await apply({
+      upserts: {
+        indicator: {
+          columns: ['short_id', 'id'],
+          rows: [
+            [108, INDICATOR_ID],
+            [109, otherId],
+          ],
+        },
+        indicator_version: { columns: VERSION_COLUMNS, rows: [otherVersion] },
+      },
+      relationships: {
+        indicators: [108, 109],
+        indicatorTopics: [
+          { topicId, fingertipsId: 108 },
+          { topicId, fingertipsId: 109 },
+        ],
+      },
+    });
+
+    expect(await sql`SELECT short_id, team_id FROM indicator ORDER BY short_id`).toEqual([
+      { short_id: 108, team_id: teamB?.id },
+      { short_id: 109, team_id: IMPORTED_INDICATOR_TEAM_ID },
+    ]);
+  });
+  it('refuses an upload batch naming another uploader', async () => {
+    const batchId = '22222222-2222-7222-8222-222222222222';
+    const other = batch(batchId);
+    other.rows[0]?.splice(4, 1, 'publisher');
+
+    await expect(
+      baseline({
+        upserts: { indicator_version: versionWithBatch(batchId, null), upload_batch: other },
+      }),
+    ).rejects.toThrow('Data migration upload batches must name pholio-migration as their uploader');
+  });
   it('connects mutually referencing versions and batches and switches published observations', async () => {
     const firstBatch = '22222222-2222-7222-8222-222222222222';
     const secondBatch = '33333333-3333-7333-8333-333333333333';
@@ -142,7 +207,7 @@ describe('applyDataMigration', () => {
           '2025-12-31',
           value,
           '',
-          'migration',
+          'pholio-migration',
         ],
       ],
     });
@@ -280,7 +345,7 @@ describe('applyDataMigration', () => {
       },
     });
     await sql`INSERT INTO upload_batch (indicator_id, indicator_version_id, original_filename, uploaded_by)
-      VALUES (${INDICATOR_ID}, ${VERSION_ID}, 'publisher.csv', 'publisher')`;
+      VALUES (${INDICATOR_ID}, ${VERSION_ID}, 'publisher.csv', ${PUBLISHER})`;
     await expect(
       apply({
         deletes: {
@@ -520,7 +585,7 @@ describe('applyDataMigration', () => {
         writing = publisher.begin(async (tx) => {
           if (table === 'indicator_version') {
             await tx`INSERT INTO indicator_version (id, indicator_id, name, slug, created_by, updated_by)
-              VALUES (${SOURCE_ID}, ${INDICATOR_ID}, 'Publisher draft', 'test-indicator', 'publisher', 'publisher')`;
+              VALUES (${SOURCE_ID}, ${INDICATOR_ID}, 'Publisher draft', 'test-indicator', ${PUBLISHER}, ${PUBLISHER})`;
           } else if (table === 'indicator_version_topic') {
             await tx`INSERT INTO indicator_version_topic (indicator_version_id, topic_id)
               VALUES (${VERSION_ID}, ${otherTopic.id})`;
@@ -640,7 +705,7 @@ describe('applyDataMigration', () => {
   );
   it('names identities whose deletion is blocked by publisher uploads', async () => {
     await baseline();
-    await sql`INSERT INTO upload_batch (indicator_id, indicator_version_id, original_filename, uploaded_by) VALUES (${INDICATOR_ID}, ${VERSION_ID}, 'publisher.csv', 'publisher')`;
+    await sql`INSERT INTO upload_batch (indicator_id, indicator_version_id, original_filename, uploaded_by) VALUES (${INDICATOR_ID}, ${VERSION_ID}, 'publisher.csv', ${PUBLISHER})`;
     await expect(
       apply({
         deletes: { indicator: [INDICATOR_ID], indicator_version: [VERSION_ID] },
@@ -655,7 +720,7 @@ describe('applyDataMigration', () => {
     'rejects a declared delete count of %s before deleting its staged row',
     async (rows) => {
       await baseline();
-      await sql`INSERT INTO upload_batch (indicator_id, indicator_version_id, original_filename, uploaded_by) VALUES (${INDICATOR_ID}, ${VERSION_ID}, 'publisher.csv', 'publisher')`;
+      await sql`INSERT INTO upload_batch (indicator_id, indicator_version_id, original_filename, uploaded_by) VALUES (${INDICATOR_ID}, ${VERSION_ID}, 'publisher.csv', ${PUBLISHER})`;
       await expect(
         apply({
           deletes: { indicator: [INDICATOR_ID], indicator_version: [VERSION_ID] },
@@ -787,7 +852,7 @@ describe('applyDataMigration', () => {
     await baseline();
     const preserved = await sql<{ id: string }[]>`
       INSERT INTO indicator_version (indicator_id, status, published_at, name, slug, created_by, updated_by, has_framework)
-      VALUES (${INDICATOR_ID}, 'published', '2025-01-01', 'History', 'test-indicator', 'publisher', 'publisher', true)
+      VALUES (${INDICATOR_ID}, 'published', '2025-01-01', 'History', 'test-indicator', ${PUBLISHER}, ${PUBLISHER}, true)
       RETURNING id
     `;
     for (const { id } of preserved) {
@@ -817,13 +882,13 @@ describe('applyDataMigration', () => {
       if (!otherTopic) throw new Error('Missing second core topic');
       let versionId = VERSION_ID;
       if (kind === 'edit') {
-        await sql`UPDATE indicator_version SET updated_by = 'publisher', has_framework = true WHERE id = ${VERSION_ID}`;
+        await sql`UPDATE indicator_version SET updated_by = ${PUBLISHER}, has_framework = true WHERE id = ${VERSION_ID}`;
         await sql`DELETE FROM indicator_version_topic WHERE indicator_version_id = ${VERSION_ID}`;
       } else {
         const [created] = await sql<{ id: string }[]>`
           INSERT INTO indicator_version (indicator_id, status, published_at, name, slug, created_by, updated_by, has_framework)
           VALUES (${INDICATOR_ID}, ${kind === 'draft' ? 'draft' : 'published'},
-            ${kind === 'draft' ? null : '2026-10-01'}, 'Publisher work', 'test-indicator', 'publisher', 'publisher', true)
+            ${kind === 'draft' ? null : '2026-10-01'}, 'Publisher work', 'test-indicator', ${PUBLISHER}, ${PUBLISHER}, true)
           RETURNING id
         `;
         if (!created) throw new Error('Missing publisher version');
@@ -859,7 +924,7 @@ describe('applyDataMigration', () => {
     if (!identity) throw new Error('Missing publisher indicator');
     const [publication] = await sql<{ id: string }[]>`
       INSERT INTO indicator_version (indicator_id, status, published_at, name, slug, created_by, updated_by, has_framework)
-      VALUES (${identity.id}, 'published', '2026-10-01', 'FPHD only', 'fphd-only', 'publisher', 'publisher', true) RETURNING id
+      VALUES (${identity.id}, 'published', '2026-10-01', 'FPHD only', 'fphd-only', ${PUBLISHER}, ${PUBLISHER}, true) RETURNING id
     `;
     if (!publication) throw new Error('Missing publisher publication');
     await sql`INSERT INTO indicator_version_topic (indicator_version_id, topic_id) VALUES (${publication.id}, ${topicId})`;
@@ -878,39 +943,39 @@ describe('applyDataMigration', () => {
       { count: 2 },
     ]);
   });
-  it.each(['pholio-migration', 'publisher'])(
-    'never moves an existing %s version to another indicator',
-    async (actor) => {
-      await baseline();
-      const [identity] = await sql<{ id: string }[]>`
+  it.each([
+    ['migrated', MIGRATED],
+    ['publisher', PUBLISHER],
+  ])('never moves an existing %s version to another indicator', async (_kind, actor) => {
+    await baseline();
+    const [identity] = await sql<{ id: string }[]>`
         INSERT INTO indicator (short_id) VALUES (109) RETURNING id
       `;
-      if (!identity) throw new Error('Missing other indicator');
-      await sql`
+    if (!identity) throw new Error('Missing other indicator');
+    await sql`
         INSERT INTO indicator_version (id, indicator_id, status, published_at, name, slug, created_by, updated_by)
         VALUES (${SOURCE_ID}, ${identity.id}, 'published', '2026-01-01', 'Other indicator', 'other-indicator', ${actor}, ${actor})
       `;
-      await sql`INSERT INTO indicator_version_topic (indicator_version_id, topic_id) VALUES (${SOURCE_ID}, ${topicId})`;
-      const row = [...VERSION_ROW];
-      row[0] = SOURCE_ID;
-      await expect(
-        apply({
-          upserts: { indicator_version: { columns: VERSION_COLUMNS, rows: [row] } },
-          deletes: { indicator: [identity.id] },
-        }),
-      ).rejects.toThrow('would move indicator versions to another indicator');
-      expect(
-        await sql`SELECT indicator_id, name, created_by FROM indicator_version WHERE id = ${SOURCE_ID}`,
-      ).toEqual([{ indicator_id: identity.id, name: 'Other indicator', created_by: actor }]);
-      expect(
-        await sql`SELECT topic_id FROM indicator_version_topic WHERE indicator_version_id = ${SOURCE_ID}`,
-      ).toEqual([{ topic_id: topicId }]);
-      expect(await sql`SELECT id FROM indicator WHERE id = ${identity.id}`).toEqual([
-        { id: identity.id },
-      ]);
-      await assertRolledBack();
-    },
-  );
+    await sql`INSERT INTO indicator_version_topic (indicator_version_id, topic_id) VALUES (${SOURCE_ID}, ${topicId})`;
+    const row = [...VERSION_ROW];
+    row[0] = SOURCE_ID;
+    await expect(
+      apply({
+        upserts: { indicator_version: { columns: VERSION_COLUMNS, rows: [row] } },
+        deletes: { indicator: [identity.id] },
+      }),
+    ).rejects.toThrow('would move indicator versions to another indicator');
+    expect(
+      await sql`SELECT indicator_id, name, created_by FROM indicator_version WHERE id = ${SOURCE_ID}`,
+    ).toEqual([{ indicator_id: identity.id, name: 'Other indicator', created_by: actor }]);
+    expect(
+      await sql`SELECT topic_id FROM indicator_version_topic WHERE indicator_version_id = ${SOURCE_ID}`,
+    ).toEqual([{ topic_id: topicId }]);
+    expect(await sql`SELECT id FROM indicator WHERE id = ${identity.id}`).toEqual([
+      { id: identity.id },
+    ]);
+    await assertRolledBack();
+  });
   it.each([
     ['indicator', 'upsert'],
     ['upload_batch', 'upsert'],
@@ -933,12 +998,12 @@ describe('applyDataMigration', () => {
     const [publication] = await sql<{ id: string }[]>`
       INSERT INTO indicator_version (indicator_id, status, published_at, name, slug, created_by, updated_by)
       VALUES (${publisherIndicatorId}, 'published', '2025-01-01', 'FPHD only',
-        ${action === 'historical upsert' ? 'test-indicator' : 'fphd-only'}, 'publisher', 'publisher') RETURNING id
+        ${action === 'historical upsert' ? 'test-indicator' : 'fphd-only'}, ${PUBLISHER}, ${PUBLISHER}) RETURNING id
     `;
     if (!publication) throw new Error('Missing publisher publication');
     const [upload] = await sql<{ id: string }[]>`
       INSERT INTO upload_batch (indicator_id, indicator_version_id, original_filename, uploaded_by, status)
-      VALUES (${publisherIndicatorId}, ${publication.id}, 'publisher.csv', 'publisher', 'processed') RETURNING id
+      VALUES (${publisherIndicatorId}, ${publication.id}, 'publisher.csv', ${PUBLISHER}, 'processed') RETURNING id
     `;
     if (!upload) throw new Error('Missing publisher upload');
     await sql`UPDATE indicator_version SET upload_batch_id = ${upload.id}, data_table_confirmed_at = '2026-01-01' WHERE id = ${publication.id}`;
@@ -951,8 +1016,8 @@ describe('applyDataMigration', () => {
     >`INSERT INTO area (area_type_id, code, name, valid_from) VALUES (${areaType.id}, 'E92000001', 'England', '2010-01-01') RETURNING id`;
     if (!area) throw new Error('Missing area');
     const [observed] = await sql<{ id: string }[]>`
-      INSERT INTO observation (indicator_id, area_id, upload_batch_id, from_date, to_date, value, dimension_key, created_by)
-      VALUES (${publisherIndicatorId}, ${area.id}, ${upload.id}, '2025-01-01', '2025-12-31', 10, '', 'publisher') RETURNING id
+      INSERT INTO observation (indicator_id, area_id, upload_batch_id, from_date, to_date, value, dimension_key)
+      VALUES (${publisherIndicatorId}, ${area.id}, ${upload.id}, '2025-01-01', '2025-12-31', 10, '') RETURNING id
     `;
     if (!observed) throw new Error('Missing observation');
     const [dimensionType] = await sql<
@@ -1044,7 +1109,7 @@ describe('applyDataMigration', () => {
     if (action === 'reassign') {
       const [sourceBatch] = await sql<{ id: string }[]>`
         INSERT INTO upload_batch (indicator_id, indicator_version_id, original_filename, uploaded_by, status)
-        VALUES (${INDICATOR_ID}, ${VERSION_ID}, 'source.csv', 'pholio-migration', 'processed') RETURNING id
+        VALUES (${INDICATOR_ID}, ${VERSION_ID}, 'source.csv', ${MIGRATED}, 'processed') RETURNING id
       `;
       if (!sourceBatch) throw new Error('Missing source batch');
       fixtures.observation.rows[0] = [
@@ -1088,7 +1153,7 @@ describe('applyDataMigration', () => {
   it('refuses a withdrawal when its indicator has a publisher draft', async () => {
     await baseline();
     await sql`INSERT INTO indicator_version (indicator_id, name, slug, created_by, updated_by)
-      VALUES (${INDICATOR_ID}, 'Publisher draft', 'test-indicator', 'publisher', 'publisher')`;
+      VALUES (${INDICATOR_ID}, 'Publisher draft', 'test-indicator', ${PUBLISHER}, ${PUBLISHER})`;
     await expect(
       apply({
         deletes: { indicator: [INDICATOR_ID], indicator_version: [VERSION_ID] },
@@ -1113,7 +1178,7 @@ describe('applyDataMigration', () => {
     >`INSERT INTO indicator DEFAULT VALUES RETURNING id`;
     const [draft] = await sql<{ id: string }[]>`
       INSERT INTO indicator_version (indicator_id, name, slug, created_by, updated_by)
-      VALUES (${identity?.id ?? ''}, 'Publisher draft', 'publisher-draft', 'publisher', 'publisher') RETURNING id
+      VALUES (${identity?.id ?? ''}, 'Publisher draft', 'publisher-draft', ${PUBLISHER}, ${PUBLISHER}) RETURNING id
     `;
     await sql`INSERT INTO indicator_version_topic (indicator_version_id, topic_id) VALUES (${draft?.id ?? ''}, ${topicId})`;
     await apply();
@@ -1137,7 +1202,7 @@ describe('applyDataMigration', () => {
     await baseline();
     const [draft] = await sql<{ id: string }[]>`
       INSERT INTO indicator_version (indicator_id, name, slug, created_by, updated_by)
-      VALUES (${INDICATOR_ID}, 'Publisher draft', 'test-indicator', 'publisher', 'publisher') RETURNING id
+      VALUES (${INDICATOR_ID}, 'Publisher draft', 'test-indicator', ${PUBLISHER}, ${PUBLISHER}) RETURNING id
     `;
     const row = [...VERSION_ROW];
     row[0] = draft?.id ?? '';
@@ -1150,7 +1215,7 @@ describe('applyDataMigration', () => {
     await baseline();
     const [draft] = await sql<{ id: string }[]>`
       INSERT INTO indicator_version (indicator_id, name, slug, created_by, updated_by)
-      VALUES (${INDICATOR_ID}, 'Publisher draft', 'test-indicator', 'publisher', 'publisher') RETURNING id
+      VALUES (${INDICATOR_ID}, 'Publisher draft', 'test-indicator', ${PUBLISHER}, ${PUBLISHER}) RETURNING id
     `;
     await expect(
       apply({
@@ -1212,7 +1277,7 @@ describe('applyDataMigration', () => {
     await baseline();
     const [history] = await sql<{ id: string }[]>`
       INSERT INTO indicator_version (indicator_id, status, published_at, name, slug, created_by, updated_by)
-      VALUES (${INDICATOR_ID}, 'published', '2025-01-01', 'History', 'test-indicator', 'publisher', 'publisher') RETURNING id
+      VALUES (${INDICATOR_ID}, 'published', '2025-01-01', 'History', 'test-indicator', ${PUBLISHER}, ${PUBLISHER}) RETURNING id
     `;
     await sql`INSERT INTO indicator_version_topic (indicator_version_id, topic_id) VALUES (${history?.id ?? ''}, ${topicId})`;
     const row = [...VERSION_ROW];
