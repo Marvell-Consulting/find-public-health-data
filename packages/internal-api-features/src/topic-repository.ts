@@ -1,5 +1,5 @@
 import { type Database, schema } from '@fphd/db';
-import type { Actor } from '@fphd/db/audit-log';
+import { type Actor, changesBetween, listChanges, recordAudit } from '@fphd/db/audit-log';
 import { eq, sql } from 'drizzle-orm';
 
 const { indicatorVersionTopic, topic } = schema;
@@ -75,6 +75,10 @@ export async function updateTopic(
         throw new Error(`updateTopic locked topic ${id} but updated no row`);
       }
 
+      await recordAudit(tx, actor, [
+        { action: 'topic.updated', entityId: id, changes: changesBetween(current, updated) },
+      ]);
+
       return { ok: true, topic: updated, changed: true };
     });
   } catch (error) {
@@ -90,27 +94,57 @@ export async function createTopic(
   actor: Actor,
 ): Promise<CreateTopicResult> {
   try {
-    const [created] = await db
-      .insert(topic)
-      .values({ description, slug, title, createdBy: actor.userId, updatedBy: actor.userId })
-      .returning();
+    return await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(topic)
+        .values({ description, slug, title, createdBy: actor.userId, updatedBy: actor.userId })
+        .returning();
 
-    if (created === undefined) throw new Error('createTopic inserted no row');
+      if (created === undefined) throw new Error('createTopic inserted no row');
 
-    return { ok: true, topic: created };
+      await recordAudit(tx, actor, [
+        { action: 'topic.created', entityId: created.id, changes: changesBetween(null, created) },
+      ]);
+
+      return { ok: true, topic: created };
+    });
   } catch (error) {
     if (isUniqueViolation(error)) return { ok: false, reason: 'slug_taken' };
     throw error;
   }
 }
 
-/** The links go first or the foreign key refuses the delete; the indicators themselves stay. */
-export async function deleteTopic(db: Database, id: string): Promise<DeleteTopicResult> {
+/**
+ * The links go first or the foreign key refuses the delete; the indicators themselves stay. The
+ * entry records the versions the topic is removed from.
+ */
+export async function deleteTopic(
+  db: Database,
+  id: string,
+  actor: Actor,
+): Promise<DeleteTopicResult> {
   return db.transaction(async (tx) => {
-    await tx.delete(indicatorVersionTopic).where(eq(indicatorVersionTopic.topicId, id));
+    const links = await tx
+      .delete(indicatorVersionTopic)
+      .where(eq(indicatorVersionTopic.topicId, id))
+      .returning({ versionId: indicatorVersionTopic.indicatorVersionId });
 
-    const deleted = await tx.delete(topic).where(eq(topic.id, id)).returning({ id: topic.id });
+    const [deleted] = await tx.delete(topic).where(eq(topic.id, id)).returning();
 
-    return deleted.length === 0 ? { ok: false, reason: 'not_found' } : { ok: true };
+    if (deleted === undefined) return { ok: false, reason: 'not_found' };
+
+    const indicatorVersionIds = links.map(({ versionId }) => versionId);
+    await recordAudit(tx, actor, [
+      {
+        action: 'topic.deleted',
+        entityId: id,
+        changes: {
+          ...changesBetween(deleted, null),
+          ...listChanges({ indicatorVersionIds }, { indicatorVersionIds: [] }),
+        },
+      },
+    ]);
+
+    return { ok: true };
   });
 }

@@ -68,7 +68,7 @@ export interface InternalTopicRepository {
   findById(id: string): Promise<TopicRow | undefined>;
   create(values: TopicUpdate, actor: Actor): Promise<CreateTopicResult>;
   update(id: string, values: TopicUpdate, actor: Actor): Promise<UpdateTopicResult>;
-  delete(id: string): Promise<DeleteTopicResult>;
+  delete(id: string, actor: Actor): Promise<DeleteTopicResult>;
 }
 
 /** The publisher's view of indicators: every status, unlike the public repository. */
@@ -188,7 +188,7 @@ export function createInternalRepositories(db: Database): InternalRepositories {
       findById: (id) => getTopicById(db, id),
       create: (values, actor) => createTopic(db, values, actor),
       update: (id, values, actor) => updateTopic(db, id, values, actor),
-      delete: (id) => deleteTopic(db, id),
+      delete: (id, actor) => deleteTopic(db, id, actor),
     },
     valueTypesAndUnits: {
       listOptions: () => listValueTypeAndUnitOptions(db),

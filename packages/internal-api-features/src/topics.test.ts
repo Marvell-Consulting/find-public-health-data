@@ -332,6 +332,22 @@ describe('DELETE /api/internal/topics/:id', () => {
       .set('Cookie', await adminCookie());
   }
 
+  it('deletes the topic as the signed-in user', async () => {
+    let writer: unknown;
+    const app = createTestApp({
+      delete: async (_id, actor) => {
+        writer = actor;
+        return { ok: true };
+      },
+    });
+
+    await request(app)
+      .delete(`/api/internal/topics/${topic.id}`)
+      .set('Cookie', await adminCookie());
+
+    expect(writer).toEqual({ userId: TEST_USER_ID, requestId: null });
+  });
+
   it('deletes the topic and answers with an empty 204', async () => {
     const app = createTestApp({ delete: async () => ({ ok: true }) });
 

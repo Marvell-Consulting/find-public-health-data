@@ -132,7 +132,7 @@ export function internalTopicsRouter(
       return;
     }
 
-    const result = await topics.delete(id.data);
+    const result = await topics.delete(id.data, requireApiActor(request, response));
 
     if (!result.ok) {
       response.status(404).json({ error: 'not_found' });
