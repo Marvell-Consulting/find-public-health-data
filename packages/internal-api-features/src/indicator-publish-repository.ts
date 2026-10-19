@@ -1,5 +1,5 @@
 import { type Database, schema } from '@fphd/db';
-import type { Actor } from '@fphd/db/audit-log';
+import { type Actor, changesBetween, listChanges, recordAudit } from '@fphd/db/audit-log';
 import { CLASSIFICATION_DIMENSIONS } from '@fphd/utils/classification-dimension';
 import { eq, getTableColumns, sql } from 'drizzle-orm';
 
@@ -61,7 +61,7 @@ export async function createDraftFromPublished(
             createdBy: actor.userId,
             updatedBy: actor.userId,
           })
-          .returning({ id: indicatorVersion.id });
+          .returning();
 
         if (draft === undefined) throw new Error('createDraftFromPublished inserted no version');
 
@@ -73,7 +73,7 @@ export async function createDraftFromPublished(
           sourcesOf(tx, publishedId),
         ]);
 
-        await replaceLists(tx, draft.id, {
+        const copied = await replaceLists(tx, draft.id, {
           topicIds,
           classificationIds: Object.fromEntries(
             CLASSIFICATION_DIMENSIONS.map((dimension) => [
@@ -85,6 +85,17 @@ export async function createDraftFromPublished(
           ageRanges,
           ...sources,
         });
+
+        await recordAudit(tx, actor, [
+          {
+            action: 'indicator.draft_created_from_published',
+            entityId: indicatorId,
+            changes: {
+              ...changesBetween(null, draft),
+              ...listChanges({}, copied.after),
+            },
+          },
+        ]);
 
         return { ok: true, versionId: draft.id };
       },

@@ -1,5 +1,6 @@
 import { TEAM_IDS } from '@fphd/auth';
 import { type Database, schema } from '@fphd/db';
+import { auditEntriesFor } from '@fphd/db/testing';
 import { MAX_AGE } from '@fphd/utils/sex-and-ages';
 import { eq, sql } from 'drizzle-orm';
 import { describe, expect } from 'vitest';
@@ -37,6 +38,15 @@ async function slugOf(db: Database, versionId: string): Promise<string | undefin
 }
 
 type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
+
+/** Sessions in this test's database waiting on another transaction's row lock. */
+async function lockWaiters(db: Database): Promise<number> {
+  const [row] = (await db.execute(sql`
+    SELECT count(*)::int AS waiting FROM pg_stat_activity
+    WHERE wait_event_type = 'Lock' AND datname = current_database()
+  `)) as unknown as { waiting: number }[];
+  return row?.waiting ?? 0;
+}
 
 /** Sessions in this test's database waiting on a slug lock. */
 async function slugLockWaiters(db: Database): Promise<number> {
@@ -518,6 +528,169 @@ describe('updateIndicatorDraft', () => {
       reason: 'no_draft',
     });
   });
+});
+
+describe('the audit log of draft writes', () => {
+  repositoryTest('records a new draft with its version id and team', async ({ db }) => {
+    const created = await newDraft(db, 'Audited new draft');
+
+    const [entry] = await auditEntriesFor(db, created.indicatorId);
+    expect(entry).toMatchObject({
+      actorId: ACTOR,
+      action: 'indicator.draft_created',
+      entityType: 'indicator',
+      requestId: null,
+    });
+    expect(entry?.changes).toMatchObject({
+      id: { before: null, after: created.versionId },
+      indicatorId: { before: null, after: created.indicatorId },
+      name: { before: null, after: 'Audited new draft' },
+      slug: { before: null, after: 'audited-new-draft' },
+      status: { before: null, after: 'draft' },
+      teamId: { before: null, after: TEAM_IDS.teamA },
+    });
+  });
+
+  repositoryTest('records only the columns a save changed', async ({ db }) => {
+    const created = await newDraft(db, 'Audited rename');
+
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      { name: 'Audited renamed' },
+      {},
+      AS_OTHER_ACTOR,
+    );
+
+    const [, entry] = await auditEntriesFor(db, created.indicatorId);
+    expect(entry).toEqual({
+      actorId: OTHER_ACTOR,
+      action: 'indicator.draft_updated',
+      entityType: 'indicator',
+      requestId: null,
+      changes: {
+        name: { before: 'Audited rename', after: 'Audited renamed' },
+        slug: { before: 'audited-rename', after: 'audited-renamed' },
+      },
+    });
+  });
+
+  repositoryTest('records a replaced list whole, before and after', async ({ db }) => {
+    const created = await newDraft(db, 'Audited links');
+    const first = [{ url: 'https://example.com/a', text: 'A' }];
+    const second = [{ url: 'https://example.com/b', text: 'B' }, ...first];
+
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      { hasLinks: true },
+      { links: first },
+      AS_ACTOR,
+    );
+    await updateIndicatorDraft(db, created.indicatorId, {}, { links: second }, AS_ACTOR);
+
+    const [, withLinks, replaced] = await auditEntriesFor(db, created.indicatorId);
+    expect(withLinks?.changes).toEqual({
+      hasLinks: { before: null, after: true },
+      links: { before: [], after: first },
+    });
+    expect(replaced?.changes).toEqual({ links: { before: first, after: second } });
+  });
+
+  repositoryTest('records nothing for a save that changes nothing', async ({ db }) => {
+    const created = await newDraft(db, 'Audited no-op');
+    const topics = await db.select({ id: schema.topic.id }).from(schema.topic).limit(2);
+    const topicIds = topics.map(({ id }) => id);
+
+    await updateIndicatorDraft(db, created.indicatorId, {}, { topicIds }, AS_ACTOR);
+    await updateIndicatorDraft(
+      db,
+      created.indicatorId,
+      { name: 'Audited no-op' },
+      { topicIds: [...topicIds].reverse() },
+      AS_ACTOR,
+    );
+
+    expect((await auditEntriesFor(db, created.indicatorId)).map(({ action }) => action)).toEqual([
+      'indicator.draft_created',
+      'indicator.draft_updated',
+    ]);
+  });
+
+  repositoryTest(
+    'records as removed only the list rows the save itself removed',
+    async ({ db }) => {
+      const created = await newDraft(db, 'Audited concurrent unlink');
+      const topics = await db.select({ id: schema.topic.id }).from(schema.topic).limit(2);
+      const [gone, kept] = topics.map(({ id }) => id);
+      if (gone === undefined || kept === undefined) throw new Error('the seed has too few topics');
+      await updateIndicatorDraft(db, created.indicatorId, {}, { topicIds: [gone, kept] }, AS_ACTOR);
+
+      // Another writer removes a link, as a topic's deletion does, and holds it while the save runs.
+      const { saving } = await db.transaction(async (tx) => {
+        await tx
+          .delete(schema.indicatorVersionTopic)
+          .where(eq(schema.indicatorVersionTopic.topicId, gone));
+        const saving = updateIndicatorDraft(
+          db,
+          created.indicatorId,
+          {},
+          { topicIds: [kept] },
+          AS_ACTOR,
+        );
+        await expect.poll(() => lockWaiters(db)).toBe(1);
+        return { saving };
+      });
+      await saving;
+
+      expect((await auditEntriesFor(db, created.indicatorId)).map(({ action }) => action)).toEqual([
+        'indicator.draft_created',
+        'indicator.draft_updated',
+      ]);
+    },
+  );
+
+  repositoryTest('records nothing for an indicator without a draft', async ({ db }) => {
+    const unknown = '00000000-0000-7000-8000-0000000000fe';
+
+    await updateIndicatorDraft(db, unknown, { name: 'Nobody' }, {}, AS_ACTOR);
+
+    expect(await auditEntriesFor(db, unknown)).toEqual([]);
+  });
+
+  repositoryTest(
+    'records a draft opened from the published version, lists and all',
+    async ({ db }) => {
+      const created = await newDraft(db, 'Audited reopened');
+      const first = [{ url: 'https://example.com/a', text: 'A' }];
+      await updateIndicatorDraft(
+        db,
+        created.indicatorId,
+        { hasLinks: true },
+        { links: first },
+        AS_ACTOR,
+      );
+      await db
+        .update(indicatorVersion)
+        .set({ status: 'published', publishedAt: new Date() })
+        .where(eq(indicatorVersion.id, created.versionId));
+
+      const opened = await createDraftFromPublished(db, created.indicatorId, AS_OTHER_ACTOR);
+      if (!opened.ok) throw new Error('opened no draft');
+
+      const entry = (await auditEntriesFor(db, created.indicatorId)).at(-1);
+      expect(entry).toMatchObject({
+        actorId: OTHER_ACTOR,
+        action: 'indicator.draft_created_from_published',
+      });
+      expect(entry?.changes).toMatchObject({
+        id: { before: null, after: opened.versionId },
+        name: { before: null, after: 'Audited reopened' },
+        hasLinks: { before: null, after: true },
+        links: { before: [], after: first },
+      });
+    },
+  );
 });
 
 describe('getIndicatorDraftState', () => {

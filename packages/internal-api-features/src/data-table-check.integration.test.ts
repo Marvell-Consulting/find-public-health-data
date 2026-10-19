@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { appEnvFields, parseEnv, z } from '@fphd/config';
 import { createDb, type Database, dbEnvFields, resolveDbTls, schema } from '@fphd/db';
-import { createTestDatabase } from '@fphd/db/testing';
+import { auditEntriesFor, createTestDatabase } from '@fphd/db/testing';
 import { request } from '@fphd/express/testing';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { v7 as randomUuidV7 } from 'uuid';
@@ -292,6 +292,21 @@ describe('PUT /api/internal/indicators/:id/data-table/confirmation', () => {
     expect(draft.updatedBy).toBe(TEST_USER_ID);
   });
 
+  it('records the confirmation under the request that made it', async () => {
+    const { indicatorId } = await newDraft(internalDb, 'Confirm on the record');
+    const batchId = await load(indicatorId);
+
+    const response = await confirm(indicatorId, batchId);
+
+    expect((await auditEntriesFor(ownerDb, indicatorId)).at(-1)).toEqual({
+      actorId: TEST_USER_ID,
+      action: 'indicator.data_table_confirmed',
+      entityType: 'indicator',
+      requestId: response.headers['x-fphd-request-id'],
+      changes: { dataTableConfirmedAt: { before: null, after: response.body.confirmedAt } },
+    });
+  });
+
   it('refuses a batch another upload has replaced, confirming neither', async () => {
     const { indicatorId } = await newDraft(internalDb, 'Confirm a replaced batch');
     const shown = await load(indicatorId);
@@ -303,6 +318,9 @@ describe('PUT /api/internal/indicators/:id/data-table/confirmation', () => {
     expect(response.body).toEqual({ error: 'data_table_changed' });
     const draft = await draftOf(ownerDb, indicatorId);
     expect(draft).toMatchObject({ uploadBatchId: replacement, dataTableConfirmedAt: null });
+    expect((await auditEntriesFor(ownerDb, indicatorId)).map(({ action }) => action)).not.toContain(
+      'indicator.data_table_confirmed',
+    );
   });
 
   it('refuses once the draft is published', async () => {

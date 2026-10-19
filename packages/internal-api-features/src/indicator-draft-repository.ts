@@ -1,5 +1,5 @@
 import { type Database, schema } from '@fphd/db';
-import type { Actor } from '@fphd/db/audit-log';
+import { type Actor, changesBetween, listChanges, recordAudit } from '@fphd/db/audit-log';
 import { slugify, slugProblem } from '@fphd/utils/slug';
 import { and, eq, sql } from 'drizzle-orm';
 
@@ -26,6 +26,7 @@ import {
   replaceLists,
   sourcesOf,
   topicIdsOf,
+  UNORDERED_LISTS,
 } from './indicator-version-lists-repository.ts';
 
 const { ciMethod, currentPublishedVersion, indicator, indicatorVersion } = schema;
@@ -188,9 +189,17 @@ export async function createIndicatorDraft(
           createdBy: actor.userId,
           updatedBy: actor.userId,
         })
-        .returning({ id: indicatorVersion.id });
+        .returning();
 
       if (version === undefined) throw new Error('createIndicatorDraft inserted no version');
+
+      await recordAudit(tx, actor, [
+        {
+          action: 'indicator.draft_created',
+          entityId: identity.id,
+          changes: { ...changesBetween(null, version), ...changesBetween(null, { teamId }) },
+        },
+      ]);
 
       return {
         ok: true,
@@ -228,17 +237,40 @@ export async function updateIndicatorDraft(
       if ('slug' in renamed)
         await lockSlugs(tx, [await draftSlugOf(tx, indicatorId), renamed.slug]);
 
+      const isDraft = and(
+        eq(indicatorVersion.indicatorId, indicatorId),
+        eq(indicatorVersion.status, 'draft'),
+      );
+      // The update's own lock, taken first so the before values are the ones this save replaces.
+      const [current] = await tx
+        .select()
+        .from(indicatorVersion)
+        .where(isDraft)
+        .for('no key update');
+
+      if (current === undefined) return { ok: false, reason: 'no_draft' };
+
       const [draft] = await tx
         .update(indicatorVersion)
         .set({ ...attributes, ...renamed, updatedAt: sql`now()`, updatedBy: actor.userId })
-        .where(
-          and(eq(indicatorVersion.indicatorId, indicatorId), eq(indicatorVersion.status, 'draft')),
-        )
-        .returning({ id: indicatorVersion.id });
+        .where(eq(indicatorVersion.id, current.id))
+        .returning();
 
-      if (draft === undefined) return { ok: false, reason: 'no_draft' };
+      if (draft === undefined) {
+        throw new Error(`updateIndicatorDraft locked draft ${current.id} but updated no row`);
+      }
 
-      await replaceLists(tx, draft.id, lists);
+      const replaced = await replaceLists(tx, draft.id, lists);
+
+      const changes = {
+        ...changesBetween(current, draft),
+        ...listChanges(replaced.before, replaced.after, UNORDERED_LISTS),
+      };
+      if (Object.keys(changes).length > 0) {
+        await recordAudit(tx, actor, [
+          { action: 'indicator.draft_updated', entityId: indicatorId, changes },
+        ]);
+      }
 
       return { ok: true };
     });

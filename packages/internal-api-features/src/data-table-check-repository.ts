@@ -1,5 +1,5 @@
 import { type Database, schema } from '@fphd/db';
-import type { Actor } from '@fphd/db/audit-log';
+import { type Actor, changesBetween, recordAudit } from '@fphd/db/audit-log';
 import { type PublicYearType, publicYearType } from '@fphd/utils/period-type';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 
@@ -195,19 +195,38 @@ export async function confirmDataTable(
   batchId: string,
   actor: Actor,
 ): Promise<ConfirmDataTableResult> {
-  const [confirmed] = await db
-    .update(indicatorVersion)
-    .set({ dataTableConfirmedAt: sql`now()`, updatedAt: sql`now()`, updatedBy: actor.userId })
-    .where(
-      and(
-        eq(indicatorVersion.indicatorId, indicatorId),
-        eq(indicatorVersion.status, 'draft'),
-        eq(indicatorVersion.uploadBatchId, batchId),
-      ),
-    )
-    .returning({ confirmedAt: indicatorVersion.dataTableConfirmedAt });
+  const confirmedAt = await db.transaction(async (tx) => {
+    const [confirmed] = await tx
+      .update(indicatorVersion)
+      .set({ dataTableConfirmedAt: sql`now()`, updatedAt: sql`now()`, updatedBy: actor.userId })
+      .where(
+        and(
+          eq(indicatorVersion.indicatorId, indicatorId),
+          eq(indicatorVersion.status, 'draft'),
+          eq(indicatorVersion.uploadBatchId, batchId),
+        ),
+      )
+      .returning({
+        before: sql`old.data_table_confirmed_at`.mapWith(indicatorVersion.dataTableConfirmedAt),
+        after: indicatorVersion.dataTableConfirmedAt,
+      });
 
-  if (confirmed?.confirmedAt) return { ok: true, confirmedAt: confirmed.confirmedAt };
+    if (!confirmed?.after) return undefined;
+
+    await recordAudit(tx, actor, [
+      {
+        action: 'indicator.data_table_confirmed',
+        entityId: indicatorId,
+        changes: changesBetween(
+          { dataTableConfirmedAt: confirmed.before },
+          { dataTableConfirmedAt: confirmed.after },
+        ),
+      },
+    ]);
+    return confirmed.after;
+  });
+
+  if (confirmedAt) return { ok: true, confirmedAt };
 
   const found = await findDraftDataTable(db, indicatorId);
   return { ok: false, reason: found.found ? 'data_table_changed' : found.reason };

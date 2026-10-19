@@ -127,6 +127,38 @@ export async function ageRangesOf(
     .orderBy(asc(indicatorVersionAgeRange.position));
 }
 
+/** The lists whose order means nothing, compared as sets in the audit log. */
+export const UNORDERED_LISTS = ['topicIds', 'classificationIds'];
+
+/** The lists a replacement rewrote, as the audit log records them: what each held, and holds. */
+export interface ReplacedLists {
+  before: Record<string, unknown[]>;
+  after: Record<string, unknown[]>;
+}
+
+const auditedLink = ({ url, text }: IndicatorDraftLink) => ({ url, text });
+
+const auditedAgeRange = (range: IndicatorDraftAgeRange) => ({
+  lowerLimit: range.lowerLimit ?? null,
+  lowerLimitUnit: range.lowerLimitUnit ?? null,
+  upperLimit: range.upperLimit ?? null,
+  upperLimitUnit: range.upperLimitUnit ?? null,
+});
+
+const auditedSource = ({ providerId, sourceId }: IndicatorDraftSource) => ({
+  providerId,
+  sourceId: sourceId ?? null,
+});
+
+/** Rows a delete returned, in the order their positions give. */
+function inPosition<Row extends { position: number }>(rows: Row[]): Row[] {
+  return [...rows].sort((a, b) => a.position - b.position);
+}
+
+/**
+ * Replaces the lists given and answers what each held before, from the rows its delete removed,
+ * so a row another writer removed first is not counted as this replacement's.
+ */
 export async function replaceLists(
   tx: Transaction,
   versionId: string,
@@ -138,23 +170,29 @@ export async function replaceLists(
     numeratorSources,
     denominatorSources,
   }: IndicatorDraftLists,
-): Promise<void> {
+): Promise<ReplacedLists> {
+  const before: Record<string, unknown[]> = {};
+  const after: Record<string, unknown[]> = {};
+
   if (topicIds !== undefined) {
-    await tx
+    const removed = await tx
       .delete(indicatorVersionTopic)
-      .where(eq(indicatorVersionTopic.indicatorVersionId, versionId));
+      .where(eq(indicatorVersionTopic.indicatorVersionId, versionId))
+      .returning({ topicId: indicatorVersionTopic.topicId });
     if (topicIds.length > 0) {
       await tx
         .insert(indicatorVersionTopic)
         .values(topicIds.map((topicId) => ({ topicId, indicatorVersionId: versionId })));
     }
+    before.topicIds = removed.map(({ topicId }) => topicId);
+    after.topicIds = topicIds;
   }
 
   for (const dimension of CLASSIFICATION_DIMENSIONS) {
     const ids = classificationIds?.[dimension];
     if (ids === undefined) continue;
 
-    await tx
+    const removed = await tx
       .delete(indicatorVersionClassification)
       .where(
         and(
@@ -167,7 +205,8 @@ export async function replaceLists(
               .where(eq(classification.dimension, dimension)),
           ),
         ),
-      );
+      )
+      .returning({ id: indicatorVersionClassification.classificationId });
     if (ids.length > 0) {
       await tx
         .insert(indicatorVersionClassification)
@@ -175,12 +214,18 @@ export async function replaceLists(
           ids.map((classificationId) => ({ classificationId, indicatorVersionId: versionId })),
         );
     }
+    before.classificationIds = [
+      ...(before.classificationIds ?? []),
+      ...removed.map(({ id }) => id),
+    ];
+    after.classificationIds = [...(after.classificationIds ?? []), ...ids];
   }
 
   if (links !== undefined) {
-    await tx
+    const removed = await tx
       .delete(indicatorVersionLink)
-      .where(eq(indicatorVersionLink.indicatorVersionId, versionId));
+      .where(eq(indicatorVersionLink.indicatorVersionId, versionId))
+      .returning();
     if (links.length > 0) {
       await tx.insert(indicatorVersionLink).values(
         links.map(({ url, text }, position) => ({
@@ -191,12 +236,15 @@ export async function replaceLists(
         })),
       );
     }
+    before.links = inPosition(removed).map(auditedLink);
+    after.links = links.map(auditedLink);
   }
 
   if (ageRanges !== undefined) {
-    await tx
+    const removed = await tx
       .delete(indicatorVersionAgeRange)
-      .where(eq(indicatorVersionAgeRange.indicatorVersionId, versionId));
+      .where(eq(indicatorVersionAgeRange.indicatorVersionId, versionId))
+      .returning();
     if (ageRanges.length > 0) {
       await tx.insert(indicatorVersionAgeRange).values(
         ageRanges.map((range, position) => ({
@@ -206,28 +254,38 @@ export async function replaceLists(
         })),
       );
     }
+    before.ageRanges = inPosition(removed).map(auditedAgeRange);
+    after.ageRanges = ageRanges.map(auditedAgeRange);
   }
 
-  await replaceSources(tx, versionId, 'numerator', numeratorSources);
-  await replaceSources(tx, versionId, 'denominator', denominatorSources);
+  for (const [field, part, sources] of [
+    ['numeratorSources', 'numerator', numeratorSources],
+    ['denominatorSources', 'denominator', denominatorSources],
+  ] as const) {
+    if (sources === undefined) continue;
+    before[field] = (await replaceSources(tx, versionId, part, sources)).map(auditedSource);
+    after[field] = sources.map(auditedSource);
+  }
+
+  return { before, after };
 }
 
+/** Answers the sources it removed, in their order. */
 async function replaceSources(
   tx: Transaction,
   versionId: string,
   part: IndicatorSourcePart,
-  sources: IndicatorDraftSource[] | undefined,
-): Promise<void> {
-  if (sources === undefined) return;
-
-  await tx
+  sources: IndicatorDraftSource[],
+): Promise<IndicatorDraftSource[]> {
+  const removed = await tx
     .delete(indicatorVersionSource)
     .where(
       and(
         eq(indicatorVersionSource.indicatorVersionId, versionId),
         eq(indicatorVersionSource.part, part),
       ),
-    );
+    )
+    .returning();
 
   if (sources.length > 0) {
     await tx.insert(indicatorVersionSource).values(
@@ -240,4 +298,6 @@ async function replaceSources(
       })),
     );
   }
+
+  return inPosition(removed);
 }
