@@ -80,7 +80,7 @@ export async function exportDevSnapshot(options: ExportDevSnapshotOptions): Prom
   const tables = await writeActorsAsUsers(outDir, await rekeyDirectory(outDir, tidied.tables));
   await writeFile(
     join(outDir, 'manifest.json'),
-    `${JSON.stringify({ ...description, reference_names: 'tidied', id_mapping: 'deterministic-uuidv7-v1', tables }, null, 2)}\n`,
+    `${JSON.stringify({ ...description, reference_names: 'tidied', id_mapping: 'deterministic-uuidv7-v1', writers: 'users', tables }, null, 2)}\n`,
   );
 
   const files = ['manifest.json', 'source-manifest.json', ...SEED_TABLES.map((t) => `${t}.csv.gz`)];

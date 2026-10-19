@@ -61,7 +61,7 @@ async function snapshot(
   await writeFile(join(directory, 'source-manifest.json'), JSON.stringify(sourceManifest));
   await writeFile(
     join(directory, 'manifest.json'),
-    JSON.stringify({ ...sourceManifest, id_mapping: 'deterministic-uuidv7-v1' }),
+    JSON.stringify({ ...sourceManifest, id_mapping: 'deterministic-uuidv7-v1', writers: 'users' }),
   );
   return directory;
 }
@@ -85,6 +85,17 @@ describe('verifyPublishedSnapshot', () => {
     await writeFile(path, JSON.stringify(manifest));
 
     await expect(verifyPublishedSnapshot(directory)).rejects.toThrow('carries no slug column');
+  });
+
+  it('rejects an archive exported before its writers were users', async () => {
+    const directory = await snapshot();
+    const path = join(directory, 'manifest.json');
+    const { writers: _, ...manifest } = JSON.parse(await readFile(path, 'utf8'));
+    await writeFile(path, JSON.stringify(manifest));
+
+    await expect(verifyPublishedSnapshot(directory)).rejects.toThrow(
+      'Published snapshot predates users as writers and must be regenerated',
+    );
   });
 
   it('rejects an archive exported before its reference names were tidied', async () => {
