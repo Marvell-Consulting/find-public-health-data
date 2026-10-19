@@ -12,7 +12,7 @@ import { type DataProviderRecord, upsertDataProviders } from './data-provider-co
 import { SYSTEM_USER_IDS } from './schema/index.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
 import { loadIndicatorVersions } from './seeding.ts';
-import { createTestDatabase, type TestDatabase } from './testing.ts';
+import { auditEntriesFor, createTestDatabase, type TestDatabase } from './testing.ts';
 
 describe('the committed core data and seed', () => {
   let testDb: TestDatabase;
@@ -113,6 +113,19 @@ describe('upsertDataProviders', () => {
       sources: { inserted: 0, updated: 1, unchanged: 0 },
     });
     expect(renamed.orphaned).toEqual([{ id: stray?.id, name: 'A provider no file lists' }]);
+    expect((await auditEntriesFor(db, provider.id)).map(({ action }) => action)).toEqual([
+      'data_provider.created',
+    ]);
+    expect(await auditEntriesFor(db, '01a0d858-9885-764e-8d53-6826aec67002')).toEqual([
+      expect.objectContaining({
+        actorId: SYSTEM_USER_IDS.coreDataImport,
+        action: 'data_provider_source.created',
+      }),
+      expect.objectContaining({
+        action: 'data_provider_source.updated',
+        changes: { name: { before: 'Live births', after: 'Births' } },
+      }),
+    ]);
   });
 
   it('touches updated_at only on a row it rewrites', async () => {

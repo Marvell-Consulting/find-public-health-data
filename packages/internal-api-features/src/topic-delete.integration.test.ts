@@ -72,7 +72,8 @@ describe('deleteTopic with linked indicators', () => {
     `;
     expect(survivors?.count).toBe(links.length);
 
-    const [entry] = await auditEntriesFor(db, linked.topicId);
+    const entry = (await auditEntriesFor(db, linked.topicId)).at(-1);
+    expect(entry?.action).toBe('topic.deleted');
     const removed = entry?.changes.indicatorVersionIds;
     expect(removed?.after).toEqual([]);
     expect(removed?.before).toEqual(expect.arrayContaining(links.map((link) => link.versionId)));

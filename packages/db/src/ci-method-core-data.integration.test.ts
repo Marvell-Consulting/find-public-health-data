@@ -12,7 +12,7 @@ import { importCoreData } from './core-data.ts';
 import { SYSTEM_USER_IDS } from './schema/index.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
 import { loadIndicatorVersions } from './seeding.ts';
-import { createTestDatabase, type TestDatabase } from './testing.ts';
+import { auditEntriesFor, createTestDatabase, type TestDatabase } from './testing.ts';
 
 // The service's list, in the order the publisher's form shows it.
 const SERVICE_CI_METHODS = [
@@ -109,6 +109,28 @@ describe('upsertCiMethods', () => {
     expect(again.summary).toEqual({ inserted: 0, updated: 0, unchanged: 1 });
     expect(renamed.summary).toEqual({ inserted: 0, updated: 1, unchanged: 0 });
     expect(renamed.orphaned).toEqual([{ id: stray?.id, name: 'A method no file lists' }]);
+  });
+
+  it('records the methods it writes as the core data import, and nothing for the rest', async () => {
+    const db = createDbFromClient(sql);
+    const recorded = { ...method, id: '019fa38f-073f-764e-9ac6-1c4d03b1cb93', name: 'Recorded' };
+
+    await upsertCiMethods(db, [recorded]);
+    await upsertCiMethods(db, [recorded]);
+    await upsertCiMethods(db, [{ ...recorded, name: 'Recorded, renamed' }]);
+
+    expect(await auditEntriesFor(db, recorded.id)).toEqual([
+      expect.objectContaining({
+        actorId: SYSTEM_USER_IDS.coreDataImport,
+        action: 'ci_method.created',
+        changes: expect.objectContaining({ name: { before: null, after: 'Recorded' } }),
+      }),
+      expect.objectContaining({
+        actorId: SYSTEM_USER_IDS.coreDataImport,
+        action: 'ci_method.updated',
+        changes: { name: { before: 'Recorded', after: 'Recorded, renamed' } },
+      }),
+    ]);
   });
 
   it('touches updated_at only on a method it rewrites', async () => {

@@ -1,9 +1,11 @@
 import { z } from '@fphd/config';
 import { sql } from 'drizzle-orm';
 
+import { recordAudit } from './audit-log.ts';
 import type { Database } from './client.ts';
+import { CORE_DATA_IMPORT, upsertEntries, upsertedRow } from './core-data-audit.ts';
 import { findDuplicates } from './parse-topics-file.ts';
-import { comparatorMethod, type unit, type valueType } from './schema/index.ts';
+import { comparatorMethod, type unit, valueType } from './schema/index.ts';
 import { summarizeUpsert, type UpsertSummary } from './topic-repository.ts';
 
 /** An entry of a list a publisher chooses from, as its core data file states it. */
@@ -48,28 +50,35 @@ export async function upsertOrderedNames(
   records: NamedRecord[],
 ): Promise<NamedUpsertResult> {
   const ids = new Set(records.map(({ id }) => id));
-  const existing = await db.select({ id: table.id, name: table.name }).from(table);
-  const outcomes =
-    records.length === 0
-      ? []
-      : await db
-          .insert(table)
-          .values(records.map((record, position) => ({ ...record, position })))
-          .onConflictDoUpdate({
-            target: table.id,
-            set: {
-              name: sql`excluded.name`,
-              position: sql`excluded.position`,
-              updatedAt: sql`now()`,
-            },
-            setWhere: sql`(${table.name}, ${table.position}) IS DISTINCT FROM (excluded.name, excluded.position)`,
-          })
-          .returning({ id: table.id, wasInsert: sql<boolean>`xmax = 0` });
+  return db.transaction(async (tx) => {
+    const existing = await tx.select({ id: table.id, name: table.name }).from(table);
+    const outcomes =
+      records.length === 0
+        ? []
+        : await tx
+            .insert(table)
+            .values(records.map((record, position) => ({ ...record, position })))
+            .onConflictDoUpdate({
+              target: table.id,
+              set: {
+                name: sql`excluded.name`,
+                position: sql`excluded.position`,
+                updatedAt: sql`now()`,
+              },
+              setWhere: sql`(${table.name}, ${table.position}) IS DISTINCT FROM (excluded.name, excluded.position)`,
+            })
+            .returning({ id: table.id, wasInsert: sql<boolean>`xmax = 0`, ...upsertedRow });
+    await recordAudit(
+      tx,
+      CORE_DATA_IMPORT,
+      upsertEntries(table === valueType ? 'value_type' : 'unit', outcomes),
+    );
 
-  return {
-    summary: summarizeUpsert(records.length, outcomes),
-    orphaned: existing.filter((row) => !ids.has(row.id)),
-  };
+    return {
+      summary: summarizeUpsert(records.length, outcomes),
+      orphaned: existing.filter((row) => !ids.has(row.id)),
+    };
+  });
 }
 
 /** Upserts the comparator methods, matched on id, rewriting a row only when its name differs. */
@@ -78,24 +87,31 @@ export async function upsertComparatorMethods(
   records: NamedRecord[],
 ): Promise<NamedUpsertResult> {
   const ids = new Set(records.map(({ id }) => id));
-  const existing = await db
-    .select({ id: comparatorMethod.id, name: comparatorMethod.name })
-    .from(comparatorMethod);
-  const outcomes =
-    records.length === 0
-      ? []
-      : await db
-          .insert(comparatorMethod)
-          .values(records)
-          .onConflictDoUpdate({
-            target: comparatorMethod.id,
-            set: { name: sql`excluded.name`, updatedAt: sql`now()` },
-            setWhere: sql`${comparatorMethod.name} IS DISTINCT FROM excluded.name`,
-          })
-          .returning({ id: comparatorMethod.id, wasInsert: sql<boolean>`xmax = 0` });
+  return db.transaction(async (tx) => {
+    const existing = await tx
+      .select({ id: comparatorMethod.id, name: comparatorMethod.name })
+      .from(comparatorMethod);
+    const outcomes =
+      records.length === 0
+        ? []
+        : await tx
+            .insert(comparatorMethod)
+            .values(records)
+            .onConflictDoUpdate({
+              target: comparatorMethod.id,
+              set: { name: sql`excluded.name`, updatedAt: sql`now()` },
+              setWhere: sql`${comparatorMethod.name} IS DISTINCT FROM excluded.name`,
+            })
+            .returning({
+              id: comparatorMethod.id,
+              wasInsert: sql<boolean>`xmax = 0`,
+              ...upsertedRow,
+            });
+    await recordAudit(tx, CORE_DATA_IMPORT, upsertEntries('comparator_method', outcomes));
 
-  return {
-    summary: summarizeUpsert(records.length, outcomes),
-    orphaned: existing.filter((row) => !ids.has(row.id)),
-  };
+    return {
+      summary: summarizeUpsert(records.length, outcomes),
+      orphaned: existing.filter((row) => !ids.has(row.id)),
+    };
+  });
 }

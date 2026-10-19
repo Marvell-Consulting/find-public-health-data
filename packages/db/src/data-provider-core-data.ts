@@ -1,7 +1,9 @@
 import { z } from '@fphd/config';
 import { sql } from 'drizzle-orm';
 
+import { recordAudit } from './audit-log.ts';
 import type { Database } from './client.ts';
+import { CORE_DATA_IMPORT, upsertEntries, upsertedRow } from './core-data-audit.ts';
 import { findDuplicates } from './parse-topics-file.ts';
 import { dataProvider, dataProviderSource } from './schema/index.ts';
 import { summarizeUpsert, type UpsertSummary } from './topic-repository.ts';
@@ -61,45 +63,55 @@ export async function upsertDataProviders(
     sources.map(({ id, name }) => ({ id, providerId, name })),
   );
   const ids = new Set([...records.map(({ id }) => id), ...sources.map(({ id }) => id)]);
-  const existing = [
-    ...(await db.select({ id: dataProvider.id, name: dataProvider.name }).from(dataProvider)),
-    ...(await db
-      .select({ id: dataProviderSource.id, name: dataProviderSource.name })
-      .from(dataProviderSource)),
-  ];
+  return db.transaction(async (tx) => {
+    const existing = [
+      ...(await tx.select({ id: dataProvider.id, name: dataProvider.name }).from(dataProvider)),
+      ...(await tx
+        .select({ id: dataProviderSource.id, name: dataProviderSource.name })
+        .from(dataProviderSource)),
+    ];
 
-  const providerOutcomes =
-    records.length === 0
-      ? []
-      : await db
-          .insert(dataProvider)
-          .values(records.map(({ id, name }) => ({ id, name })))
-          .onConflictDoUpdate({
-            target: dataProvider.id,
-            set: { name: sql`excluded.name`, updatedAt: sql`now()` },
-            setWhere: sql`${dataProvider.name} IS DISTINCT FROM excluded.name`,
-          })
-          .returning({ id: dataProvider.id, wasInsert: sql<boolean>`xmax = 0` });
-  const sourceOutcomes =
-    sources.length === 0
-      ? []
-      : await db
-          .insert(dataProviderSource)
-          .values(sources)
-          .onConflictDoUpdate({
-            target: dataProviderSource.id,
-            set: {
-              providerId: sql`excluded.provider_id`,
-              name: sql`excluded.name`,
-              updatedAt: sql`now()`,
-            },
-            setWhere: sql`(${dataProviderSource.providerId}, ${dataProviderSource.name}) IS DISTINCT FROM (excluded.provider_id, excluded.name)`,
-          })
-          .returning({ id: dataProviderSource.id, wasInsert: sql<boolean>`xmax = 0` });
+    const providerOutcomes =
+      records.length === 0
+        ? []
+        : await tx
+            .insert(dataProvider)
+            .values(records.map(({ id, name }) => ({ id, name })))
+            .onConflictDoUpdate({
+              target: dataProvider.id,
+              set: { name: sql`excluded.name`, updatedAt: sql`now()` },
+              setWhere: sql`${dataProvider.name} IS DISTINCT FROM excluded.name`,
+            })
+            .returning({ id: dataProvider.id, wasInsert: sql<boolean>`xmax = 0`, ...upsertedRow });
+    const sourceOutcomes =
+      sources.length === 0
+        ? []
+        : await tx
+            .insert(dataProviderSource)
+            .values(sources)
+            .onConflictDoUpdate({
+              target: dataProviderSource.id,
+              set: {
+                providerId: sql`excluded.provider_id`,
+                name: sql`excluded.name`,
+                updatedAt: sql`now()`,
+              },
+              setWhere: sql`(${dataProviderSource.providerId}, ${dataProviderSource.name}) IS DISTINCT FROM (excluded.provider_id, excluded.name)`,
+            })
+            .returning({
+              id: dataProviderSource.id,
+              wasInsert: sql<boolean>`xmax = 0`,
+              ...upsertedRow,
+            });
+    await recordAudit(tx, CORE_DATA_IMPORT, [
+      ...upsertEntries('data_provider', providerOutcomes),
+      ...upsertEntries('data_provider_source', sourceOutcomes),
+    ]);
 
-  return {
-    providers: summarizeUpsert(records.length, providerOutcomes),
-    sources: summarizeUpsert(sources.length, sourceOutcomes),
-    orphaned: existing.filter((row) => !ids.has(row.id)),
-  };
+    return {
+      providers: summarizeUpsert(records.length, providerOutcomes),
+      sources: summarizeUpsert(sources.length, sourceOutcomes),
+      orphaned: existing.filter((row) => !ids.has(row.id)),
+    };
+  });
 }

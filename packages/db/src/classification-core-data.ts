@@ -1,7 +1,9 @@
 import { z } from '@fphd/config';
 import { sql } from 'drizzle-orm';
 
+import { recordAudit } from './audit-log.ts';
 import type { Database } from './client.ts';
+import { CORE_DATA_IMPORT, upsertEntries, upsertedRow } from './core-data-audit.ts';
 import { findDuplicates } from './parse-topics-file.ts';
 import {
   type ClassificationRecord,
@@ -51,28 +53,31 @@ export async function upsertClassifications(
   records: ClassificationRecord[],
 ): Promise<ClassificationUpsertResult> {
   const ids = new Set(records.map(({ id }) => id));
-  const existing = await db
-    .select({ id: classification.id, slug: classification.slug })
-    .from(classification);
-  const outcomes = records.length
-    ? await db
-        .insert(classification)
-        .values(records)
-        .onConflictDoUpdate({
-          target: classification.id,
-          set: {
-            dimension: sql`excluded.dimension`,
-            slug: sql`excluded.slug`,
-            name: sql`excluded.name`,
-            updatedAt: sql`now()`,
-          },
-          setWhere: sql`(${classification.dimension}, ${classification.slug}, ${classification.name}) IS DISTINCT FROM (excluded.dimension, excluded.slug, excluded.name)`,
-        })
-        .returning({ id: classification.id, wasInsert: sql<boolean>`xmax = 0` })
-    : [];
+  return db.transaction(async (tx) => {
+    const existing = await tx
+      .select({ id: classification.id, slug: classification.slug })
+      .from(classification);
+    const outcomes = records.length
+      ? await tx
+          .insert(classification)
+          .values(records)
+          .onConflictDoUpdate({
+            target: classification.id,
+            set: {
+              dimension: sql`excluded.dimension`,
+              slug: sql`excluded.slug`,
+              name: sql`excluded.name`,
+              updatedAt: sql`now()`,
+            },
+            setWhere: sql`(${classification.dimension}, ${classification.slug}, ${classification.name}) IS DISTINCT FROM (excluded.dimension, excluded.slug, excluded.name)`,
+          })
+          .returning({ id: classification.id, wasInsert: sql<boolean>`xmax = 0`, ...upsertedRow })
+      : [];
+    await recordAudit(tx, CORE_DATA_IMPORT, upsertEntries('classification', outcomes));
 
-  return {
-    summary: summarizeUpsert(records.length, outcomes),
-    orphaned: existing.filter((row) => !ids.has(row.id)),
-  };
+    return {
+      summary: summarizeUpsert(records.length, outcomes),
+      orphaned: existing.filter((row) => !ids.has(row.id)),
+    };
+  });
 }

@@ -2,7 +2,9 @@ import { z } from '@fphd/config';
 import { CI_METHOD_KINDS } from '@fphd/utils/ci-method-kind';
 import { sql } from 'drizzle-orm';
 
+import { recordAudit } from './audit-log.ts';
 import type { Database } from './client.ts';
+import { CORE_DATA_IMPORT, upsertEntries, upsertedRow } from './core-data-audit.ts';
 import { findDuplicates } from './parse-topics-file.ts';
 import { ciMethod } from './schema/index.ts';
 import { summarizeUpsert, type UpsertSummary } from './topic-repository.ts';
@@ -50,24 +52,27 @@ export async function upsertCiMethods(
   records: CiMethodRecord[],
 ): Promise<CiMethodUpsertResult> {
   const ids = new Set(records.map((record) => record.id));
-  const existing = await db.select({ id: ciMethod.id, name: ciMethod.name }).from(ciMethod);
-  const outcomes = await db
-    .insert(ciMethod)
-    .values(records)
-    .onConflictDoUpdate({
-      target: ciMethod.id,
-      set: {
-        name: sql`excluded.name`,
-        kind: sql`excluded.kind`,
-        description: sql`excluded.description`,
-        updatedAt: sql`now()`,
-      },
-      setWhere: sql`(${ciMethod.name}, ${ciMethod.kind}, ${ciMethod.description}) IS DISTINCT FROM (excluded.name, excluded.kind, excluded.description)`,
-    })
-    .returning({ id: ciMethod.id, wasInsert: sql<boolean>`xmax = 0` });
+  return db.transaction(async (tx) => {
+    const existing = await tx.select({ id: ciMethod.id, name: ciMethod.name }).from(ciMethod);
+    const outcomes = await tx
+      .insert(ciMethod)
+      .values(records)
+      .onConflictDoUpdate({
+        target: ciMethod.id,
+        set: {
+          name: sql`excluded.name`,
+          kind: sql`excluded.kind`,
+          description: sql`excluded.description`,
+          updatedAt: sql`now()`,
+        },
+        setWhere: sql`(${ciMethod.name}, ${ciMethod.kind}, ${ciMethod.description}) IS DISTINCT FROM (excluded.name, excluded.kind, excluded.description)`,
+      })
+      .returning({ id: ciMethod.id, wasInsert: sql<boolean>`xmax = 0`, ...upsertedRow });
+    await recordAudit(tx, CORE_DATA_IMPORT, upsertEntries('ci_method', outcomes));
 
-  return {
-    summary: summarizeUpsert(records.length, outcomes),
-    orphaned: existing.filter((row) => !ids.has(row.id)),
-  };
+    return {
+      summary: summarizeUpsert(records.length, outcomes),
+      orphaned: existing.filter((row) => !ids.has(row.id)),
+    };
+  });
 }
