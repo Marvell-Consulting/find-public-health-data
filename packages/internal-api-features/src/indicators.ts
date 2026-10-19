@@ -1,10 +1,10 @@
 import { requireApiSession, requireJwtRole, requireJwtSession } from '@fphd/api-server';
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import {
+  canCreateIndicatorInTeam,
   canListIndicators,
   canSeeIndicator,
   indicatorListScope,
-  teamForNewIndicator,
 } from '@fphd/auth/permissions';
 import { Router } from 'express';
 
@@ -18,6 +18,7 @@ import {
   indicatorIdSchema,
   indicatorNameSchema,
   indicatorPageQuerySchema,
+  indicatorTeamSchema,
   toFieldErrors,
 } from './contract.ts';
 import { requireIndicatorEditor } from './indicator-editor.ts';
@@ -95,9 +96,9 @@ export function internalIndicatorsRouter(
 
   router.post('/api/internal/indicators', requirePublisher, async (request, response) => {
     const session = requireApiSession(response);
-    const teamId = teamForNewIndicator(session);
+    const teamId = indicatorTeamSchema.safeParse(request.body).data?.teamId;
 
-    if (teamId === undefined) {
+    if (teamId === undefined || !canCreateIndicatorInTeam(session, teamId)) {
       response.status(403).json({ error: 'forbidden' });
       return;
     }

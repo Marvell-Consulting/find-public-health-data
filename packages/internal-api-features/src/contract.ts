@@ -147,6 +147,9 @@ export const indicatorNameSchema = z.object({
     }),
 });
 
+/** The team a new indicator joins, which its creator chooses from their own before naming it. */
+export const indicatorTeamSchema = z.object({ teamId: z.uuid() });
+
 export const indicatorFieldSchema = z.enum(['name']);
 
 export const indicatorFieldErrorsSchema = z.partialRecord(indicatorFieldSchema, z.string());
@@ -178,6 +181,7 @@ export type IndicatorStatus = z.infer<typeof indicatorStatusSchema>;
 export type DraftStatus = z.infer<typeof draftStatusSchema>;
 export type IndicatorAdminDetail = z.infer<typeof indicatorAdminDetailSchema>;
 export type IndicatorName = z.infer<typeof indicatorNameSchema>;
+export type IndicatorTeam = z.infer<typeof indicatorTeamSchema>;
 export type IndicatorField = z.infer<typeof indicatorFieldSchema>;
 export type IndicatorFieldErrors = z.infer<typeof indicatorFieldErrorsSchema>;
 export type IndicatorCreateResponse = z.infer<typeof indicatorCreateResponseSchema>;
