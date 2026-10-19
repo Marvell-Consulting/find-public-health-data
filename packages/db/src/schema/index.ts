@@ -1,3 +1,4 @@
+export * from './audit-log.ts';
 export * from './cache.ts';
 export * from './classification.ts';
 export * from './data-migration.ts';

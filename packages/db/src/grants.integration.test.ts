@@ -526,3 +526,58 @@ describe('an indicator published again with new data', () => {
     expect(await viewsShowing(second)).toEqual(everyView);
   });
 });
+
+describe('the audit log', () => {
+  // A throwaway member of internal_api, for the same reason as the public role's above.
+  const internalMemberRole = `fphd_grants_test_${randomBytes(6).toString('hex')}`;
+  let internalMember: postgres.Sql;
+
+  beforeAll(async () => {
+    await owner.unsafe(
+      `CREATE ROLE "${internalMemberRole}" LOGIN PASSWORD '${memberPassword}' IN ROLE "${API_ROLES.internalApi}"`,
+    );
+    internalMember = createPostgresClient(
+      {
+        host: env.DB_HOST,
+        port: env.DB_PORT,
+        database: testDb.name,
+        user: internalMemberRole,
+        password: memberPassword,
+        ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
+      },
+      { max: 1, onnotice: () => {} },
+    );
+  });
+
+  afterAll(async () => {
+    await internalMember?.end();
+    await owner.unsafe(`DROP ROLE IF EXISTS "${internalMemberRole}"`);
+  });
+
+  it('lets the internal role add an entry and read it back', async () => {
+    const [entry] = await internalMember<{ id: string }[]>`
+      INSERT INTO audit_log (actor_id, action, entity_type, entity_id, changes)
+      VALUES (${ACTOR}, 'topic.deleted', 'topic', uuidv7()::text, '{}')
+      RETURNING id
+    `;
+
+    await expect(
+      internalMember`SELECT action FROM audit_log WHERE id = ${entry?.id ?? ''}`,
+    ).resolves.toEqual([{ action: 'topic.deleted' }]);
+  });
+
+  it.each(['UPDATE', 'DELETE', 'TRUNCATE'])('holds no %s on it', async (privilege) => {
+    const [row] = await owner<{ granted: boolean }[]>`
+      SELECT has_table_privilege(${API_ROLES.internalApi}, 'public.audit_log', ${privilege}) AS granted
+    `;
+
+    expect(row?.granted).toBe(false);
+  });
+
+  it('refuses the internal role changing or removing an entry', async () => {
+    await expect(internalMember`UPDATE audit_log SET changes = '{}'`).rejects.toThrow(
+      /permission denied/,
+    );
+    await expect(internalMember`DELETE FROM audit_log`).rejects.toThrow(/permission denied/);
+  });
+});
