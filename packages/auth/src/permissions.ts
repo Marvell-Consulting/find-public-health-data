@@ -81,7 +81,7 @@ export function canSeeTeamsAndUsers(user: SessionUser): boolean {
 
 /**
  * The indicators `canSeeIndicator` lets the user see, as a list query filters them. Reviewer
- * assignments are not stored yet, so a reviewer's add none.
+ * assignments are not stored yet, so being a reviewer adds no indicators.
  */
 export function indicatorListScope(user: SessionUser): IndicatorListScope {
   if (holds(user, 'admin') || holds(user, 'imrg-manager')) return { all: true };
