@@ -1,14 +1,16 @@
 // No @fphd/ui imports here, so the loader unit-tests without the jsdom the components need.
+import { canCreateIndicator } from '@fphd/auth/permissions';
 import {
   indicatorAdminPageSchema,
   indicatorPageQuerySchema,
 } from '@fphd/internal-api-features/contract';
 import { apiContext } from '@fphd/web-server/api-context';
+import { getSession } from '@fphd/web-server/session';
 import type { LoaderFunctionArgs } from 'react-router';
 
 import { queryObject } from '../query-object.ts';
 
-export type { IndicatorAdminSummary } from '@fphd/internal-api-features/contract';
+export type { IndicatorAdminListItem } from '@fphd/internal-api-features/contract';
 
 function notFound(): Response {
   return new Response('Not Found', { status: 404 });
@@ -27,5 +29,12 @@ export async function loadDashboard({ context, request }: LoaderFunctionArgs) {
 
   if (page > totalPages) throw notFound();
 
-  return { indicators, page, totalPages };
+  const session = getSession(context);
+
+  return {
+    canCreate: session !== undefined && canCreateIndicator(session),
+    indicators,
+    page,
+    totalPages,
+  };
 }

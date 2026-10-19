@@ -1,6 +1,7 @@
 import type postgres from 'postgres';
 
-import { copyInto, type DataMigrationProgressReporter } from './data-migration-copy.ts';
+import { assignImportedTeam } from './data-migration-actors.ts';
+import type { DataMigrationProgressReporter } from './data-migration-copy.ts';
 import { applyDeletes, prepareVersionDeletes, stageDeletes } from './data-migration-deletes.ts';
 import type { DataMigrationManifest } from './data-migration-manifest.ts';
 import {
@@ -15,10 +16,10 @@ import {
 } from './data-migration-relationship-import.ts';
 import { applyLegacySources } from './data-migration-sources.ts';
 import {
+  applyBaselineRows,
   applyIndicatorVersionRows,
   applyUpserts,
   applyVersionBatchPointers,
-  validateMigrationHeader,
 } from './data-migration-table-import.ts';
 import { type LegacySourceMap, readLegacySourceMap } from './legacy-sources.ts';
 
@@ -68,17 +69,7 @@ async function applyBaseline(
       changes[table] = { upserts: entry.rows, deletes: 0 };
       continue;
     }
-    const file = `${directory}/${entry.file}`;
-    const { columns } = await validateMigrationHeader(tx, table, file);
-    await copyInto(
-      tx,
-      table,
-      columns,
-      file,
-      `COPY into ${table}`,
-      { table, phase: 'baseline' },
-      report,
-    );
+    await applyBaselineRows(tx, table, `${directory}/${entry.file}`, report);
     const [row] = await tx.unsafe<{ count: number }[]>(
       `SELECT count(*)::int AS count FROM "${table}"`,
     );
@@ -88,6 +79,7 @@ async function applyBaseline(
   }
   if (indicatorVersionHasBatchPointers) await applyVersionBatchPointers(tx);
   await applyLegacySources(tx, directory, legacySourceMap);
+  await assignImportedTeam(tx);
   return changes;
 }
 
@@ -123,6 +115,7 @@ async function applyIncremental(
   }
   if (indicatorVersionHasBatchPointers) await applyVersionBatchPointers(tx);
   await applyLegacySources(tx, directory, legacySourceMap);
+  await assignImportedTeam(tx, 'data_migration_upsert_indicator');
   for (const table of DATA_MIGRATION_TABLES) {
     if (referenceTables.has(table)) continue;
     const entry = manifest.tables[table];

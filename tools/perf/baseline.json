@@ -1,20 +1,20 @@
 {
   "internal-api /api/internal/indicators": {
     "statements": 2,
-    "buffers": 23,
+    "buffers": 105,
     "rows": 11,
-    "bytes": 2015
+    "bytes": 3371
   },
   "internal-api /api/internal/indicators/01a00000-0000-7000-8000-0000000f4040/data-table": {
-    "statements": 4,
-    "buffers": 111,
-    "rows": 21,
-    "bytes": 2827
+    "statements": 5,
+    "buffers": 112,
+    "rows": 22,
+    "bytes": 3367
   },
   "internal-api /api/internal/indicators/01a00000-0000-7000-8000-0000000f4040/data-table?page=1048&rowsPerPage=50": {
-    "statements": 4,
-    "buffers": 5329,
-    "rows": 101,
+    "statements": 5,
+    "buffers": 5711,
+    "rows": 102,
     "bytes": 15876
   },
   "internal-api /api/internal/indicators/01a00ab4-ce0a-70c1-b22b-f8192c94a59d": {
@@ -31,9 +31,9 @@
   },
   "internal-web /dashboard": {
     "statements": 2,
-    "buffers": 23,
+    "buffers": 105,
     "rows": 11,
-    "bytes": 37992
+    "bytes": 40776
   },
   "internal-web /dashboard/indicators/01a00ab4-ce0a-70c1-b22b-f8192c94a59d": {
     "statements": 1,
@@ -48,10 +48,10 @@
     "bytes": 47679
   },
   "internal-web /publish/indicators/01a00000-0000-7000-8000-0000000f4040/data-table/check": {
-    "statements": 4,
-    "buffers": 111,
-    "rows": 21,
-    "bytes": 38087
+    "statements": 5,
+    "buffers": 112,
+    "rows": 22,
+    "bytes": 38824
   },
   "public-api /api/areas/search?q=leeds": {
     "statements": 1,

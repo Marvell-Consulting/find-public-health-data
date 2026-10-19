@@ -17,6 +17,7 @@ import {
 
 import { literals, uuidPrimaryKey } from './helpers.ts';
 import { indicator, indicatorVersion } from './indicator.ts';
+import { actorId } from './user.ts';
 
 /** Where an upload stands, from receipt to processing or replacement. */
 export const UPLOAD_BATCH_STATUSES = [
@@ -44,7 +45,7 @@ export const uploadBatch = pgTable(
     // The version it was uploaded to, which keeps it even when no version points at it.
     indicatorVersionId: uuid().notNull(),
     originalFilename: text().notNull(),
-    uploadedBy: text().notNull(),
+    uploadedBy: actorId().notNull(),
     uploadedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     status: text({ enum: UPLOAD_BATCH_STATUSES }).notNull().default('received'),
     validationResult: jsonb(),

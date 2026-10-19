@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { TEAM_IDS } from '@fphd/auth';
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -10,7 +11,11 @@ afterEach(cleanup);
 const indicator = {
   id: '019a1b2c-3d4e-7f60-8a9b-0c1d2e3f4a5b',
   name: 'Life expectancy at birth',
+  teamId: TEAM_IDS.teamA,
+  teamName: 'Team A',
+  createdBy: 'Alex Morgan',
   updatedAt: '2026-08-04T23:30:00.000Z',
+  lastEditedBy: 'Sam Taylor',
   indicatorStatus: 'live',
   draftStatus: null,
 } as const;
@@ -19,7 +24,7 @@ const indicator = {
 function renderPage(props: Partial<Parameters<typeof DashboardPage>[0]> = {}, url = '/dashboard') {
   return render(
     <MemoryRouter initialEntries={[url]}>
-      <DashboardPage indicators={[indicator]} page={1} totalPages={1} {...props} />
+      <DashboardPage canCreate indicators={[indicator]} page={1} totalPages={1} {...props} />
     </MemoryRouter>,
   );
 }
@@ -29,7 +34,7 @@ describe('DashboardPage', () => {
     renderPage();
 
     expect(
-      screen.getByRole('table', { name: 'Every indicator, most recently edited first' }),
+      screen.getByRole('table', { name: 'Indicators, most recently edited first' }),
     ).toBeTruthy();
   });
 
@@ -47,12 +52,24 @@ describe('DashboardPage', () => {
 
     for (const heading of [
       'Indicator name',
+      'Team',
+      'Created by',
       'Last edited',
+      'Last edited by',
       'Indicator status',
       'Publishing status',
     ]) {
       expect(screen.getByRole('columnheader', { name: heading })).toBeTruthy();
     }
+  });
+
+  it('names the team, who created the indicator and who edited it last, in the design order', () => {
+    renderPage();
+
+    const row = screen.getByRole('rowheader', { name: 'Life expectancy at birth' }).closest('tr');
+    const cells = [...(row?.querySelectorAll('td') ?? [])].map((cell) => cell.textContent);
+
+    expect(cells.slice(0, 4)).toEqual(['Team A', 'Alex Morgan', '5 Aug 2026', 'Sam Taylor']);
   });
 
   it('links each indicator to its overview page', () => {
@@ -79,10 +96,16 @@ describe('DashboardPage', () => {
     );
   });
 
+  it('offers no create action to someone who may not create an indicator', () => {
+    renderPage({ canCreate: false });
+
+    expect(screen.queryByRole('button', { name: 'Create new indicator' })).toBeNull();
+  });
+
   it('says so when there are no indicators', () => {
     renderPage({ indicators: [] });
 
-    expect(screen.getByText('There are no indicators yet.')).toBeTruthy();
+    expect(screen.getByText('There are no indicators for you to see yet.')).toBeTruthy();
     expect(screen.queryByRole('table')).toBeNull();
   });
 

@@ -17,7 +17,12 @@ async function runLoader(path: string, roles?: readonly string[]) {
   const headers = new Headers();
 
   if (roles !== undefined) {
-    const token = await session.issueToken({ expiresInSeconds: 900, roles, subject: 'test-user' });
+    const token = await session.issueToken({
+      expiresInSeconds: 900,
+      roles,
+      subject: 'test-user',
+      teams: [],
+    });
     headers.set('Cookie', session.createCookieHeader(token, 900));
   }
 

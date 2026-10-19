@@ -11,14 +11,21 @@ import {
   createRouterTestApp,
   type FakeInternalRepositoryOverrides,
   handlerLogLines,
+  inTestTeam,
+  TEST_TEAM_ID,
+  TEST_USER_ID,
   testSessionCookie,
   testSessionVerifier,
   unansweredDraft,
 } from './testing.ts';
 
+const TEAM_ID = TEST_TEAM_ID;
+const OTHER_TEAM_ID = '00000000-0000-7000-8000-00000000000b';
+
 const row: IndicatorAdminRow = {
   id: '00000000-0000-7000-8000-000000000001',
   name: 'Life expectancy at birth',
+  teamId: TEAM_ID,
   updatedAt: new Date('2026-01-02T00:00:00.000Z'),
   indicatorStatus: 'live',
   draftStatus: null,
@@ -35,7 +42,9 @@ function createTestApp(
   overrides: FakeInternalRepositoryOverrides['indicators'] = {},
   logger?: Logger,
 ): Express {
-  const repositories = createFakeInternalRepositories({ indicators: overrides });
+  const repositories = createFakeInternalRepositories({
+    indicators: { ...inTestTeam, ...overrides },
+  });
 
   return createRouterTestApp(
     internalIndicatorsRouter(repositories.indicators, testSessionVerifier),
@@ -44,7 +53,7 @@ function createTestApp(
 }
 
 function publisherCookie(roles: readonly string[] = ['internal', 'publisher']) {
-  return testSessionCookie(roles);
+  return testSessionCookie(roles, [TEAM_ID]);
 }
 
 describe('GET /api/internal/indicators', () => {
@@ -55,7 +64,7 @@ describe('GET /api/internal/indicators', () => {
     expect(response.body).toEqual({ error: 'authentication_required' });
   });
 
-  it('rejects a signed-in non-publisher', async () => {
+  it('rejects a signed-in user who holds none of the four internal roles', async () => {
     const response = await request(createTestApp())
       .get('/api/internal/indicators')
       .set('Cookie', await publisherCookie(['internal']));
@@ -65,20 +74,28 @@ describe('GET /api/internal/indicators', () => {
   });
 
   it('serves the first page by default, with ISO timestamps and the page size used', async () => {
-    const listPage = vi.fn().mockResolvedValue({ indicators: [row], total: 23 });
+    const listRow = { ...row, teamName: 'Team A', createdBy: 'Alex Morgan', lastEditedBy: null };
+    const listPage = vi.fn().mockResolvedValue({ indicators: [listRow], total: 23 });
 
     const response = await request(createTestApp({ listPage }))
       .get('/api/internal/indicators')
       .set('Cookie', await publisherCookie());
 
     expect(response.status).toBe(200);
-    expect(listPage).toHaveBeenCalledWith(1, INDICATORS_PAGE_SIZE);
+    expect(listPage).toHaveBeenCalledWith(1, INDICATORS_PAGE_SIZE, {
+      all: false,
+      teamIds: [TEAM_ID],
+    });
     expect(response.body).toEqual({
       indicators: [
         {
           id: row.id,
           name: 'Life expectancy at birth',
+          teamId: TEAM_ID,
+          teamName: 'Team A',
+          createdBy: 'Alex Morgan',
           updatedAt: '2026-01-02T00:00:00.000Z',
+          lastEditedBy: null,
           indicatorStatus: 'live',
           draftStatus: null,
         },
@@ -97,8 +114,23 @@ describe('GET /api/internal/indicators', () => {
       .set('Cookie', await publisherCookie());
 
     expect(response.status).toBe(200);
-    expect(listPage).toHaveBeenCalledWith(3, INDICATORS_PAGE_SIZE);
+    expect(listPage).toHaveBeenCalledWith(3, INDICATORS_PAGE_SIZE, expect.anything());
     expect(response.body).toMatchObject({ indicators: [], page: 3, total: 23 });
+  });
+
+  it.each([
+    ['an admin', ['internal', 'admin'], { all: true }],
+    ['an IMRG manager', ['internal', 'imrg-manager'], { all: true }],
+    ['an IMRG reviewer', ['internal', 'imrg-reviewer'], { all: false, teamIds: [] }],
+  ])('lists for %s the indicators their roles let them see', async (_who, roles, scope) => {
+    const listPage = vi.fn().mockResolvedValue({ indicators: [], total: 0 });
+
+    const response = await request(createTestApp({ listPage }))
+      .get('/api/internal/indicators')
+      .set('Cookie', await testSessionCookie(roles, [TEAM_ID]));
+
+    expect(response.status).toBe(200);
+    expect(listPage).toHaveBeenCalledWith(1, INDICATORS_PAGE_SIZE, scope);
   });
 
   it.each(['0', '-1', '1.5', 'two', '1&page=2'])(
@@ -122,7 +154,7 @@ describe('GET /api/internal/indicators/:id', () => {
     expect(response.body).toEqual({ error: 'authentication_required' });
   });
 
-  it('rejects a signed-in non-publisher', async () => {
+  it('rejects a signed-in user who holds none of the four internal roles', async () => {
     const response = await request(createTestApp())
       .get(`/api/internal/indicators/${row.id}`)
       .set('Cookie', await publisherCookie(['internal']));
@@ -144,11 +176,36 @@ describe('GET /api/internal/indicators/:id', () => {
       id: row.id,
       shortId: 90366,
       name: 'Life expectancy at birth',
+      teamId: TEAM_ID,
       publishedSlug: 'life-expectancy-at-birth',
       updatedAt: '2026-01-02T00:00:00.000Z',
       indicatorStatus: 'live',
       draftStatus: null,
     });
+  });
+
+  it("answers 404 for another team's indicator, as for one that does not exist", async () => {
+    const findById = vi.fn().mockResolvedValue({ ...detailRow, teamId: OTHER_TEAM_ID });
+
+    const response = await request(createTestApp({ findById }))
+      .get(`/api/internal/indicators/${row.id}`)
+      .set('Cookie', await publisherCookie());
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: 'not_found' });
+  });
+
+  it.each([
+    ['an admin', ['internal', 'admin']],
+    ['an IMRG manager', ['internal', 'imrg-manager']],
+  ])("serves %s any team's indicator", async (_who, roles) => {
+    const findById = vi.fn().mockResolvedValue({ ...detailRow, teamId: OTHER_TEAM_ID });
+
+    const response = await request(createTestApp({ findById }))
+      .get(`/api/internal/indicators/${row.id}`)
+      .set('Cookie', await testSessionCookie(roles));
+
+    expect(response.status).toBe(200);
   });
 
   it('answers 404 for an indicator that does not exist', async () => {
@@ -204,6 +261,18 @@ describe('POST /api/internal/indicators', () => {
     expect(response.body).toEqual({ error: 'forbidden' });
   });
 
+  it('refuses a publisher in no team, who has nowhere to put an indicator', async () => {
+    const createDraft = vi.fn();
+
+    const response = await request(createTestApp({ createDraft }))
+      .post('/api/internal/indicators')
+      .set('Cookie', await testSessionCookie(['internal', 'publisher'], []))
+      .send({ name: 'A new indicator' });
+
+    expect(response.status).toBe(403);
+    expect(createDraft).not.toHaveBeenCalled();
+  });
+
   it('creates a draft for the signed-in publisher and serves it back', async () => {
     const createDraft = vi.fn().mockResolvedValue(created);
     const findById = vi.fn().mockResolvedValue(draftRow);
@@ -214,11 +283,16 @@ describe('POST /api/internal/indicators', () => {
       .send({ name: 'Life expectancy at birth' });
 
     expect(response.status).toBe(201);
-    expect(createDraft).toHaveBeenCalledWith({ name: 'Life expectancy at birth' }, 'test-user');
+    expect(createDraft).toHaveBeenCalledWith(
+      { name: 'Life expectancy at birth' },
+      TEST_USER_ID,
+      TEAM_ID,
+    );
     expect(response.body).toEqual({
       id: row.id,
       shortId: 90366,
       name: 'Life expectancy at birth',
+      teamId: TEAM_ID,
       publishedSlug: null,
       indicatorStatus: 'new',
       draftStatus: 'draft',
@@ -234,7 +308,11 @@ describe('POST /api/internal/indicators', () => {
       .set('Cookie', await publisherCookie())
       .send({ name: '  Life expectancy at birth  ' });
 
-    expect(createDraft).toHaveBeenCalledWith({ name: 'Life expectancy at birth' }, 'test-user');
+    expect(createDraft).toHaveBeenCalledWith(
+      { name: 'Life expectancy at birth' },
+      TEST_USER_ID,
+      TEAM_ID,
+    );
   });
 
   it('reports a name another indicator already holds against the field', async () => {
@@ -291,7 +369,7 @@ describe('POST /api/internal/indicators', () => {
       }),
     ]);
     expect(JSON.stringify(lines)).not.toContain('Life expectancy');
-    expect(JSON.stringify(lines)).not.toContain('test-user');
+    expect(JSON.stringify(lines)).not.toContain(TEST_USER_ID);
   });
 
   it('logs nothing when the name is taken', async () => {
@@ -345,11 +423,12 @@ describe('PATCH /api/internal/indicators/:id', () => {
       .send({ name: '  A better name  ' });
 
     expect(response.status).toBe(200);
-    expect(updateDraft).toHaveBeenCalledWith(row.id, { name: 'A better name' }, {}, 'test-user');
+    expect(updateDraft).toHaveBeenCalledWith(row.id, { name: 'A better name' }, {}, TEST_USER_ID);
     expect(response.body).toEqual({
       id: row.id,
       shortId: 90366,
       name: 'A better name',
+      teamId: TEAM_ID,
       publishedSlug: null,
       indicatorStatus: 'new',
       draftStatus: 'draft',
@@ -460,7 +539,7 @@ describe('PATCH /api/internal/indicators/:id', () => {
       }),
     ]);
     expect(JSON.stringify(lines)).not.toContain('A better name');
-    expect(JSON.stringify(lines)).not.toContain('test-user');
+    expect(JSON.stringify(lines)).not.toContain(TEST_USER_ID);
   });
 
   it('logs nothing when the rename is refused', async () => {

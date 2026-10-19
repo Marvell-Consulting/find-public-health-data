@@ -18,6 +18,8 @@ import {
   createFakeInternalRepositories,
   createRouterTestApp,
   handlerLogLines,
+  inTestTeam,
+  TEST_USER_ID,
   testSessionCookie,
   testSessionVerifier,
 } from './testing.ts';
@@ -38,7 +40,10 @@ function createTestApp(
     dataUploads: { findDraftId: async () => DRAFT, ...overrides },
   });
 
-  return createRouterTestApp(dataUploadsRouter(dataUploads, storage, testSessionVerifier), logger);
+  return createRouterTestApp(
+    dataUploadsRouter(dataUploads, inTestTeam, storage, testSessionVerifier),
+    logger,
+  );
 }
 
 function publisherCookie(roles: readonly string[] = ['internal', 'publisher']) {
@@ -136,7 +141,7 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
       originalFilename: 'life.csv',
       byteSize: Buffer.byteLength(CSV),
       sha256: expect.stringMatching(/^[0-9a-f]{64}$/),
-      actor: 'test-user',
+      actor: TEST_USER_ID,
     });
     expect(content).toBe(CSV);
   });

@@ -107,6 +107,7 @@ export const PHOLIO_EXPORT_COLUMNS: Readonly<Record<(typeof TABLES)[number], rea
     'reviewer_comments_detail',
     'created_at',
     'updated_at',
+    // pholio-migration, which the importer loads as the PHOLIO migration user, as it does uploaded_by.
     'created_by',
     'updated_by',
     // Legacy source columns: stripped by the importer before the DB COPY.
@@ -144,6 +145,7 @@ export const PHOLIO_EXPORT_COLUMNS: Readonly<Record<(typeof TABLES)[number], rea
     'upload_batch_id',
     'dimension_key',
     'created_at',
+    // Dropped by the importer: an observation's writer is its batch's uploader.
     'created_by',
     'deleted_at',
   ],

@@ -2,7 +2,7 @@ import { A, Button, formatDate, GridColumn, GridRow, Pagination, Table } from '@
 import { indicatorOverviewPath } from '../indicator-overview/paths.ts';
 import { NEW_INDICATOR_PATH } from '../publish-paths.ts';
 import { StatusTag } from '../status-tag/status-tag.tsx';
-import type { IndicatorAdminSummary } from './loader.ts';
+import type { IndicatorAdminListItem } from './loader.ts';
 import { dashboardPath } from './paths.ts';
 
 // Plain anchors: the router-aware link would also mark every link to the bare path as current.
@@ -15,29 +15,41 @@ function pageLink(number: number, current: number) {
 }
 
 interface DashboardPageProps {
-  indicators: IndicatorAdminSummary[];
+  canCreate: boolean;
+  indicators: IndicatorAdminListItem[];
   page: number;
   totalPages: number;
 }
 
-export function DashboardPage({ indicators, page, totalPages }: DashboardPageProps) {
+export function DashboardPage({ canCreate, indicators, page, totalPages }: DashboardPageProps) {
   return (
     <GridRow>
       <GridColumn width="full">
         <h1 className="govuk-heading-xl">Indicators</h1>
-        <Button href={NEW_INDICATOR_PATH}>Create new indicator</Button>
+        {canCreate ? <Button href={NEW_INDICATOR_PATH}>Create new indicator</Button> : null}
         {indicators.length === 0 ? (
-          <p className="govuk-body">There are no indicators yet.</p>
+          <p className="govuk-body">There are no indicators for you to see yet.</p>
         ) : (
           <Table
-            aria-label="Every indicator, most recently edited first"
+            aria-label="Indicators, most recently edited first"
             headings={{
               name: 'Indicator name',
+              teamName: 'Team',
+              createdBy: 'Created by',
               updatedAt: 'Last edited',
+              lastEditedBy: 'Last edited by',
               indicatorStatus: 'Indicator status',
               publishingStatus: 'Publishing status',
             }}
-            keys={['name', 'updatedAt', 'indicatorStatus', 'publishingStatus']}
+            keys={[
+              'name',
+              'teamName',
+              'createdBy',
+              'updatedAt',
+              'lastEditedBy',
+              'indicatorStatus',
+              'publishingStatus',
+            ]}
             data={indicators.map((indicator) => ({
               // The first column is a row header, which GOV.UK sets bold; the names read as
               // plain text.
@@ -46,9 +58,12 @@ export function DashboardPage({ indicators, page, totalPages }: DashboardPagePro
                   <A href={indicatorOverviewPath(indicator.id)}>{indicator.name}</A>
                 </span>
               ),
+              teamName: indicator.teamName,
+              createdBy: indicator.createdBy,
               updatedAt: (
                 <time dateTime={indicator.updatedAt}>{formatDate(indicator.updatedAt)}</time>
               ),
+              lastEditedBy: indicator.lastEditedBy,
               // The column headers name the statuses, and screen readers announce them per cell.
               indicatorStatus: (
                 <StatusTag type="indicator" status={indicator.indicatorStatus} labelled={false} />

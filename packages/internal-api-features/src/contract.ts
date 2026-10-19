@@ -84,6 +84,8 @@ export const draftStatusSchema = z.enum(['draft']);
 export const indicatorAdminSummarySchema = z.object({
   id: z.uuid(),
   name: z.string().min(1),
+  /** The team whose publishers own it. */
+  teamId: z.uuid().nullable(),
   updatedAt: z.iso.datetime(),
   indicatorStatus: indicatorStatusSchema,
   /** Null while the indicator has no draft, which for a live one means it is published as is. */
@@ -95,8 +97,18 @@ export const indicatorPageQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
 });
 
+/** A dashboard row, which names the team and the people for the publisher to read. */
+export const indicatorAdminListItemSchema = indicatorAdminSummarySchema.extend({
+  /** Null while the indicator is in no team. */
+  teamName: z.string().nullable(),
+  /** The display name of whoever wrote the indicator's first version. */
+  createdBy: z.string().nullable(),
+  /** The display name of whoever made the edit `updatedAt` dates. */
+  lastEditedBy: z.string().nullable(),
+});
+
 export const indicatorAdminPageSchema = z.object({
-  indicators: z.array(indicatorAdminSummarySchema),
+  indicators: z.array(indicatorAdminListItemSchema),
   page: z.number().int().min(1),
   pageSize: z.number().int().min(1),
   total: z.number().int().min(0),
@@ -160,6 +172,7 @@ export const indicatorUpdateErrorSchema = z.discriminatedUnion('error', [
 ]);
 
 export type IndicatorAdminSummary = z.infer<typeof indicatorAdminSummarySchema>;
+export type IndicatorAdminListItem = z.infer<typeof indicatorAdminListItemSchema>;
 export type IndicatorAdminPage = z.infer<typeof indicatorAdminPageSchema>;
 export type IndicatorStatus = z.infer<typeof indicatorStatusSchema>;
 export type DraftStatus = z.infer<typeof draftStatusSchema>;

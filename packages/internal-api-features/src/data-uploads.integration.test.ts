@@ -25,6 +25,8 @@ import {
   createCapturingLogger,
   createRouterTestApp,
   handlerLogLines,
+  TEST_TEAM_ID,
+  TEST_USER_ID,
   testSessionCookie,
   testSessionVerifier,
 } from './testing.ts';
@@ -86,6 +88,7 @@ const storage = await createAzureBlobStorage({
 const app = createRouterTestApp(
   dataUploadsRouter(
     createInternalRepositories(internalDb).dataUploads,
+    createInternalRepositories(internalDb).indicators,
     storage,
     testSessionVerifier,
   ),
@@ -140,7 +143,10 @@ async function rowsOf(batchId: string) {
     .orderBy(asc(observation.value));
 }
 
-/** Published indicators with no draft open, the nth of them, so each test takes its own. */
+/**
+ * Published indicators with no draft open, the nth of them, so each test takes its own, moved from
+ * Fingertips into the test session's team so its publisher may edit it.
+ */
 async function publishedWithoutDraft(nth: number): Promise<string> {
   const rows = await ownerDb
     .select({ indicatorId: currentPublishedVersion.indicatorId })
@@ -157,6 +163,10 @@ async function publishedWithoutDraft(nth: number): Promise<string> {
   const row = rows[nth];
   if (row === undefined)
     throw new Error(`the seed has no published indicator ${nth} without a draft`);
+  await ownerDb
+    .update(schema.indicator)
+    .set({ teamId: TEST_TEAM_ID })
+    .where(eq(schema.indicator.id, row.indicatorId));
   return row.indicatorId;
 }
 
@@ -184,7 +194,7 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
       indicatorId,
       status: 'processed',
       originalFilename: 'life.csv',
-      uploadedBy: 'test-user',
+      uploadedBy: TEST_USER_ID,
       blobName: `${indicatorId}/${batchId}.csv`,
       byteSize: Buffer.byteLength(VALID_CSV),
       sha256: expect.stringMatching(/^[0-9a-f]{64}$/),
@@ -198,14 +208,14 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
     expect(await draftOf(ownerDb, indicatorId)).toMatchObject({
       uploadBatchId: batchId,
       dataTableConfirmedAt: null,
-      updatedBy: 'test-user',
+      updatedBy: TEST_USER_ID,
     });
 
     const rows = await rowsOf(batchId);
-    expect(rows.map(({ value, count, createdBy }) => ({ value, count, createdBy }))).toEqual([
-      { value: 83.1, count: 1200, createdBy: 'test-user' },
-      { value: 83.8, count: 1234, createdBy: 'test-user' },
-      { value: null, count: null, createdBy: 'test-user' },
+    expect(rows.map(({ value, count }) => ({ value, count }))).toEqual([
+      { value: 83.1, count: 1200 },
+      { value: 83.8, count: 1234 },
+      { value: null, count: null },
     ]);
   });
 
@@ -274,6 +284,7 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
     const logged = createRouterTestApp(
       dataUploadsRouter(
         createInternalRepositories(internalDb).dataUploads,
+        createInternalRepositories(internalDb).indicators,
         storage,
         testSessionVerifier,
       ),

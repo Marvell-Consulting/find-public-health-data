@@ -1,5 +1,27 @@
-import type { AppAudience, FakeUser } from '@fphd/auth';
+import { type AppAudience, type FakeUser, type Role, TEAMS } from '@fphd/auth';
 import { A, Button, PageIntro, Radios } from '@fphd/ui';
+
+const ROLE_LABELS: Partial<Record<Role, string>> = {
+  'imrg-manager': 'IMRG manager',
+  'imrg-reviewer': 'IMRG reviewer',
+  admin: 'Admin',
+};
+
+function listed(items: readonly string[]): string {
+  return items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`;
+}
+
+/** The user's roles and teams, as the radio's hint states them. */
+export function fakeUserAccess(user: FakeUser): string {
+  const teams = TEAMS.filter(({ id }) => user.teamIds.includes(id)).map(({ name }) => name);
+  const roles = user.roles.flatMap((role) => {
+    if (role === 'publisher') return [`Publisher in ${listed(teams)}`];
+    const label = ROLE_LABELS[role];
+    return label === undefined ? [] : [label];
+  });
+
+  return roles.length === 0 ? 'Public service only' : roles.map((role) => `${role}.`).join(' ');
+}
 
 export interface SignInSession {
   readonly roles: readonly string[];
@@ -42,13 +64,14 @@ export function SignInPage({ audience, returnTo, session, users }: SignInPagePro
       <p className="govuk-body">
         Select a fake user to test the {audience} service. No password is required.
       </p>
+      <p className="govuk-body">IMRG is the Indicator Methodology Review Group.</p>
       <form action="/auth/sign-in" method="post">
         <input name="returnTo" type="hidden" value={returnTo} />
         <Radios
           label="Choose a user"
           name="userId"
           options={users.map((user) => ({
-            hint: user.description,
+            hint: fakeUserAccess(user),
             label: user.name,
             value: user.id,
           }))}

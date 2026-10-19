@@ -1,5 +1,13 @@
 import type postgres from 'postgres';
 import {
+  assertPackageActors,
+  hasPackageShape,
+  MIGRATION_USER_ID,
+  shapeStage,
+  stagedValue,
+  tableColumns,
+} from './data-migration-actors.ts';
+import {
   copyInto,
   type DataMigrationProgressReporter,
   quoteIdentifiers,
@@ -54,8 +62,10 @@ export async function validateMigrationHeader(
   const targetNames = new Set(targetInfo.map(({ name }) => name));
   const legacySet = new Set<string>(LEGACY_SOURCE_COLUMNS);
 
-  const columns =
-    table === 'indicator_version' ? rawHeader.filter((col) => !legacySet.has(col)) : rawHeader;
+  const columns = tableColumns(
+    table,
+    table === 'indicator_version' ? rawHeader.filter((col) => !legacySet.has(col)) : rawHeader,
+  );
 
   const unknown = columns.filter((col) => !targetNames.has(col));
   if (unknown.length > 0) {
@@ -168,6 +178,7 @@ export async function applyIndicatorVersionRows(
   await tx.unsafe(
     `ALTER TABLE migration_source_indicator_version ADD COLUMN numerator_source_id uuid, ADD COLUMN denominator_source_id uuid`,
   );
+  await shapeStage(tx, 'indicator_version', 'migration_source_indicator_version');
   await copyInto(
     tx,
     'migration_source_indicator_version',
@@ -208,14 +219,7 @@ export async function applyIndicatorVersionRows(
     throw new Error('Data migration would overwrite a non-published indicator version');
   }
 
-  const [actorConflict] = await tx<{ count: number }[]>`
-    SELECT count(*)::int AS count FROM migration_source_indicator_version
-    WHERE created_by IS DISTINCT FROM 'pholio-migration'
-      OR updated_by IS DISTINCT FROM 'pholio-migration'
-  `;
-  if (actorConflict?.count) {
-    throw new Error('Data migration versions must name pholio-migration as their audit actor');
-  }
+  await assertPackageActors(tx, 'indicator_version', 'migration_source_indicator_version');
   const conflicts = await tx<{ shortId: number }[]>`
     SELECT DISTINCT i.short_id AS "shortId"
     FROM migration_source_indicator_version staged
@@ -223,8 +227,8 @@ export async function applyIndicatorVersionRows(
     JOIN indicator_version existing ON existing.indicator_id = i.id
     WHERE existing.status = 'draft' OR (
       (existing.id = staged.id OR existing.id IN (SELECT id FROM current_published_version))
-      AND (existing.created_by IS DISTINCT FROM 'pholio-migration'
-        OR existing.updated_by IS DISTINCT FROM 'pholio-migration')
+      AND (existing.created_by IS DISTINCT FROM ${MIGRATION_USER_ID}
+        OR existing.updated_by IS DISTINCT FROM ${MIGRATION_USER_ID})
     )
     ORDER BY i.short_id
   `;
@@ -245,7 +249,9 @@ export async function applyIndicatorVersionRows(
     (c) => c !== 'upload_batch_id' && c !== 'data_table_confirmed_at',
   );
   const columnList = quoteIdentifiers(insertColumns);
-  const selectList = insertColumns.map((c) => mapped.get(c) ?? `v."${c}"`).join(', ');
+  const selectList = insertColumns
+    .map((c) => mapped.get(c) ?? stagedValue('indicator_version', c, 'v'))
+    .join(', ');
   const joins = CORE_DATA_LOOKUPS.map(
     ({ table, column }) =>
       `LEFT JOIN migration_${table}_map ON migration_${table}_map.source_id = v.${column}`,
@@ -292,16 +298,17 @@ export async function applyUpserts(
   expected: number,
   report: DataMigrationProgressReporter,
 ): Promise<void> {
-  const { columns } = await validateMigrationHeader(tx, table, file);
+  const { rawHeader, columns } = await validateMigrationHeader(tx, table, file);
 
   const stage = `data_migration_upsert_${table}`;
   await tx.unsafe(
     `CREATE TEMP TABLE "${stage}" (LIKE "${table}" INCLUDING DEFAULTS) ON COMMIT DROP`,
   );
+  await shapeStage(tx, table, stage);
   await copyInto(
     tx,
     stage,
-    columns,
+    rawHeader,
     file,
     `loading ${table} upserts`,
     { table, phase: 'upsert' },
@@ -313,6 +320,7 @@ export async function applyUpserts(
   if (Number(staged?.count) !== expected) {
     throw new Error(`${table} staged ${staged?.count ?? 0} upserts; package declares ${expected}`);
   }
+  await assertPackageActors(tx, table, stage);
   await assertMigrationPublisherRowsUnchanged(tx, table, stage, 'upsert');
   const assignments = columns
     .filter((column) => column !== 'id')
@@ -320,6 +328,48 @@ export async function applyUpserts(
     .join(', ');
   const conflict = assignments.length === 0 ? 'DO NOTHING' : `DO UPDATE SET ${assignments}`;
   await tx.unsafe(
-    `INSERT INTO "${table}" (${quoteIdentifiers(columns)}) SELECT ${quoteIdentifiers(columns)} FROM "${stage}" ON CONFLICT (id) ${conflict}`,
+    `INSERT INTO "${table}" (${quoteIdentifiers(columns)}) SELECT ${selectStaged(table, columns)} FROM "${stage}" s ON CONFLICT (id) ${conflict}`,
   );
+}
+
+function selectStaged(table: string, columns: readonly string[]): string {
+  return columns.map((column) => stagedValue(table, column, 's')).join(', ');
+}
+
+/**
+ * Loads a baseline table's rows. Most are copied straight in; a table whose package rows differ
+ * from its own, by naming their writer or carrying a column it lacks, is staged first.
+ */
+export async function applyBaselineRows(
+  tx: postgres.TransactionSql,
+  table: string,
+  file: string,
+  report: DataMigrationProgressReporter,
+): Promise<void> {
+  const { rawHeader, columns } = await validateMigrationHeader(tx, table, file);
+  const progress = { table, phase: 'baseline' } as const;
+  if (!hasPackageShape(table)) {
+    await copyInto(tx, table, columns, file, `COPY into ${table}`, progress, report);
+    return;
+  }
+
+  const stage = `data_migration_baseline_${table}`;
+  await tx.unsafe(
+    `CREATE TEMP TABLE "${stage}" (LIKE "${table}" INCLUDING DEFAULTS) ON COMMIT DROP`,
+  );
+  await shapeStage(tx, table, stage);
+  // The table is complete once its rows are in it, not once the file is copied.
+  const staging: DataMigrationProgressReporter = (event) => {
+    if (event.state !== 'complete') report(event);
+  };
+  await copyInto(tx, stage, rawHeader, file, `staging ${table}`, progress, staging);
+  await assertPackageActors(tx, table, stage);
+  // For observations the insert takes longer than the copy, so it says when it starts.
+  report({ ...progress, state: 'inserting' });
+  await tx.unsafe(
+    `INSERT INTO "${table}" (${quoteIdentifiers(columns)}) SELECT ${selectStaged(table, columns)} FROM "${stage}" s`,
+  );
+  report({ ...progress, state: 'complete' });
+  // Observations are most of a baseline, so their copy goes once they are in.
+  await tx.unsafe(`DROP TABLE "${stage}"`);
 }

@@ -4,8 +4,11 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDbFromClient } from './client.ts';
 import { applyIndicatorTopics, parseIndicatorTopicFile } from './indicator-topic-repository.ts';
+import { SYSTEM_USER_IDS } from './schema/index.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
+
+const ACTOR = SYSTEM_USER_IDS.pholioMigration;
 
 let database: TestDatabase;
 let sql: ReturnType<typeof createOwnerClient>;
@@ -45,7 +48,7 @@ describe('an indicator with only a draft', () => {
     `;
       const [draft] = await sql<{ version_id: string }[]>`
       INSERT INTO indicator_version (indicator_id, name, slug, created_by, updated_by)
-      VALUES (${identity?.id ?? ''}, 'Draft only', ${`draft-only-${timestamp.endsWith('Z') ? 'utc' : 'local'}`}, 'topic-test', 'topic-test')
+      VALUES (${identity?.id ?? ''}, 'Draft only', ${`draft-only-${timestamp.endsWith('Z') ? 'utc' : 'local'}`}, ${ACTOR}, ${ACTOR})
       RETURNING id AS version_id
     `;
       if (!topic || !identity || !draft) throw new Error('the fixture was not written');

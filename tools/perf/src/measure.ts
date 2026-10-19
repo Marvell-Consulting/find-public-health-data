@@ -6,12 +6,28 @@ import { ORIGINS, type Route } from './routes.ts';
 
 export type Response = { status: number; bytes: number; ms: number };
 
-/** Session cookies for the fake admin user, who holds every internal role. */
-export async function signIn(): Promise<string> {
+// FAKE_USER_IDS in @fphd/auth: Sam Taylor, a publisher in Team A, and Riley Singh, the admin.
+const FAKE_USERS = {
+  publisher: '01a13c69-96ab-7598-9ce0-f84dbec3d5dd',
+  admin: '01a13c69-96ac-700c-9c28-8a01ee1fdfa8',
+};
+
+/** The cookies each route is requested with: one session for the publisher, one for the admin. */
+export type Sessions = Record<keyof typeof FAKE_USERS, string>;
+
+export async function signIn(): Promise<Sessions> {
+  return {
+    publisher: await signInAs(FAKE_USERS.publisher),
+    admin: await signInAs(FAKE_USERS.admin),
+  };
+}
+
+/** Session cookies for one fake user. */
+async function signInAs(userId: string): Promise<string> {
   const origin = ORIGINS['internal-web'];
   const started = await fetch(`${origin}/auth/sign-in`, {
     method: 'POST',
-    body: new URLSearchParams({ userId: 'internal-admin' }),
+    body: new URLSearchParams({ userId }),
     redirect: 'manual',
   });
   const callback = started.headers.get('location');
@@ -29,8 +45,9 @@ export async function signIn(): Promise<string> {
 }
 
 /** One request, body read in full; redirects are not followed, so each is measured as itself. */
-export async function request(route: Route, session: string): Promise<Response> {
+export async function request(route: Route, sessions: Sessions): Promise<Response> {
   const internal = route.app === 'internal-web' || route.app === 'internal-api';
+  const session = sessions[route.as ?? 'publisher'];
   const started = performance.now();
   const response = await fetch(`${ORIGINS[route.app]}${route.path}`, {
     headers: internal ? { cookie: session } : {},
@@ -69,9 +86,13 @@ export async function prepare(sql: postgres.Sql): Promise<void> {
 }
 
 /** The database work and response size of one request to the route. */
-export async function measureWork(sql: postgres.Sql, route: Route, session: string): Promise<Work> {
+export async function measureWork(
+  sql: postgres.Sql,
+  route: Route,
+  sessions: Sessions,
+): Promise<Work> {
   await sql`select pg_stat_statements_reset()`;
-  const response = await request(route, session);
+  const response = await request(route, sessions);
   if (response.status !== 200) {
     throw new Error(`${route.app} ${route.path} answered ${response.status}`);
   }

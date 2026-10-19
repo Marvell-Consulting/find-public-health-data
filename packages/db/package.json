@@ -50,6 +50,7 @@
     "postgres": "catalog:"
   },
   "devDependencies": {
+    "@fphd/auth": "workspace:*",
     "@types/node": "catalog:",
     "drizzle-kit": "catalog:",
     "tsx": "catalog:",

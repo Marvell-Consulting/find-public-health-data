@@ -9,8 +9,9 @@ The default mode assigns sequential UUIDv7 ids following source-id order and
 reads the Pholio-shaped export from export-seed.py. `--deterministic` maps table
 and source ID directly to UUIDv7 so a full published snapshot can be converted
 with bounded memory, and reads the version-shaped export from
-an integer-keyed source snapshot. Every foreign key is remapped, and the indicator
-keeps its public Fingertips number as `short_id`.
+an integer-keyed source snapshot. Every foreign key is remapped, each writer
+becomes its system user's id, and the indicator keeps its public Fingertips
+number as `short_id`.
 """
 
 import argparse
@@ -104,6 +105,15 @@ FOREIGN_KEYS = {
     "observation_note": {"observation_id": "observation", "note_type_id": "note_type"},
 }
 
+# The writer the exports name, as the system user it is (SYSTEM_USER_IDS in @fphd/db).
+ACTOR_USER_IDS = {"pholio-migration": "01a13c69-96ab-7598-9ce0-f0c3bd77bded"}
+# The columns naming a row's writer. observation.created_by is not one: the loader ignores it.
+ACTOR_COLUMNS = {
+    "indicator": ["created_by", "updated_by"],
+    "indicator_version": ["created_by", "updated_by"],
+    "upload_batch": ["uploaded_by"],
+}
+
 
 def uuid7(ts_ms):
     rand_a = secrets.randbits(12)
@@ -135,6 +145,19 @@ def foreign_key_indexes(table, header):
     if missing and not identity_only:
         raise ValueError(f"{table} is missing foreign-key columns: {', '.join(missing)}")
     return {header.index(col): ref for col, ref in fks.items() if col in header}
+
+
+def actor_indexes(table, header):
+    """The positions of the table's writer columns; the identity-only indicator row has none."""
+    return [header.index(column) for column in ACTOR_COLUMNS.get(table, []) if column in header]
+
+
+def actor_user_id(table, actor):
+    """The id of the user a writer is, or an error naming a writer no user stands for."""
+    user_id = ACTOR_USER_IDS.get(actor)
+    if user_id is None:
+        raise ValueError(f"{table} names a writer with no user: {actor}")
+    return user_id
 
 
 def main(seed_dir, deterministic=False):
@@ -174,6 +197,7 @@ def main(seed_dir, deterministic=False):
             header = next(reader)
             id_index = header.index("id")
             fk_indexes = foreign_key_indexes(table, header)
+            actors = actor_indexes(table, header)
             if table == "indicator":
                 writer.writerow([*header[: id_index + 1], "short_id", *header[id_index + 1 :]])
             else:
@@ -185,6 +209,8 @@ def main(seed_dir, deterministic=False):
                 for i, ref_table in fk_indexes.items():
                     if row[i] not in ("", NULL_MARKER):
                         row[i] = convert(ref_table, row[i])
+                for i in actors:
+                    row[i] = actor_user_id(table, row[i])
                 if table == "indicator":
                     row = [*row[: id_index + 1], old_id, *row[id_index + 1 :]]
                 if deterministic:

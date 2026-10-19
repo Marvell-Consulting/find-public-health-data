@@ -6,6 +6,7 @@ import {
 import type { RouterContextProvider } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import {
+  createRequireSessionMiddleware,
   createRequireSessionRoleMiddleware,
   createSessionContext,
   getSession,
@@ -71,6 +72,7 @@ async function issueCookie(
     expiresInSeconds,
     roles: options.roles ?? ['viewer'],
     subject: options.subject ?? 'user-123',
+    teams: [],
   });
   const [cookie] = service.createCookieHeader(token, expiresInSeconds).split(';', 1);
 
@@ -103,12 +105,13 @@ describe('JWT session service', () => {
     ).toThrow('SESSION_JWT_SECRET must be at least 32 bytes');
   });
 
-  it('issues and validates an expiring HS256 JWT with identity and roles', async () => {
+  it('issues and validates an expiring HS256 JWT with identity, roles and teams', async () => {
     const service = createTestService();
     const token = await service.issueToken({
       expiresInSeconds: 900,
       roles: ['publisher', 'viewer'],
       subject: 'user-123',
+      teams: ['team-1'],
     });
     const claims = await service.verifyToken(token);
 
@@ -120,10 +123,12 @@ describe('JWT session service', () => {
       iss: 'fphd-auth',
       roles: ['publisher', 'viewer'],
       sub: 'user-123',
+      teams: ['team-1'],
     });
     expect(claims.jti).not.toBe('');
     expect(Object.isFrozen(claims)).toBe(true);
     expect(Object.isFrozen(claims.roles)).toBe(true);
+    expect(Object.isFrozen(claims.teams)).toBe(true);
   });
 
   it('gives web applications validation operations only', () => {
@@ -138,6 +143,7 @@ describe('JWT session service', () => {
       expiresInSeconds: 900,
       roles: ['viewer'],
       subject: 'user-123',
+      teams: [],
     });
     const cookie = service.createCookieHeader(token, 900);
 
@@ -158,6 +164,7 @@ describe('JWT session service', () => {
       expiresInSeconds: 30,
       roles: ['viewer'],
       subject: 'user-123',
+      teams: [],
     });
 
     await expect(verifier.verifyToken(token)).rejects.toThrow('Invalid JWT session');
@@ -170,6 +177,7 @@ describe('JWT session service', () => {
       expiresInSeconds: 900,
       roles: ['viewer'],
       subject: 'user-123',
+      teams: [],
     });
 
     await expect(verifier.verifyToken(token)).rejects.toThrow('Invalid JWT session');
@@ -267,6 +275,50 @@ describe('session role middleware', () => {
 
     expect(response.status).toBe(200);
     expect(await response.text()).toBe('Internal content');
+  });
+});
+
+describe('session check middleware', () => {
+  async function outcome(teams: readonly string[]): Promise<string> {
+    const service = createTestService();
+    const token = await service.issueToken({
+      expiresInSeconds: 900,
+      roles: ['internal'],
+      subject: 'user-123',
+      teams,
+    });
+    const request = new Request('https://example.test/dashboard', {
+      headers: { Cookie: service.createCookieHeader(token, 900) },
+    });
+    const args = {
+      context: createSessionContext(service),
+      params: {},
+      pattern: '/dashboard',
+      request,
+      url: new URL(request.url),
+    };
+    const requireTeam = createRequireSessionMiddleware({
+      allows: (session) => session.teams.includes('team-1'),
+      forbiddenPath: '/access-denied',
+      signInPath: '/sign-in',
+    });
+
+    try {
+      const response = await sessionMiddleware(args, async () => {
+        const admitted = await requireTeam(args, async () => new Response('Team content'));
+        if (!(admitted instanceof Response)) throw new Error('The check returned no response');
+        return admitted;
+      });
+      return response instanceof Response ? await response.text() : 'no response';
+    } catch (error) {
+      if (error instanceof Response) return error.headers.get('Location') ?? '';
+      throw error;
+    }
+  }
+
+  it('admits a session its check admits and turns any other away', async () => {
+    expect(await outcome(['team-1'])).toBe('Team content');
+    expect(await outcome(['team-2'])).toBe('/access-denied');
   });
 });
 

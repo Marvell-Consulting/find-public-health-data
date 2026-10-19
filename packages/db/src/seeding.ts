@@ -15,6 +15,7 @@ import {
 } from './indicator-topic-repository.ts';
 import { type LegacySourceMap, mapLegacySources, readLegacySourceMap } from './legacy-sources.ts';
 import { READ_MODEL_TABLES } from './read-models.ts';
+import { IMPORTED_INDICATOR_TEAM_ID } from './schema/index.ts';
 
 import { SEED_TABLES } from './seed-tables.ts';
 
@@ -270,6 +271,7 @@ async function seedTables(
       counts[table] = await loadTable(tx, table, directory, idleTimeoutMs, completionTimeoutMs);
     }
   }
+  await tx`UPDATE indicator SET team_id = ${IMPORTED_INDICATOR_TEAM_ID} WHERE team_id IS NULL`;
   await pointVersionsAtBatches(tx);
   return counts;
 }
@@ -320,6 +322,8 @@ async function loadObservations(
 ): Promise<{ observations: number; dimensions: number }> {
   await tx`CREATE TEMP TABLE source_observation (LIKE observation INCLUDING DEFAULTS) ON COMMIT DROP`;
   await tx`ALTER TABLE source_observation ALTER COLUMN dimension_key DROP NOT NULL`;
+  // The files give each observation a writer, which its batch's uploader stands for; it is dropped.
+  await tx`ALTER TABLE source_observation ADD COLUMN created_by text`;
   await tx`CREATE TEMP TABLE source_observation_dimension (LIKE observation_dimension INCLUDING DEFAULTS) ON COMMIT DROP`;
   await loadTable(
     tx,

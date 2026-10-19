@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fphd/auth": "workspace:*",
     "@fphd/internal-api-features": "workspace:*",
     "@fphd/ui": "workspace:*",
     "@fphd/utils": "workspace:*",

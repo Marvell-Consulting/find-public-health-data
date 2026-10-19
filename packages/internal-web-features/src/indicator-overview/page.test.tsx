@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { TEAM_IDS } from '@fphd/auth';
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -12,6 +13,7 @@ const indicator: IndicatorAdminDetail = {
   id: '019a1b2c-3d4e-7f60-8a9b-0c1d2e3f4a5b',
   shortId: 90366,
   name: 'Life expectancy at birth',
+  teamId: TEAM_IDS.teamA,
   publishedSlug: 'life-expectancy-at-birth',
   updatedAt: '2026-08-04T23:30:00.000Z',
   indicatorStatus: 'live',
@@ -19,10 +21,10 @@ const indicator: IndicatorAdminDetail = {
 };
 
 // The links and tabs read router state, so the page renders inside a router at its own address.
-function renderPage(overrides: Partial<IndicatorAdminDetail> = {}) {
+function renderPage(overrides: Partial<IndicatorAdminDetail> = {}, canEdit = true) {
   return render(
     <MemoryRouter initialEntries={[`/dashboard/indicators/${indicator.id}`]}>
-      <IndicatorOverviewPage indicator={{ ...indicator, ...overrides }} />
+      <IndicatorOverviewPage canEdit={canEdit} indicator={{ ...indicator, ...overrides }} />
     </MemoryRouter>,
   );
 }
@@ -76,6 +78,14 @@ describe('IndicatorOverviewPage', () => {
     expect(
       screen.getByRole('link', { name: 'Continue updating indicator' }).getAttribute('href'),
     ).toBe(`/publish/indicators/${indicator.id}/task-list`);
+  });
+
+  it('offers only the published page to someone who may not edit the indicator', () => {
+    renderPage({ draftStatus: 'draft' }, false);
+
+    expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+      'View published indicator',
+    ]);
   });
 
   it('offers no editing action for a published indicator, which has no draft', () => {

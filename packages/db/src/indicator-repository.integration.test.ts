@@ -26,7 +26,10 @@ import {
   searchIndicators,
   searchPublishedIndicators,
 } from './indicator-repository.ts';
+import { SYSTEM_USER_IDS } from './schema/index.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
+
+const ACTOR = SYSTEM_USER_IDS.pholioMigration;
 
 const env = parseEnv(
   z.object({
@@ -170,7 +173,7 @@ describe('resolveIndicatorIdBySlug', () => {
       sql`INSERT INTO indicator_version
             (indicator_id, status, name, slug, published_at, created_by, updated_by)
           SELECT ${mortalityId}, 'published', 'An earlier name', 'an-earlier-name',
-                 '2020-01-01T00:00:00Z', 'integration-test', 'integration-test'`,
+                 '2020-01-01T00:00:00Z', ${ACTOR}, ${ACTOR}`,
     );
     await owner.$client.end();
 
