@@ -2,7 +2,7 @@ import type postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { type Actor, recordAudit } from './audit-log.ts';
-import { createDbFromClient, createDbFromTransaction, type Database } from './client.ts';
+import { createDbFromClient, type Database } from './client.ts';
 import { SYSTEM_USER_IDS } from './schema/index.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
@@ -63,13 +63,13 @@ describe('recordAudit', () => {
     ]);
   });
 
-  it('records the changes as an object through a handle over a raw transaction', async () => {
+  it('records the changes as an object in a raw transaction', async () => {
     const entityId = newEntityId();
     // A client Drizzle has never wrapped, as the operations commands' is.
     const raw = createOwnerClient(testDb.name);
 
     await raw.begin((tx) =>
-      recordAudit(createDbFromTransaction(tx), { ...ACTOR, requestId: null }, [
+      recordAudit(tx, { ...ACTOR, requestId: null }, [
         { action: 'data_migration.applied', entityId, changes },
       ]),
     );

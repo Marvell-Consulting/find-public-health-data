@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { BlobServiceClient } from '@azure/storage-blob';
 import { appEnvFields, parseEnv, z } from '@fphd/config';
 import { createDb, type Database, dbEnvFields, dimensionKey, resolveDbTls, schema } from '@fphd/db';
-import { createTestDatabase } from '@fphd/db/testing';
+import { auditEntriesFor, createTestDatabase } from '@fphd/db/testing';
 import { request } from '@fphd/express/testing';
 import { BlobNotFoundError, createAzureBlobStorage } from '@fphd/internal-storage';
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
@@ -539,6 +539,73 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
   });
 });
 
+describe('the audit log of uploads', () => {
+  it('records a loaded batch, naming its indicator and version, under the request', async () => {
+    const { indicatorId, versionId } = await newDraft(internalDb, 'Upload on the record');
+
+    const response = await upload(indicatorId, VALID_CSV, 'life.csv');
+
+    const [entry, ...others] = await auditEntriesFor(ownerDb, response.body.id);
+    expect(others).toEqual([]);
+    expect(entry).toMatchObject({
+      actorId: TEST_USER_ID,
+      action: 'upload_batch.loaded',
+      entityType: 'upload_batch',
+      requestId: response.headers['x-fphd-request-id'],
+    });
+    expect(entry?.changes).toMatchObject({
+      id: { before: null, after: response.body.id },
+      indicatorId: { before: null, after: indicatorId },
+      indicatorVersionId: { before: null, after: versionId },
+      originalFilename: { before: null, after: 'life.csv' },
+      byteSize: { before: null, after: Buffer.byteLength(VALID_CSV) },
+      status: { before: null, after: 'processed' },
+      rowCount: { before: null, after: 3 },
+      columnNames: { before: null, after: HEADER.split(',') },
+    });
+  });
+
+  it('records a refused batch with its problems', async () => {
+    const { indicatorId } = await newDraft(internalDb, 'Refusal on the record');
+
+    const response = await upload(
+      indicatorId,
+      `${HEADER}\nE99999999,2019-04-01,2020-03-31,1,,,,,,`,
+    );
+
+    const [entry] = await auditEntriesFor(ownerDb, response.body.id);
+    expect(entry).toMatchObject({ action: 'upload_batch.refused' });
+    expect(entry?.changes).toMatchObject({
+      indicatorId: { before: null, after: indicatorId },
+      status: { before: null, after: 'failed' },
+      validationResult: { before: null, after: response.body.problems },
+    });
+  });
+
+  it('records each batch an upload replaces, every column before', async () => {
+    const { indicatorId } = await newDraft(internalDb, 'Replacement on the record');
+    const first = await upload(indicatorId, VALID_CSV);
+
+    const second = await upload(indicatorId, `${HEADER}\nE12000001,2021-04-01,2022-03-31,7,,,,,,`);
+
+    const entries = await auditEntriesFor(ownerDb, first.body.id);
+    expect(entries.map(({ action }) => action)).toEqual([
+      'upload_batch.loaded',
+      'upload_batch.deleted',
+    ]);
+    expect(entries[1]).toMatchObject({
+      actorId: TEST_USER_ID,
+      requestId: second.headers['x-fphd-request-id'],
+    });
+    expect(entries[1]?.changes).toMatchObject({
+      id: { before: first.body.id, after: null },
+      indicatorId: { before: indicatorId, after: null },
+      rowCount: { before: 3, after: null },
+      uploadedBy: { before: TEST_USER_ID, after: null },
+    });
+  });
+});
+
 describe('GET /api/internal/indicators/:id/data-uploads/latest', () => {
   it('answers the failed upload until a later upload loads', async () => {
     const { indicatorId } = await newDraft(internalDb, 'Upload latest');
@@ -664,6 +731,7 @@ describe('processDataUpload', () => {
 
     expect(await batchOf(batchId)).toBeUndefined();
     expect((await draftOf(ownerDb, indicatorId)).uploadBatchId).toBeNull();
+    expect(await auditEntriesFor(ownerDb, batchId)).toEqual([]);
   });
 
   it('rolls back when the upload is abandoned as its rows are read', async () => {

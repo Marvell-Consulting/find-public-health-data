@@ -2,7 +2,13 @@ import { type Readable, Writable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
 import { type Database, dimensionKey } from '@fphd/db';
-import type { Actor } from '@fphd/db/audit-log';
+import {
+  type Actor,
+  type AuditEntry,
+  changesBetween,
+  fromColumnNames,
+  recordAudit,
+} from '@fphd/db/audit-log';
 import type { PendingQuery, TransactionSql } from 'postgres';
 
 import { type DataTableEvent, readDataTable } from './data-table.ts';
@@ -162,27 +168,36 @@ async function loadInTransaction(
 
     if (problems.length > 0) {
       // Drizzle's client passes json parameters through unserialised, so they are sent as text.
-      await tx`
+      const [refused] = await tx<BatchRow[]>`
         UPDATE upload_batch
         SET status = 'failed', validation_result = ${JSON.stringify(problems)}::jsonb, column_names = ${staged.columnNames}
-        WHERE id = ${upload.batchId}`;
+        WHERE id = ${upload.batchId}
+        RETURNING to_jsonb(new) AS row`;
       // Held until commit, so the version cannot stop being a draft before the failure is kept.
       const [stillDraft] = await tx`
         SELECT id FROM indicator_version WHERE id = ${draft.id} AND status = 'draft' FOR SHARE`;
       if (stillDraft === undefined) throw new DraftGoneError();
-      const deletedBlobNames = await time('deleteEarlierMs', () =>
+      const deleted = await time('deleteEarlierMs', () =>
         deleteEarlierBatches(tx, draft.id, upload.batchId, 'failed', signal),
       );
+      await recordAudit(tx, upload.actor, batchEntries('upload_batch.refused', refused, deleted));
       signal.throwIfAborted();
-      return { ok: false, reason: 'invalid', problems, deletedBlobNames, timings };
+      return {
+        ok: false,
+        reason: 'invalid',
+        problems,
+        deletedBlobNames: blobNames(deleted),
+        timings,
+      };
     }
 
     const inserts = await time('insertMs', () => loadStagedRows(tx, upload, signal));
     timings = { ...timings, ...inserts };
-    await tx`
+    const [loaded] = await tx<BatchRow[]>`
       UPDATE upload_batch
       SET status = 'processed', row_count = ${staged.rowCount}, column_names = ${staged.columnNames}
-      WHERE id = ${upload.batchId}`;
+      WHERE id = ${upload.batchId}
+      RETURNING to_jsonb(new) AS row`;
     const pointed = await tx`
       UPDATE indicator_version
       SET upload_batch_id = ${upload.batchId}, data_table_confirmed_at = NULL,
@@ -190,13 +205,14 @@ async function loadInTransaction(
       WHERE id = ${draft.id} AND status = 'draft'`;
     if (pointed.count === 0) throw new DraftGoneError();
 
-    const deletedBlobNames = await time('deleteEarlierMs', () =>
+    const deleted = await time('deleteEarlierMs', () =>
       deleteEarlierBatches(tx, draft.id, upload.batchId, 'all', signal),
     );
+    await recordAudit(tx, upload.actor, batchEntries('upload_batch.loaded', loaded, deleted));
     // Abandoned after its last statement, the upload still rolls back rather than commit.
     signal.throwIfAborted();
 
-    return { ok: true, rowCount: staged.rowCount, deletedBlobNames, timings };
+    return { ok: true, rowCount: staged.rowCount, deletedBlobNames: blobNames(deleted), timings };
   } catch (error) {
     throw new TimedUploadError(timings, error);
   }
@@ -369,11 +385,43 @@ async function loadStagedRows(
   return { observationMs, dimensionMs, noteMs };
 }
 
+/** A batch row as the database gives it in JSON, for the audit log. */
+type BatchRow = { row: Record<string, unknown> };
+
+/**
+ * The entries for an upload: its own batch, every column after, and each batch it replaced,
+ * every column before. The batch names its indicator and version, so their histories find it.
+ */
+function batchEntries(
+  action: 'upload_batch.loaded' | 'upload_batch.refused',
+  batch: BatchRow | undefined,
+  deleted: readonly BatchRow[],
+): AuditEntry[] {
+  if (batch === undefined) throw new Error(`${action} wrote no batch`);
+
+  return [
+    {
+      action,
+      entityId: String(batch.row.id),
+      changes: changesBetween(null, fromColumnNames(batch.row)),
+    },
+    ...deleted.map(({ row }) => ({
+      action: 'upload_batch.deleted' as const,
+      entityId: String(row.id),
+      changes: changesBetween(fromColumnNames(row), null),
+    })),
+  ];
+}
+
+function blobNames(deleted: readonly BatchRow[]): string[] {
+  return deleted.flatMap(({ row }) => (typeof row.blob_name === 'string' ? [row.blob_name] : []));
+}
+
 /**
  * Deletes the draft's earlier uploads, with their rows, now a newer one replaces them: every one
  * after a load, the failed ones after a failure. A batch uploaded to another version, or one any
  * version points at, such as the published batch an update draft started from, is kept. Answers
- * the deleted batches' blob names, for deleting after commit.
+ * the deleted batches, whose blobs are deleted after commit.
  */
 async function deleteEarlierBatches(
   tx: TransactionSql,
@@ -381,9 +429,9 @@ async function deleteEarlierBatches(
   newBatchId: string,
   which: 'all' | 'failed',
   signal: AbortSignal,
-): Promise<string[]> {
-  const earlier = await tx<{ id: string; blobName: string | null }[]>`
-    SELECT id, blob_name AS "blobName"
+): Promise<BatchRow[]> {
+  const earlier = await tx<{ id: string }[]>`
+    SELECT id
     FROM upload_batch b
     WHERE b.indicator_version_id = ${draftId}
       AND b.id <> ${newBatchId}
@@ -397,7 +445,10 @@ async function deleteEarlierBatches(
     signal,
     tx`DELETE FROM observation WHERE upload_batch_id = ANY(${ids}::uuid[])`,
   );
-  await cancellable(signal, tx`DELETE FROM upload_batch WHERE id = ANY(${ids}::uuid[])`);
-
-  return earlier.flatMap(({ blobName }) => (blobName === null ? [] : [blobName]));
+  return cancellable(
+    signal,
+    tx<BatchRow[]>`
+      DELETE FROM upload_batch WHERE id = ANY(${ids}::uuid[])
+      RETURNING to_jsonb(old) AS row`,
+  );
 }

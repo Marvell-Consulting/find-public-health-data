@@ -1,8 +1,9 @@
 import { isDeepStrictEqual } from 'node:util';
 
 import { sql } from 'drizzle-orm';
+import type postgres from 'postgres';
 
-import type { Database } from './client.ts';
+import { createDbFromTransaction, type Database } from './client.ts';
 import { type AuditAction, type AuditChanges, auditLog, type FieldChange } from './schema/index.ts';
 
 export type { AuditAction, AuditChanges, FieldChange } from './schema/index.ts';
@@ -20,17 +21,19 @@ export interface AuditEntry {
 }
 
 /**
- * Records the entries in the transaction of the change they describe, so the change and its
- * record commit or fail together. The entity type is the action's prefix.
+ * Records the entries in the transaction of the change they describe, a Drizzle one or a raw
+ * one, so the change and its record commit or fail together. The entity type is the action's
+ * prefix.
  */
 export async function recordAudit(
-  tx: Pick<Database, 'insert'>,
+  tx: Pick<Database, 'insert'> | postgres.TransactionSql,
   actor: Actor,
   entries: readonly AuditEntry[],
 ): Promise<void> {
   if (entries.length === 0) return;
 
-  await tx.insert(auditLog).values(
+  const db = 'insert' in tx ? tx : createDbFromTransaction(tx);
+  await db.insert(auditLog).values(
     entries.map(({ action, entityId, changes }) => ({
       actorId: actor.userId,
       requestId: actor.requestId,
@@ -69,6 +72,16 @@ export function changesBetween(
         { before: jsonValue(before?.[field]), after: jsonValue(after?.[field]) },
       ])
       .filter(([, change]) => !isDeepStrictEqual(change.before, change.after)),
+  );
+}
+
+/** A row read as JSON from the database, such as `to_jsonb(old)`, keyed as Drizzle keys it. */
+export function fromColumnNames(row: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(row).map(([column, value]) => [
+      column.replace(/_([a-z0-9])/g, (_, next: string) => next.toUpperCase()),
+      value,
+    ]),
   );
 }
 

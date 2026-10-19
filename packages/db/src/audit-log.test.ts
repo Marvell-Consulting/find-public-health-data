@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { changesBetween, listChanges } from './audit-log.ts';
+import { changesBetween, fromColumnNames, listChanges } from './audit-log.ts';
 
 const createdAt = new Date('2026-10-01T09:00:00.000Z');
 
@@ -94,5 +94,13 @@ describe('listChanges', () => {
     expect(listChanges({ links: ['a'], topicIds: ['t'] }, { ageRanges: ['r'] })).toEqual({
       ageRanges: { before: [], after: ['r'] },
     });
+  });
+});
+
+describe('fromColumnNames', () => {
+  it('keys a row by property names rather than column names', () => {
+    expect(
+      fromColumnNames({ id: 'a', indicator_version_id: 'v', lower_ci_95: 1, row_count: null }),
+    ).toEqual({ id: 'a', indicatorVersionId: 'v', lowerCi95: 1, rowCount: null });
   });
 });
