@@ -1,3 +1,4 @@
+import { FAKE_USER_IDS } from '@fphd/auth';
 import { appEnvFields, parseEnv, z } from '@fphd/config';
 import {
   createDb,
@@ -29,6 +30,8 @@ let db: Database;
 let topicCount = 0;
 
 const UNKNOWN_ID = '00000000-0000-7000-8000-0000000000ff';
+const ACTOR = FAKE_USER_IDS.admin;
+const OTHER_ACTOR = FAKE_USER_IDS.imrgManager;
 
 /** A distinct row per test, so no test depends on another having run (or not run) first. */
 async function givenTopic() {
@@ -41,7 +44,9 @@ async function givenTopic() {
     description: `About topic ${reference}.`,
   };
 
-  await db.insert(schema.topic).values(record);
+  await db
+    .insert(schema.topic)
+    .values({ ...record, createdBy: OTHER_ACTOR, updatedBy: OTHER_ACTOR });
   return record;
 }
 
@@ -85,33 +90,41 @@ describe('updateTopic', () => {
     ['description', { description: 'A rewritten description.' }],
   ];
 
-  it.each(editableFields)('writes a changed %s and bumps updatedAt', async (_field, change) => {
+  it.each(editableFields)(
+    'writes a changed %s and bumps updatedAt and updatedBy',
+    async (_field, change) => {
+      const topic = await givenTopic();
+      const before = await getTopicById(db, topic.id);
+
+      const result = await updateTopic(db, topic.id, { ...topic, ...change }, ACTOR);
+
+      expect(result).toMatchObject({ ok: true, changed: true, topic: change });
+
+      const after = await getTopicById(db, topic.id);
+      expect(after).toMatchObject({ ...change, createdBy: OTHER_ACTOR, updatedBy: ACTOR });
+      expect(after?.updatedAt.getTime()).toBeGreaterThan(before?.updatedAt.getTime() ?? 0);
+      expect(after?.id).toBe(topic.id);
+      expect(after?.createdAt).toEqual(before?.createdAt);
+    },
+  );
+
+  it('reports an identical submission as unchanged and leaves updatedAt and updatedBy alone', async () => {
     const topic = await givenTopic();
     const before = await getTopicById(db, topic.id);
 
-    const result = await updateTopic(db, topic.id, { ...topic, ...change });
-
-    expect(result).toMatchObject({ ok: true, changed: true, topic: change });
-
-    const after = await getTopicById(db, topic.id);
-    expect(after).toMatchObject(change);
-    expect(after?.updatedAt.getTime()).toBeGreaterThan(before?.updatedAt.getTime() ?? 0);
-    expect(after?.id).toBe(topic.id);
-    expect(after?.createdAt).toEqual(before?.createdAt);
-  });
-
-  it('reports an identical submission as unchanged and leaves updatedAt alone', async () => {
-    const topic = await givenTopic();
-    const before = await getTopicById(db, topic.id);
-
-    const result = await updateTopic(db, topic.id, topic);
+    const result = await updateTopic(db, topic.id, topic, ACTOR);
 
     expect(result).toMatchObject({ ok: true, changed: false });
-    expect((await getTopicById(db, topic.id))?.updatedAt).toEqual(before?.updatedAt);
+    expect(await getTopicById(db, topic.id)).toMatchObject({
+      updatedAt: before?.updatedAt,
+      updatedBy: OTHER_ACTOR,
+    });
   });
 
   it('reports an unknown id rather than throwing', async () => {
-    expect(await updateTopic(db, UNKNOWN_ID, { slug: 's', title: 't', description: 'd' })).toEqual({
+    expect(
+      await updateTopic(db, UNKNOWN_ID, { slug: 's', title: 't', description: 'd' }, ACTOR),
+    ).toEqual({
       ok: false,
       reason: 'not_found',
     });
@@ -121,7 +134,7 @@ describe('updateTopic', () => {
     const target = await givenTopic();
     const other = await givenTopic();
 
-    const result = await updateTopic(db, target.id, { ...target, slug: other.slug });
+    const result = await updateTopic(db, target.id, { ...target, slug: other.slug }, ACTOR);
 
     expect(result).toEqual({ ok: false, reason: 'slug_taken' });
     expect(await getTopicById(db, target.id)).toMatchObject(target);
@@ -131,11 +144,15 @@ describe('updateTopic', () => {
 
 describe('createTopic', () => {
   it('inserts a topic, letting the database mint the id and both timestamps', async () => {
-    const result = await createTopic(db, {
-      slug: 'a-new-topic',
-      title: 'A new topic',
-      description: 'Freshly created.',
-    });
+    const result = await createTopic(
+      db,
+      {
+        slug: 'a-new-topic',
+        title: 'A new topic',
+        description: 'Freshly created.',
+      },
+      ACTOR,
+    );
 
     expect(result).toMatchObject({
       ok: true,
@@ -145,18 +162,26 @@ describe('createTopic', () => {
     if (result.ok) {
       expect(result.topic.id).toMatch(/^[0-9a-f-]{36}$/);
       expect(result.topic.createdAt).toBeInstanceOf(Date);
-      expect(await getTopicById(db, result.topic.id)).toMatchObject({ slug: 'a-new-topic' });
+      expect(await getTopicById(db, result.topic.id)).toMatchObject({
+        slug: 'a-new-topic',
+        createdBy: ACTOR,
+        updatedBy: ACTOR,
+      });
     }
   });
 
   it('reports a slug already held by another topic rather than throwing', async () => {
     const existing = await givenTopic();
 
-    const result = await createTopic(db, {
-      slug: existing.slug,
-      title: 'Different title',
-      description: 'Different description.',
-    });
+    const result = await createTopic(
+      db,
+      {
+        slug: existing.slug,
+        title: 'Different title',
+        description: 'Different description.',
+      },
+      ACTOR,
+    );
 
     expect(result).toEqual({ ok: false, reason: 'slug_taken' });
   });
@@ -194,7 +219,7 @@ describe('the topic write surface', () => {
 
     try {
       await expect(
-        client`INSERT INTO topic (slug, title, description) VALUES ('granted-insert', 'Granted insert', 'x')`,
+        client`INSERT INTO topic (slug, title, description, created_by, updated_by) VALUES ('granted-insert', 'Granted insert', 'x', ${ACTOR}, ${ACTOR})`,
       ).resolves.toBeDefined();
       await expect(client`DELETE FROM topic WHERE slug = 'granted-insert'`).resolves.toBeDefined();
     } finally {
@@ -208,11 +233,15 @@ describe('the topic write surface', () => {
     const apiDb = createDb(connectionTo('internal_api', env.INTERNAL_API_PASSWORD));
 
     try {
-      const created = await createTopic(apiDb, {
-        slug: 'internal-api-create',
-        title: 'Internal API create',
-        description: 'Created by the API role.',
-      });
+      const created = await createTopic(
+        apiDb,
+        {
+          slug: 'internal-api-create',
+          title: 'Internal API create',
+          description: 'Created by the API role.',
+        },
+        ACTOR,
+      );
 
       expect(created).toMatchObject({ ok: true, topic: { slug: 'internal-api-create' } });
 

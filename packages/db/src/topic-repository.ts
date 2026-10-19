@@ -1,7 +1,7 @@
 import { asc, eq, sql } from 'drizzle-orm';
 
 import type { Database } from './client.ts';
-import { publishedTopic, type TopicRecord, topic } from './schema/index.ts';
+import { publishedTopic, SYSTEM_USER_IDS, type TopicRecord, topic } from './schema/index.ts';
 
 export interface ExistingTopic {
   id: string;
@@ -44,7 +44,8 @@ export function summarizeUpsert(recordCount: number, outcomes: UpsertOutcome[]):
   return { inserted, updated, unchanged: recordCount - inserted - updated };
 }
 
-export type Topic = typeof topic.$inferSelect;
+/** A topic as the public read surface serves it: no writers. */
+export type Topic = typeof publishedTopic.$inferSelect;
 
 export interface UpsertResult {
   summary: UpsertSummary;
@@ -63,8 +64,8 @@ export async function getTopicBySlug(db: Database, slug: string): Promise<Topic 
 }
 
 /**
- * Upserts the given topics, matched on id. Never deletes: a database row absent from the
- * records is reported back via `orphaned`, not removed.
+ * Upserts the given topics, matched on id, as the core data import. Never deletes: a database row
+ * absent from the records is reported back via `orphaned`, not removed.
  */
 export async function upsertTopics(db: Database, records: TopicRecord[]): Promise<UpsertResult> {
   const existingTopics = await db
@@ -81,7 +82,13 @@ export async function upsertTopics(db: Database, records: TopicRecord[]): Promis
   const outcomes = records.length
     ? await db
         .insert(topic)
-        .values(records)
+        .values(
+          records.map((record) => ({
+            ...record,
+            createdBy: SYSTEM_USER_IDS.coreDataImport,
+            updatedBy: SYSTEM_USER_IDS.coreDataImport,
+          })),
+        )
         .onConflictDoUpdate({
           target: topic.id,
           set: {
@@ -89,6 +96,7 @@ export async function upsertTopics(db: Database, records: TopicRecord[]): Promis
             title: sql`excluded.title`,
             description: sql`excluded.description`,
             updatedAt: sql`now()`,
+            updatedBy: sql`excluded.updated_by`,
           },
           // Only rewrite the row (and bump updatedAt) when the incoming record actually
           // disagrees with what's stored — otherwise a no-op re-run would still touch every

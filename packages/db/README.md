@@ -66,17 +66,17 @@ src/
   Postgres 18's native `uuidv7()`. Rows created by an import supply their own ids
   instead, so the id survives a re-import. The read models in `cache.ts` are the
   exception: they are keyed by the columns they aggregate and carry no surrogate id.
-- **Timestamps**: every core data table (the topics, the classifications and the lists a
-  publisher chooses from) spreads `timestamps` from `schema/helpers.ts` (`created_at` /
-  `updated_at`, timestamptz). `updated_at` is app-maintained: the import's conditional upsert
-  bumps it only on a row the file changes, as the topics import shows. A table a publisher
-  edits spreads `audit` from `schema/user.ts` where the actor columns matter too, as
-  `indicator_version` does: `created_by` and `updated_by` are foreign keys to `app_user`, and
-  any other column naming who wrote a row is an `actorId()`, as `upload_batch.uploaded_by` is. A
-  version's child tables carry neither: their rows are deleted and reinserted on every save,
-  and the version's own `updated_at` records that. `observation` records only creation,
-  since a correction supersedes a row rather than editing it, and its batch's uploader is its
-  writer.
+- **Timestamps**: every core data table (the classifications and the lists a publisher
+  chooses from) spreads `timestamps` from `schema/helpers.ts` (`created_at` / `updated_at`,
+  timestamptz). `updated_at` is app-maintained: the import's conditional upsert bumps it only on
+  a row the file changes, as the topics import shows. A table a publisher edits spreads `audit`
+  from `schema/user.ts` where the actor columns matter too, as `indicator_version` and `topic`
+  do: `created_by` and `updated_by` are foreign keys to `app_user`, and any other column naming
+  who wrote a row is an `actorId()`, as `upload_batch.uploaded_by` is. The core data import
+  writes topics as its own system user. A version's child tables carry neither: their rows are
+  deleted and reinserted on every save, and the version's own `updated_at` records that.
+  `observation` records only creation, since a correction supersedes a row rather than editing
+  it, and its batch's uploader is its writer.
 - **Users and teams**: `app_user` and `team` rows are inserted by migration with fixed ids,
   which `@fphd/auth` uses for its fake users and their teams; `SYSTEM_USER_IDS` names the
   system users imports write as, and `IMPORTED_INDICATOR_TEAM_ID` the Fingertips team their

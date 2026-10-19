@@ -54,6 +54,7 @@ import {
   type DeleteTopicResult,
   deleteTopic,
   getTopicById,
+  type TopicRow,
   type TopicUpdate,
   type UpdateTopicResult,
   updateTopic,
@@ -63,9 +64,9 @@ import { listValueTypeAndUnitOptions } from './value-type-and-unit-repository.ts
 /** The publisher's topic surface: the public listing plus the writes only `internal_api` makes. */
 export interface InternalTopicRepository {
   list(): Promise<Topic[]>;
-  findById(id: string): Promise<Topic | undefined>;
-  create(values: TopicUpdate): Promise<CreateTopicResult>;
-  update(id: string, values: TopicUpdate): Promise<UpdateTopicResult>;
+  findById(id: string): Promise<TopicRow | undefined>;
+  create(values: TopicUpdate, actor: string): Promise<CreateTopicResult>;
+  update(id: string, values: TopicUpdate, actor: string): Promise<UpdateTopicResult>;
   delete(id: string): Promise<DeleteTopicResult>;
 }
 
@@ -184,8 +185,8 @@ export function createInternalRepositories(db: Database): InternalRepositories {
     topics: {
       list: () => listTopics(db),
       findById: (id) => getTopicById(db, id),
-      create: (values) => createTopic(db, values),
-      update: (id, values) => updateTopic(db, id, values),
+      create: (values, actor) => createTopic(db, values, actor),
+      update: (id, values, actor) => updateTopic(db, id, values, actor),
       delete: (id) => deleteTopic(db, id),
     },
     valueTypesAndUnits: {

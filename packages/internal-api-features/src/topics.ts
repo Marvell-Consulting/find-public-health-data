@@ -1,4 +1,4 @@
-import { requireJwtRole } from '@fphd/api-server';
+import { requireApiSession, requireJwtRole } from '@fphd/api-server';
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import type { Topic } from '@fphd/db';
 import { Router } from 'express';
@@ -53,7 +53,7 @@ export function internalTopicsRouter(
       return;
     }
 
-    const result = await topics.create(submission.data);
+    const result = await topics.create(submission.data, requireApiSession(response).sub);
 
     if (!result.ok) {
       response
@@ -103,7 +103,7 @@ export function internalTopicsRouter(
       return;
     }
 
-    const result = await topics.update(id.data, submission.data);
+    const result = await topics.update(id.data, submission.data, requireApiSession(response).sub);
 
     if (!result.ok) {
       if (result.reason === 'not_found') {
