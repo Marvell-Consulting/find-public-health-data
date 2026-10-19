@@ -9,16 +9,17 @@ import {
   taskRow,
 } from '../support/section-page.ts';
 import { PUBLISHER } from '../support/sign-in.ts';
+import { expectQuestionStyles, QUESTION, SUB_QUESTION } from '../support/typography.ts';
 
 const SECTION: Section = { key: 'benchmarking', taskName: 'Benchmarking' };
-const QUESTION = 'Are there any goal benchmarks for this indicator?';
+const QUESTION_TEXT = 'Are there any goal benchmarks for this indicator?';
 const LOWER = 'Enter lower goal value';
 const UPPER = 'Enter upper goal value';
 const POLARITY = 'Select polarity of goal';
 const DETAIL = 'Provide detail about the policy goal';
 
 function hasGoal(page: Page, label: 'Yes' | 'No') {
-  return page.getByRole('group', { name: QUESTION }).getByLabel(label, { exact: true });
+  return page.getByRole('group', { name: QUESTION_TEXT }).getByLabel(label, { exact: true });
 }
 
 function goalPolarity(page: Page, label: 'High is good' | 'Low is good') {
@@ -48,6 +49,16 @@ describeSectionPage(SECTION, {
     messages: ['Select whether there are any goal benchmarks for this indicator'],
     focuses: (page) => hasGoal(page, 'Yes'),
   },
+});
+
+// Yes reveals four questions of its own, not the details of an answer, so each is a heading.
+// Asserted against the values rather than against each other, so losing them all together fails.
+test('asks the questions under Yes at the same size and weight', async ({ page }) => {
+  await openSectionPage(page, SECTION);
+  await hasGoal(page, 'Yes').check();
+
+  await expectQuestionStyles(page, [LOWER, UPPER, POLARITY, DETAIL], SUB_QUESTION);
+  await expectQuestionStyles(page, [QUESTION_TEXT], QUESTION);
 });
 
 test('reveals the goal only while Yes is chosen', async ({ page }) => {

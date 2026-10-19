@@ -62,6 +62,14 @@ describe('BenchmarkingPage', () => {
     ).toEqual(['yes', 'no']);
   });
 
+  it('asks the questions under Yes alike, each a level 3 heading', () => {
+    renderPage();
+
+    expect(
+      screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent),
+    ).toEqual([LOWER, UPPER, POLARITY, DETAIL]);
+  });
+
   it('asks for the goal under Yes', () => {
     renderPage();
 

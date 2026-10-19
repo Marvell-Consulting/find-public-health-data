@@ -37,6 +37,7 @@ export function BenchmarkingPage(form: SectionPageProps<BenchmarkingField>) {
                   error={fieldErrors.goalLowerValue}
                   hint="Value type must be the same as those used for data values in this indicator. You do not need to enter units."
                   label="Enter lower goal value"
+                  labelHeading="h3"
                   name="goalLowerValue"
                   spellCheck={false}
                 />
@@ -47,6 +48,7 @@ export function BenchmarkingPage(form: SectionPageProps<BenchmarkingField>) {
                   error={fieldErrors.goalUpperValue}
                   hint="Leave this blank if there is only a single goal value"
                   label="Enter upper goal value"
+                  labelHeading="h3"
                   name="goalUpperValue"
                   spellCheck={false}
                 />
@@ -66,6 +68,7 @@ export function BenchmarkingPage(form: SectionPageProps<BenchmarkingField>) {
                   defaultValue={values.goalPolicyDetail}
                   error={fieldErrors.goalPolicyDetail}
                   label="Provide detail about the policy goal"
+                  labelHeading="h3"
                   name="goalPolicyDetail"
                   rows={5}
                 />

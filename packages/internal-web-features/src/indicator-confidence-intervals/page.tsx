@@ -79,6 +79,7 @@ export function ConfidenceIntervalsPage({ methods, ...form }: ConfidenceInterval
           defaultValue={values.ciMethodDetail}
           error={fieldErrors.ciMethodDetail}
           label="Provide detail of the other confidence interval method used"
+          labelHeading="h2"
           name="ciMethodDetail"
         />
       </div>

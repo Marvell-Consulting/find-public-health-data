@@ -12,8 +12,8 @@ type ViolationNode = Violation['nodes'][number];
 /**
  * A ticketed defect the scan tolerates while its fix waits. Only that rule on elements matching
  * that selector is let through, wherever the element appears, so the rest of the page is still
- * held to the bar. A page whose path matches `expectedOn` must still show it: once the fix
- * lands, that page's scan fails until the entry goes.
+ * held to the bar. A page whose path matches `expectedOn` and shows the element must still show
+ * the violation: once the fix lands, that page's scan fails until the entry goes.
  */
 type KnownViolation = {
   expectedOn: RegExp;
@@ -92,9 +92,13 @@ export async function expectNoAccessibilityViolations(page: Page, testInfo: Test
   expect(unknown.map(describeViolation)).toEqual([]);
 
   const pathname = new URL(page.url()).pathname;
-  const fixed = KNOWN_VIOLATIONS.filter(
-    (known) => known.expectedOn.test(pathname) && !seen.has(known),
-  );
+  const fixed: KnownViolation[] = [];
+  for (const known of KNOWN_VIOLATIONS) {
+    if (!known.expectedOn.test(pathname) || seen.has(known)) continue;
+    // The scan judges what the page shows, so an entry whose element this page's state keeps
+    // hidden was never up for a verdict and says nothing about whether the fix has landed.
+    if ((await page.locator(`${known.selector}:visible`).count()) > 0) fixed.push(known);
+  }
   expect(
     fixed.map((known) => known.ticket),
     'known violations no longer seen on this page: remove them from KNOWN_VIOLATIONS',
