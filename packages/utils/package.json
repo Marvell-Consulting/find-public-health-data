@@ -41,6 +41,12 @@
       "types": "./src/indicator-path.ts",
       "default": "./dist/indicator-path.js"
     },
+    "./period-label": {
+      "browser": "./src/period-label.ts",
+      "development": "./src/period-label.ts",
+      "types": "./src/period-label.ts",
+      "default": "./dist/period-label.js"
+    },
     "./period-type": {
       "browser": "./src/period-type.ts",
       "development": "./src/period-type.ts",

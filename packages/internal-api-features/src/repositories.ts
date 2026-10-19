@@ -5,6 +5,15 @@ import { type Database, listTopics, type Topic } from '@fphd/db';
 import { type CiMethodRow, getCiMethodById, listCiMethods } from './ci-method-repository.ts';
 import type { TagOptions, ValueTypeAndUnitOptions } from './contract.ts';
 import { type DataProviderRow, listDataProviders } from './data-provider-repository.ts';
+import type { DataTableRow } from './data-table-check-contract.ts';
+import {
+  type ConfirmDataTableResult,
+  confirmDataTable,
+  type DraftDataTableRow,
+  type FindDraftDataTableResult,
+  findDraftDataTable,
+  listDataTableRows,
+} from './data-table-check-repository.ts';
 import {
   type DataUpload,
   type ProcessDataUploadResult,
@@ -94,7 +103,10 @@ export interface InternalDataProviderRepository {
   list(): Promise<DataProviderRow[]>;
 }
 
-/** A draft's data table uploads: loading a stored file, and the outcome of the latest. */
+/**
+ * Data table uploads for a draft: loading a stored file, the result of the latest upload, and
+ * checking the uploaded table.
+ */
 export interface InternalDataUploadRepository {
   /** The indicator's draft version id, null without a draft, undefined with no indicator. */
   findDraftId(indicatorId: string): Promise<string | null | undefined>;
@@ -104,6 +116,14 @@ export interface InternalDataUploadRepository {
     openFile: () => Promise<Readable>,
     signal: AbortSignal,
   ): Promise<ProcessDataUploadResult>;
+  findDraftDataTable(indicatorId: string): Promise<FindDraftDataTableResult>;
+  listRows(
+    batch: Pick<DraftDataTableRow, 'batchId' | 'rowCount'>,
+    page: number,
+    rowsPerPage: number,
+  ): Promise<DataTableRow[]>;
+  /** Confirms the draft's data table, as long as the draft still uses the batch named. */
+  confirm(indicatorId: string, batchId: string, actor: string): Promise<ConfirmDataTableResult>;
 }
 
 /** The value types and units a publisher chooses from. */
@@ -138,6 +158,9 @@ export function createInternalRepositories(db: Database): InternalRepositories {
       findDraftId: (indicatorId) => findDraftVersionId(db, indicatorId),
       findLatest: (draftId) => getLatestDataUpload(db, draftId),
       process: (upload, openFile, signal) => processDataUpload(db, upload, openFile, signal),
+      findDraftDataTable: (indicatorId) => findDraftDataTable(db, indicatorId),
+      listRows: (batch, page, rowsPerPage) => listDataTableRows(db, batch, page, rowsPerPage),
+      confirm: (indicatorId, batchId, actor) => confirmDataTable(db, indicatorId, batchId, actor),
     },
     indicators: {
       listPage: (page, pageSize) => listIndicatorsPage(db, page, pageSize),

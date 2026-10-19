@@ -45,9 +45,19 @@ function isColumn(heading: string): heading is DataTableColumn {
   return (DATA_TABLE_COLUMNS as readonly string[]).includes(heading);
 }
 
-/** Headings match whatever their case and surrounding spaces; anything unknown refuses the file. */
+/** Headings match regardless of case and surrounding spaces. */
+function headingKey(cell: string): string {
+  return cell.trim().toLowerCase();
+}
+
+/** The recognised columns among a file's headings, in the file's order. */
+export function columnsOf(cells: readonly string[]): DataTableColumn[] {
+  return cells.map(headingKey).filter(isColumn);
+}
+
+/** Any heading it doesn't recognise means the file is refused. */
 export function readHeader(cells: readonly string[]): Header {
-  const headings = cells.map((cell) => cell.trim().toLowerCase());
+  const headings = cells.map(headingKey);
   const recognised = headings.filter(isColumn);
   const repeated = recognised.filter((heading, index) => recognised.indexOf(heading) !== index);
 

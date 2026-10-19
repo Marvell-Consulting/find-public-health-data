@@ -6,20 +6,12 @@ import {
 import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
 
+import { queryObject } from '../query-object.ts';
+
 export type { IndicatorAdminSummary } from '@fphd/internal-api-features/contract';
 
 function notFound(): Response {
   return new Response('Not Found', { status: 404 });
-}
-
-// A repeated key becomes an array, as Express parses it, so the schema rejects it here too.
-function queryObject(searchParams: URLSearchParams): Record<string, string | string[]> {
-  return Object.fromEntries(
-    [...new Set(searchParams.keys())].map((key) => {
-      const values = searchParams.getAll(key);
-      return [key, values.length === 1 ? (values[0] ?? '') : values];
-    }),
-  );
 }
 
 /** A page that cannot exist is a 404, like any other address that names nothing. */

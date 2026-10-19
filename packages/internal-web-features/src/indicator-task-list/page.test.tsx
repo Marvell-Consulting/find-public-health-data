@@ -96,17 +96,30 @@ describe('IndicatorTaskListPage', () => {
     expect(status?.textContent).toBe('Not started');
   });
 
-  it('links the data table to its upload page, with the status the API reports', () => {
-    renderPage({ tasks: { ...taskList.tasks, 'data-table': 'in_progress' } });
+  it('links the data table to its upload page until a file has loaded', () => {
+    renderPage();
 
     const dataTable = group('Data').getByRole('link', { name: 'Data table' });
 
     expect(dataTable.getAttribute('href')).toBe(
       `/publish/indicators/${taskList.indicator.id}/data-table`,
     );
+  });
+
+  it.each([
+    ['in_progress', 'Incomplete'],
+    ['completed', 'Completed'],
+  ] as const)('links a data table that is %s to its check page', (status, label) => {
+    renderPage({ tasks: { ...taskList.tasks, 'data-table': status } });
+
+    const dataTable = group('Data').getByRole('link', { name: 'Data table' });
+
+    expect(dataTable.getAttribute('href')).toBe(
+      `/publish/indicators/${taskList.indicator.id}/data-table/check`,
+    );
     expect(
       document.getElementById(dataTable.getAttribute('aria-describedby') ?? '')?.textContent,
-    ).toBe('Incomplete');
+    ).toBe(label);
   });
 
   it('links every task to the page that completes it', () => {

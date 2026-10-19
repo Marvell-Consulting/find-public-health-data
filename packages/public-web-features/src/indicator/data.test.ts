@@ -17,7 +17,7 @@ import {
   inequalityCategoryOptions,
   inequalityPeriods,
   inequalitySegments,
-  periodLabel,
+  periodCovered,
   segmentLabel,
   trendSeries,
   unitNote,
@@ -45,53 +45,35 @@ function dim(type: string, value: string, overrides = {}) {
   return { type, value, dimensionClass: 'core', sortOrder: 0, ...overrides };
 }
 
-describe('periodLabel', () => {
-  it('labels a single-year period with the year alone', () => {
-    expect(periodLabel(obs())).toBe('2023');
+describe('periodCovered', () => {
+  it('labels one span from the first start to the last end', () => {
+    const rolling = [
+      obs({ fromDate: '2013-04-01', toDate: '2018-03-31' }),
+      obs({ fromDate: '2017-04-01', toDate: '2022-03-31' }),
+      obs({ fromDate: '2014-04-01', toDate: '2019-03-31' }),
+    ];
+
+    expect(periodCovered(rolling, publicYearType('financial', null))).toBe('2013/14 to 2021/22');
   });
 
-  it('labels a rolling period with its year range', () => {
-    expect(periodLabel(obs({ fromDate: '2021-01-01', toDate: '2023-12-31' }))).toBe('2021 to 2023');
+  it('takes the latest end even when a later start ends sooner', () => {
+    const mixed = [
+      obs({ fromDate: '2015-01-01', toDate: '2017-12-31' }),
+      obs({ fromDate: '2016-01-01', toDate: '2016-12-31' }),
+    ];
+
+    expect(periodCovered(mixed)).toBe('2015 to 2017');
   });
 
-  const financial = publicYearType('financial', null);
-
-  it('labels a financial year as one period spanning two years', () => {
-    const financialYear = obs({ fromDate: '2022-04-01', toDate: '2023-03-31' });
-
-    expect(periodLabel(financialYear, financial)).toBe('2022/23');
+  it('labels a single period as that period', () => {
+    expect(periodCovered([obs()])).toBe('2023');
+    expect(periodCovered([obs({ fromDate: '2026-01-01', toDate: '2026-03-31' })])).toBe(
+      'January to March 2026',
+    );
   });
 
-  it('labels a year ending on a specified 31 March as a financial year', () => {
-    const yearEnd = publicYearType('specified-end-date', { day: 31, month: 3 });
-    const year = obs({ fromDate: '2022-04-01', toDate: '2023-03-31' });
-
-    expect(periodLabel(year, yearEnd)).toBe('2022/23');
-  });
-
-  it('knows a financial year by its value, not its label', () => {
-    const year = obs({ fromDate: '2022-04-01', toDate: '2023-03-31' });
-
-    expect(periodLabel(year, { value: 'financial', label: 'Renamed' })).toBe('2022/23');
-    expect(periodLabel(year, { value: 'rolling', label: 'Financial' })).toBe('2022 to 2023');
-  });
-
-  it('labels a Fingertips financial year of cumulative quarters as one financial year', () => {
-    const cumulativeQuarters = obs({ fromDate: '2022-04-01', toDate: '2023-03-31' });
-    const multiYear = obs({ fromDate: '2020-04-01', toDate: '2023-03-31' });
-
-    expect(periodLabel(cumulativeQuarters, financial)).toBe('2022/23');
-    expect(periodLabel(multiYear, financial)).toBe('2020 to 2023');
-  });
-
-  it.each([
-    ['another year type', publicYearType('specified-end-date', { day: 31, month: 7 })],
-    ['an academic year', publicYearType('specified-end-date', { day: 31, month: 8 })],
-    ['no year type, as months have', null],
-  ])('labels a year spanning two years as a range for %s', (_, yearType) => {
-    const year = obs({ fromDate: '2022-08-01', toDate: '2023-07-31' });
-
-    expect(periodLabel(year, yearType)).toBe('2022 to 2023');
+  it('is empty without observations', () => {
+    expect(periodCovered([])).toBe('');
   });
 });
 
