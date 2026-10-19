@@ -8,7 +8,7 @@ export type { DataTableColumn } from './data-table-columns.ts';
 /** The numbers of rows a page of the data table can show; the first is the default. */
 export const DATA_TABLE_ROWS_PER_PAGE = ['10', '25', '50'] as const;
 
-/** Parsed from a query string, so both arrive as text; absent means the first page of 10. */
+/** Read from the query string, so both values arrive as text. Defaults to page 1, 10 rows. */
 export const dataTablePageQuerySchema = z.object({
   page: z.coerce.number().int().min(1).max(Number.MAX_SAFE_INTEGER).default(1),
   rowsPerPage: z.enum(DATA_TABLE_ROWS_PER_PAGE).default('10').transform(Number),
@@ -16,12 +16,12 @@ export const dataTablePageQuerySchema = z.object({
 
 const number = z.number().nullable();
 
-/** One loaded row, its references read back as the names and codes the file gave. */
+/** One uploaded row, with its area, sex, age and category as the codes and names in the file. */
 export const dataTableRowSchema = z.object({
   areaCode: z.string(),
   fromDate: z.iso.date(),
   toDate: z.iso.date(),
-  /** With the area and dates, the row's natural key: unique in its batch. */
+  /** Together with the area code and dates, identifies the row within its batch. */
   dimensionKey: z.string(),
   value: number,
   count: number,
@@ -38,9 +38,9 @@ export const dataTableRowSchema = z.object({
 });
 
 /**
- * A page of the batch the draft points at, or null before a file has loaded: the file's columns,
- * its row count, and the page's rows. The batch id is what a confirmation names, and the year type
- * is the draft's, for labelling the periods.
+ * One page of the draft's uploaded data table, or null if no file has been uploaded yet. It has
+ * the columns the file included, the total number of rows, and the rows on this page. Confirming
+ * the table sends back `batchId`. `yearType` is the draft's, and is used to label the periods.
  */
 export const dataTableCheckSchema = z.object({
   dataTable: z
@@ -56,7 +56,7 @@ export const dataTableCheckSchema = z.object({
     .nullable(),
 });
 
-/** Confirms the batch the check page showed, which must still be the draft's. */
+/** Confirms the batch shown on the check page. Refused if the draft has a newer upload. */
 export const dataTableConfirmationSchema = z.object({ batchId: z.uuid() });
 
 export const dataTableConfirmedSchema = z.object({ confirmedAt: z.iso.datetime() });

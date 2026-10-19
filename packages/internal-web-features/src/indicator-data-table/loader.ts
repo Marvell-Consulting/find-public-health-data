@@ -51,8 +51,8 @@ export async function loadDataTableUpload({ context, params }: LoaderFunctionArg
 
 /**
  * Streams the form to the API unread, which stores, checks and loads the file while the
- * publisher waits. A refused file's problems have a page of their own; a loaded one is played
- * back on the check page. A form that says it is too big is refused here without reaching the API.
+ * publisher waits. A refused file's problems have a page of their own; a loaded one is shown
+ * on the check page. A form that says it is too big is refused here without reaching the API.
  */
 export async function uploadDataTable({
   context,

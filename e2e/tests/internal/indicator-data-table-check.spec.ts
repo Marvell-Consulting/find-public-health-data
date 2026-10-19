@@ -23,7 +23,7 @@ const REPLACEMENT_CSV = [
 
 test.use({ storageState: PUBLISHER.storageState });
 
-/** Posts the upload page's form, as Continue does, and returns where it leads. */
+/** Submits the upload form, as Continue does, and returns the page it redirects to. */
 async function uploadFile(page: Page, id: string, content: string): Promise<string> {
   const response = await page.request.post(`/publish/indicators/${id}/data-table`, {
     multipart: {
@@ -34,7 +34,7 @@ async function uploadFile(page: Page, id: string, content: string): Promise<stri
   return response.headers().location ?? '';
 }
 
-/** A new draft with the 23-row table loaded, its check page open; returns the draft's id. */
+/** Creates a draft, uploads the 23-row table and opens its check page. Returns the draft's id. */
 async function openCheckPage(page: Page): Promise<string> {
   const id = await createDraft(page, uniqueIndicatorName('check data'));
   expect(await uploadFile(page, id, CSV)).toBe(`/publish/indicators/${id}/data-table/check`);

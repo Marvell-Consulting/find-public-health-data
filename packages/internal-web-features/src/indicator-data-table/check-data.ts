@@ -8,11 +8,11 @@ import { periodLabel } from '@fphd/utils/period-label';
 type CheckedTable = NonNullable<DataTableCheck['dataTable']>;
 type YearType = CheckedTable['yearType'];
 
-/** A column of the check page's table, shown when the file had any of its columns. */
+/** A column in the check page's table. It's shown if the file included any of its columns. */
 export interface CheckColumn {
   key: string;
   heading: string;
-  /** The file's columns it shows. */
+  /** The file columns this column displays. */
   from: readonly DataTableColumn[];
   cell: (row: DataTableRow, yearType: YearType) => string;
 }
@@ -79,7 +79,7 @@ const COLUMNS: readonly CheckColumn[] = [
   },
 ];
 
-/** The table's columns for a file's columns, in the check page's order. */
+/** The check page's columns for the columns a file included, in display order. */
 export function checkColumns(fileColumns: readonly DataTableColumn[]): CheckColumn[] {
   return COLUMNS.filter(({ from }) => from.some((column) => fileColumns.includes(column)));
 }
@@ -90,12 +90,12 @@ function rows(n: number): string {
   return `${count.format(n)} ${n === 1 ? 'row' : 'rows'}`;
 }
 
-/** What the upload holds, as the page introduces the table. */
+/** The sentence above the table saying how many rows the upload has. */
 export function uploadSummary({ rowCount }: CheckedTable): string {
   return `Your upload contains ${rows(rowCount)}`;
 }
 
-/** Which of the rows the page shows. */
+/** Which rows this page shows, out of the total. */
 export function rowsShowing({ page, rowsPerPage, rowCount }: CheckedTable): string {
   const first = (page - 1) * rowsPerPage + 1;
   const last = Math.min(page * rowsPerPage, rowCount);

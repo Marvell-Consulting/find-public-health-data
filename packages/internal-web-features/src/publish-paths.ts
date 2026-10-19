@@ -31,7 +31,7 @@ export function indicatorDataTableProblemsPath(id: string): string {
   return indicatorPublishPath(id, 'data-table/problems');
 }
 
-/** Where a loaded data table is played back for the publisher to confirm. */
+/** The page where the publisher checks and confirms an uploaded data table. */
 export function indicatorDataTableCheckPath(
   id: string,
   { page = 1, rowsPerPage }: { page?: number; rowsPerPage?: number } = {},

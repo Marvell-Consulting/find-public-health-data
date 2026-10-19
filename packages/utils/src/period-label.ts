@@ -24,7 +24,7 @@ function nextDay({ year, month, day }: Day): Day {
   return { year: next.getUTCFullYear(), month: next.getUTCMonth() + 1, day: next.getUTCDate() };
 }
 
-/** How many years the period runs, when it ends the day before an anniversary of its start. */
+/** The number of whole years the period covers, or 0 if it doesn't cover whole years. */
 function wholeYears(from: Day, to: Day): number {
   const after = nextDay(to);
   return after.month === from.month && after.day === from.day ? after.year - from.year : 0;
@@ -34,7 +34,7 @@ function dayLabel({ year, month, day }: Day): string {
   return `${day} ${monthName(month)} ${year}`;
 }
 
-/** A year from 1 January is a calendar year; any other spans two and is written 2022/23. */
+/** A year starting 1 January is written 2023; one starting on any other date is 2022/23. */
 function yearLabel(start: Day): string {
   return start.month === 1 && start.day === 1
     ? String(start.year)
@@ -51,10 +51,11 @@ function monthsLabel(from: Day, to: Day): string {
 }
 
 /**
- * A period's label, from its dates: a day, a month or run of months ("January to March 2023"),
- * a year (2023, or 2022/23 when it starts on another date) or run of years ("2020/21 to
- * 2022/23"), and otherwise its two dates. Rolling years start every month, so one that spans two
- * calendar years is named by its months rather than all sharing one label.
+ * Labels a period from its dates: a day, a month or several months ("January to March 2023"), a
+ * year (2023, or 2022/23 if it doesn't start on 1 January), several years ("2020/21 to 2022/23"),
+ * or otherwise both dates in full. A rolling year can start in any month, so one that spans two
+ * calendar years is labelled by its months ("May 2022 to April 2023"); otherwise the twelve
+ * rolling years starting in 2022 would all be labelled 2022/23.
  */
 export function periodLabel(
   { fromDate, toDate }: Period,

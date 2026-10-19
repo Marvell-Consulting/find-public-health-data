@@ -342,8 +342,8 @@ describe('confirmDataTable', () => {
     const shown = await load(indicatorId);
     const replacement = randomUuidV7();
 
-    // An upload's last statements add its batch and repoint the draft; until it commits, the
-    // confirmation waits on the row and then reads the committed pointer.
+    // The end of an upload adds its batch and points the draft at it. The confirmation waits
+    // for that to commit, then sees the new batch.
     const confirmed = await ownerDb.$client.begin(async (tx) => {
       await tx`
         INSERT INTO upload_batch
@@ -378,7 +378,7 @@ describe('confirmDataTable', () => {
   });
 });
 
-/** Until another session is waiting on a lock, as a confirmation does behind an open update. */
+/** Waits until another session is blocked on a lock, as a confirmation is by an open update. */
 async function waitForLockWait(versionId: string): Promise<void> {
   for (let attempt = 0; attempt < 100; attempt++) {
     const rows = (await ownerDb.execute(sql`

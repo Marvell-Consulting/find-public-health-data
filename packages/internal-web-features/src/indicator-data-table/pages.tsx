@@ -188,8 +188,9 @@ export function DataTableProblemsPage({
 export const CHECK_HEADING = 'Check the indicator data table';
 
 /**
- * Links to the pages Pagination shows: the first, the last and those either side of the current.
- * The rest are left as holes, which it skips, so a large table does not build a link per page.
+ * Links for the pages Pagination displays: the first, the last, and those next to the current
+ * page. The others are left as gaps in the array, which Pagination skips, so a large table
+ * doesn't build a link for every page.
  */
 export function pageLinks<Link>(
   totalPages: number,
@@ -245,7 +246,7 @@ export function CheckDataTablePage({
               </Button>
             </form>
           </div>
-          {/* No row headers: no one column names a row, and a suppressed value is empty. */}
+          {/* No row headers: no one column identifies a row, and suppressed values are empty. */}
           <TableScrollRegion label="Data table">
             <table className="govuk-table">
               <thead className="govuk-table__head">

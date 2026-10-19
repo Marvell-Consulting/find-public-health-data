@@ -1,9 +1,9 @@
 import type postgres from 'postgres';
 
 /**
- * A draft with a loaded data table, which the seed has none of: every current area for 8 years,
- * Female and Male, as an upload would have stored them. Its dates are old, so the dashboard lists
- * it last while the routes are measured, and it is deleted afterwards.
+ * A draft with an uploaded data table, which the seed doesn't have: every current area for 8
+ * years, for Female and Male, stored as an upload would store them. Its dates are old, so the
+ * dashboard lists it last while the routes are measured. It is deleted afterwards.
  */
 export const DATA_TABLE_DRAFT = {
   indicatorId: '01a00000-0000-7000-8000-0000000f4040',
@@ -15,7 +15,7 @@ export const DATA_TABLE_DRAFT = {
 
 const YEARS = 8;
 
-/** Writes the draft afresh, replacing any a stopped run left behind. */
+/** Creates the draft, replacing any left behind by an interrupted run. */
 export async function createDataTableDraft(sql: postgres.Sql): Promise<void> {
   const { indicatorId, versionId, batchId, rowCount } = DATA_TABLE_DRAFT;
   await deleteDataTableDraft(sql);

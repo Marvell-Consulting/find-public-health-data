@@ -29,7 +29,7 @@ const DIABETES_SLUG = 'diabetes-qof-prevalence';
 const MORTALITY_SLUG = 'under-75-mortality-rate-from-all-causes';
 const AREAS = ['E92000001', 'E08000003', 'E07000223', 'E07000032', 'E06000047'];
 const DATA_TABLE = `/api/internal/indicators/${DATA_TABLE_DRAFT.indicatorId}/data-table`;
-// The deepest page the API reads from the start: the last whose first row is in the first half.
+// The deepest page the API counts from the start: the last page that starts in the first half.
 const DEEPEST_DATA_TABLE_PAGE = `page=${Math.floor(DATA_TABLE_DRAFT.rowCount / 2 / 50) + 1}&rowsPerPage=50`;
 
 /**

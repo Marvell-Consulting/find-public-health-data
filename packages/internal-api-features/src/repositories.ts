@@ -104,8 +104,8 @@ export interface InternalDataProviderRepository {
 }
 
 /**
- * A draft's data table uploads: loading a stored file, the outcome of the latest, and checking
- * the loaded table.
+ * Data table uploads for a draft: loading a stored file, the result of the latest upload, and
+ * checking the uploaded table.
  */
 export interface InternalDataUploadRepository {
   /** The indicator's draft version id, null without a draft, undefined with no indicator. */
@@ -122,7 +122,7 @@ export interface InternalDataUploadRepository {
     page: number,
     rowsPerPage: number,
   ): Promise<DataTableRow[]>;
-  /** Confirms the draft's data table while it is still the batch named. */
+  /** Confirms the draft's data table, as long as the draft still uses the batch named. */
   confirm(indicatorId: string, batchId: string, actor: string): Promise<ConfirmDataTableResult>;
 }
 

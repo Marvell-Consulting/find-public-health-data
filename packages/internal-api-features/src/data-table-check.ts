@@ -12,7 +12,7 @@ import {
 } from './data-table-check-contract.ts';
 import type { InternalDataUploadRepository } from './repositories.ts';
 
-/** The draft's loaded data table, a page at a time, and the publisher's confirmation of it. */
+/** Routes for paging through the draft's uploaded data table and confirming it. */
 export function dataTableCheckRouter(
   dataUploads: InternalDataUploadRepository,
   session: JwtSessionVerifier,
@@ -40,8 +40,7 @@ export function dataTableCheckRouter(
 
       const found = await dataUploads.findDraftDataTable(id.data);
 
-      // A published indicator is edited by opening a draft first, so until then there is no
-      // data table to check.
+      // A published indicator has no data table to check until someone opens a draft of it.
       if (!found.found) {
         response.status(404).json({ error: found.reason });
         return;
@@ -49,7 +48,7 @@ export function dataTableCheckRouter(
 
       const { page, rowsPerPage } = query.data;
       const { dataTable } = found;
-      // A page past the last has no rows, so the batch is not read for it.
+      // A page after the last has no rows, so there is nothing to query.
       const rows =
         dataTable === null || (page - 1) * rowsPerPage >= dataTable.rowCount
           ? []

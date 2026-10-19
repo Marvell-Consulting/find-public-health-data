@@ -30,8 +30,8 @@ function notFound(): Response {
 }
 
 /**
- * A page of the draft's loaded data table. Before a file has loaded there is nothing to check,
- * so the publisher is sent to upload one. A page past the last goes to the last; a malformed
+ * Loads a page of the draft's uploaded data table. If no file has been uploaded yet, sends the
+ * publisher to the upload page. A page after the last redirects to the last page; an invalid
  * query is a 404.
  */
 export async function loadDataTableCheck({ context, params, request }: LoaderFunctionArgs) {
@@ -52,7 +52,7 @@ export async function loadDataTableCheck({ context, params, request }: LoaderFun
 
   const totalPages = Math.max(1, Math.ceil(dataTable.rowCount / rowsPerPage));
 
-  // Another upload can leave fewer pages than the publisher was on, so they land on its last.
+  // A newer upload can have fewer pages than the publisher was on, so send them to its last.
   if (page > totalPages) {
     throw redirect(indicatorDataTableCheckPath(id, { page: totalPages, rowsPerPage }));
   }
@@ -63,8 +63,8 @@ export async function loadDataTableCheck({ context, params, request }: LoaderFun
 export type DataTableCheckData = Awaited<ReturnType<typeof loadDataTableCheck>>;
 
 /**
- * Confirms the batch the page showed and returns to the task list. Should another upload have
- * replaced it meanwhile, the page shows the new one with a message instead.
+ * Confirms the batch shown on the page and returns to the task list. If another upload has
+ * replaced it in the meantime, shows the new one with a message instead.
  */
 export async function confirmDataTable({
   context,

@@ -12,7 +12,7 @@ import type { IndicatorTaskKey, IndicatorTaskList, IndicatorTaskStatus } from '.
 interface TaskRow {
   key: IndicatorTaskKey;
   title: string;
-  /** The page that completes the task, which can depend on how far it has got. */
+  /** The page for doing the task, which can depend on the task's status. */
   path: (id: string, status: IndicatorTaskStatus) => string;
 }
 
@@ -26,7 +26,7 @@ function sectionPath(section: IndicatorTaskKey) {
   return (id: string) => indicatorSectionPath(id, section);
 }
 
-/** Once a file has loaded, the task continues on the check page. */
+/** Once a file has been uploaded, the task links to the check page. */
 function dataTablePath(id: string, status: IndicatorTaskStatus): string {
   return status === 'not_started' ? indicatorDataTablePath(id) : indicatorDataTableCheckPath(id);
 }

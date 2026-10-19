@@ -56,10 +56,10 @@ export function connect(): postgres.Sql {
 }
 
 /**
- * Fresh planner statistics and a vacuumed seed, so plans do not shift under an autovacuum mid-run
- * (CI turns it off); then the data the seed lacks, analysed but not vacuumed, as a batch stands
- * just after its upload; and the statistics extension, which needs `shared_preload_libraries`
- * (compose.perf.yaml).
+ * Vacuums and analyses the seed, so query plans don't change if autovacuum runs mid-measurement
+ * (CI turns it off). Then adds the data the seed lacks, analysed but not vacuumed, as a batch is
+ * just after upload. Finally enables the statistics extension, which needs
+ * `shared_preload_libraries` (compose.perf.yaml).
  */
 export async function prepare(sql: postgres.Sql): Promise<void> {
   await sql`vacuum analyze`.simple();

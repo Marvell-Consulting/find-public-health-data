@@ -581,8 +581,8 @@ export function inequalityBreakdown(
 }
 
 /**
- * The span an indicator's data covers, as the summary table states it: one period from the first
- * period's start to the last period's end, labelled as any period is.
+ * The time an indicator's data covers, as the summary table shows it: from the start of the first
+ * period to the end of the last, labelled like any other period.
  */
 export function periodCovered(
   observations: IndicatorObservation[],

@@ -23,7 +23,7 @@ const {
 const SEX = nameKey('Sex');
 const AGE = nameKey('Age');
 
-/** The batch a draft points at, as the check page reads it. */
+/** The draft's current upload, with the details the check page needs. */
 export interface DraftDataTableRow {
   batchId: string;
   columns: DataTableColumn[];
@@ -35,7 +35,7 @@ export type FindDraftDataTableResult =
   | { found: true; dataTable: DraftDataTableRow | null }
   | { found: false; reason: 'not_found' | 'no_draft' };
 
-/** The batch the indicator's draft points at, null before a file has loaded. */
+/** The current upload of the indicator's draft, or null if no file has been uploaded yet. */
 export async function findDraftDataTable(
   db: Database,
   indicatorId: string,
@@ -80,11 +80,11 @@ export async function findDraftDataTable(
 }
 
 /**
- * One page of a batch's rows, in the order of its natural key. The page is found from the key's
- * index, read from whichever end of the batch is nearer, so a page deep into a large batch skips
- * at most half its entries. Until the batch is vacuumed each skipped entry also reads its row to
- * check visibility, so a new batch's deep pages cost several times more. A batch is deleted whole,
- * never row by row, so deleted_at is not read.
+ * One page of a batch's rows, sorted by area, dates and dimension key. The query counts through
+ * the index from whichever end of the batch is nearer, so it never skips more than half the rows.
+ * Until the batch has been vacuumed, each skipped row is also read from the table, so the middle
+ * pages of a new upload are several times slower. Batches are only ever deleted whole, so
+ * deleted_at isn't checked.
  */
 export async function listDataTableRows(
   db: Database,
@@ -185,8 +185,8 @@ export type ConfirmDataTableResult =
   | { ok: false; reason: 'not_found' | 'no_draft' | 'data_table_changed' };
 
 /**
- * Records that the publisher checked the draft's data table, only while the draft still points
- * at the batch they were shown: an upload since then, or the draft's publication, refuses it.
+ * Records that the publisher has checked the draft's data table. It only succeeds if the draft
+ * still uses the batch they were shown, so a newer upload or the draft being published stops it.
  */
 export async function confirmDataTable(
   db: Database,
