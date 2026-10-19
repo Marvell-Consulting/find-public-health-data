@@ -35,13 +35,19 @@ function redirectsToNamePage(thrown: unknown) {
 }
 
 describe('loadIndicatorTeam', () => {
-  it("offers a publisher's teams by name", async () => {
-    expect(await load([TEAM_IDS.teamB, TEAM_IDS.teamA])).toEqual({
+  it("offers each of a publisher's teams by name", async () => {
+    expect(await load(BOTH_TEAMS)).toEqual({
       teams: [
         { id: TEAM_IDS.teamA, name: 'Team A' },
         { id: TEAM_IDS.teamB, name: 'Team B' },
       ],
     });
+  });
+
+  it('fails on a team with no name rather than leaving it out', async () => {
+    const unnamed = '00000000-0000-7000-8000-00000000000c';
+
+    await expect(load([TEAM_IDS.teamA, unnamed])).rejects.toThrow(unnamed);
   });
 
   it('sends a publisher in one team on to name the indicator, with nothing to choose', async () => {

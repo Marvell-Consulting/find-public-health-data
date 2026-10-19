@@ -12,13 +12,22 @@ export type IndicatorTeamFailure = FormRefusal<typeof TEAM_FIELD>;
 
 const CHOOSE_A_TEAM = 'Select which team should own this indicator';
 
+// The name page and the API accept any of the session's teams, so the page offers every one.
+function namedTeam(id: string): Team {
+  const team = TEAMS.find((candidate) => candidate.id === id);
+
+  if (team === undefined) throw new Error(`No team is named for id ${id}`);
+
+  return team;
+}
+
 /** The user's teams to choose from; with only one there is no choice, so the name page is next. */
 function teamsToChooseFrom(context: LoaderFunctionArgs['context']): readonly Team[] {
   const teams = newIndicatorTeams(context);
 
   if (teams.length < 2) throw redirect(NEW_INDICATOR_PATH);
 
-  return TEAMS.filter((team) => teams.includes(team.id));
+  return teams.map(namedTeam);
 }
 
 export function loadIndicatorTeam({ context }: LoaderFunctionArgs) {
