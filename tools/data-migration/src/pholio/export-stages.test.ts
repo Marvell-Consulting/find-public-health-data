@@ -125,6 +125,8 @@ it.each([
   [{ ValueNoteId: 99 }, /unknown note type 99/],
   [{ SexID: 3 }, /unknown dimension value/],
   [{ AgeID: 88 }, /unknown dimension value/],
+  [{ AgeID: 209, SexID: -1 }, /compound age 209 with SexID -1, expected 4/],
+  [{ AgeID: 212, SexID: 1 }, /compound age 212 with SexID 1, expected 4/],
 ])(
   'refuses unmapped source data before writing observation files (%j)',
   async (override, message) => {

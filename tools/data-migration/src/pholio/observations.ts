@@ -206,6 +206,9 @@ async function assertDistinctObservations(
     if (areaId === undefined) throw new Error(`${diagnostic}: unknown area ${c.AreaCode}`);
     if (c.ValueNoteId !== 0 && !context.noteTypeCategory.has(c.ValueNoteId))
       throw new Error(`${diagnostic}: unknown note type ${c.ValueNoteId}`);
+    // Any other sex would silently lose the age, as only SexID 4 is split into the sexed bands.
+    if (COMPOUND_AGE_IDS.has(c.AgeID) && c.SexID !== 4)
+      throw new Error(`${diagnostic}: compound age ${c.AgeID} with SexID ${c.SexID}, expected 4`);
     if (indicator !== c.IndicatorID) {
       seen.clear();
       indicator = c.IndicatorID;
