@@ -54,7 +54,7 @@ That yields 433,678 observations, 657,869 bridge rows and 67,978 observation not
   The files name the writer of each version and batch by user id: the PHOLIO migration system
   user for the nine Pholio indicators, and Test seed for the three from the Fingertips API.
   There are no draft rows in the seed.
-- `observation.csv.gz` carries a `created_by` column, which the load ignores: an
+- `observation.csv.gz` may carry a `created_by` column, which the load ignores: an
   observation's writer is its batch's uploader.
 - The files carry no `upload_batch.indicator_version_id`, `indicator_version.upload_batch_id`
   or `observation.dimension_key`; the load derives them. Each batch belongs to its indicator's
