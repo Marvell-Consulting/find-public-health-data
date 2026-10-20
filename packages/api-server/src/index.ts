@@ -23,7 +23,7 @@ export function createApiApp({
 
   // Ahead of every route, so a miss is logged as well as a hit. The probes sit on the base app
   // above and never reach it. The id a web app forwarded is kept, so both logs share it.
-  app.use(requestLogging(logger, { acceptsForwardedId: true }));
+  app.use(requestLogging(logger, { servesWebApps: true }));
   app.use(json());
 
   app.get('/api', (_request, response) => {

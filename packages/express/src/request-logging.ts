@@ -32,24 +32,24 @@ function relayedByFrontDoor(headers: IncomingMessage['headers']): boolean {
 }
 
 export interface RequestLoggingOptions {
-  /** Keep the id a web app forwarded, so its line and this one share it, and record whether a
-   * web app or an outside client made the request. Off for the web apps themselves: a browser's
-   * header is never trusted. A request relayed by Front Door came from outside, not from a web
-   * app, so its id is never kept. */
-  acceptsForwardedId?: boolean;
+  /** On for an API, whose callers include its web app: keep the id the web app forwarded, so its
+   * line and this one share it, and record whether a web app or an outside client made the
+   * request. Off for the web apps themselves: a browser's header is never trusted. A request
+   * relayed by Front Door came from outside, not from a web app, so its id is never kept. */
+  servesWebApps?: boolean;
 }
 
 /** One line per response through the shared logger, so requests filter and aggregate like every
  * other line. Probes are skipped: their traffic would otherwise dominate the log. */
 export function requestLogging(
   logger: Logger,
-  { acceptsForwardedId = false }: RequestLoggingOptions = {},
+  { servesWebApps = false }: RequestLoggingOptions = {},
 ): RequestHandler {
   return pinoHttp({
     logger,
     genReqId: (request, response) => {
       const forwarded =
-        acceptsForwardedId && !relayedByFrontDoor(request.headers)
+        servesWebApps && !relayedByFrontDoor(request.headers)
           ? readRequestIdHeader(request.headers[REQUEST_ID_HEADER])
           : undefined;
       const id = forwarded ?? uuidv7();
@@ -71,7 +71,7 @@ export function requestLogging(
         url: request.url,
         // Front Door's reference for the request, the same value its access log records.
         ...optional('azureRef', singleHeader(request.headers['x-azure-ref'])),
-        ...(acceptsForwardedId
+        ...(servesWebApps
           ? { source: relayedByFrontDoor(request.headers) ? 'external' : 'web' }
           : {}),
       }),
