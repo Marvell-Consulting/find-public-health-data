@@ -212,10 +212,12 @@ jobs:
           else
             headline=":warning: PARTIAL publish (${published}/${total})"
           fi
-          # Holds with unknown legs too: a result short of success means at least one leg failed.
+          # Short of all published, a leg failed: any confirmed publish mixes `latest`, an unknown leg may.
           mixed=''
           if [ "${published}" -gt 0 ] && [ "${published}" -lt "${total}" ]; then
             mixed=" — \`latest\` is now a mixed set"
+          elif [ "${unknown}" -gt 0 ]; then
+            mixed=" — \`latest\` may be a mixed set"
           fi
           subject=${COMMIT_MESSAGE%%$'\n'*}
           subject=$(sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' <<<"${subject}")
