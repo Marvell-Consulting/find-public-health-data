@@ -2,7 +2,7 @@
 -- append-only for it. Operations writes as the owner, which keeps every privilege.
 CREATE TABLE "audit_log" (
 	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
-	"occurred_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"occurred_at" timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
 	"actor_id" uuid NOT NULL,
 	"action" text NOT NULL,
 	"entity_type" text NOT NULL,

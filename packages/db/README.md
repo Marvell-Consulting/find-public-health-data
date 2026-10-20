@@ -107,9 +107,12 @@ src/
 - **Repository functions**: pure, `db` first argument, one file per aggregate.
 - **Audit log**: every write the internal API or an operations command makes records an `audit_log`
   entry with `recordAudit` from `@fphd/db/audit-log`, in the transaction of the change, so both
-  commit or neither. The writer is an `Actor`: the `app_user` and the request id a handler gets from
-  `requireApiActor`, or a system user and no request for a command. `changes` maps each field to its
-  `before` and `after`, keyed by property name: a created row records every column
+  commit or neither. It records the entry after its own row write, while it holds the row, and an
+  entry's `occurred_at` is the time of its insert (`clock_timestamp()`), not of its transaction's
+  start, so one entity's entries sort in the order their changes committed even when a writer
+  started first and waited. The writer is an `Actor`: the `app_user` and the request id a handler
+  gets from `requireApiActor`, or a system user and no request for a command. `changes` maps each
+  field to its `before` and `after`, keyed by property name: a created row records every column
   (`changesBetween(null, row)`), an update the columns it changed, a deleted row every column it
   had, and a replaced list (`listChanges`) its whole contents. A list a write replaces in parts is
   one field per part, as a draft's classifications are one per dimension

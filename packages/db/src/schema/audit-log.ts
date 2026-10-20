@@ -49,7 +49,8 @@ export const auditLog = pgTable(
   'audit_log',
   {
     id: uuidPrimaryKey(),
-    occurredAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    // Insert time, not transaction start, so a writer that waited on a row records the later time.
+    occurredAt: timestamp({ withTimezone: true }).notNull().default(sql`clock_timestamp()`),
     actorId: actorId().notNull(),
     action: text({ enum: AUDIT_ACTIONS }).notNull(),
     entityType: text().notNull(),

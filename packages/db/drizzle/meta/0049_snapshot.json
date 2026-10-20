@@ -20,7 +20,7 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
+          "default": "clock_timestamp()"
         },
         "actor_id": {
           "name": "actor_id",
