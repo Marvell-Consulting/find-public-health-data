@@ -165,6 +165,33 @@ describe('requestLogging', () => {
     expect(lines[0]?.req).not.toHaveProperty('azureRef');
   });
 
+  it('marks a request from inside the environment as a web app call', async () => {
+    const { app, lines } = createApp({ acceptsForwardedId: true });
+
+    await request(app).get('/topics');
+    await settled(lines);
+
+    expect(lines[0]?.req).toMatchObject({ source: 'web' });
+  });
+
+  it('marks a request Front Door relayed as external', async () => {
+    const { app, lines } = createApp({ acceptsForwardedId: true });
+
+    await request(app).get('/topics').set('X-Azure-Ref', '0abc123==');
+    await settled(lines);
+
+    expect(lines[0]?.req).toMatchObject({ source: 'external' });
+  });
+
+  it('leaves the source off a web app line, where every request comes from outside', async () => {
+    const { app, lines } = createApp();
+
+    await request(app).get('/topics').set('X-Azure-Ref', '0abc123==');
+    await settled(lines);
+
+    expect(lines[0]?.req).not.toHaveProperty('source');
+  });
+
   it('logs a server error response at error level, and a miss at info', async () => {
     const { app, lines } = createApp();
 

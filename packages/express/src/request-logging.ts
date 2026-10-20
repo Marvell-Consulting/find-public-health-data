@@ -26,10 +26,16 @@ function singleHeader(value: string | string[] | undefined): string | undefined 
   return Array.isArray(value) ? value[0] : value;
 }
 
+/** Front Door sets X-Azure-Ref; a web app's call to its API stays inside the environment. */
+function relayedByFrontDoor(headers: IncomingMessage['headers']): boolean {
+  return headers['x-azure-ref'] !== undefined;
+}
+
 export interface RequestLoggingOptions {
-  /** Keep the id a web app forwarded, so its line and this one share it. Off for the web apps
-   * themselves: a browser's header is never trusted. A request relayed by Front Door came from
-   * outside, not from a web app, so its id is never kept. */
+  /** Keep the id a web app forwarded, so its line and this one share it, and record whether a
+   * web app or an outside client made the request. Off for the web apps themselves: a browser's
+   * header is never trusted. A request relayed by Front Door came from outside, not from a web
+   * app, so its id is never kept. */
   acceptsForwardedId?: boolean;
 }
 
@@ -43,7 +49,7 @@ export function requestLogging(
     logger,
     genReqId: (request, response) => {
       const forwarded =
-        acceptsForwardedId && request.headers['x-azure-ref'] === undefined
+        acceptsForwardedId && !relayedByFrontDoor(request.headers)
           ? readRequestIdHeader(request.headers[REQUEST_ID_HEADER])
           : undefined;
       const id = forwarded ?? uuidv7();
@@ -65,6 +71,9 @@ export function requestLogging(
         url: request.url,
         // Front Door's reference for the request, the same value its access log records.
         ...optional('azureRef', singleHeader(request.headers['x-azure-ref'])),
+        ...(acceptsForwardedId
+          ? { source: relayedByFrontDoor(request.headers) ? 'external' : 'web' }
+          : {}),
       }),
       res: (response: StdSerializedResults['res']) => ({ statusCode: response.statusCode }),
     },
