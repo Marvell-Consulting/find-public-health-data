@@ -3,7 +3,11 @@ import { createArchive } from './archive.ts';
 import { generateDemoTopics } from './demo-topics.ts';
 import { createIncremental } from './diff.ts';
 import { exportDevSnapshot } from './export-dev-snapshot.ts';
-import { parseIndicatorIds } from './indicator-checks.ts';
+import {
+  APPROVED_INDICATORS_FILE,
+  parseApprovedIndicators,
+  parseIndicatorIds,
+} from './indicator-checks.ts';
 import { exportLegacySeed } from './legacy-seed.ts';
 import { exportPholio } from './pholio/export-pholio.ts';
 import { prepareBaseline } from './prepare-baseline.ts';
@@ -46,9 +50,8 @@ async function main(argv: readonly string[]): Promise<void> {
         expectedDatabase: required(values, 'expected-database'),
         indicatorSelection: {
           kind: 'approved',
-          indicators: parseIndicatorIds(
-            await readFile(required(values, 'approved-indicators'), 'utf8'),
-            '--approved-indicators',
+          indicators: parseApprovedIndicators(
+            await readFile(values.get('approved-indicators') ?? APPROVED_INDICATORS_FILE, 'utf8'),
           ),
         },
         excludedIndicators: rawExcluded ? parseIndicatorIds(rawExcluded) : [],

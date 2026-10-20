@@ -17,11 +17,13 @@ publishing moves to this service. The operations image applies the packages with
 
 - `export-pholio` reads the source through separate requests. Export from an immutable
   restored backup so every table belongs to the same cut of the data.
-- Production `export-pholio` requires `--approved-indicators`, a JSON file containing
-  the positive integer IDs approved for launch, for example `[108, 241]`. Only those
-  indicators and their observations are eligible for publication. Explicit exclusions
-  can further narrow that list; a requested indicator missing from Pholio stops export.
-  The source manifest records the selection, exported count and non-approved count.
+- Production `export-pholio` exports only the indicators approved for launch, read from
+  `data/approved-indicators.json`: the ids whose final priority is "prioritise" in DHSC's
+  indicator prioritisation workbook, committed with that provenance. Pass
+  `--approved-indicators` with another JSON file (the same shape, or a bare array such as
+  `[108, 241]`) to override it. Explicit exclusions can further narrow the list; a requested
+  indicator missing from Pholio stops export. The source manifest records the selection,
+  exported count and non-approved count.
 - Observation pre-flight counts each intentional exclusion: non-approved indicators,
   explicit exclusions, test indicator 94204, placeholder note 506, empty sentinel rows,
   years before 1900 and resolved duplicate keys (see below). Unknown areas, notes,
@@ -114,13 +116,12 @@ records `excluded_indicators` and `excluded_observations` so the result is audit
 # Exclude a pair of indicators that share a name (and therefore a slug):
 pnpm --filter @fphd/data-migration data-migration export-pholio \
   --expected-database pholio_live_b \
-  --approved-indicators /secure/approved-indicator-ids.json \
   --out-dir /secure/fphd-snapshot-001 \
   --excluded-indicators '[90366, 93283]'
 ```
 
-The specific ids to use in production are a human decision documented alongside the
-reviewed relationships file. Do not hardcode them here.
+The ids to exclude in production are a human decision documented alongside the reviewed
+relationships file; the approved list itself is the committed `data/approved-indicators.json`.
 
 ## Build the baseline
 
@@ -130,7 +131,6 @@ Keep source credentials in the environment rather than a command argument.
 export PHOLIO_CONNECTION_STRING='Server=…;Database=pholio_live_b;…'
 pnpm --filter @fphd/data-migration data-migration export-pholio \
   --expected-database pholio_live_b \
-  --approved-indicators /secure/approved-indicator-ids.json \
   --out-dir /secure/fphd-snapshot-001
 
 pnpm --filter @fphd/data-migration data-migration prepare-baseline \
