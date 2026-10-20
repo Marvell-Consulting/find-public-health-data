@@ -92,6 +92,10 @@ export async function exportPholio(options: ExportPholioOptions): Promise<void> 
             cutoff_at: snapshotAt,
           },
           exported_indicators: tables.indicator?.rows,
+          source_observations:
+            options.indicatorSelection.kind === 'development-snapshot'
+              ? observations.sourceObservations
+              : undefined,
           indicator_selection: options.indicatorSelection,
           excluded_indicators: [...context.excludedIndicators].sort((a, b) => a - b),
           excluded_non_approved_indicators: indicators.excludedNonApprovedIndicators,

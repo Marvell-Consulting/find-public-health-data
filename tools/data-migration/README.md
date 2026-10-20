@@ -26,9 +26,10 @@ publishing moves to this service. The operations image applies the packages with
   exported count and non-approved count.
 - Observation pre-flight counts each intentional exclusion: non-approved indicators,
   explicit exclusions, test indicator 94204, placeholder note 506, empty sentinel rows,
-  years before 1900 and resolved duplicate keys (see below). Unknown areas, notes,
-  metadata and dimension values stop export with source-row diagnostics. There is no implicit future-period exclusion: all eligible
-  source observations for approved indicators are included.
+  years before 1900, period formats absent from the indicator's Grouping metadata, and
+  resolved duplicate keys (see below). Unknown areas, notes, metadata and dimension values
+  stop export with source-row diagnostics. Historical dates and future periods are not
+  excluded by the current Grouping baseline or data point.
 - Area aliases prefer the non-n-prefixed code deterministically. Both source aliases map
   to the survivor, so their observations and relationships retain the same area identity.
 - Every migrated timestamp is the indicator's `DateEnteredInPHOLIO`, never the export time,
@@ -92,19 +93,34 @@ after a 29-million-row export:
 
 ## Duplicate observation keys
 
+Before comparing keys, pre-flight checks the period formats represented by each indicator's
+Grouping rows: YearRange and annual, quarterly or monthly periodicity. A YearRange or format
+not represented there is counted separately in the source manifest. The same check runs when
+writing observations. Area type is not a publication gate: a grouping for England can support
+published trust data. Sex and age do not filter inequality breakdowns, and the current
+baseline and data point do not restrict historical coverage. Missing Grouping metadata does
+not cause observations to be discarded.
+
 Pholio keys rows on SexID, AgeID and YearRange, and codes "not applicable" as -1 in each.
 FPHD maps a -1 sex or age, like persons and all ages, to no dimension row, and a -1 year range
 to a one-year period, so a not-applicable row and the coded row it duplicates share one
 observation key. Pre-flight resolves a repeated key only when
-the choice is safe, and counts each dropped source row in the manifest:
+the choice is safe, and counts each dropped observation in the manifest:
 
-- `duplicate_placeholder`: every row but one holds only -1 sentinels; the real row stays.
+- `duplicate_placeholder`: only one row carries measures, and every candidate has the same
+  geographic note; the populated row stays.
+- `duplicate_not_in_grouping`: only one candidate matches the indicator's grouped sex and
+  age for that period format; that series stays, including a suppressed observation.
 - `duplicate_identical`: every row carries the same measures and note; the coded row stays.
 - `duplicate_superseded`: the measures differ and the indicator is listed in
   `--superseded-sentinel-rows`, a JSON array of indicator ids whose not-applicable rows are
   a stale upload; the coded row stays. The manifest records the list.
 
 Any other repeated key stops the export with the source uids, for review with the data owner.
+Sentinel measures alone do not make a row safe to discard: they can carry the published
+suppression instead of an ungrouped value.
+When a compound sex-and-age source row becomes two observations, resolving a duplicate
+drops only the overlapping observation and retains its other half.
 
 ## Excluding indicators
 
@@ -210,8 +226,10 @@ Run `pnpm vitest run --project @fphd/data-migration` and
 production via DHSC's SQL Managed Instance) and writes a `snapshot.tar` compatible with
 `db import-published-snapshot`. It translates polarity, frequency and notes-and-caveats
 into their service forms and rekeys every integer id to a deterministic UUIDv7. After export,
-it checks the B fingerprint: 1,329 indicators and 29,656,329 observations before the four
-explicit exclusions. These counts omit test indicator 94204. The archive records
+it checks the B fingerprint: 1,329 indicators and 29,656,329 eligible source observations before
+intentional indicator, publication-format and duplicate exclusions. These counts omit test
+indicator 94204. The source count is recorded during pre-flight; the archive records the
+total excluded observations and their individual reasons, along with the source label
 `PHOLIO_LIVE_B export` and source database `pholio_live_b`.
 
 ```sh

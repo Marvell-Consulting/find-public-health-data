@@ -14,7 +14,7 @@ const runFile = promisify(execFile);
 
 const devSource = 'PHOLIO_LIVE_B export';
 const devDatabase = 'pholio_live_b';
-// Counts omit test indicator 94204 and precede the four explicit exclusions.
+// Counts apply the base observation eligibility rules before export-specific exclusions.
 const expectedSourceIndicators = 1_329;
 const expectedObservations = 29_656_329;
 // Each is the retired half of a pair of source indicators sharing a name, and so a slug.
@@ -27,7 +27,8 @@ export interface ExportDevSnapshotOptions {
 
 interface PholioSourceManifest {
   exported_indicators: number;
-  excluded_observations: number;
+  source_observations: number;
+  observation_exclusions?: Record<string, number>;
   tables: Record<string, { rows: number; bytes: number; sha256: string }>;
 }
 
@@ -45,8 +46,7 @@ export async function exportDevSnapshot(options: ExportDevSnapshotOptions): Prom
     await readFile(join(outDir, 'source-manifest.json'), 'utf8'),
   ) as PholioSourceManifest;
   const sourceIndicators = exported.exported_indicators + excludedIndicators.length;
-  const sourceObservations =
-    (exported.tables.observation?.rows ?? 0) + exported.excluded_observations;
+  const sourceObservations = exported.source_observations;
   if (
     sourceIndicators !== expectedSourceIndicators ||
     sourceObservations !== expectedObservations
@@ -63,7 +63,8 @@ export async function exportDevSnapshot(options: ExportDevSnapshotOptions): Prom
     source_indicators: sourceIndicators,
     source_observations: sourceObservations,
     excluded_indicators: [...excludedIndicators].sort((a, b) => a - b),
-    excluded_observations: exported.excluded_observations,
+    excluded_observations: sourceObservations - (exported.tables.observation?.rows ?? 0),
+    observation_exclusions: exported.observation_exclusions,
     source_csv_null: DATA_MIGRATION_NULL,
   };
   await writeFile(

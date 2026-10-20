@@ -1,6 +1,11 @@
 import type { ObservationExportOptions } from './context.ts';
 import { ageValueIdForObservation, sexValueIdForObservation } from './dimensions.ts';
 import {
+  type GroupingExclusion,
+  loadObservationGroupings,
+  type ObservationGroupings,
+} from './groupings.ts';
+import {
   AGE_DIMENSION_TYPE_ID,
   categoryDimensionTypeId,
   categoryDimensionValueId,
@@ -9,6 +14,7 @@ import {
   observationId,
   observationNoteId,
   SEX_DIMENSION_TYPE_ID,
+  sourceUidForObservationId,
 } from './ids.ts';
 import { computeDates } from './period.ts';
 import { queryPholio, streamPholio } from './source.ts';
@@ -146,11 +152,16 @@ export type ObservationExclusions = Record<
   | 'note_506'
   | 'empty_observation'
   | 'year_before_1900'
+  | GroupingExclusion
   | DuplicateResolution,
   number
 >;
 
-type DuplicateResolution = 'duplicate_placeholder' | 'duplicate_identical' | 'duplicate_superseded';
+type DuplicateResolution =
+  | 'duplicate_placeholder'
+  | 'duplicate_not_in_grouping'
+  | 'duplicate_identical'
+  | 'duplicate_superseded';
 
 const MEASURES = [
   'Value',
@@ -164,36 +175,52 @@ const MEASURES = [
   'ValueNoteId',
 ] as const;
 
-function isPlaceholder(c: CdsRow): boolean {
-  return c.Value === -1 && c.Count === -1 && c.Denominator === -1;
-}
-
 function sentinelCodes(c: CdsRow): number {
   return (c.SexID === -1 ? 1 : 0) + (c.AgeID === -1 ? 1 : 0) + (c.YearRange === -1 ? 1 : 0);
 }
 
-/**
- * Pholio keys rows on SexID, AgeID and YearRange, so a row coded "not applicable" (-1) can sit
- * beside the persons, all-ages or one-year row it duplicates. Each -1 maps to the same key here.
- * Keeps one row when the choice is safe: the only real row among placeholders, the coded row
- * among identical measures, or the coded row for indicators known to hold a stale sentinel copy.
- */
 export function resolveDuplicateGroup(
   rows: readonly CdsRow[],
   supersededSentinelIndicators: ReadonlySet<number>,
+  groupings?: ObservationGroupings,
+  noteTypeCategory: ReadonlyMap<number, string> = new Map(),
 ): { keep: CdsRow; reasonFor: (dropped: CdsRow) => DuplicateResolution } | undefined {
-  const real = rows.filter((c) => !isPlaceholder(c));
-  const candidates = real.length > 0 ? real : rows;
+  const populated = rows.filter((row) =>
+    MEASURES.some(
+      (measure) => measure !== 'ValueNoteId' && row[measure] !== null && row[measure] !== -1,
+    ),
+  );
+  const [onlyPopulated] = populated;
+  const noteId = rows[0]?.ValueNoteId;
+  const category = noteId === undefined ? undefined : noteTypeCategory.get(noteId);
+  // A geographic note can accompany an empty duplicate too. It must not erase the
+  // populated aggregate; disclosure and data-availability notes are different.
+  if (
+    populated.length === 1 &&
+    onlyPopulated !== undefined &&
+    category === 'geographic' &&
+    rows.every((row) => row.ValueNoteId === noteId)
+  ) {
+    return { keep: onlyPopulated, reasonFor: () => 'duplicate_placeholder' };
+  }
+  const grouped = rows.filter((row) => groupings?.hasSeries(row));
+  const candidates = grouped.length > 0 ? grouped : rows;
   const [canonical] = [...candidates].sort(
     (a, b) => sentinelCodes(a) - sentinelCodes(b) || a.uid - b.uid,
   );
   if (!canonical) return undefined;
+  const identical = rows.every((row) =>
+    MEASURES.every((measure) => row[measure] === canonical[measure]),
+  );
   const resolved = (keep: CdsRow, reason: DuplicateResolution) => ({
     keep,
     reasonFor: (dropped: CdsRow): DuplicateResolution =>
-      isPlaceholder(dropped) && real.length > 0 ? 'duplicate_placeholder' : reason,
+      !identical && grouped.length > 0 && !groupings?.hasSeries(dropped)
+        ? 'duplicate_not_in_grouping'
+        : reason,
   });
-  if (candidates.length === 1) return resolved(canonical, 'duplicate_placeholder');
+  if (identical) return resolved(canonical, 'duplicate_identical');
+  if (candidates.length === 1) return resolved(canonical, 'duplicate_not_in_grouping');
   if (candidates.every((c) => MEASURES.every((measure) => c[measure] === canonical[measure])))
     return resolved(canonical, 'duplicate_identical');
   const coded = candidates.filter((c) => sentinelCodes(c) === 0);
@@ -207,6 +234,7 @@ function exclusionReason(
   excluded: ReadonlySet<number>,
   selection: ObservationExportOptions['indicatorSelection'],
   selected: ReadonlySet<number>,
+  groupings: ObservationGroupings,
 ): keyof ObservationExclusions | undefined {
   if (c.IndicatorID === 94204) return 'test_indicator';
   if (selection.kind === 'approved' && !selected.has(c.IndicatorID)) return 'not_approved';
@@ -215,7 +243,7 @@ function exclusionReason(
     return 'empty_observation';
   if (c.Year < 1900) return 'year_before_1900';
   if (excluded.has(c.IndicatorID)) return 'excluded_indicator';
-  return undefined;
+  return groupings.exclusionReason(c);
 }
 
 const observationQuery = `
@@ -230,7 +258,12 @@ const observationQuery = `
 
 async function assertDistinctObservations(
   context: ObservationExportOptions,
-): Promise<{ exclusions: ObservationExclusions; dropped: ReadonlySet<number> }> {
+  groupings: ObservationGroupings,
+): Promise<{
+  exclusions: ObservationExclusions;
+  dropped: ReadonlySet<number>;
+  sourceObservations: number;
+}> {
   const exclusions: ObservationExclusions = {
     not_approved: 0,
     test_indicator: 0,
@@ -238,7 +271,10 @@ async function assertDistinctObservations(
     note_506: 0,
     empty_observation: 0,
     year_before_1900: 0,
+    year_range_not_in_grouping: 0,
+    periodicity_not_in_grouping: 0,
     duplicate_placeholder: 0,
+    duplicate_not_in_grouping: 0,
     duplicate_identical: 0,
     duplicate_superseded: 0,
   };
@@ -249,11 +285,21 @@ async function assertDistinctObservations(
   );
   const seen = new Map<string, number>();
   let indicator: number | undefined;
+  let sourceObservations = 0;
   await streamPholio(context.pool, `${observationQuery} ORDER BY c.IndicatorID, c.uid`, (raw) => {
     const c = raw as unknown as CdsRow;
-    const reason = exclusionReason(c, excluded, context.indicatorSelection, selected);
+    const reason = exclusionReason(c, excluded, context.indicatorSelection, selected, groupings);
+    const observationsInRow = COMPOUND_AGE_IDS.has(c.AgeID) && c.SexID === 4 ? 2 : 1;
+    if (
+      !reason ||
+      reason === 'excluded_indicator' ||
+      reason === 'year_range_not_in_grouping' ||
+      reason === 'periodicity_not_in_grouping'
+    ) {
+      sourceObservations += observationsInRow;
+    }
     if (reason) {
-      exclusions[reason] += 1;
+      exclusions[reason] += observationsInRow;
       return;
     }
     const diagnostic = `CoreDataSet uid ${c.uid}, indicator ${c.IndicatorID}`;
@@ -277,7 +323,7 @@ async function assertDistinctObservations(
       c.YearRange,
       c.YearTypeID ?? 1,
     );
-    for (const dimensions of observationDimensions(c)) {
+    for (const [split, dimensions] of observationDimensions(c).entries()) {
       for (const dimension of dimensions) {
         if (!context.dimensionValueIds.has(dimension.valueId))
           throw new Error(`${diagnostic}: unknown dimension value ${dimension.valueId}`);
@@ -291,32 +337,37 @@ async function assertDistinctObservations(
         dimensions.map((d) => d.valueId),
       );
       const previous = seen.get(key);
-      if (previous === undefined) seen.set(key, c.uid);
-      else duplicates.set(key, [...(duplicates.get(key) ?? [previous]), c.uid]);
+      const id = observationId(c.uid, split as 0 | 1);
+      if (previous === undefined) seen.set(key, id);
+      else duplicates.set(key, [...(duplicates.get(key) ?? [previous]), id]);
     }
   });
   const dropped = new Set<number>();
-  if (duplicates.size === 0) return { exclusions, dropped };
-  const rowsByUid = await sourceRowsByUid(context, [...duplicates.values()].flat());
+  if (duplicates.size === 0) return { exclusions, dropped, sourceObservations };
+  const rowsByUid = await sourceRowsByUid(context, [
+    ...new Set([...duplicates.values()].flat().map(sourceUidForObservationId)),
+  ]);
   const superseded = new Set(context.supersededSentinelIndicators);
   const unresolved = new Map<number, string[]>();
-  for (const [key, uids] of duplicates) {
-    const rows = uids.map((uid) => {
+  for (const [key, ids] of duplicates) {
+    const candidates = ids.map((id) => {
+      const uid = sourceUidForObservationId(id);
       const row = rowsByUid.get(uid);
       if (!row) throw new Error(`CoreDataSet uid ${uid}: source changed after pre-flight`);
-      return row;
+      return { id, row };
     });
-    const resolution = resolveDuplicateGroup(rows, superseded);
+    const rows = candidates.map(({ row }) => row);
+    const resolution = resolveDuplicateGroup(rows, superseded, groupings, context.noteTypeCategory);
     if (!resolution) {
       const indicatorId = rows[0]?.IndicatorID ?? 0;
       const keys = unresolved.get(indicatorId) ?? [];
-      keys.push(`${key} (CoreDataSet uids ${uids.join(', ')})`);
+      keys.push(`${key} (CoreDataSet uids ${rows.map((row) => row.uid).join(', ')})`);
       unresolved.set(indicatorId, keys);
       continue;
     }
-    for (const row of rows) {
+    for (const { id, row } of candidates) {
       if (row.uid === resolution.keep.uid) continue;
-      dropped.add(row.uid);
+      dropped.add(id);
       exclusions[resolution.reasonFor(row)] += 1;
     }
   }
@@ -333,7 +384,7 @@ async function assertDistinctObservations(
       `${total} repeated observation key(s) across ${unresolved.size} indicator(s) could not be resolved; review the source rows before exporting:\n${summary.join('\n')}`,
     );
   }
-  return { exclusions, dropped };
+  return { exclusions, dropped, sourceObservations };
 }
 
 async function sourceRowsByUid(
@@ -351,7 +402,11 @@ async function sourceRowsByUid(
 }
 
 export async function exportObservations(context: ObservationExportOptions) {
-  const { exclusions, dropped } = await assertDistinctObservations(context);
+  const groupings = await loadObservationGroupings(context.pool);
+  const { exclusions, dropped, sourceObservations } = await assertDistinctObservations(
+    context,
+    groupings,
+  );
   const obsWriter = new TableWriter(context.outDir, 'observation');
   const dimWriter = new TableWriter(context.outDir, 'observation_dimension');
   const noteWriter = new TableWriter(context.outDir, 'observation_note');
@@ -361,8 +416,7 @@ export async function exportObservations(context: ObservationExportOptions) {
   );
   await streamPholio(context.pool, `${observationQuery} ORDER BY c.uid`, async (raw) => {
     const c = raw as unknown as CdsRow;
-    if (exclusionReason(c, excluded, context.indicatorSelection, selected)) return;
-    if (dropped.has(c.uid)) return;
+    if (exclusionReason(c, excluded, context.indicatorSelection, selected, groupings)) return;
     const areaId = context.areaIdByPholioCode.get(c.AreaCode);
     const enteredAt = context.indicatorEnteredAt.get(c.IndicatorID);
     if (areaId === undefined || enteredAt === undefined)
@@ -382,6 +436,7 @@ export async function exportObservations(context: ObservationExportOptions) {
     const halves = observationDimensions(c);
     for (const [split, dimensions] of halves.entries()) {
       const obsId = observationId(c.uid, split as 0 | 1);
+      if (dropped.has(obsId)) continue;
       await obsWriter.write({
         id: obsId,
         indicator_id: c.IndicatorID,
@@ -423,6 +478,7 @@ export async function exportObservations(context: ObservationExportOptions) {
     }
   });
   return {
+    sourceObservations,
     observationExclusions: exclusions,
     tables: {
       observation: await obsWriter.close(),

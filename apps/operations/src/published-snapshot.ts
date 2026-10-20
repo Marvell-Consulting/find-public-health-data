@@ -28,7 +28,7 @@ const sourceManifestSchema = z.object({
   source: z.literal(publishedSource),
   source_database: z.literal('pholio_live_b'),
   source_indicators: z.literal(expectedSourceIndicators),
-  // The source's count before exclusion: the fingerprint of the clone the archive came from.
+  // Eligible source observations before export-specific exclusions fingerprint the clone.
   source_observations: z.literal(expectedObservations),
   excluded_indicators: z.array(z.number().int()),
   excluded_observations: z.number().int().nonnegative(),
@@ -94,7 +94,7 @@ export async function verifyPublishedSnapshot(directory: string): Promise<Publis
     manifest.tables.indicator?.rows !== expectedExportedIndicators ||
     // The export turns each exported source indicator into one published version.
     manifest.tables.indicator_version?.rows !== expectedExportedIndicators ||
-    // The excluded indicators' observations go with them, and the export says how many.
+    // Intentional export exclusions account for the difference from the source count.
     manifest.tables.observation?.rows !==
       expectedObservations - sourceManifest.excluded_observations
   ) {

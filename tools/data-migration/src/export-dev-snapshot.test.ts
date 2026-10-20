@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -28,4 +28,35 @@ it('builds an archive accepted by the receiver using the real tidy and rekey pip
   for await (const row of readGzipCsv(join(directory, 'dimension_value.csv.gz'))) values.push(row);
   expect(values[1]?.[values[0]?.indexOf('name') ?? -1]).toBe('Female');
   expect((await stat(join(directory, 'snapshot.tar'))).size).toBeGreaterThan(0);
+});
+
+it('checks the original source fingerprint before intentional publication exclusions', async () => {
+  directory = await mkdtemp(join(tmpdir(), 'dev-snapshot-'));
+  vi.mocked(exportPholio).mockImplementation(async ({ outDir }) => {
+    await writeDevelopmentSource(outDir);
+    const path = join(outDir, 'source-manifest.json');
+    const source = JSON.parse(await readFile(path, 'utf8'));
+    source.source_observations = 29_656_329;
+    source.excluded_observations = 0;
+    source.observation_exclusions = { year_range_not_in_grouping: 29_656_328 };
+    await writeFile(path, JSON.stringify(source));
+  });
+  await exportDevSnapshot({ connectionString: 'test source', outDir: directory });
+  const manifest = await verifyPublishedSnapshot(directory);
+  expect(manifest.source_observations).toBe(29_656_329);
+  expect(manifest.excluded_observations).toBe(29_656_328);
+});
+
+it('refuses a changed source fingerprint even when exported counts match the benchmark', async () => {
+  directory = await mkdtemp(join(tmpdir(), 'dev-snapshot-'));
+  vi.mocked(exportPholio).mockImplementation(async ({ outDir }) => {
+    await writeDevelopmentSource(outDir);
+    const path = join(outDir, 'source-manifest.json');
+    const source = JSON.parse(await readFile(path, 'utf8'));
+    source.source_observations = 29_656_330;
+    await writeFile(path, JSON.stringify(source));
+  });
+  await expect(
+    exportDevSnapshot({ connectionString: 'test source', outDir: directory }),
+  ).rejects.toThrow(/29656330 observations/);
 });

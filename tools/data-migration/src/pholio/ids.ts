@@ -82,6 +82,10 @@ export function observationId(uid: number, split: 0 | 1 = 0): number {
   return checkedKey('CoreDataSet uid', uid, 2 ** 50) * 2 + split;
 }
 
+export function sourceUidForObservationId(id: number): number {
+  return Math.floor(checkedKey('Observation id', id, 2 ** 51) / 2);
+}
+
 export const DIMENSION_SLOTS = { sex: 0, age: 1, category: 2 } as const;
 
 export function observationDimensionId(
