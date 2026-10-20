@@ -8,7 +8,7 @@ import { readGzipCsv } from '../csv.ts';
 import type { ObservationExportOptions, PholioExportOptions } from './context.ts';
 import { exportDimensions } from './dimensions.ts';
 import { exportGeography } from './geography.ts';
-import { ageDimensionValueId, areaId, sexDimensionValueId } from './ids.ts';
+import { ageDimensionValueId, areaId, observationId, sexDimensionValueId } from './ids.ts';
 import { exportIndicators } from './indicators.ts';
 import { exportLookups } from './lookups.ts';
 import { exportObservations, observationDimensions } from './observations.ts';
@@ -82,6 +82,10 @@ function sourceObservations(sourceRows: object[]) {
     for (const row of sorted) await consume(row);
     return sorted.length;
   });
+  vi.mocked(queryPholio).mockImplementation(async (_pool, query) => {
+    const uids = new Set((/uid IN \(([^)]*)\)/.exec(query)?.[1] ?? '').split(',').map(Number));
+    return (sourceRows as Record<string, unknown>[]).filter((row) => uids.has(Number(row.uid)));
+  });
 }
 function observation(overrides: object = {}) {
   return {
@@ -117,6 +121,7 @@ function observationOptions(): ObservationExportOptions {
     areaIdByPholioCode: new Map([['S1', areaId('S1')]]),
     noteTypeCategory: new Map(),
     dimensionValueIds: new Set(),
+    supersededSentinelIndicators: [],
   };
 }
 
@@ -157,6 +162,9 @@ it('counts every intentional observation exclusion separately', async () => {
     note_506: 1,
     empty_observation: 1,
     year_before_1900: 1,
+    duplicate_placeholder: 0,
+    duplicate_identical: 0,
+    duplicate_superseded: 0,
   });
   expect((await rows('observation')).length).toBe(1);
 });
@@ -197,10 +205,62 @@ it('detects non-contiguous duplicate keys using the actual pre-flight', async ()
   sourceObservations([
     observation(),
     observation({ uid: 2, IndicatorID: 109 }),
-    observation({ uid: 5 }),
+    observation({ uid: 5, Value: 11 }),
   ]);
   await expect(exportObservations(observationOptions())).rejects.toThrow(/CoreDataSet uids 1, 5/);
   expect(await readdir(directory)).toEqual([]);
+});
+
+it('keeps the persons row and drops its identical not-applicable twin', async () => {
+  sourceObservations([observation({ uid: 1, SexID: -1 }), observation({ uid: 2, SexID: 4 })]);
+  const result = await exportObservations(observationOptions());
+  expect(await rows('observation')).toEqual([
+    expect.objectContaining({ id: String(observationId(2)), value: '10' }),
+  ]);
+  expect(result.observationExclusions.duplicate_identical).toBe(1);
+});
+
+it('drops placeholder rows that sit beside the real row for the same key', async () => {
+  sourceObservations([
+    observation({
+      uid: 1,
+      SexID: -1,
+      AgeID: -1,
+      Value: -1,
+      Count: -1,
+      Denominator: -1,
+      ValueNoteId: 501,
+    }),
+    observation({ uid: 2 }),
+  ]);
+  const input = observationOptions();
+  input.noteTypeCategory = new Map([[501, 'other']]);
+  const result = await exportObservations(input);
+  expect(await rows('observation')).toEqual([
+    expect.objectContaining({ id: String(observationId(2)) }),
+  ]);
+  expect(await rows('observation_note')).toEqual([]);
+  expect(result.observationExclusions.duplicate_placeholder).toBe(1);
+});
+
+it('refuses twins whose measures differ unless the indicator is known to hold a stale copy', async () => {
+  const source = [
+    observation({ uid: 1, AgeID: -1, Value: 9 }),
+    observation({ uid: 2, AgeID: 1 }),
+    observation({ uid: 3, YearRange: -1, Value: 10.000001 }),
+  ];
+  sourceObservations(source);
+  await expect(exportObservations(observationOptions())).rejects.toThrow(/CoreDataSet uids 1, 2/);
+  expect(await readdir(directory)).toEqual([]);
+
+  sourceObservations(source);
+  const input = observationOptions();
+  input.supersededSentinelIndicators = [108];
+  const result = await exportObservations(input);
+  expect(await rows('observation')).toEqual([
+    expect.objectContaining({ id: String(observationId(2)), value: '10' }),
+  ]);
+  expect(result.observationExclusions.duplicate_superseded).toBe(2);
 });
 
 it('uses the same compound dimensions in canonical keys and written bridges', async () => {

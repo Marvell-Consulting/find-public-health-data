@@ -39,6 +39,7 @@ async function main(argv: readonly string[]): Promise<void> {
   switch (command) {
     case 'export-pholio': {
       const rawExcluded = values.get('excluded-indicators');
+      const rawSuperseded = values.get('superseded-sentinel-rows');
       await exportPholio({
         connectionString: requiredEnvironment('PHOLIO_CONNECTION_STRING'),
         outDir: required(values, 'out-dir'),
@@ -51,6 +52,9 @@ async function main(argv: readonly string[]): Promise<void> {
           ),
         },
         excludedIndicators: rawExcluded ? parseIndicatorIds(rawExcluded) : [],
+        supersededSentinelIndicators: rawSuperseded
+          ? parseIndicatorIds(rawSuperseded, '--superseded-sentinel-rows')
+          : [],
       });
       return;
     }

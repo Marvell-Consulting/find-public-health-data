@@ -11,7 +11,7 @@ import {
   SEX_DIMENSION_TYPE_ID,
 } from './ids.ts';
 import { computeDates } from './period.ts';
-import { streamPholio } from './source.ts';
+import { queryPholio, streamPholio } from './source.ts';
 import { TableWriter } from './table-writer.ts';
 
 // ─── Sentinel / CI helpers ────────────────────────────────────────────────────
@@ -145,9 +145,56 @@ export type ObservationExclusions = Record<
   | 'excluded_indicator'
   | 'note_506'
   | 'empty_observation'
-  | 'year_before_1900',
+  | 'year_before_1900'
+  | DuplicateResolution,
   number
 >;
+
+type DuplicateResolution = 'duplicate_placeholder' | 'duplicate_identical' | 'duplicate_superseded';
+
+const MEASURES = [
+  'Value',
+  'Count',
+  'Denominator',
+  'Denominator_2',
+  'LowerCI95',
+  'UpperCI95',
+  'LowerCI99_8',
+  'UpperCI99_8',
+  'ValueNoteId',
+] as const;
+
+function isPlaceholder(c: CdsRow): boolean {
+  return c.Value === -1 && c.Count === -1 && c.Denominator === -1;
+}
+
+function sentinelCodes(c: CdsRow): number {
+  return (c.SexID === -1 ? 1 : 0) + (c.AgeID === -1 ? 1 : 0) + (c.YearRange === -1 ? 1 : 0);
+}
+
+/**
+ * Pholio keys rows on SexID, AgeID and YearRange, so a row coded "not applicable" (-1) can sit
+ * beside the persons, all-ages or one-year row it duplicates. Each -1 maps to the same key here.
+ * Keeps one row when the choice is safe: the only real row among placeholders, the coded row
+ * among identical measures, or the coded row for indicators known to hold a stale sentinel copy.
+ */
+export function resolveDuplicateGroup(
+  rows: readonly CdsRow[],
+  supersededSentinelIndicators: ReadonlySet<number>,
+): { keep: CdsRow; reason: DuplicateResolution } | undefined {
+  const real = rows.filter((c) => !isPlaceholder(c));
+  if (real.length === 1 && real[0]) return { keep: real[0], reason: 'duplicate_placeholder' };
+  const [canonical] = [...rows].sort(
+    (a, b) => sentinelCodes(a) - sentinelCodes(b) || a.uid - b.uid,
+  );
+  if (!canonical) return undefined;
+  if (rows.every((c) => MEASURES.every((measure) => c[measure] === canonical[measure])))
+    return { keep: canonical, reason: 'duplicate_identical' };
+  const coded = rows.filter((c) => sentinelCodes(c) === 0);
+  if (supersededSentinelIndicators.has(canonical.IndicatorID) && coded.length === 1 && coded[0])
+    return { keep: coded[0], reason: 'duplicate_superseded' };
+  return undefined;
+}
 
 function exclusionReason(
   c: CdsRow,
@@ -177,7 +224,7 @@ const observationQuery = `
 
 async function assertDistinctObservations(
   context: ObservationExportOptions,
-): Promise<ObservationExclusions> {
+): Promise<{ exclusions: ObservationExclusions; dropped: ReadonlySet<number> }> {
   const exclusions: ObservationExclusions = {
     not_approved: 0,
     test_indicator: 0,
@@ -185,7 +232,11 @@ async function assertDistinctObservations(
     note_506: 0,
     empty_observation: 0,
     year_before_1900: 0,
+    duplicate_placeholder: 0,
+    duplicate_identical: 0,
+    duplicate_superseded: 0,
   };
+  const duplicates = new Map<string, number[]>();
   const excluded = new Set(context.excludedIndicators);
   const selected = new Set(
     context.indicatorSelection.kind === 'approved' ? context.indicatorSelection.indicators : [],
@@ -234,18 +285,67 @@ async function assertDistinctObservations(
         dimensions.map((d) => d.valueId),
       );
       const previous = seen.get(key);
-      if (previous !== undefined)
-        throw new Error(
-          `Indicator ${c.IndicatorID} has repeated observation key ${key} (CoreDataSet uids ${previous}, ${c.uid}); review the source rows before exporting`,
-        );
-      seen.set(key, c.uid);
+      if (previous === undefined) seen.set(key, c.uid);
+      else duplicates.set(key, [...(duplicates.get(key) ?? [previous]), c.uid]);
     }
   });
-  return exclusions;
+  const dropped = new Set<number>();
+  if (duplicates.size === 0) return { exclusions, dropped };
+  const rowsByUid = await sourceRowsByUid(context, [...duplicates.values()].flat());
+  const superseded = new Set(context.supersededSentinelIndicators);
+  const unresolved = new Map<number, string[]>();
+  for (const [key, uids] of duplicates) {
+    const rows = uids.map((uid) => {
+      const row = rowsByUid.get(uid);
+      if (!row) throw new Error(`CoreDataSet uid ${uid}: source changed after pre-flight`);
+      return row;
+    });
+    const resolution = resolveDuplicateGroup(rows, superseded);
+    if (!resolution) {
+      const indicatorId = rows[0]?.IndicatorID ?? 0;
+      const keys = unresolved.get(indicatorId) ?? [];
+      keys.push(`${key} (CoreDataSet uids ${uids.join(', ')})`);
+      unresolved.set(indicatorId, keys);
+      continue;
+    }
+    for (const row of rows) {
+      if (row.uid === resolution.keep.uid) continue;
+      dropped.add(row.uid);
+      exclusions[resolution.reason] += 1;
+    }
+  }
+  if (unresolved.size > 0) {
+    const total = [...unresolved.values()].reduce((sum, keys) => sum + keys.length, 0);
+    const summary = [...unresolved]
+      .sort(([, a], [, b]) => b.length - a.length)
+      .map(([indicatorId, keys]) => {
+        const shown = keys.slice(0, 3).join('\n    ');
+        const more = keys.length > 3 ? `\n    and ${keys.length - 3} more` : '';
+        return `  indicator ${indicatorId}: ${keys.length} key(s)\n    ${shown}${more}`;
+      });
+    throw new Error(
+      `${total} repeated observation key(s) across ${unresolved.size} indicator(s) could not be resolved; review the source rows before exporting:\n${summary.join('\n')}`,
+    );
+  }
+  return { exclusions, dropped };
+}
+
+async function sourceRowsByUid(
+  context: ObservationExportOptions,
+  uids: readonly number[],
+): Promise<Map<number, CdsRow>> {
+  const rows = new Map<number, CdsRow>();
+  for (let index = 0; index < uids.length; index += 500) {
+    const chunk = uids.slice(index, index + 500);
+    const query = `${observationQuery} WHERE c.uid IN (${chunk.join(', ')})`;
+    for (const row of (await queryPholio(context.pool, query)) as unknown as CdsRow[])
+      rows.set(row.uid, row);
+  }
+  return rows;
 }
 
 export async function exportObservations(context: ObservationExportOptions) {
-  const exclusions = await assertDistinctObservations(context);
+  const { exclusions, dropped } = await assertDistinctObservations(context);
   const obsWriter = new TableWriter(context.outDir, 'observation');
   const dimWriter = new TableWriter(context.outDir, 'observation_dimension');
   const noteWriter = new TableWriter(context.outDir, 'observation_note');
@@ -256,6 +356,7 @@ export async function exportObservations(context: ObservationExportOptions) {
   await streamPholio(context.pool, `${observationQuery} ORDER BY c.uid`, async (raw) => {
     const c = raw as unknown as CdsRow;
     if (exclusionReason(c, excluded, context.indicatorSelection, selected)) return;
+    if (dropped.has(c.uid)) return;
     const areaId = context.areaIdByPholioCode.get(c.AreaCode);
     const enteredAt = context.indicatorEnteredAt.get(c.IndicatorID);
     if (areaId === undefined || enteredAt === undefined)

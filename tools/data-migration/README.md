@@ -23,9 +23,9 @@ publishing moves to this service. The operations image applies the packages with
   can further narrow that list; a requested indicator missing from Pholio stops export.
   The source manifest records the selection, exported count and non-approved count.
 - Observation pre-flight counts each intentional exclusion: non-approved indicators,
-  explicit exclusions, test indicator 94204, placeholder note 506, empty sentinel rows
-  and years before 1900. Unknown areas, notes, metadata and dimension values stop export
-  with source-row diagnostics. There is no implicit future-period exclusion: all eligible
+  explicit exclusions, test indicator 94204, placeholder note 506, empty sentinel rows,
+  years before 1900 and resolved duplicate keys (see below). Unknown areas, notes,
+  metadata and dimension values stop export with source-row diagnostics. There is no implicit future-period exclusion: all eligible
   source observations for approved indicators are included.
 - Area aliases prefer the non-n-prefixed code deterministically. Both source aliases map
   to the survivor, so their observations and relationships retain the same area identity.
@@ -87,6 +87,22 @@ after a 29-million-row export:
   a slug belongs to exactly one indicator. The check names every colliding pair (source id
   and name) so the editorial problem can be resolved in the source — by renaming or
   excluding one of the pair — before exporting again.
+
+## Duplicate observation keys
+
+Pholio keys rows on SexID, AgeID and YearRange, and codes "not applicable" as -1 in each.
+FPHD maps a -1 sex or age, like persons and all ages, to no dimension row, and a -1 year range
+to a one-year period, so a not-applicable row and the coded row it duplicates share one
+observation key. Pre-flight resolves a repeated key only when
+the choice is safe, and counts each dropped source row in the manifest:
+
+- `duplicate_placeholder`: every row but one holds only -1 sentinels; the real row stays.
+- `duplicate_identical`: every row carries the same measures and note; the coded row stays.
+- `duplicate_superseded`: the measures differ and the indicator is listed in
+  `--superseded-sentinel-rows`, a JSON array of indicator ids whose not-applicable rows are
+  a stale upload; the coded row stays. The manifest records the list.
+
+Any other repeated key stops the export with the source uids, for review with the data owner.
 
 ## Excluding indicators
 

@@ -19,6 +19,8 @@ export interface ExportPholioOptions {
   /** The Pholio database the connection must reach, checked before anything is read. */
   expectedDatabase: string;
   excludedIndicators?: readonly number[];
+  /** See ObservationExportOptions.supersededSentinelIndicators. */
+  supersededSentinelIndicators?: readonly number[];
   indicatorSelection: IndicatorSelection;
 }
 
@@ -64,6 +66,7 @@ export async function exportPholio(options: ExportPholioOptions): Promise<void> 
       dimensionValueIds: dimensions.dimensionValueIds,
       indicatorIds: indicators.indicatorIds,
       indicatorEnteredAt: indicators.indicatorEnteredAt,
+      supersededSentinelIndicators: options.supersededSentinelIndicators ?? [],
     });
     const tables: StageResult = {
       ...lookups.tables,
@@ -92,6 +95,9 @@ export async function exportPholio(options: ExportPholioOptions): Promise<void> 
           indicator_selection: options.indicatorSelection,
           excluded_indicators: [...context.excludedIndicators].sort((a, b) => a - b),
           excluded_non_approved_indicators: indicators.excludedNonApprovedIndicators,
+          superseded_sentinel_indicators: [...(options.supersededSentinelIndicators ?? [])].sort(
+            (a, b) => a - b,
+          ),
           excluded_observations: observations.observationExclusions.excluded_indicator,
           observation_exclusions: observations.observationExclusions,
           source_csv_null: DATA_MIGRATION_NULL,
