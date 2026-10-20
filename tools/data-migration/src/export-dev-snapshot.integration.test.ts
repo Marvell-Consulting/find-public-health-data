@@ -2,14 +2,9 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { schema } from '@fphd/db';
-import { DATA_MIGRATION_NULL } from '@fphd/db/data-migration-contract';
-import {
-  createOwnerClient,
-  importCoreData,
-  rebuildReadModels,
-  seedPublishedTables,
-} from '@fphd/db/operations';
-import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
+import { createOwnerClient, createTestDatabase, type TestDatabase } from '@fphd/db/testing';
+import { importCoreData, rebuildReadModels, seedPublishedTables } from '@fphd/db-operations';
+import { DATA_MIGRATION_NULL } from '@fphd/db-operations/data-migration-contract';
 import type postgres from 'postgres';
 import { afterAll, beforeAll, expect, it, vi } from 'vitest';
 import { verifyPublishedSnapshot } from '../../../apps/operations/src/published-snapshot.ts';

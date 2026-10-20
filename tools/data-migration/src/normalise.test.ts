@@ -1,4 +1,4 @@
-import { DATA_MIGRATION_NULL } from '@fphd/db/data-migration-contract';
+import { DATA_MIGRATION_NULL } from '@fphd/db-operations/data-migration-contract';
 import { describe, expect, it } from 'vitest';
 
 import { encodeRow } from './csv.ts';

@@ -13,7 +13,7 @@ import {
   DATA_MIGRATION_SCHEMA,
   type IncrementalManifest,
   incrementalManifestSchema,
-} from '@fphd/db/data-migration-contract';
+} from '@fphd/db-operations/data-migration-contract';
 
 import { encodeRow, readGzipCsv } from './csv.ts';
 import { fileRecord } from './files.ts';

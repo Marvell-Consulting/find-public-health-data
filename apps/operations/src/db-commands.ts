@@ -20,7 +20,7 @@ import {
   SEEDED_TABLES,
   seedDummyTables,
   seedPublishedTables,
-} from '@fphd/db/operations';
+} from '@fphd/db-operations';
 
 import type { CommandContext } from './commands.ts';
 import { downloadDataMigration } from './data-migration-package.ts';

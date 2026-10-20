@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { readGzipCsv } from './csv.ts';
 
 export const LEGACY_MAP_PATH = new URL(
-  '../../../packages/db/data/legacy-numerator-denominator-sources.json',
+  '../../../packages/db-operations/data/legacy-numerator-denominator-sources.json',
   import.meta.url,
 );
 

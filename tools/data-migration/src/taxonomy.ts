@@ -1,5 +1,8 @@
 import { z } from '@fphd/config';
-import { type IndicatorTopicFile, parseIndicatorTopicFile } from '@fphd/db/data-migration-contract';
+import {
+  type IndicatorTopicFile,
+  parseIndicatorTopicFile,
+} from '@fphd/db-operations/data-migration-contract';
 
 const indicatorSchema = z.object({
   fingertipsId: z.number().int().positive(),

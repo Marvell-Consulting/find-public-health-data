@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { YEAR_TYPES, yearTypeValues } from './year-type.ts';
 
-const migrationDir = new URL('../../../../packages/db/drizzle/', import.meta.url);
+const migrationDir = new URL('../../../../packages/db-operations/drizzle/', import.meta.url);
 
 function extractBetween(sql: string, startAnchor: string, endAnchor: string): string {
   const start = sql.indexOf(startAnchor);

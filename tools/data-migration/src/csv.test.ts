@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gunzipSync, gzipSync } from 'node:zlib';
-import { readCsvHeader } from '@fphd/db/operations';
+import { readCsvHeader } from '@fphd/db-operations';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { encodeRow, readGzipCsv, transformGzipCsv } from './csv.ts';

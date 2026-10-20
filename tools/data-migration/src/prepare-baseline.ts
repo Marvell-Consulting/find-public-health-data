@@ -10,7 +10,7 @@ import {
   DATA_MIGRATION_NULL,
   DATA_MIGRATION_SCHEMA,
   parseDataMigrationRelationships,
-} from '@fphd/db/data-migration-contract';
+} from '@fphd/db-operations/data-migration-contract';
 
 import { readGzipCsv, transformGzipCsv } from './csv.ts';
 import { fileRecord } from './files.ts';

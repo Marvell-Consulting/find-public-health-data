@@ -1,6 +1,11 @@
 import type { SqlClient } from '@fphd/db';
-import { assertCoreDataPresent, createOwnerClient, loadOwnerEnv } from '@fphd/db/operations';
-import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
+import {
+  createOwnerClient,
+  createTestDatabase,
+  loadOwnerEnv,
+  type TestDatabase,
+} from '@fphd/db/testing';
+import { assertCoreDataPresent } from '@fphd/db-operations';
 import { createLogger } from '@fphd/logger';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 

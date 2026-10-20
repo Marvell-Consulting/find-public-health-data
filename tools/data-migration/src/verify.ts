@@ -4,7 +4,7 @@ import {
   assertCompleteTableSet,
   assertMigrationFileNames,
   type DataMigrationManifest,
-} from '@fphd/db/data-migration-contract';
+} from '@fphd/db-operations/data-migration-contract';
 
 import { fileRecord } from './files.ts';
 
