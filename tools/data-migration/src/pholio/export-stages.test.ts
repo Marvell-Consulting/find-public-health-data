@@ -243,6 +243,22 @@ it('drops placeholder rows that sit beside the real row for the same key', async
   expect(result.observationExclusions.duplicate_placeholder).toBe(1);
 });
 
+it('drops a placeholder before judging the real rows it sits beside', async () => {
+  sourceObservations([
+    observation({ uid: 1, SexID: -1, YearRange: -1 }),
+    observation({ uid: 2, SexID: 4, YearRange: -1 }),
+    observation({ uid: 3, Value: -1, Count: -1, Denominator: -1, ValueNoteId: 305 }),
+  ]);
+  const input = observationOptions();
+  input.noteTypeCategory = new Map([[305, 'other']]);
+  const result = await exportObservations(input);
+  expect(await rows('observation')).toEqual([
+    expect.objectContaining({ id: String(observationId(2)) }),
+  ]);
+  expect(result.observationExclusions.duplicate_placeholder).toBe(1);
+  expect(result.observationExclusions.duplicate_identical).toBe(1);
+});
+
 it('refuses twins whose measures differ unless the indicator is known to hold a stale copy', async () => {
   const source = [
     observation({ uid: 1, AgeID: -1, Value: 9 }),

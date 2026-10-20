@@ -181,18 +181,24 @@ function sentinelCodes(c: CdsRow): number {
 export function resolveDuplicateGroup(
   rows: readonly CdsRow[],
   supersededSentinelIndicators: ReadonlySet<number>,
-): { keep: CdsRow; reason: DuplicateResolution } | undefined {
+): { keep: CdsRow; reasonFor: (dropped: CdsRow) => DuplicateResolution } | undefined {
   const real = rows.filter((c) => !isPlaceholder(c));
-  if (real.length === 1 && real[0]) return { keep: real[0], reason: 'duplicate_placeholder' };
-  const [canonical] = [...rows].sort(
+  const candidates = real.length > 0 ? real : rows;
+  const [canonical] = [...candidates].sort(
     (a, b) => sentinelCodes(a) - sentinelCodes(b) || a.uid - b.uid,
   );
   if (!canonical) return undefined;
-  if (rows.every((c) => MEASURES.every((measure) => c[measure] === canonical[measure])))
-    return { keep: canonical, reason: 'duplicate_identical' };
-  const coded = rows.filter((c) => sentinelCodes(c) === 0);
+  const resolved = (keep: CdsRow, reason: DuplicateResolution) => ({
+    keep,
+    reasonFor: (dropped: CdsRow): DuplicateResolution =>
+      isPlaceholder(dropped) && real.length > 0 ? 'duplicate_placeholder' : reason,
+  });
+  if (candidates.length === 1) return resolved(canonical, 'duplicate_placeholder');
+  if (candidates.every((c) => MEASURES.every((measure) => c[measure] === canonical[measure])))
+    return resolved(canonical, 'duplicate_identical');
+  const coded = candidates.filter((c) => sentinelCodes(c) === 0);
   if (supersededSentinelIndicators.has(canonical.IndicatorID) && coded.length === 1 && coded[0])
-    return { keep: coded[0], reason: 'duplicate_superseded' };
+    return resolved(coded[0], 'duplicate_superseded');
   return undefined;
 }
 
@@ -311,7 +317,7 @@ async function assertDistinctObservations(
     for (const row of rows) {
       if (row.uid === resolution.keep.uid) continue;
       dropped.add(row.uid);
-      exclusions[resolution.reason] += 1;
+      exclusions[resolution.reasonFor(row)] += 1;
     }
   }
   if (unresolved.size > 0) {
