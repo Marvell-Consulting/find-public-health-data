@@ -8,6 +8,14 @@ const PUBLISH_PATH = '/publish';
 
 export const NEW_INDICATOR_PATH = `${PUBLISH_PATH}/indicators/new`;
 
+/** Where a publisher in several teams chooses the one a new indicator joins, before naming it. */
+export const NEW_INDICATOR_TEAM_PATH = `${NEW_INDICATOR_PATH}/team`;
+
+/** The name page of a new indicator that joins the team given. */
+export function newIndicatorPath(teamId: string): string {
+  return `${NEW_INDICATOR_PATH}?${new URLSearchParams({ team: teamId })}`;
+}
+
 function indicatorPublishPath(id: string, page: string): string {
   return `${PUBLISH_PATH}/indicators/${encodeURIComponent(id)}/${page}`;
 }

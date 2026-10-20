@@ -30,13 +30,17 @@ export function canListIndicators(user: SessionUser): boolean {
   );
 }
 
-/** The team a new indicator joins: its creator's first, until a publisher can choose one. */
-export function teamForNewIndicator(user: SessionUser): string | undefined {
-  return holds(user, 'publisher') ? user.teams[0] : undefined;
+/** The teams a new indicator may join: its creator's, who chooses one when there are several. */
+export function teamsForNewIndicator(user: SessionUser): readonly string[] {
+  return holds(user, 'publisher') ? user.teams : [];
 }
 
 export function canCreateIndicator(user: SessionUser): boolean {
-  return teamForNewIndicator(user) !== undefined;
+  return teamsForNewIndicator(user).length > 0;
+}
+
+export function canCreateIndicatorInTeam(user: SessionUser, teamId: string): boolean {
+  return teamsForNewIndicator(user).includes(teamId);
 }
 
 export function canEditIndicator(

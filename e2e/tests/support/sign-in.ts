@@ -22,6 +22,12 @@ export const TEAM_B_PUBLISHER: SignedInUser = {
   storageState: join(SESSIONS_DIR, 'team-b-publisher.json'),
 };
 
+/** A publisher in Teams A and B, who chooses a new indicator's team. */
+export const TEAMS_A_AND_B_PUBLISHER: SignedInUser = {
+  name: 'Casey Patel',
+  storageState: join(SESSIONS_DIR, 'teams-a-and-b-publisher.json'),
+};
+
 export const ADMIN: SignedInUser = {
   name: 'Riley Singh',
   storageState: join(SESSIONS_DIR, 'admin.json'),

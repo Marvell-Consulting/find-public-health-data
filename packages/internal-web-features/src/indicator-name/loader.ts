@@ -18,6 +18,7 @@ import { formRefusal } from '../form-refusal.ts';
 import { readFormValues } from '../form-values.ts';
 import { requireIndicatorId } from '../indicator-id.ts';
 import type { FormFailure } from '../indicator-section.ts';
+import { requireNewIndicatorTeam } from '../new-indicator-team.ts';
 import { indicatorTaskListPath } from '../publish-paths.ts';
 
 export type IndicatorNameFailure = FormFailure<IndicatorField>;
@@ -28,14 +29,22 @@ function notFound(): Response {
   return new Response('Not Found', { status: 404 });
 }
 
+/** A new indicator is named once its team is known, so a publisher in several chooses first. */
+export function loadNewIndicator({ context, request }: LoaderFunctionArgs): null {
+  requireNewIndicatorTeam(context, request);
+
+  return null;
+}
+
 /**
- * Creates the indicator and sends the publisher to its task list, where the rest of the
- * journey is. The API's schema is applied here first, so an empty name costs no round trip.
+ * Creates the indicator in its team and sends the publisher to its task list, where the rest of
+ * the journey is. The API's schema is applied here first, so an empty name costs no round trip.
  */
 export async function createIndicator({
   context,
   request,
 }: ActionFunctionArgs): Promise<IndicatorNameFailure | Response> {
+  const teamId = requireNewIndicatorTeam(context, request);
   const values = readFormValues(await request.formData(), FIELDS);
   const submission = indicatorNameSchema.safeParse(values);
 
@@ -47,7 +56,7 @@ export async function createIndicator({
     .get(apiContext)
     .post(
       '/api/internal/indicators',
-      submission.data,
+      { ...submission.data, teamId },
       indicatorCreateResponseSchema,
       indicatorCreateErrorSchema,
     );

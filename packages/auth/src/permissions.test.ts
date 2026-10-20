@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   canAssignReviewers,
   canCreateIndicator,
+  canCreateIndicatorInTeam,
   canEditIndicator,
   canListIndicators,
   canManage,
@@ -13,7 +14,7 @@ import {
   type IndicatorAccess,
   indicatorListScope,
   type SessionUser,
-  teamForNewIndicator,
+  teamsForNewIndicator,
 } from './permissions.ts';
 
 const teamA = 'team-a';
@@ -83,12 +84,20 @@ describe('canCreateIndicator', () => {
   });
 });
 
-describe('teamForNewIndicator', () => {
-  it("puts a publisher's new indicator in their first team", () => {
-    expect(teamForNewIndicator(publisherAB)).toBe(teamA);
-    expect(teamForNewIndicator(publisherReviewer)).toBe(teamB);
-    expect(teamForNewIndicator(teamless)).toBeUndefined();
-    expect(teamForNewIndicator(admin)).toBeUndefined();
+describe('teamsForNewIndicator', () => {
+  it("offers a publisher's new indicator every one of their teams", () => {
+    expect(teamsForNewIndicator(publisherAB)).toEqual([teamA, teamB]);
+    expect(teamsForNewIndicator(publisherReviewer)).toEqual([teamB]);
+    expect(teamsForNewIndicator(teamless)).toEqual([]);
+    expect(teamsForNewIndicator(admin)).toEqual([]);
+  });
+});
+
+describe('canCreateIndicatorInTeam', () => {
+  it('lets a publisher create an indicator in their own teams only', () => {
+    expect(canCreateIndicatorInTeam(publisherAB, teamB)).toBe(true);
+    expect(canCreateIndicatorInTeam(publisherA, teamB)).toBe(false);
+    expect(canCreateIndicatorInTeam(user('team-a-admin', ['admin'], [teamA]), teamA)).toBe(false);
   });
 });
 
