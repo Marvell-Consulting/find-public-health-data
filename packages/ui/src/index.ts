@@ -27,8 +27,6 @@ export { CardList, type CardListItem } from './card-list.tsx';
 export { ChartSection } from './chart-section.tsx';
 export { NotFoundPage, PageIntro } from './content-page.tsx';
 export {
-  DayMonthInput,
-  type DayMonthInputValue,
   datePartId,
   datePartName,
   TimeInput,

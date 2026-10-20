@@ -12,10 +12,22 @@ export function datePartId(name: string, part: string): string {
   return `${name}-${part}`;
 }
 
-interface PartsInputProps<Part extends string> {
-  defaultValue: Record<Part, string>;
+export interface TimeInputValue {
+  hour: string;
+  minute: string;
+}
+
+type TimePart = keyof TimeInputValue;
+
+const TIME_PARTS = [
+  ['hour', 'Hour'],
+  ['minute', 'Minute'],
+] as const satisfies readonly (readonly [TimePart, string])[];
+
+interface TimeInputProps {
+  defaultValue: TimeInputValue;
   /** A message on each part to correct; the first is shown, and each part given one is marked. */
-  error?: { [K in Part]?: string | undefined } | undefined;
+  error?: { [K in TimePart]?: string | undefined } | undefined;
   hint?: ReactNode;
   label: ReactNode;
   /** Component to wrap the legend in, making it a heading. */
@@ -23,22 +35,21 @@ interface PartsInputProps<Part extends string> {
   name: string;
 }
 
-/** Two-digit number boxes under one legend, built as NotGovUK's DateInput builds its parts. */
-function PartsInput<Part extends string>({
+/** Hour and minute under one legend, built as DateInput builds its parts: GOV.UK has no time input. */
+export function TimeInput({
   defaultValue,
   error = {},
   hint,
   label,
   labelHeading,
   name,
-  parts,
-}: PartsInputProps<Part> & { parts: readonly (readonly [Part, string])[] }) {
-  const message = parts.map(([part]) => error[part]).find((text) => text !== undefined);
+}: TimeInputProps) {
+  const message = TIME_PARTS.map(([part]) => error[part]).find((text) => text !== undefined);
 
   return (
     <FormGroup error={message} hint={hint} id={name} label={label} labelHeading={labelHeading}>
       <div className="govuk-date-input">
-        {parts.map(([part, text]) => (
+        {TIME_PARTS.map(([part, text]) => (
           <div className="govuk-date-input__item" key={part}>
             <Label htmlFor={datePartId(name, part)}>{text}</Label>
             <Input
@@ -54,35 +65,4 @@ function PartsInput<Part extends string>({
       </div>
     </FormGroup>
   );
-}
-
-export interface TimeInputValue {
-  hour: string;
-  minute: string;
-}
-
-const TIME_PARTS = [
-  ['hour', 'Hour'],
-  ['minute', 'Minute'],
-] as const;
-
-/** Hour and minute: GOV.UK has no time input. */
-export function TimeInput(props: PartsInputProps<keyof TimeInputValue>) {
-  return <PartsInput parts={TIME_PARTS} {...props} />;
-}
-
-export interface DayMonthInputValue {
-  day: string;
-  month: string;
-}
-
-const DAY_MONTH_PARTS = [
-  ['day', 'Day'],
-  ['month', 'Month'],
-] as const;
-
-/** A day and month with no year, as GOV.UK's date input allows by leaving the year out. */
-// NotGovUK's DateInput always shows a year; upstream: daniel-ac-martin/NotGovUK#2064.
-export function DayMonthInput(props: PartsInputProps<keyof DayMonthInputValue>) {
-  return <PartsInput parts={DAY_MONTH_PARTS} {...props} />;
 }

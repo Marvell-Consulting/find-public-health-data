@@ -87,6 +87,11 @@ test('asks for the date only of a year ending on a specified date', async ({ pag
   await yearType(page, 'Years', 'Ending a specified date').check();
   await expect(datePart(page, 'Years', 'Day')).toBeVisible();
   await expect(datePart(page, 'Years', 'Month')).toBeVisible();
+
+  // The year moves on with each period, so only the day and month are asked for, and the
+  // component's offer of an example of the format is declined.
+  await expect(yearTypes(page, 'Years').getByLabel('Year', { exact: true })).toHaveCount(0);
+  await expect(yearTypes(page, 'Years').locator('.govuk-hint')).toHaveCount(0);
 });
 
 test('asks for the year type of years', async ({ page }) => {
