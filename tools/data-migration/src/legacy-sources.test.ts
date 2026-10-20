@@ -79,7 +79,7 @@ describe('legacySourceIds', () => {
   });
 
   it('every source name in the committed seed is present in the legacy map', async () => {
-    const seedDir = new URL('../../../packages/db/data/seed', import.meta.url).pathname;
+    const seedDir = new URL('../../../packages/db-operations/data/seed', import.meta.url).pathname;
 
     const ids = await legacySourceIds(seedDir);
     const legacyMap = await readLegacyMap();

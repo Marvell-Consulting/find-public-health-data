@@ -9,7 +9,7 @@ import {
   DATA_MIGRATION_SCHEMA,
   DATA_MIGRATION_TABLES,
   incrementalManifestSchema,
-} from '@fphd/db/data-migration-contract';
+} from '@fphd/db-operations/data-migration-contract';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { encodeRow, readGzipCsv } from './csv.ts';

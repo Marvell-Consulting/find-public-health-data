@@ -1,4 +1,4 @@
-import { DATA_MIGRATION_TABLES } from '@fphd/db/data-migration-contract';
+import { DATA_MIGRATION_TABLES } from '@fphd/db-operations/data-migration-contract';
 
 export const TABLES = DATA_MIGRATION_TABLES;
 

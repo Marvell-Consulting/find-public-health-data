@@ -6,7 +6,7 @@ import {
   type DataMigrationManifest,
   SEED_TABLES,
   SEEDED_TABLES,
-} from '@fphd/db/operations';
+} from '@fphd/db-operations';
 import { createLogger, type Logger } from '@fphd/logger';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { CommandContext } from './commands.ts';
@@ -34,8 +34,8 @@ vi.mock('./published-snapshot.ts', () => ({ downloadPublishedSnapshot: mocks.dow
 vi.mock('./data-migration-package.ts', () => ({
   downloadDataMigration: mocks.migrationDownload,
 }));
-vi.mock('@fphd/db/operations', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@fphd/db/operations')>()),
+vi.mock('@fphd/db-operations', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@fphd/db-operations')>()),
   assertCoreDataPresent: mocks.assertCoreData,
   seedPublishedTables: mocks.seedPublished,
   rebuildReadModelTables: mocks.rebuild,

@@ -4,13 +4,13 @@ import postgres from 'postgres';
 import * as schema from './schema/index.ts';
 
 export type Schema = typeof schema;
-// This package's public surface hands out raw handles — `createOwnerClient` returns one and
-// `rebuildReadModels` takes one — so consumers need a name for the type without taking a
+// This package and `@fphd/db-operations` hand out raw handles — `createOwnerClient` returns one
+// and `rebuildReadModels` takes one — so consumers need a name for the type without taking a
 // dependency on `postgres` themselves. Exported from the package index for that reason; the
 // modules in here import `postgres` directly and have no use for the alias.
 export type SqlClient = postgres.Sql;
-// $client is exposed so short-lived callers (e.g. the topics import CLI) can end the
-// connection explicitly instead of leaving the process to hang on an open socket.
+// $client is exposed so callers can end the connection explicitly, as the API servers do on
+// shutdown, instead of leaving the process to hang on an open socket.
 export type Database = PostgresJsDatabase<Schema> & { $client: postgres.Sql };
 
 export interface DbConnection {

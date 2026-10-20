@@ -1,28 +1,14 @@
 # @fphd/db
 
-Drizzle ORM schema, migrations, repository functions and database tooling shared by the
-API apps. Each API connects with its own login role (`public_api` / `internal_api`) via
-`createDb`. Everything that writes — migrations, the imports, the seed, the read-model
-rebuild — connects as the owner login (`POSTGRES_USER`), through the operations CLI's
-config for the root `db:*` commands, drizzle-kit's own config for `db:generate`/`db:studio`
-and `createOwnerClient` for the test harness. The per-API roles are created by
-`bootstrapRoles` (`pnpm db:bootstrap`
-locally, `operations db bootstrap` deployed), which must run against a fresh server before
-the first migration: the grant migrations reference the roles.
-
-The `@fphd/db/data-migration-contract` subpath exposes package manifests, reviewed relationship
-schemas and CSV table names without database operations. Export tooling uses it to share the
-receiver's format.
+Drizzle ORM schema, the client and the repository functions the API apps read through. Each API
+connects with its own login role (`public_api` / `internal_api`) via `createDb`. Everything that
+writes as the owner login (`POSTGRES_USER`) — migrations, the imports, the seed, the read-model
+rebuild — lives in `@fphd/db-operations`, which only the operations CLI, the export tooling in
+`tools/data-migration` and the test harness depend on, so none of it ships in the API images.
 
 ## Layout
 
 ```
-data/                 Core content (topics.json, ci-methods.json, classifications.json,
-                      data-providers.json, value-types.json, units.json,
-                      comparator-methods.json), the map from Fingertips' numerator and
-                      denominator sources onto it, the dummy indicator relationship files
-                      and the committed seed (seed/)
-drizzle/              Generated migrations + drizzle-kit metadata — never edit applied ones
 src/
   schema/             One file per domain group, re-exported by schema/index.ts: lookup.ts
                       holds the reference tables, observation.ts the observation family,
@@ -37,19 +23,11 @@ src/
   client.ts           createDb + Database/Schema types
   env.ts              dbEnvFields — shared connection env fragment
   dimension-key.ts    dimensionKey — an observation's dimension_key from its dimension values
-  read-models.ts      rebuildReadModels — repopulates the cache.ts tables from the published views
-  core-data.ts        importCoreData — loads the required core content (topics, CI methods,
-                      classifications, data providers, value types, units, comparator
-                      methods)
-  legacy-sources.ts   Maps Fingertips' numerator and denominator sources onto the providers
-  seeding.ts          seedDummyTables — loads data/seed and the indicator relationships
-  reset.ts            resetDatabase — drops all application schema objects
-  testing.ts          Integration-test database harness (@fphd/db/testing)
-  schema.ts           Barrel re-exporting schema/index.ts; what drizzle.config.ts reads
+  testing.ts          Per-file test databases and fake repositories (@fphd/db/testing)
+  schema.ts           Barrel re-exporting schema/index.ts; what @fphd/db-operations'
+                      drizzle.config.ts reads
   *-repository.ts     Query functions per aggregate: pure, take `db` as first argument
   index.ts            The read surface the APIs consume (@fphd/db)
-  operations.ts       Bootstrap, migrate, import, seed, reset and rebuild (@fphd/db/operations),
-                      consumed only by apps/operations and the test harness
 ```
 
 ## Conventions
@@ -88,7 +66,7 @@ src/
   `text({ enum })` beside a check written with `literals()` over the list in its
   `@fphd/utils` module, which also holds the labels and which the contracts and pages import,
   as `polarity`, `period_type` and `year_type` do. An open list a publisher chooses from is
-  core data (below), and no new migration inserts its rows.
+  core data (see `@fphd/db-operations`), and no new migration inserts its rows.
 - **Yes/no answers and details**: a yes/no answer is `has_<subject>`, always positive, the
   text beside it `<subject>_detail`, and the text beside an "other" choice
   `<question>_detail` (`calculated_by_detail`, `unit_detail`). The checks mirror the contract:
@@ -171,13 +149,14 @@ changed by accident.
 1. Add the table to the `src/schema/` file for its domain, or create one and re-export it
    from `src/schema/index.ts`.
 2. `pnpm db:generate --name=create-<table>` (from the repo root; always pass a
-   meaningful `--name`). drizzle-kit loads `@fphd/config` and `@fphd/utils` from their
-   `dist`, so the root script builds them first; running drizzle-kit directly against a
-   stale `dist` fails with a module-not-found error, or generates from old constants. For a
-   rename drizzle-kit asks, in a terminal, whether a column is new or renamed.
+   meaningful `--name`). The migration lands in `@fphd/db-operations`. drizzle-kit loads
+   `@fphd/db` and the packages it imports from their `dist`, so the root script builds them
+   first; running drizzle-kit directly against a stale `dist` fails with a module-not-found
+   error, or generates from old constants. For a rename drizzle-kit asks, in a terminal,
+   whether a column is new or renamed.
 3. Grants are explicit and per-table — the API roles can read exactly what they have
    been granted, nothing implicitly. Add a custom migration:
-   `pnpm --filter @fphd/db exec drizzle-kit generate --custom --name=<table>-grants`
+   `pnpm --filter @fphd/db-operations exec drizzle-kit generate --custom --name=<table>-grants`
    with the `GRANT` statements the roles need.
 4. If the public site reads the table, that same custom migration adds a
    `published.<table>` view carrying the predicates that keep unpublished rows out, and
@@ -188,69 +167,10 @@ changed by accident.
 6. Add repository functions and tests, including an integration assertion that the
    granted role can do what it needs and no more.
 
-## Migrations
-
-`pnpm check:migrations`, part of `pnpm check` and its own CI job, fails when the schema
-differs from the latest snapshot in `drizzle/meta`, as it does when a schema change has no
-migration. It runs drizzle-kit check for migrations that collide, then drizzle-kit generate
-against a copy of `drizzle/`, refusing anything but "no schema changes". It compares the
-schema with the snapshot, not with the migration SQL, so it cannot catch a hand-edited
-migration that the snapshot does not match. It builds the two packages first, as
-`db:generate` does.
-
-A migration never edits an applied one. Until an environment holds publisher data the seed
-cannot restore, a migration may drop data that a reset and reseed of the shared environments
-restores, where that is cleaner than translating it; from then on every migration
-translates. Either way, one that meets an answer it cannot translate stops with an error
-rather than drop it, as 0034 and 0036 do.
-
-## Core data import
-
-```sh
-pnpm db:import-core-data         # imports topics, classifications and the publisher's lists
-```
-
-Upserts matched on `id`: a rename — even one that changes the slug — updates the row in
-place without changing the primary key. Rows in the database but absent from the file
-are reported and left alone, never deleted. Re-runs are true no-ops (`updated_at`
-untouched), so the import is safe to run repeatedly, in any environment. The import writes
-as the Core data import system user, and each row it inserts or rewrites records an audit
-entry in the upsert's transaction.
-
-Lookups a publisher chooses from are core data under the service's own names, with fixed
-ids, so every environment holds the same rows and the seed's relationship files can name
-them by id: the CI methods, data providers, value types, units and comparator methods. No
-new migration inserts a row of any of them. The value type and unit rows migration 0035
-inserted carry the ids the files hold, and 0037 re-keys each comparator method a database
-already held to the id `comparator-methods.json` gives its name, deleting those the file
-lacks and stopping if a version names one of them. `value-types.json` and `units.json` list
-their rows in the order the publisher's form shows them, which the import stores as each
-row's `position`; code that behaves differently for a row keys it on the row's fixed id,
-kept as a constant in `@fphd/utils/value-type-and-unit`. The seed and the published
-snapshot still carry Pholio's `ci_method.csv.gz` and `comparator_method.csv.gz`, but
-neither loads them: `seeding.ts` reads them only to point each version at the core row of
-the same name, through a short map of the CI method names Pholio spells differently, and
-stops at a row with no core counterpart.
-
-`data-providers.json` holds the providers a numerator's or denominator's data comes from,
-each with its named sources; a publisher may also choose a provider with no specific source.
-It is the prototype's list plus the providers and sources the Fingertips data names that the
-prototype leaves out. The seed and the snapshot carry Pholio's flat
-`numerator_denominator_source.csv.gz`, which is staged but not loaded:
-`legacy-numerator-denominator-sources.json` maps each of its names to the providers and
-sources it stands for, or to none (for "Not applicable"), and a name the map lacks, or a
-pair the core data does not hold, stops the load.
-
-The data-loading commands (`db:import-core-data`, `db:seed-dummy-data`, `db:reset`) all
-run through `apps/operations`, so a developer machine and a deployed job use one engine —
-see the operations section of the root README.
-
 ## Integration tests
 
 `src/*.integration.test.ts` need the local docker database up (`docker compose up -d db`)
 but never touch the shared `fphd` database. The root Vitest global setup builds a
-migrated, seeded template once per run; each test file calls `createTestDatabase()` from
-`@fphd/db/testing` for its own throwaway copy and drops it in `afterAll`.
-
-A migration's own test puts rows in the shape the migration meets with `migrateBefore`, then
-runs it with `migrateThrough`, which stops there, so a later migration never breaks it.
+migrated, seeded template once per run through `@fphd/db-operations/testing`; each test
+file calls `createTestDatabase()` from `@fphd/db/testing` for its own throwaway copy and
+drops it in `afterAll`.

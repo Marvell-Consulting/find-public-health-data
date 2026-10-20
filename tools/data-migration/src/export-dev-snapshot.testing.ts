@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { DATA_MIGRATION_NULL } from '@fphd/db/data-migration-contract';
+import { DATA_MIGRATION_NULL } from '@fphd/db-operations/data-migration-contract';
 import { type ExportRow, TableWriter } from './pholio/table-writer.ts';
 import { TABLES } from './tables.ts';
 

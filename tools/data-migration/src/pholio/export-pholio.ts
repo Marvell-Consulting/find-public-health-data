@@ -1,7 +1,7 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { DATA_MIGRATION_NULL } from '@fphd/db/data-migration-contract';
+import { DATA_MIGRATION_NULL } from '@fphd/db-operations/data-migration-contract';
 import { ensureDirectory } from '../files.ts';
 import { checkSlugs } from '../indicator-checks.ts';
 import { TABLES } from '../tables.ts';

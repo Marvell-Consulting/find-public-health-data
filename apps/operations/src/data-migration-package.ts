@@ -11,7 +11,7 @@ import {
   assertMigrationFileNames,
   type DataMigrationManifest,
   dataMigrationManifestSchema,
-} from '@fphd/db/operations';
+} from '@fphd/db-operations';
 
 import { type DownloadResume, downloadFile } from './download.ts';
 

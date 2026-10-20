@@ -14,8 +14,8 @@ Built package; consumed by `internal-api`, and by `@fphd/internal-web-features` 
 | `./contract`  | The zod schemas and inferred types for the internal API's request and response bodies, shared with the internal web loaders |
 | `./testing`   | `createFakeInternalRepositories` for handler tests                                            |
 
-Queries live in this package's repository files rather than `@fphd/db`, whose default export is
-the public read surface.
+Queries live in this package's repository files rather than `@fphd/db`, which is the public read
+surface.
 
 Each user sees the indicators their roles allow: the dashboard list is filtered in its query by
 `indicatorListScope`, and the overview read answers 404 for one `canSeeIndicator` refuses. Every
