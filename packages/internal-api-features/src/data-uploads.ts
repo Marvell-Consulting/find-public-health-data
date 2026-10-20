@@ -1,4 +1,4 @@
-import { requireApiSession } from '@fphd/api-server';
+import { requireApiActor } from '@fphd/api-server';
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import type { BlobStorage } from '@fphd/internal-storage';
 import { type Request, type Response, Router } from 'express';
@@ -78,7 +78,7 @@ export function dataUploadsRouter(
       });
 
       const { indicatorId } = draft;
-      const { sub } = requireApiSession(response);
+      const actor = requireApiActor(request, response);
       const batchId = uuidv7();
       const blobName = `${indicatorId}/${batchId}.csv`;
       const logFields = { indicatorId, uploadBatchId: batchId };
@@ -110,7 +110,7 @@ export function dataUploadsRouter(
 
         const { ok: _ok, ...file } = received;
         const result = await dataUploads.process(
-          { batchId, indicatorId, blobName, actor: sub, ...file },
+          { batchId, indicatorId, blobName, actor, ...file },
           () => storage.get(blobName),
           abandoned.signal,
         );

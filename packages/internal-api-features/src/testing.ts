@@ -4,7 +4,9 @@ import { createApiApp } from '@fphd/api-server';
 import { FAKE_USER_IDS, TEAM_IDS } from '@fphd/auth';
 import { createJwtSessionService, createJwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { schema } from '@fphd/db';
+import type { Actor } from '@fphd/db/audit-log';
 import { nullColumns, withThrowingDefaults } from '@fphd/db/testing';
+import { REQUEST_ID_HEADER } from '@fphd/express';
 import type { Express, Router } from 'express';
 import { type Logger, pino } from 'pino';
 
@@ -46,6 +48,11 @@ export const testSessionVerifier = createJwtSessionVerifier(testSession);
 
 /** The signed-in user of a test session: a fake user, so the rows it writes have a writer. */
 export const TEST_USER_ID = FAKE_USER_IDS.publisherTeamA;
+
+/** Who a handler under test writes as: the test user, in the request that got `response`. */
+export function testActor(response: { headers: Record<string, string> }): Actor {
+  return { userId: TEST_USER_ID, requestId: response.headers[REQUEST_ID_HEADER] ?? null };
+}
 
 /** The test session's team, which `TEST_USER_ID` belongs to. */
 export const TEST_TEAM_ID = TEAM_IDS.teamA;

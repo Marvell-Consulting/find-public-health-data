@@ -8,6 +8,8 @@ import { getIndicatorById, listIndicatorsPage } from './indicator-list-repositor
 import { createDraftFromPublished } from './indicator-publish-repository.ts';
 import {
   ACTOR,
+  AS_ACTOR,
+  AS_OTHER_ACTOR,
   idsNewestFirst,
   indicatorWithTwoPublications,
   newDraft,
@@ -106,7 +108,7 @@ describe('the names on each row', () => {
         created.indicatorId,
         { definition: 'Edited' },
         {},
-        OTHER_ACTOR,
+        AS_OTHER_ACTOR,
       );
 
       expect(await listed(db, created.indicatorId)).toMatchObject({
@@ -129,7 +131,7 @@ describe('the names on each row', () => {
         .update(schema.indicatorVersion)
         .set({ createdBy: OTHER_ACTOR })
         .where(eq(schema.indicatorVersion.id, supersededId));
-      await createDraftFromPublished(db, indicatorId, OTHER_ACTOR);
+      await createDraftFromPublished(db, indicatorId, AS_OTHER_ACTOR);
 
       expect((await listed(db, indicatorId))?.createdBy).toBe(await displayName(db, ACTOR));
     },
@@ -189,7 +191,7 @@ describe('the derived statuses', () => {
     'reads a draft of a published indicator as live with an unsubmitted draft',
     async ({ db }) => {
       const { indicatorId } = await indicatorWithTwoPublications(db, 'Live with a draft');
-      await createDraftFromPublished(db, indicatorId, ACTOR);
+      await createDraftFromPublished(db, indicatorId, AS_ACTOR);
       const statuses = { indicatorStatus: 'live', draftStatus: 'draft' };
 
       expect(await listed(db, indicatorId)).toMatchObject(statuses);
@@ -220,8 +222,8 @@ describe('getIndicatorById', () => {
       const target = seededIds.at(-1);
       if (target === undefined) throw new Error('The seed holds no indicators');
 
-      await createDraftFromPublished(db, target, ACTOR);
-      await updateIndicatorDraft(db, target, { name: 'Edited in a draft' }, {}, ACTOR);
+      await createDraftFromPublished(db, target, AS_ACTOR);
+      await updateIndicatorDraft(db, target, { name: 'Edited in a draft' }, {}, AS_ACTOR);
 
       expect(await getIndicatorById(db, target)).toMatchObject({
         draftStatus: 'draft',

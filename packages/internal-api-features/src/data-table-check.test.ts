@@ -11,7 +11,7 @@ import {
   createRouterTestApp,
   handlerLogLines,
   inTestTeam,
-  TEST_USER_ID,
+  testActor,
   testSessionCookie,
   testSessionVerifier,
 } from './testing.ts';
@@ -160,7 +160,7 @@ describe('PUT /api/internal/indicators/:id/data-table/confirmation', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ confirmedAt: '2026-10-12T10:00:00.000Z' });
-    expect(confirm).toHaveBeenCalledWith(INDICATOR, BATCH, TEST_USER_ID);
+    expect(confirm).toHaveBeenCalledWith(INDICATOR, BATCH, testActor(response));
     expect(await handlerLogLines(lines)).toEqual([
       expect.objectContaining({
         msg: 'Data table confirmed',

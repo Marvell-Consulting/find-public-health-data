@@ -88,7 +88,7 @@ async function addVersion(
 async function newTopicId(slug: string): Promise<string> {
   const [row] = await db
     .insert(topic)
-    .values({ slug, title: slug, description: slug })
+    .values({ slug, title: slug, description: slug, createdBy: ACTOR, updatedBy: ACTOR })
     .returning({ id: topic.id });
   if (!row) throw new Error('inserted no topic');
   return row.id;

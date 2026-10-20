@@ -6,9 +6,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { parseClassificationsFile, upsertClassifications } from './classification-core-data.ts';
 import { createDbFromClient } from './client.ts';
-import type { ClassificationRecord } from './schema/index.ts';
+import { type ClassificationRecord, SYSTEM_USER_IDS } from './schema/index.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
-import { createTestDatabase, type TestDatabase } from './testing.ts';
+import { auditEntriesFor, createTestDatabase, type TestDatabase } from './testing.ts';
 
 const committed = parseClassificationsFile(
   JSON.parse(
@@ -98,6 +98,19 @@ describe('upsertClassifications', () => {
 
     expect(first.summary).toEqual({ inserted: 1, updated: 0, unchanged: 0 });
     expect(again.summary).toEqual({ inserted: 0, updated: 0, unchanged: 1 });
+    expect(await auditEntriesFor(db, outcome.id)).toEqual([
+      expect.objectContaining({
+        actorId: SYSTEM_USER_IDS.coreDataImport,
+        action: 'classification.created',
+      }),
+      expect.objectContaining({
+        action: 'classification.updated',
+        changes: {
+          slug: { before: outcome.slug, after: renamed.slug },
+          name: { before: outcome.name, after: renamed.name },
+        },
+      }),
+    ]);
     expect(rewritten.summary).toEqual({ inserted: 0, updated: 1, unchanged: 0 });
     expect(rows).toEqual([renamed]);
     expect(rewritten.orphaned).toEqual([{ id: stray?.id, slug: 'population-no-file-lists' }]);

@@ -1,6 +1,6 @@
 import { appEnvFields, parseEnv, z } from '@fphd/config';
-import { createDb, type Database, dbEnvFields, resolveDbTls } from '@fphd/db';
-import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
+import { createDb, type Database, dbEnvFields, resolveDbTls, schema } from '@fphd/db';
+import { auditEntriesFor, createTestDatabase, type TestDatabase } from '@fphd/db/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { deleteTopic, getTopicById } from './topic-repository.ts';
@@ -45,15 +45,18 @@ describe('deleteTopic with linked indicators', () => {
     if (linked === undefined)
       throw new Error('the seed has no indicator_version_topic links to exercise');
 
-    const links = await db.$client<{ indicatorId: string }[]>`
-      SELECT v.indicator_id AS "indicatorId"
+    const links = await db.$client<{ indicatorId: string; versionId: string }[]>`
+      SELECT v.indicator_id AS "indicatorId", v.id AS "versionId"
       FROM indicator_version_topic it
       JOIN indicator_version v ON v.id = it.indicator_version_id
       WHERE it.topic_id = ${linked.topicId}
     `;
     expect(links.length).toBeGreaterThan(0);
 
-    const result = await deleteTopic(db, linked.topicId);
+    const result = await deleteTopic(db, linked.topicId, {
+      userId: schema.SYSTEM_USER_IDS.testSeed,
+      requestId: null,
+    });
 
     expect(result).toEqual({ ok: true });
     expect(await getTopicById(db, linked.topicId)).toBeUndefined();
@@ -68,5 +71,12 @@ describe('deleteTopic with linked indicators', () => {
       WHERE id IN ${db.$client(links.map((link) => link.indicatorId))}
     `;
     expect(survivors?.count).toBe(links.length);
+
+    const entry = (await auditEntriesFor(db, linked.topicId)).at(-1);
+    expect(entry?.action).toBe('topic.deleted');
+    const removed = entry?.changes.indicatorVersionIds;
+    expect(removed?.after).toEqual([]);
+    expect(removed?.before).toEqual(expect.arrayContaining(links.map((link) => link.versionId)));
+    expect(removed?.before).toHaveLength(links.length);
   });
 });

@@ -3,15 +3,17 @@ import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:f
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { getTableColumns, type Table } from 'drizzle-orm';
+import { asc, eq, getTableColumns, type Table } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import type postgres from 'postgres';
 
+import type { Database } from './client.ts';
 import { importCoreData } from './core-data.ts';
 import { migrateToLatest, migrationsFolder } from './migrations.ts';
 import { rebuildReadModels } from './read-models.ts';
 import type { Repositories } from './repositories.ts';
+import { auditLog } from './schema/index.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
 import { seedDummyTables } from './seeding.ts';
 
@@ -232,4 +234,19 @@ export function nullColumns<T extends Table>(table: T): Record<keyof T['$inferSe
   return Object.fromEntries(
     Object.keys(getTableColumns(table)).map((column) => [column, null]),
   ) as Record<keyof T['$inferSelect'], null>;
+}
+
+/** An entity's audit entries in the order they were recorded, without their ids and times. */
+export async function auditEntriesFor(db: Database, entityId: string) {
+  return db
+    .select({
+      actorId: auditLog.actorId,
+      action: auditLog.action,
+      entityType: auditLog.entityType,
+      requestId: auditLog.requestId,
+      changes: auditLog.changes,
+    })
+    .from(auditLog)
+    .where(eq(auditLog.entityId, entityId))
+    .orderBy(asc(auditLog.occurredAt), asc(auditLog.id));
 }

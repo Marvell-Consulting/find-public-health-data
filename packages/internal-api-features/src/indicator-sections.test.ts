@@ -29,7 +29,7 @@ import {
   createFakeInternalRepositories,
   createRouterTestApp,
   inTestTeam,
-  TEST_USER_ID,
+  testActor,
   testSessionCookie,
   testSessionVerifier,
   unansweredDraft,
@@ -116,7 +116,7 @@ describe('indicatorSectionsRouter', () => {
       '00000000-0000-7000-8000-000000000001',
       { hasLinks: true },
       { links },
-      TEST_USER_ID,
+      testActor(response),
     );
     expect(response.body).toEqual({ hasLinks: 'yes', links });
   });

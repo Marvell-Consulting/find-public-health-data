@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { appEnvFields, parseEnv, z } from '@fphd/config';
 import { createDb, type Database, dbEnvFields, resolveDbTls, schema } from '@fphd/db';
-import { createTestDatabase } from '@fphd/db/testing';
+import { auditEntriesFor, createTestDatabase } from '@fphd/db/testing';
 import { request } from '@fphd/express/testing';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { v7 as randomUuidV7 } from 'uuid';
@@ -15,7 +15,7 @@ import { confirmDataTable } from './data-table-check-repository.ts';
 import { processDataUpload } from './data-upload-load-repository.ts';
 import { updateIndicatorDraft } from './indicator-draft-repository.ts';
 import { createDraftFromPublished } from './indicator-publish-repository.ts';
-import { ACTOR, newDraft } from './indicator-repository.testing.ts';
+import { ACTOR, AS_ACTOR, newDraft } from './indicator-repository.testing.ts';
 import { createInternalRepositories } from './repositories.ts';
 import {
   createRouterTestApp,
@@ -95,7 +95,7 @@ async function load(indicatorId: string, content = CSV): Promise<string> {
       originalFilename: 'data.csv',
       byteSize: Buffer.byteLength(content),
       sha256: '0'.repeat(64),
-      actor: ACTOR,
+      actor: AS_ACTOR,
     },
     async () => Readable.from([content]),
     new AbortController().signal,
@@ -249,7 +249,7 @@ describe('GET /api/internal/indicators/:id/data-table', () => {
       indicatorId,
       { periodType: 'years', yearType: 'specified-end-date', yearEndDay: 31, yearEndMonth: 7 },
       {},
-      ACTOR,
+      AS_ACTOR,
     );
 
     const response = await check(indicatorId);
@@ -292,6 +292,21 @@ describe('PUT /api/internal/indicators/:id/data-table/confirmation', () => {
     expect(draft.updatedBy).toBe(TEST_USER_ID);
   });
 
+  it('records the confirmation under the request that made it', async () => {
+    const { indicatorId } = await newDraft(internalDb, 'Confirm on the record');
+    const batchId = await load(indicatorId);
+
+    const response = await confirm(indicatorId, batchId);
+
+    expect((await auditEntriesFor(ownerDb, indicatorId)).at(-1)).toEqual({
+      actorId: TEST_USER_ID,
+      action: 'indicator.data_table_confirmed',
+      entityType: 'indicator',
+      requestId: response.headers['x-fphd-request-id'],
+      changes: { dataTableConfirmedAt: { before: null, after: response.body.confirmedAt } },
+    });
+  });
+
   it('refuses a batch another upload has replaced, confirming neither', async () => {
     const { indicatorId } = await newDraft(internalDb, 'Confirm a replaced batch');
     const shown = await load(indicatorId);
@@ -303,6 +318,9 @@ describe('PUT /api/internal/indicators/:id/data-table/confirmation', () => {
     expect(response.body).toEqual({ error: 'data_table_changed' });
     const draft = await draftOf(ownerDb, indicatorId);
     expect(draft).toMatchObject({ uploadBatchId: replacement, dataTableConfirmedAt: null });
+    expect((await auditEntriesFor(ownerDb, indicatorId)).map(({ action }) => action)).not.toContain(
+      'indicator.data_table_confirmed',
+    );
   });
 
   it('refuses once the draft is published', async () => {
@@ -330,7 +348,7 @@ describe('PUT /api/internal/indicators/:id/data-table/confirmation', () => {
       .update(indicatorVersion)
       .set({ dataTableConfirmedAt: null })
       .where(eq(indicatorVersion.id, published.id));
-    await createDraftFromPublished(internalDb, published.indicatorId, ACTOR);
+    await createDraftFromPublished(internalDb, published.indicatorId, AS_ACTOR);
     const draft = await draftOf(ownerDb, published.indicatorId);
 
     const response = await confirm(published.indicatorId, draft.uploadBatchId ?? '');
@@ -367,7 +385,7 @@ describe('confirmDataTable', () => {
           (id, indicator_id, indicator_version_id, original_filename, uploaded_by, status)
         VALUES (${replacement}, ${indicatorId}, ${versionId}, 'data.csv', ${ACTOR}, 'processed')`;
       await tx`UPDATE indicator_version SET upload_batch_id = ${replacement} WHERE id = ${versionId}`;
-      const waiting = confirmDataTable(internalDb, indicatorId, shown, ACTOR);
+      const waiting = confirmDataTable(internalDb, indicatorId, shown, AS_ACTOR);
       await waitForLockWait(versionId);
       return { waiting };
     });
@@ -385,7 +403,7 @@ describe('confirmDataTable', () => {
 
     const confirmed = await ownerDb.$client.begin(async (tx) => {
       await tx`UPDATE indicator_version SET definition = 'Saved meanwhile' WHERE id = ${versionId}`;
-      const waiting = confirmDataTable(internalDb, indicatorId, shown, ACTOR);
+      const waiting = confirmDataTable(internalDb, indicatorId, shown, AS_ACTOR);
       await waitForLockWait(versionId);
       return { waiting };
     });

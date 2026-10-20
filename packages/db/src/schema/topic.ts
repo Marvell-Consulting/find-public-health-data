@@ -2,15 +2,16 @@ import { z } from '@fphd/config';
 import { SLUG_PATTERN } from '@fphd/utils/slug';
 import { foreignKey, index, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
 
-import { timestamps, uuidPrimaryKey } from './helpers.ts';
+import { uuidPrimaryKey } from './helpers.ts';
 import { indicatorVersion } from './indicator.ts';
+import { audit } from './user.ts';
 
 export const topic = pgTable('topic', {
   id: uuidPrimaryKey(),
   slug: text().notNull().unique(),
   title: text().notNull(),
   description: text().notNull(),
-  ...timestamps,
+  ...audit,
 });
 
 /**

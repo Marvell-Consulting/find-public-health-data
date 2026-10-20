@@ -1,4 +1,3 @@
-import type { Topic } from '@fphd/db';
 import { request } from '@fphd/express/testing';
 import express, { type Express } from 'express';
 import { describe, expect, it } from 'vitest';
@@ -6,18 +5,22 @@ import { describe, expect, it } from 'vitest';
 import {
   createFakeInternalRepositories,
   type FakeInternalRepositoryOverrides,
+  TEST_USER_ID,
   testSessionCookie,
   testSessionVerifier,
 } from './testing.ts';
+import type { TopicRow } from './topic-repository.ts';
 import { internalTopicsRouter } from './topics.ts';
 
-const topic: Topic = {
+const topic: TopicRow = {
   id: '00000000-0000-7000-8000-000000000001',
   slug: 'topic-a',
   title: 'Topic A',
   description: 'All about topic A.',
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+  createdBy: TEST_USER_ID,
+  updatedBy: TEST_USER_ID,
 };
 
 const validSubmission = { title: 'Topic A', slug: 'topic-a', description: 'All about topic A.' };
@@ -121,6 +124,20 @@ describe('POST /api/internal/topics', () => {
     await post(app, { title: '  Topic A  ', slug: ' topic-a ', description: ' A description. ' });
 
     expect(written).toEqual({ title: 'Topic A', slug: 'topic-a', description: 'A description.' });
+  });
+
+  it('creates the topic as the signed-in user', async () => {
+    let writer: unknown;
+    const app = createTestApp({
+      create: async (_values, actor) => {
+        writer = actor;
+        return { ok: true, topic };
+      },
+    });
+
+    await post(app, validSubmission);
+
+    expect(writer).toEqual({ userId: TEST_USER_ID, requestId: null });
   });
 
   it('rejects an invalid submission with a field message', async () => {
@@ -238,6 +255,20 @@ describe('PUT /api/internal/topics/:id', () => {
     });
   });
 
+  it('updates the topic as the signed-in user', async () => {
+    let writer: unknown;
+    const app = createTestApp({
+      update: async (_id, _values, actor) => {
+        writer = actor;
+        return { ok: true, topic, changed: true };
+      },
+    });
+
+    await put(app, validSubmission);
+
+    expect(writer).toEqual({ userId: TEST_USER_ID, requestId: null });
+  });
+
   it.each([
     ['title', { ...validSubmission, title: '   ' }, { title: 'Enter a topic name' }],
     [
@@ -300,6 +331,22 @@ describe('DELETE /api/internal/topics/:id', () => {
       .delete(`/api/internal/topics/${id}`)
       .set('Cookie', await adminCookie());
   }
+
+  it('deletes the topic as the signed-in user', async () => {
+    let writer: unknown;
+    const app = createTestApp({
+      delete: async (_id, actor) => {
+        writer = actor;
+        return { ok: true };
+      },
+    });
+
+    await request(app)
+      .delete(`/api/internal/topics/${topic.id}`)
+      .set('Cookie', await adminCookie());
+
+    expect(writer).toEqual({ userId: TEST_USER_ID, requestId: null });
+  });
 
   it('deletes the topic and answers with an empty 204', async () => {
     const app = createTestApp({ delete: async () => ({ ok: true }) });

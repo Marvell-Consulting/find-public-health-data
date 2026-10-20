@@ -1,6 +1,7 @@
 import type postgres from 'postgres';
 
-import { assignImportedTeam } from './data-migration-actors.ts';
+import { changesBetween, recordAudit, rowOf } from './audit-log.ts';
+import { assignImportedTeam, MIGRATION_USER_ID } from './data-migration-actors.ts';
 import type { DataMigrationProgressReporter } from './data-migration-copy.ts';
 import { applyDeletes, prepareVersionDeletes, stageDeletes } from './data-migration-deletes.ts';
 import type { DataMigrationManifest } from './data-migration-manifest.ts';
@@ -22,6 +23,7 @@ import {
   applyVersionBatchPointers,
 } from './data-migration-table-import.ts';
 import { type LegacySourceMap, readLegacySourceMap } from './legacy-sources.ts';
+import { dataMigration } from './schema/index.ts';
 
 export type {
   DataMigrationProgress,
@@ -215,12 +217,22 @@ export async function applyDataMigration(
   await tx.unsafe(
     "SELECT setval('indicator_short_id_seq', GREATEST(99999, (SELECT CASE WHEN is_called THEN last_value ELSE last_value - 1 END FROM indicator_short_id_seq), COALESCE((SELECT max(short_id) FROM indicator), 99999)), true)",
   );
-  await tx`
+  const [ledger] = await tx<{ row: Record<string, unknown> }[]>`
     INSERT INTO data_migration
       (id, kind, package_sha256, predecessor_id, source_snapshot_at, source_cutoff_at, table_changes)
     VALUES
       (${manifest.migration_id}, ${manifest.kind}, ${packageSha256}, ${manifest.predecessor},
        ${manifest.source.snapshot_at}, ${manifest.source.cutoff_at}, ${tx.json(changes)})
+    RETURNING to_jsonb(new) AS row
   `;
+  if (ledger === undefined)
+    throw new Error(`Migration ${manifest.migration_id} wrote no ledger row`);
+  await recordAudit(tx, { userId: MIGRATION_USER_ID, requestId: null }, [
+    {
+      action: 'data_migration.applied',
+      entityId: manifest.migration_id,
+      changes: changesBetween(null, rowOf(dataMigration, ledger.row)),
+    },
+  ]);
   return { applied: true, changes };
 }

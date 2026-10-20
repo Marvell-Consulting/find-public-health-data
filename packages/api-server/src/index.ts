@@ -2,13 +2,14 @@ import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { InvalidJwtSessionError } from '@fphd/auth/session-errors';
 import {
   createBaseApp,
+  requestId,
   requestLogging,
   type StartServerOptions,
   serverLogging,
   startServer,
 } from '@fphd/express';
 import type { Logger } from '@fphd/logger';
-import type { ErrorRequestHandler, Express, RequestHandler, Response } from 'express';
+import type { ErrorRequestHandler, Express, Request, RequestHandler, Response } from 'express';
 import { json } from 'express';
 
 export function createApiApp({
@@ -99,6 +100,17 @@ export function requireApiSession(response: Response): ApiSession {
   }
 
   return session;
+}
+
+/** Who makes a change, and the request it came in, as the audit log records them. */
+export interface ApiActor {
+  userId: string;
+  requestId: string | null;
+}
+
+/** The signed-in user and the request id, for a handler whose write records its actor. */
+export function requireApiActor(request: Request, response: Response): ApiActor {
+  return { userId: requireApiSession(response).sub, requestId: requestId(request) ?? null };
 }
 
 export function requireJwtRole(verifier: JwtSessionVerifier, role: string): RequestHandler {
