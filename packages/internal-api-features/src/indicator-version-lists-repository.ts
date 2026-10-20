@@ -127,8 +127,16 @@ export async function ageRangesOf(
     .orderBy(asc(indicatorVersionAgeRange.position));
 }
 
+/**
+ * The audit log's field for one dimension's classifications, such as `classificationIds.riskFactor`:
+ * a save replaces each dimension it names and leaves the others, so each is a list of its own.
+ */
+function classificationField(dimension: ClassificationDimension): string {
+  return `classificationIds.${dimension.replace(/_([a-z])/g, (_, next: string) => next.toUpperCase())}`;
+}
+
 /** The lists whose order means nothing, compared as sets in the audit log. */
-export const UNORDERED_LISTS = ['topicIds', 'classificationIds'];
+export const UNORDERED_LISTS = ['topicIds', ...CLASSIFICATION_DIMENSIONS.map(classificationField)];
 
 /** The lists a replacement rewrote, as the audit log records them: what each held, and holds. */
 export interface ReplacedLists {
@@ -214,11 +222,8 @@ export async function replaceLists(
           ids.map((classificationId) => ({ classificationId, indicatorVersionId: versionId })),
         );
     }
-    before.classificationIds = [
-      ...(before.classificationIds ?? []),
-      ...removed.map(({ id }) => id),
-    ];
-    after.classificationIds = [...(after.classificationIds ?? []), ...ids];
+    before[classificationField(dimension)] = removed.map(({ id }) => id);
+    after[classificationField(dimension)] = ids;
   }
 
   if (links !== undefined) {

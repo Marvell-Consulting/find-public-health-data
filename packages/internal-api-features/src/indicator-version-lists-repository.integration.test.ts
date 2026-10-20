@@ -1,4 +1,5 @@
 import { schema } from '@fphd/db';
+import { auditEntriesFor } from '@fphd/db/testing';
 import { MAX_AGE } from '@fphd/utils/sex-and-ages';
 import { desc, eq } from 'drizzle-orm';
 import { describe, expect } from 'vitest';
@@ -85,6 +86,11 @@ describe('updateIndicatorDraft', () => {
       expect(await storedClassificationIdsOf(db, created.versionId)).toEqual(
         [population.id, type.id].sort(),
       );
+      // Each dimension given is its own list in the log; the population it left is not in it.
+      expect((await auditEntriesFor(db, created.indicatorId)).at(-1)?.changes).toEqual({
+        'classificationIds.indicatorType': { before: [], after: [type.id] },
+        'classificationIds.riskFactor': { before: [riskFactor.id], after: [] },
+      });
     },
   );
 

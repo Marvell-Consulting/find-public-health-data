@@ -111,16 +111,18 @@ src/
   `requireApiActor`, or a system user and no request for a command. `changes` maps each field to its
   `before` and `after`, keyed by property name: a created row records every column
   (`changesBetween(null, row)`), an update the columns it changed, a deleted row every column it
-  had, and a replaced list (`listChanges`) its whole contents. Before values come from the row the
-  write locks, from `RETURNING OLD` or from the rows its delete returns, never from a read another
-  write could overtake. A write that changes nothing records nothing. A bulk load, an upload's
-  observations or a live-data package, records one entry for its batch or package, with its counts,
-  never one per row loaded. The core data import is the exception: its rows are entities in their
-  own right, a few hundred at most, so it records an entry for each row it inserts or rewrites. A
-  new kind of write adds its action to `AUDIT_ACTIONS` in `schema/audit-log.ts`, whose check
-  constraint then needs a migration. `internal_api` may insert and select entries, never update or
-  delete them; entries name people by `app_user` id alone, so anonymising one never touches the log.
-  Seeding and resets rebuild the database rather than change it, and record nothing.
+  had, and a replaced list (`listChanges`) its whole contents. A list a write replaces in parts is
+  one field per part, as a draft's classifications are one per dimension
+  (`classificationIds.riskFactor`). Before values come from the row the write locks, from `RETURNING
+  OLD` or from the rows its delete returns, never from a read another write could overtake. A write
+  that changes nothing records nothing. A bulk load, an upload's observations or a live-data
+  package, records one entry for its batch or package, with its counts, never one per row loaded.
+  The core data import is the exception: its rows are entities in their own right, a few hundred at
+  most, so it records an entry for each row it inserts or rewrites. A new kind of write adds its
+  action to `AUDIT_ACTIONS` in `schema/audit-log.ts`, whose check constraint then needs a migration.
+  `internal_api` may insert and select entries, never update or delete them; entries name people by
+  `app_user` id alone, so anonymising one never touches the log. Seeding and resets rebuild the
+  database rather than change it, and record nothing.
 - **Slugs**: `indicator_version.slug` is derived from the version's name by `slugify` in
   `@fphd/utils/slug`. An exclusion constraint,
   `EXCLUDE USING gist (slug WITH =, indicator_id WITH <>)`, keeps a slug to one indicator for
