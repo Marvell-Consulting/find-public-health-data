@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
-
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
+import { topicPageTests } from '../support/topic-page.ts';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/topics/health-behaviours');
@@ -20,3 +20,5 @@ test('answers a topic that does not exist with the not-found page', async ({ pag
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
   await expectNoAccessibilityViolations(page, testInfo);
 });
+
+topicPageTests();

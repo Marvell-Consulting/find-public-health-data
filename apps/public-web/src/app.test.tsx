@@ -86,7 +86,16 @@ describe('public application routes', () => {
       {
         path: '/',
         Component: PublicApp,
-        children: [{ path: 'topics/:slug', Component: TopicRoute, loader: () => topic }],
+        children: [
+          {
+            path: 'topics/:slug',
+            Component: TopicRoute,
+            loader: () => ({
+              topic,
+              content: null,
+            }),
+          },
+        ],
       },
     ]);
 

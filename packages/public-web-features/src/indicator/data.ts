@@ -6,6 +6,7 @@ import type {
 import { periodLabel } from '@fphd/utils/period-label';
 import type { PublicYearType } from '@fphd/utils/period-type';
 import type { Polarity } from '@fphd/utils/polarity';
+import { recentTrendDirection } from '@fphd/utils/recent-trend';
 
 function daysBetween(fromDate: string, toDate: string): number {
   return (Date.parse(toDate) - Date.parse(fromDate)) / 86_400_000;
@@ -22,6 +23,17 @@ function segmentKey(observation: IndicatorObservation): string {
   return observation.dimensions
     .map((dimension) => `${dimension.type}:${dimension.value}`)
     .join('|');
+}
+
+export function sameSegment(a: IndicatorObservation, b: IndicatorObservation): boolean {
+  return (
+    a.dimensions.length === b.dimensions.length &&
+    a.dimensions.every(
+      (dimension, index) =>
+        dimension.type === b.dimensions[index]?.type &&
+        dimension.value === b.dimensions[index]?.value,
+    )
+  );
 }
 
 /** The observation's dimension values joined the way the range API labels segments:
@@ -227,7 +239,8 @@ export function comparisonRows(
 ): ComparisonRow[] {
   return selected.flatMap(({ detail, areaData }) => {
     const first = areaData[0];
-    const observations = first?.observations ?? [];
+    const observations =
+      areaData.find(({ observations }) => observations.length > 0)?.observations ?? [];
     const sexes = dimensionValues(observations, 'Sex');
     const hasAggregate = observations.some(
       (observation) => !observation.dimensions.some(({ type }) => type === 'Sex'),
@@ -311,7 +324,7 @@ export function comparisonRows(
             notes: [],
             sex: '',
             periodType: 'all' as PeriodType,
-            cells: [],
+            cells: areas.map((data) => cellFor(data, { sex: '', periodType: 'all', suffix: '' })),
           },
         ];
   });
@@ -616,17 +629,10 @@ export function recentTrend(
   observations: IndicatorObservation[],
   polarity: Polarity | null,
 ): RecentTrend {
-  const series = trendSeries(observations).filter(({ value }) => value !== null);
-  if (series.length < 5) {
+  const direction = recentTrendDirection(trendSeries(observations).map(({ value }) => value));
+  if (direction === null)
     return { direction: null, label: 'Trend cannot be calculated', tone: 'grey' };
-  }
-  const latest = series.slice(-5).map(({ value }) => value as number);
-  const change = (latest.at(-1) ?? 0) - (latest[0] ?? 0);
-  const mean = latest.reduce((sum, value) => sum + value, 0) / latest.length;
-  if (mean === 0 || Math.abs(change) < Math.abs(mean) * 0.02) {
-    return { direction: 'right', label: 'No significant change', tone: 'yellow' };
-  }
-  const direction = change > 0 ? 'up' : 'down';
+  if (direction === 'right') return { direction, label: 'No significant change', tone: 'yellow' };
   const goodDirection = polarityGoodDirection(polarity);
   const word = direction === 'up' ? 'Increasing' : 'Decreasing';
   if (!goodDirection) {

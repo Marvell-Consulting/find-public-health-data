@@ -3,6 +3,7 @@ import {
   comparisonRows,
   filterObservations,
   recentTrend,
+  sameSegment,
   segmentValuesKey,
   trendSeries,
 } from './data.ts';
@@ -56,7 +57,10 @@ export function comparisonTable(
           );
     const series = source
       ? trendSeries(
-          filterObservations(source.observations, { sex: row.sex, periodType: row.periodType }),
+          filterObservations(source.observations, {
+            sex: row.sex,
+            periodType: row.periodType,
+          }).filter((observation) => sameSegment(observation, latest)),
         )
       : [];
     const samePeriod = ({ fromDate, toDate }: { fromDate: string; toDate: string }) =>

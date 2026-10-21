@@ -112,6 +112,12 @@
       "development": "./src/value-type-and-unit.ts",
       "types": "./src/value-type-and-unit.ts",
       "default": "./dist/value-type-and-unit.js"
+    },
+    "./recent-trend": {
+      "browser": "./src/recent-trend.ts",
+      "development": "./src/recent-trend.ts",
+      "types": "./src/recent-trend.ts",
+      "default": "./dist/recent-trend.js"
     }
   },
   "files": [

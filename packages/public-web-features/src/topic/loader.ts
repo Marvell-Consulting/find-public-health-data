@@ -2,6 +2,9 @@ import { topicDetailSchema, topicSummaryListSchema } from '@fphd/public-api-feat
 import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
+import { loadIndicatorTableData } from '../indicator/loader.ts';
+import { loadSearch } from '../search/loader.ts';
+import { topicIndicators, topicTableSelection } from './data.ts';
 
 export type { TopicDetail, TopicSummary } from '@fphd/public-api-features/contract';
 
@@ -19,7 +22,8 @@ export async function loadTopics({ context }: LoaderFunctionArgs) {
  * React Router decodes %2F inside a single dynamic segment, so an un-encoded slug of
  * '../internal' would normalise the request onto a different API route entirely.
  */
-export async function loadTopic({ context, params }: LoaderFunctionArgs) {
+export async function loadTopic(args: LoaderFunctionArgs) {
+  const { context, params, request } = args;
   const { slug } = params;
 
   if (!slug) {
@@ -28,5 +32,44 @@ export async function loadTopic({ context, params }: LoaderFunctionArgs) {
     throw new Error('loadTopic expects a slug param; check the route that renders it');
   }
 
-  return context.get(apiContext).get(apiPath`/api/topics/${slug}`, topicDetailSchema);
+  const topic = await context.get(apiContext).get(apiPath`/api/topics/${slug}`, topicDetailSchema);
+  const url = new URL(request.url);
+  const tab = url.searchParams.get('tab-topic');
+  if (tab !== 'data' && tab !== 'areas') return { topic, content: null };
+  const path = `/topics/${encodeURIComponent(slug)}`;
+  const search = await loadSearch(args, { topicSlug: slug, path });
+  const listing = topicIndicators(
+    search.searchResult.indicators,
+    url.searchParams,
+    search.searchResult,
+  );
+  const dataUrl = new URL(request.url);
+  dataUrl.search = '';
+  for (const { shortId } of listing.indicators) dataUrl.searchParams.append('is', String(shortId));
+  for (const code of search.gaCodes) dataUrl.searchParams.append('as', code);
+  for (const level of search.geoLevels) dataUrl.searchParams.append('als', level);
+  const defaultAreas =
+    url.searchParams.get('tab-topic') === 'areas' &&
+    search.gaCodes.length === 0 &&
+    search.geoLevels.length === 0;
+  if (defaultAreas && search.displayGroups.includes('Local authorities')) {
+    dataUrl.searchParams.append('als', 'Local authorities');
+  }
+  const data = await loadIndicatorTableData(
+    {
+      ...args,
+      params: {},
+      request: new Request(dataUrl),
+    },
+    search.displayGroups,
+  );
+  return {
+    topic,
+    content: {
+      search,
+      listing,
+      data: { ...data, selected: topicTableSelection(data.selected) },
+      defaultAreas,
+    },
+  };
 }
