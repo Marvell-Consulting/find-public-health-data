@@ -7,6 +7,7 @@ import { hasSqlState, UNIQUE_VIOLATION } from './indicator-repository-sql.ts';
 import {
   ageRangesOf,
   classificationsOf,
+  copyTaxonomyPlacements,
   linksOf,
   replaceLists,
   sourcesOf,
@@ -86,6 +87,7 @@ export async function createDraftFromPublished(
           ageRanges,
           ...sources,
         });
+        const placements = await copyTaxonomyPlacements(tx, publishedId, draft.id);
 
         await recordAudit(tx, actor, [
           {
@@ -94,6 +96,7 @@ export async function createDraftFromPublished(
             changes: {
               ...changesBetween(null, draft),
               ...listChanges({}, copied.after),
+              ...listChanges({}, { taxonomyPlacements: placements }),
             },
           },
         ]);

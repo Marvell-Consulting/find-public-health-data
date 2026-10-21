@@ -29,6 +29,7 @@ describe('commands', () => {
       'db status',
       'db import-core-data',
       'db seed-dummy-data',
+      'db seed-taxonomy',
       'db import-published-snapshot',
       'db migrate-live-data',
       'db rebuild-read-models',

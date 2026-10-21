@@ -1,8 +1,19 @@
 import { z } from '@fphd/config';
 import { SLUG_PATTERN } from '@fphd/utils/slug';
-import { foreignKey, index, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import {
+  boolean,
+  foreignKey,
+  index,
+  pgTable,
+  primaryKey,
+  text,
+  unique,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
-import { uuidPrimaryKey } from './helpers.ts';
+import { timestamps, uuidPrimaryKey } from './helpers.ts';
 import { indicatorVersion } from './indicator.ts';
 import { audit } from './user.ts';
 
@@ -11,6 +22,7 @@ export const topic = pgTable('topic', {
   slug: text().notNull().unique(),
   title: text().notNull(),
   description: text().notNull(),
+  isActive: boolean().notNull().default(true),
   ...audit,
 });
 
@@ -23,6 +35,7 @@ export const indicatorVersionTopic = pgTable(
   {
     indicatorVersionId: uuid().notNull(),
     topicId: uuid().notNull(),
+    isPrimary: boolean().notNull().default(false),
   },
   (t) => [
     primaryKey({ name: 'indicator_version_topic_pk', columns: [t.indicatorVersionId, t.topicId] }),
@@ -37,6 +50,9 @@ export const indicatorVersionTopic = pgTable(
       foreignColumns: [topic.id],
     }),
     index('idx_indicator_version_topic_topic').on(t.topicId),
+    uniqueIndex('idx_indicator_version_topic_primary')
+      .on(t.indicatorVersionId)
+      .where(sql`${t.isPrimary}`),
   ],
 );
 
@@ -49,6 +65,63 @@ export const topicRecordSchema = z.object({
   slug: z.string().min(1).regex(SLUG_PATTERN, 'slug must be lowercase, hyphen-separated words'),
   title: z.string().min(1),
   description: z.string().min(1),
+  isActive: z.boolean().optional(),
 });
 
 export type TopicRecord = z.infer<typeof topicRecordSchema>;
+
+export const subtopic = pgTable(
+  'subtopic',
+  {
+    id: uuidPrimaryKey(),
+    topicId: uuid()
+      .notNull()
+      .references(() => topic.id, { onDelete: 'cascade' }),
+    slug: text().notNull(),
+    title: text().notNull(),
+    ...timestamps,
+  },
+  (t) => [
+    unique('subtopic_topic_slug_unique').on(t.topicId, t.slug),
+    unique('subtopic_id_topic_unique').on(t.id, t.topicId),
+  ],
+);
+
+export const indicatorVersionSubtopic = pgTable(
+  'indicator_version_subtopic',
+  {
+    indicatorVersionId: uuid().notNull(),
+    topicId: uuid().notNull(),
+    subtopicId: uuid().notNull(),
+    isPrimary: boolean().notNull().default(false),
+  },
+  (t) => [
+    primaryKey({
+      name: 'indicator_version_subtopic_pk',
+      columns: [t.indicatorVersionId, t.subtopicId],
+    }),
+    foreignKey({
+      name: 'indicator_version_subtopic_topic_fk',
+      columns: [t.indicatorVersionId, t.topicId],
+      foreignColumns: [indicatorVersionTopic.indicatorVersionId, indicatorVersionTopic.topicId],
+    }).onDelete('cascade'),
+    foreignKey({
+      name: 'indicator_version_subtopic_subtopic_fk',
+      columns: [t.subtopicId, t.topicId],
+      foreignColumns: [subtopic.id, subtopic.topicId],
+    }),
+    uniqueIndex('idx_indicator_version_subtopic_primary')
+      .on(t.indicatorVersionId)
+      .where(sql`${t.isPrimary}`),
+    index('idx_indicator_version_subtopic_subtopic').on(t.subtopicId),
+  ],
+);
+
+export const subtopicRecordSchema = z.object({
+  id: z.uuidv7(),
+  topicId: z.uuidv7(),
+  slug: z.string().min(1).regex(SLUG_PATTERN),
+  title: z.string().min(1),
+});
+
+export type SubtopicRecord = z.infer<typeof subtopicRecordSchema>;

@@ -146,21 +146,21 @@ describe('taggingColumns', () => {
     expect(
       taggingColumns.fromDraft({
         ...unansweredDraft,
-        hasRiskFactor: true,
+        hasLifeStage: true,
         hasFramework: false,
         topicIds: [TAGS.topic],
         classifications: [
           { id: TAGS.framework, dimension: 'framework' },
           { id: TAGS.type, dimension: 'indicator_type' },
           { id: '019fa38f-073f-764e-9ac6-1c4d03b10006', dimension: 'population' },
-          { id: TAGS.riskFactor, dimension: 'risk_factor' },
+          { id: TAGS.lifeStage, dimension: 'life_stage' },
         ],
       }),
     ).toEqual({
       topicIds: [TAGS.topic],
       indicatorTypeIds: [TAGS.type],
-      hasRiskFactor: 'yes',
-      riskFactorIds: [TAGS.riskFactor],
+      hasLifeStage: 'yes',
+      lifeStageIds: [TAGS.lifeStage],
       hasFramework: 'no',
       frameworkIds: [TAGS.framework],
     });
@@ -168,14 +168,15 @@ describe('taggingColumns', () => {
 
   it('writes the answers and replaces only the dimensions the page asks about', () => {
     expect(taggingColumns.toAttributes(tagging)).toEqual({
-      hasRiskFactor: true,
+      isAreaContext: false,
+      hasLifeStage: true,
       hasFramework: false,
     });
     expect(taggingColumns.toLists?.(tagging)).toEqual({
       topicIds: [TAGS.otherTopic, TAGS.topic],
       classificationIds: {
         indicator_type: [TAGS.type],
-        risk_factor: [TAGS.riskFactor],
+        life_stage: [TAGS.lifeStage],
         framework: [],
       },
     });
@@ -184,13 +185,13 @@ describe('taggingColumns', () => {
   it('drops the tags beside a "No", whatever the form sent', () => {
     const sent: Tagging = {
       ...tagging,
-      hasRiskFactor: 'no',
+      hasLifeStage: 'no',
       hasFramework: 'no',
       frameworkIds: [TAGS.framework],
     };
 
     expect(taggingColumns.toLists?.(sent)).toMatchObject({
-      classificationIds: { risk_factor: [], framework: [] },
+      classificationIds: { life_stage: [], framework: [] },
     });
   });
 });

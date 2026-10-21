@@ -18,4 +18,5 @@ export {
   dataMigrationRelationshipsSchema,
   parseDataMigrationRelationships,
 } from './data-migration-relationships.ts';
+export { type IndicatorTopicFile, parseIndicatorTopicFile } from './indicator-topic-file.ts';
 export { SEED_TABLES } from './seed-tables.ts';

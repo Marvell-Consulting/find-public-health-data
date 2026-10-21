@@ -24,6 +24,7 @@
     "db:migrate-live-data": "pnpm --filter @fphd/operations cli db migrate-live-data",
     "db:reset": "pnpm --filter @fphd/operations cli db reset",
     "db:seed-dummy-data": "pnpm --filter @fphd/operations cli db seed-dummy-data",
+    "db:seed-taxonomy": "pnpm --filter @fphd/operations cli db seed-taxonomy",
     "db:studio": "pnpm --filter @fphd/config --filter @fphd/utils build && pnpm --filter @fphd/db db:studio",
     "dev": "pnpm services:up && pnpm --recursive --parallel run dev",
     "dev:internal": "pnpm services:up && pnpm --parallel --filter @fphd/internal-web --filter @fphd/internal-api run dev",

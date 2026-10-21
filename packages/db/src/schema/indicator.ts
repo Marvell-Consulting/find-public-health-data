@@ -202,6 +202,8 @@ export const indicatorVersion = pgTable(
     hasLinks: boolean(),
     hasRiskFactor: boolean(),
     hasFramework: boolean(),
+    hasLifeStage: boolean(),
+    isAreaContext: boolean().notNull().default(false),
     // Copyright and data re-use
     // True when the indicator states its own copyright or re-use terms instead of the defaults.
     hasCustomCopyright: boolean(),

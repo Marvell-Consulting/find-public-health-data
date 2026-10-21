@@ -63,7 +63,7 @@ export interface IndicatorSearchFilters {
   query: string;
   topics: string[];
   indicatorTypes: string[];
-  riskFactors: string[];
+  lifeStages: string[];
   frameworks: string[];
   populations: string[];
   inequalities: string[];
@@ -602,8 +602,8 @@ export async function searchIndicators(
   if (filters.indicatorTypes.length > 0) {
     conditions.push(classificationExists('indicator_type', filters.indicatorTypes));
   }
-  if (filters.riskFactors.length > 0) {
-    conditions.push(classificationExists('risk_factor', filters.riskFactors));
+  if (filters.lifeStages.length > 0) {
+    conditions.push(classificationExists('life_stage', filters.lifeStages));
   }
   if (filters.frameworks.length > 0) {
     conditions.push(classificationExists('framework', filters.frameworks));

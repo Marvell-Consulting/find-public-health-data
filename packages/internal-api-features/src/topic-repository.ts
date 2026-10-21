@@ -1,10 +1,10 @@
 import { type Database, schema } from '@fphd/db';
-import { type Actor, changesBetween, recordAudit } from '@fphd/db/audit-log';
+import { type Actor, changesBetween, listChanges, recordAudit } from '@fphd/db/audit-log';
 import { countDistinct, eq, sql } from 'drizzle-orm';
 
 import { violatesConstraint } from './indicator-repository-sql.ts';
 
-const { indicatorVersion, indicatorVersionTopic, topic } = schema;
+const { indicatorVersion, indicatorVersionTopic, subtopic, topic } = schema;
 
 /** A topic row with its writers, which only the internal surface reads. */
 export type TopicRow = typeof topic.$inferSelect;
@@ -135,12 +135,31 @@ export async function deleteTopic(
 ): Promise<DeleteTopicResult> {
   try {
     return await db.transaction(async (tx) => {
+      const [current] = await tx
+        .select({ id: topic.id })
+        .from(topic)
+        .where(eq(topic.id, id))
+        .for('update');
+      if (current === undefined) return { ok: false, reason: 'not_found' };
+      const subtopics = await tx
+        .select({ id: subtopic.id })
+        .from(subtopic)
+        .where(eq(subtopic.topicId, id));
       const [deleted] = await tx.delete(topic).where(eq(topic.id, id)).returning();
 
       if (deleted === undefined) return { ok: false, reason: 'not_found' };
 
       await recordAudit(tx, actor, [
-        { action: 'topic.deleted', entityId: id, changes: changesBetween(deleted, null) },
+        {
+          action: 'topic.deleted',
+          entityId: id,
+          changes: {
+            ...changesBetween(deleted, null),
+            ...(subtopics.length
+              ? listChanges({ subtopicIds: subtopics.map(({ id }) => id) }, { subtopicIds: [] })
+              : {}),
+          },
+        },
       ]);
 
       return { ok: true };

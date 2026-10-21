@@ -8,8 +8,8 @@ function data(path: string): unknown {
   return JSON.parse(readFileSync(fileURLToPath(new URL(path, import.meta.url)), 'utf-8'));
 }
 
-describe('published demo topic mapping', () => {
-  it('covers every topic and retains the curated seed memberships', () => {
+describe('published workbook topic mapping', () => {
+  it('covers every current topic and uses the same seed memberships', () => {
     const topics = data('../data/topics.json') as { id: string }[];
     const published = parseIndicatorTopicFile(data('../data/published-indicator-topics.json'));
     const curated = parseIndicatorTopicFile(data('../data/indicator-topics.json'));

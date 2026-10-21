@@ -39,20 +39,20 @@ describe('taggingServerSection', () => {
       await fieldErrorsOf({
         ...tagging,
         topicIds: [TAGS.type],
-        riskFactorIds: ['019fa38f-073f-764e-9ac6-1c4d03b10999'],
+        lifeStageIds: ['019fa38f-073f-764e-9ac6-1c4d03b10999'],
         hasFramework: 'yes',
         frameworkIds: [TAGS.topic],
       }),
     ).toEqual({
       topicIds: 'Select a topic from the list',
-      riskFactorIds: 'Select a risk factor from the list',
+      lifeStageIds: 'Select a life stage from the list',
       frameworkIds: 'Select a framework or programme from the list',
     });
   });
 
   it('does not judge the tags beside a "No", which are dropped', async () => {
     expect(
-      await fieldErrorsOf({ ...tagging, hasRiskFactor: 'no', riskFactorIds: [TAGS.topic] }),
+      await fieldErrorsOf({ ...tagging, hasLifeStage: 'no', lifeStageIds: [TAGS.topic] }),
     ).toBeUndefined();
   });
 });

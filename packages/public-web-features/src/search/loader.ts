@@ -145,7 +145,7 @@ export async function loadSearch({ context, request }: LoaderFunctionArgs) {
     q: query,
     topics: pickStrings(params, 't'),
     indicatorTypes: pickStrings(params, 'it'),
-    riskFactors: pickStrings(params, 'rf'),
+    lifeStages: pickStrings(params, 'ls'),
     frameworks: pickStrings(params, 'fw'),
     populations: pickStrings(params, 'pg'),
     inequalities: pickStrings(params, 'eq'),

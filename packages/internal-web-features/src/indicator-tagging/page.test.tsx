@@ -26,20 +26,20 @@ const options: TagOptions = {
     { id: cancer, name: 'Cancer' },
   ],
   indicatorTypes: [{ id: outcome, name: 'Outcome' }],
-  riskFactors: [{ id: gambling, name: 'Gambling' }],
+  lifeStages: [{ id: gambling, name: 'Gambling' }],
   frameworks: [{ id: healthyChild, name: 'Healthy Child' }],
 };
 
 const empty: TaggingPageValues = {
   topicIds: [],
   indicatorTypeIds: [],
-  hasRiskFactor: '',
-  riskFactorIds: [],
+  hasLifeStage: '',
+  lifeStageIds: [],
   hasFramework: '',
   frameworkIds: [],
   addTopic: '',
   addIndicatorType: '',
-  addRiskFactor: '',
+  addLifeStage: '',
   addFramework: '',
 };
 
@@ -67,7 +67,7 @@ describe('TaggingPage', () => {
     expect(screen.getByRole('heading', { level: 1, name: TITLE })).toBeTruthy();
     expect(document.title).toBe(`${TITLE} - ${serviceName} - GOV.UK`);
     expect(
-      screen.getByRole('group', { name: 'Does this indicator include a risk factor?' }),
+      screen.getByRole('group', { name: 'Does this indicator need a life stage tag?' }),
     ).toBeTruthy();
     expect(
       screen.getByRole('group', { name: 'Is this indicator part of a framework or programme?' }),
@@ -79,7 +79,7 @@ describe('TaggingPage', () => {
 
     expect(
       screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent),
-    ).toEqual(['Select a risk factor', 'Select a framework or programme']);
+    ).toEqual(['Select a life stage', 'Select a framework or programme']);
   });
 
   it('offers every tag of each list in a select with its own Add button', () => {
@@ -90,8 +90,8 @@ describe('TaggingPage', () => {
       'Alcohol',
       'Cancer',
     ]);
-    expect(select('Select an indicator type').name).toBe('addIndicatorType');
-    expect(select('Select a risk factor').name).toBe('addRiskFactor');
+    expect(select('Select a measure type').name).toBe('addIndicatorType');
+    expect(select('Select a life stage').name).toBe('addLifeStage');
     expect(select('Select a framework or programme').name).toBe('addFramework');
     expect(
       screen
@@ -99,14 +99,14 @@ describe('TaggingPage', () => {
         .map((button) => [button.textContent, (button as HTMLButtonElement).value]),
     ).toEqual([
       ['Add topic', addIntent('topicIds')],
-      ['Add indicator type', addIntent('indicatorTypeIds')],
-      ['Add risk factor', addIntent('riskFactorIds')],
+      ['Add measure type', addIntent('indicatorTypeIds')],
+      ['Add life stage', addIntent('lifeStageIds')],
       ['Add framework or programme', addIntent('frameworkIds')],
     ]);
   });
 
   it('lists the tags added, each carried in the form with a Remove button naming it', () => {
-    renderPage({ values: { ...empty, topicIds: [cancer, alcohol], hasRiskFactor: 'yes' } });
+    renderPage({ values: { ...empty, topicIds: [cancer, alcohol], hasLifeStage: 'yes' } });
 
     expect(hidden('topicIds').map((input) => input.value)).toEqual([cancer, alcohol]);
     const remove = screen.getByRole('button', { name: 'Remove topic Alcohol' });
@@ -133,7 +133,7 @@ describe('TaggingPage', () => {
     renderPage({
       fieldErrors: {
         topicIds: 'Select at least one topic',
-        hasRiskFactor: 'Select whether this indicator includes a risk factor',
+        hasLifeStage: 'Select whether this indicator needs a life stage tag',
       },
     });
 
@@ -144,7 +144,7 @@ describe('TaggingPage', () => {
         .map((link) => [link.textContent, link.getAttribute('href')]),
     ).toEqual([
       ['Select at least one topic', '#addTopic-input'],
-      ['Select whether this indicator includes a risk factor', '#hasRiskFactor-radio-0'],
+      ['Select whether this indicator needs a life stage tag', '#hasLifeStage-radio-0'],
     ]);
     expect(select('Select a topic').getAttribute('aria-describedby')).toBe('addTopic-error');
   });

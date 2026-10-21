@@ -46,6 +46,7 @@ export function taggingServerSection(
   return {
     ...taggingSection,
     schema: taggingSection.schema.transform(async (answers, ctx) => {
+      if (answers.isAreaContext === 'yes') return answers;
       const options = await tags.listOptions();
       let refused = false;
 

@@ -13,18 +13,19 @@ import { ADD_TAG_FIELDS, type TaggingPageField, type TaggingPageValues } from '.
 
 type FieldErrors = Partial<Record<TaggingPageField, string>>;
 
-const RISK_FACTOR_QUESTION = 'Does this indicator include a risk factor?';
+const LIFE_STAGE_QUESTION = 'Does this indicator need a life stage tag?';
 const FRAMEWORK_QUESTION = 'Is this indicator part of a framework or programme?';
 
 // The order the error summary lists them in, which is the order the page asks.
 const FIELDS: readonly TaggingPageField[] = [
+  'isAreaContext',
   'topicIds',
   'addTopic',
   'indicatorTypeIds',
   'addIndicatorType',
-  'hasRiskFactor',
-  'riskFactorIds',
-  'addRiskFactor',
+  'hasLifeStage',
+  'lifeStageIds',
+  'addLifeStage',
   'hasFramework',
   'frameworkIds',
   'addFramework',
@@ -117,10 +118,11 @@ export function TaggingPage({ options, ...form }: TaggingPageProps) {
     <IndicatorSectionForm
       continueOnEnter
       fieldIds={{
+        isAreaContext: firstRadioId('isAreaContext'),
         topicIds: fieldInputId('addTopic'),
         indicatorTypeIds: fieldInputId('addIndicatorType'),
-        hasRiskFactor: firstRadioId('hasRiskFactor'),
-        riskFactorIds: fieldInputId('addRiskFactor'),
+        hasLifeStage: firstRadioId('hasLifeStage'),
+        lifeStageIds: fieldInputId('addLifeStage'),
         hasFramework: firstRadioId('hasFramework'),
         frameworkIds: fieldInputId('addFramework'),
       }}
@@ -128,29 +130,49 @@ export function TaggingPage({ options, ...form }: TaggingPageProps) {
       form={form}
       title="Add tags for this indicator"
     >
-      {picker('topicIds', 'h2')}
-      {picker('indicatorTypeIds', 'h2')}
       <Radios
-        defaultValue={values.hasRiskFactor}
-        error={fieldErrors.hasRiskFactor}
-        label={RISK_FACTOR_QUESTION}
+        defaultValue={values.isAreaContext === 'yes' ? 'yes' : 'no'}
+        error={fieldErrors.isAreaContext}
+        label="Does this indicator provide population or area context?"
+        hint="Area context indicators do not have topic or tag assignments."
         labelHeading="h2"
-        name="hasRiskFactor"
+        name="isAreaContext"
         options={[
-          // Shown without JavaScript; with it, only while "Yes" is chosen.
-          { label: 'Yes', value: 'yes', conditional: picker('riskFactorIds', 'h3') },
-          { label: 'No', value: 'no' },
-        ]}
-      />
-      <Radios
-        defaultValue={values.hasFramework}
-        error={fieldErrors.hasFramework}
-        label={FRAMEWORK_QUESTION}
-        labelHeading="h2"
-        name="hasFramework"
-        options={[
-          { label: 'Yes', value: 'yes', conditional: picker('frameworkIds', 'h3') },
-          { label: 'No', value: 'no' },
+          { label: 'Yes', value: 'yes' },
+          {
+            label: 'No',
+            value: 'no',
+            conditional: (
+              <>
+                {picker('topicIds', 'h2')}
+                {picker('indicatorTypeIds', 'h2')}
+                <Radios
+                  defaultValue={values.hasLifeStage}
+                  error={fieldErrors.hasLifeStage}
+                  label={LIFE_STAGE_QUESTION}
+                  hint="Only add a life stage tag where the age metadata does not show it."
+                  labelHeading="h2"
+                  name="hasLifeStage"
+                  options={[
+                    // Shown without JavaScript; with it, only while "Yes" is chosen.
+                    { label: 'Yes', value: 'yes', conditional: picker('lifeStageIds', 'h3') },
+                    { label: 'No', value: 'no' },
+                  ]}
+                />
+                <Radios
+                  defaultValue={values.hasFramework}
+                  error={fieldErrors.hasFramework}
+                  label={FRAMEWORK_QUESTION}
+                  labelHeading="h2"
+                  name="hasFramework"
+                  options={[
+                    { label: 'Yes', value: 'yes', conditional: picker('frameworkIds', 'h3') },
+                    { label: 'No', value: 'no' },
+                  ]}
+                />
+              </>
+            ),
+          },
         ]}
       />
     </IndicatorSectionForm>

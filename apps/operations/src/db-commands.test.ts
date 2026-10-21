@@ -15,6 +15,7 @@ import {
   importPublishedSnapshot,
   migrateLiveData,
   rolesToBootstrap,
+  seedTaxonomy,
 } from './db-commands.ts';
 import type { Config } from './load-config.ts';
 import type { PublishedManifest } from './published-snapshot.ts';
@@ -28,6 +29,7 @@ const mocks = vi.hoisted(() => ({
   importCoreData: vi.fn(),
   migrationDownload: vi.fn(),
   migrationApply: vi.fn(),
+  seedTaxonomy: vi.fn(),
 }));
 
 vi.mock('./published-snapshot.ts', () => ({ downloadPublishedSnapshot: mocks.download }));
@@ -42,11 +44,37 @@ vi.mock('@fphd/db/operations', async (importOriginal) => ({
   analyzeReadModels: mocks.analyze,
   importCoreData: mocks.importCoreData,
   applyDataMigration: mocks.migrationApply,
+  seedTaxonomy: mocks.seedTaxonomy,
 }));
 
 afterEach(() => vi.clearAllMocks());
 
 const logger = createLogger({ name: 'operations-test', level: 'silent' });
+
+describe('seedTaxonomy', () => {
+  it('refuses production before accessing data', async () => {
+    const { context } = publishedContext();
+    await expect(
+      seedTaxonomy({ ...context, config: { ...context.config, appEnv: 'production' } }),
+    ).rejects.toThrow('Refusing to seed the draft taxonomy');
+    expect(mocks.seedTaxonomy).not.toHaveBeenCalled();
+    expect(mocks.assertCoreData).not.toHaveBeenCalled();
+  });
+  it('applies the draft relationships and rebuilds read models in one transaction', async () => {
+    const { context, tx, wasCommitted } = publishedContext();
+    mocks.seedTaxonomy.mockResolvedValue({
+      indicators: 12,
+      relationships: { links: 14 },
+      unplacedIndicators: [],
+      publisherIndicatorsSkipped: [],
+    });
+    await seedTaxonomy(context);
+    expect(mocks.seedTaxonomy).toHaveBeenCalledWith(tx);
+    expect(mocks.rebuild).toHaveBeenCalledWith(tx);
+    expect(mocks.analyze).toHaveBeenCalledWith(context.sql);
+    expect(wasCommitted()).toBe(true);
+  });
+});
 
 function publishedContext() {
   let committed = false;
@@ -240,7 +268,7 @@ describe('importPublishedSnapshot', () => {
     await importPublishedSnapshot(context);
 
     expect(mocks.seedPublished).toHaveBeenCalledWith(tx, '/tmp/fixture');
-    expect(tx.unsafe).toHaveBeenCalledTimes(SEEDED_TABLES.length + 4);
+    expect(tx.unsafe).toHaveBeenCalledTimes(SEEDED_TABLES.length + 5);
     expect(mocks.rebuild).toHaveBeenCalledWith(tx);
     expect(wasCommitted()).toBe(true);
     expect(mocks.analyze).toHaveBeenCalledWith(context.sql);
@@ -305,9 +333,12 @@ describe('migrateLiveData', () => {
     );
     // Only tables the service keeps: the staged-only legacy source list has none to analyze.
     expect(tx.unsafe.mock.calls.map(([statement]) => statement)).toEqual(
-      [...SEEDED_TABLES, 'indicator_version_topic', 'indicator_version_classification'].map(
-        (table) => `ANALYZE "${table}"`,
-      ),
+      [
+        ...SEEDED_TABLES,
+        'indicator_version_topic',
+        'indicator_version_subtopic',
+        'indicator_version_classification',
+      ].map((table) => `ANALYZE "${table}"`),
     );
     expect(mocks.rebuild).toHaveBeenCalledWith(tx);
     expect(mocks.analyze).toHaveBeenCalledWith(context.sql);

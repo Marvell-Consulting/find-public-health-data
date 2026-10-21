@@ -8,14 +8,14 @@ test.beforeEach(async ({ page }) => {
 
 test('lists the public health topics', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: 'Public health topics' })).toBeVisible();
-  await expect(page.getByRole('heading', { level: 2, name: 'Alcohol' })).toBeVisible();
-  await expect(page.getByRole('heading', { level: 2, name: 'Smoking and tobacco' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Cancer' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Diabetes' })).toBeVisible();
 });
 
 test('opens a topic from its card', async ({ page }) => {
-  await page.getByRole('link', { name: 'Smoking and tobacco' }).click();
-  await expect(page).toHaveURL('/topics/smoking-and-tobacco');
-  await expect(page.getByRole('heading', { level: 1, name: 'Smoking and tobacco' })).toBeVisible();
+  await page.getByRole('link', { name: 'Diabetes' }).click();
+  await expect(page).toHaveURL('/topics/diabetes');
+  await expect(page.getByRole('heading', { level: 1, name: 'Diabetes' })).toBeVisible();
 });
 
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
@@ -27,10 +27,10 @@ test('hydrates topic search without errors', async ({ page }, testInfo) => {
   page.on('pageerror', (error) => errors.push(error.message));
   await page.reload();
 
-  await page.getByRole('search').getByRole('searchbox', { name: 'Search for topics' }).fill('smok');
+  await page.getByRole('search').getByRole('searchbox', { name: 'Search for topics' }).fill('diab');
   await expect(page.locator('.fphd-card-list').getByRole('heading', { level: 2 })).toHaveCount(1);
   await expect(page.locator('.fphd-card-list').getByRole('heading', { level: 2 })).toHaveText(
-    'Smoking and tobacco',
+    'Diabetes',
   );
   await expect(page.getByRole('button', { name: 'Search', exact: true })).toHaveCount(0);
   await expectNoAccessibilityViolations(page, testInfo);
@@ -46,15 +46,15 @@ test('preserves and filters text entered before hydration', async ({ page }, tes
   try {
     await page.reload({ waitUntil: 'commit' });
     const search = page.getByRole('searchbox', { name: 'Search for topics' });
-    await search.fill('smok');
+    await search.fill('diab');
     await expect(page.getByRole('button', { name: 'Search', exact: true })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Alcohol', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Cancer', exact: true })).toBeVisible();
 
     scripts.resolve();
     const headings = page.locator('.fphd-card-list').getByRole('heading', { level: 2 });
     await expect(headings).toHaveCount(1);
-    await expect(headings).toHaveText('Smoking and tobacco');
-    await expect(search).toHaveValue('smok');
+    await expect(headings).toHaveText('Diabetes');
+    await expect(search).toHaveValue('diab');
     await expect(page.getByRole('button', { name: 'Search', exact: true })).toHaveCount(0);
     await expectNoAccessibilityViolations(page, testInfo);
   } finally {
@@ -66,13 +66,11 @@ test('filters topics as you type and keeps highlighted titles in the link colour
   page,
 }, testInfo) => {
   const search = page.getByRole('searchbox', { name: 'Search for topics' });
-  await search.fill('  SMOK  ');
+  await search.fill('  DIAB  ');
 
   await expect(page.locator('.fphd-card-list').getByRole('heading', { level: 2 })).toHaveCount(1);
-  await expect(page.getByRole('link', { name: 'Smoking and tobacco' }).locator('mark')).toHaveText(
-    'Smok',
-  );
-  const link = page.getByRole('link', { name: 'Smoking and tobacco' });
+  await expect(page.getByRole('link', { name: 'Diabetes' }).locator('mark')).toHaveText('Diab');
+  const link = page.getByRole('link', { name: 'Diabetes' });
   const mark = link.locator('mark');
   const colour = (element: HTMLElement | SVGElement) => getComputedStyle(element).color;
   expect(await mark.evaluate(colour)).toBe(await link.evaluate(colour));
@@ -80,12 +78,12 @@ test('filters topics as you type and keeps highlighted titles in the link colour
   expect(await mark.evaluate(colour)).toBe(await link.evaluate(colour));
   await expectNoAccessibilityViolations(page, testInfo);
 
-  await page.getByRole('link', { name: 'Smoking and tobacco' }).click();
-  await expect(page).toHaveURL('/topics/smoking-and-tobacco');
+  await page.getByRole('link', { name: 'Diabetes' }).click();
+  await expect(page).toHaveURL('/topics/diabetes');
 });
 
 test('finds topics by their descriptions', async ({ page }, testInfo) => {
-  const title = 'Smoking and tobacco';
+  const title = 'Diabetes';
   const card = page
     .locator('.fphd-card-list__item')
     .filter({ has: page.getByRole('link', { name: title }) });
@@ -107,21 +105,21 @@ test('finds topics by their descriptions', async ({ page }, testInfo) => {
 test('keeps the edited search when returning from a topic without adding typing history', async ({
   page,
 }, testInfo) => {
-  await page.goto('/topics?other=kept&q=alco');
+  await page.goto('/topics?other=kept&q=canc');
   const search = page.getByRole('searchbox', { name: 'Search for topics' });
-  await search.fill('smok');
-  await search.pressSequentially('ing');
-  await expect(search).toHaveValue('smoking');
-  await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe('smoking');
+  await search.fill('diab');
+  await search.pressSequentially('etes');
+  await expect(search).toHaveValue('diabetes');
+  await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe('diabetes');
   expect(new URL(page.url()).searchParams.get('other')).toBe('kept');
   await expect(search).toBeFocused();
-  await page.getByRole('link', { name: 'Smoking and tobacco' }).click();
-  await expect(page).toHaveURL('/topics/smoking-and-tobacco');
+  await page.getByRole('link', { name: 'Diabetes' }).click();
+  await expect(page).toHaveURL('/topics/diabetes');
   await page.goBack();
-  await expect(search).toHaveValue('smoking');
+  await expect(search).toHaveValue('diabetes');
   await expect(page.locator('.fphd-card-list').getByRole('heading', { level: 2 })).toHaveCount(1);
   await expect(page.locator('.fphd-card-list').getByRole('heading', { level: 2 })).toHaveText(
-    'Smoking and tobacco',
+    'Diabetes',
   );
   await expectNoAccessibilityViolations(page, testInfo);
   await page.goBack();
@@ -138,12 +136,12 @@ test('keeps a working Search button when client scripts fail to load', async ({
   await page.reload();
   const button = page.getByRole('button', { name: 'Search', exact: true });
   await expect(button).toBeVisible();
-  await page.getByRole('searchbox', { name: 'Search for topics' }).fill('smok');
+  await page.getByRole('searchbox', { name: 'Search for topics' }).fill('diab');
   await button.click();
-  await expect(page).toHaveURL('/topics?q=smok');
+  await expect(page).toHaveURL('/topics?q=diab');
   await expect(page.locator('.fphd-card-list').getByRole('heading', { level: 2 })).toHaveCount(1);
   await expect(page.locator('.fphd-card-list').getByRole('heading', { level: 2 })).toHaveText(
-    'Smoking and tobacco',
+    'Diabetes',
   );
   await expect(button).toBeVisible();
   await expectNoAccessibilityViolations(page, testInfo);
@@ -180,18 +178,16 @@ test.describe('without JavaScript', () => {
   test.use({ javaScriptEnabled: false });
 
   test('searches and opens topics without JavaScript', async ({ page }) => {
-    await expect(page.getByRole('link', { name: 'Alcohol' })).toBeVisible();
-    await page.getByRole('searchbox', { name: 'Search for topics' }).fill('smok');
+    await expect(page.getByRole('link', { name: 'Cancer' })).toBeVisible();
+    await page.getByRole('searchbox', { name: 'Search for topics' }).fill('diab');
     await page.getByRole('button', { name: 'Search', exact: true }).click();
-    await expect(page).toHaveURL('/topics?q=smok');
+    await expect(page).toHaveURL('/topics?q=diab');
     await expect(page.locator('.fphd-card-list').getByRole('heading', { level: 2 })).toHaveCount(1);
     await expect(page.locator('.fphd-card-list').getByRole('heading', { level: 2 })).toHaveText(
-      'Smoking and tobacco',
+      'Diabetes',
     );
-    await expect(
-      page.getByRole('link', { name: 'Smoking and tobacco' }).locator('mark'),
-    ).toHaveText('Smok');
-    await page.getByRole('link', { name: 'Smoking and tobacco' }).click();
-    await expect(page).toHaveURL('/topics/smoking-and-tobacco');
+    await expect(page.getByRole('link', { name: 'Diabetes' }).locator('mark')).toHaveText('Diab');
+    await page.getByRole('link', { name: 'Diabetes' }).click();
+    await expect(page).toHaveURL('/topics/diabetes');
   });
 });

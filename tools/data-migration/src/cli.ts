@@ -1,6 +1,5 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { createArchive } from './archive.ts';
-import { generateDemoTopics } from './demo-topics.ts';
 import { createIncremental } from './diff.ts';
 import { exportDevSnapshot } from './export-dev-snapshot.ts';
 import {
@@ -12,6 +11,7 @@ import { exportLegacySeed } from './legacy-seed.ts';
 import { exportPholio } from './pholio/export-pholio.ts';
 import { prepareBaseline } from './prepare-baseline.ts';
 import { importPrototypeSeed } from './prototype-seed.ts';
+import { taxonomyRelationships } from './taxonomy.ts';
 
 function argumentsFor(argv: readonly string[]): { command: string; values: Map<string, string> } {
   const [command = '', ...rest] = argv;
@@ -81,12 +81,22 @@ async function main(argv: readonly string[]): Promise<void> {
       await createArchive(required(values, 'directory'), required(values, 'output'));
       return;
     case 'generate-demo-topics':
-      await generateDemoTopics(
-        required(values, 'topics'),
-        required(values, 'existing-links'),
-        required(values, 'output'),
+      throw new Error(
+        'Demo heuristics have been replaced by generate-taxonomy-relationships and explicit workbook assignments',
       );
+    case 'generate-taxonomy-relationships': {
+      const json = async (name: string) =>
+        JSON.parse(await readFile(required(values, name), 'utf8'));
+      const [source, topics, subtopics, classifications] = await Promise.all(
+        ['source', 'topics', 'subtopics', 'classifications'].map(json),
+      );
+      const selection = values.has('indicators')
+        ? parseIndicatorIds(await readFile(required(values, 'indicators'), 'utf8'))
+        : undefined;
+      const file = taxonomyRelationships(source, topics, subtopics, classifications, selection);
+      await writeFile(required(values, 'output'), `${JSON.stringify(file, null, 2)}\n`);
       return;
+    }
     case 'export-legacy-seed':
       await exportLegacySeed(
         requiredEnvironment('MSSQL_CONNECTION_STRING'),
@@ -112,7 +122,7 @@ async function main(argv: readonly string[]): Promise<void> {
       return;
     default:
       throw new Error(
-        'Usage: data-migration <export-pholio|prepare-baseline|create-incremental|archive|generate-demo-topics|export-legacy-seed|import-prototype-seed|export-dev-snapshot> --option value',
+        'Usage: data-migration <export-pholio|prepare-baseline|create-incremental|archive|generate-taxonomy-relationships|export-legacy-seed|import-prototype-seed|export-dev-snapshot> --option value',
       );
   }
 }

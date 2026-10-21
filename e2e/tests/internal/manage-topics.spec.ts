@@ -35,17 +35,17 @@ test.describe('the topic list', () => {
   test('lists topics for an admin', async ({ page }) => {
     await page.goto('/manage/topics');
     await expect(page.getByRole('heading', { level: 1, name: 'Manage topics' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Alcohol', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Cancer', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Add a topic' })).toBeVisible();
   });
 
   test('opens a topic for editing', async ({ page }) => {
     await page.goto('/manage/topics');
-    await page.getByRole('link', { name: 'Alcohol', exact: true }).click();
+    await page.getByRole('link', { name: 'Cancer', exact: true }).click();
 
     await expect(page).toHaveURL(/\/manage\/topics\/[0-9a-f-]{36}$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Edit topic' })).toBeVisible();
-    await expect(page.getByLabel('Slug')).toHaveValue('alcohol');
+    await expect(page.getByLabel('Slug')).toHaveValue('cancer');
   });
 
   test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
@@ -105,15 +105,15 @@ test.describe('adding a topic', () => {
 
   test('rejects a slug another topic already uses', async ({ page }) => {
     await page.goto('/manage/topics/new');
-    await page.getByLabel('Topic name').fill('Another alcohol');
-    await page.getByLabel('Slug').fill('alcohol');
+    await page.getByLabel('Topic name').fill('Another cancer');
+    await page.getByLabel('Slug').fill('cancer');
     await page.getByLabel('Description').fill('Duplicates the seeded topic.');
     await page.getByRole('button', { name: 'Create topic' }).click();
 
     await expect(page).toHaveURL('/manage/topics/new');
     await expect(page.getByRole('alert')).toContainText('This slug is already used');
     await expect(page).toHaveTitle(/^Error: /);
-    await expect(page.getByLabel('Slug')).toHaveValue('alcohol');
+    await expect(page.getByLabel('Slug')).toHaveValue('cancer');
   });
 
   test('has no WCAG 2.2 AA violations when the submission is rejected', async ({
@@ -201,12 +201,12 @@ test.describe('editing a topic', () => {
     const slug = uniqueSlug();
     await createTopic(page, { title: `Clash ${slug}`, slug });
 
-    await page.getByLabel('Slug').fill('alcohol');
+    await page.getByLabel('Slug').fill('cancer');
     await page.getByRole('button', { name: 'Save' }).click();
 
     await expect(page.getByRole('alert')).toContainText('This slug is already used');
     await expect(page).toHaveTitle(/^Error: /);
-    await expect(page.getByLabel('Slug')).toHaveValue('alcohol');
+    await expect(page.getByLabel('Slug')).toHaveValue('cancer');
   });
 
   test('answers a topic that does not exist with the not-found page', async ({ page }) => {

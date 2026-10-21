@@ -20,6 +20,7 @@ import {
   SEEDED_TABLES,
   seedDummyTables,
   seedPublishedTables,
+  seedTaxonomy as seedTaxonomyRelationships,
 } from '@fphd/db/operations';
 
 import type { CommandContext } from './commands.ts';
@@ -30,6 +31,7 @@ import { downloadPublishedSnapshot } from './published-snapshot.ts';
 const IMPORTED_TABLES = [
   ...SEEDED_TABLES,
   'indicator_version_topic',
+  'indicator_version_subtopic',
   'indicator_version_classification',
 ] as const;
 
@@ -76,6 +78,7 @@ export async function bootstrap({ sql, config }: CommandContext): Promise<void> 
 export async function importCoreData({ sql, logger }: CommandContext): Promise<void> {
   const {
     topics,
+    subtopics,
     ciMethods,
     classifications,
     dataProviders,
@@ -84,6 +87,7 @@ export async function importCoreData({ sql, logger }: CommandContext): Promise<v
     comparatorMethods,
   } = await importCoreDataFromFiles(sql);
   logger.info({ ...topics.summary }, 'Topics imported');
+  logger.info({ ...subtopics }, 'Subtopics imported');
   for (const topic of topics.orphaned) {
     logger.warn(
       { id: topic.id, slug: topic.slug },
@@ -170,6 +174,18 @@ export async function seedDummyData({ sql, config, logger }: CommandContext): Pr
       'Indicators in the file not in this database; skipped',
     );
   }
+}
+
+export async function seedTaxonomy({ sql, config, logger }: CommandContext): Promise<void> {
+  assertSeedingAllowed(config.appEnv, 'seed the draft taxonomy');
+  await assertCoreDataPresent(sql);
+  const result = await sql.begin(async (tx) => {
+    const applied = await seedTaxonomyRelationships(tx);
+    await rebuildReadModelTables(tx);
+    return applied;
+  });
+  await analyzeReadModels(sql);
+  logger.info(result, 'Draft taxonomy seeded without replacing observations');
 }
 
 /** Replaces dev seed data with the approved-only published benchmark snapshot. */

@@ -12,6 +12,7 @@ const {
   classification,
   indicatorVersionClassification,
   indicatorVersionTopic,
+  indicatorVersionSubtopic,
   indicatorVersionAgeRange,
   indicatorVersionLink,
   indicatorVersionSource,
@@ -183,14 +184,36 @@ export async function replaceLists(
   const after: Record<string, unknown[]> = {};
 
   if (topicIds !== undefined) {
+    const placements = await tx
+      .select()
+      .from(indicatorVersionSubtopic)
+      .where(eq(indicatorVersionSubtopic.indicatorVersionId, versionId));
     const removed = await tx
       .delete(indicatorVersionTopic)
       .where(eq(indicatorVersionTopic.indicatorVersionId, versionId))
-      .returning({ topicId: indicatorVersionTopic.topicId });
+      .returning({
+        topicId: indicatorVersionTopic.topicId,
+        isPrimary: indicatorVersionTopic.isPrimary,
+      });
     if (topicIds.length > 0) {
-      await tx
-        .insert(indicatorVersionTopic)
-        .values(topicIds.map((topicId) => ({ topicId, indicatorVersionId: versionId })));
+      await tx.insert(indicatorVersionTopic).values(
+        topicIds.map((topicId) => ({
+          topicId,
+          indicatorVersionId: versionId,
+          isPrimary: removed.some((row) => row.topicId === topicId && row.isPrimary),
+        })),
+      );
+    }
+    const retained = placements.filter(({ topicId }) => topicIds.includes(topicId));
+    if (retained.length) await tx.insert(indicatorVersionSubtopic).values(retained);
+    if (placements.length) {
+      const placement = ({
+        topicId,
+        subtopicId,
+        isPrimary,
+      }: typeof indicatorVersionSubtopic.$inferSelect) => ({ topicId, subtopicId, isPrimary });
+      before.subtopicPlacements = placements.map(placement);
+      after.subtopicPlacements = retained.map(placement);
     }
     before.topicIds = removed.map(({ topicId }) => topicId);
     after.topicIds = topicIds;
@@ -273,6 +296,43 @@ export async function replaceLists(
   }
 
   return { before, after };
+}
+
+export async function copyTaxonomyPlacements(
+  tx: Transaction,
+  fromVersionId: string,
+  toVersionId: string,
+): Promise<unknown[]> {
+  const topics = await tx
+    .select()
+    .from(indicatorVersionTopic)
+    .where(eq(indicatorVersionTopic.indicatorVersionId, fromVersionId));
+  for (const placement of topics.filter(({ isPrimary }) => isPrimary)) {
+    await tx
+      .update(indicatorVersionTopic)
+      .set({ isPrimary: true })
+      .where(
+        and(
+          eq(indicatorVersionTopic.indicatorVersionId, toVersionId),
+          eq(indicatorVersionTopic.topicId, placement.topicId),
+        ),
+      );
+  }
+  const subtopics = await tx
+    .select()
+    .from(indicatorVersionSubtopic)
+    .where(eq(indicatorVersionSubtopic.indicatorVersionId, fromVersionId));
+  if (subtopics.length)
+    await tx
+      .insert(indicatorVersionSubtopic)
+      .values(subtopics.map((row) => ({ ...row, indicatorVersionId: toVersionId })));
+  return topics.map(({ topicId, isPrimary }) => ({
+    topicId,
+    isPrimary,
+    subtopics: subtopics
+      .filter((row) => row.topicId === topicId)
+      .map(({ subtopicId, isPrimary }) => ({ subtopicId, isPrimary })),
+  }));
 }
 
 /** Answers the sources it removed, in their order. */

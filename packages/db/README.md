@@ -206,6 +206,32 @@ rather than drop it, as 0034 and 0036 do.
 
 ## Core data import
 
+The V2 taxonomy comes from the [taxonomy workbook](https://docs.google.com/spreadsheets/d/1BEmVbqbxgjD2fbvX6Fg9GlAQ44eKioII/edit).
+`data/taxonomy-v2.json` records the source snapshot, its proposal status and workbook hash.
+`topics.json` contains its 19 topics; `subtopics.json` contains 92 subtopics. Dental and oral
+health and Sight and hearing have topic-level placements. `retired-topics.json` retains the
+27 former topics that V2 replaces, marked inactive, so existing references survive. Inactive
+topics and classifications are excluded from the published views and publisher choices.
+
+Topic memberships hold their primary placement flag. An indicator may have several subtopic
+placements under the same topic; the subtopic bridge's foreign keys require both that topic
+membership and a subtopic belonging to it. Draft copies and saves preserve those placements
+while their topic is retained. Population and area-context versions carry `is_area_context`
+and have no topic or classification assignments.
+
+V2 uses measure type (`indicator_type`), plans and programmes (`framework`) and life stage
+(`life_stage`). Former classification rows remain inactive references. The source's measure
+types and life-stage tags remain a first pass needing subject matter review; this snapshot
+does not constitute production approval or change the launch indicator selection.
+
+For an existing development database, run `pnpm db:migrate`, `pnpm db:import-core-data`
+and `pnpm db:seed-taxonomy`. The last command replaces the draft topic and tag assignments
+without replacing observations, indicators or data timestamps, then rebuilds the read
+models in the same transaction. It clears old guesses from source-owned indicators the
+workbook does not place and reports their ids. Publisher-owned publications are retained;
+a working draft of a source-owned publication stops the operation. The command is gated
+to local, test and dev, like the other seeds; production uses reviewed migration packages.
+
 ```sh
 pnpm db:import-core-data         # imports topics, classifications and the publisher's lists
 ```

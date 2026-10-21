@@ -12,7 +12,7 @@ function stateFrom(data: SearchData): SearchState {
     q: data.q,
     topics: data.topics,
     indicatorTypes: data.indicatorTypes,
-    riskFactors: data.riskFactors,
+    lifeStages: data.lifeStages,
     frameworks: data.frameworks,
     populations: data.populations,
     inequalities: data.inequalities,

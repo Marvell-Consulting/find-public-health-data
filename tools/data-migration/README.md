@@ -92,9 +92,32 @@ plus these fields:
 }
 ```
 
-`indicators` must exactly match the indicators in the package, and each must have at least
-one topic assignment. Preparation checks topic coverage before writing prepared output;
-the importer verifies the applied links before committing.
+`indicators` must exactly match the indicators in the package. Each needs a topic assignment
+or an explicit entry in `areaContextIndicators`; an area-context indicator cannot also
+carry topics or classifications. `indicatorTopics` accepts `isPrimary` and
+`indicatorSubtopics` contains `{ fingertipsId, topicId, subtopicId, isPrimary }` rows.
+Packages use format version 2 and `canonical-v2`, so an older receiver refuses a
+package rather than silently discarding the new placement and area-context fields.
+Preparation checks coverage before writing prepared output; the importer verifies all
+applied topic, subtopic and classification links before committing.
+
+Generate draft relationships from the committed V2 workbook snapshot:
+
+```sh
+pnpm --filter @fphd/data-migration data-migration generate-taxonomy-relationships \
+  --source ../../packages/db/data/taxonomy-v2.json \
+  --topics ../../packages/db/data/topics.json \
+  --subtopics ../../packages/db/data/subtopics.json \
+  --classifications ../../packages/db/data/classifications.json \
+  --output /secure/draft-taxonomy-relationships.json
+```
+
+`--indicators /secure/indicator-ids.json` limits the output to an exact selection and refuses
+ids outside the workbook's in-scope list. It does not change publication eligibility or
+supply approval metadata. Resolve differences with the launch list during review. The
+workbook marks 15 indicators as area context and excludes other indicators; neither status
+is replaced with a guessed assignment. The snapshot remains a proposal for iteration and
+user testing, and its generated relationships require review before production use.
 
 ## Export pre-flight checks
 
@@ -230,9 +253,9 @@ Run `pnpm vitest run --project @fphd/data-migration` and
 - `archive.ts` verifies package files before creating the private transport archive.
 - `export-dev-snapshot.ts` produces a `verifyPublishedSnapshot`-compatible archive from
   Pholio for developer imports (see below).
-- `legacy-seed.ts`, `prototype-seed.ts` and `demo-topics.ts` retain the former local and
-  demo maintenance workflows in TypeScript; production package construction does not call
-  them.
+- `taxonomy.ts` translates explicit workbook placements and tags without profile or name
+  heuristics. `legacy-seed.ts` and `prototype-seed.ts` retain the historical maintenance
+  workflows; production package construction does not call them.
 
 ## Build a dev snapshot from Pholio
 

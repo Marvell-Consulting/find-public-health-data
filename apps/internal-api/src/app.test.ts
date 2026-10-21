@@ -127,7 +127,7 @@ describe('internal API', () => {
         listOptions: async () => ({
           topics: [],
           indicatorTypes: [],
-          riskFactors: [],
+          lifeStages: [],
           frameworks: [],
         }),
       },

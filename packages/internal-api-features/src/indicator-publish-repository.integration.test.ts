@@ -5,6 +5,7 @@ import { describe, expect, vi } from 'vitest';
 import {
   getIndicatorDraftState,
   type IndicatorDraftAttributes,
+  updateIndicatorDraft,
 } from './indicator-draft-repository.ts';
 import { createDraftFromPublished } from './indicator-publish-repository.ts';
 import {
@@ -158,6 +159,31 @@ describe('createDraftFromPublished', () => {
         createdBy: ACTOR,
       });
       expect(await storedTopicIdsOf(db, result.versionId)).toEqual(publishedTopics);
+      const placements = async (versionId: string) =>
+        db
+          .select({
+            topicId: schema.indicatorVersionSubtopic.topicId,
+            subtopicId: schema.indicatorVersionSubtopic.subtopicId,
+            isPrimary: schema.indicatorVersionSubtopic.isPrimary,
+          })
+          .from(schema.indicatorVersionSubtopic)
+          .where(eq(schema.indicatorVersionSubtopic.indicatorVersionId, versionId))
+          .orderBy(schema.indicatorVersionSubtopic.subtopicId);
+      const primaryTopics = async (versionId: string) =>
+        db
+          .select({ topicId: indicatorVersionTopic.topicId })
+          .from(indicatorVersionTopic)
+          .where(
+            and(
+              eq(indicatorVersionTopic.indicatorVersionId, versionId),
+              eq(indicatorVersionTopic.isPrimary, true),
+            ),
+          );
+      expect(await placements(result.versionId)).toEqual(await placements(publishedId));
+      expect(await primaryTopics(result.versionId)).toEqual(await primaryTopics(publishedId));
+      await updateIndicatorDraft(db, target, {}, { topicIds: publishedTopics }, AS_ACTOR);
+      expect(await placements(result.versionId)).toEqual(await placements(publishedId));
+      expect(await primaryTopics(result.versionId)).toEqual(await primaryTopics(publishedId));
     },
   );
 
@@ -200,7 +226,7 @@ describe('createDraftFromPublished', () => {
     const framework = await classificationIn(db, 'framework');
     await db
       .update(indicatorVersion)
-      .set({ hasRiskFactor: false, hasFramework: true })
+      .set({ hasLifeStage: false, hasFramework: true })
       .where(eq(indicatorVersion.id, currentId));
     await db.insert(indicatorVersionClassification).values([
       { classificationId: population.id, indicatorVersionId: currentId },
@@ -214,7 +240,7 @@ describe('createDraftFromPublished', () => {
       [population.id, framework.id].sort(),
     );
     const state = await getIndicatorDraftState(db, indicatorId);
-    expect(state?.draft).toMatchObject({ hasRiskFactor: false, hasFramework: true });
+    expect(state?.draft).toMatchObject({ hasLifeStage: false, hasFramework: true });
   });
 
   repositoryTest.for<[string, (db: Database) => Promise<IndicatorDraftAttributes>]>([

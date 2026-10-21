@@ -103,7 +103,7 @@ export async function applyRelationships(
     await tx`DELETE FROM indicator_version_classification WHERE indicator_version_id IN ${tx(versionIds)}`;
     await tx`
       UPDATE indicator_version
-      SET has_risk_factor = NULLIF(has_risk_factor, true), has_framework = NULLIF(has_framework, true)
+      SET has_risk_factor = NULLIF(has_risk_factor, true), has_framework = NULLIF(has_framework, true), has_life_stage = NULLIF(has_life_stage, true)
       WHERE id IN ${tx(versionIds)}
     `;
   }
@@ -112,6 +112,8 @@ export async function applyRelationships(
     summary.unknownIndicators.length > 0 ||
     summary.unknownTopics.length > 0 ||
     summary.unknownClassifications.length > 0 ||
+    summary.unknownSubtopics.length > 0 ||
+    summary.subtopicLinks !== relationships.indicatorSubtopics.length ||
     summary.links !== relationships.indicatorTopics.length ||
     summary.classificationLinks !== relationships.indicatorClassifications.length
   ) {
@@ -122,6 +124,12 @@ export async function applyRelationships(
       summary.unknownTopics.length > 0 ? `unknown topics: ${summary.unknownTopics.join(', ')}` : '',
       summary.unknownClassifications.length > 0
         ? `unknown classifications: ${summary.unknownClassifications.join(', ')}`
+        : '',
+      summary.unknownSubtopics.length > 0
+        ? `unknown subtopics: ${summary.unknownSubtopics.join(', ')}`
+        : '',
+      summary.subtopicLinks !== relationships.indicatorSubtopics.length
+        ? `subtopic links: ${summary.subtopicLinks}/${relationships.indicatorSubtopics.length}`
         : '',
       summary.links !== relationships.indicatorTopics.length
         ? `topic links: ${summary.links}/${relationships.indicatorTopics.length}`
@@ -140,6 +148,7 @@ export async function applyRelationships(
     JOIN current_published_version current ON current.indicator_id = i.id
     JOIN indicator_version v ON v.id = current.id
     WHERE v.created_by = ${MIGRATION_USER_ID} AND v.updated_by = ${MIGRATION_USER_ID}
+      AND NOT v.is_area_context
       AND NOT EXISTS (
       SELECT 1 FROM indicator_version_topic t
       WHERE t.indicator_version_id = current.id

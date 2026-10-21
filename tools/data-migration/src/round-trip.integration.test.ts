@@ -38,7 +38,9 @@ beforeAll(async () => {
     await core.end();
   }
   sql = createOwnerClient(database.name);
-  const [topic] = await sql<{ id: string }[]>`SELECT id FROM topic ORDER BY id LIMIT 1`;
+  const [topic] = await sql<
+    { id: string }[]
+  >`SELECT id FROM topic WHERE is_active ORDER BY id LIMIT 1`;
   if (!topic) throw new Error('Core topics are missing');
   topicId = topic.id;
   directory = await mkdtemp(join(tmpdir(), 'fphd-exporter-round-trip-'));

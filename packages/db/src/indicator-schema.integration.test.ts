@@ -573,6 +573,8 @@ describe("a version's child tables", () => {
       'indicator_version_submission_ended_by_fk',
       'indicator_version_submission_submitted_by_fk',
       'indicator_version_submission_version_fk',
+      'indicator_version_subtopic_subtopic_fk',
+      'indicator_version_subtopic_topic_fk',
       'indicator_version_topic_topic_fk',
       'indicator_version_topic_version_fk',
     ]);

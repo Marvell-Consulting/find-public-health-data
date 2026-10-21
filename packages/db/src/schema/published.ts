@@ -73,6 +73,27 @@ export const publishedIndicatorTopic = publishedSchema
   .view('indicator_topic', {
     indicatorId: uuid('indicator_id').notNull(),
     topicId: uuid('topic_id').notNull(),
+    isPrimary: boolean('is_primary').notNull(),
+  })
+  .existing();
+
+export const publishedSubtopic = publishedSchema
+  .view('subtopic', {
+    id: uuid('id').notNull(),
+    topicId: uuid('topic_id').notNull(),
+    slug: text('slug').notNull(),
+    title: text('title').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
+  })
+  .existing();
+
+export const publishedIndicatorSubtopic = publishedSchema
+  .view('indicator_subtopic', {
+    indicatorId: uuid('indicator_id').notNull(),
+    topicId: uuid('topic_id').notNull(),
+    subtopicId: uuid('subtopic_id').notNull(),
+    isPrimary: boolean('is_primary').notNull(),
   })
   .existing();
 

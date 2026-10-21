@@ -540,7 +540,7 @@ function noFilters(overrides: Partial<IndicatorSearchFilters> = {}): IndicatorSe
     query: '',
     topics: [],
     indicatorTypes: [],
-    riskFactors: [],
+    lifeStages: [],
     frameworks: [],
     populations: [],
     inequalities: [],
@@ -664,7 +664,7 @@ describe('searchIndicators', () => {
       db,
       noFilters({
         topics: ['diabetes'],
-        indicatorTypes: ['indicator-type-prevalence-and-detection'],
+        indicatorTypes: ['indicator-type-outcome'],
       }),
     );
 
@@ -680,12 +680,12 @@ describe('searchIndicators', () => {
     );
     const { total: prevalence } = await searchIndicators(
       db,
-      noFilters({ indicatorTypes: ['indicator-type-prevalence-and-detection'] }),
+      noFilters({ indicatorTypes: ['indicator-type-risk-factor'] }),
     );
     const { total: both } = await searchIndicators(
       db,
       noFilters({
-        indicatorTypes: ['indicator-type-outcome', 'indicator-type-prevalence-and-detection'],
+        indicatorTypes: ['indicator-type-outcome', 'indicator-type-risk-factor'],
       }),
     );
 
@@ -694,13 +694,13 @@ describe('searchIndicators', () => {
     expect(both).toBeGreaterThanOrEqual(Math.max(outcome, prevalence));
   });
 
-  it('risk factor filter exercises the risk_factor dimension', async () => {
+  it('does not infer life stage tags where the workbook leaves them to age metadata', async () => {
     const { total } = await searchIndicators(
       db,
-      noFilters({ riskFactors: ['risk-factor-excess-weight-or-obesity'] }),
+      noFilters({ lifeStages: ['life-stage-older-people'] }),
     );
 
-    expect(total).toBeGreaterThan(0);
+    expect(total).toBe(0);
   });
 
   it('framework filter exercises the framework dimension', async () => {
@@ -712,22 +712,22 @@ describe('searchIndicators', () => {
     expect(total).toBeGreaterThan(0);
   });
 
-  it('population filter exercises the population dimension', async () => {
+  it('does not retain the former all-ages population tag', async () => {
     const { total } = await searchIndicators(
       db,
       noFilters({ populations: ['population-all-ages'] }),
     );
 
-    expect(total).toBeGreaterThan(0);
+    expect(total).toBe(0);
   });
 
-  it('inequality filter exercises the inequality dimension', async () => {
+  it('does not infer inequality tags from available observation breakdowns', async () => {
     const { total } = await searchIndicators(
       db,
       noFilters({ inequalities: ['inequality-deprivation-or-income'] }),
     );
 
-    expect(total).toBeGreaterThan(0);
+    expect(total).toBe(0);
   });
 
   it('display group filter returns indicators available in that geography level', async () => {
@@ -845,12 +845,8 @@ describe('searchIndicators', () => {
   });
 
   it('indicators with a unique first-topic are sub-ordered by name', async () => {
-    // diet-nutrition topic contains only two indicators (92026 and 92033), both sharing
-    // "Diet, nutrition and healthy weight" as their only topic — sub-order must be by name.
-    const { indicators } = await searchIndicators(
-      db,
-      noFilters({ topics: ['diet-nutrition-and-healthy-weight'] }),
-    );
+    // These indicators share one topic, so the sub-order is by name.
+    const { indicators } = await searchIndicators(db, noFilters({ topics: ['health-behaviours'] }));
 
     expect(indicators.length).toBeGreaterThan(0);
     const names = indicators.map((i) => i.name);
@@ -884,15 +880,11 @@ describe('listIndicatorFacets', () => {
     expect(pairs).toEqual([...pairs].sort((a, b) => a.localeCompare(b)));
   });
 
-  it('covers all five classification dimensions present in the seed', async () => {
+  it('uses the workbook tag groups without duplicating population and inequality metadata', async () => {
     const facets = await listIndicatorFacets(db);
 
     const dimensions = new Set(facets.classifications.map((c) => c.dimension));
-    expect(dimensions.has('indicator_type')).toBe(true);
-    expect(dimensions.has('framework')).toBe(true);
-    expect(dimensions.has('population')).toBe(true);
-    expect(dimensions.has('risk_factor')).toBe(true);
-    expect(dimensions.has('inequality')).toBe(true);
+    expect(dimensions).toEqual(new Set(['indicator_type', 'framework']));
   });
 
   it('sources are deduplicated — no duplicate name in the list', async () => {
@@ -926,7 +918,7 @@ describe('listIndicatorFacets', () => {
     for (const { dimension, slug } of facets.classifications) {
       const filterKey = {
         indicator_type: 'indicatorTypes',
-        risk_factor: 'riskFactors',
+        life_stage: 'lifeStages',
         framework: 'frameworks',
         population: 'populations',
         inequality: 'inequalities',

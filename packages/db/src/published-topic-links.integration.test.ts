@@ -23,8 +23,8 @@ afterAll(async () => {
   await database.drop();
 });
 
-describe('published demo topic links', () => {
-  it('applies public-profile memberships to imported Fingertips indicators', async () => {
+describe('published workbook topic links', () => {
+  it('applies explicit memberships to imported Fingertips indicators', async () => {
     const path = fileURLToPath(new URL('../data/published-indicator-topics.json', import.meta.url));
     const file = parseIndicatorTopicFile(JSON.parse(readFileSync(path, 'utf-8')));
     const summary = await applyIndicatorTopics(createDbFromClient(sql), file);
@@ -33,7 +33,8 @@ describe('published demo topic links', () => {
     >`SELECT count(*)::int AS count FROM indicator_version_topic`;
 
     expect(summary.unknownTopics).toEqual([]);
-    expect(summary.links).toBeGreaterThanOrEqual(22);
+    expect(summary.links).toBe(14);
+    expect(summary.subtopicLinks).toBe(15);
     expect(row?.count).toBe(summary.links);
   });
 });

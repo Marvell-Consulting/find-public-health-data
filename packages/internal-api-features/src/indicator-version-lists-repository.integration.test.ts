@@ -65,13 +65,13 @@ describe('updateIndicatorDraft', () => {
     async ({ db }) => {
       const created = await newDraft(db, 'Tagged by dimension');
       const population = await classificationIn(db, 'population');
-      const riskFactor = await classificationIn(db, 'risk_factor');
+      const lifeStage = await classificationIn(db, 'life_stage');
       const type = await typeClassification(db);
       await updateIndicatorDraft(
         db,
         created.indicatorId,
         {},
-        { classificationIds: { population: [population.id], risk_factor: [riskFactor.id] } },
+        { classificationIds: { population: [population.id], life_stage: [lifeStage.id] } },
         AS_ACTOR,
       );
 
@@ -79,7 +79,7 @@ describe('updateIndicatorDraft', () => {
         db,
         created.indicatorId,
         {},
-        { classificationIds: { indicator_type: [type.id], risk_factor: [] } },
+        { classificationIds: { indicator_type: [type.id], life_stage: [] } },
         AS_ACTOR,
       );
 
@@ -89,7 +89,7 @@ describe('updateIndicatorDraft', () => {
       // Each dimension given is its own list in the log; the population it left is not in it.
       expect((await auditEntriesFor(db, created.indicatorId)).at(-1)?.changes).toEqual({
         'classificationIds.indicatorType': { before: [], after: [type.id] },
-        'classificationIds.riskFactor': { before: [riskFactor.id], after: [] },
+        'classificationIds.lifeStage': { before: [lifeStage.id], after: [] },
       });
     },
   );
@@ -101,26 +101,26 @@ describe('updateIndicatorDraft', () => {
       .from(schema.topic)
       .orderBy(desc(schema.topic.title))
       .limit(2);
-    const riskFactor = await classificationIn(db, 'risk_factor');
+    const lifeStage = await classificationIn(db, 'life_stage');
 
     await updateIndicatorDraft(
       db,
       created.indicatorId,
-      { hasRiskFactor: true, hasFramework: false },
+      { hasLifeStage: true, hasFramework: false },
       {
         topicIds: topics.map(({ id }) => id),
-        classificationIds: { risk_factor: [riskFactor.id] },
+        classificationIds: { life_stage: [lifeStage.id] },
       },
       AS_ACTOR,
     );
 
     const state = await getIndicatorDraftState(db, created.indicatorId);
     expect(state?.draft).toMatchObject({
-      hasRiskFactor: true,
+      hasLifeStage: true,
       hasFramework: false,
       // Ordered by title, whatever order they were written in.
       topicIds: topics.map(({ id }) => id).reverse(),
-      classifications: [{ id: riskFactor.id, dimension: 'risk_factor' }],
+      classifications: [{ id: lifeStage.id, dimension: 'life_stage' }],
     });
   });
 

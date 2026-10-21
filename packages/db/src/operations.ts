@@ -55,6 +55,7 @@ export {
 } from './read-models.ts';
 export { resetDatabase } from './reset.ts';
 export { createOwnerClient, loadOwnerEnv } from './scripts/owner-client.ts';
+export { seedTaxonomy } from './seed-taxonomy.ts';
 export {
   assertResetAllowed,
   assertSeedingAllowed,

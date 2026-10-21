@@ -13,7 +13,7 @@ const sectionPath = `/api/internal/indicators/${id}/tagging`;
 const topic = '019fa38f-073f-764e-9ac6-1c4d03b10001';
 const otherTopic = '019fa38f-073f-764e-9ac6-1c4d03b10002';
 const type = '019fa38f-073f-764e-9ac6-1c4d03b10003';
-const riskFactor = '019fa38f-073f-764e-9ac6-1c4d03b10004';
+const lifeStage = '019fa38f-073f-764e-9ac6-1c4d03b10004';
 
 const options: TagOptions = {
   topics: [
@@ -21,11 +21,11 @@ const options: TagOptions = {
     { id: otherTopic, name: 'Cancer' },
   ],
   indicatorTypes: [{ id: type, name: 'Outcome' }],
-  riskFactors: [{ id: riskFactor, name: 'Gambling' }],
+  lifeStages: [{ id: lifeStage, name: 'Gambling' }],
   frameworks: [],
 };
 
-const nothingChosen = { addTopic: '', addIndicatorType: '', addRiskFactor: '', addFramework: '' };
+const nothingChosen = { addTopic: '', addIndicatorType: '', addLifeStage: '', addFramework: '' };
 
 function context(client: Partial<ApiClient>) {
   const provider = new RouterContextProvider();
@@ -63,7 +63,7 @@ function isRedirectToTaskList(outcome: unknown) {
 const answered: [string, string][] = [
   ['topicIds', topic],
   ['indicatorTypeIds', type],
-  ['hasRiskFactor', 'no'],
+  ['hasLifeStage', 'no'],
   ['hasFramework', 'no'],
 ];
 
@@ -75,8 +75,8 @@ describe('loadTagging', () => {
           ? {
               topicIds: [topic],
               indicatorTypeIds: [],
-              hasRiskFactor: 'yes',
-              riskFactorIds: [riskFactor],
+              hasLifeStage: 'yes',
+              lifeStageIds: [lifeStage],
               hasFramework: null,
               frameworkIds: [],
             }
@@ -96,8 +96,8 @@ describe('loadTagging', () => {
       values: {
         topicIds: [topic],
         indicatorTypeIds: [],
-        hasRiskFactor: 'yes',
-        riskFactorIds: [riskFactor],
+        hasLifeStage: 'yes',
+        lifeStageIds: [lifeStage],
         hasFramework: '',
         frameworkIds: [],
         ...nothingChosen,
@@ -135,14 +135,14 @@ describe('submitTagging', () => {
     expect(put).not.toHaveBeenCalled();
   });
 
-  it('answers "Yes" when a risk factor is added', async () => {
+  it('answers "Yes" when a life stage is added', async () => {
     const outcome = await submit([
-      ['addRiskFactor', riskFactor],
-      ['intent', addIntent('riskFactorIds')],
+      ['addLifeStage', lifeStage],
+      ['intent', addIntent('lifeStageIds')],
     ]);
 
     expect(outcome).toMatchObject({
-      values: { hasRiskFactor: 'yes', riskFactorIds: [riskFactor] },
+      values: { hasLifeStage: 'yes', lifeStageIds: [lifeStage] },
     });
   });
 
@@ -160,7 +160,7 @@ describe('submitTagging', () => {
     const outcome = await submit([['intent', addIntent('indicatorTypeIds')]]);
 
     expect(outcome).toMatchObject({
-      fieldErrors: { addIndicatorType: 'Select an indicator type' },
+      fieldErrors: { addIndicatorType: 'Select a measure type' },
     });
   });
 
@@ -189,41 +189,41 @@ describe('submitTagging', () => {
     expect(put.mock.calls[0]?.[1]).toEqual({
       topicIds: [topic, otherTopic],
       indicatorTypeIds: [type],
-      hasRiskFactor: 'no',
-      riskFactorIds: [],
+      hasLifeStage: 'no',
+      lifeStageIds: [],
       hasFramework: 'no',
       frameworkIds: [],
     });
     expect(outcome).toSatisfy(isRedirectToTaskList);
   });
 
-  it('leaves out a risk factor chosen beside "No"', async () => {
+  it('leaves out a life stage chosen beside "No"', async () => {
     const put = vi.fn().mockResolvedValue({ ok: true, data: {} });
 
-    await submit([...answered, ['addRiskFactor', riskFactor]], put);
+    await submit([...answered, ['addLifeStage', lifeStage]], put);
 
-    expect(put.mock.calls[0]?.[1]).toMatchObject({ hasRiskFactor: 'no', riskFactorIds: [] });
+    expect(put.mock.calls[0]?.[1]).toMatchObject({ hasLifeStage: 'no', lifeStageIds: [] });
   });
 
   it('saves nothing while the answers are refused', async () => {
     const put = vi.fn();
 
-    const outcome = await submit([['hasRiskFactor', 'yes']], put);
+    const outcome = await submit([['hasLifeStage', 'yes']], put);
 
     expect(outcome).toEqual({
       values: {
         topicIds: [],
         indicatorTypeIds: [],
-        hasRiskFactor: 'yes',
-        riskFactorIds: [],
+        hasLifeStage: 'yes',
+        lifeStageIds: [],
         hasFramework: '',
         frameworkIds: [],
         ...nothingChosen,
       },
       fieldErrors: {
         topicIds: 'Select at least one topic',
-        indicatorTypeIds: 'Select at least one indicator type',
-        riskFactorIds: 'Select at least one risk factor',
+        indicatorTypeIds: 'Select a measure type',
+        lifeStageIds: 'Select at least one life stage',
         hasFramework: 'Select whether this indicator is part of a framework or programme',
       },
     });

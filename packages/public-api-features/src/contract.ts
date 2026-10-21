@@ -111,7 +111,18 @@ export const indicatorDetailSchema = z.object({
   numeratorSources: z.array(indicatorProviderSourceSchema),
   denominatorSources: z.array(indicatorProviderSourceSchema),
   areaTypes: z.array(z.object({ name: z.string().min(1), areaCount: z.number().int() })),
-  topics: z.array(z.object({ slug: z.string().min(1), title: z.string().min(1) })),
+  topics: z.array(
+    z.object({
+      slug: z.string().min(1),
+      title: z.string().min(1),
+      isPrimary: z.boolean().optional(),
+      subtopics: z
+        .array(
+          z.object({ slug: z.string().min(1), title: z.string().min(1), isPrimary: z.boolean() }),
+        )
+        .optional(),
+    }),
+  ),
   classifications: z.array(
     z.object({
       dimension: z.string().min(1),

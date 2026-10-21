@@ -31,8 +31,8 @@ function ResultMeta({ indicator }: { indicator: IndicatorSearchRow }) {
       .map((c) => ({ key: `${c.dimension}:${c.slug}`, label: c.name }));
   const rows = [
     { key: 'Topics', items: indicator.topics.map((t) => ({ key: t.slug, label: t.title })) },
-    { key: 'Indicator types', items: classified('indicator_type') },
-    { key: 'Risk factors', items: classified('risk_factor') },
+    { key: 'Measure type', items: classified('indicator_type') },
+    { key: 'Life stage', items: classified('life_stage') },
   ].filter((row) => row.items.length > 0);
 
   if (rows.length === 0) return null;

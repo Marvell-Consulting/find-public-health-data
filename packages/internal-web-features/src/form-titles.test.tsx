@@ -109,17 +109,17 @@ const sexAndAgesUnanswered = {
 const taggingUnanswered = {
   topicIds: [],
   indicatorTypeIds: [],
-  hasRiskFactor: '',
-  riskFactorIds: [],
+  hasLifeStage: '',
+  lifeStageIds: [],
   hasFramework: '',
   frameworkIds: [],
   addTopic: '',
   addIndicatorType: '',
-  addRiskFactor: '',
+  addLifeStage: '',
   addFramework: '',
 };
 
-const tagOptions = { topics: [], indicatorTypes: [], riskFactors: [], frameworks: [] };
+const tagOptions = { topics: [], indicatorTypes: [], lifeStages: [], frameworks: [] };
 
 const linksUnanswered = { hasLinks: '', links: [], linkUrl: '', linkText: '' };
 

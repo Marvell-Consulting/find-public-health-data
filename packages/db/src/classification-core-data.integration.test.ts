@@ -32,10 +32,14 @@ describe('the committed core data and seed', () => {
 
   it('hold the classifications in the file and nothing else', async () => {
     const rows = await sql<ClassificationRecord[]>`
-      SELECT id, dimension, slug, name FROM classification ORDER BY slug
+      SELECT id, dimension, slug, name, is_active AS "isActive" FROM classification ORDER BY slug
     `;
 
-    expect(rows).toEqual([...committed].sort((a, b) => a.slug.localeCompare(b.slug)));
+    expect(rows).toEqual(
+      [...committed]
+        .map((row) => ({ ...row, isActive: row.isActive ?? true }))
+        .sort((a, b) => a.slug.localeCompare(b.slug)),
+    );
   });
 
   it('answer yes to a risk factor or framework exactly where the seed gives one', async () => {

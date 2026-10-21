@@ -10,14 +10,14 @@ import { sectionFieldErrors } from './testing.ts';
 const topic = '019fa38f-073f-764e-9ac6-1c4d03b10001';
 const otherTopic = '019fa38f-073f-764e-9ac6-1c4d03b10002';
 const type = '019fa38f-073f-764e-9ac6-1c4d03b10003';
-const riskFactor = '019fa38f-073f-764e-9ac6-1c4d03b10004';
+const lifeStage = '019fa38f-073f-764e-9ac6-1c4d03b10004';
 const framework = '019fa38f-073f-764e-9ac6-1c4d03b10005';
 
 const answered: TaggingFormValues = {
   topicIds: [topic, otherTopic],
   indicatorTypeIds: [type],
-  hasRiskFactor: 'yes',
-  riskFactorIds: [riskFactor],
+  hasLifeStage: 'yes',
+  lifeStageIds: [lifeStage],
   hasFramework: 'yes',
   frameworkIds: [framework],
 };
@@ -25,13 +25,29 @@ const answered: TaggingFormValues = {
 const unanswered: TaggingFormValues = {
   topicIds: [],
   indicatorTypeIds: [],
-  hasRiskFactor: '',
-  riskFactorIds: [],
+  hasLifeStage: '',
+  lifeStageIds: [],
   hasFramework: '',
   frameworkIds: [],
 };
 
 describe('taggingSection', () => {
+  it('accepts area context without topic or tag assignments and clears stale selections', () => {
+    expect(section.schema.parse({ ...answered, isAreaContext: 'yes' })).toEqual({
+      isAreaContext: 'yes',
+      topicIds: [],
+      indicatorTypeIds: [],
+      hasLifeStage: 'no',
+      lifeStageIds: [],
+      hasFramework: 'no',
+      frameworkIds: [],
+    });
+  });
+  it('refuses multiple measure types', () => {
+    expect(sectionFieldErrors(section, { ...answered, indicatorTypeIds: [type, topic] })).toEqual({
+      indicatorTypeIds: 'Select only one measure type',
+    });
+  });
   it('takes each tag once, in the order it was added', () => {
     expect(
       section.schema.parse({ ...answered, topicIds: [otherTopic, topic, otherTopic] }).topicIds,
@@ -41,8 +57,8 @@ describe('taggingSection', () => {
   it('refuses every unanswered question and empty list at once', () => {
     expect(sectionFieldErrors(section, unanswered)).toEqual({
       topicIds: 'Select at least one topic',
-      indicatorTypeIds: 'Select at least one indicator type',
-      hasRiskFactor: 'Select whether this indicator includes a risk factor',
+      indicatorTypeIds: 'Select a measure type',
+      hasLifeStage: 'Select whether this indicator needs a life stage tag',
       hasFramework: 'Select whether this indicator is part of a framework or programme',
     });
   });
@@ -51,20 +67,20 @@ describe('taggingSection', () => {
     expect(
       sectionFieldErrors(section, {
         ...unanswered,
-        hasRiskFactor: 'yes',
+        hasLifeStage: 'yes',
         hasFramework: 'yes',
       }),
     ).toEqual({
       topicIds: 'Select at least one topic',
-      indicatorTypeIds: 'Select at least one indicator type',
-      riskFactorIds: 'Select at least one risk factor',
+      indicatorTypeIds: 'Select a measure type',
+      lifeStageIds: 'Select at least one life stage',
       frameworkIds: 'Select at least one framework or programme',
     });
   });
 
   it('refuses a tag that is not an id', () => {
     expect(sectionFieldErrors(section, { ...answered, indicatorTypeIds: ['outcome'] })).toEqual({
-      indicatorTypeIds: 'Select an indicator type from the list',
+      indicatorTypeIds: 'Select a measure type from the list',
     });
   });
 
@@ -76,7 +92,7 @@ describe('taggingSection', () => {
 describe('unknownTagMessage', () => {
   it('names the tag with its article', () => {
     expect(unknownTagMessage('topicIds')).toBe('Select a topic from the list');
-    expect(unknownTagMessage('indicatorTypeIds')).toBe('Select an indicator type from the list');
+    expect(unknownTagMessage('indicatorTypeIds')).toBe('Select a measure type from the list');
   });
 });
 
@@ -86,16 +102,16 @@ describe('taggingSection.formValues', () => {
       section.formValues({
         topicIds: [topic],
         indicatorTypeIds: [type],
-        hasRiskFactor: null,
-        riskFactorIds: [],
+        hasLifeStage: null,
+        lifeStageIds: [],
         hasFramework: 'yes',
         frameworkIds: [framework],
       }),
     ).toEqual({
       topicIds: [topic],
       indicatorTypeIds: [type],
-      hasRiskFactor: '',
-      riskFactorIds: [],
+      hasLifeStage: '',
+      lifeStageIds: [],
       hasFramework: 'yes',
       frameworkIds: [framework],
     });

@@ -67,9 +67,10 @@ export async function upsertClassifications(
               dimension: sql`excluded.dimension`,
               slug: sql`excluded.slug`,
               name: sql`excluded.name`,
+              isActive: sql`excluded.is_active`,
               updatedAt: sql`now()`,
             },
-            setWhere: sql`(${classification.dimension}, ${classification.slug}, ${classification.name}) IS DISTINCT FROM (excluded.dimension, excluded.slug, excluded.name)`,
+            setWhere: sql`(${classification.dimension}, ${classification.slug}, ${classification.name}, ${classification.isActive}) IS DISTINCT FROM (excluded.dimension, excluded.slug, excluded.name, excluded.is_active)`,
           })
           .returning({ id: classification.id, wasInsert: sql<boolean>`xmax = 0`, ...upsertedRow })
       : [];

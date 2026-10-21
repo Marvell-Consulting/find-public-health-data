@@ -58,8 +58,8 @@ beforeAll(async () => {
         slug: 'indicator-type-healthcare-utilisation',
         name: 'Healthcare utilisation',
       },
-      { dimension: 'risk_factor', slug: 'risk-factor-violence', name: 'Violence' },
-      { dimension: 'risk_factor', slug: 'risk-factor-alcohol', name: 'Alcohol use' },
+      { dimension: 'life_stage', slug: 'risk-factor-violence', name: 'Violence' },
+      { dimension: 'life_stage', slug: 'risk-factor-alcohol', name: 'Alcohol use' },
       {
         dimension: 'framework',
         slug: 'framework-public-health-outcomes-framework',
@@ -85,7 +85,7 @@ describe('listTagOptions', () => {
     await expect(listTagOptions(db)).resolves.toEqual({
       topics: [option('Alcohol'), option('Smoking')],
       indicatorTypes: [option('Healthcare utilisation'), option('Outcome')],
-      riskFactors: [option('Alcohol use'), option('Violence')],
+      lifeStages: [option('Alcohol use'), option('Violence')],
       frameworks: [option('Public Health Outcomes Framework')],
     });
   });

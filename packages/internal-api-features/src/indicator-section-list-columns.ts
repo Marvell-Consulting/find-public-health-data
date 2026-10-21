@@ -1,3 +1,4 @@
+import { CLASSIFICATION_DIMENSIONS } from '@fphd/utils/classification-dimension';
 import {
   type Links,
   type LinksAnswers,
@@ -104,26 +105,35 @@ function idsIn(
 }
 
 export const taggingColumns: IndicatorSectionColumns<TaggingField, Tagging, TaggingAnswers> = {
-  fromDraft: ({ topicIds, classifications, hasRiskFactor, hasFramework }) => ({
+  fromDraft: ({ topicIds, classifications, hasLifeStage, hasFramework, isAreaContext }) => ({
+    ...(isAreaContext ? { isAreaContext: 'yes' as const } : {}),
     topicIds,
     indicatorTypeIds: idsIn(classifications, 'indicator_type'),
-    hasRiskFactor: yesNoAnswer(hasRiskFactor),
-    riskFactorIds: idsIn(classifications, 'risk_factor'),
+    hasLifeStage: yesNoAnswer(hasLifeStage),
+    lifeStageIds: idsIn(classifications, 'life_stage'),
     hasFramework: yesNoAnswer(hasFramework),
     frameworkIds: idsIn(classifications, 'framework'),
   }),
-  toAttributes: ({ hasRiskFactor, hasFramework }) => ({
-    hasRiskFactor: hasRiskFactor === 'yes',
+  toAttributes: ({ hasLifeStage, hasFramework, isAreaContext }) => ({
+    isAreaContext: isAreaContext === 'yes',
+    hasLifeStage: hasLifeStage === 'yes',
     hasFramework: hasFramework === 'yes',
   }),
   toLists: (answers) => {
+    if (answers.isAreaContext === 'yes')
+      return {
+        topicIds: [],
+        classificationIds: Object.fromEntries(
+          CLASSIFICATION_DIMENSIONS.map((dimension) => [dimension, []]),
+        ),
+      };
     const kept = (list: TagList) => (isTagListAsked(answers, list) ? answers[list] : []);
 
     return {
       topicIds: answers.topicIds,
       classificationIds: {
         indicator_type: kept('indicatorTypeIds'),
-        risk_factor: kept('riskFactorIds'),
+        life_stage: kept('lifeStageIds'),
         framework: kept('frameworkIds'),
       },
     };
