@@ -16,5 +16,6 @@ export { SignInPage } from './sign-in/page.tsx';
 export { createSignInRoute } from './sign-in/route.tsx';
 export { TopicsRoute } from './topic/list-route.tsx';
 export type { TopicDetail, TopicSummary } from './topic/loader.ts';
-export { TopicPage, TopicsPage } from './topic/pages.tsx';
+export { TopicPage } from './topic/page.tsx';
+export { TopicsPage } from './topic/pages.tsx';
 export { TopicRoute } from './topic/route.tsx';

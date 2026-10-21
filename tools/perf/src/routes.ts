@@ -33,6 +33,27 @@ export const ROUTES: Route[] = [
   { app: 'public-web', path: '/search?q=mortality', limitMs: 500 },
   { app: 'public-web', path: '/topics', limitMs: 500 },
   { app: 'public-web', path: '/topics/diabetes', limitMs: 500 },
+  { app: 'public-web', path: '/topics/mortality-and-life-expectancy?tab-topic=data', limitMs: 500 },
+  {
+    app: 'public-web',
+    path: '/topics/mortality-and-life-expectancy?tab-topic=areas',
+    limitMs: 1000,
+  },
+  {
+    app: 'public-web',
+    path: '/topics/mortality-and-life-expectancy?tab-topic=data&sort=trend-desc',
+    limitMs: 500,
+  },
+  {
+    app: 'public-web',
+    path: '/topics/mortality-and-life-expectancy?tab-topic=data&sort=period-desc',
+    limitMs: 500,
+  },
+  {
+    app: 'public-web',
+    path: '/topics/mortality-and-life-expectancy/table.csv?tab-topic=areas',
+    limitMs: 1000,
+  },
   { app: 'public-web', path: '/indicators?find=mortality', limitMs: 500 },
   { app: 'public-web', path: `/indicators/${DIABETES_SLUG}`, limitMs: 500 },
   {
@@ -46,10 +67,25 @@ export const ROUTES: Route[] = [
   { app: 'internal-web', path: '/dashboard', limitMs: 500 },
   { app: 'internal-web', path: `/dashboard/indicators/${DIABETES.id}`, limitMs: 500 },
   { app: 'internal-web', path: '/manage/topics', limitMs: 500 },
+  {
+    app: 'internal-web',
+    path: '/topics/mortality-and-life-expectancy?tab-topic=data',
+    limitMs: 500,
+  },
+  {
+    app: 'internal-web',
+    path: '/topics/mortality-and-life-expectancy?tab-topic=areas',
+    limitMs: 1000,
+  },
 
   { app: 'public-api', path: '/api/topics', limitMs: 250 },
   { app: 'public-api', path: '/api/indicators?q=mortality', limitMs: 250 },
   { app: 'public-api', path: '/api/indicators/search?q=diabetes', limitMs: 250 },
+  {
+    app: 'public-api',
+    path: '/api/indicators/search?t=mortality-and-life-expectancy&page=1&sort=trend-desc',
+    limitMs: 250,
+  },
   { app: 'public-api', path: `/api/indicators/${DIABETES.shortId}`, limitMs: 250 },
   {
     app: 'public-api',

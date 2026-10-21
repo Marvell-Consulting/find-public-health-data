@@ -191,20 +191,22 @@ describe('GET /api/indicators/:indicator/data', () => {
     expect(findObservations).toHaveBeenCalledWith('ind-1', 'E06000001');
   });
 
-  it('answers with a list when several areas are asked for', async () => {
-    const findObservations = vi.fn().mockImplementation(async (_id: string, areaCode: string) => ({
-      areaCode,
-      areaName: areaCode,
-      observations: [],
-    }));
-    const app = createTestApp({ resolveId: async () => 'ind-1', findObservations });
-
+  it('reads several requested areas in one repository call', async () => {
+    const findObservationsForAreas = vi
+      .fn()
+      .mockImplementation(async (_id: string, codes: string[]) =>
+        codes.map((areaCode) => ({ areaCode, areaName: areaCode, observations: [] })),
+      );
+    const app = createTestApp({ resolveId: async () => 'ind-1', findObservationsForAreas });
     const response = await request(app).get(
       '/api/indicators/108/data?areaCode=E12000001&areaCode=E12000002',
     );
-
     expect(response.status).toBe(200);
     expect(response.body.map((entry: { areaCode: string }) => entry.areaCode)).toEqual([
+      'E12000001',
+      'E12000002',
+    ]);
+    expect(findObservationsForAreas).toHaveBeenCalledExactlyOnceWith('ind-1', [
       'E12000001',
       'E12000002',
     ]);
@@ -269,5 +271,37 @@ describe('GET /api/indicators/:indicator/range', () => {
       (await request(app).get('/api/indicators/no%20pe/range?displayGroup=Local+authorities'))
         .status,
     ).toBe(404);
+  });
+});
+
+describe('GET /api/indicators/search pagination and dates', () => {
+  it('bounds pagination, recognises supported sorts and passes only valid date filters', async () => {
+    const searchWithFilters = vi
+      .fn()
+      .mockResolvedValue({ total: 0, limit: 10, page: 1, indicators: [] });
+    const app = createTestApp({ searchWithFilters });
+    await request(app).get(
+      '/api/indicators/search?t=mortality&page=999&sort=trend-desc&fromYear=2010&toYear=2023&updatedWithin=6',
+    );
+    expect(searchWithFilters).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        topics: ['mortality'],
+        page: 999,
+        sort: 'trend-desc',
+        limit: 10,
+        dataFromYear: 2010,
+        dataToYear: 2023,
+        updatedWithinMonths: 6,
+      }),
+    );
+    await request(app).get(
+      '/api/indicators/search?page=Infinity&sort=invalid&fromYear=oops&toYear=100000&updatedWithin=999',
+    );
+    expect(searchWithFilters).toHaveBeenLastCalledWith(
+      expect.objectContaining({ page: 1, sort: 'name-asc', limit: 10 }),
+    );
+    expect(searchWithFilters.mock.calls.at(-1)?.[0]).not.toHaveProperty('dataFromYear');
+    expect(searchWithFilters.mock.calls.at(-1)?.[0]).not.toHaveProperty('dataToYear');
+    expect(searchWithFilters.mock.calls.at(-1)?.[0]).not.toHaveProperty('updatedWithinMonths');
   });
 });

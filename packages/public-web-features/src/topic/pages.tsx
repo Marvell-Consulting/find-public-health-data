@@ -1,17 +1,8 @@
-import {
-  Button,
-  CardList,
-  GridColumn,
-  GridRow,
-  Input,
-  Label,
-  PageIntro,
-  searchPattern,
-} from '@fphd/ui';
+import { Button, CardList, GridColumn, GridRow, Input, Label, searchPattern } from '@fphd/ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigationType, useSearchParams } from 'react-router';
 
-import type { TopicDetail, TopicSummary } from './loader.ts';
+import type { TopicSummary } from './loader.ts';
 
 /**
  * Full width rather than PageIntro's reading measure, because the cards need the whole grid to
@@ -118,13 +109,5 @@ export function TopicsPage({ topics }: { topics: TopicSummary[] }) {
         )}
       </GridColumn>
     </GridRow>
-  );
-}
-
-export function TopicPage({ topic }: { topic: TopicDetail }) {
-  return (
-    <PageIntro title={topic.title}>
-      <p className="govuk-body">{topic.description}</p>
-    </PageIntro>
   );
 }

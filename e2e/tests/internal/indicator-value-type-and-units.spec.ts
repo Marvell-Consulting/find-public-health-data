@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
+import { expectErrorSummaryReady } from '../support/govuk-frontend.ts';
 import {
   describeSectionPage,
   openSectionPage,
@@ -48,10 +49,11 @@ function referencePopulation(page: Page) {
   return page.locator('#referencePopulation-input');
 }
 
-async function continueAndExpectErrors(page: Page, messages: string[]) {
+async function continueAndExpectErrors(page: Page, messages: string[], enhanced = true) {
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page).toHaveTitle(/^Error: /);
   await expect(page.getByRole('alert').getByRole('link')).toHaveText(messages);
+  if (enhanced) await expectErrorSummaryReady(page);
 }
 
 test.use({ storageState: PUBLISHER.storageState });
@@ -265,7 +267,7 @@ test.describe('without JavaScript', () => {
     await chooseUnit(page, '%');
     await referencePopulation(page).fill('Ignored beside a directly standardised rate');
     await page.getByLabel(UNIT_OTHER).fill('Ignored beside a unit in the list');
-    await continueAndExpectErrors(page, ['Select the standard population used']);
+    await continueAndExpectErrors(page, ['Select the standard population used'], false);
 
     await standardPopulationQuestion(page).getByLabel('2013 European Standard Population').check();
     await page.getByRole('button', { name: 'Continue' }).click();

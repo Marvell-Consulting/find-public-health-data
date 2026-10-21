@@ -13,6 +13,7 @@ import {
 import type { Database } from './client.ts';
 import {
   getIndicatorObservations,
+  getIndicatorObservationsForAreas,
   getObservationRange,
   getPublishedIndicatorById,
   type IndicatorAreaData,
@@ -40,6 +41,7 @@ export interface IndicatorRepository {
   resolveIdBySlug(slug: string): Promise<string | undefined>;
   findPublishedById(indicatorId: string): Promise<IndicatorDetail | undefined>;
   findObservations(indicatorId: string, areaCode: string): Promise<IndicatorAreaData | undefined>;
+  findObservationsForAreas(indicatorId: string, areaCodes: string[]): Promise<IndicatorAreaData[]>;
   findObservationRange(
     indicatorId: string,
     displayGroup: string,
@@ -96,6 +98,8 @@ export function createRepositories(db: Database): Repositories {
       findPublishedById: (indicatorId) => getPublishedIndicatorById(db, indicatorId),
       findObservations: (indicatorId, areaCode) =>
         getIndicatorObservations(db, indicatorId, areaCode),
+      findObservationsForAreas: (indicatorId, areaCodes) =>
+        getIndicatorObservationsForAreas(db, indicatorId, areaCodes),
       findObservationRange: (indicatorId, displayGroup) =>
         getObservationRange(db, indicatorId, displayGroup),
       searchWithFilters: (filters) => searchIndicators(db, filters),

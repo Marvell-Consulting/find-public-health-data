@@ -24,11 +24,13 @@ export function Tabs({
   items,
   paramKey,
   title = 'Contents',
+  waitForNavigation = false,
 }: {
   items: TabItem[];
   /** The query param carrying this tab set's open panel, e.g. 'tab-241'. */
   paramKey: string;
   title?: string;
+  waitForNavigation?: boolean;
 }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -48,8 +50,14 @@ export function Tabs({
     }
   }, []);
 
-  const choose = (index: number) => {
-    setSelected(index);
+  const previousParam = useRef(fromParam);
+  useEffect(() => {
+    if (previousParam.current === fromParam) return;
+    previousParam.current = fromParam;
+    setSelected(paramIndex > 0 ? paramIndex : 0);
+  }, [fromParam, paramIndex]);
+
+  const searchFor = (index: number) => {
     const params = new URLSearchParams(location.search);
     const item = items[index];
     if (index === 0 || !item) {
@@ -58,7 +66,12 @@ export function Tabs({
     } else {
       params.set(paramKey, item.param ?? item.id);
     }
-    void navigate({ search: `?${params.toString()}` }, { replace: true, preventScrollReset: true });
+    return `?${params.toString()}`;
+  };
+
+  const choose = (index: number) => {
+    if (!waitForNavigation) setSelected(index);
+    void navigate({ search: searchFor(index) }, { replace: true, preventScrollReset: true });
   };
 
   const focusTab = (index: number) => {
@@ -93,7 +106,7 @@ export function Tabs({
               aria-controls={id}
               aria-selected={index === selected}
               className="govuk-tabs__tab"
-              href={`#${id}`}
+              href={waitForNavigation ? `${searchFor(index)}#${id}` : `#${id}`}
               id={`tab_${id}`}
               onClick={(event) => {
                 // The anchor default would write the hash and scroll; the param changes neither.
@@ -115,7 +128,7 @@ export function Tabs({
       {items.map(({ content, id }, index) => (
         <div
           aria-labelledby={`tab_${id}`}
-          className={`govuk-tabs__panel${index === selected ? ' fphd-tabs__panel--open' : ''}${mounted && index !== selected ? ' govuk-tabs__panel--hidden' : ''}`}
+          className={`govuk-tabs__panel${index === selected ? ' fphd-tabs__panel--open' : ''}${mounted && index !== selected ? ' govuk-tabs__panel--hidden fphd-tabs__panel--hidden' : ''}`}
           id={id}
           key={id}
           role="tabpanel"

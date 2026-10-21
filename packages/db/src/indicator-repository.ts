@@ -15,11 +15,13 @@ import {
   and,
   asc,
   countDistinct,
+  desc,
   eq,
   exists,
   ilike,
   inArray,
   isNotNull,
+  max,
   min,
   or,
   type SQL,
@@ -32,6 +34,7 @@ import {
   listClassificationsForIndicator,
   listTopicsForIndicator,
 } from './indicator-topic-repository.ts';
+import { indicatorTrendDirections } from './indicator-trends.ts';
 import {
   publishedArea as area,
   publishedAreaType as areaType,
@@ -73,6 +76,11 @@ export interface IndicatorSearchFilters {
   valueTypes: string[];
   yearTypes: string[];
   limit: number;
+  page?: number | undefined;
+  sort?: 'name-asc' | 'name-desc' | 'period-desc' | 'trend-desc' | 'trend-asc' | undefined;
+  dataFromYear?: number | undefined;
+  dataToYear?: number | undefined;
+  updatedWithinMonths?: number | undefined;
 }
 
 export interface IndicatorSearchRow {
@@ -87,6 +95,7 @@ export interface IndicatorSearchResult {
   total: number;
   limit: number;
   indicators: IndicatorSearchRow[];
+  page?: number | undefined;
 }
 
 export interface IndicatorFacets {
@@ -382,11 +391,12 @@ export interface IndicatorAreaData {
  * All published observations for one indicator in one area, with their dimension labels.
  * An observation with no dimensions is the fully-aggregate value for its period.
  */
-export async function getIndicatorObservations(
+export async function getIndicatorObservationsForAreas(
   db: Database,
   indicatorId: string,
-  areaCode: string,
-): Promise<IndicatorAreaData | undefined> {
+  areaCodes: string[],
+): Promise<IndicatorAreaData[]> {
+  if (areaCodes.length === 0) return [];
   const rows = await db
     .select({
       obsId: observation.id,
@@ -399,27 +409,31 @@ export async function getIndicatorObservations(
       upperCi998: observation.upperCi998,
       count: observation.count,
       denominator: observation.denominator,
+      areaCode: area.code,
       areaName: area.name,
     })
     .from(observation)
-    .innerJoin(area, and(eq(observation.areaId, area.id), eq(area.code, areaCode)))
+    .innerJoin(area, and(eq(observation.areaId, area.id), inArray(area.code, areaCodes)))
     .where(eq(observation.indicatorId, indicatorId))
     .orderBy(asc(observation.fromDate), asc(observation.toDate));
 
-  if (rows.length === 0) {
-    // The id is already resolved, so an empty result distinguishes only the area.
-    const [areaRow] = await db
-      .select({ name: area.name })
+  const names = new Map(rows.map(({ areaCode, areaName }) => [areaCode, areaName]));
+  const missing = areaCodes.filter((code) => !names.has(code));
+  if (missing.length > 0) {
+    const known = await db
+      .select({ code: area.code, name: area.name })
       .from(area)
-      .where(eq(area.code, areaCode))
-      .limit(1);
-
-    if (!areaRow) {
-      return undefined;
-    }
-
-    return { areaCode, areaName: areaRow.name, observations: [] };
+      .where(inArray(area.code, missing));
+    for (const { code, name } of known) names.set(code, name);
   }
+  if (rows.length === 0)
+    return areaCodes.flatMap((areaCode) => {
+      const areaName = names.get(areaCode);
+      return areaName ? [{ areaCode, areaName, observations: [] }] : [];
+    });
+
+  // One array parameter keeps large observation batches below PostgreSQL's bind limit.
+  const observationIds = `{${rows.map(({ obsId }) => obsId).join(',')}}`;
 
   const dimensionRows = await db
     .select({
@@ -432,12 +446,7 @@ export async function getIndicatorObservations(
     .from(observationDimension)
     .innerJoin(dimensionValue, eq(observationDimension.dimensionValueId, dimensionValue.id))
     .innerJoin(dimensionType, eq(observationDimension.dimensionTypeId, dimensionType.id))
-    .where(
-      inArray(
-        observationDimension.observationId,
-        rows.map((row) => row.obsId),
-      ),
-    );
+    .where(sql`${observationDimension.observationId} = any(${observationIds}::uuid[])`);
 
   const dimensionsByObservation = new Map<string, ObservationDimensionValue[]>();
   for (const { observationId, ...dimension } of dimensionRows) {
@@ -457,12 +466,7 @@ export async function getIndicatorObservations(
     })
     .from(observationNote)
     .innerJoin(noteType, eq(observationNote.noteTypeId, noteType.id))
-    .where(
-      inArray(
-        observationNote.observationId,
-        rows.map((row) => row.obsId),
-      ),
-    );
+    .where(sql`${observationNote.observationId} = any(${observationIds}::uuid[])`);
   const notesByObservation = new Map<string, { text: string; category: string }[]>();
   for (const { observationId, ...note } of noteRows) {
     const existing = notesByObservation.get(observationId);
@@ -473,17 +477,32 @@ export async function getIndicatorObservations(
     }
   }
 
-  return {
-    areaCode,
-    areaName: rows[0]?.areaName ?? areaCode,
-    observations: rows.map(({ obsId, areaName: _areaName, ...observationRow }) => ({
+  const observationsByArea = new Map<string, IndicatorObservation[]>();
+  for (const { obsId, areaCode, areaName: _areaName, ...observationRow } of rows) {
+    const observations = observationsByArea.get(areaCode) ?? [];
+    observations.push({
       ...observationRow,
       dimensions: (dimensionsByObservation.get(obsId) ?? []).sort((a, b) =>
         a.type.localeCompare(b.type),
       ),
       notes: notesByObservation.get(obsId) ?? [],
-    })),
-  };
+    });
+    observationsByArea.set(areaCode, observations);
+  }
+  return areaCodes.flatMap((areaCode) => {
+    const areaName = names.get(areaCode);
+    return areaName
+      ? [{ areaCode, areaName, observations: observationsByArea.get(areaCode) ?? [] }]
+      : [];
+  });
+}
+
+export async function getIndicatorObservations(
+  db: Database,
+  indicatorId: string,
+  areaCode: string,
+): Promise<IndicatorAreaData | undefined> {
+  return (await getIndicatorObservationsForAreas(db, indicatorId, [areaCode]))[0];
 }
 
 export interface ObservationRangePeriod {
@@ -690,6 +709,41 @@ export async function searchIndicators(
     );
   }
 
+  if (filters.updatedWithinMonths) {
+    conditions.push(
+      sql`${indicator.dataUpdatedAt} >= current_timestamp - (${filters.updatedWithinMonths} * interval '1 month')`,
+    );
+  }
+  if (filters.dataFromYear) {
+    conditions.push(
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(observation)
+          .where(
+            and(
+              eq(observation.indicatorId, indicator.id),
+              sql`${observation.fromDate} <= ${`${filters.dataFromYear}-12-31`}::date`,
+            ),
+          ),
+      ),
+    );
+  }
+  if (filters.dataToYear) {
+    conditions.push(
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(observation)
+          .where(
+            and(
+              eq(observation.indicatorId, indicator.id),
+              sql`${observation.toDate} >= ${`${filters.dataToYear}-01-01`}::date`,
+            ),
+          ),
+      ),
+    );
+  }
   const where = and(...conditions);
 
   const firstTopicTitle = db
@@ -700,36 +754,94 @@ export async function searchIndicators(
 
   const escapedQuery = query.replace(/[\\%_]/g, '\\$&');
   const relevance = sql`case when ${identifierMatch} then 0 when lower(${indicator.name}) = lower(${query}) then 1 when ${indicator.name} ilike ${`${escapedQuery}%`} then 2 when ${indicator.name} ilike ${`%${escapedQuery}%`} then 3 else 4 end`;
-  const [countResult, rows] = await Promise.all([
-    db
-      .select({ total: countDistinct(indicator.id) })
-      .from(indicator)
-      .where(where),
-    db
+  const countQuery = db
+    .select({ total: countDistinct(indicator.id) })
+    .from(indicator)
+    .where(where);
+  const latestPeriods = db
+    .select({
+      indicatorId: observation.indicatorId,
+      date: max(observation.toDate).as('latest_period'),
+    })
+    .from(observation)
+    .where(
+      inArray(
+        observation.indicatorId,
+        db.select({ id: indicator.id }).from(indicator).where(where),
+      ),
+    )
+    .groupBy(observation.indicatorId)
+    .as('latest_periods');
+  const order =
+    filters.sort === 'name-desc'
+      ? [desc(indicator.name), asc(indicator.shortId)]
+      : filters.sort === 'name-asc'
+        ? [asc(indicator.name), asc(indicator.shortId)]
+        : filters.sort === 'period-desc'
+          ? [
+              sql`${latestPeriods.date} desc nulls last`,
+              asc(indicator.name),
+              asc(indicator.shortId),
+            ]
+          : query
+            ? [
+                relevance,
+                sql`position(lower(${query}) in lower(${indicator.name}))`,
+                asc(indicator.name),
+              ]
+            : [sql`(${firstTopicTitle}) nulls last`, asc(indicator.name)];
+  const trendSort = filters.sort === 'trend-desc' || filters.sort === 'trend-asc';
+  const rowQuery = (page = 1) => {
+    const query = db
       .select({
         id: indicator.id,
         shortId: indicator.shortId,
         slug: indicator.slug,
         name: indicator.name,
       })
-      .from(indicator)
+      .from(indicator);
+    const selected = (
+      filters.sort === 'period-desc'
+        ? query.leftJoin(latestPeriods, eq(latestPeriods.indicatorId, indicator.id))
+        : query
+    )
       .where(where)
-      .orderBy(
-        ...(query
-          ? [
-              relevance,
-              sql`position(lower(${query}) in lower(${indicator.name}))`,
-              asc(indicator.name),
-            ]
-          : [sql`(${firstTopicTitle}) nulls last`, asc(indicator.name)]),
+      .orderBy(...order);
+    return trendSort ? selected : selected.limit(filters.limit).offset((page - 1) * filters.limit);
+  };
+  const countResult = filters.page === undefined ? undefined : await countQuery;
+  const page =
+    filters.page === undefined
+      ? undefined
+      : Math.min(
+          filters.page,
+          Math.max(1, Math.ceil((countResult?.[0]?.total ?? 0) / filters.limit)),
+        );
+  const [counts, matches] = await Promise.all([countResult ?? countQuery, rowQuery(page)]);
+  let rows = matches;
+  if (trendSort) {
+    const directions = await indicatorTrendDirections(
+      db,
+      matches.map(({ id }) => id),
+    );
+    const rank = (id: string) => {
+      const direction = directions.get(id);
+      if (direction == null) return 3;
+      if (direction === 'right') return 1;
+      return (direction === 'up') === (filters.sort === 'trend-desc') ? 0 : 2;
+    };
+    rows = [...matches]
+      .sort(
+        (a, b) => rank(a.id) - rank(b.id) || a.name.localeCompare(b.name) || a.shortId - b.shortId,
       )
-      .limit(filters.limit),
-  ]);
+      .slice(((page ?? 1) - 1) * filters.limit, (page ?? 1) * filters.limit);
+  }
 
-  const total = countResult[0]?.total ?? 0;
+  const total = counts[0]?.total ?? 0;
+  const pagination = page === undefined ? {} : { page };
 
   if (rows.length === 0) {
-    return { total, limit: filters.limit, indicators: [] };
+    return { total, limit: filters.limit, indicators: [], ...pagination };
   }
 
   const ids = rows.map((r) => r.id);
@@ -784,6 +896,7 @@ export async function searchIndicators(
   return {
     total,
     limit: filters.limit,
+    ...pagination,
     indicators: rows.map((r) => ({
       shortId: r.shortId,
       slug: r.slug,

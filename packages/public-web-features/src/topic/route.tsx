@@ -1,15 +1,17 @@
-import { createDocumentMeta } from '@fphd/ui';
-import { useLoaderData } from 'react-router';
+import { formatDocumentTitle } from '@fphd/ui';
+import { type MetaFunction, useLoaderData } from 'react-router';
 import { loadTopic } from './loader.ts';
-import { TopicPage } from './pages.tsx';
+import { TopicPage } from './page.tsx';
 
 export const loader = loadTopic;
 
-export const meta = createDocumentMeta('Topic');
+export const meta: MetaFunction<typeof loader> = ({ loaderData }) => [
+  { title: formatDocumentTitle(loaderData?.topic.title ?? 'Topic') },
+];
 
 export function TopicRoute() {
-  const topic = useLoaderData<typeof loader>();
-  return <TopicPage topic={topic} />;
+  const data = useLoaderData<typeof loader>();
+  return <TopicPage {...data} />;
 }
 
 export default TopicRoute;

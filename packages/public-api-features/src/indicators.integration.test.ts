@@ -14,7 +14,12 @@ import { SLUG_PATTERN } from '@fphd/utils/slug';
 import express from 'express';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { indicatorAreaDataSchema, indicatorDetailSchema } from './contract.ts';
+import {
+  indicatorAreaDataListSchema,
+  indicatorAreaDataSchema,
+  indicatorDetailSchema,
+  indicatorSearchResultSchema,
+} from './contract.ts';
 import { publicApiRoutes } from './index.ts';
 
 const env = parseEnv(
@@ -327,4 +332,19 @@ describe('public routers against the seeded database', () => {
       indicators: expect.any(Array),
     });
   });
+});
+
+it('reads paginated trend results and batched areas using the public API role', async () => {
+  const result = await request(app).get(
+    '/api/indicators/search?t=mortality-and-life-expectancy&page=1&sort=trend-desc',
+  );
+  expect(result.status).toBe(200);
+  expect(indicatorSearchResultSchema.parse(result.body)).toMatchObject({ page: 1, limit: 10 });
+  const areas = await request(app).get(
+    '/api/indicators/108/data?areaCode=E07000223&areaCode=E92000001',
+  );
+  expect(areas.status).toBe(200);
+  const parsed = indicatorAreaDataListSchema.parse(areas.body);
+  expect(parsed.map(({ areaCode }) => areaCode)).toEqual(['E07000223', 'E92000001']);
+  expect(parsed[0]?.observations.length).toBeGreaterThan(0);
 });

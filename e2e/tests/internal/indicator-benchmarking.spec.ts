@@ -97,6 +97,7 @@ test('refuses values that are not numbers, and an upper value not above the lowe
     'Upper goal value must be a number',
   ]);
   await expect(page.getByLabel(LOWER)).toHaveValue('90%');
+  await expectErrorSummaryReady(page);
 
   await page.getByLabel(LOWER).fill('90');
   await page.getByLabel(UPPER).fill('90');

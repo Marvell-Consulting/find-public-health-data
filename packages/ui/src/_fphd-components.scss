@@ -556,7 +556,8 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
 }
 
 .fphd-indicator-section .govuk-table,
-.fphd-chart-section .govuk-table {
+.fphd-chart-section .govuk-table,
+.fphd-compare-table {
   @include govuk-font-size($size: 16);
   // Tables hug their columns; only the scroll wrapper limits them.
   width: auto;
@@ -565,7 +566,9 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
 .fphd-indicator-section .govuk-table th,
 .fphd-indicator-section .govuk-table td,
 .fphd-chart-section .govuk-table th,
-.fphd-chart-section .govuk-table td {
+.fphd-chart-section .govuk-table td,
+.fphd-compare-table th,
+.fphd-compare-table td {
   @include govuk-font-size($size: 16);
   padding: 10px 15px 10px 0;
 }
@@ -604,6 +607,7 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
 // Wide trend tables (one column group per area) scroll sideways inside their own
 // wrapper rather than pushing the whole page out.
 .fphd-table-scroll-wrapper {
+  position: relative;
   overflow-x: auto;
   margin-bottom: govuk-spacing(3);
 }
@@ -620,6 +624,7 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
 // instead of stacking "Increasing and getting worse" over three lines.
 .fphd-trend-table .fphd-trend-tag,
 .fphd-compare-table .fphd-trend-tag {
+  @include govuk-font-size($size: 16);
   white-space: nowrap;
   min-width: 0;
 }
@@ -647,6 +652,10 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
 // tab param), the body's govuk-frontend-supported class is set by an inline script
 // before paint, and React drops the --ssr class once mounted and takes over. A legacy
 // #hash deep link never reaches the server, so a targeted panel overrides the marked one.
+.fphd-tabs__panel--hidden {
+  display: none;
+}
+
 .govuk-frontend-supported .fphd-tabs--ssr {
   .govuk-tabs__panel:not(.fphd-tabs__panel--open) {
     display: none;
@@ -792,4 +801,150 @@ body.govuk-frontend-supported .fphd-add-geo-button[data-empty] {
   @include govuk-font($size: 19, $weight: bold);
   font-size: 1.1875rem;
   line-height: 1.31579;
+}
+
+.fphd-topic-overview {
+  max-width: 38em;
+}
+
+.fphd-topic-pagination,
+.fphd-rug-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: govuk-spacing(3);
+}
+
+.fphd-topic-pagination {
+  justify-content: space-between;
+}
+
+.fphd-rug-key {
+  @include govuk-font-size($size: 16);
+}
+
+.fphd-rug-key__swatch {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: govuk-spacing(1);
+  vertical-align: middle;
+}
+
+.fphd-rug-table th,
+.fphd-rug-table td {
+  min-width: 80px;
+  padding: 4px 6px;
+  white-space: normal;
+}
+
+.fphd-rug-table th:first-child,
+.fphd-rug-table tbody td:first-child {
+  min-width: 260px;
+  max-width: 260px;
+  width: 260px;
+  padding-left: 0;
+}
+
+.fphd-rug-table th {
+  vertical-align: bottom;
+}
+
+.fphd-rug-table td {
+  vertical-align: middle;
+}
+
+.fphd-rug-table td:nth-child(2) {
+  white-space: nowrap;
+}
+
+.fphd-rug-table td:not(:first-child) {
+  text-align: center;
+}
+
+.fphd-rug-cell__label {
+  display: block;
+  font-size: 0.875rem;
+  line-height: 1.25;
+}
+
+.fphd-rug-cell--better { background: #8ed973; }
+.fphd-rug-cell--similar { background: #ffc000; }
+.fphd-rug-cell--worse { background: #d4351c; color: #fff; }
+.fphd-rug-cell--lower { background: #12436d; color: #fff; }
+.fphd-rug-cell--higher { background: #5694ca; }
+.fphd-rug-cell--none { background: #b1b4b6; }
+
+
+.fphd-topic-toolbar {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.fphd-topic-toolbar form {
+  min-width: 0;
+  max-width: 100%;
+  margin-left: auto;
+}
+
+.fphd-topic-toolbar .govuk-form-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: govuk-spacing(2);
+  margin-bottom: 0;
+}
+
+.fphd-topic-toolbar .govuk-label {
+  @include govuk-font($size: 16, $weight: bold);
+  margin-bottom: 0;
+}
+
+.fphd-topic-toolbar .govuk-select {
+  @include govuk-font-size($size: 16);
+  max-width: 100%;
+}
+
+.fphd-topic-download {
+  position: relative;
+  max-width: 100%;
+}
+
+.fphd-topic-subtopic {
+  display: block;
+  color: $govuk-secondary-text-colour;
+}
+
+.fphd-topic-download .govuk-details__summary {
+  @include govuk-font-size($size: 16);
+}
+
+.fphd-topic-download .govuk-details__text {
+  position: absolute;
+  z-index: 2;
+  top: 100%;
+  right: 0;
+  box-sizing: border-box;
+  width: 400px;
+  max-width: calc(100vw - 60px);
+  padding: govuk-spacing(3);
+  background: govuk-colour('white');
+  border: 1px solid $govuk-border-colour;
+}
+
+body:not(.govuk-frontend-supported) .fphd-topic-copy {
+  display: none;
+}
+
+
+.fphd-topic-data .fphd-compare-table th,
+.fphd-topic-data .fphd-compare-table td {
+  min-width: 100px;
+  white-space: normal;
+}
+
+.fphd-topic-data .fphd-compare-table tbody td:first-child {
+  min-width: 320px;
+  max-width: 320px;
+  width: 320px;
 }

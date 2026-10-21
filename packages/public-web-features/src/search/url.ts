@@ -11,7 +11,12 @@ export interface SearchState {
   yearTypes: string[];
   geoLevels: string[];
   gaCodes: string[];
+  fromYear?: string;
+  toYear?: string;
+  updatedWithin?: string;
 }
+
+export const PERIOD_PARAMS = ['fromYear', 'toYear', 'updatedWithin'] as const;
 
 export interface DimensionConfig {
   param: string;
@@ -120,14 +125,19 @@ export const LIST_PARAMS: { param: string; stateKey: keyof SearchState }[] = [
   { param: 'ga', stateKey: 'gaCodes' },
 ];
 
-export function searchUrl(state: SearchState): string {
-  const p = new URLSearchParams();
+export function searchUrl(
+  state: SearchState,
+  path = '/search',
+  extraParams: Record<string, string> = {},
+): string {
+  const p = new URLSearchParams(extraParams);
   if (state.q) p.set('q', state.q);
+  for (const key of PERIOD_PARAMS) if (state[key]) p.set(key, state[key]);
   for (const { param, stateKey } of LIST_PARAMS) {
     for (const v of state[stateKey] as string[]) p.append(param, v);
   }
   const s = p.toString();
-  return `/search${s ? `?${s}` : ''}`;
+  return `${path}${s ? `?${s}` : ''}`;
 }
 
 export const EMPTY_SEARCH_STATE: SearchState = {
