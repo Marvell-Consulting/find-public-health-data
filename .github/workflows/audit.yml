@@ -49,7 +49,7 @@ jobs:
             *) trigger="manual" ;;
           esac
           ref=$(sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' <<<"${GITHUB_REF_NAME}")
-          text="${icon} *${GITHUB_REPOSITORY#*/}* ${trigger} audit of ${ref}: ${RESULT} — <${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|run>"
+          text="${icon} *${GITHUB_REPOSITORY}* ${trigger} audit of ${ref}: ${RESULT} — <${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|run>"
           jq --null-input --arg text "${text}" '{text: $text}' > "${RUNNER_TEMP}/slack-payload.json"
 
       - name: Post to Slack
