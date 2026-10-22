@@ -1,10 +1,11 @@
 import { TEAM_IDS } from '@fphd/auth';
 import { DATA_TABLE_MAX_BYTES, DATA_TABLE_MESSAGES } from '@fphd/internal-api-features/contract';
-import { type ApiClient, ApiTimeoutError } from '@fphd/web-server/api-client';
+import { type ApiClient, ApiConflictError, ApiTimeoutError } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
+import { flashedResponse, redirectWithFlash, withFlashStorage } from '../flash.testing.ts';
 import { FORM_NOT_SAVED } from '../form-refusal.ts';
 import { signedInContext } from '../session.testing.ts';
 import {
@@ -212,5 +213,62 @@ describe('loadDataTableProblems', () => {
     const outcome = await load(loadDataTableProblems, { get }).catch((thrown) => thrown);
 
     expect(locationOf(outcome)).toBe(`/publish/indicators/${ID}/data-table`);
+  });
+});
+
+describe('the data table pages of a draft locked for review', () => {
+  const path = `https://internal.test/publish/indicators/${ID}/data-table`;
+  const toOverview = {
+    status: 302,
+    location: `/dashboard/indicators/${ID}`,
+    flash: 'draft-locked',
+  };
+
+  async function respond(
+    handler: (args: never) => Promise<unknown>,
+    client: Partial<ApiClient>,
+    request = new Request(path),
+  ) {
+    const context = withFlashStorage(await signedInContext(['publisher'], [TEAM_IDS.teamA]));
+    context.set(apiContext, client as ApiClient);
+    return flashedResponse(context, request, () =>
+      handler({ context, params: { id: ID }, request } as never),
+    );
+  }
+
+  it('sends the publisher who opens the upload page to the overview, saying why', async () => {
+    const get = vi.fn().mockResolvedValue({
+      id: ID,
+      teamId: TEAM_IDS.teamA,
+      draftStatus: 'draft',
+      draftLocked: true,
+    });
+
+    expect(await redirectWithFlash(await respond(loadDataTableUpload, { get }))).toEqual(
+      toOverview,
+    );
+  });
+
+  it('sends the publisher whose upload it refuses to the overview, saying why', async () => {
+    const postStream = vi
+      .fn()
+      .mockResolvedValue({ ok: false, status: 409, error: { error: 'locked' } });
+    const request = new Request(path, {
+      method: 'POST',
+      headers: { 'content-type': 'multipart/form-data; boundary=b' },
+      body: '--b--\r\n',
+    });
+
+    expect(
+      await redirectWithFlash(await respond(uploadDataTable, { postStream }, request)),
+    ).toEqual(toOverview);
+  });
+
+  it('sends the publisher who opens the problems page to the overview, saying why', async () => {
+    const get = vi.fn().mockRejectedValue(new ApiConflictError(path, { error: 'locked' }));
+
+    expect(await redirectWithFlash(await respond(loadDataTableProblems, { get }))).toEqual(
+      toOverview,
+    );
   });
 });

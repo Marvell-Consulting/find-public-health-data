@@ -199,11 +199,12 @@ export const indicatorCreateErrorSchema = z.discriminatedUnion('error', [
 ]);
 
 /**
- * The 400 and 409 answers. A refused value is always named; only a bad id names no field. A
- * missing indicator or draft is a 404, which the client throws.
+ * The 400 and 409 answers. A refused value is always named; a bad id and a draft locked for
+ * review name no field. A missing indicator or draft is a 404, which the client throws.
  */
 export const indicatorUpdateErrorSchema = z.discriminatedUnion('error', [
   z.object({ error: z.literal('invalid_id') }),
+  z.object({ error: z.literal('locked') }),
   z.object({
     error: z.enum(['validation_failed', 'slug_taken']),
     fieldErrors: indicatorFieldErrorsSchema,

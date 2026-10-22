@@ -111,6 +111,7 @@ export function indicatorSectionErrorSchema<Field extends string, ErrorField ext
 ): z.ZodType<IndicatorSectionError<Field | ErrorField>> {
   return z.discriminatedUnion('error', [
     z.object({ error: z.literal('invalid_id') }),
+    z.object({ error: z.literal('locked') }),
     z.object({
       error: z.literal('validation_failed'),
       fieldErrors: z.partialRecord(errorFieldsOf(section), z.string()),
@@ -120,6 +121,7 @@ export function indicatorSectionErrorSchema<Field extends string, ErrorField ext
 
 type IndicatorSectionError<Field extends string> =
   | { error: 'invalid_id' }
+  | { error: 'locked' }
   | { error: 'validation_failed'; fieldErrors: Partial<Record<Field, string>> };
 
 /** The names an issue may be shown under, most specific first: `list[0].part`, then `list`. */

@@ -1,9 +1,10 @@
 import { definitionAndRationaleSection as section } from '@fphd/internal-api-features/contract';
-import type { ApiClient } from '@fphd/web-server/api-client';
+import { type ApiClient, ApiConflictError } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
+import { flashedResponse, flashLeftBy, withFlashStorage } from './flash.testing.ts';
 import { FORM_NOT_SAVED } from './form-refusal.ts';
 import {
   type ControlNamesOf,
@@ -72,6 +73,46 @@ describe('loadIndicatorSection', () => {
     const get = vi.fn().mockRejectedValue(new Response('Not Found', { status: 404 }));
 
     await expect(load(id, get)).rejects.toSatisfy(isNotFound);
+  });
+});
+
+describe('a section of a draft locked for review', () => {
+  const path = `https://internal.test/publish/indicators/${id}/definition-and-rationale`;
+
+  function lockedContext(api: Partial<ApiClient>) {
+    const context = withFlashStorage(new RouterContextProvider());
+    context.set(apiContext, api as ApiClient);
+    return context;
+  }
+
+  it('sends the publisher who opens it to the overview, saying why', async () => {
+    const context = lockedContext({
+      get: vi.fn().mockRejectedValue(new ApiConflictError(path, { error: 'locked' })),
+    });
+    const request = new Request(path);
+
+    const response = await flashedResponse(context, request, () =>
+      loadIndicatorSection({ context, params: { id }, request } as never, section),
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get('Location')).toBe(`/dashboard/indicators/${id}`);
+    expect(await flashLeftBy(response)).toBe('draft-locked');
+  });
+
+  it('sends the publisher whose save it refuses to the overview, saying why', async () => {
+    const context = lockedContext({
+      put: vi.fn().mockResolvedValue({ ok: false, status: 409, error: { error: 'locked' } }),
+    });
+    const request = new Request(path, { method: 'POST', body: new URLSearchParams(answers) });
+
+    const response = await flashedResponse(context, request, () =>
+      saveIndicatorSection({ context, params: { id }, request } as never, section),
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get('Location')).toBe(`/dashboard/indicators/${id}`);
+    expect(await flashLeftBy(response)).toBe('draft-locked');
   });
 });
 

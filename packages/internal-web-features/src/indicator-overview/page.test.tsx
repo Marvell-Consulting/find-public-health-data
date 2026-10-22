@@ -97,4 +97,47 @@ describe('IndicatorOverviewPage', () => {
 
     expect(screen.queryByRole('link', { name: /^Continue/ })).toBeNull();
   });
+
+  it('offers no task list while the draft is locked for review', () => {
+    renderPage({
+      publishedSlug: null,
+      indicatorStatus: 'new',
+      draftStatus: 'draft',
+      draftLocked: true,
+      draftSubmissionStatus: 'submitted',
+    });
+
+    expect(screen.queryByRole('link', { name: /^Continue/ })).toBeNull();
+  });
+
+  it('shows something the publisher needs to know in an important banner', () => {
+    render(
+      <MemoryRouter initialEntries={[`/dashboard/indicators/${indicator.id}`]}>
+        <IndicatorOverviewPage
+          canEdit
+          indicator={indicator}
+          notification={{ type: 'important', text: 'This cannot be edited.' }}
+        />
+      </MemoryRouter>,
+    );
+
+    const banner = screen.getByRole('region', { name: 'Important' });
+    expect(banner.textContent).toContain('This cannot be edited.');
+  });
+
+  it('shows a success in a success banner', () => {
+    render(
+      <MemoryRouter initialEntries={[`/dashboard/indicators/${indicator.id}`]}>
+        <IndicatorOverviewPage
+          canEdit
+          indicator={indicator}
+          notification={{ type: 'success', text: 'It worked.' }}
+        />
+      </MemoryRouter>,
+    );
+
+    const banner = screen.getByRole('alert');
+    expect(banner.textContent).toContain('Success');
+    expect(banner.textContent).toContain('It worked.');
+  });
 });

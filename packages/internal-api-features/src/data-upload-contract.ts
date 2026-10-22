@@ -78,11 +78,13 @@ export const dataUploadCreatedSchema = z.object({
 });
 
 /**
- * The 400 and 422 answers: a file the form refuses outright names the field, and a file whose
- * content was refused names the batch keeping it and its problems.
+ * The 400, 409 and 422 answers: a file the form refuses outright names the field, a file whose
+ * content was refused names the batch keeping it and its problems, and a draft locked for review
+ * takes no file.
  */
 export const dataUploadErrorSchema = z.discriminatedUnion('error', [
   z.object({ error: z.literal('invalid_id') }),
+  z.object({ error: z.literal('locked') }),
   z.object({
     error: z.literal('validation_failed'),
     fieldErrors: z.partialRecord(dataUploadFieldSchema, z.string()),
