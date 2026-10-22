@@ -13,22 +13,22 @@ export const UNIQUE_VIOLATION = '23505';
 export const EXCLUSION_VIOLATION = '23P01';
 
 /** Drizzle wraps the driver error, so its fields are on a `cause` rather than the error thrown. */
-function driverError(error: unknown): { code?: unknown; constraint_name?: unknown } | undefined {
+function hasCause(error: unknown, field: 'code' | 'constraint_name', value: string): boolean {
   for (let current = error; current !== null && current !== undefined; ) {
-    if (typeof current !== 'object') return undefined;
-    if ('code' in current) return current;
+    if (typeof current !== 'object') return false;
+    if (field in current && (current as Record<string, unknown>)[field] === value) return true;
     current = (current as { cause?: unknown }).cause;
   }
 
-  return undefined;
+  return false;
 }
 
 export function hasSqlState(error: unknown, sqlState: string): boolean {
-  return driverError(error)?.code === sqlState;
+  return hasCause(error, 'code', sqlState);
 }
 
 export function violatesConstraint(error: unknown, constraint: string): boolean {
-  return driverError(error)?.constraint_name === constraint;
+  return hasCause(error, 'constraint_name', constraint);
 }
 
 /**
