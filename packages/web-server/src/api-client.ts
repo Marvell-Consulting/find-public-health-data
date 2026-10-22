@@ -26,8 +26,9 @@ export type ApiWriteResult<T, E> = { ok: true; data: T } | { ok: false; status: 
 export interface ApiClient {
   /**
    * GET `path`, parse the body with `schema`, and return the result. A 404 is rethrown as a
-   * 404 `Response` so a route's not-found boundary renders; any other non-2xx becomes a 502,
-   * because a failure inside the API is not the browser's fault.
+   * 404 `Response` so a route's not-found boundary renders, and a 409 as an `ApiConflictError`
+   * for a caller that expects one; any other non-2xx becomes a 502, because a failure inside the
+   * API is not the browser's fault.
    */
   get<T>(path: string, schema: z.ZodType<T>): Promise<T>;
 
@@ -60,9 +61,19 @@ export interface ApiClient {
   ): Promise<ApiWriteResult<T, E>>;
 
   /**
+   * POST `body` to a member of a collection, for an action that answers 204 with no body. A 400
+   * or 409 comes back as a value parsed with `errorSchema`; otherwise as `put`.
+   */
+  postToMember<E>(
+    path: string,
+    body: unknown,
+    errorSchema: z.ZodType<E>,
+  ): Promise<ApiWriteResult<undefined, E>>;
+
+  /**
    * POST a body to `path` as it arrives, without reading it first, then wait up to the upload
-   * timeout for the answer, throwing `ApiTimeoutError` after it. A 400 or 422 comes back as a
-   * value parsed with `errorSchema`; otherwise as `put`. Aborting `signal`, as a browser
+   * timeout for the answer, throwing `ApiTimeoutError` after it. A 400, 409 or 422 comes back as
+   * a value parsed with `errorSchema`; otherwise as `put`. Aborting `signal`, as a browser
    * abandoning its request does, abandons this one too.
    */
   postStream<T, E>(
@@ -87,6 +98,17 @@ export class ApiTimeoutError extends Error {
   constructor(path: string) {
     super(`No answer from ${path} within the upload timeout`);
     this.name = 'ApiTimeoutError';
+  }
+}
+
+/** The API refused a read as in conflict with the state of what it names; `body` is its answer. */
+export class ApiConflictError extends Error {
+  readonly body: unknown;
+
+  constructor(path: string, body: unknown) {
+    super(`${path} answered 409`);
+    this.name = 'ApiConflictError';
+    this.body = body;
   }
 }
 
@@ -160,14 +182,16 @@ export function createApiClient({
   timeoutMs = DEFAULT_TIMEOUT_MS,
   uploadTimeoutMs = DEFAULT_UPLOAD_TIMEOUT_MS,
 }: ApiClientOptions): ApiClient {
-  /** A write to a member of a collection: the record may be gone, so a 404 is meaningful. */
-  async function writeToMember<T, E>(
-    method: 'PATCH' | 'PUT',
+  /**
+   * Sends a write to a member of a collection: the record may be gone, so a 404 is meaningful. A
+   * 400 or 409 comes back parsed; any other answer is the caller's to read.
+   */
+  async function sendToMember<E>(
+    method: 'PATCH' | 'POST' | 'PUT',
     path: string,
     body: unknown,
-    schema: z.ZodType<T>,
     errorSchema: z.ZodType<E>,
-  ): Promise<ApiWriteResult<T, E>> {
+  ): Promise<{ ok: false; status: number; error: E } | Response> {
     const response = await fetch(`${baseUrl}${path}`, {
       method,
       headers: { ...headers, 'content-type': 'application/json' },
@@ -187,6 +211,20 @@ export function createApiClient({
       };
     }
 
+    return response;
+  }
+
+  async function writeToMember<T, E>(
+    method: 'PATCH' | 'PUT',
+    path: string,
+    body: unknown,
+    schema: z.ZodType<T>,
+    errorSchema: z.ZodType<E>,
+  ): Promise<ApiWriteResult<T, E>> {
+    const response = await sendToMember(method, path, body, errorSchema);
+
+    if (!(response instanceof Response)) return response;
+
     if (!response.ok) {
       throw new Response('Bad Gateway', { status: 502 });
     }
@@ -203,6 +241,10 @@ export function createApiClient({
 
       if (response.status === 404) {
         throw new Response('Not Found', { status: 404 });
+      }
+
+      if (response.status === 409) {
+        throw new ApiConflictError(path, await readJson(path, response));
       }
 
       if (!response.ok) {
@@ -243,6 +285,18 @@ export function createApiClient({
       return { ok: true, data: parseOrFail(path, schema, await readJson(path, response)) };
     },
 
+    async postToMember(path, body, errorSchema) {
+      const response = await sendToMember('POST', path, body, errorSchema);
+
+      if (!(response instanceof Response)) return response;
+
+      if (response.status !== 204) {
+        throw new Response('Bad Gateway', { status: 502 });
+      }
+
+      return { ok: true, data: undefined };
+    },
+
     async postStream(path, { body, contentType }, schema, errorSchema, signal) {
       // The timeout covers the API's answer, not the browser's upload, so it starts once the
       // body has been sent.
@@ -270,7 +324,7 @@ export function createApiClient({
           throw new Response('Not Found', { status: 404 });
         }
 
-        if (response.status === 400 || response.status === 422) {
+        if (response.status === 400 || response.status === 409 || response.status === 422) {
           return {
             ok: false,
             status: response.status,
