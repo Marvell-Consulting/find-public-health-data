@@ -12,7 +12,13 @@ import type { Actor } from '@fphd/db/audit-log';
 import { auditEntriesFor, createTestDatabase, type TestDatabase } from '@fphd/db/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createTopic, deleteTopic, getTopicById, updateTopic } from './topic-repository.ts';
+import {
+  countLinkedIndicators,
+  createTopic,
+  deleteTopic,
+  getTopicById,
+  updateTopic,
+} from './topic-repository.ts';
 
 const env = parseEnv(
   z.object({
@@ -389,6 +395,17 @@ describe('the topic write surface', () => {
           { action: 'topic.deleted' },
         ]);
       }
+    } finally {
+      await apiDb.$client.end();
+    }
+  });
+
+  it('counts linked indicators connected as internal_api', async () => {
+    const topic = await givenTopic();
+    const apiDb = createDb(connectionTo('internal_api', env.INTERNAL_API_PASSWORD));
+
+    try {
+      expect(await countLinkedIndicators(apiDb, topic.id)).toBe(0);
     } finally {
       await apiDb.$client.end();
     }

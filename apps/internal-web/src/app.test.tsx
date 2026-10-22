@@ -315,8 +315,10 @@ describe('the delete topic confirmation page', () => {
     id: '00000000-0000-7000-8000-000000000001',
     slug: 'air-quality',
     title: 'Air quality',
+    description: 'About air quality.',
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-08-04T23:30:00.000Z',
+    linkedIndicatorCount: 0,
   };
 
   it('names the topic and warns the delete cannot be undone', async () => {
@@ -348,7 +350,7 @@ describe('the edit topic page', () => {
   const values = { title: 'Air quality', slug: 'air-quality', description: 'About air quality.' };
 
   it('pre-fills the form and offers a way back to the list', async () => {
-    renderPage(<EditTopicPage topicId={topicId} values={values} />);
+    renderPage(<EditTopicPage linkedIndicatorCount={0} topicId={topicId} values={values} />);
 
     expect((await screen.findByLabelText('Topic name')).getAttribute('value')).toBe('Air quality');
     expect(screen.getByLabelText('Slug').getAttribute('value')).toBe('air-quality');
@@ -359,7 +361,9 @@ describe('the edit topic page', () => {
   });
 
   it('submits back to the same URL with a plain form, so it works without JavaScript', async () => {
-    const { container } = renderPage(<EditTopicPage topicId={topicId} values={values} />);
+    const { container } = renderPage(
+      <EditTopicPage linkedIndicatorCount={0} topicId={topicId} values={values} />,
+    );
 
     expect(await screen.findByRole('button', { name: 'Save' })).toBeTruthy();
 
@@ -369,13 +373,20 @@ describe('the edit topic page', () => {
   });
 
   it('shows the success message the save left behind', async () => {
-    renderPage(<EditTopicPage notification="Topic updated" topicId={topicId} values={values} />);
+    renderPage(
+      <EditTopicPage
+        linkedIndicatorCount={0}
+        notification="Topic updated"
+        topicId={topicId}
+        values={values}
+      />,
+    );
 
     expect(await screen.findByText('Topic updated')).toBeTruthy();
   });
 
   it('links to the delete confirmation page for this topic', async () => {
-    renderPage(<EditTopicPage topicId={topicId} values={values} />);
+    renderPage(<EditTopicPage linkedIndicatorCount={0} topicId={topicId} values={values} />);
 
     expect((await screen.findByRole('link', { name: 'Delete topic' })).getAttribute('href')).toBe(
       `/manage/topics/${topicId}/delete`,
@@ -383,7 +394,9 @@ describe('the edit topic page', () => {
   });
 
   it('shows no notification banner when there is nothing to report', async () => {
-    const { container } = renderPage(<EditTopicPage topicId={topicId} values={values} />);
+    const { container } = renderPage(
+      <EditTopicPage linkedIndicatorCount={0} topicId={topicId} values={values} />,
+    );
 
     expect(await screen.findByRole('button', { name: 'Save' })).toBeTruthy();
     expect(container.querySelector('.govuk-notification-banner')).toBeNull();
@@ -392,6 +405,7 @@ describe('the edit topic page', () => {
   it('summarises errors in field order, each linking to its control', async () => {
     renderPage(
       <EditTopicPage
+        linkedIndicatorCount={0}
         fieldErrors={{ description: 'Enter a description', title: 'Enter a topic name' }}
         topicId={topicId}
         values={{ ...values, title: '', description: '' }}
@@ -416,6 +430,7 @@ describe('the edit topic page', () => {
   it('repeats each message against its own field and keeps what was typed', async () => {
     const { container } = renderPage(
       <EditTopicPage
+        linkedIndicatorCount={0}
         fieldErrors={{ slug: 'Enter a slug' }}
         topicId={topicId}
         values={{ ...values, slug: '', title: 'A half-finished edit' }}

@@ -171,17 +171,35 @@ describe('POST /api/internal/topics', () => {
 });
 
 describe('GET /api/internal/topics/:id', () => {
-  it('returns the topic with its description', async () => {
-    const response = await request(createTestApp({ findById: async () => topic }))
+  it('returns the topic with its description and how many indicators link to it', async () => {
+    let counted: string | undefined;
+    const app = createTestApp({
+      findById: async () => topic,
+      countLinkedIndicators: async (id) => {
+        counted = id;
+        return 3;
+      },
+    });
+
+    const response = await request(app)
       .get(`/api/internal/topics/${topic.id}`)
       .set('Cookie', await adminCookie());
 
     expect(response.status).toBe(200);
-    expect(response.body).toMatchObject({ id: topic.id, description: 'All about topic A.' });
+    expect(response.body).toMatchObject({
+      id: topic.id,
+      description: 'All about topic A.',
+      linkedIndicatorCount: 3,
+    });
+    expect(counted).toBe(topic.id);
   });
 
   it('returns the standard not-found body for an unknown id', async () => {
-    const response = await request(createTestApp({ findById: async () => undefined }))
+    const app = createTestApp({
+      findById: async () => undefined,
+      countLinkedIndicators: async () => 0,
+    });
+    const response = await request(app)
       .get('/api/internal/topics/00000000-0000-7000-8000-0000000000ff')
       .set('Cookie', await adminCookie());
 
@@ -376,6 +394,15 @@ describe('DELETE /api/internal/topics/:id', () => {
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({ error: 'invalid_id' });
+  });
+
+  it('answers a 409 while indicators link to the topic', async () => {
+    const app = createTestApp({ delete: async () => ({ ok: false, reason: 'in_use' }) });
+
+    const response = await del(app);
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ error: 'in_use' });
   });
 
   it('returns a 404 when the topic has already gone', async () => {

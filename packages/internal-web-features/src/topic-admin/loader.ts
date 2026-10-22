@@ -1,9 +1,10 @@
 // No @fphd/ui imports here, so the loaders unit-test without the jsdom the components need.
 import {
   type TopicField,
-  topicAdminDetailSchema,
+  topicAdminDetailWithLinkCountSchema,
   topicAdminSummaryListSchema,
   topicCreateResponseSchema,
+  topicDeleteErrorSchema,
   topicIdSchema,
   topicUpdateErrorSchema,
   topicUpdateResponseSchema,
@@ -15,9 +16,13 @@ import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from 'reac
 
 import { type FormRefusal, formRefusal } from '../form-refusal.ts';
 import { parseTopicForm, readTopicForm, type TopicFormValues } from './form.ts';
-import { editTopicPath, TOPICS_ADMIN_PATH } from './paths.ts';
+import { deleteTopicPath, editTopicPath, TOPICS_ADMIN_PATH } from './paths.ts';
 
-export type { TopicAdminDetail, TopicAdminSummary } from '@fphd/internal-api-features/contract';
+export type {
+  TopicAdminDetail,
+  TopicAdminDetailWithLinkCount,
+  TopicAdminSummary,
+} from '@fphd/internal-api-features/contract';
 
 /** Resolved on the server so a cookie value is only ever a key into copy written here. */
 const FLASH_MESSAGES = {
@@ -59,7 +64,7 @@ export async function loadAdminTopicToEdit({ context, params }: LoaderFunctionAr
   const id = requireTopicId(params);
   const topic = await context
     .get(apiContext)
-    .get(apiPath`/api/internal/topics/${id}`, topicAdminDetailSchema);
+    .get(apiPath`/api/internal/topics/${id}`, topicAdminDetailWithLinkCountSchema);
   const flash = takeFlash(context);
 
   return {
@@ -143,15 +148,19 @@ export async function loadAdminTopicToDelete({ context, params }: LoaderFunction
   return {
     topic: await context
       .get(apiContext)
-      .get(apiPath`/api/internal/topics/${id}`, topicAdminDetailSchema),
+      .get(apiPath`/api/internal/topics/${id}`, topicAdminDetailWithLinkCountSchema),
   };
 }
 
-/** The confirmation page is the guard: this runs only from its POST, so only the id is checked. */
+/** Runs only from the confirmation page's POST; a topic linked since it loaded goes back there. */
 export async function deleteTopic({ context, params }: ActionFunctionArgs): Promise<Response> {
   const id = requireTopicId(params);
 
-  await context.get(apiContext).delete(apiPath`/api/internal/topics/${id}`);
+  const result = await context
+    .get(apiContext)
+    .delete(apiPath`/api/internal/topics/${id}`, topicDeleteErrorSchema);
+
+  if (!result.ok) return redirect(deleteTopicPath(id));
 
   setFlash(context, 'topic-deleted');
 

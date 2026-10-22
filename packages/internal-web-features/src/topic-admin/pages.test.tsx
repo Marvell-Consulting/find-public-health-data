@@ -6,7 +6,7 @@ import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { DeleteTopicPage, EditTopicPage, NewTopicPage } from './pages.tsx';
-import { editTopicPath } from './paths.ts';
+import { deleteTopicPath, editTopicPath } from './paths.ts';
 
 afterEach(cleanup);
 
@@ -15,14 +15,28 @@ const topic = {
   slug: 'smoking',
   createdAt: '2026-08-01T09:30:00.000Z',
   title: 'Smoking',
+  description: 'About smoking.',
   updatedAt: '2026-09-01T09:30:00.000Z',
+  linkedIndicatorCount: 0,
 };
 
 // The page's links read router state, so it renders inside a router.
-function renderPage() {
+function renderPage(linkedIndicatorCount = 0) {
   return render(
     <MemoryRouter>
-      <DeleteTopicPage topic={topic} />
+      <DeleteTopicPage topic={{ ...topic, linkedIndicatorCount }} />
+    </MemoryRouter>,
+  );
+}
+
+function renderEditPage(linkedIndicatorCount: number) {
+  return render(
+    <MemoryRouter>
+      <EditTopicPage
+        linkedIndicatorCount={linkedIndicatorCount}
+        topicId={topic.id}
+        values={values}
+      />
     </MemoryRouter>,
   );
 }
@@ -55,7 +69,7 @@ describe('EditTopicPage', () => {
   it('titles the document after the page', () => {
     render(
       <MemoryRouter>
-        <EditTopicPage topicId={topic.id} values={values} />
+        <EditTopicPage linkedIndicatorCount={0} topicId={topic.id} values={values} />
       </MemoryRouter>,
     );
 
@@ -67,6 +81,7 @@ describe('EditTopicPage', () => {
       <MemoryRouter>
         <EditTopicPage
           fieldErrors={{ slug: 'This slug is already used' }}
+          linkedIndicatorCount={0}
           topicId={topic.id}
           values={values}
         />
@@ -76,10 +91,32 @@ describe('EditTopicPage', () => {
     expect(document.title).toBe(`Error: Edit topic - ${serviceName} - GOV.UK`);
   });
 
+  it('offers to delete a topic no indicator links to', () => {
+    renderEditPage(0);
+
+    expect(screen.getByText('No indicators are linked to this topic.')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Delete topic' }).getAttribute('href')).toBe(
+      deleteTopicPath(topic.id),
+    );
+  });
+
+  it.each([
+    [1, '1 indicator is linked to this topic.'],
+    [3, '3 indicators are linked to this topic.'],
+  ])('shows %i linked and says why there is no Delete topic link', (count, sentence) => {
+    renderEditPage(count);
+
+    expect(screen.getByText(new RegExp(`^${sentence}`))).toBeTruthy();
+    expect(
+      screen.getByText(/You cannot delete a topic while indicators are linked to it/),
+    ).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Delete topic' })).toBeNull();
+  });
+
   it('debounces Save, so a double click saves the topic once', () => {
     render(
       <MemoryRouter>
-        <EditTopicPage topicId={topic.id} values={values} />
+        <EditTopicPage linkedIndicatorCount={0} topicId={topic.id} values={values} />
       </MemoryRouter>,
     );
 
@@ -112,6 +149,19 @@ describe('DeleteTopicPage', () => {
     renderPage();
 
     expect(screen.getByRole('link', { name: 'Cancel' }).getAttribute('href')).toBe(
+      editTopicPath(topic.id),
+    );
+  });
+
+  it('explains that a linked topic cannot be deleted, offering no button', () => {
+    renderPage(2);
+
+    expect(screen.getByRole('heading', { name: 'Delete topic' })).toBeTruthy();
+    expect(screen.getByText(/You cannot delete/).textContent).toBe(
+      'You cannot delete Smoking because 2 indicators are linked to it.',
+    );
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Return to edit topic' }).getAttribute('href')).toBe(
       editTopicPath(topic.id),
     );
   });

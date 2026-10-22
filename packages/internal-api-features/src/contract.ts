@@ -25,6 +25,11 @@ export const topicAdminDetailSchema = topicAdminSummarySchema.extend({
   description: z.string(),
 });
 
+/** A topic with the count that decides whether it can be deleted. */
+export const topicAdminDetailWithLinkCountSchema = topicAdminDetailSchema.extend({
+  linkedIndicatorCount: z.number().int().nonnegative(),
+});
+
 /**
  * The import rules (`topicRecordSchema`) plus the messages a form shows. Values are trimmed
  * before they are measured. Uniqueness is left to the database, which reports it as a field error.
@@ -62,14 +67,19 @@ export const topicUpdateErrorSchema = z.discriminatedUnion('error', [
   }),
 ]);
 
+/** The 409 a delete answers while indicators link to the topic. */
+export const topicDeleteErrorSchema = z.object({ error: z.literal('in_use') });
+
 export type TopicAdminSummary = z.infer<typeof topicAdminSummarySchema>;
 export type TopicAdminDetail = z.infer<typeof topicAdminDetailSchema>;
+export type TopicAdminDetailWithLinkCount = z.infer<typeof topicAdminDetailWithLinkCountSchema>;
 export type TopicField = z.infer<typeof topicFieldSchema>;
 export type TopicFieldErrors = z.infer<typeof topicFieldErrorsSchema>;
 export type TopicUpdate = z.infer<typeof topicUpdateSchema>;
 export type TopicCreateResponse = z.infer<typeof topicCreateResponseSchema>;
 export type TopicUpdateResponse = z.infer<typeof topicUpdateResponseSchema>;
 export type TopicUpdateError = z.infer<typeof topicUpdateErrorSchema>;
+export type TopicDeleteError = z.infer<typeof topicDeleteErrorSchema>;
 
 /** What the public has: live once any version is published, new until then. */
 export const indicatorStatusSchema = z.enum(['new', 'live']);

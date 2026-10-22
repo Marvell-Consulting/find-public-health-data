@@ -51,6 +51,7 @@ import type { IndicatorDraftLists } from './indicator-version-lists-repository.t
 import { listTagOptions } from './tag-repository.ts';
 import {
   type CreateTopicResult,
+  countLinkedIndicators,
   createTopic,
   type DeleteTopicResult,
   deleteTopic,
@@ -66,6 +67,7 @@ import { listValueTypeAndUnitOptions } from './value-type-and-unit-repository.ts
 export interface InternalTopicRepository {
   list(): Promise<Topic[]>;
   findById(id: string): Promise<TopicRow | undefined>;
+  countLinkedIndicators(id: string): Promise<number>;
   create(values: TopicUpdate, actor: Actor): Promise<CreateTopicResult>;
   update(id: string, values: TopicUpdate, actor: Actor): Promise<UpdateTopicResult>;
   delete(id: string, actor: Actor): Promise<DeleteTopicResult>;
@@ -186,6 +188,7 @@ export function createInternalRepositories(db: Database): InternalRepositories {
     topics: {
       list: () => listTopics(db),
       findById: (id) => getTopicById(db, id),
+      countLinkedIndicators: (id) => countLinkedIndicators(db, id),
       create: (values, actor) => createTopic(db, values, actor),
       update: (id, values, actor) => updateTopic(db, id, values, actor),
       delete: (id, actor) => deleteTopic(db, id, actor),

@@ -16,13 +16,17 @@ import {
 } from '@fphd/ui';
 
 import type { TopicFormValues } from './form.ts';
-import type { TopicAdminSummary } from './loader.ts';
+import type { TopicAdminDetailWithLinkCount, TopicAdminSummary } from './loader.ts';
 import { deleteTopicPath, editTopicPath, NEW_TOPIC_PATH, TOPICS_ADMIN_PATH } from './paths.ts';
 
 /** Summary order follows the form, so an error summary reads in the order the fields do. */
 const FIELD_ORDER = ['title', 'slug', 'description'] as const;
 
 const EMPTY_VALUES: TopicFormValues = { title: '', slug: '', description: '' };
+
+function indicatorsLinked(count: number): string {
+  return count === 1 ? '1 indicator is linked' : `${count} indicators are linked`;
+}
 
 function toErrorSummary(fieldErrors: TopicFieldErrors): FieldError[] {
   return FIELD_ORDER.flatMap((name) => {
@@ -133,6 +137,7 @@ export function NewTopicPage({
 interface EditTopicPageProps {
   fieldErrors?: TopicFieldErrors;
   formError?: string | undefined;
+  linkedIndicatorCount: number;
   notification?: string | undefined;
   topicId: string;
   values: TopicFormValues;
@@ -141,6 +146,7 @@ interface EditTopicPageProps {
 export function EditTopicPage({
   fieldErrors = {},
   formError,
+  linkedIndicatorCount,
   notification,
   topicId,
   values,
@@ -161,9 +167,19 @@ export function EditTopicPage({
       <ErrorSummary errors={errors} formError={formError} />
       <PageIntro title="Edit topic">
         <TopicFields fieldErrors={fieldErrors} submitLabel="Save" values={values} />
-        <p className="govuk-body">
-          <A href={deleteTopicPath(topicId)}>Delete topic</A>
-        </p>
+        {linkedIndicatorCount === 0 ? (
+          <>
+            <p className="govuk-body">No indicators are linked to this topic.</p>
+            <p className="govuk-body">
+              <A href={deleteTopicPath(topicId)}>Delete topic</A>
+            </p>
+          </>
+        ) : (
+          <p className="govuk-body">
+            {indicatorsLinked(linkedIndicatorCount)} to this topic. You cannot delete a topic while
+            indicators are linked to it.
+          </p>
+        )}
         <p className="govuk-body">
           <A href={TOPICS_ADMIN_PATH}>Return to topic list</A>
         </p>
@@ -172,12 +188,25 @@ export function EditTopicPage({
   );
 }
 
-export function DeleteTopicPage({ topic }: { topic: TopicAdminSummary }) {
+export function DeleteTopicPage({ topic }: { topic: TopicAdminDetailWithLinkCount }) {
+  if (topic.linkedIndicatorCount > 0) {
+    return (
+      <PageIntro title="Delete topic">
+        <p className="govuk-body">
+          You cannot delete <strong>{topic.title}</strong> because{' '}
+          {indicatorsLinked(topic.linkedIndicatorCount)} to it.
+        </p>
+        <p className="govuk-body">
+          <A href={editTopicPath(topic.id)}>Return to edit topic</A>
+        </p>
+      </PageIntro>
+    );
+  }
+
   return (
     <PageIntro title="Delete topic">
       <p className="govuk-body">
-        Are you sure you want to delete <strong>{topic.title}</strong>? Any indicators linked to
-        this topic will be unlinked from it. This cannot be undone.
+        Are you sure you want to delete <strong>{topic.title}</strong>? This cannot be undone.
       </p>
       {/* Plain form so it works without JavaScript; the POST is the confirmation. */}
       <form method="post">
