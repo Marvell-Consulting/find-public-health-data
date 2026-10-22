@@ -76,4 +76,15 @@ describe('the committed legacy source map', () => {
 
     expect(unheld).toEqual([]);
   });
+
+  it("maps Pholio's GeoDS source to the listed AHAH dataset", () => {
+    expect(
+      map['Geographic Data Service (GeoDS), Access to Healthy Assets and Hazards (AHAH)'],
+    ).toEqual([
+      {
+        provider: 'Consumer Data Research Centre (CDRC)',
+        source: 'Access to Healthy Assets and Hazards (AHAH)',
+      },
+    ]);
+  });
 });
