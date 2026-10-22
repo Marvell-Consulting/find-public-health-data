@@ -1,5 +1,5 @@
 import { type Database, schema } from '@fphd/db';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, max, sql } from 'drizzle-orm';
 import { alias, QueryBuilder } from 'drizzle-orm/pg-core';
 
 import type { DraftStatus, DraftSubmissionStatus, IndicatorStatus } from './contract.ts';
@@ -71,3 +71,8 @@ const latestDraftSubmission = new QueryBuilder({ casing: 'snake_case' })
   .limit(1);
 // A subquery, so a select list sorted and limited runs it for the rows it returns alone.
 export const draftSubmissionStatus = sql<DraftSubmissionStatus | null>`(${latestDraftSubmission})`;
+const latestDraftSubmissionNumber = new QueryBuilder({ casing: 'snake_case' })
+  .select({ number: max(indicatorVersionSubmission.number) })
+  .from(indicatorVersionSubmission)
+  .where(eq(indicatorVersionSubmission.indicatorVersionId, draftVersion.id));
+export const draftSubmissionNumber = sql<number | null>`(${latestDraftSubmissionNumber})`;

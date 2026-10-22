@@ -38,6 +38,7 @@ const detailRow: IndicatorAdminDetailRow = {
   ...row,
   shortId: 90366,
   publishedSlug: 'life-expectancy-at-birth',
+  draftSubmissionNumber: null,
 };
 
 // Inside `createApiApp`, whose request logging gives the handlers their `request.log`.
@@ -188,6 +189,7 @@ describe('GET /api/internal/indicators/:id', () => {
       draftStatus: null,
       draftLocked: false,
       draftSubmissionStatus: null,
+      draftSubmissionNumber: null,
       actions: [],
     });
   });
@@ -295,6 +297,7 @@ describe('POST /api/internal/indicators', () => {
     publishedSlug: null,
     indicatorStatus: 'new',
     draftStatus: 'draft',
+    draftSubmissionNumber: null,
   };
 
   it('rejects an anonymous request', async () => {
@@ -399,6 +402,7 @@ describe('POST /api/internal/indicators', () => {
       draftLocked: false,
       draftSubmissionStatus: null,
       updatedAt: '2026-01-02T00:00:00.000Z',
+      draftSubmissionNumber: null,
       actions: ['submit'],
     });
   });
@@ -496,6 +500,7 @@ describe('PATCH /api/internal/indicators/:id', () => {
     publishedSlug: null,
     indicatorStatus: 'new',
     draftStatus: 'draft',
+    draftSubmissionNumber: null,
   };
   const path = `/api/internal/indicators/${row.id}`;
 
@@ -543,6 +548,7 @@ describe('PATCH /api/internal/indicators/:id', () => {
       draftLocked: false,
       draftSubmissionStatus: null,
       updatedAt: '2026-01-02T00:00:00.000Z',
+      draftSubmissionNumber: null,
       actions: ['submit'],
     });
   });

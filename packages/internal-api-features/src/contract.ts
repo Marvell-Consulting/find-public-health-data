@@ -147,6 +147,8 @@ export const indicatorAdminDetailSchema = indicatorAdminSummarySchema.extend({
   shortId: z.number().int(),
   /** The published version's slug: the indicator's public address, absent until it has one. */
   publishedSlug: z.string().min(1).nullable(),
+  /** The draft's latest submission, which a withdrawal names; null until the first. */
+  draftSubmissionNumber: z.number().int().positive().nullable(),
   actions: indicatorActionsSchema,
 });
 
@@ -290,11 +292,33 @@ export const indicatorTaskListErrorSchema = z.object({
   error: z.enum(['invalid_id', 'not_found', 'no_draft']),
 });
 
+/** A submission confirms the draft as the task list showed it, by its last edit. */
+export const indicatorSubmitSchema = z.object({ draftUpdatedAt: z.iso.datetime() });
+
+/** The 400 and 409 answers. A missing indicator or draft is a 404, which the client throws. */
+export const indicatorSubmitErrorSchema = z.object({
+  error: z.enum(['invalid_id', 'invalid_draft_updated_at', 'not_allowed', 'changed', 'incomplete']),
+});
+
+/** A withdrawal names the submission the publisher was shown, so it never ends a newer one. */
+export const indicatorWithdrawSchema = z.object({
+  submissionNumber: z.number().int().positive(),
+});
+
+/** The 400 and 409 answers, as the submission's. */
+export const indicatorWithdrawErrorSchema = z.object({
+  error: z.enum(['invalid_id', 'invalid_submission_number', 'not_allowed', 'changed']),
+});
+
 export type IndicatorTaskStatus = z.infer<typeof indicatorTaskStatusSchema>;
 export type IndicatorTaskKey = z.infer<typeof indicatorTaskKeySchema>;
 export type IndicatorTaskStatuses = z.infer<typeof indicatorTaskStatusesSchema>;
 export type IndicatorTaskList = z.infer<typeof indicatorTaskListSchema>;
 export type IndicatorTaskListError = z.infer<typeof indicatorTaskListErrorSchema>;
+export type IndicatorSubmit = z.infer<typeof indicatorSubmitSchema>;
+export type IndicatorSubmitError = z.infer<typeof indicatorSubmitErrorSchema>;
+export type IndicatorWithdraw = z.infer<typeof indicatorWithdrawSchema>;
+export type IndicatorWithdrawError = z.infer<typeof indicatorWithdrawErrorSchema>;
 
 export * from './data-table-check-contract.ts';
 export * from './data-upload-contract.ts';

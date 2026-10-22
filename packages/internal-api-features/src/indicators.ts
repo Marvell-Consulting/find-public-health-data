@@ -75,6 +75,7 @@ function toDetail(row: IndicatorAdminDetailRow, user: SessionUser): IndicatorAdm
     ...toSummary(row),
     shortId: row.shortId,
     publishedSlug: row.publishedSlug,
+    draftSubmissionNumber: row.draftSubmissionNumber,
     actions: stepsOpenTo(user, row),
   };
 }

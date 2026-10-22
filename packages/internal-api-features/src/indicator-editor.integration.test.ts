@@ -28,6 +28,10 @@ describe("the publish journey's endpoints, for a publisher in another team", () 
         section: request(app).put(`${path}/definition-and-rationale`).send({ definition: 'B' }),
         upload: request(app).post(`${path}/data-uploads`).send('area_code\n'),
         confirmation: request(app).put(`${path}/data-table/confirmation`).send({}),
+        submit: request(app)
+          .post(`${path}/submit`)
+          .send({ draftUpdatedAt: new Date().toISOString() }),
+        withdraw: request(app).post(`${path}/withdraw`).send({ submissionNumber: 1 }),
       };
       for (const [write, pending] of Object.entries(writes)) {
         const response = await pending.set('Cookie', teamB);

@@ -152,6 +152,33 @@ describe('internal API', () => {
     expect(asInternal.status).toBe(403);
   });
 
+  it.each([
+    ['submit', { draftUpdatedAt: '2026-10-22T09:30:00.123Z' }],
+    ['withdraw', { submissionNumber: 1 }],
+  ])('mounts the %s step behind the publisher role', async (step, body) => {
+    const internalRepositories = createFakeInternalRepositories({
+      indicators: {
+        findTeamId: async () => TEAM_IDS.teamA,
+        submit: async () => ({ ok: true }),
+        withdraw: async () => ({ ok: true }),
+      },
+    });
+    const app = createTestApp(createFakeRepositories(), internalRepositories);
+    const path = `/api/internal/indicators/00000000-0000-7000-8000-000000000001/${step}`;
+
+    const asPublisher = await request(app)
+      .post(path)
+      .set('Cookie', await createCookie(['public', 'internal', 'publisher']))
+      .send(body);
+    const asInternal = await request(app)
+      .post(path)
+      .set('Cookie', await createCookie(['public', 'internal']))
+      .send(body);
+
+    expect(asPublisher.status).toBe(204);
+    expect(asInternal.status).toBe(403);
+  });
+
   it('mounts the internal topics surface behind the admin role', async () => {
     const internalRepositories = createFakeInternalRepositories({
       topics: {

@@ -20,6 +20,7 @@ const indicator: IndicatorAdminDetail = {
   draftStatus: null,
   draftLocked: false,
   draftSubmissionStatus: null,
+  draftSubmissionNumber: null,
   actions: [],
 };
 
