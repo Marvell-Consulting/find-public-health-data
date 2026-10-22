@@ -163,6 +163,14 @@ type DuplicateResolution =
   | 'duplicate_identical'
   | 'duplicate_superseded';
 
+const BASE_OBSERVATION_FILTERS = new Set<string>([
+  'not_approved',
+  'test_indicator',
+  'note_506',
+  'empty_observation',
+  'year_before_1900',
+]);
+
 const MEASURES = [
   'Value',
   'Count',
@@ -263,6 +271,7 @@ async function assertDistinctObservations(
   exclusions: ObservationExclusions;
   dropped: ReadonlySet<number>;
   sourceObservations: number;
+  scannedObservations: number;
 }> {
   const exclusions: ObservationExclusions = {
     not_approved: 0,
@@ -286,16 +295,13 @@ async function assertDistinctObservations(
   const seen = new Map<string, number>();
   let indicator: number | undefined;
   let sourceObservations = 0;
+  let scannedObservations = 0;
   await streamPholio(context.pool, `${observationQuery} ORDER BY c.IndicatorID, c.uid`, (raw) => {
     const c = raw as unknown as CdsRow;
     const reason = exclusionReason(c, excluded, context.indicatorSelection, selected, groupings);
     const observationsInRow = COMPOUND_AGE_IDS.has(c.AgeID) && c.SexID === 4 ? 2 : 1;
-    if (
-      !reason ||
-      reason === 'excluded_indicator' ||
-      reason === 'year_range_not_in_grouping' ||
-      reason === 'periodicity_not_in_grouping'
-    ) {
+    scannedObservations += observationsInRow;
+    if (!reason || !BASE_OBSERVATION_FILTERS.has(reason)) {
       sourceObservations += observationsInRow;
     }
     if (reason) {
@@ -343,7 +349,8 @@ async function assertDistinctObservations(
     }
   });
   const dropped = new Set<number>();
-  if (duplicates.size === 0) return { exclusions, dropped, sourceObservations };
+  if (duplicates.size === 0)
+    return { exclusions, dropped, sourceObservations, scannedObservations };
   const rowsByUid = await sourceRowsByUid(context, [
     ...new Set([...duplicates.values()].flat().map(sourceUidForObservationId)),
   ]);
@@ -384,7 +391,7 @@ async function assertDistinctObservations(
       `${total} repeated observation key(s) across ${unresolved.size} indicator(s) could not be resolved; review the source rows before exporting:\n${summary.join('\n')}`,
     );
   }
-  return { exclusions, dropped, sourceObservations };
+  return { exclusions, dropped, sourceObservations, scannedObservations };
 }
 
 async function sourceRowsByUid(
@@ -403,10 +410,8 @@ async function sourceRowsByUid(
 
 export async function exportObservations(context: ObservationExportOptions) {
   const groupings = await loadObservationGroupings(context.pool);
-  const { exclusions, dropped, sourceObservations } = await assertDistinctObservations(
-    context,
-    groupings,
-  );
+  const { exclusions, dropped, sourceObservations, scannedObservations } =
+    await assertDistinctObservations(context, groupings);
   const obsWriter = new TableWriter(context.outDir, 'observation');
   const dimWriter = new TableWriter(context.outDir, 'observation_dimension');
   const noteWriter = new TableWriter(context.outDir, 'observation_note');
@@ -477,13 +482,27 @@ export async function exportObservations(context: ObservationExportOptions) {
         });
     }
   });
+  const tables = {
+    observation: await obsWriter.close(),
+    observation_dimension: await dimWriter.close(),
+    observation_note: await noteWriter.close(),
+  };
+  const excludedObservations = Object.entries(exclusions)
+    .filter(([reason]) => !BASE_OBSERVATION_FILTERS.has(reason))
+    .reduce((sum, [, count]) => sum + count, 0);
+  const allExclusions = Object.values(exclusions).reduce((sum, count) => sum + count, 0);
+  if (
+    tables.observation.rows + excludedObservations !== sourceObservations ||
+    tables.observation.rows + allExclusions !== scannedObservations
+  )
+    throw new Error(
+      `Observation accounting failed: wrote ${tables.observation.rows}, expected ${sourceObservations - excludedObservations} from ${sourceObservations} eligible source observations and ${excludedObservations} reviewed exclusions`,
+    );
   return {
     sourceObservations,
+    scannedObservations,
+    excludedObservations,
     observationExclusions: exclusions,
-    tables: {
-      observation: await obsWriter.close(),
-      observation_dimension: await dimWriter.close(),
-      observation_note: await noteWriter.close(),
-    },
+    tables,
   };
 }

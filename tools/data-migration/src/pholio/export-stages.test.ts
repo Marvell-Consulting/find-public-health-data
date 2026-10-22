@@ -6,6 +6,7 @@ import type mssql from 'mssql';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 import { readGzipCsv } from '../csv.ts';
+import { checkSlugs } from '../indicator-checks.ts';
 import type { ObservationExportOptions, PholioExportOptions } from './context.ts';
 import { exportDimensions } from './dimensions.ts';
 import { exportGeography } from './geography.ts';
@@ -186,6 +187,23 @@ it('counts every intentional observation exclusion separately', async () => {
   });
   expect((await rows('observation')).length).toBe(1);
   expect(result.sourceObservations).toBe(2);
+  expect(result.scannedObservations).toBe(7);
+  expect(result.excludedObservations).toBe(1);
+});
+
+it.each(['missing', 'extra'])('refuses an %s observation in the writing pass', async (change) => {
+  sourceObservations([observation()]);
+  const preflight = vi.mocked(streamPholio).getMockImplementation();
+  vi.mocked(streamPholio).mockImplementation(async (pool, query, consume) => {
+    if (query.includes('ORDER BY c.IndicatorID')) return preflight?.(pool, query, consume) ?? 0;
+    if (change === 'missing') return 0;
+    await consume(observation());
+    await consume(observation({ uid: 2, Year: 2024 }));
+    return 2;
+  });
+  await expect(exportObservations(observationOptions())).rejects.toThrow(
+    'Observation accounting failed',
+  );
 });
 
 it('keeps the benchmark exclusion count limited to otherwise eligible observations', async () => {
@@ -539,7 +557,13 @@ it('uses the same compound dimensions in canonical keys and written bridges', as
   );
 });
 
-function indicatorQueries(unitName = 'No unit') {
+function indicatorQueries(
+  unitName = 'No unit',
+  indicators = [108, 109].map((IndicatorID) => ({
+    IndicatorID,
+    Name: `Indicator ${IndicatorID}`,
+  })),
+) {
   vi.mocked(queryPholio)
     .mockResolvedValueOnce([])
     .mockResolvedValueOnce([{ id: 1, name: 'Not applicable' }])
@@ -547,9 +571,9 @@ function indicatorQueries(unitName = 'No unit') {
     .mockResolvedValueOnce([])
     .mockResolvedValueOnce([])
     .mockResolvedValueOnce(
-      [108, 109].map((IndicatorID) => ({
+      indicators.map(({ IndicatorID, Name }) => ({
         IndicatorID,
-        Name: `Indicator ${IndicatorID}`,
+        Name,
         ValueTypeName: 'Count',
         UnitName: unitName,
         YearTypeName: 'Calendar',
@@ -585,6 +609,40 @@ it('refuses an approved indicator absent from the source', async () => {
   indicatorQueries();
   options.indicatorSelection = { kind: 'approved', indicators: [110] };
   await expect(exportIndicators(options)).rejects.toThrow(/110/);
+  expect(await readdir(directory)).toEqual([]);
+});
+
+it('retains all six colliding datasets with distinct migration names and original ids', async () => {
+  const names = [
+    [90366, 'Life expectancy at birth'],
+    [93283, 'Life expectancy at birth'],
+    [90776, 'Chlamydia detection rate per 100,000 aged 15 to 24 years'],
+    [91514, 'Chlamydia detection rate per 100,000 aged 15 to 24 years'],
+    [93280, 'Fuel poverty (low income, low energy efficiency methodology)'],
+    [93759, 'Fuel poverty (low income, low energy efficiency methodology)'],
+  ] as const;
+  indicatorQueries(
+    'No unit',
+    names.map(([IndicatorID, Name]) => ({ IndicatorID, Name })),
+  );
+  options.indicatorSelection = { kind: 'approved', indicators: names.map(([id]) => id) };
+  const result = await exportIndicators(options);
+  const versions = await rows('indicator_version');
+  expect(result.indicatorIds).toEqual(new Set(names.map(([id]) => id)));
+  expect(() =>
+    checkSlugs(versions.map(({ id, name }) => ({ id: id ?? '', name: name ?? '' }))),
+  ).not.toThrow();
+  expect(versions.find(({ id }) => id === '90776')?.name).toContain('(Females)');
+  expect(versions.find(({ id }) => id === '91514')?.name).toContain('(Males and total population)');
+  expect(
+    result.indicatorNameMappings.map(({ fingertipsId, sourceName }) => [fingertipsId, sourceName]),
+  ).toEqual(names);
+});
+
+it('requires a new review when a provisionally renamed source name changes', async () => {
+  indicatorQueries('No unit', [{ IndicatorID: 90366, Name: 'A changed source name' }]);
+  options.indicatorSelection = { kind: 'approved', indicators: [90366] };
+  await expect(exportIndicators(options)).rejects.toThrow(/90366: source name changed/);
   expect(await readdir(directory)).toEqual([]);
 });
 

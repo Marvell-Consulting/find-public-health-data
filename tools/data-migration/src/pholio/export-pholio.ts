@@ -92,17 +92,16 @@ export async function exportPholio(options: ExportPholioOptions): Promise<void> 
             cutoff_at: snapshotAt,
           },
           exported_indicators: tables.indicator?.rows,
-          source_observations:
-            options.indicatorSelection.kind === 'development-snapshot'
-              ? observations.sourceObservations
-              : undefined,
+          scanned_observations: observations.scannedObservations,
+          source_observations: observations.sourceObservations,
           indicator_selection: options.indicatorSelection,
+          indicator_name_mappings: indicators.indicatorNameMappings,
           excluded_indicators: [...context.excludedIndicators].sort((a, b) => a - b),
           excluded_non_approved_indicators: indicators.excludedNonApprovedIndicators,
           superseded_sentinel_indicators: [...(options.supersededSentinelIndicators ?? [])].sort(
             (a, b) => a - b,
           ),
-          excluded_observations: observations.observationExclusions.excluded_indicator,
+          excluded_observations: observations.excludedObservations,
           observation_exclusions: observations.observationExclusions,
           source_csv_null: DATA_MIGRATION_NULL,
           tables,

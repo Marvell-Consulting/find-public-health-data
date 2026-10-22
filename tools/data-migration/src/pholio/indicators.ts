@@ -3,6 +3,7 @@ import { notesAndCaveats } from '../notes-and-caveats.ts';
 import { plainTextFromHtml } from '../plain-text.ts';
 import type { PholioExportOptions } from './context.ts';
 import { uploadBatchId } from './ids.ts';
+import { INDICATOR_NAME_MAPPINGS, reviewedIndicatorName } from './indicator-names.ts';
 import type { PholioRow } from './source.ts';
 import { queryPholio } from './source.ts';
 import { TableWriter } from './table-writer.ts';
@@ -185,6 +186,11 @@ export async function exportIndicators(context: PholioExportOptions) {
       !excluded.has(row.IndicatorID) &&
       (context.indicatorSelection.kind === 'development-snapshot' || selected.has(row.IndicatorID)),
   );
+  for (const row of selectedRows)
+    indicatorNames.set(
+      row.IndicatorID,
+      reviewedIndicatorName(row.IndicatorID, row.Name ?? `Indicator ${row.IndicatorID}`),
+    );
   const unmappableValueTypes = unknownValueTypes(
     selectedRows.map((row) => row.ValueTypeName ?? 'Count'),
   );
@@ -245,7 +251,8 @@ export async function exportIndicators(context: PholioExportOptions) {
     if (excluded.has(id)) continue;
     if (context.indicatorSelection.kind === 'approved' && !selected.has(id)) continue;
 
-    const name = row.Name ?? `Indicator ${id}`;
+    const name = indicatorNames.get(id);
+    if (name === undefined) throw new Error(`Indicator ${id}: missing reviewed name`);
     const polarityId = polarityById.get(id) ?? DEFAULT_POLARITY_ID;
     const polarityName = polarityNameById.get(polarityId);
     if (polarityName === undefined) {
@@ -380,12 +387,14 @@ export async function exportIndicators(context: PholioExportOptions) {
 
     indicatorIds.add(id);
     indicatorEnteredAt.set(id, enteredAt);
-    indicatorNames.set(id, name);
   }
 
   return {
     indicatorIds,
     indicatorNames,
+    indicatorNameMappings: INDICATOR_NAME_MAPPINGS.filter(({ fingertipsId }) =>
+      indicatorIds.has(fingertipsId),
+    ),
     indicatorEnteredAt,
     excludedNonApprovedIndicators,
     tables: {

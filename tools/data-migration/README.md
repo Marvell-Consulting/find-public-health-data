@@ -24,12 +24,23 @@ publishing moves to this service. The operations image applies the packages with
   `[108, 241]`) to override it. Explicit exclusions can further narrow the list; a requested
   indicator missing from Pholio stops export. The source manifest records the selection,
   exported count and non-approved count.
+- Six provisional names in `src/pholio/indicator-names.ts` distinguish the life-expectancy,
+  chlamydia and fuel-poverty datasets without merging or excluding their source ids. Each
+  mapping checks the original source name and is recorded in `indicator_name_mappings` in
+  the source manifest. A changed source name stops export for review.
 - Observation pre-flight counts each intentional exclusion: non-approved indicators,
   explicit exclusions, test indicator 94204, placeholder note 506, empty sentinel rows,
   years before 1900, period formats absent from the indicator's Grouping metadata, and
   resolved duplicate keys (see below). Unknown areas, notes, metadata and dimension values
   stop export with source-row diagnostics. Historical dates and future periods are not
   excluded by the current Grouping baseline or data point.
+- `scanned_observations` counts all source observations, including compound-age expansion.
+  `source_observations` counts the selected observations after the base filters (test id,
+  unapproved ids, note 506, empty sentinel rows and years before 1900).
+  `excluded_observations` totals the remaining explicit-indicator, publication-format and
+  duplicate exclusions, each counted independently during pre-flight. Written observations
+  plus those exclusions must equal `source_observations`; written observations plus every
+  reason in `observation_exclusions` must equal `scanned_observations`. A mismatch fails export.
 - Area aliases prefer the non-n-prefixed code deterministically. Both source aliases map
   to the survivor, so their observations and relationships retain the same area identity.
 - Every migrated timestamp is the indicator's `DateEnteredInPHOLIO`, never the export time,
@@ -83,13 +94,12 @@ the importer verifies the applied links before committing.
 
 ## Export pre-flight checks
 
-Before writing any file, `export-pholio` runs a slug check that cannot be retried cheaply
+Before streaming observations, `export-pholio` runs a slug check that cannot be retried cheaply
 after a 29-million-row export:
 
 - **Slug collisions**: no two exported indicator names may slugify to the same slug, since
   a slug belongs to exactly one indicator. The check names every colliding pair (source id
-  and name) so the editorial problem can be resolved in the source — by renaming or
-  excluding one of the pair — before exporting again.
+  and name) for an explicit naming decision before exporting again.
 
 ## Duplicate observation keys
 
@@ -129,11 +139,11 @@ their observations, upload batches and bridge data from the export. The source m
 records `excluded_indicators` and `excluded_observations` so the result is auditable.
 
 ```sh
-# Exclude a pair of indicators that share a name (and therefore a slug):
+# Apply an explicit decision to leave out an approved indicator:
 pnpm --filter @fphd/data-migration data-migration export-pholio \
   --expected-database pholio_live_b \
   --out-dir /secure/fphd-snapshot-001 \
-  --excluded-indicators '[90366, 93283]'
+  --excluded-indicators '[108]'
 ```
 
 The ids to exclude in production are a human decision documented alongside the reviewed

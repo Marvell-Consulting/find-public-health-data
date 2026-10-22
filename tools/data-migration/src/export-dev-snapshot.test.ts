@@ -37,7 +37,7 @@ it('checks the original source fingerprint before intentional publication exclus
     const path = join(outDir, 'source-manifest.json');
     const source = JSON.parse(await readFile(path, 'utf8'));
     source.source_observations = 29_656_329;
-    source.excluded_observations = 0;
+    source.excluded_observations = 29_656_328;
     source.observation_exclusions = { year_range_not_in_grouping: 29_656_328 };
     await writeFile(path, JSON.stringify(source));
   });
@@ -45,6 +45,20 @@ it('checks the original source fingerprint before intentional publication exclus
   const manifest = await verifyPublishedSnapshot(directory);
   expect(manifest.source_observations).toBe(29_656_329);
   expect(manifest.excluded_observations).toBe(29_656_328);
+});
+
+it('refuses a short export instead of reclassifying missing rows as exclusions', async () => {
+  directory = await mkdtemp(join(tmpdir(), 'dev-snapshot-'));
+  vi.mocked(exportPholio).mockImplementation(async ({ outDir }) => {
+    await writeDevelopmentSource(outDir);
+    const path = join(outDir, 'source-manifest.json');
+    const source = JSON.parse(await readFile(path, 'utf8'));
+    source.tables.observation.rows = 0;
+    await writeFile(path, JSON.stringify(source));
+  });
+  await expect(
+    exportDevSnapshot({ connectionString: 'test source', outDir: directory }),
+  ).rejects.toThrow('Exported observations and recorded exclusions do not match the source count');
 });
 
 it('refuses a changed source fingerprint even when exported counts match the benchmark', async () => {
