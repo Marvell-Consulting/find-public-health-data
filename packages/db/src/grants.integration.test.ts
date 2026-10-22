@@ -527,21 +527,24 @@ describe('an indicator published again with new data', () => {
   });
 });
 
-describe('the audit log', () => {
-  // A throwaway member of internal_api, for the same reason as the public role's above.
-  const internalMemberRole = `fphd_grants_test_${randomBytes(6).toString('hex')}`;
-  let internalMember: postgres.Sql;
+/**
+ * A throwaway member of internal_api, for the same reason as the public role's above, connected
+ * for the tests of one describe block.
+ */
+function internalMemberOfBlock(): () => postgres.Sql {
+  const role = `fphd_grants_test_${randomBytes(6).toString('hex')}`;
+  let client: postgres.Sql | undefined;
 
   beforeAll(async () => {
     await owner.unsafe(
-      `CREATE ROLE "${internalMemberRole}" LOGIN PASSWORD '${memberPassword}' IN ROLE "${API_ROLES.internalApi}"`,
+      `CREATE ROLE "${role}" LOGIN PASSWORD '${memberPassword}' IN ROLE "${API_ROLES.internalApi}"`,
     );
-    internalMember = createPostgresClient(
+    client = createPostgresClient(
       {
         host: env.DB_HOST,
         port: env.DB_PORT,
         database: testDb.name,
-        user: internalMemberRole,
+        user: role,
         password: memberPassword,
         ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
       },
@@ -550,19 +553,28 @@ describe('the audit log', () => {
   });
 
   afterAll(async () => {
-    await internalMember?.end();
-    await owner.unsafe(`DROP ROLE IF EXISTS "${internalMemberRole}"`);
+    await client?.end();
+    await owner.unsafe(`DROP ROLE IF EXISTS "${role}"`);
   });
 
+  return () => {
+    if (client === undefined) throw new Error('the internal member is connected in beforeAll');
+    return client;
+  };
+}
+
+describe('the audit log', () => {
+  const internal = internalMemberOfBlock();
+
   it('lets the internal role add an entry and read it back', async () => {
-    const [entry] = await internalMember<{ id: string }[]>`
+    const [entry] = await internal()<{ id: string }[]>`
       INSERT INTO audit_log (actor_id, action, entity_type, entity_id, changes)
       VALUES (${ACTOR}, 'topic.deleted', 'topic', uuidv7()::text, '{}')
       RETURNING id
     `;
 
     await expect(
-      internalMember`SELECT action FROM audit_log WHERE id = ${entry?.id ?? ''}`,
+      internal()`SELECT action FROM audit_log WHERE id = ${entry?.id ?? ''}`,
     ).resolves.toEqual([{ action: 'topic.deleted' }]);
   });
 
@@ -575,9 +587,53 @@ describe('the audit log', () => {
   });
 
   it('refuses the internal role changing or removing an entry', async () => {
-    await expect(internalMember`UPDATE audit_log SET changes = '{}'`).rejects.toThrow(
+    await expect(internal()`UPDATE audit_log SET changes = '{}'`).rejects.toThrow(
       /permission denied/,
     );
-    await expect(internalMember`DELETE FROM audit_log`).rejects.toThrow(/permission denied/);
+    await expect(internal()`DELETE FROM audit_log`).rejects.toThrow(/permission denied/);
+  });
+});
+
+describe('the review submissions', () => {
+  const internal = internalMemberOfBlock();
+
+  it('lets the internal role add a submission, read it and end it', async () => {
+    const [submission] = await internal()<{ id: string }[]>`
+      INSERT INTO indicator_version_submission
+        (indicator_version_id, indicator_id, number, status, submitted_by)
+      SELECT id, indicator_id, 1, 'submitted', ${ACTOR} FROM indicator_version
+      WHERE indicator_id = ${draftIndicatorId}
+      RETURNING id
+    `;
+    const id = submission?.id ?? '';
+    await internal()`
+      UPDATE indicator_version_submission
+      SET status = 'withdrawn', ended_by = ${ACTOR}, ended_at = now()
+      WHERE id = ${id}
+    `;
+
+    await expect(
+      internal()`SELECT status FROM indicator_version_submission WHERE id = ${id}`,
+    ).resolves.toEqual([{ status: 'withdrawn' }]);
+  });
+
+  it.each(['DELETE', 'TRUNCATE'])('holds no %s on them', async (privilege) => {
+    const [row] = await owner<{ granted: boolean }[]>`
+      SELECT has_table_privilege(${API_ROLES.internalApi}, 'public.indicator_version_submission', ${privilege}) AS granted
+    `;
+
+    expect(row?.granted).toBe(false);
+  });
+
+  it('refuses the internal role removing a submission', async () => {
+    await expect(internal()`DELETE FROM indicator_version_submission`).rejects.toThrow(
+      /permission denied/,
+    );
+  });
+
+  it('refuses the public role reading them', async () => {
+    await expect(member`SELECT id FROM indicator_version_submission`).rejects.toThrow(
+      /permission denied/,
+    );
   });
 });

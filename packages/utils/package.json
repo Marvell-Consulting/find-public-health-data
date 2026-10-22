@@ -41,6 +41,12 @@
       "types": "./src/indicator-path.ts",
       "default": "./dist/indicator-path.js"
     },
+    "./indicator-submission-status": {
+      "browser": "./src/indicator-submission-status.ts",
+      "development": "./src/indicator-submission-status.ts",
+      "types": "./src/indicator-submission-status.ts",
+      "default": "./dist/indicator-submission-status.js"
+    },
     "./period-label": {
       "browser": "./src/period-label.ts",
       "development": "./src/period-label.ts",

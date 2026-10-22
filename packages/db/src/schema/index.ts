@@ -9,6 +9,7 @@ export * from './indicator.ts';
 export * from './lookup.ts';
 export * from './observation.ts';
 export * from './published.ts';
+export * from './submission.ts';
 export * from './team.ts';
 export * from './topic.ts';
 export * from './upload.ts';

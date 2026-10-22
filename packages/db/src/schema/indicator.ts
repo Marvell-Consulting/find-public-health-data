@@ -118,6 +118,8 @@ export const indicatorVersion = pgTable(
       .notNull()
       .references(() => indicator.id),
     status: text({ enum: INDICATOR_VERSION_STATUSES }).notNull().default('draft'),
+    // Set while a submission is under review or approved; only a workflow step writes it.
+    isLocked: boolean().notNull().default(false),
     publishedAt: timestamp({ withTimezone: true }),
     // When the publisher asks for this version to be published; published_at records when it was.
     scheduledPublishAt: timestamp({ withTimezone: true }),

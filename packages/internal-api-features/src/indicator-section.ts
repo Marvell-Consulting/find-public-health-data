@@ -23,6 +23,7 @@ export type IndicatorSectionDraft = Omit<
   | 'createdBy'
   | 'id'
   | 'indicatorId'
+  | 'isLocked'
   | 'name'
   | 'publishedAt'
   | 'slug'

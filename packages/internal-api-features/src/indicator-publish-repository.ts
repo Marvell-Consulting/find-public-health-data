@@ -55,6 +55,7 @@ export async function createDraftFromPublished(
           .values({
             ...attributes,
             status: 'draft',
+            isLocked: false,
             publishedAt: null,
             // A new version is published when its own publisher says.
             scheduledPublishAt: null,

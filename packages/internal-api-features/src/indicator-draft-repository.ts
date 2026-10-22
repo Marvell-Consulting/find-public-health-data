@@ -114,6 +114,7 @@ type EditableVersionColumns = Omit<
   | 'createdBy'
   | 'id'
   | 'indicatorId'
+  | 'isLocked'
   | 'publishedAt'
   | 'slug'
   | 'status'
