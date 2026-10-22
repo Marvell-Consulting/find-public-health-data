@@ -26,14 +26,21 @@ describe('StatusTag', () => {
   });
 
   it.each([
-    ['new', 'draft', 'Incomplete', 'blue'],
-    ['live', null, 'Published', 'green'],
-    ['live', 'draft', 'Update incomplete', 'blue'],
+    ['new', 'draft', null, 'Incomplete', 'blue'],
+    ['new', 'draft', 'submitted', 'Pending approval', 'yellow'],
+    ['new', 'draft', 'withdrawn', 'Incomplete', 'blue'],
+    ['live', null, null, 'Published', 'green'],
+    ['live', 'draft', null, 'Update incomplete', 'blue'],
   ] as const)(
-    'shows a %s indicator with a draft status of %s as %s',
-    (indicatorStatus, draftStatus, label, colour) => {
+    'shows a %s indicator with a draft status of %s and a submission %s as %s',
+    (indicatorStatus, draftStatus, draftSubmissionStatus, label, colour) => {
       render(
-        <StatusTag type="publishing" indicatorStatus={indicatorStatus} draftStatus={draftStatus} />,
+        <StatusTag
+          type="publishing"
+          indicatorStatus={indicatorStatus}
+          draftStatus={draftStatus}
+          draftSubmissionStatus={draftSubmissionStatus}
+        />,
       );
 
       expect(tag(label)).toContain(`govuk-tag--${colour}`);
@@ -42,7 +49,12 @@ describe('StatusTag', () => {
 
   it('shows nothing for a new indicator with no draft, which cannot be made', () => {
     const { container } = render(
-      <StatusTag type="publishing" indicatorStatus="new" draftStatus={null} />,
+      <StatusTag
+        type="publishing"
+        indicatorStatus="new"
+        draftStatus={null}
+        draftSubmissionStatus={null}
+      />,
     );
 
     expect(container.innerHTML).toBe('');
@@ -52,7 +64,12 @@ describe('StatusTag', () => {
     ['an indicator', { type: 'indicator', status: 'live' }, 'Indicator status: ', 'Live indicator'],
     [
       'a publishing',
-      { type: 'publishing', indicatorStatus: 'live', draftStatus: null },
+      {
+        type: 'publishing',
+        indicatorStatus: 'live',
+        draftStatus: null,
+        draftSubmissionStatus: null,
+      },
       'Publishing status: ',
       'Published',
     ],

@@ -4,12 +4,12 @@ import { StatusTag } from './status-tag.tsx';
 
 type HeadedIndicator = Pick<
   IndicatorAdminDetail,
-  'name' | 'shortId' | 'indicatorStatus' | 'draftStatus'
+  'name' | 'shortId' | 'indicatorStatus' | 'draftStatus' | 'draftSubmissionStatus'
 >;
 
 /** How a publisher's pages title an indicator: its name, its public number, then its statuses. */
 export function IndicatorHeading({ indicator }: { indicator: HeadedIndicator }) {
-  const { draftStatus, indicatorStatus, name, shortId } = indicator;
+  const { draftStatus, draftSubmissionStatus, indicatorStatus, name, shortId } = indicator;
 
   return (
     <>
@@ -17,7 +17,12 @@ export function IndicatorHeading({ indicator }: { indicator: HeadedIndicator }) 
       <p className="govuk-heading-m govuk-!-margin-bottom-2">ID: {shortId}</p>
       <p className="govuk-!-margin-bottom-6">
         <StatusTag type="indicator" status={indicatorStatus} />{' '}
-        <StatusTag type="publishing" indicatorStatus={indicatorStatus} draftStatus={draftStatus} />
+        <StatusTag
+          type="publishing"
+          indicatorStatus={indicatorStatus}
+          draftStatus={draftStatus}
+          draftSubmissionStatus={draftSubmissionStatus}
+        />
       </p>
     </>
   );

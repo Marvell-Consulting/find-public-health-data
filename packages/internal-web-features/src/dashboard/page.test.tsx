@@ -49,6 +49,25 @@ describe('DashboardPage', () => {
     expect(tags).toEqual(['Live', 'Update incomplete']);
   });
 
+  it('tags a new indicator submitted for approval as pending approval', () => {
+    renderPage({
+      indicators: [
+        {
+          ...indicator,
+          indicatorStatus: 'new',
+          draftStatus: 'draft',
+          draftLocked: true,
+          draftSubmissionStatus: 'submitted',
+        },
+      ],
+    });
+
+    const row = screen.getByRole('rowheader', { name: 'Life expectancy at birth' }).closest('tr');
+    const tags = [...(row?.querySelectorAll('.govuk-tag') ?? [])].map((tag) => tag.textContent);
+
+    expect(tags).toEqual(['New', 'Pending approval']);
+  });
+
   it('names the columns that have data behind them', () => {
     renderPage();
 
