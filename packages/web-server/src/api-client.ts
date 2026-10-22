@@ -73,8 +73,11 @@ export interface ApiClient {
     signal?: AbortSignal,
   ): Promise<ApiWriteResult<T, E>>;
 
-  /** DELETE `path`. A 204 has no body; a 404 throws for the not-found boundary, the rest 502. */
-  delete(path: string): Promise<void>;
+  /**
+   * DELETE `path`. A 204 has no body; a 409 comes back as a value parsed with `errorSchema`; a
+   * 404 throws for the not-found boundary, the rest 502.
+   */
+  delete<E>(path: string, errorSchema: z.ZodType<E>): Promise<ApiWriteResult<undefined, E>>;
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -288,7 +291,7 @@ export function createApiClient({
       }
     },
 
-    async delete(path) {
+    async delete(path, errorSchema) {
       const response = await fetch(`${baseUrl}${path}`, {
         method: 'DELETE',
         headers,
@@ -299,9 +302,19 @@ export function createApiClient({
         throw new Response('Not Found', { status: 404 });
       }
 
+      if (response.status === 409) {
+        return {
+          ok: false,
+          status: response.status,
+          error: parseOrFail(path, errorSchema, await readJson(path, response)),
+        };
+      }
+
       if (!response.ok) {
         throw new Response('Bad Gateway', { status: 502 });
       }
+
+      return { ok: true, data: undefined };
     },
   };
 }

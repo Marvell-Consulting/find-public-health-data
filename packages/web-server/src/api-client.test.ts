@@ -312,13 +312,19 @@ describe('ApiClient.delete', () => {
   it('resolves without a body on a 204', async () => {
     respondWith(undefined, 204);
 
-    await expect(client().delete('/api/internal/topics/1')).resolves.toBeUndefined();
+    await expect(client().delete('/api/internal/topics/1', errorSchema)).resolves.toEqual({
+      ok: true,
+      data: undefined,
+    });
   });
 
   it('sends the DELETE method with the configured headers', async () => {
     const fetchMock = respondWith(undefined, 204);
 
-    await client({ cookie: 'fphd-internal-session=a-token' }).delete('/api/internal/topics/1');
+    await client({ cookie: 'fphd-internal-session=a-token' }).delete(
+      '/api/internal/topics/1',
+      errorSchema,
+    );
 
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
       method: 'DELETE',
@@ -326,16 +332,36 @@ describe('ApiClient.delete', () => {
     });
   });
 
+  it('returns a 409 as a value rather than throwing', async () => {
+    respondWith({ error: 'in_use' }, 409);
+
+    const result = await client().delete('/api/internal/topics/1', errorSchema);
+
+    expect(result).toEqual({ ok: false, status: 409, error: { error: 'in_use' } });
+  });
+
+  it('rejects a 409 body that does not match the contract', async () => {
+    respondWith({ unexpected: true }, 409);
+
+    await expect(client().delete('/api/internal/topics/1', errorSchema)).rejects.toMatchObject({
+      status: 502,
+    });
+  });
+
   it('passes a 404 through so a route can render its not-found boundary', async () => {
     respondWith({}, 404);
 
-    await expect(client().delete('/api/internal/topics/1')).rejects.toMatchObject({ status: 404 });
+    await expect(client().delete('/api/internal/topics/1', errorSchema)).rejects.toMatchObject({
+      status: 404,
+    });
   });
 
-  it.each([401, 403, 500])('turns a %s into a 502', async (status) => {
+  it.each([400, 401, 403, 500])('turns a %s into a 502', async (status) => {
     respondWith({}, status);
 
-    await expect(client().delete('/api/internal/topics/1')).rejects.toMatchObject({ status: 502 });
+    await expect(client().delete('/api/internal/topics/1', errorSchema)).rejects.toMatchObject({
+      status: 502,
+    });
   });
 });
 
