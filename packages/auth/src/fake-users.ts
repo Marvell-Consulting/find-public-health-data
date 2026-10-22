@@ -9,7 +9,7 @@ export interface FakeUser {
   readonly teamIds: readonly string[];
 }
 
-/** The ids of the fake users' `app_user` rows, which the migration in @fphd/db inserts. */
+/** The fake users' `app_user` row ids, which a migration in @fphd/db-operations inserts. */
 export const FAKE_USER_IDS = Object.freeze({
   publicUser: '01a13c69-96ac-700c-9c28-8f3a1d3968e2',
   publisherTeamA: '01a13c69-96ab-7598-9ce0-f84dbec3d5dd',

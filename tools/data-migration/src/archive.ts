@@ -3,7 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { basename, dirname } from 'node:path';
 import { promisify } from 'node:util';
 
-import { dataMigrationManifestSchema } from '@fphd/db/data-migration-contract';
+import { dataMigrationManifestSchema } from '@fphd/db-operations/data-migration-contract';
 
 import { sha256 } from './files.ts';
 import { verifyPackageFiles } from './verify.ts';

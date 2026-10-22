@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { finished } from 'node:stream/promises';
 import { createGzip } from 'node:zlib';
 
-import { DATA_MIGRATION_NULL } from '@fphd/db/data-migration-contract';
+import { DATA_MIGRATION_NULL } from '@fphd/db-operations/data-migration-contract';
 import mssql from 'mssql';
 import { encodeRow } from './csv.ts';
 import { ensureDirectory } from './files.ts';

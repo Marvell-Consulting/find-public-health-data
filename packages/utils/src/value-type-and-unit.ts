@@ -1,6 +1,6 @@
 /**
  * The value types whose ids the code behaves on. Every value type is a core data row, listed
- * in `value-types.json` in @fphd/db.
+ * in `value-types.json` in @fphd/db-operations.
  */
 export const VALUE_TYPE_IDS = {
   directlyStandardisedRate: '01a0d8a5-3ca2-7315-bfca-96c9664c846c',

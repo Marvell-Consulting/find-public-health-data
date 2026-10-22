@@ -1,13 +1,11 @@
-import { eq } from 'drizzle-orm';
 import type postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { type Actor, recordAudit } from './audit-log.ts';
 import { createDbFromClient, type Database } from './client.ts';
-import { SYSTEM_USER_IDS, topic } from './schema/index.ts';
+import { SYSTEM_USER_IDS } from './schema/index.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
-import { upsertTopics } from './topic-repository.ts';
 
 const ACTOR: Actor = {
   userId: SYSTEM_USER_IDS.testSeed,
@@ -120,71 +118,5 @@ describe('the audit log', () => {
         VALUES (uuidv7(), 'topic.created', 'topic', ${newEntityId()}, '{}')
       `,
     ).rejects.toMatchObject({ code: '23503' });
-  });
-});
-
-describe("an entity's entries", () => {
-  /** Sessions in this test's database waiting on another transaction's lock. */
-  async function lockWaiters(): Promise<number> {
-    const [row] = await sql<{ waiting: number }[]>`
-      SELECT count(*)::int AS waiting FROM pg_stat_activity
-      WHERE wait_event_type = 'Lock' AND datname = current_database()
-    `;
-    return row?.waiting ?? 0;
-  }
-
-  it('sort in the order their changes committed, though a writer that waited started first', async () => {
-    const holder = createOwnerClient(testDb.name);
-    const importer = createOwnerClient(testDb.name);
-    const editor = createOwnerClient(testDb.name);
-    const first = { id: newEntityId(), slug: 'held', title: 'Held', description: 'Held.' };
-    const second = { id: newEntityId(), slug: 'edited', title: 'Edited', description: 'Edited.' };
-    const editorActor: Actor = { userId: SYSTEM_USER_IDS.testSeed, requestId: null };
-    let importing: Promise<unknown> = Promise.resolve();
-
-    try {
-      await upsertTopics(createDbFromClient(importer), [first, second]);
-
-      // The import starts, then waits on a topic another writer holds; meanwhile an edit commits.
-      await holder.begin(async (tx) => {
-        await tx`SELECT 1 FROM topic WHERE id = ${first.id} FOR UPDATE`;
-        importing = upsertTopics(createDbFromClient(importer), [
-          { ...first, title: 'Held, imported' },
-          { ...second, title: 'Edited, imported' },
-        ]);
-        await expect.poll(lockWaiters).toBe(1);
-        await createDbFromClient(editor).transaction(async (edit) => {
-          await edit
-            .update(topic)
-            .set({ title: 'Edited by hand', updatedBy: editorActor.userId })
-            .where(eq(topic.id, second.id));
-          await recordAudit(edit, editorActor, [
-            {
-              action: 'topic.updated',
-              entityId: second.id,
-              changes: { title: { before: 'Edited', after: 'Edited by hand' } },
-            },
-          ]);
-        });
-      });
-      await importing;
-    } finally {
-      await Promise.all([holder.end(), importer.end(), editor.end()]);
-    }
-
-    const history = await sql<{ actor_id: string; changes: unknown }[]>`
-      SELECT actor_id, changes FROM audit_log
-      WHERE entity_id = ${second.id} ORDER BY occurred_at, id
-    `;
-    expect(history.slice(1)).toEqual([
-      {
-        actor_id: editorActor.userId,
-        changes: { title: { before: 'Edited', after: 'Edited by hand' } },
-      },
-      {
-        actor_id: SYSTEM_USER_IDS.coreDataImport,
-        changes: { title: { before: 'Edited by hand', after: 'Edited, imported' } },
-      },
-    ]);
   });
 });

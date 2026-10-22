@@ -19,7 +19,8 @@ or is cleared.
 
 The session carries the user's `app_user` id as its subject, their roles, and the ids of their
 teams. A fake user's roles and teams are fixed here, keyed by the user's id; the ids match the
-`app_user` and `team` rows the migrations in `@fphd/db` insert, which a test there checks.
+`app_user` and `team` rows the migrations in `@fphd/db-operations` insert, which a test there
+checks.
 
 Beyond the publisher and admin guards on whole groups of routes, every decision about what a
 role may do goes through a `can*` function in `./permissions`, in the APIs and the web apps alike,

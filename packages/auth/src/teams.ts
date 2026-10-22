@@ -1,4 +1,4 @@
-/** The ids of the teams' `team` rows, which the migration in @fphd/db inserts. */
+/** The ids of the teams' `team` rows, which the migration in @fphd/db-operations inserts. */
 export const TEAM_IDS = Object.freeze({
   teamA: '01a13c69-96aa-70af-81f9-10856a4023b2',
   teamB: '01a13c69-96ab-7598-9ce0-eae589a6c7e7',

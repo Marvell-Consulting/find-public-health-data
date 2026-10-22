@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 
 import { UNIT_IDS } from '@fphd/utils/value-type-and-unit';
 
-const coreDataDir = new URL('../../../../packages/db/data/', import.meta.url);
+const coreDataDir = new URL('../../../../packages/db-operations/data/', import.meta.url);
 
 function idsFromJson(file: string): Record<string, string> {
   const rows = JSON.parse(readFileSync(new URL(file, coreDataDir), 'utf8')) as {

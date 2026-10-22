@@ -66,7 +66,7 @@ it('leaves committed reference data unchanged at the CSV level', async () => {
   const directory = await fixture();
   for (const table of ['dimension_type', 'dimension_value', 'note_type'])
     await copyFile(
-      new URL(`../../../packages/db/data/seed/${table}.csv.gz`, import.meta.url),
+      new URL(`../../../packages/db-operations/data/seed/${table}.csv.gz`, import.meta.url),
       join(directory, `${table}.csv.gz`),
     );
   const before = await Promise.all(

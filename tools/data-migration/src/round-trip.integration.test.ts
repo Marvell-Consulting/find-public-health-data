@@ -1,19 +1,13 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
+import { createOwnerClient, createTestDatabase, type TestDatabase } from '@fphd/db/testing';
+import { applyDataMigration, importCoreData, rebuildReadModels } from '@fphd/db-operations';
 import {
   baselineManifestSchema,
   DATA_MIGRATION_NULL,
   dataMigrationManifestSchema,
-} from '@fphd/db/data-migration-contract';
-import {
-  applyDataMigration,
-  createOwnerClient,
-  importCoreData,
-  rebuildReadModels,
-} from '@fphd/db/operations';
-import { createTestDatabase, type TestDatabase } from '@fphd/db/testing';
+} from '@fphd/db-operations/data-migration-contract';
 import type postgres from 'postgres';
 import { afterAll, beforeAll, expect, it } from 'vitest';
 

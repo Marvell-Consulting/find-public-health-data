@@ -31,7 +31,7 @@ import {
   valueTypeId,
 } from './value-type-and-unit.ts';
 
-const coreDataDir = new URL('../../../../packages/db/data/', import.meta.url);
+const coreDataDir = new URL('../../../../packages/db-operations/data/', import.meta.url);
 
 function readJson<T>(file: string): T {
   return JSON.parse(readFileSync(new URL(file, coreDataDir), 'utf8')) as T;
@@ -174,7 +174,7 @@ describe('unknownUnits', () => {
 
 describe('full pholio fixture coverage', () => {
   const fixturePath = new URL(
-    '../../../../packages/db/src/pholio-value-types-and-units.json',
+    '../../../../packages/db-operations/src/pholio-value-types-and-units.json',
     import.meta.url,
   );
 
@@ -213,7 +213,7 @@ describe('full pholio fixture coverage', () => {
 });
 
 describe('migration drift — 0035_value-type-and-units.sql', () => {
-  const migrationDir = new URL('../../../../packages/db/drizzle/', import.meta.url);
+  const migrationDir = new URL('../../../../packages/db-operations/drizzle/', import.meta.url);
   const sql = readFileSync(new URL('0035_value-type-and-units.sql', migrationDir), 'utf8');
 
   it('VALUE_TYPES covers every Pholio name in the SQL translation table', () => {

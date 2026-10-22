@@ -10,11 +10,6 @@
       "types": "./src/index.ts",
       "default": "./dist/index.js"
     },
-    "./operations": {
-      "development": "./src/operations.ts",
-      "types": "./src/operations.ts",
-      "default": "./dist/operations.js"
-    },
     "./audit-log": {
       "development": "./src/audit-log.ts",
       "types": "./src/audit-log.ts",
@@ -24,11 +19,6 @@
       "development": "./src/testing.ts",
       "types": "./src/testing.ts",
       "default": "./dist/testing.js"
-    },
-    "./data-migration-contract": {
-      "development": "./src/data-migration-contract.ts",
-      "types": "./src/data-migration-contract.ts",
-      "default": "./dist/data-migration-contract.js"
     }
   },
   "files": [
@@ -36,16 +26,10 @@
     "!dist/**/*.map",
     "!dist/**/*.d.ts",
     "!dist/testing.js",
-    "drizzle/*.sql",
-    "drizzle/meta/_journal.json",
-    "data",
-    "!data/seed/export"
+    "!dist/scripts"
   ],
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
-    "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -55,10 +39,7 @@
     "postgres": "catalog:"
   },
   "devDependencies": {
-    "@fphd/auth": "workspace:*",
     "@types/node": "catalog:",
-    "drizzle-kit": "catalog:",
-    "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }
