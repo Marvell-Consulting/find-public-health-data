@@ -16,6 +16,8 @@ import {
   OTHER_ACTOR,
   repositoryTest,
 } from './indicator-repository.testing.ts';
+import { completeDraft } from './indicator-workflow.testing.ts';
+import { submitIndicator, withdrawSubmission } from './indicator-workflow-repository.ts';
 
 const EVERY_INDICATOR = { all: true } as const;
 
@@ -170,7 +172,12 @@ describe('the derived statuses', () => {
 
   repositoryTest('reads a draft with nothing published as new and unsubmitted', async ({ db }) => {
     const created = await newDraft(db, 'A first draft');
-    const statuses = { indicatorStatus: 'new', draftStatus: 'draft' };
+    const statuses = {
+      indicatorStatus: 'new',
+      draftStatus: 'draft',
+      draftLocked: false,
+      draftSubmissionStatus: null,
+    };
 
     expect(await listed(db, created.indicatorId)).toMatchObject(statuses);
     expect(await getIndicatorById(db, created.indicatorId)).toMatchObject(statuses);
@@ -180,7 +187,12 @@ describe('the derived statuses', () => {
     'reads a published indicator with no draft as live and nothing in flight',
     async ({ db }) => {
       const { indicatorId } = await indicatorWithTwoPublications(db, 'Live with no draft');
-      const statuses = { indicatorStatus: 'live', draftStatus: null };
+      const statuses = {
+        indicatorStatus: 'live',
+        draftStatus: null,
+        draftLocked: false,
+        draftSubmissionStatus: null,
+      };
 
       expect(await listed(db, indicatorId)).toMatchObject(statuses);
       expect(await getIndicatorById(db, indicatorId)).toMatchObject(statuses);
@@ -198,6 +210,42 @@ describe('the derived statuses', () => {
       expect(await getIndicatorById(db, indicatorId)).toMatchObject(statuses);
     },
   );
+
+  repositoryTest('reads a submitted draft as locked under its submission', async ({ db }) => {
+    const created = await newDraft(db, 'A submitted draft');
+    await submitIndicator(db, created.indicatorId, await completeDraft(db, created), AS_ACTOR);
+    const statuses = {
+      draftStatus: 'draft',
+      draftLocked: true,
+      draftSubmissionStatus: 'submitted',
+    };
+
+    expect(await listed(db, created.indicatorId)).toMatchObject(statuses);
+    expect(await getIndicatorById(db, created.indicatorId)).toMatchObject(statuses);
+  });
+
+  repositoryTest('reads a withdrawn draft as unlocked', async ({ db }) => {
+    const created = await newDraft(db, 'A withdrawn draft');
+    await submitIndicator(db, created.indicatorId, await completeDraft(db, created), AS_ACTOR);
+    await withdrawSubmission(db, created.indicatorId, AS_ACTOR);
+    const statuses = { draftLocked: false, draftSubmissionStatus: 'withdrawn' };
+
+    expect(await listed(db, created.indicatorId)).toMatchObject(statuses);
+    expect(await getIndicatorById(db, created.indicatorId)).toMatchObject(statuses);
+  });
+
+  repositoryTest('reads the latest submission of a draft submitted again', async ({ db }) => {
+    const created = await newDraft(db, 'A resubmitted draft');
+    const shown = await completeDraft(db, created);
+    await submitIndicator(db, created.indicatorId, shown, AS_ACTOR);
+    await withdrawSubmission(db, created.indicatorId, AS_ACTOR);
+    await submitIndicator(db, created.indicatorId, shown, AS_ACTOR);
+
+    expect(await getIndicatorById(db, created.indicatorId)).toMatchObject({
+      draftLocked: true,
+      draftSubmissionStatus: 'submitted',
+    });
+  });
 });
 
 describe('getIndicatorById', () => {

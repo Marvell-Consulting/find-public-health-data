@@ -18,6 +18,8 @@ const indicator = {
   lastEditedBy: 'Sam Taylor',
   indicatorStatus: 'live',
   draftStatus: null,
+  draftLocked: false,
+  draftSubmissionStatus: null,
 } as const;
 
 // The pagination links read router state, so the page renders inside a router at its own address.

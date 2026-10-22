@@ -42,14 +42,25 @@ export const INDICATORS_PAGE_SIZE = 10;
 const NAME_TAKEN = 'An indicator with this name already exists';
 
 function toSummary({
+  draftLocked,
   draftStatus,
+  draftSubmissionStatus,
   id,
   indicatorStatus,
   name,
   teamId,
   updatedAt,
 }: IndicatorAdminRow): IndicatorAdminSummary {
-  return { id, name, teamId, updatedAt: updatedAt.toISOString(), indicatorStatus, draftStatus };
+  return {
+    id,
+    name,
+    teamId,
+    updatedAt: updatedAt.toISOString(),
+    indicatorStatus,
+    draftStatus,
+    draftLocked,
+    draftSubmissionStatus,
+  };
 }
 
 function toListItem(row: IndicatorAdminListRow): IndicatorAdminListItem {

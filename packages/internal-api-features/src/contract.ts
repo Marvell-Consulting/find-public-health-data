@@ -1,4 +1,5 @@
 import { z } from '@fphd/config/zod';
+import { INDICATOR_SUBMISSION_STATUSES } from '@fphd/utils/indicator-submission-status';
 import { SLUG_PATTERN, type SlugProblem, slugProblem } from '@fphd/utils/slug';
 
 import { shortText } from './text-contract.ts';
@@ -87,6 +88,9 @@ export const indicatorStatusSchema = z.enum(['new', 'live']);
 /** The open draft's workflow state. */
 export const draftStatusSchema = z.enum(['draft']);
 
+/** Where the draft's latest submission for review stands. */
+export const draftSubmissionStatusSchema = z.enum(INDICATOR_SUBMISSION_STATUSES);
+
 /**
  * Both statuses are derived from the versions, never stored, and sent as values rather than
  * labels: what each is called is the web UI's decision.
@@ -100,6 +104,10 @@ export const indicatorAdminSummarySchema = z.object({
   indicatorStatus: indicatorStatusSchema,
   /** Null while the indicator has no draft, which for a live one means it is published as is. */
   draftStatus: draftStatusSchema.nullable(),
+  /** True while the draft is under review, so no publisher may edit it; false with no draft. */
+  draftLocked: z.boolean(),
+  /** Null until the draft is first submitted, and while there is no draft. */
+  draftSubmissionStatus: draftSubmissionStatusSchema.nullable(),
 });
 
 /** Parsed from a query string, so the page arrives as text; absent means the first page. */
@@ -196,6 +204,7 @@ export type IndicatorAdminListItem = z.infer<typeof indicatorAdminListItemSchema
 export type IndicatorAdminPage = z.infer<typeof indicatorAdminPageSchema>;
 export type IndicatorStatus = z.infer<typeof indicatorStatusSchema>;
 export type DraftStatus = z.infer<typeof draftStatusSchema>;
+export type DraftSubmissionStatus = z.infer<typeof draftSubmissionStatusSchema>;
 export type IndicatorAdminDetail = z.infer<typeof indicatorAdminDetailSchema>;
 export type IndicatorName = z.infer<typeof indicatorNameSchema>;
 export type IndicatorTeam = z.infer<typeof indicatorTeamSchema>;

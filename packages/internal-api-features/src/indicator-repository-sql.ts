@@ -2,9 +2,9 @@ import { type Database, schema } from '@fphd/db';
 import { and, eq, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
-import type { DraftStatus, IndicatorStatus } from './contract.ts';
+import type { DraftStatus, DraftSubmissionStatus, IndicatorStatus } from './contract.ts';
 
-const { currentPublishedVersion, indicator, indicatorVersion } = schema;
+const { currentPublishedVersion, indicator, indicatorVersion, indicatorVersionSubmission } = schema;
 
 export type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
 
@@ -62,3 +62,9 @@ export const latestUpdatedBy = sql<string | null>`case
 export const indicatorStatus = sql<IndicatorStatus>`case when ${currentPublishedVersion.id} is not null then 'live' else 'new' end`;
 // The draft join fixes the status it matches, which narrows the column from the version enum.
 export const draftStatus = sql<DraftStatus | null>`${draftVersion.status}`;
+export const draftLocked = sql<boolean>`coalesce(${draftVersion.isLocked}, false)`;
+// In the select list, so a page runs it after the sort, for its own rows alone.
+export const draftSubmissionStatus = sql<DraftSubmissionStatus | null>`(
+  select ${indicatorVersionSubmission.status} from ${indicatorVersionSubmission}
+  where ${indicatorVersionSubmission.indicatorVersionId} = ${draftVersion.id}
+  order by ${indicatorVersionSubmission.number} desc limit 1)`;

@@ -18,6 +18,8 @@ const indicator: IndicatorAdminDetail = {
   updatedAt: '2026-08-04T23:30:00.000Z',
   indicatorStatus: 'live',
   draftStatus: null,
+  draftLocked: false,
+  draftSubmissionStatus: null,
 };
 
 // The links and tabs read router state, so the page renders inside a router at its own address.
