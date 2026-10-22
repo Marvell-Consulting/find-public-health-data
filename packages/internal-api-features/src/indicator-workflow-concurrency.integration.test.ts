@@ -11,6 +11,7 @@ import { updateIndicatorDraft } from './indicator-draft-repository.ts';
 import {
   AS_ACTOR,
   AS_OTHER_ACTOR,
+  lockWaited,
   newDraft,
   repositoryTest,
 } from './indicator-repository.testing.ts';
@@ -24,19 +25,6 @@ const HEADER =
   'area_code,period_start,period_end,value,count,sex,age,category_type,category,value_note';
 const VALID_CSV = `${HEADER}\nE92000001,2019-04-01,2020-03-31,83.8,1234,Female,<75 yrs,,,`;
 const REFUSED_CSV = `${HEADER}\nE99999999,2019-04-01,2020-03-31,1,,,,,,`;
-
-/** Waits until another session is blocked on a lock in this test's database. */
-async function lockWaited(db: Database): Promise<void> {
-  await expect
-    .poll(async () => {
-      const [row] = (await db.execute(sql`
-        SELECT count(*)::int AS waiting FROM pg_stat_activity
-        WHERE wait_event_type = 'Lock' AND datname = current_database()
-      `)) as unknown as { waiting: number }[];
-      return row?.waiting ?? 0;
-    })
-    .toBeGreaterThan(0);
-}
 
 /**
  * Takes `step` while it holds the draft's lock until `write` has started and is seen waiting

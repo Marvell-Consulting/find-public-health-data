@@ -6,7 +6,7 @@ import { createTestDatabase } from '@fphd/db/testing';
 import type { ClassificationDimension } from '@fphd/utils/classification-dimension';
 import { slugify } from '@fphd/utils/slug';
 import { and, eq, sql } from 'drizzle-orm';
-import { test } from 'vitest';
+import { expect, test } from 'vitest';
 
 import { type CreatedIndicatorDraft, createIndicatorDraft } from './indicator-draft-repository.ts';
 
@@ -63,6 +63,20 @@ export const OTHER_ACTOR = FAKE_USER_IDS.publisherTeamsAAndB;
 /** The two writers as a repository function takes them, outside any request. */
 export const AS_ACTOR: Actor = { userId: ACTOR, requestId: null };
 export const AS_OTHER_ACTOR: Actor = { userId: OTHER_ACTOR, requestId: null };
+
+/** Sessions in this test's database waiting on another transaction's lock. */
+export async function lockWaiters(db: Database): Promise<number> {
+  const [row] = (await db.execute(sql`
+    SELECT count(*)::int AS waiting FROM pg_stat_activity
+    WHERE wait_event_type = 'Lock' AND datname = current_database()
+  `)) as unknown as { waiting: number }[];
+  return row?.waiting ?? 0;
+}
+
+/** Waits until another session is seen blocked on a lock, as a write queued behind one is. */
+export async function lockWaited(db: Database): Promise<void> {
+  await expect.poll(() => lockWaiters(db)).toBeGreaterThan(0);
+}
 
 /** Every case here names its indicator distinctly, so the slug is free. */
 export async function newDraft(db: Database, name: string): Promise<CreatedIndicatorDraft> {
