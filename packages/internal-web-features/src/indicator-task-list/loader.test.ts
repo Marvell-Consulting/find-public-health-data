@@ -12,9 +12,13 @@ const taskList = {
     name: 'Life expectancy at birth',
     indicatorStatus: 'new',
     draftStatus: 'draft',
+    draftSubmissionStatus: null,
   },
   isUpdate: false,
   canSubmit: true,
+  draftUpdatedAt: '2026-10-22T09:30:00.123Z',
+  editable: true,
+  actions: ['submit'],
   tasks: { name: 'completed' },
 };
 

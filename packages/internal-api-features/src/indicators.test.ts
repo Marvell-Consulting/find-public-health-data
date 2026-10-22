@@ -188,6 +188,7 @@ describe('GET /api/internal/indicators/:id', () => {
       draftStatus: null,
       draftLocked: false,
       draftSubmissionStatus: null,
+      actions: [],
     });
   });
 
@@ -205,6 +206,37 @@ describe('GET /api/internal/indicators/:id', () => {
       .set('Cookie', await publisherCookie());
 
     expect(response.body).toMatchObject({ draftLocked: true, draftSubmissionStatus: 'submitted' });
+  });
+
+  it("offers the steps a publisher in the indicator's team may take now", async () => {
+    const findById = vi.fn().mockResolvedValue({
+      ...detailRow,
+      indicatorStatus: 'new',
+      draftStatus: 'draft',
+      draftLocked: true,
+      draftSubmissionStatus: 'submitted',
+    });
+
+    const response = await request(createTestApp({ findById }))
+      .get(`/api/internal/indicators/${row.id}`)
+      .set('Cookie', await publisherCookie());
+
+    expect(response.body.actions).toEqual(['withdraw']);
+  });
+
+  it('offers no step to a user who may see the indicator but not edit it', async () => {
+    const findById = vi.fn().mockResolvedValue({
+      ...detailRow,
+      indicatorStatus: 'new',
+      draftStatus: 'draft',
+    });
+
+    const response = await request(createTestApp({ findById }))
+      .get(`/api/internal/indicators/${row.id}`)
+      .set('Cookie', await testSessionCookie(['internal', 'admin']));
+
+    expect(response.status).toBe(200);
+    expect(response.body.actions).toEqual([]);
   });
 
   it("answers 404 for another team's indicator, as for one that does not exist", async () => {
@@ -367,6 +399,7 @@ describe('POST /api/internal/indicators', () => {
       draftLocked: false,
       draftSubmissionStatus: null,
       updatedAt: '2026-01-02T00:00:00.000Z',
+      actions: ['submit'],
     });
   });
 
@@ -510,6 +543,7 @@ describe('PATCH /api/internal/indicators/:id', () => {
       draftLocked: false,
       draftSubmissionStatus: null,
       updatedAt: '2026-01-02T00:00:00.000Z',
+      actions: ['submit'],
     });
   });
 
@@ -682,10 +716,17 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
   const draftState = {
     id: row.id,
     shortId: 90366,
-    draft: { ...unansweredDraft, name: 'Life expectancy at birth' },
+    teamId: TEAM_ID,
+    draft: {
+      ...unansweredDraft,
+      name: 'Life expectancy at birth',
+      updatedAt: new Date('2026-10-22T09:30:00.123Z'),
+      isLocked: false,
+    },
     draftCiMethodKind: null,
     indicatorStatus: 'new',
     draftStatus: 'draft',
+    draftSubmissionStatus: null,
   };
 
   it('rejects an anonymous request', async () => {
@@ -722,9 +763,13 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
         name: 'Life expectancy at birth',
         indicatorStatus: 'new',
         draftStatus: 'draft',
+        draftSubmissionStatus: null,
       },
       isUpdate: false,
       canSubmit: false,
+      draftUpdatedAt: '2026-10-22T09:30:00.123Z',
+      editable: true,
+      actions: ['submit'],
       tasks: {
         name: 'completed',
         'data-table': 'not_started',
@@ -777,6 +822,25 @@ describe('GET /api/internal/indicators/:id/task-list', () => {
     expect(response.body).toMatchObject({
       indicator: { indicatorStatus: 'live', draftStatus: 'draft' },
       isUpdate: true,
+    });
+  });
+
+  it('serves a draft locked for review as not editable, offering its withdrawal', async () => {
+    const findDraftState = vi.fn().mockResolvedValue({
+      ...draftState,
+      draft: { ...draftState.draft, isLocked: true },
+      draftSubmissionStatus: 'submitted',
+    });
+
+    const response = await request(createTestApp({ findDraftState }))
+      .get(`/api/internal/indicators/${row.id}/task-list`)
+      .set('Cookie', await publisherCookie());
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      indicator: { draftSubmissionStatus: 'submitted' },
+      editable: false,
+      actions: ['withdraw'],
     });
   });
 

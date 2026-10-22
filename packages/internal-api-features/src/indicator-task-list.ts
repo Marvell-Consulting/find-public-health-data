@@ -62,6 +62,12 @@ export type IndicatorTaskListDraft = Pick<
     ciMethodKind: CiMethodKind | null;
   };
 
+/** The task list as the draft's answers decide it; the route adds where it stands in review. */
+export type IndicatorTaskListTasks = Omit<
+  IndicatorTaskList,
+  'draftUpdatedAt' | 'editable' | 'actions'
+>;
+
 export interface IndicatorTaskListSource {
   indicator: Omit<IndicatorTaskList['indicator'], 'name'>;
   draft: IndicatorTaskListDraft;
@@ -135,7 +141,7 @@ export function isDraftComplete(draft: IndicatorTaskListDraft): boolean {
 export function indicatorTaskList({
   draft,
   indicator,
-}: IndicatorTaskListSource): IndicatorTaskList {
+}: IndicatorTaskListSource): IndicatorTaskListTasks {
   const tasks = taskStatuses(draft);
 
   return {

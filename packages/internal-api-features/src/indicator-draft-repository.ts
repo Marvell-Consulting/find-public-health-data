@@ -3,10 +3,16 @@ import { type Actor, changesBetween, listChanges, recordAudit } from '@fphd/db/a
 import { slugify, slugProblem } from '@fphd/utils/slug';
 import { and, eq, sql } from 'drizzle-orm';
 
-import type { CiMethodKind, DraftStatus, IndicatorStatus } from './contract.ts';
+import type {
+  CiMethodKind,
+  DraftStatus,
+  DraftSubmissionStatus,
+  IndicatorStatus,
+} from './contract.ts';
 import {
   draftJoin,
   draftStatus,
+  draftSubmissionStatus,
   draftVersion,
   EXCLUSION_VIOLATION,
   hasSqlState,
@@ -48,12 +54,14 @@ export type IndicatorDraft = IndicatorDraftVersion &
 export interface IndicatorDraftStateRow {
   id: string;
   shortId: number;
+  teamId: string | null;
   /** The draft a publisher is working on, absent while the indicator has none. */
   draft: IndicatorDraft | null;
   /** What the draft's CI method asks for, which the task list needs to judge its answers. */
   draftCiMethodKind: CiMethodKind | null;
   indicatorStatus: IndicatorStatus;
   draftStatus: DraftStatus | null;
+  draftSubmissionStatus: DraftSubmissionStatus | null;
 }
 
 /** The draft and the indicator's two statuses, which is what a task list is derived from. */
@@ -65,10 +73,12 @@ export async function getIndicatorDraftState(
     .select({
       id: indicator.id,
       shortId: indicator.shortId,
+      teamId: indicator.teamId,
       draft: draftVersion,
       draftCiMethodKind: ciMethod.kind,
       indicatorStatus,
       draftStatus,
+      draftSubmissionStatus,
     })
     .from(indicator)
     .leftJoin(draftVersion, draftJoin)

@@ -139,11 +139,15 @@ export const indicatorAdminPageSchema = z.object({
 
 export const indicatorIdSchema = z.uuid();
 
+/** The workflow steps the user may take on the indicator now, so the web offers only those. */
+export const indicatorActionsSchema = z.array(indicatorStepSchema);
+
 export const indicatorAdminDetailSchema = indicatorAdminSummarySchema.extend({
   /** The public indicator number, which is what a publisher knows an indicator by. */
   shortId: z.number().int(),
   /** The published version's slug: the indicator's public address, absent until it has one. */
   publishedSlug: z.string().min(1).nullable(),
+  actions: indicatorActionsSchema,
 });
 
 /** Why the slug rule refuses a name, in the words the publisher reads. */
@@ -267,12 +271,18 @@ export const indicatorTaskListSchema = z.object({
     indicatorStatus: true,
     // Nullable as picked, but never null here: the endpoint answers 404 when there is no draft.
     draftStatus: true,
+    draftSubmissionStatus: true,
   }),
   /** True when the indicator is live, so this edit revises what the public has. */
   isUpdate: z.boolean(),
   /** True once every task is complete. */
   canSubmit: z.boolean(),
   tasks: indicatorTaskStatusesSchema,
+  /** The draft's last edit, which a submission sends back to confirm the draft it was shown. */
+  draftUpdatedAt: z.iso.datetime(),
+  /** False while the draft is locked for review, so none of its tasks may be edited. */
+  editable: z.boolean(),
+  actions: indicatorActionsSchema,
 });
 
 /** `no_draft` is the PATCH route's word for an indicator with nothing to edit. */

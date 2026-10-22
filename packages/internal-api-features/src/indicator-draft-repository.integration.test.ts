@@ -27,6 +27,8 @@ import {
   storedTopicIdsOf,
   typeClassification,
 } from './indicator-repository.testing.ts';
+import { completeDraft } from './indicator-workflow.testing.ts';
+import { submitIndicator } from './indicator-workflow-repository.ts';
 
 const { indicator, indicatorVersion } = schema;
 
@@ -755,6 +757,26 @@ describe('getIndicatorDraftState', () => {
     expect(before?.draft?.scheduledPublishAt).toBeNull();
     expect(after?.draft?.scheduledPublishAt).toEqual(new Date('2027-09-14T08:30:00.000Z'));
   });
+
+  repositoryTest(
+    "reads the indicator's team and where the draft's latest submission stands",
+    async ({ db }) => {
+      const created = await newDraft(db, 'A draft submitted for approval');
+      const before = await getIndicatorDraftState(db, created.indicatorId);
+      const submitted = await submitIndicator(
+        db,
+        created.indicatorId,
+        await completeDraft(db, created),
+        AS_ACTOR,
+      );
+      const after = await getIndicatorDraftState(db, created.indicatorId);
+
+      expect(submitted).toEqual({ ok: true });
+      expect(before).toMatchObject({ teamId: TEAM_IDS.teamA, draftSubmissionStatus: null });
+      expect(after).toMatchObject({ teamId: TEAM_IDS.teamA, draftSubmissionStatus: 'submitted' });
+      expect(after?.draft?.isLocked).toBe(true);
+    },
+  );
 
   repositoryTest('finds nothing for an indicator that does not exist', async ({ db }) => {
     await expect(

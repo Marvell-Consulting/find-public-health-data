@@ -191,10 +191,14 @@ describe('indicatorTaskListSchema', () => {
       name: 'An indicator',
       indicatorStatus: 'new',
       draftStatus: 'draft',
+      draftSubmissionStatus: null,
     },
     isUpdate: false,
     canSubmit: true,
     tasks,
+    draftUpdatedAt: '2026-10-22T09:30:00.123Z',
+    editable: true,
+    actions: ['submit'],
   };
 
   it('requires every task', () => {

@@ -20,6 +20,7 @@ const indicator: IndicatorAdminDetail = {
   draftStatus: null,
   draftLocked: false,
   draftSubmissionStatus: null,
+  actions: [],
 };
 
 // The links and tabs read router state, so the page renders inside a router at its own address.
