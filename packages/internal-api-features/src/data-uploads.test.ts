@@ -279,8 +279,9 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
     const storage = createFakeBlobStorage();
     const deleted = vi.spyOn(storage, 'delete');
     const process = vi.fn().mockResolvedValue({ ok: false, reason: 'no_draft' });
+    const findDraft = vi.fn().mockResolvedValueOnce(EDITABLE).mockResolvedValue(null);
 
-    const response = await upload(createTestApp({ process }, storage));
+    const response = await upload(createTestApp({ findDraft, process }, storage));
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'no_draft' });
@@ -298,6 +299,15 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
     expect(response.status).toBe(409);
     expect(response.body).toEqual({ error: 'locked' });
     expect(deleted).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`^${INDICATOR}/`)));
+  });
+
+  it('answers 409 when the draft was locked while it loaded and has been withdrawn since', async () => {
+    const process = vi.fn().mockResolvedValue({ ok: false, reason: 'no_draft' });
+
+    const response = await upload(createTestApp({ process }));
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ error: 'locked' });
   });
 
   it('deletes the stored blob and fails when loading throws', async () => {
