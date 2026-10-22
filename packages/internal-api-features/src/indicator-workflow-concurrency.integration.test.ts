@@ -11,6 +11,7 @@ import { updateIndicatorDraft } from './indicator-draft-repository.ts';
 import {
   AS_ACTOR,
   AS_OTHER_ACTOR,
+  LOCK_WAIT,
   lockWaited,
   lockWaiters,
   newDraft,
@@ -58,8 +59,11 @@ async function writeWhileStepHolds<Result>(
   });
   await holding;
   const written = write();
-  await lockWaited(db);
-  release();
+  try {
+    await lockWaited(db);
+  } finally {
+    release();
+  }
   return { step: await stepped, write: await written };
 }
 
@@ -73,12 +77,13 @@ async function stepWhileWriteHolds<Written, Stepped>(
   step: () => Promise<Stepped>,
 ) {
   const { written, stepped } = await db.transaction(async (tx) => {
-    // Every write records its entry after its row write, so this holds it there.
+    // The writes used here update the draft's row before recording their entry, so this holds
+    // each with the row written and its transaction open. A timeout rolls this back, freeing it.
     await tx.execute(sql`LOCK TABLE audit_log IN EXCLUSIVE MODE`);
     const written = write();
-    await expect.poll(() => lockWaiters(db)).toBe(1);
+    await expect.poll(() => lockWaiters(db), LOCK_WAIT).toBe(1);
     const stepped = step();
-    await expect.poll(() => lockWaiters(db)).toBe(2);
+    await expect.poll(() => lockWaiters(db), LOCK_WAIT).toBe(2);
     return { written, stepped };
   });
   return { write: await written, step: await stepped };

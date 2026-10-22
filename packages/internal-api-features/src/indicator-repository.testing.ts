@@ -73,9 +73,12 @@ export async function lockWaiters(db: Database): Promise<number> {
   return row?.waiting ?? 0;
 }
 
+/** How long to poll for a session blocked on a lock; an upload takes a while to reach one. */
+export const LOCK_WAIT = { timeout: 10_000 };
+
 /** Waits until another session is seen blocked on a lock, as a write queued behind one is. */
 export async function lockWaited(db: Database): Promise<void> {
-  await expect.poll(() => lockWaiters(db)).toBeGreaterThan(0);
+  await expect.poll(() => lockWaiters(db), LOCK_WAIT).toBeGreaterThan(0);
 }
 
 /** Every case here names its indicator distinctly, so the slug is free. */
