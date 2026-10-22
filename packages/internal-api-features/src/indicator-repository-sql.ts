@@ -1,6 +1,6 @@
 import { type Database, schema } from '@fphd/db';
-import { and, eq, sql } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
+import { and, desc, eq, sql } from 'drizzle-orm';
+import { alias, QueryBuilder } from 'drizzle-orm/pg-core';
 
 import type { DraftStatus, DraftSubmissionStatus, IndicatorStatus } from './contract.ts';
 
@@ -63,8 +63,11 @@ export const indicatorStatus = sql<IndicatorStatus>`case when ${currentPublished
 // The draft join fixes the status it matches, which narrows the column from the version enum.
 export const draftStatus = sql<DraftStatus | null>`${draftVersion.status}`;
 export const draftLocked = sql<boolean>`coalesce(${draftVersion.isLocked}, false)`;
-// In the select list, so a page runs it after the sort, for its own rows alone.
-export const draftSubmissionStatus = sql<DraftSubmissionStatus | null>`(
-  select ${indicatorVersionSubmission.status} from ${indicatorVersionSubmission}
-  where ${indicatorVersionSubmission.indicatorVersionId} = ${draftVersion.id}
-  order by ${indicatorVersionSubmission.number} desc limit 1)`;
+const latestDraftSubmission = new QueryBuilder({ casing: 'snake_case' })
+  .select({ status: indicatorVersionSubmission.status })
+  .from(indicatorVersionSubmission)
+  .where(eq(indicatorVersionSubmission.indicatorVersionId, draftVersion.id))
+  .orderBy(desc(indicatorVersionSubmission.number))
+  .limit(1);
+// A subquery in the select list, as createdBy is in listIndicatorsPage and for the same reason.
+export const draftSubmissionStatus = sql<DraftSubmissionStatus | null>`(${latestDraftSubmission})`;
