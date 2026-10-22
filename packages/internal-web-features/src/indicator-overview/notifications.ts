@@ -10,6 +10,10 @@ export interface OverviewNotification {
 
 /** Resolved on the server so a cookie value is only ever a key into copy written here. */
 const NOTIFICATIONS = {
+  'indicator-submitted': {
+    type: 'success',
+    text: 'Indicator successfully submitted for approval.',
+  },
   'draft-locked': {
     type: 'important',
     text: 'This indicator has been submitted for approval and cannot be edited.',

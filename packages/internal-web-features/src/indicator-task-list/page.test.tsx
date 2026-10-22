@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { serviceName } from '@fphd/ui';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -26,10 +27,10 @@ const taskList: IndicatorTaskList = {
   tasks: { ...taskStatuses('not_started'), name: 'completed' },
 };
 
-function renderPage(overrides: Partial<IndicatorTaskList> = {}) {
+function renderPage(overrides: Partial<IndicatorTaskList> = {}, formError?: string) {
   return render(
     <MemoryRouter initialEntries={[`/publish/indicators/${taskList.indicator.id}/task-list`]}>
-      <IndicatorTaskListPage taskList={{ ...taskList, ...overrides }} />
+      <IndicatorTaskListPage taskList={{ ...taskList, ...overrides }} formError={formError} />
     </MemoryRouter>,
   );
 }
@@ -67,7 +68,7 @@ describe('IndicatorTaskListPage', () => {
   });
 
   it('groups the fields a publisher completes', () => {
-    renderPage();
+    renderPage({ canSubmit: false });
 
     expect(
       screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent),
@@ -202,5 +203,52 @@ describe('IndicatorTaskListPage', () => {
 
     expect(screen.getAllByText('Not started')[0]?.className).toContain('govuk-tag--blue');
     expect(screen.getByText('Completed').className).not.toContain('govuk-tag');
+  });
+
+  it('offers submission once every task is complete, confirming the draft as shown', () => {
+    renderPage();
+
+    expect(
+      screen.getByRole('heading', {
+        level: 2,
+        name: 'By continuing, you confirm that you have checked all data and metadata is correct.',
+      }),
+    ).toBeTruthy();
+    const button = screen.getByRole('button', { name: 'Submit for approval' });
+    const form = button.closest('form');
+    expect(form?.getAttribute('method')).toBe('post');
+    expect(form?.getAttribute('action')).toBe(
+      `/publish/indicators/${taskList.indicator.id}/task-list`,
+    );
+    expect(form?.querySelector<HTMLInputElement>('input[name="draftUpdatedAt"]')?.value).toBe(
+      '2026-10-22T09:30:00.123Z',
+    );
+  });
+
+  it.each<[string, Partial<IndicatorTaskList>]>([
+    ['while a task is incomplete', { canSubmit: false }],
+    ["on an update's task list, which cannot be submitted yet", { isUpdate: true, actions: [] }],
+    ['to a user the workflow does not let submit', { actions: [] }],
+  ])('offers no submission %s', (_, overrides) => {
+    renderPage(overrides);
+
+    expect(screen.queryByRole('button', { name: 'Submit for approval' })).toBeNull();
+    expect(screen.queryByText(/By continuing/)).toBeNull();
+  });
+
+  it('shows why a submission was refused in the error summary', () => {
+    renderPage({}, 'Complete every task before you submit this indicator.');
+
+    const summary = screen.getByRole('alert');
+    expect(summary.textContent).toContain('There is a problem');
+    expect(summary.textContent).toContain('Complete every task before you submit this indicator.');
+    expect(document.title).toBe(`Error: Indicator task list - ${serviceName} - GOV.UK`);
+  });
+
+  it('titles the page without an error when nothing was refused', () => {
+    renderPage();
+
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(document.title).toBe(`Indicator task list - ${serviceName} - GOV.UK`);
   });
 });

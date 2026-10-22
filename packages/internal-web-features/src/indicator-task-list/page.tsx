@@ -1,9 +1,18 @@
-import { GridColumn, GridRow, InsetText, TaskList } from '@fphd/ui';
+import {
+  Button,
+  DocumentTitle,
+  ErrorSummary,
+  GridColumn,
+  GridRow,
+  InsetText,
+  TaskList,
+} from '@fphd/ui';
 
 import {
   indicatorDataTableCheckPath,
   indicatorDataTablePath,
   indicatorSectionPath,
+  indicatorTaskListPath,
 } from '../publish-paths.ts';
 import { IndicatorHeading } from '../status-tag/indicator-heading.tsx';
 import { StatusTag } from '../status-tag/status-tag.tsx';
@@ -113,12 +122,39 @@ const TASK_GROUPS: readonly TaskGroup[] = [
   },
 ];
 
-export function IndicatorTaskListPage({ taskList }: { taskList: IndicatorTaskList }) {
+interface TaskListPageProps {
+  taskList: IndicatorTaskList;
+  /** Why the last submission was refused. */
+  formError?: string | undefined;
+}
+
+/** Offered once every task is complete and the workflow lets the user submit the draft. */
+function SubmitForm({ taskList }: { taskList: IndicatorTaskList }) {
+  if (!taskList.canSubmit || !taskList.actions.includes('submit')) return null;
+
+  return (
+    <>
+      <h2 className="govuk-heading-m govuk-!-margin-top-8">
+        By continuing, you confirm that you have checked all data and metadata is correct.
+      </h2>
+      <form action={indicatorTaskListPath(taskList.indicator.id)} method="post">
+        <input name="draftUpdatedAt" type="hidden" value={taskList.draftUpdatedAt} />
+        <Button preventDoubleClick type="submit">
+          Submit for approval
+        </Button>
+      </form>
+    </>
+  );
+}
+
+export function IndicatorTaskListPage({ taskList, formError }: TaskListPageProps) {
   const { indicator, tasks } = taskList;
 
   return (
     <GridRow>
       <GridColumn width="two-thirds">
+        <DocumentTitle hasErrors={formError !== undefined} pageTitle="Indicator task list" />
+        <ErrorSummary errors={[]} formError={formError} />
         <IndicatorHeading indicator={indicator} />
         <InsetText>
           You can complete these sections in any order. If you exit at any point, any selections or
@@ -137,6 +173,7 @@ export function IndicatorTaskListPage({ taskList }: { taskList: IndicatorTaskLis
             />
           </div>
         ))}
+        <SubmitForm taskList={taskList} />
       </GridColumn>
     </GridRow>
   );
