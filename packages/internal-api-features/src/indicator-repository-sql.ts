@@ -69,5 +69,5 @@ const latestDraftSubmission = new QueryBuilder({ casing: 'snake_case' })
   .where(eq(indicatorVersionSubmission.indicatorVersionId, draftVersion.id))
   .orderBy(desc(indicatorVersionSubmission.number))
   .limit(1);
-// A subquery in the select list, as createdBy is in listIndicatorsPage and for the same reason.
+// A subquery, so a select list sorted and limited runs it for the rows it returns alone.
 export const draftSubmissionStatus = sql<DraftSubmissionStatus | null>`(${latestDraftSubmission})`;
