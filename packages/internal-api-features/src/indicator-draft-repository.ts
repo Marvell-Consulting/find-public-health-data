@@ -82,25 +82,23 @@ export async function getIndicatorDraftState(
 
   if (draft === null) return { ...state, draft: null };
 
+  return { ...state, draft: { ...draft, ...(await draftListsOf(db, draft.id)) } };
+}
+
+/** The lists a draft holds in tables of its own, as the sections read them. */
+export async function draftListsOf(
+  db: Database | Transaction,
+  draftId: string,
+): Promise<Omit<IndicatorDraft, keyof IndicatorDraftVersion>> {
   const [links, ageRanges, topicIds, classifications, sources] = await Promise.all([
-    linksOf(db, draft.id),
-    ageRangesOf(db, draft.id),
-    topicIdsOf(db, draft.id),
-    classificationsOf(db, draft.id),
-    sourcesOf(db, draft.id),
+    linksOf(db, draftId),
+    ageRangesOf(db, draftId),
+    topicIdsOf(db, draftId),
+    classificationsOf(db, draftId),
+    sourcesOf(db, draftId),
   ]);
 
-  return {
-    ...state,
-    draft: {
-      ...draft,
-      ...sources,
-      links,
-      ageRanges,
-      topicIds,
-      classifications,
-    },
-  };
+  return { ...sources, links, ageRanges, topicIds, classifications };
 }
 
 /**
@@ -305,7 +303,7 @@ async function draftSlugOf(tx: Transaction, indicatorId: string): Promise<string
   return draft?.slug;
 }
 
-async function isPublished(tx: Transaction, indicatorId: string): Promise<boolean> {
+export async function isPublished(tx: Transaction, indicatorId: string): Promise<boolean> {
   const [published] = await tx
     .select({ id: currentPublishedVersion.id })
     .from(currentPublishedVersion)

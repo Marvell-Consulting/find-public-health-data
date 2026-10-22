@@ -76,14 +76,8 @@ function dataTableStatus({
   return uploadBatchId === null ? 'not_started' : 'in_progress';
 }
 
-/**
- * The task list state of one draft. A section is complete once its stored answers are ones its
- * form would accept.
- */
-export function indicatorTaskList({
-  draft,
-  indicator,
-}: IndicatorTaskListSource): IndicatorTaskList {
+/** Where each task on a draft stands. A section is complete once its form would accept its answers. */
+function taskStatuses(draft: IndicatorTaskListDraft): IndicatorTaskStatuses {
   const complete = <Field extends string, Input, ErrorField extends string, Answers>(
     section: IndicatorSection<Field, unknown, Input, ErrorField, Answers>,
     columns: IndicatorSectionColumns<Field, never, Answers>,
@@ -93,7 +87,7 @@ export function indicatorTaskList({
       : 'not_started';
 
   // A draft is created by the page that asks for a name, so it always has one.
-  const tasks: IndicatorTaskStatuses = {
+  return {
     name: 'completed',
     'data-table': dataTableStatus(draft),
     'definition-and-rationale': complete(
@@ -126,11 +120,28 @@ export function indicatorTaskList({
     'sex-and-ages': complete(sexAndAgesSection, sexAndAgesColumns),
     tagging: complete(taggingSection, taggingColumns),
   };
+}
+
+function allCompleted(tasks: IndicatorTaskStatuses): boolean {
+  return Object.values(tasks).every((status) => status === 'completed');
+}
+
+/** True once every task on the draft is complete, so it may be submitted. */
+export function isDraftComplete(draft: IndicatorTaskListDraft): boolean {
+  return allCompleted(taskStatuses(draft));
+}
+
+/** The task list state of one draft. */
+export function indicatorTaskList({
+  draft,
+  indicator,
+}: IndicatorTaskListSource): IndicatorTaskList {
+  const tasks = taskStatuses(draft);
 
   return {
     indicator: { ...indicator, name: draft.name },
     isUpdate: indicator.indicatorStatus === 'live',
-    canSubmit: Object.values(tasks).every((status) => status === 'completed'),
+    canSubmit: allCompleted(tasks),
     tasks,
   };
 }

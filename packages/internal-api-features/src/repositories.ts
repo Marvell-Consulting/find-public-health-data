@@ -48,6 +48,11 @@ import {
   createDraftFromPublished,
 } from './indicator-publish-repository.ts';
 import type { IndicatorDraftLists } from './indicator-version-lists-repository.ts';
+import {
+  type IndicatorStepResult,
+  submitIndicator,
+  withdrawSubmission,
+} from './indicator-workflow-repository.ts';
 import { listTagOptions } from './tag-repository.ts';
 import {
   type CreateTopicResult,
@@ -94,6 +99,14 @@ export interface InternalIndicatorRepository {
   ): Promise<UpdateIndicatorDraftResult>;
   /** Opens a draft from the published version, copying its columns and lists. */
   draftFromPublished(indicatorId: string, actor: Actor): Promise<CreateDraftFromPublishedResult>;
+  /** Submits the draft for approval, as long as it is complete and `draftUpdatedAt` is current. */
+  submit(
+    indicatorId: string,
+    draftUpdatedAt: Date,
+    actor: Actor,
+  ): Promise<IndicatorStepResult<'changed' | 'incomplete'>>;
+  /** Withdraws the draft's submission, unlocking the draft. */
+  withdrawSubmission(indicatorId: string, actor: Actor): Promise<IndicatorStepResult>;
 }
 
 /** The confidence interval methods a publisher chooses from. */
@@ -181,6 +194,9 @@ export function createInternalRepositories(db: Database): InternalRepositories {
       updateDraft: (indicatorId, attributes, lists, actor) =>
         updateIndicatorDraft(db, indicatorId, attributes, lists, actor),
       draftFromPublished: (indicatorId, actor) => createDraftFromPublished(db, indicatorId, actor),
+      submit: (indicatorId, draftUpdatedAt, actor) =>
+        submitIndicator(db, indicatorId, draftUpdatedAt, actor),
+      withdrawSubmission: (indicatorId, actor) => withdrawSubmission(db, indicatorId, actor),
     },
     tags: {
       listOptions: () => listTagOptions(db),
