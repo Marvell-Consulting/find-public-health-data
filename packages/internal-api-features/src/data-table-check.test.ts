@@ -132,6 +132,15 @@ describe('GET /api/internal/indicators/:id/data-table', () => {
     expect(response.body).toEqual({ error: reason });
   });
 
+  it('answers 409 for a draft locked for review', async () => {
+    const response = await get(
+      createTestApp({ findDraftDataTable: async () => ({ found: false, reason: 'locked' }) }),
+    );
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ error: 'locked' });
+  });
+
   it('answers 400 for an id that is not one', async () => {
     const response = await get(createTestApp(), '/api/internal/indicators/nope/data-table');
 
@@ -189,6 +198,16 @@ describe('PUT /api/internal/indicators/:id/data-table/confirmation', () => {
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: reason });
+  });
+
+  it('answers 409 for a draft locked for review', async () => {
+    const response = await put(
+      createTestApp({ confirm: async () => ({ ok: false, reason: 'locked' }) }),
+      { batchId: BATCH },
+    );
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ error: 'locked' });
   });
 
   it.each([{}, { batchId: 'nope' }])('answers 400 for %j', async (body) => {

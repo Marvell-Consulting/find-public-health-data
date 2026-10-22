@@ -136,7 +136,8 @@ export function yesNoDetailColumns<
  * GET and PUT `/api/internal/indicators/:id/<key>` for one section of a draft. A PUT writes
  * every answer or, when any is refused, nothing. A published indicator is edited by opening a
  * draft first, so until then the section does not exist: 404 `no_draft`, told apart from an
- * indicator that does not exist at all.
+ * indicator that does not exist at all. A draft locked for review is neither read nor
+ * written here: 409 `locked`.
  */
 export function indicatorSectionRouter<
   Field extends string,
@@ -169,6 +170,11 @@ export function indicatorSectionRouter<
       return;
     }
 
+    if (row.draft.isLocked) {
+      response.status(409).json({ error: 'locked' });
+      return;
+    }
+
     response.status(200).json(columns.fromDraft(row.draft));
   });
 
@@ -196,7 +202,12 @@ export function indicatorSectionRouter<
     const lists = columns.toLists?.(submission.data) ?? {};
     const result = await indicators.updateDraft(id.data, attributes, lists, actor);
 
-    // With no name in the write there is no slug to collide on, so a refusal means no draft.
+    if (!result.ok && result.reason === 'locked') {
+      response.status(409).json({ error: 'locked' });
+      return;
+    }
+
+    // With no name in the write there is no slug to collide on, so this refusal means no draft.
     if (!result.ok) {
       const exists = (await indicators.findDraftState(id.data)) !== undefined;
       response.status(404).json({ error: exists ? 'no_draft' : 'not_found' });

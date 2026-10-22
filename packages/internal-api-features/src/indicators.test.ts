@@ -567,6 +567,18 @@ describe('PATCH /api/internal/indicators/:id', () => {
     expect(response.body).toEqual({ error: 'no_draft' });
   });
 
+  it('answers 409 for a draft locked for review', async () => {
+    const response = await request(
+      createTestApp({ updateDraft: async () => ({ ok: false, reason: 'locked' }) }),
+    )
+      .patch(path)
+      .set('Cookie', await publisherCookie())
+      .send({ name: 'A better name' });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ error: 'locked' });
+  });
+
   it('logs the rename under the request id, by the ids alone', async () => {
     const { logger, lines } = createCapturingLogger();
 

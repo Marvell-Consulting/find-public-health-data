@@ -36,6 +36,8 @@ const draftState = {
   draftStatus: 'draft',
 };
 
+const lockedState = { ...draftState, draft: { ...draftState.draft, isLocked: true } };
+
 const noDraftState = { ...draftState, draft: null, indicatorStatus: 'live', draftStatus: null };
 
 const answers = { definition: 'A definition', rationale: 'A rationale' };
@@ -124,6 +126,21 @@ describe.each(['get', 'put'] as const)('%s on a section', (method) => {
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'no_draft' });
+  });
+
+  it('answers locked for a draft locked for review', async () => {
+    const response = await request(
+      createTestApp({
+        findDraftState: vi.fn().mockResolvedValue(lockedState),
+        updateDraft: async () => ({ ok: false, reason: 'locked' }),
+      }),
+    )
+      [method](path)
+      .set('Cookie', await publisherCookie())
+      .send(answers);
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ error: 'locked' });
   });
 });
 

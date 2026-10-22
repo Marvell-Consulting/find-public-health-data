@@ -117,7 +117,7 @@ export async function processDataUpload(
   }
 }
 
-/** The draft stopped being a draft while its upload loaded, so nothing is kept. */
+/** The draft stopped being an editable draft while its upload loaded, so nothing is kept. */
 class DraftGoneError extends Error {
   constructor() {
     super('The draft was no longer a draft when its upload finished loading');
@@ -152,7 +152,7 @@ async function loadInTransaction(
     const [draft] = await tx<{ id: string }[]>`
       SELECT id
       FROM indicator_version
-      WHERE indicator_id = ${upload.indicatorId} AND status = 'draft'`;
+      WHERE indicator_id = ${upload.indicatorId} AND status = 'draft' AND NOT is_locked`;
 
     if (draft === undefined) return { ok: false, reason: 'no_draft', timings };
 
@@ -177,7 +177,8 @@ async function loadInTransaction(
         RETURNING to_jsonb(new) AS row`;
       // Held until commit, so the version cannot stop being a draft before the failure is kept.
       const [stillDraft] = await tx`
-        SELECT id FROM indicator_version WHERE id = ${draft.id} AND status = 'draft' FOR SHARE`;
+        SELECT id FROM indicator_version
+        WHERE id = ${draft.id} AND status = 'draft' AND NOT is_locked FOR SHARE`;
       if (stillDraft === undefined) throw new DraftGoneError();
       const deleted = await time('deleteEarlierMs', () =>
         deleteEarlierBatches(tx, draft.id, upload.batchId, 'failed', signal),
@@ -204,7 +205,7 @@ async function loadInTransaction(
       UPDATE indicator_version
       SET upload_batch_id = ${upload.batchId}, data_table_confirmed_at = NULL,
         updated_at = now(), updated_by = ${upload.actor.userId}
-      WHERE id = ${draft.id} AND status = 'draft'`;
+      WHERE id = ${draft.id} AND status = 'draft' AND NOT is_locked`;
     if (pointed.count === 0) throw new DraftGoneError();
 
     const deleted = await time('deleteEarlierMs', () =>

@@ -176,6 +176,11 @@ export function internalIndicatorsRouter(
         return;
       }
 
+      if (result.reason === 'locked') {
+        response.status(409).json({ error: 'locked' });
+        return;
+      }
+
       // A published indicator is edited by opening a draft first, so until then there is no
       // draft to rename and the page the publisher asked for does not exist. The read tells
       // that apart from an indicator that does not exist at all.

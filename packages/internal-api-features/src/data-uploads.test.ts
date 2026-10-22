@@ -11,6 +11,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { DATA_TABLE_MESSAGES } from './data-upload-contract.ts';
 import type { DataUpload } from './data-upload-load-repository.ts';
+import type { UploadDraftRow } from './data-upload-repository.ts';
 import { dataUploadsRouter, findUploadDraft } from './data-uploads.ts';
 import type { InternalDataUploadRepository } from './repositories.ts';
 import {
@@ -26,6 +27,8 @@ import {
 
 const INDICATOR = '00000000-0000-7000-8000-000000000001';
 const DRAFT = '00000000-0000-7000-8000-000000000002';
+const EDITABLE = { id: DRAFT, isLocked: false };
+const LOCKED = { id: DRAFT, isLocked: true };
 const UPLOADS = `/api/internal/indicators/${INDICATOR}/data-uploads`;
 const CSV = 'area_code,period_start,period_end,value\nE92000001,2019-04-01,2020-03-31,83.8\n';
 
@@ -37,7 +40,7 @@ function createTestApp(
   logger?: Logger,
 ) {
   const { dataUploads } = createFakeInternalRepositories({
-    dataUploads: { findDraftId: async () => DRAFT, ...overrides },
+    dataUploads: { findDraft: async () => EDITABLE, ...overrides },
   });
 
   return createRouterTestApp(
@@ -64,19 +67,19 @@ async function processedUpload(process: ReturnType<typeof vi.fn>) {
 }
 
 describe('findUploadDraft', () => {
-  function lookUp(draftId: string | null | undefined, rawId: unknown = INDICATOR) {
+  function lookUp(draft: UploadDraftRow | null | undefined, rawId: unknown = INDICATOR) {
     const { dataUploads } = createFakeInternalRepositories({
-      dataUploads: { findDraftId: async () => draftId },
+      dataUploads: { findDraft: async () => draft },
     });
     return findUploadDraft(dataUploads, rawId);
   }
 
   it('finds the draft of the indicator the id names', async () => {
-    expect(await lookUp(DRAFT)).toEqual({ ok: true, indicatorId: INDICATOR, draftId: DRAFT });
+    expect(await lookUp(EDITABLE)).toEqual({ ok: true, indicatorId: INDICATOR, draftId: DRAFT });
   });
 
   it('answers 400 for an id that is not one', async () => {
-    expect(await lookUp(DRAFT, 'not-an-id')).toEqual({
+    expect(await lookUp(EDITABLE, 'not-an-id')).toEqual({
       ok: false,
       status: 400,
       body: { error: 'invalid_id' },
@@ -86,8 +89,12 @@ describe('findUploadDraft', () => {
   it.each([
     [undefined, 'not_found'],
     [null, 'no_draft'],
-  ])('answers 404 when the draft is %s', async (draftId, error) => {
-    expect(await lookUp(draftId)).toEqual({ ok: false, status: 404, body: { error } });
+  ])('answers 404 when the draft is %s', async (draft, error) => {
+    expect(await lookUp(draft)).toEqual({ ok: false, status: 404, body: { error } });
+  });
+
+  it('answers 409 when the draft is locked', async () => {
+    expect(await lookUp(LOCKED)).toEqual({ ok: false, status: 409, body: { error: 'locked' } });
   });
 });
 
@@ -114,14 +121,25 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
   it.each([
     [undefined, 'not_found'],
     [null, 'no_draft'],
-  ])('answers 404 when the draft is %s, storing nothing', async (draftId, error) => {
+  ])('answers 404 when the draft is %s, storing nothing', async (draft, error) => {
     const storage = createFakeBlobStorage();
     const put = vi.spyOn(storage, 'put');
 
-    const response = await upload(createTestApp({ findDraftId: async () => draftId }, storage));
+    const response = await upload(createTestApp({ findDraft: async () => draft }, storage));
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error });
+    expect(put).not.toHaveBeenCalled();
+  });
+
+  it('answers 409 for a locked draft, storing nothing', async () => {
+    const storage = createFakeBlobStorage();
+    const put = vi.spyOn(storage, 'put');
+
+    const response = await upload(createTestApp({ findDraft: async () => LOCKED }, storage));
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ error: 'locked' });
     expect(put).not.toHaveBeenCalled();
   });
 
@@ -265,6 +283,20 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
     const response = await upload(createTestApp({ process }, storage));
 
     expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: 'no_draft' });
+    expect(deleted).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`^${INDICATOR}/`)));
+  });
+
+  it('answers 409 and deletes the stored blob when the draft was locked while it loaded', async () => {
+    const storage = createFakeBlobStorage();
+    const deleted = vi.spyOn(storage, 'delete');
+    const process = vi.fn().mockResolvedValue({ ok: false, reason: 'no_draft' });
+    const findDraft = vi.fn().mockResolvedValueOnce(EDITABLE).mockResolvedValue(LOCKED);
+
+    const response = await upload(createTestApp({ findDraft, process }, storage));
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ error: 'locked' });
     expect(deleted).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`^${INDICATOR}/`)));
   });
 
@@ -362,8 +394,17 @@ describe('GET /api/internal/indicators/:id/data-uploads/latest', () => {
     });
   });
 
+  it('answers 409 for a locked draft', async () => {
+    const response = await request(createTestApp({ findDraft: async () => LOCKED }))
+      .get(`${UPLOADS}/latest`)
+      .set('Cookie', await publisherCookie());
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ error: 'locked' });
+  });
+
   it('answers 404 for an indicator with no draft', async () => {
-    const response = await request(createTestApp({ findDraftId: async () => null }))
+    const response = await request(createTestApp({ findDraft: async () => null }))
       .get(`${UPLOADS}/latest`)
       .set('Cookie', await publisherCookie());
 

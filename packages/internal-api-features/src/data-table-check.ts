@@ -44,7 +44,7 @@ export function dataTableCheckRouter(
 
       // A published indicator has no data table to check until someone opens a draft of it.
       if (!found.found) {
-        response.status(404).json({ error: found.reason });
+        response.status(found.reason === 'locked' ? 409 : 404).json({ error: found.reason });
         return;
       }
 
@@ -90,6 +90,8 @@ export function dataTableCheckRouter(
       if (!result.ok) {
         if (result.reason === 'data_table_changed') {
           response.status(409).json({ error: result.reason } satisfies DataTableConfirmationError);
+        } else if (result.reason === 'locked') {
+          response.status(409).json({ error: result.reason });
         } else {
           response.status(404).json({ error: result.reason });
         }

@@ -133,7 +133,7 @@ describe('internal API', () => {
       },
       dataProviders: { list: async () => [] },
       dataUploads: {
-        findDraftId: async () => '00000000-0000-7000-8000-000000000002',
+        findDraft: async () => ({ id: '00000000-0000-7000-8000-000000000002', isLocked: false }),
         findLatest: async () => undefined,
         findDraftDataTable: async () => ({ found: true, dataTable: null }),
       },

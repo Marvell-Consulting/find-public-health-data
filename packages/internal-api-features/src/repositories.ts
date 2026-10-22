@@ -22,9 +22,10 @@ import {
   processDataUpload,
 } from './data-upload-load-repository.ts';
 import {
-  findDraftVersionId,
+  findUploadDraftVersion,
   getLatestDataUpload,
   type LatestDataUploadRow,
+  type UploadDraftRow,
 } from './data-upload-repository.ts';
 import {
   type CreateIndicatorDraftResult,
@@ -130,8 +131,8 @@ export interface InternalDataProviderRepository {
  * checking the uploaded table.
  */
 export interface InternalDataUploadRepository {
-  /** The indicator's draft version id, null without a draft, undefined with no indicator. */
-  findDraftId(indicatorId: string): Promise<string | null | undefined>;
+  /** The indicator's draft version, null without a draft, undefined with no indicator. */
+  findDraft(indicatorId: string): Promise<UploadDraftRow | null | undefined>;
   findLatest(draftId: string): Promise<LatestDataUploadRow | undefined>;
   process(
     upload: DataUpload,
@@ -177,7 +178,7 @@ export function createInternalRepositories(db: Database): InternalRepositories {
       list: () => listDataProviders(db),
     },
     dataUploads: {
-      findDraftId: (indicatorId) => findDraftVersionId(db, indicatorId),
+      findDraft: (indicatorId) => findUploadDraftVersion(db, indicatorId),
       findLatest: (draftId) => getLatestDataUpload(db, draftId),
       process: (upload, openFile, signal) => processDataUpload(db, upload, openFile, signal),
       findDraftDataTable: (indicatorId) => findDraftDataTable(db, indicatorId),

@@ -20,18 +20,24 @@ export interface LatestDataUploadRow {
   problems: DataTableProblem[];
 }
 
-/** The indicator's draft version id, null without a draft, undefined with no indicator. */
-export async function findDraftVersionId(
+export interface UploadDraftRow {
+  id: string;
+  isLocked: boolean;
+}
+
+/** The indicator's draft version, null without a draft, undefined with no indicator. */
+export async function findUploadDraftVersion(
   db: Database,
   indicatorId: string,
-): Promise<string | null | undefined> {
+): Promise<UploadDraftRow | null | undefined> {
   const [row] = await db
-    .select({ draftId: draftVersion.id })
+    .select({ id: draftVersion.id, isLocked: draftVersion.isLocked })
     .from(indicator)
     .leftJoin(draftVersion, draftJoin)
     .where(eq(indicator.id, indicatorId));
 
-  return row === undefined ? undefined : row.draftId;
+  if (row === undefined) return undefined;
+  return row.id === null || row.isLocked === null ? null : { id: row.id, isLocked: row.isLocked };
 }
 
 /** The most recent upload to a draft that finished, whether it loaded or was refused. */

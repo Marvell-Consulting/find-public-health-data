@@ -19,7 +19,8 @@ import type { InternalDataUploadRepository } from './repositories.ts';
 export type UploadDraftLookup =
   | { ok: true; indicatorId: string; draftId: string }
   | { ok: false; status: 400; body: Extract<DataUploadError, { error: 'invalid_id' }> }
-  | { ok: false; status: 404; body: { error: 'not_found' | 'no_draft' } };
+  | { ok: false; status: 404; body: { error: 'not_found' | 'no_draft' } }
+  | { ok: false; status: 409; body: { error: 'locked' } };
 
 /** Finds the draft an upload route's id names, without answering the request. */
 export async function findUploadDraft(
@@ -29,14 +30,15 @@ export async function findUploadDraft(
   const id = indicatorIdSchema.safeParse(rawId);
   if (!id.success) return { ok: false, status: 400, body: { error: 'invalid_id' } };
 
-  const draftId = await dataUploads.findDraftId(id.data);
+  const draft = await dataUploads.findDraft(id.data);
 
   // A published indicator is edited by opening a draft first, so until then there is nothing
   // to upload to.
-  if (draftId === undefined) return { ok: false, status: 404, body: { error: 'not_found' } };
-  if (draftId === null) return { ok: false, status: 404, body: { error: 'no_draft' } };
+  if (draft === undefined) return { ok: false, status: 404, body: { error: 'not_found' } };
+  if (draft === null) return { ok: false, status: 404, body: { error: 'no_draft' } };
+  if (draft.isLocked) return { ok: false, status: 409, body: { error: 'locked' } };
 
-  return { ok: true, indicatorId: id.data, draftId };
+  return { ok: true, indicatorId: id.data, draftId: draft.id };
 }
 
 /** Answers once the request is read to its end, so the answer never races an upload body. */
@@ -115,9 +117,15 @@ export function dataUploadsRouter(
           abandoned.signal,
         );
 
+        // The draft was locked or went while the file loaded; the draft as it is now says which.
         if (!result.ok && result.reason === 'no_draft') {
           await deleteBlob(blobName);
-          response.status(404).json({ error: 'no_draft' });
+          const now = await findUploadDraft(dataUploads, indicatorId);
+          if (now.ok) {
+            response.status(404).json({ error: 'no_draft' });
+          } else {
+            response.status(now.status).json(now.body);
+          }
           return;
         }
 
