@@ -1,7 +1,7 @@
 import { A, GridColumn, GridRow, NotificationBanner, Tabs } from '@fphd/ui';
 import { indicatorPath } from '@fphd/utils/indicator-path';
 
-import { indicatorTaskListPath } from '../publish-paths.ts';
+import { indicatorTaskListPath, indicatorWithdrawalPath } from '../publish-paths.ts';
 import { IndicatorHeading } from '../status-tag/indicator-heading.tsx';
 import type { IndicatorAdminDetail, OverviewNotification } from './loader.ts';
 
@@ -29,6 +29,9 @@ function Actions({ canEdit, indicator }: ActionsProps) {
               ? 'Continue updating indicator'
               : 'Continue creating indicator',
         },
+    indicator.actions.includes('withdraw')
+      ? { href: indicatorWithdrawalPath(indicator.id), label: 'Withdraw submission' }
+      : undefined,
     indicator.publishedSlug === null
       ? undefined
       : {

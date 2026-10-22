@@ -14,6 +14,14 @@ const NOTIFICATIONS = {
     type: 'success',
     text: 'Indicator successfully submitted for approval.',
   },
+  'submission-withdrawn': {
+    type: 'success',
+    text: 'Submission withdrawn. You can now edit the indicator.',
+  },
+  'withdraw-refused': {
+    type: 'important',
+    text: 'This submission can no longer be withdrawn.',
+  },
   'draft-locked': {
     type: 'important',
     text: 'This indicator has been submitted for approval and cannot be edited.',

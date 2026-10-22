@@ -140,4 +140,26 @@ describe('IndicatorOverviewPage', () => {
     expect(banner.textContent).toContain('Success');
     expect(banner.textContent).toContain('It worked.');
   });
+
+  it('offers to withdraw a submission the publisher may withdraw', () => {
+    renderPage({
+      publishedSlug: null,
+      indicatorStatus: 'new',
+      draftStatus: 'draft',
+      draftLocked: true,
+      draftSubmissionStatus: 'submitted',
+      draftSubmissionNumber: 1,
+      actions: ['withdraw'],
+    });
+
+    expect(screen.getByRole('link', { name: 'Withdraw submission' }).getAttribute('href')).toBe(
+      `/publish/indicators/${indicator.id}/withdraw-submission`,
+    );
+  });
+
+  it('offers no withdrawal the workflow does not allow the user', () => {
+    renderPage({ draftStatus: 'draft', draftLocked: true, draftSubmissionStatus: 'submitted' });
+
+    expect(screen.queryByRole('link', { name: 'Withdraw submission' })).toBeNull();
+  });
 });

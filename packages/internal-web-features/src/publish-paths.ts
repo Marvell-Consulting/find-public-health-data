@@ -24,6 +24,11 @@ export function indicatorTaskListPath(id: string): string {
   return indicatorPublishPath(id, 'task-list');
 }
 
+/** The page that confirms withdrawing the draft's submission for approval. */
+export function indicatorWithdrawalPath(id: string): string {
+  return indicatorPublishPath(id, 'withdraw-submission');
+}
+
 /** Each section of a draft has a page, named by its task key. */
 export function indicatorSectionPath(id: string, section: IndicatorTaskKey): string {
   return indicatorPublishPath(id, section);

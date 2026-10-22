@@ -54,6 +54,10 @@ export default [
         '../../../packages/internal-web-features/src/indicator-task-list/route.tsx',
       ),
       route(
+        'publish/indicators/:id/withdraw-submission',
+        '../../../packages/internal-web-features/src/indicator-withdrawal/route.tsx',
+      ),
+      route(
         'publish/indicators/:id/data-table',
         '../../../packages/internal-web-features/src/indicator-data-table/upload-route.tsx',
       ),
