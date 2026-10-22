@@ -542,6 +542,19 @@ describe('PATCH /api/internal/indicators/:id', () => {
     expect(updateDraft).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['no indicator', undefined],
+    ['no draft', detailRow],
+  ])('names the refused name for %s', async (_, found) => {
+    const response = await request(createTestApp({ findById: async () => found }))
+      .patch(path)
+      .set('Cookie', await publisherCookie())
+      .send({ name: '  ' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({ error: 'validation_failed' });
+  });
+
   it('answers 409 rather than the refused name for a draft locked for review', async () => {
     const updateDraft = vi.fn();
     const findById = async () => ({ ...draftRow, draftLocked: true });

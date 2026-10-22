@@ -199,6 +199,21 @@ describe('PUT on a section', () => {
     expect(updateDraft).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['no indicator', undefined],
+    ['no draft', { draftStatus: null, draftLocked: false }],
+  ])('names the refused answers for %s', async (_, found) => {
+    const findById = vi.fn().mockResolvedValue(found);
+
+    const response = await request(createTestApp({ findById }))
+      .put(path)
+      .set('Cookie', await publisherCookie())
+      .send({ definition: '' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({ error: 'validation_failed' });
+  });
+
   it('answers locked rather than the refused answers for a draft locked for review', async () => {
     const updateDraft = vi.fn();
     const findById = vi.fn().mockResolvedValue({ draftLocked: true });

@@ -220,6 +220,16 @@ describe('PUT /api/internal/indicators/:id/data-table/confirmation', () => {
     expect(response.body).toEqual({ error: 'validation_failed' });
   });
 
+  it.each([
+    ['no indicator', undefined],
+    ['no draft', null],
+  ])('answers 400 for a refused body when there is %s', async (_, found) => {
+    const response = await put(createTestApp({ findDraft: async () => found }), {});
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'validation_failed' });
+  });
+
   it('answers 409 rather than 400 for a draft locked for review', async () => {
     const response = await put(createTestApp({ findDraft: async () => LOCKED }), {});
 
