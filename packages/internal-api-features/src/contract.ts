@@ -91,6 +91,11 @@ export const draftStatusSchema = z.enum(['draft']);
 /** Where the draft's latest submission for review stands. */
 export const draftSubmissionStatusSchema = z.enum(INDICATOR_SUBMISSION_STATUSES);
 
+/** The steps a version takes through review, in the order the workflow allows them. */
+export const INDICATOR_STEPS = ['submit', 'withdraw'] as const;
+
+export const indicatorStepSchema = z.enum(INDICATOR_STEPS);
+
 /**
  * Both statuses are derived from the versions, never stored, and sent as values rather than
  * labels: what each is called is the web UI's decision.
@@ -205,6 +210,7 @@ export type IndicatorAdminPage = z.infer<typeof indicatorAdminPageSchema>;
 export type IndicatorStatus = z.infer<typeof indicatorStatusSchema>;
 export type DraftStatus = z.infer<typeof draftStatusSchema>;
 export type DraftSubmissionStatus = z.infer<typeof draftSubmissionStatusSchema>;
+export type IndicatorStep = z.infer<typeof indicatorStepSchema>;
 export type IndicatorAdminDetail = z.infer<typeof indicatorAdminDetailSchema>;
 export type IndicatorName = z.infer<typeof indicatorNameSchema>;
 export type IndicatorTeam = z.infer<typeof indicatorTeamSchema>;

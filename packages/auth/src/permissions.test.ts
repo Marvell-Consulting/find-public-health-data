@@ -11,6 +11,8 @@ import {
   canReviewIndicator,
   canSeeIndicator,
   canSeeTeamsAndUsers,
+  canSubmitIndicator,
+  canWithdrawSubmission,
   type IndicatorAccess,
   indicatorListScope,
   type SessionUser,
@@ -63,6 +65,23 @@ describe('canEditIndicator', () => {
   it('lets no one but a publisher edit', () => {
     for (const asking of [admin, manager, reviewer]) {
       expect(canEditIndicator(asking, assigned)).toBe(false);
+    }
+  });
+});
+
+describe.each([
+  ['canSubmitIndicator', canSubmitIndicator],
+  ['canWithdrawSubmission', canWithdrawSubmission],
+])('%s', (_name, check) => {
+  it("lets a publisher take the step on their own teams' indicators only", () => {
+    expect(check(publisherAB, inTeamB)).toBe(true);
+    expect(check(publisherA, inTeamB)).toBe(false);
+    expect(check(publisherA, inNoTeam)).toBe(false);
+  });
+
+  it('lets no one but a publisher take it', () => {
+    for (const asking of [admin, manager, reviewer]) {
+      expect(check(asking, assigned)).toBe(false);
     }
   });
 });

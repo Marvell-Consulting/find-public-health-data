@@ -4,7 +4,7 @@ import { type Database, schema } from '@fphd/db';
 import { eq, sql } from 'drizzle-orm';
 import { v7 as randomUuidV7 } from 'uuid';
 import { describe, expect } from 'vitest';
-
+import type { IndicatorStep } from './contract.ts';
 import { confirmDataTable } from './data-table-check-repository.ts';
 import { processDataUpload } from './data-upload-load-repository.ts';
 import { updateIndicatorDraft } from './indicator-draft-repository.ts';
@@ -18,7 +18,6 @@ import {
   repositoryTest,
 } from './indicator-repository.testing.ts';
 import { completeDraft, draftUpdatedAt } from './indicator-workflow.testing.ts';
-import type { IndicatorStep } from './indicator-workflow.ts';
 import {
   submitIndicator,
   takeIndicatorStep,

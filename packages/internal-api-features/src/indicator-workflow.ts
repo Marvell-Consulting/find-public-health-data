@@ -1,12 +1,19 @@
+import {
+  canSubmitIndicator,
+  canWithdrawSubmission,
+  type IndicatorAccess,
+  type SessionUser,
+} from '@fphd/auth/permissions';
 import type { schema } from '@fphd/db';
 import type { IndicatorSubmissionStatus } from '@fphd/utils/indicator-submission-status';
 
-import type { IndicatorStatus } from './contract.ts';
-
-/** The steps a version takes through review, in the order the workflow allows them. */
-export const INDICATOR_STEPS = ['submit', 'withdraw'] as const;
-
-export type IndicatorStep = (typeof INDICATOR_STEPS)[number];
+import {
+  type DraftStatus,
+  type DraftSubmissionStatus,
+  INDICATOR_STEPS,
+  type IndicatorStatus,
+  type IndicatorStep,
+} from './contract.ts';
 
 type VersionStatus = schema.IndicatorVersionStatus;
 
@@ -34,6 +41,8 @@ interface StepEntry {
     submissionStatuses: readonly (IndicatorSubmissionStatus | null)[];
   };
   leadsTo: IndicatorWorkflowState;
+  /** Who may take the step, a check from `@fphd/auth/permissions`. */
+  permission: (user: SessionUser, indicator: Pick<IndicatorAccess, 'teamId'>) => boolean;
 }
 
 const STEPS: Readonly<Record<IndicatorStep, StepEntry>> = {
@@ -46,6 +55,7 @@ const STEPS: Readonly<Record<IndicatorStep, StepEntry>> = {
       submissionStatuses: [null, 'withdrawn'],
     },
     leadsTo: { versionStatus: 'draft', submissionStatus: 'submitted', isLocked: true },
+    permission: canSubmitIndicator,
   },
   withdraw: {
     from: {
@@ -55,6 +65,7 @@ const STEPS: Readonly<Record<IndicatorStep, StepEntry>> = {
       submissionStatuses: ['submitted'],
     },
     leadsTo: { versionStatus: 'draft', submissionStatus: 'withdrawn', isLocked: false },
+    permission: canWithdrawSubmission,
   },
 };
 
@@ -85,4 +96,33 @@ export function nextState(
 /** The steps open now, whoever may take them. */
 export function allowedSteps(context: IndicatorWorkflowContext): IndicatorStep[] {
   return INDICATOR_STEPS.filter((step) => isOpen(STEPS[step], context));
+}
+
+/** Whether the user may take `step` on the indicator, whether or not it is open now. */
+export function mayTakeStep(
+  user: SessionUser,
+  indicator: Pick<IndicatorAccess, 'teamId'>,
+  step: IndicatorStep,
+): boolean {
+  return STEPS[step].permission(user, indicator);
+}
+
+/** An indicator as the list and detail rows describe it, which is enough to place its draft. */
+export interface IndicatorWorkflowRow extends Pick<IndicatorAccess, 'teamId'> {
+  indicatorStatus: IndicatorStatus;
+  draftStatus: DraftStatus | null;
+  draftLocked: boolean;
+  draftSubmissionStatus: DraftSubmissionStatus | null;
+}
+
+/** The steps open now that the user may take; none while there is no draft. */
+export function stepsOpenTo(user: SessionUser, indicator: IndicatorWorkflowRow): IndicatorStep[] {
+  if (indicator.draftStatus === null) return [];
+
+  return allowedSteps({
+    indicatorStatus: indicator.indicatorStatus,
+    versionStatus: indicator.draftStatus,
+    isLocked: indicator.draftLocked,
+    latestSubmissionStatus: indicator.draftSubmissionStatus,
+  }).filter((step) => mayTakeStep(user, indicator, step));
 }
