@@ -21,10 +21,13 @@ export type IndicatorStepResult<Reason extends string = never> =
   | { ok: true }
   | { ok: false; reason: 'no_draft' | 'not_allowed' | Reason };
 
-/** A step's own check of the draft, made under its lock: why the step is refused, or nothing. */
+/**
+ * A step's own check of the draft and its latest submission, made under the draft's lock: why
+ * the step is refused, or nothing.
+ */
 export type IndicatorStepPrecondition<Reason extends string> = (
   tx: Transaction,
-  draft: IndicatorDraftVersion,
+  state: { draft: IndicatorDraftVersion; latest: Submission | undefined },
 ) => Promise<Reason | undefined>;
 
 const STEP_ACTIONS: Readonly<Record<IndicatorStep, AuditAction>> = {
@@ -115,7 +118,7 @@ export async function takeIndicatorStep<Reason extends string = never>(
 
     if (!next.ok) return next;
 
-    const refusal = await precondition?.(tx, draft);
+    const refusal = await precondition?.(tx, { draft, latest });
     if (refusal !== undefined) return { ok: false, reason: refusal };
 
     const [version] = await tx
@@ -170,7 +173,7 @@ export function submitIndicator(
   actor: Actor,
 ): Promise<IndicatorStepResult<'changed' | 'incomplete'>> {
   return takeIndicatorStep(db, indicatorId, 'submit', actor, {
-    precondition: async (tx, draft) => {
+    precondition: async (tx, { draft }) => {
       if (draft.updatedAt.getTime() !== draftUpdatedAt.getTime()) return 'changed';
       const [lists, ciMethodKind] = await Promise.all([
         draftListsOf(tx, draft.id),
@@ -181,11 +184,19 @@ export function submitIndicator(
   });
 }
 
-/** Withdraws the draft's submission before review, unlocking the draft. */
+/**
+ * Withdraws the draft's submission before review, unlocking the draft. `submissionNumber` is the
+ * submission the publisher was shown: one withdrawn and resubmitted since is refused as `changed`,
+ * so an old confirmation page never withdraws a newer submission.
+ */
 export function withdrawSubmission(
   db: Database,
   indicatorId: string,
+  submissionNumber: number,
   actor: Actor,
-): Promise<IndicatorStepResult> {
-  return takeIndicatorStep(db, indicatorId, 'withdraw', actor);
+): Promise<IndicatorStepResult<'changed'>> {
+  return takeIndicatorStep(db, indicatorId, 'withdraw', actor, {
+    precondition: async (_tx, { latest }) =>
+      latest?.number === submissionNumber ? undefined : 'changed',
+  });
 }

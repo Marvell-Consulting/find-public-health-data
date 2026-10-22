@@ -227,7 +227,7 @@ describe('the derived statuses', () => {
   repositoryTest('reads a withdrawn draft as unlocked', async ({ db }) => {
     const created = await newDraft(db, 'A withdrawn draft');
     await submitIndicator(db, created.indicatorId, await completeDraft(db, created), AS_ACTOR);
-    await withdrawSubmission(db, created.indicatorId, AS_ACTOR);
+    await withdrawSubmission(db, created.indicatorId, 1, AS_ACTOR);
     const statuses = { draftLocked: false, draftSubmissionStatus: 'withdrawn' };
 
     expect(await listed(db, created.indicatorId)).toMatchObject(statuses);
@@ -238,7 +238,7 @@ describe('the derived statuses', () => {
     const created = await newDraft(db, 'A resubmitted draft');
     const shown = await completeDraft(db, created);
     await submitIndicator(db, created.indicatorId, shown, AS_ACTOR);
-    await withdrawSubmission(db, created.indicatorId, AS_ACTOR);
+    await withdrawSubmission(db, created.indicatorId, 1, AS_ACTOR);
     await submitIndicator(db, created.indicatorId, shown, AS_ACTOR);
 
     expect(await getIndicatorById(db, created.indicatorId)).toMatchObject({

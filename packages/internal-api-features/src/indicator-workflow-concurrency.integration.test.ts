@@ -250,7 +250,7 @@ describe('two steps at once', () => {
     await submitIndicator(db, indicatorId, shown, AS_ACTOR);
 
     const result = await writeWhileStepHolds(db, indicatorId, 'withdraw', () =>
-      withdrawSubmission(db, indicatorId, AS_OTHER_ACTOR),
+      withdrawSubmission(db, indicatorId, 1, AS_OTHER_ACTOR),
     );
 
     expect(result).toEqual({ step: { ok: true }, write: { ok: false, reason: 'not_allowed' } });

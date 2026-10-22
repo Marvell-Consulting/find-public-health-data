@@ -106,8 +106,12 @@ export interface InternalIndicatorRepository {
     draftUpdatedAt: Date,
     actor: Actor,
   ): Promise<IndicatorStepResult<'changed' | 'incomplete'>>;
-  /** Withdraws the draft's submission, unlocking the draft. */
-  withdraw(indicatorId: string, actor: Actor): Promise<IndicatorStepResult>;
+  /** Withdraws the draft's submission, unlocking the draft, as long as it is the one numbered. */
+  withdraw(
+    indicatorId: string,
+    submissionNumber: number,
+    actor: Actor,
+  ): Promise<IndicatorStepResult<'changed'>>;
 }
 
 /** The confidence interval methods a publisher chooses from. */
@@ -197,7 +201,8 @@ export function createInternalRepositories(db: Database): InternalRepositories {
       draftFromPublished: (indicatorId, actor) => createDraftFromPublished(db, indicatorId, actor),
       submit: (indicatorId, draftUpdatedAt, actor) =>
         submitIndicator(db, indicatorId, draftUpdatedAt, actor),
-      withdraw: (indicatorId, actor) => withdrawSubmission(db, indicatorId, actor),
+      withdraw: (indicatorId, submissionNumber, actor) =>
+        withdrawSubmission(db, indicatorId, submissionNumber, actor),
     },
     tags: {
       listOptions: () => listTagOptions(db),

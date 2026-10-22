@@ -174,7 +174,7 @@ describe('submitIndicator', () => {
     async ({ db }) => {
       const { indicatorId, versionId, shown } = await completeNewDraft(db, 'Submitted twice');
       await submitIndicator(db, indicatorId, shown, AS_ACTOR);
-      await withdrawSubmission(db, indicatorId, AS_ACTOR);
+      await withdrawSubmission(db, indicatorId, 1, AS_ACTOR);
 
       await expect(submitIndicator(db, indicatorId, shown, AS_ACTOR)).resolves.toEqual({
         ok: true,
@@ -227,7 +227,7 @@ describe('withdrawSubmission', () => {
     await submitIndicator(db, indicatorId, shown, AS_ACTOR);
     const before = await versionOf(db, versionId);
 
-    await expect(withdrawSubmission(db, indicatorId, AS_OTHER_ACTOR)).resolves.toEqual({
+    await expect(withdrawSubmission(db, indicatorId, 1, AS_OTHER_ACTOR)).resolves.toEqual({
       ok: true,
     });
 
@@ -250,7 +250,7 @@ describe('withdrawSubmission', () => {
       await submitIndicator(db, indicatorId, shown, AS_ACTOR);
       const [submitted] = await submissionsOf(db, versionId);
 
-      await withdrawSubmission(db, indicatorId, AS_OTHER_ACTOR);
+      await withdrawSubmission(db, indicatorId, 1, AS_OTHER_ACTOR);
 
       const [withdrawn] = await submissionsOf(db, versionId);
       const [, entry] = await stepEntriesFor(db, indicatorId);
@@ -270,7 +270,7 @@ describe('withdrawSubmission', () => {
   repositoryTest('refuses a draft never submitted', async ({ db }) => {
     const { indicatorId } = await newDraft(db, 'Withdrawn unsubmitted');
 
-    await expect(withdrawSubmission(db, indicatorId, AS_ACTOR)).resolves.toEqual({
+    await expect(withdrawSubmission(db, indicatorId, 1, AS_ACTOR)).resolves.toEqual({
       ok: false,
       reason: 'not_allowed',
     });
@@ -279,15 +279,49 @@ describe('withdrawSubmission', () => {
   repositoryTest('refuses a submission already withdrawn', async ({ db }) => {
     const { indicatorId, versionId, shown } = await completeNewDraft(db, 'Withdrawn twice');
     await submitIndicator(db, indicatorId, shown, AS_ACTOR);
-    await withdrawSubmission(db, indicatorId, AS_ACTOR);
+    await withdrawSubmission(db, indicatorId, 1, AS_ACTOR);
 
-    await expect(withdrawSubmission(db, indicatorId, AS_ACTOR)).resolves.toEqual({
+    await expect(withdrawSubmission(db, indicatorId, 1, AS_ACTOR)).resolves.toEqual({
       ok: false,
       reason: 'not_allowed',
     });
     expect(await stepEntriesFor(db, indicatorId)).toHaveLength(2);
     expect((await submissionsOf(db, versionId))[0]?.status).toBe('withdrawn');
   });
+
+  repositoryTest('withdraws a resubmission by its own number', async ({ db }) => {
+    const { indicatorId, versionId, shown } = await completeNewDraft(db, 'Resubmission withdrawn');
+    await submitIndicator(db, indicatorId, shown, AS_ACTOR);
+    await withdrawSubmission(db, indicatorId, 1, AS_ACTOR);
+    await submitIndicator(db, indicatorId, shown, AS_ACTOR);
+
+    await expect(withdrawSubmission(db, indicatorId, 2, AS_ACTOR)).resolves.toEqual({ ok: true });
+    expect((await submissionsOf(db, versionId)).map(({ status }) => status)).toEqual([
+      'withdrawn',
+      'withdrawn',
+    ]);
+  });
+
+  repositoryTest(
+    'refuses an earlier submission withdrawn and resubmitted since, writing nothing',
+    async ({ db }) => {
+      const { indicatorId, versionId, shown } = await completeNewDraft(db, 'Withdrawn too late');
+      await submitIndicator(db, indicatorId, shown, AS_ACTOR);
+      await withdrawSubmission(db, indicatorId, 1, AS_ACTOR);
+      await submitIndicator(db, indicatorId, shown, AS_ACTOR);
+
+      await expect(withdrawSubmission(db, indicatorId, 1, AS_OTHER_ACTOR)).resolves.toEqual({
+        ok: false,
+        reason: 'changed',
+      });
+      expect((await versionOf(db, versionId)).isLocked).toBe(true);
+      expect((await submissionsOf(db, versionId)).map(({ status }) => status)).toEqual([
+        'withdrawn',
+        'submitted',
+      ]);
+      expect(await stepEntriesFor(db, indicatorId)).toHaveLength(3);
+    },
+  );
 });
 
 describe('the lock', () => {
@@ -295,9 +329,9 @@ describe('the lock', () => {
     const { indicatorId, shown } = await completeNewDraft(db, 'Locked in step');
     const steps = [
       () => submitIndicator(db, indicatorId, shown, AS_ACTOR),
-      () => withdrawSubmission(db, indicatorId, AS_ACTOR),
+      () => withdrawSubmission(db, indicatorId, 1, AS_ACTOR),
       () => submitIndicator(db, indicatorId, shown, AS_ACTOR),
-      () => withdrawSubmission(db, indicatorId, AS_ACTOR),
+      () => withdrawSubmission(db, indicatorId, 2, AS_ACTOR),
     ];
 
     for (const step of steps) {
