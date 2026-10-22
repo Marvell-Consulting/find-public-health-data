@@ -1,82 +1,98 @@
-import { appEnvFields, parseEnv, z } from '@fphd/config';
-import { createDb, type Database, dbEnvFields, resolveDbTls, schema } from '@fphd/db';
-import { auditEntriesFor, createTestDatabase, type TestDatabase } from '@fphd/db/testing';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { type Database, schema } from '@fphd/db';
+import { auditEntriesFor } from '@fphd/db/testing';
+import { eq } from 'drizzle-orm';
+import { describe, expect } from 'vitest';
 
-import { deleteTopic, getTopicById } from './topic-repository.ts';
+import {
+  AS_ACTOR,
+  indicatorWithTwoPublications,
+  newDraft,
+  repositoryTest,
+} from './indicator-repository.testing.ts';
+import {
+  countLinkedIndicators,
+  createTopic,
+  deleteTopic,
+  getTopicById,
+} from './topic-repository.ts';
 
-// Seeded, because the cascade is only meaningful against real indicator_version_topic links, and
-// building an indicator by hand would mean seeding the whole lookup graph it references.
-const env = parseEnv(
-  z.object({
-    ...dbEnvFields,
-    ...appEnvFields,
-    POSTGRES_USER: z.string().default('fphd'),
-    POSTGRES_PASSWORD: z.string().default('fphd'),
-  }),
-  process.env,
-);
+const { indicatorVersionTopic } = schema;
 
-let testDb: TestDatabase;
-let db: Database;
+async function newTopic(db: Database, slug: string): Promise<string> {
+  const created = await createTopic(
+    db,
+    { slug, title: `Topic ${slug}`, description: `About ${slug}.` },
+    AS_ACTOR,
+  );
+  if (!created.ok) throw new Error(`createTopic refused ${slug}`);
+  return created.topic.id;
+}
 
-beforeAll(async () => {
-  testDb = await createTestDatabase({ template: 'seeded' });
-  db = createDb({
-    host: env.DB_HOST,
-    port: env.DB_PORT,
-    database: testDb.name,
-    user: env.POSTGRES_USER,
-    password: env.POSTGRES_PASSWORD,
-    ssl: resolveDbTls(env.APP_ENV, env.DB_TLS),
-  });
-});
+async function link(db: Database, topicId: string, ...versionIds: string[]) {
+  await db
+    .insert(indicatorVersionTopic)
+    .values(versionIds.map((indicatorVersionId) => ({ indicatorVersionId, topicId })));
+}
 
-afterAll(async () => {
-  await db.$client.end();
-  await testDb.drop();
-});
+async function linkedVersionIds(db: Database, topicId: string): Promise<string[]> {
+  const rows = await db
+    .select({ id: indicatorVersionTopic.indicatorVersionId })
+    .from(indicatorVersionTopic)
+    .where(eq(indicatorVersionTopic.topicId, topicId));
+  return rows.map(({ id }) => id);
+}
 
 describe('deleteTopic with linked indicators', () => {
-  it('removes the topic and its links, but leaves the indicators themselves', async () => {
-    const [linked] = await db.$client<{ topicId: string }[]>`
-      SELECT topic_id AS "topicId" FROM indicator_version_topic GROUP BY topic_id LIMIT 1
-    `;
-    if (linked === undefined)
-      throw new Error('the seed has no indicator_version_topic links to exercise');
+  const linkedVersions = [
+    ['a draft', async (db: Database) => (await newDraft(db, 'Linked draft')).versionId],
+    [
+      'the current published version',
+      async (db: Database) => (await indicatorWithTwoPublications(db, 'Linked current')).currentId,
+    ],
+    [
+      'an earlier published version',
+      async (db: Database) =>
+        (await indicatorWithTwoPublications(db, 'Linked earlier')).supersededId,
+    ],
+  ] as const;
 
-    const links = await db.$client<{ indicatorId: string; versionId: string }[]>`
-      SELECT v.indicator_id AS "indicatorId", v.id AS "versionId"
-      FROM indicator_version_topic it
-      JOIN indicator_version v ON v.id = it.indicator_version_id
-      WHERE it.topic_id = ${linked.topicId}
-    `;
-    expect(links.length).toBeGreaterThan(0);
+  repositoryTest.for(linkedVersions)(
+    'refuses to delete a topic %s links to, and keeps every link',
+    async ([, versionOf], { db }) => {
+      const versionId = await versionOf(db);
+      const topicId = await newTopic(db, `linked-${versionId}`);
+      await link(db, topicId, versionId);
 
-    const result = await deleteTopic(db, linked.topicId, {
-      userId: schema.SYSTEM_USER_IDS.testSeed,
-      requestId: null,
-    });
+      expect(await deleteTopic(db, topicId, AS_ACTOR)).toEqual({ ok: false, reason: 'in_use' });
 
-    expect(result).toEqual({ ok: true });
-    expect(await getTopicById(db, linked.topicId)).toBeUndefined();
+      expect(await getTopicById(db, topicId)).toBeDefined();
+      expect(await linkedVersionIds(db, topicId)).toEqual([versionId]);
+      expect((await auditEntriesFor(db, topicId)).map(({ action }) => action)).toEqual([
+        'topic.created',
+      ]);
+    },
+  );
+});
 
-    const [remaining] = await db.$client<{ count: number }[]>`
-      SELECT count(*)::int AS count FROM indicator_version_topic WHERE topic_id = ${linked.topicId}
-    `;
-    expect(remaining?.count).toBe(0);
+describe('countLinkedIndicators', () => {
+  repositoryTest('is 0 for a topic nothing links to', async ({ db }) => {
+    expect(await countLinkedIndicators(db, await newTopic(db, 'count-none'))).toBe(0);
+  });
 
-    const [survivors] = await db.$client<{ count: number }[]>`
-      SELECT count(*)::int AS count FROM indicator
-      WHERE id IN ${db.$client(links.map((link) => link.indicatorId))}
-    `;
-    expect(survivors?.count).toBe(links.length);
+  repositoryTest('counts an indicator once, however many of its versions link', async ({ db }) => {
+    const { currentId, supersededId } = await indicatorWithTwoPublications(db, 'Counted once');
+    const topicId = await newTopic(db, 'count-once');
+    await link(db, topicId, currentId, supersededId);
 
-    const entry = (await auditEntriesFor(db, linked.topicId)).at(-1);
-    expect(entry?.action).toBe('topic.deleted');
-    const removed = entry?.changes.indicatorVersionIds;
-    expect(removed?.after).toEqual([]);
-    expect(removed?.before).toEqual(expect.arrayContaining(links.map((link) => link.versionId)));
-    expect(removed?.before).toHaveLength(links.length);
+    expect(await countLinkedIndicators(db, topicId)).toBe(1);
+  });
+
+  repositoryTest('counts drafts and publications of different indicators', async ({ db }) => {
+    const draft = await newDraft(db, 'Counted draft');
+    const { supersededId } = await indicatorWithTwoPublications(db, 'Counted publication');
+    const topicId = await newTopic(db, 'count-both');
+    await link(db, topicId, draft.versionId, supersededId);
+
+    expect(await countLinkedIndicators(db, topicId)).toBe(2);
   });
 });

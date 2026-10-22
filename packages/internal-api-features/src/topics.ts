@@ -5,7 +5,9 @@ import { Router } from 'express';
 
 import {
   type TopicAdminDetail,
+  type TopicAdminDetailWithLinkCount,
   type TopicAdminSummary,
+  type TopicDeleteError,
   toFieldErrors,
   topicFieldSchema,
   topicIdSchema,
@@ -74,14 +76,19 @@ export function internalTopicsRouter(
       return;
     }
 
-    const topic = await topics.findById(id.data);
+    const [topic, linkedIndicatorCount] = await Promise.all([
+      topics.findById(id.data),
+      topics.countLinkedIndicators(id.data),
+    ]);
 
     if (!topic) {
       response.status(404).json({ error: 'not_found' });
       return;
     }
 
-    response.status(200).json(toDetail(topic));
+    response
+      .status(200)
+      .json({ ...toDetail(topic), linkedIndicatorCount } satisfies TopicAdminDetailWithLinkCount);
   });
 
   router.put('/api/internal/topics/:id', requireAdmin, async (request, response) => {
@@ -135,6 +142,11 @@ export function internalTopicsRouter(
     const result = await topics.delete(id.data, requireApiActor(request, response));
 
     if (!result.ok) {
+      if (result.reason === 'in_use') {
+        response.status(409).json({ error: 'in_use' } satisfies TopicDeleteError);
+        return;
+      }
+
       response.status(404).json({ error: 'not_found' });
       return;
     }

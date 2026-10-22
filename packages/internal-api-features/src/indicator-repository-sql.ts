@@ -12,15 +12,23 @@ export const UNIQUE_VIOLATION = '23505';
 // The slug exclusion constraint: another indicator already holds the slug this name yields.
 export const EXCLUSION_VIOLATION = '23P01';
 
-/** Drizzle wraps the driver error, so the SQLSTATE is on a `cause` rather than the error thrown. */
-export function hasSqlState(error: unknown, sqlState: string): boolean {
+/** Drizzle wraps the driver error, so its fields are on a `cause` rather than the error thrown. */
+function driverError(error: unknown): { code?: unknown; constraint_name?: unknown } | undefined {
   for (let current = error; current !== null && current !== undefined; ) {
-    if (typeof current !== 'object') return false;
-    if ('code' in current && (current as { code?: unknown }).code === sqlState) return true;
+    if (typeof current !== 'object') return undefined;
+    if ('code' in current) return current;
     current = (current as { cause?: unknown }).cause;
   }
 
-  return false;
+  return undefined;
+}
+
+export function hasSqlState(error: unknown, sqlState: string): boolean {
+  return driverError(error)?.code === sqlState;
+}
+
+export function violatesConstraint(error: unknown, constraint: string): boolean {
+  return driverError(error)?.constraint_name === constraint;
 }
 
 /**
