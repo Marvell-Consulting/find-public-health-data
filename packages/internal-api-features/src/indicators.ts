@@ -170,6 +170,12 @@ export function internalIndicatorsRouter(
     const submission = indicatorNameSchema.safeParse(request.body);
 
     if (!submission.success) {
+      // As a section save does, a locked draft answers locked before its refused answers.
+      if ((await indicators.findById(id.data))?.draftLocked) {
+        response.status(409).json({ error: 'locked' });
+        return;
+      }
+
       response.status(400).json({
         error: 'validation_failed',
         fieldErrors: toFieldErrors(submission.error, indicatorFieldSchema),

@@ -181,8 +181,9 @@ describe('PUT on a section', () => {
 
   it('writes nothing when any answer is refused, naming each field refused', async () => {
     const updateDraft = vi.fn();
+    const findById = vi.fn().mockResolvedValue({ draftLocked: false });
 
-    const response = await request(createTestApp({ updateDraft }))
+    const response = await request(createTestApp({ updateDraft, findById }))
       .put(path)
       .set('Cookie', await publisherCookie())
       .send({ definition: '', rationale: 108 });
@@ -195,6 +196,20 @@ describe('PUT on a section', () => {
         rationale: 'Invalid input: expected string, received number',
       },
     });
+    expect(updateDraft).not.toHaveBeenCalled();
+  });
+
+  it('answers locked rather than the refused answers for a draft locked for review', async () => {
+    const updateDraft = vi.fn();
+    const findById = vi.fn().mockResolvedValue({ draftLocked: true });
+
+    const response = await request(createTestApp({ updateDraft, findById }))
+      .put(path)
+      .set('Cookie', await publisherCookie())
+      .send({ definition: '' });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ error: 'locked' });
     expect(updateDraft).not.toHaveBeenCalled();
   });
 

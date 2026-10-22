@@ -77,6 +77,12 @@ export function dataTableCheckRouter(
       const submission = dataTableConfirmationSchema.safeParse(request.body);
 
       if (!submission.success) {
+        // As a section save does, a locked draft answers locked before its refused answers.
+        if ((await dataUploads.findDraft(id.data))?.isLocked) {
+          response.status(409).json({ error: 'locked' });
+          return;
+        }
+
         response
           .status(400)
           .json({ error: 'validation_failed' } satisfies DataTableConfirmationError);

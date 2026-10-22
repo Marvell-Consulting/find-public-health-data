@@ -111,6 +111,20 @@ describe('a draft locked for review', () => {
     expect(response.body).toEqual({ error: 'locked' });
   });
 
+  it.each([
+    ['put', '/definition-and-rationale', { definition: '' }],
+    ['patch', '', { name: '' }],
+    ['put', '/data-table/confirmation', {}],
+  ] as const)(
+    'answers %s %s with 409 locked even when the answers are refused',
+    async (method, path, body) => {
+      const response = await send(method, lockedId, path, body);
+
+      expect(response.status).toBe(409);
+      expect(response.body).toEqual({ error: 'locked' });
+    },
+  );
+
   it('is left as it was by every refused write, and nothing is stored', async () => {
     const put = vi.spyOn(storage, 'put');
     const before = await lastEdit(lockedId);

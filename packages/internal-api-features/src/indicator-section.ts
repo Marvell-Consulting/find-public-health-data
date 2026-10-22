@@ -190,6 +190,12 @@ export function indicatorSectionRouter<
     const submission = await section.schema.safeParseAsync(request.body);
 
     if (!submission.success) {
+      // A locked draft refuses every save, so a refused answer is not what to report.
+      if ((await indicators.findById(id.data))?.draftLocked) {
+        response.status(409).json({ error: 'locked' });
+        return;
+      }
+
       response.status(400).json({
         error: 'validation_failed',
         fieldErrors: indicatorSectionFieldErrors(section, submission.error),

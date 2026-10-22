@@ -47,6 +47,9 @@ const ROW: DataTableRow = {
   valueNotes: [],
 };
 
+const EDITABLE = { id: '00000000-0000-7000-8000-000000000002', isLocked: false };
+const LOCKED = { ...EDITABLE, isLocked: true };
+
 function createTestApp(
   overrides: Partial<InternalDataUploadRepository> = {},
   logger?: ReturnType<typeof createCapturingLogger>['logger'],
@@ -211,9 +214,16 @@ describe('PUT /api/internal/indicators/:id/data-table/confirmation', () => {
   });
 
   it.each([{}, { batchId: 'nope' }])('answers 400 for %j', async (body) => {
-    const response = await put(createTestApp(), body);
+    const response = await put(createTestApp({ findDraft: async () => EDITABLE }), body);
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({ error: 'validation_failed' });
+  });
+
+  it('answers 409 rather than 400 for a draft locked for review', async () => {
+    const response = await put(createTestApp({ findDraft: async () => LOCKED }), {});
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ error: 'locked' });
   });
 });

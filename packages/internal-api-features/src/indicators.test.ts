@@ -529,7 +529,7 @@ describe('PATCH /api/internal/indicators/:id', () => {
   it('refuses a name the rules refuse, naming the field, without renaming', async () => {
     const updateDraft = vi.fn();
 
-    const response = await request(createTestApp({ updateDraft }))
+    const response = await request(createTestApp({ updateDraft, findById: async () => draftRow }))
       .patch(path)
       .set('Cookie', await publisherCookie())
       .send({ name: '  ' });
@@ -539,6 +539,20 @@ describe('PATCH /api/internal/indicators/:id', () => {
       error: 'validation_failed',
       fieldErrors: { name: 'Enter the name of the indicator' },
     });
+    expect(updateDraft).not.toHaveBeenCalled();
+  });
+
+  it('answers 409 rather than the refused name for a draft locked for review', async () => {
+    const updateDraft = vi.fn();
+    const findById = async () => ({ ...draftRow, draftLocked: true });
+
+    const response = await request(createTestApp({ updateDraft, findById }))
+      .patch(path)
+      .set('Cookie', await publisherCookie())
+      .send({ name: '  ' });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ error: 'locked' });
     expect(updateDraft).not.toHaveBeenCalled();
   });
 
