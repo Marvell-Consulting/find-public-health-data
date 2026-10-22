@@ -43,6 +43,10 @@ publishing moves to this service. The operations image applies the packages with
   reason in `observation_exclusions` must equal `scanned_observations`. A mismatch fails export.
 - Area aliases prefer the non-n-prefixed code deterministically. Both source aliases map
   to the survivor, so their observations and relationships retain the same area identity.
+- Preparation combines note types only when their tidied text and every other field match.
+  It preserves every observation-note link, records the source-id aliases in
+  `reference_name_aliases`, and updates the prepared file counts and hashes. Conflicting
+  categories or other reference-name collisions stop preparation.
 - Every migrated timestamp is the indicator's `DateEnteredInPHOLIO`, never the export time,
   so re-exporting unchanged source data writes the same rows and an increment carries only
   real changes. The export time appears only in the manifest.

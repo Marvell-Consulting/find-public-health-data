@@ -19,12 +19,17 @@ export function encodeRow(row: readonly (string | number)[], final = false): str
 
 export async function transformGzipCsv(
   path: string,
-  transformRow: (row: string[], header: readonly string[]) => readonly (string | number)[],
+  transformRow: (
+    row: string[],
+    header: readonly string[],
+  ) => readonly (string | number)[] | undefined,
   transformHeader: (header: string[]) => string[] = (header) => header,
 ): Promise<number> {
   const temporary = `${path}.tmp`;
   let header: string[] | undefined;
   let rows = 0;
+  const pending: string[] = [];
+  let pendingLength = 0;
   const output = new Transform({
     writableObjectMode: true,
     transform(record: string[], _encoding, callback) {
@@ -35,11 +40,28 @@ export async function transformGzipCsv(
           callback(null, encodeRow(transformHeader(record)));
           return;
         }
+        const transformed = transformRow(record, header);
+        if (transformed === undefined) {
+          callback(null);
+          return;
+        }
         rows += 1;
-        callback(null, encodeRow(transformRow(record, header), true));
+        const encoded = encodeRow(transformed, true);
+        pending.push(encoded);
+        pendingLength += encoded.length;
+        // Batch CSV text to avoid a separate compression request for every row.
+        if (pendingLength >= 64 * 1024) {
+          const chunk = pending.join('');
+          pending.length = 0;
+          pendingLength = 0;
+          callback(null, chunk);
+        } else callback(null);
       } catch (error) {
         callback(error as Error);
       }
+    },
+    flush(callback) {
+      callback(null, pending.length > 0 ? pending.join('') : undefined);
     },
   });
   await pipeline(

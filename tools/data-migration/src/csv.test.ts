@@ -14,6 +14,24 @@ afterEach(async () => {
 });
 
 describe('transformGzipCsv', () => {
+  it('preserves quoted multiline values across output batches and their final remainder', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'batched-csv-'));
+    directories.push(directory);
+    const path = join(directory, 'notes.csv.gz');
+    const expected = [
+      ['id', 'text'],
+      ...Array.from({ length: 5001 }, (_, index) => [
+        String(index + 1),
+        `Quoted "note", café\n${index}`,
+      ]),
+    ];
+    await writeFile(path, gzipSync(expected.map((row) => encodeRow(row, true)).join('')));
+    expect(await transformGzipCsv(path, (row) => row)).toBe(5001);
+    const actual = [];
+    for await (const row of readGzipCsv(path)) actual.push(row);
+    expect(actual).toEqual(expected);
+  });
+
   it('writes a header the seed importer reads as bare column names', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'transform-csv-'));
     directories.push(directory);
