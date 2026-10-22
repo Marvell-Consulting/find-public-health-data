@@ -219,20 +219,6 @@ describe('submitIndicator', () => {
       reason: 'no_draft',
     });
   });
-
-  repositoryTest('lets only one of two submissions at once through', async ({ db }) => {
-    const { indicatorId, versionId, shown } = await completeNewDraft(db, 'Submitted together');
-
-    const results = await Promise.all([
-      submitIndicator(db, indicatorId, shown, AS_ACTOR),
-      submitIndicator(db, indicatorId, shown, AS_OTHER_ACTOR),
-    ]);
-
-    expect(results).toEqual(
-      expect.arrayContaining([{ ok: true }, { ok: false, reason: 'not_allowed' }]),
-    );
-    expect(await submissionsOf(db, versionId)).toHaveLength(1);
-  });
 });
 
 describe('withdrawSubmission', () => {
@@ -301,21 +287,6 @@ describe('withdrawSubmission', () => {
     });
     expect(await stepEntriesFor(db, indicatorId)).toHaveLength(2);
     expect((await submissionsOf(db, versionId))[0]?.status).toBe('withdrawn');
-  });
-
-  repositoryTest('lets only one of two withdrawals at once through', async ({ db }) => {
-    const { indicatorId, shown } = await completeNewDraft(db, 'Withdrawn together');
-    await submitIndicator(db, indicatorId, shown, AS_ACTOR);
-
-    const results = await Promise.all([
-      withdrawSubmission(db, indicatorId, AS_ACTOR),
-      withdrawSubmission(db, indicatorId, AS_OTHER_ACTOR),
-    ]);
-
-    expect(results).toEqual(
-      expect.arrayContaining([{ ok: true }, { ok: false, reason: 'not_allowed' }]),
-    );
-    expect(await stepEntriesFor(db, indicatorId)).toHaveLength(2);
   });
 });
 

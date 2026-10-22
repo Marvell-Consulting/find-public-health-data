@@ -1,4 +1,4 @@
-import { PassThrough } from 'node:stream';
+import { PassThrough, Readable } from 'node:stream';
 
 import { type Database, schema } from '@fphd/db';
 import { eq, sql } from 'drizzle-orm';
@@ -12,14 +12,19 @@ import {
   AS_ACTOR,
   AS_OTHER_ACTOR,
   lockWaited,
+  lockWaiters,
   newDraft,
   repositoryTest,
 } from './indicator-repository.testing.ts';
 import { completeDraft, draftUpdatedAt } from './indicator-workflow.testing.ts';
 import type { IndicatorStep } from './indicator-workflow.ts';
-import { submitIndicator, takeIndicatorStep } from './indicator-workflow-repository.ts';
+import {
+  submitIndicator,
+  takeIndicatorStep,
+  withdrawSubmission,
+} from './indicator-workflow-repository.ts';
 
-const { indicatorVersion } = schema;
+const { indicatorVersion, indicatorVersionSubmission } = schema;
 
 const HEADER =
   'area_code,period_start,period_end,value,count,sex,age,category_type,category,value_note';
@@ -58,6 +63,27 @@ async function writeWhileStepHolds<Result>(
   return { step: await stepped, write: await written };
 }
 
+/**
+ * Runs `write` until it has written the draft's row and waits to record its audit entry, starts
+ * `step` waiting behind it, then lets the write commit, and answers what each returned.
+ */
+async function stepWhileWriteHolds<Written, Stepped>(
+  db: Database,
+  write: () => Promise<Written>,
+  step: () => Promise<Stepped>,
+) {
+  const { written, stepped } = await db.transaction(async (tx) => {
+    // Every write records its entry after its row write, so this holds it there.
+    await tx.execute(sql`LOCK TABLE audit_log IN EXCLUSIVE MODE`);
+    const written = write();
+    await expect.poll(() => lockWaiters(db)).toBe(1);
+    const stepped = step();
+    await expect.poll(() => lockWaiters(db)).toBe(2);
+    return { written, stepped };
+  });
+  return { write: await written, step: await stepped };
+}
+
 /** A new indicator's complete draft, the `updatedAt` its task list shows, and its batch. */
 async function completeNewDraft(db: Database, name: string) {
   const created = await newDraft(db, name);
@@ -69,21 +95,24 @@ async function completeNewDraft(db: Database, name: string) {
   return { ...created, shown, batchId: row?.uploadBatchId ?? '' };
 }
 
+async function submissionCount(db: Database, versionId: string): Promise<number> {
+  const rows = await db
+    .select({ id: indicatorVersionSubmission.id })
+    .from(indicatorVersionSubmission)
+    .where(eq(indicatorVersionSubmission.indicatorVersionId, versionId));
+  return rows.length;
+}
+
 async function draftOf(db: Database, versionId: string) {
   const [row] = await db.select().from(indicatorVersion).where(eq(indicatorVersion.id, versionId));
   if (row === undefined) throw new Error(`no version ${versionId}`);
   return row;
 }
 
-/** Starts loading a file into the draft, holding the file open until `finish` is called. */
-async function startUpload(db: Database, indicatorId: string) {
-  const file = new PassThrough();
-  let opened: () => void = () => {};
-  const reading = new Promise<void>((resolve) => {
-    opened = resolve;
-  });
+/** Loads the file `openFile` opens into the draft. */
+function upload(db: Database, indicatorId: string, openFile: () => Promise<Readable>) {
   const batchId = randomUuidV7();
-  const uploaded = processDataUpload(
+  return processDataUpload(
     db,
     {
       batchId,
@@ -94,15 +123,24 @@ async function startUpload(db: Database, indicatorId: string) {
       sha256: '0'.repeat(64),
       actor: AS_OTHER_ACTOR,
     },
-    async () => {
-      opened();
-      return file;
-    },
+    openFile,
     new AbortController().signal,
   );
+}
+
+/** Starts loading a file into the draft, holding the file open until `finish` is called. */
+async function startUpload(db: Database, indicatorId: string) {
+  const file = new PassThrough();
+  let opened: () => void = () => {};
+  const reading = new Promise<void>((resolve) => {
+    opened = resolve;
+  });
+  const uploaded = upload(db, indicatorId, async () => {
+    opened();
+    return file;
+  });
   await reading;
   return {
-    batchId,
     finish: (content: string) => {
       file.end(content);
       return uploaded;
@@ -112,24 +150,38 @@ async function startUpload(db: Database, indicatorId: string) {
 
 describe('a submission beside an edit', () => {
   repositoryTest(
-    'is refused as changed when a save holding the draft commits first',
+    'is refused as changed when a section save holding the draft commits first',
     async ({ db }) => {
-      const { indicatorId, versionId, shown } = await completeNewDraft(
+      const { indicatorId, versionId, shown } = await completeNewDraft(db, 'Save then submit');
+
+      const result = await stepWhileWriteHolds(
         db,
-        'Saved while submitting',
+        () => updateIndicatorDraft(db, indicatorId, { definition: 'Saved' }, {}, AS_OTHER_ACTOR),
+        () => submitIndicator(db, indicatorId, shown, AS_ACTOR),
       );
 
-      const { waiting } = await db.transaction(async (tx) => {
-        await tx
-          .update(indicatorVersion)
-          .set({ definition: 'Saved meanwhile', updatedAt: sql`now()` })
-          .where(eq(indicatorVersion.id, versionId));
-        const waiting = submitIndicator(db, indicatorId, shown, AS_ACTOR);
-        await lockWaited(db);
-        return { waiting };
-      });
+      expect(result).toEqual({ write: { ok: true }, step: { ok: false, reason: 'changed' } });
+      expect((await draftOf(db, versionId)).isLocked).toBe(false);
+    },
+  );
 
-      expect(await waiting).toEqual({ ok: false, reason: 'changed' });
+  repositoryTest(
+    'is refused as changed when a data table confirmation holding the draft commits first',
+    async ({ db }) => {
+      const { indicatorId, versionId, batchId } = await completeNewDraft(db, 'Confirm then submit');
+      await db
+        .update(indicatorVersion)
+        .set({ dataTableConfirmedAt: null })
+        .where(eq(indicatorVersion.id, versionId));
+      const shown = await draftUpdatedAt(db, versionId);
+
+      const result = await stepWhileWriteHolds(
+        db,
+        () => confirmDataTable(db, indicatorId, batchId, AS_OTHER_ACTOR),
+        () => submitIndicator(db, indicatorId, shown, AS_ACTOR),
+      );
+
+      expect(result).toMatchObject({ write: { ok: true }, step: { ok: false, reason: 'changed' } });
       expect((await draftOf(db, versionId)).isLocked).toBe(false);
     },
   );
@@ -176,13 +228,39 @@ describe('a submission beside an edit', () => {
   });
 });
 
+describe('two steps at once', () => {
+  repositoryTest('refuse the second of two submissions', async ({ db }) => {
+    const { indicatorId, versionId, shown } = await completeNewDraft(db, 'Submitted together');
+
+    const result = await writeWhileStepHolds(db, indicatorId, 'submit', () =>
+      submitIndicator(db, indicatorId, shown, AS_OTHER_ACTOR),
+    );
+
+    expect(result).toEqual({ step: { ok: true }, write: { ok: false, reason: 'not_allowed' } });
+    expect(await submissionCount(db, versionId)).toBe(1);
+  });
+
+  repositoryTest('refuse the second of two withdrawals', async ({ db }) => {
+    const { indicatorId, versionId, shown } = await completeNewDraft(db, 'Withdrawn together');
+    await submitIndicator(db, indicatorId, shown, AS_ACTOR);
+
+    const result = await writeWhileStepHolds(db, indicatorId, 'withdraw', () =>
+      withdrawSubmission(db, indicatorId, AS_OTHER_ACTOR),
+    );
+
+    expect(result).toEqual({ step: { ok: true }, write: { ok: false, reason: 'not_allowed' } });
+    expect(await submissionCount(db, versionId)).toBe(1);
+    expect((await draftOf(db, versionId)).isLocked).toBe(false);
+  });
+});
+
 describe('a submission beside an upload', () => {
   repositoryTest(
     'is refused as changed after a load, and as incomplete once the publisher sees it',
     async ({ db }) => {
       const { indicatorId, versionId, shown } = await completeNewDraft(db, 'Loaded first');
-      const upload = await startUpload(db, indicatorId);
-      expect(await upload.finish(VALID_CSV)).toMatchObject({ ok: true });
+      const loading = await startUpload(db, indicatorId);
+      expect(await loading.finish(VALID_CSV)).toMatchObject({ ok: true });
 
       await expect(submitIndicator(db, indicatorId, shown, AS_ACTOR)).resolves.toEqual({
         ok: false,
@@ -191,6 +269,22 @@ describe('a submission beside an upload', () => {
       await expect(
         submitIndicator(db, indicatorId, await draftUpdatedAt(db, versionId), AS_ACTOR),
       ).resolves.toEqual({ ok: false, reason: 'incomplete' });
+    },
+  );
+
+  repositoryTest(
+    "is refused as changed when it waits on an upload's final write",
+    async ({ db }) => {
+      const { indicatorId, versionId, shown } = await completeNewDraft(db, 'Load then submit');
+
+      const result = await stepWhileWriteHolds(
+        db,
+        () => upload(db, indicatorId, async () => Readable.from([VALID_CSV])),
+        () => submitIndicator(db, indicatorId, shown, AS_ACTOR),
+      );
+
+      expect(result).toMatchObject({ write: { ok: true }, step: { ok: false, reason: 'changed' } });
+      expect((await draftOf(db, versionId)).isLocked).toBe(false);
     },
   );
 
@@ -204,13 +298,13 @@ describe('a submission beside an upload', () => {
         db,
         `Submitted while a file ${outcome}`,
       );
-      const upload = await startUpload(db, indicatorId);
+      const loading = await startUpload(db, indicatorId);
 
       await expect(submitIndicator(db, indicatorId, shown, AS_ACTOR)).resolves.toEqual({
         ok: true,
       });
 
-      expect(await upload.finish(content)).toMatchObject({ ok: false, reason: 'no_draft' });
+      expect(await loading.finish(content)).toMatchObject({ ok: false, reason: 'no_draft' });
       const draft = await draftOf(db, versionId);
       expect(draft).toMatchObject({ isLocked: true, uploadBatchId: batchId });
       expect(draft.dataTableConfirmedAt).not.toBeNull();
