@@ -2,6 +2,15 @@ import { z } from '@fphd/config';
 import { type IndicatorTopicFile, parseIndicatorTopicFile } from '@fphd/db/data-migration-contract';
 
 const sourceSchema = z.object({
+  outOfScope: z
+    .array(
+      z.object({
+        fingertipsId: z.number().int().positive(),
+        name: z.string(),
+        reviewOutcome: z.string(),
+      }),
+    )
+    .default([]),
   indicators: z.array(
     z.object({
       fingertipsId: z.number().int().positive(),
@@ -50,6 +59,23 @@ export function taxonomyRelationships(
   const selected = selection ?? source.indicators.map(({ fingertipsId }) => fingertipsId);
   if (new Set(selected).size !== selected.length)
     throw new Error('Taxonomy selection contains duplicate indicator ids');
+  const cancer = source.outOfScope.find(({ fingertipsId }) => fingertipsId === 276);
+  if (
+    selection?.includes(276) &&
+    !sourceById.has(276) &&
+    cancer?.name === 'Cancer: QOF prevalence' &&
+    cancer.reviewOutcome === 'Excluded'
+  ) {
+    // TODO: Confirm indicator 276's provisional Cancer > All cancers placement before launch.
+    sourceById.set(276, {
+      fingertipsId: 276,
+      status: 'Provisional placement',
+      measureType: null,
+      programmes: [],
+      lifeStage: null,
+      placements: [{ topic: 'Cancer', subtopic: 'All cancers', primary: true }],
+    });
+  }
   const missing = selected.filter((id) => !sourceById.has(id));
   if (missing.length)
     throw new Error(`Indicators absent from the in-scope taxonomy: ${missing.join(', ')}`);

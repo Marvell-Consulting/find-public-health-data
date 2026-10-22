@@ -113,8 +113,10 @@ pnpm --filter @fphd/data-migration data-migration generate-taxonomy-relationship
 ```
 
 `--indicators /secure/indicator-ids.json` limits the output to an exact selection and refuses
-ids outside the workbook's in-scope list. It does not change publication eligibility or
-supply approval metadata. Resolve differences with the launch list during review. The
+ids outside the workbook's in-scope list, except the reviewed provisional Cancer → All
+cancers placement for explicitly selected indicator 276. That exception checks the excluded
+source entry and carries a TODO for review before launch. It does not change publication
+eligibility or supply approval metadata. Resolve differences with the launch list during review. The
 workbook marks 15 indicators as area context and excludes other indicators; neither status
 is replaced with a guessed assignment. The snapshot remains a proposal for iteration and
 user testing, and its generated relationships require review before production use.

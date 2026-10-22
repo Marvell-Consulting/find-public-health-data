@@ -47,7 +47,34 @@ describe('the V2 workbook assignments', () => {
   });
 
   it('does not manufacture a placement for an indicator excluded from the workbook', () => {
-    expect(() => build(source, [276])).toThrow('Indicators absent from the in-scope taxonomy: 276');
+    expect(() => build(source, [359])).toThrow('Indicators absent from the in-scope taxonomy: 359');
+  });
+
+  it('keeps the explicitly selected cancer dataset under its provisional reviewed placement', () => {
+    const file = build(source, [276]);
+    const topicId = topics.find(({ title }: { title: string }) => title === 'Cancer').id;
+    const subtopicId = subtopics.find(
+      ({ topicId: parent, title }: { topicId: string; title: string }) =>
+        parent === topicId && title === 'All cancers',
+    ).id;
+    expect(file).toMatchObject({
+      indicators: [276],
+      areaContextIndicators: [],
+      indicatorTopics: [{ fingertipsId: 276, topicId, isPrimary: true }],
+      indicatorSubtopics: [{ fingertipsId: 276, topicId, subtopicId, isPrimary: true }],
+      indicatorClassifications: [],
+    });
+    expect(build().indicators).not.toContain(276);
+  });
+
+  it('requires review when the excluded cancer source entry changes', () => {
+    const changed = structuredClone(source);
+    changed.outOfScope.find(
+      ({ fingertipsId }: { fingertipsId: number }) => fingertipsId === 276,
+    ).name = 'Changed cancer indicator';
+    expect(() => build(changed, [276])).toThrow(
+      'Indicators absent from the in-scope taxonomy: 276',
+    );
   });
 
   it('rejects ambiguous primaries and unknown subtopics', () => {
