@@ -58,8 +58,8 @@ beforeAll(async () => {
         slug: 'indicator-type-healthcare-utilisation',
         name: 'Healthcare utilisation',
       },
-      { dimension: 'life_stage', slug: 'risk-factor-violence', name: 'Violence' },
-      { dimension: 'life_stage', slug: 'risk-factor-alcohol', name: 'Alcohol use' },
+      { dimension: 'life_stage', slug: 'life-stage-children', name: 'Children' },
+      { dimension: 'life_stage', slug: 'life-stage-older-people', name: 'Older people' },
       {
         dimension: 'framework',
         slug: 'framework-public-health-outcomes-framework',
@@ -71,6 +71,14 @@ beforeAll(async () => {
     .returning({ id: schema.classification.id, name: schema.classification.name });
 
   for (const { id, name } of [...topics, ...classifications]) ids.set(name, id);
+  const children = await db
+    .insert(schema.subtopic)
+    .values([
+      { topicId: idOf('Smoking'), slug: 'prevention', title: 'Prevention' },
+      { topicId: idOf('Alcohol'), slug: 'treatment', title: 'Treatment' },
+    ])
+    .returning({ id: schema.subtopic.id, name: schema.subtopic.title });
+  for (const { id, name } of children) ids.set(name, id);
 });
 
 afterAll(async () => {
@@ -84,8 +92,12 @@ describe('listTagOptions', () => {
 
     await expect(listTagOptions(db)).resolves.toEqual({
       topics: [option('Alcohol'), option('Smoking')],
+      subtopics: [
+        { ...option('Prevention'), topicId: idOf('Smoking') },
+        { ...option('Treatment'), topicId: idOf('Alcohol') },
+      ],
       indicatorTypes: [option('Healthcare utilisation'), option('Outcome')],
-      lifeStages: [option('Alcohol use'), option('Violence')],
+      lifeStages: [option('Children'), option('Older people')],
       frameworks: [option('Public Health Outcomes Framework')],
     });
   });
