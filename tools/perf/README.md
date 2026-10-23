@@ -15,7 +15,7 @@ measured.
 
 ## What is measured
 
-For one request to each route, after warm-up requests:
+For one request to each route, after warm-up and timed requests have warmed the API connection pools:
 
 | Metric       | Source                                                          |
 | ------------ | --------------------------------------------------------------- |
