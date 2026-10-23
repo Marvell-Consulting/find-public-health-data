@@ -17,9 +17,9 @@ async function optionValue(page: Page, name: string, text?: string) {
     text === undefined
       ? select.locator('option:not([value=""])').first()
       : select.getByRole('option', { name: text, exact: true, includeHidden: true });
-  const value = await option.getAttribute('value');
-  if (value === null) throw new Error(`no ${text ?? 'option'} under ${name} on ${page.url()}`);
-  return value;
+  // Fails at the expect timeout, naming the missing option, rather than at the test's.
+  await expect(option, `no ${text ?? 'option'} under ${name} on ${page.url()}`).toHaveCount(1);
+  return option.evaluate((element: HTMLOptionElement) => element.value);
 }
 
 /** Posts a page's form as its Continue button does and expects the page to accept it. */
