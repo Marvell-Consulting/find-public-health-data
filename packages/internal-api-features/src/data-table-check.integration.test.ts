@@ -6,7 +6,7 @@ import { appEnvFields, parseEnv, z } from '@fphd/config';
 import { createDb, type Database, dbEnvFields, resolveDbTls, schema } from '@fphd/db';
 import { auditEntriesFor, createTestDatabase } from '@fphd/db/testing';
 import { request } from '@fphd/express/testing';
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import { v7 as randomUuidV7 } from 'uuid';
 import { afterAll, describe, expect, it } from 'vitest';
 
@@ -15,7 +15,7 @@ import { confirmDataTable } from './data-table-check-repository.ts';
 import { processDataUpload } from './data-upload-load-repository.ts';
 import { updateIndicatorDraft } from './indicator-draft-repository.ts';
 import { createDraftFromPublished } from './indicator-publish-repository.ts';
-import { ACTOR, AS_ACTOR, newDraft } from './indicator-repository.testing.ts';
+import { ACTOR, AS_ACTOR, lockWaited, newDraft } from './indicator-repository.testing.ts';
 import { createInternalRepositories } from './repositories.ts';
 import {
   createRouterTestApp,
@@ -386,7 +386,7 @@ describe('confirmDataTable', () => {
         VALUES (${replacement}, ${indicatorId}, ${versionId}, 'data.csv', ${ACTOR}, 'processed')`;
       await tx`UPDATE indicator_version SET upload_batch_id = ${replacement} WHERE id = ${versionId}`;
       const waiting = confirmDataTable(internalDb, indicatorId, shown, AS_ACTOR);
-      await waitForLockWait(versionId);
+      await lockWaited(ownerDb);
       return { waiting };
     });
 
@@ -404,7 +404,7 @@ describe('confirmDataTable', () => {
     const confirmed = await ownerDb.$client.begin(async (tx) => {
       await tx`UPDATE indicator_version SET definition = 'Saved meanwhile' WHERE id = ${versionId}`;
       const waiting = confirmDataTable(internalDb, indicatorId, shown, AS_ACTOR);
-      await waitForLockWait(versionId);
+      await lockWaited(ownerDb);
       return { waiting };
     });
 
@@ -412,17 +412,3 @@ describe('confirmDataTable', () => {
     expect((await draftOf(ownerDb, indicatorId)).definition).toBe('Saved meanwhile');
   });
 });
-
-/** Waits until another session is blocked on a lock, as a confirmation is by an open update. */
-async function waitForLockWait(versionId: string): Promise<void> {
-  for (let attempt = 0; attempt < 100; attempt++) {
-    const rows = (await ownerDb.execute(sql`
-      SELECT 1 FROM pg_stat_activity
-      WHERE datname = current_database() AND wait_event_type = 'Lock'
-        AND query LIKE '%indicator_version%'
-    `)) as unknown as unknown[];
-    if (rows.length > 0) return;
-    await new Promise((resolve) => setTimeout(resolve, 20));
-  }
-  throw new Error(`no confirmation waited on version ${versionId}`);
-}

@@ -15,7 +15,12 @@ import { v7 as randomUuidV7 } from 'uuid';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import type { DataTableEvent } from './data-table.ts';
-import { cancellable, processDataUpload, stageRows } from './data-upload-load-repository.ts';
+import {
+  cancellable,
+  type DataUpload,
+  processDataUpload,
+  stageRows,
+} from './data-upload-load-repository.ts';
 import { dataUploadsRouter } from './data-uploads.ts';
 import { updateIndicatorDraft } from './indicator-draft-repository.ts';
 import { createDraftFromPublished } from './indicator-publish-repository.ts';
@@ -685,40 +690,72 @@ describe('processDataUpload', () => {
     expect((await draftOf(ownerDb, indicatorId)).definition).toBe('Saved meanwhile');
   });
 
-  it.each([
+  /** Starts loading `upload`, waits until it opens its file, and answers how to finish it. */
+  async function startLoading(upload: DataUpload) {
+    const file = new PassThrough();
+    let opened: () => void = () => {};
+    const reading = new Promise<void>((resolve) => {
+      opened = resolve;
+    });
+    const uploaded = processDataUpload(
+      internalDb,
+      upload,
+      async () => {
+        opened();
+        return file;
+      },
+      new AbortController().signal,
+    );
+    await reading;
+    return {
+      finish: (content: string) => {
+        file.end(content);
+        return uploaded;
+      },
+    };
+  }
+
+  async function publish(indicatorId: string) {
+    await ownerDb
+      .update(indicatorVersion)
+      .set({ status: 'published', publishedAt: sql`now()` })
+      .where(eq(indicatorVersion.indicatorId, indicatorId));
+  }
+
+  const OUTCOMES = [
     ['loads', VALID_CSV],
     ['is refused', `${HEADER}\nE99999999,2019-04-01,2020-03-31,1,,,,,,`],
-  ])(
+  ];
+
+  it.each(OUTCOMES)(
     'keeps nothing when the draft stops being a draft while a file that %s loads',
     async (outcome, content) => {
       const { indicatorId, batchId, upload } = await storedUpload(
         `Upload outlives draft ${outcome}`,
       );
-      const file = new PassThrough();
-      let loading: () => void = () => {};
-      const reached = new Promise<void>((resolve) => {
-        loading = resolve;
-      });
+      const loading = await startLoading(upload);
+      await publish(indicatorId);
 
-      const uploaded = processDataUpload(
-        internalDb,
-        upload,
-        async () => {
-          loading();
-          return file;
-        },
-        new AbortController().signal,
-      );
-      await reached;
-      await ownerDb
-        .update(indicatorVersion)
-        .set({ status: 'published', publishedAt: sql`now()` })
-        .where(eq(indicatorVersion.indicatorId, indicatorId));
-      file.end(content);
-
-      expect(await uploaded).toMatchObject({ ok: false, reason: 'no_draft' });
+      expect(await loading.finish(content)).toMatchObject({ ok: false, reason: 'no_draft' });
       expect(await batchOf(batchId)).toBeUndefined();
       expect(await rowsOf(batchId)).toEqual([]);
+    },
+  );
+
+  it.each(OUTCOMES)(
+    'answers no_draft when the draft is published and another opened while a file that %s loads',
+    async (outcome, content) => {
+      const { indicatorId, batchId, upload } = await storedUpload(
+        `Upload outlives draft, reopened, ${outcome}`,
+      );
+      const loading = await startLoading(upload);
+      await publish(indicatorId);
+      const reopened = await createDraftFromPublished(internalDb, indicatorId, AS_ACTOR);
+      if (!reopened.ok) throw new Error('expected an update draft');
+
+      expect(await loading.finish(content)).toMatchObject({ ok: false, reason: 'no_draft' });
+      expect(await batchOf(batchId)).toBeUndefined();
+      expect((await draftOf(ownerDb, indicatorId)).uploadBatchId).toBeNull();
     },
   );
 

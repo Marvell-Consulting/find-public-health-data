@@ -3,11 +3,13 @@ import { type Database, schema } from '@fphd/db';
 import { asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
-import type { DraftStatus, IndicatorStatus } from './contract.ts';
+import type { DraftStatus, DraftSubmissionStatus, IndicatorStatus } from './contract.ts';
 import {
   currentName,
   draftJoin,
+  draftLocked,
   draftStatus,
+  draftSubmissionStatus,
   draftVersion,
   indicatorStatus,
   latestUpdatedAt,
@@ -29,6 +31,8 @@ export interface IndicatorAdminRow {
   updatedAt: Date;
   indicatorStatus: IndicatorStatus;
   draftStatus: DraftStatus | null;
+  draftLocked: boolean;
+  draftSubmissionStatus: DraftSubmissionStatus | null;
 }
 
 /** A row of the dashboard, which names the team and the people as well as their ids. */
@@ -84,6 +88,8 @@ export async function listIndicatorsPage(
         lastEditedBy: lastEditor.displayName,
         indicatorStatus,
         draftStatus,
+        draftLocked,
+        draftSubmissionStatus,
       })
       .from(indicator)
       .leftJoin(draftVersion, draftJoin)
@@ -116,6 +122,8 @@ export async function getIndicatorById(
       updatedAt: latestUpdatedAt,
       indicatorStatus,
       draftStatus,
+      draftLocked,
+      draftSubmissionStatus,
     })
     .from(indicator)
     .leftJoin(draftVersion, draftJoin)

@@ -1,16 +1,17 @@
-import { VALUE_TYPE_IDS } from '@fphd/utils/value-type-and-unit';
 import { describe, expect, it } from 'vitest';
 
 import { indicatorTaskKeySchema, indicatorTaskListSchema } from './contract.ts';
+import {
+  ciMethodId,
+  completeTaskListDraft as complete,
+  ons,
+} from './indicator-task-list.testing.ts';
 import {
   type IndicatorTaskListDraft,
   type IndicatorTaskListSource,
   indicatorTaskList,
 } from './indicator-task-list.ts';
 import { unansweredDraft } from './testing.ts';
-
-const ciMethodId = '019fa38f-073f-764e-9ac6-1c4d03b1cb92';
-const ons = { providerId: '01a0d858-9885-764e-8d53-6826aec6729e', sourceId: null };
 
 // A draft as the name page leaves it: named, with every other answer still to give.
 const source: IndicatorTaskListSource = {
@@ -21,86 +22,6 @@ const source: IndicatorTaskListSource = {
     draftStatus: 'draft',
   },
   draft: { ...unansweredDraft, name: 'Life expectancy at birth', ciMethodKind: null },
-};
-
-// Every section answered as its form would accept, and the data table confirmed.
-const complete: IndicatorTaskListDraft = {
-  ...source.draft,
-  uploadBatchId: '019fa38f-073f-764e-9ac6-1c4d03b1cb93',
-  dataTableConfirmedAt: new Date('2026-10-09T10:00:00.000Z'),
-  definition: 'The average number of years a newborn would live.',
-  rationale: 'A summary measure of mortality across the whole population.',
-  polarity: 'lower-is-better',
-  methodology: 'Calculated from mortality rates by single year of age.',
-  calculatedBy: 'ohid',
-  calculatedByDetail: null,
-  ciMethodId,
-  ciMethodKind: 'standard',
-  hasCiMethodModifications: false,
-  ciMethodModificationsDetail: null,
-  ciMethodDetail: null,
-  updateFrequency: 'quarterly',
-  periodType: 'years',
-  yearType: 'specified-end-date',
-  yearEndDay: 31,
-  yearEndMonth: 7,
-  valueTypeId: VALUE_TYPE_IDS.directlyStandardisedRate,
-  standardPopulation: 'esp-2013',
-  standardPopulationDetail: null,
-  unitId: '01a0d8a5-3ca2-7315-bfca-96daa0c93ee9',
-  unitDetail: null,
-  disclosureControl: 'not-applicable',
-  disclosureControlDetail: null,
-  hasRounding: false,
-  roundingDetail: null,
-  hasCaveats: true,
-  caveatsDetail: 'Survey data.',
-  hasOtherNotes: false,
-  otherNotesDetail: null,
-  scheduledPublishAt: new Date('2027-09-14T08:30:00.000Z'),
-  hasLinks: true,
-  links: [{ url: 'https://www.gov.uk/', text: 'Statistical commentary' }],
-  variation: 'Varies with the age structure of each area.',
-  qualityAssurance: 'Checked against the published ONS figures.',
-  hasSourceDataIssues: true,
-  sourceDataIssuesDetail: 'Late returns from two areas.',
-  hasDataQualityIssues: false,
-  ciMethodJustification: 'The standard method for rates.',
-  dataSourcesJustification: 'The only national source.',
-  inequalitiesIncluded: 'Deprivation deciles.',
-  hasExclusions: false,
-  exclusionsDetail: null,
-  hasAutomation: true,
-  automationDetail: 'The shared indicator pipeline.',
-  sponsorsAndStakeholders: 'The national screening committee.',
-  hasReviewerComments: false,
-  reviewerCommentsDetail: null,
-  hasCustomCopyright: true,
-  customCopyrightDetail: 'Copyright © NHS England',
-  hasCustomDataReuse: false,
-  customDataReuseDetail: null,
-  hasGoalBenchmark: true,
-  goalLowerValue: 90,
-  goalUpperValue: 95,
-  goalPolarity: 'higher-is-better',
-  goalPolicyDetail: null,
-  sexes: ['persons'],
-  ageType: 'range',
-  ageRanges: [{ lowerLimit: 16, lowerLimitUnit: 'years', upperLimit: null, upperLimitUnit: null }],
-  specificAge: null,
-  specificAgeUnit: null,
-  ageDetail: null,
-  hasRiskFactor: true,
-  hasFramework: false,
-  topicIds: ['019fa38f-073f-764e-9ac6-1c4d03b10001'],
-  classifications: [
-    { id: '019fa38f-073f-764e-9ac6-1c4d03b10002', dimension: 'indicator_type' },
-    { id: '019fa38f-073f-764e-9ac6-1c4d03b10003', dimension: 'risk_factor' },
-  ],
-  numeratorSources: [ons],
-  numeratorDefinition: 'Deaths registered in the year.',
-  denominatorSources: [ons],
-  denominatorDefinition: 'Mid-year population.',
 };
 
 function withDraft(draft: Partial<IndicatorTaskListDraft>): IndicatorTaskListSource {

@@ -20,6 +20,7 @@ import {
   AS_OTHER_ACTOR,
   ciMethodId,
   indicatorWithTwoPublications,
+  lockWaiters,
   newDraft,
   OTHER_ACTOR,
   repositoryTest,
@@ -38,15 +39,6 @@ async function slugOf(db: Database, versionId: string): Promise<string | undefin
 }
 
 type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
-
-/** Sessions in this test's database waiting on another transaction's row lock. */
-async function lockWaiters(db: Database): Promise<number> {
-  const [row] = (await db.execute(sql`
-    SELECT count(*)::int AS waiting FROM pg_stat_activity
-    WHERE wait_event_type = 'Lock' AND datname = current_database()
-  `)) as unknown as { waiting: number }[];
-  return row?.waiting ?? 0;
-}
 
 /** Sessions in this test's database waiting on a slug lock. */
 async function slugLockWaiters(db: Database): Promise<number> {

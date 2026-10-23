@@ -22,9 +22,10 @@ import {
   processDataUpload,
 } from './data-upload-load-repository.ts';
 import {
-  findDraftVersionId,
+  findUploadDraftVersion,
   getLatestDataUpload,
   type LatestDataUploadRow,
+  type UploadDraftRow,
 } from './data-upload-repository.ts';
 import {
   type CreateIndicatorDraftResult,
@@ -48,6 +49,11 @@ import {
   createDraftFromPublished,
 } from './indicator-publish-repository.ts';
 import type { IndicatorDraftLists } from './indicator-version-lists-repository.ts';
+import {
+  type IndicatorStepResult,
+  submitIndicator,
+  withdrawSubmission,
+} from './indicator-workflow-repository.ts';
 import { listTagOptions } from './tag-repository.ts';
 import {
   type CreateTopicResult,
@@ -94,6 +100,18 @@ export interface InternalIndicatorRepository {
   ): Promise<UpdateIndicatorDraftResult>;
   /** Opens a draft from the published version, copying its columns and lists. */
   draftFromPublished(indicatorId: string, actor: Actor): Promise<CreateDraftFromPublishedResult>;
+  /** Submits the draft for approval, as long as it is complete and `draftUpdatedAt` is current. */
+  submit(
+    indicatorId: string,
+    draftUpdatedAt: Date,
+    actor: Actor,
+  ): Promise<IndicatorStepResult<'changed' | 'incomplete'>>;
+  /** Withdraws the draft's submission, unlocking the draft, as long as it is the one numbered. */
+  withdraw(
+    indicatorId: string,
+    submissionNumber: number,
+    actor: Actor,
+  ): Promise<IndicatorStepResult<'changed'>>;
 }
 
 /** The confidence interval methods a publisher chooses from. */
@@ -117,8 +135,8 @@ export interface InternalDataProviderRepository {
  * checking the uploaded table.
  */
 export interface InternalDataUploadRepository {
-  /** The indicator's draft version id, null without a draft, undefined with no indicator. */
-  findDraftId(indicatorId: string): Promise<string | null | undefined>;
+  /** The indicator's draft version, null without a draft, undefined with no indicator. */
+  findDraft(indicatorId: string): Promise<UploadDraftRow | null | undefined>;
   findLatest(draftId: string): Promise<LatestDataUploadRow | undefined>;
   process(
     upload: DataUpload,
@@ -164,7 +182,7 @@ export function createInternalRepositories(db: Database): InternalRepositories {
       list: () => listDataProviders(db),
     },
     dataUploads: {
-      findDraftId: (indicatorId) => findDraftVersionId(db, indicatorId),
+      findDraft: (indicatorId) => findUploadDraftVersion(db, indicatorId),
       findLatest: (draftId) => getLatestDataUpload(db, draftId),
       process: (upload, openFile, signal) => processDataUpload(db, upload, openFile, signal),
       findDraftDataTable: (indicatorId) => findDraftDataTable(db, indicatorId),
@@ -181,6 +199,10 @@ export function createInternalRepositories(db: Database): InternalRepositories {
       updateDraft: (indicatorId, attributes, lists, actor) =>
         updateIndicatorDraft(db, indicatorId, attributes, lists, actor),
       draftFromPublished: (indicatorId, actor) => createDraftFromPublished(db, indicatorId, actor),
+      submit: (indicatorId, draftUpdatedAt, actor) =>
+        submitIndicator(db, indicatorId, draftUpdatedAt, actor),
+      withdraw: (indicatorId, submissionNumber, actor) =>
+        withdrawSubmission(db, indicatorId, submissionNumber, actor),
     },
     tags: {
       listOptions: () => listTagOptions(db),

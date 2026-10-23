@@ -47,6 +47,9 @@ const ROW: DataTableRow = {
   valueNotes: [],
 };
 
+const EDITABLE = { id: '00000000-0000-7000-8000-000000000002', isLocked: false };
+const LOCKED = { ...EDITABLE, isLocked: true };
+
 function createTestApp(
   overrides: Partial<InternalDataUploadRepository> = {},
   logger?: ReturnType<typeof createCapturingLogger>['logger'],
@@ -132,6 +135,15 @@ describe('GET /api/internal/indicators/:id/data-table', () => {
     expect(response.body).toEqual({ error: reason });
   });
 
+  it('answers 409 for a draft locked for review', async () => {
+    const response = await get(
+      createTestApp({ findDraftDataTable: async () => ({ found: false, reason: 'locked' }) }),
+    );
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ error: 'locked' });
+  });
+
   it('answers 400 for an id that is not one', async () => {
     const response = await get(createTestApp(), '/api/internal/indicators/nope/data-table');
 
@@ -191,10 +203,37 @@ describe('PUT /api/internal/indicators/:id/data-table/confirmation', () => {
     expect(response.body).toEqual({ error: reason });
   });
 
+  it('answers 409 for a draft locked for review', async () => {
+    const response = await put(
+      createTestApp({ confirm: async () => ({ ok: false, reason: 'locked' }) }),
+      { batchId: BATCH },
+    );
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ error: 'locked' });
+  });
+
   it.each([{}, { batchId: 'nope' }])('answers 400 for %j', async (body) => {
-    const response = await put(createTestApp(), body);
+    const response = await put(createTestApp({ findDraft: async () => EDITABLE }), body);
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({ error: 'validation_failed' });
+  });
+
+  it.each([
+    ['no indicator', undefined],
+    ['no draft', null],
+  ])('answers 400 for a refused body when there is %s', async (_, found) => {
+    const response = await put(createTestApp({ findDraft: async () => found }), {});
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'validation_failed' });
+  });
+
+  it('answers 409 rather than 400 for a draft locked for review', async () => {
+    const response = await put(createTestApp({ findDraft: async () => LOCKED }), {});
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ error: 'locked' });
   });
 });

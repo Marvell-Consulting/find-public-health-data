@@ -14,6 +14,8 @@ const indicator: IndicatorAdminDetail = {
   publishedSlug: null,
   indicatorStatus: 'new',
   draftStatus: 'draft',
+  draftLocked: false,
+  draftSubmissionStatus: null,
   updatedAt: '2026-08-04T23:30:00.000Z',
 };
 

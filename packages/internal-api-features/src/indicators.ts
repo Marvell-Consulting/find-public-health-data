@@ -42,14 +42,25 @@ export const INDICATORS_PAGE_SIZE = 10;
 const NAME_TAKEN = 'An indicator with this name already exists';
 
 function toSummary({
+  draftLocked,
   draftStatus,
+  draftSubmissionStatus,
   id,
   indicatorStatus,
   name,
   teamId,
   updatedAt,
 }: IndicatorAdminRow): IndicatorAdminSummary {
-  return { id, name, teamId, updatedAt: updatedAt.toISOString(), indicatorStatus, draftStatus };
+  return {
+    id,
+    name,
+    teamId,
+    updatedAt: updatedAt.toISOString(),
+    indicatorStatus,
+    draftStatus,
+    draftLocked,
+    draftSubmissionStatus,
+  };
 }
 
 function toListItem(row: IndicatorAdminListRow): IndicatorAdminListItem {
@@ -159,6 +170,12 @@ export function internalIndicatorsRouter(
     const submission = indicatorNameSchema.safeParse(request.body);
 
     if (!submission.success) {
+      // As a section save does, a locked draft answers locked before its refused answers.
+      if ((await indicators.findById(id.data))?.draftLocked) {
+        response.status(409).json({ error: 'locked' });
+        return;
+      }
+
       response.status(400).json({
         error: 'validation_failed',
         fieldErrors: toFieldErrors(submission.error, indicatorFieldSchema),
@@ -173,6 +190,11 @@ export function internalIndicatorsRouter(
     if (!result.ok) {
       if (result.reason === 'slug_taken') {
         response.status(409).json({ error: 'slug_taken', fieldErrors: { name: NAME_TAKEN } });
+        return;
+      }
+
+      if (result.reason === 'locked') {
+        response.status(409).json({ error: 'locked' });
         return;
       }
 

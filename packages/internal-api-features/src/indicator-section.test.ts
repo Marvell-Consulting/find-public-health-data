@@ -36,6 +36,8 @@ const draftState = {
   draftStatus: 'draft',
 };
 
+const lockedState = { ...draftState, draft: { ...draftState.draft, isLocked: true } };
+
 const noDraftState = { ...draftState, draft: null, indicatorStatus: 'live', draftStatus: null };
 
 const answers = { definition: 'A definition', rationale: 'A rationale' };
@@ -125,6 +127,21 @@ describe.each(['get', 'put'] as const)('%s on a section', (method) => {
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'no_draft' });
   });
+
+  it('answers locked for a draft locked for review', async () => {
+    const response = await request(
+      createTestApp({
+        findDraftState: vi.fn().mockResolvedValue(lockedState),
+        updateDraft: async () => ({ ok: false, reason: 'locked' }),
+      }),
+    )
+      [method](path)
+      .set('Cookie', await publisherCookie())
+      .send(answers);
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ error: 'locked' });
+  });
 });
 
 describe('GET on a section', () => {
@@ -164,8 +181,9 @@ describe('PUT on a section', () => {
 
   it('writes nothing when any answer is refused, naming each field refused', async () => {
     const updateDraft = vi.fn();
+    const findById = vi.fn().mockResolvedValue({ draftLocked: false });
 
-    const response = await request(createTestApp({ updateDraft }))
+    const response = await request(createTestApp({ updateDraft, findById }))
       .put(path)
       .set('Cookie', await publisherCookie())
       .send({ definition: '', rationale: 108 });
@@ -178,6 +196,35 @@ describe('PUT on a section', () => {
         rationale: 'Invalid input: expected string, received number',
       },
     });
+    expect(updateDraft).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['no indicator', undefined],
+    ['no draft', { draftStatus: null, draftLocked: false }],
+  ])('names the refused answers for %s', async (_, found) => {
+    const findById = vi.fn().mockResolvedValue(found);
+
+    const response = await request(createTestApp({ findById }))
+      .put(path)
+      .set('Cookie', await publisherCookie())
+      .send({ definition: '' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({ error: 'validation_failed' });
+  });
+
+  it('answers locked rather than the refused answers for a draft locked for review', async () => {
+    const updateDraft = vi.fn();
+    const findById = vi.fn().mockResolvedValue({ draftLocked: true });
+
+    const response = await request(createTestApp({ updateDraft, findById }))
+      .put(path)
+      .set('Cookie', await publisherCookie())
+      .send({ definition: '' });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ error: 'locked' });
     expect(updateDraft).not.toHaveBeenCalled();
   });
 

@@ -30,6 +30,8 @@ const row: IndicatorAdminRow = {
   updatedAt: new Date('2026-01-02T00:00:00.000Z'),
   indicatorStatus: 'live',
   draftStatus: null,
+  draftLocked: false,
+  draftSubmissionStatus: null,
 };
 
 const detailRow: IndicatorAdminDetailRow = {
@@ -99,6 +101,8 @@ describe('GET /api/internal/indicators', () => {
           lastEditedBy: null,
           indicatorStatus: 'live',
           draftStatus: null,
+          draftLocked: false,
+          draftSubmissionStatus: null,
         },
       ],
       page: 1,
@@ -182,7 +186,25 @@ describe('GET /api/internal/indicators/:id', () => {
       updatedAt: '2026-01-02T00:00:00.000Z',
       indicatorStatus: 'live',
       draftStatus: null,
+      draftLocked: false,
+      draftSubmissionStatus: null,
     });
+  });
+
+  it('serves whether the draft is locked and where its latest submission stands', async () => {
+    const findById = vi.fn().mockResolvedValue({
+      ...detailRow,
+      indicatorStatus: 'new',
+      draftStatus: 'draft',
+      draftLocked: true,
+      draftSubmissionStatus: 'submitted',
+    });
+
+    const response = await request(createTestApp({ findById }))
+      .get(`/api/internal/indicators/${row.id}`)
+      .set('Cookie', await publisherCookie());
+
+    expect(response.body).toMatchObject({ draftLocked: true, draftSubmissionStatus: 'submitted' });
   });
 
   it("answers 404 for another team's indicator, as for one that does not exist", async () => {
@@ -342,6 +364,8 @@ describe('POST /api/internal/indicators', () => {
       publishedSlug: null,
       indicatorStatus: 'new',
       draftStatus: 'draft',
+      draftLocked: false,
+      draftSubmissionStatus: null,
       updatedAt: '2026-01-02T00:00:00.000Z',
     });
   });
@@ -483,6 +507,8 @@ describe('PATCH /api/internal/indicators/:id', () => {
       publishedSlug: null,
       indicatorStatus: 'new',
       draftStatus: 'draft',
+      draftLocked: false,
+      draftSubmissionStatus: null,
       updatedAt: '2026-01-02T00:00:00.000Z',
     });
   });
@@ -503,7 +529,7 @@ describe('PATCH /api/internal/indicators/:id', () => {
   it('refuses a name the rules refuse, naming the field, without renaming', async () => {
     const updateDraft = vi.fn();
 
-    const response = await request(createTestApp({ updateDraft }))
+    const response = await request(createTestApp({ updateDraft, findById: async () => draftRow }))
       .patch(path)
       .set('Cookie', await publisherCookie())
       .send({ name: '  ' });
@@ -513,6 +539,33 @@ describe('PATCH /api/internal/indicators/:id', () => {
       error: 'validation_failed',
       fieldErrors: { name: 'Enter the name of the indicator' },
     });
+    expect(updateDraft).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['no indicator', undefined],
+    ['no draft', detailRow],
+  ])('names the refused name for %s', async (_, found) => {
+    const response = await request(createTestApp({ findById: async () => found }))
+      .patch(path)
+      .set('Cookie', await publisherCookie())
+      .send({ name: '  ' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({ error: 'validation_failed' });
+  });
+
+  it('answers 409 rather than the refused name for a draft locked for review', async () => {
+    const updateDraft = vi.fn();
+    const findById = async () => ({ ...draftRow, draftLocked: true });
+
+    const response = await request(createTestApp({ updateDraft, findById }))
+      .patch(path)
+      .set('Cookie', await publisherCookie())
+      .send({ name: '  ' });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ error: 'locked' });
     expect(updateDraft).not.toHaveBeenCalled();
   });
 
@@ -565,6 +618,18 @@ describe('PATCH /api/internal/indicators/:id', () => {
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'no_draft' });
+  });
+
+  it('answers 409 for a draft locked for review', async () => {
+    const response = await request(
+      createTestApp({ updateDraft: async () => ({ ok: false, reason: 'locked' }) }),
+    )
+      .patch(path)
+      .set('Cookie', await publisherCookie())
+      .send({ name: 'A better name' });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({ error: 'locked' });
   });
 
   it('logs the rename under the request id, by the ids alone', async () => {

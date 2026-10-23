@@ -24,6 +24,8 @@ export const AUDIT_ACTIONS = [
   'indicator.draft_updated',
   'indicator.draft_created_from_published',
   'indicator.data_table_confirmed',
+  'indicator.submitted',
+  'indicator.submission_withdrawn',
   'upload_batch.loaded',
   'upload_batch.refused',
   'upload_batch.deleted',

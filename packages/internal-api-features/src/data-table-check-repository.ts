@@ -34,7 +34,7 @@ export interface DraftDataTableRow {
 
 export type FindDraftDataTableResult =
   | { found: true; dataTable: DraftDataTableRow | null }
-  | { found: false; reason: 'not_found' | 'no_draft' };
+  | { found: false; reason: 'not_found' | 'no_draft' | 'locked' };
 
 /** The current upload of the indicator's draft, or null if no file has been uploaded yet. */
 export async function findDraftDataTable(
@@ -44,6 +44,7 @@ export async function findDraftDataTable(
   const [row] = await db
     .select({
       draftId: draftVersion.id,
+      draftLocked: draftVersion.isLocked,
       batchId: uploadBatch.id,
       columnNames: uploadBatch.columnNames,
       rowCount: uploadBatch.rowCount,
@@ -58,6 +59,7 @@ export async function findDraftDataTable(
 
   if (row === undefined) return { found: false, reason: 'not_found' };
   if (row.draftId === null) return { found: false, reason: 'no_draft' };
+  if (row.draftLocked) return { found: false, reason: 'locked' };
   if (row.batchId === null) return { found: true, dataTable: null };
 
   const { yearType, yearEndDay, yearEndMonth } = row;
@@ -183,11 +185,11 @@ export async function listDataTableRows(
 
 export type ConfirmDataTableResult =
   | { ok: true; confirmedAt: Date }
-  | { ok: false; reason: 'not_found' | 'no_draft' | 'data_table_changed' };
+  | { ok: false; reason: 'not_found' | 'no_draft' | 'locked' | 'data_table_changed' };
 
 /**
  * Records that the publisher has checked the draft's data table. It only succeeds if the draft
- * still uses the batch they were shown, so a newer upload or the draft being published stops it.
+ * still uses the batch they were shown, so a newer upload, a lock or publication stops it.
  */
 export async function confirmDataTable(
   db: Database,
@@ -203,6 +205,7 @@ export async function confirmDataTable(
         and(
           eq(indicatorVersion.indicatorId, indicatorId),
           eq(indicatorVersion.status, 'draft'),
+          eq(indicatorVersion.isLocked, false),
           eq(indicatorVersion.uploadBatchId, batchId),
         ),
       )

@@ -1,10 +1,10 @@
 import { type Database, schema } from '@fphd/db';
-import { and, eq, sql } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
+import { and, desc, eq, sql } from 'drizzle-orm';
+import { alias, QueryBuilder } from 'drizzle-orm/pg-core';
 
-import type { DraftStatus, IndicatorStatus } from './contract.ts';
+import type { DraftStatus, DraftSubmissionStatus, IndicatorStatus } from './contract.ts';
 
-const { currentPublishedVersion, indicator, indicatorVersion } = schema;
+const { currentPublishedVersion, indicator, indicatorVersion, indicatorVersionSubmission } = schema;
 
 export type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
 
@@ -62,3 +62,12 @@ export const latestUpdatedBy = sql<string | null>`case
 export const indicatorStatus = sql<IndicatorStatus>`case when ${currentPublishedVersion.id} is not null then 'live' else 'new' end`;
 // The draft join fixes the status it matches, which narrows the column from the version enum.
 export const draftStatus = sql<DraftStatus | null>`${draftVersion.status}`;
+export const draftLocked = sql<boolean>`coalesce(${draftVersion.isLocked}, false)`;
+const latestDraftSubmission = new QueryBuilder({ casing: 'snake_case' })
+  .select({ status: indicatorVersionSubmission.status })
+  .from(indicatorVersionSubmission)
+  .where(eq(indicatorVersionSubmission.indicatorVersionId, draftVersion.id))
+  .orderBy(desc(indicatorVersionSubmission.number))
+  .limit(1);
+// A subquery, so a select list sorted and limited runs it for the rows it returns alone.
+export const draftSubmissionStatus = sql<DraftSubmissionStatus | null>`(${latestDraftSubmission})`;

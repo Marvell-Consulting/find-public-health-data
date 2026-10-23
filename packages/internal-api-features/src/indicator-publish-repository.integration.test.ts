@@ -384,6 +384,35 @@ describe('createDraftFromPublished', () => {
     });
   });
 
+  repositoryTest('opens the draft unlocked whatever the published version says', async ({ db }) => {
+    const { indicatorId, currentId } = await indicatorWithTwoPublications(db, 'Copied unlocked');
+    await db
+      .update(indicatorVersion)
+      .set({ isLocked: true })
+      .where(eq(indicatorVersion.id, currentId));
+
+    const result = await createDraftFromPublished(db, indicatorId, AS_ACTOR);
+
+    if (!result.ok) throw new Error('expected a draft');
+    const state = await getIndicatorDraftState(db, indicatorId);
+    expect(state?.draft?.isLocked).toBe(false);
+  });
+
+  repositoryTest('refuses a second draft while the first is locked', async ({ db }) => {
+    const { indicatorId } = await indicatorWithTwoPublications(db, 'Drafted beside a lock');
+    const first = await createDraftFromPublished(db, indicatorId, AS_ACTOR);
+    if (!first.ok) throw new Error('expected a draft');
+    await db
+      .update(indicatorVersion)
+      .set({ isLocked: true })
+      .where(eq(indicatorVersion.id, first.versionId));
+
+    await expect(createDraftFromPublished(db, indicatorId, AS_ACTOR)).resolves.toEqual({
+      ok: false,
+      reason: 'draft_exists',
+    });
+  });
+
   repositoryTest('refuses an indicator with nothing published', async ({ db }) => {
     const created = await newDraft(db, 'Never published');
 

@@ -37,7 +37,7 @@ export interface DataUpload {
 export type ProcessDataUploadResult = (
   | { ok: true; rowCount: number; deletedBlobNames: string[] }
   | { ok: false; reason: 'invalid'; problems: DataTableProblem[]; deletedBlobNames: string[] }
-  | { ok: false; reason: 'no_draft' }
+  | { ok: false; reason: 'locked' | 'no_draft' }
 ) & { timings: UploadTimings };
 
 const STAGED_COLUMNS = [
@@ -112,17 +112,30 @@ export async function processDataUpload(
   } catch (error) {
     const timings = error instanceof TimedUploadError ? error.timings : {};
     const cause = error instanceof TimedUploadError ? error.cause : error;
-    if (cause instanceof DraftGoneError) return { ok: false, reason: 'no_draft', timings };
+    if (cause instanceof DraftGoneError) return { ok: false, reason: cause.reason, timings };
     throw error instanceof TimedUploadError ? error : new TimedUploadError(timings, error);
   }
 }
 
-/** The draft stopped being a draft while its upload loaded, so nothing is kept. */
+/** The draft stopped being an editable draft while its upload loaded, so nothing is kept. */
 class DraftGoneError extends Error {
-  constructor() {
-    super('The draft was no longer a draft when its upload finished loading');
+  readonly reason: 'locked' | 'no_draft';
+
+  constructor(reason: 'locked' | 'no_draft') {
+    super('The draft was no longer an editable draft when its upload finished loading');
     this.name = 'DraftGoneError';
+    this.reason = reason;
   }
+}
+
+/**
+ * The refusal of a load by the version it loaded into. A version still a draft refused it for
+ * being locked, even if withdrawn since; one published or deleted has no draft to give.
+ */
+async function draftGone(tx: TransactionSql, versionId: string): Promise<DraftGoneError> {
+  const [draft] = await tx`
+    SELECT 1 FROM indicator_version WHERE id = ${versionId} AND status = 'draft'`;
+  return new DraftGoneError(draft === undefined ? 'no_draft' : 'locked');
 }
 
 /** The transaction's work, answering how long each stage took or failing with the stages reached. */
@@ -147,14 +160,15 @@ async function loadInTransaction(
         tx`SELECT pg_advisory_xact_lock(${UPLOAD_LOCK_NAMESPACE}, hashtext(${upload.indicatorId}))`,
     );
 
-    // Not locked: the upload lock queues the only other writer of the pointer, and section
+    // No row lock: the upload lock queues the only other writer of the pointer, and section
     // saves on the draft carry on while the file loads.
-    const [draft] = await tx<{ id: string }[]>`
-      SELECT id
+    const [draft] = await tx<{ id: string; isLocked: boolean }[]>`
+      SELECT id, is_locked AS "isLocked"
       FROM indicator_version
       WHERE indicator_id = ${upload.indicatorId} AND status = 'draft'`;
 
     if (draft === undefined) return { ok: false, reason: 'no_draft', timings };
+    if (draft.isLocked) return { ok: false, reason: 'locked', timings };
 
     await tx`
       INSERT INTO upload_batch
@@ -177,8 +191,9 @@ async function loadInTransaction(
         RETURNING to_jsonb(new) AS row`;
       // Held until commit, so the version cannot stop being a draft before the failure is kept.
       const [stillDraft] = await tx`
-        SELECT id FROM indicator_version WHERE id = ${draft.id} AND status = 'draft' FOR SHARE`;
-      if (stillDraft === undefined) throw new DraftGoneError();
+        SELECT id FROM indicator_version
+        WHERE id = ${draft.id} AND status = 'draft' AND NOT is_locked FOR SHARE`;
+      if (stillDraft === undefined) throw await draftGone(tx, draft.id);
       const deleted = await time('deleteEarlierMs', () =>
         deleteEarlierBatches(tx, draft.id, upload.batchId, 'failed', signal),
       );
@@ -204,8 +219,8 @@ async function loadInTransaction(
       UPDATE indicator_version
       SET upload_batch_id = ${upload.batchId}, data_table_confirmed_at = NULL,
         updated_at = now(), updated_by = ${upload.actor.userId}
-      WHERE id = ${draft.id} AND status = 'draft'`;
-    if (pointed.count === 0) throw new DraftGoneError();
+      WHERE id = ${draft.id} AND status = 'draft' AND NOT is_locked`;
+    if (pointed.count === 0) throw await draftGone(tx, draft.id);
 
     const deleted = await time('deleteEarlierMs', () =>
       deleteEarlierBatches(tx, draft.id, upload.batchId, 'all', signal),

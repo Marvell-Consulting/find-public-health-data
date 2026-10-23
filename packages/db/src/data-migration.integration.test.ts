@@ -1398,3 +1398,87 @@ describe('applyDataMigration', () => {
     },
   );
 });
+
+describe('a publisher draft locked for review', () => {
+  /** A locked draft of the baseline's indicator, holding a topic the package never names. */
+  async function lockedDraft(): Promise<{ draftId: string; draftTopicId: string }> {
+    const [otherTopic] = await sql<
+      { id: string }[]
+    >`SELECT id FROM topic WHERE id <> ${topicId} LIMIT 1`;
+    const [draft] = await sql<{ id: string }[]>`
+      INSERT INTO indicator_version (indicator_id, name, slug, created_by, updated_by, is_locked)
+      VALUES (${INDICATOR_ID}, 'Submitted draft', 'test-indicator', ${PUBLISHER}, ${PUBLISHER}, true)
+      RETURNING id
+    `;
+    if (!otherTopic || !draft) throw new Error('Missing locked draft fixture');
+    await sql`INSERT INTO indicator_version_topic (indicator_version_id, topic_id) VALUES (${draft.id}, ${otherTopic.id})`;
+    return { draftId: draft.id, draftTopicId: otherTopic.id };
+  }
+
+  async function topicsOf(versionId: string) {
+    return sql`SELECT topic_id FROM indicator_version_topic WHERE indicator_version_id = ${versionId}`;
+  }
+
+  it('refuses a version upsert as publisher work, keeping the draft and its topics', async () => {
+    await baseline();
+    const { draftId, draftTopicId } = await lockedDraft();
+    const row = [...VERSION_ROW];
+    row[4] = 'Source correction';
+
+    await expect(
+      apply({
+        upserts: { indicator_version: { columns: VERSION_COLUMNS, rows: [row] } },
+        relationships: { indicators: [], indicatorTopics: [] },
+      }),
+    ).rejects.toThrow('Data migration conflicts with FPHD publisher work on indicators: 108');
+    expect(await topicsOf(draftId)).toEqual([{ topic_id: draftTopicId }]);
+    await assertRolledBack();
+  });
+
+  it('refuses a batch upsert under the indicator as publisher work', async () => {
+    await baseline();
+    await lockedDraft();
+
+    await expect(
+      apply({
+        upserts: { upload_batch: batch(SOURCE_ID) },
+        relationships: { indicators: [], indicatorTopics: [] },
+      }),
+    ).rejects.toThrow(
+      'Data migration upload_batch upsert conflicts with FPHD publisher work on indicators: 108',
+    );
+    await assertRolledBack();
+  });
+
+  it('refuses relationships naming the indicator, keeping the draft topics', async () => {
+    await baseline();
+    const { draftId, draftTopicId } = await lockedDraft();
+
+    await expect(apply()).rejects.toThrow(
+      'conflicts with FPHD publisher work on indicators: 108. Resolve drafts',
+    );
+    expect(await topicsOf(draftId)).toEqual([{ topic_id: draftTopicId }]);
+    await assertRolledBack();
+  });
+
+  it.each([
+    [
+      'its indicator',
+      { indicator: [INDICATOR_ID], indicator_version: [VERSION_ID] },
+      'Data migration indicator delete conflicts',
+    ],
+    [
+      'its published version',
+      { indicator_version: [VERSION_ID] },
+      'Data migration deletion conflicts',
+    ],
+  ])('refuses a withdrawal of %s as publisher work', async (_, deletes, refusal) => {
+    await baseline();
+    await lockedDraft();
+
+    await expect(
+      apply({ deletes, relationships: { indicators: [], indicatorTopics: [] } }),
+    ).rejects.toThrow(`${refusal} with FPHD publisher work on indicators: 108`);
+    await assertRolledBack();
+  });
+});
