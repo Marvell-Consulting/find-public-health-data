@@ -320,17 +320,39 @@ describe('a submission beside an upload', () => {
     ['loads', VALID_CSV],
     ['is refused', REFUSED_CSV],
   ] as const)(
-    'refuses a file that %s as locked when the submission is withdrawn before it finishes',
+    'refuses a file that %s as locked while the submission is being withdrawn',
     async ([outcome, content], { db }) => {
       const { indicatorId, versionId, shown, batchId } = await completeNewDraft(
         db,
-        `Submitted and withdrawn while a file ${outcome}`,
+        `Withdrawn while a file ${outcome}`,
       );
       const loading = await startUpload(db, indicatorId);
       await submitIndicator(db, indicatorId, shown, AS_ACTOR);
-      await withdrawSubmission(db, indicatorId, 1, AS_ACTOR);
+      let held: () => void = () => {};
+      let release: () => void = () => {};
+      const holding = new Promise<void>((resolve) => {
+        held = resolve;
+      });
+      const released = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const withdrawn = takeIndicatorStep(db, indicatorId, 'withdraw', AS_ACTOR, {
+        precondition: async () => {
+          held();
+          await released;
+          return undefined;
+        },
+      });
+      await holding;
 
-      expect(await loading.finish(content)).toMatchObject({ ok: false, reason: 'locked' });
+      // The withdrawal holds the row, uncommitted, so the load finds it locked without waiting.
+      const loaded = await Promise.race([
+        loading.finish(content),
+        new Promise((resolve) => setTimeout(() => resolve('blocked'), LOCK_WAIT.timeout)),
+      ]).finally(release);
+
+      expect(loaded).toMatchObject({ ok: false, reason: 'locked' });
+      expect(await withdrawn).toEqual({ ok: true });
       expect(await draftOf(db, versionId)).toMatchObject({
         isLocked: false,
         uploadBatchId: batchId,
