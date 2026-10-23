@@ -183,14 +183,14 @@ describe('public API', () => {
     });
 
     await request(app).get(
-      '/api/indicators/search?q=diabetes&t=cancer&it=outcome&rf=smoking&fw=nof&pg=adults&eq=deprivation&displayGroup=Local+authorities&areaCode=E07000223&src=ONS&vt=Proportion&per=Calendar',
+      '/api/indicators/search?q=diabetes&t=cancer&it=outcome&ls=older-people&fw=nof&pg=adults&eq=deprivation&displayGroup=Local+authorities&areaCode=E07000223&src=ONS&vt=Proportion&per=Calendar',
     );
 
     expect(searchWithFilters).toHaveBeenCalledWith({
       query: 'diabetes',
       topics: ['cancer'],
       indicatorTypes: ['outcome'],
-      riskFactors: ['smoking'],
+      lifeStages: ['older-people'],
       frameworks: ['nof'],
       populations: ['adults'],
       inequalities: ['deprivation'],

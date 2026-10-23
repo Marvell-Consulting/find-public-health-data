@@ -28,10 +28,11 @@ import {
   type IndicatorDraftLink,
   type IndicatorDraftLists,
   type IndicatorDraftSources,
+  type IndicatorDraftTaxonomy,
   linksOf,
   replaceLists,
   sourcesOf,
-  topicIdsOf,
+  taxonomyOf,
   UNORDERED_LISTS,
 } from './indicator-version-lists-repository.ts';
 
@@ -42,7 +43,8 @@ export type IndicatorDraftVersion = typeof indicatorVersion.$inferSelect;
 
 /** A draft as the sections read it: its columns, and the lists held in tables of their own. */
 export type IndicatorDraft = IndicatorDraftVersion &
-  IndicatorDraftSources & {
+  IndicatorDraftSources &
+  IndicatorDraftTaxonomy & {
     links: IndicatorDraftLink[];
     ageRanges: IndicatorDraftAgeRange[];
     /** Ordered by title, as the tagging page lists them. */
@@ -100,15 +102,15 @@ export async function draftListsOf(
   db: Database | Transaction,
   draftId: string,
 ): Promise<Omit<IndicatorDraft, keyof IndicatorDraftVersion>> {
-  const [links, ageRanges, topicIds, classifications, sources] = await Promise.all([
+  const [links, ageRanges, taxonomy, classifications, sources] = await Promise.all([
     linksOf(db, draftId),
     ageRangesOf(db, draftId),
-    topicIdsOf(db, draftId),
+    taxonomyOf(db, draftId),
     classificationsOf(db, draftId),
     sourcesOf(db, draftId),
   ]);
 
-  return { ...sources, links, ageRanges, topicIds, classifications };
+  return { ...sources, ...taxonomy, links, ageRanges, classifications };
 }
 
 /**

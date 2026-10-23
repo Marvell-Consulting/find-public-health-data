@@ -13,8 +13,9 @@ import { type ListIntent, readListIntent } from '../list-form.ts';
 /** The select that adds a tag to each list. */
 export const ADD_TAG_FIELDS = {
   topicIds: 'addTopic',
+  subtopicIds: 'addSubtopic',
   indicatorTypeIds: 'addIndicatorType',
-  riskFactorIds: 'addRiskFactor',
+  lifeStageIds: 'addLifeStage',
   frameworkIds: 'addFramework',
 } as const satisfies Record<TagList, string>;
 
@@ -30,7 +31,14 @@ export type TaggingPageState = FormFailure<TaggingPageField, TaggingPageValues>;
 
 /** The page with nothing chosen in the selects that add a tag. */
 export function taggingPageValues(values: TaggingFormValues): TaggingPageValues {
-  return { ...values, addTopic: '', addIndicatorType: '', addRiskFactor: '', addFramework: '' };
+  return {
+    ...values,
+    addTopic: '',
+    addSubtopic: '',
+    addIndicatorType: '',
+    addLifeStage: '',
+    addFramework: '',
+  };
 }
 
 /** The form as sent, and which of its buttons sent it; a field not sent is empty. */
@@ -43,14 +51,18 @@ export function readTaggingForm(formData: FormData): {
 
   return {
     values: {
+      ...(formData.get('isAreaContext') === 'yes' ? { isAreaContext: 'yes' as const } : {}),
       ...readFormValues(formData, [
-        'hasRiskFactor',
+        'primaryTopicId',
+        'primarySubtopicId',
+        'hasLifeStage',
         'hasFramework',
         ...Object.values(ADD_TAG_FIELDS),
       ]),
       topicIds: ids('topicIds'),
+      subtopicIds: ids('subtopicIds'),
       indicatorTypeIds: ids('indicatorTypeIds'),
-      riskFactorIds: ids('riskFactorIds'),
+      lifeStageIds: ids('lifeStageIds'),
       frameworkIds: ids('frameworkIds'),
     },
     intent: readListIntent(formData, TAG_LISTS),
@@ -67,7 +79,7 @@ function withChosen(values: TaggingPageValues, list: TagList): TaggingPageValues
 }
 
 /**
- * The page with the tag chosen for `list` added, or asking for one. Adding a risk factor or
+ * The page with the tag chosen for `list` added, or asking for one. Adding a life stage or
  * a framework answers "Yes", which a form without JavaScript may not have chosen.
  */
 export function withTagAdded(values: TaggingPageValues, list: TagList): TaggingPageState {

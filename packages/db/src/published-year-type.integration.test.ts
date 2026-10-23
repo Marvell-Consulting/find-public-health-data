@@ -63,7 +63,7 @@ function filters(yearTypes: string[]): IndicatorSearchFilters {
     query: '',
     topics: [],
     indicatorTypes: [],
-    riskFactors: [],
+    lifeStages: [],
     frameworks: [],
     populations: [],
     inequalities: [],

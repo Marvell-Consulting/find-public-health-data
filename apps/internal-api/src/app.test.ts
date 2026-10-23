@@ -126,8 +126,9 @@ describe('internal API', () => {
       tags: {
         listOptions: async () => ({
           topics: [],
+          subtopics: [],
           indicatorTypes: [],
-          riskFactors: [],
+          lifeStages: [],
           frameworks: [],
         }),
       },

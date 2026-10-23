@@ -3,12 +3,12 @@ import { expect, test } from '@playwright/test';
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/topics/alcohol');
+  await page.goto('/topics/health-behaviours');
 });
 
 test('shows a topic', async ({ page }) => {
-  await expect(page.getByRole('heading', { level: 1, name: 'Alcohol' })).toBeVisible();
-  await expect(page.getByText('Alcohol indicators cover levels of drinking')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Health behaviours' })).toBeVisible();
+  await expect(page.getByText('Everyday behaviours that affect health')).toBeVisible();
 });
 
 test('answers a topic that does not exist with the not-found page', async ({ page }) => {

@@ -119,9 +119,13 @@ export function sectionFieldErrors<Field extends string, Values, Input, ErrorFie
 /** A draft as the name page leaves it: every column unanswered and every list empty. */
 export const unansweredDraft: IndicatorSectionDraft = {
   ...nullColumns(schema.indicatorVersion),
+  isAreaContext: false,
   links: [],
   ageRanges: [],
   topicIds: [],
+  primaryTopicId: null,
+  subtopicIds: [],
+  primarySubtopicId: null,
   classifications: [],
   numeratorSources: [],
   denominatorSources: [],

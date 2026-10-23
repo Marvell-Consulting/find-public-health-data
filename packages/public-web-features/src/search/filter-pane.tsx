@@ -244,14 +244,14 @@ export function SearchFilterPane({
   };
 
   const topicsActive =
-    state.topics.length > 0 || state.indicatorTypes.length > 0 || state.riskFactors.length > 0;
+    state.topics.length > 0 || state.indicatorTypes.length > 0 || state.lifeStages.length > 0;
   const geoActive = state.geoLevels.length > 0 || state.gaCodes.length > 0;
   const fwActive = state.frameworks.length > 0;
   const popActive = state.populations.length > 0 || state.inequalities.length > 0;
   const dataAttrActive =
     state.sources.length > 0 || state.valueTypes.length > 0 || state.yearTypes.length > 0;
 
-  const clearTopicsUrl = searchUrl({ ...state, topics: [], indicatorTypes: [], riskFactors: [] });
+  const clearTopicsUrl = searchUrl({ ...state, topics: [], indicatorTypes: [], lifeStages: [] });
   const clearGeoUrl = searchUrl({ ...state, geoLevels: [], gaCodes: [] });
   const clearFwUrl = searchUrl({ ...state, frameworks: [] });
   const clearPopUrl = searchUrl({ ...state, populations: [], inequalities: [] });
@@ -259,7 +259,7 @@ export function SearchFilterPane({
   const clearAllFiltersUrl = searchUrl({ ...EMPTY_SEARCH_STATE, q: state.q });
   const clearQUrl = searchUrl({ ...state, q: '' });
 
-  const topicsAndTypesDims = DIMENSIONS.filter((d) => ['t', 'it', 'rf'].includes(d.param));
+  const topicsAndTypesDims = DIMENSIONS.filter((d) => ['t', 'it', 'ls'].includes(d.param));
   const fwDims = DIMENSIONS.filter((d) => d.param === 'fw');
   const popDims = DIMENSIONS.filter((d) => ['pg', 'eq'].includes(d.param));
   const dataDims = DIMENSIONS.filter((d) => ['src', 'vt', 'per'].includes(d.param));

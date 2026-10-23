@@ -139,9 +139,9 @@
   },
   "public-web /search?q=mortality": {
     "statements": 11,
-    "buffers": 277,
-    "rows": 330,
-    "bytes": 78179
+    "buffers": 356,
+    "rows": 313,
+    "bytes": 75437
   },
   "public-web /topics": {
     "statements": 1,

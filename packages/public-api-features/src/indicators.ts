@@ -71,7 +71,7 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
       query,
       topics: pickStrings(request.query.t),
       indicatorTypes: pickStrings(request.query.it),
-      riskFactors: pickStrings(request.query.rf),
+      lifeStages: pickStrings(request.query.ls),
       frameworks: pickStrings(request.query.fw),
       populations: pickStrings(request.query.pg),
       inequalities: pickStrings(request.query.eq),

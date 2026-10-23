@@ -26,11 +26,13 @@ import {
 } from './named-core-data.ts';
 import { parseTopicsFile } from './parse-topics-file.ts';
 import { unit, valueType } from './schema/index.ts';
+import { parseSubtopicsFile, upsertSubtopics } from './subtopic-core-data.ts';
 import { type UpsertResult, upsertTopics } from './topic-repository.ts';
 
 // Resolves identically from src/ and from dist/, both of which sit one level under the
 // package root alongside data/.
 const topicsFile = fileURLToPath(new URL('../data/topics.json', import.meta.url));
+const subtopicsFile = fileURLToPath(new URL('../data/subtopics.json', import.meta.url));
 const ciMethodsFile = fileURLToPath(new URL('../data/ci-methods.json', import.meta.url));
 const classificationsFile = fileURLToPath(new URL('../data/classifications.json', import.meta.url));
 const dataProvidersFile = fileURLToPath(new URL('../data/data-providers.json', import.meta.url));
@@ -42,6 +44,7 @@ const comparatorMethodsFile = fileURLToPath(
 
 export interface CoreDataImport {
   topics: UpsertResult;
+  subtopics: Awaited<ReturnType<typeof upsertSubtopics>>;
   ciMethods: CiMethodUpsertResult;
   classifications: ClassificationUpsertResult;
   dataProviders: DataProviderUpsertResult;
@@ -66,6 +69,10 @@ function readJson(file: string): unknown {
 export async function importCoreData(sql: postgres.Sql): Promise<CoreDataImport> {
   // Every file is read first, so a bad one fails before anything is written.
   const topicRecords = parseTopicsFile(readJson(topicsFile));
+  const subtopicRecords = parseSubtopicsFile(readJson(subtopicsFile));
+  const topicIds = new Set(topicRecords.map(({ id }) => id));
+  if (subtopicRecords.some(({ topicId }) => !topicIds.has(topicId)))
+    throw new Error('Subtopics name an unknown topic');
   const ciMethodRecords = parseCiMethodsFile(readJson(ciMethodsFile));
   const classificationRecords = parseClassificationsFile(readJson(classificationsFile));
   const dataProviderRecords = parseDataProvidersFile(readJson(dataProvidersFile));
@@ -79,6 +86,7 @@ export async function importCoreData(sql: postgres.Sql): Promise<CoreDataImport>
 
   return {
     topics: await upsertTopics(db, topicRecords),
+    subtopics: await upsertSubtopics(db, subtopicRecords),
     ciMethods: await upsertCiMethods(db, ciMethodRecords),
     classifications: await upsertClassifications(db, classificationRecords),
     dataProviders: await upsertDataProviders(db, dataProviderRecords),
@@ -90,6 +98,7 @@ export async function importCoreData(sql: postgres.Sql): Promise<CoreDataImport>
 
 interface CoreDataCounts {
   topics: number;
+  subtopics: number;
   ciMethods: number;
   classifications: number;
   dataProviders: number;
@@ -112,6 +121,8 @@ function namedIds(list: string, file: string): string[] {
  * The seed and snapshot map Fingertips' sources onto the data providers.
  */
 export async function assertCoreDataPresent(sql: postgres.Sql): Promise<void> {
+  const topicIds = parseTopicsFile(readJson(topicsFile)).map(({ id }) => id);
+  const subtopicIds = parseSubtopicsFile(readJson(subtopicsFile)).map(({ id }) => id);
   const classificationIds = parseClassificationsFile(readJson(classificationsFile)).map(
     ({ id }) => id,
   );
@@ -121,7 +132,8 @@ export async function assertCoreDataPresent(sql: postgres.Sql): Promise<void> {
   let counts: CoreDataCounts | undefined;
   try {
     [counts] = await sql<CoreDataCounts[]>`
-      SELECT (SELECT count(*) FROM topic)::int AS topics,
+      SELECT (SELECT count(*) FROM topic WHERE id IN ${sql(topicIds)})::int AS topics,
+        (SELECT count(*) FROM subtopic WHERE id IN ${sql(subtopicIds)})::int AS subtopics,
         (SELECT count(*) FROM ci_method)::int AS "ciMethods",
         (SELECT count(*) FROM classification WHERE id IN ${sql(classificationIds)})::int
           AS classifications,
@@ -149,6 +161,8 @@ export async function assertCoreDataPresent(sql: postgres.Sql): Promise<void> {
   }
 
   const incomplete: [string, number, readonly string[]][] = [
+    ['Topics', counts.topics, topicIds],
+    ['Subtopics', counts.subtopics, subtopicIds],
     ['Classifications', counts.classifications, classificationIds],
     ['Value types', counts.valueTypes, valueTypeIds],
     ['Units', counts.units, unitIds],

@@ -13,18 +13,23 @@ import { ADD_TAG_FIELDS, type TaggingPageField, type TaggingPageValues } from '.
 
 type FieldErrors = Partial<Record<TaggingPageField, string>>;
 
-const RISK_FACTOR_QUESTION = 'Does this indicator include a risk factor?';
+const LIFE_STAGE_QUESTION = 'Does this indicator need a life stage tag?';
 const FRAMEWORK_QUESTION = 'Is this indicator part of a framework or programme?';
 
 // The order the error summary lists them in, which is the order the page asks.
 const FIELDS: readonly TaggingPageField[] = [
+  'isAreaContext',
   'topicIds',
   'addTopic',
+  'primaryTopicId',
+  'subtopicIds',
+  'addSubtopic',
+  'primarySubtopicId',
   'indicatorTypeIds',
   'addIndicatorType',
-  'hasRiskFactor',
-  'riskFactorIds',
-  'addRiskFactor',
+  'hasLifeStage',
+  'lifeStageIds',
+  'addLifeStage',
   'hasFramework',
   'frameworkIds',
   'addFramework',
@@ -103,12 +108,35 @@ interface TaggingPageProps extends SectionPageProps<TaggingPageField, TaggingPag
 
 export function TaggingPage({ options, ...form }: TaggingPageProps) {
   const { fieldErrors, values } = form;
+  const offeredSubtopics = options.subtopics
+    .filter(({ topicId }) => values.topicIds.includes(topicId))
+    .map((entry) => ({
+      ...entry,
+      name: `${options.topics.find(({ id }) => id === entry.topicId)?.name}: ${entry.name}`,
+    }));
+  const primaryPicker = (
+    name: 'primaryTopicId' | 'primarySubtopicId',
+    label: string,
+    choices: TagOption[],
+  ) => (
+    <SelectAutocomplete
+      name={name}
+      label={label}
+      labelHeading="h2"
+      defaultValue={values[name]}
+      error={fieldErrors[name]}
+      options={[
+        { label: 'Select', value: '' },
+        ...choices.map(({ id, name }) => ({ label: name, value: id })),
+      ]}
+    />
+  );
   const picker = (list: TagList, labelHeading?: ElementType) => (
     <TagPicker
       fieldErrors={fieldErrors}
       list={list}
       labelHeading={labelHeading}
-      options={options[TAG_LIST_DETAILS[list].options]}
+      options={list === 'subtopicIds' ? offeredSubtopics : options[TAG_LIST_DETAILS[list].options]}
       values={values}
     />
   );
@@ -117,10 +145,14 @@ export function TaggingPage({ options, ...form }: TaggingPageProps) {
     <IndicatorSectionForm
       continueOnEnter
       fieldIds={{
+        isAreaContext: firstRadioId('isAreaContext'),
         topicIds: fieldInputId('addTopic'),
+        primaryTopicId: fieldInputId('primaryTopicId'),
+        subtopicIds: fieldInputId('addSubtopic'),
+        primarySubtopicId: fieldInputId('primarySubtopicId'),
         indicatorTypeIds: fieldInputId('addIndicatorType'),
-        hasRiskFactor: firstRadioId('hasRiskFactor'),
-        riskFactorIds: fieldInputId('addRiskFactor'),
+        hasLifeStage: firstRadioId('hasLifeStage'),
+        lifeStageIds: fieldInputId('addLifeStage'),
         hasFramework: firstRadioId('hasFramework'),
         frameworkIds: fieldInputId('addFramework'),
       }}
@@ -128,29 +160,60 @@ export function TaggingPage({ options, ...form }: TaggingPageProps) {
       form={form}
       title="Add tags for this indicator"
     >
-      {picker('topicIds', 'h2')}
-      {picker('indicatorTypeIds', 'h2')}
       <Radios
-        defaultValue={values.hasRiskFactor}
-        error={fieldErrors.hasRiskFactor}
-        label={RISK_FACTOR_QUESTION}
+        defaultValue={values.isAreaContext === 'yes' ? 'yes' : 'no'}
+        error={fieldErrors.isAreaContext}
+        label="Does this indicator provide population or area context?"
+        hint="Area context indicators do not have topic or tag assignments."
         labelHeading="h2"
-        name="hasRiskFactor"
+        name="isAreaContext"
         options={[
-          // Shown without JavaScript; with it, only while "Yes" is chosen.
-          { label: 'Yes', value: 'yes', conditional: picker('riskFactorIds', 'h3') },
-          { label: 'No', value: 'no' },
-        ]}
-      />
-      <Radios
-        defaultValue={values.hasFramework}
-        error={fieldErrors.hasFramework}
-        label={FRAMEWORK_QUESTION}
-        labelHeading="h2"
-        name="hasFramework"
-        options={[
-          { label: 'Yes', value: 'yes', conditional: picker('frameworkIds', 'h3') },
-          { label: 'No', value: 'no' },
+          { label: 'Yes', value: 'yes' },
+          {
+            label: 'No',
+            value: 'no',
+            conditional: (
+              <>
+                {picker('topicIds', 'h2')}
+                {primaryPicker(
+                  'primaryTopicId',
+                  'Select a primary topic',
+                  options.topics.filter(({ id }) => values.topicIds.includes(id)),
+                )}
+                {picker('subtopicIds', 'h2')}
+                {primaryPicker(
+                  'primarySubtopicId',
+                  'Select a primary subtopic',
+                  offeredSubtopics.filter(({ id }) => values.subtopicIds.includes(id)),
+                )}
+                {picker('indicatorTypeIds', 'h2')}
+                <Radios
+                  defaultValue={values.hasLifeStage}
+                  error={fieldErrors.hasLifeStage}
+                  label={LIFE_STAGE_QUESTION}
+                  hint="Only add a life stage tag where the age metadata does not show it."
+                  labelHeading="h2"
+                  name="hasLifeStage"
+                  options={[
+                    // Shown without JavaScript; with it, only while "Yes" is chosen.
+                    { label: 'Yes', value: 'yes', conditional: picker('lifeStageIds', 'h3') },
+                    { label: 'No', value: 'no' },
+                  ]}
+                />
+                <Radios
+                  defaultValue={values.hasFramework}
+                  error={fieldErrors.hasFramework}
+                  label={FRAMEWORK_QUESTION}
+                  labelHeading="h2"
+                  name="hasFramework"
+                  options={[
+                    { label: 'Yes', value: 'yes', conditional: picker('frameworkIds', 'h3') },
+                    { label: 'No', value: 'no' },
+                  ]}
+                />
+              </>
+            ),
+          },
         ]}
       />
     </IndicatorSectionForm>

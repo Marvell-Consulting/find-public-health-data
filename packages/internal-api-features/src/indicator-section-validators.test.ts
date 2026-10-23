@@ -21,9 +21,9 @@ import {
 import { createFakeInternalRepositories } from './testing.ts';
 
 describe('taggingServerSection', () => {
-  async function fieldErrorsOf(body: object) {
+  async function fieldErrorsOf(body: object, options = tagOptions) {
     const { tags } = createFakeInternalRepositories({
-      tags: { listOptions: vi.fn().mockResolvedValue(tagOptions) },
+      tags: { listOptions: vi.fn().mockResolvedValue(options) },
     });
     const section = taggingServerSection(tags);
     const result = await section.schema.safeParseAsync(body);
@@ -39,21 +39,45 @@ describe('taggingServerSection', () => {
       await fieldErrorsOf({
         ...tagging,
         topicIds: [TAGS.type],
-        riskFactorIds: ['019fa38f-073f-764e-9ac6-1c4d03b10999'],
+        primaryTopicId: TAGS.type,
+        lifeStageIds: ['019fa38f-073f-764e-9ac6-1c4d03b10999'],
         hasFramework: 'yes',
         frameworkIds: [TAGS.topic],
       }),
     ).toEqual({
       topicIds: 'Select a topic from the list',
-      riskFactorIds: 'Select a risk factor from the list',
+      lifeStageIds: 'Select a life stage from the list',
       frameworkIds: 'Select a framework or programme from the list',
     });
   });
 
   it('does not judge the tags beside a "No", which are dropped', async () => {
     expect(
-      await fieldErrorsOf({ ...tagging, hasRiskFactor: 'no', riskFactorIds: [TAGS.topic] }),
+      await fieldErrorsOf({ ...tagging, hasLifeStage: 'no', lifeStageIds: [TAGS.topic] }),
     ).toBeUndefined();
+  });
+
+  it('requires subtopics to belong to the selected topics and the primary subtopic to its primary topic', async () => {
+    const child = '019fa38f-073f-764e-9ac6-1c4d03b10100';
+    const options = {
+      ...tagOptions,
+      subtopics: [{ id: child, name: 'A subtopic', topicId: TAGS.topic }],
+    };
+    const values = { ...tagging, subtopicIds: [child], primarySubtopicId: child };
+    expect(await fieldErrorsOf({ ...values, primaryTopicId: TAGS.topic }, options)).toBeUndefined();
+    expect(await fieldErrorsOf(values, options)).toEqual({
+      primarySubtopicId: 'Select a primary subtopic belonging to the primary topic',
+    });
+    expect(await fieldErrorsOf({ ...values, topicIds: [TAGS.otherTopic] }, options)).toEqual({
+      subtopicIds: 'Select subtopics belonging to the topics added',
+      primarySubtopicId: 'Select a primary subtopic belonging to the primary topic',
+    });
+    expect(
+      await fieldErrorsOf(
+        { ...values, primaryTopicId: TAGS.topic, primarySubtopicId: '' },
+        options,
+      ),
+    ).toEqual({ primarySubtopicId: 'Select a primary subtopic belonging to the primary topic' });
   });
 });
 

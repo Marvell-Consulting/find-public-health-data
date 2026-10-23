@@ -122,10 +122,14 @@ rekeys the complete snapshot deterministically. It stamps both manifests with
 `db import-published-snapshot`; do not commit it. The old A-clone Python snapshot
 exporter is retired because its archives do not match the current receiver.
 
-Demo topics come from the `generate-demo-topics` command, which preserves the
-curated links in `indicator-topics.json`. These assignments are provisional;
-production packages require the separate approved indicator list and reviewed
-relationships described in the migration tool's README.
+Topic and tag assignments come from the V2 taxonomy workbook snapshot in
+`../taxonomy-v2.json`. `indicator-topics.json` and `indicator-classifications.json`
+contain exactly its assignments for the 12 seed indicators. Resident population
+has no topic or tags because it is area context. The full snapshot relationship
+file uses the same source, including primary and secondary subtopic placements.
+The profile and title heuristics have been retired. Production packages require
+the separate approved indicator list and reviewed relationships described in the
+migration tool's README.
 
 The legacy base-seed and prototype regeneration scripts below remain historical
 maintenance paths until their TypeScript replacements have been compared against

@@ -16,7 +16,7 @@ import {
   getTopicById,
 } from './topic-repository.ts';
 
-const { indicatorVersionTopic } = schema;
+const { indicatorVersionSubtopic, indicatorVersionTopic, subtopic } = schema;
 
 async function newTopic(db: Database, slug: string): Promise<string> {
   const created = await createTopic(
@@ -43,6 +43,48 @@ async function linkedVersionIds(db: Database, topicId: string): Promise<string[]
 }
 
 describe('deleteTopic with linked indicators', () => {
+  repositoryTest(
+    'preserves subtopic placements when refusing a linked topic delete',
+    async ({ db }) => {
+      const { versionId } = await newDraft(db, 'Linked subtopic');
+      const topicId = await newTopic(db, 'linked-subtopic');
+      await link(db, topicId, versionId);
+      const [child] = await db
+        .insert(subtopic)
+        .values({ topicId, slug: 'linked', title: 'Linked subtopic' })
+        .returning();
+      if (!child) throw new Error('Subtopic fixture missing');
+      await db
+        .insert(indicatorVersionSubtopic)
+        .values({ topicId, subtopicId: child.id, indicatorVersionId: versionId });
+      expect(await deleteTopic(db, topicId, AS_ACTOR)).toEqual({ ok: false, reason: 'in_use' });
+      expect(
+        await db
+          .select()
+          .from(indicatorVersionSubtopic)
+          .where(eq(indicatorVersionSubtopic.subtopicId, child.id)),
+      ).toHaveLength(1);
+      expect(await db.select().from(subtopic).where(eq(subtopic.id, child.id))).toHaveLength(1);
+    },
+  );
+
+  repositoryTest('audits the subtopics removed with an unused topic', async ({ db }) => {
+    const topicId = await newTopic(db, 'unused-subtopic');
+    const [child] = await db
+      .insert(subtopic)
+      .values({ topicId, slug: 'unused', title: 'Unused subtopic' })
+      .returning();
+    if (!child) throw new Error('Subtopic fixture missing');
+    expect(await deleteTopic(db, topicId, AS_ACTOR)).toEqual({ ok: true });
+    expect(await db.select().from(subtopic).where(eq(subtopic.id, child.id))).toHaveLength(0);
+    expect(await auditEntriesFor(db, topicId)).toContainEqual(
+      expect.objectContaining({
+        action: 'topic.deleted',
+        changes: expect.objectContaining({ subtopicIds: { before: [child.id], after: [] } }),
+      }),
+    );
+  });
+
   const linkedVersions = [
     ['a draft', async (db: Database) => (await newDraft(db, 'Linked draft')).versionId],
     [
