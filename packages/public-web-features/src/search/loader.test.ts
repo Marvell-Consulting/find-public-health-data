@@ -63,6 +63,17 @@ function loaderArgs(client: ApiClient, url = 'http://localhost/search'): LoaderF
 }
 
 describe('loadSearch', () => {
+  it('discards invalid period filters from both the page and API query', async () => {
+    const { client, get } = api();
+    const result = await loadSearch(
+      loaderArgs(client, 'http://localhost/search?fromYear=abc&toYear=20230&updatedWithin=9'),
+    );
+    expect(result).toMatchObject({ fromYear: '', toYear: '', updatedWithin: '' });
+    const [path] =
+      get.mock.calls.find(([path]) => String(path).startsWith('/api/indicators/search')) ?? [];
+    const sent = new URL(`http://localhost${path}`).searchParams;
+    expect(['fromYear', 'toYear', 'updatedWithin'].some((key) => sent.has(key))).toBe(false);
+  });
   it('preserves full source names through the loader and API query', async () => {
     const { client, get } = api();
     const source = 'A data source with a full attribution '.repeat(6);

@@ -8,11 +8,16 @@ import {
 } from './indicator-repository.ts';
 import { indicatorTrendDirections } from './indicator-trends.ts';
 import {
+  dimensionType,
+  dimensionValue,
   indicator,
   indicatorVersion,
+  observation,
+  observationDimension,
   publishedArea,
   publishedIndicator,
   publishedObservation,
+  uploadBatch,
 } from './schema/index.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
@@ -129,6 +134,8 @@ it('filters year coverage and data refreshes without exposing unpublished data',
     ).total,
   ).toBe(1);
   expect((await searchIndicators(db, filters({ query: '108', dataToYear: 2999 }))).total).toBe(0);
+  expect((await searchIndicators(db, filters({ query: '108', dataFromYear: 2999 }))).total).toBe(0);
+  expect((await searchIndicators(db, filters({ query: '108', dataToYear: 1000 }))).total).toBe(0);
   await db
     .update(indicator)
     .set({ dataUpdatedAt: new Date('2000-01-01') })
@@ -188,4 +195,81 @@ it('sorts trends across all matching indicators before paginating, with uncalcul
   expect(results.indicators.every(({ shortId }) => rank(shortId) < 3)).toBe(true);
   const last = await searchIndicators(db, filters({ sort: 'trend-asc', page: 999 }));
   expect(last.indicators.every(({ shortId }) => rank(shortId) === 3)).toBe(true);
+});
+
+it('selects the longest valid trend among equally disaggregated series', async () => {
+  const [source] = await db
+    .select()
+    .from(indicatorVersion)
+    .where(eq(indicatorVersion.status, 'published'))
+    .limit(1);
+  const [england] = await db
+    .select()
+    .from(publishedArea)
+    .where(eq(publishedArea.code, 'E92000001'));
+  const [sex] = await db.select().from(dimensionType).where(eq(dimensionType.name, 'Sex'));
+  if (!source || !england || !sex) throw new Error('Seed trend fixtures missing');
+  const sexes = await db
+    .select()
+    .from(dimensionValue)
+    .where(eq(dimensionValue.dimensionTypeId, sex.id));
+  const [identity] = await db.insert(indicator).values({}).returning();
+  if (!identity) throw new Error('Trend fixture indicator missing');
+  const [version] = await db
+    .insert(indicatorVersion)
+    .values({
+      ...source,
+      id: undefined,
+      indicatorId: identity.id,
+      name: 'Valid trend fixture',
+      slug: 'valid-trend-fixture',
+      uploadBatchId: null,
+      dataTableConfirmedAt: null,
+    })
+    .returning();
+  if (!version) throw new Error('Trend fixture version missing');
+  const [batch] = await db
+    .insert(uploadBatch)
+    .values({
+      indicatorId: identity.id,
+      indicatorVersionId: version.id,
+      originalFilename: 'trend.csv',
+      uploadedBy: source.createdBy,
+      status: 'processed',
+    })
+    .returning();
+  if (!batch) throw new Error('Trend fixture batch missing');
+  await db
+    .update(indicatorVersion)
+    .set({ uploadBatchId: batch.id })
+    .where(eq(indicatorVersion.id, version.id));
+  for (const [name, values] of [
+    ['Female', [1, 2, 3, 4, 5]],
+    ['Male', [null, null, null, null, null, null]],
+  ] as const) {
+    const dimension = sexes.find((row) => row.name === name);
+    if (!dimension) throw new Error('Sex dimension fixture missing');
+    const rows = await db
+      .insert(observation)
+      .values(
+        values.map((value, index) => ({
+          indicatorId: identity.id,
+          areaId: england.id,
+          fromDate: `${2010 + index}-01-01`,
+          toDate: `${2010 + index}-12-31`,
+          value,
+          dimensionKey: dimension.id,
+          uploadBatchId: batch.id,
+        })),
+      )
+      .returning();
+    await db.insert(observationDimension).values(
+      rows.map((row) => ({
+        observationId: row.id,
+        dimensionValueId: dimension.id,
+        dimensionTypeId: sex.id,
+      })),
+    );
+  }
+  expect((await indicatorTrendDirections(db, [identity.id])).get(identity.id)).toBe('up');
 });

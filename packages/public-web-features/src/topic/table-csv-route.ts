@@ -1,8 +1,7 @@
-import { stringify } from 'csv-stringify/sync';
 import type { LoaderFunctionArgs } from 'react-router';
 import { comparisonTable } from '../indicator/comparison.ts';
 import { benchmarkJudgement } from '../indicator/data.ts';
-import { comparisonCsv } from '../indicator/download.ts';
+import { comparisonCsv, tableCsv } from '../indicator/download.ts';
 import { englandObservation, observationPeriod } from './data.ts';
 import { loadTopic } from './loader.ts';
 
@@ -21,7 +20,7 @@ export async function loader(args: LoaderFunctionArgs) {
   const byId = new Map(data.selected.map((entry) => [entry.detail.shortId, entry]));
   const areas = model.areas.filter(({ areaCode }) => areaCode !== 'E92000001');
   const csv = areasTab
-    ? stringify([
+    ? tableCsv([
         [
           'Indicator',
           'Unit',

@@ -25,7 +25,7 @@ export async function indicatorTrendDirections(
       where ${inArray(observation.indicatorId, ids)}
       group by ${observation.id}, ${observation.indicatorId}, ${observation.fromDate}, ${observation.toDate}, ${observation.value}
     ), series as (
-      select indicator_id, dimensions, segment, count(*) as length,
+      select indicator_id, dimensions, segment, count(value) as length,
         (array_agg(value order by from_date desc, to_date desc) filter (where value is not null))[1:5] as values
       from points group by indicator_id, dimensions, segment
     )
