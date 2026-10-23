@@ -5,7 +5,7 @@ import {
   type ProviderSource,
   providerSourceLabel,
 } from '@fphd/internal-api-features/contract';
-import { Button, fieldInputId, Select, Textarea } from '@fphd/ui';
+import { Button, fieldInputId, SelectAutocomplete, Textarea } from '@fphd/ui';
 
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 import { ADD_INTENT, removeIntent } from '../list-form.ts';
@@ -100,7 +100,7 @@ export function NumeratorDenominatorPage({
       title={`What are the details of the ${part}?`}
     >
       <AddedSources providers={providers} sources={values.sources} />
-      <Select
+      <SelectAutocomplete
         defaultValue={values.providerId}
         error={providerError}
         label={`Add a data provider for the ${part}`}
@@ -118,7 +118,7 @@ export function NumeratorDenominatorPage({
         </Button>
       )}
       <div hidden={provider === undefined}>
-        <Select
+        <SelectAutocomplete
           defaultValue={selected.value === values.providerId ? values.sourceId : ''}
           error={fieldErrors.sourceId}
           // Remounted for each provider, so the choice starts again with its sources.
