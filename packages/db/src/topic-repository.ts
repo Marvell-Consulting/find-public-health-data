@@ -98,14 +98,13 @@ export async function upsertTopics(db: Database, records: TopicRecord[]): Promis
               slug: sql`excluded.slug`,
               title: sql`excluded.title`,
               description: sql`excluded.description`,
-              isActive: sql`excluded.is_active`,
               updatedAt: sql`now()`,
               updatedBy: sql`excluded.updated_by`,
             },
             // Only rewrite the row (and bump updatedAt) when the incoming record actually
             // disagrees with what's stored — otherwise a no-op re-run would still touch every
             // row's timestamp.
-            setWhere: sql`${topic.slug} IS DISTINCT FROM excluded.slug OR ${topic.title} IS DISTINCT FROM excluded.title OR ${topic.description} IS DISTINCT FROM excluded.description OR ${topic.isActive} IS DISTINCT FROM excluded.is_active`,
+            setWhere: sql`${topic.slug} IS DISTINCT FROM excluded.slug OR ${topic.title} IS DISTINCT FROM excluded.title OR ${topic.description} IS DISTINCT FROM excluded.description`,
           })
           // xmax = 0 is the standard postgres upsert idiom for "this row was just inserted, not
           // updated" — a fresh tuple has never been superseded, so its xmax is unset.

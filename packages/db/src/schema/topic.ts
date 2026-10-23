@@ -22,7 +22,6 @@ export const topic = pgTable('topic', {
   slug: text().notNull().unique(),
   title: text().notNull(),
   description: text().notNull(),
-  isActive: boolean().notNull().default(true),
   ...audit,
 });
 
@@ -65,7 +64,6 @@ export const topicRecordSchema = z.object({
   slug: z.string().min(1).regex(SLUG_PATTERN, 'slug must be lowercase, hyphen-separated words'),
   title: z.string().min(1),
   description: z.string().min(1),
-  isActive: z.boolean().optional(),
 });
 
 export type TopicRecord = z.infer<typeof topicRecordSchema>;

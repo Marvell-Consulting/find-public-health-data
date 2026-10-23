@@ -26,6 +26,56 @@ import type { IndicatorDraftAgeRange } from './indicator-version-lists-repositor
 const { indicatorVersionClassification } = schema;
 
 describe('updateIndicatorDraft', () => {
+  repositoryTest(
+    'replaces primary and subtopic placements together when the primary topic is removed',
+    async ({ db }) => {
+      const created = await newDraft(db, 'Editable taxonomy placements');
+      const children = await db.select().from(schema.subtopic);
+      const first = children[0];
+      const second = children.find(({ topicId }) => topicId !== first?.topicId);
+      if (!first || !second) throw new Error('Core data needs subtopics in two topics');
+      await updateIndicatorDraft(
+        db,
+        created.indicatorId,
+        {},
+        {
+          topicIds: [first.topicId, second.topicId],
+          primaryTopicId: first.topicId,
+          subtopicIds: [first.id, second.id],
+          primarySubtopicId: first.id,
+        },
+        AS_ACTOR,
+      );
+      expect((await getIndicatorDraftState(db, created.indicatorId))?.draft).toMatchObject({
+        primaryTopicId: first.topicId,
+        primarySubtopicId: first.id,
+        subtopicIds: expect.arrayContaining([first.id, second.id]),
+      });
+      await updateIndicatorDraft(
+        db,
+        created.indicatorId,
+        {},
+        {
+          topicIds: [second.topicId],
+          primaryTopicId: second.topicId,
+          subtopicIds: [second.id],
+          primarySubtopicId: second.id,
+        },
+        AS_ACTOR,
+      );
+      expect((await getIndicatorDraftState(db, created.indicatorId))?.draft).toMatchObject({
+        topicIds: [second.topicId],
+        primaryTopicId: second.topicId,
+        subtopicIds: [second.id],
+        primarySubtopicId: second.id,
+      });
+      const changes = (await auditEntriesFor(db, created.indicatorId)).at(-1)?.changes;
+      expect(changes).toMatchObject({
+        primaryTopicId: { before: [first.topicId], after: [second.topicId] },
+      });
+    },
+  );
+
   repositoryTest('leaves the lists alone when the update names none', async ({ db }) => {
     const created = await newDraft(db, 'Keeps its links');
     const [topic] = await db.select({ id: schema.topic.id }).from(schema.topic).limit(1);
@@ -64,14 +114,14 @@ describe('updateIndicatorDraft', () => {
     'replaces the classifications of the dimensions given and leaves the others',
     async ({ db }) => {
       const created = await newDraft(db, 'Tagged by dimension');
-      const population = await classificationIn(db, 'population');
+      const framework = await classificationIn(db, 'framework');
       const lifeStage = await classificationIn(db, 'life_stage');
       const type = await typeClassification(db);
       await updateIndicatorDraft(
         db,
         created.indicatorId,
         {},
-        { classificationIds: { population: [population.id], life_stage: [lifeStage.id] } },
+        { classificationIds: { framework: [framework.id], life_stage: [lifeStage.id] } },
         AS_ACTOR,
       );
 
@@ -84,9 +134,9 @@ describe('updateIndicatorDraft', () => {
       );
 
       expect(await storedClassificationIdsOf(db, created.versionId)).toEqual(
-        [population.id, type.id].sort(),
+        [framework.id, type.id].sort(),
       );
-      // Each dimension given is its own list in the log; the population it left is not in it.
+      // Each dimension given is its own list in the log; the framework it left is not in it.
       expect((await auditEntriesFor(db, created.indicatorId)).at(-1)?.changes).toEqual({
         'classificationIds.indicatorType': { before: [], after: [type.id] },
         'classificationIds.lifeStage': { before: [lifeStage.id], after: [] },

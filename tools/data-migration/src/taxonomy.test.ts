@@ -18,14 +18,12 @@ describe('the V2 workbook assignments', () => {
   it('reproduces the committed relationships without inferring memberships', () => {
     const file = build();
     expect(file).toEqual(data('published-indicator-topics'));
-    expect(file.indicators).toHaveLength(880);
+    expect(file.indicators).toHaveLength(881);
     expect(file.areaContextIndicators).toHaveLength(15);
-    expect(file.indicatorTopics.filter(({ isPrimary }) => isPrimary)).toHaveLength(865);
+    expect(file.indicatorTopics.filter(({ isPrimary }) => isPrimary)).toHaveLength(866);
     expect(topics).toHaveLength(19);
     expect(subtopics).toHaveLength(92);
-    expect(
-      classifications.filter(({ isActive }: { isActive?: boolean }) => isActive !== false),
-    ).toHaveLength(28);
+    expect(classifications).toHaveLength(28);
   });
 
   it('keeps two mortality subtopics for indicator 108 under one primary topic', () => {
@@ -64,17 +62,14 @@ describe('the V2 workbook assignments', () => {
       indicatorSubtopics: [{ fingertipsId: 276, topicId, subtopicId, isPrimary: true }],
       indicatorClassifications: [],
     });
-    expect(build().indicators).not.toContain(276);
+    expect(build().indicators).toContain(276);
+    expect(build().indicatorTopics).toContainEqual(file.indicatorTopics[0]);
   });
 
-  it('requires review when the excluded cancer source entry changes', () => {
+  it('rejects an override that duplicates a workbook indicator', () => {
     const changed = structuredClone(source);
-    changed.outOfScope.find(
-      ({ fingertipsId }: { fingertipsId: number }) => fingertipsId === 276,
-    ).name = 'Changed cancer indicator';
-    expect(() => build(changed, [276])).toThrow(
-      'Indicators absent from the in-scope taxonomy: 276',
-    );
+    changed.overrides[0].fingertipsId = 108;
+    expect(() => build(changed)).toThrow('Taxonomy contains duplicate indicator ids');
   });
 
   it('rejects ambiguous primaries and unknown subtopics', () => {

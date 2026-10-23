@@ -105,9 +105,21 @@ function idsIn(
 }
 
 export const taggingColumns: IndicatorSectionColumns<TaggingField, Tagging, TaggingAnswers> = {
-  fromDraft: ({ topicIds, classifications, hasLifeStage, hasFramework, isAreaContext }) => ({
+  fromDraft: ({
+    topicIds,
+    primaryTopicId,
+    subtopicIds,
+    primarySubtopicId,
+    classifications,
+    hasLifeStage,
+    hasFramework,
+    isAreaContext,
+  }) => ({
     ...(isAreaContext ? { isAreaContext: 'yes' as const } : {}),
     topicIds,
+    primaryTopicId,
+    subtopicIds,
+    primarySubtopicId,
     indicatorTypeIds: idsIn(classifications, 'indicator_type'),
     hasLifeStage: yesNoAnswer(hasLifeStage),
     lifeStageIds: idsIn(classifications, 'life_stage'),
@@ -123,6 +135,9 @@ export const taggingColumns: IndicatorSectionColumns<TaggingField, Tagging, Tagg
     if (answers.isAreaContext === 'yes')
       return {
         topicIds: [],
+        primaryTopicId: null,
+        subtopicIds: [],
+        primarySubtopicId: null,
         classificationIds: Object.fromEntries(
           CLASSIFICATION_DIMENSIONS.map((dimension) => [dimension, []]),
         ),
@@ -131,6 +146,9 @@ export const taggingColumns: IndicatorSectionColumns<TaggingField, Tagging, Tagg
 
     return {
       topicIds: answers.topicIds,
+      primaryTopicId: answers.primaryTopicId,
+      subtopicIds: answers.subtopicIds,
+      primarySubtopicId: answers.primarySubtopicId || null,
       classificationIds: {
         indicator_type: kept('indicatorTypeIds'),
         life_stage: kept('lifeStageIds'),

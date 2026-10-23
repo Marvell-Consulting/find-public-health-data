@@ -10,7 +10,6 @@ import {
   rebuildReadModels,
   reset,
   seedDummyData,
-  seedTaxonomy,
   status,
 } from './db-commands.ts';
 import type { Config } from './load-config.ts';
@@ -55,10 +54,6 @@ export const commands: Record<string, Command> = {
   'db seed-dummy-data': {
     description: 'Replace all dummy data with the committed seed, then rebuild the read models',
     run: seedDummyData,
-  },
-  'db seed-taxonomy': {
-    description: 'Apply the draft taxonomy to imported dev data without replacing observations',
-    run: seedTaxonomy,
   },
   'db import-published-snapshot': {
     description: 'Replace dev data with the approved-only published benchmark snapshot',

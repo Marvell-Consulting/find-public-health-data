@@ -83,10 +83,7 @@ export async function applyIndicatorTopics(
 
   const [topics, indicators, subtopics] = await Promise.all([
     topicIds.length > 0
-      ? db
-          .select({ id: topic.id })
-          .from(topic)
-          .where(and(eq(topic.isActive, true), inArray(topic.id, topicIds)))
+      ? db.select({ id: topic.id }).from(topic).where(inArray(topic.id, topicIds))
       : Promise.resolve([]),
     shortIds.length > 0
       ? db
@@ -163,9 +160,8 @@ export async function applyIndicatorTopics(
     await db
       .update(indicatorVersion)
       .set({
-        hasRiskFactor: sql`NULLIF(${indicatorVersion.hasRiskFactor}, true)`,
-        hasFramework: sql`NULLIF(${indicatorVersion.hasFramework}, true)`,
-        hasLifeStage: sql`NULLIF(${indicatorVersion.hasLifeStage}, true)`,
+        hasFramework: false,
+        hasLifeStage: false,
       })
       .where(inArray(indicatorVersion.id, explicitlyCovered));
   }
@@ -229,7 +225,7 @@ async function applyIndicatorClassifications(
       ? await db
           .select({ id: classification.id, dimension: classification.dimension })
           .from(classification)
-          .where(and(eq(classification.isActive, true), inArray(classification.id, ids)))
+          .where(inArray(classification.id, ids))
       : [];
   const dimensionById = new Map(known.map((row) => [row.id, row.dimension]));
 
@@ -265,7 +261,6 @@ async function applyIndicatorClassifications(
       links.filter((link) => link.dimension === dimension).map((link) => link.indicatorVersionId),
     ),
   ];
-  const withRiskFactor = answeredYes('risk_factor');
   const withFramework = answeredYes('framework');
   const withLifeStage = answeredYes('life_stage');
   if (withLifeStage.length)
@@ -274,12 +269,6 @@ async function applyIndicatorClassifications(
       .set({ hasLifeStage: true })
       .where(inArray(indicatorVersion.id, withLifeStage));
 
-  if (withRiskFactor.length > 0) {
-    await db
-      .update(indicatorVersion)
-      .set({ hasRiskFactor: true })
-      .where(inArray(indicatorVersion.id, withRiskFactor));
-  }
   if (withFramework.length > 0) {
     await db
       .update(indicatorVersion)

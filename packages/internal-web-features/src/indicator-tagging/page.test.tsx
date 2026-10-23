@@ -25,6 +25,7 @@ const options: TagOptions = {
     { id: alcohol, name: 'Alcohol' },
     { id: cancer, name: 'Cancer' },
   ],
+  subtopics: [],
   indicatorTypes: [{ id: outcome, name: 'Outcome' }],
   lifeStages: [{ id: gambling, name: 'Gambling' }],
   frameworks: [{ id: healthyChild, name: 'Healthy Child' }],
@@ -32,12 +33,16 @@ const options: TagOptions = {
 
 const empty: TaggingPageValues = {
   topicIds: [],
+  primaryTopicId: '',
+  subtopicIds: [],
+  primarySubtopicId: '',
   indicatorTypeIds: [],
   hasLifeStage: '',
   lifeStageIds: [],
   hasFramework: '',
   frameworkIds: [],
   addTopic: '',
+  addSubtopic: '',
   addIndicatorType: '',
   addLifeStage: '',
   addFramework: '',
@@ -99,6 +104,7 @@ describe('TaggingPage', () => {
         .map((button) => [button.textContent, (button as HTMLButtonElement).value]),
     ).toEqual([
       ['Add topic', addIntent('topicIds')],
+      ['Add subtopic', addIntent('subtopicIds')],
       ['Add measure type', addIntent('indicatorTypeIds')],
       ['Add life stage', addIntent('lifeStageIds')],
       ['Add framework or programme', addIntent('frameworkIds')],

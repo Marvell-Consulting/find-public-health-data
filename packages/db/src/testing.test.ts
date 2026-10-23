@@ -7,7 +7,6 @@ describe('nullColumns', () => {
   it('gives every column of the table, and nothing else, as null', () => {
     expect(nullColumns(topic)).toEqual({
       id: null,
-      isActive: null,
       slug: null,
       title: null,
       description: null,

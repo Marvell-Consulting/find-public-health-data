@@ -47,6 +47,7 @@ export const tagOptions: TagOptions = {
     { id: TAGS.topic, name: 'Alcohol' },
     { id: TAGS.otherTopic, name: 'Cancer' },
   ],
+  subtopics: [],
   indicatorTypes: [{ id: TAGS.type, name: 'Outcome' }],
   lifeStages: [{ id: TAGS.lifeStage, name: 'Alcohol' }],
   frameworks: [{ id: TAGS.framework, name: 'Healthy Child' }],
@@ -54,6 +55,9 @@ export const tagOptions: TagOptions = {
 
 export const tagging: Tagging = {
   topicIds: [TAGS.otherTopic, TAGS.topic],
+  primaryTopicId: TAGS.otherTopic,
+  subtopicIds: [],
+  primarySubtopicId: '',
   indicatorTypeIds: [TAGS.type],
   hasLifeStage: 'yes',
   lifeStageIds: [TAGS.lifeStage],

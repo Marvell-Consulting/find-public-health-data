@@ -2,16 +2,7 @@ import { z } from '@fphd/config';
 import { CLASSIFICATION_DIMENSIONS } from '@fphd/utils/classification-dimension';
 import { SLUG_PATTERN } from '@fphd/utils/slug';
 import { sql } from 'drizzle-orm';
-import {
-  boolean,
-  check,
-  foreignKey,
-  index,
-  pgTable,
-  primaryKey,
-  text,
-  uuid,
-} from 'drizzle-orm/pg-core';
+import { check, foreignKey, index, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
 
 import { literals, timestamps, uuidPrimaryKey } from './helpers.ts';
 import { indicatorVersion } from './indicator.ts';
@@ -28,7 +19,6 @@ export const classification = pgTable(
     dimension: text({ enum: CLASSIFICATION_DIMENSIONS }).notNull(),
     slug: text().notNull().unique(),
     name: text().notNull(),
-    isActive: boolean().notNull().default(true),
     ...timestamps,
   },
   (t) => [
@@ -72,7 +62,6 @@ export const classificationRecordSchema = z.object({
   dimension: z.enum(CLASSIFICATION_DIMENSIONS),
   slug: z.string().min(1).regex(SLUG_PATTERN, 'slug must be lowercase, hyphen-separated words'),
   name: z.string().min(1),
-  isActive: z.boolean().optional(),
 });
 
 export type ClassificationRecord = z.infer<typeof classificationRecordSchema>;

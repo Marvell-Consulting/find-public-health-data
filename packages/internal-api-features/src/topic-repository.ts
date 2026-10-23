@@ -147,14 +147,12 @@ export async function deleteTopic(
         .where(eq(subtopic.topicId, id));
       const [deleted] = await tx.delete(topic).where(eq(topic.id, id)).returning();
 
-      if (deleted === undefined) return { ok: false, reason: 'not_found' };
-
       await recordAudit(tx, actor, [
         {
           action: 'topic.deleted',
           entityId: id,
           changes: {
-            ...changesBetween(deleted, null),
+            ...changesBetween(deleted ?? null, null),
             ...(subtopics.length
               ? listChanges({ subtopicIds: subtopics.map(({ id }) => id) }, { subtopicIds: [] })
               : {}),

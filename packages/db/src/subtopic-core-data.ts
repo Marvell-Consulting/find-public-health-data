@@ -1,5 +1,5 @@
 import { z } from '@fphd/config';
-import { sql } from 'drizzle-orm';
+import { asc, sql } from 'drizzle-orm';
 
 import { recordAudit } from './audit-log.ts';
 import type { Database } from './client.ts';
@@ -7,6 +7,11 @@ import { CORE_DATA_IMPORT, upsertEntries, upsertedRow } from './core-data-audit.
 import { findDuplicates } from './parse-topics-file.ts';
 import { type SubtopicRecord, subtopic, subtopicRecordSchema } from './schema/index.ts';
 import { summarizeUpsert, type UpsertSummary } from './topic-repository.ts';
+
+export interface SubtopicUpsertResult {
+  summary: UpsertSummary;
+  orphaned: Pick<SubtopicRecord, 'id' | 'topicId' | 'slug' | 'title'>[];
+}
 
 export function parseSubtopicsFile(data: unknown): SubtopicRecord[] {
   const result = z.array(subtopicRecordSchema).safeParse(data);
@@ -22,7 +27,7 @@ export function parseSubtopicsFile(data: unknown): SubtopicRecord[] {
 export async function upsertSubtopics(
   db: Database,
   records: SubtopicRecord[],
-): Promise<UpsertSummary> {
+): Promise<SubtopicUpsertResult> {
   return db.transaction(async (tx) => {
     const outcomes =
       records.length === 0
@@ -42,6 +47,19 @@ export async function upsertSubtopics(
             })
             .returning({ id: subtopic.id, wasInsert: sql<boolean>`xmax = 0`, ...upsertedRow });
     await recordAudit(tx, CORE_DATA_IMPORT, upsertEntries(subtopic, outcomes));
-    return summarizeUpsert(records.length, outcomes);
+    const ids = new Set(records.map(({ id }) => id));
+    const existing = await tx
+      .select({
+        id: subtopic.id,
+        topicId: subtopic.topicId,
+        slug: subtopic.slug,
+        title: subtopic.title,
+      })
+      .from(subtopic)
+      .orderBy(asc(subtopic.title));
+    return {
+      summary: summarizeUpsert(records.length, outcomes),
+      orphaned: existing.filter(({ id }) => !ids.has(id)),
+    };
   });
 }

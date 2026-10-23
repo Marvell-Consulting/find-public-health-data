@@ -158,6 +158,9 @@ describe('taggingColumns', () => {
       }),
     ).toEqual({
       topicIds: [TAGS.topic],
+      primaryTopicId: null,
+      subtopicIds: [],
+      primarySubtopicId: null,
       indicatorTypeIds: [TAGS.type],
       hasLifeStage: 'yes',
       lifeStageIds: [TAGS.lifeStage],
@@ -174,6 +177,9 @@ describe('taggingColumns', () => {
     });
     expect(taggingColumns.toLists?.(tagging)).toEqual({
       topicIds: [TAGS.otherTopic, TAGS.topic],
+      primaryTopicId: TAGS.otherTopic,
+      subtopicIds: [],
+      primarySubtopicId: null,
       classificationIds: {
         indicator_type: [TAGS.type],
         life_stage: [TAGS.lifeStage],

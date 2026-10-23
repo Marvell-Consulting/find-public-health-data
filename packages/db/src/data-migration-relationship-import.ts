@@ -103,7 +103,7 @@ export async function applyRelationships(
     await tx`DELETE FROM indicator_version_classification WHERE indicator_version_id IN ${tx(versionIds)}`;
     await tx`
       UPDATE indicator_version
-      SET has_risk_factor = NULLIF(has_risk_factor, true), has_framework = NULLIF(has_framework, true), has_life_stage = NULLIF(has_life_stage, true)
+      SET has_framework = false, has_life_stage = false
       WHERE id IN ${tx(versionIds)}
     `;
   }

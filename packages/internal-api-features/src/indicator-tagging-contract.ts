@@ -8,6 +8,7 @@ export const tagOptionSchema = z.object({ id: z.uuid(), name: z.string().min(1) 
 /** Every tag the tagging page offers, each list in the order the page shows it. */
 export const tagOptionsSchema = z.object({
   topics: z.array(tagOptionSchema),
+  subtopics: z.array(tagOptionSchema.extend({ topicId: z.uuid() })),
   indicatorTypes: z.array(tagOptionSchema),
   lifeStages: z.array(tagOptionSchema),
   frameworks: z.array(tagOptionSchema),
@@ -17,7 +18,13 @@ export type TagOption = z.infer<typeof tagOptionSchema>;
 export type TagOptions = z.infer<typeof tagOptionsSchema>;
 
 /** The page's lists of chosen tags, in the order it asks them. */
-export const TAG_LISTS = ['topicIds', 'indicatorTypeIds', 'lifeStageIds', 'frameworkIds'] as const;
+export const TAG_LISTS = [
+  'topicIds',
+  'subtopicIds',
+  'indicatorTypeIds',
+  'lifeStageIds',
+  'frameworkIds',
+] as const;
 
 export type TagList = (typeof TAG_LISTS)[number];
 
@@ -27,6 +34,7 @@ export type TagQuestion = 'hasLifeStage' | 'hasFramework';
 /** Where each list's choices come from, the question asking for it, and its messages' words. */
 export const TAG_LIST_DETAILS = {
   topicIds: { options: 'topics', question: null, noun: 'topic', article: 'a' },
+  subtopicIds: { options: 'subtopics', question: null, noun: 'subtopic', article: 'a' },
   indicatorTypeIds: {
     options: 'indicatorTypes',
     question: null,
@@ -59,6 +67,9 @@ export function unknownTagMessage(list: TagList): string {
 const fields = z.enum([
   'isAreaContext',
   'topicIds',
+  'primaryTopicId',
+  'subtopicIds',
+  'primarySubtopicId',
   'indicatorTypeIds',
   'hasLifeStage',
   'lifeStageIds',
@@ -72,6 +83,9 @@ export type TaggingField = z.infer<typeof fields>;
 export interface TaggingFormValues {
   isAreaContext?: 'yes' | undefined;
   topicIds: string[];
+  primaryTopicId: string;
+  subtopicIds: string[];
+  primarySubtopicId: string;
   indicatorTypeIds: string[];
   hasLifeStage: string;
   lifeStageIds: string[];
@@ -92,6 +106,9 @@ function tagIds(list: TagList, required?: string) {
 const taggedSchema = z
   .object({
     topicIds: tagIds('topicIds', 'Select at least one topic'),
+    primaryTopicId: z.uuid('Select a primary topic'),
+    subtopicIds: tagIds('subtopicIds'),
+    primarySubtopicId: z.union([z.literal(''), z.uuid('Select a primary subtopic')]),
     indicatorTypeIds: tagIds('indicatorTypeIds', 'Select a measure type').pipe(
       z.array(z.uuid()).max(1, 'Select only one measure type'),
     ),
@@ -101,7 +118,31 @@ const taggedSchema = z
     frameworkIds: tagIds('frameworkIds'),
   })
   .superRefine(
-    ({ hasLifeStage, lifeStageIds, hasFramework, frameworkIds }, ctx) => {
+    (
+      {
+        topicIds,
+        primaryTopicId,
+        subtopicIds,
+        primarySubtopicId,
+        hasLifeStage,
+        lifeStageIds,
+        hasFramework,
+        frameworkIds,
+      },
+      ctx,
+    ) => {
+      if (primaryTopicId && !topicIds.includes(primaryTopicId))
+        ctx.addIssue({
+          code: 'custom',
+          path: ['primaryTopicId'],
+          message: 'Select a primary topic from the topics added',
+        });
+      if (primarySubtopicId && !subtopicIds.includes(primarySubtopicId))
+        ctx.addIssue({
+          code: 'custom',
+          path: ['primarySubtopicId'],
+          message: 'Select a primary subtopic from the subtopics added',
+        });
       if (hasLifeStage === 'yes' && lifeStageIds.length === 0) {
         ctx.addIssue({
           code: 'custom',
@@ -131,6 +172,9 @@ const schema = z
   .object({
     isAreaContext: z.literal('yes').optional(),
     topicIds: z.array(z.string()),
+    primaryTopicId: z.string(),
+    subtopicIds: z.array(z.string()),
+    primarySubtopicId: z.string(),
     indicatorTypeIds: z.array(z.string()),
     hasLifeStage: z.string(),
     lifeStageIds: z.array(z.string()),
@@ -142,6 +186,9 @@ const schema = z
       return {
         isAreaContext: 'yes' as const,
         topicIds: [],
+        primaryTopicId: '',
+        subtopicIds: [],
+        primarySubtopicId: '',
         indicatorTypeIds: [],
         lifeStageIds: [],
         frameworkIds: [],
@@ -165,6 +212,9 @@ export type Tagging = z.infer<typeof schema>;
 export const taggingAnswersSchema = z.object({
   isAreaContext: z.literal('yes').optional(),
   topicIds: z.array(z.string()),
+  primaryTopicId: z.string().nullable(),
+  subtopicIds: z.array(z.string()),
+  primarySubtopicId: z.string().nullable(),
   indicatorTypeIds: z.array(z.string()),
   hasLifeStage: z.enum(['yes', 'no']).nullable(),
   lifeStageIds: z.array(z.string()),
@@ -186,6 +236,8 @@ export const taggingSection: IndicatorSection<
   schema,
   formValues: (answers) => ({
     ...answers,
+    primaryTopicId: answers.primaryTopicId ?? '',
+    primarySubtopicId: answers.primarySubtopicId ?? '',
     hasLifeStage: answers.hasLifeStage ?? '',
     hasFramework: answers.hasFramework ?? '',
   }),

@@ -1,10 +1,9 @@
 /**
- * Current taxonomy tag groups and the legacy dimensions retained for historical references.
+ * Classification dimensions available to indicators.
  */
 export const CLASSIFICATION_DIMENSIONS = [
   'indicator_type',
   'population',
-  'risk_factor',
   'inequality',
   'framework',
   'life_stage',

@@ -20,12 +20,19 @@ const options: TagOptions = {
     { id: topic, name: 'Alcohol' },
     { id: otherTopic, name: 'Cancer' },
   ],
+  subtopics: [],
   indicatorTypes: [{ id: type, name: 'Outcome' }],
   lifeStages: [{ id: lifeStage, name: 'Gambling' }],
   frameworks: [],
 };
 
-const nothingChosen = { addTopic: '', addIndicatorType: '', addLifeStage: '', addFramework: '' };
+const nothingChosen = {
+  addTopic: '',
+  addSubtopic: '',
+  addIndicatorType: '',
+  addLifeStage: '',
+  addFramework: '',
+};
 
 function context(client: Partial<ApiClient>) {
   const provider = new RouterContextProvider();
@@ -62,6 +69,7 @@ function isRedirectToTaskList(outcome: unknown) {
 
 const answered: [string, string][] = [
   ['topicIds', topic],
+  ['primaryTopicId', topic],
   ['indicatorTypeIds', type],
   ['hasLifeStage', 'no'],
   ['hasFramework', 'no'],
@@ -74,6 +82,9 @@ describe('loadTagging', () => {
         path === sectionPath
           ? {
               topicIds: [topic],
+              primaryTopicId: topic,
+              subtopicIds: [],
+              primarySubtopicId: '',
               indicatorTypeIds: [],
               hasLifeStage: 'yes',
               lifeStageIds: [lifeStage],
@@ -95,6 +106,9 @@ describe('loadTagging', () => {
       options,
       values: {
         topicIds: [topic],
+        primaryTopicId: topic,
+        subtopicIds: [],
+        primarySubtopicId: '',
         indicatorTypeIds: [],
         hasLifeStage: 'yes',
         lifeStageIds: [lifeStage],
@@ -122,6 +136,7 @@ describe('submitTagging', () => {
     const outcome = await submit(
       [
         ['topicIds', topic],
+        ['primaryTopicId', topic],
         ['addTopic', otherTopic],
         ['intent', addIntent('topicIds')],
       ],
@@ -149,6 +164,7 @@ describe('submitTagging', () => {
   it('adds a tag once, however often it is chosen', async () => {
     const outcome = await submit([
       ['topicIds', topic],
+      ['primaryTopicId', topic],
       ['addTopic', topic],
       ['intent', addIntent('topicIds')],
     ]);
@@ -170,6 +186,7 @@ describe('submitTagging', () => {
     const outcome = await submit(
       [
         ['topicIds', topic],
+        ['primaryTopicId', topic],
         ['topicIds', otherTopic],
         ['intent', removeIntent(0, 'topicIds')],
       ],
@@ -188,6 +205,9 @@ describe('submitTagging', () => {
     expect(put.mock.calls[0]?.[0]).toBe(sectionPath);
     expect(put.mock.calls[0]?.[1]).toEqual({
       topicIds: [topic, otherTopic],
+      primaryTopicId: topic,
+      subtopicIds: [],
+      primarySubtopicId: '',
       indicatorTypeIds: [type],
       hasLifeStage: 'no',
       lifeStageIds: [],
@@ -213,6 +233,9 @@ describe('submitTagging', () => {
     expect(outcome).toEqual({
       values: {
         topicIds: [],
+        primaryTopicId: '',
+        subtopicIds: [],
+        primarySubtopicId: '',
         indicatorTypeIds: [],
         hasLifeStage: 'yes',
         lifeStageIds: [],
@@ -222,6 +245,7 @@ describe('submitTagging', () => {
       },
       fieldErrors: {
         topicIds: 'Select at least one topic',
+        primaryTopicId: 'Select a primary topic',
         indicatorTypeIds: 'Select a measure type',
         lifeStageIds: 'Select at least one life stage',
         hasFramework: 'Select whether this indicator is part of a framework or programme',

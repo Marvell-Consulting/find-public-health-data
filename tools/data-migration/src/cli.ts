@@ -80,10 +80,6 @@ async function main(argv: readonly string[]): Promise<void> {
     case 'archive':
       await createArchive(required(values, 'directory'), required(values, 'output'));
       return;
-    case 'generate-demo-topics':
-      throw new Error(
-        'Demo heuristics have been replaced by generate-taxonomy-relationships and explicit workbook assignments',
-      );
     case 'generate-taxonomy-relationships': {
       const json = async (name: string) =>
         JSON.parse(await readFile(required(values, name), 'utf8'));

@@ -13,6 +13,7 @@ import { type ListIntent, readListIntent } from '../list-form.ts';
 /** The select that adds a tag to each list. */
 export const ADD_TAG_FIELDS = {
   topicIds: 'addTopic',
+  subtopicIds: 'addSubtopic',
   indicatorTypeIds: 'addIndicatorType',
   lifeStageIds: 'addLifeStage',
   frameworkIds: 'addFramework',
@@ -30,7 +31,14 @@ export type TaggingPageState = FormFailure<TaggingPageField, TaggingPageValues>;
 
 /** The page with nothing chosen in the selects that add a tag. */
 export function taggingPageValues(values: TaggingFormValues): TaggingPageValues {
-  return { ...values, addTopic: '', addIndicatorType: '', addLifeStage: '', addFramework: '' };
+  return {
+    ...values,
+    addTopic: '',
+    addSubtopic: '',
+    addIndicatorType: '',
+    addLifeStage: '',
+    addFramework: '',
+  };
 }
 
 /** The form as sent, and which of its buttons sent it; a field not sent is empty. */
@@ -45,11 +53,14 @@ export function readTaggingForm(formData: FormData): {
     values: {
       ...(formData.get('isAreaContext') === 'yes' ? { isAreaContext: 'yes' as const } : {}),
       ...readFormValues(formData, [
+        'primaryTopicId',
+        'primarySubtopicId',
         'hasLifeStage',
         'hasFramework',
         ...Object.values(ADD_TAG_FIELDS),
       ]),
       topicIds: ids('topicIds'),
+      subtopicIds: ids('subtopicIds'),
       indicatorTypeIds: ids('indicatorTypeIds'),
       lifeStageIds: ids('lifeStageIds'),
       frameworkIds: ids('frameworkIds'),

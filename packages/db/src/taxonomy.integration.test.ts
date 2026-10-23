@@ -68,13 +68,29 @@ describe('the V2 taxonomy import', () => {
       sql`INSERT INTO indicator_version_subtopic (indicator_version_id, topic_id, subtopic_id) VALUES (${version?.id ?? ''}, ${version?.topic_id ?? ''}, ${child?.id ?? ''})`,
     ).rejects.toThrow(/indicator_version_subtopic_subtopic_fk/);
   });
-  it('keeps legacy topics as inactive references and publishes the 19 V2 topics', async () => {
+  it('imports only the 19 V2 topics and their 92 subtopics', async () => {
     expect((await sql`SELECT id FROM published.topic`).length).toBe(19);
-    expect((await sql`SELECT id FROM topic WHERE NOT is_active`).length).toBe(27);
+    expect((await sql`SELECT id FROM topic`).length).toBe(19);
     expect((await sql`SELECT id FROM published.subtopic`).length).toBe(92);
     const imported = await importCoreData(sql);
-    expect(imported.subtopics).toEqual({ inserted: 0, updated: 0, unchanged: 92 });
-    expect(imported.topics.summary).toEqual({ inserted: 0, updated: 0, unchanged: 46 });
+    expect(imported.subtopics).toEqual({
+      summary: { inserted: 0, updated: 0, unchanged: 92 },
+      orphaned: [],
+    });
+    expect(imported.topics.summary).toEqual({ inserted: 0, updated: 0, unchanged: 19 });
+  });
+
+  it('reports subtopics missing from the file without deleting them', async () => {
+    const [parent] = await sql<{ id: string }[]>`SELECT id FROM topic ORDER BY id LIMIT 1`;
+    const [extra] = await sql<
+      { id: string }[]
+    >`INSERT INTO subtopic (topic_id, slug, title) VALUES (${parent?.id ?? ''}, 'unlisted-subtopic', 'Unlisted subtopic') RETURNING id`;
+    const imported = await importCoreData(sql);
+    expect(imported.subtopics.orphaned).toEqual([
+      { id: extra?.id, topicId: parent?.id, slug: 'unlisted-subtopic', title: 'Unlisted subtopic' },
+    ]);
+    expect(await sql`SELECT id FROM subtopic WHERE id = ${extra?.id ?? ''}`).toHaveLength(1);
+    await sql`DELETE FROM subtopic WHERE id = ${extra?.id ?? ''}`;
   });
 
   it('retains two subtopic placements within a single primary topic', async () => {

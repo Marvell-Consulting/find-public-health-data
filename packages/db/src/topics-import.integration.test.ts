@@ -96,7 +96,6 @@ describe('topics import (integration)', () => {
           slug: { before: null, after: topicA.slug },
           title: { before: null, after: topicA.title },
           description: { before: null, after: topicA.description },
-          isActive: { before: null, after: true },
         },
       },
     ]);

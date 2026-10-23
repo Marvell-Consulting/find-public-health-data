@@ -21,9 +21,9 @@ import {
 import { createFakeInternalRepositories } from './testing.ts';
 
 describe('taggingServerSection', () => {
-  async function fieldErrorsOf(body: object) {
+  async function fieldErrorsOf(body: object, options = tagOptions) {
     const { tags } = createFakeInternalRepositories({
-      tags: { listOptions: vi.fn().mockResolvedValue(tagOptions) },
+      tags: { listOptions: vi.fn().mockResolvedValue(options) },
     });
     const section = taggingServerSection(tags);
     const result = await section.schema.safeParseAsync(body);
@@ -39,6 +39,7 @@ describe('taggingServerSection', () => {
       await fieldErrorsOf({
         ...tagging,
         topicIds: [TAGS.type],
+        primaryTopicId: TAGS.type,
         lifeStageIds: ['019fa38f-073f-764e-9ac6-1c4d03b10999'],
         hasFramework: 'yes',
         frameworkIds: [TAGS.topic],
@@ -54,6 +55,29 @@ describe('taggingServerSection', () => {
     expect(
       await fieldErrorsOf({ ...tagging, hasLifeStage: 'no', lifeStageIds: [TAGS.topic] }),
     ).toBeUndefined();
+  });
+
+  it('requires subtopics to belong to the selected topics and the primary subtopic to its primary topic', async () => {
+    const child = '019fa38f-073f-764e-9ac6-1c4d03b10100';
+    const options = {
+      ...tagOptions,
+      subtopics: [{ id: child, name: 'A subtopic', topicId: TAGS.topic }],
+    };
+    const values = { ...tagging, subtopicIds: [child], primarySubtopicId: child };
+    expect(await fieldErrorsOf({ ...values, primaryTopicId: TAGS.topic }, options)).toBeUndefined();
+    expect(await fieldErrorsOf(values, options)).toEqual({
+      primarySubtopicId: 'Select a primary subtopic belonging to the primary topic',
+    });
+    expect(await fieldErrorsOf({ ...values, topicIds: [TAGS.otherTopic] }, options)).toEqual({
+      subtopicIds: 'Select subtopics belonging to the topics added',
+      primarySubtopicId: 'Select a primary subtopic belonging to the primary topic',
+    });
+    expect(
+      await fieldErrorsOf(
+        { ...values, primaryTopicId: TAGS.topic, primarySubtopicId: '' },
+        options,
+      ),
+    ).toEqual({ primarySubtopicId: 'Select a primary subtopic belonging to the primary topic' });
   });
 });
 

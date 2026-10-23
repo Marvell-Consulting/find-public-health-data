@@ -1,5 +1,5 @@
 {
-  "id": "cafc43ce-d41e-4376-942b-db0350d6a14b",
+  "id": "4800c224-102d-4e0b-890d-96c4c70d1334",
   "prevId": "d572ee6e-6367-4f5f-8dc4-8d9348e78534",
   "version": "7",
   "dialect": "postgresql",
@@ -471,13 +471,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "is_active": {
-          "name": "is_active",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -525,7 +518,7 @@
       "checkConstraints": {
         "classification_dimension_check": {
           "name": "classification_dimension_check",
-          "value": "\"classification\".\"dimension\" IN ('indicator_type', 'population', 'risk_factor', 'inequality', 'framework', 'life_stage')"
+          "value": "\"classification\".\"dimension\" IN ('indicator_type', 'population', 'inequality', 'framework', 'life_stage')"
         }
       },
       "isRLSEnabled": false
@@ -3891,13 +3884,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "is_active": {
-          "name": "is_active",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
         },
         "created_at": {
           "name": "created_at",

@@ -15,6 +15,9 @@ const framework = '019fa38f-073f-764e-9ac6-1c4d03b10005';
 
 const answered: TaggingFormValues = {
   topicIds: [topic, otherTopic],
+  primaryTopicId: topic,
+  subtopicIds: [],
+  primarySubtopicId: '',
   indicatorTypeIds: [type],
   hasLifeStage: 'yes',
   lifeStageIds: [lifeStage],
@@ -24,6 +27,9 @@ const answered: TaggingFormValues = {
 
 const unanswered: TaggingFormValues = {
   topicIds: [],
+  primaryTopicId: '',
+  subtopicIds: [],
+  primarySubtopicId: '',
   indicatorTypeIds: [],
   hasLifeStage: '',
   lifeStageIds: [],
@@ -36,6 +42,9 @@ describe('taggingSection', () => {
     expect(section.schema.parse({ ...answered, isAreaContext: 'yes' })).toEqual({
       isAreaContext: 'yes',
       topicIds: [],
+      primaryTopicId: '',
+      subtopicIds: [],
+      primarySubtopicId: '',
       indicatorTypeIds: [],
       hasLifeStage: 'no',
       lifeStageIds: [],
@@ -57,6 +66,7 @@ describe('taggingSection', () => {
   it('refuses every unanswered question and empty list at once', () => {
     expect(sectionFieldErrors(section, unanswered)).toEqual({
       topicIds: 'Select at least one topic',
+      primaryTopicId: 'Select a primary topic',
       indicatorTypeIds: 'Select a measure type',
       hasLifeStage: 'Select whether this indicator needs a life stage tag',
       hasFramework: 'Select whether this indicator is part of a framework or programme',
@@ -72,6 +82,7 @@ describe('taggingSection', () => {
       }),
     ).toEqual({
       topicIds: 'Select at least one topic',
+      primaryTopicId: 'Select a primary topic',
       indicatorTypeIds: 'Select a measure type',
       lifeStageIds: 'Select at least one life stage',
       frameworkIds: 'Select at least one framework or programme',
@@ -101,6 +112,9 @@ describe('taggingSection.formValues', () => {
     expect(
       section.formValues({
         topicIds: [topic],
+        primaryTopicId: topic,
+        subtopicIds: [],
+        primarySubtopicId: '',
         indicatorTypeIds: [type],
         hasLifeStage: null,
         lifeStageIds: [],
@@ -109,6 +123,9 @@ describe('taggingSection.formValues', () => {
       }),
     ).toEqual({
       topicIds: [topic],
+      primaryTopicId: topic,
+      subtopicIds: [],
+      primarySubtopicId: '',
       indicatorTypeIds: [type],
       hasLifeStage: '',
       lifeStageIds: [],

@@ -72,10 +72,6 @@ export function IndicatorSummary({
                 {indicator.topics.map((topicItem) => (
                   <li className="fphd-tag" key={topicItem.slug}>
                     <A href={`/topics/${topicItem.slug}`}>{topicItem.title}</A>
-                    {topicItem.subtopics?.length
-                      ? `: ${topicItem.subtopics.map(({ title }) => title).join('; ')}`
-                      : null}
-                    {topicItem.isPrimary ? ' (primary)' : null}
                   </li>
                 ))}
               </ul>
@@ -113,11 +109,15 @@ export function IndicatorSummary({
         <TableRow
           label="Life stage"
           value={
-            ofDimension('life_stage').length
-              ? ofDimension('life_stage')
-                  .map(({ name }) => name)
-                  .join('; ')
-              : null
+            ofDimension('life_stage').length > 0 ? (
+              <ul className="govuk-list fphd-tag-list">
+                {ofDimension('life_stage').map((entry) => (
+                  <li className="fphd-tag" key={entry.slug}>
+                    {entry.name}
+                  </li>
+                ))}
+              </ul>
+            ) : null
           }
         />
         <TableRow

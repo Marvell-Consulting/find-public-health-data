@@ -1,34 +1,25 @@
 import { z } from '@fphd/config';
 import { type IndicatorTopicFile, parseIndicatorTopicFile } from '@fphd/db/data-migration-contract';
 
+const indicatorSchema = z.object({
+  fingertipsId: z.number().int().positive(),
+  status: z.string(),
+  measureType: z.string().nullable(),
+  programmes: z.array(z.string()),
+  lifeStage: z.string().nullable(),
+  placements: z.array(z.object({ topic: z.string(), subtopic: z.string(), primary: z.boolean() })),
+});
+
 const sourceSchema = z.object({
-  outOfScope: z
-    .array(
-      z.object({
-        fingertipsId: z.number().int().positive(),
-        name: z.string(),
-        reviewOutcome: z.string(),
-      }),
-    )
+  indicators: z.array(indicatorSchema),
+  overrides: z
+    .array(indicatorSchema.extend({ reason: z.string().min(1), reviewRequired: z.boolean() }))
     .default([]),
-  indicators: z.array(
-    z.object({
-      fingertipsId: z.number().int().positive(),
-      status: z.string(),
-      measureType: z.string().nullable(),
-      programmes: z.array(z.string()),
-      lifeStage: z.string().nullable(),
-      placements: z.array(
-        z.object({ topic: z.string(), subtopic: z.string(), primary: z.boolean() }),
-      ),
-    }),
-  ),
 });
 
 interface Topic {
   id: string;
   title: string;
-  isActive?: boolean;
 }
 interface Subtopic {
   id: string;
@@ -39,7 +30,6 @@ interface Classification {
   id: string;
   dimension: string;
   name: string;
-  isActive?: boolean;
 }
 
 /** Translates explicit workbook placements; names and profiles never supply inferred links. */
@@ -51,47 +41,26 @@ export function taxonomyRelationships(
   selection?: readonly number[],
 ): IndicatorTopicFile {
   const source = sourceSchema.parse(value);
-  const sourceById = new Map(
-    source.indicators.map((indicator) => [indicator.fingertipsId, indicator]),
-  );
-  if (sourceById.size !== source.indicators.length)
+  // TODO: Confirm indicator 276's provisional placement in taxonomy-v2.json before launch.
+  const indicators = [...source.indicators, ...source.overrides];
+  const sourceById = new Map(indicators.map((indicator) => [indicator.fingertipsId, indicator]));
+  if (sourceById.size !== indicators.length)
     throw new Error('Taxonomy contains duplicate indicator ids');
-  const selected = selection ?? source.indicators.map(({ fingertipsId }) => fingertipsId);
+  const selected = selection ?? indicators.map(({ fingertipsId }) => fingertipsId);
   if (new Set(selected).size !== selected.length)
     throw new Error('Taxonomy selection contains duplicate indicator ids');
-  const cancer = source.outOfScope.find(({ fingertipsId }) => fingertipsId === 276);
-  if (
-    selection?.includes(276) &&
-    !sourceById.has(276) &&
-    cancer?.name === 'Cancer: QOF prevalence' &&
-    cancer.reviewOutcome === 'Excluded'
-  ) {
-    // TODO: Confirm indicator 276's provisional Cancer > All cancers placement before launch.
-    sourceById.set(276, {
-      fingertipsId: 276,
-      status: 'Provisional placement',
-      measureType: null,
-      programmes: [],
-      lifeStage: null,
-      placements: [{ topic: 'Cancer', subtopic: 'All cancers', primary: true }],
-    });
-  }
   const missing = selected.filter((id) => !sourceById.has(id));
   if (missing.length)
     throw new Error(`Indicators absent from the in-scope taxonomy: ${missing.join(', ')}`);
-  const topicByTitle = new Map(
-    topics.filter(({ isActive }) => isActive !== false).map((topic) => [topic.title, topic.id]),
-  );
+  const topicByTitle = new Map(topics.map((topic) => [topic.title, topic.id]));
   const subtopicByTitle = new Map(
     subtopics.map((subtopic) => [`${subtopic.topicId}:${subtopic.title}`, subtopic.id]),
   );
   const classificationByName = new Map(
-    classifications
-      .filter(({ isActive }) => isActive !== false)
-      .map((classification) => [
-        `${classification.dimension}:${classification.name}`,
-        classification.id,
-      ]),
+    classifications.map((classification) => [
+      `${classification.dimension}:${classification.name}`,
+      classification.id,
+    ]),
   );
   const file: IndicatorTopicFile = {
     indicators: [...selected].sort((a, b) => a - b),

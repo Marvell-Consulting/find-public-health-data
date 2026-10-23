@@ -17991,5 +17991,23 @@
       "name": "Smoking attributable hospital admissions (old method)",
       "reviewOutcome": "Excluded"
     }
+  ],
+  "overrides": [
+    {
+      "fingertipsId": 276,
+      "status": "Provisional placement",
+      "measureType": null,
+      "programmes": [],
+      "lifeStage": null,
+      "placements": [
+        {
+          "topic": "Cancer",
+          "subtopic": "All cancers",
+          "primary": true
+        }
+      ],
+      "reason": "Retain the approved launch indicator despite its workbook exclusion; confirm the provisional placement before launch.",
+      "reviewRequired": true
+    }
   ]
 }

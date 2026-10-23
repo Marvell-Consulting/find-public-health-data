@@ -67,8 +67,9 @@ export async function completeDraft(page: Page, id: string): Promise<void> {
     links: { hasLinks: 'no' },
     tagging: {
       topicIds: topic,
+      primaryTopicId: topic,
       indicatorTypeIds: indicatorType,
-      hasRiskFactor: 'no',
+      hasLifeStage: 'no',
       hasFramework: 'no',
     },
     'copyright-and-data-reuse': { hasCustomCopyright: 'no', hasCustomDataReuse: 'no' },

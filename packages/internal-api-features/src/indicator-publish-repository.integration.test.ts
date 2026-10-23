@@ -222,14 +222,14 @@ describe('createDraftFromPublished', () => {
       db,
       'Tagged when published',
     );
-    const population = await classificationIn(db, 'population');
+    const lifeStage = await classificationIn(db, 'life_stage');
     const framework = await classificationIn(db, 'framework');
     await db
       .update(indicatorVersion)
-      .set({ hasLifeStage: false, hasFramework: true })
+      .set({ hasLifeStage: true, hasFramework: true })
       .where(eq(indicatorVersion.id, currentId));
     await db.insert(indicatorVersionClassification).values([
-      { classificationId: population.id, indicatorVersionId: currentId },
+      { classificationId: lifeStage.id, indicatorVersionId: currentId },
       { classificationId: framework.id, indicatorVersionId: currentId },
     ]);
 
@@ -237,10 +237,10 @@ describe('createDraftFromPublished', () => {
 
     if (!result.ok) throw new Error('expected a draft');
     expect(await storedClassificationIdsOf(db, result.versionId)).toEqual(
-      [population.id, framework.id].sort(),
+      [lifeStage.id, framework.id].sort(),
     );
     const state = await getIndicatorDraftState(db, indicatorId);
-    expect(state?.draft).toMatchObject({ hasLifeStage: false, hasFramework: true });
+    expect(state?.draft).toMatchObject({ hasLifeStage: true, hasFramework: true });
   });
 
   repositoryTest.for<[string, (db: Database) => Promise<IndicatorDraftAttributes>]>([

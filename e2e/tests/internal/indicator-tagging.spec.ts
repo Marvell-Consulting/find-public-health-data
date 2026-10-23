@@ -20,6 +20,7 @@ const FRAMEWORK_QUESTION = 'Is this indicator part of a framework or programme?'
 /** A tag list's select, Add button and added tags, by the noun the page uses for it. */
 const LISTS = {
   topic: { label: 'Select a topic', add: 'Add topic' },
+  subtopic: { label: 'Select a subtopic', add: 'Add subtopic' },
   type: { label: 'Select a measure type', add: 'Add measure type' },
   lifeStage: { label: 'Select a life stage', add: 'Add life stage' },
   framework: { label: 'Select a framework or programme', add: 'Add framework or programme' },
@@ -61,6 +62,7 @@ async function answer(page: Page, name: string, choice: 'Yes' | 'No') {
 async function tagEverything(page: Page) {
   await addTag(page, 'topic', 'Diabetes');
   await addTag(page, 'topic', 'Cancer');
+  await chooseOption(page, 'Select a primary topic', 'Diabetes');
   await addTag(page, 'type', 'Outcome');
   await answer(page, LIFE_STAGE_QUESTION, 'Yes');
   await addTag(page, 'lifeStage', 'Children');
@@ -78,6 +80,7 @@ describeSectionPage(SECTION, {
   refusal: {
     messages: [
       'Select at least one topic',
+      'Select a primary topic',
       'Select a measure type',
       'Select whether this indicator needs a life stage tag',
       'Select whether this indicator is part of a framework or programme',
@@ -151,6 +154,7 @@ test('asks for a life stage and a framework beside "Yes"', async ({ page }) => {
   await openSectionPage(page, SECTION);
   await addTag(page, 'topic', 'Diabetes');
   await addTag(page, 'type', 'Outcome');
+  await chooseOption(page, 'Select a primary topic', 'Diabetes');
   await answer(page, LIFE_STAGE_QUESTION, 'Yes');
   await answer(page, FRAMEWORK_QUESTION, 'Yes');
 
@@ -196,6 +200,35 @@ test('saves the tags on Continue and shows the task as completed', async ({ page
   await expect(question(page, LIFE_STAGE_QUESTION).getByLabel('Yes')).toBeChecked();
   await expect(removeButtons(page, 'life stage')).toHaveText(['Remove life stage Children']);
   await expect(question(page, FRAMEWORK_QUESTION).getByLabel('No')).toBeChecked();
+});
+
+test('edits primary topics and subtopics without leaving stale placements', async ({
+  page,
+}, testInfo) => {
+  const taskListPath = await openSectionPage(page, SECTION);
+  const pagePath = new URL(page.url()).pathname;
+  await tagEverything(page);
+  await addTag(page, 'subtopic', 'Cancer: All cancers');
+  await addTag(page, 'subtopic', 'Diabetes: Care and treatment');
+  await chooseOption(page, 'Select a primary subtopic', 'Diabetes: Care and treatment');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page).toHaveURL(taskListPath);
+  await page.goto(pagePath);
+  await expect(page.getByLabel('Select a primary topic', { exact: true })).toHaveValue(/.+/);
+  await chooseOption(page, 'Select a primary topic', 'Cancer');
+  await chooseOption(page, 'Select a primary subtopic', 'Cancer: All cancers');
+  await page.getByRole('button', { name: 'Remove topic Diabetes', exact: true }).click();
+  await expect(removeButtons(page, 'subtopic')).toHaveText(['Remove subtopic Cancer: All cancers']);
+  await expectNoAccessibilityViolations(page, testInfo);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page).toHaveURL(taskListPath);
+  await page.goto(pagePath);
+  await expect(removeButtons(page, 'topic')).toHaveText(['Remove topic Cancer']);
+  await expect(removeButtons(page, 'subtopic')).toHaveText(['Remove subtopic Cancer: All cancers']);
+  await expect(page.locator('select[name="primaryTopicId"] option:checked')).toHaveText('Cancer');
+  await expect(page.locator('select[name="primarySubtopicId"] option:checked')).toHaveText(
+    'Cancer: All cancers',
+  );
 });
 
 test('saves "No" and forgets any life stages saved before', async ({ page }) => {
@@ -259,6 +292,9 @@ test.describe('without JavaScript', () => {
     await expect(page.getByLabel(LISTS.framework.label, { exact: true })).toBeVisible();
 
     await addTag(page, 'topic', 'Diabetes', true);
+    await page
+      .getByLabel('Select a primary topic', { exact: true })
+      .selectOption({ label: 'Diabetes' });
     await addTag(page, 'type', 'Outcome', true);
     await addTag(page, 'lifeStage', 'Children', true);
     await expect(question(page, LIFE_STAGE_QUESTION).getByLabel('Yes')).toBeChecked();

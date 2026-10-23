@@ -21,6 +21,10 @@ const FIELDS: readonly TaggingPageField[] = [
   'isAreaContext',
   'topicIds',
   'addTopic',
+  'primaryTopicId',
+  'subtopicIds',
+  'addSubtopic',
+  'primarySubtopicId',
   'indicatorTypeIds',
   'addIndicatorType',
   'hasLifeStage',
@@ -104,12 +108,35 @@ interface TaggingPageProps extends SectionPageProps<TaggingPageField, TaggingPag
 
 export function TaggingPage({ options, ...form }: TaggingPageProps) {
   const { fieldErrors, values } = form;
+  const offeredSubtopics = options.subtopics
+    .filter(({ topicId }) => values.topicIds.includes(topicId))
+    .map((entry) => ({
+      ...entry,
+      name: `${options.topics.find(({ id }) => id === entry.topicId)?.name}: ${entry.name}`,
+    }));
+  const primaryPicker = (
+    name: 'primaryTopicId' | 'primarySubtopicId',
+    label: string,
+    choices: TagOption[],
+  ) => (
+    <SelectAutocomplete
+      name={name}
+      label={label}
+      labelHeading="h2"
+      defaultValue={values[name]}
+      error={fieldErrors[name]}
+      options={[
+        { label: 'Select', value: '' },
+        ...choices.map(({ id, name }) => ({ label: name, value: id })),
+      ]}
+    />
+  );
   const picker = (list: TagList, labelHeading?: ElementType) => (
     <TagPicker
       fieldErrors={fieldErrors}
       list={list}
       labelHeading={labelHeading}
-      options={options[TAG_LIST_DETAILS[list].options]}
+      options={list === 'subtopicIds' ? offeredSubtopics : options[TAG_LIST_DETAILS[list].options]}
       values={values}
     />
   );
@@ -120,6 +147,9 @@ export function TaggingPage({ options, ...form }: TaggingPageProps) {
       fieldIds={{
         isAreaContext: firstRadioId('isAreaContext'),
         topicIds: fieldInputId('addTopic'),
+        primaryTopicId: fieldInputId('primaryTopicId'),
+        subtopicIds: fieldInputId('addSubtopic'),
+        primarySubtopicId: fieldInputId('primarySubtopicId'),
         indicatorTypeIds: fieldInputId('addIndicatorType'),
         hasLifeStage: firstRadioId('hasLifeStage'),
         lifeStageIds: fieldInputId('addLifeStage'),
@@ -145,6 +175,17 @@ export function TaggingPage({ options, ...form }: TaggingPageProps) {
             conditional: (
               <>
                 {picker('topicIds', 'h2')}
+                {primaryPicker(
+                  'primaryTopicId',
+                  'Select a primary topic',
+                  options.topics.filter(({ id }) => values.topicIds.includes(id)),
+                )}
+                {picker('subtopicIds', 'h2')}
+                {primaryPicker(
+                  'primarySubtopicId',
+                  'Select a primary subtopic',
+                  offeredSubtopics.filter(({ id }) => values.subtopicIds.includes(id)),
+                )}
                 {picker('indicatorTypeIds', 'h2')}
                 <Radios
                   defaultValue={values.hasLifeStage}

@@ -229,7 +229,6 @@ describe('the audit log of topic writes', () => {
           slug: { before: null, after: 'audited-create' },
           title: { before: null, after: 'Audited create' },
           description: { before: null, after: 'Recorded.' },
-          isActive: { before: null, after: true },
         },
       },
     ]);
@@ -272,7 +271,6 @@ describe('the audit log of topic writes', () => {
           slug: { before: topic.slug, after: null },
           title: { before: topic.title, after: null },
           description: { before: topic.description, after: null },
-          isActive: { before: true, after: null },
         },
       }),
     ]);

@@ -15,7 +15,7 @@ const outcome: ClassificationRecord = {
 };
 const alcohol: ClassificationRecord = {
   id: '01a0edef-f609-758f-8890-d4ee5defa462',
-  dimension: 'risk_factor',
+  dimension: 'life_stage',
   slug: 'risk-factor-alcohol',
   name: 'Alcohol',
 };
