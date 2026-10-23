@@ -3,6 +3,7 @@ import {
   areaLookupListSchema,
   displayGroupListSchema,
   indicatorFacetsSchema,
+  indicatorPeriodFiltersSchema,
   indicatorSearchResultSchema,
   MAX_FILTER_LABEL_LENGTH,
   MAX_FILTER_VALUE_LENGTH,
@@ -15,7 +16,7 @@ import type { LoaderFunctionArgs } from 'react-router';
 import { redirect } from 'react-router';
 import { loadGeographyOptions } from '../geography/loader.ts';
 import { MAX_SELECTED_AREAS } from '../selection-limits.ts';
-import { DIMENSIONS } from './url.ts';
+import { DIMENSIONS, PERIOD_PARAMS } from './url.ts';
 
 export type {
   IndicatorFacets,
@@ -56,13 +57,30 @@ function buildSearchQuery(
   for (const code of areaCodes) {
     parts.push(`areaCode=${encodeURIComponent(code)}`);
   }
+  for (const key of PERIOD_PARAMS) {
+    const value = params.get(key);
+    if (value) parts.push(`${key}=${encodeURIComponent(value.slice(0, MAX_FILTER_VALUE_LENGTH))}`);
+  }
 
   return parts.join('&');
 }
 
-export async function loadSearch({ context, request }: LoaderFunctionArgs) {
+export async function loadSearch(
+  { context, request }: LoaderFunctionArgs,
+  { topicSlug, path = '/search' }: { topicSlug?: string; path?: string } = {},
+) {
   const url = new URL(request.url);
   const params = url.searchParams;
+  const period = indicatorPeriodFiltersSchema.parse(Object.fromEntries(params));
+  for (const key of PERIOD_PARAMS) {
+    params.delete(key);
+    if (period[key]) params.set(key, period[key]);
+  }
+  if (topicSlug) {
+    params.delete('t');
+    params.delete('t-add');
+    params.set('t', topicSlug);
+  }
   const api = context.get(apiContext);
   const query = params.get('q')?.trim().slice(0, MAX_INDICATOR_QUERY_LENGTH) ?? '';
 
@@ -125,10 +143,16 @@ export async function loadSearch({ context, request }: LoaderFunctionArgs) {
     }
 
     const search = next.toString();
-    throw redirect(`/search${search ? `?${search}` : ''}`, { status: 302 });
+    throw redirect(`${path}${search ? `?${search}` : ''}`, { status: 302 });
   }
 
-  const searchQuery = buildSearchQuery(query, params, displayGroups, gaCodes);
+  let searchQuery = buildSearchQuery(query, params, displayGroups, gaCodes);
+  if (topicSlug) {
+    const requested = Number(params.get('page'));
+    const page = Number.isSafeInteger(requested) && requested > 0 ? requested : 1;
+    const sort = params.get('sort');
+    searchQuery += `&page=${page}&sort=${sort === 'name-desc' || sort === 'period-desc' || sort === 'trend-desc' || sort === 'trend-asc' ? sort : 'name-asc'}`;
+  }
 
   const [facets, searchResult, geographyOptions] = await Promise.all([
     api.get('/api/indicators/facets', indicatorFacetsSchema),
@@ -143,7 +167,7 @@ export async function loadSearch({ context, request }: LoaderFunctionArgs) {
 
   return {
     q: query,
-    topics: pickStrings(params, 't'),
+    topics: topicSlug ? [] : pickStrings(params, 't'),
     indicatorTypes: pickStrings(params, 'it'),
     riskFactors: pickStrings(params, 'rf'),
     frameworks: pickStrings(params, 'fw'),
@@ -155,6 +179,7 @@ export async function loadSearch({ context, request }: LoaderFunctionArgs) {
     geoLevels: validatedGeo,
     gaCodes,
     gaAreaNames,
+    ...period,
     displayGroups,
     facets,
     searchResult,

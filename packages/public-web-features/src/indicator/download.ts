@@ -6,6 +6,13 @@ import { type ConfidenceLevel, segmentLabel, unitNote, withUnit } from './data.t
 import type { IndicatorAreaData, IndicatorDetail } from './loader.ts';
 import type { trendTableModel } from './trend.ts';
 
+export function tableCsv(rows: (string | number | null)[][]): string {
+  return stringify(rows, {
+    escape_formulas: true,
+    cast: { number: (value) => ({ value: String(value), escape_formulas: false }) },
+  });
+}
+
 /** The trend table as displayed, including its selected intervals and benchmarks. */
 export function trendCsv(
   indicator: IndicatorDetail,
@@ -121,7 +128,7 @@ export function comparisonCsv(
   range: boolean,
 ): string {
   const { areas, rows, trendOf, benchmarkNameFor, benchmarkCellFor } = comparison;
-  return stringify([
+  return tableCsv([
     [
       'Indicator',
       'Most recent period',

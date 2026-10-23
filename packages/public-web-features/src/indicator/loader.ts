@@ -101,6 +101,7 @@ function selectedIndicatorIds(url: URL, routeShortId: number | undefined): numbe
 async function loadIndicatorData(
   { context, params, request }: LoaderFunctionArgs,
   includePageData: boolean,
+  tableDisplayGroups?: string[],
 ) {
   const url = new URL(request.url);
 
@@ -171,7 +172,7 @@ async function loadIndicatorData(
     nonEnglandCodes.length > 0
       ? api.get(`/api/areas/lookup?${codeQuery}`, areaLookupListSchema)
       : Promise.resolve([]),
-    nonEnglandCodes.length > 0
+    nonEnglandCodes.length > 0 && tableDisplayGroups === undefined
       ? api.get(
           `/api/areas/parents?${codeQuery}&parentType=${encodeURIComponent('Regions (statistical)')}`,
           areaParentListSchema,
@@ -179,9 +180,11 @@ async function loadIndicatorData(
       : Promise.resolve([]),
     // The user-facing levels live on area_type now; the list validates `als` values after
     // the fact (level expansion tolerates unknown groups) and feeds the tree.
-    includePageData
-      ? api.get('/api/areas/display-groups', displayGroupListSchema)
-      : Promise.resolve([]),
+    tableDisplayGroups !== undefined
+      ? Promise.resolve(tableDisplayGroups)
+      : includePageData
+        ? api.get('/api/areas/display-groups', displayGroupListSchema)
+        : Promise.resolve([]),
   ]);
   const areaLevels = requestedLevels.filter((level) => displayGroups.includes(level));
   const geographyOptions = includePageData
@@ -310,4 +313,8 @@ export async function loadIndicator(args: LoaderFunctionArgs) {
 export async function loadComparisonData(args: LoaderFunctionArgs) {
   const { selected, benchmarkGeography } = await loadIndicatorData(args, false);
   return { selected, benchmarkGeography };
+}
+
+export async function loadIndicatorTableData(args: LoaderFunctionArgs, displayGroups: string[]) {
+  return loadIndicatorData(args, false, displayGroups);
 }

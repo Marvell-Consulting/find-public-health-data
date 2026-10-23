@@ -6,14 +6,18 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { loadTopic, loadTopics } from './loader.ts';
 
-function loaderArgs(api: ApiClient, params: Record<string, string> = {}): LoaderFunctionArgs {
+function loaderArgs(
+  api: ApiClient,
+  params: Record<string, string> = {},
+  query = '',
+): LoaderFunctionArgs {
   const context = new RouterContextProvider();
   context.set(apiContext, api);
 
   return {
     context,
     params,
-    request: new Request('http://localhost/topics'),
+    request: new Request(`http://localhost/topics${query}`),
   } as unknown as LoaderFunctionArgs;
 }
 
@@ -45,9 +49,37 @@ describe('loadTopics', () => {
   });
 });
 
+function topicApi(indicators: { shortId: number; name: string; slug: string }[] = []) {
+  return vi.fn(async (path: string) => {
+    if (path.startsWith('/api/topics/'))
+      return { slug: 'topic-a', title: 'Topic A', description: 'About topic A' };
+    if (path === '/api/areas/display-groups') return [];
+    if (path === '/api/indicators/facets')
+      return { topics: [], classifications: [], sources: [], valueTypes: [], yearTypes: [] };
+    if (path.startsWith('/api/indicators/search?'))
+      return { total: indicators.length, limit: 200, indicators };
+    if (/^\/api\/indicators\/\d+$/.test(path))
+      return { shortId: Number(path.split('/').at(-1)), name: 'Indicator', slug: 'indicator' };
+    if (path.includes('/data?')) return [];
+    throw new Error(`Unexpected API path: ${path}`);
+  });
+}
+
 describe('loadTopic', () => {
+  it.each(['', '?tab-topic=publications', '?tab-topic=invalid'])(
+    'loads only the topic content for %s',
+    async (query) => {
+      const get = topicApi();
+      const result = await loadTopic(
+        loaderArgs({ get } as unknown as ApiClient, { slug: 'topic-a' }, query),
+      );
+      expect(result.content).toBeNull();
+      expect(get).toHaveBeenCalledExactlyOnceWith('/api/topics/topic-a', expect.anything());
+    },
+  );
+
   it('requests the topic by slug', async () => {
-    const get = vi.fn().mockResolvedValue({});
+    const get = topicApi();
 
     await loadTopic(loaderArgs({ get } as unknown as ApiClient, { slug: 'topic-a' }));
 
@@ -57,7 +89,7 @@ describe('loadTopic', () => {
   it.each([['../internal'], ['../../health']])(
     'escapes a slug of %s so it cannot traverse onto another api route',
     async (slug) => {
-      const get = vi.fn().mockResolvedValue({});
+      const get = topicApi();
 
       await loadTopic(loaderArgs({ get } as unknown as ApiClient, { slug }));
 
@@ -65,6 +97,37 @@ describe('loadTopic', () => {
       expect(String(get.mock.calls[0]?.[0])).toMatch(/^\/api\/topics\/[^/]+$/);
     },
   );
+
+  it('keeps the route topic as the only topic filter even with a forged query selection', async () => {
+    const get = topicApi();
+    await loadTopic(
+      loaderArgs(
+        { get } as unknown as ApiClient,
+        { slug: 'topic-a' },
+        '?tab-topic=data&t=another-topic&is=999',
+      ),
+    );
+    expect(get).toHaveBeenCalledWith(
+      '/api/indicators/search?t=topic-a&page=1&sort=name-asc',
+      expect.anything(),
+    );
+    expect(get.mock.calls.some(([path]) => path === '/api/indicators/999')).toBe(false);
+  });
+
+  it('loads only the requested page of topic indicators through the comparison loader', async () => {
+    const indicators = Array.from({ length: 12 }, (_, index) => ({
+      shortId: index + 1,
+      name: `Indicator ${String(index + 1).padStart(2, '0')}`,
+      slug: `indicator-${index + 1}`,
+    }));
+    const get = topicApi(indicators);
+    const result = await loadTopic(
+      loaderArgs({ get } as unknown as ApiClient, { slug: 'topic-a' }, '?tab-topic=data&page=2'),
+    );
+    expect(result.content?.listing.indicators.map(({ shortId }) => shortId)).toEqual([11, 12]);
+    expect(result.content?.data.selected.map(({ detail }) => detail.shortId)).toEqual([11, 12]);
+    expect(get.mock.calls.some(([path]) => path === '/api/indicators/1')).toBe(false);
+  });
 
   it('fails with a developer-facing error when the route supplies no slug', async () => {
     const get = vi.fn();
