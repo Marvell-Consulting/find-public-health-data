@@ -68,7 +68,7 @@ describe('internal application routes', () => {
       />,
     );
 
-    expect(screen.getAllByRole('radio')).toHaveLength(2);
+    expect(screen.getAllByRole('radio')).toHaveLength(7);
     expect(screen.queryByText('Alex Morgan')).toBeNull();
     expect(screen.getByText('Sam Taylor')).toBeTruthy();
     expect(screen.getByText('Riley Singh')).toBeTruthy();
@@ -195,9 +195,17 @@ describe('the role-gated route tables', () => {
 
   // Each role middleware is declared once, on its layout. If a route escapes it the page is
   // reachable by any internal user, and nothing else in the app would say so.
-  it('keeps every dashboard and publishing route under the publisher layout', () => {
+  it('keeps every dashboard route under the dashboard layout', () => {
+    const dashboard = findLayout(routes, 'dashboard.tsx');
+    const gated = pathsIn(routes).filter((path) => /^dashboard(\/|$)/.test(path));
+
+    expect(dashboard?.children?.map((child) => child.path)).toEqual(gated);
+    expect(gated).toContain('dashboard/indicators/:id');
+  });
+
+  it('keeps every publishing route under the publisher layout', () => {
     const publisher = findLayout(routes, 'publisher.tsx');
-    const gated = pathsIn(routes).filter((path) => /^(dashboard|publish)(\/|$)/.test(path));
+    const gated = pathsIn(routes).filter((path) => /^publish(\/|$)/.test(path));
 
     expect(publisher?.children?.map((child) => child.path)).toEqual(gated);
     expect(gated).toContain('publish/indicators/:id/task-list');
@@ -211,8 +219,10 @@ describe('the role-gated route tables', () => {
     expect(gated).toContain('manage');
   });
 
-  it('nests both role layouts inside the authenticated one', () => {
+  it('nests the role layouts inside the authenticated one', () => {
     const authenticated = findLayout(routes, 'authenticated.tsx');
+
+    expect(findLayout(authenticated?.children ?? [], 'dashboard.tsx')).toBeDefined();
 
     expect(findLayout(authenticated?.children ?? [], 'publisher.tsx')).toBeDefined();
     expect(findLayout(authenticated?.children ?? [], 'admin.tsx')).toBeDefined();
@@ -305,8 +315,10 @@ describe('the delete topic confirmation page', () => {
     id: '00000000-0000-7000-8000-000000000001',
     slug: 'air-quality',
     title: 'Air quality',
+    description: 'About air quality.',
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-08-04T23:30:00.000Z',
+    linkedIndicatorCount: 0,
   };
 
   it('names the topic and warns the delete cannot be undone', async () => {
@@ -338,7 +350,7 @@ describe('the edit topic page', () => {
   const values = { title: 'Air quality', slug: 'air-quality', description: 'About air quality.' };
 
   it('pre-fills the form and offers a way back to the list', async () => {
-    renderPage(<EditTopicPage topicId={topicId} values={values} />);
+    renderPage(<EditTopicPage linkedIndicatorCount={0} topicId={topicId} values={values} />);
 
     expect((await screen.findByLabelText('Topic name')).getAttribute('value')).toBe('Air quality');
     expect(screen.getByLabelText('Slug').getAttribute('value')).toBe('air-quality');
@@ -349,7 +361,9 @@ describe('the edit topic page', () => {
   });
 
   it('submits back to the same URL with a plain form, so it works without JavaScript', async () => {
-    const { container } = renderPage(<EditTopicPage topicId={topicId} values={values} />);
+    const { container } = renderPage(
+      <EditTopicPage linkedIndicatorCount={0} topicId={topicId} values={values} />,
+    );
 
     expect(await screen.findByRole('button', { name: 'Save' })).toBeTruthy();
 
@@ -359,13 +373,20 @@ describe('the edit topic page', () => {
   });
 
   it('shows the success message the save left behind', async () => {
-    renderPage(<EditTopicPage notification="Topic updated" topicId={topicId} values={values} />);
+    renderPage(
+      <EditTopicPage
+        linkedIndicatorCount={0}
+        notification="Topic updated"
+        topicId={topicId}
+        values={values}
+      />,
+    );
 
     expect(await screen.findByText('Topic updated')).toBeTruthy();
   });
 
   it('links to the delete confirmation page for this topic', async () => {
-    renderPage(<EditTopicPage topicId={topicId} values={values} />);
+    renderPage(<EditTopicPage linkedIndicatorCount={0} topicId={topicId} values={values} />);
 
     expect((await screen.findByRole('link', { name: 'Delete topic' })).getAttribute('href')).toBe(
       `/manage/topics/${topicId}/delete`,
@@ -373,7 +394,9 @@ describe('the edit topic page', () => {
   });
 
   it('shows no notification banner when there is nothing to report', async () => {
-    const { container } = renderPage(<EditTopicPage topicId={topicId} values={values} />);
+    const { container } = renderPage(
+      <EditTopicPage linkedIndicatorCount={0} topicId={topicId} values={values} />,
+    );
 
     expect(await screen.findByRole('button', { name: 'Save' })).toBeTruthy();
     expect(container.querySelector('.govuk-notification-banner')).toBeNull();
@@ -382,6 +405,7 @@ describe('the edit topic page', () => {
   it('summarises errors in field order, each linking to its control', async () => {
     renderPage(
       <EditTopicPage
+        linkedIndicatorCount={0}
         fieldErrors={{ description: 'Enter a description', title: 'Enter a topic name' }}
         topicId={topicId}
         values={{ ...values, title: '', description: '' }}
@@ -406,6 +430,7 @@ describe('the edit topic page', () => {
   it('repeats each message against its own field and keeps what was typed', async () => {
     const { container } = renderPage(
       <EditTopicPage
+        linkedIndicatorCount={0}
         fieldErrors={{ slug: 'Enter a slug' }}
         topicId={topicId}
         values={{ ...values, slug: '', title: 'A half-finished edit' }}

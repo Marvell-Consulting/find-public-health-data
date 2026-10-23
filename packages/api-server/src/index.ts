@@ -2,13 +2,14 @@ import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { InvalidJwtSessionError } from '@fphd/auth/session-errors';
 import {
   createBaseApp,
+  requestId,
   requestLogging,
   type StartServerOptions,
   serverLogging,
   startServer,
 } from '@fphd/express';
 import type { Logger } from '@fphd/logger';
-import type { ErrorRequestHandler, Express, RequestHandler, Response } from 'express';
+import type { ErrorRequestHandler, Express, Request, RequestHandler, Response } from 'express';
 import { json } from 'express';
 
 export function createApiApp({
@@ -22,7 +23,7 @@ export function createApiApp({
 
   // Ahead of every route, so a miss is logged as well as a hit. The probes sit on the base app
   // above and never reach it. The id a web app forwarded is kept, so both logs share it.
-  app.use(requestLogging(logger, { acceptsForwardedId: true }));
+  app.use(requestLogging(logger, { servesWebApps: true }));
   app.use(json());
 
   app.get('/api', (_request, response) => {
@@ -82,6 +83,7 @@ export function addFallbackHandlers(app: Express) {
 export interface ApiSession {
   roles: readonly string[];
   sub: string;
+  teams: readonly string[];
 }
 
 // Express types every local as `any`, so both ends of the one key we set go through this view.
@@ -89,18 +91,37 @@ function sessionLocals(response: Response): { apiSession?: ApiSession } {
   return response.locals;
 }
 
-/** The session `requireJwtRole` verified; only a handler mounted behind it can ask for it. */
+/** The session a guard verified; only a handler mounted behind one can ask for it. */
 export function requireApiSession(response: Response): ApiSession {
   const session = sessionLocals(response).apiSession;
 
   if (session === undefined) {
-    throw new Error('requireApiSession called outside a route guarded by requireJwtRole');
+    throw new Error('requireApiSession called outside a guarded route');
   }
 
   return session;
 }
 
+/** Who makes a change, and the request it came in, as the audit log records them. */
+export interface ApiActor {
+  userId: string;
+  requestId: string | null;
+}
+
+/** The signed-in user and the request id, for a handler whose write records its actor. */
+export function requireApiActor(request: Request, response: Response): ApiActor {
+  return { userId: requireApiSession(response).sub, requestId: requestId(request) ?? null };
+}
+
 export function requireJwtRole(verifier: JwtSessionVerifier, role: string): RequestHandler {
+  return requireJwtSession(verifier, (session) => session.roles.includes(role));
+}
+
+/** Admits a verified session that `allows` admits, such as a check from `@fphd/auth/permissions`. */
+export function requireJwtSession(
+  verifier: JwtSessionVerifier,
+  allows: (session: ApiSession) => boolean,
+): RequestHandler {
   return async (request, response, next) => {
     const token = verifier.readToken(request.headers.cookie ?? null);
 
@@ -110,14 +131,15 @@ export function requireJwtRole(verifier: JwtSessionVerifier, role: string): Requ
     }
 
     try {
-      const session = await verifier.verifyToken(token);
+      const { roles, sub, teams } = await verifier.verifyToken(token);
+      const session = { roles, sub, teams };
 
-      if (!session.roles.includes(role)) {
+      if (!allows(session)) {
         response.status(403).json({ error: 'forbidden' });
         return;
       }
 
-      sessionLocals(response).apiSession = { roles: session.roles, sub: session.sub };
+      sessionLocals(response).apiSession = session;
 
       next();
     } catch (error) {

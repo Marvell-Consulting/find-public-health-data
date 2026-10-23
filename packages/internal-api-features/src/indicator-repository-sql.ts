@@ -12,15 +12,23 @@ export const UNIQUE_VIOLATION = '23505';
 // The slug exclusion constraint: another indicator already holds the slug this name yields.
 export const EXCLUSION_VIOLATION = '23P01';
 
-/** Drizzle wraps the driver error, so the SQLSTATE is on a `cause` rather than the error thrown. */
-export function hasSqlState(error: unknown, sqlState: string): boolean {
+/** Drizzle wraps the driver error, so its fields are on a `cause` rather than the error thrown. */
+function hasCause(error: unknown, field: 'code' | 'constraint_name', value: string): boolean {
   for (let current = error; current !== null && current !== undefined; ) {
     if (typeof current !== 'object') return false;
-    if ('code' in current && (current as { code?: unknown }).code === sqlState) return true;
+    if (field in current && (current as Record<string, unknown>)[field] === value) return true;
     current = (current as { cause?: unknown }).cause;
   }
 
   return false;
+}
+
+export function hasSqlState(error: unknown, sqlState: string): boolean {
+  return hasCause(error, 'code', sqlState);
+}
+
+export function violatesConstraint(error: unknown, constraint: string): boolean {
+  return hasCause(error, 'constraint_name', constraint);
 }
 
 /**
@@ -46,6 +54,10 @@ export const latestUpdatedAt =
   sql`greatest(${draftVersion.updatedAt}, ${publishedVersion.updatedAt})`.mapWith(
     indicatorVersion.updatedAt,
   );
+// Who made the edit latestUpdatedAt dates: the draft's editor on a tie, as it is the newer work.
+export const latestUpdatedBy = sql<string | null>`case
+  when ${publishedVersion.updatedAt} is null or ${draftVersion.updatedAt} >= ${publishedVersion.updatedAt}
+  then ${draftVersion.updatedBy} else ${publishedVersion.updatedBy} end`;
 // Both statuses are read from the versions as SQL, so a filter or sort on either is a WHERE clause.
 export const indicatorStatus = sql<IndicatorStatus>`case when ${currentPublishedVersion.id} is not null then 'live' else 'new' end`;
 // The draft join fixes the status it matches, which narrows the column from the version enum.

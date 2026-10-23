@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { TEAM_IDS } from '@fphd/auth';
 import type { IndicatorAdminDetail } from '@fphd/internal-api-features/contract';
 import { describe, expect, it } from 'vitest';
 
@@ -9,6 +10,7 @@ const indicator: IndicatorAdminDetail = {
   id: '019a1b2c-3d4e-7f60-8a9b-0c1d2e3f4a5b',
   shortId: 90366,
   name: 'Life expectancy at birth',
+  teamId: TEAM_IDS.teamA,
   publishedSlug: null,
   indicatorStatus: 'new',
   draftStatus: 'draft',

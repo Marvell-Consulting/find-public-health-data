@@ -4,8 +4,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDb, type Database } from './client.ts';
 import { dbEnvFields, resolveDbTls } from './env.ts';
-import { type TopicRecord, topic } from './schema.ts';
-import { createTestDatabase, type TestDatabase } from './testing.ts';
+import { SYSTEM_USER_IDS, type TopicRecord, topic } from './schema.ts';
+import { auditEntriesFor, createTestDatabase, type TestDatabase } from './testing.ts';
 import { upsertTopics } from './topic-repository.ts';
 
 const env = parseEnv(
@@ -84,6 +84,34 @@ describe('topics import (integration)', () => {
     expect(rows).toHaveLength(2);
   });
 
+  it('records each topic it inserted as created by the core data import', async () => {
+    expect(await auditEntriesFor(db, topicA.id)).toEqual([
+      {
+        actorId: SYSTEM_USER_IDS.coreDataImport,
+        action: 'topic.created',
+        entityType: 'topic',
+        requestId: null,
+        changes: {
+          id: { before: null, after: topicA.id },
+          slug: { before: null, after: topicA.slug },
+          title: { before: null, after: topicA.title },
+          description: { before: null, after: topicA.description },
+        },
+      },
+    ]);
+  });
+
+  it('writes the rows as the core data import', async () => {
+    const rows = await db
+      .select({ createdBy: topic.createdBy, updatedBy: topic.updatedBy })
+      .from(topic);
+
+    expect(rows).toEqual([
+      { createdBy: SYSTEM_USER_IDS.coreDataImport, updatedBy: SYSTEM_USER_IDS.coreDataImport },
+      { createdBy: SYSTEM_USER_IDS.coreDataImport, updatedBy: SYSTEM_USER_IDS.coreDataImport },
+    ]);
+  });
+
   it('is idempotent on a re-run, leaving updated_at untouched', async () => {
     const before = await requireRow(topicA.id);
 
@@ -93,9 +121,14 @@ describe('topics import (integration)', () => {
 
     const after = await requireRow(topicA.id);
     expect(after.updatedAtText).toBe(before.updatedAtText);
+    expect(await auditEntriesFor(db, topicA.id)).toHaveLength(1);
   });
 
-  it('updates a renamed title in place and bumps updated_at', async () => {
+  it('updates a renamed title in place and bumps updated_at and updated_by', async () => {
+    await db
+      .update(topic)
+      .set({ updatedBy: SYSTEM_USER_IDS.testSeed })
+      .where(eq(topic.id, topicA.id));
     const before = await requireRow(topicA.id);
     const renamed: TopicRecord = { ...topicA, title: 'Topic A Renamed' };
 
@@ -105,6 +138,11 @@ describe('topics import (integration)', () => {
 
     const after = await requireRow(topicA.id);
     expect(after.title).toBe('Topic A Renamed');
+    expect(after.updatedBy).toBe(SYSTEM_USER_IDS.coreDataImport);
+    expect((await auditEntriesFor(db, topicA.id)).at(-1)).toMatchObject({
+      action: 'topic.updated',
+      changes: { title: { before: 'Topic A', after: 'Topic A Renamed' } },
+    });
     expect(after.updatedAtText).not.toBe(before.updatedAtText);
     expect(after.updatedAt.getTime()).toBeGreaterThanOrEqual(before.updatedAt.getTime());
   });

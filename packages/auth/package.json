@@ -20,6 +20,11 @@
       "types": "./src/jwt-session.ts",
       "default": "./dist/jwt-session.js"
     },
+    "./permissions": {
+      "development": "./src/permissions.ts",
+      "types": "./src/permissions.ts",
+      "default": "./dist/permissions.js"
+    },
     "./session-errors": {
       "development": "./src/session-errors.ts",
       "types": "./src/session-errors.ts",

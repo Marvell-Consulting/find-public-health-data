@@ -15,10 +15,10 @@ import {
   upsertComparatorMethods,
   upsertOrderedNames,
 } from './named-core-data.ts';
-import { valueType } from './schema/index.ts';
+import { SYSTEM_USER_IDS, valueType } from './schema/index.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
 import { loadIndicatorVersions } from './seeding.ts';
-import { createTestDatabase, type TestDatabase } from './testing.ts';
+import { auditEntriesFor, createTestDatabase, type TestDatabase } from './testing.ts';
 
 function committed(list: string, file: string): NamedRecord[] {
   const path = new URL(`../data/${file}`, import.meta.url);
@@ -106,6 +106,13 @@ describe('upsertOrderedNames', () => {
       unchanged: VALUE_TYPES.length - 2,
     });
     expect(swapped.orphaned).toEqual([{ id: stray?.id, name: 'A value type no file lists' }]);
+    expect((await auditEntriesFor(db, first.id)).at(-1)).toEqual(
+      expect.objectContaining({
+        actorId: SYSTEM_USER_IDS.coreDataImport,
+        action: 'value_type.updated',
+        changes: { position: { before: 0, after: 1 } },
+      }),
+    );
     expect((await positions()).slice(0, 3)).toEqual([
       { name: 'A value type no file lists', position: 0 },
       { name: second.name, position: 0 },
@@ -156,6 +163,10 @@ describe('upsertComparatorMethods', () => {
     expect(again.summary).toEqual({ inserted: 0, updated: 0, unchanged: 1 });
     expect(renamed.summary).toEqual({ inserted: 0, updated: 1, unchanged: 0 });
     expect(renamed.orphaned).toEqual([{ id: stray?.id, name: 'A method no file lists' }]);
+    expect((await auditEntriesFor(db, method.id)).map(({ action }) => action)).toEqual([
+      'comparator_method.created',
+      'comparator_method.updated',
+    ]);
   });
 });
 
@@ -182,7 +193,7 @@ describe('loadIndicatorVersions with comparator methods', () => {
       join(directory, 'indicator_version.csv.gz'),
       gzipSync(
         'indicator_id,status,published_at,name,slug,comparator_method_id,created_by,updated_by\n' +
-          `${indicatorId},published,2026-01-01T00:00:00Z,A seeded indicator,a-seeded-indicator,${sourceId},seed,seed\n`,
+          `${indicatorId},published,2026-01-01T00:00:00Z,A seeded indicator,a-seeded-indicator,${sourceId},${SYSTEM_USER_IDS.pholioMigration},${SYSTEM_USER_IDS.pholioMigration}\n`,
       ),
     );
   });

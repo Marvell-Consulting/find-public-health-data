@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createGunzip } from 'node:zlib';
 
+import { schema } from '@fphd/db';
 import { slugify } from '@fphd/utils/slug';
 import { parse } from 'csv-parse';
 import postgres, { type TransactionSql } from 'postgres';
@@ -28,6 +29,8 @@ const indicatorConfig = {
   },
 } as const;
 const indicatorIds = Object.keys(indicatorConfig).map(Number);
+// The user the imported records are written by.
+const TEST_SEED_USER_ID = schema.SYSTEM_USER_IDS.testSeed;
 const validFrom: Record<number, string> = {
   173: '2020-04-01',
   174: '2021-04-01',
@@ -313,7 +316,7 @@ async function addIndicators(
         ${nc.has_caveats}, ${nc.caveats_detail},
         ${nc.has_other_notes}, ${nc.other_notes_detail},
         ${await namedId(tx, 'data_source', descriptive.DataSource)},
-        ${updatedAt}, 'fingertips-api-seed', ${updatedAt}, 'fingertips-api-seed')
+        ${updatedAt}, ${TEST_SEED_USER_ID}, ${updatedAt}, ${TEST_SEED_USER_ID})
     `;
 
     for (const [part, sourceName] of [
@@ -343,7 +346,7 @@ async function addIndicators(
     await tx`
       INSERT INTO upload_batch
         (id, indicator_id, original_filename, uploaded_by, uploaded_at, status, validation_result)
-      VALUES (${batchId}, ${id}, ${`fingertips-${shortId}.csv`}, 'fingertips-api-seed',
+      VALUES (${batchId}, ${id}, ${`fingertips-${shortId}.csv`}, ${TEST_SEED_USER_ID},
         ${updatedAt}, 'processed', ${tx.json({ source: 'Public Fingertips API', validated: true })})
     `;
   }
@@ -400,7 +403,6 @@ async function addObservations(
       published_at: publishedAt,
       upload_batch_id: batches.get(shortId),
       created_at: publishedAt,
-      created_by: 'fingertips-api-seed',
     });
     const names: Record<string, string> = {};
     if (row.Sex && row.Sex !== 'Persons') names.Sex = row.Sex;
@@ -457,7 +459,9 @@ async function exportChangedTables(
       .slice(0, header.indexOf('\n'))
       .trim()
       .split(',')
-      .map((column) => column.replaceAll('"', ''));
+      .map((column) => column.replaceAll('"', ''))
+      // The table has no created_by for observations: the batch's uploader is the writer.
+      .filter((column) => table !== 'observation' || column !== 'created_by');
     const quoted = columns.map((column) => `"${column}"`).join(', ');
     await writeGzipped(
       await sql

@@ -47,8 +47,8 @@ export function AppShell({
 
   return (
     <GovUKPage
-      {...(backHref === undefined ? {} : { backHref })}
-      {...(backText === undefined ? {} : { backText })}
+      backHref={backHref}
+      backText={backText}
       meta={footerLinks}
       navigation={navigation}
       phase={isInternal ? 'Internal' : 'Alpha'}

@@ -1,3 +1,4 @@
+export * from './audit-log.ts';
 export * from './cache.ts';
 export * from './classification.ts';
 export * from './data-migration.ts';
@@ -8,5 +9,7 @@ export * from './indicator.ts';
 export * from './lookup.ts';
 export * from './observation.ts';
 export * from './published.ts';
+export * from './team.ts';
 export * from './topic.ts';
 export * from './upload.ts';
+export * from './user.ts';

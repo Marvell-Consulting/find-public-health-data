@@ -33,11 +33,17 @@ export default [
     route('indicators/:slug', '../../../packages/public-web-features/src/indicator/route.tsx', {
       id: 'indicator-detail',
     }),
-    layout('./publisher.tsx', [
+    layout('./dashboard.tsx', [
       route('dashboard', '../../../packages/internal-web-features/src/dashboard/route.tsx'),
       route(
         'dashboard/indicators/:id',
         '../../../packages/internal-web-features/src/indicator-overview/route.tsx',
+      ),
+    ]),
+    layout('./publisher.tsx', [
+      route(
+        'publish/indicators/new/team',
+        '../../../packages/internal-web-features/src/indicator-team/route.tsx',
       ),
       route(
         'publish/indicators/new',
@@ -58,6 +64,10 @@ export default [
       route(
         'publish/indicators/:id/data-table/problems',
         '../../../packages/internal-web-features/src/indicator-data-table/problems-route.tsx',
+      ),
+      route(
+        'publish/indicators/:id/data-table/check',
+        '../../../packages/internal-web-features/src/indicator-data-table/check-route.tsx',
       ),
       route(
         'publish/indicators/:id/definition-and-rationale',

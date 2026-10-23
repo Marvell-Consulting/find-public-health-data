@@ -1,11 +1,13 @@
-import { requireJwtRole } from '@fphd/api-server';
+import { requireApiActor, requireJwtRole } from '@fphd/api-server';
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import type { Topic } from '@fphd/db';
 import { Router } from 'express';
 
 import {
   type TopicAdminDetail,
+  type TopicAdminDetailWithLinkCount,
   type TopicAdminSummary,
+  type TopicDeleteError,
   toFieldErrors,
   topicFieldSchema,
   topicIdSchema,
@@ -53,7 +55,7 @@ export function internalTopicsRouter(
       return;
     }
 
-    const result = await topics.create(submission.data);
+    const result = await topics.create(submission.data, requireApiActor(request, response));
 
     if (!result.ok) {
       response
@@ -74,14 +76,19 @@ export function internalTopicsRouter(
       return;
     }
 
-    const topic = await topics.findById(id.data);
+    const [topic, linkedIndicatorCount] = await Promise.all([
+      topics.findById(id.data),
+      topics.countLinkedIndicators(id.data),
+    ]);
 
     if (!topic) {
       response.status(404).json({ error: 'not_found' });
       return;
     }
 
-    response.status(200).json(toDetail(topic));
+    response
+      .status(200)
+      .json({ ...toDetail(topic), linkedIndicatorCount } satisfies TopicAdminDetailWithLinkCount);
   });
 
   router.put('/api/internal/topics/:id', requireAdmin, async (request, response) => {
@@ -103,7 +110,11 @@ export function internalTopicsRouter(
       return;
     }
 
-    const result = await topics.update(id.data, submission.data);
+    const result = await topics.update(
+      id.data,
+      submission.data,
+      requireApiActor(request, response),
+    );
 
     if (!result.ok) {
       if (result.reason === 'not_found') {
@@ -128,9 +139,14 @@ export function internalTopicsRouter(
       return;
     }
 
-    const result = await topics.delete(id.data);
+    const result = await topics.delete(id.data, requireApiActor(request, response));
 
     if (!result.ok) {
+      if (result.reason === 'in_use') {
+        response.status(409).json({ error: 'in_use' } satisfies TopicDeleteError);
+        return;
+      }
+
       response.status(404).json({ error: 'not_found' });
       return;
     }

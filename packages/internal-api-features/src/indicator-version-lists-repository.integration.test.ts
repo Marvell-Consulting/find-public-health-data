@@ -1,11 +1,12 @@
 import { schema } from '@fphd/db';
+import { auditEntriesFor } from '@fphd/db/testing';
 import { MAX_AGE } from '@fphd/utils/sex-and-ages';
 import { desc, eq } from 'drizzle-orm';
 import { describe, expect } from 'vitest';
 
 import { getIndicatorDraftState, updateIndicatorDraft } from './indicator-draft-repository.ts';
 import {
-  ACTOR,
+  AS_ACTOR,
   classificationIn,
   commentary,
   fingertips,
@@ -39,7 +40,7 @@ describe('updateIndicatorDraft', () => {
         classificationIds: { indicator_type: [classified.id] },
         links: [commentary],
       },
-      ACTOR,
+      AS_ACTOR,
     );
 
     await updateIndicatorDraft(
@@ -47,7 +48,7 @@ describe('updateIndicatorDraft', () => {
       created.indicatorId,
       { name: 'Keeps its links renamed' },
       {},
-      ACTOR,
+      AS_ACTOR,
     );
 
     expect(await storedTopicIdsOf(db, created.versionId)).toEqual([topic.id]);
@@ -71,7 +72,7 @@ describe('updateIndicatorDraft', () => {
         created.indicatorId,
         {},
         { classificationIds: { population: [population.id], risk_factor: [riskFactor.id] } },
-        ACTOR,
+        AS_ACTOR,
       );
 
       await updateIndicatorDraft(
@@ -79,12 +80,17 @@ describe('updateIndicatorDraft', () => {
         created.indicatorId,
         {},
         { classificationIds: { indicator_type: [type.id], risk_factor: [] } },
-        ACTOR,
+        AS_ACTOR,
       );
 
       expect(await storedClassificationIdsOf(db, created.versionId)).toEqual(
         [population.id, type.id].sort(),
       );
+      // Each dimension given is its own list in the log; the population it left is not in it.
+      expect((await auditEntriesFor(db, created.indicatorId)).at(-1)?.changes).toEqual({
+        'classificationIds.indicatorType': { before: [], after: [type.id] },
+        'classificationIds.riskFactor': { before: [riskFactor.id], after: [] },
+      });
     },
   );
 
@@ -105,7 +111,7 @@ describe('updateIndicatorDraft', () => {
         topicIds: topics.map(({ id }) => id),
         classificationIds: { risk_factor: [riskFactor.id] },
       },
-      ACTOR,
+      AS_ACTOR,
     );
 
     const state = await getIndicatorDraftState(db, created.indicatorId);
@@ -128,17 +134,17 @@ describe('updateIndicatorDraft', () => {
         created.indicatorId,
         { hasLinks: true },
         { links: [commentary, fingertips] },
-        ACTOR,
+        AS_ACTOR,
       );
       const first = await getIndicatorDraftState(db, created.indicatorId);
-      await updateIndicatorDraft(db, created.indicatorId, {}, { links: [fingertips] }, ACTOR);
+      await updateIndicatorDraft(db, created.indicatorId, {}, { links: [fingertips] }, AS_ACTOR);
       const replaced = await getIndicatorDraftState(db, created.indicatorId);
       await updateIndicatorDraft(
         db,
         created.indicatorId,
         { hasLinks: false },
         { links: [] },
-        ACTOR,
+        AS_ACTOR,
       );
       const cleared = await getIndicatorDraftState(db, created.indicatorId);
 
@@ -158,7 +164,7 @@ describe('updateIndicatorDraft', () => {
         created.indicatorId,
         { sexes: ['females', 'males'], ageType: 'range' },
         { ageRanges: [underFive, sixteenPlus] },
-        ACTOR,
+        AS_ACTOR,
       );
       const first = await getIndicatorDraftState(db, created.indicatorId);
       await updateIndicatorDraft(
@@ -166,7 +172,7 @@ describe('updateIndicatorDraft', () => {
         created.indicatorId,
         { ageType: 'specific', specificAge: 5, specificAgeUnit: 'weeks' },
         { ageRanges: [] },
-        ACTOR,
+        AS_ACTOR,
       );
       const replaced = await getIndicatorDraftState(db, created.indicatorId);
 
@@ -193,14 +199,14 @@ describe('updateIndicatorDraft', () => {
       created.indicatorId,
       { ageType: 'range' },
       { ageRanges: [oldest] },
-      ACTOR,
+      AS_ACTOR,
     );
     await updateIndicatorDraft(
       db,
       created.indicatorId,
       { ageType: 'specific', specificAge: MAX_AGE, specificAgeUnit: 'days' },
       {},
-      ACTOR,
+      AS_ACTOR,
     );
 
     expect((await getIndicatorDraftState(db, created.indicatorId))?.draft).toMatchObject({
@@ -223,7 +229,7 @@ describe('updateIndicatorDraft', () => {
     const created = await newDraft(db, `Refuses a range with ${name}`);
 
     await expect(
-      updateIndicatorDraft(db, created.indicatorId, {}, { ageRanges: [ageRange] }, ACTOR),
+      updateIndicatorDraft(db, created.indicatorId, {}, { ageRanges: [ageRange] }, AS_ACTOR),
     ).rejects.toThrow();
   });
 
@@ -243,7 +249,7 @@ describe('updateIndicatorDraft', () => {
         created.indicatorId,
         { ageType: 'range' },
         { ageRanges: [firstYear] },
-        ACTOR,
+        AS_ACTOR,
       );
 
       expect(await storedAgeRangesOf(db, created.versionId)).toEqual([firstYear]);
@@ -261,7 +267,7 @@ describe('updateIndicatorDraft', () => {
         created.indicatorId,
         {},
         { numeratorSources: [liveBirths, onsAlone], denominatorSources: [onsAlone] },
-        ACTOR,
+        AS_ACTOR,
       );
       const first = await getIndicatorDraftState(db, created.indicatorId);
       await updateIndicatorDraft(
@@ -269,7 +275,7 @@ describe('updateIndicatorDraft', () => {
         created.indicatorId,
         {},
         { numeratorSources: [onsAlone] },
-        ACTOR,
+        AS_ACTOR,
       );
       const replaced = await getIndicatorDraftState(db, created.indicatorId);
 
@@ -299,7 +305,7 @@ describe('updateIndicatorDraft', () => {
         created.indicatorId,
         {},
         { numeratorSources: [{ providerId: other.id, sourceId: liveBirths.sourceId }] },
-        ACTOR,
+        AS_ACTOR,
       ),
     ).rejects.toThrow();
   });
@@ -316,7 +322,7 @@ describe('indicator_version_classification', () => {
       created.indicatorId,
       {},
       { classificationIds: { indicator_type: [classified.id] } },
-      ACTOR,
+      AS_ACTOR,
     );
 
     const rows = await db

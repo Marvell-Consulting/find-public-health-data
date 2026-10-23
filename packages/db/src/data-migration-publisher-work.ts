@@ -1,5 +1,6 @@
 import type postgres from 'postgres';
 
+import { MIGRATION_USER_ID } from './data-migration-actors.ts';
 import { quoteIdentifiers } from './data-migration-copy.ts';
 
 const observationOwner = `
@@ -29,8 +30,8 @@ export async function assertMigrationPublisherRowsUnchanged(
   const [publisher] = await tx<{ present: boolean }[]>`
     SELECT EXISTS (
       SELECT 1 FROM indicator_version
-      WHERE status = 'draft' OR created_by IS DISTINCT FROM 'pholio-migration'
-        OR updated_by IS DISTINCT FROM 'pholio-migration'
+      WHERE status = 'draft' OR created_by IS DISTINCT FROM ${MIGRATION_USER_ID}
+        OR updated_by IS DISTINCT FROM ${MIGRATION_USER_ID}
     ) AS present
   `;
   if (!publisher?.present) return;
@@ -50,13 +51,13 @@ export async function assertMigrationPublisherRowsUnchanged(
     WITH protected_indicators AS (
       SELECT DISTINCT v.indicator_id FROM indicator_version v WHERE v.status = 'draft' OR (
         v.id IN (SELECT id FROM current_published_version)
-        AND (v.created_by IS DISTINCT FROM 'pholio-migration'
-          OR v.updated_by IS DISTINCT FROM 'pholio-migration')
+        AND (v.created_by IS DISTINCT FROM '${MIGRATION_USER_ID}'
+          OR v.updated_by IS DISTINCT FROM '${MIGRATION_USER_ID}')
       )
     ), protected_versions AS (
       SELECT v.id, v.indicator_id FROM indicator_version v
-      WHERE v.created_by IS DISTINCT FROM 'pholio-migration'
-        OR v.updated_by IS DISTINCT FROM 'pholio-migration'
+      WHERE v.created_by IS DISTINCT FROM '${MIGRATION_USER_ID}'
+        OR v.updated_by IS DISTINCT FROM '${MIGRATION_USER_ID}'
         OR v.indicator_id IN (SELECT indicator_id FROM protected_indicators)
     )
     SELECT DISTINCT "shortId" FROM (${touched}) conflicts ORDER BY "shortId"

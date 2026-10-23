@@ -1,3 +1,4 @@
+import { TEAM_IDS } from '@fphd/auth';
 import { DATA_TABLE_MAX_BYTES, DATA_TABLE_MESSAGES } from '@fphd/internal-api-features/contract';
 import { type ApiClient, ApiTimeoutError } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
@@ -5,6 +6,7 @@ import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 import { FORM_NOT_SAVED } from '../form-refusal.ts';
+import { signedInContext } from '../session.testing.ts';
 import {
   DATA_TABLE_TOO_SLOW,
   exceedsFormLimit,
@@ -22,9 +24,16 @@ function contextWith(client: Partial<ApiClient>) {
   return context;
 }
 
-function load<T>(loader: (args: never) => T, client: Partial<ApiClient>, id = ID) {
+async function load<T>(
+  loader: (args: never) => T,
+  client: Partial<ApiClient>,
+  id = ID,
+  teams: readonly string[] = [TEAM_IDS.teamA],
+) {
+  const context = await signedInContext(['publisher'], teams);
+  context.set(apiContext, client as ApiClient);
   return loader({
-    context: contextWith(client),
+    context,
     params: { id },
     request: new Request(`https://internal.test/publish/indicators/${id}/data-table`),
   } as never);
@@ -53,10 +62,18 @@ function locationOf(outcome: unknown) {
 
 describe('loadDataTableUpload', () => {
   it('opens for a draft', async () => {
-    const get = vi.fn().mockResolvedValue({ draftStatus: 'draft' });
+    const get = vi.fn().mockResolvedValue({ draftStatus: 'draft', teamId: TEAM_IDS.teamA });
 
     expect(await load(loadDataTableUpload, { get })).toEqual({ id: ID });
     expect(get.mock.calls[0]?.[0]).toBe(`/api/internal/indicators/${ID}`);
+  });
+
+  it("is not found for another team's draft, which the publisher may not edit", async () => {
+    const get = vi.fn().mockResolvedValue({ draftStatus: 'draft', teamId: TEAM_IDS.teamA });
+
+    await expect(load(loadDataTableUpload, { get }, ID, [TEAM_IDS.teamB])).rejects.toMatchObject({
+      status: 404,
+    });
   });
 
   it('is not found for an indicator with no draft', async () => {
@@ -125,12 +142,12 @@ describe('uploadDataTable', () => {
     expect(request.bodyUsed).toBe(false);
   });
 
-  it('returns to the task list once the file has loaded', async () => {
+  it('moves on to the check page once the file has loaded', async () => {
     const postStream = vi.fn().mockResolvedValue({ ok: true, data: { id: ID, rowCount: 3 } });
 
     const { outcome } = await upload(postStream);
 
-    expect(locationOf(outcome)).toBe(`/publish/indicators/${ID}/task-list`);
+    expect(locationOf(outcome)).toBe(`/publish/indicators/${ID}/data-table/check`);
   });
 
   it('shows the problems page when the file was refused', async () => {

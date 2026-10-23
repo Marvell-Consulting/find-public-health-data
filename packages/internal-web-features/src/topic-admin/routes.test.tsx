@@ -3,15 +3,16 @@ import { describe, expect, it } from 'vitest';
 
 import { handle as deleteHandle } from './delete-route.tsx';
 import { handle as editHandle } from './edit-route.tsx';
-import type { TopicAdminDetail } from './loader.ts';
+import type { TopicAdminDetailWithLinkCount } from './loader.ts';
 import { handle as newHandle } from './new-route.tsx';
 
-const topic: TopicAdminDetail = {
+const topic: TopicAdminDetailWithLinkCount = {
   id: '019a1b2c-3d4e-7f60-8a9b-0c1d2e3f4a5b',
   slug: 'smoking',
   createdAt: '2026-08-01T09:30:00.000Z',
   title: 'Smoking',
   description: 'About smoking.',
+  linkedIndicatorCount: 0,
   updatedAt: '2026-09-01T09:30:00.000Z',
 };
 

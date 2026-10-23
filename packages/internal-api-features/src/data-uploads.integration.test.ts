@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { BlobServiceClient } from '@azure/storage-blob';
 import { appEnvFields, parseEnv, z } from '@fphd/config';
 import { createDb, type Database, dbEnvFields, dimensionKey, resolveDbTls, schema } from '@fphd/db';
-import { createTestDatabase } from '@fphd/db/testing';
+import { auditEntriesFor, createTestDatabase } from '@fphd/db/testing';
 import { request } from '@fphd/express/testing';
 import { BlobNotFoundError, createAzureBlobStorage } from '@fphd/internal-storage';
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
@@ -19,12 +19,14 @@ import { cancellable, processDataUpload, stageRows } from './data-upload-load-re
 import { dataUploadsRouter } from './data-uploads.ts';
 import { updateIndicatorDraft } from './indicator-draft-repository.ts';
 import { createDraftFromPublished } from './indicator-publish-repository.ts';
-import { ACTOR, newDraft } from './indicator-repository.testing.ts';
+import { AS_ACTOR, newDraft } from './indicator-repository.testing.ts';
 import { createInternalRepositories } from './repositories.ts';
 import {
   createCapturingLogger,
   createRouterTestApp,
   handlerLogLines,
+  TEST_TEAM_ID,
+  TEST_USER_ID,
   testSessionCookie,
   testSessionVerifier,
 } from './testing.ts';
@@ -86,6 +88,7 @@ const storage = await createAzureBlobStorage({
 const app = createRouterTestApp(
   dataUploadsRouter(
     createInternalRepositories(internalDb).dataUploads,
+    createInternalRepositories(internalDb).indicators,
     storage,
     testSessionVerifier,
   ),
@@ -140,7 +143,10 @@ async function rowsOf(batchId: string) {
     .orderBy(asc(observation.value));
 }
 
-/** Published indicators with no draft open, the nth of them, so each test takes its own. */
+/**
+ * Published indicators with no draft open, the nth of them, so each test takes its own, moved from
+ * Fingertips into the test session's team so its publisher may edit it.
+ */
 async function publishedWithoutDraft(nth: number): Promise<string> {
   const rows = await ownerDb
     .select({ indicatorId: currentPublishedVersion.indicatorId })
@@ -157,6 +163,10 @@ async function publishedWithoutDraft(nth: number): Promise<string> {
   const row = rows[nth];
   if (row === undefined)
     throw new Error(`the seed has no published indicator ${nth} without a draft`);
+  await ownerDb
+    .update(schema.indicator)
+    .set({ teamId: TEST_TEAM_ID })
+    .where(eq(schema.indicator.id, row.indicatorId));
   return row.indicatorId;
 }
 
@@ -184,7 +194,7 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
       indicatorId,
       status: 'processed',
       originalFilename: 'life.csv',
-      uploadedBy: 'test-user',
+      uploadedBy: TEST_USER_ID,
       blobName: `${indicatorId}/${batchId}.csv`,
       byteSize: Buffer.byteLength(VALID_CSV),
       sha256: expect.stringMatching(/^[0-9a-f]{64}$/),
@@ -198,14 +208,14 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
     expect(await draftOf(ownerDb, indicatorId)).toMatchObject({
       uploadBatchId: batchId,
       dataTableConfirmedAt: null,
-      updatedBy: 'test-user',
+      updatedBy: TEST_USER_ID,
     });
 
     const rows = await rowsOf(batchId);
-    expect(rows.map(({ value, count, createdBy }) => ({ value, count, createdBy }))).toEqual([
-      { value: 83.1, count: 1200, createdBy: 'test-user' },
-      { value: 83.8, count: 1234, createdBy: 'test-user' },
-      { value: null, count: null, createdBy: 'test-user' },
+    expect(rows.map(({ value, count }) => ({ value, count }))).toEqual([
+      { value: 83.1, count: 1200 },
+      { value: 83.8, count: 1234 },
+      { value: null, count: null },
     ]);
   });
 
@@ -274,6 +284,7 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
     const logged = createRouterTestApp(
       dataUploadsRouter(
         createInternalRepositories(internalDb).dataUploads,
+        createInternalRepositories(internalDb).indicators,
         storage,
         testSessionVerifier,
       ),
@@ -453,7 +464,7 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
 
   it("keeps the published batch through an update draft's failed and loaded uploads", async () => {
     const indicatorId = await publishedWithoutDraft(2);
-    const draftResult = await createDraftFromPublished(internalDb, indicatorId, ACTOR);
+    const draftResult = await createDraftFromPublished(internalDb, indicatorId, AS_ACTOR);
     if (!draftResult.ok) throw new Error('expected an update draft');
     const publishedBatchId = (await draftOf(ownerDb, indicatorId)).uploadBatchId;
     if (publishedBatchId === null) throw new Error('the update draft copied no batch');
@@ -490,7 +501,7 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
       WHERE indicator_id = ${indicatorId} ORDER BY id`;
     const before = await ownerDb.execute(publishedRows);
     expect(before.length).toBeGreaterThan(0);
-    const draftResult = await createDraftFromPublished(internalDb, indicatorId, ACTOR);
+    const draftResult = await createDraftFromPublished(internalDb, indicatorId, AS_ACTOR);
     if (!draftResult.ok) throw new Error('expected an update draft');
     const publishedBatchId = (await draftOf(ownerDb, indicatorId)).uploadBatchId;
     if (publishedBatchId === null) throw new Error('the update draft copied no batch');
@@ -525,6 +536,73 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'no_draft' });
+  });
+});
+
+describe('the audit log of uploads', () => {
+  it('records a loaded batch, naming its indicator and version, under the request', async () => {
+    const { indicatorId, versionId } = await newDraft(internalDb, 'Upload on the record');
+
+    const response = await upload(indicatorId, VALID_CSV, 'life.csv');
+
+    const [entry, ...others] = await auditEntriesFor(ownerDb, response.body.id);
+    expect(others).toEqual([]);
+    expect(entry).toMatchObject({
+      actorId: TEST_USER_ID,
+      action: 'upload_batch.loaded',
+      entityType: 'upload_batch',
+      requestId: response.headers['x-fphd-request-id'],
+    });
+    expect(entry?.changes).toMatchObject({
+      id: { before: null, after: response.body.id },
+      indicatorId: { before: null, after: indicatorId },
+      indicatorVersionId: { before: null, after: versionId },
+      originalFilename: { before: null, after: 'life.csv' },
+      byteSize: { before: null, after: Buffer.byteLength(VALID_CSV) },
+      status: { before: null, after: 'processed' },
+      rowCount: { before: null, after: 3 },
+      columnNames: { before: null, after: HEADER.split(',') },
+    });
+  });
+
+  it('records a refused batch with its problems', async () => {
+    const { indicatorId } = await newDraft(internalDb, 'Refusal on the record');
+
+    const response = await upload(
+      indicatorId,
+      `${HEADER}\nE99999999,2019-04-01,2020-03-31,1,,,,,,`,
+    );
+
+    const [entry] = await auditEntriesFor(ownerDb, response.body.id);
+    expect(entry).toMatchObject({ action: 'upload_batch.refused' });
+    expect(entry?.changes).toMatchObject({
+      indicatorId: { before: null, after: indicatorId },
+      status: { before: null, after: 'failed' },
+      validationResult: { before: null, after: response.body.problems },
+    });
+  });
+
+  it('records each batch an upload replaces, every column before', async () => {
+    const { indicatorId } = await newDraft(internalDb, 'Replacement on the record');
+    const first = await upload(indicatorId, VALID_CSV);
+
+    const second = await upload(indicatorId, `${HEADER}\nE12000001,2021-04-01,2022-03-31,7,,,,,,`);
+
+    const entries = await auditEntriesFor(ownerDb, first.body.id);
+    expect(entries.map(({ action }) => action)).toEqual([
+      'upload_batch.loaded',
+      'upload_batch.deleted',
+    ]);
+    expect(entries[1]).toMatchObject({
+      actorId: TEST_USER_ID,
+      requestId: second.headers['x-fphd-request-id'],
+    });
+    expect(entries[1]?.changes).toMatchObject({
+      id: { before: first.body.id, after: null },
+      indicatorId: { before: indicatorId, after: null },
+      rowCount: { before: 3, after: null },
+      uploadedBy: { before: TEST_USER_ID, after: null },
+    });
   });
 });
 
@@ -571,7 +649,7 @@ describe('processDataUpload', () => {
       originalFilename: 'data.csv',
       byteSize: Buffer.byteLength(VALID_CSV),
       sha256: '0'.repeat(64),
-      actor: ACTOR,
+      actor: AS_ACTOR,
     };
     return { indicatorId, batchId, blobName, upload };
   }
@@ -591,7 +669,13 @@ describe('processDataUpload', () => {
     const uploaded = processDataUpload(internalDb, upload, openFile, new AbortController().signal);
     await reached;
     const saved = await Promise.race([
-      updateIndicatorDraft(internalDb, indicatorId, { definition: 'Saved meanwhile' }, {}, ACTOR),
+      updateIndicatorDraft(
+        internalDb,
+        indicatorId,
+        { definition: 'Saved meanwhile' },
+        {},
+        AS_ACTOR,
+      ),
       new Promise((resolve) => setTimeout(() => resolve('blocked'), 2000)),
     ]);
     file.end(await text(await storage.get(blobName)));
@@ -647,6 +731,7 @@ describe('processDataUpload', () => {
 
     expect(await batchOf(batchId)).toBeUndefined();
     expect((await draftOf(ownerDb, indicatorId)).uploadBatchId).toBeNull();
+    expect(await auditEntriesFor(ownerDb, batchId)).toEqual([]);
   });
 
   it('rolls back when the upload is abandoned as its rows are read', async () => {

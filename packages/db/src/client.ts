@@ -60,7 +60,11 @@ export function createDb(connection: DbConnection): Database {
  * Constructing it mutates the client: drizzle writes transparent date/time parsers into
  * `client.options`, so from then on raw queries on the same client return timestamp and
  * date columns as strings, not Dates. Raw readers of date/time columns on a shared client
- * must cast (`::text`) and parse explicitly.
+ * must cast (`::text`) and parse explicitly. It also makes the json and jsonb serialisers
+ * pass-throughs, since drizzle stringifies those values itself, so a raw `json()` value on
+ * the client is no longer serialised, and a client drizzle never wrapped stringifies
+ * drizzle's JSON a second time. JSON written through both kinds of client should go as
+ * text cast to jsonb (`::text::jsonb`), as `recordAudit` does.
  */
 export function createDbFromClient(client: postgres.Sql): Database {
   return drizzle(client, { schema, casing: 'snake_case' });

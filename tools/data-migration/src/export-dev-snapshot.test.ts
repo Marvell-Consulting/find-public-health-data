@@ -21,6 +21,7 @@ it('builds an archive accepted by the receiver using the real tidy and rekey pip
   const manifest = await verifyPublishedSnapshot(directory);
   expect(manifest.tables.indicator?.rows).toBe(1325);
   expect(manifest.reference_names).toBe('tidied');
+  expect(manifest.writers).toBe('users');
   const source = JSON.parse(await readFile(join(directory, 'source-manifest.json'), 'utf8'));
   expect(source.reference_names).toBe('tidied');
   const values = [];

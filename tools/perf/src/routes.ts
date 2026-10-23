@@ -1,3 +1,5 @@
+import { DATA_TABLE_DRAFT } from './fixtures.ts';
+
 export type App = 'public-web' | 'internal-web' | 'public-api' | 'internal-api';
 
 export type Route = {
@@ -6,6 +8,11 @@ export type Route = {
   path: string;
   /** A median slower than this fails the route: 5–10 times CI's usual median (see the README). */
   limitMs: number;
+  /**
+   * Who an internal route is requested as: the admin for admin pages and for the seeded indicators,
+   * which are in Fingertips and so hidden from publishers, otherwise the publisher.
+   */
+  as?: 'admin';
 };
 
 export const ORIGINS: Record<App, string> = {
@@ -26,8 +33,14 @@ const DIABETES = { shortId: 241, id: '01a00ab4-ce0a-70c1-b22b-f8192c94a59d' };
 const DIABETES_SLUG = 'diabetes-qof-prevalence';
 const MORTALITY_SLUG = 'under-75-mortality-rate-from-all-causes';
 const AREAS = ['E92000001', 'E08000003', 'E07000223', 'E07000032', 'E06000047'];
+const DATA_TABLE = `/api/internal/indicators/${DATA_TABLE_DRAFT.indicatorId}/data-table`;
+// The deepest page the API counts from the start: the last page that starts in the first half.
+const DEEPEST_DATA_TABLE_PAGE = `page=${Math.floor(DATA_TABLE_DRAFT.rowCount / 2 / 50) + 1}&rowsPerPage=50`;
 
-/** Read-only GETs over the seeded data: the common pages and the heaviest queries behind them. */
+/**
+ * Read-only GETs over the seeded data, and the draft data table the fixture adds: the common pages
+ * and the heaviest queries behind them.
+ */
 export const ROUTES: Route[] = [
   { app: 'public-web', path: '/', limitMs: 500 },
   { app: 'public-web', path: '/search?q=mortality', limitMs: 500 },
@@ -64,9 +77,14 @@ export const ROUTES: Route[] = [
   { app: 'public-web', path: `/indicators/${DIABETES_SLUG}/table.csv`, limitMs: 1000 },
   { app: 'public-web', path: `/indicators/${MORTALITY_SLUG}/all-data.csv`, limitMs: 1000 },
 
-  { app: 'internal-web', path: '/dashboard', limitMs: 500 },
-  { app: 'internal-web', path: `/dashboard/indicators/${DIABETES.id}`, limitMs: 500 },
-  { app: 'internal-web', path: '/manage/topics', limitMs: 500 },
+  { app: 'internal-web', path: '/dashboard', limitMs: 500, as: 'admin' },
+  { app: 'internal-web', path: `/dashboard/indicators/${DIABETES.id}`, limitMs: 500, as: 'admin' },
+  { app: 'internal-web', path: '/manage/topics', limitMs: 500, as: 'admin' },
+  {
+    app: 'internal-web',
+    path: `/publish/indicators/${DATA_TABLE_DRAFT.indicatorId}/data-table/check`,
+    limitMs: 500,
+  },
   {
     app: 'internal-web',
     path: '/topics/mortality-and-life-expectancy?tab-topic=data',
@@ -100,7 +118,14 @@ export const ROUTES: Route[] = [
   { app: 'public-api', path: `/api/areas?${GP_PRACTICES}`, limitMs: 250 },
   { app: 'public-api', path: '/api/areas/search?q=leeds', limitMs: 250 },
 
-  { app: 'internal-api', path: '/api/internal/indicators', limitMs: 250 },
-  { app: 'internal-api', path: `/api/internal/indicators/${DIABETES.id}`, limitMs: 250 },
-  { app: 'internal-api', path: '/api/internal/topics', limitMs: 250 },
+  { app: 'internal-api', path: '/api/internal/indicators', limitMs: 250, as: 'admin' },
+  {
+    app: 'internal-api',
+    path: `/api/internal/indicators/${DIABETES.id}`,
+    limitMs: 250,
+    as: 'admin',
+  },
+  { app: 'internal-api', path: '/api/internal/topics', limitMs: 250, as: 'admin' },
+  { app: 'internal-api', path: DATA_TABLE, limitMs: 250 },
+  { app: 'internal-api', path: `${DATA_TABLE}?${DEEPEST_DATA_TABLE_PAGE}`, limitMs: 250 },
 ];

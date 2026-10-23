@@ -1,7 +1,8 @@
+import { periodLabel } from '@fphd/utils/period-label';
 import { stringify } from 'csv-stringify/sync';
 
 import type { comparisonTable } from './comparison.ts';
-import { type ConfidenceLevel, periodLabel, segmentLabel, unitNote, withUnit } from './data.ts';
+import { type ConfidenceLevel, segmentLabel, unitNote, withUnit } from './data.ts';
 import type { IndicatorAreaData, IndicatorDetail } from './loader.ts';
 import type { trendTableModel } from './trend.ts';
 

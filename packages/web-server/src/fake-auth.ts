@@ -2,7 +2,7 @@ import {
   type AppAudience,
   type FakeUser,
   normalizeReturnTo,
-  sessionRolesForAudience,
+  sessionAccessForAudience,
 } from '@fphd/auth';
 import type { JwtSessionService } from '@fphd/auth/jwt-session';
 import express, { type Router } from 'express';
@@ -94,10 +94,12 @@ export function createFakeAuthRouter({
     }
 
     pendingSignIns.delete(code);
+    const { roles, teams } = sessionAccessForAudience(signIn.user, audience);
     const token = await session.issueToken({
       expiresInSeconds: sessionLifetimeSeconds,
-      roles: sessionRolesForAudience(signIn.user, audience),
+      roles,
       subject: signIn.user.id,
+      teams,
     });
 
     response.setHeader('Set-Cookie', session.createCookieHeader(token, sessionLifetimeSeconds));

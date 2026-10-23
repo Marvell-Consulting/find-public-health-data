@@ -7,7 +7,14 @@ import express, { type Express } from 'express';
 import { pino } from 'pino';
 import { describe, expect, it } from 'vitest';
 
-import { addFallbackHandlers, createApiApp, requireApiSession, requireJwtRole } from './index.ts';
+import {
+  addFallbackHandlers,
+  createApiApp,
+  requireApiActor,
+  requireApiSession,
+  requireJwtRole,
+  requireJwtSession,
+} from './index.ts';
 
 const logger = createLogger({ name: 'test-api', level: 'silent' });
 
@@ -179,6 +186,13 @@ function createGuardedApp(): Express {
   app.get('/guarded', requireJwtRole(verifier, 'publisher'), (_request, response) => {
     response.status(200).json(requireApiSession(response));
   });
+  app.get(
+    '/checked',
+    requireJwtSession(verifier, (asking) => asking.teams.includes('team-1')),
+    (_request, response) => {
+      response.status(200).json(requireApiSession(response));
+    },
+  );
   app.get('/unguarded', (_request, response) => {
     response.status(200).json(requireApiSession(response));
   });
@@ -186,8 +200,8 @@ function createGuardedApp(): Express {
   return app;
 }
 
-async function cookieFor(subject: string, roles: readonly string[]) {
-  const token = await session.issueToken({ expiresInSeconds: 900, roles, subject });
+async function cookieFor(subject: string, roles: readonly string[], teams: readonly string[] = []) {
+  const token = await session.issueToken({ expiresInSeconds: 900, roles, subject, teams });
   return session.createCookieHeader(token, 900);
 }
 
@@ -218,13 +232,34 @@ describe('requireJwtRole', () => {
     expect(response.body).toEqual({ error: 'forbidden' });
   });
 
-  it('hands the verified subject and roles to the handler behind it', async () => {
+  it('hands the verified subject, roles and teams to the handler behind it', async () => {
     const response = await request(createGuardedApp())
       .get('/guarded')
-      .set('Cookie', await cookieFor('publisher-1', ['internal', 'publisher']));
+      .set('Cookie', await cookieFor('publisher-1', ['internal', 'publisher'], ['team-1']));
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ roles: ['internal', 'publisher'], sub: 'publisher-1' });
+    expect(response.body).toEqual({
+      roles: ['internal', 'publisher'],
+      sub: 'publisher-1',
+      teams: ['team-1'],
+    });
+  });
+});
+
+describe('requireJwtSession', () => {
+  it('admits the sessions its check admits and refuses the rest', async () => {
+    const app = createGuardedApp();
+    const admitted = await request(app)
+      .get('/checked')
+      .set('Cookie', await cookieFor('in-team', ['internal'], ['team-1']));
+    const refused = await request(app)
+      .get('/checked')
+      .set('Cookie', await cookieFor('elsewhere', ['internal'], ['team-2']));
+
+    expect(admitted.status).toBe(200);
+    expect(admitted.body).toMatchObject({ sub: 'in-team' });
+    expect(refused.status).toBe(403);
+    expect(refused.body).toEqual({ error: 'forbidden' });
   });
 });
 
@@ -233,5 +268,36 @@ describe('requireApiSession', () => {
     const response = await request(createGuardedApp()).get('/unguarded');
 
     expect(response.status).toBe(500);
+  });
+});
+
+describe('requireApiActor', () => {
+  it("gives the signed-in user and the request's id", async () => {
+    const app = createApiApp({ logger, serviceName: 'test-api' });
+    app.get('/acting', requireJwtRole(verifier, 'publisher'), (request, response) => {
+      response.status(200).json(requireApiActor(request, response));
+    });
+
+    const response = await request(app)
+      .get('/acting')
+      .set('Cookie', await cookieFor('user-1', ['publisher']));
+
+    expect(response.body).toEqual({
+      userId: 'user-1',
+      requestId: response.headers['x-fphd-request-id'],
+    });
+  });
+
+  it('gives no request id where nothing assigned one', async () => {
+    const app = express();
+    app.get('/acting', requireJwtRole(verifier, 'publisher'), (request, response) => {
+      response.status(200).json(requireApiActor(request, response));
+    });
+
+    const response = await request(app)
+      .get('/acting')
+      .set('Cookie', await cookieFor('user-1', ['publisher']));
+
+    expect(response.body).toEqual({ userId: 'user-1', requestId: null });
   });
 });

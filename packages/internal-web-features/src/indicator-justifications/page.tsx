@@ -32,6 +32,7 @@ export function JustificationsPage(form: SectionPageProps<JustificationsField>) 
           defaultValue={values[name]}
           error={fieldErrors[name]}
           label={label}
+          labelHeading="h2"
           name={name}
           rows={5}
         />

@@ -1,5 +1,5 @@
 import { type PeriodTypeField, periodTypeSection } from '@fphd/internal-api-features/contract';
-import { DayMonthInput, datePartId, datePartName, firstRadioId, Radios } from '@fphd/ui';
+import { DateInput, datePartId, datePartName, firstRadioId, Radios } from '@fphd/ui';
 import {
   PERIOD_TYPE_LABELS,
   PERIOD_TYPES_WITH_YEAR_TYPE,
@@ -50,10 +50,7 @@ interface YearTypeQuestionProps {
 
 function YearTypeQuestion({ fieldErrors, set, values }: YearTypeQuestionProps) {
   const { yearEndDay, yearEndMonth, yearType: yearTypeError } = fieldErrors;
-  const yearEndError = {
-    ...(yearEndDay === undefined ? {} : { day: yearEndDay }),
-    ...(yearEndMonth === undefined ? {} : { month: yearEndMonth }),
-  };
+  const yearEndError = { day: yearEndDay, month: yearEndMonth };
 
   return (
     <Radios
@@ -72,11 +69,14 @@ function YearTypeQuestion({ fieldErrors, set, values }: YearTypeQuestionProps) {
           label: YEAR_TYPE_LABELS['specified-end-date'],
           value: 'specified-end-date',
           conditional: (
-            <DayMonthInput
+            <DateInput
               defaultValue={{ day: values.yearEndDay, month: values.yearEndMonth }}
               error={yearEndError}
+              // Without one of its own the component offers an example; the design asks for none.
+              hint={null}
               label={<span className="govuk-visually-hidden">Enter date</span>}
               name={`${set}YearEnd`}
+              year={false}
             />
           ),
         },

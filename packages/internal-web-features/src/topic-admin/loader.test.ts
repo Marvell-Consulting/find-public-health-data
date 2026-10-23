@@ -17,7 +17,7 @@ import {
   loadAdminTopicToEdit,
   saveTopic,
 } from './loader.ts';
-import { editTopicPath, TOPICS_ADMIN_PATH } from './paths.ts';
+import { deleteTopicPath, editTopicPath, TOPICS_ADMIN_PATH } from './paths.ts';
 
 const flashStorage = createFlashSessionStorage({
   audience: 'internal',
@@ -109,7 +109,9 @@ describe('loadAdminTopics', () => {
 
   it('leaves the flash for the next attempt when the API fails', async () => {
     const { response: written } = await run(deleteTopic, {
-      context: createContext(fakeApi({ delete: () => Promise.resolve(undefined) })),
+      context: createContext(
+        fakeApi({ delete: () => Promise.resolve({ ok: true, data: undefined }) }),
+      ),
       method: 'POST',
       params: { id: topic.id },
     });
@@ -321,7 +323,7 @@ describe('loadAdminTopicToDelete', () => {
 
 describe('deleteTopic', () => {
   it('deletes by id, then redirects to the list with a flash', async () => {
-    const del = vi.fn().mockResolvedValue(undefined);
+    const del = vi.fn().mockResolvedValue({ ok: true, data: undefined });
 
     const { response } = await run(deleteTopic, {
       context: createContext(fakeApi({ delete: del })),
@@ -333,6 +335,20 @@ describe('deleteTopic', () => {
     expect(response.status).toBe(302);
     expect(response.headers.get('Location')).toBe(TOPICS_ADMIN_PATH);
     expect(response.headers.get('Set-Cookie')).toContain('fphd-internal-flash=');
+  });
+
+  it('sends a topic linked since the confirmation loaded back to that page, unflashed', async () => {
+    const del = vi.fn().mockResolvedValue({ ok: false, status: 409, error: { error: 'in_use' } });
+
+    const { response } = await run(deleteTopic, {
+      context: createContext(fakeApi({ delete: del })),
+      method: 'POST',
+      params: { id: topic.id },
+    });
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get('Location')).toBe(deleteTopicPath(topic.id));
+    expect(response.headers.get('Set-Cookie')).toBeNull();
   });
 
   it('answers a malformed id with a 404 rather than calling the API', async () => {
@@ -366,7 +382,9 @@ describe('the message a create or delete leaves for the page it redirects to', (
 
   it('tells the topic list that the topic was deleted', async () => {
     const { response } = await run(deleteTopic, {
-      context: createContext(fakeApi({ delete: () => Promise.resolve(undefined) })),
+      context: createContext(
+        fakeApi({ delete: () => Promise.resolve({ ok: true, data: undefined }) }),
+      ),
       method: 'POST',
       params: { id: topic.id },
     });

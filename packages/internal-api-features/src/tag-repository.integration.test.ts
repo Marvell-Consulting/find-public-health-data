@@ -5,6 +5,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { listTagOptions } from './tag-repository.ts';
 
+const ACTOR = schema.SYSTEM_USER_IDS.testSeed;
+
 const env = parseEnv(
   z.object({
     ...dbEnvFields,
@@ -40,10 +42,12 @@ beforeAll(async () => {
 
   const topics = await db
     .insert(schema.topic)
-    .values([
-      { slug: 'smoking', title: 'Smoking', description: 'About smoking.' },
-      { slug: 'alcohol', title: 'Alcohol', description: 'About alcohol.' },
-    ])
+    .values(
+      [
+        { slug: 'smoking', title: 'Smoking', description: 'About smoking.' },
+        { slug: 'alcohol', title: 'Alcohol', description: 'About alcohol.' },
+      ].map((record) => ({ ...record, createdBy: ACTOR, updatedBy: ACTOR })),
+    )
     .returning({ id: schema.topic.id, name: schema.topic.title });
   const classifications = await db
     .insert(schema.classification)

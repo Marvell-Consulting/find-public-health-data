@@ -1,8 +1,10 @@
 import { backLinkHandle, titleFromPage } from '@fphd/ui';
 import { useActionData } from 'react-router';
 import { DASHBOARD_PATH } from '../dashboard/paths.ts';
-import { createIndicator, type IndicatorNameFailure } from './loader.ts';
+import { createIndicator, type IndicatorNameFailure, loadNewIndicator } from './loader.ts';
 import { IndicatorNamePage } from './page.tsx';
+
+export const loader = loadNewIndicator;
 
 export const action = createIndicator;
 

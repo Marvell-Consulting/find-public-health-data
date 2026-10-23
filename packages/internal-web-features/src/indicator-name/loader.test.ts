@@ -1,23 +1,38 @@
+import { TEAM_IDS } from '@fphd/auth';
 import type { ApiClient } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 import { FORM_NOT_SAVED } from '../form-refusal.ts';
-import { createIndicator, loadIndicatorName, saveIndicatorName } from './loader.ts';
+import { signedInContext } from '../session.testing.ts';
+import {
+  createIndicator,
+  loadIndicatorName,
+  loadNewIndicator,
+  saveIndicatorName,
+} from './loader.ts';
 
 const created = {
   id: '00000000-0000-7000-8000-000000000001',
   shortId: 90366,
   name: 'Life expectancy at birth',
+  teamId: TEAM_IDS.teamA,
   publishedSlug: null,
   updatedAt: '2026-01-02T00:00:00.000Z',
   indicatorStatus: 'new',
   draftStatus: 'draft',
 };
 
-function submit(name: string, post: ApiClient['post']) {
-  const context = new RouterContextProvider();
+async function submit(
+  name: string,
+  post: ApiClient['post'],
+  {
+    teams = [TEAM_IDS.teamA],
+    url = 'https://internal.test/publish/indicators/new',
+  }: { teams?: readonly string[]; url?: string } = {},
+) {
+  const context = await signedInContext(['publisher'], teams);
   context.set(apiContext, { post } as unknown as ApiClient);
 
   const body = new URLSearchParams({ name });
@@ -25,12 +40,57 @@ function submit(name: string, post: ApiClient['post']) {
   return createIndicator({
     context,
     params: {},
-    request: new Request('https://internal.test/publish/indicators/new', {
-      method: 'POST',
-      body,
-    }),
+    request: new Request(url, { method: 'POST', body }),
   } as never);
 }
+
+async function loadNew(url: string, teams: readonly string[]) {
+  return loadNewIndicator({
+    context: await signedInContext(['publisher'], teams),
+    params: {},
+    request: new Request(url),
+  } as never);
+}
+
+function redirectsTo(location: string) {
+  return (thrown: unknown) =>
+    thrown instanceof Response &&
+    thrown.status === 302 &&
+    thrown.headers.get('location') === location;
+}
+
+const NEW_URL = 'https://internal.test/publish/indicators/new';
+const TEAM_PAGE = '/publish/indicators/new/team';
+
+describe('loadNewIndicator', () => {
+  it('asks a publisher in one team for the name, with no team to choose', async () => {
+    await expect(loadNew(NEW_URL, [TEAM_IDS.teamB])).resolves.toBeNull();
+  });
+
+  it('asks a publisher in several teams for the name once they have chosen one', async () => {
+    const url = `${NEW_URL}?team=${TEAM_IDS.teamB}`;
+
+    await expect(loadNew(url, [TEAM_IDS.teamA, TEAM_IDS.teamB])).resolves.toBeNull();
+  });
+
+  it('sends a publisher in several teams to choose one first', async () => {
+    await expect(loadNew(NEW_URL, [TEAM_IDS.teamA, TEAM_IDS.teamB])).rejects.toSatisfy(
+      redirectsTo(TEAM_PAGE),
+    );
+  });
+
+  it('sends a publisher whose address names a team not theirs to choose one', async () => {
+    const url = `${NEW_URL}?team=${TEAM_IDS.teamC}`;
+
+    await expect(loadNew(url, [TEAM_IDS.teamA, TEAM_IDS.teamB])).rejects.toSatisfy(
+      redirectsTo(TEAM_PAGE),
+    );
+  });
+
+  it('answers 404 to a publisher in no team, who has nowhere to put an indicator', async () => {
+    await expect(loadNew(NEW_URL, [])).rejects.toSatisfy(isNotFound);
+  });
+});
 
 function accepts(data: unknown = created) {
   return vi.fn().mockResolvedValue({ ok: true, data });
@@ -43,7 +103,10 @@ describe('createIndicator', () => {
     const outcome = await submit('Life expectancy at birth', post);
 
     expect(post.mock.calls[0]?.[0]).toBe('/api/internal/indicators');
-    expect(post.mock.calls[0]?.[1]).toEqual({ name: 'Life expectancy at birth' });
+    expect(post.mock.calls[0]?.[1]).toEqual({
+      name: 'Life expectancy at birth',
+      teamId: TEAM_IDS.teamA,
+    });
     expect(outcome).toBeInstanceOf(Response);
     expect((outcome as Response).status).toBe(302);
     expect((outcome as Response).headers.get('location')).toBe(
@@ -56,7 +119,33 @@ describe('createIndicator', () => {
 
     await submit('  Life expectancy at birth  ', post);
 
-    expect(post.mock.calls[0]?.[1]).toEqual({ name: 'Life expectancy at birth' });
+    expect(post.mock.calls[0]?.[1]).toEqual({
+      name: 'Life expectancy at birth',
+      teamId: TEAM_IDS.teamA,
+    });
+  });
+
+  it('creates the indicator in the team chosen, for a publisher in several', async () => {
+    const post = accepts();
+
+    await submit('Life expectancy at birth', post, {
+      teams: [TEAM_IDS.teamA, TEAM_IDS.teamB],
+      url: `${NEW_URL}?team=${TEAM_IDS.teamB}`,
+    });
+
+    expect(post.mock.calls[0]?.[1]).toEqual({
+      name: 'Life expectancy at birth',
+      teamId: TEAM_IDS.teamB,
+    });
+  });
+
+  it('sends a publisher in several teams who has not chosen one to choose, creating nothing', async () => {
+    const post = vi.fn();
+
+    await expect(
+      submit('Life expectancy at birth', post, { teams: [TEAM_IDS.teamA, TEAM_IDS.teamB] }),
+    ).rejects.toSatisfy(redirectsTo(TEAM_PAGE));
+    expect(post).not.toHaveBeenCalled();
   });
 
   it.each(['', '   '])('asks for a name of %o without calling the API', async (name) => {
@@ -124,8 +213,12 @@ describe('createIndicator', () => {
   });
 });
 
-function load(id: string, get: ApiClient['get']) {
-  const context = new RouterContextProvider();
+async function load(
+  id: string,
+  get: ApiClient['get'],
+  teams: readonly string[] = [TEAM_IDS.teamA],
+) {
+  const context = await signedInContext(['publisher'], teams);
   context.set(apiContext, { get } as unknown as ApiClient);
 
   return loadIndicatorName({
@@ -161,6 +254,12 @@ describe('loadIndicatorName', () => {
 
     expect(get.mock.calls[0]?.[0]).toBe(`/api/internal/indicators/${created.id}`);
     expect(outcome).toEqual({ indicator: created });
+  });
+
+  it("answers 404 for another team's draft, which the publisher may not edit", async () => {
+    const get = vi.fn().mockResolvedValue(created);
+
+    await expect(load(created.id, get, [TEAM_IDS.teamB])).rejects.toSatisfy(isNotFound);
   });
 
   it('answers 404 for a published indicator, which has no name to edit', async () => {

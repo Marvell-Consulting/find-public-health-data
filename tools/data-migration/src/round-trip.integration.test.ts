@@ -85,7 +85,7 @@ async function snapshot(id: string, cutoff: string, observations: ExportRow[], w
         indicator_id: 108,
         indicator_version_id: 108,
         original_filename: 'pholio-migration',
-        uploaded_by: 'migration',
+        uploaded_by: 'pholio-migration',
         uploaded_at: enteredAt,
         status: 'processed',
       },
@@ -96,7 +96,7 @@ async function snapshot(id: string, cutoff: string, observations: ExportRow[], w
       upload_batch_id: 108,
       dimension_key: '1',
       created_at: enteredAt,
-      created_by: 'migration',
+      created_by: 'pholio-migration',
       ...row,
     })),
     observation_dimension: observations.map((row) => ({

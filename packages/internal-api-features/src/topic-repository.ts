@@ -1,23 +1,29 @@
-import { type Database, schema, type Topic } from '@fphd/db';
-import { eq, sql } from 'drizzle-orm';
+import { type Database, schema } from '@fphd/db';
+import { type Actor, changesBetween, recordAudit } from '@fphd/db/audit-log';
+import { countDistinct, eq, sql } from 'drizzle-orm';
 
-const { indicatorVersionTopic, topic } = schema;
+import { violatesConstraint } from './indicator-repository-sql.ts';
+
+const { indicatorVersion, indicatorVersionTopic, topic } = schema;
+
+/** A topic row with its writers, which only the internal surface reads. */
+export type TopicRow = typeof topic.$inferSelect;
 
 /** Writes address a topic by id rather than slug, because the slug is itself editable. */
-export async function getTopicById(db: Database, id: string): Promise<Topic | undefined> {
+export async function getTopicById(db: Database, id: string): Promise<TopicRow | undefined> {
   const rows = await db.select().from(topic).where(eq(topic.id, id));
   return rows[0];
 }
 
-export type TopicUpdate = Pick<Topic, 'description' | 'slug' | 'title'>;
+export type TopicUpdate = Pick<TopicRow, 'description' | 'slug' | 'title'>;
 
-export type CreateTopicResult = { ok: true; topic: Topic } | { ok: false; reason: 'slug_taken' };
+export type CreateTopicResult = { ok: true; topic: TopicRow } | { ok: false; reason: 'slug_taken' };
 
 export type UpdateTopicResult =
-  | { ok: true; topic: Topic; changed: boolean }
+  | { ok: true; topic: TopicRow; changed: boolean }
   | { ok: false; reason: 'not_found' | 'slug_taken' };
 
-export type DeleteTopicResult = { ok: true } | { ok: false; reason: 'not_found' };
+export type DeleteTopicResult = { ok: true } | { ok: false; reason: 'not_found' | 'in_use' };
 
 const UNIQUE_VIOLATION = '23505';
 
@@ -32,7 +38,18 @@ function isUniqueViolation(error: unknown): boolean {
   return false;
 }
 
-function matches(current: Topic, update: TopicUpdate): boolean {
+/** Indicators with any version, draft or published, linked to the topic: what blocks a delete. */
+export async function countLinkedIndicators(db: Database, id: string): Promise<number> {
+  const [row] = await db
+    .select({ count: countDistinct(indicatorVersion.indicatorId) })
+    .from(indicatorVersionTopic)
+    .innerJoin(indicatorVersion, eq(indicatorVersion.id, indicatorVersionTopic.indicatorVersionId))
+    .where(eq(indicatorVersionTopic.topicId, id));
+
+  return row?.count ?? 0;
+}
+
+function matches(current: TopicRow, update: TopicUpdate): boolean {
   return (
     current.slug === update.slug &&
     current.title === update.title &&
@@ -48,6 +65,7 @@ export async function updateTopic(
   db: Database,
   id: string,
   { description, slug, title }: TopicUpdate,
+  actor: Actor,
 ): Promise<UpdateTopicResult> {
   const update = { description, slug, title };
 
@@ -61,7 +79,7 @@ export async function updateTopic(
       // Named columns only: the id and creation timestamp stay the database's to set.
       const [updated] = await tx
         .update(topic)
-        .set({ ...update, updatedAt: sql`now()` })
+        .set({ ...update, updatedAt: sql`now()`, updatedBy: actor.userId })
         .where(eq(topic.id, id))
         .returning();
 
@@ -69,6 +87,10 @@ export async function updateTopic(
         // The row is locked, so a miss means the update matched something other than the row read.
         throw new Error(`updateTopic locked topic ${id} but updated no row`);
       }
+
+      await recordAudit(tx, actor, [
+        { action: 'topic.updated', entityId: id, changes: changesBetween(current, updated) },
+      ]);
 
       return { ok: true, topic: updated, changed: true };
     });
@@ -82,26 +104,50 @@ export async function updateTopic(
 export async function createTopic(
   db: Database,
   { description, slug, title }: TopicUpdate,
+  actor: Actor,
 ): Promise<CreateTopicResult> {
   try {
-    const [created] = await db.insert(topic).values({ description, slug, title }).returning();
+    return await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(topic)
+        .values({ description, slug, title, createdBy: actor.userId, updatedBy: actor.userId })
+        .returning();
 
-    if (created === undefined) throw new Error('createTopic inserted no row');
+      if (created === undefined) throw new Error('createTopic inserted no row');
 
-    return { ok: true, topic: created };
+      await recordAudit(tx, actor, [
+        { action: 'topic.created', entityId: created.id, changes: changesBetween(null, created) },
+      ]);
+
+      return { ok: true, topic: created };
+    });
   } catch (error) {
     if (isUniqueViolation(error)) return { ok: false, reason: 'slug_taken' };
     throw error;
   }
 }
 
-/** The links go first or the foreign key refuses the delete; the indicators themselves stay. */
-export async function deleteTopic(db: Database, id: string): Promise<DeleteTopicResult> {
-  return db.transaction(async (tx) => {
-    await tx.delete(indicatorVersionTopic).where(eq(indicatorVersionTopic.topicId, id));
+/** The foreign key from `indicator_version_topic` refuses a linked topic, publications included. */
+export async function deleteTopic(
+  db: Database,
+  id: string,
+  actor: Actor,
+): Promise<DeleteTopicResult> {
+  try {
+    return await db.transaction(async (tx) => {
+      const [deleted] = await tx.delete(topic).where(eq(topic.id, id)).returning();
 
-    const deleted = await tx.delete(topic).where(eq(topic.id, id)).returning({ id: topic.id });
+      if (deleted === undefined) return { ok: false, reason: 'not_found' };
 
-    return deleted.length === 0 ? { ok: false, reason: 'not_found' } : { ok: true };
-  });
+      await recordAudit(tx, actor, [
+        { action: 'topic.deleted', entityId: id, changes: changesBetween(deleted, null) },
+      ]);
+
+      return { ok: true };
+    });
+  } catch (error) {
+    if (violatesConstraint(error, 'indicator_version_topic_topic_fk'))
+      return { ok: false, reason: 'in_use' };
+    throw error;
+  }
 }

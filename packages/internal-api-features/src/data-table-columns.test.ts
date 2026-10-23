@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { readHeader } from './data-table-columns.ts';
+import { columnsOf, readHeader } from './data-table-columns.ts';
 
 describe('readHeader', () => {
   it('places each column, matching headings whatever their case and surrounding spaces', () => {
@@ -108,5 +108,15 @@ describe('readHeader', () => {
       positions: { value: 1, area_code: 2 },
       columnCount: 4,
     });
+  });
+});
+
+describe('columnsOf', () => {
+  it('names the recognised columns as the headings match them, in file order', () => {
+    expect(columnsOf([' Value', 'AREA_CODE ', 'period_start', 'unknown'])).toEqual([
+      'value',
+      'area_code',
+      'period_start',
+    ]);
   });
 });

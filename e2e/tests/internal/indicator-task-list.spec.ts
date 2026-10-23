@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
-import { createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
+import { createDraft, createIndicator, uniqueIndicatorName } from '../support/create-indicator.ts';
 import { expectNotFoundWithoutDraft, taskRow } from '../support/section-page.ts';
-import { PUBLISHER } from '../support/sign-in.ts';
+import { PUBLISHER, TEAM_B_PUBLISHER } from '../support/sign-in.ts';
 
 const DATA_TABLE = 'Data table';
 
@@ -125,4 +125,23 @@ test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
   await createIndicator(page, uniqueName());
 
   await expectNoAccessibilityViolations(page, testInfo);
+});
+
+test.describe('as a publisher in another team', () => {
+  test.use({ storageState: TEAM_B_PUBLISHER.storageState });
+
+  test("answers another team's draft with the not-found page, on every publishing page", async ({
+    browser,
+    page,
+  }) => {
+    const publisher = await browser.newContext({ storageState: PUBLISHER.storageState });
+    const id = await createDraft(await publisher.newPage(), uniqueIndicatorName('task-list'));
+    await publisher.close();
+
+    for (const section of ['task-list', 'name', 'data-table', 'definition-and-rationale']) {
+      const response = await page.goto(`/publish/indicators/${id}/${section}`);
+      expect(response?.status(), section).toBe(404);
+    }
+    await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
+  });
 });

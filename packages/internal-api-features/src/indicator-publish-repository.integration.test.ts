@@ -9,6 +9,7 @@ import {
 import { createDraftFromPublished } from './indicator-publish-repository.ts';
 import {
   ACTOR,
+  AS_ACTOR,
   ciMethodId,
   classificationIn,
   commentary,
@@ -87,7 +88,7 @@ describe('createDraftFromPublished', () => {
       try {
         await db.transaction(async (tx) => {
           await tx.execute(sql`LOCK TABLE indicator_version IN SHARE ROW EXCLUSIVE MODE`);
-          copying = createDraftFromPublished(db, indicatorId, ACTOR);
+          copying = createDraftFromPublished(db, indicatorId, AS_ACTOR);
           await vi.waitFor(async () => {
             const rows = (await tx.execute(sql`
               SELECT EXISTS (SELECT 1 FROM pg_locks
@@ -132,7 +133,7 @@ describe('createDraftFromPublished', () => {
       const publishedTopics = await storedTopicIdsOf(db, publishedId);
       expect(publishedTopics.length).toBeGreaterThan(0);
 
-      const result = await createDraftFromPublished(db, target, ACTOR);
+      const result = await createDraftFromPublished(db, target, AS_ACTOR);
 
       expect(result).toMatchObject({ ok: true });
       if (!result.ok) throw new Error('expected a draft');
@@ -176,7 +177,7 @@ describe('createDraftFromPublished', () => {
       expect(published?.uploadBatchId).toEqual(expect.any(String));
       expect(published?.dataTableConfirmedAt).toEqual(expect.any(Date));
 
-      const result = await createDraftFromPublished(db, target, ACTOR);
+      const result = await createDraftFromPublished(db, target, AS_ACTOR);
 
       if (!result.ok) throw new Error('expected a draft');
       const [draft] = await db
@@ -206,7 +207,7 @@ describe('createDraftFromPublished', () => {
       { classificationId: framework.id, indicatorVersionId: currentId },
     ]);
 
-    const result = await createDraftFromPublished(db, indicatorId, ACTOR);
+    const result = await createDraftFromPublished(db, indicatorId, AS_ACTOR);
 
     if (!result.ok) throw new Error('expected a draft');
     expect(await storedClassificationIdsOf(db, result.versionId)).toEqual(
@@ -233,7 +234,7 @@ describe('createDraftFromPublished', () => {
     const columns = await columnsOf(db);
     await db.update(indicatorVersion).set(columns).where(eq(indicatorVersion.id, currentId));
 
-    await createDraftFromPublished(db, indicatorId, ACTOR);
+    await createDraftFromPublished(db, indicatorId, AS_ACTOR);
 
     const state = await getIndicatorDraftState(db, indicatorId);
     expect(state?.draft).toMatchObject(columns);
@@ -254,7 +255,7 @@ describe('createDraftFromPublished', () => {
         { topicId: superseded.id, indicatorVersionId: supersededId },
       ]);
 
-      const result = await createDraftFromPublished(db, indicatorId, ACTOR);
+      const result = await createDraftFromPublished(db, indicatorId, AS_ACTOR);
 
       expect(result).toMatchObject({ ok: true });
       if (!result.ok) throw new Error('expected a draft');
@@ -279,7 +280,7 @@ describe('createDraftFromPublished', () => {
         .set({ scheduledPublishAt: new Date('2029-12-01T09:30:00.000Z') })
         .where(eq(indicatorVersion.id, currentId));
 
-      const result = await createDraftFromPublished(db, indicatorId, ACTOR);
+      const result = await createDraftFromPublished(db, indicatorId, AS_ACTOR);
 
       if (!result.ok) throw new Error('expected a draft');
       const state = await getIndicatorDraftState(db, indicatorId);
@@ -309,7 +310,7 @@ describe('createDraftFromPublished', () => {
         },
       ]);
 
-      const result = await createDraftFromPublished(db, indicatorId, ACTOR);
+      const result = await createDraftFromPublished(db, indicatorId, AS_ACTOR);
 
       if (!result.ok) throw new Error('expected a draft');
       const state = await getIndicatorDraftState(db, indicatorId);
@@ -335,7 +336,7 @@ describe('createDraftFromPublished', () => {
         { indicatorVersionId: supersededId, position: 0, ...underFive },
       ]);
 
-      const result = await createDraftFromPublished(db, indicatorId, ACTOR);
+      const result = await createDraftFromPublished(db, indicatorId, AS_ACTOR);
 
       if (!result.ok) throw new Error('expected a draft');
       const state = await getIndicatorDraftState(db, indicatorId);
@@ -362,7 +363,7 @@ describe('createDraftFromPublished', () => {
         { indicatorVersionId: currentId, part: 'denominator', position: 0, ...onsAlone },
       ]);
 
-      const result = await createDraftFromPublished(db, indicatorId, ACTOR);
+      const result = await createDraftFromPublished(db, indicatorId, AS_ACTOR);
 
       if (!result.ok) throw new Error('expected a draft');
       const state = await getIndicatorDraftState(db, indicatorId);
@@ -375,9 +376,9 @@ describe('createDraftFromPublished', () => {
 
   repositoryTest('refuses a second draft for the same indicator', async ({ db }) => {
     const { indicatorId } = await indicatorWithTwoPublications(db, 'Drafted twice');
-    await createDraftFromPublished(db, indicatorId, ACTOR);
+    await createDraftFromPublished(db, indicatorId, AS_ACTOR);
 
-    await expect(createDraftFromPublished(db, indicatorId, ACTOR)).resolves.toEqual({
+    await expect(createDraftFromPublished(db, indicatorId, AS_ACTOR)).resolves.toEqual({
       ok: false,
       reason: 'draft_exists',
     });
@@ -386,7 +387,7 @@ describe('createDraftFromPublished', () => {
   repositoryTest('refuses an indicator with nothing published', async ({ db }) => {
     const created = await newDraft(db, 'Never published');
 
-    await expect(createDraftFromPublished(db, created.indicatorId, ACTOR)).resolves.toEqual({
+    await expect(createDraftFromPublished(db, created.indicatorId, AS_ACTOR)).resolves.toEqual({
       ok: false,
       reason: 'not_published',
     });

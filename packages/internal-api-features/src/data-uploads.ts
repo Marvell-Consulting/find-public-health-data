@@ -1,4 +1,4 @@
-import { requireApiSession, requireJwtRole } from '@fphd/api-server';
+import { requireApiActor } from '@fphd/api-server';
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
 import type { BlobStorage } from '@fphd/internal-storage';
 import { type Request, type Response, Router } from 'express';
@@ -12,6 +12,7 @@ import type {
 } from './data-upload-contract.ts';
 import { drainRequest, receiveDataTable, UploadAbortedError } from './data-upload-receive.ts';
 import { elapsedMs, TimedUploadError, type UploadTimings } from './data-upload-timings.ts';
+import { type IndicatorTeams, requireIndicatorEditor } from './indicator-editor.ts';
 import type { InternalDataUploadRepository } from './repositories.ts';
 
 /** An upload route's draft, or the answer to give when the address names none. */
@@ -50,15 +51,16 @@ async function refuse(request: Request, response: Response, status: number, body
  */
 export function dataUploadsRouter(
   dataUploads: InternalDataUploadRepository,
+  indicators: IndicatorTeams,
   storage: BlobStorage,
   session: JwtSessionVerifier,
 ): Router {
   const router = Router();
-  const requirePublisher = requireJwtRole(session, 'publisher');
+  const requireEditor = requireIndicatorEditor(session, indicators);
 
   router.post(
     '/api/internal/indicators/:id/data-uploads',
-    requirePublisher,
+    requireEditor,
     async (request, response) => {
       const started = performance.now();
       const draft = await findUploadDraft(dataUploads, request.params.id);
@@ -76,7 +78,7 @@ export function dataUploadsRouter(
       });
 
       const { indicatorId } = draft;
-      const { sub } = requireApiSession(response);
+      const actor = requireApiActor(request, response);
       const batchId = uuidv7();
       const blobName = `${indicatorId}/${batchId}.csv`;
       const logFields = { indicatorId, uploadBatchId: batchId };
@@ -108,7 +110,7 @@ export function dataUploadsRouter(
 
         const { ok: _ok, ...file } = received;
         const result = await dataUploads.process(
-          { batchId, indicatorId, blobName, actor: sub, ...file },
+          { batchId, indicatorId, blobName, actor, ...file },
           () => storage.get(blobName),
           abandoned.signal,
         );
@@ -162,7 +164,7 @@ export function dataUploadsRouter(
 
   router.get(
     '/api/internal/indicators/:id/data-uploads/latest',
-    requirePublisher,
+    requireEditor,
     async (request, response) => {
       const draft = await findUploadDraft(dataUploads, request.params.id);
       if (!draft.ok) {

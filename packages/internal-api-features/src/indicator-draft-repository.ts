@@ -1,4 +1,5 @@
 import { type Database, schema } from '@fphd/db';
+import { type Actor, changesBetween, listChanges, recordAudit } from '@fphd/db/audit-log';
 import { slugify, slugProblem } from '@fphd/utils/slug';
 import { and, eq, sql } from 'drizzle-orm';
 
@@ -25,6 +26,7 @@ import {
   replaceLists,
   sourcesOf,
   topicIdsOf,
+  UNORDERED_LISTS,
 } from './indicator-version-lists-repository.ts';
 
 const { ciMethod, currentPublishedVersion, indicator, indicatorVersion } = schema;
@@ -157,11 +159,12 @@ function draftSlug(name: string): string {
   return slugify(name);
 }
 
-/** A new indicator is an identity and a draft version; the database mints both ids. */
+/** A new indicator is an identity in a team and a draft version; the database mints both ids. */
 export async function createIndicatorDraft(
   db: Database,
   attributes: NewIndicatorDraftAttributes,
-  actor: string,
+  actor: Actor,
+  teamId: string,
 ): Promise<CreateIndicatorDraftResult> {
   const slug = draftSlug(attributes.name);
 
@@ -171,7 +174,7 @@ export async function createIndicatorDraft(
 
       const [identity] = await tx
         .insert(indicator)
-        .values({})
+        .values({ teamId })
         .returning({ id: indicator.id, shortId: indicator.shortId });
 
       if (identity === undefined) throw new Error('createIndicatorDraft inserted no indicator');
@@ -183,12 +186,20 @@ export async function createIndicatorDraft(
           slug,
           indicatorId: identity.id,
           status: 'draft',
-          createdBy: actor,
-          updatedBy: actor,
+          createdBy: actor.userId,
+          updatedBy: actor.userId,
         })
-        .returning({ id: indicatorVersion.id });
+        .returning();
 
       if (version === undefined) throw new Error('createIndicatorDraft inserted no version');
+
+      await recordAudit(tx, actor, [
+        {
+          action: 'indicator.draft_created',
+          entityId: identity.id,
+          changes: { ...changesBetween(null, version), ...changesBetween(null, { teamId }) },
+        },
+      ]);
 
       return {
         ok: true,
@@ -214,7 +225,7 @@ export async function updateIndicatorDraft(
   indicatorId: string,
   attributes: IndicatorDraftAttributes,
   lists: IndicatorDraftLists,
-  actor: string,
+  actor: Actor,
 ): Promise<UpdateIndicatorDraftResult> {
   try {
     return await db.transaction(async (tx) => {
@@ -226,17 +237,40 @@ export async function updateIndicatorDraft(
       if ('slug' in renamed)
         await lockSlugs(tx, [await draftSlugOf(tx, indicatorId), renamed.slug]);
 
+      const isDraft = and(
+        eq(indicatorVersion.indicatorId, indicatorId),
+        eq(indicatorVersion.status, 'draft'),
+      );
+      // The update's own lock, taken first so the before values are the ones this save replaces.
+      const [current] = await tx
+        .select()
+        .from(indicatorVersion)
+        .where(isDraft)
+        .for('no key update');
+
+      if (current === undefined) return { ok: false, reason: 'no_draft' };
+
       const [draft] = await tx
         .update(indicatorVersion)
-        .set({ ...attributes, ...renamed, updatedAt: sql`now()`, updatedBy: actor })
-        .where(
-          and(eq(indicatorVersion.indicatorId, indicatorId), eq(indicatorVersion.status, 'draft')),
-        )
-        .returning({ id: indicatorVersion.id });
+        .set({ ...attributes, ...renamed, updatedAt: sql`now()`, updatedBy: actor.userId })
+        .where(eq(indicatorVersion.id, current.id))
+        .returning();
 
-      if (draft === undefined) return { ok: false, reason: 'no_draft' };
+      if (draft === undefined) {
+        throw new Error(`updateIndicatorDraft locked draft ${current.id} but updated no row`);
+      }
 
-      await replaceLists(tx, draft.id, lists);
+      const replaced = await replaceLists(tx, draft.id, lists);
+
+      const changes = {
+        ...changesBetween(current, draft),
+        ...listChanges(replaced.before, replaced.after, UNORDERED_LISTS),
+      };
+      if (Object.keys(changes).length > 0) {
+        await recordAudit(tx, actor, [
+          { action: 'indicator.draft_updated', entityId: indicatorId, changes },
+        ]);
+      }
 
       return { ok: true };
     });

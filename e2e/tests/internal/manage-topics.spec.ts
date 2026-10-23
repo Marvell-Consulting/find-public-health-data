@@ -20,6 +20,15 @@ async function createTopic(page: Page, values: { title: string; slug: string }) 
   await expect(page.getByText('Topic created')).toBeVisible();
 }
 
+// Seeded indicators link to it, so it can never be deleted and no spec here changes it.
+const LINKED_TOPIC = 'Diabetes';
+
+async function openLinkedTopic(page: Page) {
+  await page.goto('/manage/topics');
+  await page.getByRole('link', { name: LINKED_TOPIC, exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Edit topic' })).toBeVisible();
+}
+
 test.use({ storageState: ADMIN.storageState });
 
 test.describe('the topic list', () => {
@@ -249,11 +258,65 @@ test.describe('deleting a topic', () => {
     await expect(page.getByLabel('Topic name')).toHaveValue(`Keep ${slug}`);
   });
 
+  test('shows the Delete topic link when no indicators link to the topic', async ({ page }) => {
+    const slug = uniqueSlug();
+    await createTopic(page, { title: `Unlinked ${slug}`, slug });
+
+    await expect(page.getByText('No indicators are linked to this topic.')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Delete topic' })).toBeVisible();
+  });
+
   test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
     const slug = uniqueSlug();
     await createTopic(page, { title: `Scan delete ${slug}`, slug });
     await page.getByRole('link', { name: 'Delete topic' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Delete topic' })).toBeVisible();
+    await expectNoAccessibilityViolations(page, testInfo);
+  });
+});
+
+test.describe('a topic that indicators link to', () => {
+  test('shows the number of linked indicators on the edit page', async ({ page }) => {
+    await openLinkedTopic(page);
+
+    await expect(page.getByText(/^\d+ indicators? (is|are) linked to this topic\./)).toBeVisible();
+  });
+
+  test('has no Delete topic link on the edit page, and says why', async ({ page }) => {
+    await openLinkedTopic(page);
+
+    await expect(
+      page.getByText('You cannot delete a topic while indicators are linked to it.'),
+    ).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Delete topic' })).toHaveCount(0);
+  });
+
+  test('explains on the delete page why it cannot be deleted', async ({ page }) => {
+    await openLinkedTopic(page);
+
+    await page.goto(`${page.url()}/delete`);
+
+    await expect(page.getByRole('heading', { level: 1, name: 'Delete topic' })).toBeVisible();
+    await expect(
+      page.getByText(
+        new RegExp(`^You cannot delete ${LINKED_TOPIC} because \\d+ indicators? (is|are) linked`),
+      ),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Delete topic' })).toHaveCount(0);
+
+    await page.getByRole('link', { name: 'Return to edit topic' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Edit topic' })).toBeVisible();
+  });
+
+  test('has no WCAG 2.2 AA violations on the edit page', async ({ page }, testInfo) => {
+    await openLinkedTopic(page);
+    await expectNoAccessibilityViolations(page, testInfo);
+  });
+
+  test('has no WCAG 2.2 AA violations on the delete page', async ({ page }, testInfo) => {
+    await openLinkedTopic(page);
+    await page.goto(`${page.url()}/delete`);
+    await expect(page.getByText(/^You cannot delete/)).toBeVisible();
     await expectNoAccessibilityViolations(page, testInfo);
   });
 });

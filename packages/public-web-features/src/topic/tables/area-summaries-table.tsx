@@ -1,3 +1,4 @@
+import { TableScrollRegion } from '@fphd/ui';
 import { indicatorPath } from '@fphd/utils/indicator-path';
 import { Link } from 'react-router';
 import { comparisonTable } from '../../indicator/comparison.ts';
@@ -8,7 +9,6 @@ import {
 } from '../../indicator/data.ts';
 import type { BenchmarkGeography, SelectedIndicator } from '../../indicator/loader.ts';
 import { NoteFootnotes, noteMarker } from '../../indicator/tables/note-markers.tsx';
-import { TableScrollRegion } from '../../indicator/tables/table-scroll-region.tsx';
 import { englandObservation, observationPeriod } from '../data.ts';
 
 export const JUDGEMENT_LABELS: Record<BenchmarkJudgement, string> = {

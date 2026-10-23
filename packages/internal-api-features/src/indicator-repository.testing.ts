@@ -1,5 +1,7 @@
+import { FAKE_USER_IDS, TEAM_IDS } from '@fphd/auth';
 import { appEnvFields, parseEnv, z } from '@fphd/config';
 import { createDb, type Database, dbEnvFields, resolveDbTls, schema } from '@fphd/db';
+import type { Actor } from '@fphd/db/audit-log';
 import { createTestDatabase } from '@fphd/db/testing';
 import type { ClassificationDimension } from '@fphd/utils/classification-dimension';
 import { slugify } from '@fphd/utils/slug';
@@ -54,11 +56,17 @@ const {
   indicatorVersionLink,
 } = schema;
 
-export const ACTOR = 'integration-test';
+/** Who the repository tests write as, and someone else who writes after them. */
+export const ACTOR = FAKE_USER_IDS.publisherTeamA;
+export const OTHER_ACTOR = FAKE_USER_IDS.publisherTeamsAAndB;
+
+/** The two writers as a repository function takes them, outside any request. */
+export const AS_ACTOR: Actor = { userId: ACTOR, requestId: null };
+export const AS_OTHER_ACTOR: Actor = { userId: OTHER_ACTOR, requestId: null };
 
 /** Every case here names its indicator distinctly, so the slug is free. */
 export async function newDraft(db: Database, name: string): Promise<CreatedIndicatorDraft> {
-  const created = await createIndicatorDraft(db, { name }, ACTOR);
+  const created = await createIndicatorDraft(db, { name }, AS_ACTOR, TEAM_IDS.teamA);
   if (!created.ok) throw new Error(`createIndicatorDraft refused the name: ${created.reason}`);
   return created;
 }

@@ -1,13 +1,17 @@
 import { Writable } from 'node:stream';
 
 import { createApiApp } from '@fphd/api-server';
+import { FAKE_USER_IDS, TEAM_IDS } from '@fphd/auth';
 import { createJwtSessionService, createJwtSessionVerifier } from '@fphd/auth/jwt-session';
 import { schema } from '@fphd/db';
+import type { Actor } from '@fphd/db/audit-log';
 import { nullColumns, withThrowingDefaults } from '@fphd/db/testing';
+import { REQUEST_ID_HEADER } from '@fphd/express';
 import type { Express, Router } from 'express';
 import { type Logger, pino } from 'pino';
 
 import { indicatorSectionFieldErrors } from './contract.ts';
+import type { IndicatorTeams } from './indicator-editor.ts';
 import type { IndicatorSectionDraft } from './indicator-section.ts';
 import type { IndicatorSection } from './indicator-section-contract.ts';
 import type { InternalRepositories } from './repositories.ts';
@@ -42,12 +46,30 @@ const testSession = createJwtSessionService({
 
 export const testSessionVerifier = createJwtSessionVerifier(testSession);
 
-/** A session cookie for `test-user` holding the given roles. */
-export async function testSessionCookie(roles: readonly string[]): Promise<string> {
+/** The signed-in user of a test session: a fake user, so the rows it writes have a writer. */
+export const TEST_USER_ID = FAKE_USER_IDS.publisherTeamA;
+
+/** Who a handler under test writes as: the test user, in the request that got `response`. */
+export function testActor(response: { headers: Record<string, string> }): Actor {
+  return { userId: TEST_USER_ID, requestId: response.headers[REQUEST_ID_HEADER] ?? null };
+}
+
+/** The test session's team, which `TEST_USER_ID` belongs to. */
+export const TEST_TEAM_ID = TEAM_IDS.teamA;
+
+/** Team lookups that put every indicator in the test session's team. */
+export const inTestTeam: IndicatorTeams = { findTeamId: async () => TEST_TEAM_ID };
+
+/** A session cookie for `TEST_USER_ID` holding the given roles, in the test team unless told. */
+export async function testSessionCookie(
+  roles: readonly string[],
+  teams: readonly string[] = [TEST_TEAM_ID],
+): Promise<string> {
   const token = await testSession.issueToken({
     expiresInSeconds: 900,
     roles,
-    subject: 'test-user',
+    subject: TEST_USER_ID,
+    teams,
   });
   return testSession.createCookieHeader(token, 900);
 }

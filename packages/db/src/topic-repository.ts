@@ -1,7 +1,9 @@
 import { asc, eq, sql } from 'drizzle-orm';
 
+import { recordAudit } from './audit-log.ts';
 import type { Database } from './client.ts';
-import { publishedTopic, type TopicRecord, topic } from './schema/index.ts';
+import { CORE_DATA_IMPORT, upsertEntries, upsertedRow } from './core-data-audit.ts';
+import { publishedTopic, SYSTEM_USER_IDS, type TopicRecord, topic } from './schema/index.ts';
 
 export interface ExistingTopic {
   id: string;
@@ -44,7 +46,8 @@ export function summarizeUpsert(recordCount: number, outcomes: UpsertOutcome[]):
   return { inserted, updated, unchanged: recordCount - inserted - updated };
 }
 
-export type Topic = typeof topic.$inferSelect;
+/** A topic as the public read surface serves it: no writers. */
+export type Topic = typeof publishedTopic.$inferSelect;
 
 export interface UpsertResult {
   summary: UpsertSummary;
@@ -63,42 +66,52 @@ export async function getTopicBySlug(db: Database, slug: string): Promise<Topic 
 }
 
 /**
- * Upserts the given topics, matched on id. Never deletes: a database row absent from the
- * records is reported back via `orphaned`, not removed.
+ * Upserts the given topics, matched on id, as the core data import. Never deletes: a database row
+ * absent from the records is reported back via `orphaned`, not removed.
  */
 export async function upsertTopics(db: Database, records: TopicRecord[]): Promise<UpsertResult> {
-  const existingTopics = await db
-    .select({
-      id: topic.id,
-      slug: topic.slug,
-      title: topic.title,
-      description: topic.description,
-    })
-    .from(topic);
+  return db.transaction(async (tx) => {
+    const existingTopics = await tx
+      .select({
+        id: topic.id,
+        slug: topic.slug,
+        title: topic.title,
+        description: topic.description,
+      })
+      .from(topic);
 
-  const orphaned = findOrphanedTopics(records, existingTopics);
+    const orphaned = findOrphanedTopics(records, existingTopics);
 
-  const outcomes = records.length
-    ? await db
-        .insert(topic)
-        .values(records)
-        .onConflictDoUpdate({
-          target: topic.id,
-          set: {
-            slug: sql`excluded.slug`,
-            title: sql`excluded.title`,
-            description: sql`excluded.description`,
-            updatedAt: sql`now()`,
-          },
-          // Only rewrite the row (and bump updatedAt) when the incoming record actually
-          // disagrees with what's stored — otherwise a no-op re-run would still touch every
-          // row's timestamp.
-          setWhere: sql`${topic.slug} IS DISTINCT FROM excluded.slug OR ${topic.title} IS DISTINCT FROM excluded.title OR ${topic.description} IS DISTINCT FROM excluded.description`,
-        })
-        // xmax = 0 is the standard postgres upsert idiom for "this row was just inserted, not
-        // updated" — a fresh tuple has never been superseded, so its xmax is unset.
-        .returning({ id: topic.id, wasInsert: sql<boolean>`xmax = 0` })
-    : [];
+    const outcomes = records.length
+      ? await tx
+          .insert(topic)
+          .values(
+            records.map((record) => ({
+              ...record,
+              createdBy: SYSTEM_USER_IDS.coreDataImport,
+              updatedBy: SYSTEM_USER_IDS.coreDataImport,
+            })),
+          )
+          .onConflictDoUpdate({
+            target: topic.id,
+            set: {
+              slug: sql`excluded.slug`,
+              title: sql`excluded.title`,
+              description: sql`excluded.description`,
+              updatedAt: sql`now()`,
+              updatedBy: sql`excluded.updated_by`,
+            },
+            // Only rewrite the row (and bump updatedAt) when the incoming record actually
+            // disagrees with what's stored — otherwise a no-op re-run would still touch every
+            // row's timestamp.
+            setWhere: sql`${topic.slug} IS DISTINCT FROM excluded.slug OR ${topic.title} IS DISTINCT FROM excluded.title OR ${topic.description} IS DISTINCT FROM excluded.description`,
+          })
+          // xmax = 0 is the standard postgres upsert idiom for "this row was just inserted, not
+          // updated" — a fresh tuple has never been superseded, so its xmax is unset.
+          .returning({ id: topic.id, wasInsert: sql<boolean>`xmax = 0`, ...upsertedRow })
+      : [];
+    await recordAudit(tx, CORE_DATA_IMPORT, upsertEntries(topic, outcomes));
 
-  return { summary: summarizeUpsert(records.length, outcomes), orphaned };
+    return { summary: summarizeUpsert(records.length, outcomes), orphaned };
+  });
 }

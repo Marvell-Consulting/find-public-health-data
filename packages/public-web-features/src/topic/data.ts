@@ -1,8 +1,8 @@
+import { periodLabel } from '@fphd/utils/period-label';
 import {
   type ComparisonRow,
   comparisonRows,
   filterObservations,
-  periodLabel,
   sameSegment,
   trendSeries,
 } from '../indicator/data.ts';

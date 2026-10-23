@@ -35,6 +35,23 @@ export function createRequireSessionRoleMiddleware({
   role: string;
   signInPath: string;
 }): MiddlewareFunction<Response> {
+  return createRequireSessionMiddleware({
+    allows: (session) => session.roles.includes(role),
+    forbiddenPath,
+    signInPath,
+  });
+}
+
+/** Sends a visitor without a session to sign in, and one `allows` refuses to `forbiddenPath`. */
+export function createRequireSessionMiddleware({
+  allows,
+  forbiddenPath,
+  signInPath,
+}: {
+  allows: (session: JwtSessionClaims) => boolean;
+  forbiddenPath: string;
+  signInPath: string;
+}): MiddlewareFunction<Response> {
   return async ({ context, request }, next) => {
     const session = getSession(context);
 
@@ -45,7 +62,7 @@ export function createRequireSessionRoleMiddleware({
       throw redirect(`${signInUrl.pathname}${signInUrl.search}`);
     }
 
-    if (!session.roles.includes(role)) throw redirect(forbiddenPath);
+    if (!allows(session)) throw redirect(forbiddenPath);
 
     return next();
   };

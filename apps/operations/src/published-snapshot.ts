@@ -46,6 +46,8 @@ const sourceManifestSchema = z.object({
 });
 const manifestSchema = sourceManifestSchema.extend({
   id_mapping: z.literal('deterministic-uuidv7-v1'),
+  // Stamped once the export names its writers by user id, as the actor columns hold them.
+  writers: z.literal('users').optional(),
 });
 
 export type PublishedManifest = z.infer<typeof manifestSchema>;
@@ -80,6 +82,10 @@ export async function verifyPublishedSnapshot(directory: string): Promise<Publis
     throw new Error(
       'Published snapshot predates the tidied reference names and must be regenerated',
     );
+  }
+  // An older archive names its writers as text, which the import would refuse deep inside.
+  if (manifest.writers !== 'users') {
+    throw new Error('Published snapshot predates users as writers and must be regenerated');
   }
   if (!sameMembers(sourceManifest.excluded_indicators, excludedIndicators)) {
     throw new Error('Published snapshot was exported with a different exclusion list');

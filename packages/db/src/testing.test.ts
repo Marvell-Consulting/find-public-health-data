@@ -12,6 +12,8 @@ describe('nullColumns', () => {
       description: null,
       createdAt: null,
       updatedAt: null,
+      createdBy: null,
+      updatedBy: null,
     });
   });
 });

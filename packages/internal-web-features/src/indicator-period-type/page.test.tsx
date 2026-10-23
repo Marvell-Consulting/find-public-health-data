@@ -81,6 +81,15 @@ describe('PeriodTypePage', () => {
     expect((document.getElementsByName('yearsYearEnd[day]')[0] as HTMLInputElement).value).toBe('');
   });
 
+  // The date is given a message for each part, both missing while nothing is wrong. An absent
+  // message must not read as an empty one and mark the date as refused.
+  it('marks nothing on the date while no part of it is refused', () => {
+    renderPage({ values: quartersEndingOn });
+
+    expect(document.querySelectorAll('.govuk-input--error')).toHaveLength(0);
+    expect(document.querySelectorAll('.govuk-error-message')).toHaveLength(0);
+  });
+
   it('links each refusal to the control under the chosen period type', () => {
     renderPage({
       values: quartersEndingOn,

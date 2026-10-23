@@ -27,10 +27,13 @@ src/
   schema/             One file per domain group, re-exported by schema/index.ts: lookup.ts
                       holds the reference tables, observation.ts the observation family,
                       cache.ts the derived read models
-    helpers.ts        Column helpers shared across tables (uuidPrimaryKey, timestamps, audit)
+    helpers.ts        Column helpers shared across tables (uuidPrimaryKey, timestamps)
+    user.ts           app_user, the system user ids, and the actor columns (actorId, audit)
+    team.ts           team, and the team imported indicators join
     published.ts      The public read surface: views declared as already existing
   scripts/            owner-client.ts — the owner-role connection helper the test harness
                       uses; the runnable commands live in apps/operations
+  audit-log.ts        recordAudit and the change diffs every write records (@fphd/db/audit-log)
   client.ts           createDb + Database/Schema types
   env.ts              dbEnvFields — shared connection env fragment
   dimension-key.ts    dimensionKey — an observation's dimension_key from its dimension values
@@ -64,14 +67,23 @@ src/
   Postgres 18's native `uuidv7()`. Rows created by an import supply their own ids
   instead, so the id survives a re-import. The read models in `cache.ts` are the
   exception: they are keyed by the columns they aggregate and carry no surrogate id.
-- **Timestamps**: every core data table (the topics, the classifications and the lists a
-  publisher chooses from) spreads `timestamps` from `schema/helpers.ts` (`created_at` /
-  `updated_at`, timestamptz). `updated_at` is app-maintained: the import's conditional upsert
-  bumps it only on a row the file changes, as the topics import shows. A table a publisher
-  edits spreads `audit` where the actor columns matter too, as `indicator_version` does. A
-  version's child tables carry neither: their rows are deleted and reinserted on every save,
-  and the version's own `updated_at` records that. `observation` records only creation,
-  since a correction supersedes a row rather than editing it.
+- **Timestamps**: every core data table (the classifications and the lists a publisher
+  chooses from) spreads `timestamps` from `schema/helpers.ts` (`created_at` / `updated_at`,
+  timestamptz). `updated_at` is app-maintained: the import's conditional upsert bumps it only on
+  a row the file changes, as the topics import shows. A table a publisher edits spreads `audit`
+  from `schema/user.ts` where the actor columns matter too, as `indicator_version` and `topic`
+  do: `created_by` and `updated_by` are foreign keys to `app_user`, and any other column naming
+  who wrote a row is an `actorId()`, as `upload_batch.uploaded_by` is. The core data import
+  writes topics as its own system user. A version's child tables carry neither: their rows are
+  deleted and reinserted on every save, and the version's own `updated_at` records that.
+  `observation` records only creation, since a correction supersedes a row rather than editing
+  it, and its batch's uploader is its writer.
+- **Users and teams**: `app_user` and `team` rows are inserted by migration with fixed ids,
+  which `@fphd/auth` uses for its fake users and their teams; `SYSTEM_USER_IDS` names the
+  system users imports write as, and `IMPORTED_INDICATOR_TEAM_ID` the Fingertips team their
+  indicators join. A publisher's new indicator joins the team they choose from their own. Roles
+  and team memberships are not stored: they live in `@fphd/auth` until sign-in through Entra
+  decides where they come from.
 - **Vocabularies**: a closed set whose values the code behaves on is a checked text column,
   `text({ enum })` beside a check written with `literals()` over the list in its
   `@fphd/utils` module, which also holds the labels and which the contracts and pages import,
@@ -93,6 +105,27 @@ src/
   it is about to bridge to: `dimensionKey` in TypeScript, or the `string_agg` it documents in
   SQL, as the seed load does.
 - **Repository functions**: pure, `db` first argument, one file per aggregate.
+- **Audit log**: every write the internal API or an operations command makes records an `audit_log`
+  entry with `recordAudit` from `@fphd/db/audit-log`, in the transaction of the change, so both
+  commit or neither. It records the entry after its own row write, while it holds the row, and an
+  entry's `occurred_at` is the time of its insert (`clock_timestamp()`), not of its transaction's
+  start, so one entity's entries sort in the order their changes committed even when a writer
+  started first and waited. The writer is an `Actor`: the `app_user` and the request id a handler
+  gets from `requireApiActor`, or a system user and no request for a command. `changes` maps each
+  field to its `before` and `after`, keyed by property name: a created row records every column
+  (`changesBetween(null, row)`), an update the columns it changed, a deleted row every column it
+  had, and a replaced list (`listChanges`) its whole contents. A list a write replaces in parts is
+  one field per part, as a draft's classifications are one per dimension
+  (`classificationIds.riskFactor`). Before values come from the row the write locks, from `RETURNING
+  OLD` or from the rows its delete returns, never from a read another write could overtake. A write
+  that changes nothing records nothing. A bulk load, an upload's observations or a live-data
+  package, records one entry for its batch or package, with its counts, never one per row loaded.
+  The core data import is the exception: its rows are entities in their own right, a few hundred at
+  most, so it records an entry for each row it inserts or rewrites. A new kind of write adds its
+  action to `AUDIT_ACTIONS` in `schema/audit-log.ts`, whose check constraint then needs a migration.
+  `internal_api` may insert and select entries, never update or delete them; entries name people by
+  `app_user` id alone, so anonymising one never touches the log. Seeding and resets rebuild the
+  database rather than change it, and record nothing.
 - **Slugs**: `indicator_version.slug` is derived from the version's name by `slugify` in
   `@fphd/utils/slug`. An exclusion constraint,
   `EXCLUDE USING gist (slug WITH =, indicator_id WITH <>)`, keeps a slug to one indicator for
@@ -180,7 +213,9 @@ pnpm db:import-core-data         # imports topics, classifications and the publi
 Upserts matched on `id`: a rename — even one that changes the slug — updates the row in
 place without changing the primary key. Rows in the database but absent from the file
 are reported and left alone, never deleted. Re-runs are true no-ops (`updated_at`
-untouched), so the import is safe to run repeatedly, in any environment.
+untouched), so the import is safe to run repeatedly, in any environment. The import writes
+as the Core data import system user, and each row it inserts or rewrites records an audit
+entry in the upsert's transaction.
 
 Lookups a publisher chooses from are core data under the service's own names, with fixed
 ids, so every environment holds the same rows and the seed's relationship files can name

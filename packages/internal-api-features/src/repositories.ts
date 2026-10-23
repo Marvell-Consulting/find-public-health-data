@@ -1,10 +1,21 @@
 import type { Readable } from 'node:stream';
+import type { IndicatorListScope } from '@fphd/auth/permissions';
 
 import { type Database, listTopics, type Topic } from '@fphd/db';
+import type { Actor } from '@fphd/db/audit-log';
 
 import { type CiMethodRow, getCiMethodById, listCiMethods } from './ci-method-repository.ts';
 import type { TagOptions, ValueTypeAndUnitOptions } from './contract.ts';
 import { type DataProviderRow, listDataProviders } from './data-provider-repository.ts';
+import type { DataTableRow } from './data-table-check-contract.ts';
+import {
+  type ConfirmDataTableResult,
+  confirmDataTable,
+  type DraftDataTableRow,
+  type FindDraftDataTableResult,
+  findDraftDataTable,
+  listDataTableRows,
+} from './data-table-check-repository.ts';
 import {
   type DataUpload,
   type ProcessDataUploadResult,
@@ -26,6 +37,7 @@ import {
   updateIndicatorDraft,
 } from './indicator-draft-repository.ts';
 import {
+  findIndicatorTeamId,
   getIndicatorById,
   type IndicatorAdminDetailRow,
   type IndicatorAdminRows,
@@ -39,10 +51,12 @@ import type { IndicatorDraftLists } from './indicator-version-lists-repository.t
 import { listTagOptions } from './tag-repository.ts';
 import {
   type CreateTopicResult,
+  countLinkedIndicators,
   createTopic,
   type DeleteTopicResult,
   deleteTopic,
   getTopicById,
+  type TopicRow,
   type TopicUpdate,
   type UpdateTopicResult,
   updateTopic,
@@ -52,30 +66,34 @@ import { listValueTypeAndUnitOptions } from './value-type-and-unit-repository.ts
 /** The publisher's topic surface: the public listing plus the writes only `internal_api` makes. */
 export interface InternalTopicRepository {
   list(): Promise<Topic[]>;
-  findById(id: string): Promise<Topic | undefined>;
-  create(values: TopicUpdate): Promise<CreateTopicResult>;
-  update(id: string, values: TopicUpdate): Promise<UpdateTopicResult>;
-  delete(id: string): Promise<DeleteTopicResult>;
+  findById(id: string): Promise<TopicRow | undefined>;
+  countLinkedIndicators(id: string): Promise<number>;
+  create(values: TopicUpdate, actor: Actor): Promise<CreateTopicResult>;
+  update(id: string, values: TopicUpdate, actor: Actor): Promise<UpdateTopicResult>;
+  delete(id: string, actor: Actor): Promise<DeleteTopicResult>;
 }
 
 /** The publisher's view of indicators: every status, unlike the public repository. */
 export interface InternalIndicatorRepository {
-  listPage(page: number, pageSize: number): Promise<IndicatorAdminRows>;
+  listPage(page: number, pageSize: number, scope: IndicatorListScope): Promise<IndicatorAdminRows>;
   findById(id: string): Promise<IndicatorAdminDetailRow | undefined>;
+  /** The indicator's team, null when it has none, or undefined when there is no such indicator. */
+  findTeamId(id: string): Promise<string | null | undefined>;
   /** The draft and whether anything is published, read together for the task list. */
   findDraftState(id: string): Promise<IndicatorDraftStateRow | undefined>;
   createDraft(
     attributes: NewIndicatorDraftAttributes,
-    actor: string,
+    actor: Actor,
+    teamId: string,
   ): Promise<CreateIndicatorDraftResult>;
   updateDraft(
     indicatorId: string,
     attributes: IndicatorDraftAttributes,
     lists: IndicatorDraftLists,
-    actor: string,
+    actor: Actor,
   ): Promise<UpdateIndicatorDraftResult>;
   /** Opens a draft from the published version, copying its columns and lists. */
-  draftFromPublished(indicatorId: string, actor: string): Promise<CreateDraftFromPublishedResult>;
+  draftFromPublished(indicatorId: string, actor: Actor): Promise<CreateDraftFromPublishedResult>;
 }
 
 /** The confidence interval methods a publisher chooses from. */
@@ -94,7 +112,10 @@ export interface InternalDataProviderRepository {
   list(): Promise<DataProviderRow[]>;
 }
 
-/** A draft's data table uploads: loading a stored file, and the outcome of the latest. */
+/**
+ * Data table uploads for a draft: loading a stored file, the result of the latest upload, and
+ * checking the uploaded table.
+ */
 export interface InternalDataUploadRepository {
   /** The indicator's draft version id, null without a draft, undefined with no indicator. */
   findDraftId(indicatorId: string): Promise<string | null | undefined>;
@@ -104,6 +125,14 @@ export interface InternalDataUploadRepository {
     openFile: () => Promise<Readable>,
     signal: AbortSignal,
   ): Promise<ProcessDataUploadResult>;
+  findDraftDataTable(indicatorId: string): Promise<FindDraftDataTableResult>;
+  listRows(
+    batch: Pick<DraftDataTableRow, 'batchId' | 'rowCount'>,
+    page: number,
+    rowsPerPage: number,
+  ): Promise<DataTableRow[]>;
+  /** Confirms the draft's data table, as long as the draft still uses the batch named. */
+  confirm(indicatorId: string, batchId: string, actor: Actor): Promise<ConfirmDataTableResult>;
 }
 
 /** The value types and units a publisher chooses from. */
@@ -138,12 +167,17 @@ export function createInternalRepositories(db: Database): InternalRepositories {
       findDraftId: (indicatorId) => findDraftVersionId(db, indicatorId),
       findLatest: (draftId) => getLatestDataUpload(db, draftId),
       process: (upload, openFile, signal) => processDataUpload(db, upload, openFile, signal),
+      findDraftDataTable: (indicatorId) => findDraftDataTable(db, indicatorId),
+      listRows: (batch, page, rowsPerPage) => listDataTableRows(db, batch, page, rowsPerPage),
+      confirm: (indicatorId, batchId, actor) => confirmDataTable(db, indicatorId, batchId, actor),
     },
     indicators: {
-      listPage: (page, pageSize) => listIndicatorsPage(db, page, pageSize),
+      listPage: (page, pageSize, scope) => listIndicatorsPage(db, page, pageSize, scope),
       findById: (id) => getIndicatorById(db, id),
+      findTeamId: (id) => findIndicatorTeamId(db, id),
       findDraftState: (id) => getIndicatorDraftState(db, id),
-      createDraft: (attributes, actor) => createIndicatorDraft(db, attributes, actor),
+      createDraft: (attributes, actor, teamId) =>
+        createIndicatorDraft(db, attributes, actor, teamId),
       updateDraft: (indicatorId, attributes, lists, actor) =>
         updateIndicatorDraft(db, indicatorId, attributes, lists, actor),
       draftFromPublished: (indicatorId, actor) => createDraftFromPublished(db, indicatorId, actor),
@@ -154,9 +188,10 @@ export function createInternalRepositories(db: Database): InternalRepositories {
     topics: {
       list: () => listTopics(db),
       findById: (id) => getTopicById(db, id),
-      create: (values) => createTopic(db, values),
-      update: (id, values) => updateTopic(db, id, values),
-      delete: (id) => deleteTopic(db, id),
+      countLinkedIndicators: (id) => countLinkedIndicators(db, id),
+      create: (values, actor) => createTopic(db, values, actor),
+      update: (id, values, actor) => updateTopic(db, id, values, actor),
+      delete: (id, actor) => deleteTopic(db, id, actor),
     },
     valueTypesAndUnits: {
       listOptions: () => listValueTypeAndUnitOptions(db),

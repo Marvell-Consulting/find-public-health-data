@@ -25,6 +25,11 @@ export const topicAdminDetailSchema = topicAdminSummarySchema.extend({
   description: z.string(),
 });
 
+/** A topic with the count that decides whether it can be deleted. */
+export const topicAdminDetailWithLinkCountSchema = topicAdminDetailSchema.extend({
+  linkedIndicatorCount: z.number().int().nonnegative(),
+});
+
 /**
  * The import rules (`topicRecordSchema`) plus the messages a form shows. Values are trimmed
  * before they are measured. Uniqueness is left to the database, which reports it as a field error.
@@ -62,14 +67,19 @@ export const topicUpdateErrorSchema = z.discriminatedUnion('error', [
   }),
 ]);
 
+/** The 409 a delete answers while indicators link to the topic. */
+export const topicDeleteErrorSchema = z.object({ error: z.literal('in_use') });
+
 export type TopicAdminSummary = z.infer<typeof topicAdminSummarySchema>;
 export type TopicAdminDetail = z.infer<typeof topicAdminDetailSchema>;
+export type TopicAdminDetailWithLinkCount = z.infer<typeof topicAdminDetailWithLinkCountSchema>;
 export type TopicField = z.infer<typeof topicFieldSchema>;
 export type TopicFieldErrors = z.infer<typeof topicFieldErrorsSchema>;
 export type TopicUpdate = z.infer<typeof topicUpdateSchema>;
 export type TopicCreateResponse = z.infer<typeof topicCreateResponseSchema>;
 export type TopicUpdateResponse = z.infer<typeof topicUpdateResponseSchema>;
 export type TopicUpdateError = z.infer<typeof topicUpdateErrorSchema>;
+export type TopicDeleteError = z.infer<typeof topicDeleteErrorSchema>;
 
 /** What the public has: live once any version is published, new until then. */
 export const indicatorStatusSchema = z.enum(['new', 'live']);
@@ -84,6 +94,8 @@ export const draftStatusSchema = z.enum(['draft']);
 export const indicatorAdminSummarySchema = z.object({
   id: z.uuid(),
   name: z.string().min(1),
+  /** The team whose publishers own it. */
+  teamId: z.uuid().nullable(),
   updatedAt: z.iso.datetime(),
   indicatorStatus: indicatorStatusSchema,
   /** Null while the indicator has no draft, which for a live one means it is published as is. */
@@ -95,8 +107,18 @@ export const indicatorPageQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
 });
 
+/** A dashboard row, which names the team and the people for the publisher to read. */
+export const indicatorAdminListItemSchema = indicatorAdminSummarySchema.extend({
+  /** Null while the indicator is in no team. */
+  teamName: z.string().nullable(),
+  /** The display name of whoever wrote the indicator's first version. */
+  createdBy: z.string().nullable(),
+  /** The display name of whoever made the edit `updatedAt` dates. */
+  lastEditedBy: z.string().nullable(),
+});
+
 export const indicatorAdminPageSchema = z.object({
-  indicators: z.array(indicatorAdminSummarySchema),
+  indicators: z.array(indicatorAdminListItemSchema),
   page: z.number().int().min(1),
   pageSize: z.number().int().min(1),
   total: z.number().int().min(0),
@@ -135,6 +157,9 @@ export const indicatorNameSchema = z.object({
     }),
 });
 
+/** The team a new indicator joins, which its creator chooses from their own before naming it. */
+export const indicatorTeamSchema = z.object({ teamId: z.uuid() });
+
 export const indicatorFieldSchema = z.enum(['name']);
 
 export const indicatorFieldErrorsSchema = z.partialRecord(indicatorFieldSchema, z.string());
@@ -142,10 +167,17 @@ export const indicatorFieldErrorsSchema = z.partialRecord(indicatorFieldSchema, 
 /** A created or renamed indicator reads the same as one fetched by id. */
 export const indicatorCreateResponseSchema = indicatorAdminDetailSchema;
 
-export const indicatorCreateErrorSchema = z.object({
-  error: z.enum(['validation_failed', 'slug_taken']),
-  fieldErrors: indicatorFieldErrorsSchema,
-});
+/**
+ * The 400 and 409 answers. A missing or malformed team names no field: the name page never asks
+ * for one.
+ */
+export const indicatorCreateErrorSchema = z.discriminatedUnion('error', [
+  z.object({ error: z.literal('invalid_team') }),
+  z.object({
+    error: z.enum(['validation_failed', 'slug_taken']),
+    fieldErrors: indicatorFieldErrorsSchema,
+  }),
+]);
 
 /**
  * The 400 and 409 answers. A refused value is always named; only a bad id names no field. A
@@ -160,11 +192,13 @@ export const indicatorUpdateErrorSchema = z.discriminatedUnion('error', [
 ]);
 
 export type IndicatorAdminSummary = z.infer<typeof indicatorAdminSummarySchema>;
+export type IndicatorAdminListItem = z.infer<typeof indicatorAdminListItemSchema>;
 export type IndicatorAdminPage = z.infer<typeof indicatorAdminPageSchema>;
 export type IndicatorStatus = z.infer<typeof indicatorStatusSchema>;
 export type DraftStatus = z.infer<typeof draftStatusSchema>;
 export type IndicatorAdminDetail = z.infer<typeof indicatorAdminDetailSchema>;
 export type IndicatorName = z.infer<typeof indicatorNameSchema>;
+export type IndicatorTeam = z.infer<typeof indicatorTeamSchema>;
 export type IndicatorField = z.infer<typeof indicatorFieldSchema>;
 export type IndicatorFieldErrors = z.infer<typeof indicatorFieldErrorsSchema>;
 export type IndicatorCreateResponse = z.infer<typeof indicatorCreateResponseSchema>;
@@ -237,6 +271,7 @@ export type IndicatorTaskStatuses = z.infer<typeof indicatorTaskStatusesSchema>;
 export type IndicatorTaskList = z.infer<typeof indicatorTaskListSchema>;
 export type IndicatorTaskListError = z.infer<typeof indicatorTaskListErrorSchema>;
 
+export * from './data-table-check-contract.ts';
 export * from './data-upload-contract.ts';
 export * from './indicator-benchmarking-contract.ts';
 export * from './indicator-calculation-contract.ts';

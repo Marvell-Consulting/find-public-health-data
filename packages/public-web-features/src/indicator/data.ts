@@ -3,30 +3,13 @@ import type {
   IndicatorDetail,
   IndicatorObservation,
 } from '@fphd/public-api-features/contract';
+import { periodLabel } from '@fphd/utils/period-label';
 import type { PublicYearType } from '@fphd/utils/period-type';
 import type { Polarity } from '@fphd/utils/polarity';
 import { recentTrendDirection } from '@fphd/utils/recent-trend';
 
 function daysBetween(fromDate: string, toDate: string): number {
   return (Date.parse(toDate) - Date.parse(fromDate)) / 86_400_000;
-}
-
-export function periodLabel(
-  { fromDate, toDate }: Pick<IndicatorObservation, 'fromDate' | 'toDate'>,
-  yearType?: PublicYearType | null,
-): string {
-  const fromYear = fromDate.slice(0, 4);
-  const toYear = toDate.slice(0, 4);
-  if (fromYear === toYear) {
-    return fromYear;
-  }
-  // A financial year spans two calendar years but is one period: 2009/10, not
-  // "2009 to 2010" — that form is reserved for genuine multi-year ranges.
-  const days = daysBetween(fromDate, toDate);
-  if (yearType?.value === 'financial' && days <= 400) {
-    return `${fromYear}/${toYear.slice(2)}`;
-  }
-  return `${fromYear} to ${toYear}`;
 }
 
 export function segmentLabel(observation: IndicatorObservation): string {
@@ -610,25 +593,26 @@ export function inequalityBreakdown(
     );
 }
 
-/** The span an indicator's data covers, as the summary table states it. */
+/**
+ * The time an indicator's data covers, as the summary table shows it: from the start of the first
+ * period to the end of the last, labelled like any other period.
+ */
 export function periodCovered(
   observations: IndicatorObservation[],
   yearType?: PublicYearType | null,
 ): string {
-  if (observations.length === 0) {
+  const [first, ...rest] = observations;
+  if (first === undefined) {
     return '';
   }
-  const sorted = [...observations].sort(
-    (a, b) => a.fromDate.localeCompare(b.fromDate) || a.toDate.localeCompare(b.toDate),
+  const span = rest.reduce(
+    (covered, { fromDate, toDate }) => ({
+      fromDate: fromDate < covered.fromDate ? fromDate : covered.fromDate,
+      toDate: toDate > covered.toDate ? toDate : covered.toDate,
+    }),
+    { fromDate: first.fromDate, toDate: first.toDate },
   );
-  const first = sorted[0];
-  const last = sorted.at(-1);
-  if (!first || !last) {
-    return '';
-  }
-  const from = periodLabel(first, yearType);
-  const to = periodLabel(last, yearType);
-  return from === to ? from : `${from} to ${to}`;
+  return periodLabel(span, yearType);
 }
 
 export type RecentTrend =

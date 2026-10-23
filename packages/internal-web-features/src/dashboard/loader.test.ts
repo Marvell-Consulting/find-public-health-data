@@ -1,8 +1,9 @@
+import { TEAM_IDS } from '@fphd/auth';
 import type { ApiClient } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
-import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
+import { signedInContext } from '../session.testing.ts';
 import { loadDashboard } from './loader.ts';
 
 const indicator = {
@@ -11,8 +12,13 @@ const indicator = {
   updatedAt: '2026-01-02T00:00:00.000Z',
 };
 
-function load(url: string, get: ApiClient['get']) {
-  const context = new RouterContextProvider();
+async function load(
+  url: string,
+  get: ApiClient['get'],
+  roles: readonly string[] = ['publisher'],
+  teams: readonly string[] = [TEAM_IDS.teamA],
+) {
+  const context = await signedInContext(roles, teams);
   context.set(apiContext, { get } as unknown as ApiClient);
 
   return loadDashboard({ context, params: {}, request: new Request(url) } as never);
@@ -29,7 +35,7 @@ describe('loadDashboard', () => {
     const outcome = await load('https://internal.test/dashboard', get);
 
     expect(get.mock.calls[0]?.[0]).toBe('/api/internal/indicators?page=1');
-    expect(outcome).toEqual({ indicators: [indicator], page: 1, totalPages: 3 });
+    expect(outcome).toEqual({ canCreate: true, indicators: [indicator], page: 1, totalPages: 3 });
   });
 
   it('asks for the page in the address', async () => {
@@ -44,7 +50,17 @@ describe('loadDashboard', () => {
   it('renders the first page when there are no indicators at all', async () => {
     const outcome = await load('https://internal.test/dashboard', apiPage(1, 0, []));
 
-    expect(outcome).toEqual({ indicators: [], page: 1, totalPages: 1 });
+    expect(outcome).toMatchObject({ indicators: [], page: 1, totalPages: 1 });
+  });
+
+  it.each([
+    ['an admin', ['admin']],
+    ['an IMRG manager', ['imrg-manager']],
+    ['an IMRG reviewer', ['imrg-reviewer']],
+  ])('offers %s no create action', async (_who, roles) => {
+    const outcome = await load('https://internal.test/dashboard', apiPage(1, 1), roles, []);
+
+    expect(outcome.canCreate).toBe(false);
   });
 
   it('responds 404 to a page past the last one', async () => {

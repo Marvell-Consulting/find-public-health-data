@@ -3,8 +3,11 @@ import type postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { READ_MODEL_TABLES, rebuildReadModels } from './read-models.ts';
+import { IMPORTED_INDICATOR_TEAM_ID, SYSTEM_USER_IDS } from './schema/index.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
+
+const ACTOR = SYSTEM_USER_IDS.pholioMigration;
 
 const MISSING_UUID = '00000000-0000-0000-0000-000000000000';
 
@@ -25,6 +28,25 @@ describe('bridge/registry schema', () => {
   it('holds the seeded indicators', async () => {
     const rows = await sql`SELECT count(*)::int AS count FROM indicator`;
     expect(rows[0]?.count).toBe(12);
+  });
+
+  it('puts every seeded indicator in the Fingertips team', async () => {
+    const rows = await sql<{ teamId: string | null }[]>`
+      SELECT DISTINCT team_id AS "teamId" FROM indicator
+    `;
+    expect(rows).toEqual([{ teamId: IMPORTED_INDICATOR_TEAM_ID }]);
+  });
+
+  it("credits every seeded version and batch to an import's system user", async () => {
+    const rows = await sql<{ actor: string }[]>`
+      SELECT created_by AS actor FROM indicator_version
+      UNION SELECT updated_by FROM indicator_version
+      UNION SELECT uploaded_by FROM upload_batch
+      ORDER BY actor
+    `;
+    expect(rows.map(({ actor }) => actor)).toEqual(
+      [SYSTEM_USER_IDS.pholioMigration, SYSTEM_USER_IDS.testSeed].sort(),
+    );
   });
 
   it('holds observations for every seeded indicator', async () => {
@@ -48,8 +70,8 @@ describe('bridge/registry schema', () => {
   it('rejects an observation referencing an unknown indicator', async () => {
     await expect(sql`
       INSERT INTO observation
-        (indicator_id, area_id, from_date, to_date, upload_batch_id, dimension_key, created_by)
-      SELECT ${MISSING_UUID}, a.id, '2024-01-01', '2024-12-31', ub.id, '', 'integration-test'
+        (indicator_id, area_id, from_date, to_date, upload_batch_id, dimension_key)
+      SELECT ${MISSING_UUID}, a.id, '2024-01-01', '2024-12-31', ub.id, ''
       FROM area a, upload_batch ub LIMIT 1
     `).rejects.toMatchObject({ code: '23503' });
   });
@@ -90,10 +112,10 @@ describe('bridge/registry schema', () => {
       const target = rows[0];
       await tx`
         INSERT INTO observation
-          (indicator_id, area_id, from_date, to_date, upload_batch_id, dimension_key, created_by)
+          (indicator_id, area_id, from_date, to_date, upload_batch_id, dimension_key)
         VALUES
           (${target?.indicator_id}, ${target?.area_id}, '2024-01-01', '2024-12-31',
-           ${target?.other_batch}, '', 'integration-test')
+           ${target?.other_batch}, '')
       `;
     });
     await expect(failed).rejects.toMatchObject({ code: '23503' });
@@ -109,10 +131,10 @@ describe('bridge/registry schema', () => {
       const target = rows[0];
       await tx`
         INSERT INTO observation
-          (indicator_id, area_id, from_date, to_date, upload_batch_id, dimension_key, created_by)
+          (indicator_id, area_id, from_date, to_date, upload_batch_id, dimension_key)
         VALUES
           (${target?.indicator_id}, ${target?.area_id}, '2024-12-31', '2024-01-01',
-           ${target?.batch}, '', 'integration-test')
+           ${target?.batch}, '')
       `;
     });
     await expect(failed).rejects.toMatchObject({ code: '23514' });
@@ -201,23 +223,23 @@ describe('the read-model rebuild', () => {
     if (!published) throw new Error('The seed holds no indicator with headline rows');
     const [draft] = await draftSql<{ id: string }[]>`
       INSERT INTO indicator_version (indicator_id, status, name, slug, created_by, updated_by)
-      SELECT indicator_id, 'draft', name, slug, 'integration-test', 'integration-test'
+      SELECT indicator_id, 'draft', name, slug, ${ACTOR}::uuid, ${ACTOR}::uuid
       FROM indicator_version WHERE id = ${published.id}
       RETURNING id
     `;
     const [batch] = await draftSql<{ id: string }[]>`
       INSERT INTO upload_batch (indicator_id, indicator_version_id, original_filename, uploaded_by)
-      VALUES (${published.indicatorId}, ${draft?.id ?? ''}, 'draft.csv', 'integration-test')
+      VALUES (${published.indicatorId}, ${draft?.id ?? ''}, 'draft.csv', ${ACTOR})
       RETURNING id
     `;
     await draftSql`UPDATE indicator_version SET upload_batch_id = ${batch?.id ?? ''} WHERE id = ${draft?.id ?? ''}`;
     // A headline for every area type, in a year no published row reaches.
     await draftSql`
       INSERT INTO observation
-        (indicator_id, area_id, from_date, to_date, value, upload_batch_id, dimension_key, created_by)
+        (indicator_id, area_id, from_date, to_date, value, upload_batch_id, dimension_key)
       SELECT DISTINCT ON (a.area_type_id)
              ${published.indicatorId}::uuid, a.id, '2099-01-01'::date, '2099-12-31'::date,
-             -1, ${batch?.id ?? ''}::uuid, '', 'integration-test'
+             -1, ${batch?.id ?? ''}::uuid, ''
       FROM area a
       ORDER BY a.area_type_id, a.id
     `;
@@ -233,10 +255,9 @@ describe('the read-model rebuild', () => {
       ),
       o AS (
         INSERT INTO observation
-          (indicator_id, area_id, from_date, to_date, value, upload_batch_id, dimension_key,
-           created_by)
+          (indicator_id, area_id, from_date, to_date, value, upload_batch_id, dimension_key)
         SELECT ${published.indicatorId}, a.id, '2099-01-01', '2099-12-31', -1, ${batch?.id ?? ''},
-               dv.id::text, 'integration-test'
+               dv.id::text
         FROM (SELECT id FROM area ORDER BY id LIMIT 1) a, dv
         RETURNING id
       )

@@ -1,6 +1,8 @@
 import type postgres from 'postgres';
 
-import { copyInto, type DataMigrationProgressReporter } from './data-migration-copy.ts';
+import { changesBetween, recordAudit, rowOf } from './audit-log.ts';
+import { assignImportedTeam, MIGRATION_USER_ID } from './data-migration-actors.ts';
+import type { DataMigrationProgressReporter } from './data-migration-copy.ts';
 import { applyDeletes, prepareVersionDeletes, stageDeletes } from './data-migration-deletes.ts';
 import type { DataMigrationManifest } from './data-migration-manifest.ts';
 import {
@@ -15,12 +17,13 @@ import {
 } from './data-migration-relationship-import.ts';
 import { applyLegacySources } from './data-migration-sources.ts';
 import {
+  applyBaselineRows,
   applyIndicatorVersionRows,
   applyUpserts,
   applyVersionBatchPointers,
-  validateMigrationHeader,
 } from './data-migration-table-import.ts';
 import { type LegacySourceMap, readLegacySourceMap } from './legacy-sources.ts';
+import { dataMigration } from './schema/index.ts';
 
 export type {
   DataMigrationProgress,
@@ -68,17 +71,7 @@ async function applyBaseline(
       changes[table] = { upserts: entry.rows, deletes: 0 };
       continue;
     }
-    const file = `${directory}/${entry.file}`;
-    const { columns } = await validateMigrationHeader(tx, table, file);
-    await copyInto(
-      tx,
-      table,
-      columns,
-      file,
-      `COPY into ${table}`,
-      { table, phase: 'baseline' },
-      report,
-    );
+    await applyBaselineRows(tx, table, `${directory}/${entry.file}`, report);
     const [row] = await tx.unsafe<{ count: number }[]>(
       `SELECT count(*)::int AS count FROM "${table}"`,
     );
@@ -88,6 +81,7 @@ async function applyBaseline(
   }
   if (indicatorVersionHasBatchPointers) await applyVersionBatchPointers(tx);
   await applyLegacySources(tx, directory, legacySourceMap);
+  await assignImportedTeam(tx);
   return changes;
 }
 
@@ -123,6 +117,7 @@ async function applyIncremental(
   }
   if (indicatorVersionHasBatchPointers) await applyVersionBatchPointers(tx);
   await applyLegacySources(tx, directory, legacySourceMap);
+  await assignImportedTeam(tx, 'data_migration_upsert_indicator');
   for (const table of DATA_MIGRATION_TABLES) {
     if (referenceTables.has(table)) continue;
     const entry = manifest.tables[table];
@@ -222,12 +217,22 @@ export async function applyDataMigration(
   await tx.unsafe(
     "SELECT setval('indicator_short_id_seq', GREATEST(99999, (SELECT CASE WHEN is_called THEN last_value ELSE last_value - 1 END FROM indicator_short_id_seq), COALESCE((SELECT max(short_id) FROM indicator), 99999)), true)",
   );
-  await tx`
+  const [ledger] = await tx<{ row: Record<string, unknown> }[]>`
     INSERT INTO data_migration
       (id, kind, package_sha256, predecessor_id, source_snapshot_at, source_cutoff_at, table_changes)
     VALUES
       (${manifest.migration_id}, ${manifest.kind}, ${packageSha256}, ${manifest.predecessor},
        ${manifest.source.snapshot_at}, ${manifest.source.cutoff_at}, ${tx.json(changes)})
+    RETURNING to_jsonb(new) AS row
   `;
+  if (ledger === undefined)
+    throw new Error(`Migration ${manifest.migration_id} wrote no ledger row`);
+  await recordAudit(tx, { userId: MIGRATION_USER_ID, requestId: null }, [
+    {
+      action: 'data_migration.applied',
+      entityId: manifest.migration_id,
+      changes: changesBetween(null, rowOf(dataMigration, ledger.row)),
+    },
+  ]);
   return { applied: true, changes };
 }

@@ -1,4 +1,6 @@
-import { type Database, listIndicatorFacets } from '@fphd/db';
+import { TEAM_IDS } from '@fphd/auth';
+import { type Database, listIndicatorFacets, schema } from '@fphd/db';
+import { eq } from 'drizzle-orm';
 import { describe, expect } from 'vitest';
 
 import { updateIndicatorDraft } from './indicator-draft-repository.ts';
@@ -6,19 +8,24 @@ import { getIndicatorById, listIndicatorsPage } from './indicator-list-repositor
 import { createDraftFromPublished } from './indicator-publish-repository.ts';
 import {
   ACTOR,
+  AS_ACTOR,
+  AS_OTHER_ACTOR,
   idsNewestFirst,
   indicatorWithTwoPublications,
   newDraft,
+  OTHER_ACTOR,
   repositoryTest,
 } from './indicator-repository.testing.ts';
+
+const EVERY_INDICATOR = { all: true } as const;
 
 describe('listIndicatorsPage', () => {
   repositoryTest('pages through every indicator, most recently edited first', async ({ db }) => {
     const expected = await idsNewestFirst(db);
     const pageSize = Math.ceil(expected.length / 2);
 
-    const first = await listIndicatorsPage(db, 1, pageSize);
-    const second = await listIndicatorsPage(db, 2, pageSize);
+    const first = await listIndicatorsPage(db, 1, pageSize, EVERY_INDICATOR);
+    const second = await listIndicatorsPage(db, 2, pageSize, EVERY_INDICATOR);
 
     expect(first.total).toBe(expected.length);
     expect(second.total).toBe(expected.length);
@@ -32,7 +39,7 @@ describe('listIndicatorsPage', () => {
     async ({ db }) => {
       const expected = await idsNewestFirst(db);
 
-      const page = await listIndicatorsPage(db, 2, expected.length);
+      const page = await listIndicatorsPage(db, 2, expected.length, EVERY_INDICATOR);
 
       expect(page.indicators).toEqual([]);
       expect(page.total).toBe(expected.length);
@@ -44,7 +51,7 @@ describe('listIndicatorsPage', () => {
     async ({ db }) => {
       const created = await newDraft(db, 'A draft-only indicator');
 
-      const page = await listIndicatorsPage(db, 1, 1);
+      const page = await listIndicatorsPage(db, 1, 1, EVERY_INDICATOR);
 
       expect(page.indicators[0]).toMatchObject({
         id: created.indicatorId,
@@ -54,10 +61,110 @@ describe('listIndicatorsPage', () => {
   );
 });
 
+describe('listIndicatorsPage within teams', () => {
+  repositoryTest("lists and counts only the given teams' indicators", async ({ db }) => {
+    const created = await newDraft(db, 'A Team B indicator');
+    await db
+      .update(schema.indicator)
+      .set({ teamId: TEAM_IDS.teamB })
+      .where(eq(schema.indicator.id, created.indicatorId));
+
+    const page = await listIndicatorsPage(db, 1, 10, { all: false, teamIds: [TEAM_IDS.teamB] });
+
+    expect(page.indicators.map((row) => row.id)).toEqual([created.indicatorId]);
+    expect(page.indicators[0]?.teamId).toBe(TEAM_IDS.teamB);
+    expect(page.total).toBe(1);
+  });
+
+  repositoryTest('lists nothing for a scope of no teams', async ({ db }) => {
+    await expect(listIndicatorsPage(db, 1, 10, { all: false, teamIds: [] })).resolves.toEqual({
+      indicators: [],
+      total: 0,
+    });
+  });
+});
+
+describe('the names on each row', () => {
+  async function listed(db: Database, id: string) {
+    const all = (await idsNewestFirst(db)).length;
+    const page = await listIndicatorsPage(db, 1, all, EVERY_INDICATOR);
+    return page.indicators.find((row) => row.id === id);
+  }
+
+  async function displayName(db: Database, id: string) {
+    const [user] = await db
+      .select({ name: schema.appUser.displayName })
+      .from(schema.appUser)
+      .where(eq(schema.appUser.id, id));
+    return user?.name;
+  }
+
+  repositoryTest(
+    'names the team, who wrote the first version and who edited the draft last',
+    async ({ db }) => {
+      const created = await newDraft(db, 'Named on the dashboard');
+      await updateIndicatorDraft(
+        db,
+        created.indicatorId,
+        { definition: 'Edited' },
+        {},
+        AS_OTHER_ACTOR,
+      );
+
+      expect(await listed(db, created.indicatorId)).toMatchObject({
+        teamName: 'Team A',
+        createdBy: await displayName(db, ACTOR),
+        lastEditedBy: await displayName(db, OTHER_ACTOR),
+      });
+    },
+  );
+
+  repositoryTest(
+    "keeps the first version's writer as the creator of a live indicator with a new draft",
+    async ({ db }) => {
+      const { indicatorId, supersededId } = await indicatorWithTwoPublications(
+        db,
+        'Live, redrafted',
+      );
+      // A later version by someone else is not the indicator's creation.
+      await db
+        .update(schema.indicatorVersion)
+        .set({ createdBy: OTHER_ACTOR })
+        .where(eq(schema.indicatorVersion.id, supersededId));
+      await createDraftFromPublished(db, indicatorId, AS_OTHER_ACTOR);
+
+      expect((await listed(db, indicatorId))?.createdBy).toBe(await displayName(db, ACTOR));
+    },
+  );
+
+  repositoryTest("names the published version's editor while there is no draft", async ({ db }) => {
+    const { indicatorId, currentId } = await indicatorWithTwoPublications(db, 'Live, edited');
+    await db
+      .update(schema.indicatorVersion)
+      .set({ updatedBy: OTHER_ACTOR })
+      .where(eq(schema.indicatorVersion.id, currentId));
+
+    expect(await listed(db, indicatorId)).toMatchObject({
+      lastEditedBy: await displayName(db, OTHER_ACTOR),
+    });
+  });
+
+  repositoryTest('leaves the team empty for an indicator in no team', async ({ db }) => {
+    const created = await newDraft(db, 'In no team');
+    await db
+      .update(schema.indicator)
+      .set({ teamId: null })
+      .where(eq(schema.indicator.id, created.indicatorId));
+
+    expect(await listed(db, created.indicatorId)).toMatchObject({ teamName: null });
+  });
+});
+
 describe('the derived statuses', () => {
   /** The whole listing, so a case finds its own row wherever the order put it. */
   async function listed(db: Database, id: string) {
-    const page = await listIndicatorsPage(db, 1, (await idsNewestFirst(db)).length);
+    const all = (await idsNewestFirst(db)).length;
+    const page = await listIndicatorsPage(db, 1, all, EVERY_INDICATOR);
     return page.indicators.find((row) => row.id === id);
   }
 
@@ -84,7 +191,7 @@ describe('the derived statuses', () => {
     'reads a draft of a published indicator as live with an unsubmitted draft',
     async ({ db }) => {
       const { indicatorId } = await indicatorWithTwoPublications(db, 'Live with a draft');
-      await createDraftFromPublished(db, indicatorId, ACTOR);
+      await createDraftFromPublished(db, indicatorId, AS_ACTOR);
       const statuses = { indicatorStatus: 'live', draftStatus: 'draft' };
 
       expect(await listed(db, indicatorId)).toMatchObject(statuses);
@@ -115,8 +222,8 @@ describe('getIndicatorById', () => {
       const target = seededIds.at(-1);
       if (target === undefined) throw new Error('The seed holds no indicators');
 
-      await createDraftFromPublished(db, target, ACTOR);
-      await updateIndicatorDraft(db, target, { name: 'Edited in a draft' }, {}, ACTOR);
+      await createDraftFromPublished(db, target, AS_ACTOR);
+      await updateIndicatorDraft(db, target, { name: 'Edited in a draft' }, {}, AS_ACTOR);
 
       expect(await getIndicatorById(db, target)).toMatchObject({
         draftStatus: 'draft',
@@ -150,7 +257,7 @@ describe('sharing one connection with the public repositories', () => {
   repositoryTest(
     'reads the indicator table and the published indicator view in one process',
     async ({ db }) => {
-      await listIndicatorsPage(db, 1, 1);
+      await listIndicatorsPage(db, 1, 1, EVERY_INDICATOR);
 
       await expect(listIndicatorFacets(db)).resolves.toMatchObject({
         sources: expect.any(Array),

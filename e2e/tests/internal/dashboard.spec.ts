@@ -2,27 +2,12 @@ import { expect, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 import { createDraft, uniqueIndicatorName } from '../support/create-indicator.ts';
-import { PUBLISHER } from '../support/sign-in.ts';
+import { ADMIN, PUBLISHER, TEAM_B_PUBLISHER } from '../support/sign-in.ts';
 
 test.use({ storageState: PUBLISHER.storageState });
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/dashboard');
-});
-
-// The seed holds more indicators than one page, and specs only ever add to it.
-test('lists a page of indicators for a publisher', async ({ page }) => {
-  await expect(page.getByRole('heading', { level: 1, name: 'Indicators' })).toBeVisible();
-
-  const rows = page.getByRole('table').getByRole('row');
-
-  await expect(rows).toHaveCount(11);
-  await expect(rows.first().getByRole('columnheader')).toHaveText([
-    'Indicator name',
-    'Last edited',
-    'Indicator status',
-    'Publishing status',
-  ]);
 });
 
 test('tags a new indicator as new with an incomplete draft', async ({ page }) => {
@@ -36,17 +21,64 @@ test('tags a new indicator as new with an incomplete draft', async ({ page }) =>
   await expect(row.locator('.govuk-tag')).toHaveText(['New', 'Incomplete']);
 });
 
-test('moves between pages', async ({ page }) => {
-  await page.getByRole('link', { name: 'Next page' }).click();
+test('names the team, the creator and the last editor of a new indicator', async ({ page }) => {
+  const name = uniqueIndicatorName('dashboard');
+  await createDraft(page, name);
+  await page.goto('/dashboard');
 
-  await expect(page).toHaveURL('/dashboard?page=2');
-  await expect(page.getByRole('table').getByRole('row').nth(1)).toBeVisible();
+  const row = page.getByRole('table').getByRole('row').filter({ hasText: name });
 
-  await page.getByRole('link', { name: 'Previous page' }).click();
-
-  await expect(page).toHaveURL('/dashboard');
+  await expect(row.getByRole('cell').nth(0)).toHaveText('Team A');
+  await expect(row.getByRole('cell').nth(1)).toHaveText(PUBLISHER.name);
+  await expect(row.getByRole('cell').nth(3)).toHaveText(PUBLISHER.name);
 });
 
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
   await expectNoAccessibilityViolations(page, testInfo);
+});
+
+test.describe('as a publisher whose team holds no indicators', () => {
+  test.use({ storageState: TEAM_B_PUBLISHER.storageState });
+
+  test("shows a publisher only their own teams' indicators", async ({ page }) => {
+    await expect(page.getByText('There are no indicators for you to see yet.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Create new indicator' })).toBeVisible();
+  });
+});
+
+test.describe('as an admin, who sees every team', () => {
+  test.use({ storageState: ADMIN.storageState });
+
+  // The seed holds more indicators than one page, all in Fingertips, and specs only add to it.
+  test('lists a page of indicators', async ({ page }) => {
+    await expect(page.getByRole('heading', { level: 1, name: 'Indicators' })).toBeVisible();
+
+    const rows = page.getByRole('table').getByRole('row');
+
+    await expect(rows).toHaveCount(11);
+    await expect(rows.first().getByRole('columnheader')).toHaveText([
+      'Indicator name',
+      'Team',
+      'Created by',
+      'Last edited',
+      'Last edited by',
+      'Indicator status',
+      'Publishing status',
+    ]);
+  });
+
+  test('moves between pages', async ({ page }) => {
+    await page.getByRole('link', { name: 'Next page' }).click();
+
+    await expect(page).toHaveURL('/dashboard?page=2');
+    await expect(page.getByRole('table').getByRole('row').nth(1)).toBeVisible();
+
+    await page.getByRole('link', { name: 'Previous page' }).click();
+
+    await expect(page).toHaveURL('/dashboard');
+  });
+
+  test('offers an admin no create action', async ({ page }) => {
+    await expect(page.getByRole('button', { name: 'Create new indicator' })).toHaveCount(0);
+  });
 });

@@ -27,8 +27,6 @@ export { CardList, type CardListItem } from './card-list.tsx';
 export { ChartSection } from './chart-section.tsx';
 export { NotFoundPage, PageIntro } from './content-page.tsx';
 export {
-  DayMonthInput,
-  type DayMonthInputValue,
   datePartId,
   datePartName,
   TimeInput,
@@ -56,4 +54,5 @@ export { NonceProvider, useNonce } from './nonce.tsx';
 export { RootErrorBoundary } from './root-error-boundary.tsx';
 export { SearchField } from './search-field.tsx';
 export { searchPattern } from './search-pattern.ts';
+export { TableScrollRegion } from './table-scroll-region.tsx';
 export { Tabs } from './tabs.tsx';

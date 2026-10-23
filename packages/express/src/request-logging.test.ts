@@ -90,7 +90,7 @@ describe('requestLogging', () => {
   });
 
   it('keeps a forwarded id when told to, so a web line and an API line read as one flow', async () => {
-    const { app, lines } = createApp({ acceptsForwardedId: true });
+    const { app, lines } = createApp({ servesWebApps: true });
 
     await request(app)
       .get('/topics')
@@ -113,7 +113,7 @@ describe('requestLogging', () => {
   });
 
   it('mints its own id for a request Front Door relayed, since a web app never goes through it', async () => {
-    const { app, lines } = createApp({ acceptsForwardedId: true });
+    const { app, lines } = createApp({ servesWebApps: true });
 
     await request(app)
       .get('/topics')
@@ -129,7 +129,7 @@ describe('requestLogging', () => {
   });
 
   it('replaces a forwarded id that is not a uuid, rather than log what a stranger chose', async () => {
-    const { app, lines } = createApp({ acceptsForwardedId: true });
+    const { app, lines } = createApp({ servesWebApps: true });
 
     await request(app).get('/topics').set('X-Fphd-Request-Id', 'chosen-by-the-caller');
     await settled(lines);
@@ -163,6 +163,33 @@ describe('requestLogging', () => {
     await settled(lines);
 
     expect(lines[0]?.req).not.toHaveProperty('azureRef');
+  });
+
+  it('marks a request from inside the environment as a web app call', async () => {
+    const { app, lines } = createApp({ servesWebApps: true });
+
+    await request(app).get('/topics');
+    await settled(lines);
+
+    expect(lines[0]?.req).toMatchObject({ source: 'web' });
+  });
+
+  it('marks a request Front Door relayed as external', async () => {
+    const { app, lines } = createApp({ servesWebApps: true });
+
+    await request(app).get('/topics').set('X-Azure-Ref', '0abc123==');
+    await settled(lines);
+
+    expect(lines[0]?.req).toMatchObject({ source: 'external' });
+  });
+
+  it('leaves the source off a web app line, where every request comes from outside', async () => {
+    const { app, lines } = createApp();
+
+    await request(app).get('/topics').set('X-Azure-Ref', '0abc123==');
+    await settled(lines);
+
+    expect(lines[0]?.req).not.toHaveProperty('source');
   });
 
   it('logs a server error response at error level, and a miss at info', async () => {
