@@ -3,7 +3,7 @@ import { type Actor, type AuditAction, changesBetween, recordAudit } from '@fphd
 import type { IndicatorSubmissionStatus } from '@fphd/utils/indicator-submission-status';
 import { and, desc, eq, sql } from 'drizzle-orm';
 
-import type { CiMethodKind } from './contract.ts';
+import type { CiMethodKind, IndicatorStep } from './contract.ts';
 import {
   draftListsOf,
   type IndicatorDraftVersion,
@@ -11,7 +11,7 @@ import {
 } from './indicator-draft-repository.ts';
 import type { Transaction } from './indicator-repository-sql.ts';
 import { isDraftComplete } from './indicator-task-list.ts';
-import { type IndicatorStep, nextState } from './indicator-workflow.ts';
+import { nextState } from './indicator-workflow.ts';
 
 const { ciMethod, indicatorVersion, indicatorVersionSubmission } = schema;
 

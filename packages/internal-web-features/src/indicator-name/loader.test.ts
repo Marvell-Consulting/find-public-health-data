@@ -4,6 +4,7 @@ import { apiContext } from '@fphd/web-server/api-context';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
+import { flashedResponse, redirectWithFlash, withFlashStorage } from '../flash.testing.ts';
 import { FORM_NOT_SAVED } from '../form-refusal.ts';
 import { signedInContext } from '../session.testing.ts';
 import {
@@ -352,5 +353,45 @@ describe('saveIndicatorName', () => {
     const patch = vi.fn().mockRejectedValue(new Response('Not Found', { status: 404 }));
 
     await expect(rename(created.id, 'Too late', patch)).rejects.toSatisfy(isNotFound);
+  });
+});
+
+describe('the name page of a draft locked for review', () => {
+  const path = `https://internal.test/publish/indicators/${created.id}/name`;
+  const toOverview = {
+    status: 302,
+    location: `/dashboard/indicators/${created.id}`,
+    flash: 'draft-locked',
+  };
+
+  it('sends the publisher who opens it to the overview, saying why', async () => {
+    const context = withFlashStorage(await signedInContext(['publisher'], [TEAM_IDS.teamA]));
+    context.set(apiContext, {
+      get: vi.fn().mockResolvedValue({ ...created, draftLocked: true }),
+    } as unknown as ApiClient);
+    const request = new Request(path);
+
+    const response = await flashedResponse(context, request, () =>
+      loadIndicatorName({ context, params: { id: created.id }, request } as never),
+    );
+
+    expect(await redirectWithFlash(response)).toEqual(toOverview);
+  });
+
+  it('sends the publisher whose rename it refuses to the overview, saying why', async () => {
+    const context = withFlashStorage(new RouterContextProvider());
+    context.set(apiContext, {
+      patch: vi.fn().mockResolvedValue({ ok: false, status: 409, error: { error: 'locked' } }),
+    } as unknown as ApiClient);
+    const request = new Request(path, {
+      method: 'POST',
+      body: new URLSearchParams({ name: 'A better name' }),
+    });
+
+    const response = await flashedResponse(context, request, () =>
+      saveIndicatorName({ context, params: { id: created.id }, request } as never),
+    );
+
+    expect(await redirectWithFlash(response)).toEqual(toOverview);
   });
 });

@@ -20,6 +20,8 @@ const indicator: IndicatorAdminDetail = {
   draftStatus: null,
   draftLocked: false,
   draftSubmissionStatus: null,
+  draftSubmissionNumber: null,
+  actions: [],
 };
 
 // The links and tabs read router state, so the page renders inside a router at its own address.
@@ -94,5 +96,70 @@ describe('IndicatorOverviewPage', () => {
     renderPage();
 
     expect(screen.queryByRole('link', { name: /^Continue/ })).toBeNull();
+  });
+
+  it('offers no task list while the draft is locked for review', () => {
+    renderPage({
+      publishedSlug: null,
+      indicatorStatus: 'new',
+      draftStatus: 'draft',
+      draftLocked: true,
+      draftSubmissionStatus: 'submitted',
+    });
+
+    expect(screen.queryByRole('link', { name: /^Continue/ })).toBeNull();
+  });
+
+  it('shows something the publisher needs to know in an important banner', () => {
+    render(
+      <MemoryRouter initialEntries={[`/dashboard/indicators/${indicator.id}`]}>
+        <IndicatorOverviewPage
+          canEdit
+          indicator={indicator}
+          notification={{ type: 'important', text: 'This cannot be edited.' }}
+        />
+      </MemoryRouter>,
+    );
+
+    const banner = screen.getByRole('region', { name: 'Important' });
+    expect(banner.textContent).toContain('This cannot be edited.');
+  });
+
+  it('shows a success in a success banner', () => {
+    render(
+      <MemoryRouter initialEntries={[`/dashboard/indicators/${indicator.id}`]}>
+        <IndicatorOverviewPage
+          canEdit
+          indicator={indicator}
+          notification={{ type: 'success', text: 'It worked.' }}
+        />
+      </MemoryRouter>,
+    );
+
+    const banner = screen.getByRole('alert');
+    expect(banner.textContent).toContain('Success');
+    expect(banner.textContent).toContain('It worked.');
+  });
+
+  it('offers to withdraw a submission the publisher may withdraw', () => {
+    renderPage({
+      publishedSlug: null,
+      indicatorStatus: 'new',
+      draftStatus: 'draft',
+      draftLocked: true,
+      draftSubmissionStatus: 'submitted',
+      draftSubmissionNumber: 1,
+      actions: ['withdraw'],
+    });
+
+    expect(screen.getByRole('link', { name: 'Withdraw submission' }).getAttribute('href')).toBe(
+      `/publish/indicators/${indicator.id}/withdraw-submission`,
+    );
+  });
+
+  it('offers no withdrawal the workflow does not allow the user', () => {
+    renderPage({ draftStatus: 'draft', draftLocked: true, draftSubmissionStatus: 'submitted' });
+
+    expect(screen.queryByRole('link', { name: 'Withdraw submission' })).toBeNull();
   });
 });

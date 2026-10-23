@@ -10,6 +10,7 @@ import {
   canListIndicators,
   canSeeIndicator,
   indicatorListScope,
+  type SessionUser,
 } from '@fphd/auth/permissions';
 import { Router } from 'express';
 
@@ -33,6 +34,7 @@ import type {
   IndicatorAdminRow,
 } from './indicator-list-repository.ts';
 import { indicatorTaskList } from './indicator-task-list.ts';
+import { stepsOpenTo } from './indicator-workflow.ts';
 import type { InternalIndicatorRepository } from './repositories.ts';
 
 export const INDICATORS_PAGE_SIZE = 10;
@@ -68,8 +70,14 @@ function toListItem(row: IndicatorAdminListRow): IndicatorAdminListItem {
   return { ...toSummary(row), teamName, createdBy, lastEditedBy };
 }
 
-function toDetail(row: IndicatorAdminDetailRow): IndicatorAdminDetail {
-  return { ...toSummary(row), shortId: row.shortId, publishedSlug: row.publishedSlug };
+function toDetail(row: IndicatorAdminDetailRow, user: SessionUser): IndicatorAdminDetail {
+  return {
+    ...toSummary(row),
+    shortId: row.shortId,
+    publishedSlug: row.publishedSlug,
+    draftSubmissionNumber: row.draftSubmissionNumber,
+    actions: stepsOpenTo(user, row),
+  };
 }
 
 /**
@@ -156,7 +164,7 @@ export function internalIndicatorsRouter(
 
     if (!row) throw new Error('the indicator just created could not be read back');
 
-    response.status(201).json(toDetail(row));
+    response.status(201).json(toDetail(row, session));
   });
 
   router.patch('/api/internal/indicators/:id', requireEditor, async (request, response) => {
@@ -211,7 +219,7 @@ export function internalIndicatorsRouter(
     if (!row) throw new Error('the indicator just renamed could not be read back');
 
     request.log.info({ indicatorId: row.id, shortId: row.shortId }, 'Indicator renamed');
-    response.status(200).json(toDetail(row));
+    response.status(200).json(toDetail(row, requireApiSession(response)));
   });
 
   router.get('/api/internal/indicators/:id/task-list', requireEditor, async (request, response) => {
@@ -236,15 +244,24 @@ export function internalIndicatorsRouter(
       return;
     }
 
-    const body: IndicatorTaskList = indicatorTaskList({
-      indicator: {
-        id: row.id,
-        shortId: row.shortId,
-        indicatorStatus: row.indicatorStatus,
-        draftStatus: row.draftStatus,
-      },
-      draft: { ...row.draft, ciMethodKind: row.draftCiMethodKind },
-    });
+    const body: IndicatorTaskList = {
+      ...indicatorTaskList({
+        indicator: {
+          id: row.id,
+          shortId: row.shortId,
+          indicatorStatus: row.indicatorStatus,
+          draftStatus: row.draftStatus,
+          draftSubmissionStatus: row.draftSubmissionStatus,
+        },
+        draft: { ...row.draft, ciMethodKind: row.draftCiMethodKind },
+      }),
+      draftUpdatedAt: row.draft.updatedAt.toISOString(),
+      editable: !row.draft.isLocked,
+      actions: stepsOpenTo(requireApiSession(response), {
+        ...row,
+        draftLocked: row.draft.isLocked,
+      }),
+    };
 
     response.status(200).json(body);
   });
@@ -259,14 +276,15 @@ export function internalIndicatorsRouter(
     }
 
     const row = await indicators.findById(id.data);
+    const session = requireApiSession(response);
 
     // One the user may not see answers as one that does not exist. No reviewer is assigned yet.
-    if (!row || !canSeeIndicator(requireApiSession(response), { ...row, reviewerIds: [] })) {
+    if (!row || !canSeeIndicator(session, { ...row, reviewerIds: [] })) {
       response.status(404).json({ error: 'not_found' });
       return;
     }
 
-    response.status(200).json(toDetail(row));
+    response.status(200).json(toDetail(row, session));
   });
 
   return router;

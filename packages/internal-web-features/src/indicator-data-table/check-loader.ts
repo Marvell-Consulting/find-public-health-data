@@ -11,6 +11,7 @@ import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from 'reac
 
 import { FORM_NOT_SAVED } from '../form-refusal.ts';
 import { requireIndicatorId } from '../indicator-id.ts';
+import { lockedDraftRedirect, unlessDraftLocked } from '../locked-draft.ts';
 import {
   indicatorDataTableCheckPath,
   indicatorDataTablePath,
@@ -41,12 +42,16 @@ export async function loadDataTableCheck({ context, params, request }: LoaderFun
   if (!query.success) throw notFound();
 
   const { page, rowsPerPage } = query.data;
-  const { dataTable } = await context
-    .get(apiContext)
-    .get(
-      `${apiPath`/api/internal/indicators/${id}/data-table`}?page=${page}&rowsPerPage=${rowsPerPage}`,
-      dataTableCheckSchema,
-    );
+  const { dataTable } = await unlessDraftLocked(
+    context,
+    id,
+    context
+      .get(apiContext)
+      .get(
+        `${apiPath`/api/internal/indicators/${id}/data-table`}?page=${page}&rowsPerPage=${rowsPerPage}`,
+        dataTableCheckSchema,
+      ),
+  );
 
   if (dataTable === null) throw redirect(indicatorDataTablePath(id));
 
@@ -83,6 +88,7 @@ export async function confirmDataTable({
     );
 
   if (result.ok) return redirect(indicatorTaskListPath(id));
+  if (result.error.error === 'locked') return lockedDraftRedirect(context, id);
 
   return {
     formError: result.error.error === 'data_table_changed' ? DATA_TABLE_CHANGED : FORM_NOT_SAVED,

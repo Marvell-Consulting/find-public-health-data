@@ -18,6 +18,7 @@ import {
 import { type FormRefusal, formRefusal } from './form-refusal.ts';
 import { type ControlNames, type FormValues, readFormValues } from './form-values.ts';
 import { requireIndicatorId } from './indicator-id.ts';
+import { lockedDraftRedirect, unlessDraftLocked } from './locked-draft.ts';
 import { indicatorTaskListPath } from './publish-paths.ts';
 
 /** A rejected submission: the form as it was sent, and why it was refused. */
@@ -35,14 +36,21 @@ function sectionApiPath(id: string, key: IndicatorTaskKey): string {
   return apiPath`/api/internal/indicators/${id}/${key}`;
 }
 
-/** The draft's answers to one section. The API answers 404 when there is no draft. */
+/**
+ * The draft's answers to one section. The API answers 404 when there is no draft; a draft locked
+ * for review sends the publisher to the overview.
+ */
 export async function loadIndicatorSectionAnswers<Answers>(
   { context, params }: LoaderFunctionArgs,
   key: IndicatorTaskKey,
   answersSchema: ApiResponseSchema<Answers>,
 ): Promise<{ id: string; answers: Answers }> {
   const id = requireIndicatorId(params);
-  const answers = await context.get(apiContext).get(sectionApiPath(id, key), answersSchema);
+  const answers = await unlessDraftLocked(
+    context,
+    id,
+    context.get(apiContext).get(sectionApiPath(id, key), answersSchema),
+  );
 
   return { id, answers };
 }
@@ -81,7 +89,9 @@ async function putIndicatorSection<Field extends string, ErrorField extends stri
       indicatorSectionErrorSchema(section),
     );
 
-  return result.ok ? redirect(indicatorTaskListPath(id)) : formRefusal(result.error);
+  if (result.ok) return redirect(indicatorTaskListPath(id));
+  if (result.error.error === 'locked') return lockedDraftRedirect(context, id);
+  return formRefusal(result.error);
 }
 
 /** A page's answers to save, and the page as it re-renders if they are refused. */

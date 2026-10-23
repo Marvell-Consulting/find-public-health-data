@@ -18,6 +18,7 @@ import { formRefusal } from '../form-refusal.ts';
 import { readFormValues } from '../form-values.ts';
 import { requireIndicatorId } from '../indicator-id.ts';
 import type { FormFailure } from '../indicator-section.ts';
+import { lockedDraftRedirect } from '../locked-draft.ts';
 import { requireNewIndicatorTeam } from '../new-indicator-team.ts';
 import { indicatorTaskListPath } from '../publish-paths.ts';
 
@@ -77,6 +78,7 @@ export async function loadIndicatorName({ context, params }: LoaderFunctionArgs)
 
   if (indicator.draftStatus === null) throw notFound();
   requireEditableIndicator(context, indicator);
+  if (indicator.draftLocked) throw lockedDraftRedirect(context, id);
 
   return { indicator };
 }
@@ -105,6 +107,7 @@ export async function saveIndicatorName({
     );
 
   if (!result.ok) {
+    if (result.error.error === 'locked') return lockedDraftRedirect(context, id);
     return { values, ...formRefusal(result.error) };
   }
 

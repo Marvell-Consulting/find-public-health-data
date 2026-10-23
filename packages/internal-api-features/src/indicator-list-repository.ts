@@ -9,6 +9,7 @@ import {
   draftJoin,
   draftLocked,
   draftStatus,
+  draftSubmissionNumber,
   draftSubmissionStatus,
   draftVersion,
   indicatorStatus,
@@ -49,6 +50,8 @@ export interface IndicatorAdminRows {
 
 export interface IndicatorAdminDetailRow extends IndicatorAdminRow {
   shortId: number;
+  /** The number of the draft's latest submission, null until the draft is first submitted. */
+  draftSubmissionNumber: number | null;
   /** The published version's slug, and so its public address; null while none is published. */
   publishedSlug: string | null;
 }
@@ -124,6 +127,7 @@ export async function getIndicatorById(
       draftStatus,
       draftLocked,
       draftSubmissionStatus,
+      draftSubmissionNumber,
     })
     .from(indicator)
     .leftJoin(draftVersion, draftJoin)

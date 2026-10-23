@@ -91,6 +91,11 @@ export const draftStatusSchema = z.enum(['draft']);
 /** Where the draft's latest submission for review stands. */
 export const draftSubmissionStatusSchema = z.enum(INDICATOR_SUBMISSION_STATUSES);
 
+/** The steps a version takes through review, in the order the workflow allows them. */
+export const INDICATOR_STEPS = ['submit', 'withdraw'] as const;
+
+export const indicatorStepSchema = z.enum(INDICATOR_STEPS);
+
 /**
  * Both statuses are derived from the versions, never stored, and sent as values rather than
  * labels: what each is called is the web UI's decision.
@@ -134,11 +139,17 @@ export const indicatorAdminPageSchema = z.object({
 
 export const indicatorIdSchema = z.uuid();
 
+/** The workflow steps the user may take on the indicator now, so the web offers only those. */
+export const indicatorActionsSchema = z.array(indicatorStepSchema);
+
 export const indicatorAdminDetailSchema = indicatorAdminSummarySchema.extend({
   /** The public indicator number, which is what a publisher knows an indicator by. */
   shortId: z.number().int(),
   /** The published version's slug: the indicator's public address, absent until it has one. */
   publishedSlug: z.string().min(1).nullable(),
+  /** The draft's latest submission, which a withdrawal names; null until the first. */
+  draftSubmissionNumber: z.number().int().positive().nullable(),
+  actions: indicatorActionsSchema,
 });
 
 /** Why the slug rule refuses a name, in the words the publisher reads. */
@@ -188,11 +199,12 @@ export const indicatorCreateErrorSchema = z.discriminatedUnion('error', [
 ]);
 
 /**
- * The 400 and 409 answers. A refused value is always named; only a bad id names no field. A
- * missing indicator or draft is a 404, which the client throws.
+ * The 400 and 409 answers. A refused value is always named; a bad id and a draft locked for
+ * review name no field. A missing indicator or draft is a 404, which the client throws.
  */
 export const indicatorUpdateErrorSchema = z.discriminatedUnion('error', [
   z.object({ error: z.literal('invalid_id') }),
+  z.object({ error: z.literal('locked') }),
   z.object({
     error: z.enum(['validation_failed', 'slug_taken']),
     fieldErrors: indicatorFieldErrorsSchema,
@@ -205,6 +217,7 @@ export type IndicatorAdminPage = z.infer<typeof indicatorAdminPageSchema>;
 export type IndicatorStatus = z.infer<typeof indicatorStatusSchema>;
 export type DraftStatus = z.infer<typeof draftStatusSchema>;
 export type DraftSubmissionStatus = z.infer<typeof draftSubmissionStatusSchema>;
+export type IndicatorStep = z.infer<typeof indicatorStepSchema>;
 export type IndicatorAdminDetail = z.infer<typeof indicatorAdminDetailSchema>;
 export type IndicatorName = z.infer<typeof indicatorNameSchema>;
 export type IndicatorTeam = z.infer<typeof indicatorTeamSchema>;
@@ -261,12 +274,18 @@ export const indicatorTaskListSchema = z.object({
     indicatorStatus: true,
     // Nullable as picked, but never null here: the endpoint answers 404 when there is no draft.
     draftStatus: true,
+    draftSubmissionStatus: true,
   }),
   /** True when the indicator is live, so this edit revises what the public has. */
   isUpdate: z.boolean(),
   /** True once every task is complete. */
   canSubmit: z.boolean(),
   tasks: indicatorTaskStatusesSchema,
+  /** The draft's last edit, which a submission sends back to confirm the draft it was shown. */
+  draftUpdatedAt: z.iso.datetime(),
+  /** False while the draft is locked for review, so none of its tasks may be edited. */
+  editable: z.boolean(),
+  actions: indicatorActionsSchema,
 });
 
 /** `no_draft` is the PATCH route's word for an indicator with nothing to edit. */
@@ -274,11 +293,33 @@ export const indicatorTaskListErrorSchema = z.object({
   error: z.enum(['invalid_id', 'not_found', 'no_draft']),
 });
 
+/** A submission confirms the draft as the task list showed it, by its last edit. */
+export const indicatorSubmitSchema = z.object({ draftUpdatedAt: z.iso.datetime() });
+
+/** The 400 and 409 answers. A missing indicator or draft is a 404, which the client throws. */
+export const indicatorSubmitErrorSchema = z.object({
+  error: z.enum(['invalid_id', 'invalid_draft_updated_at', 'not_allowed', 'changed', 'incomplete']),
+});
+
+/** A withdrawal names the submission the publisher was shown, so it never ends a newer one. */
+export const indicatorWithdrawSchema = z.object({
+  submissionNumber: z.number().int().positive(),
+});
+
+/** The 400 and 409 answers, as the submission's. */
+export const indicatorWithdrawErrorSchema = z.object({
+  error: z.enum(['invalid_id', 'invalid_submission_number', 'not_allowed', 'changed']),
+});
+
 export type IndicatorTaskStatus = z.infer<typeof indicatorTaskStatusSchema>;
 export type IndicatorTaskKey = z.infer<typeof indicatorTaskKeySchema>;
 export type IndicatorTaskStatuses = z.infer<typeof indicatorTaskStatusesSchema>;
 export type IndicatorTaskList = z.infer<typeof indicatorTaskListSchema>;
 export type IndicatorTaskListError = z.infer<typeof indicatorTaskListErrorSchema>;
+export type IndicatorSubmit = z.infer<typeof indicatorSubmitSchema>;
+export type IndicatorSubmitError = z.infer<typeof indicatorSubmitErrorSchema>;
+export type IndicatorWithdraw = z.infer<typeof indicatorWithdrawSchema>;
+export type IndicatorWithdrawError = z.infer<typeof indicatorWithdrawErrorSchema>;
 
 export * from './data-table-check-contract.ts';
 export * from './data-upload-contract.ts';

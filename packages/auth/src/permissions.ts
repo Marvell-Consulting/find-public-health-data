@@ -50,6 +50,22 @@ export function canEditIndicator(
   return holds(user, 'publisher') && teamId !== null && user.teams.includes(teamId);
 }
 
+/** Whether the user may submit the indicator's draft for approval. The editors, for now. */
+export function canSubmitIndicator(
+  user: SessionUser,
+  indicator: Pick<IndicatorAccess, 'teamId'>,
+): boolean {
+  return canEditIndicator(user, indicator);
+}
+
+/** Whether the user may withdraw the draft's submission before review. As `canSubmitIndicator`. */
+export function canWithdrawSubmission(
+  user: SessionUser,
+  indicator: Pick<IndicatorAccess, 'teamId'>,
+): boolean {
+  return canSubmitIndicator(user, indicator);
+}
+
 export function canReviewIndicator(
   user: SessionUser,
   { reviewerIds }: Pick<IndicatorAccess, 'reviewerIds'>,

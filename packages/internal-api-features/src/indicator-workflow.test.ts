@@ -2,8 +2,15 @@ import { schema } from '@fphd/db';
 import { INDICATOR_SUBMISSION_STATUSES } from '@fphd/utils/indicator-submission-status';
 import { describe, expect, it } from 'vitest';
 
-import { indicatorStatusSchema } from './contract.ts';
-import { allowedSteps, type IndicatorWorkflowContext, nextState } from './indicator-workflow.ts';
+import { INDICATOR_STEPS, indicatorStatusSchema } from './contract.ts';
+import {
+  allowedSteps,
+  type IndicatorWorkflowContext,
+  type IndicatorWorkflowRow,
+  mayTakeStep,
+  nextState,
+  stepsOpenTo,
+} from './indicator-workflow.ts';
 
 /** Every context the workflow can be asked about. */
 const CONTEXTS: IndicatorWorkflowContext[] = indicatorStatusSchema.options.flatMap(
@@ -84,5 +91,53 @@ describe('allowedSteps', () => {
     ['a published version', { ...unsubmitted, versionStatus: 'published' }, []],
   ] as const)('offers %s only the steps open to it', (_, context, steps) => {
     expect(allowedSteps(context)).toEqual(steps);
+  });
+});
+
+const TEAM = '00000000-0000-7000-8000-00000000000a';
+const publisher = { roles: ['publisher'], sub: 'publisher', teams: [TEAM] };
+const otherTeam = { ...publisher, teams: ['00000000-0000-7000-8000-00000000000b'] };
+const admin = { roles: ['admin'], sub: 'admin', teams: [] };
+
+const unsubmittedRow: IndicatorWorkflowRow = {
+  teamId: TEAM,
+  indicatorStatus: 'new',
+  draftStatus: 'draft',
+  draftLocked: false,
+  draftSubmissionStatus: null,
+};
+const submittedRow: IndicatorWorkflowRow = {
+  ...unsubmittedRow,
+  draftLocked: true,
+  draftSubmissionStatus: 'submitted',
+};
+
+describe('mayTakeStep', () => {
+  it.each(INDICATOR_STEPS)("lets a publisher %s their own team's indicator only", (step) => {
+    expect(mayTakeStep(publisher, unsubmittedRow, step)).toBe(true);
+    expect(mayTakeStep(otherTeam, unsubmittedRow, step)).toBe(false);
+    expect(mayTakeStep(admin, unsubmittedRow, step)).toBe(false);
+  });
+});
+
+describe('stepsOpenTo', () => {
+  it.each([
+    ['submit a draft never submitted', unsubmittedRow, ['submit']],
+    ['withdraw a submitted draft', submittedRow, ['withdraw']],
+  ] as const)("lets a publisher in the indicator's team %s", (_, row, steps) => {
+    expect(stepsOpenTo(publisher, row)).toEqual(steps);
+  });
+
+  it('offers no step to a user who may not take it', () => {
+    for (const user of [otherTeam, admin]) {
+      expect(stepsOpenTo(user, unsubmittedRow)).toEqual([]);
+      expect(stepsOpenTo(user, submittedRow)).toEqual([]);
+    }
+  });
+
+  it('offers no step while the indicator has no draft', () => {
+    const published = { ...unsubmittedRow, indicatorStatus: 'live', draftStatus: null } as const;
+
+    expect(stepsOpenTo(publisher, published)).toEqual([]);
   });
 });

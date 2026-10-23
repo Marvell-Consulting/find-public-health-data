@@ -73,6 +73,7 @@ export function DashboardPage({ canCreate, indicators, page, totalPages }: Dashb
                   type="publishing"
                   indicatorStatus={indicator.indicatorStatus}
                   draftStatus={indicator.draftStatus}
+                  draftSubmissionStatus={indicator.draftSubmissionStatus}
                   labelled={false}
                 />
               ),

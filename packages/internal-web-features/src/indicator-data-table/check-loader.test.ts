@@ -1,8 +1,9 @@
-import type { ApiClient } from '@fphd/web-server/api-client';
+import { type ApiClient, ApiConflictError } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
+import { flashedResponse, redirectWithFlash, withFlashStorage } from '../flash.testing.ts';
 import { FORM_NOT_SAVED } from '../form-refusal.ts';
 import { BATCH, DATA_TABLE } from './check-data.testing.ts';
 import { confirmDataTable, DATA_TABLE_CHANGED, loadDataTableCheck } from './check-loader.ts';
@@ -141,5 +142,43 @@ describe('confirmDataTable', () => {
 
     expect(await confirm(put, null)).toEqual({ formError: FORM_NOT_SAVED });
     expect(put.mock.calls[0]?.[1]).toEqual({ batchId: '' });
+  });
+});
+
+describe('the check page of a draft locked for review', () => {
+  const toOverview = {
+    status: 302,
+    location: `/dashboard/indicators/${ID}`,
+    flash: 'draft-locked',
+  };
+
+  function respond(
+    handler: (args: never) => Promise<unknown>,
+    client: Partial<ApiClient>,
+    request: Request,
+  ) {
+    const context = withFlashStorage(contextWith(client));
+    return flashedResponse(context, request, () =>
+      handler({ context, params: { id: ID }, request } as never),
+    );
+  }
+
+  it('sends the publisher who opens it to the overview, saying why', async () => {
+    const get = vi.fn().mockRejectedValue(new ApiConflictError(CHECK, { error: 'locked' }));
+
+    expect(
+      await redirectWithFlash(await respond(loadDataTableCheck, { get }, new Request(CHECK))),
+    ).toEqual(toOverview);
+  });
+
+  it('sends the publisher whose confirmation it refuses to the overview, saying why', async () => {
+    const put = vi.fn().mockResolvedValue({ ok: false, status: 409, error: { error: 'locked' } });
+    const form = new FormData();
+    form.set('batchId', BATCH);
+    const request = new Request(CHECK, { method: 'POST', body: form });
+
+    expect(await redirectWithFlash(await respond(confirmDataTable, { put }, request))).toEqual(
+      toOverview,
+    );
   });
 });

@@ -1,11 +1,12 @@
 import type {
   DraftStatus,
+  DraftSubmissionStatus,
   IndicatorStatus,
   IndicatorTaskStatus,
 } from '@fphd/internal-api-features/contract';
 import { Tag } from '@fphd/ui';
 
-type Colour = 'blue' | 'green' | 'teal';
+type Colour = 'blue' | 'green' | 'teal' | 'yellow';
 
 interface TagFace {
   label: string;
@@ -23,6 +24,11 @@ const DRAFT_STATUS: Record<DraftStatus, TagFace> = {
   draft: { label: 'Incomplete', colour: 'blue' },
 };
 
+// A withdrawn submission leaves the draft as it was before it was submitted.
+const SUBMISSION_STATUS: Partial<Record<DraftSubmissionStatus, TagFace>> = {
+  submitted: { label: 'Pending approval', colour: 'yellow' },
+};
+
 const PUBLISHED: TagFace = { label: 'Published', colour: 'green' };
 
 // GOV.UK shows a completed task as plain text, and anything still to do as a tag.
@@ -32,18 +38,27 @@ const TASK_STATUS: Record<IndicatorTaskStatus, TagFace | string> = {
   completed: 'Completed',
 };
 
+interface PublishingState {
+  indicatorStatus: IndicatorStatus;
+  draftStatus: DraftStatus | null;
+  draftSubmissionStatus: DraftSubmissionStatus | null;
+}
+
 /**
- * What is in flight. A draft of a live indicator is an update, so its label says so; a live
- * indicator with no draft is published as it stands. A new indicator with no draft cannot be
- * made, so it has no label.
+ * What is in flight: the draft, or where its latest submission stands. A draft of a live
+ * indicator is an update, so its label says so; a live indicator with no draft is published as
+ * it stands. A new indicator with no draft cannot be made, so it has no label.
  */
-function publishingStatus(
-  indicatorStatus: IndicatorStatus,
-  draftStatus: DraftStatus | null,
-): TagFace | undefined {
+function publishingStatus({
+  indicatorStatus,
+  draftStatus,
+  draftSubmissionStatus,
+}: PublishingState): TagFace | undefined {
   if (draftStatus === null) return indicatorStatus === 'live' ? PUBLISHED : undefined;
 
-  const { colour, label } = DRAFT_STATUS[draftStatus];
+  const { colour, label } =
+    (draftSubmissionStatus === null ? undefined : SUBMISSION_STATUS[draftSubmissionStatus]) ??
+    DRAFT_STATUS[draftStatus];
 
   return indicatorStatus === 'live'
     ? { colour, label: `Update ${label.toLowerCase()}` }
@@ -52,7 +67,7 @@ function publishingStatus(
 
 export type StatusTagProps = (
   | { type: 'indicator'; status: IndicatorStatus }
-  | { type: 'publishing'; indicatorStatus: IndicatorStatus; draftStatus: DraftStatus | null }
+  | ({ type: 'publishing' } & PublishingState)
   | { type: 'task'; status: IndicatorTaskStatus }
 ) & {
   /**
@@ -73,7 +88,7 @@ function faceOf(props: StatusTagProps): TagFace | string | undefined {
     case 'indicator':
       return INDICATOR_STATUS[props.status];
     case 'publishing':
-      return publishingStatus(props.indicatorStatus, props.draftStatus);
+      return publishingStatus(props);
     case 'task':
       return TASK_STATUS[props.status];
   }

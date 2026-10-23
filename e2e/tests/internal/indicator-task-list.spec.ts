@@ -75,6 +75,13 @@ test('shows the indicator as new with an incomplete draft', async ({ page }) => 
   ]);
 });
 
+test('offers no submission while a task is incomplete', async ({ page }) => {
+  await createIndicator(page, uniqueName());
+
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Submit for approval' })).toHaveCount(0);
+});
+
 test('marks the name as complete and everything else as not started', async ({ page }) => {
   await createIndicator(page, uniqueName());
 

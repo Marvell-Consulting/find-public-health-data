@@ -62,7 +62,7 @@ export const dataTableConfirmationSchema = z.object({ batchId: z.uuid() });
 export const dataTableConfirmedSchema = z.object({ confirmedAt: z.iso.datetime() });
 
 export const dataTableConfirmationErrorSchema = z.object({
-  error: z.enum(['invalid_id', 'validation_failed', 'data_table_changed']),
+  error: z.enum(['invalid_id', 'validation_failed', 'data_table_changed', 'locked']),
 });
 
 export type DataTablePageQuery = z.infer<typeof dataTablePageQuerySchema>;

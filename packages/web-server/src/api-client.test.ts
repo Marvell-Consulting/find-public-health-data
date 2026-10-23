@@ -1,7 +1,13 @@
 import { z } from '@fphd/config/zod';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { ApiTimeoutError, apiPath, createApiClient, forwardedCookieHeaders } from './api-client.ts';
+import {
+  ApiConflictError,
+  ApiTimeoutError,
+  apiPath,
+  createApiClient,
+  forwardedCookieHeaders,
+} from './api-client.ts';
 
 const schema = z.array(z.object({ slug: z.string() }));
 const topicSchema = z.object({ slug: z.string() });
@@ -73,6 +79,15 @@ describe('createApiClient', () => {
     await expect(
       createApiClient({ baseUrl: 'http://api:4000' }).get('/api/topics/nope', schema),
     ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('throws a 409 as a conflict carrying the answer, for a caller that expects one', async () => {
+    respondWith({ error: 'locked' }, 409);
+
+    const read = createApiClient({ baseUrl: 'http://api:4000' }).get('/api/topics/a', schema);
+
+    await expect(read).rejects.toBeInstanceOf(ApiConflictError);
+    await expect(read).rejects.toMatchObject({ body: { error: 'locked' } });
   });
 
   it('turns any other api failure into a 502 rather than surfacing its status', async () => {
@@ -301,6 +316,49 @@ describe('ApiClient.post', () => {
   });
 });
 
+describe('ApiClient.postToMember', () => {
+  function client() {
+    return createApiClient({ baseUrl: 'http://api:4000', headers: { cookie: 'a=b' } });
+  }
+
+  it('resolves to success on a 204, sending the body as JSON', async () => {
+    const fetchMock = respondWith(undefined, 204);
+
+    const result = await client().postToMember('/api/internal/steps/1', { at: 1 }, errorSchema);
+
+    expect(result).toEqual({ ok: true, data: undefined });
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: 'POST',
+      body: '{"at":1}',
+      headers: { 'content-type': 'application/json', cookie: 'a=b' },
+    });
+  });
+
+  it.each([400, 409])('returns a %s as a refusal for the page to show', async (status) => {
+    respondWith({ error: 'not_allowed' }, status);
+
+    const result = await client().postToMember('/api/internal/steps/1', {}, errorSchema);
+
+    expect(result).toEqual({ ok: false, status, error: { error: 'not_allowed' } });
+  });
+
+  it('passes a 404 through so a route can render its not-found boundary', async () => {
+    respondWith({}, 404);
+
+    await expect(
+      client().postToMember('/api/internal/steps/1', {}, errorSchema),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it.each([200, 401, 403, 500])('turns a %s into a 502', async (status) => {
+    respondWith({}, status);
+
+    await expect(
+      client().postToMember('/api/internal/steps/1', {}, errorSchema),
+    ).rejects.toMatchObject({ status: 502 });
+  });
+});
+
 describe('ApiClient.delete', () => {
   function client(headers?: Record<string, string>) {
     return createApiClient({
@@ -399,7 +457,7 @@ describe('ApiClient.postStream', () => {
     expect(await new Response(init.body).text()).toBe('--b--\r\n');
   });
 
-  it.each([400, 422])('returns a %s as a refusal for the form to render', async (status) => {
+  it.each([400, 409, 422])('returns a %s as a refusal for the form to render', async (status) => {
     respondWith({ error: 'refused' }, status);
 
     await expect(
@@ -425,7 +483,7 @@ describe('ApiClient.postStream', () => {
     ).rejects.toMatchObject({ status: 404 });
   });
 
-  it.each([401, 409, 413, 500])('turns a %s into a 502', async (status) => {
+  it.each([401, 413, 500])('turns a %s into a 502', async (status) => {
     respondWith({}, status);
 
     await expect(

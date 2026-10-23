@@ -3,6 +3,7 @@ import type { ApiClient } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import { describe, expect, it, vi } from 'vitest';
 
+import { flashCookie, loadWithFlash, withFlashStorage } from '../flash.testing.ts';
 import { signedInContext } from '../session.testing.ts';
 import { loadIndicatorOverview } from './loader.ts';
 
@@ -22,15 +23,17 @@ async function load(
   get: ApiClient['get'],
   roles: readonly string[] = ['publisher'],
   teams: readonly string[] = [indicator.teamId],
+  cookie?: string,
 ) {
-  const context = await signedInContext(roles, teams);
+  const context = withFlashStorage(await signedInContext(roles, teams));
   context.set(apiContext, { get } as unknown as ApiClient);
+  const request = new Request(`https://internal.test/dashboard/indicators/${id}`, {
+    ...(cookie === undefined ? {} : { headers: { Cookie: cookie } }),
+  });
 
-  return loadIndicatorOverview({
-    context,
-    params: { id },
-    request: new Request(`https://internal.test/dashboard/indicators/${id}`),
-  } as never);
+  return loadWithFlash(context, request, () =>
+    loadIndicatorOverview({ context, params: { id }, request } as never),
+  );
 }
 
 describe('loadIndicatorOverview', () => {
@@ -40,7 +43,7 @@ describe('loadIndicatorOverview', () => {
     const outcome = await load(indicator.id, get);
 
     expect(get.mock.calls[0]?.[0]).toBe(`/api/internal/indicators/${indicator.id}`);
-    expect(outcome).toEqual({ canEdit: true, indicator });
+    expect(outcome).toEqual({ canEdit: true, indicator, notification: undefined });
   });
 
   it.each([
@@ -50,5 +53,32 @@ describe('loadIndicatorOverview', () => {
     const outcome = await load(indicator.id, vi.fn().mockResolvedValue(indicator), roles, teams);
 
     expect(outcome.canEdit).toBe(false);
+  });
+
+  it('shows what the page before left to say', async () => {
+    const outcome = await load(
+      indicator.id,
+      vi.fn().mockResolvedValue(indicator),
+      ['publisher'],
+      [indicator.teamId],
+      await flashCookie('draft-locked'),
+    );
+
+    expect(outcome.notification).toEqual({
+      type: 'important',
+      text: 'This indicator has been submitted for approval and cannot be edited.',
+    });
+  });
+
+  it('shows nothing for a message it does not know', async () => {
+    const outcome = await load(
+      indicator.id,
+      vi.fn().mockResolvedValue(indicator),
+      ['publisher'],
+      [indicator.teamId],
+      await flashCookie('constructor'),
+    );
+
+    expect(outcome.notification).toBeUndefined();
   });
 });

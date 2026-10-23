@@ -94,10 +94,8 @@ export function dataTableCheckRouter(
       const result = await dataUploads.confirm(id.data, batchId, actor);
 
       if (!result.ok) {
-        if (result.reason === 'data_table_changed') {
+        if (result.reason === 'data_table_changed' || result.reason === 'locked') {
           response.status(409).json({ error: result.reason } satisfies DataTableConfirmationError);
-        } else if (result.reason === 'locked') {
-          response.status(409).json({ error: result.reason });
         } else {
           response.status(404).json({ error: result.reason });
         }

@@ -15,6 +15,7 @@ import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from 'reac
 import { requireEditableIndicator } from '../editable-indicator.ts';
 import { type FormRefusal, formRefusal } from '../form-refusal.ts';
 import { requireIndicatorId } from '../indicator-id.ts';
+import { lockedDraftRedirect, unlessDraftLocked } from '../locked-draft.ts';
 import {
   indicatorDataTableCheckPath,
   indicatorDataTablePath,
@@ -47,6 +48,7 @@ export async function loadDataTableUpload({ context, params }: LoaderFunctionArg
 
   if (indicator.draftStatus === null) throw new Response('Not Found', { status: 404 });
   requireEditableIndicator(context, indicator);
+  if (indicator.draftLocked) throw lockedDraftRedirect(context, id);
 
   return { id };
 }
@@ -89,15 +91,20 @@ export async function uploadDataTable({
   if (result.error.error === 'invalid_data_table') {
     return redirect(indicatorDataTableProblemsPath(id));
   }
+  if (result.error.error === 'locked') return lockedDraftRedirect(context, id);
   return formRefusal(result.error);
 }
 
 /** The problems of the draft's latest upload, while it is a refused one. */
 export async function loadDataTableProblems({ context, params }: LoaderFunctionArgs) {
   const id = requireIndicatorId(params);
-  const { latestUpload } = await context
-    .get(apiContext)
-    .get(apiPath`/api/internal/indicators/${id}/data-uploads/latest`, dataUploadLatestSchema);
+  const { latestUpload } = await unlessDraftLocked(
+    context,
+    id,
+    context
+      .get(apiContext)
+      .get(apiPath`/api/internal/indicators/${id}/data-uploads/latest`, dataUploadLatestSchema),
+  );
 
   // Nothing to show once a later file has loaded, so the publisher is offered the upload again.
   if (latestUpload?.status !== 'failed') throw redirect(indicatorDataTablePath(id));
