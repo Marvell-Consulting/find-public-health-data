@@ -89,7 +89,8 @@ export async function takeIndicatorStep<Reason extends string = never>(
   { precondition }: { precondition?: IndicatorStepPrecondition<Reason> } = {},
 ): Promise<IndicatorStepResult<Reason>> {
   return db.transaction(async (tx): Promise<IndicatorStepResult<Reason>> => {
-    // No key update, so an upload holding the version's key share does not hold the step up.
+    // No key update, so an upload's foreign key share on the version does not hold the step up.
+    // A refused load's FOR SHARE does until it commits, but it never writes the row: no deadlock.
     const [draft] = await tx
       .select()
       .from(indicatorVersion)
