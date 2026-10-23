@@ -55,9 +55,9 @@
   },
   "internal-web /topics/mortality-and-life-expectancy?tab-topic=areas": {
     "statements": 54,
-    "buffers": 47102,
+    "buffers": 64926,
     "rows": 23954,
-    "bytes": 237675
+    "bytes": 238193
   },
   "internal-web /topics/mortality-and-life-expectancy?tab-topic=data": {
     "statements": 52,
@@ -175,15 +175,15 @@
   },
   "public-web /topics/mortality-and-life-expectancy/table.csv?tab-topic=areas": {
     "statements": 54,
-    "buffers": 47102,
+    "buffers": 64926,
     "rows": 23954,
     "bytes": 3900
   },
   "public-web /topics/mortality-and-life-expectancy?tab-topic=areas": {
     "statements": 54,
-    "buffers": 47041,
+    "buffers": 64926,
     "rows": 23954,
-    "bytes": 235613
+    "bytes": 235587
   },
   "public-web /topics/mortality-and-life-expectancy?tab-topic=data": {
     "statements": 52,
