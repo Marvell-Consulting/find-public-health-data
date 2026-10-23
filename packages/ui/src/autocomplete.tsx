@@ -42,11 +42,11 @@ const SEARCH_DEBOUNCE_MS = 300;
 
 // The library seeds its option list with the raw defaultValue and offers it on focus, so the
 // templates and onConfirm can be handed the typed string as well as an option.
-function labelOf(option: AutocompleteOption | string | null | undefined): string {
+export function labelOf(option: AutocompleteOption | string | null | undefined): string {
   return typeof option === 'string' ? option : (option?.label ?? '');
 }
 
-function isOption(
+export function isOption(
   option: AutocompleteOption | string | null | undefined,
 ): option is AutocompleteOption {
   return (
@@ -57,7 +57,7 @@ function isOption(
   );
 }
 
-function escapeHtml(text: string): string {
+export function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
