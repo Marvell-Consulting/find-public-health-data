@@ -208,11 +208,7 @@ export async function applyIndicatorTopics(
   };
 }
 
-/**
- * Replaces the classifications of the versions the rows name. A version given a risk factor
- * or a framework has answered yes to having one; any other is left unanswered, as the source
- * never asked.
- */
+/** Replaces imported tags and answers optional tagging questions from their explicit assignments. */
 async function applyIndicatorClassifications(
   db: Database,
   rows: IndicatorTopicFile['indicatorClassifications'],

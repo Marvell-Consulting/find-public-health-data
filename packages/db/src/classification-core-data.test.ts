@@ -13,11 +13,11 @@ const outcome: ClassificationRecord = {
   slug: 'indicator-type-outcome',
   name: 'Outcome',
 };
-const alcohol: ClassificationRecord = {
+const children: ClassificationRecord = {
   id: '01a0edef-f609-758f-8890-d4ee5defa462',
   dimension: 'life_stage',
-  slug: 'risk-factor-alcohol',
-  name: 'Alcohol',
+  slug: 'life-stage-children',
+  name: 'Children',
 };
 
 function data(path: string): unknown {
@@ -26,7 +26,7 @@ function data(path: string): unknown {
 
 describe('parseClassificationsFile', () => {
   it('accepts a well-formed file', () => {
-    expect(parseClassificationsFile([outcome, alcohol])).toEqual([outcome, alcohol]);
+    expect(parseClassificationsFile([outcome, children])).toEqual([outcome, children]);
   });
 
   it('rejects a dimension the schema does not know', () => {
@@ -47,29 +47,29 @@ describe('parseClassificationsFile', () => {
   });
 
   it('rejects a repeated id or slug, or a name repeated within a dimension', () => {
-    expect(() => parseClassificationsFile([outcome, { ...alcohol, id: outcome.id }])).toThrow(
+    expect(() => parseClassificationsFile([outcome, { ...children, id: outcome.id }])).toThrow(
       /duplicate id/,
     );
-    expect(() => parseClassificationsFile([outcome, { ...alcohol, slug: outcome.slug }])).toThrow(
+    expect(() => parseClassificationsFile([outcome, { ...children, slug: outcome.slug }])).toThrow(
       /duplicate slug/,
     );
     expect(() =>
       parseClassificationsFile([
         outcome,
-        { ...outcome, id: alcohol.id, slug: 'indicator-type-outcome-2' },
+        { ...outcome, id: children.id, slug: 'indicator-type-outcome-2' },
       ]),
     ).toThrow(/duplicate name/);
   });
 
   it('accepts the same name in two dimensions', () => {
-    const alcoholFramework = {
-      ...alcohol,
+    const childrenFramework = {
+      ...children,
       id: '01a0edf3-9879-77a9-9f34-23cc9caa6c04',
-      slug: 'framework-alcohol',
+      slug: 'framework-children',
       dimension: 'framework' as const,
     };
 
-    expect(parseClassificationsFile([alcohol, alcoholFramework])).toHaveLength(2);
+    expect(parseClassificationsFile([children, childrenFramework])).toHaveLength(2);
   });
 
   it('accepts the committed file, which holds every classification the seed links to', () => {

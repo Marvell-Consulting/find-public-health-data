@@ -1331,7 +1331,7 @@ describe('applyDataMigration', () => {
     const [row] = await sql<{ framework: boolean | null; lifeStage: boolean | null }[]>`
       SELECT has_framework AS framework, has_life_stage AS "lifeStage" FROM indicator_version WHERE id = ${VERSION_ID}
     `;
-    expect(row).toEqual({ framework: null, lifeStage: true });
+    expect(row).toEqual({ framework: false, lifeStage: true });
     await apply({
       predecessor: 'increment-2',
       migrationId: 'increment-3',
@@ -1340,7 +1340,7 @@ describe('applyDataMigration', () => {
     const [removed] = await sql<
       { lifeStage: boolean | null }[]
     >`SELECT has_life_stage AS "lifeStage" FROM indicator_version WHERE id = ${VERSION_ID}`;
-    expect(removed?.lifeStage).toBeNull();
+    expect(removed?.lifeStage).toBe(false);
   });
   it('retains explicit negative classification answers', async () => {
     await baseline();
