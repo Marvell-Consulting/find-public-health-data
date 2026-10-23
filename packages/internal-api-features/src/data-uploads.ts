@@ -117,16 +117,10 @@ export function dataUploadsRouter(
           abandoned.signal,
         );
 
-        // The draft was locked or went while the file loaded. A draft editable again since was
-        // withdrawn from review meanwhile, so the load lost to a lock.
-        if (!result.ok && result.reason === 'no_draft') {
+        // The draft was locked or stopped being a draft while the file loaded.
+        if (!result.ok && result.reason !== 'invalid') {
           await deleteBlob(blobName);
-          const now = await findUploadDraft(dataUploads, indicatorId);
-          if (now.ok) {
-            response.status(409).json({ error: 'locked' });
-          } else {
-            response.status(now.status).json(now.body);
-          }
+          response.status(result.reason === 'locked' ? 409 : 404).json({ error: result.reason });
           return;
         }
 

@@ -309,10 +309,45 @@ describe('a submission beside an upload', () => {
         ok: true,
       });
 
-      expect(await loading.finish(content)).toMatchObject({ ok: false, reason: 'no_draft' });
+      expect(await loading.finish(content)).toMatchObject({ ok: false, reason: 'locked' });
       const draft = await draftOf(db, versionId);
       expect(draft).toMatchObject({ isLocked: true, uploadBatchId: batchId });
       expect(draft.dataTableConfirmedAt).not.toBeNull();
     },
   );
+
+  repositoryTest.for([
+    ['loads', VALID_CSV],
+    ['is refused', REFUSED_CSV],
+  ] as const)(
+    'refuses a file that %s as locked when the submission is withdrawn before it finishes',
+    async ([outcome, content], { db }) => {
+      const { indicatorId, versionId, shown, batchId } = await completeNewDraft(
+        db,
+        `Submitted and withdrawn while a file ${outcome}`,
+      );
+      const loading = await startUpload(db, indicatorId);
+      await submitIndicator(db, indicatorId, shown, AS_ACTOR);
+      await withdrawSubmission(db, indicatorId, 1, AS_ACTOR);
+
+      expect(await loading.finish(content)).toMatchObject({ ok: false, reason: 'locked' });
+      expect(await draftOf(db, versionId)).toMatchObject({
+        isLocked: false,
+        uploadBatchId: batchId,
+      });
+    },
+  );
+
+  repositoryTest('refuses a file loaded after it as locked', async ({ db }) => {
+    const { indicatorId, versionId, shown, batchId } = await completeNewDraft(
+      db,
+      'Submit then load',
+    );
+    await submitIndicator(db, indicatorId, shown, AS_ACTOR);
+
+    await expect(
+      upload(db, indicatorId, async () => Readable.from([VALID_CSV])),
+    ).resolves.toMatchObject({ ok: false, reason: 'locked' });
+    expect(await draftOf(db, versionId)).toMatchObject({ isLocked: true, uploadBatchId: batchId });
+  });
 });

@@ -27,6 +27,7 @@ import {
 
 const INDICATOR = '00000000-0000-7000-8000-000000000001';
 const DRAFT = '00000000-0000-7000-8000-000000000002';
+const FRESH_DRAFT = '00000000-0000-7000-8000-000000000004';
 const EDITABLE = { id: DRAFT, isLocked: false };
 const LOCKED = { id: DRAFT, isLocked: true };
 const UPLOADS = `/api/internal/indicators/${INDICATOR}/data-uploads`;
@@ -275,23 +276,35 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
     },
   );
 
-  it('deletes the stored blob when the draft went before the rows were loaded', async () => {
+  it('answers 404 and deletes the stored blob when the draft went while it loaded', async () => {
     const storage = createFakeBlobStorage();
     const deleted = vi.spyOn(storage, 'delete');
     const process = vi.fn().mockResolvedValue({ ok: false, reason: 'no_draft' });
-    const findDraft = vi.fn().mockResolvedValueOnce(EDITABLE).mockResolvedValue(null);
 
-    const response = await upload(createTestApp({ findDraft, process }, storage));
+    const response = await upload(createTestApp({ process }, storage));
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'no_draft' });
     expect(deleted).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`^${INDICATOR}/`)));
   });
 
+  it('answers 404 when the draft went while it loaded and a fresh draft has been opened since', async () => {
+    const process = vi.fn().mockResolvedValue({ ok: false, reason: 'no_draft' });
+    const findDraft = vi
+      .fn()
+      .mockResolvedValueOnce(EDITABLE)
+      .mockResolvedValue({ id: FRESH_DRAFT, isLocked: false });
+
+    const response = await upload(createTestApp({ findDraft, process }));
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: 'no_draft' });
+  });
+
   it('answers 409 and deletes the stored blob when the draft was locked while it loaded', async () => {
     const storage = createFakeBlobStorage();
     const deleted = vi.spyOn(storage, 'delete');
-    const process = vi.fn().mockResolvedValue({ ok: false, reason: 'no_draft' });
+    const process = vi.fn().mockResolvedValue({ ok: false, reason: 'locked' });
     const findDraft = vi.fn().mockResolvedValueOnce(EDITABLE).mockResolvedValue(LOCKED);
 
     const response = await upload(createTestApp({ findDraft, process }, storage));
@@ -302,7 +315,7 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
   });
 
   it('answers 409 when the draft was locked while it loaded and has been withdrawn since', async () => {
-    const process = vi.fn().mockResolvedValue({ ok: false, reason: 'no_draft' });
+    const process = vi.fn().mockResolvedValue({ ok: false, reason: 'locked' });
 
     const response = await upload(createTestApp({ process }));
 
