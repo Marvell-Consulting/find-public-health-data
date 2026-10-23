@@ -6,16 +6,20 @@ const DATA_TABLE = [
   'E92000001,2019-04-01,2020-03-31,83.8',
 ].join('\n');
 
-/** The value of the option the page's `label` control offers as `text`, or its first real one. */
-async function optionValue(page: Page, label: string, text?: string) {
-  const select = page.getByLabel(label, { exact: true });
+/**
+ * The value of the option the page's `name` select offers as `text`, or its first real one. The
+ * select is found by name, not label: a type-to-search select hides itself on hydration and hands
+ * its label to the input in front of it.
+ */
+async function optionValue(page: Page, name: string, text?: string) {
+  const select = page.locator(`select[name="${name}"]`);
   const option =
     text === undefined
       ? select.locator('option:not([value=""])').first()
-      : select.getByRole('option', { name: text, exact: true });
-  const value = await option.getAttribute('value');
-  if (value === null) throw new Error(`no ${text ?? 'option'} under ${label} on ${page.url()}`);
-  return value;
+      : select.getByRole('option', { name: text, exact: true, includeHidden: true });
+  // Fails at the expect timeout, naming the missing option, rather than at the test's.
+  await expect(option, `no ${text ?? 'option'} under ${name} on ${page.url()}`).toHaveCount(1);
+  return option.evaluate((element: HTMLOptionElement) => element.value);
 }
 
 /** Posts a page's form as its Continue button does and expects the page to accept it. */
@@ -32,19 +36,15 @@ export async function completeDraft(page: Page, id: string): Promise<void> {
   const base = `/publish/indicators/${id}`;
   const taskList = `${base}/task-list`;
   await page.goto(`${base}/value-type-and-units`);
-  const valueType = await optionValue(page, 'Select value type', 'Count');
-  const unit = await optionValue(page, 'Select units', 'per 100');
+  const valueType = await optionValue(page, 'valueTypeId', 'Count');
+  const unit = await optionValue(page, 'unitId', 'per 100');
   await page.goto(`${base}/numerator`);
-  const provider = await optionValue(page, 'Add a data provider for the numerator');
+  const provider = await optionValue(page, 'providerId');
   await page.goto(`${base}/confidence-intervals`);
-  const ciMethod = await optionValue(
-    page,
-    'Select the confidence interval method used',
-    "Byar's method",
-  );
+  const ciMethod = await optionValue(page, 'ciMethodId', "Byar's method");
   await page.goto(`${base}/tagging`);
-  const topic = await optionValue(page, 'Select a topic');
-  const indicatorType = await optionValue(page, 'Select an indicator type');
+  const topic = await optionValue(page, 'addTopic');
+  const indicatorType = await optionValue(page, 'addIndicatorType');
   const source = { 'sources[0].providerId': provider, 'sources[0].sourceId': '' };
   const sections: Record<string, Record<string, string>> = {
     'value-type-and-units': { valueTypeId: valueType, unitId: unit },
