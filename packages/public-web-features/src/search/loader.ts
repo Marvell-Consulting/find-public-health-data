@@ -3,6 +3,7 @@ import {
   areaLookupListSchema,
   displayGroupListSchema,
   indicatorFacetsSchema,
+  indicatorPeriodFiltersSchema,
   indicatorSearchResultSchema,
   MAX_FILTER_LABEL_LENGTH,
   MAX_FILTER_VALUE_LENGTH,
@@ -70,6 +71,11 @@ export async function loadSearch(
 ) {
   const url = new URL(request.url);
   const params = url.searchParams;
+  const period = indicatorPeriodFiltersSchema.parse(Object.fromEntries(params));
+  for (const key of PERIOD_PARAMS) {
+    params.delete(key);
+    if (period[key]) params.set(key, period[key]);
+  }
   if (topicSlug) {
     params.delete('t');
     params.delete('t-add');
@@ -173,9 +179,7 @@ export async function loadSearch(
     geoLevels: validatedGeo,
     gaCodes,
     gaAreaNames,
-    ...Object.fromEntries(
-      PERIOD_PARAMS.map((key) => [key, params.get(key)?.slice(0, MAX_FILTER_VALUE_LENGTH) ?? '']),
-    ),
+    ...period,
     displayGroups,
     facets,
     searchResult,

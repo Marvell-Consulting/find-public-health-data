@@ -289,7 +289,16 @@ export function topicPageTests() {
     });
     const page = await context.newPage();
     try {
-      await page.goto(TOPIC_PATH);
+      await page.goto(`${TOPIC_PATH}?tab-topic=data&fromYear=2020&toYear=2020&updatedWithin=12`);
+      await expect(
+        page.getByRole('button', { name: 'Copy link to this view', exact: true }),
+      ).toBeHidden();
+      await page.getByRole('button', { name: 'Add selected geographies', exact: true }).click();
+      const applied = new URL(page.url()).searchParams;
+      expect(applied.get('fromYear')).toBe('2020');
+      expect(applied.get('toYear')).toBe('2020');
+      expect(applied.get('updatedWithin')).toBe('12');
+      await page.getByRole('link', { name: 'Clear all filters', exact: true }).click();
       await page.getByRole('tab', { name: 'Data', exact: true }).click();
       await page.getByRole('searchbox', { name: 'Search by keywords' }).fill('Under 75');
       await page.getByRole('button', { name: 'Search', exact: true }).click();

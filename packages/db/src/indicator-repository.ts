@@ -724,6 +724,7 @@ export async function searchIndicators(
             and(
               eq(observation.indicatorId, indicator.id),
               sql`${observation.fromDate} <= ${`${filters.dataFromYear}-12-31`}::date`,
+              sql`${observation.toDate} >= ${`${filters.dataFromYear}-01-01`}::date`,
             ),
           ),
       ),
@@ -739,6 +740,7 @@ export async function searchIndicators(
             and(
               eq(observation.indicatorId, indicator.id),
               sql`${observation.toDate} >= ${`${filters.dataToYear}-01-01`}::date`,
+              sql`${observation.fromDate} <= ${`${filters.dataToYear}-12-31`}::date`,
             ),
           ),
       ),

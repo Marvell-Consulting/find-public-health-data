@@ -22,6 +22,18 @@ export const MAX_FILTER_LABEL_LENGTH = 500;
 export const MAX_FILTER_VALUE_LENGTH = 100;
 export const MAX_FILTER_VALUES = 100;
 
+export const indicatorPeriodFiltersSchema = z.object({
+  fromYear: z
+    .string()
+    .regex(/^[12]\d{3}$/)
+    .catch(''),
+  toYear: z
+    .string()
+    .regex(/^[12]\d{3}$/)
+    .catch(''),
+  updatedWithin: z.enum(['', '3', '6', '12']).catch(''),
+});
+
 export function pickAreaCodes(value: unknown, limit = MAX_AREA_CODES_PER_REQUEST): string[] {
   return [
     ...new Set(

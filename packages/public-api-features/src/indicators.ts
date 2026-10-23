@@ -11,6 +11,7 @@ import type {
 } from './contract.ts';
 import {
   DEFAULT_INDICATOR_SEARCH_RESULTS,
+  indicatorPeriodFiltersSchema,
   MAX_FILTER_LABEL_LENGTH,
   MAX_FILTER_VALUE_LENGTH,
   MAX_FILTER_VALUES,
@@ -82,7 +83,8 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
       yearTypes: pickStrings(request.query.per),
       limit: MAX_INDICATOR_FILTER_RESULTS,
     };
-    const { page, sort, fromYear, toYear, updatedWithin } = request.query;
+    const { page, sort } = request.query;
+    const { fromYear, toYear, updatedWithin } = indicatorPeriodFiltersSchema.parse(request.query);
     if (typeof page === 'string') {
       const requested = Number(page);
       filters.page = Number.isSafeInteger(requested) && requested > 0 ? requested : 1;
@@ -95,12 +97,9 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
           ? sort
           : 'name-asc';
     }
-    if (typeof fromYear === 'string' && /^[12]\d{3}$/.test(fromYear))
-      filters.dataFromYear = Number(fromYear);
-    if (typeof toYear === 'string' && /^[12]\d{3}$/.test(toYear))
-      filters.dataToYear = Number(toYear);
-    if (typeof updatedWithin === 'string' && ['3', '6', '12'].includes(updatedWithin))
-      filters.updatedWithinMonths = Number(updatedWithin);
+    if (fromYear) filters.dataFromYear = Number(fromYear);
+    if (toYear) filters.dataToYear = Number(toYear);
+    if (updatedWithin) filters.updatedWithinMonths = Number(updatedWithin);
 
     const result: IndicatorSearchResult = await indicators.searchWithFilters(filters);
     response.status(200).json(result);
