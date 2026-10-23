@@ -346,11 +346,12 @@ export function ageValueIdForObservation(ageId: number, sex: 'M' | 'F' | null): 
 }
 
 /**
- * Maps a Pholio SexID to the dimension_value id. Returns null for SexID 4 (unspecified / total),
- * which produces no sex bridge row (it drives compound-age decomposition instead).
+ * Maps a Pholio SexID to the dimension_value id. Returns null for SexID 4 (persons), which
+ * produces no sex bridge row and drives compound-age decomposition instead, and for SexID -1
+ * (not applicable), which produces no sex bridge row either.
  */
 export function sexValueIdForObservation(sexId: number): number | null {
-  if (sexId === 4) return null;
+  if (sexId === -1 || sexId === 4) return null;
   return sexDimensionValueId(sexId);
 }
 

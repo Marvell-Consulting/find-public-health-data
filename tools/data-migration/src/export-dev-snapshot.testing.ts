@@ -101,6 +101,7 @@ export async function writeDevelopmentSource(outDir: string): Promise<void> {
     join(outDir, 'source-manifest.json'),
     JSON.stringify({
       exported_indicators: 1325,
+      source_observations: 29656329,
       excluded_observations: 29656328,
       source_csv_null: DATA_MIGRATION_NULL,
       tables,

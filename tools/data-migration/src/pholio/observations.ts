@@ -1,6 +1,11 @@
 import type { ObservationExportOptions } from './context.ts';
 import { ageValueIdForObservation, sexValueIdForObservation } from './dimensions.ts';
 import {
+  type GroupingExclusion,
+  loadObservationGroupings,
+  type ObservationGroupings,
+} from './groupings.ts';
+import {
   AGE_DIMENSION_TYPE_ID,
   categoryDimensionTypeId,
   categoryDimensionValueId,
@@ -9,9 +14,10 @@ import {
   observationId,
   observationNoteId,
   SEX_DIMENSION_TYPE_ID,
+  sourceUidForObservationId,
 } from './ids.ts';
 import { computeDates } from './period.ts';
-import { streamPholio } from './source.ts';
+import { queryPholio, streamPholio } from './source.ts';
 import { TableWriter } from './table-writer.ts';
 
 // ─── Sentinel / CI helpers ────────────────────────────────────────────────────
@@ -145,15 +151,98 @@ export type ObservationExclusions = Record<
   | 'excluded_indicator'
   | 'note_506'
   | 'empty_observation'
-  | 'year_before_1900',
+  | 'year_before_1900'
+  | GroupingExclusion
+  | DuplicateResolution,
   number
 >;
+
+type DuplicateResolution =
+  | 'duplicate_placeholder'
+  | 'duplicate_not_in_grouping'
+  | 'duplicate_identical'
+  | 'duplicate_superseded';
+
+const BASE_OBSERVATION_FILTERS = new Set<string>([
+  'not_approved',
+  'test_indicator',
+  'note_506',
+  'empty_observation',
+  'year_before_1900',
+]);
+
+const MEASURES = [
+  'Value',
+  'Count',
+  'Denominator',
+  'Denominator_2',
+  'LowerCI95',
+  'UpperCI95',
+  'LowerCI99_8',
+  'UpperCI99_8',
+  'ValueNoteId',
+] as const;
+
+function sentinelCodes(c: CdsRow): number {
+  return (c.SexID === -1 ? 1 : 0) + (c.AgeID === -1 ? 1 : 0) + (c.YearRange === -1 ? 1 : 0);
+}
+
+export function resolveDuplicateGroup(
+  rows: readonly CdsRow[],
+  supersededSentinelIndicators: ReadonlySet<number>,
+  groupings?: ObservationGroupings,
+  noteTypeCategory: ReadonlyMap<number, string> = new Map(),
+): { keep: CdsRow; reasonFor: (dropped: CdsRow) => DuplicateResolution } | undefined {
+  const populated = rows.filter((row) =>
+    MEASURES.some(
+      (measure) => measure !== 'ValueNoteId' && row[measure] !== null && row[measure] !== -1,
+    ),
+  );
+  const [onlyPopulated] = populated;
+  const noteId = rows[0]?.ValueNoteId;
+  const category = noteId === undefined ? undefined : noteTypeCategory.get(noteId);
+  // A geographic note can accompany an empty duplicate too. It must not erase the
+  // populated aggregate; disclosure and data-availability notes are different.
+  if (
+    populated.length === 1 &&
+    onlyPopulated !== undefined &&
+    category === 'geographic' &&
+    rows.every((row) => row.ValueNoteId === noteId)
+  ) {
+    return { keep: onlyPopulated, reasonFor: () => 'duplicate_placeholder' };
+  }
+  const grouped = rows.filter((row) => groupings?.hasSeries(row));
+  const candidates = grouped.length > 0 ? grouped : rows;
+  const [canonical] = [...candidates].sort(
+    (a, b) => sentinelCodes(a) - sentinelCodes(b) || a.uid - b.uid,
+  );
+  if (!canonical) return undefined;
+  const identical = rows.every((row) =>
+    MEASURES.every((measure) => row[measure] === canonical[measure]),
+  );
+  const resolved = (keep: CdsRow, reason: DuplicateResolution) => ({
+    keep,
+    reasonFor: (dropped: CdsRow): DuplicateResolution =>
+      !identical && grouped.length > 0 && !groupings?.hasSeries(dropped)
+        ? 'duplicate_not_in_grouping'
+        : reason,
+  });
+  if (identical) return resolved(canonical, 'duplicate_identical');
+  if (candidates.length === 1) return resolved(canonical, 'duplicate_not_in_grouping');
+  if (candidates.every((c) => MEASURES.every((measure) => c[measure] === canonical[measure])))
+    return resolved(canonical, 'duplicate_identical');
+  const coded = candidates.filter((c) => sentinelCodes(c) === 0);
+  if (supersededSentinelIndicators.has(canonical.IndicatorID) && coded.length === 1 && coded[0])
+    return resolved(coded[0], 'duplicate_superseded');
+  return undefined;
+}
 
 function exclusionReason(
   c: CdsRow,
   excluded: ReadonlySet<number>,
   selection: ObservationExportOptions['indicatorSelection'],
   selected: ReadonlySet<number>,
+  groupings: ObservationGroupings,
 ): keyof ObservationExclusions | undefined {
   if (c.IndicatorID === 94204) return 'test_indicator';
   if (selection.kind === 'approved' && !selected.has(c.IndicatorID)) return 'not_approved';
@@ -162,7 +251,7 @@ function exclusionReason(
     return 'empty_observation';
   if (c.Year < 1900) return 'year_before_1900';
   if (excluded.has(c.IndicatorID)) return 'excluded_indicator';
-  return undefined;
+  return groupings.exclusionReason(c);
 }
 
 const observationQuery = `
@@ -177,7 +266,13 @@ const observationQuery = `
 
 async function assertDistinctObservations(
   context: ObservationExportOptions,
-): Promise<ObservationExclusions> {
+  groupings: ObservationGroupings,
+): Promise<{
+  exclusions: ObservationExclusions;
+  dropped: ReadonlySet<number>;
+  sourceObservations: number;
+  scannedObservations: number;
+}> {
   const exclusions: ObservationExclusions = {
     not_approved: 0,
     test_indicator: 0,
@@ -185,18 +280,32 @@ async function assertDistinctObservations(
     note_506: 0,
     empty_observation: 0,
     year_before_1900: 0,
+    year_range_not_in_grouping: 0,
+    periodicity_not_in_grouping: 0,
+    duplicate_placeholder: 0,
+    duplicate_not_in_grouping: 0,
+    duplicate_identical: 0,
+    duplicate_superseded: 0,
   };
+  const duplicates = new Map<string, number[]>();
   const excluded = new Set(context.excludedIndicators);
   const selected = new Set(
     context.indicatorSelection.kind === 'approved' ? context.indicatorSelection.indicators : [],
   );
   const seen = new Map<string, number>();
   let indicator: number | undefined;
+  let sourceObservations = 0;
+  let scannedObservations = 0;
   await streamPholio(context.pool, `${observationQuery} ORDER BY c.IndicatorID, c.uid`, (raw) => {
     const c = raw as unknown as CdsRow;
-    const reason = exclusionReason(c, excluded, context.indicatorSelection, selected);
+    const reason = exclusionReason(c, excluded, context.indicatorSelection, selected, groupings);
+    const observationsInRow = COMPOUND_AGE_IDS.has(c.AgeID) && c.SexID === 4 ? 2 : 1;
+    scannedObservations += observationsInRow;
+    if (!reason || !BASE_OBSERVATION_FILTERS.has(reason)) {
+      sourceObservations += observationsInRow;
+    }
     if (reason) {
-      exclusions[reason] += 1;
+      exclusions[reason] += observationsInRow;
       return;
     }
     const diagnostic = `CoreDataSet uid ${c.uid}, indicator ${c.IndicatorID}`;
@@ -206,6 +315,9 @@ async function assertDistinctObservations(
     if (areaId === undefined) throw new Error(`${diagnostic}: unknown area ${c.AreaCode}`);
     if (c.ValueNoteId !== 0 && !context.noteTypeCategory.has(c.ValueNoteId))
       throw new Error(`${diagnostic}: unknown note type ${c.ValueNoteId}`);
+    // Any other sex would silently lose the age, as only SexID 4 is split into the sexed bands.
+    if (COMPOUND_AGE_IDS.has(c.AgeID) && c.SexID !== 4)
+      throw new Error(`${diagnostic}: compound age ${c.AgeID} with SexID ${c.SexID}, expected 4`);
     if (indicator !== c.IndicatorID) {
       seen.clear();
       indicator = c.IndicatorID;
@@ -217,7 +329,7 @@ async function assertDistinctObservations(
       c.YearRange,
       c.YearTypeID ?? 1,
     );
-    for (const dimensions of observationDimensions(c)) {
+    for (const [split, dimensions] of observationDimensions(c).entries()) {
       for (const dimension of dimensions) {
         if (!context.dimensionValueIds.has(dimension.valueId))
           throw new Error(`${diagnostic}: unknown dimension value ${dimension.valueId}`);
@@ -231,18 +343,75 @@ async function assertDistinctObservations(
         dimensions.map((d) => d.valueId),
       );
       const previous = seen.get(key);
-      if (previous !== undefined)
-        throw new Error(
-          `Indicator ${c.IndicatorID} has repeated observation key ${key} (CoreDataSet uids ${previous}, ${c.uid}); review the source rows before exporting`,
-        );
-      seen.set(key, c.uid);
+      const id = observationId(c.uid, split as 0 | 1);
+      if (previous === undefined) seen.set(key, id);
+      else duplicates.set(key, [...(duplicates.get(key) ?? [previous]), id]);
     }
   });
-  return exclusions;
+  const dropped = new Set<number>();
+  if (duplicates.size === 0)
+    return { exclusions, dropped, sourceObservations, scannedObservations };
+  const rowsByUid = await sourceRowsByUid(context, [
+    ...new Set([...duplicates.values()].flat().map(sourceUidForObservationId)),
+  ]);
+  const superseded = new Set(context.supersededSentinelIndicators);
+  const unresolved = new Map<number, string[]>();
+  for (const [key, ids] of duplicates) {
+    const candidates = ids.map((id) => {
+      const uid = sourceUidForObservationId(id);
+      const row = rowsByUid.get(uid);
+      if (!row) throw new Error(`CoreDataSet uid ${uid}: source changed after pre-flight`);
+      return { id, row };
+    });
+    const rows = candidates.map(({ row }) => row);
+    const resolution = resolveDuplicateGroup(rows, superseded, groupings, context.noteTypeCategory);
+    if (!resolution) {
+      const indicatorId = rows[0]?.IndicatorID ?? 0;
+      const keys = unresolved.get(indicatorId) ?? [];
+      keys.push(`${key} (CoreDataSet uids ${rows.map((row) => row.uid).join(', ')})`);
+      unresolved.set(indicatorId, keys);
+      continue;
+    }
+    for (const { id, row } of candidates) {
+      if (row.uid === resolution.keep.uid) continue;
+      dropped.add(id);
+      exclusions[resolution.reasonFor(row)] += 1;
+    }
+  }
+  if (unresolved.size > 0) {
+    const total = [...unresolved.values()].reduce((sum, keys) => sum + keys.length, 0);
+    const summary = [...unresolved]
+      .sort(([, a], [, b]) => b.length - a.length)
+      .map(([indicatorId, keys]) => {
+        const shown = keys.slice(0, 3).join('\n    ');
+        const more = keys.length > 3 ? `\n    and ${keys.length - 3} more` : '';
+        return `  indicator ${indicatorId}: ${keys.length} key(s)\n    ${shown}${more}`;
+      });
+    throw new Error(
+      `${total} repeated observation key(s) across ${unresolved.size} indicator(s) could not be resolved; review the source rows before exporting:\n${summary.join('\n')}`,
+    );
+  }
+  return { exclusions, dropped, sourceObservations, scannedObservations };
+}
+
+async function sourceRowsByUid(
+  context: ObservationExportOptions,
+  uids: readonly number[],
+): Promise<Map<number, CdsRow>> {
+  const rows = new Map<number, CdsRow>();
+  for (let index = 0; index < uids.length; index += 500) {
+    const chunk = uids.slice(index, index + 500);
+    const query = `${observationQuery} WHERE c.uid IN (${chunk.join(', ')})`;
+    for (const row of (await queryPholio(context.pool, query)) as unknown as CdsRow[])
+      rows.set(row.uid, row);
+  }
+  return rows;
 }
 
 export async function exportObservations(context: ObservationExportOptions) {
-  const exclusions = await assertDistinctObservations(context);
+  const groupings = await loadObservationGroupings(context.pool);
+  const { exclusions, dropped, sourceObservations, scannedObservations } =
+    await assertDistinctObservations(context, groupings);
   const obsWriter = new TableWriter(context.outDir, 'observation');
   const dimWriter = new TableWriter(context.outDir, 'observation_dimension');
   const noteWriter = new TableWriter(context.outDir, 'observation_note');
@@ -252,7 +421,7 @@ export async function exportObservations(context: ObservationExportOptions) {
   );
   await streamPholio(context.pool, `${observationQuery} ORDER BY c.uid`, async (raw) => {
     const c = raw as unknown as CdsRow;
-    if (exclusionReason(c, excluded, context.indicatorSelection, selected)) return;
+    if (exclusionReason(c, excluded, context.indicatorSelection, selected, groupings)) return;
     const areaId = context.areaIdByPholioCode.get(c.AreaCode);
     const enteredAt = context.indicatorEnteredAt.get(c.IndicatorID);
     if (areaId === undefined || enteredAt === undefined)
@@ -272,6 +441,7 @@ export async function exportObservations(context: ObservationExportOptions) {
     const halves = observationDimensions(c);
     for (const [split, dimensions] of halves.entries()) {
       const obsId = observationId(c.uid, split as 0 | 1);
+      if (dropped.has(obsId)) continue;
       await obsWriter.write({
         id: obsId,
         indicator_id: c.IndicatorID,
@@ -312,12 +482,27 @@ export async function exportObservations(context: ObservationExportOptions) {
         });
     }
   });
+  const tables = {
+    observation: await obsWriter.close(),
+    observation_dimension: await dimWriter.close(),
+    observation_note: await noteWriter.close(),
+  };
+  const excludedObservations = Object.entries(exclusions)
+    .filter(([reason]) => !BASE_OBSERVATION_FILTERS.has(reason))
+    .reduce((sum, [, count]) => sum + count, 0);
+  const allExclusions = Object.values(exclusions).reduce((sum, count) => sum + count, 0);
+  if (
+    tables.observation.rows + excludedObservations !== sourceObservations ||
+    tables.observation.rows + allExclusions !== scannedObservations
+  )
+    throw new Error(
+      `Observation accounting failed: wrote ${tables.observation.rows}, expected ${sourceObservations - excludedObservations} from ${sourceObservations} eligible source observations and ${excludedObservations} reviewed exclusions`,
+    );
   return {
+    sourceObservations,
+    scannedObservations,
+    excludedObservations,
     observationExclusions: exclusions,
-    tables: {
-      observation: await obsWriter.close(),
-      observation_dimension: await dimWriter.close(),
-      observation_note: await noteWriter.close(),
-    },
+    tables,
   };
 }

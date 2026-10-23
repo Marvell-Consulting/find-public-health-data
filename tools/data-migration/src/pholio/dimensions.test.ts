@@ -200,6 +200,10 @@ describe('sexValueIdForObservation', () => {
     expect(sexValueIdForObservation(4)).toBeNull();
   });
 
+  it('returns null for SexID -1 (not applicable)', () => {
+    expect(sexValueIdForObservation(-1)).toBeNull();
+  });
+
   it('returns distinct ids for Male (1) and Female (2)', () => {
     const male = sexValueIdForObservation(1);
     const female = sexValueIdForObservation(2);

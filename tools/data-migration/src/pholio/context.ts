@@ -21,4 +21,9 @@ export interface ObservationExportOptions extends PholioExportOptions {
   dimensionValueIds: ReadonlySet<number>;
   indicatorIds: ReadonlySet<number>;
   indicatorEnteredAt: ReadonlyMap<number, string>;
+  /**
+   * Indicators whose rows coded "not applicable" (SexID, AgeID or YearRange -1) are stale copies
+   * of the coded rows they collide with, so the coded row wins even when the measures differ.
+   */
+  supersededSentinelIndicators: readonly number[];
 }

@@ -24,7 +24,9 @@ async function fixture(extra: Record<string, string> = {}) {
   })) {
     const file = `${table}.csv.gz`;
     await writeFile(join(directory, file), gzipSync(csv));
-    tables[table] = await fileRecord(join(directory, file), file, 1);
+    let count = -1;
+    for await (const _row of readGzipCsv(join(directory, file))) count += 1;
+    tables[table] = await fileRecord(join(directory, file), file, count);
   }
   await writeFile(join(directory, 'source-manifest.json'), JSON.stringify({ tables }));
   return directory;
@@ -77,4 +79,36 @@ it('leaves committed reference data unchanged at the CSV level', async () => {
     ['dimension_type', 'dimension_value', 'note_type'].map((table) => rows(directory, table)),
   );
   expect(after).toEqual(before);
+});
+
+it('keeps every note link when equivalent source note types share a tidied text', async () => {
+  const directory = await fixture({
+    note_type:
+      'id,text,category\n501,Aggregated from values for merged CCGs,geographic\n525," Aggregated from values for merged CCGs ",geographic\n',
+    observation_note: 'id,observation_id,note_type_id\n2,2,501\n4,4,525\n',
+  });
+  await tidyReferenceNames(directory);
+  expect(await rows(directory, 'note_type')).toEqual([
+    ['id', 'text', 'category'],
+    ['501', 'Aggregated from values for merged CCGs', 'geographic'],
+  ]);
+  expect(await rows(directory, 'observation_note')).toEqual([
+    ['id', 'observation_id', 'note_type_id'],
+    ['2', '2', '501'],
+    ['4', '4', '501'],
+  ]);
+  const manifest = JSON.parse(await readFile(join(directory, 'source-manifest.json'), 'utf8'));
+  expect(manifest.reference_name_aliases).toEqual({ note_type: { 525: '501' } });
+  expect(manifest.tables.note_type.rows).toBe(1);
+  expect(manifest.tables.observation_note.rows).toBe(2);
+  for (const table of ['note_type', 'observation_note'])
+    expect(manifest.tables[table]).toEqual(
+      await fileRecord(
+        join(directory, `${table}.csv.gz`),
+        `${table}.csv.gz`,
+        manifest.tables[table].rows,
+      ),
+    );
+  await tidyReferenceNames(directory);
+  expect(await rows(directory, 'observation_note')).toHaveLength(3);
 });

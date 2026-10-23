@@ -812,6 +812,36 @@ describe('applyDataMigration', () => {
     `;
     expect(loaded?.name).toBe('Wald normal approximation');
   });
+  it.each(['baseline', 'increment'] as const)(
+    '%s imports reject unmapped sources before loading observations',
+    async (kind) => {
+      if (kind === 'increment') await baseline();
+      const { manifest, sha256 } = await migrationFixture(sql, directory, topicId, {
+        baseline: kind === 'baseline',
+        upserts: {
+          indicator_version: version([SOURCE_ID, null]),
+          numerator_denominator_source: {
+            columns: ['id', 'name', 'url'],
+            rows: [[SOURCE_ID, 'Unknown source', null]],
+          },
+        },
+      });
+      const progress: DataMigrationProgress[] = [];
+      await expect(
+        sql.begin((tx) =>
+          applyDataMigration(tx, directory, manifest, sha256, (event) => progress.push(event)),
+        ),
+      ).rejects.toThrow('No mapping for the sources Unknown source');
+      expect(progress.some(({ table }) => table === 'observation')).toBe(false);
+      const [counts] = await sql<{ versions: number; migrations: number }[]>`
+        SELECT count(*)::int AS versions,
+          (SELECT count(*)::int FROM data_migration) AS migrations
+        FROM indicator_version
+      `;
+      const expected = kind === 'baseline' ? 0 : 1;
+      expect(counts).toEqual({ versions: expected, migrations: expected });
+    },
+  );
   it('leaves sources of unchanged versions intact', async () => {
     await baseline({
       upserts: {

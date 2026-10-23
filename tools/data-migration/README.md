@@ -17,18 +17,36 @@ publishing moves to this service. The operations image applies the packages with
 
 - `export-pholio` reads the source through separate requests. Export from an immutable
   restored backup so every table belongs to the same cut of the data.
-- Production `export-pholio` requires `--approved-indicators`, a JSON file containing
-  the positive integer IDs approved for launch, for example `[108, 241]`. Only those
-  indicators and their observations are eligible for publication. Explicit exclusions
-  can further narrow that list; a requested indicator missing from Pholio stops export.
-  The source manifest records the selection, exported count and non-approved count.
+- Production `export-pholio` exports only the indicators approved for launch, read from
+  `data/approved-indicators.json`: the ids whose final priority is "prioritise" in DHSC's
+  indicator prioritisation workbook, committed with that provenance. Pass
+  `--approved-indicators` with another JSON file (the same shape, or a bare array such as
+  `[108, 241]`) to override it. Explicit exclusions can further narrow the list; a requested
+  indicator missing from Pholio stops export. The source manifest records the selection,
+  exported count and non-approved count.
+- Six provisional names in `src/pholio/indicator-names.ts` distinguish the life-expectancy,
+  chlamydia and fuel-poverty datasets without merging or excluding their source ids. Each
+  mapping checks the original source name and is recorded in `indicator_name_mappings` in
+  the source manifest. A changed source name stops export for review.
 - Observation pre-flight counts each intentional exclusion: non-approved indicators,
-  explicit exclusions, test indicator 94204, placeholder note 506, empty sentinel rows
-  and years before 1900. Unknown areas, notes, metadata and dimension values stop export
-  with source-row diagnostics. There is no implicit future-period exclusion: all eligible
-  source observations for approved indicators are included.
+  explicit exclusions, test indicator 94204, placeholder note 506, empty sentinel rows,
+  years before 1900, period formats absent from the indicator's Grouping metadata, and
+  resolved duplicate keys (see below). Unknown areas, notes, metadata and dimension values
+  stop export with source-row diagnostics. Historical dates and future periods are not
+  excluded by the current Grouping baseline or data point.
+- `scanned_observations` counts all source observations, including compound-age expansion.
+  `source_observations` counts the selected observations after the base filters (test id,
+  unapproved ids, note 506, empty sentinel rows and years before 1900).
+  `excluded_observations` totals the remaining explicit-indicator, publication-format and
+  duplicate exclusions, each counted independently during pre-flight. Written observations
+  plus those exclusions must equal `source_observations`; written observations plus every
+  reason in `observation_exclusions` must equal `scanned_observations`. A mismatch fails export.
 - Area aliases prefer the non-n-prefixed code deterministically. Both source aliases map
   to the survivor, so their observations and relationships retain the same area identity.
+- Preparation combines note types only when their tidied text and every other field match.
+  It preserves every observation-note link, records the source-id aliases in
+  `reference_name_aliases`, and updates the prepared file counts and hashes. Conflicting
+  categories or other reference-name collisions stop preparation.
 - Every migrated timestamp is the indicator's `DateEnteredInPHOLIO`, never the export time,
   so re-exporting unchanged source data writes the same rows and an increment carries only
   real changes. The export time appears only in the manifest.
@@ -80,13 +98,43 @@ the importer verifies the applied links before committing.
 
 ## Export pre-flight checks
 
-Before writing any file, `export-pholio` runs a slug check that cannot be retried cheaply
+Before streaming observations, `export-pholio` runs a slug check that cannot be retried cheaply
 after a 29-million-row export:
 
 - **Slug collisions**: no two exported indicator names may slugify to the same slug, since
   a slug belongs to exactly one indicator. The check names every colliding pair (source id
-  and name) so the editorial problem can be resolved in the source — by renaming or
-  excluding one of the pair — before exporting again.
+  and name) for an explicit naming decision before exporting again.
+
+## Duplicate observation keys
+
+Before comparing keys, pre-flight checks the period formats represented by each indicator's
+Grouping rows: YearRange and annual, quarterly or monthly periodicity. A YearRange or format
+not represented there is counted separately in the source manifest. The same check runs when
+writing observations. Area type is not a publication gate: a grouping for England can support
+published trust data. Sex and age do not filter inequality breakdowns, and the current
+baseline and data point do not restrict historical coverage. Missing Grouping metadata does
+not cause observations to be discarded.
+
+Pholio keys rows on SexID, AgeID and YearRange, and codes "not applicable" as -1 in each.
+FPHD maps a -1 sex or age, like persons and all ages, to no dimension row, and a -1 year range
+to a one-year period, so a not-applicable row and the coded row it duplicates share one
+observation key. Pre-flight resolves a repeated key only when
+the choice is safe, and counts each dropped observation in the manifest:
+
+- `duplicate_placeholder`: only one row carries measures, and every candidate has the same
+  geographic note; the populated row stays.
+- `duplicate_not_in_grouping`: only one candidate matches the indicator's grouped sex and
+  age for that period format; that series stays, including a suppressed observation.
+- `duplicate_identical`: every row carries the same measures and note; the coded row stays.
+- `duplicate_superseded`: the measures differ and the indicator is listed in
+  `--superseded-sentinel-rows`, a JSON array of indicator ids whose not-applicable rows are
+  a stale upload; the coded row stays. The manifest records the list.
+
+Any other repeated key stops the export with the source uids, for review with the data owner.
+Sentinel measures alone do not make a row safe to discard: they can carry the published
+suppression instead of an ungrouped value.
+When a compound sex-and-age source row becomes two observations, resolving a duplicate
+drops only the overlapping observation and retains its other half.
 
 ## Excluding indicators
 
@@ -95,16 +143,15 @@ their observations, upload batches and bridge data from the export. The source m
 records `excluded_indicators` and `excluded_observations` so the result is auditable.
 
 ```sh
-# Exclude a pair of indicators that share a name (and therefore a slug):
+# Apply an explicit decision to leave out an approved indicator:
 pnpm --filter @fphd/data-migration data-migration export-pholio \
   --expected-database pholio_live_b \
-  --approved-indicators /secure/approved-indicator-ids.json \
   --out-dir /secure/fphd-snapshot-001 \
-  --excluded-indicators '[90366, 93283]'
+  --excluded-indicators '[108]'
 ```
 
-The specific ids to use in production are a human decision documented alongside the
-reviewed relationships file. Do not hardcode them here.
+The ids to exclude in production are a human decision documented alongside the reviewed
+relationships file; the approved list itself is the committed `data/approved-indicators.json`.
 
 ## Build the baseline
 
@@ -114,7 +161,6 @@ Keep source credentials in the environment rather than a command argument.
 export PHOLIO_CONNECTION_STRING='Server=…;Database=pholio_live_b;…'
 pnpm --filter @fphd/data-migration data-migration export-pholio \
   --expected-database pholio_live_b \
-  --approved-indicators /secure/approved-indicator-ids.json \
   --out-dir /secure/fphd-snapshot-001
 
 pnpm --filter @fphd/data-migration data-migration prepare-baseline \
@@ -194,8 +240,10 @@ Run `pnpm vitest run --project @fphd/data-migration` and
 production via DHSC's SQL Managed Instance) and writes a `snapshot.tar` compatible with
 `db import-published-snapshot`. It translates polarity, frequency and notes-and-caveats
 into their service forms and rekeys every integer id to a deterministic UUIDv7. After export,
-it checks the B fingerprint: 1,329 indicators and 29,656,329 observations before the four
-explicit exclusions. These counts omit test indicator 94204. The archive records
+it checks the B fingerprint: 1,329 indicators and 29,656,329 eligible source observations before
+intentional indicator, publication-format and duplicate exclusions. These counts omit test
+indicator 94204. The source count is recorded during pre-flight; the archive records the
+total excluded observations and their individual reasons, along with the source label
 `PHOLIO_LIVE_B export` and source database `pholio_live_b`.
 
 ```sh

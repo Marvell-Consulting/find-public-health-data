@@ -68,6 +68,7 @@ async function applyBaseline(
       );
       if (Number(row?.count) !== entry.rows)
         throw new Error(`Baseline row count failed for indicator_version`);
+      await applyLegacySources(tx, directory, legacySourceMap);
       changes[table] = { upserts: entry.rows, deletes: 0 };
       continue;
     }
@@ -80,7 +81,6 @@ async function applyBaseline(
     changes[table] = { upserts: entry.rows, deletes: 0 };
   }
   if (indicatorVersionHasBatchPointers) await applyVersionBatchPointers(tx);
-  await applyLegacySources(tx, directory, legacySourceMap);
   await assignImportedTeam(tx);
   return changes;
 }
@@ -111,12 +111,12 @@ async function applyIncremental(
           `indicator_version staged ${staged?.count ?? 0} upserts; package declares ${entry.upserts.rows}`,
         );
       }
+      await applyLegacySources(tx, directory, legacySourceMap);
       continue;
     }
     await applyUpserts(tx, table, `${directory}/${entry.upserts.file}`, entry.upserts.rows, report);
   }
   if (indicatorVersionHasBatchPointers) await applyVersionBatchPointers(tx);
-  await applyLegacySources(tx, directory, legacySourceMap);
   await assignImportedTeam(tx, 'data_migration_upsert_indicator');
   for (const table of DATA_MIGRATION_TABLES) {
     if (referenceTables.has(table)) continue;

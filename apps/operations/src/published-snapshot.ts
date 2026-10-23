@@ -19,8 +19,7 @@ const publishedCsvNull = '__FPHD_NULL_5f92c66de4b849b4a717c23f5cbdb8a1__';
 // The indicator count omits test indicator 94204, as the exporter always does.
 const expectedSourceIndicators = 1_329;
 const expectedObservations = 29_656_329;
-// The source indicators the export leaves out, each the retired half of a pair sharing a
-// name and so a slug. The export holds the same list; an archive built with another is refused.
+// The development archive's fixed exclusion list must match its exporter.
 const excludedIndicators = [90_366, 90_776, 92_774, 93_280];
 const expectedExportedIndicators = expectedSourceIndicators - excludedIndicators.length;
 
@@ -28,7 +27,7 @@ const sourceManifestSchema = z.object({
   source: z.literal(publishedSource),
   source_database: z.literal('pholio_live_b'),
   source_indicators: z.literal(expectedSourceIndicators),
-  // The source's count before exclusion: the fingerprint of the clone the archive came from.
+  // Eligible source observations before export-specific exclusions fingerprint the clone.
   source_observations: z.literal(expectedObservations),
   excluded_indicators: z.array(z.number().int()),
   excluded_observations: z.number().int().nonnegative(),
@@ -94,7 +93,7 @@ export async function verifyPublishedSnapshot(directory: string): Promise<Publis
     manifest.tables.indicator?.rows !== expectedExportedIndicators ||
     // The export turns each exported source indicator into one published version.
     manifest.tables.indicator_version?.rows !== expectedExportedIndicators ||
-    // The excluded indicators' observations go with them, and the export says how many.
+    // Intentional export exclusions account for the difference from the source count.
     manifest.tables.observation?.rows !==
       expectedObservations - sourceManifest.excluded_observations
   ) {

@@ -38,8 +38,9 @@ async function main(): Promise<void> {
     await prepare(sql);
     for (const route of ROUTES) {
       for (let i = 0; i < WARM_UP; i++) await request(route, sessions);
-      const work = await measureWork(sql, route, sessions);
       const timing = await time(route, sessions);
+      // The timed requests warm each pooled connection before its database work is counted.
+      const work = await measureWork(sql, route, sessions);
       results.push({ route, work, timing });
       console.log(`${routeKey(route)}: ${describe(work)}, median ${timing.median} ms`);
     }

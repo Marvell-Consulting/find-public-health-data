@@ -1,5 +1,23 @@
 import { slugify, slugProblem } from '@fphd/utils/slug';
 
+export const APPROVED_INDICATORS_FILE = new URL(
+  '../data/approved-indicators.json',
+  import.meta.url,
+);
+
+/**
+ * The launch list is committed with its provenance, so an export needs no secret file. The
+ * committed shape wraps the ids; a bare array is still accepted for an override file.
+ */
+export function parseApprovedIndicators(raw: string, argument = '--approved-indicators'): number[] {
+  const parsed: unknown = JSON.parse(raw);
+  const ids =
+    parsed !== null && typeof parsed === 'object' && 'indicators' in parsed
+      ? JSON.stringify(parsed.indicators)
+      : raw;
+  return parseIndicatorIds(ids, argument);
+}
+
 export function parseIndicatorIds(raw: string, argument = '--excluded-indicators'): number[] {
   const parsed: unknown = JSON.parse(raw);
   if (!Array.isArray(parsed) || !parsed.every((id) => Number.isSafeInteger(id) && id > 0)) {
