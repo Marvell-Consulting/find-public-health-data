@@ -8,6 +8,7 @@ import {
   type Section,
   taskRow,
 } from '../support/section-page.ts';
+import { chooseOption } from '../support/select-autocomplete.ts';
 import { PUBLISHER } from '../support/sign-in.ts';
 import { expectQuestionStyles, QUESTION, SUB_QUESTION } from '../support/typography.ts';
 
@@ -30,8 +31,13 @@ function question(page: Page, name: string) {
   return page.getByRole('group', { name });
 }
 
+/** Adds a tag; `navigates` is for pages without JavaScript, where Add posts the form. */
 async function addTag(page: Page, list: List, name: string, navigates = false) {
-  await page.getByLabel(LISTS[list].label, { exact: true }).selectOption({ label: name });
+  if (navigates) {
+    await page.getByLabel(LISTS[list].label, { exact: true }).selectOption({ label: name });
+  } else {
+    await chooseOption(page, LISTS[list].label, name);
+  }
   const navigation = navigates
     ? page.waitForEvent('framenavigated', { predicate: (frame) => frame === page.mainFrame() })
     : undefined;
@@ -171,9 +177,7 @@ test('saves the tags on Continue and shows the task as completed', async ({ page
   const taskListPath = await openSectionPage(page, SECTION);
   await tagEverything(page);
   // Chosen but not added, which Continue takes in.
-  await page
-    .getByLabel(LISTS.type.label, { exact: true })
-    .selectOption({ label: 'Treatment and care' });
+  await chooseOption(page, LISTS.type.label, 'Treatment and care');
 
   await page.getByRole('button', { name: 'Continue' }).click();
 

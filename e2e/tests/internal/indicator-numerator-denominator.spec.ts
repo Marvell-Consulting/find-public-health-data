@@ -9,6 +9,7 @@ import {
   type Section,
   taskRow,
 } from '../support/section-page.ts';
+import { autocompleteInput, chooseOption } from '../support/select-autocomplete.ts';
 import { PUBLISHER } from '../support/sign-in.ts';
 
 const NUMERATOR: Section = { key: 'numerator', taskName: 'Numerator' };
@@ -24,9 +25,13 @@ function sourceField(page: Page) {
   return page.getByLabel(/^Add the specific source/);
 }
 
+async function chooseSource(page: Page, provider: string, source: string) {
+  await chooseOption(page, PROVIDER_FIELD, provider);
+  await chooseOption(page, `Add the specific source from ${provider}`, source);
+}
+
 async function addSource(page: Page, provider: string, source: string) {
-  await page.getByLabel(PROVIDER_FIELD, { exact: true }).selectOption({ label: provider });
-  await sourceField(page).selectOption({ label: source });
+  await chooseSource(page, provider, source);
   await page.getByRole('button', { name: 'Add source' }).click();
   const added = source === 'No specific source' ? provider : `${provider}: ${source}`;
   await expect(addedSources(page).filter({ hasText: added })).toHaveCount(1);
@@ -61,11 +66,14 @@ test("offers a provider's sources once the provider is chosen", async ({ page })
 
   await expect(sourceField(page)).toBeHidden();
 
-  await page.getByLabel(PROVIDER_FIELD, { exact: true }).selectOption({ label: ONS });
+  await chooseOption(page, PROVIDER_FIELD, ONS);
 
-  await expect(page.getByLabel(`Add the specific source from ${ONS}`)).toBeVisible();
-  await expect(sourceField(page).getByRole('option').nth(1)).toHaveText('No specific source');
-  await expect(sourceField(page).getByRole('option', { name: 'Live births' })).toHaveCount(1);
+  const source = autocompleteInput(page, `Add the specific source from ${ONS}`);
+  await expect(source).toBeVisible();
+  await source.click();
+  const suggestions = page.getByRole('listbox').getByRole('option');
+  await expect(suggestions.first()).toHaveText('No specific source');
+  await expect(suggestions.filter({ hasText: /^Live births$/ })).toHaveCount(1);
 });
 
 test('adds several providers and sources to a list, in the order they were added', async ({
@@ -93,7 +101,7 @@ test('removes a source from the list', async ({ page }) => {
 
 test('asks for a source when Add source is selected without one', async ({ page }) => {
   await openSectionPage(page, NUMERATOR);
-  await page.getByLabel(PROVIDER_FIELD, { exact: true }).selectOption({ label: ONS });
+  await chooseOption(page, PROVIDER_FIELD, ONS);
 
   await page.getByRole('button', { name: 'Add source' }).click();
 
@@ -110,8 +118,7 @@ test('refuses a provider and source already added', async ({ page }) => {
   await openSectionPage(page, NUMERATOR);
   await addSource(page, ONS, 'Live births');
 
-  await page.getByLabel(PROVIDER_FIELD, { exact: true }).selectOption({ label: ONS });
-  await sourceField(page).selectOption({ label: 'Live births' });
+  await chooseSource(page, ONS, 'Live births');
   await page.getByRole('button', { name: 'Add source' }).click();
 
   await expect(page.getByRole('alert').getByRole('link')).toHaveText([
@@ -155,8 +162,7 @@ test('saves a provider and source chosen but not added when Continue is selected
   page,
 }) => {
   const taskListPath = await openSectionPage(page, NUMERATOR);
-  await page.getByLabel(PROVIDER_FIELD, { exact: true }).selectOption({ label: ONS });
-  await sourceField(page).selectOption({ label: 'Live births' });
+  await chooseSource(page, ONS, 'Live births');
   await page.getByLabel(DEFINITION_FIELD, { exact: true }).fill('Live births in the year.');
 
   await page.getByRole('button', { name: 'Continue' }).click();
@@ -172,10 +178,8 @@ test('asks the same of the denominator and saves it apart from the numerator', a
     page.getByRole('heading', { level: 1, name: 'What are the details of the denominator?' }),
   ).toBeVisible();
 
-  await page
-    .getByLabel('Add a data provider for the denominator', { exact: true })
-    .selectOption({ label: ONS });
-  await sourceField(page).selectOption({ label: 'Mid-year population estimates' });
+  await chooseOption(page, 'Add a data provider for the denominator', ONS);
+  await chooseOption(page, `Add the specific source from ${ONS}`, 'Mid-year population estimates');
   await page.getByRole('button', { name: 'Add source' }).click();
   await page
     .getByLabel('Enter the definition of the denominator', { exact: true })
@@ -205,7 +209,7 @@ test('has no WCAG 2.2 AA violations with sources added and a source refused', as
   await openSectionPage(page, NUMERATOR);
   await addSource(page, ONS, 'Live births');
   await addSource(page, DEFRA, 'No specific source');
-  await page.getByLabel(PROVIDER_FIELD, { exact: true }).selectOption({ label: ONS });
+  await chooseOption(page, PROVIDER_FIELD, ONS);
   await page.getByRole('button', { name: 'Add source' }).click();
   await expect(page.getByRole('alert')).toContainText('Select a source');
 

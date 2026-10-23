@@ -527,6 +527,16 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
   padding: 5px 35px 5px 5px;
 }
 
+// The input stands in for a select, so it takes the select's error border.
+.govuk-form-group--error .autocomplete__input:not(:focus) {
+  border-color: govuk-functional-colour(error);
+}
+
+// In a row with its button, the input takes the room a select would size to its options.
+.fphd-field-row > .fphd-autocomplete {
+  flex: 1 1 20em;
+}
+
 .fphd-segmentation-options__selects .govuk-form-group {
   margin-bottom: govuk-spacing(3);
 }

@@ -4,7 +4,7 @@ import {
   type TagOption,
   type TagOptions,
 } from '@fphd/internal-api-features/contract';
-import { Button, fieldInputId, firstRadioId, Radios, Select } from '@fphd/ui';
+import { Button, fieldInputId, firstRadioId, Radios, SelectAutocomplete } from '@fphd/ui';
 import type { ElementType } from 'react';
 
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
@@ -56,7 +56,7 @@ function TagPicker({
     <div className="govuk-!-margin-bottom-6">
       {/* The select and its Add button side by side, as one control. */}
       <div className="fphd-field-row fphd-field-row--with-button">
-        <Select
+        <SelectAutocomplete
           // A list refused as a whole is shown on the select that adds to it.
           defaultValue={values[field]}
           error={fieldErrors[field] ?? fieldErrors[list]}
