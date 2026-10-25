@@ -43,6 +43,9 @@ function buildSearchQuery(
   if (query) {
     parts.push(`q=${encodeURIComponent(query)}`);
   }
+  for (const subtopic of pickStrings(params, 'subtopic')) {
+    parts.push(`subtopic=${encodeURIComponent(subtopic)}`);
+  }
 
   for (const dim of DIMENSIONS) {
     for (const val of pickStrings(params, dim.param)) {
@@ -151,7 +154,7 @@ export async function loadSearch(
     const requested = Number(params.get('page'));
     const page = Number.isSafeInteger(requested) && requested > 0 ? requested : 1;
     const sort = params.get('sort');
-    searchQuery += `&page=${page}&sort=${sort === 'name-desc' || sort === 'period-desc' || sort === 'trend-desc' || sort === 'trend-asc' ? sort : 'name-asc'}`;
+    searchQuery += `&page=${page}&sort=${sort === 'name-asc' || sort === 'name-desc' || sort === 'period-desc' || sort === 'trend-desc' || sort === 'trend-asc' || sort === 'trend-better' || sort === 'trend-worse' || sort === 'subtopic-desc' ? sort : 'subtopic-asc'}`;
   }
 
   const [facets, searchResult, geographyOptions] = await Promise.all([
@@ -164,10 +167,12 @@ export async function loadSearch(
   ]);
 
   const validatedGeo = pickStrings(params, 'geo').filter((g) => displayGroups.includes(g));
+  const subtopics = pickStrings(params, 'subtopic');
 
   return {
     q: query,
     topics: topicSlug ? [] : pickStrings(params, 't'),
+    ...(subtopics.length ? { subtopics } : {}),
     indicatorTypes: pickStrings(params, 'it'),
     lifeStages: pickStrings(params, 'ls'),
     frameworks: pickStrings(params, 'fw'),

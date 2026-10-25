@@ -14,6 +14,7 @@ export interface SearchState {
   fromYear?: string;
   toYear?: string;
   updatedWithin?: string;
+  subtopics?: string[];
 }
 
 export const PERIOD_PARAMS = ['fromYear', 'toYear', 'updatedWithin'] as const;
@@ -132,6 +133,7 @@ export function searchUrl(
 ): string {
   const p = new URLSearchParams(extraParams);
   if (state.q) p.set('q', state.q);
+  for (const subtopic of state.subtopics ?? []) p.append('subtopic', subtopic);
   for (const key of PERIOD_PARAMS) if (state[key]) p.set(key, state[key]);
   for (const { param, stateKey } of LIST_PARAMS) {
     for (const v of state[stateKey] as string[]) p.append(param, v);

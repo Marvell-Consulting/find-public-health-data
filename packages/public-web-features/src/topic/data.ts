@@ -1,8 +1,8 @@
+import { periodLabel } from '@fphd/utils/period-label';
 import {
   type ComparisonRow,
   comparisonRows,
   filterObservations,
-  periodLabel,
   sameSegment,
   trendSeries,
 } from '../indicator/data.ts';
@@ -12,25 +12,34 @@ import { MAX_SELECTED_INDICATORS } from '../selection-limits.ts';
 
 export const TOPIC_PAGE_SIZE = MAX_SELECTED_INDICATORS;
 export const TOPIC_SORTS = [
+  { value: 'subtopic-asc', label: 'Subtopic - A to Z' },
+  { value: 'subtopic-desc', label: 'Subtopic - Z to A' },
   { value: 'name-asc', label: 'Indicator name - A to Z' },
   { value: 'name-desc', label: 'Indicator name - Z to A' },
   { value: 'period-desc', label: 'Most recent period' },
   { value: 'trend-desc', label: 'Trend increasing to decreasing' },
   { value: 'trend-asc', label: 'Trend decreasing to increasing' },
+  { value: 'trend-better', label: 'Trend: getting better first' },
+  { value: 'trend-worse', label: 'Trend: getting worse first' },
 ];
 
-export const TOPIC_SORT_OPTIONS = [
-  ...TOPIC_SORTS,
-  { value: 'subtopic-asc', label: 'Subtopic - A to Z (coming soon)', disabled: true },
-  { value: 'subtopic-desc', label: 'Subtopic - Z to A (coming soon)', disabled: true },
-];
+export const TOPIC_SORT_OPTIONS = TOPIC_SORTS;
+
+export function topicSubtopics(entry: SelectedIndicator, topicSlug: string): string[] {
+  return (
+    entry.detail.topics
+      .find(({ slug }) => slug === topicSlug)
+      ?.subtopics?.map(({ title }) => title) ?? []
+  );
+}
 
 export function topicIndicators(
   indicators: IndicatorSearchRow[],
   params: URLSearchParams,
   pagination?: { page?: number | undefined; total: number; limit: number },
 ) {
-  const sort = TOPIC_SORTS.find(({ value }) => value === params.get('sort'))?.value ?? 'name-asc';
+  const sort =
+    TOPIC_SORTS.find(({ value }) => value === params.get('sort'))?.value ?? 'subtopic-asc';
   if (pagination?.page)
     return {
       sort,

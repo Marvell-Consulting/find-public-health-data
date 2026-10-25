@@ -46,6 +46,19 @@ export function topicPageTests() {
     await expectNoAccessibilityViolations(page, testInfo);
   });
 
+  test('filters by subtopic and keeps the filter when sorting', async ({ page }, testInfo) => {
+    await openTopicPage(page, '/topics/diabetes?tab-topic=data');
+    await page.getByRole('button', { name: 'Subtopics and types Expand' }).click();
+    await page.getByRole('checkbox', { name: 'Prevalence and risk', exact: true }).check();
+    await expect(page).toHaveURL(/subtopic=prevalence-and-risk/);
+    const table = page.getByRole('table', { name: /Diabetes indicators/ });
+    await expect(table.getByRole('link', { name: 'Diabetes: QOF prevalence' })).toBeVisible();
+    await expect(table.getByRole('link', { name: /Mortality/ })).toHaveCount(0);
+    await page.getByRole('combobox', { name: 'Sort by' }).selectOption('name-desc');
+    await expect(page).toHaveURL(/subtopic=prevalence-and-risk/);
+    await expectNoAccessibilityViolations(page, testInfo);
+  });
+
   test('keeps filters and sorting within the topic', async ({ page }) => {
     await openTopicPage(page, `${TOPIC_PATH}?tab-topic=data`);
     await page.getByRole('searchbox', { name: 'Search by keywords' }).fill('Under 75');

@@ -71,6 +71,7 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
     const filters: IndicatorSearchFilters = {
       query,
       topics: pickStrings(request.query.t),
+      ...(request.query.subtopic ? { subtopics: pickStrings(request.query.subtopic) } : {}),
       indicatorTypes: pickStrings(request.query.it),
       lifeStages: pickStrings(request.query.ls),
       frameworks: pickStrings(request.query.fw),
@@ -93,7 +94,11 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
         sort === 'name-desc' ||
         sort === 'period-desc' ||
         sort === 'trend-desc' ||
-        sort === 'trend-asc'
+        sort === 'trend-asc' ||
+        sort === 'trend-better' ||
+        sort === 'trend-worse' ||
+        sort === 'subtopic-asc' ||
+        sort === 'subtopic-desc'
           ? sort
           : 'name-asc';
     }

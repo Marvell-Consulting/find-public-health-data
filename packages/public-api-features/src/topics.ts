@@ -33,7 +33,11 @@ export function topicsRouter(topics: Repositories['topics']): Router {
       return;
     }
 
-    response.status(200).json({ ...toSummary(topic), content: contentForTopic(topic.slug) });
+    response.status(200).json({
+      ...toSummary(topic),
+      subtopics: await topics.listSubtopics(topic.slug),
+      content: contentForTopic(topic.slug),
+    });
   });
 
   router.get('/api/topics/:slug/trends', async (request, response) => {

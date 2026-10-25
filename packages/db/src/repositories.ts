@@ -33,6 +33,7 @@ import {
 import {
   getTopicBySlug,
   getTopicTrendSummary,
+  listTopicSubtopics,
   listTopics,
   type Topic,
   type TopicTrendSummary,
@@ -73,6 +74,7 @@ export interface TopicRepository {
   list(): Promise<Topic[]>;
   findBySlug(slug: string): Promise<Topic | undefined>;
   trendSummary(slug: string): Promise<TopicTrendSummary>;
+  listSubtopics(slug: string): Promise<{ slug: string; title: string }[]>;
 }
 
 /**
@@ -116,6 +118,7 @@ export function createRepositories(db: Database): Repositories {
       list: () => listTopics(db),
       findBySlug: (slug) => getTopicBySlug(db, slug),
       trendSummary: (slug) => getTopicTrendSummary(db, slug),
+      listSubtopics: (slug) => listTopicSubtopics(db, slug),
     },
   };
 }

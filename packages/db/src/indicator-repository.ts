@@ -51,12 +51,14 @@ import {
   publishedIndicatorClassification as indicatorClassification,
   publishedIndicatorSlug as indicatorSlug,
   publishedIndicatorSource as indicatorSource,
+  publishedIndicatorSubtopic as indicatorSubtopic,
   publishedIndicatorTopic as indicatorTopic,
   publishedNoteType as noteType,
   publishedObservation as observation,
   publishedObservationDimension as observationDimension,
   publishedObservationNote as observationNote,
   publishedObservationRange as observationRange,
+  publishedSubtopic as subtopic,
   publishedTopic as topic,
   publishedUnit as unit,
   publishedValueType as valueType,
@@ -65,6 +67,7 @@ import {
 export interface IndicatorSearchFilters {
   query: string;
   topics: string[];
+  subtopics?: string[];
   indicatorTypes: string[];
   lifeStages: string[];
   frameworks: string[];
@@ -77,7 +80,17 @@ export interface IndicatorSearchFilters {
   yearTypes: string[];
   limit: number;
   page?: number | undefined;
-  sort?: 'name-asc' | 'name-desc' | 'period-desc' | 'trend-desc' | 'trend-asc' | undefined;
+  sort?:
+    | 'name-asc'
+    | 'name-desc'
+    | 'period-desc'
+    | 'trend-desc'
+    | 'trend-asc'
+    | 'trend-better'
+    | 'trend-worse'
+    | 'subtopic-asc'
+    | 'subtopic-desc'
+    | undefined;
   dataFromYear?: number | undefined;
   dataToYear?: number | undefined;
   updatedWithinMonths?: number | undefined;
@@ -188,6 +201,8 @@ export interface IndicatorAreaType {
 export interface IndicatorTopic {
   slug: string;
   title: string;
+  isPrimary?: boolean;
+  subtopics?: { slug: string; title: string; isPrimary: boolean }[];
 }
 
 export interface IndicatorDetail {
@@ -618,6 +633,25 @@ export async function searchIndicators(
     );
   }
 
+  if (filters.subtopics?.length) {
+    conditions.push(
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(indicatorSubtopic)
+          .innerJoin(subtopic, eq(indicatorSubtopic.subtopicId, subtopic.id))
+          .innerJoin(topic, eq(subtopic.topicId, topic.id))
+          .where(
+            and(
+              eq(indicatorSubtopic.indicatorId, indicator.id),
+              inArray(subtopic.slug, filters.subtopics),
+              filters.topics.length > 0 ? inArray(topic.slug, filters.topics) : undefined,
+            ),
+          ),
+      ),
+    );
+  }
+
   if (filters.indicatorTypes.length > 0) {
     conditions.push(classificationExists('indicator_type', filters.indicatorTypes));
   }
@@ -754,6 +788,18 @@ export async function searchIndicators(
     .innerJoin(topic, eq(indicatorTopic.topicId, topic.id))
     .where(eq(indicatorTopic.indicatorId, indicator.id));
 
+  const firstSubtopicTitle = db
+    .select({ title: min(subtopic.title) })
+    .from(indicatorSubtopic)
+    .innerJoin(subtopic, eq(indicatorSubtopic.subtopicId, subtopic.id))
+    .innerJoin(topic, eq(indicatorSubtopic.topicId, topic.id))
+    .where(
+      and(
+        eq(indicatorSubtopic.indicatorId, indicator.id),
+        filters.topics.length === 1 ? eq(topic.slug, filters.topics[0] as string) : undefined,
+      ),
+    );
+
   const escapedQuery = query.replace(/[\\%_]/g, '\\$&');
   const relevance = sql`case when ${identifierMatch} then 0 when lower(${indicator.name}) = lower(${query}) then 1 when ${indicator.name} ilike ${`${escapedQuery}%`} then 2 when ${indicator.name} ilike ${`%${escapedQuery}%`} then 3 else 4 end`;
   const countQuery = db
@@ -779,20 +825,32 @@ export async function searchIndicators(
       ? [desc(indicator.name), asc(indicator.shortId)]
       : filters.sort === 'name-asc'
         ? [asc(indicator.name), asc(indicator.shortId)]
-        : filters.sort === 'period-desc'
+        : filters.sort === 'subtopic-asc'
           ? [
-              sql`${latestPeriods.date} desc nulls last`,
+              sql`(${firstSubtopicTitle}) asc nulls last`,
               asc(indicator.name),
               asc(indicator.shortId),
             ]
-          : query
+          : filters.sort === 'subtopic-desc'
             ? [
-                relevance,
-                sql`position(lower(${query}) in lower(${indicator.name}))`,
+                sql`(${firstSubtopicTitle}) desc nulls last`,
                 asc(indicator.name),
+                asc(indicator.shortId),
               ]
-            : [sql`(${firstTopicTitle}) nulls last`, asc(indicator.name)];
-  const trendSort = filters.sort === 'trend-desc' || filters.sort === 'trend-asc';
+            : filters.sort === 'period-desc'
+              ? [
+                  sql`${latestPeriods.date} desc nulls last`,
+                  asc(indicator.name),
+                  asc(indicator.shortId),
+                ]
+              : query
+                ? [
+                    relevance,
+                    sql`position(lower(${query}) in lower(${indicator.name}))`,
+                    asc(indicator.name),
+                  ]
+                : [sql`(${firstTopicTitle}) nulls last`, asc(indicator.name)];
+  const trendSort = filters.sort?.startsWith('trend-') ?? false;
   const rowQuery = (page = 1) => {
     const query = db
       .select({
@@ -800,6 +858,7 @@ export async function searchIndicators(
         shortId: indicator.shortId,
         slug: indicator.slug,
         name: indicator.name,
+        polarity: indicator.polarity,
       })
       .from(indicator);
     const selected = (
@@ -826,16 +885,19 @@ export async function searchIndicators(
       db,
       matches.map(({ id }) => id),
     );
-    const rank = (id: string) => {
-      const direction = directions.get(id);
+    const rank = (row: (typeof matches)[number]) => {
+      const direction = directions.get(row.id);
       if (direction == null) return 3;
       if (direction === 'right') return 1;
+      if (filters.sort === 'trend-better' || filters.sort === 'trend-worse') {
+        if (row.polarity !== 'higher-is-better' && row.polarity !== 'lower-is-better') return 3;
+        const better = (direction === 'up') === (row.polarity === 'higher-is-better');
+        return better === (filters.sort === 'trend-better') ? 0 : 2;
+      }
       return (direction === 'up') === (filters.sort === 'trend-desc') ? 0 : 2;
     };
     rows = [...matches]
-      .sort(
-        (a, b) => rank(a.id) - rank(b.id) || a.name.localeCompare(b.name) || a.shortId - b.shortId,
-      )
+      .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name) || a.shortId - b.shortId)
       .slice(((page ?? 1) - 1) * filters.limit, (page ?? 1) * filters.limit);
   }
 

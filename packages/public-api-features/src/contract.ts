@@ -90,6 +90,7 @@ export const topicContentSchema = z.object({
 
 export const topicDetailSchema = topicSummarySchema.extend({
   content: topicContentSchema.nullable().optional(),
+  subtopics: z.array(z.object({ slug: z.string().min(1), title: z.string().min(1) })).optional(),
 });
 
 export const topicTrendSummarySchema = z.object({

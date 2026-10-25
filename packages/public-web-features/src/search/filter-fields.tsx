@@ -20,6 +20,11 @@ export function HiddenFilters({
         <input key={name} name={name} type="hidden" value={value} />
       ))}
       {except !== 'q' && state.q ? <input name="q" type="hidden" value={state.q} /> : null}
+      {except !== 'subtopics'
+        ? state.subtopics?.map((slug) => (
+            <input key={slug} name="subtopic" type="hidden" value={slug} />
+          ))
+        : null}
       {includePeriod
         ? PERIOD_PARAMS.map((name) =>
             state[name] ? <input key={name} name={name} type="hidden" value={state[name]} /> : null,

@@ -281,11 +281,12 @@ describe('GET /api/indicators/search pagination and dates', () => {
       .mockResolvedValue({ total: 0, limit: 10, page: 1, indicators: [] });
     const app = createTestApp({ searchWithFilters });
     await request(app).get(
-      '/api/indicators/search?t=mortality&page=999&sort=trend-desc&fromYear=2010&toYear=2023&updatedWithin=6',
+      '/api/indicators/search?t=mortality&subtopic=all-cause-and-winter-mortality&page=999&sort=trend-desc&fromYear=2010&toYear=2023&updatedWithin=6',
     );
     expect(searchWithFilters).toHaveBeenLastCalledWith(
       expect.objectContaining({
         topics: ['mortality'],
+        subtopics: ['all-cause-and-winter-mortality'],
         page: 999,
         sort: 'trend-desc',
         limit: 10,

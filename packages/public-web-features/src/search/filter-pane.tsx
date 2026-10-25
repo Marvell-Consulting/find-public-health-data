@@ -21,6 +21,7 @@ interface SearchFilterPaneProps {
   includeTopics?: boolean;
   includeDataPeriod?: boolean;
   additionalFilters?: ReactNode;
+  subtopicFilter?: ReactNode;
   state: SearchState;
   facets: IndicatorFacets;
   displayGroups: string[];
@@ -35,6 +36,7 @@ export function SearchFilterPane({
   includeTopics = true,
   includeDataPeriod = false,
   additionalFilters,
+  subtopicFilter,
   state,
   facets,
   displayGroups,
@@ -117,14 +119,23 @@ export function SearchFilterPane({
   };
 
   const topicsActive =
-    state.topics.length > 0 || state.indicatorTypes.length > 0 || state.lifeStages.length > 0;
+    Boolean(state.subtopics?.length) ||
+    state.topics.length > 0 ||
+    state.indicatorTypes.length > 0 ||
+    state.lifeStages.length > 0;
   const geoActive = state.geoLevels.length > 0 || state.gaCodes.length > 0;
   const fwActive = state.frameworks.length > 0;
   const popActive = state.populations.length > 0 || state.inequalities.length > 0;
   const dataAttrActive =
     state.sources.length > 0 || state.valueTypes.length > 0 || state.yearTypes.length > 0;
 
-  const clearTopicsUrl = urlFor({ ...state, topics: [], indicatorTypes: [], lifeStages: [] });
+  const clearTopicsUrl = urlFor({
+    ...state,
+    subtopics: [],
+    topics: [],
+    indicatorTypes: [],
+    lifeStages: [],
+  });
   const clearGeoUrl = urlFor({ ...state, geoLevels: [], gaCodes: [] });
   const clearFwUrl = urlFor({ ...state, frameworks: [] });
   const clearPopUrl = urlFor({ ...state, populations: [], inequalities: [] });
@@ -225,9 +236,14 @@ export function SearchFilterPane({
 
       <CollapsibleFilterCard
         active={topicsActive}
-        footer={topicsAndTypesDims.map(renderDimensionFooter)}
+        footer={
+          <>
+            {subtopicFilter}
+            {topicsAndTypesDims.map(renderDimensionFooter)}
+          </>
+        }
         onClear={clearTopicsUrl}
-        title="Topics and types"
+        title={includeTopics ? 'Topics and types' : 'Subtopics and types'}
       >
         {topicsAndTypesDims.map(renderDimensionBody)}
       </CollapsibleFilterCard>

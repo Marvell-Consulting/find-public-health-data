@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray, min } from 'drizzle-orm';
 import { afterAll, beforeAll, expect, it } from 'vitest';
 import { createDbFromClient, type Database } from './client.ts';
 import {
@@ -16,11 +16,15 @@ import {
   observationDimension,
   publishedArea,
   publishedIndicator,
+  publishedIndicatorSubtopic,
   publishedObservation,
+  publishedSubtopic,
+  publishedTopic,
   uploadBatch,
 } from './schema/index.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
+import { listTopicSubtopics } from './topic-repository.ts';
 
 let database: TestDatabase;
 let db: Database;
@@ -28,7 +32,7 @@ const filters = (overrides: Partial<IndicatorSearchFilters> = {}): IndicatorSear
   query: '',
   topics: [],
   indicatorTypes: [],
-  riskFactors: [],
+  lifeStages: [],
   frameworks: [],
   populations: [],
   inequalities: [],
@@ -115,6 +119,76 @@ it('sorts by the most recent published period before selecting a page', async ()
   expect((periods[0] ?? '') >= (periods[1] ?? '')).toBe(true);
 });
 
+it('sorts a whole topic by its subtopics before paginating', async () => {
+  const all = await searchIndicators(
+    db,
+    filters({ topics: ['diabetes'], sort: 'subtopic-asc', limit: 100 }),
+  );
+  const ids = all.indicators.map(({ shortId }) => shortId);
+  expect(ids.length).toBeGreaterThan(1);
+  const titles = await db
+    .select({ shortId: publishedIndicator.shortId, title: min(publishedSubtopic.title) })
+    .from(publishedIndicator)
+    .innerJoin(
+      publishedIndicatorSubtopic,
+      eq(publishedIndicatorSubtopic.indicatorId, publishedIndicator.id),
+    )
+    .innerJoin(publishedSubtopic, eq(publishedIndicatorSubtopic.subtopicId, publishedSubtopic.id))
+    .innerJoin(publishedTopic, eq(publishedIndicatorSubtopic.topicId, publishedTopic.id))
+    .where(and(eq(publishedTopic.slug, 'diabetes'), inArray(publishedIndicator.shortId, ids)))
+    .groupBy(publishedIndicator.shortId);
+  const byId = new Map(titles.map(({ shortId, title }) => [shortId, title]));
+  const ordered = ids.map((id) => byId.get(id) ?? null);
+  expect(ordered.filter((title) => title !== null)).toEqual(
+    [...ordered.filter((title) => title !== null)].sort(),
+  );
+  expect(ordered.slice(ordered.filter((title) => title !== null).length)).toEqual(
+    Array(ordered.filter((title) => title === null).length).fill(null),
+  );
+  const secondPage = await searchIndicators(
+    db,
+    filters({ topics: ['diabetes'], sort: 'subtopic-asc', limit: 1, page: 2 }),
+  );
+  expect(secondPage.indicators.map(({ shortId }) => shortId)).toEqual(ids.slice(1, 2));
+});
+
+it('filters subtopics within their topic before paginating', async () => {
+  expect(await listTopicSubtopics(db, 'diabetes')).toContainEqual({
+    slug: 'prevalence-and-risk',
+    title: 'Prevalence and risk',
+  });
+  const result = await searchIndicators(
+    db,
+    filters({
+      topics: ['diabetes'],
+      subtopics: ['prevalence-and-risk'],
+      page: 1,
+    }),
+  );
+  expect(result.total).toBe(1);
+  expect(result.indicators.map(({ shortId }) => shortId)).toEqual([241]);
+  const both = await searchIndicators(
+    db,
+    filters({
+      topics: ['diabetes'],
+      subtopics: ['prevalence-and-risk', 'complications'],
+      page: 1,
+    }),
+  );
+  expect(both.indicators.map(({ shortId }) => shortId).sort((a, b) => a - b)).toEqual([241, 93995]);
+  expect(
+    (
+      await searchIndicators(
+        db,
+        filters({
+          topics: ['diabetes'],
+          subtopics: ['all-cancers'],
+        }),
+      )
+    ).total,
+  ).toBe(0);
+});
+
 it('filters year coverage and data refreshes without exposing unpublished data', async () => {
   const [identity] = await db
     .select({ id: publishedIndicator.id })
@@ -195,6 +269,33 @@ it('sorts trends across all matching indicators before paginating, with uncalcul
   expect(results.indicators.every(({ shortId }) => rank(shortId) < 3)).toBe(true);
   const last = await searchIndicators(db, filters({ sort: 'trend-asc', page: 999 }));
   expect(last.indicators.every(({ shortId }) => rank(shortId) === 3)).toBe(true);
+});
+
+it('uses polarity to put improving or worsening trends first', async () => {
+  const [diabetes] = await db
+    .select()
+    .from(publishedIndicator)
+    .where(eq(publishedIndicator.shortId, 241));
+  if (!diabetes) throw new Error('Seed diabetes indicator missing');
+  await db
+    .update(indicatorVersion)
+    .set({ polarity: 'lower-is-better' })
+    .where(eq(indicatorVersion.indicatorId, diabetes.id));
+  try {
+    for (const sort of ['trend-better', 'trend-worse'] as const) {
+      const result = await searchIndicators(db, filters({ sort, limit: 100 }));
+      const ids = result.indicators.map(({ shortId }) => shortId);
+      expect(ids).toContain(108);
+      expect(ids).toContain(241);
+      if (sort === 'trend-better') expect(ids.indexOf(108)).toBeLessThan(ids.indexOf(241));
+      else expect(ids.indexOf(241)).toBeLessThan(ids.indexOf(108));
+    }
+  } finally {
+    await db
+      .update(indicatorVersion)
+      .set({ polarity: diabetes.polarity })
+      .where(eq(indicatorVersion.indicatorId, diabetes.id));
+  }
 });
 
 it('selects the longest valid trend among equally disaggregated series', async () => {

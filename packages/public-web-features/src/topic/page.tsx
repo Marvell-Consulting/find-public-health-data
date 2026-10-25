@@ -5,6 +5,7 @@ import { TopicGeographies } from './geographies.tsx';
 import { TopicListing } from './listing.tsx';
 import type { loadTopic } from './loader.ts';
 import { TopicOverview } from './overview.tsx';
+import { TopicSubtopicFilter } from './subtopic-filter.tsx';
 
 type TopicData = Awaited<ReturnType<typeof loadTopic>>;
 
@@ -73,6 +74,15 @@ export function TopicPage(data: TopicData) {
                       geographyOptions={content.search.geographyOptions}
                       areasLimited={content.search.areasLimited}
                       state={content.search}
+                      subtopicFilter={
+                        <TopicSubtopicFilter
+                          key={JSON.stringify(content.search.subtopics ?? [])}
+                          path={path}
+                          state={content.search}
+                          subtopics={topic.subtopics ?? []}
+                          sort={content.listing.sort}
+                        />
+                      }
                     />
                   </GridColumn>
                   <GridColumn width="three-quarters">

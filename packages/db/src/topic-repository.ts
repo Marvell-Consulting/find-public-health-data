@@ -7,6 +7,7 @@ import { indicatorTrendDirections } from './indicator-trends.ts';
 import {
   publishedIndicator,
   publishedIndicatorTopic,
+  publishedSubtopic,
   publishedTopic,
   SYSTEM_USER_IDS,
   type TopicRecord,
@@ -71,6 +72,15 @@ export async function listTopics(db: Database): Promise<Topic[]> {
 export async function getTopicBySlug(db: Database, slug: string): Promise<Topic | undefined> {
   const rows = await db.select().from(publishedTopic).where(eq(publishedTopic.slug, slug));
   return rows[0];
+}
+
+export async function listTopicSubtopics(db: Database, slug: string) {
+  return db
+    .select({ slug: publishedSubtopic.slug, title: publishedSubtopic.title })
+    .from(publishedSubtopic)
+    .innerJoin(publishedTopic, eq(publishedSubtopic.topicId, publishedTopic.id))
+    .where(eq(publishedTopic.slug, slug))
+    .orderBy(asc(publishedSubtopic.title));
 }
 
 export interface TopicTrendSummary {

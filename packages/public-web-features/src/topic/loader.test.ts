@@ -130,7 +130,7 @@ describe('loadTopic', () => {
       ),
     );
     expect(get).toHaveBeenCalledWith(
-      '/api/indicators/search?t=topic-a&page=1&sort=name-asc',
+      '/api/indicators/search?t=topic-a&page=1&sort=subtopic-asc',
       expect.anything(),
     );
     expect(get.mock.calls.some(([path]) => path === '/api/indicators/999')).toBe(false);
