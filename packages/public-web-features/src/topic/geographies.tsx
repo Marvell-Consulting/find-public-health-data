@@ -22,7 +22,6 @@ export function TopicGeographies({
   const picked = search.gaCodes.length > 0 || search.geoLevels.length > 0;
   return (
     <div className="fphd-topic-geographies">
-      <h2 className="govuk-heading-m">Geographies</h2>
       <CollapsibleFilterCard
         active
         title="Geographies"

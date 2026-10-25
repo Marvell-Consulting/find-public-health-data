@@ -1,6 +1,6 @@
 import { Button, CardList, GridColumn, GridRow, Input, Label, searchPattern } from '@fphd/ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigationType, useSearchParams } from 'react-router';
+import { useLocation } from 'react-router';
 
 import type { TopicSummary } from './loader.ts';
 
@@ -9,40 +9,39 @@ import type { TopicSummary } from './loader.ts';
  * form three columns.
  */
 export function TopicsPage({ topics }: { topics: TopicSummary[] }) {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const navigationType = useNavigationType();
-  const query = searchParams.get('q') ?? '';
+  const location = useLocation();
+  const urlQuery = new URLSearchParams(location.search).get('q') ?? '';
+  const [query, setQuery] = useState(urlQuery);
+  const initialQuery = useRef(urlQuery);
   const [hydrated, setHydrated] = useState(false);
   const hasHydrated = useRef(false);
-  const hasInputChanged = useRef(false);
+  const syncedLocationKey = useRef<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  const updateQuery = useCallback(
-    (value: string) => {
-      setSearchParams(
-        (current) => {
-          const next = new URLSearchParams(current);
-          if (value) next.set('q', value);
-          else next.delete('q');
-          return next;
-        },
-        { replace: true, preventScrollReset: true },
-      );
-    },
-    [setSearchParams],
-  );
+  const updateQuery = useCallback((value: string) => {
+    setQuery(value);
+    // Filtering is local to this page. Replacing the browser URL directly keeps every
+    // keystroke without starting a loader navigation that can reset a newer input value.
+    const next = new URL(window.location.href);
+    if (value) next.searchParams.set('q', value);
+    else next.searchParams.delete('q');
+    window.history.replaceState(window.history.state, '', next);
+  }, []);
   useEffect(() => {
+    if (syncedLocationKey.current === location.key) return;
+    syncedLocationKey.current = location.key;
     // Input's public props do not expose a typed input ref.
     const input = formRef.current?.elements.namedItem('q');
     if (!(input instanceof HTMLInputElement)) return;
     if (!hasHydrated.current) {
       hasHydrated.current = true;
       setHydrated(true);
-      if (!hasInputChanged.current && input.value !== query) updateQuery(input.value);
-    } else if (navigationType !== 'REPLACE') {
-      // Typing replacements may still be catching up with newer keystrokes.
-      input.value = query;
+      if (input.value !== urlQuery) updateQuery(input.value);
+    } else {
+      // A history navigation can return to this route with an earlier search term.
+      setQuery(urlQuery);
+      input.value = urlQuery;
     }
-  }, [navigationType, query, updateQuery]);
+  }, [location.key, updateQuery, urlQuery]);
   const pattern = searchPattern(query);
   const filteredTopics = pattern
     ? topics.filter((topic) => pattern.test(topic.title) || pattern.test(topic.description))
@@ -75,14 +74,11 @@ export function TopicsPage({ topics }: { topics: TopicSummary[] }) {
             <Input
               autoComplete="off"
               classModifiers="width-20"
-              defaultValue={query}
+              defaultValue={initialQuery.current}
               id="topic-search"
               name="q"
               maxLength={200}
-              onChange={(event) => {
-                hasInputChanged.current = true;
-                updateQuery(event.currentTarget.value);
-              }}
+              onChange={(event) => updateQuery(event.currentTarget.value)}
               type="search"
             />
             {!hydrated && <Button type="submit">Search</Button>}
