@@ -30,7 +30,13 @@ import {
   searchIndicators,
   searchPublishedIndicators,
 } from './indicator-repository.ts';
-import { getTopicBySlug, listTopics, type Topic } from './topic-repository.ts';
+import {
+  getTopicBySlug,
+  getTopicTrendSummary,
+  listTopics,
+  type Topic,
+  type TopicTrendSummary,
+} from './topic-repository.ts';
 
 export interface IndicatorRepository {
   listPublished(): Promise<PublishedIndicator[]>;
@@ -66,6 +72,7 @@ export interface AreaRepository {
 export interface TopicRepository {
   list(): Promise<Topic[]>;
   findBySlug(slug: string): Promise<Topic | undefined>;
+  trendSummary(slug: string): Promise<TopicTrendSummary>;
 }
 
 /**
@@ -108,6 +115,7 @@ export function createRepositories(db: Database): Repositories {
     topics: {
       list: () => listTopics(db),
       findBySlug: (slug) => getTopicBySlug(db, slug),
+      trendSummary: (slug) => getTopicTrendSummary(db, slug),
     },
   };
 }

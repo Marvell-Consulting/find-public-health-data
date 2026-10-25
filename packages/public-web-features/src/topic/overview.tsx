@@ -1,0 +1,109 @@
+import { GridColumn, GridRow, SummaryList } from '@fphd/ui';
+import { indicatorPath } from '@fphd/utils/indicator-path';
+import { Link } from 'react-router';
+import { comparisonRows, formatCalculatedValue, recentTrend, withUnit } from '../indicator/data.ts';
+import { TrendTag } from '../indicator/trend-tag.tsx';
+import { TopicGeographies } from './geographies.tsx';
+import type { loadTopic } from './loader.ts';
+
+type TopicData = Awaited<ReturnType<typeof loadTopic>>;
+type Overview = NonNullable<TopicData['overview']>;
+
+export function TopicOverview({
+  topic,
+  overview,
+}: {
+  topic: TopicData['topic'];
+  overview: Overview;
+}) {
+  const { search, trends, selected } = overview;
+  const rows = comparisonRows(selected);
+  return (
+    <GridRow className="fphd-topic-overview">
+      <GridColumn width="one-quarter">
+        <TopicGeographies search={search} path={`/topics/${topic.slug}`} tab="overview" />
+      </GridColumn>
+      <GridColumn width="three-quarters">
+        <p className="govuk-body">{topic.content?.overviewIntro ?? topic.description}</p>
+        <h2 className="govuk-heading-l">
+          {topic.title} has {trends.total} indicators in total
+        </h2>
+        <p className="govuk-body">In England, the trend over the last 5 data points is:</p>
+        <ul className="govuk-list govuk-list--bullet">
+          <li>
+            <strong>{trends.better} are getting better</strong>
+          </li>
+          <li>
+            <strong>{trends.worse} are getting worse</strong>
+          </li>
+          <li>
+            <strong>{trends.unchanged} show no significant change</strong>
+          </li>
+        </ul>
+        <ul className="govuk-list govuk-list--bullet">
+          <li>
+            <strong>{trends.increasing} are going up (higher is neither better nor worse)</strong>
+          </li>
+          <li>
+            <strong>{trends.decreasing} are going down (higher is neither better nor worse)</strong>
+          </li>
+          <li>
+            <strong>{trends.unavailable} cannot have a trend calculated</strong>
+          </li>
+        </ul>
+        <p className="govuk-body">
+          <Link className="govuk-link" to={`/topics/${topic.slug}?tab-topic=data`}>
+            View all {topic.title.toLowerCase()} indicators
+          </Link>
+        </p>
+        <h2 className="govuk-heading-l">Highlighted indicators</h2>
+        {topic.content ? (
+          <>
+            <p className="govuk-body">{topic.content.highlightIntro}</p>
+            <ul className="govuk-list govuk-list--bullet">
+              {topic.content.highlightPoints.map((point) => (
+                <li key={point}>{point}</li>
+              ))}
+            </ul>
+          </>
+        ) : null}
+        <div className="fphd-topic-highlight-grid">
+          {selected.map((entry) => {
+            const row = rows.find(({ shortId }) => shortId === entry.detail.shortId);
+            const area =
+              entry.areaData.find(({ areaCode }) => areaCode !== 'E92000001') ?? entry.areaData[0];
+            const cell = row?.cells.find(({ areaCode }) => areaCode === area?.areaCode);
+            const latest = cell?.series.at(-1);
+            const trend = recentTrend(area?.observations ?? [], entry.detail.polarity);
+            return (
+              <article className="fphd-topic-highlight" key={entry.detail.shortId}>
+                <h3 className="govuk-heading-m">
+                  <Link className="govuk-link" to={indicatorPath(entry.detail.slug)}>
+                    {entry.detail.name}
+                  </Link>
+                </h3>
+                <SummaryList
+                  items={[
+                    { name: 'Most recent period', children: row?.period || 'No data' },
+                    {
+                      name: 'Count',
+                      children: latest?.count == null ? 'No data' : latest.count.toLocaleString(),
+                    },
+                    {
+                      name: 'Calculated value',
+                      children:
+                        latest?.value == null
+                          ? 'No data'
+                          : withUnit(formatCalculatedValue(latest.value), entry.detail.unit),
+                    },
+                    { name: 'Trend (last 5 periods)', children: <TrendTag trend={trend} /> },
+                  ]}
+                />
+              </article>
+            );
+          })}
+        </div>
+      </GridColumn>
+    </GridRow>
+  );
+}

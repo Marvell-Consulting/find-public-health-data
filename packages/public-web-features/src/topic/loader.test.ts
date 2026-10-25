@@ -51,6 +51,16 @@ describe('loadTopics', () => {
 
 function topicApi(indicators: { shortId: number; name: string; slug: string }[] = []) {
   return vi.fn(async (path: string) => {
+    if (path.endsWith('/trends'))
+      return {
+        total: indicators.length,
+        better: 0,
+        worse: 0,
+        unchanged: 0,
+        increasing: 0,
+        decreasing: 0,
+        unavailable: indicators.length,
+      };
     if (path.startsWith('/api/topics/'))
       return { slug: 'topic-a', title: 'Topic A', description: 'About topic A' };
     if (path === '/api/areas/display-groups') return [];
@@ -66,7 +76,7 @@ function topicApi(indicators: { shortId: number; name: string; slug: string }[] 
 }
 
 describe('loadTopic', () => {
-  it.each(['', '?tab-topic=publications', '?tab-topic=invalid'])(
+  it.each(['?tab-topic=publications', '?tab-topic=invalid'])(
     'loads only the topic content for %s',
     async (query) => {
       const get = topicApi();
@@ -77,6 +87,18 @@ describe('loadTopic', () => {
       expect(get).toHaveBeenCalledExactlyOnceWith('/api/topics/topic-a', expect.anything());
     },
   );
+
+  it('loads the overview count and highlighted indicators from the topic API', async () => {
+    const get = topicApi([
+      { shortId: 241, name: 'Diabetes prevalence', slug: 'diabetes-prevalence' },
+    ]);
+    const result = await loadTopic(
+      loaderArgs({ get } as unknown as ApiClient, { slug: 'topic-a' }),
+    );
+    expect(result.overview?.trends.total).toBe(1);
+    expect(result.overview?.selected.map(({ detail }) => detail.shortId)).toEqual([241]);
+    expect(get).toHaveBeenCalledWith('/api/topics/topic-a/trends', expect.anything());
+  });
 
   it('requests the topic by slug', async () => {
     const get = topicApi();

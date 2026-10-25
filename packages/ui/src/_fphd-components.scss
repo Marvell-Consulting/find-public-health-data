@@ -996,3 +996,20 @@ body:not(.govuk-frontend-supported) .fphd-topic-copy {
   max-width: 320px;
   width: 320px;
 }
+.fphd-topic-highlight-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.fphd-topic-highlight {
+  border: 1px solid #b1b4b6;
+  padding: 1rem;
+}
+
+@media (max-width: 40.0625em) {
+  .fphd-topic-highlight-grid {
+    grid-template-columns: 1fr;
+  }
+}

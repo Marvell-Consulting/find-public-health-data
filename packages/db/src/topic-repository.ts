@@ -3,7 +3,15 @@ import { asc, eq, sql } from 'drizzle-orm';
 import { recordAudit } from './audit-log.ts';
 import type { Database } from './client.ts';
 import { CORE_DATA_IMPORT, upsertEntries, upsertedRow } from './core-data-audit.ts';
-import { publishedTopic, SYSTEM_USER_IDS, type TopicRecord, topic } from './schema/index.ts';
+import { indicatorTrendDirections } from './indicator-trends.ts';
+import {
+  publishedIndicator,
+  publishedIndicatorTopic,
+  publishedTopic,
+  SYSTEM_USER_IDS,
+  type TopicRecord,
+  topic,
+} from './schema/index.ts';
 
 export interface ExistingTopic {
   id: string;
@@ -63,6 +71,51 @@ export async function listTopics(db: Database): Promise<Topic[]> {
 export async function getTopicBySlug(db: Database, slug: string): Promise<Topic | undefined> {
   const rows = await db.select().from(publishedTopic).where(eq(publishedTopic.slug, slug));
   return rows[0];
+}
+
+export interface TopicTrendSummary {
+  total: number;
+  better: number;
+  worse: number;
+  unchanged: number;
+  increasing: number;
+  decreasing: number;
+  unavailable: number;
+}
+
+/** Trend counts across the topic's published indicators for the England headline series. */
+export async function getTopicTrendSummary(db: Database, slug: string): Promise<TopicTrendSummary> {
+  const entries = await db
+    .select({ id: publishedIndicator.id, polarity: publishedIndicator.polarity })
+    .from(publishedIndicatorTopic)
+    .innerJoin(publishedTopic, eq(publishedIndicatorTopic.topicId, publishedTopic.id))
+    .innerJoin(publishedIndicator, eq(publishedIndicatorTopic.indicatorId, publishedIndicator.id))
+    .where(eq(publishedTopic.slug, slug));
+  const directions = await indicatorTrendDirections(
+    db,
+    entries.map(({ id }) => id),
+  );
+  const summary: TopicTrendSummary = {
+    total: entries.length,
+    better: 0,
+    worse: 0,
+    unchanged: 0,
+    increasing: 0,
+    decreasing: 0,
+    unavailable: 0,
+  };
+  for (const { id, polarity } of entries) {
+    const direction = directions.get(id);
+    if (!direction) summary.unavailable++;
+    else if (direction === 'right') summary.unchanged++;
+    else if (polarity === 'higher-is-better' || polarity === 'lower-is-better') {
+      const better = (direction === 'up') === (polarity === 'higher-is-better');
+      if (better) summary.better++;
+      else summary.worse++;
+    } else if (direction === 'up') summary.increasing++;
+    else summary.decreasing++;
+  }
+  return summary;
 }
 
 /**

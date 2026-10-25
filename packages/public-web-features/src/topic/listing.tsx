@@ -1,10 +1,10 @@
 import { InsetText, Select } from '@fphd/ui';
 import { Form, Link, useLocation } from 'react-router';
-import { ComparisonTable } from '../indicator/tables/comparison-table.tsx';
 import { TOPIC_PAGE_SIZE, TOPIC_SORT_OPTIONS } from './data.ts';
 import { TopicDownload } from './download.tsx';
 import type { loadTopic } from './loader.ts';
 import { AreaSummariesTable } from './tables/area-summaries-table.tsx';
+import { TopicDataTable } from './tables/data-table.tsx';
 
 type TopicData = { topic: Awaited<ReturnType<typeof loadTopic>>['topic'] } & NonNullable<
   Awaited<ReturnType<typeof loadTopic>>['content']
@@ -84,8 +84,8 @@ export function TopicListing({ data, areas = false }: { data: TopicData; areas?:
           </p>
           {data.defaultAreas ? (
             <p className="govuk-body">
-              Showing the first {data.data.selectedAreas.length} local authorities. Use the
-              geography filters on the Data tab to choose areas.
+              Showing the first {data.data.selectedAreas.length} NHS regions. Use the geography
+              filters on the Data tab to choose areas.
             </p>
           ) : null}
           {data.data.areasLimited && !data.defaultAreas ? (
@@ -97,14 +97,7 @@ export function TopicListing({ data, areas = false }: { data: TopicData; areas?:
           <AreaSummariesTable selected={dataSelected} geography={data.data.benchmarkGeography} />
         </>
       ) : (
-        <ComparisonTable
-          selected={dataSelected}
-          indicatorLinks
-          indicatorAnnotations={Object.fromEntries(
-            listing.indicators.map(({ shortId }) => [shortId, 'Subtopic to be added']),
-          )}
-          label={`${topic.title} indicators`}
-        />
+        <TopicDataTable selected={dataSelected} title={topic.title} />
       )}
       {listing.pages > 1 ? (
         <nav

@@ -70,7 +70,37 @@ export const topicSummaryListSchema = z.array(topicSummarySchema);
 
 // A topic's detail currently adds nothing to its summary. Kept as a distinct name so the
 // detail response can grow (indicators, related links) without touching the list contract.
-export const topicDetailSchema = topicSummarySchema;
+export const topicContentSchema = z.object({
+  overviewIntro: z.string().min(1),
+  highlightedIndicatorIds: z.array(z.number().int().positive()).max(4),
+  highlightIntro: z.string().min(1),
+  highlightPoints: z.array(z.string().min(1)),
+  moreInformation: z.object({
+    intro: z.string().min(1),
+    sections: z.array(
+      z.object({
+        heading: z.string().min(1),
+        links: z.array(
+          z.object({ label: z.string().min(1), url: z.url(), note: z.string().optional() }),
+        ),
+      }),
+    ),
+  }),
+});
+
+export const topicDetailSchema = topicSummarySchema.extend({
+  content: topicContentSchema.nullable().optional(),
+});
+
+export const topicTrendSummarySchema = z.object({
+  total: z.number().int().nonnegative(),
+  better: z.number().int().nonnegative(),
+  worse: z.number().int().nonnegative(),
+  unchanged: z.number().int().nonnegative(),
+  increasing: z.number().int().nonnegative(),
+  decreasing: z.number().int().nonnegative(),
+  unavailable: z.number().int().nonnegative(),
+});
 
 /** The indicator's canonical slug: what a link to it is built from. */
 export const indicatorSlugSchema = z.string().min(1).max(SLUG_MAX_LENGTH).regex(SLUG_PATTERN);
@@ -222,6 +252,7 @@ export const areaParentListSchema = z.array(
 
 export type TopicSummary = z.infer<typeof topicSummarySchema>;
 export type TopicDetail = z.infer<typeof topicDetailSchema>;
+export type TopicTrendSummary = z.infer<typeof topicTrendSummarySchema>;
 export type IndicatorSummary = z.infer<typeof indicatorSummarySchema>;
 export type IndicatorDetail = z.infer<typeof indicatorDetailSchema>;
 export type IndicatorSource = z.infer<typeof indicatorSourceSchema>;

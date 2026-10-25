@@ -1,4 +1,8 @@
-import { topicDetailSchema, topicSummaryListSchema } from '@fphd/public-api-features/contract';
+import {
+  topicDetailSchema,
+  topicSummaryListSchema,
+  topicTrendSummarySchema,
+} from '@fphd/public-api-features/contract';
 import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
@@ -35,8 +39,37 @@ export async function loadTopic(args: LoaderFunctionArgs) {
   const topic = await context.get(apiContext).get(apiPath`/api/topics/${slug}`, topicDetailSchema);
   const url = new URL(request.url);
   const tab = url.searchParams.get('tab-topic');
-  if (tab !== 'data' && tab !== 'areas') return { topic, content: null };
   const path = `/topics/${encodeURIComponent(slug)}`;
+  if (tab === null || tab === 'overview') {
+    const [search, trends] = await Promise.all([
+      loadSearch(args, { topicSlug: slug, path }),
+      context.get(apiContext).get(apiPath`/api/topics/${slug}/trends`, topicTrendSummarySchema),
+    ]);
+    const preferred = topic.content?.highlightedIndicatorIds ?? [];
+    const highlights = [
+      ...preferred.flatMap((id) =>
+        search.searchResult.indicators.filter((row) => row.shortId === id),
+      ),
+      ...search.searchResult.indicators.filter((row) => !preferred.includes(row.shortId)),
+    ].slice(0, 4);
+    const dataUrl = new URL(request.url);
+    dataUrl.search = '';
+    for (const { shortId } of highlights) dataUrl.searchParams.append('is', String(shortId));
+    for (const code of search.gaCodes) dataUrl.searchParams.append('as', code);
+    for (const level of search.geoLevels) dataUrl.searchParams.append('als', level);
+    const data = highlights.length
+      ? await loadIndicatorTableData(
+          { ...args, params: {}, request: new Request(dataUrl) },
+          search.displayGroups,
+        )
+      : null;
+    return {
+      topic,
+      content: null,
+      overview: { search, trends, selected: data ? topicTableSelection(data.selected) : [] },
+    };
+  }
+  if (tab !== 'data' && tab !== 'areas') return { topic, content: null, overview: null };
   const search = await loadSearch(args, { topicSlug: slug, path });
   const listing = topicIndicators(
     search.searchResult.indicators,
@@ -52,8 +85,8 @@ export async function loadTopic(args: LoaderFunctionArgs) {
     url.searchParams.get('tab-topic') === 'areas' &&
     search.gaCodes.length === 0 &&
     search.geoLevels.length === 0;
-  if (defaultAreas && search.displayGroups.includes('Local authorities')) {
-    dataUrl.searchParams.append('als', 'Local authorities');
+  if (defaultAreas && search.displayGroups.includes('NHS regions')) {
+    dataUrl.searchParams.append('als', 'NHS regions');
   }
   const data = await loadIndicatorTableData(
     {
@@ -65,6 +98,7 @@ export async function loadTopic(args: LoaderFunctionArgs) {
   );
   return {
     topic,
+    overview: null,
     content: {
       search,
       listing,

@@ -2,6 +2,7 @@ import type { Repositories, Topic } from '@fphd/db';
 import { Router } from 'express';
 
 import type { TopicSummary } from './contract.ts';
+import { contentForTopic } from './topic-content.ts';
 
 function toSummary({ slug, title, description, createdAt, updatedAt }: Topic): TopicSummary {
   return {
@@ -32,7 +33,16 @@ export function topicsRouter(topics: Repositories['topics']): Router {
       return;
     }
 
-    response.status(200).json(toSummary(topic));
+    response.status(200).json({ ...toSummary(topic), content: contentForTopic(topic.slug) });
+  });
+
+  router.get('/api/topics/:slug/trends', async (request, response) => {
+    const topic = await topics.findBySlug(request.params.slug);
+    if (!topic) {
+      response.status(404).json({ error: 'not_found' });
+      return;
+    }
+    response.status(200).json(await topics.trendSummary(topic.slug));
   });
 
   return router;
