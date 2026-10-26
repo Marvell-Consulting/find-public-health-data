@@ -497,7 +497,16 @@ export function inequalityCategories(observations: IndicatorObservation[]): stri
       }
     }
   }
-  return [...types].sort((a, b) => a.localeCompare(b));
+  return [...types].sort((a, b) => {
+    const withoutGeography = (type: string) => type.replace(/,\s*\d+\/\d+ geography/, '');
+    const family = withoutGeography(a).localeCompare(withoutGeography(b));
+    if (family) return family;
+    const boundary = (type: string) => {
+      const match = type.match(/,\s*(\d+)\/(\d+) geography/);
+      return match ? Number(match[2]) * 12 + Number(match[1]) : 0;
+    };
+    return boundary(b) - boundary(a);
+  });
 }
 
 /**
@@ -531,12 +540,53 @@ function isPureCategory(
  * as the differentiator.
  */
 export function inequalityCategoryLabel(type: string, keepGeography = false): string {
+  const localAuthorities = type.match(
+    /^(County|District) & UA deprivation deciles in England \((IMD\d{4}), (\d+)\/(\d+) geography\)$/,
+  );
+  if (localAuthorities) {
+    const [, tier, scheme, month, year] = localAuthorities;
+    const boundary = new Intl.DateTimeFormat('en-GB', {
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(new Date(Date.UTC(2000 + Number(year), Number(month) - 1)));
+    return `${tier === 'County' ? 'Counties' : 'Districts'} and unitary authorities by deprivation (${scheme?.replace('IMD', 'IMD ')}, ${boundary} boundaries)`;
+  }
   const label = type
     .replace('County & UA', 'County and unitary authority')
     .replace('District & UA', 'District and unitary authority')
     .replace(' in England', '')
     .replace(' within area', '');
   return keepGeography ? label : label.replace(/,\s*\d+\/\d+ geography/, '');
+}
+
+export function inequalityCategoryHint(type: string): string | undefined {
+  const match = type.match(
+    /^(County|District) & UA deprivation deciles in England \(IMD(\d{4}), (\d+)\/(\d+) geography\)$/,
+  );
+  if (!match) return undefined;
+  const [, tier, year, month, boundaryYear] = match;
+  const boundary = new Intl.DateTimeFormat('en-GB', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(2000 + Number(boundaryYear), Number(month) - 1)));
+  const areas =
+    tier === 'County'
+      ? 'upper tier local authorities (counties and unitary authorities'
+      : 'lower tier local authorities (districts and unitary authorities';
+  return `We sort ${areas}, ${boundary} boundaries) by deprivation (Index of Multiple Deprivation ${year}) and split them into 10 equal groups (deciles). Decile 1 is the most deprived 10%. Decile 10 is the least deprived 10%.`;
+}
+
+export function inequalityValueLabel(observation: IndicatorObservation): string {
+  const dimension = observation.dimensions.find(
+    ({ dimensionClass }) => dimensionClass === 'inequality',
+  );
+  if (!dimension) return segmentLabel(observation);
+  const year = dimension.type.match(/deprivation deciles.*\(IMD\s*(\d{4})/)?.[1];
+  const decile = dimension.sortOrder;
+  if (!year || decile < 1 || decile > 10) return dimension.value;
+  return `Decile ${decile} (${decile === 1 ? 'most deprived, ' : decile === 10 ? 'least deprived, ' : ''}IMD ${year})`;
 }
 
 /** The category select's options, disambiguated where shortened labels collide. */

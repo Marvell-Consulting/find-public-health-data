@@ -156,6 +156,36 @@ describe('loadIndicatorCsv', () => {
     expect(body).toContain('Provisional');
   });
 
+  it('exports every published area in bounded batches with a single CSV header', async () => {
+    const areas = Array.from({ length: 23 }, (_, index) => ({
+      code: `E${String(index).padStart(8, '0')}`,
+      name: `Area ${index}`,
+    }));
+    const get = vi.fn(async (path: string) => {
+      if (path.includes('/areas?')) return [{ displayGroup: 'Local authorities', areas }];
+      if (path.includes('/data?'))
+        return new URL(`http://localhost${path}`).searchParams.getAll('areaCode').map((code) => ({
+          areaCode: code,
+          areaName: areas.find((area) => area.code === code)?.name,
+          observations: [observation()],
+        }));
+      return detail;
+    });
+    const response = await loadIndicatorCsv(
+      args(get, `http://localhost/indicator/${SLUG}/all-data.csv?allAreas=yes`),
+      'all-data',
+    );
+    const csv = await response.text();
+    expect(csv.split('\n').filter((line) => line.startsWith('Indicator,Area,Period'))).toHaveLength(
+      1,
+    );
+    expect(csv).toContain('Area 22');
+    const sizes = get.mock.calls
+      .filter(([path]) => path.includes('/data?'))
+      .map(([path]) => new URL(`http://localhost${path}`).searchParams.getAll('areaCode').length);
+    expect(sizes).toEqual([20, 3]);
+  });
+
   it('ignores a sex the data does not publish rather than serving an empty table', async () => {
     const get = api([
       {
@@ -252,7 +282,7 @@ describe('loadIndicatorCsv', () => {
     ).catch((response: Response) => response);
 
     expect((redirected as Response).headers.get('location')).toBe(
-      `/indicators/${SLUG}/all-data.csv?as=E06000052`,
+      `/indicator/${SLUG}/all-data.csv?as=E06000052`,
     );
   });
 });

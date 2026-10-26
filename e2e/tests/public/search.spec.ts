@@ -89,72 +89,44 @@ test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
 test('a keyword narrows the result count', async ({ page }) => {
   await page.goto('/search');
 
-  await page.getByRole('heading', { name: /Select from/ }).waitFor();
-  const initial = await page.getByRole('heading', { name: /Select from/ }).textContent();
+  await page
+    .getByRole('heading', { name: /indicators?/ })
+    .last()
+    .waitFor();
+  const initial = await page.locator('#results-heading').textContent();
 
   await page.goto('/search?q=mortality');
 
-  await page.getByRole('heading', { name: /Select from/ }).waitFor();
-  const narrowed = await page.getByRole('heading', { name: /Select from/ }).textContent();
+  await page.locator('#results-heading').waitFor();
+  const narrowed = await page.locator('#results-heading').textContent();
 
   expect(narrowed).not.toEqual(initial);
-  expect(narrowed).toMatch(/Select from \d+ indicators?/);
+  expect(narrowed).toMatch(/\d+ indicators?/);
 });
 
 test('search matches an indicator number, its slug and taxonomy slugs', async ({ page }) => {
   await page.goto('/search?q=108');
-  await expect(page.getByRole('heading', { name: 'Select from 1 indicator' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '1 indicator' })).toBeVisible();
   await expect(results(page).getByRole('link')).toHaveAttribute('href', MORTALITY_PATH);
 
   await page.goto(`/search?q=${MORTALITY_SLUG}`);
-  await expect(page.getByRole('heading', { name: 'Select from 1 indicator' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '1 indicator' })).toBeVisible();
 
   await page.goto('/search?q=mortality-and-life-expectancy');
-  await expect(results(page).locator('.govuk-checkboxes__item').first()).toContainText(
+  await expect(results(page).locator('.fphd-search-result').first()).toContainText(
     'Mortality and life expectancy',
   );
 
   await page.goto('/search?q=indicator-type-outcome');
-  await expect(results(page).locator('.govuk-checkboxes__item').first()).toContainText('Outcome');
+  await expect(results(page).locator('.fphd-search-result').first()).toContainText('Outcome');
 });
 
-test('ticking a result and clicking View selected indicators lands on /indicators?is=...', async ({
-  page,
-}) => {
-  await ready(page);
-
-  await page.getByRole('heading', { name: /Select from/ }).waitFor();
-
-  const firstCheckbox = page.getByRole('checkbox').first();
-  const indicatorValue = await firstCheckbox.getAttribute('value');
-  await firstCheckbox.check();
-
-  const viewBtn = page.getByRole('button', { name: 'View selected indicators' });
-  await viewBtn.click();
-
-  await expect(page).toHaveURL(new RegExp(`/indicators.*is=${indicatorValue}`));
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-});
-
-test.describe('indicator selection without scripting', () => {
-  test.use({ javaScriptEnabled: false });
-
-  test('reports when the submitted selection exceeds the display limit', async ({ page }) => {
-    await page.goto('/search');
-    const checkboxes = page.locator('input[name="is"]');
-    await expect(checkboxes).toHaveCount(12);
-    for (let index = 0; index < 11; index++) await checkboxes.nth(index).check();
-
-    await page.getByRole('button', { name: 'View selected indicators' }).click();
-
-    expect(new URL(page.url()).searchParams.getAll('is')).toHaveLength(11);
-    await expect(page.locator('.fphd-indicator-section')).toHaveCount(10);
-    await expect(
-      page.getByText(
-        'Showing the first 10 selected indicators. Select fewer indicators to change which ones are shown.',
-      ),
-    ).toBeVisible();
-  });
+test('a result links directly to its indicator page', async ({ page }) => {
+  await ready(page, '/search?q=108');
+  await expect(results(page).getByRole('link')).toHaveAttribute('href', MORTALITY_PATH);
+  await expect(results(page).getByRole('checkbox')).toHaveCount(0);
+  await results(page).getByRole('link').click();
+  await expect(page).toHaveURL(new RegExp(`/indicator/${MORTALITY_SLUG}$`));
 });
 
 test('search nav link appears between Home and Topics', async ({ page }) => {
@@ -199,48 +171,35 @@ test('clearing keywords clears both submitted and unsubmitted text', async ({ pa
   await expect(page).not.toHaveURL(/diabetes/);
 });
 
-test('filtering a capped selection resets ticks, count and disabled results', async ({ page }) => {
+test('filtering keeps result links available', async ({ page }) => {
   await ready(page);
-  for (let i = 0; i < 10; i++) await results(page).getByRole('checkbox').nth(i).check();
-  await expect(results(page).getByRole('checkbox').nth(10)).toBeDisabled();
   await page.getByRole('searchbox', { name: 'Search by keywords' }).fill('cancer');
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await expect(page).toHaveURL(/q=cancer/);
-  await expect(
-    page.getByRole('heading', { name: 'Select from 1 indicator', exact: true }),
-  ).toBeVisible();
-  await expect(results(page).locator('input:checked')).toHaveCount(0);
-  await expect(results(page).getByRole('checkbox')).toBeEnabled();
-  await page.getByRole('button', { name: 'View selected indicators' }).click();
-  await expect(page.getByRole('alert')).toHaveText('Error: Select at least one indicator to view.');
-  await expect(page).toHaveURL(/\/search\?q=cancer/);
-  await results(page).getByRole('checkbox').check();
-  await page.getByRole('button', { name: 'View selected indicators' }).click();
-  await expect(page).toHaveURL(/\/indicators\?.*is=/);
+  await expect(page.getByRole('heading', { name: '1 indicator', exact: true })).toBeVisible();
+  await expect(results(page).getByRole('link')).toHaveCount(1);
 });
 
 test('keeps the results live region while searches update its count', async ({ page }) => {
   await ready(page);
-  const heading = page.getByRole('heading', { name: 'Select from 12 indicators', exact: true });
+  const heading = page.getByRole('heading', { name: '12 indicators', exact: true });
   await expect(heading).toHaveAttribute('aria-live', 'polite');
   await expect(heading).toHaveAttribute('aria-atomic', 'true');
   const liveRegion = await heading.elementHandle();
   if (!liveRegion) throw new Error('The results live region must exist before searching');
 
-  await results(page).getByRole('checkbox').first().check();
   const input = page.getByRole('searchbox', { name: 'Search by keywords' });
   await input.fill('cancer');
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await expect(page).toHaveURL(/q=cancer/);
   expect(await liveRegion.evaluate((element) => element.isConnected)).toBe(true);
-  await expect.poll(() => liveRegion.textContent()).toBe('Select from 1 indicator');
-  await expect(results(page).getByRole('checkbox')).not.toBeChecked();
+  await expect.poll(() => liveRegion.textContent()).toBe('1 indicator');
 
   await input.fill('zzzzzzzzzzzz');
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await expect(page).toHaveURL(/q=zzzzzzzzzzzz/);
   expect(await liveRegion.evaluate((element) => element.isConnected)).toBe(true);
-  await expect.poll(() => liveRegion.textContent()).toBe('Select from 0 indicators');
+  await expect.poll(() => liveRegion.textContent()).toBe('0 indicators');
   await expect(
     page.getByText('No indicators match your selected filters or search terms.'),
   ).toBeVisible();
@@ -294,7 +253,7 @@ test('a complete long data source remains selected and narrows results', async (
   await expect(
     attributes.getByRole('link', { name: `Remove ${source} filter`, exact: true }),
   ).toBeVisible();
-  await expect(results(page).getByRole('checkbox')).toHaveCount(2);
+  await expect(results(page).getByRole('link')).toHaveCount(2);
   await page.reload();
   await expect(
     attributes.getByRole('link', { name: `Remove ${source} filter`, exact: true }),
@@ -358,12 +317,12 @@ test('selected areas return only indicators with data for every area', async ({ 
   await ready(page, '/search?ga=E07000223&ga=E07000032');
 
   await expect(
-    results(page).getByRole('checkbox', {
+    results(page).getByRole('link', {
       name: /Smoking Prevalence in adults .* current smokers \(APS\)/,
     }),
   ).toBeVisible();
   await expect(
-    results(page).getByRole('checkbox', {
+    results(page).getByRole('link', {
       name: /Attended contacts with community and outpatient mental health services/,
     }),
   ).toHaveCount(0);
@@ -379,28 +338,22 @@ test('clear and remove links replace the current filter history entry', async ({
   expect(await page.evaluate(() => history.length)).toBe(before);
 });
 
-for (const direct of [true, false]) {
-  test(`selected areas and whole levels reach the indicator view via ${direct ? 'title' : 'selection'}`, async ({
-    page,
-  }) => {
-    await ready(page, '/search?geo=Statistical+regions&ga=E06000052');
-    if (direct) await results(page).getByRole('link').first().click();
-    else {
-      await results(page).getByRole('checkbox').first().check();
-      await page.getByRole('button', { name: 'View selected indicators' }).click();
-    }
-    await expect(page).toHaveURL(/\/indicators/);
-    const params = new URL(page.url()).searchParams;
-    expect(params.getAll('as')).toEqual(['E06000052']);
-    expect(params.getAll('als')).toEqual(['Statistical regions']);
-    await expect(
-      page.getByRole('link', { name: 'Remove Cornwall filter', exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole('link', { name: 'Remove Statistical regions filter', exact: true }),
-    ).toBeVisible();
-  });
-}
+test('selected areas and whole levels reach the indicator view through a result link', async ({
+  page,
+}) => {
+  await ready(page, '/search?geo=Statistical+regions&ga=E06000052');
+  await results(page).getByRole('link').first().click();
+  await expect(page).toHaveURL(/\/indicator\//);
+  const params = new URL(page.url()).searchParams;
+  expect(params.getAll('as')).toEqual(['E06000052']);
+  expect(params.getAll('als')).toEqual(['Statistical regions']);
+  await expect(
+    page.getByRole('link', { name: 'Remove Cornwall filter', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: 'Remove Statistical regions filter', exact: true }),
+  ).toBeVisible();
+});
 
 test('geography search reports failures, retries and empty results', async ({ page }) => {
   await ready(page);
@@ -538,7 +491,7 @@ test('a whole level exceeding the area limit shows a notice on the indicator vie
 }) => {
   await ready(page, '/search?geo=Local+authorities');
   await results(page).getByRole('link').first().click();
-  await expect(page.getByText(/Showing the first 19 selected areas/)).toBeVisible();
+  await expect(page.getByText(/Showing the first 20 selected areas/)).toBeVisible();
 });
 
 test('expanded filters have no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
@@ -563,11 +516,10 @@ for (const width of [390, 768, 1024, 1440]) {
     await ready(page);
     await page.evaluate(() => document.fonts.ready);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
-    const row = results(page).locator('.govuk-checkboxes__item').first();
-    const checkbox = await row.getByRole('checkbox').boundingBox();
+    const row = results(page).locator('.fphd-search-result').first();
     const title = await row.getByRole('link').first().boundingBox();
-    if (!checkbox || !title) throw new Error('The result checkbox and title must be visible');
-    expect(title.x - checkbox.x).toBeCloseTo(59, 0);
+    if (!title) throw new Error('The result title must be visible');
+    expect(title.x).toBeGreaterThanOrEqual(0);
     expect(
       await row
         .getByRole('link')
@@ -594,17 +546,19 @@ test.describe('without JavaScript', () => {
     await geography.getByRole('checkbox', { name: 'Cornwall', exact: true }).check();
     await geography.getByRole('button', { name: /Add selected geographies/ }).click();
     await expect(page).toHaveURL(/ga=E06000052/);
-    await results(page).getByRole('checkbox').first().check();
-    await page.getByRole('button', { name: 'View selected indicators' }).click();
-    await expect(page).toHaveURL(/\/indicators\?.*as=E06000052/);
+    await results(page).getByRole('link').first().click();
+    await expect(page).toHaveURL(/\/indicator\/.*as=E06000052/);
+    await expect(page.getByRole('tab')).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Compare areas', exact: true })).toBeVisible();
+    const indicator = page.locator('#indicator-data');
     await expect(
-      page.getByRole('link', { name: 'Remove Cornwall filter', exact: true }),
+      indicator.getByRole('link', { name: 'Remove Cornwall filter', exact: true }),
     ).toBeVisible();
-    await page.getByRole('searchbox', { name: 'Add geographies' }).fill('Devon');
-    await page.getByRole('button', { name: 'Find geographies', exact: true }).click();
+    await indicator.getByRole('searchbox', { name: 'Search for a geography' }).fill('Devon');
+    await indicator.getByRole('button', { name: 'Find geographies', exact: true }).click();
     await expect(
-      page
-        .getByRole('group', { name: 'Areas in Local authorities', exact: true })
+      indicator
+        .getByRole('group', { name: 'Areas in Upper-tier local authorities', exact: true })
         .getByRole('checkbox', { name: 'Devon', exact: true }),
     ).toBeVisible();
   });

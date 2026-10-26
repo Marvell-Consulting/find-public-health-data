@@ -1,9 +1,8 @@
-import { A, formatDate, SectionBreak, SummaryList } from '@fphd/ui';
+import { A, formatDate, GridColumn, GridRow, SectionBreak, SummaryList } from '@fphd/ui';
 import { CI_CONFIDENCE_LEVEL_LABELS } from '@fphd/utils/ci-confidence-level';
 import { POLARITY_LABELS } from '@fphd/utils/polarity';
 import { UPDATE_FREQUENCY_LABELS } from '@fphd/utils/update-frequency';
-import type { ReactNode } from 'react';
-import { periodCovered, recentTrend } from './data.ts';
+import { dimensionValues, periodCovered, recentTrend } from './data.ts';
 import type { IndicatorDetail, IndicatorObservation, IndicatorProviderSource } from './loader.ts';
 import { TrendTag } from './trend-tag.tsx';
 
@@ -20,21 +19,6 @@ export function DefinitionBlock({ title, text }: { title: string; text: string |
   );
 }
 
-export function TableRow({ label, value }: { label: string; value: ReactNode | null }) {
-  if (!value) {
-    return null;
-  }
-
-  return (
-    <tr className="govuk-table__row">
-      <th scope="row" className="govuk-table__header">
-        {label}
-      </th>
-      <td className="govuk-table__cell">{value}</td>
-    </tr>
-  );
-}
-
 export function sourceLink(source: IndicatorDetail['dataSource']) {
   if (!source) {
     return null;
@@ -43,7 +27,6 @@ export function sourceLink(source: IndicatorDetail['dataSource']) {
   return source.url ? <A href={source.url}>{source.name}</A> : source.name;
 }
 
-/** At-a-glance header above each indicator's charts. */
 export function IndicatorSummary({
   indicator,
   observations,
@@ -54,87 +37,133 @@ export function IndicatorSummary({
   const ofDimension = (dimension: string) =>
     indicator.classifications.filter((entry) => entry.dimension === dimension);
   const trend = recentTrend(observations, indicator.polarity);
+  const indicatorTypes = ofDimension('indicator_type');
+  const lifeStages = ofDimension('life_stage');
+  const frameworks = ofDimension('framework');
+  const subtopics = indicator.topics.flatMap((topic) =>
+    (topic.subtopics ?? []).map((subtopic) => ({ ...subtopic, topicSlug: topic.slug })),
+  );
 
   return (
-    <table className="govuk-table">
-      <tbody className="govuk-table__body">
-        <TableRow label="Period covered" value={periodCovered(observations, indicator.yearType)} />
-        <TableRow
-          label="Last updated"
-          value={indicator.dataUpdatedAt ? formatDate(indicator.dataUpdatedAt, 'long') : null}
+    <GridRow className="fphd-indicator-summary">
+      <GridColumn width="one-half">
+        <SummaryList
+          items={[
+            {
+              name: 'Period covered',
+              children: periodCovered(observations, indicator.yearType) || 'No data',
+            },
+            ...(indicator.dataUpdatedAt
+              ? [{ name: 'Last updated', children: formatDate(indicator.dataUpdatedAt, 'long') }]
+              : []),
+            {
+              name: 'Update frequency',
+              children: UPDATE_FREQUENCY_LABELS[indicator.updateFrequency],
+            },
+            ...(indicator.dataUpdatedAt ? [{ name: 'Status', children: 'Updated' }] : []),
+            { name: 'Trend (last 5 periods)', children: <TrendTag trend={trend} /> },
+          ]}
         />
-        <TableRow label="Most recent trend" value={<TrendTag trend={trend} />} />
-        <TableRow
-          label="Topics"
-          value={
-            indicator.topics.length > 0 ? (
-              <ul className="govuk-list fphd-tag-list">
-                {indicator.topics.map((topicItem) => (
-                  <li className="fphd-tag" key={topicItem.slug}>
-                    <A href={`/topics/${topicItem.slug}`}>{topicItem.title}</A>
-                    {topicItem.subtopics?.length ? (
-                      <span className="govuk-body-s govuk-!-margin-bottom-0">
-                        {topicItem.subtopics.map(({ title }) => title).join(', ')}
-                      </span>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            ) : null
-          }
+      </GridColumn>
+      <GridColumn width="one-half">
+        <SummaryList
+          items={[
+            ...(indicator.topics.length > 0
+              ? [
+                  {
+                    name: 'Topics',
+                    children: (
+                      <ul className="govuk-list fphd-tag-list">
+                        {indicator.topics.map((topicItem) => (
+                          <li className="fphd-tag" key={topicItem.slug}>
+                            <A href={`/topics/${topicItem.slug}`}>{topicItem.title}</A>
+                          </li>
+                        ))}
+                      </ul>
+                    ),
+                  },
+                ]
+              : []),
+            ...(subtopics.length > 0
+              ? [
+                  {
+                    name: subtopics.length === 1 ? 'Subtopic' : 'Subtopics',
+                    children: (
+                      <ul className="govuk-list fphd-tag-list">
+                        {subtopics.map(({ slug, title, topicSlug }) => (
+                          <li className="fphd-tag" key={`${topicSlug}-${slug}`}>
+                            <A
+                              href={`/topics/${topicSlug}?${new URLSearchParams({ 'tab-topic': 'data', subtopic: slug })}`}
+                            >
+                              {title}
+                            </A>
+                          </li>
+                        ))}
+                      </ul>
+                    ),
+                  },
+                ]
+              : []),
+            ...(indicatorTypes.length > 0
+              ? [
+                  {
+                    name: 'Indicator types',
+                    children: (
+                      <ul className="govuk-list fphd-tag-list">
+                        {indicatorTypes.map((entry) => (
+                          <li className="fphd-tag" key={entry.slug}>
+                            {entry.name}
+                          </li>
+                        ))}
+                      </ul>
+                    ),
+                  },
+                ]
+              : []),
+            ...(frameworks.length > 0
+              ? [
+                  {
+                    name: 'Plans and programmes',
+                    children: (
+                      <ul className="govuk-list fphd-tag-list">
+                        {frameworks.map((entry) => (
+                          <li className="fphd-tag" key={entry.slug}>
+                            {entry.name}
+                          </li>
+                        ))}
+                      </ul>
+                    ),
+                  },
+                ]
+              : []),
+            ...(lifeStages.length > 0
+              ? [
+                  {
+                    name: 'Life stages',
+                    children: (
+                      <ul className="govuk-list fphd-tag-list">
+                        {lifeStages.map((entry) => (
+                          <li className="fphd-tag" key={entry.slug}>
+                            {entry.name}
+                          </li>
+                        ))}
+                      </ul>
+                    ),
+                  },
+                ]
+              : []),
+            ...(indicator.definition
+              ? [
+                  {
+                    name: 'Definition',
+                    children: <span className="fphd-metadata-text">{indicator.definition}</span>,
+                  },
+                ]
+              : []),
+          ]}
         />
-        <TableRow
-          label="Measure type"
-          value={
-            ofDimension('indicator_type').length > 0 ? (
-              <ul className="govuk-list fphd-tag-list">
-                {ofDimension('indicator_type').map((entry) => (
-                  <li className="fphd-tag" key={entry.slug}>
-                    {entry.name}
-                  </li>
-                ))}
-              </ul>
-            ) : null
-          }
-        />
-        <TableRow
-          label="Plans and programmes"
-          value={
-            ofDimension('framework').length > 0 ? (
-              <ul className="govuk-list fphd-tag-list">
-                {ofDimension('framework').map((entry) => (
-                  <li className="fphd-tag" key={entry.slug}>
-                    {entry.name}
-                  </li>
-                ))}
-              </ul>
-            ) : null
-          }
-        />
-        <TableRow
-          label="Life stage"
-          value={
-            ofDimension('life_stage').length > 0 ? (
-              <ul className="govuk-list fphd-tag-list">
-                {ofDimension('life_stage').map((entry) => (
-                  <li className="fphd-tag" key={entry.slug}>
-                    {entry.name}
-                  </li>
-                ))}
-              </ul>
-            ) : null
-          }
-        />
-        <TableRow
-          label="Definition"
-          value={
-            indicator.definition ? (
-              <span className="fphd-metadata-text">{indicator.definition}</span>
-            ) : null
-          }
-        />
-      </tbody>
-    </table>
+      </GridColumn>
+    </GridRow>
   );
 }
 
@@ -160,14 +189,14 @@ function CalculationPart({
 
   return (
     <>
-      <h3 className="govuk-heading-s">{title}</h3>
+      <h3 className="govuk-heading-s govuk-!-margin-bottom-1">{title}</h3>
       <p className="govuk-body">{explainer}</p>
       <SummaryList
         items={[
           ...(sources.length > 0
             ? [
                 {
-                  name: 'Sources',
+                  name: `${title} sources`,
                   children: (
                     <ul className="govuk-list">
                       {sources.map((entry) => (
@@ -181,7 +210,7 @@ function CalculationPart({
           ...(definition
             ? [
                 {
-                  name: 'Definition',
+                  name: `${title} definition`,
                   children: <span className="fphd-metadata-text">{definition}</span>,
                 },
               ]
@@ -193,7 +222,13 @@ function CalculationPart({
 }
 
 /** About tab: Overview, Data attributes, Calculation, Other notes. */
-export function BackgroundInformation({ indicator }: { indicator: IndicatorDetail }) {
+export function BackgroundInformation({
+  indicator,
+  observations = [],
+}: {
+  indicator: IndicatorDetail;
+  observations?: IndicatorObservation[];
+}) {
   const confidenceLevel = indicator.ciConfidenceLevel
     ? CI_CONFIDENCE_LEVEL_LABELS[indicator.ciConfidenceLevel]
     : null;
@@ -202,7 +237,7 @@ export function BackgroundInformation({ indicator }: { indicator: IndicatorDetai
 
   return (
     <section id={`background-${indicator.shortId}`}>
-      <h2 className="govuk-heading-l">Overview</h2>
+      <h2 className="govuk-heading-m">Overview</h2>
       <SummaryList
         items={[
           { name: 'Indicator ID', children: String(indicator.shortId) },
@@ -219,11 +254,17 @@ export function BackgroundInformation({ indicator }: { indicator: IndicatorDetai
 
       <SectionBreak size="m" visible />
 
-      <h2 className="govuk-heading-l">Data attributes</h2>
+      <h2 className="govuk-heading-m">Data attributes</h2>
       <SummaryList
         items={[
           ...attribute('Value type', indicator.valueType),
           ...attribute('Unit', indicator.unit),
+          ...attribute('Ages', dimensionValues(observations, 'Age').join(', ')),
+          ...attribute(
+            'Sex',
+            dimensionValues(observations, 'Sex').join(', ') ||
+              (observations.length ? 'Persons' : null),
+          ),
           ...attribute('Year type', indicator.yearType?.label ?? null),
           ...attribute('Frequency', UPDATE_FREQUENCY_LABELS[indicator.updateFrequency]),
           ...attribute('Polarity', POLARITY_LABELS[indicator.polarity]),
@@ -235,7 +276,7 @@ export function BackgroundInformation({ indicator }: { indicator: IndicatorDetai
 
       <SectionBreak size="m" visible />
 
-      <h2 className="govuk-heading-l">Calculation</h2>
+      <h2 className="govuk-heading-m">Calculation</h2>
       <CalculationPart
         title="Numerator"
         explainer="This is the count, or raw number, of the thing an indicator measures."
@@ -251,7 +292,14 @@ export function BackgroundInformation({ indicator }: { indicator: IndicatorDetai
       {indicator.methodology ? (
         <>
           <h3 className="govuk-heading-s">Method</h3>
-          <p className="govuk-body fphd-metadata-text">{indicator.methodology}</p>
+          <SummaryList
+            items={[
+              {
+                name: 'How the indicator was calculated',
+                children: <span className="fphd-metadata-text">{indicator.methodology}</span>,
+              },
+            ]}
+          />
         </>
       ) : null}
       {indicator.ciMethod || confidenceLevel || indicator.comparatorMethod ? (
@@ -270,10 +318,17 @@ export function BackgroundInformation({ indicator }: { indicator: IndicatorDetai
       {indicator.disclosureControl || indicator.notes || indicator.caveats ? (
         <>
           <SectionBreak size="m" visible />
-          <h2 className="govuk-heading-l">Other notes and caveats</h2>
-          <DefinitionBlock title="Disclosure control" text={indicator.disclosureControl} />
-          <DefinitionBlock title="Notes" text={indicator.notes} />
-          <DefinitionBlock title="Caveats" text={indicator.caveats} />
+          <h2 className="govuk-heading-m">Other notes and caveats</h2>
+          <SummaryList
+            items={[
+              ...attribute('Disclosure control', indicator.disclosureControl),
+              ...attribute('Notes', indicator.notes),
+              ...attribute('Caveats', indicator.caveats),
+            ].map((item) => ({
+              ...item,
+              children: <span className="fphd-metadata-text">{item.children}</span>,
+            }))}
+          />
         </>
       ) : null}
     </section>

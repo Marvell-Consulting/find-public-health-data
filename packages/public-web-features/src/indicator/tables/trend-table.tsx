@@ -9,7 +9,7 @@ import type {
   IndicatorDetail,
   IndicatorRangePeriod,
 } from '../loader.ts';
-import { trendTableModel } from '../trend.ts';
+import { type TrendColumns, trendTableModel } from '../trend.ts';
 import { BenchmarkCells, BenchmarkHeaderCells } from './benchmark-cells.tsx';
 import { NoteFootnotes, noteMarker } from './note-markers.tsx';
 
@@ -32,6 +32,9 @@ export function TrendTable({
   ranges = {},
   regionData = [],
   showRange = false,
+  newestFirst = false,
+  columns,
+  visibleCaption = false,
 }: {
   areaData: IndicatorAreaData[];
   benchmark?: BenchmarkChoice;
@@ -41,6 +44,9 @@ export function TrendTable({
   ranges?: Record<string, IndicatorRangePeriod[]>;
   regionData?: IndicatorAreaData[];
   showRange?: boolean;
+  newestFirst?: boolean;
+  columns?: TrendColumns;
+  visibleCaption?: boolean;
 }) {
   const model = trendTableModel({
     areaData,
@@ -53,21 +59,23 @@ export function TrendTable({
   const {
     benchmarks,
     firstObservation,
-    hasCounts,
+    hasCounts: availableCounts,
     inPeriod,
-    lowerOf,
     periods,
     referenceSegment,
     seriesByArea,
-    upperOf,
   } = model;
+  const hasCounts = columns ? columns.count : availableCounts;
+  const showValues = columns?.value ?? true;
+  const intervals = columns?.confidence ?? (confidence === 'none' ? [] : [confidence]);
   if (!firstObservation) {
     return <p className="govuk-body">No data matches the selected options.</p>;
   }
   const benchmarkColumns = 1 + (showRange ? 3 : 0);
   const cell = (areaSeries: (typeof seriesByArea)[number], period: (typeof periods)[number]) =>
     areaSeries.series.find(inPeriod(period));
-  const columnsPerArea = (hasCounts ? 2 : 1) + (confidence === 'none' ? 0 : 2);
+  const columnsPerArea = Number(hasCounts) + Number(showValues) + intervals.length * 2;
+  if (columnsPerArea === 0) return <p className="govuk-body">Select at least one table column.</p>;
   const valueSuffix = indicator.unit === '%' ? '%' : '';
   // Every distinct value note gets a sequential marker, explained under the table.
   const noteTexts = [
@@ -82,9 +90,22 @@ export function TrendTable({
   return (
     <>
       <TableScrollRegion label={`${indicator.name} trends over time`}>
-        <table className="govuk-table fphd-trend-table">
-          <caption className="govuk-table__caption govuk-visually-hidden">
-            {indicator.name} trends over time, {segmentLabel(firstObservation)}
+        <table
+          className="govuk-table fphd-trend-table"
+          aria-label={`${indicator.name} trends over time, ${segmentLabel(firstObservation)}`}
+        >
+          <caption
+            className={`govuk-table__caption ${visibleCaption ? 'govuk-table__caption--s' : 'govuk-visually-hidden'}`}
+          >
+            {visibleCaption ? (
+              <>
+                Table: {indicator.name}, {seriesByArea.map(({ data }) => data.areaName).join(', ')}
+              </>
+            ) : (
+              <>
+                {indicator.name} trends over time, {segmentLabel(firstObservation)}
+              </>
+            )}
           </caption>
           <thead className="govuk-table__head">
             <tr className="govuk-table__row">
@@ -114,23 +135,25 @@ export function TrendTable({
                 <Fragment key={data.areaCode}>
                   {hasCounts ? (
                     <th scope="col" className="govuk-table__header">
-                      Count <span className="fphd-table-note">(Raw number)</span>
+                      Count {columns ? null : <span className="fphd-table-note">(Raw number)</span>}
                     </th>
                   ) : null}
-                  <th scope="col" className="govuk-table__header">
-                    Calculated value
-                    <UnitNote unit={indicator.unit} />
-                  </th>
-                  {confidence === 'none' ? null : (
-                    <>
+                  {showValues ? (
+                    <th scope="col" className="govuk-table__header">
+                      Calculated value
+                      <UnitNote unit={indicator.unit} />
+                    </th>
+                  ) : null}
+                  {intervals.map((level) => (
+                    <Fragment key={level}>
                       <th scope="col" className="govuk-table__header">
-                        {confidence}% lower confidence interval
+                        {level}% lower confidence interval
                       </th>
                       <th scope="col" className="govuk-table__header">
-                        {confidence}% upper confidence interval
+                        {level}% upper confidence interval
                       </th>
-                    </>
-                  )}
+                    </Fragment>
+                  ))}
                   {benchmarks.get(data.areaCode) ? (
                     <BenchmarkHeaderCells
                       showRange={showRange}
@@ -142,7 +165,7 @@ export function TrendTable({
             </tr>
           </thead>
           <tbody className="govuk-table__body">
-            {periods.map((period) => (
+            {(newestFirst ? periods.toReversed() : periods).map((period) => (
               <tr className="govuk-table__row" key={`${period.fromDate}-${period.toDate}`}>
                 <th scope="row" className="govuk-table__header">
                   {periodLabel(period, indicator.yearType)}
@@ -161,34 +184,42 @@ export function TrendTable({
                           {observation?.count == null ? '-' : formatValue(observation.count)}
                         </td>
                       ) : null}
-                      <td className="govuk-table__cell">
-                        {observation ? (
-                          <>
-                            {formatCalculatedValue(observation.value)}
-                            {/* The suffix belongs to a number, not to 'No data'. */}
-                            {observation.value === null ? '' : valueSuffix}
-                            {observation.notes
-                              .map(({ text }) => noteMarker(noteTexts, text))
-                              .join('')}
-                          </>
-                        ) : (
-                          '-'
-                        )}
-                      </td>
-                      {confidence === 'none' ? null : (
-                        <>
-                          <td className="govuk-table__cell">
-                            {observation && lowerOf(observation) !== null
-                              ? formatCalculatedValue(lowerOf(observation))
-                              : '-'}
-                          </td>
-                          <td className="govuk-table__cell">
-                            {observation && upperOf(observation) !== null
-                              ? formatCalculatedValue(upperOf(observation))
-                              : '-'}
-                          </td>
-                        </>
-                      )}
+                      {showValues ? (
+                        <td className="govuk-table__cell">
+                          {observation ? (
+                            <>
+                              {formatCalculatedValue(observation.value)}
+                              {/* The suffix belongs to a number, not to 'No data'. */}
+                              {observation.value === null ? '' : valueSuffix}
+                              {observation.notes
+                                .map(({ text }) => noteMarker(noteTexts, text))
+                                .join('')}
+                            </>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                      ) : null}
+                      {intervals.map((level) => {
+                        const lower =
+                          level === '95' ? observation?.lowerCi95 : observation?.lowerCi998;
+                        const upper =
+                          level === '95' ? observation?.upperCi95 : observation?.upperCi998;
+                        return (
+                          <Fragment key={level}>
+                            <td className="govuk-table__cell">
+                              {lower != null
+                                ? `${formatCalculatedValue(lower)}${valueSuffix}`
+                                : '-'}
+                            </td>
+                            <td className="govuk-table__cell">
+                              {upper != null
+                                ? `${formatCalculatedValue(upper)}${valueSuffix}`
+                                : '-'}
+                            </td>
+                          </Fragment>
+                        );
+                      })}
                       {areaBenchmark ? (
                         <BenchmarkCells
                           areaName={areaSeries.data.areaName}

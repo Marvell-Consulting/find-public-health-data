@@ -13,6 +13,39 @@ export interface AreaBenchmark {
   rangePeriods: IndicatorRangePeriod[];
 }
 
+export interface TrendColumns {
+  count: boolean;
+  value: boolean;
+  confidence: ('95' | '99.8')[];
+}
+
+export function selectedTrendColumns(
+  params: URLSearchParams,
+  id: number,
+  available: string[],
+): TrendColumns {
+  const key = `columns-${id}`;
+  const values = params.has(key)
+    ? params.getAll(key).flatMap((value) => value.split(','))
+    : [
+        'value',
+        ...(params.has(`ci-${id}`)
+          ? params.getAll(`ci-${id}`)
+          : available.includes('95')
+            ? ['95']
+            : available.includes('99.8')
+              ? ['99.8']
+              : []),
+      ];
+  return {
+    count: values.includes('count'),
+    value: values.includes('value'),
+    confidence: (['95', '99.8'] as const).filter(
+      (level) => available.includes(level) && values.includes(level),
+    ),
+  };
+}
+
 export function trendTableModel({
   areaData,
   benchmark = 'none',

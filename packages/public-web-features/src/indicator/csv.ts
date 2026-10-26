@@ -1,10 +1,12 @@
 import {
+  areaDisplayGroupListSchema,
   areaLookupListSchema,
   areaParentListSchema,
   indicatorAreaDataListSchema,
   indicatorAreaDataSchema,
   indicatorDetailSchema,
   indicatorRangeSchema,
+  MAX_AREA_CODES_PER_REQUEST,
   pickAreaCodes,
 } from '@fphd/public-api-features/contract';
 import { apiPath } from '@fphd/web-server/api-client';
@@ -23,7 +25,8 @@ import {
 import { allDataCsv, trendCsv } from './download.ts';
 import type { BenchmarkGeography, IndicatorAreaData } from './loader.ts';
 import { indicatorCsvPath, isIndicatorSegment, redirectStatus } from './paths.ts';
-import { trendTableModel } from './trend.ts';
+import { selectedTrendColumns, trendTableModel } from './trend.ts';
+import { loadIndicatorViewCsv } from './view-csv.ts';
 
 const ENGLAND = 'E92000001';
 
@@ -32,9 +35,10 @@ const ENGLAND = 'E92000001';
  * The link carries the page's selected areas and trend-table options.
  */
 export async function loadIndicatorCsv(
-  { context, params, request }: LoaderFunctionArgs,
+  args: LoaderFunctionArgs,
   kind: 'table' | 'all-data',
 ): Promise<Response> {
+  const { context, params, request } = args;
   const segment = params.slug;
   if (segment === undefined || !isIndicatorSegment(segment)) {
     throw new Response('Not Found', { status: 404 });
@@ -63,6 +67,41 @@ export async function loadIndicatorCsv(
       `${indicatorCsvPath(detail.slug, kind)}${pageSearch(url)}`,
       redirectStatus(segment, detail.slug),
     );
+  }
+  if (
+    kind === 'table' &&
+    ['areas', 'compare', 'inequalities'].includes(url.searchParams.get('tab-indicator') ?? '')
+  ) {
+    return loadIndicatorViewCsv(args);
+  }
+  if (kind === 'all-data' && url.searchParams.get('allAreas') === 'yes') {
+    const groups = await api.get(
+      `${apiPath`/api/indicators/${segment}/areas`}?scope=all-data`,
+      areaDisplayGroupListSchema,
+    );
+    const codes = [...new Set(groups.flatMap(({ areas }) => areas.map(({ code }) => code)))];
+    const encoder = new TextEncoder();
+    let offset = 0;
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode(allDataCsv(detail, [])));
+      },
+      async pull(controller) {
+        if (offset >= codes.length) {
+          controller.close();
+          return;
+        }
+        const batch = codes.slice(offset, offset + MAX_AREA_CODES_PER_REQUEST);
+        offset += batch.length;
+        controller.enqueue(encoder.encode(allDataCsv(detail, await dataFor(batch), false)));
+      },
+    });
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${detail.shortId}-all-data.csv"`,
+      },
+    });
   }
   const areaData = await dataFor(codesToLoad);
 
@@ -142,18 +181,27 @@ export async function loadIndicatorCsv(
       ...data,
       observations: filterObservations(data.observations, { sex, periodType }),
     });
+    const model = trendTableModel({
+      areaData: areaData.map(narrow),
+      benchmark,
+      confidence,
+      geography,
+      ranges: Object.fromEntries(rangeEntries),
+      regionData: regionData.map(narrow),
+    });
+    if (url.searchParams.get('order') === 'desc') model.periods.reverse();
     csv = trendCsv(
       detail,
-      trendTableModel({
-        areaData: areaData.map(narrow),
-        benchmark,
-        confidence,
-        geography,
-        ranges: Object.fromEntries(rangeEntries),
-        regionData: regionData.map(narrow),
-      }),
+      model,
       confidence,
       showRange,
+      url.searchParams.has(`columns-${shortId}`)
+        ? selectedTrendColumns(
+            url.searchParams,
+            shortId,
+            availableConfidenceLevels(shownObservations),
+          )
+        : undefined,
     );
   } else {
     csv = allDataCsv(detail, areaData);

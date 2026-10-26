@@ -81,6 +81,21 @@ describe('public API', () => {
     expect(response.body).toEqual({ indicators: [] });
   });
 
+  it('exposes indicator area coverage without internal row ids', async () => {
+    const groups = [
+      { displayGroup: 'Statistical regions', areas: [{ code: 'E12000007', name: 'London' }] },
+    ];
+    const repositories = createFakeRepositories({
+      indicators: { resolveIdBySlug: async () => anyId, listAreas: async () => groups },
+    });
+    const response = await request(createTestApp(repositories)).get(
+      '/api/indicators/diabetes/areas',
+    );
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(groups);
+    expect(JSON.stringify(response.body)).not.toContain(anyId);
+  });
+
   // The UUID is internal: the list is the one public response that ever carried it.
   it('lists an indicator by its public identifiers alone, without the row id', async () => {
     const repositories = createFakeRepositories({

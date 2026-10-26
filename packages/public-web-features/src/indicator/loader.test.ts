@@ -3,159 +3,82 @@ import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
+import { loadIndicator } from './loader.ts';
 
-import { loadComparisonData, loadIndicator } from './loader.ts';
-
-// The loader asks for several shapes; one stub serves whichever the path implies.
-function api(get = vi.fn()) {
-  const client = {
-    get: get.getMockImplementation()
-      ? get
-      : get.mockImplementation((path: string) => {
-          if (path === '/api/indicators' || path.startsWith('/api/indicators?')) {
-            return Promise.resolve({
-              indicators: path.includes('q=')
-                ? [{ shortId: 241, name: 'Diabetes: QOF prevalence' }]
-                : [],
-            });
-          }
-          if (path === '/api/areas/display-groups') {
-            return Promise.resolve([
-              'Local authorities',
-              'Statistical regions',
-              'NHS regions',
-              'Integrated care boards',
-              'Middle-layer super output areas',
-              'GP practices',
-            ]);
-          }
-          if (path.startsWith('/api/areas/parents')) {
-            return Promise.resolve([]);
-          }
-          if (path.startsWith('/api/areas/lookup')) {
-            const codes = [...new URL(`http://x${path}`).searchParams.getAll('areaCode')];
-            return Promise.resolve(
-              codes.map((code) => ({
-                code,
-                name: `Area ${code}`,
-                areaType: 'UA unchanged',
-                displayGroup: 'Local authorities',
-              })),
-            );
-          }
-          if (path.startsWith('/api/areas')) {
-            return Promise.resolve([{ areaType: 'England', areas: [] }]);
-          }
-          if (path.includes('/range')) {
-            return Promise.resolve({ periods: [] });
-          }
-          // An indicator detail needs area types for the geography groups to be derived.
-          // The data schema transforms a single-area response into an array, so the stub
-          // returns the post-schema shape the loader actually receives. A fake indicator's
-          // slug is `indicator-<short id>`, so a numeric address is one the loader redirects.
-          if (path.includes('/data')) {
-            return Promise.resolve([{ areaCode: '', areaName: '', observations: [] }]);
-          }
-          const segment = path.split('/')[3] ?? '';
-          const shortId = Number(segment.replace('indicator-', ''));
-          return Promise.resolve({ shortId, slug: `indicator-${shortId}`, areaTypes: [] });
-        }),
-  } as unknown as ApiClient;
-  return { client, get };
+function api() {
+  const get = vi.fn(async (path: string) => {
+    if (/\/api\/indicators\/[^/]+\/areas\?/.test(path))
+      return [
+        {
+          displayGroup: 'Local authorities',
+          areas: Array.from({ length: 25 }, (_, index) => ({
+            code: `E${String(index).padStart(8, '0')}`,
+            name: `Area ${index}`,
+          })),
+        },
+      ];
+    if (path.startsWith('/api/indicators?q='))
+      return { indicators: [{ shortId: 241, name: 'Diabetes prevalence', slug: 'indicator-241' }] };
+    if (path === '/api/areas/display-groups') return ['Local authorities', 'NHS regions'];
+    if (path.startsWith('/api/areas/lookup'))
+      return new URL(`http://localhost${path}`).searchParams.getAll('areaCode').map((code) => ({
+        code,
+        name: `Area ${code}`,
+        areaType: 'UA unchanged',
+        displayGroup: 'Local authorities',
+      }));
+    if (path.startsWith('/api/areas/parents')) return [];
+    if (path.startsWith('/api/areas?displayGroup='))
+      return [
+        {
+          displayGroup: 'Local authorities',
+          areas: Array.from({ length: 25 }, (_, index) => ({
+            code: `E${String(index).padStart(8, '0')}`,
+            name: `Area ${index}`,
+          })),
+        },
+      ];
+    if (path.startsWith('/api/areas')) return [{ areaType: 'England', areas: [] }];
+    if (path.includes('/data?'))
+      return new URL(`http://localhost${path}`).searchParams.getAll('areaCode').map((code) => ({
+        areaCode: code,
+        areaName: code === 'E92000001' ? 'England' : `Area ${code}`,
+        observations: [],
+      }));
+    if (path.includes('/range?')) return { periods: [] };
+    const shortId = Number((path.split('/')[3] ?? '').replace('indicator-', ''));
+    return { shortId, slug: `indicator-${shortId}`, areaTypes: [] };
+  });
+  return { client: { get } as unknown as ApiClient, get };
 }
 
-function loaderArgs(
+function args(
   client: ApiClient,
-  params: Record<string, string> = {},
-  url = 'http://localhost/indicators',
+  url = 'http://localhost/indicator/indicator-108',
+  slug: string | undefined = 'indicator-108',
 ): LoaderFunctionArgs {
   const context = new RouterContextProvider();
   context.set(apiContext, client);
-
-  return { context, params, request: new Request(url) } as unknown as LoaderFunctionArgs;
+  return {
+    context,
+    params: slug ? { slug } : {},
+    request: new Request(url),
+  } as unknown as LoaderFunctionArgs;
 }
 
 describe('loadIndicator', () => {
-  it('loads comparison CSV data without quicksearch or geography picker requests', async () => {
+  it('requires one route indicator before any API request', async () => {
     const { client, get } = api();
-    const result = await loadComparisonData(
-      loaderArgs(client, {}, 'http://localhost/indicators/108/compare.csv?is=108&find=diabetes'),
-    );
-
-    expect(result.selected).toHaveLength(1);
-    expect(get.mock.calls.map(([path]) => path)).not.toContain('/api/areas/display-groups');
-    expect(get.mock.calls.some(([path]) => String(path).includes('limit=101'))).toBe(false);
-    expect(get.mock.calls.some(([path]) => String(path).includes('q=diabetes'))).toBe(false);
+    await expect(
+      loadIndicator(args(client, 'http://localhost/indicator', '')),
+    ).rejects.toMatchObject({ status: 404 });
+    expect(get).not.toHaveBeenCalled();
   });
 
-  it('loads exactly the areas represented by the selection, plus England, at the cap', async () => {
+  it('loads the route indicator and England data', async () => {
     const { client, get } = api();
-    const codes = Array.from({ length: 21 }, (_, i) => `E${String(i).padStart(8, '0')}`);
-    const params = new URLSearchParams([['is', '108'], ...codes.map((code) => ['as', code])]);
-    const result = await loadIndicator(
-      loaderArgs(client, {}, `http://localhost/indicators?${params}`),
-    );
-    expect(result.selection.areaCodes).toEqual(codes.slice(0, 19));
-    expect(result.selectedAreas.map(({ code }) => code)).toEqual(codes.slice(0, 19));
-    expect(result.areasLimited).toBe(true);
-    const [path] = get.mock.calls.find(([path]) => String(path).includes('/108/data')) ?? [];
-    expect(new URL(`http://localhost${path}`).searchParams.getAll('areaCode')).toEqual([
-      ...codes.slice(0, 19),
-      'E92000001',
-    ]);
-  });
-
-  it('selects nothing when neither the route nor the query names an indicator', async () => {
-    const { client, get } = api();
-
-    const result = await loadIndicator(loaderArgs(client));
-
-    expect(result.selected).toEqual([]);
-    expect(result.selection.shortIds).toEqual([]);
-    // The indicator catalogue stays server-side, while the geography tree receives only
-    // its bounded first-page previews.
-    expect(get).not.toHaveBeenCalledWith('/api/indicators', expect.anything());
-    const [previewPath] = get.mock.calls.find(([path]) => String(path).includes('limit=101')) ?? [];
-    expect(
-      new URL(`http://localhost${previewPath}`).searchParams.getAll('displayGroup'),
-    ).toHaveLength(6);
-  });
-
-  it('answers a no-script find search with the server matches, trimmed and encoded', async () => {
-    const { client, get } = api();
-
-    const result = await loadIndicator(
-      loaderArgs(client, {}, 'http://localhost/indicators?find=+diabetes+%26+obesity+'),
-    );
-
-    expect(get).toHaveBeenCalledWith(
-      '/api/indicators?q=diabetes%20%26%20obesity&limit=20',
-      expect.anything(),
-    );
-    expect(result.findSubject).toBe('diabetes & obesity');
-    expect(result.findResults).toEqual([{ shortId: 241, name: 'Diabetes: QOF prevalence' }]);
-  });
-
-  it('skips the find search when the parameter is missing or blank', async () => {
-    const { client, get } = api();
-
-    const result = await loadIndicator(
-      loaderArgs(client, {}, 'http://localhost/indicators?find=++'),
-    );
-
-    expect(result.findSubject).toBe('');
-    expect(result.findResults).toEqual([]);
-    expect(get.mock.calls.some(([path]) => String(path).includes('q='))).toBe(false);
-  });
-
-  it('treats the route slug as a single selection', async () => {
-    const { client, get } = api();
-
-    const result = await loadIndicator(
-      loaderArgs(client, { slug: 'indicator-108' }, 'http://localhost/indicators/indicator-108'),
-    );
-
-    expect(result.selection.shortIds).toEqual([108]);
+    const result = await loadIndicator(args(client));
+    expect(result.selected.map(({ detail }) => detail.shortId)).toEqual([108]);
     expect(get).toHaveBeenCalledWith('/api/indicators/indicator-108', expect.anything());
     expect(get).toHaveBeenCalledWith(
       '/api/indicators/108/data?areaCode=E92000001',
@@ -163,279 +86,118 @@ describe('loadIndicator', () => {
     );
   });
 
-  it('asks the api once for the page indicator rather than fetching its detail twice', async () => {
+  it('ignores obsolete multi-indicator selections in the page URL', async () => {
     const { client, get } = api();
-
-    await loadIndicator(
-      loaderArgs(client, { slug: 'indicator-108' }, 'http://localhost/indicators/indicator-108'),
-    );
-
-    const detailCalls = get.mock.calls
-      .map(([path]) => String(path))
-      .filter((path) => /^\/api\/indicators\/[^/?]+$/.test(path));
-    expect(detailCalls).toEqual(['/api/indicators/indicator-108']);
-  });
-
-  it.each([
-    ['a short id', '108', 'http://localhost/indicators/108?as=E06000052', 301],
-    ['a superseded slug', 'old-name', 'http://localhost/indicators/old-name?as=E06000052', 302],
-    [
-      'the wrong case',
-      'Indicator-108',
-      'http://localhost/indicators/Indicator-108?as=E06000052',
-      301,
-    ],
-    [
-      "a client-side navigation's data request",
-      '108',
-      'http://localhost/indicators/108.data?as=E06000052&_routes=routes%2Findicator',
-      301,
-    ],
-  ])(
-    'redirects %s to the canonical slug, query string and all',
-    async (_case, slug, url, status) => {
-      const get = vi
-        .fn()
-        .mockImplementation((path: string) =>
-          /^\/api\/indicators\/[^/?]+$/.test(path)
-            ? Promise.resolve({ shortId: 108, slug: 'indicator-108', areaTypes: [] })
-            : Promise.resolve([]),
-        );
-
-      const redirected = await loadIndicator(loaderArgs(api(get).client, { slug }, url)).catch(
-        (response: Response) => response,
-      );
-
-      expect((redirected as Response).status).toBe(status);
-      expect((redirected as Response).headers.get('location')).toBe(
-        '/indicators/indicator-108?as=E06000052',
-      );
-    },
-  );
-
-  it('loads every indicator named in the query string', async () => {
-    const { client, get } = api();
-
     const result = await loadIndicator(
-      loaderArgs(client, {}, 'http://localhost/indicators?is=108&is=90366'),
+      args(client, 'http://localhost/indicator/indicator-108?is=241&is=90366'),
     );
-
-    expect(result.selection.shortIds).toEqual([108, 90366]);
-    expect(get).toHaveBeenCalledWith('/api/indicators/108', expect.anything());
-    expect(get).toHaveBeenCalledWith('/api/indicators/90366', expect.anything());
+    expect(result.selected.map(({ detail }) => detail.shortId)).toEqual([108]);
+    expect(get.mock.calls.some(([path]) => path === '/api/indicators/241')).toBe(false);
   });
 
-  it('lets a query selection replace the route param', async () => {
+  it('compares the route indicator with exactly one other indicator', async () => {
     const { client } = api();
-
     const result = await loadIndicator(
-      loaderArgs(
-        client,
-        { slug: 'indicator-108' },
-        'http://localhost/indicators/indicator-108?is=90366',
-      ),
+      args(client, 'http://localhost/indicator/indicator-108?compareWith=indicator-241&is=90366'),
     );
-
-    expect(result.selection.shortIds).toEqual([90366]);
+    expect(result.selected.map(({ detail }) => detail.shortId)).toEqual([108, 241]);
   });
 
-  it('drops duplicate and malformed ids and caps the selection', async () => {
+  it('removes a comparison with the same indicator', async () => {
     const { client } = api();
-    const many = Array.from({ length: 15 }, (_, i) => `is=${100 + i}`).join('&');
-
-    const result = await loadIndicator(
-      loaderArgs(client, {}, `http://localhost/indicators?is=108&is=108&is=abc&${many}`),
-    );
-
-    expect(result.selection.shortIds).toHaveLength(10);
-    expect(result.selection.shortIds.filter((id) => id === 108)).toHaveLength(1);
-    expect(result.indicatorsLimited).toBe(true);
-  });
-
-  it('asks for every selected area in one request per indicator', async () => {
-    const { client, get } = api();
-
-    await loadIndicator(
-      loaderArgs(client, {}, 'http://localhost/indicators?is=108&as=E12000001&as=E12000002'),
-    );
-
-    // One call carrying both codes, not one call per code; England rides along last so
-    // the benchmark columns always have its series.
-    expect(get).toHaveBeenCalledWith(
-      '/api/indicators/108/data?areaCode=E12000001&areaCode=E12000002&areaCode=E92000001',
-      expect.anything(),
-    );
-    expect(get.mock.calls.filter(([path]) => String(path).includes('/data?'))).toHaveLength(1);
-  });
-
-  it('loads a repeated area code once', async () => {
-    const { client, get } = api();
-
-    const result = await loadIndicator(
-      loaderArgs(client, {}, 'http://localhost/indicators?is=108&as=E12000001&as=E12000001'),
-    );
-
-    expect(result.selection.areaCodes).toEqual(['E12000001']);
-    const dataCalls = get.mock.calls.filter(([path]) => String(path).includes('/data?'));
-    expect(dataCalls).toHaveLength(1);
-    expect(String(dataCalls[0]?.[0])).toBe(
-      '/api/indicators/108/data?areaCode=E12000001&areaCode=E92000001',
-    );
-  });
-
-  it('skips range and region requests when no benchmark option displays them', async () => {
-    const { client, get } = api();
-
-    await loadIndicator(
-      loaderArgs(client, {}, 'http://localhost/indicators?is=108&as=E12000001&cmp-108=england'),
-    );
-
-    // A benchmark value column needs only the England series already loaded; the
-    // expensive level range is fetched when the comparison range is switched on.
-    expect(get.mock.calls.some(([path]) => String(path).includes('/range'))).toBe(false);
-  });
-
-  it('fetches the picked levels ranges when the england comparison range is shown', async () => {
-    const { client, get } = api();
-
-    await loadIndicator(
-      loaderArgs(
-        client,
-        {},
-        'http://localhost/indicators?is=108&as=E12000001&cmp-108=england&cr-108=yes',
-      ),
-    );
-
-    const rangeCalls = get.mock.calls.filter(([path]) => String(path).includes('/range'));
-    expect(rangeCalls).toHaveLength(1);
-    expect(String(rangeCalls[0]?.[0])).toContain(
-      `displayGroup=${encodeURIComponent('Local authorities')}`,
-    );
-  });
-
-  it('fetches the statistical regions range and region data for a region benchmark', async () => {
-    const get = vi.fn().mockImplementation((path: string) => {
-      if (path.startsWith('/api/areas/parents')) {
-        return Promise.resolve([
-          { code: 'E06000052', parentCode: 'E12000009', parentName: 'South West' },
-        ]);
-      }
-      if (path === '/api/areas/display-groups') {
-        return Promise.resolve(['Local authorities', 'Statistical regions']);
-      }
-      if (path.startsWith('/api/areas/lookup')) {
-        return Promise.resolve([
-          {
-            code: 'E06000052',
-            name: 'Cornwall',
-            areaType: 'UA unchanged',
-            displayGroup: 'Local authorities',
-          },
-        ]);
-      }
-      if (path.includes('/range')) {
-        return Promise.resolve({ periods: [] });
-      }
-      return Promise.resolve(
-        path.includes('/data')
-          ? [{ areaCode: '', areaName: '', observations: [] }]
-          : { areaTypes: [] },
+    try {
+      await loadIndicator(
+        args(
+          client,
+          'http://localhost/indicator/indicator-108?compareWith=indicator-108&tab-indicator=compare',
+        ),
       );
-    });
-    const { client } = api(get);
-
-    await loadIndicator(
-      loaderArgs(
-        client,
-        {},
-        'http://localhost/indicators?is=108&as=E06000052&cmp-108=region&cr-108=yes',
-      ),
-    );
-
-    const parentsCalls = get.mock.calls.filter(([path]) =>
-      String(path).startsWith('/api/areas/parents'),
-    );
-    expect(parentsCalls).toHaveLength(1);
-    expect(String(parentsCalls[0]?.[0])).toBe(
-      `/api/areas/parents?areaCode=E06000052&parentType=${encodeURIComponent('Regions (statistical)')}`,
-    );
-    const rangeCalls = get.mock.calls.filter(([path]) => String(path).includes('/range'));
-    expect(rangeCalls).toHaveLength(1);
-    expect(String(rangeCalls[0]?.[0])).toContain(
-      `displayGroup=${encodeURIComponent('Statistical regions')}`,
-    );
-    expect(get.mock.calls.some(([path]) => String(path).includes('areaCode=E12000009'))).toBe(true);
-  });
-
-  it('fetches region data for a region benchmark even without its comparison range', async () => {
-    const get = vi.fn().mockImplementation((path: string) => {
-      if (path === '/api/areas/display-groups') return Promise.resolve(['Local authorities']);
-      if (path.startsWith('/api/areas/parents')) {
-        return Promise.resolve([
-          { code: 'E06000052', parentCode: 'E12000009', parentName: 'South West' },
-        ]);
-      }
-      if (path.startsWith('/api/areas/lookup')) {
-        return Promise.resolve([{ code: 'E06000052', name: 'Cornwall', areaType: 'UA unchanged' }]);
-      }
-      return Promise.resolve(
-        path.includes('/data')
-          ? [{ areaCode: '', areaName: '', observations: [] }]
-          : { areaTypes: [] },
+      throw new Error('Expected redirect');
+    } catch (response) {
+      expect((response as Response).status).toBe(302);
+      expect((response as Response).headers.get('Location')).toBe(
+        '/indicator/indicator-108?tab-indicator=compare',
       );
-    });
-    const { client } = api(get);
-
-    await loadIndicator(
-      loaderArgs(client, {}, 'http://localhost/indicators?is=108&as=E06000052&cmp-108=region'),
-    );
-
-    // The benchmark value column needs the region series; only the range stays unfetched.
-    expect(get.mock.calls.some(([path]) => String(path).includes('areaCode=E12000009'))).toBe(true);
-    expect(get.mock.calls.some(([path]) => String(path).includes('/range'))).toBe(false);
+    }
   });
 
-  it('unions the england and compare-table region ranges in a mixed state', async () => {
+  it('rejects a malformed comparison segment before requesting it', async () => {
     const { client, get } = api();
-
-    await loadIndicator(
-      loaderArgs(
-        client,
-        {},
-        'http://localhost/indicators?is=108&as=E12000001&cmp-108=england&cr-108=yes&cmp-compare=region&cr-compare=yes',
-      ),
-    );
-
-    const rangeCalls = get.mock.calls
-      .map(([path]) => String(path))
-      .filter((path) => path.includes('/range'));
-    expect(rangeCalls).toHaveLength(2);
-    expect(
-      rangeCalls.some((path) => path.includes(encodeURIComponent('Statistical regions'))),
-    ).toBe(true);
-  });
-
-  it('404s a route param shaped like neither identifier without calling the api for it', async () => {
-    const { client } = api();
-
     await expect(
       loadIndicator(
-        loaderArgs(client, { slug: '../topics' }, 'http://localhost/indicators/..%2Ftopics'),
+        args(client, 'http://localhost/indicator/indicator-108?compareWith=..%2Ftopics'),
       ),
     ).rejects.toMatchObject({ status: 404 });
+    expect(get.mock.calls.some(([path]) => String(path).includes('topics'))).toBe(false);
   });
 
-  it('lets the client 404 through so the not-found boundary renders', async () => {
-    const get = vi
-      .fn()
-      .mockImplementation((path: string) =>
-        path.startsWith('/api/indicators/')
-          ? Promise.reject(new Response('Not Found', { status: 404 }))
-          : Promise.resolve(path === '/api/indicators' ? { indicators: [] } : []),
+  it('redirects numeric public addresses to the canonical slug', async () => {
+    const { client } = api();
+    try {
+      await loadIndicator(args(client, 'http://localhost/indicator/108?as=E06000052', '108'));
+      throw new Error('Expected redirect');
+    } catch (response) {
+      expect((response as Response).status).toBe(301);
+      expect((response as Response).headers.get('Location')).toBe(
+        '/indicator/indicator-108?as=E06000052',
       );
+    }
+  });
 
-    await expect(
-      loadIndicator(loaderArgs(api(get).client, { slug: '424242' })),
-    ).rejects.toMatchObject({ status: 404 });
+  it('returns server matches for a no-script comparison search', async () => {
+    const { client, get } = api();
+    const result = await loadIndicator(
+      args(client, 'http://localhost/indicator/indicator-108?find=+diabetes+'),
+    );
+    expect(get).toHaveBeenCalledWith('/api/indicators?q=diabetes&limit=20', expect.anything());
+    expect(result.findResults).toEqual([
+      { shortId: 241, name: 'Diabetes prevalence', slug: 'indicator-241' },
+    ]);
+  });
+
+  it('caps individual areas and keeps England as a benchmark', async () => {
+    const { client, get } = api();
+    const codes = Array.from({ length: 21 }, (_, index) => `E${String(index).padStart(8, '0')}`);
+    const query = new URLSearchParams(codes.map((code) => ['as', code]));
+    const result = await loadIndicator(
+      args(client, `http://localhost/indicator/indicator-108?${query}`),
+    );
+    expect(result.selection.areaCodes).toEqual(codes.slice(0, 19));
+    expect(result.areasLimited).toBe(true);
+    const [path] =
+      get.mock.calls.find(([candidate]) => String(candidate).includes('/108/data?')) ?? [];
+    expect(new URL(`http://localhost${path}`).searchParams.getAll('areaCode')).toEqual([
+      ...codes.slice(0, 19),
+      'E92000001',
+    ]);
+  });
+
+  it('loads every section in bounded batches regardless of the selected tab', async () => {
+    const { client, get } = api();
+    const initial = await loadIndicator(args(client));
+    expect(initial.compareAreasData).toHaveLength(25);
+    expect(
+      get.mock.calls
+        .filter(([path]) => path.includes('/108/data?'))
+        .map(([path]) => new URL(`http://localhost${path}`).searchParams.getAll('areaCode').length),
+    ).toEqual([1, 20, 5]);
+
+    get.mockClear();
+    const compared = await loadIndicator(
+      args(client, 'http://localhost/indicator/indicator-108?tab-indicator=areas'),
+    );
+    expect(compared.compareAreaGroup).toBe('Local authorities');
+    expect(compared.compareAreaOptions).toHaveLength(25);
+    expect(compared.compareAreasData).toHaveLength(25);
+    expect(get).toHaveBeenCalledWith(
+      '/api/indicators/indicator-108/areas?displayGroup=Local%20authorities',
+      expect.anything(),
+    );
+    const batches = get.mock.calls.filter(([path]) => String(path).includes('/108/data?'));
+    expect(
+      batches.map(
+        ([path]) => new URL(`http://localhost${path}`).searchParams.getAll('areaCode').length,
+      ),
+    ).toEqual([1, 20, 5]);
   });
 });

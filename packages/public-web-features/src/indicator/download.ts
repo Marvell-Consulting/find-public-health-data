@@ -4,7 +4,7 @@ import { stringify } from 'csv-stringify/sync';
 import type { comparisonTable } from './comparison.ts';
 import { type ConfidenceLevel, segmentLabel, unitNote, withUnit } from './data.ts';
 import type { IndicatorAreaData, IndicatorDetail } from './loader.ts';
-import type { trendTableModel } from './trend.ts';
+import type { TrendColumns, trendTableModel } from './trend.ts';
 
 export function tableCsv(rows: (string | number | null)[][]): string {
   return stringify(rows, {
@@ -19,30 +19,30 @@ export function trendCsv(
   model: ReturnType<typeof trendTableModel>,
   confidence: ConfidenceLevel,
   showRange: boolean,
+  columns?: TrendColumns,
 ): string {
   const {
     benchmarks,
-    hasCounts,
+    hasCounts: availableCounts,
     inPeriod,
-    lowerOf,
     periods,
     referenceSegment,
     seriesByArea,
-    upperOf,
   } = model;
+  const hasCounts = columns ? columns.count : availableCounts;
+  const showValues = columns?.value ?? true;
+  const intervals = columns?.confidence ?? (confidence === 'none' ? [] : [confidence]);
   const headers = [
     'Period',
     ...seriesByArea.flatMap(({ data }) => {
       const benchmark = benchmarks.get(data.areaCode);
       return [
         ...(hasCounts ? [`${data.areaName} count`] : []),
-        `${data.areaName} calculated value${unitNote(indicator.unit)}`,
-        ...(confidence === 'none'
-          ? []
-          : [
-              `${data.areaName} lower ${confidence}% CI`,
-              `${data.areaName} upper ${confidence}% CI`,
-            ]),
+        ...(showValues ? [`${data.areaName} calculated value${unitNote(indicator.unit)}`] : []),
+        ...intervals.flatMap((level) => [
+          `${data.areaName} lower ${level}% CI`,
+          `${data.areaName} upper ${level}% CI`,
+        ]),
         ...(benchmark
           ? [
               `${data.areaName} ${benchmark.name} calculated value${unitNote(indicator.unit)}`,
@@ -68,10 +68,12 @@ export function trendCsv(
       );
       return [
         ...(hasCounts ? [observation?.count ?? null] : []),
-        observation?.value ?? null,
-        ...(confidence === 'none'
-          ? []
-          : [observation ? lowerOf(observation) : null, observation ? upperOf(observation) : null]),
+        ...(showValues ? [observation?.value ?? null] : []),
+        ...intervals.flatMap((level) =>
+          level === '95'
+            ? [observation?.lowerCi95 ?? null, observation?.upperCi95 ?? null]
+            : [observation?.lowerCi998 ?? null, observation?.upperCi998 ?? null],
+        ),
         ...(benchmark
           ? [
               benchmarkObservation?.value ?? null,
@@ -85,7 +87,11 @@ export function trendCsv(
 }
 
 /** Every observation for the selected areas, segments and notes included. */
-export function allDataCsv(indicator: IndicatorDetail, areaData: IndicatorAreaData[]): string {
+export function allDataCsv(
+  indicator: IndicatorDetail,
+  areaData: IndicatorAreaData[],
+  includeHeader = true,
+): string {
   const rows: (string | number | null)[][] = [
     [
       'Indicator',
@@ -120,7 +126,7 @@ export function allDataCsv(indicator: IndicatorDetail, areaData: IndicatorAreaDa
       ]);
     }
   }
-  return stringify(rows);
+  return tableCsv(includeHeader ? rows : rows.slice(1));
 }
 
 export function comparisonCsv(

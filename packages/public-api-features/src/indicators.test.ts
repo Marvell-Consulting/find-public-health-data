@@ -90,6 +90,32 @@ describe('GET /api/indicators', () => {
   });
 });
 
+describe('GET /api/indicators/:indicator/areas', () => {
+  it('returns only the published indicator’s available areas and bounds preview searches', async () => {
+    const groups = [
+      { displayGroup: 'Statistical regions', areas: [{ code: 'E12000007', name: 'London' }] },
+    ];
+    const listAreas = vi.fn().mockResolvedValue(groups);
+    const app = createTestApp({ resolveIdBySlug: async () => 'indicator-id', listAreas });
+    const response = await request(app).get(
+      '/api/indicators/diabetic-eye-screening-uptake/areas?displayGroup=Statistical+regions&q=+London+&limit=9999',
+    );
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(groups);
+    expect(listAreas).toHaveBeenCalledWith('indicator-id', {
+      scope: undefined,
+      displayGroup: 'Statistical regions',
+      query: 'London',
+      limit: 101,
+    });
+  });
+
+  it('does not list areas for an unpublished or unknown indicator', async () => {
+    const app = createTestApp({ resolveId: async () => undefined });
+    expect((await request(app).get('/api/indicators/424242/areas')).status).toBe(404);
+  });
+});
+
 describe('GET /api/indicators/:indicator', () => {
   it('finds an indicator by its short id', async () => {
     const app = createTestApp({

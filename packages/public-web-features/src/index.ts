@@ -9,8 +9,8 @@ export type {
   IndicatorSummary,
   SelectedIndicator,
 } from './indicator/loader.ts';
-export { IndicatorPage } from './indicator/page.tsx';
 export { IndicatorRoute } from './indicator/route.tsx';
+export { SingleIndicatorPage } from './indicator/single-page.tsx';
 export { SearchRoute } from './search/route.tsx';
 export { SignInPage } from './sign-in/page.tsx';
 export { createSignInRoute } from './sign-in/route.tsx';

@@ -1,12 +1,9 @@
-import { Button, Checkboxes, ErrorMessage, InsetText, SummaryList } from '@fphd/ui';
+import { InsetText, SummaryList } from '@fphd/ui';
 import { indicatorPath } from '@fphd/utils/indicator-path';
-import { useEffect, useState } from 'react';
-import { Form, Link } from 'react-router';
-import { MAX_SELECTED_INDICATORS } from '../selection-limits.ts';
+import { Link } from 'react-router';
 import type { IndicatorSearchResult, IndicatorSearchRow } from './loader.ts';
 
 interface SearchResultsProps {
-  navigationKey: string;
   searchResult: IndicatorSearchResult;
   gaCodes: string[];
   geoLevels: string[];
@@ -48,41 +45,13 @@ function ResultMeta({ indicator }: { indicator: IndicatorSearchRow }) {
   );
 }
 
-export function SearchResults({
-  navigationKey,
-  searchResult,
-  gaCodes,
-  geoLevels,
-}: SearchResultsProps) {
-  const [ticked, setTicked] = useState<number[]>([]);
-  const [selectionError, setSelectionError] = useState(false);
-
-  // Clear transient choices after a navigation while keeping the live-region element
-  // connected, so assistive technology hears the updated result count.
-  useEffect(() => {
-    setTicked([]);
-    setSelectionError(false);
-  }, [navigationKey]);
-
+export function SearchResults({ searchResult, gaCodes, geoLevels }: SearchResultsProps) {
   const { total, limit, indicators } = searchResult;
   const capped = total > limit;
   const geography = new URLSearchParams([
     ...gaCodes.map((code) => ['as', code]),
     ...geoLevels.map((level) => ['als', level]),
   ]).toString();
-
-  const toggle = (id: number, checked: boolean) => {
-    setSelectionError(false);
-    setTicked((prev) => {
-      if (checked && prev.length >= MAX_SELECTED_INDICATORS) return prev;
-      return checked ? [...prev, id] : prev.filter((v) => v !== id);
-    });
-  };
-
-  const headingText =
-    ticked.length > 0
-      ? `${ticked.length.toLocaleString()} of ${total.toLocaleString()} ${total === 1 ? 'indicator' : 'indicators'} selected`
-      : `Select from ${total.toLocaleString()} ${total === 1 ? 'indicator' : 'indicators'}`;
 
   return (
     <>
@@ -93,76 +62,27 @@ export function SearchResults({
           className="govuk-heading-m govuk-!-margin-bottom-0"
           id="results-heading"
         >
-          {headingText}
+          {total.toLocaleString()} {total === 1 ? 'indicator' : 'indicators'}
         </h2>
       </div>
 
       {indicators.length === 0 ? (
         <InsetText>No indicators match your selected filters or search terms.</InsetText>
       ) : (
-        <Form
-          action="/indicators"
-          method="get"
-          onSubmit={(event) => {
-            if (ticked.length === 0) {
-              event.preventDefault();
-              setSelectionError(true);
-            }
-          }}
-        >
-          {gaCodes.map((code) => (
-            <input key={code} name="as" type="hidden" value={code} />
-          ))}
-          {geoLevels.map((level) => (
-            <input key={level} name="als" type="hidden" value={level} />
-          ))}
-
-          <div className="govuk-!-margin-bottom-2">
-            <Button className="govuk-!-margin-bottom-0 fphd-view-selected" type="submit">
-              View selected indicators
-            </Button>
-          </div>
-
-          {selectionError ? (
-            <ErrorMessage role="alert">Select at least one indicator to view.</ErrorMessage>
-          ) : null}
-
-          {ticked.length >= MAX_SELECTED_INDICATORS ? (
-            <p className="govuk-body govuk-!-margin-bottom-2">
-              You can select up to {MAX_SELECTED_INDICATORS} indicators.
-            </p>
-          ) : null}
-
-          {/* The title and metadata are the option's content, so its label holds only the
-              name it is read out by, which has to be phrasing content. */}
-          <Checkboxes
-            className="fphd-search-results"
-            id="is"
-            label={<span className="govuk-visually-hidden">Indicators</span>}
-            name="is"
-            onChange={(event) => toggle(Number(event.target.value), event.target.checked)}
-            options={indicators.map((indicator) => {
-              const isSelected = ticked.includes(indicator.shortId);
-
-              return {
-                checked: isSelected,
-                content: (
-                  <>
-                    <Link
-                      className="govuk-link fphd-search-result__title"
-                      to={`${indicatorPath(indicator.slug)}${geography ? `?${geography}` : ''}`}
-                    >
-                      {indicator.name}
-                    </Link>
-                    <ResultMeta indicator={indicator} />
-                  </>
-                ),
-                disabled: !isSelected && ticked.length >= MAX_SELECTED_INDICATORS,
-                label: <span className="govuk-visually-hidden">{indicator.name}</span>,
-                value: String(indicator.shortId),
-              };
-            })}
-          />
+        <>
+          <ul className="govuk-list fphd-search-results">
+            {indicators.map((indicator) => (
+              <li className="fphd-search-result" key={indicator.shortId}>
+                <Link
+                  className="govuk-link fphd-search-result__title"
+                  to={`${indicatorPath(indicator.slug)}${geography ? `?${geography}` : ''}`}
+                >
+                  {indicator.name}
+                </Link>
+                <ResultMeta indicator={indicator} />
+              </li>
+            ))}
+          </ul>
 
           {capped ? (
             <p className="govuk-body govuk-!-margin-top-3">
@@ -170,7 +90,7 @@ export function SearchResults({
               to narrow the list.
             </p>
           ) : null}
-        </Form>
+        </>
       )}
     </>
   );

@@ -9,8 +9,9 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/indicators');
 });
 
-test('shows the indicator selection to a publisher', async ({ page }) => {
-  await expect(page.getByRole('heading', { level: 1, name: 'Selected indicators' })).toBeVisible();
+test('redirects an empty indicator selection to search for a publisher', async ({ page }) => {
+  await expect(page).toHaveURL(/\/search$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Search for data' })).toBeVisible();
 });
 
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {

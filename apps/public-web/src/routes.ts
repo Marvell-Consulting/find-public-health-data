@@ -9,8 +9,11 @@ export default [
     'topics/:slug/table.csv',
     '../../../packages/public-web-features/src/topic/table-csv-route.ts',
   ),
-  route('indicators', '../../../packages/public-web-features/src/indicator/route.tsx'),
+  route('indicators', '../../../packages/public-web-features/src/indicator/legacy-route.ts'),
   route('indicators/search', '../../../packages/public-web-features/src/indicator/search-route.ts'),
+  route('indicator/search', '../../../packages/public-web-features/src/indicator/search-route.ts', {
+    id: 'single-indicator-search',
+  }),
   route('geographies', '../../../packages/public-web-features/src/indicator/geography-route.ts'),
   route(
     'indicators/compare.csv',
@@ -21,11 +24,28 @@ export default [
     '../../../packages/public-web-features/src/indicator/table-csv-route.ts',
   ),
   route(
+    'indicator/:slug/table.csv',
+    '../../../packages/public-web-features/src/indicator/table-csv-route.ts',
+    { id: 'single-indicator-table-csv' },
+  ),
+  route(
     'indicators/:slug/all-data.csv',
     '../../../packages/public-web-features/src/indicator/all-data-csv-route.ts',
   ),
-  route('indicators/:slug', '../../../packages/public-web-features/src/indicator/route.tsx', {
+  route(
+    'indicator/:slug/all-data.csv',
+    '../../../packages/public-web-features/src/indicator/all-data-csv-route.ts',
+    { id: 'single-indicator-all-data-csv' },
+  ),
+  route('indicators/:slug', '../../../packages/public-web-features/src/indicator/legacy-route.ts', {
+    id: 'legacy-indicator-detail',
+  }),
+  route('indicator/:slug', '../../../packages/public-web-features/src/indicator/route.tsx', {
     id: 'indicator-detail',
   }),
+  route(
+    'indicator/:slug/metadata.txt',
+    '../../../packages/public-web-features/src/indicator/metadata-route.ts',
+  ),
   route('*', '../../../packages/ui/src/not-found-route.tsx'),
 ] satisfies RouteConfig;

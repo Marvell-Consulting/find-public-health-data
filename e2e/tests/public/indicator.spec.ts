@@ -1,400 +1,430 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 import { downloadFrom } from '../support/downloads.ts';
-import { filterCard, MORTALITY_PATH, openIndicatorPage } from '../support/indicator-page.ts';
-
-const INDICATOR = 'Under 75 mortality rate from all causes';
-
-function trendTable(page: Page) {
-  return page.getByRole('table', { name: /trends over time/ });
-}
-
-/** The data cells of one period's row, in column order. */
-function cellsFor(page: Page, period: string) {
-  return trendTable(page)
-    .getByRole('row')
-    .filter({ has: page.getByRole('rowheader', { name: period, exact: true }) })
-    .getByRole('cell');
-}
-
-function tableOptions(page: Page) {
-  return page.getByRole('tabpanel', { name: 'Table' });
-}
+import { MORTALITY_NAME, MORTALITY_PATH, openIndicatorPage } from '../support/indicator-page.ts';
 
 test.beforeEach(async ({ page }) => {
   await openIndicatorPage(page, MORTALITY_PATH);
 });
 
-test('shows an indicator', async ({ page }) => {
-  await expect(page.getByRole('heading', { level: 1, name: INDICATOR })).toBeVisible();
-});
-
-test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
+test('shows one indicator with its summary and five sections', async ({ page }, testInfo) => {
+  await expect(page.getByRole('heading', { level: 1, name: MORTALITY_NAME })).toBeVisible();
+  const summaryRow = (name: string) =>
+    page
+      .locator('.govuk-summary-list__row')
+      .filter({ has: page.getByRole('term').filter({ hasText: name }) });
+  await expect(summaryRow('Period covered')).toContainText('2015 to 2024');
+  await expect(summaryRow('Update frequency')).toContainText('Annually');
+  await expect(summaryRow('Definition')).toContainText('Directly age-standardised mortality rate');
+  await expect(page.getByRole('tab')).toHaveText([
+    'Indicator',
+    'Compare areas',
+    'Compare indicators',
+    'Inequalities',
+    'About this indicator',
+  ]);
+  await expect(page.getByRole('tab', { name: 'Indicator', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(page.getByRole('table', { name: /trends over time/ })).toBeVisible();
   await expectNoAccessibilityViolations(page, testInfo);
 });
 
-test('answers an indicator that does not exist with the not-found page', async ({ page }) => {
-  for (const path of [
-    '/indicators/999999',
-    '/indicators/no-such-indicator',
-    '/indicators/facets',
-  ]) {
-    const response = await page.goto(path);
-    expect(response?.status(), path).toBe(404);
-    await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
-  }
+test('answers an unknown indicator with the not-found page', async ({ page }) => {
+  const response = await page.goto('/indicator/no-such-indicator');
+  expect(response?.status()).toBe(404);
+  await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
 });
 
-test('redirects an indicator number to its slug, keeping the query string', async ({ page }) => {
-  const response = await page.request.get('/indicators/108?as=E08000003', { maxRedirects: 0 });
-
+test('redirects a numeric indicator address to its slug and keeps the query', async ({ page }) => {
+  const response = await page.request.get('/indicator/108?as=E08000003', { maxRedirects: 0 });
   expect(response.status()).toBe(301);
   expect(response.headers().location).toBe(`${MORTALITY_PATH}?as=E08000003`);
 });
 
-test.describe('the summary', () => {
-  test('describes the data and its recent trend', async ({ page }) => {
-    await expect(page.getByRole('row', { name: /Period covered/ })).toContainText('2015 to 2024');
-    await expect(page.getByRole('row', { name: /Most recent trend/ })).toContainText(
-      'Decreasing and getting better',
-    );
-    await expect(page.getByRole('row', { name: /Definition/ })).toContainText(
-      'Directly age-standardised mortality rate',
-    );
-  });
-
-  test('links to the topic the indicator belongs to', async ({ page }) => {
-    await page.getByRole('link', { name: 'Mortality and life expectancy' }).click();
-    await expect(page).toHaveURL('/topics/mortality-and-life-expectancy');
-    await expect(
-      page.getByRole('heading', { level: 1, name: 'Mortality and life expectancy' }),
-    ).toBeVisible();
-  });
+test('keeps the active section in the URL and supports arrow keys', async ({ page }) => {
+  await page.getByRole('tab', { name: 'Indicator', exact: true }).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('tab', { name: 'Compare areas' })).toBeFocused();
+  await expect(page).toHaveURL(/tab-indicator=areas/);
+  await openIndicatorPage(page, `${MORTALITY_PATH}?tab-indicator=about`);
+  await expect(page.getByRole('tab', { name: 'About this indicator' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
 });
 
-test.describe('the tabs', () => {
-  test('open on the chart and switch, keeping the choice in the address', async ({ page }) => {
-    await expect(page.getByRole('tab', { name: 'Chart' })).toHaveAttribute('aria-selected', 'true');
-    await expect(page.getByRole('tabpanel', { name: 'Chart' })).toBeVisible();
-    await expect(page.getByRole('tabpanel', { name: 'Table' })).toBeHidden();
-
-    await page.getByRole('tab', { name: 'Table' }).click();
-
-    await expect(page).toHaveURL(/tab-108=table/);
-    await expect(page.getByRole('tabpanel', { name: 'Table' })).toBeVisible();
-    await expect(page.getByRole('tabpanel', { name: 'Chart' })).toBeHidden();
+test('switches immediately between preloaded sections without another data request', async ({
+  page,
+}, testInfo) => {
+  const requests: string[] = [];
+  page.on('request', (request) => {
+    if (request.url().includes('.data')) requests.push(request.url());
   });
-
-  test('open the tab the address names', async ({ page }) => {
-    await openIndicatorPage(page, `${MORTALITY_PATH}?tab-108=about`);
-    await expect(page.getByRole('tab', { name: 'About this indicator' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
-    await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
-  });
-
-  test('move with the arrow keys', async ({ page }) => {
-    await page.getByRole('tab', { name: 'Chart' }).focus();
-    await page.keyboard.press('ArrowRight');
-    await expect(page.getByRole('tab', { name: 'Table' })).toBeFocused();
-    await expect(page.getByRole('tabpanel', { name: 'Table' })).toBeVisible();
-  });
+  await page.getByRole('tab', { name: 'Compare areas', exact: true }).click();
+  await expect(page).toHaveURL(/tab-indicator=areas/);
+  await expect(page.getByRole('tab', { name: 'Compare areas', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(page.getByRole('table', { name: /Table of area comparisons/ })).toBeVisible();
+  await expect(page.locator('.fphd-tabs__loading')).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Inequalities', exact: true }).click();
+  await expect(
+    page.getByRole('region', { name: `${MORTALITY_NAME} inequalities chart` }),
+  ).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole('tab', { name: 'Compare areas', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await page.goForward();
+  await expect(page.getByRole('tab', { name: 'Inequalities', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  expect(requests).toEqual([]);
+  await expectNoAccessibilityViolations(page, testInfo);
 });
 
-test.describe('the table', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.getByRole('tab', { name: 'Table' }).click();
-  });
-
-  test('shows the headline series for England', async ({ page }) => {
-    await expect(trendTable(page)).toHaveAccessibleName(/<75 yrs$/);
-    await expect(trendTable(page).getByRole('columnheader', { name: 'England' })).toBeVisible();
-    await expect(cellsFor(page, '2015')).toHaveText(['153,839', '334.8']);
-    await expect(cellsFor(page, '2015 to 2017')).toHaveText(['468,302', '332.6']);
-  });
-
-  test('filters by sex and keeps the choice in the address', async ({ page }) => {
-    await tableOptions(page).getByLabel('Select sex').selectOption('Male');
-
-    await expect(page).toHaveURL(/sex-108=Male/);
-    await expect(trendTable(page)).toHaveAccessibleName(/<75 yrs, Male$/);
-    await expect(cellsFor(page, '2015')).toHaveText(['91,248', '407.2']);
-  });
-
-  test('narrows to single-year periods', async ({ page }) => {
-    await tableOptions(page).getByLabel('Select time period type').selectOption('1 year');
-
-    await expect(page).toHaveURL(/pt-108=1-year/);
-    await expect(cellsFor(page, '2015')).toHaveText(['153,839', '334.8']);
-    await expect(cellsFor(page, '2015 to 2017')).toHaveCount(0);
-  });
-
-  test('adds confidence interval columns', async ({ page }) => {
-    await tableOptions(page).getByLabel('Select confidence intervals').selectOption('95%');
-
-    await expect(page).toHaveURL(/ci-108=95/);
-    await expect(
-      trendTable(page).getByRole('columnheader', { name: '95% lower confidence interval' }),
-    ).toBeVisible();
-    await expect(cellsFor(page, '2015')).toHaveText(['153,839', '334.8', '333.1', '336.5']);
-  });
-
-  test('downloads the table as CSV', async ({ page }) => {
-    const { filename, text } = await downloadFrom(page, 'Download this table');
-
-    expect(filename).toBe('108-table.csv');
-    const [header, first] = text.split('\n');
-    expect(header).toBe('Period,England count,"England calculated value (per 100,000)"');
-    expect(first).toBe('2015,153839,334.7766');
-  });
-
-  test('downloads every observation as CSV', async ({ page }) => {
-    const { filename, text } = await downloadFrom(page, 'Download all data for this indicator');
-
-    expect(filename).toBe('108-all-data.csv');
-    expect(text.split('\n')[0]).toContain('Indicator,Area,Period,Segment,Count,Denominator');
-    expect(text).toContain('<75 yrs, Male');
-  });
-});
-
-test.describe('the inequalities', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.getByRole('tab', { name: 'Inequalities' }).click();
-  });
-
-  test('break the latest period down by the chosen category', async ({ page }) => {
-    const table = page.getByRole('table', { name: /deprivation deciles/ });
-    await expect(table).toHaveAccessibleName(
-      'County and unitary authority deprivation deciles (IMD2019), 2024',
+test('uses the prototype’s narrow metadata and fixed sidebar across different tab widths', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await openIndicatorPage(page, '/indicator/diabetes-qof-prevalence');
+  for (const [tab, width] of [
+    ['Indicator', 960],
+    ['Compare areas', 1380],
+    ['Inequalities', null],
+    ['About this indicator', 960],
+  ] as const) {
+    await page.getByRole('tab', { name: tab, exact: true }).click();
+    const panel = page.getByRole('tabpanel', { name: tab, exact: true });
+    await expect(panel).not.toHaveAttribute('aria-busy', 'true');
+    await expect(panel).toHaveCSS('border-top-width', '0px');
+    const panelBorder = await panel.evaluate(
+      (element) => getComputedStyle(element).borderBottomColor,
     );
-    await expect(
-      table.getByRole('row', { name: /^Most deprived decile \(IMD2019\)/ }),
-    ).toContainText('448.4');
-
-    const options = page.getByRole('tabpanel', { name: 'Inequalities' });
-    await options
-      .getByLabel('Select inequality category')
-      .selectOption('District and unitary authority deprivation deciles (IMD2019)');
-    await expect(table).toHaveAccessibleName(
-      'District and unitary authority deprivation deciles (IMD2019), 2024',
-    );
-
-    await options.getByLabel('Select time period', { exact: true }).selectOption('2023');
-    await expect(table).toHaveAccessibleName(/, 2023$/);
-  });
-
-  test('have no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
-    await expectNoAccessibilityViolations(page, testInfo);
-  });
-});
-
-test.describe('about this indicator', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.getByRole('tab', { name: 'About this indicator' }).click();
-  });
-
-  test('describes how the indicator is made', async ({ page }) => {
-    const panel = page.getByRole('tabpanel', { name: 'About this indicator' });
-    await expect(panel.getByRole('heading', { name: 'Overview' })).toBeVisible();
-    await expect(panel.getByText('Indicator ID')).toBeVisible();
-    await expect(panel.getByText('108', { exact: true })).toBeVisible();
-    await expect(panel.getByRole('heading', { name: 'Data attributes' })).toBeVisible();
-    await expect(panel.getByText('Directly standardised rate', { exact: true })).toBeVisible();
-    await expect(panel.getByText('per 100,000', { exact: true })).toBeVisible();
-    await expect(panel.getByText('Annually', { exact: true })).toBeVisible();
-    await expect(panel.getByText('Lower is better', { exact: true })).toBeVisible();
-    await expect(panel.getByRole('heading', { name: 'Calculation' })).toBeVisible();
-    // The seed's Fingertips sources, as the provider and source each maps to.
-    await expect(
-      panel.getByText('Office for National Statistics (ONS): Annual mortality extract', {
-        exact: true,
-      }),
-    ).toBeVisible();
-    await expect(
-      panel.getByText('Office for National Statistics (ONS): Mid-year population estimates', {
-        exact: true,
-      }),
-    ).toBeVisible();
-    await expect(panel.getByRole('heading', { name: 'Other notes and caveats' })).toBeVisible();
-    for (const note of ['Disclosure control', 'Notes', 'Caveats']) {
-      await expect(panel.getByRole('heading', { name: note, exact: true })).toBeVisible();
+    await expect(page.getByRole('tablist')).toHaveCSS('border-bottom-color', panelBorder);
+    if (width === null) {
+      const size = Math.round((await panel.boundingBox())?.width ?? 0);
+      expect(size).toBeGreaterThanOrEqual(960);
+      expect(size).toBeLessThanOrEqual(1380);
+    } else {
+      await expect
+        .poll(async () => Math.round((await panel.boundingBox())?.width ?? 0))
+        .toBe(width);
     }
-  });
+    if (tab !== 'About this indicator') {
+      const sidebar = panel.locator('.govuk-grid-column-one-quarter');
+      expect(Math.round((await sidebar.boundingBox())?.width ?? 0)).toBe(235);
+    }
+    if (tab === 'Compare areas') {
+      const firstArea = panel.getByRole('table').locator('tbody tr').nth(1);
+      expect(Math.round((await firstArea.boundingBox())?.height ?? 0)).toBe(29);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(1440);
+  }
 
-  test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
-    await expectNoAccessibilityViolations(page, testInfo);
-  });
+  await page.setViewportSize({ width: 2560, height: 1100 });
+  await page.getByRole('tab', { name: 'Compare areas', exact: true }).click();
+  const panel = page.getByRole('tabpanel', { name: 'Compare areas', exact: true });
+  await expect(panel).not.toHaveAttribute('aria-busy', 'true');
+  await expect.poll(async () => Math.round((await panel.boundingBox())?.width ?? 0)).toBe(2500);
+  const table = panel.getByRole('table', { name: /Table of area comparisons/ });
+  await expect(table).toHaveCSS('table-layout', 'fixed');
+  await expect(table).toHaveCSS('font-size', '16px');
+  await expect(table).toHaveCSS('line-height', '20px');
+  await expect(table.getByRole('columnheader', { name: 'Value (%)' }).locator('span')).toHaveCSS(
+    'font-weight',
+    '400',
+  );
+  const benchmark = table
+    .getByRole('row')
+    .filter({ has: page.getByRole('rowheader', { name: 'England (benchmark)', exact: true }) });
+  await expect(benchmark).toHaveCSS('background-color', 'rgb(243, 242, 241)');
+  expect(Math.round((await benchmark.boundingBox())?.height ?? 0)).toBe(29);
 });
 
-test.describe('the geography filter', () => {
-  test('uses the shared compact geography tree', async ({ page }) => {
-    const card = filterCard(page, 'Geography filters');
-    const tree = card.locator('.fphd-geo-alt__tree');
-    const level = card.getByRole('checkbox', { name: 'Local authorities', exact: true });
-
-    await expect(tree).toHaveCount(1);
-    await expect(level).toHaveCSS('width', '24px');
-    await expect(level).toHaveCSS('height', '36px');
-    await expect(card.getByText('Local authorities', { exact: true })).toHaveCSS(
-      'font-size',
-      '16px',
-    );
-  });
-
-  test('indicator geography search shows empty and retry states inside the results box', async ({
+test('compares areas across a selected geography type and sorts the table', async ({ page }) => {
+  await page.getByRole('tab', { name: 'Compare areas' }).click();
+  await expect(page.getByRole('combobox', { name: 'Type of geography' })).toHaveValue(
+    'Local authorities',
+  );
+  const table = page.getByRole('table', { name: /Table of area comparisons/ });
+  await expect(table.getByRole('rowheader', { name: 'England (benchmark)' })).toBeVisible();
+  await expect.poll(() => table.getByRole('row').count()).toBeGreaterThan(20);
+  await page.getByRole('combobox', { name: 'Sort by' }).selectOption('alphabetical');
+  await expect(page).toHaveURL(/areaSort=alphabetical/);
+  await page
+    .getByRole('combobox', { name: 'Type of geography' })
+    .selectOption('Statistical regions');
+  await expect(page).toHaveURL(/areaType=Statistical\+regions/);
+  await expect(table.getByRole('rowheader', { name: 'London' })).toBeVisible();
+  await page
+    .getByRole('tabpanel', { name: 'Compare areas' })
+    .getByText('Download or share data', { exact: true })
+    .click();
+  const exported = await downloadFrom(
     page,
-  }, testInfo) => {
-    const card = filterCard(page, 'Geography filters');
-    const tree = card.locator('.fphd-geo-alt__tree');
-    await page.route('**/geographies?*', (route) =>
-      route.fulfill({ status: 502, body: 'Unavailable' }),
-    );
-    const input = card.getByRole('searchbox', { name: 'Add geographies' });
-    await input.fill('Cornwall');
-    await expect(tree.getByRole('status')).toContainText('Geography search is not working');
-    await page.unroute('**/geographies?*');
-    await tree.getByRole('button', { name: 'Try again' }).click();
-    await expect(card.getByRole('checkbox', { name: 'Cornwall', exact: true })).toBeVisible();
-    await input.fill('zzzzzzzzzzzz');
-    await expect(tree.getByRole('status')).toContainText('No geographies found');
-    await expectNoAccessibilityViolations(page, testInfo);
-  });
-
-  test('adds an area found by search and compares it against England', async ({ page }) => {
-    const card = filterCard(page, 'Geography filters');
-    await expect(card.getByRole('link', { name: 'Clear all' })).toHaveCount(0);
-
-    await card.getByLabel('Add geographies').fill('Manchester');
-    await card.getByRole('checkbox', { name: 'Manchester', exact: true }).check();
-    await card.getByRole('button', { name: 'Add selected geographies (1)' }).click();
-
-    await expect(page).toHaveURL(/as=E08000003/);
-    await expect(card.getByRole('link', { name: 'Remove Manchester filter' })).toBeVisible();
-    await expect(card.getByRole('link', { name: 'Clear all' })).toBeVisible();
-
-    await page.getByRole('tab', { name: 'Table' }).click();
-    await expect(trendTable(page).getByRole('columnheader', { name: 'Manchester' })).toBeVisible();
-    await expect(trendTable(page).getByRole('columnheader', { name: 'England' })).toHaveCount(0);
-    await expect(cellsFor(page, '2015')).toHaveText(['1,510', '518.1']);
-
-    await tableOptions(page)
-      .getByLabel('Select a geography or goal to compare with')
-      .selectOption('England');
-    await expect(page).toHaveURL(/cmp-108=england/);
-    await expect(trendTable(page).getByRole('columnheader', { name: 'England' })).toBeVisible();
-    await expect(cellsFor(page, '2015')).toHaveText(['1,510', '518.1', '334.8']);
-
-    await tableOptions(page).getByRole('radio', { name: 'Yes' }).click();
-    await expect(page).toHaveURL(/cr-108=yes/);
-    await expect(tableOptions(page).getByRole('radio', { name: 'Yes' })).toBeChecked();
-    await expect(trendTable(page).getByRole('columnheader', { name: 'Minimum' })).toBeVisible();
-    await expect(cellsFor(page, '2015')).toHaveText([
-      '1,510',
-      '518.1',
-      '334.8',
-      '223.3',
-      '595.5',
-      '',
-    ]);
-    await expect(
-      cellsFor(page, '2015').getByRole('img', {
-        name: 'Manchester 518.1 against England 334.8, range 223.3 to 595.5',
-      }),
-    ).toBeVisible();
-
-    const { text } = await downloadFrom(page, 'Download this table');
-    const header = text.split('\n')[0];
-    expect(header).toContain('Manchester England calculated value (per 100,000)');
-    expect(header).toContain('Manchester England minimum');
-    expect(header).toContain('Manchester England maximum');
-    expect(text).toContain('2015,1510,518.08261,334.7766,223.28385,595.46714');
-  });
-
-  test('offers the statistical region as a comparison', async ({ page }) => {
-    await openIndicatorPage(page, `${MORTALITY_PATH}?as=E08000003&tab-108=table`);
-    await tableOptions(page)
-      .getByLabel('Select a geography or goal to compare with')
-      .selectOption('Statistical regions');
-
-    await expect(page).toHaveURL(/cmp-108=region/);
-    await expect(
-      trendTable(page).getByRole('columnheader', { name: 'North West (Statistical region)' }),
-    ).toBeVisible();
-  });
-
-  test('adds an area from an expanded level', async ({ page }) => {
-    const card = filterCard(page, 'Geography filters');
-    await card.getByRole('button', { name: 'Expand Local authorities' }).click();
-    await card.getByRole('checkbox', { name: 'Adur' }).check();
-    await card.getByRole('button', { name: 'Add selected geographies (1)' }).click();
-
-    await expect(page).toHaveURL(/as=E07000223/);
-    await expect(card.getByRole('link', { name: 'Remove Adur filter' })).toBeVisible();
-  });
-
-  test('selects a whole level as one chip', async ({ page }) => {
-    const card = filterCard(page, 'Geography filters');
-    await card.getByRole('checkbox', { name: 'Statistical regions' }).check();
-    await card.getByRole('button', { name: 'Add selected geographies' }).click();
-
-    await expect(page).toHaveURL(/als=Statistical\+regions/);
-    await expect(
-      card.getByRole('link', { name: 'Remove Statistical regions filter' }),
-    ).toBeVisible();
-    await page.getByRole('tab', { name: 'Table' }).click();
-    await expect(trendTable(page).getByRole('columnheader', { name: 'North East' })).toBeVisible();
-    await expect(trendTable(page).getByRole('columnheader', { name: 'London' })).toBeVisible();
-  });
-
-  test('removes one area, then clears the rest', async ({ page }) => {
-    await openIndicatorPage(page, `${MORTALITY_PATH}?as=E08000003&as=E07000223`);
-    const card = filterCard(page, 'Geography filters');
-
-    await card.getByRole('link', { name: 'Remove Manchester filter' }).click();
-    await expect(page).toHaveURL(/as=E07000223/);
-    await expect(page).not.toHaveURL(/E08000003/);
-    await expect(card.getByRole('link', { name: 'Remove Adur filter' })).toBeVisible();
-
-    await card.getByRole('link', { name: 'Clear all' }).click();
-    await expect(page).not.toHaveURL(/as=/);
-    await expect(card.getByRole('link', { name: /^Remove/ })).toHaveCount(0);
-    await expect(card.getByText('England', { exact: true })).toBeVisible();
-  });
-
-  test('has no WCAG 2.2 AA violations with a comparison shown', async ({ page }, testInfo) => {
-    await openIndicatorPage(
-      page,
-      `${MORTALITY_PATH}?as=E08000003&tab-108=table&cmp-108=england&cr-108=yes`,
-    );
-    await expect(trendTable(page).getByRole('columnheader', { name: 'Comparison' })).toBeVisible();
-    await expectNoAccessibilityViolations(page, testInfo);
-  });
+    "Download data for the areas you've chosen (CSV)",
+    'link',
+  );
+  expect(exported.text).toContain('England (benchmark)');
+  expect(exported.text).toContain('London');
+  expect(exported.text).toContain('Compared with England');
 });
 
-test.describe('the indicator filter', () => {
-  test('adds a second indicator picked from the search suggestions', async ({ page }) => {
-    const card = filterCard(page, 'Selected indicators');
-    await card.getByRole('combobox', { name: 'Search for an indicator' }).fill('smoking');
-    await page.getByRole('option', { name: /Smoking Prevalence in adults/ }).click();
-    await card.getByRole('button', { name: 'Add indicator' }).click();
+test('finds and highlights an area within the selected comparison geography', async ({
+  page,
+}, testInfo) => {
+  await page.getByRole('tab', { name: 'Compare areas' }).click();
+  const panel = page.getByRole('tabpanel', { name: 'Compare areas' });
+  await panel.getByRole('searchbox', { name: 'Highlight local authorities' }).fill('Leeds');
+  const checkbox = panel.getByRole('checkbox', { name: 'Leeds', exact: true });
+  await expect(checkbox).toBeVisible();
+  await expect(panel.getByText(/No geographies found/)).toHaveCount(0);
+  await checkbox.click();
+  await expect(checkbox).toBeChecked();
+  const table = panel.getByRole('table', { name: /Table of area comparisons/ });
+  await expect(
+    table
+      .getByRole('row')
+      .filter({ has: page.getByRole('rowheader', { name: 'Leeds', exact: true }) }),
+  ).toHaveClass(/fphd-highlighted-area/);
+  await expectNoAccessibilityViolations(page, testInfo);
+});
 
-    await expect(page).toHaveURL(/is=108&is=92443/);
-    await expect(page.getByRole('heading', { level: 1, name: 'Contents' })).toBeVisible();
+test('adds one comparison indicator through search and clears it', async ({ page }) => {
+  await page.getByRole('tab', { name: 'Compare indicators' }).click();
+  const search = page.getByRole('combobox', { name: 'Search for an indicator' });
+  await search.fill('smoking');
+  await page.getByRole('option', { name: /Smoking Prevalence in adults/ }).click();
+  await expect(page).toHaveURL(/compareWith=/);
+  const table = page.getByRole('table', { name: /Table of indicator comparison/ });
+  await expect(table.getByRole('rowheader', { name: 'England' })).toBeVisible();
+  await expect(
+    table.getByRole('columnheader', { name: /Smoking Prevalence in adults/ }),
+  ).toBeVisible();
+  await page
+    .getByRole('tabpanel', { name: 'Compare indicators' })
+    .getByText('Download or share data', { exact: true })
+    .click();
+  const exported = await downloadFrom(
+    page,
+    "Download data for the areas you've chosen (CSV)",
+    'link',
+  );
+  expect(exported.text).toContain(MORTALITY_NAME);
+  expect(exported.text).toContain('Smoking Prevalence in adults');
+  await page.getByRole('link', { name: 'Clear search' }).click();
+  await expect(page).not.toHaveURL(/compareWith=/);
+  await expect(table).toHaveCount(0);
+});
+
+test('opens a comparison link directly and can return to the indicator tab', async ({
+  page,
+}, testInfo) => {
+  await openIndicatorPage(page, `${MORTALITY_PATH}?compareWith=diabetes-qof-prevalence`);
+  await expect(page.getByRole('tab', { name: 'Compare indicators' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(page.getByRole('table', { name: /Table of indicator comparison/ })).toBeVisible();
+  await expectNoAccessibilityViolations(page, testInfo);
+  await page.getByRole('tab', { name: 'Indicator', exact: true }).click();
+  await expect(page.getByRole('tab', { name: 'Indicator', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(page).toHaveURL(/compareWith=diabetes-qof-prevalence/);
+  await expectNoAccessibilityViolations(page, testInfo);
+});
+
+test('shows inequalities and methodology', async ({ page }) => {
+  await page.getByRole('tab', { name: 'Inequalities' }).click();
+  await expect(page.getByRole('heading', { name: 'Inequalities', exact: true })).toBeVisible();
+  const table = page.getByRole('table', { name: /Table of inequalities/ });
+  await expect(table.getByRole('rowheader', { name: 'England', exact: true })).toBeVisible();
+  await expect(table.getByRole('cell', { name: 'Benchmark', exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'About this indicator' }).click();
+  await expect(page.getByRole('heading', { name: 'Data attributes' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Calculation' })).toBeVisible();
+});
+
+test('downloads the indicator table and complete data', async ({ page }) => {
+  await page
+    .getByRole('tabpanel', { name: 'Indicator', exact: true })
+    .getByText('Download or share data', { exact: true })
+    .click();
+  const table = await downloadFrom(page, "Download data for the areas you've chosen (CSV)", 'link');
+  expect(table.filename).toContain('.csv');
+  expect(table.text).toContain('England calculated value');
+  const all = await downloadFrom(page, 'Download data for all areas (CSV)', 'link');
+  expect(all.filename).toContain('.csv');
+  expect(all.text).toContain(MORTALITY_NAME);
+  expect(all.text).toContain('London');
+  const metadata = await downloadFrom(page, 'Download metadata about this indicator (TXT)', 'link');
+  expect(metadata.filename).toMatch(/metadata\.txt$/);
+  expect(metadata.text).toContain(MORTALITY_NAME);
+  expect(metadata.text).toContain('Numerator definition:');
+});
+
+test('shows scaled comparison bars and visible placeholders in every chart position', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await openIndicatorPage(page, '/indicator/diabetes-qof-prevalence');
+  const trend = page.getByRole('region', { name: 'Diabetes: QOF prevalence trend chart' });
+  await expect(trend).toContainText('Data visualisation to follow');
+  await expect(trend).toBeVisible();
+  await page.getByRole('tab', { name: 'Compare areas', exact: true }).click();
+  const table = page.getByRole('table', { name: /Table of area comparisons/ });
+  const slough = table
+    .getByRole('row')
+    .filter({ has: page.getByRole('rowheader', { name: 'Slough', exact: true }) });
+  const bar = slough.locator('.fphd-comparison-bar rect').nth(1);
+  await expect(bar).toHaveAttribute('fill', /^#[0-9a-f]{6}$/i);
+  expect(Number(await bar.getAttribute('width'))).toBeGreaterThan(70);
+  expect(Number(await bar.getAttribute('width'))).toBeLessThan(80);
+  const map = page.getByRole('region', { name: 'Diabetes: QOF prevalence map' });
+  await expect(map).toContainText('Data visualisation to follow');
+  const tableBox = await table.boundingBox();
+  const mapBox = await map.boundingBox();
+  expect(mapBox?.x).toBeGreaterThan((tableBox?.x ?? 0) + (tableBox?.width ?? 0));
+  await page.getByRole('tablist').evaluate((element) => element.scrollIntoView({ block: 'start' }));
+  await page.screenshot({ path: testInfo.outputPath('comparison-bars-and-map.png') });
+  await expectNoAccessibilityViolations(page, testInfo);
+  await page.getByRole('combobox', { name: 'Colour geographies by' }).selectOption('quintiles');
+  await expect(bar).toHaveAttribute('fill', /#440154|#3E4A89|#26828E|#35B779|#B4DE2C/);
+  await openIndicatorPage(page, `${MORTALITY_PATH}?tab-indicator=inequalities`);
+  await expect(
+    page.getByRole('region', { name: `${MORTALITY_NAME} inequalities chart` }),
+  ).toContainText('Data visualisation to follow');
+  await expectNoAccessibilityViolations(page, testInfo);
+  await openIndicatorPage(
+    page,
+    '/indicator/diabetes-qof-prevalence?compareWith=under-75-mortality-rate-from-all-causes',
+  );
+  await expect(
+    page.getByRole('region', { name: 'Indicator comparison scatter chart' }),
+  ).toContainText('Data visualisation to follow');
+  await expectNoAccessibilityViolations(page, testInfo);
+});
+
+test('keeps the full tab labels in one connected row at tablet and desktop widths', async ({
+  page,
+}, testInfo) => {
+  await openIndicatorPage(page, `${MORTALITY_PATH}?tab-indicator=about`);
+  for (const width of [834, 768, 641, 1440]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await expect(page.getByRole('tab')).toHaveText([
+      'Indicator',
+      'Compare areas',
+      'Compare indicators',
+      'Inequalities',
+      'About this indicator',
+    ]);
+    const boxes = await page.locator('.govuk-tabs__list-item').evaluateAll((items) =>
+      items.map((item) => {
+        const rect = item.getBoundingClientRect();
+        return { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right };
+      }),
+    );
+    expect(
+      Math.max(...boxes.map(({ top }) => top)) - Math.min(...boxes.map(({ top }) => top)),
+    ).toBeLessThanOrEqual(5);
+    expect(Math.max(...boxes.map(({ right }) => right))).toBeLessThanOrEqual(width);
+    const inactiveHeights = await page
+      .locator('.govuk-tabs__list-item:not(.govuk-tabs__list-item--selected)')
+      .evaluateAll((items) => items.map((item) => item.getBoundingClientRect().height));
+    expect(Math.max(...inactiveHeights) - Math.min(...inactiveHeights)).toBeLessThanOrEqual(1);
+    expect(
+      Math.max(...boxes.map(({ bottom }) => bottom)) -
+        Math.min(...boxes.map(({ bottom }) => bottom)),
+    ).toBeLessThanOrEqual(1);
+    await expect(page.locator('.fphd-tabs__navigation')).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+    const selected = await page.locator('.govuk-tabs__list-item--selected').boundingBox();
+    const panel = await page.getByRole('tabpanel', { name: 'About this indicator' }).boundingBox();
+    expect(
+      Math.abs((selected?.y ?? 0) + (selected?.height ?? 0) - (panel?.y ?? 0)),
+    ).toBeLessThanOrEqual(2);
+  }
+  await expectNoAccessibilityViolations(page, testInfo);
+});
+
+test('shows Contents links and complete stacked sections on small screens', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 375, height: 1000 });
+  await page.goto(MORTALITY_PATH);
+  await expect(page.locator('.govuk-tabs')).not.toHaveClass(/fphd-tabs--ssr/);
+  await expect(page.getByRole('tab')).toHaveCount(0);
+  await expect(page.getByRole('tablist')).toHaveCount(0);
+  await expect(
+    page.getByRole('heading', { name: `${MORTALITY_NAME} contents`, exact: true }),
+  ).toBeVisible();
+  const ids = [
+    'indicator-data',
+    'indicator-compare-areas',
+    'indicator-compare-indicators',
+    'indicator-inequalities',
+    'indicator-about',
+  ];
+  const labels = [
+    'Indicator',
+    'Compare areas',
+    'Compare indicators',
+    'Inequalities',
+    'About this indicator',
+  ];
+  for (const [index, label] of labels.entries()) {
     await expect(
-      page.getByRole('heading', { level: 2, name: 'Compare selected indicators' }),
-    ).toBeVisible();
+      page.locator('.govuk-tabs__list').getByRole('link', { name: label, exact: true }),
+    ).toHaveAttribute('href', `#${ids[index]}`);
     await expect(
-      card.getByRole('link', { name: /Remove Smoking Prevalence in adults .* filter/ }),
+      page.locator(`#${ids[index]}`).getByRole('heading', { level: 2, name: label, exact: true }),
     ).toBeVisible();
-  });
+  }
+  await expect(
+    page.getByRole('table', { name: /Table of area comparisons/ }).getByRole('row'),
+  ).not.toHaveCount(1);
+  await expect(page.getByRole('region', { name: `${MORTALITY_NAME} trend chart` })).toBeVisible();
+  await expect(page.getByRole('region', { name: `${MORTALITY_NAME} map` })).toBeVisible();
+  await expect(
+    page.getByRole('region', { name: `${MORTALITY_NAME} inequalities chart` }),
+  ).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(375);
+  await expectNoAccessibilityViolations(page, testInfo);
+  await page
+    .locator('.govuk-tabs__list')
+    .getByRole('link', { name: 'About this indicator', exact: true })
+    .click();
+  await expect(page).toHaveURL(/#indicator-about$/);
+  await page.setViewportSize({ width: 641, height: 1000 });
+  await expect(page.getByRole('tab', { name: 'About this indicator' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+});
 
-  test('removes the indicator the page arrived on', async ({ page }) => {
-    const card = filterCard(page, 'Selected indicators');
-    await card.getByRole('link', { name: `Remove ${INDICATOR} filter` }).click();
-
-    await expect(page.getByText('No indicators selected')).toBeVisible();
-    await expect(card.getByText('None selected')).toBeVisible();
-  });
+test('keeps both comparison controls accessible in the stacked mobile view', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 375, height: 1000 });
+  await page.goto(`${MORTALITY_PATH}?compareWith=diabetes-qof-prevalence`);
+  await expect(page.locator('.govuk-tabs')).not.toHaveClass(/fphd-tabs--ssr/);
+  await expect(page.getByRole('tab')).toHaveCount(0);
+  await expect(
+    page.getByRole('region', { name: 'Indicator comparison scatter chart' }),
+  ).toBeVisible();
+  const ids = await page
+    .locator('[id]')
+    .evaluateAll((elements) => elements.map((element) => element.id));
+  expect(ids.length).toBe(new Set(ids).size);
+  await expectNoAccessibilityViolations(page, testInfo);
 });

@@ -1,14 +1,16 @@
-import { Button, Details, Radios, Select } from '@fphd/ui';
-import { type ReactNode, useId } from 'react';
+import { Button, Checkboxes, CollapsibleFilterCard, Details, Hint, Radios, Select } from '@fphd/ui';
+import { type ReactNode, useEffect, useId, useState } from 'react';
 import { Form, useLocation, useNavigate } from 'react-router';
 
 import type { BenchmarkChoice } from './comparison.ts';
 import {
   type ConfidenceLevel,
+  inequalityCategoryHint,
   inequalityCategoryOptions,
   type PeriodType,
   periodTypeLabel,
 } from './data.ts';
+import type { TrendColumns } from './trend.ts';
 
 /** The confidence-interval choices, narrowed to what the indicator publishes. */
 export function confidenceOptions(levels: string[]) {
@@ -33,7 +35,10 @@ export function useOptionParamNavigation() {
         params.set(key, value);
       }
     }
-    void navigate({ search: `?${params.toString()}` }, { replace: true, preventScrollReset: true });
+    void navigate(
+      { search: `?${params.toString()}` },
+      { replace: true, preventScrollReset: true, flushSync: true },
+    );
   };
 }
 
@@ -96,18 +101,29 @@ function OptionsForm({
   scope: OptionScope;
 }) {
   const location = useLocation();
-  const tabName = `tab-${scope}`;
+  const singlePage = location.pathname.startsWith('/indicator/');
+  const tabName = singlePage ? 'tab-indicator' : `tab-${scope}`;
   const preserved = [...new URLSearchParams(location.search)].filter(
     ([name]) => name !== tabName && !names.includes(name),
   );
-  const anchor = scope === 'compare' ? 'compare-table' : `${panel}-${scope}`;
+  const anchor = singlePage
+    ? panel === 'table'
+      ? 'indicator-data'
+      : 'indicator-inequalities'
+    : scope === 'compare'
+      ? 'compare-table'
+      : `${panel}-${scope}`;
 
   return (
     <Form action={`${location.pathname}#${anchor}`} method="get" replace preventScrollReset>
       {preserved.map(([name, value], index) => (
         <input key={`${name}-${index}`} name={name} type="hidden" value={value} />
       ))}
-      <input name={tabName} type="hidden" value={panel} />
+      <input
+        name={tabName}
+        type="hidden"
+        value={singlePage && panel === 'table' ? 'indicator' : panel}
+      />
       {children}
       <noscript>
         <Button className="govuk-!-margin-bottom-0" type="submit">
@@ -123,16 +139,22 @@ function OptionsForm({
  * choice; the sex and period controls appear only where the indicator reports those segments.
  */
 export function PanelOptionsPanel({
+  accordion = false,
+  columns: persistedColumns,
+  onColumnsChange: persistColumns,
   benchmarks,
   confidenceLevels,
   label,
-  onChange,
-  options,
+  onChange: persistOptions,
+  options: persistedOptions,
   periodTypes,
   scope,
   sexes,
   showConfidence,
 }: {
+  accordion?: boolean;
+  columns?: TrendColumns;
+  onColumnsChange?: (columns: TrendColumns) => void;
   /** Which comparisons the shown areas support; absent when only England is shown. */
   benchmarks?: { region: boolean } | undefined;
   confidenceLevels: string[];
@@ -144,6 +166,32 @@ export function PanelOptionsPanel({
   sexes: string[];
   showConfidence: boolean;
 }) {
+  const [options, setOptions] = useState(persistedOptions);
+  const [columns, setColumns] = useState(persistedColumns);
+  useEffect(
+    () => setOptions(persistedOptions),
+    [
+      persistedOptions.benchmark,
+      persistedOptions.confidence,
+      persistedOptions.periodType,
+      persistedOptions.range,
+      persistedOptions.sex,
+    ],
+  );
+  useEffect(
+    () => setColumns(persistedColumns),
+    [persistedColumns?.count, persistedColumns?.value, persistedColumns?.confidence.join(',')],
+  );
+  const onChange = (next: PanelOptions) => {
+    setOptions(next);
+    persistOptions(next);
+  };
+  const onColumnsChange = persistColumns
+    ? (next: TrendColumns) => {
+        setColumns(next);
+        persistColumns(next);
+      }
+    : undefined;
   const ids = {
     benchmark: useId(),
     confidence: useId(),
@@ -156,100 +204,143 @@ export function PanelOptionsPanel({
     { label: 'Yes', value: 'yes', checked: options.range },
     { label: 'No', value: 'no', checked: !options.range },
   ];
+  const columnOptions = columns
+    ? [
+        { value: 'count', label: 'Count', checked: columns.count },
+        { value: 'value', label: 'Calculated value', checked: columns.value },
+        ...confidenceLevels.map((value) => ({
+          value,
+          label: `${value}% confidence intervals`,
+          checked: columns.confidence.includes(value as '95' | '99.8'),
+        })),
+      ]
+    : [];
 
-  return (
-    <Details summary={label} open>
-      <OptionsForm names={Object.values(names)} panel="table" scope={scope}>
-        {benchmarks ? (
+  const content = (
+    <OptionsForm names={[...Object.values(names), `columns-${scope}`]} panel="table" scope={scope}>
+      {columns && onColumnsChange ? (
+        <>
+          <input type="hidden" name={`columns-${scope}`} value="" />
+          <Checkboxes
+            id={`columns-${scope}`}
+            name={`columns-${scope}`}
+            classModifiers="small"
+            label={<span className="govuk-visually-hidden">Table columns</span>}
+            options={columnOptions}
+            onChange={(event) => {
+              const { value, checked } = event.currentTarget;
+              onColumnsChange(
+                value === 'count' || value === 'value'
+                  ? { ...columns, [value]: checked }
+                  : {
+                      ...columns,
+                      confidence: (['95', '99.8'] as const).filter((level) =>
+                        level === value ? checked : columns.confidence.includes(level),
+                      ),
+                    },
+              );
+            }}
+          />
+        </>
+      ) : null}
+      {benchmarks ? (
+        <Select
+          id={ids.benchmark}
+          label="Select a geography or goal to compare with"
+          name={names.benchmark}
+          onChange={(event) =>
+            onChange({ ...options, benchmark: event.currentTarget.value as BenchmarkChoice })
+          }
+          options={[
+            { label: 'None', value: 'none' },
+            { label: 'England', value: 'england' },
+            ...(benchmarks.region ? [{ label: 'Statistical regions', value: 'region' }] : []),
+          ]}
+          value={options.benchmark}
+        />
+      ) : null}
+      {benchmarks && options.benchmark !== 'none' ? (
+        <Radios
+          classModifiers="inline"
+          id={ids.range}
+          label="Show comparison range"
+          name={names.range}
+          onChange={(event) => onChange({ ...options, range: event.currentTarget.value === 'yes' })}
+          options={rangeOptions}
+        />
+      ) : null}
+      <div className="fphd-segmentation-options__selects">
+        {sexes.length > (accordion ? 1 : 0) ? (
           <Select
-            id={ids.benchmark}
-            label="Select a geography or goal to compare with"
-            name={names.benchmark}
-            onChange={(event) =>
-              onChange({ ...options, benchmark: event.currentTarget.value as BenchmarkChoice })
-            }
+            id={ids.sex}
+            label="Select sex"
+            name={names.sex}
+            onChange={(event) => onChange({ ...options, sex: event.currentTarget.value })}
             options={[
-              { label: 'None', value: 'none' },
-              { label: 'England', value: 'england' },
-              ...(benchmarks.region ? [{ label: 'Statistical regions', value: 'region' }] : []),
+              { label: 'All', value: '' },
+              ...sexes.map((value) => ({ label: value, value })),
             ]}
-            value={options.benchmark}
+            value={options.sex}
           />
         ) : null}
-        {benchmarks && options.benchmark !== 'none' ? (
-          <Radios
-            classModifiers="inline"
-            id={ids.range}
-            label="Show comparison range"
-            name={names.range}
+
+        {periodTypes.length > 1 ? (
+          <Select
+            id={ids.period}
+            label="Select time period type"
+            name={names.periodType}
             onChange={(event) =>
-              onChange({ ...options, range: event.currentTarget.value === 'yes' })
+              onChange({ ...options, periodType: event.currentTarget.value as PeriodType })
             }
-            options={rangeOptions}
+            options={['all' as const, ...periodTypes].map((value) => ({
+              label: periodTypeLabel(value),
+              value,
+            }))}
+            value={options.periodType}
           />
         ) : null}
-        <div className="fphd-segmentation-options__selects">
-          {sexes.length > 0 ? (
-            <Select
-              id={ids.sex}
-              label="Select sex"
-              name={names.sex}
-              onChange={(event) => onChange({ ...options, sex: event.currentTarget.value })}
-              options={[
-                { label: 'All', value: '' },
-                ...sexes.map((value) => ({ label: value, value })),
-              ]}
-              value={options.sex}
-            />
-          ) : null}
 
-          {periodTypes.length > 1 ? (
-            <Select
-              id={ids.period}
-              label="Select time period type"
-              name={names.periodType}
-              onChange={(event) =>
-                onChange({ ...options, periodType: event.currentTarget.value as PeriodType })
-              }
-              options={['all' as const, ...periodTypes].map((value) => ({
-                label: periodTypeLabel(value),
-                value,
-              }))}
-              value={options.periodType}
-            />
-          ) : null}
-
-          {showConfidence && confidenceLevels.length > 0 ? (
-            <Select
-              id={ids.confidence}
-              label="Select confidence intervals"
-              name={names.confidence}
-              onChange={(event) =>
-                onChange({ ...options, confidence: event.currentTarget.value as ConfidenceLevel })
-              }
-              options={confidenceOptions(confidenceLevels)}
-              value={options.confidence}
-            />
-          ) : null}
-        </div>
-      </OptionsForm>
+        {!columns && showConfidence && confidenceLevels.length > 0 ? (
+          <Select
+            id={ids.confidence}
+            label="Select confidence intervals"
+            name={names.confidence}
+            onChange={(event) =>
+              onChange({ ...options, confidence: event.currentTarget.value as ConfidenceLevel })
+            }
+            options={confidenceOptions(confidenceLevels)}
+            value={options.confidence}
+          />
+        ) : null}
+      </div>
+    </OptionsForm>
+  );
+  return accordion ? (
+    <CollapsibleFilterCard active={false} variant="accordion" headingLevel={3} title={label}>
+      {content}
+    </CollapsibleFilterCard>
+  ) : (
+    <Details summary={label} open>
+      {content}
     </Details>
   );
 }
 
 /** Inequalities "Options" disclosure: category, period and intervals. */
 export function InequalityOptions({
+  accordion = false,
   categories,
-  category,
+  category: persistedCategory,
   confidence,
   confidenceLevels,
-  onCategoryChange,
+  onCategoryChange: persistCategory,
   onConfidenceChange,
   onPeriodChange,
   period,
   periods,
   scope,
 }: {
+  accordion?: boolean;
   categories: string[];
   category: string;
   confidence: ConfidenceLevel;
@@ -261,6 +352,12 @@ export function InequalityOptions({
   periods: { value: string; label: string }[];
   scope: number;
 }) {
+  const [category, setCategory] = useState(persistedCategory);
+  useEffect(() => setCategory(persistedCategory), [persistedCategory]);
+  const onCategoryChange = (next: string) => {
+    setCategory(next);
+    persistCategory(next);
+  };
   const categoryId = useId();
   const periodId = useId();
   const confidenceId = useId();
@@ -270,10 +367,23 @@ export function InequalityOptions({
     confidence: `ci-${scope}`,
   };
 
-  return (
-    <Details summary="Options" open>
-      <OptionsForm names={Object.values(names)} panel="inequalities" scope={scope}>
-        <div className="fphd-segmentation-options__selects">
+  const content = (
+    <OptionsForm names={Object.values(names)} panel="inequalities" scope={scope}>
+      <div className="fphd-segmentation-options__selects">
+        {accordion ? (
+          <Radios
+            classModifiers="small"
+            id={categoryId}
+            label="Inequality"
+            name={names.category}
+            options={inequalityCategoryOptions(categories).map(({ value, label }) => ({
+              value,
+              label,
+              checked: value === category,
+            }))}
+            onChange={(event) => onCategoryChange(event.currentTarget.value)}
+          />
+        ) : (
           <Select
             id={categoryId}
             label="Select inequality category"
@@ -282,26 +392,38 @@ export function InequalityOptions({
             options={inequalityCategoryOptions(categories)}
             value={category}
           />
+        )}
+        {accordion && inequalityCategoryHint(category) ? (
+          <Hint>{inequalityCategoryHint(category)}</Hint>
+        ) : null}
+        <Select
+          id={periodId}
+          label={accordion ? 'Time period' : 'Select time period'}
+          name={names.period}
+          onChange={(event) => onPeriodChange(event.currentTarget.value)}
+          options={accordion ? periods.toReversed() : periods}
+          value={period}
+        />
+        {!accordion && confidenceLevels.length > 0 ? (
           <Select
-            id={periodId}
-            label="Select time period"
-            name={names.period}
-            onChange={(event) => onPeriodChange(event.currentTarget.value)}
-            options={periods}
-            value={period}
+            id={confidenceId}
+            label="Select confidence intervals"
+            name={names.confidence}
+            onChange={(event) => onConfidenceChange(event.currentTarget.value as ConfidenceLevel)}
+            options={confidenceOptions(confidenceLevels)}
+            value={confidence}
           />
-          {confidenceLevels.length > 0 ? (
-            <Select
-              id={confidenceId}
-              label="Select confidence intervals"
-              name={names.confidence}
-              onChange={(event) => onConfidenceChange(event.currentTarget.value as ConfidenceLevel)}
-              options={confidenceOptions(confidenceLevels)}
-              value={confidence}
-            />
-          ) : null}
-        </div>
-      </OptionsForm>
+        ) : null}
+      </div>
+    </OptionsForm>
+  );
+  return accordion ? (
+    <CollapsibleFilterCard active variant="accordion" headingLevel={3} title="Chart options">
+      {content}
+    </CollapsibleFilterCard>
+  ) : (
+    <Details summary="Options" open>
+      {content}
     </Details>
   );
 }

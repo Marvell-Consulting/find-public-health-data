@@ -2,12 +2,14 @@ import {
   type AreaLookup,
   type AreaParent,
   type AreaSummary,
+  type IndicatorAreaFilters,
   listAreaParents,
   listAreasByCodes,
   listAreasByGroup,
   listAreasByGroups,
   listAreasByType,
   listDisplayGroups,
+  listIndicatorAreas,
   searchAreas,
 } from './area-repository.ts';
 import type { Database } from './client.ts';
@@ -40,6 +42,10 @@ import {
 } from './topic-repository.ts';
 
 export interface IndicatorRepository {
+  listAreas(
+    indicatorId: string,
+    filters?: IndicatorAreaFilters,
+  ): Promise<{ displayGroup: string; areas: AreaSummary[] }[]>;
   listPublished(): Promise<PublishedIndicator[]>;
   search(query: string, limit: number): Promise<PublishedIndicator[]>;
   /** The one place the public short id resolves to an internal id. */
@@ -100,6 +106,7 @@ export function createRepositories(db: Database): Repositories {
       listParents: (childCodes, parentTypeName) => listAreaParents(db, childCodes, parentTypeName),
     },
     indicators: {
+      listAreas: (indicatorId, filters) => listIndicatorAreas(db, indicatorId, filters),
       listPublished: () => listPublishedIndicators(db),
       search: (query, limit) => searchPublishedIndicators(db, query, limit),
       resolveId: (shortId) => resolvePublishedIndicatorId(db, shortId),

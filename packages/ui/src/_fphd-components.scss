@@ -250,7 +250,7 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
   }
 }
 
-body:has(.fphd-topic-page, .fphd-topics-page) .govuk-width-container.govuk-width-container {
+body:has(.fphd-single-indicator-page, .fphd-topic-page, .fphd-topics-page) .govuk-width-container.govuk-width-container {
   max-width: 960px;
   @media (min-width: 40.0625em) {
     width: calc(100% - 60px);
@@ -306,6 +306,191 @@ body:has(.fphd-topic-page, .fphd-topics-page) .govuk-width-container.govuk-width
       }
     }
   }
+}
+
+.fphd-single-indicator-page {
+  .govuk-tabs__panel .govuk-table,
+  .govuk-tabs__panel .govuk-table th,
+  .govuk-tabs__panel .govuk-table td,
+  .govuk-tabs__panel .govuk-table__caption {
+    @include govuk-font-size($size: 16);
+  }
+
+  .govuk-tabs__panel .govuk-table {
+    width: auto;
+  }
+
+  .govuk-tabs__panel .govuk-table th,
+  .govuk-tabs__panel .govuk-table td {
+    min-width: 0;
+    padding: 4px 6px;
+    text-align: left;
+
+    &:first-child {
+      padding-left: 0;
+    }
+  }
+  @media (min-width: 40.0625em) {
+    #indicator-inequalities .govuk-table th:first-child {
+      width: 340px;
+      min-width: 200px;
+      max-width: 340px;
+    }
+  }
+
+  .fphd-trend-table tbody th {
+    font-weight: 400;
+  }
+
+  .govuk-tabs__panel .fphd-inequalities-table {
+    table-layout: fixed;
+    white-space: normal;
+
+    th,
+    td {
+      width: 120px;
+      padding-left: 0;
+    }
+
+    tbody th {
+      font-weight: 400;
+    }
+  }
+
+  .fphd-trend-table .govuk-table__caption {
+    white-space: normal;
+  }
+
+  .govuk-tabs__panel .fphd-trend-table th:not([scope="colgroup"]),
+  .govuk-tabs__panel .fphd-trend-table td {
+    width: 120px;
+    min-width: 120px;
+    padding: 4px 6px;
+    white-space: normal;
+
+    &:first-child {
+      padding-left: 0;
+    }
+  }
+
+  .fphd-indicator-showing {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: govuk-spacing(2);
+    margin-bottom: govuk-spacing(4);
+
+    > p {
+      font-weight: 700;
+    }
+  }
+
+  .fphd-filter-card .govuk-label:not(.govuk-checkboxes__label):not(.govuk-radios__label) {
+    font-weight: 700;
+  }
+
+  .fphd-segmentation-options__selects .govuk-radios__label {
+    font-weight: 400;
+  }
+
+  .fphd-filter-card .govuk-fieldset__legend {
+    font-weight: 700;
+  }
+
+  .govuk-grid-column-one-quarter > .govuk-heading-m,
+  .fphd-indicator-geographies > .govuk-heading-m {
+    border-bottom: 1px solid #cecece;
+    margin-bottom: 0;
+    padding-bottom: govuk-spacing(2);
+  }
+
+  #compare-area-type,
+  #pair-area-type,
+  #compare-area-sort {
+    margin-bottom: govuk-spacing(4);
+  }
+
+  #compare-area-colour {
+    margin-bottom: 0;
+  }
+
+  .fphd-indicator-summary {
+    .govuk-summary-list__key,
+    .govuk-summary-list__value,
+    .govuk-list {
+      @include govuk-font-size($size: 16);
+    }
+  }
+
+  @media (min-width: 40.0625em) {
+    .govuk-frontend-supported & .govuk-tabs__panel > .fphd-tabs__content > .govuk-heading-l {
+      @include govuk-visually-hidden;
+    }
+
+    > .govuk-tabs:has(.fphd-tabs__panel--open:not(#indicator-about)) {
+      position: relative;
+      left: 50%;
+      transform: translateX(-50%);
+      width: max-content;
+      min-width: 100%;
+      max-width: calc(100vw - 60px);
+
+      .govuk-tabs__list {
+        box-sizing: border-box;
+        padding-inline-start: max(0px, calc((100% - 960px) / 2));
+      }
+    }
+
+    > .govuk-tabs:has(#indicator-data.fphd-tabs__panel--open) {
+      width: 100%;
+    }
+
+    > .govuk-tabs:has(#indicator-compare-areas.fphd-tabs__panel--open) {
+      width: calc(100vw - 60px);
+    }
+
+    > .govuk-tabs:has(#indicator-inequalities.fphd-tabs__panel--open .fphd-inequalities-table) {
+      width: calc(100vw - 60px);
+      max-width: 2034px;
+    }
+
+    .govuk-grid-row {
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .govuk-grid-column-one-quarter {
+      flex: 0 0 235px;
+      width: 235px;
+      max-width: 235px;
+      float: none;
+    }
+
+    .govuk-grid-column-three-quarters,
+    .govuk-grid-column-two-thirds {
+      flex: 1 1 auto;
+      min-width: 0;
+      float: none;
+    }
+  }
+}
+
+.fphd-compare-search {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: govuk-spacing(3);
+
+  .fphd-autocomplete {
+    flex: 0 1 640px;
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+.fphd-compare-search__clear {
+  @include govuk-font-size($size: 16);
+  margin-bottom: 40px;
 }
 
 body.govuk-frontend-supported .fphd-filter-card--accordion {
@@ -755,6 +940,117 @@ body.govuk-frontend-supported .fphd-filter-card--accordion {
   margin-left: 0;
 }
 
+.fphd-indicator-chart {
+  width: 100%;
+  max-width: 780px;
+
+  .fphd-chart-placeholder {
+    box-sizing: border-box;
+    aspect-ratio: 780 / 445;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+.fphd-indicator-chart--scatter .fphd-chart-placeholder {
+  aspect-ratio: 780 / 580;
+}
+
+.fphd-indicator-chart--inequalities {
+  max-width: 760px;
+
+  .fphd-chart-placeholder {
+    aspect-ratio: 760 / 520;
+  }
+}
+
+.fphd-indicator-chart--map .fphd-chart-placeholder {
+  aspect-ratio: 700 / 800;
+}
+
+.fphd-comparison-bar {
+  display: block;
+  height: 20px;
+  width: 100%;
+}
+
+@media (min-width: 40.0625em) {
+  .fphd-area-table-layout > .govuk-grid-column-one-half {
+    float: none;
+    width: auto;
+  }
+
+  .fphd-area-table-layout > .fphd-area-table {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .fphd-area-table-layout > .fphd-map-space {
+    display: block;
+    flex: 0 6 460px;
+    min-width: 300px;
+    width: 460px;
+  }
+}
+
+.fphd-area-table > .fphd-table-scroll-wrapper {
+  width: max-content;
+  min-width: 100%;
+  max-width: 100%;
+}
+
+.fphd-single-indicator-page .govuk-tabs__panel .fphd-area-comparison-table {
+  table-layout: fixed;
+  white-space: normal;
+
+  th,
+  td {
+    border-bottom: 1px solid #cecece;
+  }
+
+  th[scope="col"] {
+    width: 120px;
+    vertical-align: bottom;
+  }
+
+  th:first-child {
+    width: 280px;
+    min-width: 200px;
+  }
+
+  th:nth-child(2) {
+    width: 90px;
+  }
+
+  th:nth-child(3) {
+    width: 110px;
+  }
+
+  .fphd-area-comparison-table__bar {
+    width: 30%;
+    min-width: 160px;
+  }
+
+  td:nth-child(2),
+  th:nth-child(5),
+  td:nth-child(5),
+  th:nth-child(6),
+  td:nth-child(6) {
+    padding-left: 0;
+  }
+
+  td {
+    vertical-align: middle;
+  }
+
+  .fphd-area-comparison-table__benchmark {
+    background-color: #f3f2f1;
+  }
+}
+
 .fphd-table-unit {
   font-weight: 400;
 }
@@ -1123,6 +1419,18 @@ body.govuk-frontend-supported .fphd-add-geo-button[data-empty] {
   max-width: 58em;
 }
 
+.fphd-indicator-summary {
+  margin-bottom: 0;
+
+  .govuk-summary-list__key {
+    width: 34%;
+  }
+
+  .govuk-summary-list__value {
+    width: 66%;
+  }
+}
+
 .fphd-topic-pagination,
 .fphd-rug-key {
   display: flex;
@@ -1295,6 +1603,15 @@ body:not(.govuk-frontend-supported) .fphd-share-link {
   thead th {
     vertical-align: bottom;
   }
+}
+.fphd-compare-area-list {
+  max-height: 20rem;
+  overflow-y: auto;
+  margin-top: 1rem;
+}
+
+.fphd-highlighted-area {
+  background: #ffdd00;
 }
 
 .fphd-topic-trend-counts .govuk-list > li {
