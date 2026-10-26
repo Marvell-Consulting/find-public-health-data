@@ -583,7 +583,9 @@ export function inequalityValueLabel(observation: IndicatorObservation): string 
     ({ dimensionClass }) => dimensionClass === 'inequality',
   );
   if (!dimension) return segmentLabel(observation);
-  const year = dimension.type.match(/deprivation deciles.*\(IMD\s*(\d{4})/)?.[1];
+  const year = dimension.type.match(
+    /^(?:County|District) & UA deprivation deciles in England \(IMD\s*(\d{4}), \d{1,2}\/\d{2} geography\)$/,
+  )?.[1];
   const decile = dimension.sortOrder;
   if (!year || decile < 1 || decile > 10) return dimension.value;
   return `Decile ${decile} (${decile === 1 ? 'most deprived, ' : decile === 10 ? 'least deprived, ' : ''}IMD ${year})`;

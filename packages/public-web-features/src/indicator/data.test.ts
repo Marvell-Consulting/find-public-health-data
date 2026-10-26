@@ -17,6 +17,7 @@ import {
   inequalityCategoryOptions,
   inequalityPeriods,
   inequalitySegments,
+  inequalityValueLabel,
   periodCovered,
   segmentLabel,
   trendSeries,
@@ -499,5 +500,43 @@ describe('inequalityCategoryOptions', () => {
       'Counties and unitary authorities by deprivation (IMD 2019, April 2023 boundaries)',
       'Districts and unitary authorities by deprivation (IMD 2025, April 2023 boundaries)',
     ]);
+  });
+});
+
+describe('inequalityValueLabel', () => {
+  it.each([
+    [
+      'County & UA deprivation deciles in England (IMD2019, 4/23 geography)',
+      1,
+      'Decile 1 (most deprived, IMD 2019)',
+    ],
+    [
+      'District & UA deprivation deciles in England (IMD2025, 4/23 geography)',
+      10,
+      'Decile 10 (least deprived, IMD 2025)',
+    ],
+  ])('labels the IMD year and deprivation rank for %s', (type, sortOrder, expected) => {
+    expect(
+      inequalityValueLabel(
+        obs({
+          dimensions: [dim(type, 'Original label', { dimensionClass: 'inequality', sortOrder })],
+        }),
+      ),
+    ).toBe(expected);
+  });
+
+  it('preserves unrecognised labels even for long repeated category text', () => {
+    expect(
+      inequalityValueLabel(
+        obs({
+          dimensions: [
+            dim('deprivation deciles'.repeat(2000), 'Original label', {
+              dimensionClass: 'inequality',
+              sortOrder: 1,
+            }),
+          ],
+        }),
+      ),
+    ).toBe('Original label');
   });
 });
