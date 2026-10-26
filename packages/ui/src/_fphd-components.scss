@@ -1070,8 +1070,8 @@ body.govuk-frontend-supported .fphd-add-geo-button[data-empty] {
   line-height: 1.31579;
 }
 
-.fphd-topic-overview {
-  max-width: 38em;
+.fphd-topic-overview > .govuk-grid-column-three-quarters {
+  max-width: 58em;
 }
 
 .fphd-topic-pagination,

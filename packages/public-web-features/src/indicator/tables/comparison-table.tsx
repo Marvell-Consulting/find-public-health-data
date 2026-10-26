@@ -1,3 +1,4 @@
+import { TableScrollRegion } from '@fphd/ui';
 import { indicatorPath } from '@fphd/utils/indicator-path';
 import { Fragment } from 'react';
 import { Link } from 'react-router';
@@ -7,7 +8,6 @@ import type { BenchmarkGeography, SelectedIndicator } from '../loader.ts';
 import { TrendTag } from '../trend-tag.tsx';
 import { BenchmarkCells, BenchmarkHeaderCells } from './benchmark-cells.tsx';
 import { NoteFootnotes, noteMarker } from './note-markers.tsx';
-import { TableScrollRegion } from './table-scroll-region.tsx';
 
 export function ComparisonTable({
   selected,

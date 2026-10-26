@@ -49,7 +49,11 @@ describe('loadTopics', () => {
   });
 });
 
-function topicApi(indicators: { shortId: number; name: string; slug: string }[] = []) {
+function topicApi(
+  indicators: { shortId: number; name: string; slug: string }[] = [],
+  highlightedIndicatorIds: number[] = [],
+  unavailableIds: number[] = [],
+) {
   return vi.fn(async (path: string) => {
     if (path.endsWith('/trends'))
       return {
@@ -62,12 +66,22 @@ function topicApi(indicators: { shortId: number; name: string; slug: string }[] 
         unavailable: indicators.length,
       };
     if (path.startsWith('/api/topics/'))
-      return { slug: 'topic-a', title: 'Topic A', description: 'About topic A' };
+      return {
+        slug: 'topic-a',
+        title: 'Topic A',
+        description: 'About topic A',
+        content: { highlightedIndicatorIds },
+      };
     if (path === '/api/areas/display-groups') return [];
     if (path === '/api/indicators/facets')
       return { topics: [], classifications: [], sources: [], valueTypes: [], yearTypes: [] };
     if (path.startsWith('/api/indicators/search?'))
       return { total: indicators.length, limit: 200, indicators };
+    if (
+      /^\/api\/indicators\/\d+$/.test(path) &&
+      unavailableIds.includes(Number(path.split('/').at(-1)))
+    )
+      throw new Response('Not Found', { status: 404 });
     if (/^\/api\/indicators\/\d+$/.test(path))
       return { shortId: Number(path.split('/').at(-1)), name: 'Indicator', slug: 'indicator' };
     if (path.includes('/data?')) return [];
@@ -98,6 +112,30 @@ describe('loadTopic', () => {
     expect(result.overview?.trends.total).toBe(1);
     expect(result.overview?.selected.map(({ detail }) => detail.shortId)).toEqual([241]);
     expect(get).toHaveBeenCalledWith('/api/topics/topic-a/trends', expect.anything());
+  });
+
+  it('loads editorial highlights even when they are outside the first search page', async () => {
+    const get = topicApi(
+      [{ shortId: 241, name: 'Diabetes prevalence', slug: 'diabetes-prevalence' }],
+      [93995],
+    );
+    const result = await loadTopic(
+      loaderArgs({ get } as unknown as ApiClient, { slug: 'topic-a' }),
+    );
+    expect(result.overview?.selected[0]?.detail.shortId).toBe(93995);
+    expect(get).toHaveBeenCalledWith('/api/indicators/93995', expect.anything());
+  });
+
+  it('skips editorial highlights that are absent from this published dataset', async () => {
+    const get = topicApi(
+      [{ shortId: 241, name: 'Diabetes prevalence', slug: 'diabetes-prevalence' }],
+      [93995],
+      [93995],
+    );
+    const result = await loadTopic(
+      loaderArgs({ get } as unknown as ApiClient, { slug: 'topic-a' }),
+    );
+    expect(result.overview?.selected.map(({ detail }) => detail.shortId)).toEqual([241]);
   });
 
   it('requests the topic by slug', async () => {

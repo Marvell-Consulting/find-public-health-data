@@ -1,4 +1,5 @@
 import {
+  indicatorDetailSchema,
   topicDetailSchema,
   topicSummaryListSchema,
   topicTrendSummarySchema,
@@ -48,18 +49,33 @@ export async function loadTopic(args: LoaderFunctionArgs) {
     search.gaCodes = search.gaCodes.slice(0, 1);
     search.geoLevels = [];
     const preferred = topic.content?.highlightedIndicatorIds ?? [];
-    const highlights = [
-      ...preferred.flatMap((id) =>
-        search.searchResult.indicators.filter((row) => row.shortId === id),
-      ),
-      ...search.searchResult.indicators.filter((row) => !preferred.includes(row.shortId)),
+    const searchIds = search.searchResult.indicators.map(({ shortId }) => shortId);
+    const availablePreferred = (
+      await Promise.all(
+        preferred.map(async (id) => {
+          if (searchIds.includes(id)) return id;
+          try {
+            await context
+              .get(apiContext)
+              .get(apiPath`/api/indicators/${String(id)}`, indicatorDetailSchema);
+            return id;
+          } catch (error) {
+            if (error instanceof Response && error.status === 404) return null;
+            throw error;
+          }
+        }),
+      )
+    ).filter((id): id is number => id !== null);
+    const highlightIds = [
+      ...availablePreferred,
+      ...searchIds.filter((id) => !availablePreferred.includes(id)),
     ].slice(0, 4);
     const dataUrl = new URL(request.url);
     dataUrl.search = '';
-    for (const { shortId } of highlights) dataUrl.searchParams.append('is', String(shortId));
+    for (const id of highlightIds) dataUrl.searchParams.append('is', String(id));
     for (const code of search.gaCodes) dataUrl.searchParams.append('as', code);
     for (const level of search.geoLevels) dataUrl.searchParams.append('als', level);
-    const data = highlights.length
+    const data = highlightIds.length
       ? await loadIndicatorTableData(
           { ...args, params: {}, request: new Request(dataUrl) },
           search.displayGroups,

@@ -72,6 +72,11 @@ export function IndicatorSummary({
                 {indicator.topics.map((topicItem) => (
                   <li className="fphd-tag" key={topicItem.slug}>
                     <A href={`/topics/${topicItem.slug}`}>{topicItem.title}</A>
+                    {topicItem.subtopics?.length ? (
+                      <span className="govuk-body-s govuk-!-margin-bottom-0">
+                        {topicItem.subtopics.map(({ title }) => title).join(', ')}
+                      </span>
+                    ) : null}
                   </li>
                 ))}
               </ul>
