@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router';
 import type { GeographyOptions } from '../geography/loader.ts';
 import { GeographyPicker } from '../geography/picker.tsx';
 import type { IndicatorSelection } from './loader.ts';
+import { indicatorSelectionUrl } from './paths.ts';
 
 export function IndicatorGeographies({
   displayGroups,
@@ -18,14 +19,8 @@ export function IndicatorGeographies({
   const location = useLocation();
   const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
-  const urlFor = (areaCodes: string[], areaLevels: string[]) => {
-    const next = new URLSearchParams(params);
-    next.delete('as');
-    next.delete('als');
-    for (const code of areaCodes) next.append('as', code);
-    for (const level of areaLevels) next.append('als', level);
-    return `${location.pathname}?${next}`;
-  };
+  const urlFor = (areaCodes: string[], areaLevels: string[]) =>
+    indicatorSelectionUrl(location, areaCodes, areaLevels);
   const picked = selection.areaCodes.length > 0 || selection.areaLevels.length > 0;
 
   return (

@@ -91,3 +91,11 @@ describe('TrendTable', () => {
     expect(within(row as HTMLElement).getByRole('cell').textContent).toBe(value);
   });
 });
+
+it('uses the visible caption as the table accessible name', () => {
+  render(
+    <TrendTable visibleCaption areaData={areaData} confidence="none" indicator={indicator('%')} />,
+  );
+  const table = screen.getByRole('table', { name: 'Table: Resident population, England, All' });
+  expect(table.hasAttribute('aria-label')).toBe(false);
+});

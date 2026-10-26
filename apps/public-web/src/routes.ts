@@ -11,14 +11,7 @@ export default [
   ),
   route('indicators', '../../../packages/public-web-features/src/indicator/legacy-route.ts'),
   route('indicators/search', '../../../packages/public-web-features/src/indicator/search-route.ts'),
-  route('indicator/search', '../../../packages/public-web-features/src/indicator/search-route.ts', {
-    id: 'single-indicator-search',
-  }),
   route('geographies', '../../../packages/public-web-features/src/indicator/geography-route.ts'),
-  route(
-    'indicators/compare.csv',
-    '../../../packages/public-web-features/src/indicator/comparison-csv-route.ts',
-  ),
   route(
     'indicators/:slug/table.csv',
     '../../../packages/public-web-features/src/indicator/table-csv-route.ts',

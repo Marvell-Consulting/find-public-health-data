@@ -126,3 +126,11 @@ export function trendTableModel({
     upperOf,
   };
 }
+
+export function trendColumnsParam(columns: TrendColumns): string {
+  return (
+    [columns.count ? 'count' : '', columns.value ? 'value' : '', ...columns.confidence]
+      .filter(Boolean)
+      .join(',') || 'none'
+  );
+}

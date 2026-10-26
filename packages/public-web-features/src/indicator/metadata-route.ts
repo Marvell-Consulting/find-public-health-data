@@ -3,7 +3,8 @@ import { UPDATE_FREQUENCY_LABELS } from '@fphd/utils/update-frequency';
 import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import { type LoaderFunctionArgs, redirect } from 'react-router';
-import { isIndicatorSegment, redirectStatus } from './paths.ts';
+import { providerSourceText } from './metadata-data.ts';
+import { indicatorMetadataPath, isIndicatorSegment, redirectStatus } from './paths.ts';
 
 export async function loader({ context, params }: LoaderFunctionArgs): Promise<Response> {
   const slug = params.slug;
@@ -12,7 +13,7 @@ export async function loader({ context, params }: LoaderFunctionArgs): Promise<R
     .get(apiContext)
     .get(apiPath`/api/indicators/${slug}`, indicatorDetailSchema);
   if (detail.slug !== slug)
-    throw redirect(`/indicator/${detail.slug}/metadata.txt`, redirectStatus(slug, detail.slug));
+    throw redirect(indicatorMetadataPath(detail.slug), redirectStatus(slug, detail.slug));
   const entries = [
     ['Indicator', detail.name],
     ['Indicator ID', String(detail.shortId)],
@@ -25,19 +26,9 @@ export async function loader({ context, params }: LoaderFunctionArgs): Promise<R
     ['Data source', detail.dataSource?.name],
     ['Data source URL', detail.dataSource?.url],
     ['Numerator definition', detail.numeratorDefinition],
-    [
-      'Numerator sources',
-      detail.numeratorSources
-        .map(({ provider, source }) => (source ? `${provider}: ${source}` : provider))
-        .join('; '),
-    ],
+    ['Numerator sources', providerSourceText(detail.numeratorSources)],
     ['Denominator definition', detail.denominatorDefinition],
-    [
-      'Denominator sources',
-      detail.denominatorSources
-        .map(({ provider, source }) => (source ? `${provider}: ${source}` : provider))
-        .join('; '),
-    ],
+    ['Denominator sources', providerSourceText(detail.denominatorSources)],
     ['Methodology', detail.methodology],
     ['Confidence interval method', detail.ciMethod],
     ['Benchmarking method', detail.comparatorMethod],

@@ -131,6 +131,65 @@ describe('loadIndicator', () => {
     expect(get.mock.calls.some(([path]) => String(path).includes('topics'))).toBe(false);
   });
 
+  it('removes an unpublished comparison while preserving the primary view', async () => {
+    const { client, get } = api();
+    const original = get.getMockImplementation();
+    if (!original) throw new Error('Missing test API implementation');
+    get.mockImplementation(async (path) => {
+      if (path === '/api/indicators/missing') throw new Response(null, { status: 404 });
+      return original(path);
+    });
+    await expect(
+      loadIndicator(
+        args(
+          client,
+          'http://localhost/indicator/indicator-108?compareWith=missing&tab-indicator=compare&as=E06000052',
+        ),
+      ),
+    ).rejects.toMatchObject({ status: 302, headers: expect.any(Headers) });
+    try {
+      await loadIndicator(
+        args(
+          client,
+          'http://localhost/indicator/indicator-108?compareWith=missing&tab-indicator=compare&as=E06000052',
+        ),
+      );
+    } catch (response) {
+      expect((response as Response).headers.get('Location')).toBe(
+        '/indicator/indicator-108?tab-indicator=compare&as=E06000052',
+      );
+    }
+  });
+
+  it('propagates primary not-found and comparison API failures', async () => {
+    for (const [path, status] of [
+      ['/api/indicators/indicator-108', 404],
+      ['/api/indicators/indicator-241', 502],
+    ] as const) {
+      const { client, get } = api();
+      const original = get.getMockImplementation();
+      if (!original) throw new Error('Missing test API implementation');
+      get.mockImplementation(async (candidate) => {
+        if (candidate === path) throw new Response(null, { status });
+        return original(candidate);
+      });
+      await expect(
+        loadIndicator(
+          args(client, 'http://localhost/indicator/indicator-108?compareWith=indicator-241'),
+        ),
+      ).rejects.toMatchObject({ status });
+    }
+  });
+
+  it('fetches complete non-authority groups before applying the selection limit', async () => {
+    const { client, get } = api();
+    await loadIndicator(args(client, 'http://localhost/indicator/indicator-108?als=NHS+regions'));
+    expect(get).toHaveBeenCalledWith(
+      '/api/indicators/indicator-108/areas?displayGroup=NHS%20regions',
+      expect.anything(),
+    );
+  });
+
   it('redirects numeric public addresses to the canonical slug', async () => {
     const { client } = api();
     try {

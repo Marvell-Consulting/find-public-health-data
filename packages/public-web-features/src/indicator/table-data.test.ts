@@ -3,7 +3,7 @@ import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
-import { loadComparisonData, loadIndicatorTableData } from './loader.ts';
+import { loadIndicatorTableData } from './loader.ts';
 
 function api() {
   const get = vi.fn(async (path: string) => {
@@ -67,15 +67,6 @@ function args(
 }
 
 describe('shared table data', () => {
-  it('loads comparison CSV data without page search controls', async () => {
-    const { client, get } = api();
-    const result = await loadComparisonData(
-      args(client, 'http://localhost/indicators/compare.csv?is=108&find=diabetes', ''),
-    );
-    expect(result.selected).toHaveLength(1);
-    expect(get.mock.calls.some(([path]) => String(path).includes('q=diabetes'))).toBe(false);
-  });
-
   it('loads the complete topic table without the single-page comparison limit', async () => {
     const { client } = api();
     const query = Array.from({ length: 15 }, (_, index) => `is=${index + 100}`).join('&');

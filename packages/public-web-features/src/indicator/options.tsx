@@ -1,6 +1,6 @@
 import { Button, Checkboxes, CollapsibleFilterCard, Details, Hint, Radios, Select } from '@fphd/ui';
-import { type ReactNode, useEffect, useId, useState } from 'react';
-import { Form, useLocation, useNavigate } from 'react-router';
+import { type ReactNode, useId } from 'react';
+import { Form, useLocation, useNavigate, useNavigation } from 'react-router';
 
 import type { BenchmarkChoice } from './comparison.ts';
 import {
@@ -25,9 +25,10 @@ export function confidenceOptions(levels: string[]) {
  *  navigation with replace + preventScrollReset, skipped by the route's revalidation. */
 export function useOptionParamNavigation() {
   const location = useLocation();
+  const navigation = useNavigation();
   const navigate = useNavigate();
   return (entries: readonly (readonly [string, string, string])[]) => {
-    const params = new URLSearchParams(location.search);
+    const params = new URLSearchParams(navigation.location?.search ?? location.search);
     for (const [key, value, empty] of entries) {
       if (value === empty) {
         params.delete(key);
@@ -65,7 +66,8 @@ function panelOptionNames(scope: OptionScope) {
 
 export function usePanelOptions(scope: OptionScope) {
   const { search } = useLocation();
-  const params = new URLSearchParams(search);
+  const navigation = useNavigation();
+  const params = new URLSearchParams(navigation.location?.search ?? search);
   const names = panelOptionNames(scope);
   const apply = useOptionParamNavigation();
   const benchmark = params.get(names.benchmark);
@@ -89,41 +91,31 @@ export function usePanelOptions(scope: OptionScope) {
   return [options, update] as const;
 }
 
+interface OptionTarget {
+  tabParam: string;
+  tabValue: string;
+  anchor: string;
+}
+
 function OptionsForm({
   children,
   names,
-  panel,
-  scope,
+  target,
 }: {
   children: ReactNode;
   names: string[];
-  panel: 'table' | 'inequalities';
-  scope: OptionScope;
+  target: OptionTarget;
 }) {
   const location = useLocation();
-  const singlePage = location.pathname.startsWith('/indicator/');
-  const tabName = singlePage ? 'tab-indicator' : `tab-${scope}`;
   const preserved = [...new URLSearchParams(location.search)].filter(
-    ([name]) => name !== tabName && !names.includes(name),
+    ([name]) => name !== target.tabParam && !names.includes(name),
   );
-  const anchor = singlePage
-    ? panel === 'table'
-      ? 'indicator-data'
-      : 'indicator-inequalities'
-    : scope === 'compare'
-      ? 'compare-table'
-      : `${panel}-${scope}`;
-
   return (
-    <Form action={`${location.pathname}#${anchor}`} method="get" replace preventScrollReset>
+    <Form action={`${location.pathname}#${target.anchor}`} method="get" replace preventScrollReset>
       {preserved.map(([name, value], index) => (
         <input key={`${name}-${index}`} name={name} type="hidden" value={value} />
       ))}
-      <input
-        name={tabName}
-        type="hidden"
-        value={singlePage && panel === 'table' ? 'indicator' : panel}
-      />
+      <input name={target.tabParam} type="hidden" value={target.tabValue} />
       {children}
       <noscript>
         <Button className="govuk-!-margin-bottom-0" type="submit">
@@ -140,17 +132,18 @@ function OptionsForm({
  */
 export function PanelOptionsPanel({
   accordion = false,
-  columns: persistedColumns,
-  onColumnsChange: persistColumns,
+  columns,
+  onColumnsChange,
   benchmarks,
   confidenceLevels,
   label,
-  onChange: persistOptions,
-  options: persistedOptions,
+  onChange,
+  options,
   periodTypes,
   scope,
   sexes,
   showConfidence,
+  target,
 }: {
   accordion?: boolean;
   columns?: TrendColumns;
@@ -165,33 +158,8 @@ export function PanelOptionsPanel({
   scope: OptionScope;
   sexes: string[];
   showConfidence: boolean;
+  target: OptionTarget;
 }) {
-  const [options, setOptions] = useState(persistedOptions);
-  const [columns, setColumns] = useState(persistedColumns);
-  useEffect(
-    () => setOptions(persistedOptions),
-    [
-      persistedOptions.benchmark,
-      persistedOptions.confidence,
-      persistedOptions.periodType,
-      persistedOptions.range,
-      persistedOptions.sex,
-    ],
-  );
-  useEffect(
-    () => setColumns(persistedColumns),
-    [persistedColumns?.count, persistedColumns?.value, persistedColumns?.confidence.join(',')],
-  );
-  const onChange = (next: PanelOptions) => {
-    setOptions(next);
-    persistOptions(next);
-  };
-  const onColumnsChange = persistColumns
-    ? (next: TrendColumns) => {
-        setColumns(next);
-        persistColumns(next);
-      }
-    : undefined;
   const ids = {
     benchmark: useId(),
     confidence: useId(),
@@ -217,7 +185,7 @@ export function PanelOptionsPanel({
     : [];
 
   const content = (
-    <OptionsForm names={[...Object.values(names), `columns-${scope}`]} panel="table" scope={scope}>
+    <OptionsForm names={[...Object.values(names), `columns-${scope}`]} target={target}>
       {columns && onColumnsChange ? (
         <>
           <input type="hidden" name={`columns-${scope}`} value="" />
@@ -330,15 +298,16 @@ export function PanelOptionsPanel({
 export function InequalityOptions({
   accordion = false,
   categories,
-  category: persistedCategory,
+  category,
   confidence,
   confidenceLevels,
-  onCategoryChange: persistCategory,
+  onCategoryChange,
   onConfidenceChange,
   onPeriodChange,
   period,
   periods,
   scope,
+  target,
 }: {
   accordion?: boolean;
   categories: string[];
@@ -351,13 +320,8 @@ export function InequalityOptions({
   period: string;
   periods: { value: string; label: string }[];
   scope: number;
+  target: OptionTarget;
 }) {
-  const [category, setCategory] = useState(persistedCategory);
-  useEffect(() => setCategory(persistedCategory), [persistedCategory]);
-  const onCategoryChange = (next: string) => {
-    setCategory(next);
-    persistCategory(next);
-  };
   const categoryId = useId();
   const periodId = useId();
   const confidenceId = useId();
@@ -368,7 +332,7 @@ export function InequalityOptions({
   };
 
   const content = (
-    <OptionsForm names={Object.values(names)} panel="inequalities" scope={scope}>
+    <OptionsForm names={Object.values(names)} target={target}>
       <div className="fphd-segmentation-options__selects">
         {accordion ? (
           <Radios

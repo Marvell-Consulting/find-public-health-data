@@ -28,7 +28,7 @@ export function ComparePicker({
   };
   const searchIndicators = useCallback(
     async (query: string, signal: AbortSignal) => {
-      const response = await fetch(`/indicator/search?q=${encodeURIComponent(query)}`, { signal });
+      const response = await fetch(`/indicators/search?q=${encodeURIComponent(query)}`, { signal });
       if (!response.ok) throw new Error(`Indicator search failed: ${response.status}`);
       const { indicators } = (await response.json()) as { indicators: IndicatorSummary[] };
       return indicators

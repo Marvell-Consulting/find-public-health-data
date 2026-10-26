@@ -4,7 +4,7 @@ import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 import { MORTALITY_PATH, openIndicatorPage } from '../support/indicator-page.ts';
 
 function trendTable(page: import('@playwright/test').Page) {
-  return page.getByRole('table', { name: /trends over time/ });
+  return page.getByRole('table', { name: /^Table:/ });
 }
 
 test('table options update the series and keep their choices on reload', async ({

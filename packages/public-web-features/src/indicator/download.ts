@@ -1,8 +1,7 @@
 import { periodLabel } from '@fphd/utils/period-label';
 import { stringify } from 'csv-stringify/sync';
 
-import type { comparisonTable } from './comparison.ts';
-import { type ConfidenceLevel, segmentLabel, unitNote, withUnit } from './data.ts';
+import { type ConfidenceLevel, segmentLabel, unitNote } from './data.ts';
 import type { IndicatorAreaData, IndicatorDetail } from './loader.ts';
 import type { TrendColumns, trendTableModel } from './trend.ts';
 
@@ -127,58 +126,4 @@ export function allDataCsv(
     }
   }
   return tableCsv(includeHeader ? rows : rows.slice(1));
-}
-
-export function comparisonCsv(
-  comparison: ReturnType<typeof comparisonTable>,
-  range: boolean,
-): string {
-  const { areas, rows, trendOf, benchmarkNameFor, benchmarkCellFor } = comparison;
-  return tableCsv([
-    [
-      'Indicator',
-      'Most recent period',
-      ...areas.flatMap(({ areaCode, areaName }) => [
-        `${areaName} recent trend`,
-        `${areaName} count`,
-        `${areaName} calculated value`,
-        ...(benchmarkNameFor(areaCode)
-          ? [
-              `${areaName} ${benchmarkNameFor(areaCode)} calculated value`,
-              ...(range
-                ? [
-                    `${areaName} ${benchmarkNameFor(areaCode)} minimum`,
-                    `${areaName} ${benchmarkNameFor(areaCode)} maximum`,
-                  ]
-                : []),
-            ]
-          : []),
-      ]),
-    ],
-    ...rows.map((row) => [
-      `${row.name}${row.suffix ? ` ${row.suffix}` : ''}`,
-      row.period,
-      ...row.cells.flatMap((cell) => {
-        const benchmarkCell = benchmarkNameFor(cell.areaCode)
-          ? benchmarkCellFor(row, cell)
-          : undefined;
-        return [
-          trendOf(row, cell).label,
-          cell.count === null ? '' : String(cell.count),
-          cell.value === null ? '' : withUnit(String(cell.value), row.unit),
-          ...(benchmarkNameFor(cell.areaCode)
-            ? [
-                benchmarkCell?.value == null ? '' : withUnit(String(benchmarkCell.value), row.unit),
-                ...(range
-                  ? [
-                      benchmarkCell?.rangePeriod ? String(benchmarkCell.rangePeriod.min) : '',
-                      benchmarkCell?.rangePeriod ? String(benchmarkCell.rangePeriod.max) : '',
-                    ]
-                  : []),
-              ]
-            : []),
-        ];
-      }),
-    ]),
-  ]);
 }

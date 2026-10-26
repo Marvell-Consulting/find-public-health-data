@@ -31,3 +31,20 @@ export function isIndicatorSegment(segment: string): boolean {
     lowered.length <= SLUG_MAX_LENGTH && SLUG_PATTERN.test(lowered) && !isReservedSlug(lowered)
   );
 }
+
+export function indicatorMetadataPath(slug: string): string {
+  return `${indicatorPath(slug)}/metadata.txt`;
+}
+
+export function indicatorSelectionUrl(
+  location: { pathname: string; search: string },
+  areaCodes: string[],
+  areaLevels: string[],
+): string {
+  const params = new URLSearchParams(location.search);
+  params.delete('as');
+  params.delete('als');
+  for (const code of areaCodes) params.append('as', code);
+  for (const level of areaLevels) params.append('als', level);
+  return `${location.pathname}?${params}`;
+}

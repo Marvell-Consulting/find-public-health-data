@@ -92,7 +92,11 @@ export function TrendTable({
       <TableScrollRegion label={`${indicator.name} trends over time`}>
         <table
           className="govuk-table fphd-trend-table"
-          aria-label={`${indicator.name} trends over time, ${segmentLabel(firstObservation)}`}
+          aria-label={
+            visibleCaption
+              ? undefined
+              : `${indicator.name} trends over time, ${segmentLabel(firstObservation)}`
+          }
         >
           <caption
             className={`govuk-table__caption ${visibleCaption ? 'govuk-table__caption--s' : 'govuk-visually-hidden'}`}
@@ -100,6 +104,7 @@ export function TrendTable({
             {visibleCaption ? (
               <>
                 Table: {indicator.name}, {seriesByArea.map(({ data }) => data.areaName).join(', ')}
+                <span className="govuk-visually-hidden">, {segmentLabel(firstObservation)}</span>
               </>
             ) : (
               <>

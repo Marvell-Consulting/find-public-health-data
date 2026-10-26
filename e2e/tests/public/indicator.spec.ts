@@ -28,7 +28,7 @@ test('shows one indicator with its summary and five sections', async ({ page }, 
     'aria-selected',
     'true',
   );
-  await expect(page.getByRole('table', { name: /trends over time/ })).toBeVisible();
+  await expect(page.getByRole('table', { name: /^Table:/ })).toBeVisible();
   await expectNoAccessibilityViolations(page, testInfo);
 });
 
@@ -499,5 +499,18 @@ test('keeps both comparison controls accessible in the stacked mobile view', asy
     .locator('[id]')
     .evaluateAll((elements) => elements.map((element) => element.id));
   expect(ids.length).toBe(new Set(ids).size);
+  await expectNoAccessibilityViolations(page, testInfo);
+});
+
+test('keeps the primary indicator when a shared comparison is unavailable', async ({
+  page,
+}, testInfo) => {
+  await openIndicatorPage(
+    page,
+    `${MORTALITY_PATH}?compareWith=no-such-indicator&tab-indicator=compare&as=E08000003`,
+  );
+  await expect(page).toHaveURL(`${MORTALITY_PATH}?tab-indicator=compare&as=E08000003`);
+  await expect(page.getByRole('heading', { level: 1, name: MORTALITY_NAME })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Search for an indicator' })).toBeVisible();
   await expectNoAccessibilityViolations(page, testInfo);
 });

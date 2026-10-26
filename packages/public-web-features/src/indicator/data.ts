@@ -539,28 +539,7 @@ function isPureCategory(
  * collide (the same deciles across boundary revisions), the geography qualifier stays
  * as the differentiator.
  */
-export function inequalityCategoryLabel(type: string, keepGeography = false): string {
-  const localAuthorities = type.match(
-    /^(County|District) & UA deprivation deciles in England \((IMD\d{4}), (\d+)\/(\d+) geography\)$/,
-  );
-  if (localAuthorities) {
-    const [, tier, scheme, month, year] = localAuthorities;
-    const boundary = new Intl.DateTimeFormat('en-GB', {
-      month: 'long',
-      year: 'numeric',
-      timeZone: 'UTC',
-    }).format(new Date(Date.UTC(2000 + Number(year), Number(month) - 1)));
-    return `${tier === 'County' ? 'Counties' : 'Districts'} and unitary authorities by deprivation (${scheme?.replace('IMD', 'IMD ')}, ${boundary} boundaries)`;
-  }
-  const label = type
-    .replace('County & UA', 'County and unitary authority')
-    .replace('District & UA', 'District and unitary authority')
-    .replace(' in England', '')
-    .replace(' within area', '');
-  return keepGeography ? label : label.replace(/,\s*\d+\/\d+ geography/, '');
-}
-
-export function inequalityCategoryHint(type: string): string | undefined {
+function deprivationBoundary(type: string) {
   const match = type.match(
     /^(County|District) & UA deprivation deciles in England \(IMD(\d{4}), (\d+)\/(\d+) geography\)$/,
   );
@@ -571,6 +550,27 @@ export function inequalityCategoryHint(type: string): string | undefined {
     year: 'numeric',
     timeZone: 'UTC',
   }).format(new Date(Date.UTC(2000 + Number(boundaryYear), Number(month) - 1)));
+  return { tier, year, boundary };
+}
+
+export function inequalityCategoryLabel(type: string, keepGeography = false): string {
+  const qualifier = deprivationBoundary(type);
+  if (qualifier) {
+    const { tier, year, boundary } = qualifier;
+    return `${tier === 'County' ? 'Counties' : 'Districts'} and unitary authorities by deprivation (IMD ${year}, ${boundary} boundaries)`;
+  }
+  const label = type
+    .replace('County & UA', 'County and unitary authority')
+    .replace('District & UA', 'District and unitary authority')
+    .replace(' in England', '')
+    .replace(' within area', '');
+  return keepGeography ? label : label.replace(/,\s*\d+\/\d+ geography/, '');
+}
+
+export function inequalityCategoryHint(type: string): string | undefined {
+  const qualifier = deprivationBoundary(type);
+  if (!qualifier) return undefined;
+  const { tier, year, boundary } = qualifier;
   const areas =
     tier === 'County'
       ? 'upper tier local authorities (counties and unitary authorities'
