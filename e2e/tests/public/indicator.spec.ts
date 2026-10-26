@@ -319,7 +319,7 @@ test('keeps the full tab labels in one connected row at tablet and desktop width
   page,
 }, testInfo) => {
   await openIndicatorPage(page, `${MORTALITY_PATH}?tab-indicator=about`);
-  for (const width of [834, 768, 641, 1440]) {
+  for (const width of [834, 768, 641, 960, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     await expect(page.getByRole('tab')).toHaveText([
       'Indicator',
@@ -346,6 +346,24 @@ test('keeps the full tab labels in one connected row at tablet and desktop width
       Math.max(...boxes.map(({ bottom }) => bottom)) -
         Math.min(...boxes.map(({ bottom }) => bottom)),
     ).toBeLessThanOrEqual(1);
+    const rowPosition = () =>
+      page.getByRole('tablist').evaluate((element) => {
+        const { top, height } = element.getBoundingClientRect();
+        return { top: top + window.scrollY, height };
+      });
+    const initial = await rowPosition();
+    for (const label of [
+      'Indicator',
+      'Compare areas',
+      'Compare indicators',
+      'Inequalities',
+      'About this indicator',
+    ]) {
+      await page.getByRole('tab', { name: label, exact: true }).click();
+      const current = await rowPosition();
+      expect(Math.abs(current.top - initial.top)).toBeLessThanOrEqual(1);
+      expect(Math.abs(current.height - initial.height)).toBeLessThanOrEqual(1);
+    }
     await expect(page.locator('.fphd-tabs__navigation')).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
     const selected = await page.locator('.govuk-tabs__list-item--selected').boundingBox();
