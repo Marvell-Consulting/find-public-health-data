@@ -16,12 +16,24 @@ const relationships = {
 
 describe('parseDataMigrationRelationships', () => {
   it('accepts pointers within the reviewed indicator coverage', () => {
-    expect(parseDataMigrationRelationships(relationships)).toEqual(relationships);
+    expect(parseDataMigrationRelationships(relationships)).toEqual({
+      ...relationships,
+      areaContextIndicators: [],
+      indicatorSubtopics: [],
+    });
   });
   it('refuses duplicate coverage IDs', () => {
     expect(() =>
       parseDataMigrationRelationships({ ...relationships, indicators: [108, 108] }),
     ).toThrow('coverage contains duplicate indicators');
+  });
+  it('requires a primary topic when primary flags are supplied', () => {
+    expect(() =>
+      parseDataMigrationRelationships({
+        ...relationships,
+        indicatorTopics: [{ ...relationships.indicatorTopics[0], isPrimary: false }],
+      }),
+    ).toThrow('Missing primary topic: 108');
   });
   it.each([
     { indicatorTopics: [{ ...relationships.indicatorTopics[0], fingertipsId: 109 }] },
@@ -31,6 +43,7 @@ describe('parseDataMigrationRelationships', () => {
       ],
     },
     { indicatorDataUpdatedAt: { 109: '2026-01-02T03:04:05Z' } },
+    { areaContextIndicators: [109] },
   ])('refuses relationship pointers outside declared coverage: %j', (pointers) => {
     expect(() => parseDataMigrationRelationships({ ...relationships, ...pointers })).toThrow(
       'relationships name indicators outside coverage: 109',

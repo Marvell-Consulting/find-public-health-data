@@ -2,7 +2,7 @@ export interface SearchState {
   q: string;
   topics: string[];
   indicatorTypes: string[];
-  riskFactors: string[];
+  lifeStages: string[];
   frameworks: string[];
   populations: string[];
   inequalities: string[];
@@ -38,20 +38,20 @@ export const DIMENSIONS: DimensionConfig[] = [
   {
     param: 'it',
     stateKey: 'indicatorTypes',
-    selectedLabel: 'Selected indicator types',
-    autocompleteLabel: 'Search for an indicator type',
-    addButtonLabel: 'Add indicator type',
-    noResultsMessage: 'No indicator types found',
+    selectedLabel: 'Selected measure types',
+    autocompleteLabel: 'Search for a measure type',
+    addButtonLabel: 'Add measure type',
+    noResultsMessage: 'No measure types found',
     classificationDimension: 'indicator_type',
   },
   {
-    param: 'rf',
-    stateKey: 'riskFactors',
-    selectedLabel: 'Selected risk factors',
-    autocompleteLabel: 'Search for a risk factor',
-    addButtonLabel: 'Add risk factor',
-    noResultsMessage: 'No risk factors found',
-    classificationDimension: 'risk_factor',
+    param: 'ls',
+    stateKey: 'lifeStages',
+    selectedLabel: 'Selected life stages',
+    autocompleteLabel: 'Search for a life stage',
+    addButtonLabel: 'Add life stage',
+    noResultsMessage: 'No life stages found',
+    classificationDimension: 'life_stage',
   },
   {
     param: 'fw',
@@ -134,7 +134,7 @@ export const EMPTY_SEARCH_STATE: SearchState = {
   q: '',
   topics: [],
   indicatorTypes: [],
-  riskFactors: [],
+  lifeStages: [],
   frameworks: [],
   populations: [],
   inequalities: [],

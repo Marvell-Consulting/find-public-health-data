@@ -16,8 +16,9 @@ const path = '/api/internal/tags';
 
 const options: TagOptions = {
   topics: [{ id: '019fa38f-073f-764e-9ac6-1c4d03b10001', name: 'Alcohol' }],
+  subtopics: [],
   indicatorTypes: [{ id: '019fa38f-073f-764e-9ac6-1c4d03b10002', name: 'Outcome' }],
-  riskFactors: [{ id: '019fa38f-073f-764e-9ac6-1c4d03b10003', name: 'Gambling' }],
+  lifeStages: [{ id: '019fa38f-073f-764e-9ac6-1c4d03b10003', name: 'Gambling' }],
   frameworks: [{ id: '019fa38f-073f-764e-9ac6-1c4d03b10004', name: 'Healthy Child' }],
 };
 

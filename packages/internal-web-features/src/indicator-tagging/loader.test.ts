@@ -13,19 +13,26 @@ const sectionPath = `/api/internal/indicators/${id}/tagging`;
 const topic = '019fa38f-073f-764e-9ac6-1c4d03b10001';
 const otherTopic = '019fa38f-073f-764e-9ac6-1c4d03b10002';
 const type = '019fa38f-073f-764e-9ac6-1c4d03b10003';
-const riskFactor = '019fa38f-073f-764e-9ac6-1c4d03b10004';
+const lifeStage = '019fa38f-073f-764e-9ac6-1c4d03b10004';
 
 const options: TagOptions = {
   topics: [
     { id: topic, name: 'Alcohol' },
     { id: otherTopic, name: 'Cancer' },
   ],
+  subtopics: [],
   indicatorTypes: [{ id: type, name: 'Outcome' }],
-  riskFactors: [{ id: riskFactor, name: 'Gambling' }],
+  lifeStages: [{ id: lifeStage, name: 'Gambling' }],
   frameworks: [],
 };
 
-const nothingChosen = { addTopic: '', addIndicatorType: '', addRiskFactor: '', addFramework: '' };
+const nothingChosen = {
+  addTopic: '',
+  addSubtopic: '',
+  addIndicatorType: '',
+  addLifeStage: '',
+  addFramework: '',
+};
 
 function context(client: Partial<ApiClient>) {
   const provider = new RouterContextProvider();
@@ -62,8 +69,9 @@ function isRedirectToTaskList(outcome: unknown) {
 
 const answered: [string, string][] = [
   ['topicIds', topic],
+  ['primaryTopicId', topic],
   ['indicatorTypeIds', type],
-  ['hasRiskFactor', 'no'],
+  ['hasLifeStage', 'no'],
   ['hasFramework', 'no'],
 ];
 
@@ -74,9 +82,12 @@ describe('loadTagging', () => {
         path === sectionPath
           ? {
               topicIds: [topic],
+              primaryTopicId: topic,
+              subtopicIds: [],
+              primarySubtopicId: '',
               indicatorTypeIds: [],
-              hasRiskFactor: 'yes',
-              riskFactorIds: [riskFactor],
+              hasLifeStage: 'yes',
+              lifeStageIds: [lifeStage],
               hasFramework: null,
               frameworkIds: [],
             }
@@ -95,9 +106,12 @@ describe('loadTagging', () => {
       options,
       values: {
         topicIds: [topic],
+        primaryTopicId: topic,
+        subtopicIds: [],
+        primarySubtopicId: '',
         indicatorTypeIds: [],
-        hasRiskFactor: 'yes',
-        riskFactorIds: [riskFactor],
+        hasLifeStage: 'yes',
+        lifeStageIds: [lifeStage],
         hasFramework: '',
         frameworkIds: [],
         ...nothingChosen,
@@ -122,6 +136,7 @@ describe('submitTagging', () => {
     const outcome = await submit(
       [
         ['topicIds', topic],
+        ['primaryTopicId', topic],
         ['addTopic', otherTopic],
         ['intent', addIntent('topicIds')],
       ],
@@ -135,20 +150,21 @@ describe('submitTagging', () => {
     expect(put).not.toHaveBeenCalled();
   });
 
-  it('answers "Yes" when a risk factor is added', async () => {
+  it('answers "Yes" when a life stage is added', async () => {
     const outcome = await submit([
-      ['addRiskFactor', riskFactor],
-      ['intent', addIntent('riskFactorIds')],
+      ['addLifeStage', lifeStage],
+      ['intent', addIntent('lifeStageIds')],
     ]);
 
     expect(outcome).toMatchObject({
-      values: { hasRiskFactor: 'yes', riskFactorIds: [riskFactor] },
+      values: { hasLifeStage: 'yes', lifeStageIds: [lifeStage] },
     });
   });
 
   it('adds a tag once, however often it is chosen', async () => {
     const outcome = await submit([
       ['topicIds', topic],
+      ['primaryTopicId', topic],
       ['addTopic', topic],
       ['intent', addIntent('topicIds')],
     ]);
@@ -160,7 +176,7 @@ describe('submitTagging', () => {
     const outcome = await submit([['intent', addIntent('indicatorTypeIds')]]);
 
     expect(outcome).toMatchObject({
-      fieldErrors: { addIndicatorType: 'Select an indicator type' },
+      fieldErrors: { addIndicatorType: 'Select a measure type' },
     });
   });
 
@@ -170,6 +186,7 @@ describe('submitTagging', () => {
     const outcome = await submit(
       [
         ['topicIds', topic],
+        ['primaryTopicId', topic],
         ['topicIds', otherTopic],
         ['intent', removeIntent(0, 'topicIds')],
       ],
@@ -188,42 +205,49 @@ describe('submitTagging', () => {
     expect(put.mock.calls[0]?.[0]).toBe(sectionPath);
     expect(put.mock.calls[0]?.[1]).toEqual({
       topicIds: [topic, otherTopic],
+      primaryTopicId: topic,
+      subtopicIds: [],
+      primarySubtopicId: '',
       indicatorTypeIds: [type],
-      hasRiskFactor: 'no',
-      riskFactorIds: [],
+      hasLifeStage: 'no',
+      lifeStageIds: [],
       hasFramework: 'no',
       frameworkIds: [],
     });
     expect(outcome).toSatisfy(isRedirectToTaskList);
   });
 
-  it('leaves out a risk factor chosen beside "No"', async () => {
+  it('leaves out a life stage chosen beside "No"', async () => {
     const put = vi.fn().mockResolvedValue({ ok: true, data: {} });
 
-    await submit([...answered, ['addRiskFactor', riskFactor]], put);
+    await submit([...answered, ['addLifeStage', lifeStage]], put);
 
-    expect(put.mock.calls[0]?.[1]).toMatchObject({ hasRiskFactor: 'no', riskFactorIds: [] });
+    expect(put.mock.calls[0]?.[1]).toMatchObject({ hasLifeStage: 'no', lifeStageIds: [] });
   });
 
   it('saves nothing while the answers are refused', async () => {
     const put = vi.fn();
 
-    const outcome = await submit([['hasRiskFactor', 'yes']], put);
+    const outcome = await submit([['hasLifeStage', 'yes']], put);
 
     expect(outcome).toEqual({
       values: {
         topicIds: [],
+        primaryTopicId: '',
+        subtopicIds: [],
+        primarySubtopicId: '',
         indicatorTypeIds: [],
-        hasRiskFactor: 'yes',
-        riskFactorIds: [],
+        hasLifeStage: 'yes',
+        lifeStageIds: [],
         hasFramework: '',
         frameworkIds: [],
         ...nothingChosen,
       },
       fieldErrors: {
         topicIds: 'Select at least one topic',
-        indicatorTypeIds: 'Select at least one indicator type',
-        riskFactorIds: 'Select at least one risk factor',
+        primaryTopicId: 'Select a primary topic',
+        indicatorTypeIds: 'Select a measure type',
+        lifeStageIds: 'Select at least one life stage',
         hasFramework: 'Select whether this indicator is part of a framework or programme',
       },
     });

@@ -79,7 +79,7 @@ export function IndicatorSummary({
           }
         />
         <TableRow
-          label="Indicator types"
+          label="Measure type"
           value={
             ofDimension('indicator_type').length > 0 ? (
               <ul className="govuk-list fphd-tag-list">
@@ -93,11 +93,25 @@ export function IndicatorSummary({
           }
         />
         <TableRow
-          label="Risk factors"
+          label="Plans and programmes"
           value={
-            ofDimension('risk_factor').length > 0 ? (
+            ofDimension('framework').length > 0 ? (
               <ul className="govuk-list fphd-tag-list">
-                {ofDimension('risk_factor').map((entry) => (
+                {ofDimension('framework').map((entry) => (
+                  <li className="fphd-tag" key={entry.slug}>
+                    {entry.name}
+                  </li>
+                ))}
+              </ul>
+            ) : null
+          }
+        />
+        <TableRow
+          label="Life stage"
+          value={
+            ofDimension('life_stage').length > 0 ? (
+              <ul className="govuk-list fphd-tag-list">
+                {ofDimension('life_stage').map((entry) => (
                   <li className="fphd-tag" key={entry.slug}>
                     {entry.name}
                   </li>

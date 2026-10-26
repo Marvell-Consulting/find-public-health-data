@@ -30,6 +30,7 @@ import { downloadPublishedSnapshot } from './published-snapshot.ts';
 const IMPORTED_TABLES = [
   ...SEEDED_TABLES,
   'indicator_version_topic',
+  'indicator_version_subtopic',
   'indicator_version_classification',
 ] as const;
 
@@ -76,6 +77,7 @@ export async function bootstrap({ sql, config }: CommandContext): Promise<void> 
 export async function importCoreData({ sql, logger }: CommandContext): Promise<void> {
   const {
     topics,
+    subtopics,
     ciMethods,
     classifications,
     dataProviders,
@@ -84,6 +86,12 @@ export async function importCoreData({ sql, logger }: CommandContext): Promise<v
     comparatorMethods,
   } = await importCoreDataFromFiles(sql);
   logger.info({ ...topics.summary }, 'Topics imported');
+  logger.info({ ...subtopics.summary }, 'Subtopics imported');
+  for (const row of subtopics.orphaned)
+    logger.warn(
+      { id: row.id, topicId: row.topicId, slug: row.slug },
+      'Subtopic in the database but absent from the file; left in place',
+    );
   for (const topic of topics.orphaned) {
     logger.warn(
       { id: topic.id, slug: topic.slug },

@@ -9,7 +9,7 @@ import { indicatorVersion } from './indicator.ts';
 
 /**
  * The classifications of every dimension in `@fphd/utils/classification-dimension`: one table
- * rather than five, because the dimensions differ only in their vocabulary. Adding one extends
+ * because the dimensions differ only in their vocabulary. Adding one extends
  * `CLASSIFICATION_DIMENSIONS`, with a migration for the check.
  */
 export const classification = pgTable(

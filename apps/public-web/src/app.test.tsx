@@ -956,7 +956,7 @@ describe('public application routes', () => {
     q: '',
     topics: [],
     indicatorTypes: [],
-    riskFactors: [],
+    lifeStages: [],
     frameworks: [],
     populations: [],
     inequalities: [],

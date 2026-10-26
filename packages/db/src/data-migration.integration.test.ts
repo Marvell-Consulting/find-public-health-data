@@ -34,7 +34,7 @@ let sql: postgres.Sql;
 let directory: string;
 let topicId: string;
 let frameworkId: string;
-let riskFactorId: string;
+let lifeStageId: string;
 
 beforeAll(async () => {
   database = await createTestDatabase();
@@ -49,13 +49,13 @@ beforeAll(async () => {
   const [framework] = await sql<
     { id: string }[]
   >`SELECT id FROM classification WHERE dimension = 'framework' LIMIT 1`;
-  const [riskFactor] = await sql<
+  const [lifeStage] = await sql<
     { id: string }[]
-  >`SELECT id FROM classification WHERE dimension = 'risk_factor' LIMIT 1`;
-  if (!topic || !framework || !riskFactor) throw new Error('Missing core fixture data');
+  >`SELECT id FROM classification WHERE dimension = 'life_stage' LIMIT 1`;
+  if (!topic || !framework || !lifeStage) throw new Error('Missing core fixture data');
   topicId = topic.id;
   frameworkId = framework.id;
-  riskFactorId = riskFactor.id;
+  lifeStageId = lifeStage.id;
 });
 beforeEach(async () => {
   const tables = DATA_MIGRATION_TABLES.filter(
@@ -1319,37 +1319,37 @@ describe('applyDataMigration', () => {
       relationships: {
         indicatorClassifications: [
           { fingertipsId: 108, classificationId: frameworkId },
-          { fingertipsId: 108, classificationId: riskFactorId },
+          { fingertipsId: 108, classificationId: lifeStageId },
         ],
       },
     });
     await apply({
       relationships: {
-        indicatorClassifications: [{ fingertipsId: 108, classificationId: riskFactorId }],
+        indicatorClassifications: [{ fingertipsId: 108, classificationId: lifeStageId }],
       },
     });
-    const [row] = await sql<{ framework: boolean | null; risk: boolean | null }[]>`
-      SELECT has_framework AS framework, has_risk_factor AS risk FROM indicator_version WHERE id = ${VERSION_ID}
+    const [row] = await sql<{ framework: boolean | null; lifeStage: boolean | null }[]>`
+      SELECT has_framework AS framework, has_life_stage AS "lifeStage" FROM indicator_version WHERE id = ${VERSION_ID}
     `;
-    expect(row).toEqual({ framework: null, risk: true });
+    expect(row).toEqual({ framework: false, lifeStage: true });
     await apply({
       predecessor: 'increment-2',
       migrationId: 'increment-3',
       cutoffAt: '2026-09-23T10:00:00Z',
     });
     const [removed] = await sql<
-      { risk: boolean | null }[]
-    >`SELECT has_risk_factor AS risk FROM indicator_version WHERE id = ${VERSION_ID}`;
-    expect(removed?.risk).toBeNull();
+      { lifeStage: boolean | null }[]
+    >`SELECT has_life_stage AS "lifeStage" FROM indicator_version WHERE id = ${VERSION_ID}`;
+    expect(removed?.lifeStage).toBe(false);
   });
   it('retains explicit negative classification answers', async () => {
     await baseline();
-    await sql`UPDATE indicator_version SET has_framework = false, has_risk_factor = false WHERE id = ${VERSION_ID}`;
+    await sql`UPDATE indicator_version SET has_framework = false, has_life_stage = false WHERE id = ${VERSION_ID}`;
     await apply();
-    const [row] = await sql<{ framework: boolean; risk: boolean }[]>`
-      SELECT has_framework AS framework, has_risk_factor AS risk FROM indicator_version WHERE id = ${VERSION_ID}
+    const [row] = await sql<{ framework: boolean; lifeStage: boolean }[]>`
+      SELECT has_framework AS framework, has_life_stage AS "lifeStage" FROM indicator_version WHERE id = ${VERSION_ID}
     `;
-    expect(row).toEqual({ framework: false, risk: false });
+    expect(row).toEqual({ framework: false, lifeStage: false });
   });
   it('refuses missing topics and rolls back source edits, relationships and the ledger', async () => {
     await baseline();

@@ -39,6 +39,7 @@ it('imports a generated development snapshot with version batch pointers and pub
   await exportDevSnapshot({ connectionString: 'test source', outDir: directory });
   const manifest = await verifyPublishedSnapshot(directory);
   const imported = await sql.begin((tx) => seedPublishedTables(tx, directory));
+  expect(imported.relationships.unknownIndicators).toEqual([]);
   for (const [table, record] of Object.entries(manifest.tables))
     expect(imported.tables[table], table).toBe(record.rows);
   await rebuildReadModels(sql);

@@ -6,7 +6,8 @@ import { gzipSync } from 'node:zlib';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { streamSeedCsv } from './seeding.ts';
+import type { IndicatorTopicImportSummary } from './indicator-topic-repository.ts';
+import { assertPublishedRelationships, streamSeedCsv } from './seeding.ts';
 
 const directories: string[] = [];
 
@@ -67,4 +68,47 @@ describe('streamSeedCsv', () => {
     ).rejects.toThrow('COPY into "area" stopped making progress');
     expect(writable.destroyed).toBe(true);
   });
+});
+
+function relationships(
+  overrides: Partial<IndicatorTopicImportSummary> = {},
+): IndicatorTopicImportSummary {
+  return {
+    links: 2,
+    subtopicLinks: 2,
+    classificationLinks: 2,
+    timestamps: 0,
+    unknownIndicators: [],
+    unknownTopics: [],
+    unknownSubtopics: [],
+    unknownClassifications: [],
+    ...overrides,
+  };
+}
+
+describe('assertPublishedRelationships', () => {
+  it('accepts a complete published mapping', () => {
+    expect(() => assertPublishedRelationships(relationships())).not.toThrow();
+  });
+
+  it('rejects missing indicators even when other assignments were loaded and reports their IDs', () => {
+    expect(() =>
+      assertPublishedRelationships(relationships({ unknownIndicators: [241, 93995] })),
+    ).toThrow('missing indicator IDs: 241, 93995');
+  });
+
+  it('rejects a mapping that loaded no topic links', () => {
+    expect(() => assertPublishedRelationships(relationships({ links: 0 }))).toThrow(
+      'Published topic mapping did not match',
+    );
+  });
+
+  it.each(['unknownTopics', 'unknownSubtopics', 'unknownClassifications'] as const)(
+    'rejects a mapping containing %s',
+    (field) => {
+      expect(() =>
+        assertPublishedRelationships({ ...relationships(), [field]: ['missing'] }),
+      ).toThrow('Published topic mapping did not match');
+    },
+  );
 });

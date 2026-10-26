@@ -38,7 +38,7 @@ export const TAGS = {
   topic: '019fa38f-073f-764e-9ac6-1c4d03b10001',
   otherTopic: '019fa38f-073f-764e-9ac6-1c4d03b10002',
   type: '019fa38f-073f-764e-9ac6-1c4d03b10003',
-  riskFactor: '019fa38f-073f-764e-9ac6-1c4d03b10004',
+  lifeStage: '019fa38f-073f-764e-9ac6-1c4d03b10004',
   framework: '019fa38f-073f-764e-9ac6-1c4d03b10005',
 };
 
@@ -47,16 +47,20 @@ export const tagOptions: TagOptions = {
     { id: TAGS.topic, name: 'Alcohol' },
     { id: TAGS.otherTopic, name: 'Cancer' },
   ],
+  subtopics: [],
   indicatorTypes: [{ id: TAGS.type, name: 'Outcome' }],
-  riskFactors: [{ id: TAGS.riskFactor, name: 'Alcohol' }],
+  lifeStages: [{ id: TAGS.lifeStage, name: 'Alcohol' }],
   frameworks: [{ id: TAGS.framework, name: 'Healthy Child' }],
 };
 
 export const tagging: Tagging = {
   topicIds: [TAGS.otherTopic, TAGS.topic],
+  primaryTopicId: TAGS.otherTopic,
+  subtopicIds: [],
+  primarySubtopicId: '',
   indicatorTypeIds: [TAGS.type],
-  hasRiskFactor: 'yes',
-  riskFactorIds: [TAGS.riskFactor],
+  hasLifeStage: 'yes',
+  lifeStageIds: [TAGS.lifeStage],
   hasFramework: 'no',
   frameworkIds: [],
 };

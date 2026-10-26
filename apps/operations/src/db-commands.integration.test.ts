@@ -115,7 +115,7 @@ describe('db seed-dummy-data (integration)', () => {
       await expect(assertCoreDataPresent(sql)).resolves.toBeUndefined();
 
       // A database seeded before classifications were core data holds only some of them.
-      await sql`DELETE FROM classification WHERE dimension IN ('risk_factor', 'framework')`;
+      await sql`DELETE FROM classification WHERE dimension IN ('life_stage', 'framework')`;
       await expect(seedDummyData(context)).rejects.toThrow(
         'Classifications are missing from the database — run `db import-core-data` before seeding',
       );
@@ -123,13 +123,13 @@ describe('db seed-dummy-data (integration)', () => {
       // A classification with the right slug under another id is not the one the seed links to.
       await importCoreData(context);
       await sql`
-        UPDATE classification SET id = uuidv7() WHERE slug = 'risk-factor-smoking-and-tobacco'
+        UPDATE classification SET id = uuidv7() WHERE slug = 'life-stage-children'
       `;
       await expect(seedDummyData(context)).rejects.toThrow(
         'Classifications are missing from the database — run `db import-core-data` before seeding',
       );
 
-      await sql`DELETE FROM classification WHERE slug = 'risk-factor-smoking-and-tobacco'`;
+      await sql`DELETE FROM classification WHERE slug = 'life-stage-children'`;
       await importCoreData(context);
       await sql`DELETE FROM ci_method`;
       await expect(seedDummyData(context)).rejects.toThrow(

@@ -8,8 +8,9 @@ export const tagOptionSchema = z.object({ id: z.uuid(), name: z.string().min(1) 
 /** Every tag the tagging page offers, each list in the order the page shows it. */
 export const tagOptionsSchema = z.object({
   topics: z.array(tagOptionSchema),
+  subtopics: z.array(tagOptionSchema.extend({ topicId: z.uuid() })),
   indicatorTypes: z.array(tagOptionSchema),
-  riskFactors: z.array(tagOptionSchema),
+  lifeStages: z.array(tagOptionSchema),
   frameworks: z.array(tagOptionSchema),
 });
 
@@ -17,26 +18,33 @@ export type TagOption = z.infer<typeof tagOptionSchema>;
 export type TagOptions = z.infer<typeof tagOptionsSchema>;
 
 /** The page's lists of chosen tags, in the order it asks them. */
-export const TAG_LISTS = ['topicIds', 'indicatorTypeIds', 'riskFactorIds', 'frameworkIds'] as const;
+export const TAG_LISTS = [
+  'topicIds',
+  'subtopicIds',
+  'indicatorTypeIds',
+  'lifeStageIds',
+  'frameworkIds',
+] as const;
 
 export type TagList = (typeof TAG_LISTS)[number];
 
 /** The questions whose yes asks for a list, and whose no drops it when saved. */
-export type TagQuestion = 'hasRiskFactor' | 'hasFramework';
+export type TagQuestion = 'hasLifeStage' | 'hasFramework';
 
 /** Where each list's choices come from, the question asking for it, and its messages' words. */
 export const TAG_LIST_DETAILS = {
   topicIds: { options: 'topics', question: null, noun: 'topic', article: 'a' },
+  subtopicIds: { options: 'subtopics', question: null, noun: 'subtopic', article: 'a' },
   indicatorTypeIds: {
     options: 'indicatorTypes',
     question: null,
-    noun: 'indicator type',
-    article: 'an',
+    noun: 'measure type',
+    article: 'a',
   },
-  riskFactorIds: {
-    options: 'riskFactors',
-    question: 'hasRiskFactor',
-    noun: 'risk factor',
+  lifeStageIds: {
+    options: 'lifeStages',
+    question: 'hasLifeStage',
+    noun: 'life stage',
     article: 'a',
   },
   frameworkIds: {
@@ -57,10 +65,14 @@ export function unknownTagMessage(list: TagList): string {
 }
 
 const fields = z.enum([
+  'isAreaContext',
   'topicIds',
+  'primaryTopicId',
+  'subtopicIds',
+  'primarySubtopicId',
   'indicatorTypeIds',
-  'hasRiskFactor',
-  'riskFactorIds',
+  'hasLifeStage',
+  'lifeStageIds',
   'hasFramework',
   'frameworkIds',
 ]);
@@ -69,10 +81,14 @@ export type TaggingField = z.infer<typeof fields>;
 
 /** The answers as the form holds them: each list's ids, and each question's choice as text. */
 export interface TaggingFormValues {
+  isAreaContext?: 'yes' | undefined;
   topicIds: string[];
+  primaryTopicId: string;
+  subtopicIds: string[];
+  primarySubtopicId: string;
   indicatorTypeIds: string[];
-  hasRiskFactor: string;
-  riskFactorIds: string[];
+  hasLifeStage: string;
+  lifeStageIds: string[];
   hasFramework: string;
   frameworkIds: string[];
 }
@@ -87,22 +103,51 @@ function tagIds(list: TagList, required?: string) {
     .pipe(required === undefined ? each : each.min(1, required));
 }
 
-const schema = z
+const taggedSchema = z
   .object({
     topicIds: tagIds('topicIds', 'Select at least one topic'),
-    indicatorTypeIds: tagIds('indicatorTypeIds', 'Select at least one indicator type'),
-    hasRiskFactor: yesNoSchema('Select whether this indicator includes a risk factor'),
-    riskFactorIds: tagIds('riskFactorIds'),
+    primaryTopicId: z.uuid('Select a primary topic'),
+    subtopicIds: tagIds('subtopicIds'),
+    primarySubtopicId: z.union([z.literal(''), z.uuid('Select a primary subtopic')]),
+    indicatorTypeIds: tagIds('indicatorTypeIds', 'Select a measure type').pipe(
+      z.array(z.uuid()).max(1, 'Select only one measure type'),
+    ),
+    hasLifeStage: yesNoSchema('Select whether this indicator needs a life stage tag'),
+    lifeStageIds: tagIds('lifeStageIds'),
     hasFramework: yesNoSchema('Select whether this indicator is part of a framework or programme'),
     frameworkIds: tagIds('frameworkIds'),
   })
   .superRefine(
-    ({ hasRiskFactor, riskFactorIds, hasFramework, frameworkIds }, ctx) => {
-      if (hasRiskFactor === 'yes' && riskFactorIds.length === 0) {
+    (
+      {
+        topicIds,
+        primaryTopicId,
+        subtopicIds,
+        primarySubtopicId,
+        hasLifeStage,
+        lifeStageIds,
+        hasFramework,
+        frameworkIds,
+      },
+      ctx,
+    ) => {
+      if (primaryTopicId && !topicIds.includes(primaryTopicId))
         ctx.addIssue({
           code: 'custom',
-          path: ['riskFactorIds'],
-          message: 'Select at least one risk factor',
+          path: ['primaryTopicId'],
+          message: 'Select a primary topic from the topics added',
+        });
+      if (primarySubtopicId && !subtopicIds.includes(primarySubtopicId))
+        ctx.addIssue({
+          code: 'custom',
+          path: ['primarySubtopicId'],
+          message: 'Select a primary subtopic from the subtopics added',
+        });
+      if (hasLifeStage === 'yes' && lifeStageIds.length === 0) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['lifeStageIds'],
+          message: 'Select at least one life stage',
         });
       }
 
@@ -119,18 +164,60 @@ const schema = z
       when: ({ value, issues }) =>
         typeof value === 'object' &&
         value !== null &&
-        issues.every(({ path }) => path?.[0] !== 'riskFactorIds' && path?.[0] !== 'frameworkIds'),
+        issues.every(({ path }) => path?.[0] !== 'lifeStageIds' && path?.[0] !== 'frameworkIds'),
     },
   );
+
+const schema = z
+  .object({
+    isAreaContext: z.literal('yes').optional(),
+    topicIds: z.array(z.string()),
+    primaryTopicId: z.string(),
+    subtopicIds: z.array(z.string()),
+    primarySubtopicId: z.string(),
+    indicatorTypeIds: z.array(z.string()),
+    hasLifeStage: z.string(),
+    lifeStageIds: z.array(z.string()),
+    hasFramework: z.string(),
+    frameworkIds: z.array(z.string()),
+  })
+  .transform((values, ctx) => {
+    if (values.isAreaContext === 'yes')
+      return {
+        isAreaContext: 'yes' as const,
+        topicIds: [],
+        primaryTopicId: '',
+        subtopicIds: [],
+        primarySubtopicId: '',
+        indicatorTypeIds: [],
+        lifeStageIds: [],
+        frameworkIds: [],
+        hasLifeStage: 'no' as const,
+        hasFramework: 'no' as const,
+      };
+    const result = taggedSchema.safeParse(values);
+    if (!result.success) {
+      for (const issue of result.error.issues)
+        ctx.addIssue({ code: 'custom', path: issue.path, message: issue.message });
+      return z.NEVER;
+    }
+    const answers: z.output<typeof taggedSchema> & { isAreaContext?: 'yes' | undefined } =
+      result.data;
+    return answers;
+  });
 
 export type Tagging = z.infer<typeof schema>;
 
 /** The draft's answers: null until a question is answered, and no tags until some are chosen. */
 export const taggingAnswersSchema = z.object({
+  isAreaContext: z.literal('yes').optional(),
   topicIds: z.array(z.string()),
+  primaryTopicId: z.string().nullable(),
+  subtopicIds: z.array(z.string()),
+  primarySubtopicId: z.string().nullable(),
   indicatorTypeIds: z.array(z.string()),
-  hasRiskFactor: z.enum(['yes', 'no']).nullable(),
-  riskFactorIds: z.array(z.string()),
+  hasLifeStage: z.enum(['yes', 'no']).nullable(),
+  lifeStageIds: z.array(z.string()),
   hasFramework: z.enum(['yes', 'no']).nullable(),
   frameworkIds: z.array(z.string()),
 });
@@ -149,7 +236,9 @@ export const taggingSection: IndicatorSection<
   schema,
   formValues: (answers) => ({
     ...answers,
-    hasRiskFactor: answers.hasRiskFactor ?? '',
+    primaryTopicId: answers.primaryTopicId ?? '',
+    primarySubtopicId: answers.primarySubtopicId ?? '',
+    hasLifeStage: answers.hasLifeStage ?? '',
     hasFramework: answers.hasFramework ?? '',
   }),
 };

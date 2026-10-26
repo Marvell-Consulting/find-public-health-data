@@ -37,6 +37,9 @@ export async function completeDraft(
     links,
     ageRanges,
     topicIds: _topicIds,
+    primaryTopicId: _primaryTopicId,
+    subtopicIds: _subtopicIds,
+    primarySubtopicId: _primarySubtopicId,
     classifications: _classifications,
     numeratorSources: _numeratorSources,
     denominatorSources: _denominatorSources,
@@ -46,10 +49,10 @@ export async function completeDraft(
   const answers: IndicatorDraftAttributes = Object.fromEntries(
     Object.entries(columns).filter(([, value]) => value !== null),
   );
-  const [[firstTopic], indicatorType, riskFactor, { onsAlone }] = await Promise.all([
+  const [[firstTopic], indicatorType, lifeStage, { onsAlone }] = await Promise.all([
     db.select({ id: topic.id }).from(topic).limit(1),
     classificationIn(db, 'indicator_type'),
-    classificationIn(db, 'risk_factor'),
+    classificationIn(db, 'life_stage'),
     onsSources(db),
   ]);
   if (firstTopic === undefined) throw new Error('The seed holds no topic');
@@ -73,7 +76,8 @@ export async function completeDraft(
       links,
       ageRanges,
       topicIds: [firstTopic.id],
-      classificationIds: { indicator_type: [indicatorType.id], risk_factor: [riskFactor.id] },
+      primaryTopicId: firstTopic.id,
+      classificationIds: { indicator_type: [indicatorType.id], life_stage: [lifeStage.id] },
       numeratorSources: [onsAlone],
       denominatorSources: [onsAlone],
     },

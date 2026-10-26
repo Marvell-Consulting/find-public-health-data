@@ -6,6 +6,7 @@ import { actorId } from './user.ts';
 
 /** The tables whose core data the import loads, each recording a created and an updated action. */
 export const CORE_DATA_TABLES = [
+  'subtopic',
   'ci_method',
   'classification',
   'data_provider',

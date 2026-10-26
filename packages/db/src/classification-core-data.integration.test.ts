@@ -38,23 +38,22 @@ describe('the committed core data and seed', () => {
     expect(rows).toEqual([...committed].sort((a, b) => a.slug.localeCompare(b.slug)));
   });
 
-  it('answer yes to a risk factor or framework exactly where the seed gives one', async () => {
+  it('answer yes to a life stage or framework exactly where the seed gives one', async () => {
     const rows = await sql<{ dimension: string; answered: boolean | null; linked: boolean }[]>`
       SELECT d.dimension,
-        CASE d.dimension WHEN 'risk_factor' THEN v.has_risk_factor ELSE v.has_framework END AS answered,
+        CASE d.dimension WHEN 'life_stage' THEN v.has_life_stage ELSE v.has_framework END AS answered,
         EXISTS (
           SELECT 1 FROM indicator_version_classification ic
           JOIN classification c ON c.id = ic.classification_id
           WHERE ic.indicator_version_id = v.id AND c.dimension = d.dimension
         ) AS linked
       FROM indicator_version v
-      CROSS JOIN (VALUES ('risk_factor'), ('framework')) AS d(dimension)
+      CROSS JOIN (VALUES ('life_stage'), ('framework')) AS d(dimension)
     `;
 
     expect(rows.some(({ linked }) => linked)).toBe(true);
     expect(rows.filter(({ linked, answered }) => linked !== (answered === true))).toEqual([]);
-    // Nothing the seed leaves untagged is answered "No".
-    expect(rows.filter(({ answered }) => answered === false)).toEqual([]);
+    expect(rows.filter(({ answered }) => answered === null)).toEqual([]);
   });
 });
 

@@ -46,6 +46,7 @@ export function taggingServerSection(
   return {
     ...taggingSection,
     schema: taggingSection.schema.transform(async (answers, ctx) => {
+      if (answers.isAreaContext === 'yes') return answers;
       const options = await tags.listOptions();
       let refused = false;
 
@@ -56,6 +57,32 @@ export function taggingServerSection(
           ctx.addIssue({ code: 'custom', path: [list], message: unknownTagMessage(list) });
           refused = true;
         }
+      }
+
+      const selectedSubtopics = options.subtopics.filter(({ id }) =>
+        answers.subtopicIds.includes(id),
+      );
+      if (selectedSubtopics.some(({ topicId }) => !answers.topicIds.includes(topicId))) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['subtopicIds'],
+          message: 'Select subtopics belonging to the topics added',
+        });
+        refused = true;
+      }
+      const primaryChildren = selectedSubtopics.filter(
+        ({ topicId }) => topicId === answers.primaryTopicId,
+      );
+      if (
+        (primaryChildren.length > 0 || answers.primarySubtopicId !== '') &&
+        !primaryChildren.some(({ id }) => id === answers.primarySubtopicId)
+      ) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['primarySubtopicId'],
+          message: 'Select a primary subtopic belonging to the primary topic',
+        });
+        refused = true;
       }
 
       return refused ? z.NEVER : answers;

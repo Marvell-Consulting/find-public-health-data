@@ -15,7 +15,7 @@ test('serves the home page and renders core-data topics', async ({ page }) => {
 
   await page.getByRole('link', { name: 'Browse by topics' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Public health topics' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Alcohol', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Cancer', exact: true })).toBeVisible();
 });
 
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {

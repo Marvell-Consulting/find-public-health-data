@@ -146,7 +146,10 @@ export async function prepareBaseline(
     JSON.parse(await readFile(relationshipsPath, 'utf8')),
   );
   const withTopics = new Set(relationships.indicatorTopics.map(({ fingertipsId }) => fingertipsId));
-  const withoutTopics = relationships.indicators.filter((id) => !withTopics.has(id));
+  const areaContext = new Set(relationships.areaContextIndicators);
+  const withoutTopics = relationships.indicators.filter(
+    (id) => !withTopics.has(id) && !areaContext.has(id),
+  );
   if (withoutTopics.length > 0) {
     throw new Error(`Reviewed indicators have no topic: ${withoutTopics.join(', ')}`);
   }

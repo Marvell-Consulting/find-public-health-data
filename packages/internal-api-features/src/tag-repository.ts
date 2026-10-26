@@ -7,12 +7,16 @@ import { asc, inArray } from 'drizzle-orm';
 
 import type { TagOptions } from './contract.ts';
 
-const { classification, topic } = schema;
+const { classification, subtopic, topic } = schema;
 
 /** Every topic and tagging classification, each list ordered by name as the page shows it. */
 export async function listTagOptions(db: Database): Promise<TagOptions> {
-  const [topics, classifications] = await Promise.all([
+  const [topics, subtopics, classifications] = await Promise.all([
     db.select({ id: topic.id, name: topic.title }).from(topic).orderBy(asc(topic.title)),
+    db
+      .select({ id: subtopic.id, name: subtopic.title, topicId: subtopic.topicId })
+      .from(subtopic)
+      .orderBy(asc(subtopic.title)),
     db
       .select({
         id: classification.id,
@@ -30,8 +34,9 @@ export async function listTagOptions(db: Database): Promise<TagOptions> {
 
   return {
     topics,
+    subtopics,
     indicatorTypes: ofDimension('indicator_type'),
-    riskFactors: ofDimension('risk_factor'),
+    lifeStages: ofDimension('life_stage'),
     frameworks: ofDimension('framework'),
   };
 }

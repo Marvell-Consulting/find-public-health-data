@@ -200,6 +200,7 @@ const PUBLISHED_INDICATOR_COLUMNS = [
   'indicator_source.source_id uuid',
   'indicator_topic.indicator_id uuid',
   'indicator_topic.topic_id uuid',
+  'indicator_topic.is_primary boolean',
 ];
 
 describe('the public role', () => {
