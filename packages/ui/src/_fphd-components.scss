@@ -1224,7 +1224,7 @@ body:not(.govuk-frontend-supported) .fphd-share-link {
 .fphd-topic-data .fphd-compare-table th,
 .fphd-topic-data .fphd-compare-table td {
   box-sizing: border-box;
-  min-width: 0;
+  min-width: 120px;
   white-space: normal;
   padding: 4px 25px 4px 0;
 }
@@ -1234,33 +1234,17 @@ body:not(.govuk-frontend-supported) .fphd-share-link {
 
 .fphd-topic-data .fphd-compare-table {
   width: 100%;
-  table-layout: fixed;
+  table-layout: auto;
 
   th:first-child,
   tbody td:first-child {
-    min-width: 0;
+    min-width: 240px;
     max-width: none;
     width: 25%;
   }
 
   thead th {
     vertical-align: bottom;
-  }
-}
-
-@include govuk-media-query($until: 1280px) {
-  .fphd-topic-data .fphd-compare-table {
-    table-layout: auto;
-
-    th,
-    td {
-      min-width: 120px;
-    }
-
-    th:first-child,
-    tbody td:first-child {
-      min-width: 240px;
-    }
   }
 }
 

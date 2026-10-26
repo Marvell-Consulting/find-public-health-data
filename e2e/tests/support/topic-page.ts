@@ -91,24 +91,27 @@ export function topicPageTests() {
     await expectNoAccessibilityViolations(page, testInfo);
   });
 
-  test('keeps topic data columns readable and scrollable on smaller screens', async ({
+  test('keeps topic data columns readable and scrollable at every width', async ({
     page,
   }, testInfo) => {
-    await openTopicPage(page, '/topics/diabetes?tab-topic=data');
     const panel = page.locator('#topic-data');
-    const region = panel.getByRole('region', { name: 'Diabetes indicators comparison table' });
-    for (const width of [375, 641, 834, 1024]) {
-      await page.setViewportSize({ width, height: 1000 });
-      const overlaps = await region.locator('.fphd-trend-tag').evaluateAll(
-        (tags) =>
-          tags.filter((tag) => {
-            const cell = tag.closest('td')?.getBoundingClientRect();
-            return !cell || tag.getBoundingClientRect().right > cell.right;
-          }).length,
-      );
-      expect(overlaps).toBe(0);
-      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+    const region = panel.locator('.fphd-table-scroll-wrapper');
+    for (const slug of ['diabetes', 'mortality-and-life-expectancy']) {
+      await openTopicPage(page, `/topics/${slug}?tab-topic=data`);
+      for (const width of [375, 641, 834, 1024, 1280, 1440, 2048]) {
+        await page.setViewportSize({ width, height: 1000 });
+        const overlaps = await region.locator('.fphd-trend-tag').evaluateAll(
+          (tags) =>
+            tags.filter((tag) => {
+              const cell = tag.closest('td')?.getBoundingClientRect();
+              return !cell || tag.getBoundingClientRect().right > cell.right;
+            }).length,
+        );
+        expect(overlaps).toBe(0);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+      }
     }
+    await page.setViewportSize({ width: 834, height: 1000 });
     await region.focus();
     await page.keyboard.press('ArrowRight');
     await expect.poll(() => region.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
