@@ -75,8 +75,17 @@ function topicApi(
     if (path === '/api/areas/display-groups') return [];
     if (path === '/api/indicators/facets')
       return { topics: [], classifications: [], sources: [], valueTypes: [], yearTypes: [] };
-    if (path.startsWith('/api/indicators/search?'))
-      return { total: indicators.length, limit: 200, indicators };
+    if (path.startsWith('/api/indicators/search?')) {
+      const params = new URL(path, 'http://api').searchParams;
+      const page = Number(params.get('page') ?? '1');
+      const limit = params.has('page') ? Number(params.get('limit') ?? '10') : 200;
+      return {
+        total: indicators.length,
+        limit,
+        ...(params.has('page') ? { page } : {}),
+        indicators: indicators.slice((page - 1) * limit, page * limit),
+      };
+    }
     if (
       /^\/api\/indicators\/\d+$/.test(path) &&
       unavailableIds.includes(Number(path.split('/').at(-1)))
@@ -192,6 +201,32 @@ describe('loadTopic', () => {
     );
     expect(get.mock.calls.some(([path]) => path === '/api/indicators/1')).toBe(true);
   });
+
+  it.each(['data', 'areas'])(
+    'loads every result beyond the first bounded API page for %s',
+    async (tab) => {
+      const indicators = Array.from({ length: 405 }, (_, i) => ({
+        shortId: i + 1,
+        name: `Indicator ${i + 1}`,
+        slug: `indicator-${i + 1}`,
+      }));
+      const get = topicApi(indicators);
+      const result = await loadTopic(
+        loaderArgs(
+          { get } as unknown as ApiClient,
+          { slug: 'topic-a' },
+          `?tab-topic=${tab}&page=999`,
+        ),
+      );
+      expect(result.content?.listing.indicators).toHaveLength(405);
+      expect(result.content?.data.selected).toHaveLength(405);
+      const pages = get.mock.calls
+        .filter(([path]) => path.startsWith('/api/indicators/search?'))
+        .map(([path]) => new URL(path, 'http://api').searchParams);
+      expect(pages.map((p) => p.get('page'))).toEqual([null, '2', '3']);
+      expect(pages.slice(1).every((p) => p.get('limit') === '200')).toBe(true);
+    },
+  );
 
   it('fails with a developer-facing error when the route supplies no slug', async () => {
     const get = vi.fn();

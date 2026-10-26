@@ -8,9 +8,11 @@ import {
   MAX_FILTER_LABEL_LENGTH,
   MAX_FILTER_VALUE_LENGTH,
   MAX_FILTER_VALUES,
+  MAX_INDICATOR_FILTER_RESULTS,
   MAX_INDICATOR_QUERY_LENGTH,
   pickAreaCodes,
 } from '@fphd/public-api-features/contract';
+import { indicatorSort } from '@fphd/utils/indicator-sort';
 import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
 import { redirect } from 'react-router';
@@ -79,10 +81,11 @@ export async function loadSearch(
     topicSlug,
     path = '/search',
     geographyGroup,
-  }: { topicSlug?: string; path?: string; geographyGroup?: string } = {},
+    complete = false,
+  }: { topicSlug?: string; path?: string; geographyGroup?: string; complete?: boolean } = {},
 ) {
   const url = new URL(request.url);
-  const params = url.searchParams;
+  const params = new URLSearchParams(url.searchParams);
   const period = indicatorPeriodFiltersSchema.parse(Object.fromEntries(params));
   for (const key of PERIOD_PARAMS) {
     params.delete(key);
@@ -171,12 +174,9 @@ export async function loadSearch(
   }
 
   let searchQuery = buildSearchQuery(query, params, displayGroups, gaCodes);
-  if (topicSlug) {
-    const sort = params.get('sort');
-    searchQuery += `&sort=${sort === 'name-asc' || sort === 'name-desc' || sort === 'period-desc' || sort === 'trend-desc' || sort === 'trend-asc' || sort === 'trend-better' || sort === 'trend-worse' || sort === 'subtopic-desc' ? sort : 'subtopic-asc'}`;
-  }
+  if (topicSlug) searchQuery += `&sort=${indicatorSort(params.get('sort')) ?? 'subtopic-asc'}`;
 
-  const [facets, searchResult, geographyOptions] = await Promise.all([
+  const [facets, firstResult, geographyOptions] = await Promise.all([
     api.get('/api/indicators/facets', indicatorFacetsSchema),
     api.get(
       `/api/indicators/search${searchQuery ? `?${searchQuery}` : ''}`,
@@ -184,6 +184,21 @@ export async function loadSearch(
     ),
     loadGeographyOptions(api, params, displayGroups, { publicOnly }),
   ]);
+
+  let searchResult = firstResult;
+  if (complete && firstResult.indicators.length < firstResult.total) {
+    const indicators = [...firstResult.indicators];
+    for (let page = 2; indicators.length < firstResult.total; page++) {
+      const next = new URLSearchParams(searchQuery);
+      next.set('page', String(page));
+      next.set('limit', String(MAX_INDICATOR_FILTER_RESULTS));
+      const result = await api.get(`/api/indicators/search?${next}`, indicatorSearchResultSchema);
+      if (!result.indicators.length || result.page !== page)
+        throw new Response('Bad Gateway', { status: 502 });
+      indicators.push(...result.indicators);
+    }
+    searchResult = { ...firstResult, indicators };
+  }
 
   const validatedGeo = pickStrings(params, 'geo').filter((g) => displayGroups.includes(g));
   const subtopics = pickStrings(params, 'subtopic');

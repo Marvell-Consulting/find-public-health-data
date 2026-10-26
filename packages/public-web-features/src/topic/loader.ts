@@ -4,12 +4,13 @@ import {
   topicSummaryListSchema,
   topicTrendSummarySchema,
 } from '@fphd/public-api-features/contract';
+import { indicatorSort } from '@fphd/utils/indicator-sort';
 import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
 import { loadIndicatorTableData } from '../indicator/loader.ts';
 import { loadSearch } from '../search/loader.ts';
-import { TOPIC_AREA_GROUPS, topicIndicators, topicTableSelection } from './data.ts';
+import { TOPIC_AREA_GROUPS, topicTableSelection } from './data.ts';
 
 export type { TopicDetail, TopicSummary } from '@fphd/public-api-features/contract';
 
@@ -42,12 +43,15 @@ export async function loadTopic(args: LoaderFunctionArgs) {
   const tab = url.searchParams.get('tab-topic');
   const path = `/topics/${encodeURIComponent(slug)}`;
   if (tab === null || tab === 'overview') {
-    const [search, trends] = await Promise.all([
+    const [loadedSearch, trends] = await Promise.all([
       loadSearch(args, { topicSlug: slug, path }),
       context.get(apiContext).get(apiPath`/api/topics/${slug}/trends`, topicTrendSummarySchema),
     ]);
-    search.gaCodes = search.gaCodes.slice(0, 1);
-    search.geoLevels = [];
+    const search = {
+      ...loadedSearch,
+      gaCodes: loadedSearch.gaCodes.slice(0, 1),
+      geoLevels: [] as string[],
+    };
     const preferred = topic.content?.highlightedIndicatorIds ?? [];
     const searchIds = search.searchResult.indicators.map(({ shortId }) => shortId);
     const availablePreferred = (
@@ -91,16 +95,17 @@ export async function loadTopic(args: LoaderFunctionArgs) {
   const summaryGroup = TOPIC_AREA_GROUPS.includes(url.searchParams.get('geo') ?? '')
     ? (url.searchParams.get('geo') ?? 'NHS regions')
     : 'NHS regions';
-  const search = await loadSearch(args, {
+  const loadedSearch = await loadSearch(args, {
     topicSlug: slug,
     path,
+    complete: true,
     ...(tab === 'areas' ? { geographyGroup: summaryGroup } : {}),
   });
-  const listing = topicIndicators(
-    search.searchResult.indicators,
-    url.searchParams,
-    search.searchResult,
-  );
+  const search = loadedSearch;
+  const listing = {
+    sort: indicatorSort(url.searchParams.get('sort')) ?? 'subtopic-asc',
+    indicators: search.searchResult.indicators,
+  };
   const dataUrl = new URL(request.url);
   dataUrl.search = '';
   for (const { shortId } of listing.indicators) dataUrl.searchParams.append('is', String(shortId));
@@ -121,18 +126,25 @@ export async function loadTopic(args: LoaderFunctionArgs) {
     search.displayGroups,
     tab === 'areas',
   );
-  if (tab === 'areas')
-    search.geographyOptions = {
-      ...search.geographyOptions,
-      previews: [
-        { name: summaryGroup, areas: data.selectedAreas.map(({ code, name }) => ({ code, name })) },
-      ],
-    };
   return {
     topic,
     overview: null,
     content: {
-      search,
+      search:
+        tab === 'areas'
+          ? {
+              ...search,
+              geographyOptions: {
+                ...search.geographyOptions,
+                previews: [
+                  {
+                    name: summaryGroup,
+                    areas: data.selectedAreas.map(({ code, name }) => ({ code, name })),
+                  },
+                ],
+              },
+            }
+          : search,
       listing,
       data: { ...data, selected: topicTableSelection(data.selected) },
       defaultAreas,

@@ -12,7 +12,6 @@ import {
   MAX_AREA_CODES_PER_REQUEST,
   MAX_AREA_GROUPS_PER_REQUEST,
   MAX_AREA_NAME_LENGTH,
-  MAX_INDICATOR_FILTER_RESULTS,
   MAX_INDICATOR_QUERY_LENGTH,
   pickAreaCodes,
 } from '@fphd/public-api-features/contract';
@@ -24,6 +23,7 @@ import { type LoaderFunctionArgs, redirect } from 'react-router';
 import { areasInGeographyGroup, sourceGeographyGroup } from '../geography/groups.ts';
 import { loadGeographyOptions } from '../geography/loader.ts';
 import { MAX_SELECTED_AREAS, MAX_SELECTED_INDICATORS } from '../selection-limits.ts';
+import { loadInBatches } from './batches.ts';
 import { isIndicatorSegment, redirectStatus } from './paths.ts';
 
 export type {
@@ -271,7 +271,7 @@ async function loadIndicatorData(
   const shortIds = selectedIndicatorIds(
     url,
     routeDetail?.shortId,
-    tableDisplayGroups === undefined ? MAX_SELECTED_INDICATORS : MAX_INDICATOR_FILTER_RESULTS,
+    tableDisplayGroups === undefined ? MAX_SELECTED_INDICATORS : Number.POSITIVE_INFINITY,
   );
   const requestedIndicatorCount = new Set(
     url.searchParams.getAll('is').filter((value) => /^\d+$/.test(value)),
@@ -288,60 +288,53 @@ async function loadIndicatorData(
           )
         ).indicators
       : [];
-  const selected = await Promise.all(
-    shortIds.map(async (id) => {
-      const dataBatch = (codes: string[]) =>
-        api.get(
-          `${apiPath`/api/indicators/${String(id)}/data`}?${codes
-            .map((code) => `areaCode=${encodeURIComponent(code)}`)
-            .join('&')}`,
-          codes.length === 1
-            ? indicatorAreaDataSchema.transform((one) => [one])
-            : indicatorAreaDataListSchema,
-        );
-      const dataFor = async (codes: string[]) =>
-        (
-          await Promise.all(
-            Array.from(
-              { length: Math.ceil(codes.length / MAX_AREA_CODES_PER_REQUEST) },
-              (_, index) =>
-                dataBatch(
-                  codes.slice(
-                    index * MAX_AREA_CODES_PER_REQUEST,
-                    (index + 1) * MAX_AREA_CODES_PER_REQUEST,
-                  ),
-                ),
+  const selected = await loadInBatches(shortIds, async (id) => {
+    const dataBatch = (codes: string[]) =>
+      api.get(
+        `${apiPath`/api/indicators/${String(id)}/data`}?${codes
+          .map((code) => `areaCode=${encodeURIComponent(code)}`)
+          .join('&')}`,
+        codes.length === 1
+          ? indicatorAreaDataSchema.transform((one) => [one])
+          : indicatorAreaDataListSchema,
+      );
+    const dataFor = async (codes: string[]) =>
+      (
+        await loadInBatches(
+          Array.from({ length: Math.ceil(codes.length / MAX_AREA_CODES_PER_REQUEST) }, (_, index) =>
+            codes.slice(
+              index * MAX_AREA_CODES_PER_REQUEST,
+              (index + 1) * MAX_AREA_CODES_PER_REQUEST,
             ),
-          )
-        ).flat();
-      const comparison = comparisonFor(id);
-      const [detail, areaData, regionData, rangeEntries] = await Promise.all([
-        // The page's own indicator is already loaded; only the compared ones are fetched.
-        id === routeDetail?.shortId
-          ? routeDetail
-          : api.get(apiPath`/api/indicators/${String(id)}`, indicatorDetailSchema),
-        // One request per indicator carrying every area, rather than one per pair: a
-        // page comparing ten indicators across twenty areas would otherwise fire 200.
-        dataFor(codesToLoad),
-        comparison.region && regionCodes.length > 0 ? dataFor(regionCodes) : Promise.resolve([]),
-        Promise.all(
-          comparison.rangeLevels.map(async (level) => {
-            const range = await api.get(
-              `${apiPath`/api/indicators/${String(id)}/range`}?displayGroup=${encodeURIComponent(level)}`,
-              indicatorRangeSchema,
-            );
-            return [level, range.periods] as const;
-          }),
-        ),
-      ]);
-      return {
-        detail,
-        areaData,
-        regionData,
-        ranges: Object.fromEntries(rangeEntries),
-      };
-    }),
-  );
+          ),
+          dataBatch,
+        )
+      ).flat();
+    const comparison = comparisonFor(id);
+    const [detail, areaData, regionData, rangeEntries] = await Promise.all([
+      // The page's own indicator is already loaded; only the compared ones are fetched.
+      id === routeDetail?.shortId
+        ? routeDetail
+        : api.get(apiPath`/api/indicators/${String(id)}`, indicatorDetailSchema),
+      // One request per indicator carrying every area, rather than one per pair: a
+      // page comparing ten indicators across twenty areas would otherwise fire 200.
+      dataFor(codesToLoad),
+      comparison.region && regionCodes.length > 0 ? dataFor(regionCodes) : Promise.resolve([]),
+      loadInBatches(comparison.rangeLevels, async (level) => {
+        const range = await api.get(
+          `${apiPath`/api/indicators/${String(id)}/range`}?displayGroup=${encodeURIComponent(level)}`,
+          indicatorRangeSchema,
+        );
+        return [level, range.periods] as const;
+      }),
+    ]);
+    return {
+      detail,
+      areaData,
+      regionData,
+      ranges: Object.fromEntries(rangeEntries),
+    };
+  });
 
   return {
     selected,
