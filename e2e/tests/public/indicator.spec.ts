@@ -315,6 +315,61 @@ test('shows scaled comparison bars and visible placeholders in every chart posit
   await expectNoAccessibilityViolations(page, testInfo);
 });
 
+test('keeps the comparison table usable beside the geography controls on tablets', async ({
+  page,
+}, testInfo) => {
+  await openIndicatorPage(page, `${MORTALITY_PATH}?tab-indicator=areas`);
+  const panel = page.getByRole('tabpanel', { name: 'Compare areas', exact: true });
+  for (const width of [641, 768, 834, 1024]) {
+    await page.setViewportSize({ width, height: 1000 });
+    const table = await panel.locator('.fphd-area-table').boundingBox();
+    const map = await panel.locator('.fphd-map-space').boundingBox();
+    expect(table?.width).toBeGreaterThanOrEqual(300);
+    expect(map?.y).toBeGreaterThanOrEqual((table?.y ?? 0) + (table?.height ?? 0));
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+  }
+  await expectNoAccessibilityViolations(page, testInfo);
+});
+
+test('keeps a pending geography choice when sorting the area table', async ({ page }, testInfo) => {
+  await page.getByRole('tab', { name: 'Compare areas', exact: true }).click();
+  let release!: () => void;
+  let started!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const request = new Promise<void>((resolve) => {
+    started = resolve;
+  });
+  const pattern = '**/indicator/*.data?*';
+  await page.route(pattern, async (route) => {
+    started();
+    await gate;
+    await route.continue().catch(() => {});
+  });
+  try {
+    await page
+      .getByRole('combobox', { name: 'Type of geography', exact: true })
+      .selectOption('Statistical regions');
+    await request;
+    await page.getByRole('combobox', { name: 'Sort by', exact: true }).selectOption('alphabetical');
+  } finally {
+    release();
+  }
+  await expect(page).toHaveURL(/areaType=Statistical/);
+  await expect(page).toHaveURL(/areaSort=alphabetical/);
+  await expect(page.getByRole('combobox', { name: 'Type of geography', exact: true })).toHaveValue(
+    'Statistical regions',
+  );
+  await expect(
+    page
+      .getByRole('table', { name: /Table of area comparisons/ })
+      .getByRole('rowheader', { name: 'London', exact: true }),
+  ).toBeVisible();
+  await page.unroute(pattern);
+  await expectNoAccessibilityViolations(page, testInfo);
+});
+
 test('keeps the full tab labels in one connected row at tablet and desktop widths', async ({
   page,
 }, testInfo) => {

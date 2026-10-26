@@ -996,6 +996,24 @@ body.govuk-frontend-supported .fphd-filter-card--accordion {
   }
 }
 
+@include govuk-media-query($from: tablet, $until: 1280px) {
+  .fphd-area-table-layout {
+    flex-direction: column;
+  }
+
+  .fphd-area-table-layout > .fphd-area-table,
+  .fphd-area-table-layout > .fphd-map-space {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .fphd-area-table-layout > .fphd-map-space {
+    max-width: 460px;
+    margin-top: govuk-spacing(6);
+  }
+}
+
 .fphd-area-table > .fphd-table-scroll-wrapper {
   width: max-content;
   min-width: 100%;

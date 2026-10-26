@@ -1,5 +1,5 @@
 import { Button, CollapsibleFilterCard, GeographyTree, Select } from '@fphd/ui';
-import { Form, useLocation, useNavigate } from 'react-router';
+import { Form, useLocation, useNavigate, useNavigation } from 'react-router';
 import type { AreaSummary } from './loader.ts';
 
 export function AreaControls({
@@ -17,7 +17,12 @@ export function AreaControls({
 }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const params = new URLSearchParams(location.search);
+  const navigation = useNavigation();
+  const params = new URLSearchParams(
+    navigation.location?.pathname === location.pathname
+      ? navigation.location.search
+      : location.search,
+  );
   const highlighted = params.getAll('highlight');
   const search = params.get('geo-q')?.trim() ?? '';
   const update = (key: string, value: string | string[]) => {
@@ -48,7 +53,7 @@ export function AreaControls({
             id={displayOptions ? 'compare-area-type' : 'pair-area-type'}
             name="areaType"
             label="Type of geography"
-            value={group}
+            value={params.get('areaType') ?? group}
             options={groups.map((value) => ({ value, label: value }))}
             onChange={(event) => update('areaType', event.currentTarget.value)}
           />
