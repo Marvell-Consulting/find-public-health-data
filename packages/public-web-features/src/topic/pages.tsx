@@ -4,10 +4,6 @@ import { useLocation } from 'react-router';
 
 import type { TopicSummary } from './loader.ts';
 
-/**
- * Full width rather than PageIntro's reading measure, because the cards need the whole grid to
- * form three columns.
- */
 export function TopicsPage({ topics }: { topics: TopicSummary[] }) {
   const location = useLocation();
   const urlQuery = new URLSearchParams(location.search).get('q') ?? '';
@@ -56,7 +52,7 @@ export function TopicsPage({ topics }: { topics: TopicSummary[] }) {
   }, [query, resultCount]);
 
   return (
-    <GridRow>
+    <GridRow className="fphd-topics-page">
       <GridColumn width="full">
         <h1 className="govuk-heading-xl">Public health topics</h1>
         {/* biome-ignore lint/a11y/noRedundantRoles: Explicit landmark supports browsers predating the search element. */}
