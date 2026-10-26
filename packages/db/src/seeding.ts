@@ -221,15 +221,25 @@ export async function seedPublishedTables(
     PUBLISHED_COPY_TIMEOUT_MS,
   );
   const relationships = await applyIndicatorTopics(createDbFromTransaction(tx), topicFile);
+  assertPublishedRelationships(relationships);
+  return { tables, relationships };
+}
+
+export function assertPublishedRelationships(relationships: IndicatorTopicImportSummary): void {
   if (
     relationships.links === 0 ||
+    relationships.unknownIndicators.length > 0 ||
     relationships.unknownTopics.length > 0 ||
     relationships.unknownSubtopics.length > 0 ||
     relationships.unknownClassifications.length > 0
   ) {
-    throw new Error('Published topic mapping did not match the imported indicators and topics');
+    const missing = relationships.unknownIndicators.length
+      ? `; missing indicator IDs: ${relationships.unknownIndicators.join(', ')}`
+      : '';
+    throw new Error(
+      `Published topic mapping did not match the imported indicators and topics${missing}`,
+    );
   }
-  return { tables, relationships };
 }
 
 function analyzableTables(): string {
