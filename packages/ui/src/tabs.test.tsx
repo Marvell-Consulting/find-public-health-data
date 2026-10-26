@@ -10,7 +10,12 @@ afterEach(() => {
   window.history.replaceState({}, '', '/');
 });
 
-function renderTabs(waitForNavigation = false, loader?: LoaderFunction, defaultParam?: string) {
+function renderTabs(
+  waitForNavigation = false,
+  loader?: LoaderFunction,
+  defaultParam?: string,
+  history?: 'push' | 'replace',
+) {
   const router = createMemoryRouter(
     [
       {
@@ -18,6 +23,7 @@ function renderTabs(waitForNavigation = false, loader?: LoaderFunction, defaultP
         ...(loader ? { loader } : {}),
         element: (
           <Tabs
+            history={history ?? 'replace'}
             waitForNavigation={waitForNavigation}
             defaultParam={defaultParam}
             paramKey="panel"
@@ -174,3 +180,12 @@ it('restores tab semantics when crossing the standard breakpoint', () => {
     'panel--hidden',
   );
 });
+
+it.each(['replace', 'push'] as const)(
+  'uses explicit %s history for tab navigation',
+  async (history) => {
+    const router = renderTabs(false, undefined, undefined, history);
+    await act(async () => fireEvent.click(screen.getByRole('tab', { name: 'Second' })));
+    expect(router.state.historyAction).toBe(history.toUpperCase());
+  },
+);

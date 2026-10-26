@@ -1,5 +1,8 @@
+import { INDICATOR_SORTS, type IndicatorSort } from '@fphd/utils/indicator-sort';
 import { periodLabel } from '@fphd/utils/period-label';
 import {
+  type BenchmarkJudgement,
+  benchmarkJudgement,
   type ComparisonRow,
   comparisonRows,
   filterObservations,
@@ -7,20 +10,20 @@ import {
   trendSeries,
 } from '../indicator/data.ts';
 import type { SelectedIndicator } from '../indicator/loader.ts';
-import type { IndicatorSearchRow } from '../search/loader.ts';
-export const TOPIC_SORTS = [
-  { value: 'subtopic-asc', label: 'Subtopic (A to Z)' },
-  { value: 'subtopic-desc', label: 'Subtopic (Z to A)' },
-  { value: 'name-asc', label: 'Indicator name (A to Z)' },
-  { value: 'name-desc', label: 'Indicator name (Z to A)' },
-  { value: 'period-desc', label: 'Most recent data first' },
-  { value: 'trend-desc', label: 'Trend: increasing first' },
-  { value: 'trend-asc', label: 'Trend: decreasing first' },
-  { value: 'trend-better', label: 'Trend: getting better first' },
-  { value: 'trend-worse', label: 'Trend: getting worse first' },
-];
 
-export const TOPIC_SORT_OPTIONS = TOPIC_SORTS;
+const SORT_LABELS: Record<IndicatorSort, string> = {
+  'subtopic-asc': 'Subtopic (A to Z)',
+  'subtopic-desc': 'Subtopic (Z to A)',
+  'name-asc': 'Indicator name (A to Z)',
+  'name-desc': 'Indicator name (Z to A)',
+  'period-desc': 'Most recent data first',
+  'trend-desc': 'Trend: increasing first',
+  'trend-asc': 'Trend: decreasing first',
+  'trend-better': 'Trend: getting better first',
+  'trend-worse': 'Trend: getting worse first',
+};
+export const TOPIC_SORTS = INDICATOR_SORTS.map((value) => ({ value, label: SORT_LABELS[value] }));
+
 export const TOPIC_AREA_GROUPS = [
   'Integrated care boards',
   'Local authorities',
@@ -49,30 +52,6 @@ export function topicSubtopics(entry: SelectedIndicator, topicSlug: string): str
       .find(({ slug }) => slug === topicSlug)
       ?.subtopics?.map(({ title }) => title) ?? []
   );
-}
-
-export function topicIndicators(
-  indicators: IndicatorSearchRow[],
-  params: URLSearchParams,
-  pagination?: { page?: number | undefined; total: number; limit: number },
-) {
-  const sort =
-    TOPIC_SORTS.find(({ value }) => value === params.get('sort'))?.value ?? 'subtopic-asc';
-  if (pagination)
-    return {
-      sort,
-      page: 1,
-      pages: 1,
-      indicators,
-    };
-  const sorted = [...indicators].sort((a, b) => a.name.localeCompare(b.name));
-  if (sort === 'name-desc') sorted.reverse();
-  return {
-    sort,
-    page: 1,
-    pages: 1,
-    indicators: sorted,
-  };
 }
 
 export function englandObservation(
@@ -129,4 +108,17 @@ export function topicTableSelection(selected: SelectedIndicator[]): SelectedIndi
       })),
     };
   });
+}
+
+export const JUDGEMENT_LABELS: Record<BenchmarkJudgement, string> = {
+  better: 'Better than England',
+  similar: 'Similar to England',
+  worse: 'Worse than England',
+  lower: 'Lower than England',
+  higher: 'Higher than England',
+  none: 'No comparison available',
+};
+
+export function topicJudgement(...args: Parameters<typeof benchmarkJudgement>): BenchmarkJudgement {
+  return args[2].polarity === 'no-polarity' ? 'none' : benchmarkJudgement(...args);
 }

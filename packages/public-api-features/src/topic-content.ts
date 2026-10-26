@@ -39,7 +39,7 @@ const content = {
           links: [
             {
               label: 'Health of the region explorer',
-              url: 'https://app.powerbi.com/view?r=eyJrIjoiZDkwZGU1MzctNDRhOC00NDVlLTk0ODEtNjQwOGVhMGExY2YyIiwidCI6ImVlNGUxNDk5LTRhMzUtNGIyZS1hZDQ3LTVmM2NmOWRlODY2NiIsImMiOjh9',
+              url: 'https://app.powerbi.com/view?r=eyJrIjoiZDkwZGU1MzctNDRhOC00NDVlLTk0ODEtNjQwOGVhMGExY2YyIiwidCI6ImVlNGUxNDk5LTRhMzUtNGIyZS1hZDQ3LTVmM2NmOWRlODY2NiIsImMiOjh9', // gitleaks:allow (public dashboard URL)
               note: 'Power BI dashboard, May 2026',
             },
           ],

@@ -1,9 +1,16 @@
 import { formatDate } from '@fphd/ui';
 import type { LoaderFunctionArgs } from 'react-router';
 import { comparisonTable } from '../indicator/comparison.ts';
-import { benchmarkJudgement, recentTrend } from '../indicator/data.ts';
+import { recentTrend } from '../indicator/data.ts';
 import { tableCsv } from '../indicator/download.ts';
-import { englandObservation, observationPeriod, topicColumns, topicSubtopics } from './data.ts';
+import {
+  englandObservation,
+  JUDGEMENT_LABELS,
+  observationPeriod,
+  topicColumns,
+  topicJudgement,
+  topicSubtopics,
+} from './data.ts';
 import { loadTopic } from './loader.ts';
 
 export async function loader(args: LoaderFunctionArgs) {
@@ -44,33 +51,37 @@ export async function loader(args: LoaderFunctionArgs) {
             `${areaName} notes`,
           ]),
         ],
-        ...model.rows.map((row) => {
+        ...model.rows.flatMap((row) => {
           const entry = byId.get(row.shortId);
           if (!entry) return [];
           const england = englandObservation(entry, row);
           return [
-            row.name + (row.suffix ? ` ${row.suffix}` : ''),
-            row.unit,
-            row.period,
-            england?.value ?? null,
-            observationPeriod(entry, england),
-            ...row.cells
-              .filter(({ areaCode }) => areaCode !== 'E92000001')
-              .flatMap((cell) => {
-                const benchmark = model.benchmarkCellFor(row, cell);
-                return [
-                  cell.value,
-                  observationPeriod(entry, cell.series.at(-1)),
-                  cell.value === null
-                    ? 'No data'
-                    : benchmarkJudgement(
-                        benchmark?.areaObservation,
-                        benchmark?.value ?? null,
-                        entry.detail,
-                      ),
-                  cell.notes.join('; '),
-                ];
-              }),
+            [
+              row.name + (row.suffix ? ` ${row.suffix}` : ''),
+              row.unit,
+              row.period,
+              england?.value ?? null,
+              observationPeriod(entry, england),
+              ...row.cells
+                .filter(({ areaCode }) => areaCode !== 'E92000001')
+                .flatMap((cell) => {
+                  const benchmark = model.benchmarkCellFor(row, cell);
+                  return [
+                    cell.value,
+                    observationPeriod(entry, cell.series.at(-1)),
+                    cell.value === null
+                      ? 'No data'
+                      : JUDGEMENT_LABELS[
+                          topicJudgement(
+                            benchmark?.areaObservation,
+                            benchmark?.value ?? null,
+                            entry.detail,
+                          )
+                        ],
+                    cell.notes.join('; '),
+                  ];
+                }),
+            ],
           ];
         }),
       ])
@@ -88,31 +99,33 @@ export async function loader(args: LoaderFunctionArgs) {
             ),
           ),
         ],
-        ...model.rows.map((row) => {
+        ...model.rows.flatMap((row) => {
           const entry = byId.get(row.shortId);
           if (!entry) return [];
           return [
-            row.name + (row.suffix ? ` ${row.suffix}` : ''),
-            topicSubtopics(entry, topic.slug).join('; '),
-            row.unit,
-            ...(columns.includes('period') ? [row.period || 'No data'] : []),
-            ...(columns.includes('updated')
-              ? [
-                  entry.detail.dataUpdatedAt
-                    ? formatDate(entry.detail.dataUpdatedAt, 'short')
-                    : 'Not known',
-                ]
-              : []),
-            ...dataAreas.flatMap(({ areaCode }) =>
-              measures.map((measure) => {
-                const cell = row.cells.find((cell) => cell.areaCode === areaCode);
-                return measure === 'trend'
-                  ? recentTrend(cell?.series ?? [], entry.detail.polarity).label
-                  : measure === 'count'
-                    ? (cell?.count ?? null)
-                    : (cell?.value ?? null);
-              }),
-            ),
+            [
+              row.name + (row.suffix ? ` ${row.suffix}` : ''),
+              topicSubtopics(entry, topic.slug).join('; '),
+              row.unit,
+              ...(columns.includes('period') ? [row.period || 'No data'] : []),
+              ...(columns.includes('updated')
+                ? [
+                    entry.detail.dataUpdatedAt
+                      ? formatDate(entry.detail.dataUpdatedAt, 'short')
+                      : 'Not known',
+                  ]
+                : []),
+              ...dataAreas.flatMap(({ areaCode }) =>
+                measures.map((measure) => {
+                  const cell = row.cells.find((cell) => cell.areaCode === areaCode);
+                  return measure === 'trend'
+                    ? recentTrend(cell?.series ?? [], entry.detail.polarity).label
+                    : measure === 'count'
+                      ? (cell?.count ?? null)
+                      : (cell?.value ?? null);
+                }),
+              ),
+            ],
           ];
         }),
       ]);

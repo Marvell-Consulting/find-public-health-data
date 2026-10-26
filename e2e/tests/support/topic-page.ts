@@ -196,6 +196,26 @@ export function topicPageTests() {
     await expectNoAccessibilityViolations(page, testInfo);
   });
 
+  test('allows both year boundaries to be entered before applying the range', async ({
+    page,
+  }, testInfo) => {
+    await openTopicPage(page, '/topics/diabetes?tab-topic=data');
+    await page.getByRole('button', { name: 'Years the data covers', exact: true }).click();
+    const from = page.getByRole('textbox', { name: 'From', exact: true });
+    const to = page.getByRole('textbox', { name: 'To', exact: true });
+    await from.fill('2010');
+    await from.press('Tab');
+    await expect(to).toBeFocused();
+    await expect(page).not.toHaveURL(/fromYear=/);
+    await to.fill('2023');
+    await page.getByRole('heading', { name: 'Display options', exact: true }).click();
+    await expect(page).toHaveURL(/fromYear=2010/);
+    await expect(page).toHaveURL(/toYear=2023/);
+    await expect(from).toHaveValue('2010');
+    await expect(to).toHaveValue('2023');
+    await expectNoAccessibilityViolations(page, testInfo);
+  });
+
   test('keeps filters and sorting within the topic', async ({ page }) => {
     await openTopicPage(page, `${TOPIC_PATH}?tab-topic=data`);
     await page

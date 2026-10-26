@@ -1,7 +1,7 @@
 import { FilterChip, FilterChips, InsetText, Select } from '@fphd/ui';
 import { Form, useLocation, useNavigation } from 'react-router';
 import { DownloadShareData } from '../download-share.tsx';
-import { TOPIC_SORT_OPTIONS, topicColumns } from './data.ts';
+import { TOPIC_SORTS, topicColumns } from './data.ts';
 import type { loadTopic } from './loader.ts';
 import { AreaSummariesTable } from './tables/area-summaries-table.tsx';
 import { TopicDataTable } from './tables/data-table.tsx';
@@ -67,7 +67,7 @@ export function TopicListing({ data, areas = false }: { data: TopicData; areas?:
               id={`topic-sort-${tab}`}
               label="Sort by"
               name="sort"
-              options={TOPIC_SORT_OPTIONS}
+              options={TOPIC_SORTS}
               value={params.get('sort') ?? listing.sort}
               onChange={(event) => event.currentTarget.form?.requestSubmit()}
             />

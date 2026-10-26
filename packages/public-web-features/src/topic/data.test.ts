@@ -1,43 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { expect, it } from 'vitest';
 import { comparisonTable } from '../indicator/comparison.ts';
 import type { ComparisonRow } from '../indicator/data.ts';
 import { benchmarkJudgement } from '../indicator/data.ts';
 import type { IndicatorObservation, SelectedIndicator } from '../indicator/loader.ts';
-import type { IndicatorSearchRow } from '../search/loader.ts';
-import { englandObservation, topicIndicators, topicTableSelection } from './data.ts';
-
-const indicators = Array.from(
-  { length: 12 },
-  (_, index) =>
-    ({
-      shortId: index + 1,
-      name: `Indicator ${String(index + 1).padStart(2, '0')}`,
-      slug: `indicator-${index + 1}`,
-      topics: [],
-      classifications: [],
-    }) satisfies IndicatorSearchRow,
-);
-
-describe('topicIndicators', () => {
-  it('sorts the complete result set without hiding indicators behind paging', () => {
-    const result = topicIndicators(indicators, new URLSearchParams('sort=name-desc&page=2'));
-    expect(result.indicators.map(({ shortId }) => shortId)).toEqual([
-      12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1,
-    ]);
-  });
-
-  it.each(['-1', '1.5', 'invalid'])('falls back to the first page for %s', (page) => {
-    expect(topicIndicators(indicators, new URLSearchParams({ page })).page).toBe(1);
-  });
-
-  it('ignores legacy page parameters and retains the complete topic list', () => {
-    expect(
-      topicIndicators(indicators, new URLSearchParams('page=999')).indicators.map(
-        ({ shortId }) => shortId,
-      ),
-    ).toEqual(indicators.map(({ shortId }) => shortId));
-  });
-});
+import {
+  englandObservation,
+  JUDGEMENT_LABELS,
+  topicJudgement,
+  topicTableSelection,
+} from './data.ts';
 
 function observation(year: number, value: number | null): IndicatorObservation {
   return {
@@ -128,4 +99,11 @@ it('retains the displayed values, valid trend points and older England benchmark
   expect(
     compact[0]?.areaData[1]?.observations.some(({ fromDate }) => fromDate === '2019-01-01'),
   ).toBe(true);
+});
+
+it('uses the same no-comparison judgement and label for indicators without polarity', () => {
+  const detail = { polarity: 'no-polarity' } as SelectedIndicator['detail'];
+  expect(JUDGEMENT_LABELS[topicJudgement(observation(2024, 10), 5, detail)]).toBe(
+    'No comparison available',
+  );
 });

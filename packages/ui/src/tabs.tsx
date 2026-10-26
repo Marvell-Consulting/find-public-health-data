@@ -13,9 +13,11 @@ interface TabsProps {
   paramKey: string;
   title?: string;
   waitForNavigation?: boolean;
+  history?: 'push' | 'replace';
   defaultParam?: string | undefined;
 }
 
+// Query parameters preserve the server-rendered view in shared links; NotGovUK tabs only track hashes.
 export function Tabs(props: TabsProps) {
   return props.waitForNavigation ? <NavigationTabs {...props} /> : <TabPanels {...props} />;
 }
@@ -30,6 +32,7 @@ function TabPanels({
   paramKey,
   title = 'Contents',
   waitForNavigation = false,
+  history = 'replace',
   defaultParam,
   navigation,
 }: TabsProps & { navigation?: ReturnType<typeof useNavigation> }) {
@@ -95,7 +98,10 @@ function TabPanels({
   const choose = (index: number) => {
     if (index === visibleIndex) return;
     if (!waitForNavigation) setSelected(index);
-    void navigate({ search: searchFor(index) }, { preventScrollReset: true });
+    void navigate(
+      { search: searchFor(index) },
+      { replace: history === 'replace', preventScrollReset: true },
+    );
   };
   const focusTab = (index: number) => {
     choose(index);

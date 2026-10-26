@@ -68,8 +68,6 @@ export const topicSummarySchema = z.object({
 
 export const topicSummaryListSchema = z.array(topicSummarySchema);
 
-// A topic's detail currently adds nothing to its summary. Kept as a distinct name so the
-// detail response can grow (indicators, related links) without touching the list contract.
 export const topicContentSchema = z.object({
   overviewIntro: z.string().min(1),
   highlightedIndicatorIds: z.array(z.number().int().positive()).max(4),

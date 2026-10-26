@@ -29,6 +29,11 @@ export function SearchPeriodFilter({
             method="get"
             preventScrollReset
             onBlur={(event) => {
+              if (
+                event.relatedTarget instanceof Node &&
+                event.currentTarget.contains(event.relatedTarget)
+              )
+                return;
               if (event.currentTarget.reportValidity()) event.currentTarget.requestSubmit();
             }}
           >

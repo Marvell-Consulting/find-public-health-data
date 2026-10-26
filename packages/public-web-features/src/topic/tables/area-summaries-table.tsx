@@ -2,23 +2,16 @@ import { TableScrollRegion } from '@fphd/ui';
 import { indicatorPath } from '@fphd/utils/indicator-path';
 import { Link } from 'react-router';
 import { comparisonTable } from '../../indicator/comparison.ts';
-import {
-  type BenchmarkJudgement,
-  benchmarkJudgement,
-  formatCalculatedValue,
-} from '../../indicator/data.ts';
+import { formatCalculatedValue } from '../../indicator/data.ts';
 import type { BenchmarkGeography, SelectedIndicator } from '../../indicator/loader.ts';
 import { NoteFootnotes, noteMarker } from '../../indicator/tables/note-markers.tsx';
-import { englandObservation, observationPeriod, topicSubtopics } from '../data.ts';
-
-export const JUDGEMENT_LABELS: Record<BenchmarkJudgement, string> = {
-  better: 'Better than England',
-  similar: 'Similar to England',
-  worse: 'Worse than England',
-  lower: 'Lower than England',
-  higher: 'Higher than England',
-  none: 'No comparison available',
-};
+import {
+  englandObservation,
+  JUDGEMENT_LABELS,
+  observationPeriod,
+  topicJudgement,
+  topicSubtopics,
+} from '../data.ts';
 
 export function AreaSummariesTable({
   selected,
@@ -128,14 +121,11 @@ export function AreaSummariesTable({
                     .filter(({ areaCode }) => areaCode !== 'E92000001')
                     .map((cell) => {
                       const benchmark = benchmarkCellFor(row, cell);
-                      const judgement =
-                        entry.detail.polarity === 'no-polarity'
-                          ? 'none'
-                          : benchmarkJudgement(
-                              benchmark?.areaObservation,
-                              benchmark?.value ?? null,
-                              entry.detail,
-                            );
+                      const judgement = topicJudgement(
+                        benchmark?.areaObservation,
+                        benchmark?.value ?? null,
+                        entry.detail,
+                      );
                       const period = observationPeriod(entry, cell.series.at(-1));
                       return (
                         <td

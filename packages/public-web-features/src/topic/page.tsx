@@ -45,6 +45,7 @@ export function TopicPage(data: TopicData) {
         {navigation.state === 'loading' ? 'Loading topic data…' : ''}
       </p>
       <Tabs
+        history="push"
         waitForNavigation
         paramKey="tab-topic"
         title={`${topic.title} contents`}
