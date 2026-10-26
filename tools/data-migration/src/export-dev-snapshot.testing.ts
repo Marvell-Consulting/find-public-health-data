@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { DATA_MIGRATION_NULL } from '@fphd/db/data-migration-contract';
 import { type ExportRow, TableWriter } from './pholio/table-writer.ts';
@@ -10,7 +10,15 @@ export const sourceConfirmation = '2020-01-02T00:00:00.000Z';
 /** A small SQL-export fixture with the recorded B counts accounted for by explicit exclusions. */
 export async function writeDevelopmentSource(outDir: string): Promise<void> {
   await mkdir(outDir, { recursive: true });
-  const indicators = Array.from({ length: 1325 }, (_, index) => index + 1);
+  const relationships = JSON.parse(
+    await readFile(
+      new URL('../../../packages/db/data/published-indicator-topics.json', import.meta.url),
+      'utf8',
+    ),
+  ) as { indicators: number[] };
+  const ids = new Set(relationships.indicators);
+  for (let id = 1; ids.size < 1325; id++) ids.add(id);
+  const indicators = [...ids].sort((a, b) => a - b);
   const rows: Record<string, ExportRow[]> = {
     ci_method: [{ id: 1, name: "Byar's method" }],
     comparator_method: [{ id: 1, name: 'Confidence intervals overlapping reference value (95.0)' }],
