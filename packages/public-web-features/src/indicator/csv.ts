@@ -80,11 +80,13 @@ export async function loadIndicatorCsv(
       areaDisplayGroupListSchema,
     );
     const codes = [...new Set(groups.flatMap(({ areas }) => areas.map(({ code }) => code)))];
+    const firstBatch = codes.slice(0, MAX_AREA_CODES_PER_REQUEST);
+    const firstData = firstBatch.length ? await dataFor(firstBatch) : [];
     const encoder = new TextEncoder();
-    let offset = 0;
+    let offset = firstBatch.length;
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
-        controller.enqueue(encoder.encode(allDataCsv(detail, [])));
+        controller.enqueue(encoder.encode(allDataCsv(detail, firstData)));
       },
       async pull(controller) {
         if (offset >= codes.length) {

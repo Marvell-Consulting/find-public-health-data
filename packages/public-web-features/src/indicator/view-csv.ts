@@ -5,17 +5,10 @@ import {
   areaComparisonRows,
   observationComparisonLabel,
 } from './area-comparison.ts';
-import {
-  availableConfidenceLevels,
-  inequalityBreakdown,
-  inequalityCategories,
-  inequalityPeriods,
-  inequalityValueLabel,
-  trendSeries,
-  unitNote,
-} from './data.ts';
+import { inequalityValueLabel, unitNote } from './data.ts';
 import { tableCsv } from './download.ts';
 import { indicatorPair } from './indicator-pair.ts';
+import { inequalityTableModel } from './inequalities.ts';
 import { loadIndicator } from './loader.ts';
 
 export async function loadIndicatorViewCsv(args: LoaderFunctionArgs): Promise<Response> {
@@ -24,7 +17,6 @@ export async function loadIndicatorViewCsv(args: LoaderFunctionArgs): Promise<Re
   if (!primary) throw new Response('Not Found', { status: 404 });
   const params = new URL(args.request.url).searchParams;
   const tab = params.get('tab-indicator');
-  const id = primary.detail.shortId;
   let rows: (string | number | null)[][];
   if (tab === 'areas') {
     const areas = areaComparisonRows(
@@ -87,42 +79,12 @@ export async function loadIndicatorViewCsv(args: LoaderFunctionArgs): Promise<Re
         : []),
     ];
   } else {
-    const observations =
-      primary.areaData.find(({ areaCode }) => areaCode === (params.get(`ig-${id}`) ?? 'E92000001'))
-        ?.observations ??
-      primary.areaData[0]?.observations ??
-      [];
-    const categories = inequalityCategories(observations);
-    const requestedCategory = params.get(`ic-${id}`) ?? '';
-    const category = categories.includes(requestedCategory)
-      ? requestedCategory
-      : (categories[0] ?? '');
-    const periods = inequalityPeriods(observations, category, primary.detail.yearType);
-    const requestedPeriod = params.get(`ip-${id}`) ?? '';
-    const period = periods.some(({ value }) => value === requestedPeriod)
-      ? requestedPeriod
-      : (periods.at(-1)?.value ?? '');
-    const levels = availableConfidenceLevels(
-      primary.areaData.flatMap(({ observations }) => observations),
-    );
-    const requestedConfidence = params.get(`ci-${id}`);
-    const confidence = levels.includes(requestedConfidence as '95' | '99.8')
-      ? (requestedConfidence as '95' | '99.8')
-      : 'none';
-    const breakdown = inequalityBreakdown(observations, category, period);
-    const englandObservations =
-      primary.areaData.find(({ areaCode }) => areaCode === 'E92000001')?.observations ?? [];
-    const benchmarkObservation = trendSeries(englandObservations).find(
-      (row) => row.fromDate === breakdown[0]?.fromDate && row.toDate === breakdown[0]?.toDate,
-    );
+    const {
+      rows: breakdown,
+      benchmark: benchmarkObservation,
+      comparisonConfidence,
+    } = inequalityTableModel(primary, params);
     const benchmark = benchmarkObservation?.value ?? null;
-    const comparisonConfidence = params.has(`ci-${id}`)
-      ? confidence
-      : levels.includes('99.8')
-        ? '99.8'
-        : levels.includes('95')
-          ? '95'
-          : 'none';
     rows = [
       ['Segment', 'Count', `Value${unitNote(primary.detail.unit)}`, 'Compared with England'],
       ['England', benchmarkObservation?.count ?? null, benchmark, 'Benchmark'],
@@ -142,7 +104,7 @@ export async function loadIndicatorViewCsv(args: LoaderFunctionArgs): Promise<Re
   return new Response(tableCsv(rows), {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="${id}-${tab}.csv"`,
+      'Content-Disposition': `attachment; filename="${primary.detail.shortId}-${tab}.csv"`,
     },
   });
 }

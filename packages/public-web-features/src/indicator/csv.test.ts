@@ -286,3 +286,41 @@ describe('loadIndicatorCsv', () => {
     );
   });
 });
+
+it('rejects an all-areas download body if a later data batch fails', async () => {
+  const areas = Array.from({ length: 23 }, (_, index) => ({
+    code: `E${String(index).padStart(8, '0')}`,
+    name: `Area ${index}`,
+  }));
+  let batches = 0;
+  const failure = new Response(null, { status: 502 });
+  const get = vi.fn(async (path: string) => {
+    if (path.includes('/areas?')) return [{ displayGroup: 'Local authorities', areas }];
+    if (path.includes('/data?')) {
+      if (++batches === 2) throw failure;
+      return [];
+    }
+    return detail;
+  });
+  const response = await loadIndicatorCsv(
+    args(get, `http://localhost/indicator/${SLUG}/all-data.csv?allAreas=yes`),
+    'all-data',
+  );
+  await expect(response.text()).rejects.toBe(failure);
+});
+
+it('propagates an initial all-areas API failure before returning an attachment', async () => {
+  const failure = new Response(null, { status: 502 });
+  const get = vi.fn(async (path: string) => {
+    if (path.includes('/areas?'))
+      return [{ displayGroup: 'NHS regions', areas: [{ code: 'E40000001', name: 'Region' }] }];
+    if (path.includes('/data?')) throw failure;
+    return detail;
+  });
+  await expect(
+    loadIndicatorCsv(
+      args(get, `http://localhost/indicator/${SLUG}/all-data.csv?allAreas=yes`),
+      'all-data',
+    ),
+  ).rejects.toBe(failure);
+});
