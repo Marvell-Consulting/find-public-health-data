@@ -110,6 +110,35 @@ describe('GET /api/indicators/:indicator/areas', () => {
     });
   });
 
+  it('caps unfiltered previews and preserves explicit complete group and export requests', async () => {
+    const listAreas = vi.fn().mockResolvedValue([]);
+    const app = createTestApp({ resolveIdBySlug: async () => 'indicator-id', listAreas });
+    for (const [query, limit] of [
+      ['', 101],
+      ['?q=London', 101],
+      ['?displayGroup=NHS+regions', undefined],
+      ['?scope=all-data', undefined],
+    ] as const) {
+      expect((await request(app).get(`/api/indicators/indicator-108/areas${query}`)).status).toBe(
+        200,
+      );
+      expect(listAreas).toHaveBeenLastCalledWith(
+        'indicator-id',
+        expect.objectContaining({ limit }),
+      );
+    }
+  });
+
+  it('rejects malformed area limits without listing areas', async () => {
+    const listAreas = vi.fn();
+    const app = createTestApp({ resolveId: async () => 'indicator-id', listAreas });
+    for (const limit of ['0', 'abc', '-1', '1.5', '']) {
+      const response = await request(app).get(`/api/indicators/108/areas?limit=${limit}`);
+      expect(response.status).toBe(400);
+    }
+    expect(listAreas).not.toHaveBeenCalled();
+  });
+
   it('does not list areas for an unpublished or unknown indicator', async () => {
     const app = createTestApp({ resolveId: async () => undefined });
     expect((await request(app).get('/api/indicators/424242/areas')).status).toBe(404);

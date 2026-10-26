@@ -133,6 +133,10 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
       return;
     }
     const { displayGroup, q, limit, scope } = request.query;
+    if (limit !== undefined && (typeof limit !== 'string' || !/^[1-9]\d*$/.test(limit))) {
+      response.status(400).json({ error: 'invalid_limit' });
+      return;
+    }
     response.status(200).json(
       await indicators.listAreas(indicatorId, {
         scope: scope === 'all-data' ? 'all-data' : undefined,
@@ -144,7 +148,9 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
         limit:
           typeof limit === 'string' && /^[1-9]\d*$/.test(limit)
             ? Math.min(Number(limit), MAX_AREA_PREVIEW)
-            : undefined,
+            : (typeof displayGroup === 'string' && displayGroup) || scope === 'all-data'
+              ? undefined
+              : MAX_AREA_PREVIEW,
       }),
     );
   });

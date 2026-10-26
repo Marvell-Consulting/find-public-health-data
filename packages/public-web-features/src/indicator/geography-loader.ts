@@ -19,5 +19,5 @@ export async function loadGeography({ context, request }: LoaderFunctionArgs) {
     indicator,
     publicOnly: url.searchParams.get('scheme') === 'public',
   });
-  return Response.json(level ? { areas: groups.flatMap(({ areas }) => areas) } : { groups });
+  return Response.json(displayGroup ? { areas: groups.flatMap(({ areas }) => areas) } : { groups });
 }

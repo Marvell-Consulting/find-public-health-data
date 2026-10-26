@@ -1,9 +1,9 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { afterAll, beforeAll, expect, it } from 'vitest';
 import { listAreasByGroup, listIndicatorAreas } from './area-repository.ts';
 import { createDbFromClient, type Database } from './client.ts';
 import { resolvePublishedIndicatorId } from './indicator-repository.ts';
-import { area, observation } from './schema/index.ts';
+import { area, areaType, observation } from './schema/index.ts';
 import { createOwnerClient } from './scripts/owner-client.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
 
@@ -78,4 +78,29 @@ it('does not advertise placeholder series whose values are all null', async () =
       .where(and(eq(observation.indicatorId, id), eq(observation.areaId, record.id)))
       .limit(1),
   ).toHaveLength(1);
+});
+
+it('bounds ungrouped area types independently in all-data exports', async () => {
+  const id = await resolvePublishedIndicatorId(db, 108);
+  if (!id) throw new Error('Seeded indicator missing');
+  const groups = await listIndicatorAreas(db, id, { limit: 1 });
+  const codes = groups.slice(0, 2).flatMap(({ areas }) => areas.map(({ code }) => code));
+  const types = await db
+    .select({ id: areaType.id, name: areaType.name })
+    .from(areaType)
+    .innerJoin(area, eq(area.areaTypeId, areaType.id))
+    .where(inArray(area.code, codes));
+  expect(types).toHaveLength(2);
+  await db
+    .update(areaType)
+    .set({ displayGroup: null })
+    .where(
+      inArray(
+        areaType.id,
+        types.map(({ id }) => id),
+      ),
+    );
+  const exported = await listIndicatorAreas(db, id, { scope: 'all-data', limit: 1 });
+  for (const type of types)
+    expect(exported.find(({ displayGroup }) => displayGroup === type.name)?.areas).toHaveLength(1);
 });

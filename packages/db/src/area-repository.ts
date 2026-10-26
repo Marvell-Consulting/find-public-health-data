@@ -35,7 +35,7 @@ export async function listIndicatorAreas(
       displayOrder: areaType.displayOrder,
       code: area.code,
       name: area.name,
-      rank: sql<number>`row_number() over (partition by ${areaType.displayGroup} order by ${area.name}, ${area.code})`.as(
+      rank: sql<number>`row_number() over (partition by coalesce(${areaType.displayGroup}, ${areaType.name}) order by ${area.name}, ${area.code})`.as(
         'rank',
       ),
     })
@@ -73,7 +73,6 @@ export async function listIndicatorAreas(
     .orderBy(asc(ranked.displayOrder), asc(ranked.name), asc(ranked.code));
   const groups = new Map<string, AreaSummary[]>();
   for (const row of rows) {
-    if (!row.displayGroup) continue;
     const areas = groups.get(row.displayGroup) ?? [];
     areas.push({ code: row.code, name: row.name });
     groups.set(row.displayGroup, areas);

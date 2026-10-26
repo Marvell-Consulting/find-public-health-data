@@ -1,3 +1,4 @@
+import { areasInGeographyGroup } from '../geography/groups.ts';
 import {
   alignedTrendSeries,
   benchmarkJudgement,
@@ -15,7 +16,7 @@ export const AREA_COMPARISON_GROUPS = new Set([
 
 export function areaComparisonOptions<T extends { code: string }>(areas: T[], group: string): T[] {
   if (group !== 'Local authorities') return areas;
-  const upperTier = areas.filter(({ code }) => /^E(?:06|08|09|10)\d{6}$/.test(code));
+  const upperTier = areasInGeographyGroup(areas, 'Upper-tier local authorities');
   return upperTier.length ? upperTier : areas;
 }
 
