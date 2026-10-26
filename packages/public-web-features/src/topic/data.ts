@@ -8,22 +8,40 @@ import {
 } from '../indicator/data.ts';
 import type { SelectedIndicator } from '../indicator/loader.ts';
 import type { IndicatorSearchRow } from '../search/loader.ts';
-import { MAX_SELECTED_INDICATORS } from '../selection-limits.ts';
-
-export const TOPIC_PAGE_SIZE = MAX_SELECTED_INDICATORS;
 export const TOPIC_SORTS = [
-  { value: 'subtopic-asc', label: 'Subtopic - A to Z' },
-  { value: 'subtopic-desc', label: 'Subtopic - Z to A' },
-  { value: 'name-asc', label: 'Indicator name - A to Z' },
-  { value: 'name-desc', label: 'Indicator name - Z to A' },
-  { value: 'period-desc', label: 'Most recent period' },
-  { value: 'trend-desc', label: 'Trend increasing to decreasing' },
-  { value: 'trend-asc', label: 'Trend decreasing to increasing' },
+  { value: 'subtopic-asc', label: 'Subtopic (A to Z)' },
+  { value: 'subtopic-desc', label: 'Subtopic (Z to A)' },
+  { value: 'name-asc', label: 'Indicator name (A to Z)' },
+  { value: 'name-desc', label: 'Indicator name (Z to A)' },
+  { value: 'period-desc', label: 'Most recent data first' },
+  { value: 'trend-desc', label: 'Trend: increasing first' },
+  { value: 'trend-asc', label: 'Trend: decreasing first' },
   { value: 'trend-better', label: 'Trend: getting better first' },
   { value: 'trend-worse', label: 'Trend: getting worse first' },
 ];
 
 export const TOPIC_SORT_OPTIONS = TOPIC_SORTS;
+export const TOPIC_AREA_GROUPS = [
+  'Integrated care boards',
+  'Local authorities',
+  'NHS regions',
+  'Statistical regions',
+];
+
+export const TOPIC_COLUMNS = [
+  { value: 'period', label: 'Most recent period' },
+  { value: 'updated', label: 'Last updated' },
+  { value: 'trend', label: 'Trend (last 5 periods)' },
+  { value: 'count', label: 'Count' },
+  { value: 'value', label: 'Calculated value' },
+] as const;
+export type TopicColumn = (typeof TOPIC_COLUMNS)[number]['value'];
+export function topicColumns(params: URLSearchParams): TopicColumn[] {
+  const selected = params.has('columns-topic')
+    ? params.getAll('columns-topic').flatMap((value) => value.split(','))
+    : ['period', 'updated', 'trend', 'value'];
+  return TOPIC_COLUMNS.map(({ value }) => value).filter((value) => selected.includes(value));
+}
 
 export function topicSubtopics(entry: SelectedIndicator, topicSlug: string): string[] {
   return (
@@ -40,23 +58,20 @@ export function topicIndicators(
 ) {
   const sort =
     TOPIC_SORTS.find(({ value }) => value === params.get('sort'))?.value ?? 'subtopic-asc';
-  if (pagination?.page)
+  if (pagination)
     return {
       sort,
-      page: pagination.page,
-      pages: Math.max(1, Math.ceil(pagination.total / pagination.limit)),
+      page: 1,
+      pages: 1,
       indicators,
     };
   const sorted = [...indicators].sort((a, b) => a.name.localeCompare(b.name));
   if (sort === 'name-desc') sorted.reverse();
-  const pages = Math.max(1, Math.ceil(sorted.length / TOPIC_PAGE_SIZE));
-  const requested = Number(params.get('page'));
-  const page = Number.isSafeInteger(requested) && requested > 0 ? Math.min(requested, pages) : 1;
   return {
     sort,
-    page,
-    pages,
-    indicators: sorted.slice((page - 1) * TOPIC_PAGE_SIZE, page * TOPIC_PAGE_SIZE),
+    page: 1,
+    pages: 1,
+    indicators: sorted,
   };
 }
 

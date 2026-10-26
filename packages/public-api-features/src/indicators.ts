@@ -90,18 +90,18 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
       const requested = Number(page);
       filters.page = Number.isSafeInteger(requested) && requested > 0 ? requested : 1;
       filters.limit = 10;
-      filters.sort =
-        sort === 'name-desc' ||
-        sort === 'period-desc' ||
-        sort === 'trend-desc' ||
-        sort === 'trend-asc' ||
-        sort === 'trend-better' ||
-        sort === 'trend-worse' ||
-        sort === 'subtopic-asc' ||
-        sort === 'subtopic-desc'
-          ? sort
-          : 'name-asc';
     }
+    filters.sort =
+      sort === 'name-desc' ||
+      sort === 'period-desc' ||
+      sort === 'trend-desc' ||
+      sort === 'trend-asc' ||
+      sort === 'trend-better' ||
+      sort === 'trend-worse' ||
+      sort === 'subtopic-asc' ||
+      sort === 'subtopic-desc'
+        ? sort
+        : 'name-asc';
     if (fromYear) filters.dataFromYear = Number(fromYear);
     if (toYear) filters.dataToYear = Number(toYear);
     if (updatedWithin) filters.updatedWithinMonths = Number(updatedWithin);

@@ -1,5 +1,12 @@
-import { Autocomplete, type AutocompleteOption, Button, FilterChip, FilterChips } from '@fphd/ui';
-import { useState } from 'react';
+import {
+  Autocomplete,
+  type AutocompleteOption,
+  Button,
+  Checkboxes,
+  FilterChip,
+  FilterChips,
+} from '@fphd/ui';
+import { useEffect, useId, useState } from 'react';
 import { Form, Link } from 'react-router';
 import { LIST_PARAMS, PERIOD_PARAMS, removeFrom, type SearchState } from './url.ts';
 
@@ -10,32 +17,82 @@ export function HiddenFilters({
   includePeriod = true,
 }: {
   state: SearchState;
-  except?: keyof SearchState;
+  except?: keyof SearchState | (keyof SearchState)[];
   extraParams?: Record<string, string>;
   includePeriod?: boolean;
 }) {
+  const excluded = new Set(Array.isArray(except) ? except : [except]);
   return (
     <>
       {Object.entries(extraParams).map(([name, value]) => (
         <input key={name} name={name} type="hidden" value={value} />
       ))}
-      {except !== 'q' && state.q ? <input name="q" type="hidden" value={state.q} /> : null}
-      {except !== 'subtopics'
+      {!excluded.has('q') && state.q ? <input name="q" type="hidden" value={state.q} /> : null}
+      {!excluded.has('subtopics')
         ? state.subtopics?.map((slug) => (
             <input key={slug} name="subtopic" type="hidden" value={slug} />
           ))
         : null}
       {includePeriod
         ? PERIOD_PARAMS.map((name) =>
-            state[name] ? <input key={name} name={name} type="hidden" value={state[name]} /> : null,
+            !excluded.has(name) && state[name] ? (
+              <input key={name} name={name} type="hidden" value={state[name]} />
+            ) : null,
           )
         : null}
-      {LIST_PARAMS.filter(({ stateKey }) => stateKey !== except).map(({ param, stateKey }) =>
+      {LIST_PARAMS.filter(({ stateKey }) => !excluded.has(stateKey)).map(({ param, stateKey }) =>
         (state[stateKey] as string[]).map((v) => (
           <input key={`${param}-${v}`} name={param} type="hidden" value={v} />
         )),
       )}
     </>
+  );
+}
+
+export function FilterDimensionChoices({
+  action,
+  extraParams,
+  label,
+  options,
+  param,
+  state,
+  stateKey,
+  onChange,
+}: {
+  action: string;
+  extraParams: Record<string, string>;
+  label: string;
+  options: AutocompleteOption[];
+  param: string;
+  state: SearchState;
+  stateKey: keyof SearchState;
+  onChange: (values: string[]) => void;
+}) {
+  const id = useId();
+  const selected = state[stateKey] as string[];
+  const [values, setValues] = useState(selected);
+  useEffect(() => setValues(selected), [selected]);
+  return (
+    <Form action={action} method="get" preventScrollReset>
+      <HiddenFilters state={state} extraParams={extraParams} except={stateKey} />
+      <Checkboxes
+        id={id}
+        name={param}
+        label={label}
+        classModifiers="small"
+        options={options.map((option) => ({ ...option, checked: values.includes(option.value) }))}
+        onChange={(event) => {
+          const next = event.currentTarget.checked
+            ? [...values, event.currentTarget.value]
+            : values.filter((value) => value !== event.currentTarget.value);
+          setValues(next);
+          onChange(next);
+        }}
+      />
+      <noscript>
+        <Button type="submit">Apply filters</Button>
+      </noscript>
+    </Form>
   );
 }
 

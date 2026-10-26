@@ -130,13 +130,13 @@ describe('loadTopic', () => {
       ),
     );
     expect(get).toHaveBeenCalledWith(
-      '/api/indicators/search?t=topic-a&page=1&sort=subtopic-asc',
+      '/api/indicators/search?t=topic-a&sort=subtopic-asc',
       expect.anything(),
     );
     expect(get.mock.calls.some(([path]) => path === '/api/indicators/999')).toBe(false);
   });
 
-  it('loads only the requested page of topic indicators through the comparison loader', async () => {
+  it('loads the complete topic list even when an old link includes a page parameter', async () => {
     const indicators = Array.from({ length: 12 }, (_, index) => ({
       shortId: index + 1,
       name: `Indicator ${String(index + 1).padStart(2, '0')}`,
@@ -146,9 +146,13 @@ describe('loadTopic', () => {
     const result = await loadTopic(
       loaderArgs({ get } as unknown as ApiClient, { slug: 'topic-a' }, '?tab-topic=data&page=2'),
     );
-    expect(result.content?.listing.indicators.map(({ shortId }) => shortId)).toEqual([11, 12]);
-    expect(result.content?.data.selected.map(({ detail }) => detail.shortId)).toEqual([11, 12]);
-    expect(get.mock.calls.some(([path]) => path === '/api/indicators/1')).toBe(false);
+    expect(result.content?.listing.indicators.map(({ shortId }) => shortId)).toEqual(
+      indicators.map(({ shortId }) => shortId),
+    );
+    expect(result.content?.data.selected.map(({ detail }) => detail.shortId)).toEqual(
+      indicators.map(({ shortId }) => shortId),
+    );
+    expect(get.mock.calls.some(([path]) => path === '/api/indicators/1')).toBe(true);
   });
 
   it('fails with a developer-facing error when the route supplies no slug', async () => {

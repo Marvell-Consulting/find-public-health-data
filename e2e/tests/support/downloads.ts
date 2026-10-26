@@ -2,10 +2,10 @@ import { readFile } from 'node:fs/promises';
 
 import type { Download, Page } from '@playwright/test';
 
-/** Clicks the named button and returns the file it downloads, as text. */
-export async function downloadFrom(page: Page, buttonName: string) {
+/** Clicks the named control and returns the file it downloads, as text. */
+export async function downloadFrom(page: Page, name: string, role: 'button' | 'link' = 'button') {
   const downloading = page.waitForEvent('download');
-  await page.getByRole('button', { name: buttonName }).click();
+  await page.getByRole(role, { name }).click();
   const download = await downloading;
   return { filename: download.suggestedFilename(), text: await readText(download) };
 }

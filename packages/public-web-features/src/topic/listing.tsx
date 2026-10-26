@@ -1,7 +1,7 @@
-import { InsetText, Select } from '@fphd/ui';
-import { Form, Link, useLocation } from 'react-router';
-import { TOPIC_PAGE_SIZE, TOPIC_SORT_OPTIONS } from './data.ts';
-import { TopicDownload } from './download.tsx';
+import { FilterChip, FilterChips, InsetText, Select } from '@fphd/ui';
+import { Form, useLocation } from 'react-router';
+import { DownloadShareData } from '../download-share.tsx';
+import { TOPIC_SORT_OPTIONS, topicColumns } from './data.ts';
 import type { loadTopic } from './loader.ts';
 import { AreaSummariesTable } from './tables/area-summaries-table.tsx';
 import { TopicDataTable } from './tables/data-table.tsx';
@@ -17,11 +17,6 @@ export function TopicListing({ data, areas = false }: { data: TopicData; areas?:
   const tab = areas ? 'areas' : 'data';
   const params = new URLSearchParams(location.search);
   params.set('tab-topic', tab);
-  const pageUrl = (page: number) => {
-    const next = new URLSearchParams(params);
-    next.set('page', String(page));
-    return `${path}?${next}`;
-  };
   const dataSelected =
     data.defaultAreas && !areas
       ? data.data.selected.map((entry) => ({
@@ -31,6 +26,22 @@ export function TopicListing({ data, areas = false }: { data: TopicData; areas?:
       : data.data.selected;
   return (
     <>
+      <div className="fphd-indicator-showing">
+        <p className="govuk-body-s govuk-!-margin-bottom-1">Showing:</p>
+        <FilterChips>
+          <FilterChip value="E92000001">England</FilterChip>
+          {search.geoLevels.map((level) => (
+            <FilterChip key={level} value={level}>
+              {areas ? `All ${level === 'NHS regions' ? level : level.toLowerCase()}` : level}
+            </FilterChip>
+          ))}
+          {search.gaCodes.map((code) => (
+            <FilterChip key={code} value={code}>
+              {search.gaAreaNames[code] ?? code}
+            </FilterChip>
+          ))}
+        </FilterChips>
+      </div>
       <div className="fphd-results-sort fphd-topic-toolbar govuk-!-margin-bottom-3">
         <h2
           aria-atomic="true"
@@ -40,28 +51,38 @@ export function TopicListing({ data, areas = false }: { data: TopicData; areas?:
           {search.searchResult.total.toLocaleString()}{' '}
           {search.searchResult.total === 1 ? 'indicator' : 'indicators'}
         </h2>
-        <Form action={path} method="get" preventScrollReset>
-          {[...params]
-            .filter(([key]) => key !== 'sort' && key !== 'page')
-            .map(([name, value], index) => (
-              <input key={`${name}-${index}`} name={name} type="hidden" value={value} />
-            ))}
-          <Select
-            id={`topic-sort-${tab}`}
-            label="Sort by"
-            name="sort"
-            options={TOPIC_SORT_OPTIONS}
-            value={listing.sort}
-            onChange={(event) => event.currentTarget.form?.requestSubmit()}
-          />
-          <noscript>
-            <button className="govuk-button govuk-button--secondary" type="submit">
-              Sort indicators
-            </button>
-          </noscript>
-        </Form>
-        {dataSelected.length > 0 ? <TopicDownload href={`${path}/table.csv?${params}`} /> : null}
+        {!areas ? (
+          <Form action={path} method="get" preventScrollReset>
+            {[...params]
+              .filter(([key]) => key !== 'sort' && key !== 'page')
+              .map(([name, value], index) => (
+                <input key={`${name}-${index}`} name={name} type="hidden" value={value} />
+              ))}
+            <Select
+              id={`topic-sort-${tab}`}
+              label="Sort by"
+              name="sort"
+              options={TOPIC_SORT_OPTIONS}
+              value={listing.sort}
+              onChange={(event) => event.currentTarget.form?.requestSubmit()}
+            />
+            <noscript>
+              <button className="govuk-button govuk-button--secondary" type="submit">
+                Sort indicators
+              </button>
+            </noscript>
+          </Form>
+        ) : null}
       </div>
+      {dataSelected.length > 0 ? (
+        <DownloadShareData
+          inline
+          href={`${path}/table.csv?${params}`}
+          allDataHref={`${path}/table.csv?tab-topic=data`}
+          downloadLabel="Download filtered data (CSV)"
+          allDataLabel="Download all data (CSV)"
+        />
+      ) : null}
       {search.searchResult.page === undefined &&
       search.searchResult.total > search.searchResult.limit ? (
         <InsetText>
@@ -78,49 +99,26 @@ export function TopicListing({ data, areas = false }: { data: TopicData; areas?:
         <InsetText>No indicators match your selected filters or search terms.</InsetText>
       ) : areas ? (
         <>
-          <p className="govuk-body">
-            Latest calculated values for each area, compared with England for the same period and
-            population. Comparisons use 95% confidence intervals where available.
-          </p>
-          {data.defaultAreas ? (
-            <p className="govuk-body">
-              Showing the first {data.data.selectedAreas.length} NHS regions. Use the geography
-              filters on the Data tab to choose areas.
-            </p>
-          ) : null}
           {data.data.areasLimited && !data.defaultAreas ? (
             <InsetText>
               Showing the first {data.data.selectedAreas.length} areas. Select fewer areas to change
               which ones are shown.
             </InsetText>
           ) : null}
-          <AreaSummariesTable selected={dataSelected} geography={data.data.benchmarkGeography} />
+          <AreaSummariesTable
+            selected={dataSelected}
+            geography={data.data.benchmarkGeography}
+            topicSlug={topic.slug}
+          />
         </>
       ) : (
-        <TopicDataTable selected={dataSelected} title={topic.title} />
+        <TopicDataTable
+          selected={dataSelected}
+          title={topic.title}
+          topicSlug={topic.slug}
+          columns={topicColumns(params)}
+        />
       )}
-      {listing.pages > 1 ? (
-        <nav
-          aria-label={`${areas ? 'Area summaries' : 'Indicators'} pages`}
-          className="fphd-topic-pagination"
-        >
-          {listing.page > 1 ? (
-            <Link className="govuk-link" to={pageUrl(listing.page - 1)}>
-              Previous page
-            </Link>
-          ) : null}
-          <p className="govuk-body govuk-!-margin-bottom-0">
-            Page {listing.page} of {listing.pages}. Showing{' '}
-            {(listing.page - 1) * TOPIC_PAGE_SIZE + 1} to{' '}
-            {Math.min(listing.page * TOPIC_PAGE_SIZE, search.searchResult.total)}.
-          </p>
-          {listing.page < listing.pages ? (
-            <Link className="govuk-link" to={pageUrl(listing.page + 1)}>
-              Next page
-            </Link>
-          ) : null}
-        </nav>
-      ) : null}
     </>
   );
 }

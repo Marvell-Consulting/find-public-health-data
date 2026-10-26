@@ -1,5 +1,5 @@
 import { Button, GeographyTree } from '@fphd/ui';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { Form } from 'react-router';
 import { MAX_SELECTED_AREAS } from '../selection-limits.ts';
 import type { GeographyOptions } from './loader.ts';
@@ -20,6 +20,11 @@ export function GeographyPicker({
   onApply,
   replace = false,
   selection,
+  lookupUrl,
+  autoApply = false,
+  searchLabel,
+  searchHint,
+  single = false,
 }: {
   action: string;
   buttonClassName: string;
@@ -31,8 +36,15 @@ export function GeographyPicker({
   onApply: (selection: GeographySelection) => void;
   replace?: boolean;
   selection: GeographySelection;
+  lookupUrl?: string | undefined;
+  autoApply?: boolean;
+  searchLabel?: string | undefined;
+  searchHint?: string | undefined;
+  single?: boolean;
 }) {
   const [pending, setPending] = useState(selection);
+  const { areaCodes, areaLevels } = selection;
+  useEffect(() => setPending({ areaCodes, areaLevels }), [areaCodes, areaLevels]);
   const before = [...selection.areaCodes, ...selection.areaLevels];
   const after = [...pending.areaCodes, ...pending.areaLevels];
   const added = after.filter((value) => !before.includes(value)).length;
@@ -43,28 +55,48 @@ export function GeographyPicker({
     <Form action={action} method="get" replace={replace} preventScrollReset>
       {children}
       <GeographyTree
+        single={single}
+        lookupUrl={lookupUrl}
+        searchLabel={searchLabel}
+        searchHint={searchHint}
+        groupAsOne={autoApply}
+        showLimitHint={!autoApply}
         fallback={geographyOptions}
         levelName={levelName}
         levels={displayGroups}
         maxAreaTicks={MAX_SELECTED_AREAS}
         name={name}
-        onChange={(areaCodes) => setPending((current) => ({ ...current, areaCodes }))}
-        onLevelsChange={(areaLevels) => setPending((current) => ({ ...current, areaLevels }))}
+        onChange={(areaCodes) => {
+          const next = { ...pending, areaCodes, ...(single ? { areaLevels: [] } : {}) };
+          setPending(next);
+          if (autoApply) onApply(next);
+        }}
+        onLevelsChange={(areaLevels) => {
+          const next = { ...pending, areaLevels };
+          setPending(next);
+          if (autoApply) onApply(next);
+        }}
         selected={pending.areaCodes}
         selectedLevels={pending.areaLevels}
       />
-      <Button
-        className={buttonClassName}
-        data-empty={changes === 0 ? '' : undefined}
-        onClick={() => {
-          if (changes === 0) return;
-          onApply(pending);
-        }}
-        type={changes === 0 ? 'submit' : 'button'}
-      >
-        {removed > 0 ? 'Update' : 'Add'} selected geographies
-        {changes > 0 ? ` (${changes})` : ''}
-      </Button>
+      {autoApply ? (
+        <noscript>
+          <Button type="submit">Apply geographies</Button>
+        </noscript>
+      ) : (
+        <Button
+          className={buttonClassName}
+          data-empty={changes === 0 ? '' : undefined}
+          onClick={() => {
+            if (changes === 0) return;
+            onApply(pending);
+          }}
+          type={changes === 0 ? 'submit' : 'button'}
+        >
+          {removed > 0 ? 'Update' : 'Add'} selected geographies
+          {changes > 0 ? ` (${changes})` : ''}
+        </Button>
+      )}
     </Form>
   );
 }

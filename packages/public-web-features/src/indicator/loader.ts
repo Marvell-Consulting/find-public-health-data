@@ -9,8 +9,10 @@ import {
   indicatorDetailSchema,
   indicatorListResponseSchema,
   indicatorRangeSchema,
+  MAX_AREA_CODES_PER_REQUEST,
   MAX_AREA_GROUPS_PER_REQUEST,
   MAX_AREA_NAME_LENGTH,
+  MAX_INDICATOR_FILTER_RESULTS,
   MAX_INDICATOR_QUERY_LENGTH,
   pickAreaCodes,
 } from '@fphd/public-api-features/contract';
@@ -19,6 +21,7 @@ import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
 import { pageSearch } from '@fphd/web-server/page-url';
 import { type LoaderFunctionArgs, redirect } from 'react-router';
+import { areasInGeographyGroup, sourceGeographyGroup } from '../geography/groups.ts';
 import { loadGeographyOptions } from '../geography/loader.ts';
 import { MAX_SELECTED_AREAS, MAX_SELECTED_INDICATORS } from '../selection-limits.ts';
 import { isIndicatorSegment, redirectStatus } from './paths.ts';
@@ -74,7 +77,11 @@ const DEFAULT_AREA_CODE = 'E92000001';
 // selection is capped rather than the URL trusted.
 export { MAX_SELECTED_INDICATORS } from '../selection-limits.ts';
 
-function selectedIndicatorIds(url: URL, routeShortId: number | undefined): number[] {
+function selectedIndicatorIds(
+  url: URL,
+  routeShortId: number | undefined,
+  limit = MAX_SELECTED_INDICATORS,
+): number[] {
   const fromQuery = url.searchParams
     .getAll('is')
     .filter((value) => /^\d+$/.test(value))
@@ -84,7 +91,7 @@ function selectedIndicatorIds(url: URL, routeShortId: number | undefined): numbe
   // it, so a link out of the page never silently re-adds where the user arrived from.
   const ids = fromQuery.length > 0 ? fromQuery : routeShortId !== undefined ? [routeShortId] : [];
 
-  return [...new Set(ids)].slice(0, MAX_SELECTED_INDICATORS);
+  return [...new Set(ids)].slice(0, limit);
 }
 
 /**
@@ -102,6 +109,7 @@ async function loadIndicatorData(
   { context, params, request }: LoaderFunctionArgs,
   includePageData: boolean,
   tableDisplayGroups?: string[],
+  wholeAreaGroups = false,
 ) {
   const url = new URL(request.url);
 
@@ -145,22 +153,32 @@ async function loadIndicatorData(
   // areas are resolved here, subject to the same cap as hand-picked codes.
   let levelCodes: string[] = [];
   if (requestedLevels.length > 0) {
+    const sources = [...new Set(requestedLevels.map(sourceGeographyGroup))];
     const levelGroups = await api.get(
-      `/api/areas?${requestedLevels
-        .map((name) => `displayGroup=${encodeURIComponent(name)}`)
-        .join('&')}`,
+      `/api/areas?${sources.map((name) => `displayGroup=${encodeURIComponent(name)}`).join('&')}`,
       areaDisplayGroupListSchema,
     );
-    levelCodes = levelGroups.flatMap(({ areas }) => areas.map(({ code }) => code));
+    levelCodes = requestedLevels.flatMap((level) =>
+      levelGroups
+        .filter(({ displayGroup }) => displayGroup === sourceGeographyGroup(level))
+        .flatMap(({ displayGroup, areas }) =>
+          areasInGeographyGroup(
+            areas,
+            wholeAreaGroups && displayGroup === 'Local authorities'
+              ? 'Upper-tier local authorities'
+              : level,
+          ).map(({ code }) => code),
+        ),
+    );
   }
   // England rides along last for the benchmark; the first entry stays the area the page describes.
   const pickedCodes = [...new Set([...areaCodes, ...levelCodes])]
     .filter((code) => code !== DEFAULT_AREA_CODE)
-    .slice(0, MAX_SELECTED_AREAS);
+    .slice(0, wholeAreaGroups ? Number.POSITIVE_INFINITY : MAX_SELECTED_AREAS);
   const codesToLoad = [...pickedCodes, DEFAULT_AREA_CODE];
   const areasLimited =
     new Set([...requestedAreaCodes, ...levelCodes].filter((code) => code !== DEFAULT_AREA_CODE))
-      .size > MAX_SELECTED_AREAS;
+      .size > MAX_SELECTED_AREAS && !wholeAreaGroups;
 
   // Both benchmarks need each picked area's display level and statistical region up front.
   const nonEnglandCodes = codesToLoad.filter((code) => code !== DEFAULT_AREA_CODE);
@@ -170,7 +188,21 @@ async function loadIndicatorData(
   const codeQuery = nonEnglandCodes.map((code) => `areaCode=${encodeURIComponent(code)}`).join('&');
   const [lookedUp, areaParents, displayGroups] = await Promise.all([
     nonEnglandCodes.length > 0
-      ? api.get(`/api/areas/lookup?${codeQuery}`, areaLookupListSchema)
+      ? Promise.all(
+          Array.from(
+            { length: Math.ceil(nonEnglandCodes.length / MAX_AREA_CODES_PER_REQUEST) },
+            (_, index) => {
+              const batch = nonEnglandCodes.slice(
+                index * MAX_AREA_CODES_PER_REQUEST,
+                (index + 1) * MAX_AREA_CODES_PER_REQUEST,
+              );
+              return api.get(
+                `/api/areas/lookup?${batch.map((code) => `areaCode=${encodeURIComponent(code)}`).join('&')}`,
+                areaLookupListSchema,
+              );
+            },
+          ),
+        ).then((batches) => batches.flat())
       : Promise.resolve([]),
     nonEnglandCodes.length > 0 && tableDisplayGroups === undefined
       ? api.get(
@@ -236,7 +268,11 @@ async function loadIndicatorData(
     return { region: choices.includes('region'), rangeLevels: [...rangeLevels] };
   };
 
-  const shortIds = selectedIndicatorIds(url, routeDetail?.shortId);
+  const shortIds = selectedIndicatorIds(
+    url,
+    routeDetail?.shortId,
+    tableDisplayGroups === undefined ? MAX_SELECTED_INDICATORS : MAX_INDICATOR_FILTER_RESULTS,
+  );
   const requestedIndicatorCount = new Set(
     url.searchParams.getAll('is').filter((value) => /^\d+$/.test(value)),
   ).size;
@@ -254,7 +290,7 @@ async function loadIndicatorData(
       : [];
   const selected = await Promise.all(
     shortIds.map(async (id) => {
-      const dataFor = (codes: string[]) =>
+      const dataBatch = (codes: string[]) =>
         api.get(
           `${apiPath`/api/indicators/${String(id)}/data`}?${codes
             .map((code) => `areaCode=${encodeURIComponent(code)}`)
@@ -263,6 +299,21 @@ async function loadIndicatorData(
             ? indicatorAreaDataSchema.transform((one) => [one])
             : indicatorAreaDataListSchema,
         );
+      const dataFor = async (codes: string[]) =>
+        (
+          await Promise.all(
+            Array.from(
+              { length: Math.ceil(codes.length / MAX_AREA_CODES_PER_REQUEST) },
+              (_, index) =>
+                dataBatch(
+                  codes.slice(
+                    index * MAX_AREA_CODES_PER_REQUEST,
+                    (index + 1) * MAX_AREA_CODES_PER_REQUEST,
+                  ),
+                ),
+            ),
+          )
+        ).flat();
       const comparison = comparisonFor(id);
       const [detail, areaData, regionData, rangeEntries] = await Promise.all([
         // The page's own indicator is already loaded; only the compared ones are fetched.
@@ -315,6 +366,10 @@ export async function loadComparisonData(args: LoaderFunctionArgs) {
   return { selected, benchmarkGeography };
 }
 
-export async function loadIndicatorTableData(args: LoaderFunctionArgs, displayGroups: string[]) {
-  return loadIndicatorData(args, false, displayGroups);
+export async function loadIndicatorTableData(
+  args: LoaderFunctionArgs,
+  displayGroups: string[],
+  wholeAreaGroups = false,
+) {
+  return loadIndicatorData(args, false, displayGroups, wholeAreaGroups);
 }

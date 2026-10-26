@@ -19,21 +19,23 @@ const indicators = Array.from(
 );
 
 describe('topicIndicators', () => {
-  it('sorts the complete result set before selecting a page', () => {
+  it('sorts the complete result set without hiding indicators behind paging', () => {
     const result = topicIndicators(indicators, new URLSearchParams('sort=name-desc&page=2'));
-    expect(result.indicators.map(({ shortId }) => shortId)).toEqual([2, 1]);
+    expect(result.indicators.map(({ shortId }) => shortId)).toEqual([
+      12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1,
+    ]);
   });
 
   it.each(['-1', '1.5', 'invalid'])('falls back to the first page for %s', (page) => {
     expect(topicIndicators(indicators, new URLSearchParams({ page })).page).toBe(1);
   });
 
-  it('keeps an out-of-range page within the result set', () => {
+  it('ignores legacy page parameters and retains the complete topic list', () => {
     expect(
       topicIndicators(indicators, new URLSearchParams('page=999')).indicators.map(
         ({ shortId }) => shortId,
       ),
-    ).toEqual([11, 12]);
+    ).toEqual(indicators.map(({ shortId }) => shortId));
   });
 });
 

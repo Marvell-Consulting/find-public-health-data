@@ -4,6 +4,7 @@ import { SearchFilterPane } from '../search/filter-pane.tsx';
 import { TopicGeographies } from './geographies.tsx';
 import { TopicListing } from './listing.tsx';
 import type { loadTopic } from './loader.ts';
+import { TopicKeywordSearch, TopicTableColumns } from './options.tsx';
 import { TopicOverview } from './overview.tsx';
 import { TopicSubtopicFilter } from './subtopic-filter.tsx';
 
@@ -19,6 +20,9 @@ export function TopicPage(data: TopicData) {
     params.set('tab-topic', tab);
     return `${path}?${params}`;
   };
+  const columnParams = Object.fromEntries(
+    [...new URLSearchParams(location.search)].filter(([key]) => key === 'columns-topic'),
+  );
   const navigation = useNavigation();
   return (
     <div className="fphd-wide-layout fphd-topic-page">
@@ -63,11 +67,20 @@ export function TopicPage(data: TopicData) {
               content && tableData ? (
                 <GridRow className="fphd-topic-data">
                   <GridColumn width="one-quarter">
+                    <TopicKeywordSearch title={topic.title} />
+                    <TopicGeographies search={content.search} path={path} tab="data" />
                     <SearchFilterPane
                       action={path}
-                      extraParams={{ 'tab-topic': 'data', sort: content.listing.sort }}
+                      extraParams={{
+                        ...columnParams,
+                        'tab-topic': 'data',
+                        sort: content.listing.sort,
+                      }}
                       includeTopics={false}
                       includeDataPeriod
+                      includeGeography={false}
+                      includeSearch={false}
+                      variant="accordion"
                       facets={content.search.facets}
                       displayGroups={content.search.displayGroups}
                       gaAreaNames={content.search.gaAreaNames}
@@ -84,6 +97,7 @@ export function TopicPage(data: TopicData) {
                         />
                       }
                     />
+                    <TopicTableColumns />
                   </GridColumn>
                   <GridColumn width="three-quarters">
                     <TopicListing data={tableData} />
@@ -110,6 +124,32 @@ export function TopicPage(data: TopicData) {
                 <GridRow>
                   <GridColumn width="one-quarter">
                     <TopicGeographies search={content.search} path={path} tab="areas" />
+                    <SearchFilterPane
+                      action={path}
+                      extraParams={{
+                        ...columnParams,
+                        'tab-topic': 'areas',
+                        sort: content.listing.sort,
+                      }}
+                      includeTopics={false}
+                      includeGeography={false}
+                      includeSearch={false}
+                      variant="accordion"
+                      compact
+                      facets={content.search.facets}
+                      displayGroups={content.search.displayGroups}
+                      gaAreaNames={content.search.gaAreaNames}
+                      state={content.search}
+                      subtopicFilter={
+                        <TopicSubtopicFilter
+                          path={path}
+                          state={content.search}
+                          subtopics={topic.subtopics ?? []}
+                          sort={content.listing.sort}
+                          tab="areas"
+                        />
+                      }
+                    />
                   </GridColumn>
                   <GridColumn width="three-quarters">
                     <TopicListing data={tableData} areas />

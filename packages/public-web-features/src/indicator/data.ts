@@ -80,6 +80,12 @@ export function benchmarkJudgement(
     if (indicator.polarity !== 'no-polarity') {
       return 'none';
     }
+    if (indicator.comparatorMethod?.toLowerCase().includes('confidence intervals overlapping')) {
+      const lower = confidence === '99.8' ? observation.lowerCi998 : observation.lowerCi95;
+      const upper = confidence === '99.8' ? observation.upperCi998 : observation.upperCi95;
+      if (lower == null || upper == null) return 'none';
+      return lower > benchmarkValue ? 'higher' : upper < benchmarkValue ? 'lower' : 'similar';
+    }
     if (observation.value === benchmarkValue) {
       return 'similar';
     }

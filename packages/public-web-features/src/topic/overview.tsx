@@ -1,8 +1,9 @@
-import { GridColumn, GridRow, SummaryList } from '@fphd/ui';
+import { GridColumn, GridRow, SummaryList, Tag } from '@fphd/ui';
 import { indicatorPath } from '@fphd/utils/indicator-path';
 import { Link } from 'react-router';
 import { comparisonRows, formatCalculatedValue, recentTrend, withUnit } from '../indicator/data.ts';
 import { TrendTag } from '../indicator/trend-tag.tsx';
+import { searchUrl } from '../search/url.ts';
 import { TopicGeographies } from './geographies.tsx';
 import type { loadTopic } from './loader.ts';
 
@@ -25,34 +26,58 @@ export function TopicOverview({
       </GridColumn>
       <GridColumn width="three-quarters">
         <p className="govuk-body">{topic.content?.overviewIntro ?? topic.description}</p>
-        <h2 className="govuk-heading-l">
+        <h2 className="govuk-heading-m">
           {topic.title} has {trends.total} indicators in total
         </h2>
         <p className="govuk-body">In England, the trend over the last 5 data points is:</p>
-        <ul className="govuk-list govuk-list--bullet">
-          <li>
-            <strong>{trends.better} are getting better</strong>
-          </li>
-          <li>
-            <strong>{trends.worse} are getting worse</strong>
-          </li>
-          <li>
-            <strong>{trends.unchanged} show no significant change</strong>
-          </li>
-        </ul>
-        <ul className="govuk-list govuk-list--bullet">
-          <li>
-            <strong>{trends.increasing} are going up (higher is neither better nor worse)</strong>
-          </li>
-          <li>
-            <strong>{trends.decreasing} are going down (higher is neither better nor worse)</strong>
-          </li>
-          <li>
-            <strong>{trends.unavailable} cannot have a trend calculated</strong>
-          </li>
-        </ul>
+        <GridRow className="fphd-topic-trend-counts">
+          <GridColumn width="one-half">
+            <ul className="govuk-list">
+              <li>
+                <Tag className="fphd-trend-tag" classModifiers="green">
+                  {trends.better} {trends.better === 1 ? 'is' : 'are'} getting better
+                </Tag>
+              </li>
+              <li>
+                <Tag className="fphd-trend-tag" classModifiers="red">
+                  {trends.worse} {trends.worse === 1 ? 'is' : 'are'} getting worse
+                </Tag>
+              </li>
+              <li>
+                <Tag className="fphd-trend-tag" classModifiers="yellow">
+                  {trends.unchanged} {trends.unchanged === 1 ? 'shows' : 'show'} no significant
+                  change
+                </Tag>
+              </li>
+            </ul>
+          </GridColumn>
+          <GridColumn width="one-half">
+            <ul className="govuk-list">
+              <li>
+                <Tag className="fphd-trend-tag" classModifiers="grey">
+                  {trends.increasing} {trends.increasing === 1 ? 'is' : 'are'} going up (higher is
+                  neither better nor worse)
+                </Tag>
+              </li>
+              <li>
+                <Tag className="fphd-trend-tag" classModifiers="grey">
+                  {trends.decreasing} {trends.decreasing === 1 ? 'is' : 'are'} going down (higher is
+                  neither better nor worse)
+                </Tag>
+              </li>
+              <li>
+                <Tag className="fphd-trend-tag" classModifiers="grey">
+                  {trends.unavailable} cannot have a trend calculated
+                </Tag>
+              </li>
+            </ul>
+          </GridColumn>
+        </GridRow>
         <p className="govuk-body">
-          <Link className="govuk-link" to={`/topics/${topic.slug}?tab-topic=data`}>
+          <Link
+            className="govuk-link"
+            to={searchUrl(search, `/topics/${topic.slug}`, { 'tab-topic': 'data' })}
+          >
             View all {topic.title.toLowerCase()} indicators
           </Link>
         </p>
@@ -77,7 +102,7 @@ export function TopicOverview({
             const trend = recentTrend(area?.observations ?? [], entry.detail.polarity);
             return (
               <article className="fphd-topic-highlight" key={entry.detail.shortId}>
-                <h3 className="govuk-heading-m">
+                <h3 className="govuk-heading-s govuk-!-margin-bottom-3">
                   <Link className="govuk-link" to={indicatorPath(entry.detail.slug)}>
                     {entry.detail.name}
                   </Link>

@@ -9,7 +9,12 @@ import { type ReactNode, useRef, useState } from 'react';
 import { Form, Link, useLocation, useNavigate } from 'react-router';
 import type { GeographyOptions } from '../geography/loader.ts';
 import { MAX_SELECTED_AREAS } from '../selection-limits.ts';
-import { FilterDimensionBody, FilterDimensionFooter, HiddenFilters } from './filter-fields.tsx';
+import {
+  FilterDimensionBody,
+  FilterDimensionChoices,
+  FilterDimensionFooter,
+  HiddenFilters,
+} from './filter-fields.tsx';
 import { SearchGeographyPicker } from './geography-picker.tsx';
 import type { IndicatorFacets } from './loader.ts';
 import { SearchPeriodFilter } from './period-filter.tsx';
@@ -20,6 +25,10 @@ interface SearchFilterPaneProps {
   extraParams?: Record<string, string>;
   includeTopics?: boolean;
   includeDataPeriod?: boolean;
+  includeGeography?: boolean;
+  includeSearch?: boolean;
+  variant?: 'card' | 'accordion';
+  compact?: boolean;
   additionalFilters?: ReactNode;
   subtopicFilter?: ReactNode;
   state: SearchState;
@@ -35,6 +44,10 @@ export function SearchFilterPane({
   extraParams = {},
   includeTopics = true,
   includeDataPeriod = false,
+  includeGeography = true,
+  includeSearch = true,
+  variant = 'card',
+  compact = false,
   additionalFilters,
   subtopicFilter,
   state,
@@ -44,9 +57,16 @@ export function SearchFilterPane({
   geographyOptions,
   areasLimited,
 }: SearchFilterPaneProps) {
+  const card = { variant, headingLevel: variant === 'accordion' ? (3 as const) : (2 as const) };
   const urlFor = (next: SearchState) => searchUrl(next, action, extraParams);
   const navigate = useNavigate();
   const location = useLocation();
+  const pendingState = useRef(state);
+  const committedState = useRef(state);
+  if (committedState.current !== state) {
+    committedState.current = state;
+    pendingState.current = state;
+  }
   const [keywordReset, setKeywordReset] = useState(0);
   const drafts = useRef<Record<string, string>>(
     (location.state as { searchDrafts?: Record<string, string> } | null)?.searchDrafts ?? {},
@@ -70,6 +90,7 @@ export function SearchFilterPane({
   }
 
   const nav = (next: SearchState) => {
+    pendingState.current = next;
     const searchDrafts = { ...drafts.current };
     for (const dim of DIMENSIONS) {
       if (JSON.stringify(state[dim.stateKey]) !== JSON.stringify(next[dim.stateKey])) {
@@ -150,80 +171,100 @@ export function SearchFilterPane({
   const popDims = DIMENSIONS.filter((d) => ['pg', 'eq'].includes(d.param));
   const dataDims = DIMENSIONS.filter((d) => ['src', 'vt', 'per'].includes(d.param));
 
-  const renderDimensionBody = (dim: (typeof DIMENSIONS)[number]) => (
-    <FilterDimensionBody
-      key={dim.param}
-      urlFor={urlFor}
-      facetLabelOf={(v) => labelOf(dim, v)}
-      isTopicDimension={dim.isTopicDimension}
-      selected={state[dim.stateKey] as string[]}
-      selectedLabel={dim.selectedLabel}
-      state={state}
-      stateKey={dim.stateKey}
-    />
-  );
+  const renderDimensionBody = (dim: (typeof DIMENSIONS)[number]) =>
+    variant === 'accordion' ? null : (
+      <FilterDimensionBody
+        key={dim.param}
+        urlFor={urlFor}
+        facetLabelOf={(v) => labelOf(dim, v)}
+        isTopicDimension={dim.isTopicDimension}
+        selected={state[dim.stateKey] as string[]}
+        selectedLabel={dim.selectedLabel}
+        state={state}
+        stateKey={dim.stateKey}
+      />
+    );
 
-  const renderDimensionFooter = (dim: (typeof DIMENSIONS)[number]) => (
-    <FilterDimensionFooter
-      key={`${dim.param}-${JSON.stringify(state[dim.stateKey])}`}
-      action={action}
-      extraParams={extraParams}
-      draftValue={drafts.current[dim.param]}
-      onDraftChange={(value) => {
-        drafts.current[dim.param] = value;
-      }}
-      addButtonLabel={dim.addButtonLabel}
-      autocompleteLabel={dim.autocompleteLabel}
-      noResultsMessage={dim.noResultsMessage}
-      onAdd={(v) => addToList(dim.stateKey, v)}
-      options={optionsForDimension(dim).filter(
-        (o) => !(state[dim.stateKey] as string[]).includes(o.value),
-      )}
-      param={dim.param}
-      state={state}
-    />
-  );
+  const renderDimensionFooter = (dim: (typeof DIMENSIONS)[number]) =>
+    variant === 'accordion' ? (
+      <FilterDimensionChoices
+        key={dim.param}
+        action={action}
+        extraParams={extraParams}
+        label={dim.selectedLabel
+          .replace(/^Selected /, '')
+          .replace(/^./, (value) => value.toUpperCase())}
+        options={optionsForDimension(dim)}
+        param={dim.param}
+        state={state}
+        stateKey={dim.stateKey}
+        onChange={(values) => nav({ ...pendingState.current, [dim.stateKey]: values })}
+      />
+    ) : (
+      <FilterDimensionFooter
+        key={`${dim.param}-${JSON.stringify(state[dim.stateKey])}`}
+        action={action}
+        extraParams={extraParams}
+        draftValue={drafts.current[dim.param]}
+        onDraftChange={(value) => {
+          drafts.current[dim.param] = value;
+        }}
+        addButtonLabel={dim.addButtonLabel}
+        autocompleteLabel={dim.autocompleteLabel}
+        noResultsMessage={dim.noResultsMessage}
+        onAdd={(v) => addToList(dim.stateKey, v)}
+        options={optionsForDimension(dim).filter(
+          (o) => !(state[dim.stateKey] as string[]).includes(o.value),
+        )}
+        param={dim.param}
+        state={state}
+      />
+    );
 
   return (
-    <>
-      <Form
-        action={action}
-        method="get"
-        replace
-        onChangeCapture={(event) => {
-          const target = event.target;
-          if (!(target instanceof HTMLInputElement)) return;
-          if (target.name === 'q') drafts.current.q = target.value;
-        }}
-      >
-        <HiddenFilters except="q" state={state} extraParams={extraParams} />
-        <div className="govuk-!-margin-top-4">
-          <SearchField
-            key={`${state.q}-${keywordReset}`}
-            action={
-              <Link
-                className="govuk-link govuk-body-s"
-                onClick={() => {
-                  delete drafts.current.q;
-                  setKeywordReset((value) => value + 1);
-                }}
-                preventScrollReset
-                replace
-                to={clearQUrl}
-              >
-                Clear search
-              </Link>
-            }
-            id="search-q"
-            label="Search by keywords"
-            name="q"
-            defaultValue={drafts.current.q ?? state.q}
-          />
-        </div>
-      </Form>
+    <div className={variant === 'accordion' ? 'fphd-topic-indicator-filters' : undefined}>
+      {includeSearch ? (
+        <Form
+          action={action}
+          method="get"
+          replace
+          onChangeCapture={(event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLInputElement)) return;
+            if (target.name === 'q') drafts.current.q = target.value;
+          }}
+        >
+          <HiddenFilters except="q" state={state} extraParams={extraParams} />
+          <div className="govuk-!-margin-top-4">
+            <SearchField
+              key={`${state.q}-${keywordReset}`}
+              action={
+                <Link
+                  className="govuk-link govuk-body-s"
+                  onClick={() => {
+                    delete drafts.current.q;
+                    setKeywordReset((value) => value + 1);
+                  }}
+                  preventScrollReset
+                  replace
+                  to={clearQUrl}
+                >
+                  Clear search
+                </Link>
+              }
+              id="search-q"
+              label="Search by keywords"
+              name="q"
+              defaultValue={drafts.current.q ?? state.q}
+            />
+          </div>
+        </Form>
+      ) : null}
 
       <div className="fphd-search-bar__filters-row">
-        <h2 className="govuk-heading-m govuk-!-margin-bottom-0">Filters</h2>
+        <h2 className="govuk-heading-m govuk-!-margin-bottom-0">
+          {variant === 'accordion' ? 'Indicator filters' : 'Filters'}
+        </h2>
         <Link
           className="govuk-link govuk-body-s"
           preventScrollReset
@@ -235,6 +276,7 @@ export function SearchFilterPane({
       </div>
 
       <CollapsibleFilterCard
+        {...card}
         active={topicsActive}
         footer={
           <>
@@ -248,99 +290,117 @@ export function SearchFilterPane({
         {topicsAndTypesDims.map(renderDimensionBody)}
       </CollapsibleFilterCard>
 
-      <CollapsibleFilterCard
-        active={geoActive || Boolean(geographyOptions?.query || geographyOptions?.level)}
-        footer={
-          <SearchGeographyPicker
-            key={JSON.stringify([state.gaCodes, state.geoLevels])}
-            action={action}
-            extraParams={extraParams}
-            state={state}
-            displayGroups={displayGroups}
-            geographyOptions={geographyOptions}
-            onApply={nav}
-          />
-        }
-        onClear={clearGeoUrl}
-        title="Geography"
-      >
-        {areasLimited ? (
-          <p className="govuk-body-s">
-            You can select up to {MAX_SELECTED_AREAS} areas. Only the first {MAX_SELECTED_AREAS}{' '}
-            have been selected.
+      {includeGeography ? (
+        <CollapsibleFilterCard
+          {...card}
+          active={geoActive || Boolean(geographyOptions?.query || geographyOptions?.level)}
+          footer={
+            <SearchGeographyPicker
+              key={JSON.stringify([state.gaCodes, state.geoLevels])}
+              action={action}
+              extraParams={extraParams}
+              state={state}
+              displayGroups={displayGroups}
+              geographyOptions={geographyOptions}
+              onApply={nav}
+            />
+          }
+          onClear={clearGeoUrl}
+          title="Geography"
+        >
+          {areasLimited ? (
+            <p className="govuk-body-s">
+              You can select up to {MAX_SELECTED_AREAS} areas. Only the first {MAX_SELECTED_AREAS}{' '}
+              have been selected.
+            </p>
+          ) : null}
+          <p className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">
+            Selected geographies
           </p>
-        ) : null}
-        <p className="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">
-          Selected geographies
-        </p>
-        {state.geoLevels.length === 0 && state.gaCodes.length === 0 ? (
-          <div className="fphd-filter-chips fphd-filter-chips--inline govuk-!-margin-bottom-4">
-            <p className="govuk-body-s govuk-!-margin-bottom-0">None selected</p>
-          </div>
-        ) : (
-          <FilterChips className="govuk-!-margin-bottom-4">
-            {state.geoLevels.map((level) => (
-              <FilterChip
-                key={level}
-                onRemove={urlFor(removeFrom(state, 'geoLevels', level))}
-                removeLabel={level}
-                replace
-                value={level}
-              >
-                {level}
-              </FilterChip>
-            ))}
-            {state.gaCodes.map((code) => (
-              <FilterChip
-                key={code}
-                onRemove={urlFor(removeFrom(state, 'gaCodes', code))}
-                removeLabel={gaAreaNames[code] ?? code}
-                replace
-                value={code}
-              >
-                {gaAreaNames[code] ?? code}
-              </FilterChip>
-            ))}
-          </FilterChips>
-        )}
-      </CollapsibleFilterCard>
+          {state.geoLevels.length === 0 && state.gaCodes.length === 0 ? (
+            <div className="fphd-filter-chips fphd-filter-chips--inline govuk-!-margin-bottom-4">
+              <p className="govuk-body-s govuk-!-margin-bottom-0">None selected</p>
+            </div>
+          ) : (
+            <FilterChips className="govuk-!-margin-bottom-4">
+              {state.geoLevels.map((level) => (
+                <FilterChip
+                  key={level}
+                  onRemove={urlFor(removeFrom(state, 'geoLevels', level))}
+                  removeLabel={level}
+                  replace
+                  value={level}
+                >
+                  {level}
+                </FilterChip>
+              ))}
+              {state.gaCodes.map((code) => (
+                <FilterChip
+                  key={code}
+                  onRemove={urlFor(removeFrom(state, 'gaCodes', code))}
+                  removeLabel={gaAreaNames[code] ?? code}
+                  replace
+                  value={code}
+                >
+                  {gaAreaNames[code] ?? code}
+                </FilterChip>
+              ))}
+            </FilterChips>
+          )}
+        </CollapsibleFilterCard>
+      ) : null}
 
       <CollapsibleFilterCard
+        {...card}
         active={fwActive}
         footer={fwDims.map(renderDimensionFooter)}
         hint="Established frameworks used to group or report indicators."
         onClear={clearFwUrl}
-        title="Frameworks"
+        title={variant === 'accordion' ? 'Frameworks and programmes' : 'Frameworks'}
       >
         {fwDims.map(renderDimensionBody)}
       </CollapsibleFilterCard>
 
-      <CollapsibleFilterCard
-        active={popActive}
-        footer={popDims.map(renderDimensionFooter)}
-        onClear={clearPopUrl}
-        title="Populations and inequalities"
-      >
-        {popDims.map(renderDimensionBody)}
-      </CollapsibleFilterCard>
+      {!compact ? (
+        <>
+          <CollapsibleFilterCard
+            {...card}
+            active={popActive}
+            footer={popDims.map(renderDimensionFooter)}
+            onClear={clearPopUrl}
+            title="Populations and inequalities"
+          >
+            {popDims.map(renderDimensionBody)}
+          </CollapsibleFilterCard>
 
-      <CollapsibleFilterCard
-        active={dataAttrActive}
-        footer={dataDims.map(renderDimensionFooter)}
-        onClear={clearDataAttrUrl}
-        title="Data attributes"
-      >
-        {dataDims.map(renderDimensionBody)}
-      </CollapsibleFilterCard>
-      {additionalFilters}
-      {includeDataPeriod ? (
-        <SearchPeriodFilter
-          key={JSON.stringify([state.fromYear, state.toYear, state.updatedWithin])}
-          action={action}
-          extraParams={extraParams}
-          state={state}
-        />
+          <CollapsibleFilterCard
+            {...card}
+            active={dataAttrActive}
+            footer={dataDims.map(renderDimensionFooter)}
+            onClear={clearDataAttrUrl}
+            title={variant === 'accordion' ? 'About the data' : 'Data attributes'}
+          >
+            {dataDims.map(renderDimensionBody)}
+          </CollapsibleFilterCard>
+          {additionalFilters}
+          {includeDataPeriod && variant === 'accordion' ? (
+            <CollapsibleFilterCard {...card} active={false} title="Status">
+              <p className="govuk-body-s">
+                Release status information is not available for this dataset.
+              </p>
+            </CollapsibleFilterCard>
+          ) : null}
+          {includeDataPeriod ? (
+            <SearchPeriodFilter
+              key={JSON.stringify([state.fromYear, state.toYear, state.updatedWithin])}
+              action={action}
+              extraParams={extraParams}
+              state={state}
+              variant={variant}
+            />
+          ) : null}
+        </>
       ) : null}
-    </>
+    </div>
   );
 }

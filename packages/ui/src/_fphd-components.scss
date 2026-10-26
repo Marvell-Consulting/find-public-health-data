@@ -8,7 +8,6 @@
   max-width: 1400px;
   margin-right: auto;
   margin-left: auto;
-
   @media (min-width: 40.0625em) {
     width: calc(100% - 60px);
   }
@@ -199,6 +198,189 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
 .fphd-filter-card .govuk-select,
 .fphd-filter-card .govuk-input {
   width: 100%;
+}
+
+.fphd-filter-card--accordion {
+  border: 0;
+  border-bottom: 1px solid #cecece;
+  margin-bottom: govuk-spacing(6);
+
+  .fphd-filter-card__header {
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .fphd-filter-card__body,
+  .fphd-filter-card__footer {
+    padding: 0 0 govuk-spacing(4);
+    background: transparent;
+  }
+
+  .fphd-filter-card__toggle.fphd-filter-card__toggle {
+    @include govuk-font($size: 19, $weight: bold);
+    width: 100%;
+    color: $govuk-link-colour;
+    text-align: left;
+    text-decoration: none;
+    gap: govuk-spacing(1);
+    padding: govuk-spacing(3) 0;
+    margin: 0;
+
+    &::before {
+      content: none;
+    }
+
+    &[aria-expanded="false"] .fphd-filter-card__chevron {
+      transform: none;
+    }
+  }
+
+  .fphd-filter-card__chevron {
+    color: govuk-colour("black");
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    transform: rotate(180deg);
+  }
+
+  .fphd-geo-alt__tree {
+    border: 1px solid $govuk-border-colour;
+    padding: govuk-spacing(2);
+  }
+}
+
+body:has(.fphd-topic-page) .govuk-width-container.govuk-width-container {
+  max-width: 960px;
+  @media (min-width: 40.0625em) {
+    width: calc(100% - 60px);
+  }
+}
+
+.fphd-topic-page {
+  .fphd-topic-keyword {
+    max-width: 290px;
+  }
+
+  .fphd-topic-geographies > .govuk-heading-m,
+  .govuk-grid-column-one-quarter > .govuk-heading-m,
+  .fphd-search-bar__filters-row {
+    border-bottom: 1px solid $govuk-border-colour;
+    margin-bottom: 0;
+    padding-bottom: govuk-spacing(2);
+  }
+
+  .fphd-topic-indicator-filters {
+    margin-bottom: govuk-spacing(6);
+
+    .fphd-filter-card--accordion {
+      margin-bottom: 0;
+    }
+  }
+  @media (min-width: 40.0625em) {
+    > .govuk-tabs:has(#topic-data.fphd-tabs__panel--open, #topic-area-summaries.fphd-tabs__panel--open) {
+      position: relative;
+      left: 50%;
+      transform: translateX(-50%);
+      width: max-content;
+      min-width: 100%;
+      max-width: calc(100vw - 60px);
+
+      &:has(#topic-data.fphd-tabs__panel--open) {
+        width: calc(100vw - 60px);
+      }
+
+      &:has(#topic-area-summaries.fphd-tabs__panel--open) {
+        .govuk-grid-row { display: flex; align-items: flex-start; }
+        .govuk-grid-column-one-quarter { flex: 0 0 320px; width: 320px; float: none; }
+        .govuk-grid-column-three-quarters { flex: 1 1 auto; min-width: 0; width: auto; float: none; }
+      }
+
+      .govuk-tabs__list {
+        box-sizing: border-box;
+        padding-inline-start: max(0px, calc((100% - 960px) / 2));
+      }
+
+      .govuk-grid-column-one-quarter {
+        max-width: 320px;
+      }
+    }
+  }
+}
+
+body.govuk-frontend-supported .fphd-filter-card--accordion {
+  .fphd-filter-card__body > a {
+    min-height: 24px;
+    box-sizing: border-box;
+    padding-block: 2px;
+  }
+  .fphd-filter-card__header > span {
+    display: none;
+  }
+
+  .fphd-filter-card__toggle {
+    display: flex;
+    align-items: center;
+  }
+}
+
+.fphd-topic-page .fphd-indicator-showing {
+  display: flex;
+  align-items: baseline;
+  gap: govuk-spacing(2);
+  margin-bottom: govuk-spacing(4);
+
+  > p { font-weight: 700; }
+}
+
+.fphd-inline-download .govuk-details__summary {
+  @include govuk-font-size($size: 19);
+}
+
+.fphd-inline-download .govuk-body-s {
+  @include govuk-font-size($size: 19);
+  margin-bottom: govuk-spacing(1);
+}
+
+.fphd-inline-download .govuk-details__text {
+  position: static;
+  width: auto;
+  max-width: 100%;
+  border: 0;
+  border-left: 5px solid #b1b4b6;
+  padding: 15px 20px;
+}
+
+.fphd-share-link {
+  margin-bottom: govuk-spacing(3);
+}
+
+.fphd-share-link__controls {
+  display: flex;
+  align-items: center;
+  gap: govuk-spacing(2);
+
+  .govuk-input {
+    @include govuk-font-size($size: 16);
+    min-width: 0;
+    flex: 0 1 430px;
+    max-width: 430px;
+    height: 34px;
+  }
+}
+
+.fphd-share-link__copy.fphd-share-link__copy {
+  @include govuk-font-size($size: 19);
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  width: auto;
+  white-space: nowrap;
+  text-decoration: underline;
+  color: $govuk-link-colour;
+  cursor: pointer;
 }
 
 .fphd-filter-chips {
@@ -457,6 +639,7 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
 // Doubled selector — see `.fphd-filter-card__toggle` above for the rationale.
 .fphd-geo-alt__toggle.fphd-geo-alt__toggle {
   padding: 0 8px 0 0;
+  margin: 0;
   border: 0;
   background: none;
   cursor: pointer;
@@ -468,6 +651,20 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
   width: auto;
   color: inherit;
   text-decoration: none;
+}
+
+.fphd-geo-alt__group--single .fphd-geo-alt__toggle.fphd-geo-alt__toggle {
+  width: 100%;
+  max-width: none;
+  gap: govuk-spacing(2);
+  text-align: left;
+  height: auto;
+  min-height: 36px;
+  color: $govuk-link-colour;
+  text-decoration: underline;
+  @include govuk-font-size($size: 16);
+
+  .fphd-geo-alt__chevron { border-left-color: $govuk-link-colour; flex-shrink: 0; }
 }
 
 .fphd-geo-alt__toggle:focus-visible {
@@ -502,6 +699,15 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
 .fphd-geo-alt__children {
   margin-left: 45px;
   margin-bottom: 6px;
+}
+
+.fphd-geo-alt--flat .fphd-geo-alt__children {
+  padding-left: 0;
+  margin-left: 0;
+}
+
+.fphd-table-unit {
+  font-weight: 400;
 }
 
 .fphd-geo-alt__more {
@@ -547,6 +753,7 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
 }
 
 .govuk-tag.fphd-trend-tag {
+  @include govuk-font-size($size: 16);
   display: inline-flex;
   align-items: center;
   gap: govuk-spacing(2);
@@ -694,28 +901,73 @@ body:not(.govuk-frontend-supported) .fphd-geo-alt__toggle {
   white-space: normal;
 }
 
+@media (min-width: 40.0625em) {
+  .govuk-frontend-supported .fphd-tabs > .govuk-tabs__list {
+    display: flex;
+    align-items: stretch;
+  }
+
+  .govuk-frontend-supported .fphd-tabs .govuk-tabs__list-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    float: none;
+    flex: 0 1 auto;
+    min-width: min-content;
+  }
+
+}
+
+@include govuk-media-query($from: tablet, $until: desktop) {
+  .govuk-frontend-supported .fphd-tabs .govuk-tabs__list-item {
+    padding-inline: govuk-spacing(2);
+  }
+
+  .govuk-frontend-supported .fphd-tabs .govuk-tabs__list-item--selected {
+    padding-inline: calc(#{govuk-spacing(2)} - 1px);
+  }
+}
+
 // Every panel is in the document for no-script readers, but with scripting the selected
 // one must be the only one showing from first paint — hydration arrives too late to do
 // the hiding without a visible flash. The server marks the open panel (it knows the
 // tab param), the body's govuk-frontend-supported class is set by an inline script
 // before paint, and React drops the --ssr class once mounted and takes over. A legacy
 // #hash deep link never reaches the server, so a targeted panel overrides the marked one.
-.fphd-tabs__panel--hidden {
-  display: none;
+.fphd-tabs__content {
+  display: contents;
 }
 
-.govuk-frontend-supported .fphd-tabs--ssr {
-  .govuk-tabs__panel:not(.fphd-tabs__panel--open) {
-    display: none;
-  }
+.govuk-tabs__panel[aria-busy="true"] {
+  position: relative;
+  min-height: 60vh;
 
-  &:has(.govuk-tabs__panel:target) {
-    .govuk-tabs__panel:not(:target) {
+  > .fphd-tabs__content {
+    visibility: hidden;
+  }
+}
+
+.fphd-tabs__loading {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  margin: 0;
+}
+
+@media (min-width: 40.0625em) {
+  .govuk-frontend-supported .fphd-tabs--ssr {
+    .govuk-tabs__panel:not(.fphd-tabs__panel--open) {
       display: none;
     }
 
-    .govuk-tabs__panel:target {
-      display: block;
+    &:has(.govuk-tabs__panel:target) {
+      .govuk-tabs__panel:not(:target) {
+        display: none;
+      }
+
+      .govuk-tabs__panel:target {
+        display: block;
+      }
     }
   }
 }
@@ -752,10 +1004,6 @@ body.govuk-frontend-supported .fphd-add-geo-button[data-empty] {
   padding-bottom: 8px;
 }
 
-.fphd-view-selected.govuk-button {
-  margin-top: 2px;
-}
-
 .fphd-search-dimension .govuk-form-group {
   margin-bottom: 0;
 }
@@ -776,45 +1024,11 @@ body.govuk-frontend-supported .fphd-add-geo-button[data-empty] {
   margin-bottom: govuk-spacing(4);
 }
 
-// Checkboxes wraps the group in a form group and a fieldset, both reached through our own
-// class. The legend only names the list for a screen reader, so it comes out of the flow
-// rather than keeping its margin, and the list spaces its own results, so the form group's
-// bottom margin would sit under the last one.
-.govuk-form-group:has(> .govuk-fieldset > .fphd-search-results) {
-  margin-bottom: 0;
-
-  > .govuk-fieldset > .govuk-fieldset__legend {
-    @include govuk-visually-hidden;
-  }
-}
-
-// One group of checkboxes, a result to each option: the box on the left, and the title and
-// metadata as the option's content beside it rather than under it.
 .fphd-search-results {
   margin-top: govuk-spacing(4);
 
-  // Spaced with a margin, not padding: the box is positioned against the item, so padding
-  // above it would drop the content below the box it belongs to.
-  .govuk-checkboxes__item {
-    align-items: flex-start;
-    margin: 0 0 govuk-spacing(6);
-    padding: 0;
-  }
-
-  // The input holds the column the box is drawn in; the label only carries the name that
-  // reads the option out, so it takes no width of its own.
-  .govuk-checkboxes__label {
-    flex: 0 0 0;
-    padding: 0;
-  }
-
-  .govuk-checkboxes__content {
-    flex: 1;
-    width: auto;
-    min-width: 0;
-    margin-top: 0;
-    padding: 7px govuk-spacing(3);
-
+  .fphd-search-result {
+    margin-bottom: govuk-spacing(6);
     .fphd-filter-chips {
       gap: 4px;
       margin-top: 2px;
@@ -879,18 +1093,31 @@ body.govuk-frontend-supported .fphd-add-geo-button[data-empty] {
   vertical-align: middle;
 }
 
+.fphd-topic-page .fphd-rug-table {
+  table-layout: fixed;
+  width: max-content;
+
+  col { width: 90px; }
+  col:first-child { width: 240px; }
+  col:nth-child(2) { width: 120px; }
+}
+
+.fphd-topic-page .govuk-grid-column-three-quarters:has(.fphd-rug-table) {
+  > p, .fphd-rug-key { max-width: 1080px; }
+}
+
 .fphd-rug-table th,
 .fphd-rug-table td {
-  min-width: 80px;
+  min-width: 0;
   padding: 4px 6px;
   white-space: normal;
 }
 
 .fphd-rug-table th:first-child,
 .fphd-rug-table tbody td:first-child {
-  min-width: 260px;
-  max-width: 260px;
-  width: 260px;
+  min-width: 0;
+  max-width: none;
+  width: auto;
   padding-left: 0;
 }
 
@@ -903,7 +1130,7 @@ body.govuk-frontend-supported .fphd-add-geo-button[data-empty] {
 }
 
 .fphd-rug-table td:nth-child(2) {
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .fphd-rug-table td:not(:first-child) {
@@ -918,10 +1145,10 @@ body.govuk-frontend-supported .fphd-add-geo-button[data-empty] {
 
 .fphd-rug-cell--better { background: #8ed973; }
 .fphd-rug-cell--similar { background: #ffc000; }
-.fphd-rug-cell--worse { background: #d4351c; color: #fff; }
+.fphd-rug-cell--worse { background: #c00000; color: #fff; }
 .fphd-rug-cell--lower { background: #12436d; color: #fff; }
 .fphd-rug-cell--higher { background: #5694ca; }
-.fphd-rug-cell--none { background: #b1b4b6; }
+.fphd-rug-cell--none { background: #bfbfbf; }
 
 
 .fphd-topic-toolbar {
@@ -984,28 +1211,70 @@ body:not(.govuk-frontend-supported) .fphd-topic-copy {
   display: none;
 }
 
+body:not(.govuk-frontend-supported) .fphd-share-link {
+  display: none;
+}
+
 
 .fphd-topic-data .fphd-compare-table th,
 .fphd-topic-data .fphd-compare-table td {
-  min-width: 100px;
+  box-sizing: border-box;
+  min-width: 0;
   white-space: normal;
+  padding: 4px 25px 4px 0;
 }
 
-.fphd-topic-data .fphd-compare-table tbody td:first-child {
-  min-width: 320px;
-  max-width: 320px;
-  width: 320px;
+.fphd-topic-data .fphd-topic-data-table .fphd-topic-data-table__period { width: 16.5%; }
+.fphd-topic-data .fphd-topic-data-table .fphd-topic-data-table__updated { width: 13.5%; }
+
+.fphd-topic-data .fphd-compare-table {
+  width: 100%;
+  table-layout: fixed;
+
+  th:first-child,
+  tbody td:first-child {
+    min-width: 0;
+    max-width: none;
+    width: 25%;
+  }
+
+  thead th {
+    vertical-align: bottom;
+  }
 }
+.fphd-topic-trend-counts .govuk-list > li {
+  margin-bottom: govuk-spacing(3);
+}
+
+.fphd-topic-highlight .fphd-trend-tag {
+  @include govuk-font-size($size: 16);
+}
+
 .fphd-topic-highlight-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.5rem;
-  margin-top: 1.5rem;
+  gap: govuk-spacing(4);
+  margin-top: govuk-spacing(4);
 }
 
 .fphd-topic-highlight {
-  border: 1px solid #b1b4b6;
-  padding: 1rem;
+  border: 1px solid $govuk-border-colour;
+  padding: govuk-spacing(4);
+
+  .govuk-summary-list__row {
+    border-bottom: 0;
+  }
+
+  .govuk-summary-list__key,
+  .govuk-summary-list__value {
+    @include govuk-font-size($size: 16);
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+
+  .govuk-summary-list__key {
+    width: 50%;
+  }
 }
 
 @media (max-width: 40.0625em) {

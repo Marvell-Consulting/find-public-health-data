@@ -422,7 +422,13 @@ test('geography failure stays visible after scrolling previous results', async (
   const tree = geography.locator('.fphd-geo-alt__tree');
   const input = geography.getByRole('searchbox', { name: 'Add geographies' });
   await input.fill('E');
-  await expect(tree.getByRole('checkbox').first()).toBeVisible();
+  await expect(
+    tree
+      .getByRole('group', { name: /^Areas in / })
+      .first()
+      .getByRole('checkbox')
+      .first(),
+  ).toBeVisible();
   await tree.evaluate((element) => {
     element.scrollTop = element.scrollHeight;
   });

@@ -8,7 +8,7 @@ import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
 import { loadIndicatorTableData } from '../indicator/loader.ts';
 import { loadSearch } from '../search/loader.ts';
-import { topicIndicators, topicTableSelection } from './data.ts';
+import { TOPIC_AREA_GROUPS, topicIndicators, topicTableSelection } from './data.ts';
 
 export type { TopicDetail, TopicSummary } from '@fphd/public-api-features/contract';
 
@@ -45,6 +45,8 @@ export async function loadTopic(args: LoaderFunctionArgs) {
       loadSearch(args, { topicSlug: slug, path }),
       context.get(apiContext).get(apiPath`/api/topics/${slug}/trends`, topicTrendSummarySchema),
     ]);
+    search.gaCodes = search.gaCodes.slice(0, 1);
+    search.geoLevels = [];
     const preferred = topic.content?.highlightedIndicatorIds ?? [];
     const highlights = [
       ...preferred.flatMap((id) =>
@@ -70,7 +72,14 @@ export async function loadTopic(args: LoaderFunctionArgs) {
     };
   }
   if (tab !== 'data' && tab !== 'areas') return { topic, content: null, overview: null };
-  const search = await loadSearch(args, { topicSlug: slug, path });
+  const summaryGroup = TOPIC_AREA_GROUPS.includes(url.searchParams.get('geo') ?? '')
+    ? (url.searchParams.get('geo') ?? 'NHS regions')
+    : 'NHS regions';
+  const search = await loadSearch(args, {
+    topicSlug: slug,
+    path,
+    ...(tab === 'areas' ? { geographyGroup: summaryGroup } : {}),
+  });
   const listing = topicIndicators(
     search.searchResult.indicators,
     url.searchParams,
@@ -80,14 +89,13 @@ export async function loadTopic(args: LoaderFunctionArgs) {
   dataUrl.search = '';
   for (const { shortId } of listing.indicators) dataUrl.searchParams.append('is', String(shortId));
   for (const code of search.gaCodes) dataUrl.searchParams.append('as', code);
-  for (const level of search.geoLevels) dataUrl.searchParams.append('als', level);
+  if (tab !== 'areas' || search.gaCodes.length === 0) {
+    for (const level of search.geoLevels) dataUrl.searchParams.append('als', level);
+  }
   const defaultAreas =
     url.searchParams.get('tab-topic') === 'areas' &&
-    search.gaCodes.length === 0 &&
-    search.geoLevels.length === 0;
-  if (defaultAreas && search.displayGroups.includes('NHS regions')) {
-    dataUrl.searchParams.append('als', 'NHS regions');
-  }
+    url.searchParams.getAll('ga').length === 0 &&
+    url.searchParams.getAll('geo').length === 0;
   const data = await loadIndicatorTableData(
     {
       ...args,
@@ -95,7 +103,15 @@ export async function loadTopic(args: LoaderFunctionArgs) {
       request: new Request(dataUrl),
     },
     search.displayGroups,
+    tab === 'areas',
   );
+  if (tab === 'areas')
+    search.geographyOptions = {
+      ...search.geographyOptions,
+      previews: [
+        { name: summaryGroup, areas: data.selectedAreas.map(({ code, name }) => ({ code, name })) },
+      ],
+    };
   return {
     topic,
     overview: null,

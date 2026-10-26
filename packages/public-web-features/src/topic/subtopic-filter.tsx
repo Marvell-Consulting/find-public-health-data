@@ -1,6 +1,6 @@
 import { Button, Checkboxes } from '@fphd/ui';
 import { useState } from 'react';
-import { Form, useNavigate } from 'react-router';
+import { Form, useLocation, useNavigate } from 'react-router';
 import { HiddenFilters } from '../search/filter-fields.tsx';
 import { type SearchState, searchUrl } from '../search/url.ts';
 
@@ -9,15 +9,22 @@ export function TopicSubtopicFilter({
   state,
   subtopics,
   sort,
+  tab = 'data',
 }: {
   path: string;
   state: SearchState;
   subtopics: { slug: string; title: string }[];
   sort: string;
+  tab?: 'data' | 'areas';
 }) {
   const [selected, setSelected] = useState(state.subtopics ?? []);
   const navigate = useNavigate();
-  const extraParams = { 'tab-topic': 'data', sort };
+  const params = new URLSearchParams(useLocation().search);
+  const extraParams = {
+    ...Object.fromEntries([...params].filter(([key]) => key === 'columns-topic')),
+    'tab-topic': tab,
+    sort,
+  };
   if (subtopics.length === 0) return null;
   return (
     <Form action={path} method="get" preventScrollReset>

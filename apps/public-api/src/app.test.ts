@@ -199,6 +199,7 @@ describe('public API', () => {
       sources: ['ONS'],
       valueTypes: ['Proportion'],
       yearTypes: ['Calendar'],
+      sort: 'name-asc',
       limit: 200,
     });
   });

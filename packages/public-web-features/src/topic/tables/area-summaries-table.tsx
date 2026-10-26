@@ -1,3 +1,4 @@
+import { TableScrollRegion } from '@fphd/ui';
 import { indicatorPath } from '@fphd/utils/indicator-path';
 import { Link } from 'react-router';
 import { comparisonTable } from '../../indicator/comparison.ts';
@@ -8,8 +9,7 @@ import {
 } from '../../indicator/data.ts';
 import type { BenchmarkGeography, SelectedIndicator } from '../../indicator/loader.ts';
 import { NoteFootnotes, noteMarker } from '../../indicator/tables/note-markers.tsx';
-import { TableScrollRegion } from '../../indicator/tables/table-scroll-region.tsx';
-import { englandObservation, observationPeriod } from '../data.ts';
+import { englandObservation, observationPeriod, topicSubtopics } from '../data.ts';
 
 export const JUDGEMENT_LABELS: Record<BenchmarkJudgement, string> = {
   better: 'Better than England',
@@ -23,9 +23,11 @@ export const JUDGEMENT_LABELS: Record<BenchmarkJudgement, string> = {
 export function AreaSummariesTable({
   selected,
   geography,
+  topicSlug,
 }: {
   selected: SelectedIndicator[];
   geography: BenchmarkGeography;
+  topicSlug: string;
 }) {
   const { areas, rows, benchmarkCellFor } = comparisonTable(selected, geography, 'england');
   const pickedAreas = areas.filter(({ areaCode }) => areaCode !== 'E92000001');
@@ -43,20 +45,31 @@ export function AreaSummariesTable({
   return (
     <>
       <ul className="govuk-list fphd-rug-key" aria-label="Comparison key">
-        {Object.entries(JUDGEMENT_LABELS).map(([judgement, label]) => (
-          <li key={judgement}>
-            <span
-              className={`fphd-rug-key__swatch fphd-rug-cell--${judgement}`}
-              aria-hidden="true"
-            />
-            {label}
-          </li>
-        ))}
+        {Object.entries(JUDGEMENT_LABELS)
+          .filter(([key]) => ['better', 'similar', 'worse', 'none'].includes(key))
+          .map(([judgement, label]) => (
+            <li key={judgement}>
+              <span
+                className={`fphd-rug-key__swatch fphd-rug-cell--${judgement}`}
+                aria-hidden="true"
+              />
+              {judgement === 'none'
+                ? 'Not compared (higher or lower is neither better nor worse)'
+                : label}
+            </li>
+          ))}
         <li>No data</li>
       </ul>
       <TableScrollRegion label="Topic indicators by area">
         <table className="govuk-table fphd-compare-table fphd-rug-table">
           <caption className="govuk-visually-hidden">Topic indicators by area</caption>
+          <colgroup>
+            <col />
+            <col />
+            {Array.from({ length: pickedAreas.length + 1 }, (_, index) => (
+              <col key={index} />
+            ))}
+          </colgroup>
           <thead className="govuk-table__head">
             <tr className="govuk-table__row">
               <th className="govuk-table__header" scope="col">
@@ -88,10 +101,12 @@ export function AreaSummariesTable({
                       {row.name}
                     </Link>
                     {row.suffix ? ` ${row.suffix}` : ''}
-                    <span className="fphd-rug-cell__label fphd-topic-subtopic">
-                      Subtopic to be added
-                    </span>
-                    <span className="fphd-rug-cell__label">{row.unit}</span>
+                    {topicSubtopics(entry, topicSlug).map((subtopic) => (
+                      <span className="fphd-rug-cell__label fphd-topic-subtopic" key={subtopic}>
+                        {subtopic}
+                      </span>
+                    ))}
+                    <span className="fphd-rug-cell__label">Unit: {row.unit}</span>
                   </td>
                   <td className="govuk-table__cell">{row.period || 'No data'}</td>
                   <td className="govuk-table__cell">
@@ -113,11 +128,14 @@ export function AreaSummariesTable({
                     .filter(({ areaCode }) => areaCode !== 'E92000001')
                     .map((cell) => {
                       const benchmark = benchmarkCellFor(row, cell);
-                      const judgement = benchmarkJudgement(
-                        benchmark?.areaObservation,
-                        benchmark?.value ?? null,
-                        entry.detail,
-                      );
+                      const judgement =
+                        entry.detail.polarity === 'no-polarity'
+                          ? 'none'
+                          : benchmarkJudgement(
+                              benchmark?.areaObservation,
+                              benchmark?.value ?? null,
+                              entry.detail,
+                            );
                       const period = observationPeriod(entry, cell.series.at(-1));
                       return (
                         <td

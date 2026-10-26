@@ -14,6 +14,11 @@ import {
 import { apiContext } from '@fphd/web-server/api-context';
 import type { LoaderFunctionArgs } from 'react-router';
 import { redirect } from 'react-router';
+import {
+  normalizePublicLevels,
+  publicGeographyLevels,
+  sourceGeographyGroup,
+} from '../geography/groups.ts';
 import { loadGeographyOptions } from '../geography/loader.ts';
 import { MAX_SELECTED_AREAS } from '../selection-limits.ts';
 import { DIMENSIONS, PERIOD_PARAMS } from './url.ts';
@@ -54,7 +59,7 @@ function buildSearchQuery(
   }
 
   const validatedGeo = pickStrings(params, 'geo').filter((g) => displayGroups.includes(g));
-  for (const g of validatedGeo) {
+  for (const g of new Set(validatedGeo.map(sourceGeographyGroup))) {
     parts.push(`displayGroup=${encodeURIComponent(g)}`);
   }
   for (const code of areaCodes) {
@@ -70,7 +75,11 @@ function buildSearchQuery(
 
 export async function loadSearch(
   { context, request }: LoaderFunctionArgs,
-  { topicSlug, path = '/search' }: { topicSlug?: string; path?: string } = {},
+  {
+    topicSlug,
+    path = '/search',
+    geographyGroup,
+  }: { topicSlug?: string; path?: string; geographyGroup?: string } = {},
 ) {
   const url = new URL(request.url);
   const params = url.searchParams;
@@ -92,7 +101,7 @@ export async function loadSearch(
 
   const rawGa = pickAreaCodes(params.getAll('ga'), MAX_SELECTED_AREAS);
 
-  const [displayGroups, lookedUp] = await Promise.all([
+  const [catalogueGroups, lookedUp] = await Promise.all([
     api.get('/api/areas/display-groups', displayGroupListSchema),
     rawGa.length > 0
       ? api.get(
@@ -101,9 +110,21 @@ export async function loadSearch(
         )
       : Promise.resolve<AreaLookup[]>([]),
   ]);
+  const publicOnly = Boolean(topicSlug && !geographyGroup);
+  const displayGroups = publicOnly ? publicGeographyLevels(catalogueGroups) : catalogueGroups;
+  if (publicOnly) {
+    const levels = normalizePublicLevels(params.getAll('geo'));
+    params.delete('geo');
+    for (const level of levels) params.append('geo', level);
+  }
+  if (geographyGroup) {
+    params.delete('geo');
+    if (displayGroups.includes(geographyGroup)) params.set('geo', geographyGroup);
+  }
 
-  const resolved = lookedUp.filter((a): a is AreaLookup & { displayGroup: string } =>
-    Boolean(a.displayGroup),
+  const resolved = lookedUp.filter(
+    (a): a is AreaLookup & { displayGroup: string } =>
+      Boolean(a.displayGroup) && (!geographyGroup || a.displayGroup === geographyGroup),
   );
   const gaCodes = resolved.map((a) => a.code);
   const gaAreaNames: Record<string, string> = Object.fromEntries(
@@ -151,10 +172,8 @@ export async function loadSearch(
 
   let searchQuery = buildSearchQuery(query, params, displayGroups, gaCodes);
   if (topicSlug) {
-    const requested = Number(params.get('page'));
-    const page = Number.isSafeInteger(requested) && requested > 0 ? requested : 1;
     const sort = params.get('sort');
-    searchQuery += `&page=${page}&sort=${sort === 'name-asc' || sort === 'name-desc' || sort === 'period-desc' || sort === 'trend-desc' || sort === 'trend-asc' || sort === 'trend-better' || sort === 'trend-worse' || sort === 'subtopic-desc' ? sort : 'subtopic-asc'}`;
+    searchQuery += `&sort=${sort === 'name-asc' || sort === 'name-desc' || sort === 'period-desc' || sort === 'trend-desc' || sort === 'trend-asc' || sort === 'trend-better' || sort === 'trend-worse' || sort === 'subtopic-desc' ? sort : 'subtopic-asc'}`;
   }
 
   const [facets, searchResult, geographyOptions] = await Promise.all([
@@ -163,7 +182,7 @@ export async function loadSearch(
       `/api/indicators/search${searchQuery ? `?${searchQuery}` : ''}`,
       indicatorSearchResultSchema,
     ),
-    loadGeographyOptions(api, params, displayGroups),
+    loadGeographyOptions(api, params, displayGroups, { publicOnly }),
   ]);
 
   const validatedGeo = pickStrings(params, 'geo').filter((g) => displayGroups.includes(g));

@@ -1,8 +1,9 @@
+import { formatDate } from '@fphd/ui';
 import type { LoaderFunctionArgs } from 'react-router';
 import { comparisonTable } from '../indicator/comparison.ts';
-import { benchmarkJudgement } from '../indicator/data.ts';
-import { comparisonCsv, tableCsv } from '../indicator/download.ts';
-import { englandObservation, observationPeriod } from './data.ts';
+import { benchmarkJudgement, recentTrend } from '../indicator/data.ts';
+import { tableCsv } from '../indicator/download.ts';
+import { englandObservation, observationPeriod, topicColumns, topicSubtopics } from './data.ts';
 import { loadTopic } from './loader.ts';
 
 export async function loader(args: LoaderFunctionArgs) {
@@ -19,6 +20,15 @@ export async function loader(args: LoaderFunctionArgs) {
   );
   const byId = new Map(data.selected.map((entry) => [entry.detail.shortId, entry]));
   const areas = model.areas.filter(({ areaCode }) => areaCode !== 'E92000001');
+  const columns = topicColumns(url.searchParams);
+  const measures = columns.filter((column) => ['trend', 'count', 'value'].includes(column));
+  const dataAreas = [...model.areas].sort((a, b) =>
+    a.areaCode === 'E92000001'
+      ? -1
+      : b.areaCode === 'E92000001'
+        ? 1
+        : a.areaName.localeCompare(b.areaName),
+  );
   const csv = areasTab
     ? tableCsv([
         [
@@ -64,7 +74,48 @@ export async function loader(args: LoaderFunctionArgs) {
           ];
         }),
       ])
-    : comparisonCsv(model, false);
+    : tableCsv([
+        [
+          'Indicator',
+          'Subtopic',
+          'Unit',
+          ...(columns.includes('period') ? ['Most recent period'] : []),
+          ...(columns.includes('updated') ? ['Last updated'] : []),
+          ...dataAreas.flatMap(({ areaName }) =>
+            measures.map(
+              (measure) =>
+                `${areaName} ${measure === 'trend' ? 'trend (last 5 periods)' : measure === 'count' ? 'count' : 'calculated value'}`,
+            ),
+          ),
+        ],
+        ...model.rows.map((row) => {
+          const entry = byId.get(row.shortId);
+          if (!entry) return [];
+          return [
+            row.name + (row.suffix ? ` ${row.suffix}` : ''),
+            topicSubtopics(entry, topic.slug).join('; '),
+            row.unit,
+            ...(columns.includes('period') ? [row.period || 'No data'] : []),
+            ...(columns.includes('updated')
+              ? [
+                  entry.detail.dataUpdatedAt
+                    ? formatDate(entry.detail.dataUpdatedAt, 'short')
+                    : 'Not known',
+                ]
+              : []),
+            ...dataAreas.flatMap(({ areaCode }) =>
+              measures.map((measure) => {
+                const cell = row.cells.find((cell) => cell.areaCode === areaCode);
+                return measure === 'trend'
+                  ? recentTrend(cell?.series ?? [], entry.detail.polarity).label
+                  : measure === 'count'
+                    ? (cell?.count ?? null)
+                    : (cell?.value ?? null);
+              }),
+            ),
+          ];
+        }),
+      ]);
   return new Response(csv, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
