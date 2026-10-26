@@ -130,6 +130,32 @@ export function topicPageTests() {
     }
   });
 
+  test('keeps the tab row in place when switching between wrapped labels', async ({
+    page,
+  }, testInfo) => {
+    await openTopicPage(page, '/topics/diabetes');
+    const position = () =>
+      page.getByRole('tablist').evaluate((element) => {
+        const { top, height } = element.getBoundingClientRect();
+        return { top: top + window.scrollY, height };
+      });
+    for (const width of [641, 834, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      const initial = await position();
+      for (const label of ['Overview', 'Data', 'Area summaries', 'More information']) {
+        await page.getByRole('tab', { name: label, exact: true }).click();
+        await expect(page.getByRole('tabpanel', { name: label, exact: true })).not.toHaveAttribute(
+          'aria-busy',
+          'true',
+        );
+        const current = await position();
+        expect(Math.abs(current.top - initial.top)).toBeLessThanOrEqual(1);
+        expect(Math.abs(current.height - initial.height)).toBeLessThanOrEqual(1);
+      }
+    }
+    await expectNoAccessibilityViolations(page, testInfo);
+  });
+
   test('filters by subtopic and keeps the filter when sorting', async ({ page }, testInfo) => {
     await openTopicPage(page, '/topics/diabetes?tab-topic=data');
     await page.getByRole('button', { name: 'Subtopics and types', exact: true }).click();

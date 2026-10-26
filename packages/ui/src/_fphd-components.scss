@@ -916,6 +916,11 @@ body.govuk-frontend-supported .fphd-filter-card--accordion {
     min-width: min-content;
   }
 
+  .govuk-frontend-supported .fphd-tabs .govuk-tabs__list-item--selected {
+    // Balance the selected tab's negative margins so wrapping cannot resize the row.
+    padding-bottom: calc(#{govuk-spacing(2)} + 1px);
+  }
+
 }
 
 @include govuk-media-query($from: tablet, $until: desktop) {
