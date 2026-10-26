@@ -20,6 +20,14 @@ test('loads the search page with h1', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: 'Search for data' })).toBeVisible();
 });
 
+test('keeps direct indicator matches ahead of taxonomy-only matches', async ({
+  page,
+}, testInfo) => {
+  await ready(page, '/search?q=diabetes');
+  await expect(results(page).getByRole('link').first()).toHaveText('Diabetes: QOF prevalence');
+  await expectNoAccessibilityViolations(page, testInfo);
+});
+
 test('uses the compact NotGovUK search box', async ({ page }) => {
   await page.goto('/search');
 

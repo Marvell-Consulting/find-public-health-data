@@ -169,26 +169,26 @@ describe('GET /api/indicators/:indicator/data', () => {
         },
       ],
     };
-    const findObservations = vi.fn().mockResolvedValue(data);
-    const app = createTestApp({ resolveId: async () => 'ind-1', findObservations });
+    const findObservationsForAreas = vi.fn().mockResolvedValue([data]);
+    const app = createTestApp({ resolveId: async () => 'ind-1', findObservationsForAreas });
 
     const response = await request(app).get('/api/indicators/108/data');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual(data);
-    expect(findObservations).toHaveBeenCalledWith('ind-1', 'E92000001');
+    expect(findObservationsForAreas).toHaveBeenCalledWith('ind-1', ['E92000001']);
   });
 
   it('passes an explicit area code through to the repository', async () => {
-    const findObservations = vi
+    const findObservationsForAreas = vi
       .fn()
-      .mockResolvedValue({ areaCode: 'E06000001', areaName: 'Hartlepool', observations: [] });
-    const app = createTestApp({ resolveId: async () => 'ind-1', findObservations });
+      .mockResolvedValue([{ areaCode: 'E06000001', areaName: 'Hartlepool', observations: [] }]);
+    const app = createTestApp({ resolveId: async () => 'ind-1', findObservationsForAreas });
 
     const response = await request(app).get('/api/indicators/108/data?areaCode=E06000001');
 
     expect(response.status).toBe(200);
-    expect(findObservations).toHaveBeenCalledWith('ind-1', 'E06000001');
+    expect(findObservationsForAreas).toHaveBeenCalledWith('ind-1', ['E06000001']);
   });
 
   it('reads several requested areas in one repository call', async () => {
@@ -223,7 +223,7 @@ describe('GET /api/indicators/:indicator/data', () => {
   it('returns not-found when none of the requested areas exist', async () => {
     const app = createTestApp({
       resolveId: async () => 'ind-1',
-      findObservations: async () => undefined,
+      findObservationsForAreas: async () => [],
     });
 
     const response = await request(app).get('/api/indicators/424242/data');
@@ -299,10 +299,38 @@ describe('GET /api/indicators/search pagination and dates', () => {
       '/api/indicators/search?page=Infinity&sort=invalid&fromYear=oops&toYear=100000&updatedWithin=999',
     );
     expect(searchWithFilters).toHaveBeenLastCalledWith(
-      expect.objectContaining({ page: 1, sort: 'name-asc', limit: 10 }),
+      expect.objectContaining({ page: 1, limit: 10 }),
     );
     expect(searchWithFilters.mock.calls.at(-1)?.[0]).not.toHaveProperty('dataFromYear');
     expect(searchWithFilters.mock.calls.at(-1)?.[0]).not.toHaveProperty('dataToYear');
     expect(searchWithFilters.mock.calls.at(-1)?.[0]).not.toHaveProperty('updatedWithinMonths');
+  });
+});
+
+describe('search ordering and workload bounds', () => {
+  it('leaves relevance and topic grouping to the repository without an explicit sort', async () => {
+    const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, limit: 200, indicators: [] });
+    const app = createTestApp({ searchWithFilters });
+    await request(app).get('/api/indicators/search?q=108');
+    expect(searchWithFilters.mock.calls[0]?.[0]).not.toHaveProperty('sort');
+    await request(app).get('/api/indicators/search');
+    expect(searchWithFilters.mock.calls[1]?.[0]).not.toHaveProperty('sort');
+  });
+  it('requires one topic before evaluating a trend sort', async () => {
+    const searchWithFilters = vi.fn();
+    const response = await request(createTestApp({ searchWithFilters })).get(
+      '/api/indicators/search?sort=trend-desc',
+    );
+    expect(response.status).toBe(400);
+    expect(searchWithFilters).not.toHaveBeenCalled();
+  });
+  it('bounds explicit paged requests for complete topic loading', async () => {
+    const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, limit: 200, indicators: [] });
+    await request(createTestApp({ searchWithFilters })).get(
+      '/api/indicators/search?t=diabetes&page=2&limit=9999',
+    );
+    expect(searchWithFilters).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 2, limit: 200 }),
+    );
   });
 });

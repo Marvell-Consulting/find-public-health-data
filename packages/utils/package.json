@@ -118,6 +118,12 @@
       "development": "./src/recent-trend.ts",
       "types": "./src/recent-trend.ts",
       "default": "./dist/recent-trend.js"
+    },
+    "./indicator-sort": {
+      "browser": "./src/indicator-sort.ts",
+      "development": "./src/indicator-sort.ts",
+      "types": "./src/indicator-sort.ts",
+      "default": "./dist/indicator-sort.js"
     }
   },
   "files": [

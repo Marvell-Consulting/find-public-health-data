@@ -1,4 +1,5 @@
 import type { IndicatorSearchFilters, Repositories } from '@fphd/db';
+import { indicatorSort } from '@fphd/utils/indicator-sort';
 import { isShortId, SHORT_ID_PATTERN } from '@fphd/utils/short-id';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
 import { Router } from 'express';
@@ -89,19 +90,18 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
     if (typeof page === 'string') {
       const requested = Number(page);
       filters.page = Number.isSafeInteger(requested) && requested > 0 ? requested : 1;
-      filters.limit = 10;
+      const limit = request.query.limit;
+      filters.limit =
+        typeof limit === 'string' && /^[1-9]\d*$/.test(limit)
+          ? Math.min(Number(limit), MAX_INDICATOR_FILTER_RESULTS)
+          : 10;
     }
-    filters.sort =
-      sort === 'name-desc' ||
-      sort === 'period-desc' ||
-      sort === 'trend-desc' ||
-      sort === 'trend-asc' ||
-      sort === 'trend-better' ||
-      sort === 'trend-worse' ||
-      sort === 'subtopic-asc' ||
-      sort === 'subtopic-desc'
-        ? sort
-        : 'name-asc';
+    const requestedSort = indicatorSort(sort);
+    if (requestedSort?.startsWith('trend-') && filters.topics.length !== 1) {
+      response.status(400).json({ error: 'topic_required_for_trend_sort' });
+      return;
+    }
+    if (requestedSort) filters.sort = requestedSort;
     if (fromYear) filters.dataFromYear = Number(fromYear);
     if (toYear) filters.dataToYear = Number(toYear);
     if (updatedWithin) filters.updatedWithinMonths = Number(updatedWithin);
@@ -140,16 +140,10 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
       return;
     }
 
-    const single =
-      areaCodes.length === 1
-        ? await indicators.findObservations(indicatorId, areaCodes[0] as string)
-        : undefined;
-    const data: IndicatorAreaData[] =
-      areaCodes.length === 1
-        ? single
-          ? [single]
-          : []
-        : await indicators.findObservationsForAreas(indicatorId, areaCodes);
+    const data: IndicatorAreaData[] = await indicators.findObservationsForAreas(
+      indicatorId,
+      areaCodes,
+    );
 
     // The indicator is known, so every requested area missing means unknown areas.
     if (data.length === 0) {

@@ -1,4 +1,5 @@
 import type { CiConfidenceLevel } from '@fphd/utils/ci-confidence-level';
+import type { IndicatorSort } from '@fphd/utils/indicator-sort';
 import {
   type PublicYearType,
   publicYearType,
@@ -80,17 +81,7 @@ export interface IndicatorSearchFilters {
   yearTypes: string[];
   limit: number;
   page?: number | undefined;
-  sort?:
-    | 'name-asc'
-    | 'name-desc'
-    | 'period-desc'
-    | 'trend-desc'
-    | 'trend-asc'
-    | 'trend-better'
-    | 'trend-worse'
-    | 'subtopic-asc'
-    | 'subtopic-desc'
-    | undefined;
+  sort?: IndicatorSort | undefined;
   dataFromYear?: number | undefined;
   dataToYear?: number | undefined;
   updatedWithinMonths?: number | undefined;
