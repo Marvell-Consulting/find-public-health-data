@@ -89,7 +89,6 @@ export function TopicPage(data: TopicData) {
                       state={content.search}
                       subtopicFilter={
                         <TopicSubtopicFilter
-                          key={JSON.stringify(content.search.subtopics ?? [])}
                           path={path}
                           state={content.search}
                           subtopics={topic.subtopics ?? []}

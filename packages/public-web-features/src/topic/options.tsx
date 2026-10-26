@@ -4,7 +4,12 @@ import { TOPIC_COLUMNS, topicColumns } from './data.ts';
 
 export function TopicKeywordSearch({ title }: { title: string }) {
   const location = useLocation();
-  const params = new URLSearchParams(location.search);
+  const navigation = useNavigation();
+  const params = new URLSearchParams(
+    navigation.location?.pathname === location.pathname
+      ? navigation.location.search
+      : location.search,
+  );
   const cleared = new URLSearchParams(params);
   cleared.delete('q');
   return (

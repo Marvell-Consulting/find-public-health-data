@@ -1247,6 +1247,23 @@ body:not(.govuk-frontend-supported) .fphd-share-link {
     vertical-align: bottom;
   }
 }
+
+@include govuk-media-query($until: 1280px) {
+  .fphd-topic-data .fphd-compare-table {
+    table-layout: auto;
+
+    th,
+    td {
+      min-width: 120px;
+    }
+
+    th:first-child,
+    tbody td:first-child {
+      min-width: 240px;
+    }
+  }
+}
+
 .fphd-topic-trend-counts .govuk-list > li {
   margin-bottom: govuk-spacing(3);
 }

@@ -1,5 +1,5 @@
 import { FilterChip, FilterChips, InsetText, Select } from '@fphd/ui';
-import { Form, useLocation } from 'react-router';
+import { Form, useLocation, useNavigation } from 'react-router';
 import { DownloadShareData } from '../download-share.tsx';
 import { TOPIC_SORT_OPTIONS, topicColumns } from './data.ts';
 import type { loadTopic } from './loader.ts';
@@ -13,9 +13,14 @@ type TopicData = { topic: Awaited<ReturnType<typeof loadTopic>>['topic'] } & Non
 export function TopicListing({ data, areas = false }: { data: TopicData; areas?: boolean }) {
   const { topic, search, listing } = data;
   const location = useLocation();
+  const navigation = useNavigation();
   const path = `/topics/${topic.slug}`;
   const tab = areas ? 'areas' : 'data';
-  const params = new URLSearchParams(location.search);
+  const params = new URLSearchParams(
+    navigation.location?.pathname === location.pathname
+      ? navigation.location.search
+      : location.search,
+  );
   params.set('tab-topic', tab);
   const dataSelected =
     data.defaultAreas && !areas
@@ -63,7 +68,7 @@ export function TopicListing({ data, areas = false }: { data: TopicData; areas?:
               label="Sort by"
               name="sort"
               options={TOPIC_SORT_OPTIONS}
-              value={listing.sort}
+              value={params.get('sort') ?? listing.sort}
               onChange={(event) => event.currentTarget.form?.requestSubmit()}
             />
             <noscript>

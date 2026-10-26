@@ -1,8 +1,7 @@
 import { Button, Checkboxes } from '@fphd/ui';
-import { useState } from 'react';
-import { Form, useLocation, useNavigate } from 'react-router';
+import { Form, useLocation, useNavigate, useNavigation } from 'react-router';
 import { HiddenFilters } from '../search/filter-fields.tsx';
-import { type SearchState, searchUrl } from '../search/url.ts';
+import type { SearchState } from '../search/url.ts';
 
 export function TopicSubtopicFilter({
   path,
@@ -17,20 +16,26 @@ export function TopicSubtopicFilter({
   sort: string;
   tab?: 'data' | 'areas';
 }) {
-  const [selected, setSelected] = useState(state.subtopics ?? []);
   const navigate = useNavigate();
-  const params = new URLSearchParams(useLocation().search);
+  const location = useLocation();
+  const navigation = useNavigation();
+  const params = new URLSearchParams(
+    navigation.location?.pathname === location.pathname
+      ? navigation.location.search
+      : location.search,
+  );
+  const selected = params.getAll('subtopic');
   const extraParams = {
     ...Object.fromEntries([...params].filter(([key]) => key === 'columns-topic')),
     'tab-topic': tab,
-    sort,
+    sort: params.get('sort') ?? sort,
   };
   if (subtopics.length === 0) return null;
   return (
     <Form action={path} method="get" preventScrollReset>
       <HiddenFilters state={state} except="subtopics" extraParams={extraParams} />
       <Checkboxes
-        id="topic-subtopic"
+        id={`topic-subtopic-${tab}`}
         label="Subtopics"
         name="subtopic"
         options={subtopics.map(({ slug, title }) => ({
@@ -41,9 +46,13 @@ export function TopicSubtopicFilter({
         onChange={(event) => {
           const { checked, value } = event.target;
           const next = checked ? [...selected, value] : selected.filter((slug) => slug !== value);
-          setSelected(next);
-          void navigate(searchUrl({ ...state, subtopics: next }, path, extraParams), {
+          params.delete('subtopic');
+          params.delete('page');
+          params.set('tab-topic', tab);
+          for (const slug of next) params.append('subtopic', slug);
+          void navigate(`${path}?${params}`, {
             preventScrollReset: true,
+            flushSync: true,
           });
         }}
       />

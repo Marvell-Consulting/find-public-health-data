@@ -91,6 +91,30 @@ export function topicPageTests() {
     await expectNoAccessibilityViolations(page, testInfo);
   });
 
+  test('keeps topic data columns readable and scrollable on smaller screens', async ({
+    page,
+  }, testInfo) => {
+    await openTopicPage(page, '/topics/diabetes?tab-topic=data');
+    const panel = page.locator('#topic-data');
+    const region = panel.getByRole('region', { name: 'Diabetes indicators comparison table' });
+    for (const width of [375, 641, 834, 1024]) {
+      await page.setViewportSize({ width, height: 1000 });
+      const overlaps = await region.locator('.fphd-trend-tag').evaluateAll(
+        (tags) =>
+          tags.filter((tag) => {
+            const cell = tag.closest('td')?.getBoundingClientRect();
+            return !cell || tag.getBoundingClientRect().right > cell.right;
+          }).length,
+      );
+      expect(overlaps).toBe(0);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+    }
+    await region.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect.poll(() => region.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+    await expectNoAccessibilityViolations(page, testInfo);
+  });
+
   test('switches area summary geography and filters the areas without leaving the topic', async ({
     page,
   }, testInfo) => {
@@ -183,6 +207,48 @@ export function topicPageTests() {
     await expect(page).toHaveURL(/\/topics\/mortality-and-life-expectancy/);
   });
 
+  test('preserves subtopics and sorting while either change is loading', async ({
+    page,
+  }, testInfo) => {
+    const subtopic = page.getByRole('checkbox', { name: 'Prevalence and risk', exact: true });
+    const sort = page.getByRole('combobox', { name: 'Sort by', exact: true });
+    for (const first of ['subtopic', 'sort']) {
+      await openTopicPage(page, '/topics/diabetes?tab-topic=data');
+      await page.getByRole('button', { name: 'Subtopics and types', exact: true }).click();
+      let release!: () => void;
+      let started!: () => void;
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const request = new Promise<void>((resolve) => {
+        started = resolve;
+      });
+      const pattern = '**/topics/diabetes.data?*';
+      await page.route(pattern, async (route) => {
+        started();
+        await gate;
+        await route.continue().catch(() => {});
+      });
+      try {
+        if (first === 'subtopic') await subtopic.check();
+        else await sort.selectOption('name-desc');
+        await request;
+        if (first === 'subtopic') await sort.selectOption('name-desc');
+        else await subtopic.check();
+      } finally {
+        release();
+      }
+      await expect(page).toHaveURL(/subtopic=prevalence-and-risk/);
+      await expect(page).toHaveURL(/sort=name-desc/);
+      await expect(subtopic).toBeChecked();
+      await expect(sort).toHaveValue('name-desc');
+      await page.unroute(pattern);
+      await page.goBack();
+      await expect(subtopic).not.toBeChecked();
+    }
+    await expectNoAccessibilityViolations(page, testInfo);
+  });
+
   test('opens area summaries on NHS regions with geography controls', async ({
     page,
   }, testInfo) => {
@@ -193,6 +259,8 @@ export function topicPageTests() {
     await expect(table).toBeVisible();
     await expect(table.getByRole('columnheader', { name: 'England', exact: true })).toBeVisible();
     await expect(table.getByRole('columnheader', { name: 'London', exact: true })).toBeVisible();
+    const ids = await page.locator('[id]').evaluateAll((elements) => elements.map(({ id }) => id));
+    expect(ids.length).toBe(new Set(ids).size);
     await expectNoAccessibilityViolations(page, testInfo);
   });
 
