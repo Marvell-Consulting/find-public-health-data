@@ -619,6 +619,30 @@ body.govuk-frontend-supported .fphd-filter-card--accordion {
   top: 13px;
 }
 
+.fphd-geo-alt__tree .govuk-radios--small .govuk-radios__label {
+  padding-right: 0;
+  padding-left: 6px;
+  font-size: 1rem;
+}
+
+.fphd-geo-alt__tree .govuk-radios--small .govuk-radios__input {
+  width: 24px;
+  height: 36px;
+  margin-left: 0;
+}
+
+.fphd-geo-alt__tree .govuk-radios--small .govuk-radios__label::before {
+  top: 6px;
+}
+
+.fphd-geo-alt__tree .govuk-radios--small .govuk-radios__label::after {
+  top: 13px;
+}
+
+.fphd-geo-alt__tree .govuk-radios__item:hover .govuk-radios__input:not(:disabled):not(:focus) + .govuk-radios__label::before {
+  box-shadow: none;
+}
+
 // The Checkboxes legends here only carry visually-hidden text, but the legend element
 // itself still takes margin; collapse it so rows sit at their natural height.
 .fphd-geo-alt__tree .govuk-fieldset__legend {
@@ -660,11 +684,32 @@ body.govuk-frontend-supported .fphd-filter-card--accordion {
   text-align: left;
   height: auto;
   min-height: 36px;
-  color: $govuk-link-colour;
-  text-decoration: underline;
   @include govuk-font-size($size: 16);
 
+  .fphd-geo-alt__toggle-label {
+    color: $govuk-link-colour;
+    text-decoration: underline;
+    text-decoration-thickness: max(1px, .0625rem);
+    text-underline-offset: .1578em;
+  }
+
   .fphd-geo-alt__chevron { border-left-color: $govuk-link-colour; flex-shrink: 0; }
+
+  &:hover .fphd-geo-alt__toggle-label {
+    color: $govuk-link-hover-colour;
+    text-decoration-thickness: max(3px, .1875rem);
+  }
+
+  &:hover .fphd-geo-alt__chevron { border-left-color: $govuk-link-hover-colour; }
+
+  &:focus-visible {
+    outline: none;
+    background: none;
+    box-shadow: none;
+
+    .fphd-geo-alt__toggle-label { @include govuk-focused-text; }
+    .fphd-geo-alt__chevron { border-left-color: $govuk-focus-text-colour; }
+  }
 }
 
 .fphd-geo-alt__toggle:focus-visible {
@@ -699,6 +744,10 @@ body.govuk-frontend-supported .fphd-filter-card--accordion {
 .fphd-geo-alt__children {
   margin-left: 45px;
   margin-bottom: 6px;
+}
+
+.fphd-geo-alt__children--radios {
+  margin-left: 20px;
 }
 
 .fphd-geo-alt--flat .fphd-geo-alt__children {

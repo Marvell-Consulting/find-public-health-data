@@ -339,7 +339,11 @@ export function GeographyTree({
                         type="button"
                       >
                         <span className="fphd-geo-alt__chevron" aria-hidden="true" />
-                        <span className={single ? undefined : 'govuk-visually-hidden'}>
+                        <span
+                          className={
+                            single ? 'fphd-geo-alt__toggle-label' : 'govuk-visually-hidden'
+                          }
+                        >
                           {single ? group.name : `${isOpen ? 'Collapse' : 'Expand'} ${group.name}`}
                         </span>
                       </button>
@@ -379,7 +383,9 @@ export function GeographyTree({
                   {isLoading ? `Loading ${group.name}…` : ''}
                 </p>
                 {isOpen ? (
-                  <div className="fphd-geo-alt__children">
+                  <div
+                    className={`fphd-geo-alt__children${single ? ' fphd-geo-alt__children--radios' : ''}`}
+                  >
                     {isLoading ? null : (
                       <>
                         <AreaChoices
