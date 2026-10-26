@@ -1,6 +1,5 @@
 import { Button, Checkboxes, CollapsibleFilterCard, SearchField } from '@fphd/ui';
-import { useEffect, useState } from 'react';
-import { Form, Link, useLocation, useNavigate } from 'react-router';
+import { Form, Link, useLocation, useNavigate, useNavigation } from 'react-router';
 import { TOPIC_COLUMNS, topicColumns } from './data.ts';
 
 export function TopicKeywordSearch({ title }: { title: string }) {
@@ -40,12 +39,13 @@ export function TopicKeywordSearch({ title }: { title: string }) {
 export function TopicTableColumns() {
   const location = useLocation();
   const navigate = useNavigate();
-  const params = new URLSearchParams(location.search);
-  const [columns, setColumns] = useState(topicColumns(params));
-  useEffect(
-    () => setColumns(topicColumns(new URLSearchParams(location.search))),
-    [location.search],
+  const navigation = useNavigation();
+  const params = new URLSearchParams(
+    navigation.location?.pathname === location.pathname
+      ? navigation.location.search
+      : location.search,
   );
+  const columns = topicColumns(params);
   return (
     <>
       <h2 className="govuk-heading-m">Display options</h2>
@@ -77,7 +77,6 @@ export function TopicTableColumns() {
                   ? event.currentTarget.checked
                   : columns.includes(value),
               );
-              setColumns(next);
               params.set('columns-topic', next.join(',') || 'none');
               void navigate(
                 { search: `?${params}` },
