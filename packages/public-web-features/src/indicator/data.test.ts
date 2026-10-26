@@ -510,6 +510,7 @@ describe('inequalityValueLabel', () => {
       1,
       'Decile 1 (most deprived, IMD 2019)',
     ],
+    ['LSOA21 deprivation deciles within area (IMD2019)', 2, 'Decile 2 (IMD 2019)'],
     [
       'District & UA deprivation deciles in England (IMD2025, 4/23 geography)',
       10,
