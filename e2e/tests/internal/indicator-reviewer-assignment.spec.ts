@@ -36,7 +36,63 @@ function removeButtons(page: Page) {
   return page.getByRole('button', { name: /^Remove reviewer / });
 }
 
+/** The manager's dashboard row for the indicator in the table named. */
+async function dashboardRow(page: Page, table: 'Unassigned' | 'Assigned', name: string) {
+  await page.goto('/dashboard');
+  return page
+    .getByRole('table', { name: `${table} indicators, oldest submission first` })
+    .getByRole('row')
+    .filter({ hasText: name });
+}
+
 test.use({ storageState: IMRG_MANAGER.storageState });
+
+test('assigns reviewers to an indicator opened from Unassigned indicators', async ({
+  browser,
+  page,
+}, testInfo) => {
+  const name = uniqueIndicatorName('assign reviewers');
+  const id = await submitNewIndicator(browser, name);
+  await (await dashboardRow(page, 'Unassigned', name)).getByRole('link', { name }).click();
+
+  await page.getByRole('button', { name: 'Assign reviewers to indicator' }).click();
+  await expect(page).toHaveURL(assignPath(id));
+  await addReviewer(page, 'Morgan Hughes');
+  await addReviewer(page, 'Jamie Evans');
+  await expectNoAccessibilityViolations(page, testInfo);
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  await expect(page).toHaveURL(overviewPath(id));
+  await expect(page.getByRole('alert')).toContainText(ASSIGNED);
+  await expect(
+    page.getByRole('link', { name: 'Change reviewers for this indicator' }),
+  ).toBeVisible();
+  await expect((await dashboardRow(page, 'Assigned', name)).getByRole('listitem')).toHaveText([
+    'Jamie Evans',
+    'Morgan Hughes',
+  ]);
+});
+
+test('changes the reviewers of an indicator in review', async ({ browser, page }) => {
+  const name = uniqueIndicatorName('change reviewers');
+  const id = await submitNewIndicator(browser, name);
+  await page.goto(assignPath(id));
+  await addReviewer(page, 'Morgan Hughes');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page.getByRole('alert')).toContainText(ASSIGNED);
+
+  await page.getByRole('link', { name: 'Change reviewers for this indicator' }).click();
+  await expect(removeButtons(page)).toHaveText(['Remove reviewer Morgan Hughes']);
+  await page.getByRole('button', { name: 'Remove reviewer Morgan Hughes' }).click();
+  await addReviewer(page, 'Jamie Evans');
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  await expect(page).toHaveURL(overviewPath(id));
+  await expect(page.getByRole('alert')).toContainText(ASSIGNED);
+  await expect((await dashboardRow(page, 'Assigned', name)).getByRole('listitem')).toHaveText([
+    'Jamie Evans',
+  ]);
+});
 
 test('asks for a reviewer when none is chosen', async ({ browser, page }, testInfo) => {
   const id = await submitNewIndicator(browser, uniqueIndicatorName('no reviewer'));
