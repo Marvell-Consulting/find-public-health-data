@@ -109,8 +109,9 @@ const SUBMISSION_WRITES: Readonly<
 
 /**
  * Takes a workflow step on the indicator's draft in one transaction: the version's lock, its
- * submission and the audit entry are written together or not at all. A step is not an edit, so
- * the version's `updated_at` and `updated_by` stay as the last edit left them.
+ * submission, the step's own rows that `write` adds and the audit entry are written together or
+ * not at all. A step that changes nothing records nothing. A step is not an edit, so the version's
+ * `updated_at` and `updated_by` stay as the last edit left them.
  */
 export async function takeIndicatorStep<Reason extends string = never>(
   db: Database,
@@ -172,18 +173,17 @@ export async function takeIndicatorStep<Reason extends string = never>(
       actor,
     });
     const written = (await write?.(tx, submission.after)) ?? {};
+    const changes = {
+      ...changesBetween({ status: draft.status, isLocked: draft.isLocked }, version),
+      ...(isDeepStrictEqual(submission.before, submission.after) ? {} : { submission }),
+      ...written,
+    };
 
-    await recordAudit(tx, actor, [
-      {
-        action: STEP_ACTIONS[step],
-        entityId: indicatorId,
-        changes: {
-          ...changesBetween({ status: draft.status, isLocked: draft.isLocked }, version),
-          ...(isDeepStrictEqual(submission.before, submission.after) ? {} : { submission }),
-          ...written,
-        },
-      },
-    ]);
+    if (Object.keys(changes).length > 0) {
+      await recordAudit(tx, actor, [
+        { action: STEP_ACTIONS[step], entityId: indicatorId, changes },
+      ]);
+    }
 
     return { ok: true };
   });

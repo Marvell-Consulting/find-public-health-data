@@ -452,6 +452,19 @@ describe('assignReviewers', () => {
     },
   );
 
+  repositoryTest('records nothing when the reviewers are saved unchanged', async ({ db }) => {
+    const { indicatorId, submission } = await submittedDraft(db, 'Reviewers saved unchanged');
+    await assign(db, indicatorId, [REVIEWER, PUBLISHING_REVIEWER]);
+    const [assigned] = await reviewersOf(db, submission.id);
+
+    await expect(
+      assign(db, indicatorId, [PUBLISHING_REVIEWER, REVIEWER], [REVIEWER, PUBLISHING_REVIEWER]),
+    ).resolves.toEqual({ ok: true });
+
+    expect(await stepEntriesFor(db, indicatorId)).toHaveLength(2);
+    expect(await reviewersOf(db, submission.id)).toContainEqual(assigned);
+  });
+
   repositoryTest('removes a reviewer taken off the submission', async ({ db }) => {
     const { indicatorId, versionId, submission } = await submittedDraft(db, 'Reviewer removed');
     await assign(db, indicatorId, [REVIEWER, PUBLISHING_REVIEWER]);
