@@ -161,6 +161,7 @@ describe('GET /api/internal/indicators', () => {
       .set('Cookie', await publisherCookie());
 
     expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'invalid_teams' });
   });
 
   it.each(['0', '-1', '1.5', 'two', '1&page=2'])(

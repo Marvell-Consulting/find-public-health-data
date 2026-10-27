@@ -125,10 +125,8 @@ export const indicatorPageQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
 });
 
-/** The API's list query: `teams=own` keeps to the teams the user publishes for. */
-export const indicatorListQuerySchema = indicatorPageQuerySchema.extend({
-  teams: z.literal('own').optional(),
-});
+/** The API list's filter: `teams=own` keeps to the teams the user publishes for. */
+export const indicatorListTeamsQuerySchema = z.object({ teams: z.literal('own').optional() });
 
 /** A dashboard row, which names the team and the people for the publisher to read. */
 export const indicatorAdminListItemSchema = indicatorAdminSummarySchema.extend({

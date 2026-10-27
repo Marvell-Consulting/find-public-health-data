@@ -23,8 +23,9 @@ import {
   type IndicatorTaskList,
   indicatorFieldSchema,
   indicatorIdSchema,
-  indicatorListQuerySchema,
+  indicatorListTeamsQuerySchema,
   indicatorNameSchema,
+  indicatorPageQuerySchema,
   indicatorTeamSchema,
   toFieldErrors,
 } from './contract.ts';
@@ -98,16 +99,24 @@ export function internalIndicatorsRouter(
   const requireEditor = requireIndicatorEditor(session, indicators);
 
   router.get('/api/internal/indicators', requireLister, async (request, response) => {
-    const query = indicatorListQuerySchema.safeParse(request.query);
+    const query = indicatorPageQuerySchema.safeParse(request.query);
 
     if (!query.success) {
       response.status(400).json({ error: 'invalid_page' });
       return;
     }
 
-    const { page, teams } = query.data;
+    const filter = indicatorListTeamsQuerySchema.safeParse(request.query);
+
+    if (!filter.success) {
+      response.status(400).json({ error: 'invalid_teams' });
+      return;
+    }
+
+    const { page } = query.data;
     const session = requireApiSession(response);
-    const scope = teams === 'own' ? ownTeamsListScope(session) : indicatorListScope(session);
+    const scope =
+      filter.data.teams === 'own' ? ownTeamsListScope(session) : indicatorListScope(session);
     const rows = await indicators.listPage(page, INDICATORS_PAGE_SIZE, scope);
     const body: IndicatorAdminPage = {
       indicators: rows.indicators.map(toListItem),

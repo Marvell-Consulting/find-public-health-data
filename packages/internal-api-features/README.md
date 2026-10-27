@@ -18,6 +18,7 @@ Queries live in this package's repository files rather than `@fphd/db`, whose de
 the public read surface.
 
 Each user sees the indicators their roles allow: the dashboard list is filtered in its query by
-`indicatorListScope`, and the overview read answers 404 for one `canSeeIndicator` refuses. Every
+`indicatorListScope`, or by `ownTeamsListScope` under `teams=own`, and the overview read answers 404
+for one `canSeeIndicator` refuses. Every
 route that edits an indicator sits behind `requireIndicatorEditor`, which checks `canEditIndicator`
 against the indicator's team: a read answers 404 and a write 403 for a publisher outside it.
