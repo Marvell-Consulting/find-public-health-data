@@ -23,6 +23,7 @@ describe('readHeader', () => {
       'upper_ci_95',
       'lower_ci_95',
       'denominator',
+      'numerator',
       'count',
       'value',
       'period_end',

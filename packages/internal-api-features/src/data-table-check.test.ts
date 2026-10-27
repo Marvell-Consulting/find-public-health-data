@@ -35,6 +35,7 @@ const ROW: DataTableRow = {
   dimensionKey: '',
   value: 83.8,
   count: null,
+  numerator: null,
   denominator: null,
   lowerCi95: null,
   upperCi95: null,
