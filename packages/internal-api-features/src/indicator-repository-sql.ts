@@ -89,6 +89,15 @@ const latestDraftSubmissionNumber = new QueryBuilder({ casing: 'snake_case' })
   .from(indicatorVersionSubmission)
   .where(eq(indicatorVersionSubmission.indicatorVersionId, draftVersion.id));
 export const draftSubmissionNumber = sql<number | null>`(${latestDraftSubmissionNumber})`;
+const latestDraftSubmittedAt = new QueryBuilder({ casing: 'snake_case' })
+  .select({ submittedAt: indicatorVersionSubmission.submittedAt })
+  .from(indicatorVersionSubmission)
+  .where(eq(indicatorVersionSubmission.indicatorVersionId, draftVersion.id))
+  .orderBy(desc(indicatorVersionSubmission.number))
+  .limit(1);
+export const draftSubmittedAt = sql`(${latestDraftSubmittedAt})`.mapWith(
+  indicatorVersionSubmission.submittedAt,
+);
 const latestDraftSubmissionId = new QueryBuilder({ casing: 'snake_case' })
   .select({ id: indicatorVersionSubmission.id })
   .from(indicatorVersionSubmission)

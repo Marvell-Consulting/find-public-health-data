@@ -1,6 +1,6 @@
 import type { IndicatorListScope } from '@fphd/auth/permissions';
 import { type Database, schema } from '@fphd/db';
-import { asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, type SQL, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import type {
@@ -17,7 +17,9 @@ import {
   draftStatus,
   draftSubmissionNumber,
   draftSubmissionStatus,
+  draftSubmittedAt,
   draftVersion,
+  indicatorCreatedBy,
   indicatorStatus,
   latestUpdatedAt,
   latestUpdatedBy,
@@ -26,9 +28,9 @@ import {
   publishedVersionJoin,
 } from './indicator-repository-sql.ts';
 
-const { appUser, currentPublishedVersion, indicator, indicatorVersion, team } = schema;
+const { appUser, currentPublishedVersion, indicator, team } = schema;
 
-const firstVersion = alias(indicatorVersion, 'first_version');
+const creator = alias(appUser, 'creator');
 const lastEditor = alias(appUser, 'last_editor');
 
 export interface IndicatorAdminRow {
@@ -55,6 +57,12 @@ export interface IndicatorAdminRows {
   total: number;
 }
 
+/** The open submissions an IMRG manager works through, by whether reviewers are assigned. */
+export interface IndicatorsUnderReviewRows {
+  unassigned: IndicatorAdminListRow[];
+  assigned: IndicatorAdminListRow[];
+}
+
 export interface IndicatorAdminDetailRow extends IndicatorAdminRow {
   shortId: number;
   /** The number of the draft's latest submission, null until the draft is first submitted. */
@@ -63,10 +71,51 @@ export interface IndicatorAdminDetailRow extends IndicatorAdminRow {
   publishedSlug: string | null;
 }
 
+function scopeCondition(scope: IndicatorListScope): SQL | undefined {
+  return scope.all ? undefined : inArray(indicator.teamId, [...scope.teamIds]);
+}
+
+function inNoTeams(scope: IndicatorListScope): boolean {
+  return !scope.all && scope.teamIds.length === 0;
+}
+
+/**
+ * The dashboard's rows, unfiltered and unsorted. The team and the people are joined into the
+ * same query, and the creator is a select-list subquery, which Postgres runs after any sort and
+ * limit, for the rows returned alone.
+ */
+function listRowsQuery(db: Database) {
+  const createdBy = sql<string | null>`(${db
+    .select({ name: creator.displayName })
+    .from(creator)
+    .where(eq(creator.id, indicatorCreatedBy))})`;
+
+  return db
+    .select({
+      id: indicator.id,
+      name: currentName,
+      teamId: indicator.teamId,
+      teamName: team.name,
+      createdBy,
+      updatedAt: latestUpdatedAt,
+      lastEditedBy: lastEditor.displayName,
+      indicatorStatus,
+      draftStatus,
+      draftLocked,
+      draftSubmissionStatus,
+      draftReviewers,
+    })
+    .from(indicator)
+    .leftJoin(draftVersion, draftJoin)
+    .leftJoin(currentPublishedVersion, publishedJoin)
+    .leftJoin(publishedVersion, publishedVersionJoin)
+    .leftJoin(team, eq(team.id, indicator.teamId))
+    .leftJoin(lastEditor, eq(lastEditor.id, latestUpdatedBy));
+}
+
 /**
  * The indicators in scope whatever their status, newest edit first; the id breaks any remaining
- * tie. The team and the people are joined into the same query, so a page costs two queries,
- * this and its count, however many rows it shows.
+ * tie. A page costs two queries, this and its count, however many rows it shows.
  */
 export async function listIndicatorsPage(
   db: Database,
@@ -74,40 +123,11 @@ export async function listIndicatorsPage(
   pageSize: number,
   scope: IndicatorListScope,
 ): Promise<IndicatorAdminRows> {
-  if (!scope.all && scope.teamIds.length === 0) return { indicators: [], total: 0 };
+  if (inNoTeams(scope)) return { indicators: [], total: 0 };
 
-  const inScope = scope.all ? undefined : inArray(indicator.teamId, [...scope.teamIds]);
-  // The indicator's first version, whatever has happened to it since, says who created it. As a
-  // subquery in the select list, Postgres runs it after the sort, for the page's rows alone.
-  const createdBy = sql<string | null>`(${db
-    .select({ name: appUser.displayName })
-    .from(firstVersion)
-    .innerJoin(appUser, eq(appUser.id, firstVersion.createdBy))
-    .where(eq(firstVersion.indicatorId, indicator.id))
-    .orderBy(asc(firstVersion.createdAt), asc(firstVersion.id))
-    .limit(1)})`;
+  const inScope = scopeCondition(scope);
   const [indicators, [counted]] = await Promise.all([
-    db
-      .select({
-        id: indicator.id,
-        name: currentName,
-        teamId: indicator.teamId,
-        teamName: team.name,
-        createdBy,
-        updatedAt: latestUpdatedAt,
-        lastEditedBy: lastEditor.displayName,
-        indicatorStatus,
-        draftStatus,
-        draftLocked,
-        draftSubmissionStatus,
-        draftReviewers,
-      })
-      .from(indicator)
-      .leftJoin(draftVersion, draftJoin)
-      .leftJoin(currentPublishedVersion, publishedJoin)
-      .leftJoin(publishedVersion, publishedVersionJoin)
-      .leftJoin(team, eq(team.id, indicator.teamId))
-      .leftJoin(lastEditor, eq(lastEditor.id, latestUpdatedBy))
+    listRowsQuery(db)
       .where(inScope)
       .orderBy(desc(latestUpdatedAt), asc(currentName), asc(indicator.id))
       .limit(pageSize)
@@ -116,6 +136,26 @@ export async function listIndicatorsPage(
   ]);
 
   return { indicators, total: counted?.total ?? 0 };
+}
+
+/**
+ * The indicators in scope whose draft's latest submission waits for reviewers or is in review,
+ * oldest submission first, as a queue; the id breaks a tie.
+ */
+export async function listIndicatorsUnderReview(
+  db: Database,
+  scope: IndicatorListScope,
+): Promise<IndicatorsUnderReviewRows> {
+  if (inNoTeams(scope)) return { unassigned: [], assigned: [] };
+
+  const rows = await listRowsQuery(db)
+    .where(and(scopeCondition(scope), inArray(draftSubmissionStatus, ['submitted', 'in_review'])))
+    .orderBy(asc(draftSubmittedAt), asc(indicator.id));
+
+  return {
+    unassigned: rows.filter((row) => row.draftSubmissionStatus === 'submitted'),
+    assigned: rows.filter((row) => row.draftSubmissionStatus === 'in_review'),
+  };
 }
 
 /** One indicator by its row id, whatever its status. */
