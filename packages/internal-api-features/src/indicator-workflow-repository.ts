@@ -10,7 +10,7 @@ import {
   recordAudit,
 } from '@fphd/db/audit-log';
 import type { IndicatorSubmissionStatus } from '@fphd/utils/indicator-submission-status';
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, notInArray, sql } from 'drizzle-orm';
 
 import type { CiMethodKind, IndicatorStep } from './contract.ts';
 import {
@@ -245,6 +245,44 @@ export interface ReviewerAssignment {
   reviewerIds: readonly string[];
 }
 
+/**
+ * Replaces the submission's reviewers with `reviewerIds`, keeping the rows of those who stay, and
+ * answers the change. The rows deleted and inserted give the reviewers before.
+ */
+export function replaceReviewers(reviewerIds: readonly string[], actor: Actor): IndicatorStepWrite {
+  return async (tx, submission) => {
+    const removed = await tx
+      .delete(indicatorVersionSubmissionReviewer)
+      .where(
+        and(
+          eq(indicatorVersionSubmissionReviewer.submissionId, submission.id),
+          notInArray(indicatorVersionSubmissionReviewer.reviewerId, [...reviewerIds]),
+        ),
+      )
+      .returning({ reviewerId: indicatorVersionSubmissionReviewer.reviewerId });
+    const added =
+      reviewerIds.length === 0
+        ? []
+        : await tx
+            .insert(indicatorVersionSubmissionReviewer)
+            .values(
+              reviewerIds.map((reviewerId) => ({
+                submissionId: submission.id,
+                reviewerId,
+                assignedBy: actor.userId,
+              })),
+            )
+            .onConflictDoNothing()
+            .returning({ reviewerId: indicatorVersionSubmissionReviewer.reviewerId });
+    const addedIds = added.map(({ reviewerId }) => reviewerId);
+    const before = [
+      ...reviewerIds.filter((id) => !addedIds.includes(id)),
+      ...removed.map(({ reviewerId }) => reviewerId),
+    ];
+    return listChanges({ reviewerIds: before }, { reviewerIds: [...reviewerIds] }, ['reviewerIds']);
+  };
+}
+
 function sameMembers(a: readonly string[], b: readonly string[]): boolean {
   return isDeepStrictEqual([...a].sort(), [...b].sort());
 }
@@ -266,35 +304,9 @@ export function assignReviewers(
       if (!sameMembers(await assignedReviewerIds(tx, latest.id), previousReviewerIds)) {
         return 'changed';
       }
-      const eligible = await findEligibleReviewerIds(tx, indicatorId);
+      const eligible = await findEligibleReviewerIds(tx, indicatorId, latest.submittedBy);
       return reviewerIds.every((id) => eligible.includes(id)) ? undefined : 'not_a_reviewer';
     },
-    write: async (tx, submission) => {
-      const assigned = await assignedReviewerIds(tx, submission.id);
-      const removed = assigned.filter((id) => !reviewerIds.includes(id));
-      const added = reviewerIds.filter((id) => !assigned.includes(id));
-      if (removed.length > 0) {
-        await tx
-          .delete(indicatorVersionSubmissionReviewer)
-          .where(
-            and(
-              eq(indicatorVersionSubmissionReviewer.submissionId, submission.id),
-              inArray(indicatorVersionSubmissionReviewer.reviewerId, removed),
-            ),
-          );
-      }
-      if (added.length > 0) {
-        await tx.insert(indicatorVersionSubmissionReviewer).values(
-          added.map((reviewerId) => ({
-            submissionId: submission.id,
-            reviewerId,
-            assignedBy: actor.userId,
-          })),
-        );
-      }
-      return listChanges({ reviewerIds: assigned }, { reviewerIds: [...reviewerIds] }, [
-        'reviewerIds',
-      ]);
-    },
+    write: replaceReviewers(reviewerIds, actor),
   });
 }

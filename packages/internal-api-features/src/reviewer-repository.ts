@@ -3,10 +3,11 @@ import { type Database, schema } from '@fphd/db';
 import { and, asc, count, desc, eq, inArray } from 'drizzle-orm';
 
 import type { ReviewerOption } from './contract.ts';
-import type { Transaction } from './indicator-repository-sql.ts';
+import { indicatorCreatedBy, type Transaction } from './indicator-repository-sql.ts';
 
 const {
   appUser,
+  indicator,
   indicatorVersion,
   indicatorVersionSubmission,
   indicatorVersionSubmissionReviewer,
@@ -19,15 +20,12 @@ function reviewerRoleHolderIds(): string[] {
   return fakeUsers.filter(({ roles }) => roles.includes('imrg-reviewer')).map(({ id }) => id);
 }
 
-/** Who wrote the indicator's first version, whatever has happened to it since. */
-async function creatorOf(db: Reader, indicatorId: string): Promise<string | undefined> {
-  const [first] = await db
-    .select({ createdBy: indicatorVersion.createdBy })
-    .from(indicatorVersion)
-    .where(eq(indicatorVersion.indicatorId, indicatorId))
-    .orderBy(asc(indicatorVersion.createdAt), asc(indicatorVersion.id))
-    .limit(1);
-  return first?.createdBy;
+async function creatorOf(db: Reader, indicatorId: string): Promise<string | null | undefined> {
+  const [row] = await db
+    .select({ createdBy: indicatorCreatedBy })
+    .from(indicator)
+    .where(eq(indicator.id, indicatorId));
+  return row?.createdBy;
 }
 
 async function latestDraftSubmitterOf(
@@ -52,13 +50,14 @@ async function latestDraftSubmitterOf(
 
 /**
  * The reviewers who may review the indicator: everyone with the role but its creator and
- * whoever submitted its draft's latest submission.
+ * `submitterId`, who submitted its draft's latest submission.
  */
-export async function findEligibleReviewerIds(db: Reader, indicatorId: string): Promise<string[]> {
-  const excluded = [
-    await creatorOf(db, indicatorId),
-    await latestDraftSubmitterOf(db, indicatorId),
-  ];
+export async function findEligibleReviewerIds(
+  db: Reader,
+  indicatorId: string,
+  submitterId: string | undefined,
+): Promise<string[]> {
+  const excluded = [await creatorOf(db, indicatorId), submitterId];
   return reviewerRoleHolderIds().filter((id) => !excluded.includes(id));
 }
 
@@ -79,7 +78,11 @@ export async function listReviewerOptions(
   db: Database,
   indicatorId: string,
 ): Promise<ReviewerOption[]> {
-  const ids = await findEligibleReviewerIds(db, indicatorId);
+  const ids = await findEligibleReviewerIds(
+    db,
+    indicatorId,
+    await latestDraftSubmitterOf(db, indicatorId),
+  );
   if (ids.length === 0) return [];
 
   return db

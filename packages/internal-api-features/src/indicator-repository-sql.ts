@@ -1,5 +1,5 @@
 import { type Database, schema } from '@fphd/db';
-import { and, desc, eq, max, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, max, sql } from 'drizzle-orm';
 import { alias, QueryBuilder } from 'drizzle-orm/pg-core';
 
 import type {
@@ -50,6 +50,7 @@ export function violatesConstraint(error: unknown, constraint: string): boolean 
  */
 export const draftVersion = alias(indicatorVersion, 'draft_version');
 export const publishedVersion = alias(indicatorVersion, 'published_version');
+const firstVersion = alias(indicatorVersion, 'first_version');
 
 export const draftJoin = and(
   eq(draftVersion.indicatorId, indicator.id),
@@ -101,3 +102,11 @@ export const draftReviewers = sql<DraftReviewer[]>`coalesce((
   join ${appUser} on ${appUser.id} = ${indicatorVersionSubmissionReviewer.reviewerId}
   where ${indicatorVersionSubmissionReviewer.submissionId} = (${latestDraftSubmissionId})
 ), '[]'::json)`;
+const firstVersionCreator = new QueryBuilder({ casing: 'snake_case' })
+  .select({ createdBy: firstVersion.createdBy })
+  .from(firstVersion)
+  .where(eq(firstVersion.indicatorId, indicator.id))
+  .orderBy(asc(firstVersion.createdAt), asc(firstVersion.id))
+  .limit(1);
+// Who wrote the indicator's first version, whatever has happened to it since: its creator.
+export const indicatorCreatedBy = sql<string | null>`(${firstVersionCreator})`;
