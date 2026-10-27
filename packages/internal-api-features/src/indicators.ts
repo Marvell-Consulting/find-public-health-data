@@ -67,7 +67,7 @@ function toSummary({
   };
 }
 
-function toListItem(row: IndicatorAdminListRow): IndicatorAdminListItem {
+export function toListItem(row: IndicatorAdminListRow): IndicatorAdminListItem {
   const { teamName, createdBy, lastEditedBy } = row;
   return { ...toSummary(row), teamName, createdBy, lastEditedBy };
 }

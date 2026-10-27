@@ -235,6 +235,24 @@ describe('internal API', () => {
     expect(asPublisher.status).toBe(403);
   });
 
+  it('mounts the indicators under review behind the IMRG manager role', async () => {
+    const internalRepositories = createFakeInternalRepositories({
+      indicators: { listUnderReview: async () => ({ unassigned: [], assigned: [] }) },
+    });
+    const app = createTestApp(createFakeRepositories(), internalRepositories);
+    const path = '/api/internal/indicators-under-review';
+
+    const asManager = await request(app)
+      .get(path)
+      .set('Cookie', await createCookie(['public', 'internal', 'imrg-manager']));
+    const asPublisher = await request(app)
+      .get(path)
+      .set('Cookie', await createCookie(['public', 'internal', 'publisher']));
+
+    expect(asManager.status).toBe(200);
+    expect(asPublisher.status).toBe(403);
+  });
+
   it('mounts the internal topics surface behind the admin role', async () => {
     const internalRepositories = createFakeInternalRepositories({
       topics: {

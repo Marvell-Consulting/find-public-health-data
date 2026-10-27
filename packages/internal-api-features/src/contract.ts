@@ -142,6 +142,14 @@ export const indicatorAdminPageSchema = z.object({
   total: z.number().int().min(0),
 });
 
+/** The open submissions an IMRG manager works through, oldest submission first. */
+export const indicatorsUnderReviewSchema = z.object({
+  /** Waiting for reviewers: the latest submission is `submitted`. */
+  unassigned: z.array(indicatorAdminListItemSchema),
+  /** Reviewers assigned: the latest submission is `in_review`. */
+  assigned: z.array(indicatorAdminListItemSchema),
+});
+
 export const indicatorIdSchema = z.uuid();
 
 /** The workflow steps the user may take on the indicator now, so the web offers only those. */
@@ -219,6 +227,7 @@ export const indicatorUpdateErrorSchema = z.discriminatedUnion('error', [
 export type IndicatorAdminSummary = z.infer<typeof indicatorAdminSummarySchema>;
 export type IndicatorAdminListItem = z.infer<typeof indicatorAdminListItemSchema>;
 export type IndicatorAdminPage = z.infer<typeof indicatorAdminPageSchema>;
+export type IndicatorsUnderReview = z.infer<typeof indicatorsUnderReviewSchema>;
 export type IndicatorStatus = z.infer<typeof indicatorStatusSchema>;
 export type DraftStatus = z.infer<typeof draftStatusSchema>;
 export type DraftSubmissionStatus = z.infer<typeof draftSubmissionStatusSchema>;
