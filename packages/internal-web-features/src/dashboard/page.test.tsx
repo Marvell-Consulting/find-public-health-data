@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { TEAM_IDS } from '@fphd/auth';
+import type { IndicatorAdminListItem } from '@fphd/internal-api-features/contract';
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -8,7 +9,7 @@ import { DashboardPage } from './page.tsx';
 
 afterEach(cleanup);
 
-const indicator = {
+const indicator: IndicatorAdminListItem = {
   id: '019a1b2c-3d4e-7f60-8a9b-0c1d2e3f4a5b',
   name: 'Life expectancy at birth',
   teamId: TEAM_IDS.teamA,
@@ -20,7 +21,8 @@ const indicator = {
   draftStatus: null,
   draftLocked: false,
   draftSubmissionStatus: null,
-} as const;
+  draftReviewers: [],
+};
 
 // The pagination links read router state, so the page renders inside a router at its own address.
 function renderPage(props: Partial<Parameters<typeof DashboardPage>[0]> = {}, url = '/dashboard') {

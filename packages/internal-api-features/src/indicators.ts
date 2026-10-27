@@ -45,6 +45,7 @@ const NAME_TAKEN = 'An indicator with this name already exists';
 
 function toSummary({
   draftLocked,
+  draftReviewers,
   draftStatus,
   draftSubmissionStatus,
   id,
@@ -62,6 +63,7 @@ function toSummary({
     draftStatus,
     draftLocked,
     draftSubmissionStatus,
+    draftReviewers,
   };
 }
 
@@ -278,7 +280,7 @@ export function internalIndicatorsRouter(
     const row = await indicators.findById(id.data);
     const session = requireApiSession(response);
 
-    // One the user may not see answers as one that does not exist. No reviewer is assigned yet.
+    // One the user may not see answers as one that does not exist. Assigned reviewers get no access.
     if (!row || !canSeeIndicator(session, { ...row, reviewerIds: [] })) {
       response.status(404).json({ error: 'not_found' });
       return;

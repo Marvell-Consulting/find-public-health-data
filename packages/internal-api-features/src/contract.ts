@@ -96,6 +96,9 @@ export const INDICATOR_STEPS = ['submit', 'withdraw', 'assign_reviewers'] as con
 
 export const indicatorStepSchema = z.enum(INDICATOR_STEPS);
 
+/** A reviewer assigned to the draft's latest submission. */
+export const draftReviewerSchema = z.object({ id: z.uuid(), name: z.string().min(1) });
+
 /**
  * Both statuses are derived from the versions, never stored, and sent as values rather than
  * labels: what each is called is the web UI's decision.
@@ -113,6 +116,8 @@ export const indicatorAdminSummarySchema = z.object({
   draftLocked: z.boolean(),
   /** Null until the draft is first submitted, and while there is no draft. */
   draftSubmissionStatus: draftSubmissionStatusSchema.nullable(),
+  /** The reviewers of the draft's latest submission, by name; empty until they are assigned. */
+  draftReviewers: z.array(draftReviewerSchema),
 });
 
 /** Parsed from a query string, so the page arrives as text; absent means the first page. */
@@ -217,6 +222,7 @@ export type IndicatorAdminPage = z.infer<typeof indicatorAdminPageSchema>;
 export type IndicatorStatus = z.infer<typeof indicatorStatusSchema>;
 export type DraftStatus = z.infer<typeof draftStatusSchema>;
 export type DraftSubmissionStatus = z.infer<typeof draftSubmissionStatusSchema>;
+export type DraftReviewer = z.infer<typeof draftReviewerSchema>;
 export type IndicatorStep = z.infer<typeof indicatorStepSchema>;
 export type IndicatorAdminDetail = z.infer<typeof indicatorAdminDetailSchema>;
 export type IndicatorName = z.infer<typeof indicatorNameSchema>;

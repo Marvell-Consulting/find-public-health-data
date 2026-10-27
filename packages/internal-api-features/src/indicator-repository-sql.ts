@@ -2,9 +2,21 @@ import { type Database, schema } from '@fphd/db';
 import { and, desc, eq, max, sql } from 'drizzle-orm';
 import { alias, QueryBuilder } from 'drizzle-orm/pg-core';
 
-import type { DraftStatus, DraftSubmissionStatus, IndicatorStatus } from './contract.ts';
+import type {
+  DraftReviewer,
+  DraftStatus,
+  DraftSubmissionStatus,
+  IndicatorStatus,
+} from './contract.ts';
 
-const { currentPublishedVersion, indicator, indicatorVersion, indicatorVersionSubmission } = schema;
+const {
+  appUser,
+  currentPublishedVersion,
+  indicator,
+  indicatorVersion,
+  indicatorVersionSubmission,
+  indicatorVersionSubmissionReviewer,
+} = schema;
 
 export type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
 
@@ -76,3 +88,16 @@ const latestDraftSubmissionNumber = new QueryBuilder({ casing: 'snake_case' })
   .from(indicatorVersionSubmission)
   .where(eq(indicatorVersionSubmission.indicatorVersionId, draftVersion.id));
 export const draftSubmissionNumber = sql<number | null>`(${latestDraftSubmissionNumber})`;
+const latestDraftSubmissionId = new QueryBuilder({ casing: 'snake_case' })
+  .select({ id: indicatorVersionSubmission.id })
+  .from(indicatorVersionSubmission)
+  .where(eq(indicatorVersionSubmission.indicatorVersionId, draftVersion.id))
+  .orderBy(desc(indicatorVersionSubmission.number))
+  .limit(1);
+export const draftReviewers = sql<DraftReviewer[]>`coalesce((
+  select json_agg(json_build_object('id', ${appUser.id}, 'name', ${appUser.displayName})
+    order by ${appUser.displayName}, ${appUser.id})
+  from ${indicatorVersionSubmissionReviewer}
+  join ${appUser} on ${appUser.id} = ${indicatorVersionSubmissionReviewer.reviewerId}
+  where ${indicatorVersionSubmissionReviewer.submissionId} = (${latestDraftSubmissionId})
+), '[]'::json)`;
