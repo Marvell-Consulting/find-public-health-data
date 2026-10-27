@@ -38,8 +38,7 @@ function removeButtons(page: Page) {
 }
 
 /** The manager's dashboard row for the indicator in the table named. */
-async function dashboardRow(page: Page, table: 'Unassigned' | 'Assigned', name: string) {
-  await page.goto('/dashboard');
+function dashboardRow(page: Page, table: 'Unassigned' | 'Assigned', name: string) {
   return page
     .getByRole('table', { name: `${table} indicators, oldest submission first` })
     .getByRole('row')
@@ -54,7 +53,8 @@ test('assigns reviewers to an indicator opened from Unassigned indicators', asyn
 }, testInfo) => {
   const name = uniqueIndicatorName('assign reviewers');
   const id = await submitNewIndicator(browser, name);
-  await (await dashboardRow(page, 'Unassigned', name)).getByRole('link', { name }).click();
+  await page.goto('/dashboard');
+  await dashboardRow(page, 'Unassigned', name).getByRole('link', { name }).click();
 
   await page.getByRole('button', { name: 'Assign reviewers to indicator' }).click();
   await expect(page).toHaveURL(assignPath(id));
@@ -68,10 +68,12 @@ test('assigns reviewers to an indicator opened from Unassigned indicators', asyn
   await expect(
     page.getByRole('link', { name: 'Change reviewers for this indicator' }),
   ).toBeVisible();
-  await expect((await dashboardRow(page, 'Assigned', name)).getByRole('listitem')).toHaveText([
+  await page.goto('/dashboard');
+  await expect(dashboardRow(page, 'Assigned', name).getByRole('listitem')).toHaveText([
     'Jamie Evans',
     'Morgan Hughes',
   ]);
+  await expect(dashboardRow(page, 'Unassigned', name)).toHaveCount(0);
 });
 
 test('changes the reviewers of an indicator in review', async ({ browser, page }) => {
@@ -90,7 +92,8 @@ test('changes the reviewers of an indicator in review', async ({ browser, page }
 
   await expect(page).toHaveURL(overviewPath(id));
   await expect(page.getByRole('alert')).toContainText(ASSIGNED);
-  await expect((await dashboardRow(page, 'Assigned', name)).getByRole('listitem')).toHaveText([
+  await page.goto('/dashboard');
+  await expect(dashboardRow(page, 'Assigned', name).getByRole('listitem')).toHaveText([
     'Jamie Evans',
   ]);
 });
