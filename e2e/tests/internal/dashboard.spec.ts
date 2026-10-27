@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
-import { completeDraft, submitDraft } from '../support/complete-draft.ts';
+import { submitNewIndicator } from '../support/complete-draft.ts';
 import { createDraft, uniqueIndicatorName } from '../support/create-indicator.ts';
 import { ADMIN, IMRG_MANAGER, PUBLISHER, TEAM_B_PUBLISHER } from '../support/sign-in.ts';
 
@@ -105,13 +105,7 @@ test.describe('as an IMRG manager', () => {
     page,
   }, testInfo) => {
     const name = uniqueIndicatorName('under review');
-    const publisher = await (
-      await browser.newContext({ storageState: PUBLISHER.storageState })
-    ).newPage();
-    const id = await createDraft(publisher, name);
-    await completeDraft(publisher, id);
-    await submitDraft(publisher, id);
-    await publisher.context().close();
+    const id = await submitNewIndicator(browser, name);
 
     await page.goto('/dashboard');
     const row = page
