@@ -130,10 +130,13 @@ export async function submitDraft(page: Page, id: string): Promise<void> {
  */
 export async function submitNewIndicator(browser: Browser, name: string): Promise<string> {
   const context = await browser.newContext({ storageState: PUBLISHER.storageState });
-  const page = await context.newPage();
-  const id = await createDraft(page, name);
-  await completeDraft(page, id);
-  await submitDraft(page, id);
-  await context.close();
-  return id;
+  try {
+    const page = await context.newPage();
+    const id = await createDraft(page, name);
+    await completeDraft(page, id);
+    await submitDraft(page, id);
+    return id;
+  } finally {
+    await context.close();
+  }
 }
