@@ -6,6 +6,7 @@ import { createOwnerClient } from './scripts/owner-client.ts';
 import { createTestDatabase, type TestDatabase } from './testing.ts';
 
 const ACTOR = SYSTEM_USER_IDS.testSeed;
+const NOBODY = '01a13c69-0000-7000-8000-000000000000';
 
 const UNIQUE_VIOLATION = '23505';
 const FOREIGN_KEY_VIOLATION = '23503';
@@ -141,6 +142,64 @@ describe('indicator_version_submission', () => {
     await sql`DELETE FROM indicator_version WHERE id = ${draft.versionId}`;
     const rows = await sql`
       SELECT id FROM indicator_version_submission WHERE indicator_version_id = ${draft.versionId}
+    `;
+
+    expect(rows).toEqual([]);
+  });
+});
+
+describe('indicator_version_submission_reviewer', () => {
+  async function newSubmission(): Promise<{ draft: Draft; submissionId: string }> {
+    const draft = await newDraft();
+    await insertSubmission(draft, { status: 'in_review' });
+    const [row] = await sql<{ id: string }[]>`
+      SELECT id FROM indicator_version_submission WHERE indicator_version_id = ${draft.versionId}
+    `;
+    if (!row) throw new Error('inserted no submission');
+    return { draft, submissionId: row.id };
+  }
+
+  function assign(submissionId: string, reviewerId: string = ACTOR) {
+    return sql`
+      INSERT INTO indicator_version_submission_reviewer
+        (submission_id, reviewer_id, assigned_by)
+      VALUES (${submissionId}, ${reviewerId}, ${ACTOR})
+    `;
+  }
+
+  it('records when a reviewer was assigned', async () => {
+    const { submissionId } = await newSubmission();
+    await assign(submissionId);
+    const [row] = await sql`
+      SELECT assigned_at IS NOT NULL AS dated FROM indicator_version_submission_reviewer
+      WHERE submission_id = ${submissionId}
+    `;
+
+    expect(row).toEqual({ dated: true });
+  });
+
+  it('refuses assigning one reviewer twice to a submission', async () => {
+    const { submissionId } = await newSubmission();
+    await assign(submissionId);
+
+    await expect(assign(submissionId)).rejects.toMatchObject({ code: UNIQUE_VIOLATION });
+  });
+
+  it('refuses a reviewer who is not a user', async () => {
+    const { submissionId } = await newSubmission();
+
+    await expect(assign(submissionId, NOBODY)).rejects.toMatchObject({
+      code: FOREIGN_KEY_VIOLATION,
+    });
+  });
+
+  it('is deleted with its version', async () => {
+    const { draft, submissionId } = await newSubmission();
+    await assign(submissionId);
+    await sql`DELETE FROM indicator_version WHERE id = ${draft.versionId}`;
+    const rows = await sql`
+      SELECT reviewer_id FROM indicator_version_submission_reviewer
+      WHERE submission_id = ${submissionId}
     `;
 
     expect(rows).toEqual([]);

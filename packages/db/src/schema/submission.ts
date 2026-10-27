@@ -9,6 +9,7 @@ import {
   index,
   integer,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -76,5 +77,41 @@ export const indicatorVersionSubmission = pgTable(
       t.indicatorId,
       t.submittedAt,
     ),
+  ],
+);
+
+/**
+ * The reviewers assigned to a submission. Changing them deletes the rows of those removed; the
+ * audit log keeps who was assigned when.
+ */
+export const indicatorVersionSubmissionReviewer = pgTable(
+  'indicator_version_submission_reviewer',
+  {
+    submissionId: uuid().notNull(),
+    reviewerId: uuid().notNull(),
+    assignedBy: uuid().notNull(),
+    assignedAt: timestamp({ withTimezone: true }).notNull().default(sql`clock_timestamp()`),
+  },
+  (t) => [
+    primaryKey({
+      name: 'indicator_version_submission_reviewer_pk',
+      columns: [t.submissionId, t.reviewerId],
+    }),
+    foreignKey({
+      name: 'indicator_version_submission_reviewer_submission_fk',
+      columns: [t.submissionId],
+      foreignColumns: [indicatorVersionSubmission.id],
+    }).onDelete('cascade'),
+    foreignKey({
+      name: 'indicator_version_submission_reviewer_reviewer_fk',
+      columns: [t.reviewerId],
+      foreignColumns: [appUser.id],
+    }),
+    foreignKey({
+      name: 'indicator_version_submission_reviewer_assigned_by_fk',
+      columns: [t.assignedBy],
+      foreignColumns: [appUser.id],
+    }),
+    index('idx_indicator_version_submission_reviewer_reviewer_id').on(t.reviewerId),
   ],
 );

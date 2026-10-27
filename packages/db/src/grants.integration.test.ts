@@ -638,3 +638,57 @@ describe('the review submissions', () => {
     );
   });
 });
+
+describe('the reviewer assignments', () => {
+  const internal = internalMemberOfBlock();
+
+  async function openSubmission(): Promise<string> {
+    const [submission] = await owner<{ id: string }[]>`
+      INSERT INTO indicator_version_submission
+        (indicator_version_id, indicator_id, number, status, submitted_by)
+      SELECT v.id, v.indicator_id,
+        (SELECT coalesce(max(number), 0) + 1 FROM indicator_version_submission s
+         WHERE s.indicator_version_id = v.id),
+        'in_review', ${ACTOR}
+      FROM indicator_version v WHERE v.indicator_id = ${draftIndicatorId}
+      RETURNING id
+    `;
+    return submission?.id ?? '';
+  }
+
+  it('lets the internal role assign a reviewer, read the assignment and remove it', async () => {
+    const id = await openSubmission();
+    await internal()`
+      INSERT INTO indicator_version_submission_reviewer
+        (submission_id, reviewer_id, assigned_by)
+      VALUES (${id}, ${ACTOR}, ${ACTOR})
+    `;
+
+    await expect(
+      internal()`
+        SELECT reviewer_id FROM indicator_version_submission_reviewer
+        WHERE submission_id = ${id}
+      `,
+    ).resolves.toEqual([{ reviewer_id: ACTOR }]);
+    await expect(
+      internal()`
+        DELETE FROM indicator_version_submission_reviewer
+        WHERE submission_id = ${id} RETURNING reviewer_id
+      `,
+    ).resolves.toHaveLength(1);
+  });
+
+  it.each(['UPDATE', 'TRUNCATE'])('holds no %s on them', async (privilege) => {
+    const [row] = await owner<{ granted: boolean }[]>`
+      SELECT has_table_privilege(${API_ROLES.internalApi}, 'public.indicator_version_submission_reviewer', ${privilege}) AS granted
+    `;
+
+    expect(row?.granted).toBe(false);
+  });
+
+  it('refuses the public role reading them', async () => {
+    await expect(
+      member`SELECT reviewer_id FROM indicator_version_submission_reviewer`,
+    ).rejects.toThrow(/permission denied/);
+  });
+});
