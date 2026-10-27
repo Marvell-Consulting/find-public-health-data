@@ -347,10 +347,11 @@ describe('listIndicatorsUnderReview', () => {
   repositoryTest(
     'lists the oldest submission first, whenever it was last edited',
     async ({ db }) => {
-      const first = await newDraft(db, 'Edited first, submitted first');
-      const second = await newDraft(db, 'Edited second, submitted second');
-      const firstShown = await completeDraft(db, first);
+      // Created first and edited last, so neither the id nor the last edit puts it second.
+      const first = await newDraft(db, 'Created first, edited last, submitted last');
+      const second = await newDraft(db, 'Created second, edited first, submitted first');
       const secondShown = await completeDraft(db, second);
+      const firstShown = await completeDraft(db, first);
       await submitIndicator(db, second.indicatorId, secondShown, AS_ACTOR);
       await submitIndicator(db, first.indicatorId, firstShown, AS_ACTOR);
 
