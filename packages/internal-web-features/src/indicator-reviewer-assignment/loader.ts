@@ -42,8 +42,9 @@ function requireReviewerAssigner(context: LoaderFunctionArgs['context']): void {
 }
 
 /**
- * The reviewers on offer and those assigned now, which the page opens with. A submission the
- * workflow no longer lets the manager assign sends them to the overview, which says so.
+ * The reviewers on offer and those assigned now, which the page opens with. A draft never
+ * submitted has no submission, so the page does not exist; one the workflow no longer lets the
+ * manager assign sends them to the overview, which says so.
  */
 export async function loadReviewerAssignment({ context, params }: LoaderFunctionArgs) {
   const id = requireIndicatorId(params);
@@ -57,7 +58,9 @@ export async function loadReviewerAssignment({ context, params }: LoaderFunction
   ]);
   const { draftReviewers, draftSubmissionNumber } = indicator;
 
-  if (draftSubmissionNumber === null || !indicator.actions.includes('assign_reviewers')) {
+  if (draftSubmissionNumber === null) throw new Response('Not Found', { status: 404 });
+
+  if (!indicator.actions.includes('assign_reviewers')) {
     setOverviewFlash(context, 'assign-refused');
     throw redirect(indicatorOverviewPath(id));
   }

@@ -15,6 +15,9 @@ const OVERVIEW = `/dashboard/indicators/${ID}`;
 const morgan = { id: '019fa38f-073f-764e-9ac6-1c4d03b20001', name: 'Morgan Hughes' };
 const jamie = { id: '019fa38f-073f-764e-9ac6-1c4d03b20002', name: 'Jamie Evans' };
 
+/** Every internal role but the IMRG manager's. */
+const OTHER_ROLES = ['publisher', 'imrg-reviewer', 'admin'];
+
 const options = [
   { ...jamie, assignedIndicatorCount: 0 },
   { ...morgan, assignedIndicatorCount: 3 },
@@ -95,16 +98,34 @@ describe('loadReviewerAssignment', () => {
     });
   });
 
-  it('is not found for a user who may not assign reviewers, asking the API nothing', async () => {
-    const get = apiGet(inReview);
+  it('is not found for a draft never submitted', async () => {
+    const get = apiGet({
+      ...inReview,
+      draftLocked: false,
+      draftSubmissionStatus: null,
+      draftReviewers: [],
+      draftSubmissionNumber: null,
+      actions: [],
+    });
 
-    const { response } = await respond(loadReviewerAssignment, { get }, new Request(PATH), [
-      'publisher',
-    ]);
+    const { response } = await respond(loadReviewerAssignment, { get }, new Request(PATH));
 
     expect(response.status).toBe(404);
-    expect(get).not.toHaveBeenCalled();
   });
+
+  it.each(OTHER_ROLES)(
+    'is not found for a %s, who may not assign reviewers, asking the API nothing',
+    async (role) => {
+      const get = apiGet(inReview);
+
+      const { response } = await respond(loadReviewerAssignment, { get }, new Request(PATH), [
+        role,
+      ]);
+
+      expect(response.status).toBe(404);
+      expect(get).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe('assignReviewers', () => {
@@ -214,12 +235,10 @@ describe('assignReviewers', () => {
     });
   });
 
-  it('is not found for a user who may not assign reviewers', async () => {
+  it.each(OTHER_ROLES)('is not found for a %s, who may not assign reviewers', async (role) => {
     const postToMember = vi.fn();
 
-    const { response } = await respond(assignReviewers, { postToMember }, post(sent), [
-      'publisher',
-    ]);
+    const { response } = await respond(assignReviewers, { postToMember }, post(sent), [role]);
 
     expect(response.status).toBe(404);
     expect(postToMember).not.toHaveBeenCalled();
