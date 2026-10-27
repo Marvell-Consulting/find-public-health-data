@@ -75,6 +75,14 @@ describe('readReviewerAssignmentForm', () => {
       ],
     ],
     [
+      'a reviewer listed twice',
+      [
+        ['submissionNumber', '1'],
+        ['reviewerIds', morgan],
+        ['reviewerIds', morgan],
+      ],
+    ],
+    [
       'a choice the select did not offer',
       [
         ['submissionNumber', '1'],

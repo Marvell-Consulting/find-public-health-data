@@ -29,7 +29,8 @@ export type ReviewerAssignmentState = FormFailure<
 
 /**
  * The form as sent, and which of its buttons sent it. The page writes only values it was given,
- * so one that fails the contract was not sent by it, and the request is refused whole.
+ * each reviewer once, so one that fails the contract or repeats was not sent by it, and the
+ * request is refused whole.
  */
 export function readReviewerAssignmentForm(formData: FormData): {
   values: ReviewerAssignmentValues;
@@ -44,8 +45,10 @@ export function readReviewerAssignmentForm(formData: FormData): {
     reviewerIds: ids('reviewerIds'),
   });
   const choice = addReviewer === '' || draftReviewerSchema.shape.id.safeParse(addReviewer).success;
+  const listedOnce =
+    sent.success && new Set(sent.data.reviewerIds).size === sent.data.reviewerIds.length;
 
-  if (!sent.success || !choice) throw new Response('Bad Request', { status: 400 });
+  if (!sent.success || !choice || !listedOnce) throw new Response('Bad Request', { status: 400 });
 
   return { values: { ...sent.data, addReviewer }, intent: readListIntent(formData) };
 }
