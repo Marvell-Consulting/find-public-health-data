@@ -3,6 +3,7 @@ import { expect, type Page, test } from '@playwright/test';
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 import { submitNewIndicator } from '../support/complete-draft.ts';
 import { uniqueIndicatorName } from '../support/create-indicator.ts';
+import { expectErrorSummaryReady } from '../support/govuk-frontend.ts';
 import { IMRG_MANAGER, PUBLISHER } from '../support/sign-in.ts';
 
 const ASSIGNED = 'Reviewers successfully assigned to indicator.';
@@ -103,8 +104,13 @@ test('asks for a reviewer when none is chosen', async ({ browser, page }, testIn
   await page.getByRole('button', { name: 'Continue' }).click();
 
   await expect(page).toHaveTitle(/^Error: Assign reviewers/);
-  await expect(page.getByRole('alert')).toContainText('Select a reviewer');
+  const summary = page.getByRole('alert');
+  await expect(summary.getByRole('link')).toHaveText(['Select a reviewer']);
   await expectNoAccessibilityViolations(page, testInfo);
+
+  await expectErrorSummaryReady(page);
+  await summary.getByRole('link', { name: 'Select a reviewer' }).click();
+  await expect(page.getByLabel('Reviewer', { exact: true })).toBeFocused();
 });
 
 test('once reviewers are assigned, the publisher can no longer withdraw the submission', async ({
