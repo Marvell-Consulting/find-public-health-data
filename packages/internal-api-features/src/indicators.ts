@@ -10,6 +10,7 @@ import {
   canListIndicators,
   canSeeIndicator,
   indicatorListScope,
+  ownTeamsListScope,
   type SessionUser,
 } from '@fphd/auth/permissions';
 import { Router } from 'express';
@@ -22,8 +23,8 @@ import {
   type IndicatorTaskList,
   indicatorFieldSchema,
   indicatorIdSchema,
+  indicatorListQuerySchema,
   indicatorNameSchema,
-  indicatorPageQuerySchema,
   indicatorTeamSchema,
   toFieldErrors,
 } from './contract.ts';
@@ -97,19 +98,17 @@ export function internalIndicatorsRouter(
   const requireEditor = requireIndicatorEditor(session, indicators);
 
   router.get('/api/internal/indicators', requireLister, async (request, response) => {
-    const query = indicatorPageQuerySchema.safeParse(request.query);
+    const query = indicatorListQuerySchema.safeParse(request.query);
 
     if (!query.success) {
       response.status(400).json({ error: 'invalid_page' });
       return;
     }
 
-    const { page } = query.data;
-    const rows = await indicators.listPage(
-      page,
-      INDICATORS_PAGE_SIZE,
-      indicatorListScope(requireApiSession(response)),
-    );
+    const { page, teams } = query.data;
+    const session = requireApiSession(response);
+    const scope = teams === 'own' ? ownTeamsListScope(session) : indicatorListScope(session);
+    const rows = await indicators.listPage(page, INDICATORS_PAGE_SIZE, scope);
     const body: IndicatorAdminPage = {
       indicators: rows.indicators.map(toListItem),
       page,
