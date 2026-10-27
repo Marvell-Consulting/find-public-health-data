@@ -20,7 +20,8 @@ interface ReviewerAssignmentPageProps
 
 /**
  * A select and its Add button, then the reviewers listed so far, each carried in a hidden field
- * until Continue saves them. A listed reviewer leaves the select, so nobody is listed twice.
+ * until Continue saves them. A listed reviewer leaves the select, so nobody is listed twice, and
+ * once everyone is listed the select goes too.
  */
 export function ReviewerAssignmentPage({
   currentReviewers,
@@ -33,6 +34,7 @@ export function ReviewerAssignmentPage({
     (id) => known.find((reviewer) => reviewer.id === id) ?? [],
   );
   const offered = options.filter(({ id }) => !values.reviewerIds.includes(id));
+  const allListed = offered.length === 0 && listed.length > 0;
 
   return (
     <IndicatorSectionForm continueOnEnter fields={FIELDS} form={form} title="Assign reviewers">
@@ -41,23 +43,25 @@ export function ReviewerAssignmentPage({
         <input key={id} name="previousReviewerIds" type="hidden" value={id} />
       ))}
       <div className="govuk-!-margin-bottom-6">
-        {/* The select and its Add button side by side, as one control. */}
-        <div className="fphd-field-row fphd-field-row--with-button">
-          <Select
-            defaultValue={values.addReviewer}
-            error={fieldErrors.addReviewer}
-            label="Reviewer"
-            labelClassModifiers="m"
-            name="addReviewer"
-            options={[
-              { label: 'Select', value: '' },
-              ...offered.map((option) => ({ label: optionLabel(option), value: option.id })),
-            ]}
-          />
-          <Button classModifiers="secondary" name="intent" value={ADD_INTENT}>
-            {listed.length === 0 ? 'Add reviewer' : 'Add another reviewer'}
-          </Button>
-        </div>
+        {/* The select and its Add button side by side, while anyone is left to add. */}
+        {allListed ? null : (
+          <div className="fphd-field-row fphd-field-row--with-button">
+            <Select
+              defaultValue={values.addReviewer}
+              error={fieldErrors.addReviewer}
+              label="Reviewer"
+              labelClassModifiers="m"
+              name="addReviewer"
+              options={[
+                { label: 'Select', value: '' },
+                ...offered.map((option) => ({ label: optionLabel(option), value: option.id })),
+              ]}
+            />
+            <Button classModifiers="secondary" name="intent" value={ADD_INTENT}>
+              {listed.length === 0 ? 'Add reviewer' : 'Add another reviewer'}
+            </Button>
+          </div>
+        )}
         {listed.length === 0 ? null : (
           <ul className="fphd-added-list">
             {listed.map(({ id, name }, index) => (

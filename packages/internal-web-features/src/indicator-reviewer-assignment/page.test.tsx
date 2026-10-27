@@ -111,6 +111,15 @@ describe('ReviewerAssignmentPage', () => {
     expect(screen.getByRole('button', { name: 'Add another reviewer' })).toBeTruthy();
   });
 
+  it('offers no select once every reviewer is listed, keeping Continue', () => {
+    renderPage({ reviewerIds: [alex.id, jamie.id, morgan.id] });
+
+    expect(screen.queryByRole('combobox', { name: 'Reviewer' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Add/ })).toBeNull();
+    expect(screen.getAllByRole('button', { name: /^Remove reviewer/ })).toHaveLength(3);
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeTruthy();
+  });
+
   it('names a current reviewer who is no longer on offer', () => {
     const departed = { id: '019fa38f-073f-764e-9ac6-1c4d03b20009', name: 'Sam Departed' };
 
