@@ -50,7 +50,9 @@ import {
 } from './indicator-publish-repository.ts';
 import type { IndicatorDraftLists } from './indicator-version-lists-repository.ts';
 import {
+  assignReviewers,
   type IndicatorStepResult,
+  type ReviewerAssignment,
   submitIndicator,
   withdrawSubmission,
 } from './indicator-workflow-repository.ts';
@@ -113,6 +115,12 @@ export interface InternalIndicatorRepository {
     submissionNumber: number,
     actor: Actor,
   ): Promise<IndicatorStepResult<'changed'>>;
+  /** Assigns or changes the reviewers, as long as the submission and reviewers shown are current. */
+  assignReviewers(
+    indicatorId: string,
+    assignment: ReviewerAssignment,
+    actor: Actor,
+  ): Promise<IndicatorStepResult<'changed' | 'not_a_reviewer'>>;
 }
 
 /** The confidence interval methods a publisher chooses from. */
@@ -211,6 +219,8 @@ export function createInternalRepositories(db: Database): InternalRepositories {
         submitIndicator(db, indicatorId, draftUpdatedAt, actor),
       withdraw: (indicatorId, submissionNumber, actor) =>
         withdrawSubmission(db, indicatorId, submissionNumber, actor),
+      assignReviewers: (indicatorId, assignment, actor) =>
+        assignReviewers(db, indicatorId, assignment, actor),
     },
     reviewers: {
       listOptions: (indicatorId) => listReviewerOptions(db, indicatorId),

@@ -311,6 +311,32 @@ export const indicatorWithdrawErrorSchema = z.object({
   error: z.enum(['invalid_id', 'invalid_submission_number', 'not_allowed', 'changed']),
 });
 
+/**
+ * An assignment names the submission and the reviewers the manager was shown, so it never
+ * overwrites a change they have not seen. It replaces the reviewers with `reviewerIds`.
+ */
+export const indicatorAssignReviewersSchema = z.object({
+  submissionNumber: z.number().int().positive(),
+  previousReviewerIds: z.array(z.uuid()),
+  reviewerIds: z.array(z.uuid()),
+});
+
+/** The 400 and 409 answers. A missing indicator or draft is a 404, which the client throws. */
+export const indicatorAssignReviewersErrorSchema = z.object({
+  error: z.enum([
+    'invalid_id',
+    'invalid_request',
+    'no_reviewers',
+    'duplicate_reviewers',
+    'not_allowed',
+    'changed',
+    'not_a_reviewer',
+  ]),
+});
+
+export type IndicatorAssignReviewers = z.infer<typeof indicatorAssignReviewersSchema>;
+export type IndicatorAssignReviewersError = z.infer<typeof indicatorAssignReviewersErrorSchema>;
+
 /** A reviewer the IMRG manager may assign, with how many indicators they are reviewing now. */
 export const reviewerOptionSchema = z.object({
   id: z.uuid(),
