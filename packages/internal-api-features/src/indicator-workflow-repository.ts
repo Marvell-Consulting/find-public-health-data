@@ -1,7 +1,16 @@
+import { isDeepStrictEqual } from 'node:util';
+
 import { type Database, schema } from '@fphd/db';
-import { type Actor, type AuditAction, changesBetween, recordAudit } from '@fphd/db/audit-log';
+import {
+  type Actor,
+  type AuditAction,
+  type AuditChanges,
+  changesBetween,
+  listChanges,
+  recordAudit,
+} from '@fphd/db/audit-log';
 import type { IndicatorSubmissionStatus } from '@fphd/utils/indicator-submission-status';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 
 import type { CiMethodKind, IndicatorStep } from './contract.ts';
 import {
@@ -12,8 +21,14 @@ import {
 import type { Transaction } from './indicator-repository-sql.ts';
 import { isDraftComplete } from './indicator-task-list.ts';
 import { nextState } from './indicator-workflow.ts';
+import { assignedReviewerIds, findEligibleReviewerIds } from './reviewer-repository.ts';
 
-const { ciMethod, indicatorVersion, indicatorVersionSubmission } = schema;
+const {
+  ciMethod,
+  indicatorVersion,
+  indicatorVersionSubmission,
+  indicatorVersionSubmissionReviewer,
+} = schema;
 
 type Submission = typeof indicatorVersionSubmission.$inferSelect;
 
@@ -30,9 +45,13 @@ export type IndicatorStepPrecondition<Reason extends string> = (
   state: { draft: IndicatorDraftVersion; latest: Submission | undefined },
 ) => Promise<Reason | undefined>;
 
+/** A step's write of its own rows beside the submission's, answering their changes for the audit. */
+export type IndicatorStepWrite = (tx: Transaction, submission: Submission) => Promise<AuditChanges>;
+
 const STEP_ACTIONS: Readonly<Record<IndicatorStep, AuditAction>> = {
   submit: 'indicator.submitted',
   withdraw: 'indicator.submission_withdrawn',
+  assign_reviewers: 'indicator.reviewers_assigned',
 };
 
 interface SubmissionWrite {
@@ -74,6 +93,18 @@ const SUBMISSION_WRITES: Readonly<
     if (after === undefined) throw new Error(`withdraw updated no submission ${latest.id}`);
     return { before: latest, after };
   },
+  // Changing the reviewers leaves a submission already in review as it is.
+  assign_reviewers: async ({ tx, latest, status }) => {
+    if (latest === undefined) throw new Error('assign_reviewers found no submission');
+    if (latest.status === status) return { before: latest, after: latest };
+    const [after] = await tx
+      .update(indicatorVersionSubmission)
+      .set({ status })
+      .where(eq(indicatorVersionSubmission.id, latest.id))
+      .returning();
+    if (after === undefined) throw new Error(`assign_reviewers updated no submission ${latest.id}`);
+    return { before: latest, after };
+  },
 };
 
 /**
@@ -86,7 +117,10 @@ export async function takeIndicatorStep<Reason extends string = never>(
   indicatorId: string,
   step: IndicatorStep,
   actor: Actor,
-  { precondition }: { precondition?: IndicatorStepPrecondition<Reason> } = {},
+  {
+    precondition,
+    write,
+  }: { precondition?: IndicatorStepPrecondition<Reason>; write?: IndicatorStepWrite } = {},
 ): Promise<IndicatorStepResult<Reason>> {
   return db.transaction(async (tx): Promise<IndicatorStepResult<Reason>> => {
     // No key update, so an upload's foreign key share on the version does not hold the step up.
@@ -137,6 +171,7 @@ export async function takeIndicatorStep<Reason extends string = never>(
       status: next.state.submissionStatus,
       actor,
     });
+    const written = (await write?.(tx, submission.after)) ?? {};
 
     await recordAudit(tx, actor, [
       {
@@ -144,7 +179,8 @@ export async function takeIndicatorStep<Reason extends string = never>(
         entityId: indicatorId,
         changes: {
           ...changesBetween({ status: draft.status, isLocked: draft.isLocked }, version),
-          submission,
+          ...(isDeepStrictEqual(submission.before, submission.after) ? {} : { submission }),
+          ...written,
         },
       },
     ]);
@@ -199,5 +235,66 @@ export function withdrawSubmission(
   return takeIndicatorStep(db, indicatorId, 'withdraw', actor, {
     precondition: async (_tx, { latest }) =>
       latest?.number === submissionNumber ? undefined : 'changed',
+  });
+}
+
+/** The reviewers an IMRG manager assigns, and the submission and reviewers they were shown. */
+export interface ReviewerAssignment {
+  submissionNumber: number;
+  previousReviewerIds: readonly string[];
+  reviewerIds: readonly string[];
+}
+
+function sameMembers(a: readonly string[], b: readonly string[]): boolean {
+  return isDeepStrictEqual([...a].sort(), [...b].sort());
+}
+
+/**
+ * Assigns the reviewers of the draft's latest submission, or changes them, and puts it in review.
+ * A change to the submission or its reviewers since the manager was shown them refuses the
+ * assignment as `changed`, so nobody overwrites reviewers they have not seen.
+ */
+export function assignReviewers(
+  db: Database,
+  indicatorId: string,
+  { submissionNumber, previousReviewerIds, reviewerIds }: ReviewerAssignment,
+  actor: Actor,
+): Promise<IndicatorStepResult<'changed' | 'not_a_reviewer'>> {
+  return takeIndicatorStep(db, indicatorId, 'assign_reviewers', actor, {
+    precondition: async (tx, { latest }) => {
+      if (latest?.number !== submissionNumber) return 'changed';
+      if (!sameMembers(await assignedReviewerIds(tx, latest.id), previousReviewerIds)) {
+        return 'changed';
+      }
+      const eligible = await findEligibleReviewerIds(tx, indicatorId);
+      return reviewerIds.every((id) => eligible.includes(id)) ? undefined : 'not_a_reviewer';
+    },
+    write: async (tx, submission) => {
+      const assigned = await assignedReviewerIds(tx, submission.id);
+      const removed = assigned.filter((id) => !reviewerIds.includes(id));
+      const added = reviewerIds.filter((id) => !assigned.includes(id));
+      if (removed.length > 0) {
+        await tx
+          .delete(indicatorVersionSubmissionReviewer)
+          .where(
+            and(
+              eq(indicatorVersionSubmissionReviewer.submissionId, submission.id),
+              inArray(indicatorVersionSubmissionReviewer.reviewerId, removed),
+            ),
+          );
+      }
+      if (added.length > 0) {
+        await tx.insert(indicatorVersionSubmissionReviewer).values(
+          added.map((reviewerId) => ({
+            submissionId: submission.id,
+            reviewerId,
+            assignedBy: actor.userId,
+          })),
+        );
+      }
+      return listChanges({ reviewerIds: assigned }, { reviewerIds: [...reviewerIds] }, [
+        'reviewerIds',
+      ]);
+    },
   });
 }
