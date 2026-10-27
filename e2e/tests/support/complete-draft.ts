@@ -113,3 +113,10 @@ export async function completeDraft(page: Page, id: string): Promise<void> {
   const batchId = await page.locator('input[name="batchId"]').getAttribute('value');
   await post(page, `${base}/data-table/check`, { batchId: batchId ?? '' }, taskList);
 }
+
+/** Submits a complete draft for approval from its task list, as the publisher's button does. */
+export async function submitDraft(page: Page, id: string): Promise<void> {
+  await page.goto(`/publish/indicators/${id}/task-list`);
+  await page.getByRole('button', { name: 'Submit for approval' }).click();
+  await expect(page).toHaveURL(`/dashboard/indicators/${id}`);
+}

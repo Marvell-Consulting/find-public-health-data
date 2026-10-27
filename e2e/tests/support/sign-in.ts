@@ -28,6 +28,11 @@ export const TEAMS_A_AND_B_PUBLISHER: SignedInUser = {
   storageState: join(SESSIONS_DIR, 'teams-a-and-b-publisher.json'),
 };
 
+export const IMRG_MANAGER: SignedInUser = {
+  name: 'Avery Clarke',
+  storageState: join(SESSIONS_DIR, 'imrg-manager.json'),
+};
+
 export const ADMIN: SignedInUser = {
   name: 'Riley Singh',
   storageState: join(SESSIONS_DIR, 'admin.json'),
