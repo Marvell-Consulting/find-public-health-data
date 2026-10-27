@@ -28,6 +28,14 @@ export function nullIfSentinel(v: number | null): number | null {
   return v;
 }
 
+/** Pholio's one Count, as the numerator of an indicator whose value type has one, else the count. */
+export function countAndNumerator(
+  count: number | null,
+  isNumerator: boolean,
+): { count: number | null; numerator: number | null } {
+  return isNumerator ? { count: null, numerator: count } : { count, numerator: null };
+}
+
 /**
  * denominator_2 is only stored when it differs from denominator (before sentinel removal).
  * Reproduces: CASE WHEN c.Denominator_2 != c.Denominator THEN NULLIF(c.Denominator_2,-1) ELSE NULL END
@@ -449,7 +457,10 @@ export async function exportObservations(context: ObservationExportOptions) {
         from_date: fromDate,
         to_date: toDate,
         value,
-        count: suppressed ? null : nullIfSentinel(c.Count),
+        ...countAndNumerator(
+          suppressed ? null : nullIfSentinel(c.Count),
+          context.countIsNumerator.has(c.IndicatorID),
+        ),
         denominator: suppressed ? null : nullIfSentinel(c.Denominator),
         denominator_2: suppressed
           ? null

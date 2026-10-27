@@ -134,6 +134,7 @@ export const PHOLIO_EXPORT_COLUMNS: Readonly<Record<(typeof TABLES)[number], rea
     'to_date',
     'value',
     'count',
+    'numerator',
     'denominator',
     'denominator_2',
     'lower_ci_95',

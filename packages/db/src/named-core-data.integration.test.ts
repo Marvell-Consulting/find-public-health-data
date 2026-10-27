@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
+import { countIsNumerator } from '@fphd/utils/value-type-and-unit';
 import type postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -61,6 +62,28 @@ describe('the committed core data and seed', () => {
 
     expect(methods).toEqual([...COMPARATOR_METHODS].sort((a, b) => (a.id < b.id ? -1 : 1)));
     expect(unnamed?.count).toBe(0);
+  });
+
+  it('holds each seeded count as count or numerator, as countIsNumerator decides', async () => {
+    const indicators = await sql<
+      { shortId: number; valueTypeId: string | null; counts: number; numerators: number }[]
+    >`
+      SELECT i.short_id AS "shortId", v.value_type_id AS "valueTypeId",
+             count(o.count)::int AS counts, count(o.numerator)::int AS numerators
+      FROM observation o
+      JOIN upload_batch b ON b.id = o.upload_batch_id
+      JOIN indicator_version v ON v.id = b.indicator_version_id
+      JOIN indicator i ON i.id = v.indicator_id
+      GROUP BY i.short_id, v.value_type_id
+    `;
+    const misplaced = indicators.filter(({ shortId, valueTypeId, counts, numerators }) =>
+      countIsNumerator(valueTypeId, shortId) ? counts > 0 : numerators > 0,
+    );
+    const smoking = indicators.find(({ shortId }) => shortId === 92443);
+
+    expect(misplaced).toEqual([]);
+    expect(indicators.some(({ numerators }) => numerators > 0)).toBe(true);
+    expect(smoking?.counts).toBeGreaterThan(0);
   });
 });
 

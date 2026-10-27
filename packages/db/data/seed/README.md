@@ -90,6 +90,15 @@ That yields 433,678 observations, 657,869 bridge rows and 67,978 observation not
   the core data files hold. Any other value type, or a unit named with another placeholder,
   blank or over 100 characters, stops the export; a version with no unit keeps none. Migration
   0035 holds the same translation.
+- `observation.count` and `observation.numerator` split Pholio's one Count: it is the numerator
+  for an indicator whose value type is calculated from a numerator and a denominator (crude
+  rate, directly standardised rate, indirectly standardised proportion and ratio, proportion
+  and ratio), and the count otherwise. A survey indicator whose count is an estimated number of
+  people, such as smoking prevalence (92443), keeps it as the count whatever its value type.
+  `export/split-count-and-numerator.py` moves each count that is a numerator, by the lists in
+  `export/count_and_numerator.py`; migration 0052 and `countIsNumerator` in
+  `@fphd/utils/value-type-and-unit` hold the same lists, and a test checks the committed seed
+  against them.
 - Pholio's disclosure control, caveats and notes prose becomes the service's answers:
   `export/notes_and_caveats.py` turns prose that is an answer in itself, such as "None
   applied" or "Not applicable", into that answer and drops it, matching the whole text
@@ -148,17 +157,19 @@ python3 export/strip-metadata-html.py .
 python3 export/enrich-area-display.py .
 python3 export/tidy-reference-names.py .
 python3 export/reshape-indicator-versions.py .
+python3 export/split-count-and-numerator.py .
 ```
 
 `strip-metadata-html.py` converts the metadata prose from Pholio's HTML to the plain
 text the pages store and render; `enrich-area-display.py` stamps each area type's display
 group and strips the level suffixes from area names; `tidy-reference-names.py` tidies the
 names uploaded data is matched to. Skipping any of them commits seeds the site would show
-or match wrong. `reshape-indicator-versions.py` runs last and splits the Pholio
-shape into the identity and version tables this service holds: `indicator.csv.gz` keeps
+or match wrong. `reshape-indicator-versions.py` splits the Pholio shape into the
+identity and version tables this service holds: `indicator.csv.gz` keeps
 only the identity columns, `indicator_version.csv.gz` carries one published version per
 indicator with the slug derived from its name, and `indicator_metadata.csv.gz` is folded
-into it and removed.
+into it and removed. `split-count-and-numerator.py` runs last, as it reads the
+versions' value types.
 
 The transform assigns sequential UUIDv7 ids in source-id order, remaps every foreign key,
 writes Pholio's `pholio-migration` writer as the PHOLIO migration user's id, and keeps the

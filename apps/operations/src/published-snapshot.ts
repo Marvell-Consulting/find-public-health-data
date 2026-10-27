@@ -117,6 +117,11 @@ export async function verifyPublishedSnapshot(directory: string): Promise<Publis
   if (!versionColumns.includes('slug')) {
     throw new Error('Published snapshot indicator_version.csv.gz carries no slug column');
   }
+  // One without numerator holds Pholio's Count as the count even where it is the numerator.
+  const observationColumns = await readCsvHeader(join(directory, 'observation.csv.gz'));
+  if (!observationColumns.includes('numerator')) {
+    throw new Error('Published snapshot predates the numerator column and must be regenerated');
+  }
   return manifest;
 }
 

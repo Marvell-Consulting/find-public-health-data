@@ -96,8 +96,10 @@ plus these fields:
 or an explicit entry in `areaContextIndicators`; an area-context indicator cannot also
 carry topics or classifications. `indicatorTopics` accepts `isPrimary` and
 `indicatorSubtopics` contains `{ fingertipsId, topicId, subtopicId, isPrimary }` rows.
-Packages use format version 2 and `canonical-v2`, so an older receiver refuses a
-package rather than silently discarding the new placement and area-context fields.
+Packages use format version 3 and `canonical-v3`, so an older receiver refuses a
+package rather than silently discarding the placement and area-context fields, and the
+receiver refuses an older package, whose observations hold Pholio's Count as the count
+even where it is the numerator.
 Preparation checks coverage before writing prepared output; the importer verifies all
 applied topic, subtopic and classification links before committing.
 

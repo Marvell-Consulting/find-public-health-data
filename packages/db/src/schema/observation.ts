@@ -59,6 +59,7 @@ export const observation = pgTable(
     toDate: date().notNull(),
     value: doublePrecision(),
     count: doublePrecision(),
+    numerator: doublePrecision(),
     denominator: doublePrecision(),
     denominator2: doublePrecision('denominator_2'),
     lowerCi95: doublePrecision('lower_ci_95'),
