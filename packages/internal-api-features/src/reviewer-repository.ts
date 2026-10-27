@@ -1,10 +1,16 @@
 import { fakeUsers } from '@fphd/auth';
 import { type Database, schema } from '@fphd/db';
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray } from 'drizzle-orm';
 
+import type { ReviewerOption } from './contract.ts';
 import type { Transaction } from './indicator-repository-sql.ts';
 
-const { indicatorVersion, indicatorVersionSubmission, indicatorVersionSubmissionReviewer } = schema;
+const {
+  appUser,
+  indicatorVersion,
+  indicatorVersionSubmission,
+  indicatorVersionSubmissionReviewer,
+} = schema;
 
 type Reader = Database | Transaction;
 
@@ -63,4 +69,38 @@ export async function assignedReviewerIds(db: Reader, submissionId: string): Pro
     .from(indicatorVersionSubmissionReviewer)
     .where(eq(indicatorVersionSubmissionReviewer.submissionId, submissionId));
   return rows.map(({ reviewerId }) => reviewerId);
+}
+
+/**
+ * The reviewers who may review the indicator, by name, each with the number of submissions in
+ * review they are assigned to: one per indicator, as only a draft's latest submission is open.
+ */
+export async function listReviewerOptions(
+  db: Database,
+  indicatorId: string,
+): Promise<ReviewerOption[]> {
+  const ids = await findEligibleReviewerIds(db, indicatorId);
+  if (ids.length === 0) return [];
+
+  return db
+    .select({
+      id: appUser.id,
+      name: appUser.displayName,
+      assignedIndicatorCount: count(indicatorVersionSubmission.id),
+    })
+    .from(appUser)
+    .leftJoin(
+      indicatorVersionSubmissionReviewer,
+      eq(indicatorVersionSubmissionReviewer.reviewerId, appUser.id),
+    )
+    .leftJoin(
+      indicatorVersionSubmission,
+      and(
+        eq(indicatorVersionSubmission.id, indicatorVersionSubmissionReviewer.submissionId),
+        eq(indicatorVersionSubmission.status, 'in_review'),
+      ),
+    )
+    .where(inArray(appUser.id, ids))
+    .groupBy(appUser.id)
+    .orderBy(asc(appUser.displayName), asc(appUser.id));
 }

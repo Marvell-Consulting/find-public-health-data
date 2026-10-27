@@ -311,6 +311,19 @@ export const indicatorWithdrawErrorSchema = z.object({
   error: z.enum(['invalid_id', 'invalid_submission_number', 'not_allowed', 'changed']),
 });
 
+/** A reviewer the IMRG manager may assign, with how many indicators they are reviewing now. */
+export const reviewerOptionSchema = z.object({
+  id: z.uuid(),
+  name: z.string().min(1),
+  assignedIndicatorCount: z.number().int().min(0),
+});
+
+/** The reviewers who may review an indicator: neither its creator nor its submitter. */
+export const reviewerOptionsSchema = z.object({ reviewers: z.array(reviewerOptionSchema) });
+
+export type ReviewerOption = z.infer<typeof reviewerOptionSchema>;
+export type ReviewerOptions = z.infer<typeof reviewerOptionsSchema>;
+
 export type IndicatorTaskStatus = z.infer<typeof indicatorTaskStatusSchema>;
 export type IndicatorTaskKey = z.infer<typeof indicatorTaskKeySchema>;
 export type IndicatorTaskStatuses = z.infer<typeof indicatorTaskStatusesSchema>;

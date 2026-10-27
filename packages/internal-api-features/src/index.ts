@@ -9,6 +9,7 @@ import { indicatorSectionsRouter } from './indicator-sections.ts';
 import { indicatorSubmissionsRouter } from './indicator-submissions.ts';
 import { internalIndicatorsRouter } from './indicators.ts';
 import type { InternalRepositories } from './repositories.ts';
+import { internalReviewersRouter } from './reviewers.ts';
 import { internalTagsRouter } from './tags.ts';
 import { internalTopicsRouter } from './topics.ts';
 import { internalValueTypesAndUnitsRouter } from './value-types-and-units.ts';
@@ -35,6 +36,7 @@ export function internalApiRoutes({
   router.use(internalIndicatorsRouter(repositories.indicators, session));
   router.use(indicatorSectionsRouter(repositories, session));
   router.use(indicatorSubmissionsRouter(repositories.indicators, session));
+  router.use(internalReviewersRouter(repositories.reviewers, repositories.indicators, session));
   router.use(
     dataUploadsRouter(repositories.dataUploads, repositories.indicators, storage, session),
   );
