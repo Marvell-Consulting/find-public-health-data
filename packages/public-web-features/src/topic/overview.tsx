@@ -1,7 +1,15 @@
 import { ChartSection, GridColumn, GridRow, SummaryList, Tag } from '@fphd/ui';
 import { indicatorPath } from '@fphd/utils/indicator-path';
 import { Link } from 'react-router';
-import { comparisonRows, formatCalculatedValue, recentTrend, withUnit } from '../indicator/data.ts';
+import {
+  availableMeasures,
+  comparisonRows,
+  formatCalculatedValue,
+  MEASURES,
+  recentTrend,
+  withUnit,
+} from '../indicator/data.ts';
+import type { IndicatorObservation } from '../indicator/loader.ts';
 import { TrendTag } from '../indicator/trend-tag.tsx';
 import { searchUrl } from '../search/url.ts';
 import { TopicGeographies } from './geographies.tsx';
@@ -9,6 +17,16 @@ import type { loadTopicPage } from './loader.ts';
 
 type TopicData = Awaited<ReturnType<typeof loadTopicPage>>;
 type Overview = NonNullable<TopicData['overview']>;
+
+/** A row for each raw number the series has, or a Count row saying there is no data. */
+function measureItems(series: IndicatorObservation[], latest: IndicatorObservation | undefined) {
+  const available = availableMeasures(series);
+  const shown = MEASURES.filter(({ key }) => available.includes(key));
+  return (shown.length > 0 ? shown : MEASURES.slice(0, 1)).map(({ key, label }) => ({
+    name: label,
+    children: latest?.[key] == null ? 'No data' : latest[key].toLocaleString(),
+  }));
+}
 
 export function TopicOverview({
   topic,
@@ -123,10 +141,7 @@ export function TopicOverview({
                 <SummaryList
                   items={[
                     { name: 'Most recent period', children: row?.period || 'No data' },
-                    {
-                      name: 'Count',
-                      children: latest?.count == null ? 'No data' : latest.count.toLocaleString(),
-                    },
+                    ...measureItems(cell?.series ?? [], latest),
                     {
                       name: 'Calculated value',
                       children:

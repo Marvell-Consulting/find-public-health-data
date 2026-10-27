@@ -5,7 +5,7 @@ import {
   areaComparisonRows,
   observationComparisonLabel,
 } from './area-comparison.ts';
-import { inequalityValueLabel, unitNote } from './data.ts';
+import { availableMeasures, inequalityValueLabel, MEASURES, unitNote } from './data.ts';
 import { tableCsv } from './download.ts';
 import { indicatorPair } from './indicator-pair.ts';
 import { inequalityTableModel } from './inequalities.ts';
@@ -85,12 +85,27 @@ export async function loadIndicatorViewCsv(args: LoaderFunctionArgs): Promise<Re
       comparisonConfidence,
     } = inequalityTableModel(primary, params);
     const benchmark = benchmarkObservation?.value ?? null;
+    const available = availableMeasures([
+      ...breakdown,
+      ...(benchmarkObservation ? [benchmarkObservation] : []),
+    ]);
+    const measures = MEASURES.filter(({ key }) => available.includes(key));
     rows = [
-      ['Segment', 'Count', `Value${unitNote(primary.detail.unit)}`, 'Compared with England'],
-      ['England', benchmarkObservation?.count ?? null, benchmark, 'Benchmark'],
+      [
+        'Segment',
+        ...measures.map(({ label }) => label),
+        `Value${unitNote(primary.detail.unit)}`,
+        'Compared with England',
+      ],
+      [
+        'England',
+        ...measures.map(({ key }) => benchmarkObservation?.[key] ?? null),
+        benchmark,
+        'Benchmark',
+      ],
       ...breakdown.map((observation) => [
         inequalityValueLabel(observation),
-        observation.count,
+        ...measures.map(({ key }) => observation[key]),
         observation.value,
         observationComparisonLabel(
           observation,

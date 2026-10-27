@@ -9,6 +9,7 @@ const observation = (year: number, value: number): IndicatorObservation => ({
   toDate: `${year}-12-31`,
   value,
   count: value * 10,
+  numerator: value * 5,
   denominator: null,
   dimensions: [],
   notes: [],
@@ -76,6 +77,7 @@ it('serialises calculated table cells and trends without observation histories',
   expect(cell).toMatchObject({
     value: 18,
     count: 180,
+    numerator: 90,
     trend: recentTrend(entry.areaData[1]?.observations ?? [], 'lower-is-better'),
   });
   expect(model.rows[0]).toMatchObject({ slug: 'indicator', subtopics: ['Care and treatment'] });

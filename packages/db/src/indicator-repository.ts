@@ -402,6 +402,7 @@ export interface IndicatorObservation {
   lowerCi998: number | null;
   upperCi998: number | null;
   count: number | null;
+  numerator: number | null;
   denominator: number | null;
   dimensions: ObservationDimensionValue[];
   /** Note texts attached to the value, with their category ("quality", "disclosure"…). */
@@ -435,6 +436,7 @@ export async function getIndicatorObservationsForAreas(
       lowerCi998: observation.lowerCi998,
       upperCi998: observation.upperCi998,
       count: observation.count,
+      numerator: observation.numerator,
       denominator: observation.denominator,
       areaCode: area.code,
       areaName: area.name,

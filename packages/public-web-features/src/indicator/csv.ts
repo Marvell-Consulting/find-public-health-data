@@ -16,6 +16,7 @@ import { type LoaderFunctionArgs, redirect } from 'react-router';
 import { MAX_SELECTED_AREAS } from '../selection-limits.ts';
 import {
   availableConfidenceLevels,
+  availableMeasures,
   availablePeriodTypes,
   type ConfidenceLevel,
   dimensionValues,
@@ -198,11 +199,10 @@ export async function loadIndicatorCsv(
       confidence,
       showRange,
       url.searchParams.has(`columns-${shortId}`)
-        ? selectedTrendColumns(
-            url.searchParams,
-            shortId,
-            availableConfidenceLevels(shownObservations),
-          )
+        ? selectedTrendColumns(url.searchParams, shortId, [
+            ...availableMeasures(shownObservations),
+            ...availableConfidenceLevels(shownObservations),
+          ])
         : undefined,
     );
   } else {

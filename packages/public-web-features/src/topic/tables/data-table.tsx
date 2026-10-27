@@ -18,7 +18,8 @@ export const TopicDataTable = memo(function TopicDataTable({
 }) {
   const { rows, areas } = model;
   const measures = columns.filter(
-    (column) => column === 'trend' || column === 'count' || column === 'value',
+    (column) =>
+      column === 'trend' || column === 'count' || column === 'numerator' || column === 'value',
   );
   return (
     <TableScrollRegion label={`${title} indicators comparison table`}>
@@ -79,6 +80,8 @@ export const TopicDataTable = memo(function TopicDataTable({
                       </>
                     ) : measure === 'count' ? (
                       'Count'
+                    ) : measure === 'numerator' ? (
+                      'Numerator'
                     ) : (
                       <>
                         Calculated
@@ -122,11 +125,11 @@ export const TopicDataTable = memo(function TopicDataTable({
                       <td key={`${area.code}-${measure}`} className="govuk-table__cell">
                         {measure === 'trend' ? (
                           <TrendTag trend={cell?.trend ?? recentTrend([], null)} />
-                        ) : measure === 'count' ? (
-                          cell?.count == null ? (
+                        ) : measure === 'count' || measure === 'numerator' ? (
+                          cell?.[measure] == null ? (
                             'No data'
                           ) : (
-                            formatValue(cell.count)
+                            formatValue(cell[measure])
                           )
                         ) : cell?.value == null ? (
                           'No data'

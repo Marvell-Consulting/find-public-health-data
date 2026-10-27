@@ -35,6 +35,7 @@ export function topicDataTableModel(selected: SelectedIndicator[], topicSlug: st
             areaCode: cell.areaCode,
             value: cell.series.at(-1)?.value ?? null,
             count: cell.series.at(-1)?.count ?? null,
+            numerator: cell.series.at(-1)?.numerator ?? null,
             trend: recentTrend(cell.series, entry.detail.polarity),
           })),
         },

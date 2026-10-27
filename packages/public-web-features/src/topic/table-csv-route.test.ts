@@ -16,6 +16,7 @@ it.each([
     toDate: '2024-12-31',
     value,
     count: null,
+    numerator: null,
     denominator: null,
     dimensions: [],
     notes: [],

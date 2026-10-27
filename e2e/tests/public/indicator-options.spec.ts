@@ -23,8 +23,8 @@ test('table options update the series and keep their choices on reload', async (
   await expect(page).toHaveURL(/pt-108=1-year/);
   await expect(table.getByRole('rowheader', { name: '2015 to 2017', exact: true })).toHaveCount(0);
   await options.getByRole('checkbox', { name: '95% confidence intervals', exact: true }).check();
-  await options.getByRole('checkbox', { name: 'Count', exact: true }).check();
-  await expect(table.getByRole('columnheader', { name: 'Count', exact: true })).toBeVisible();
+  await options.getByRole('checkbox', { name: 'Numerator', exact: true }).check();
+  await expect(table.getByRole('columnheader', { name: 'Numerator', exact: true })).toBeVisible();
   await expect(
     table.getByRole('columnheader', { name: '95% lower confidence interval' }),
   ).toBeVisible();

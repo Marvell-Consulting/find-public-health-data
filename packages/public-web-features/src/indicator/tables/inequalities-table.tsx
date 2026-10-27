@@ -2,12 +2,15 @@ import { TableScrollRegion } from '@fphd/ui';
 import { periodLabel } from '@fphd/utils/period-label';
 import { observationComparisonLabel } from '../area-comparison.ts';
 import {
+  availableMeasures,
   type ConfidenceLevel,
   confidenceInterval,
   formatCalculatedValue,
   formatValue,
   inequalityCategoryLabel,
   inequalityValueLabel,
+  MEASURES,
+  type Measure,
   segmentLabel,
   unitNote,
 } from '../data.ts';
@@ -19,14 +22,14 @@ export function InequalitiesTable({
   indicator,
   observations,
   benchmark,
-  benchmarkCount,
+  benchmarkMeasures = { count: null, numerator: null },
   areaName = 'England',
 }: {
   confidence: ConfidenceLevel;
   indicator: IndicatorDetail;
   observations: IndicatorObservation[];
   benchmark?: number | null;
-  benchmarkCount?: number | null;
+  benchmarkMeasures?: Record<Measure, number | null>;
   areaName?: string;
 }) {
   const first = observations[0];
@@ -34,6 +37,8 @@ export function InequalitiesTable({
   if (!first) {
     return null;
   }
+  const available = compare ? availableMeasures([...observations, benchmarkMeasures]) : [];
+  const measures = MEASURES.filter(({ key }) => available.includes(key));
   const dimensionType =
     first.dimensions.find(({ dimensionClass }) => dimensionClass === 'inequality')?.type ?? '';
   const noteTexts = [
@@ -64,11 +69,15 @@ export function InequalitiesTable({
               <th scope="col" className="govuk-table__header">
                 {compare ? inequalityCategoryLabel(dimensionType, true) : 'Segment'}
               </th>
-              {compare ? (
-                <th scope="col" className="govuk-table__header govuk-table__header--numeric">
-                  Count
+              {measures.map(({ key, label }) => (
+                <th
+                  key={key}
+                  scope="col"
+                  className="govuk-table__header govuk-table__header--numeric"
+                >
+                  {label}
                 </th>
-              ) : null}
+              ))}
               <th scope="col" className="govuk-table__header govuk-table__header--numeric">
                 {compare ? indicator.name : 'Value'}
                 {unitNote(indicator.unit)}
@@ -90,9 +99,11 @@ export function InequalitiesTable({
                 <th scope="row" className="govuk-table__header">
                   England
                 </th>
-                <td className="govuk-table__cell govuk-table__cell--numeric">
-                  {benchmarkCount == null ? '—' : formatValue(benchmarkCount)}
-                </td>
+                {measures.map(({ key }) => (
+                  <td key={key} className="govuk-table__cell govuk-table__cell--numeric">
+                    {benchmarkMeasures[key] == null ? '—' : formatValue(benchmarkMeasures[key])}
+                  </td>
+                ))}
                 <td className="govuk-table__cell govuk-table__cell--numeric">
                   {formatCalculatedValue(benchmark ?? null)}
                   {benchmark != null && indicator.unit === '%' ? '%' : ''}
@@ -106,11 +117,11 @@ export function InequalitiesTable({
                   {/* The category value alone — baseline dimensions describe the whole table. */}
                   {inequalityValueLabel(observation)}
                 </th>
-                {compare ? (
-                  <td className="govuk-table__cell govuk-table__cell--numeric">
-                    {observation.count == null ? '—' : formatValue(observation.count)}
+                {measures.map(({ key }) => (
+                  <td key={key} className="govuk-table__cell govuk-table__cell--numeric">
+                    {observation[key] == null ? '—' : formatValue(observation[key])}
                   </td>
-                ) : null}
+                ))}
                 <td className="govuk-table__cell govuk-table__cell--numeric">
                   {formatCalculatedValue(observation.value)}
                   {compare && observation.value != null && indicator.unit === '%' ? '%' : ''}
