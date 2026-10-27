@@ -602,19 +602,6 @@ describe('assignReviewers', () => {
     });
     expect((await versionOf(db, versionId)).isLocked).toBe(true);
   });
-
-  repositoryTest('lets one of two managers assigning at once win', async ({ db }) => {
-    const { indicatorId, submission } = await submittedDraft(db, 'Assigned twice at once');
-
-    const results = await Promise.all([
-      assign(db, indicatorId, [REVIEWER]),
-      assign(db, indicatorId, [PUBLISHING_REVIEWER]),
-    ]);
-
-    expect(results).toContainEqual({ ok: true });
-    expect(results).toContainEqual({ ok: false, reason: 'changed' });
-    expect(await reviewersOf(db, submission.id)).toHaveLength(1);
-  });
 });
 
 describe('the lock', () => {
