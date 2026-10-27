@@ -64,6 +64,13 @@ interface DashboardPageProps {
   list: IndicatorList | null;
 }
 
+/** The page's h1, which its document title follows; plain "Indicators" without the data. */
+export function dashboardHeading(data?: DashboardPageProps): string {
+  return data !== undefined && data.underReview !== null && data.list === null
+    ? 'Indicators under review'
+    : 'Indicators';
+}
+
 /**
  * The indicators under review for an IMRG manager, a page of indicators for anyone else, and a
  * tab of each for a manager who also publishes.
@@ -73,7 +80,7 @@ export function DashboardPage({ underReview, list }: DashboardPageProps) {
     return (
       <GridRow>
         <GridColumn width="full">
-          <h1 className="govuk-heading-xl">Indicators</h1>
+          <h1 className="govuk-heading-xl">{dashboardHeading({ underReview, list })}</h1>
           <Tabs
             items={[
               {
@@ -97,9 +104,7 @@ export function DashboardPage({ underReview, list }: DashboardPageProps) {
   return (
     <GridRow>
       <GridColumn width="full">
-        <h1 className="govuk-heading-xl">
-          {underReview !== null ? 'Indicators under review' : 'Indicators'}
-        </h1>
+        <h1 className="govuk-heading-xl">{dashboardHeading({ underReview, list })}</h1>
         {underReview !== null ? <UnderReviewTables {...underReview} /> : null}
         {list !== null ? <IndicatorListSection {...list} /> : null}
       </GridColumn>
