@@ -8,15 +8,8 @@ export const loader = loadDashboard;
 export const meta = createDocumentMeta('Indicators');
 
 export function DashboardRoute() {
-  const { canCreate, indicators, page, totalPages } = useLoaderData<typeof loader>();
-  return (
-    <DashboardPage
-      canCreate={canCreate}
-      indicators={indicators}
-      page={page}
-      totalPages={totalPages}
-    />
-  );
+  const { underReview, list } = useLoaderData<typeof loader>();
+  return <DashboardPage underReview={underReview} list={list} />;
 }
 
 export default DashboardRoute;
