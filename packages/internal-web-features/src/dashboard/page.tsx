@@ -1,7 +1,6 @@
-import { A, Button, formatDate, GridColumn, GridRow, Pagination, Table } from '@fphd/ui';
-import { indicatorOverviewPath } from '../indicator-overview/paths.ts';
+import { Button, GridColumn, GridRow, Pagination, Table } from '@fphd/ui';
 import { NEW_INDICATOR_PATH } from '../publish-paths.ts';
-import { StatusTag } from '../status-tag/status-tag.tsx';
+import { INDICATOR_HEADINGS, INDICATOR_KEYS, indicatorCells } from './indicator-cells.tsx';
 import type { IndicatorAdminListItem } from './loader.ts';
 import { dashboardPath } from './paths.ts';
 
@@ -32,52 +31,9 @@ export function DashboardPage({ canCreate, indicators, page, totalPages }: Dashb
         ) : (
           <Table
             aria-label="Indicators, most recently edited first"
-            headings={{
-              name: 'Indicator name',
-              teamName: 'Team',
-              createdBy: 'Created by',
-              updatedAt: 'Last edited',
-              lastEditedBy: 'Last edited by',
-              indicatorStatus: 'Indicator status',
-              publishingStatus: 'Publishing status',
-            }}
-            keys={[
-              'name',
-              'teamName',
-              'createdBy',
-              'updatedAt',
-              'lastEditedBy',
-              'indicatorStatus',
-              'publishingStatus',
-            ]}
-            data={indicators.map((indicator) => ({
-              // The first column is a row header, which GOV.UK sets bold; the names read as
-              // plain text.
-              name: (
-                <span className="govuk-!-font-weight-regular">
-                  <A href={indicatorOverviewPath(indicator.id)}>{indicator.name}</A>
-                </span>
-              ),
-              teamName: indicator.teamName,
-              createdBy: indicator.createdBy,
-              updatedAt: (
-                <time dateTime={indicator.updatedAt}>{formatDate(indicator.updatedAt)}</time>
-              ),
-              lastEditedBy: indicator.lastEditedBy,
-              // The column headers name the statuses, and screen readers announce them per cell.
-              indicatorStatus: (
-                <StatusTag type="indicator" status={indicator.indicatorStatus} labelled={false} />
-              ),
-              publishingStatus: (
-                <StatusTag
-                  type="publishing"
-                  indicatorStatus={indicator.indicatorStatus}
-                  draftStatus={indicator.draftStatus}
-                  draftSubmissionStatus={indicator.draftSubmissionStatus}
-                  labelled={false}
-                />
-              ),
-            }))}
+            headings={INDICATOR_HEADINGS}
+            keys={INDICATOR_KEYS}
+            data={indicators.map(indicatorCells)}
           />
         )}
         {totalPages > 1 ? (
