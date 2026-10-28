@@ -15,6 +15,7 @@ import {
   canWithdrawSubmission,
   type IndicatorAccess,
   indicatorListScope,
+  ownTeamsListScope,
   type SessionUser,
   teamsForNewIndicator,
 } from './permissions.ts';
@@ -32,6 +33,7 @@ const reviewer = user('reviewer', ['imrg-reviewer']);
 const publisherReviewer = user('publisher-reviewer', ['publisher', 'imrg-reviewer'], [teamB]);
 const manager = user('manager', ['imrg-manager']);
 const admin = user('admin', ['admin']);
+const publisherManager = user('publisher-manager', ['publisher', 'imrg-manager'], [teamA]);
 const teamless = user('teamless', ['publisher']);
 
 const inTeamA: IndicatorAccess = { teamId: teamA, reviewerIds: [] };
@@ -171,5 +173,16 @@ describe('indicatorListScope', () => {
         expect(listed, asking.sub).toBe(canSeeIndicator(asking, indicator));
       }
     }
+  });
+});
+
+describe('ownTeamsListScope', () => {
+  it.each([
+    ['a publisher', publisherAB, [teamA, teamB]],
+    ['a publisher who manages IMRG', publisherManager, [teamA]],
+    ['an IMRG manager', manager, []],
+    ['an admin', admin, []],
+  ])("scopes the list to %s's own teams", (_who, asking, teamIds) => {
+    expect(ownTeamsListScope(asking)).toEqual({ all: false, teamIds });
   });
 });

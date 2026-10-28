@@ -42,7 +42,9 @@ import {
   getIndicatorById,
   type IndicatorAdminDetailRow,
   type IndicatorAdminRows,
+  type IndicatorsUnderReviewRows,
   listIndicatorsPage,
+  listIndicatorsUnderReview,
 } from './indicator-list-repository.ts';
 import {
   type CreateDraftFromPublishedResult,
@@ -85,6 +87,8 @@ export interface InternalTopicRepository {
 /** The publisher's view of indicators: every status, unlike the public repository. */
 export interface InternalIndicatorRepository {
   listPage(page: number, pageSize: number, scope: IndicatorListScope): Promise<IndicatorAdminRows>;
+  /** The open submissions in scope, waiting for reviewers or in review, oldest first. */
+  listUnderReview(scope: IndicatorListScope): Promise<IndicatorsUnderReviewRows>;
   findById(id: string): Promise<IndicatorAdminDetailRow | undefined>;
   /** The indicator's team, null when it has none, or undefined when there is no such indicator. */
   findTeamId(id: string): Promise<string | null | undefined>;
@@ -207,6 +211,7 @@ export function createInternalRepositories(db: Database): InternalRepositories {
     },
     indicators: {
       listPage: (page, pageSize, scope) => listIndicatorsPage(db, page, pageSize, scope),
+      listUnderReview: (scope) => listIndicatorsUnderReview(db, scope),
       findById: (id) => getIndicatorById(db, id),
       findTeamId: (id) => findIndicatorTeamId(db, id),
       findDraftState: (id) => getIndicatorDraftState(db, id),

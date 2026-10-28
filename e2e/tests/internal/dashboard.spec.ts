@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test';
 
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
+import { completeDraft, submitDraft } from '../support/complete-draft.ts';
 import { createDraft, uniqueIndicatorName } from '../support/create-indicator.ts';
-import { ADMIN, PUBLISHER, TEAM_B_PUBLISHER } from '../support/sign-in.ts';
+import { ADMIN, IMRG_MANAGER, PUBLISHER, TEAM_B_PUBLISHER } from '../support/sign-in.ts';
 
 test.use({ storageState: PUBLISHER.storageState });
 
@@ -80,5 +81,49 @@ test.describe('as an admin, who sees every team', () => {
 
   test('offers an admin no create action', async ({ page }) => {
     await expect(page.getByRole('button', { name: 'Create new indicator' })).toHaveCount(0);
+  });
+});
+
+test.describe('as an IMRG manager', () => {
+  test.use({ storageState: IMRG_MANAGER.storageState });
+
+  test('shows the indicators under review, unassigned and assigned', async ({ page }) => {
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Indicators under review' }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', { level: 2, name: 'Unassigned indicators' }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', { level: 2, name: 'Assigned indicators', exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Create new indicator' })).toHaveCount(0);
+  });
+
+  test('lists a submitted indicator as unassigned, linked to its overview', async ({
+    browser,
+    page,
+  }, testInfo) => {
+    const name = uniqueIndicatorName('under review');
+    const publisher = await (
+      await browser.newContext({ storageState: PUBLISHER.storageState })
+    ).newPage();
+    const id = await createDraft(publisher, name);
+    await completeDraft(publisher, id);
+    await submitDraft(publisher, id);
+    await publisher.context().close();
+
+    await page.goto('/dashboard');
+    const row = page
+      .getByRole('table', { name: 'Unassigned indicators, oldest submission first' })
+      .getByRole('row')
+      .filter({ hasText: name });
+
+    await expect(row.locator('.govuk-tag')).toHaveText(['New', 'Pending approval']);
+    await expectNoAccessibilityViolations(page, testInfo);
+
+    await row.getByRole('link', { name }).click();
+
+    await expect(page).toHaveURL(`/dashboard/indicators/${id}`);
   });
 });

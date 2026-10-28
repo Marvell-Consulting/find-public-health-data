@@ -125,6 +125,9 @@ export const indicatorPageQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
 });
 
+/** The API list's filter: `teams=own` keeps to the teams the user publishes for. */
+export const indicatorListTeamsQuerySchema = z.object({ teams: z.literal('own').optional() });
+
 /** A dashboard row, which names the team and the people for the publisher to read. */
 export const indicatorAdminListItemSchema = indicatorAdminSummarySchema.extend({
   /** Null while the indicator is in no team. */
@@ -140,6 +143,14 @@ export const indicatorAdminPageSchema = z.object({
   page: z.number().int().min(1),
   pageSize: z.number().int().min(1),
   total: z.number().int().min(0),
+});
+
+/** The open submissions an IMRG manager works through, oldest submission first. */
+export const indicatorsUnderReviewSchema = z.object({
+  /** Waiting for reviewers: the latest submission is `submitted`. */
+  unassigned: z.array(indicatorAdminListItemSchema),
+  /** Reviewers assigned: the latest submission is `in_review`. */
+  assigned: z.array(indicatorAdminListItemSchema),
 });
 
 export const indicatorIdSchema = z.uuid();
@@ -219,6 +230,7 @@ export const indicatorUpdateErrorSchema = z.discriminatedUnion('error', [
 export type IndicatorAdminSummary = z.infer<typeof indicatorAdminSummarySchema>;
 export type IndicatorAdminListItem = z.infer<typeof indicatorAdminListItemSchema>;
 export type IndicatorAdminPage = z.infer<typeof indicatorAdminPageSchema>;
+export type IndicatorsUnderReview = z.infer<typeof indicatorsUnderReviewSchema>;
 export type IndicatorStatus = z.infer<typeof indicatorStatusSchema>;
 export type DraftStatus = z.infer<typeof draftStatusSchema>;
 export type DraftSubmissionStatus = z.infer<typeof draftSubmissionStatusSchema>;

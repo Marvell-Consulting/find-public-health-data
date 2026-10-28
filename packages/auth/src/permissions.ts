@@ -106,5 +106,10 @@ export function canSeeTeamsAndUsers(user: SessionUser): boolean {
 export function indicatorListScope(user: SessionUser): IndicatorListScope {
   if (holds(user, 'admin') || holds(user, 'imrg-manager')) return { all: true };
 
+  return ownTeamsListScope(user);
+}
+
+/** The indicators of the teams the user publishes for, however many more they may see. */
+export function ownTeamsListScope(user: SessionUser): IndicatorListScope {
   return { all: false, teamIds: holds(user, 'publisher') ? user.teams : [] };
 }

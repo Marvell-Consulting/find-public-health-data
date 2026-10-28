@@ -10,6 +10,7 @@ import {
   canListIndicators,
   canSeeIndicator,
   indicatorListScope,
+  ownTeamsListScope,
   type SessionUser,
 } from '@fphd/auth/permissions';
 import { Router } from 'express';
@@ -22,6 +23,7 @@ import {
   type IndicatorTaskList,
   indicatorFieldSchema,
   indicatorIdSchema,
+  indicatorListTeamsQuerySchema,
   indicatorNameSchema,
   indicatorPageQuerySchema,
   indicatorTeamSchema,
@@ -67,7 +69,7 @@ function toSummary({
   };
 }
 
-function toListItem(row: IndicatorAdminListRow): IndicatorAdminListItem {
+export function toListItem(row: IndicatorAdminListRow): IndicatorAdminListItem {
   const { teamName, createdBy, lastEditedBy } = row;
   return { ...toSummary(row), teamName, createdBy, lastEditedBy };
 }
@@ -104,12 +106,18 @@ export function internalIndicatorsRouter(
       return;
     }
 
+    const filter = indicatorListTeamsQuerySchema.safeParse(request.query);
+
+    if (!filter.success) {
+      response.status(400).json({ error: 'invalid_teams' });
+      return;
+    }
+
     const { page } = query.data;
-    const rows = await indicators.listPage(
-      page,
-      INDICATORS_PAGE_SIZE,
-      indicatorListScope(requireApiSession(response)),
-    );
+    const session = requireApiSession(response);
+    const scope =
+      filter.data.teams === 'own' ? ownTeamsListScope(session) : indicatorListScope(session);
+    const rows = await indicators.listPage(page, INDICATORS_PAGE_SIZE, scope);
     const body: IndicatorAdminPage = {
       indicators: rows.indicators.map(toListItem),
       page,

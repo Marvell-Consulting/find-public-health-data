@@ -8,6 +8,7 @@ import { dataUploadsRouter } from './data-uploads.ts';
 import { indicatorSectionsRouter } from './indicator-sections.ts';
 import { indicatorSubmissionsRouter } from './indicator-submissions.ts';
 import { internalIndicatorsRouter } from './indicators.ts';
+import { internalIndicatorsUnderReviewRouter } from './indicators-under-review.ts';
 import type { InternalRepositories } from './repositories.ts';
 import { internalReviewersRouter } from './reviewers.ts';
 import { internalTagsRouter } from './tags.ts';
@@ -34,6 +35,7 @@ export function internalApiRoutes({
   const router = Router();
 
   router.use(internalIndicatorsRouter(repositories.indicators, session));
+  router.use(internalIndicatorsUnderReviewRouter(repositories.indicators, session));
   router.use(indicatorSectionsRouter(repositories, session));
   router.use(indicatorSubmissionsRouter(repositories.indicators, session));
   router.use(internalReviewersRouter(repositories.reviewers, repositories.indicators, session));

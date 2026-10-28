@@ -141,6 +141,29 @@ describe('GET /api/internal/indicators', () => {
     expect(listPage).toHaveBeenCalledWith(1, INDICATORS_PAGE_SIZE, scope);
   });
 
+  it("lists only a publisher's own teams when asked, though they manage IMRG", async () => {
+    const listPage = vi.fn().mockResolvedValue({ indicators: [], total: 0 });
+
+    const response = await request(createTestApp({ listPage }))
+      .get('/api/internal/indicators?teams=own')
+      .set('Cookie', await testSessionCookie(['internal', 'publisher', 'imrg-manager'], [TEAM_ID]));
+
+    expect(response.status).toBe(200);
+    expect(listPage).toHaveBeenCalledWith(1, INDICATORS_PAGE_SIZE, {
+      all: false,
+      teamIds: [TEAM_ID],
+    });
+  });
+
+  it('rejects a teams filter other than own as a bad request', async () => {
+    const response = await request(createTestApp())
+      .get('/api/internal/indicators?teams=all')
+      .set('Cookie', await publisherCookie());
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'invalid_teams' });
+  });
+
   it.each(['0', '-1', '1.5', 'two', '1&page=2'])(
     'rejects a page of %s as a bad request',
     async (page) => {
