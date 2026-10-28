@@ -14,7 +14,13 @@ import { SLUG_PATTERN } from '@fphd/utils/slug';
 import express from 'express';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { indicatorAreaDataSchema, indicatorDetailSchema } from './contract.ts';
+import {
+  indicatorAreaDataListSchema,
+  indicatorAreaDataSchema,
+  indicatorDetailSchema,
+  indicatorSearchResultSchema,
+  indicatorTableDataSchema,
+} from './contract.ts';
 import { publicApiRoutes } from './index.ts';
 
 const env = parseEnv(
@@ -81,6 +87,27 @@ async function insertDraftOnlyIndicator(
 const MORTALITY_SLUG = 'under-75-mortality-rate-from-all-causes';
 
 describe('public routers against the seeded database', () => {
+  it('loads public table batches in requested order and keeps known areas without observations', async () => {
+    const response = await request(app).get(
+      '/api/indicator-data?indicator=241&indicator=108&areaCode=E92000001&areaCode=E07000223',
+    );
+    expect(response.status).toBe(200);
+    const entries = indicatorTableDataSchema.parse(response.body);
+    expect(entries.map(({ detail }) => detail.shortId)).toEqual([241, 108]);
+    for (const entry of entries) {
+      const single = await request(app).get(`/api/indicators/${entry.detail.shortId}`);
+      expect(entry.detail).toEqual(single.body);
+      expect(entry.areaData.map(({ areaCode }) => areaCode)).toEqual(['E92000001', 'E07000223']);
+      for (const area of entry.areaData)
+        expect(Object.keys(area)).toEqual(['areaCode', 'areaName', 'observations']);
+    }
+    const draft = await insertDraftOnlyIndicator(
+      600091,
+      'Unpublished bulk fixture',
+      'unpublished-bulk-fixture',
+    );
+    expect((await request(app).get(`/api/indicator-data?indicator=${draft}`)).status).toBe(404);
+  });
   it('lists the seeded indicators', async () => {
     const response = await request(app).get('/api/indicators');
 
@@ -327,4 +354,19 @@ describe('public routers against the seeded database', () => {
       indicators: expect.any(Array),
     });
   });
+});
+
+it('reads paginated trend results and batched areas using the public API role', async () => {
+  const result = await request(app).get(
+    '/api/indicators/search?t=mortality-and-life-expectancy&page=1&sort=trend-desc',
+  );
+  expect(result.status).toBe(200);
+  expect(indicatorSearchResultSchema.parse(result.body)).toMatchObject({ page: 1, limit: 10 });
+  const areas = await request(app).get(
+    '/api/indicators/108/data?areaCode=E07000223&areaCode=E92000001',
+  );
+  expect(areas.status).toBe(200);
+  const parsed = indicatorAreaDataListSchema.parse(areas.body);
+  expect(parsed.map(({ areaCode }) => areaCode)).toEqual(['E07000223', 'E92000001']);
+  expect(parsed[0]?.observations.length).toBeGreaterThan(0);
 });

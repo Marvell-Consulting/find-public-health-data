@@ -4,3 +4,6 @@
 # A unit's UUID beside "£ per capita": generic-api-key matches the "api" in "capita".
 504072950d4856353aca4246fa03772e2f954ae4:packages/db/data/seed/export/value_type_and_unit.py:generic-api-key:41
 504072950d4856353aca4246fa03772e2f954ae4:packages/db/drizzle/0035_value-type-and-units.sql:generic-api-key:84
+
+# A public Power BI dashboard URL's view parameter matches grafana-api-key.
+0805245b666fdddd39fb115e0443b31a82df8a52:packages/public-api-features/src/topic-content.ts:grafana-api-key:42

@@ -1,12 +1,15 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { useLayoutEffect } from 'react';
-import { createRoutesStub, useLocation } from 'react-router';
+import { createRoutesStub } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { shouldRevalidate, TopicsRoute } from './list-route.tsx';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  window.history.replaceState(window.history.state, '', '/');
+});
 
 describe('TopicsRoute', () => {
   it('does not fetch topics again when typing starts before passive effects run', async () => {
@@ -33,6 +36,7 @@ describe('TopicsRoute', () => {
   });
 
   it('updates the URL without replacing the input or fetching topics again', async () => {
+    window.history.replaceState(window.history.state, '', '/topics?other=kept&q=old');
     const loader = vi.fn(() => [
       { slug: 'alcohol', title: 'Alcohol', description: 'Drinking and related harms.' },
       { slug: 'smoking', title: 'Smoking', description: 'Prevalence and quitting.' },
@@ -42,15 +46,7 @@ describe('TopicsRoute', () => {
         path: '/topics',
         loader,
         shouldRevalidate,
-        Component: () => {
-          const location = useLocation();
-          return (
-            <>
-              <TopicsRoute />
-              <output data-testid="url">{location.search}</output>
-            </>
-          );
-        },
+        Component: TopicsRoute,
       },
     ]);
     render(<Routes initialEntries={['/topics?other=kept&q=old']} />);
@@ -58,11 +54,11 @@ describe('TopicsRoute', () => {
     input.focus();
     fireEvent.change(input, { target: { value: 'smok' } });
     expect(await screen.findByRole('link', { name: 'Smoking' })).toBeTruthy();
-    expect(screen.getByTestId('url').textContent).toBe('?other=kept&q=smok');
+    expect(window.location.search).toBe('?other=kept&q=smok');
     expect(document.activeElement).toBe(input);
     fireEvent.change(input, { target: { value: '' } });
     expect(await screen.findByRole('link', { name: 'Alcohol' })).toBeTruthy();
-    expect(screen.getByTestId('url').textContent).toBe('?other=kept');
+    expect(window.location.search).toBe('?other=kept');
     expect(screen.getByRole('searchbox', { name: 'Search for topics' })).toBe(input);
     expect(loader).toHaveBeenCalledTimes(1);
   });

@@ -13,6 +13,7 @@ import {
 import type { Database } from './client.ts';
 import {
   getIndicatorObservations,
+  getIndicatorObservationsForAreas,
   getObservationRange,
   getPublishedIndicatorById,
   type IndicatorAreaData,
@@ -29,9 +30,18 @@ import {
   searchIndicators,
   searchPublishedIndicators,
 } from './indicator-repository.ts';
-import { getTopicBySlug, listTopics, type Topic } from './topic-repository.ts';
+import { getIndicatorTableData } from './indicator-table-repository.ts';
+import {
+  getTopicBySlug,
+  getTopicTrendSummary,
+  listTopicSubtopics,
+  listTopics,
+  type Topic,
+  type TopicTrendSummary,
+} from './topic-repository.ts';
 
 export interface IndicatorRepository {
+  findTableData(shortIds: number[], areaCodes: string[]): ReturnType<typeof getIndicatorTableData>;
   listPublished(): Promise<PublishedIndicator[]>;
   search(query: string, limit: number): Promise<PublishedIndicator[]>;
   /** The one place the public short id resolves to an internal id. */
@@ -40,6 +50,7 @@ export interface IndicatorRepository {
   resolveIdBySlug(slug: string): Promise<string | undefined>;
   findPublishedById(indicatorId: string): Promise<IndicatorDetail | undefined>;
   findObservations(indicatorId: string, areaCode: string): Promise<IndicatorAreaData | undefined>;
+  findObservationsForAreas(indicatorId: string, areaCodes: string[]): Promise<IndicatorAreaData[]>;
   findObservationRange(
     indicatorId: string,
     displayGroup: string,
@@ -64,6 +75,8 @@ export interface AreaRepository {
 export interface TopicRepository {
   list(): Promise<Topic[]>;
   findBySlug(slug: string): Promise<Topic | undefined>;
+  trendSummary(slug: string): Promise<TopicTrendSummary>;
+  listSubtopics(slug: string): Promise<{ slug: string; title: string }[]>;
 }
 
 /**
@@ -89,6 +102,7 @@ export function createRepositories(db: Database): Repositories {
       listParents: (childCodes, parentTypeName) => listAreaParents(db, childCodes, parentTypeName),
     },
     indicators: {
+      findTableData: (shortIds, areaCodes) => getIndicatorTableData(db, shortIds, areaCodes),
       listPublished: () => listPublishedIndicators(db),
       search: (query, limit) => searchPublishedIndicators(db, query, limit),
       resolveId: (shortId) => resolvePublishedIndicatorId(db, shortId),
@@ -96,6 +110,8 @@ export function createRepositories(db: Database): Repositories {
       findPublishedById: (indicatorId) => getPublishedIndicatorById(db, indicatorId),
       findObservations: (indicatorId, areaCode) =>
         getIndicatorObservations(db, indicatorId, areaCode),
+      findObservationsForAreas: (indicatorId, areaCodes) =>
+        getIndicatorObservationsForAreas(db, indicatorId, areaCodes),
       findObservationRange: (indicatorId, displayGroup) =>
         getObservationRange(db, indicatorId, displayGroup),
       searchWithFilters: (filters) => searchIndicators(db, filters),
@@ -104,6 +120,8 @@ export function createRepositories(db: Database): Repositories {
     topics: {
       list: () => listTopics(db),
       findBySlug: (slug) => getTopicBySlug(db, slug),
+      trendSummary: (slug) => getTopicTrendSummary(db, slug),
+      listSubtopics: (slug) => listTopicSubtopics(db, slug),
     },
   };
 }

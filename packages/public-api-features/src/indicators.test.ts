@@ -2,7 +2,7 @@ import { createFakeRepositories, type FakeRepositoryOverrides } from '@fphd/db/t
 import { request } from '@fphd/express/testing';
 import express, { type Express } from 'express';
 import { describe, expect, it, vi } from 'vitest';
-
+import { indicatorTableDataSchema } from './contract.ts';
 import { indicatorsRouter } from './indicators.ts';
 
 const indicatorDetail = {
@@ -43,6 +43,50 @@ function createTestApp(overrides: FakeRepositoryOverrides['indicators'] = {}): E
 
   return app;
 }
+
+describe('GET /api/indicator-data', () => {
+  it('returns a bounded batch of public table data with its contract metadata', async () => {
+    const entries = [
+      {
+        detail: indicatorDetail,
+        areaData: [{ areaCode: 'E92000001', areaName: 'England', observations: [] }],
+      },
+    ];
+    const findTableData = vi.fn().mockResolvedValue(entries);
+    const response = await request(createTestApp({ findTableData })).get(
+      '/api/indicator-data?indicator=108&indicator=108',
+    );
+    expect(response.status).toBe(200);
+    expect(indicatorTableDataSchema.parse(response.body)).toEqual(entries);
+    expect(findTableData).toHaveBeenCalledWith([108], ['E92000001']);
+    expect(Object.keys(response.body[0].detail)).not.toContain('id');
+  });
+
+  it('caps indicator and area batches and ignores malformed public identifiers', async () => {
+    const findTableData = vi.fn().mockResolvedValue([]);
+    const params = new URLSearchParams();
+    for (let id = 1; id <= 25; id++) params.append('indicator', String(id));
+    for (let id = 0; id < 25; id++) params.append('areaCode', `E${String(id).padStart(8, '0')}`);
+    await request(createTestApp({ findTableData })).get(`/api/indicator-data?${params}`);
+    expect(findTableData).toHaveBeenCalledWith(
+      Array.from({ length: 20 }, (_, i) => i + 1),
+      Array.from({ length: 20 }, (_, i) => `E${String(i).padStart(8, '0')}`),
+    );
+    expect((await request(createTestApp()).get('/api/indicator-data?indicator=nope')).status).toBe(
+      404,
+    );
+  });
+
+  it('refuses a partial batch when a requested indicator is not published', async () => {
+    expect(
+      (
+        await request(createTestApp({ findTableData: async () => [] })).get(
+          '/api/indicator-data?indicator=108',
+        )
+      ).status,
+    ).toBe(404);
+  });
+});
 
 describe('the public indicators surface', () => {
   it('404s data and range requests when the identifier resolves to nothing', async () => {
@@ -169,42 +213,44 @@ describe('GET /api/indicators/:indicator/data', () => {
         },
       ],
     };
-    const findObservations = vi.fn().mockResolvedValue(data);
-    const app = createTestApp({ resolveId: async () => 'ind-1', findObservations });
+    const findObservationsForAreas = vi.fn().mockResolvedValue([data]);
+    const app = createTestApp({ resolveId: async () => 'ind-1', findObservationsForAreas });
 
     const response = await request(app).get('/api/indicators/108/data');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual(data);
-    expect(findObservations).toHaveBeenCalledWith('ind-1', 'E92000001');
+    expect(findObservationsForAreas).toHaveBeenCalledWith('ind-1', ['E92000001']);
   });
 
   it('passes an explicit area code through to the repository', async () => {
-    const findObservations = vi
+    const findObservationsForAreas = vi
       .fn()
-      .mockResolvedValue({ areaCode: 'E06000001', areaName: 'Hartlepool', observations: [] });
-    const app = createTestApp({ resolveId: async () => 'ind-1', findObservations });
+      .mockResolvedValue([{ areaCode: 'E06000001', areaName: 'Hartlepool', observations: [] }]);
+    const app = createTestApp({ resolveId: async () => 'ind-1', findObservationsForAreas });
 
     const response = await request(app).get('/api/indicators/108/data?areaCode=E06000001');
 
     expect(response.status).toBe(200);
-    expect(findObservations).toHaveBeenCalledWith('ind-1', 'E06000001');
+    expect(findObservationsForAreas).toHaveBeenCalledWith('ind-1', ['E06000001']);
   });
 
-  it('answers with a list when several areas are asked for', async () => {
-    const findObservations = vi.fn().mockImplementation(async (_id: string, areaCode: string) => ({
-      areaCode,
-      areaName: areaCode,
-      observations: [],
-    }));
-    const app = createTestApp({ resolveId: async () => 'ind-1', findObservations });
-
+  it('reads several requested areas in one repository call', async () => {
+    const findObservationsForAreas = vi
+      .fn()
+      .mockImplementation(async (_id: string, codes: string[]) =>
+        codes.map((areaCode) => ({ areaCode, areaName: areaCode, observations: [] })),
+      );
+    const app = createTestApp({ resolveId: async () => 'ind-1', findObservationsForAreas });
     const response = await request(app).get(
       '/api/indicators/108/data?areaCode=E12000001&areaCode=E12000002',
     );
-
     expect(response.status).toBe(200);
     expect(response.body.map((entry: { areaCode: string }) => entry.areaCode)).toEqual([
+      'E12000001',
+      'E12000002',
+    ]);
+    expect(findObservationsForAreas).toHaveBeenCalledExactlyOnceWith('ind-1', [
       'E12000001',
       'E12000002',
     ]);
@@ -221,7 +267,7 @@ describe('GET /api/indicators/:indicator/data', () => {
   it('returns not-found when none of the requested areas exist', async () => {
     const app = createTestApp({
       resolveId: async () => 'ind-1',
-      findObservations: async () => undefined,
+      findObservationsForAreas: async () => [],
     });
 
     const response = await request(app).get('/api/indicators/424242/data');
@@ -269,5 +315,66 @@ describe('GET /api/indicators/:indicator/range', () => {
       (await request(app).get('/api/indicators/no%20pe/range?displayGroup=Local+authorities'))
         .status,
     ).toBe(404);
+  });
+});
+
+describe('GET /api/indicators/search pagination and dates', () => {
+  it('bounds pagination, recognises supported sorts and passes only valid date filters', async () => {
+    const searchWithFilters = vi
+      .fn()
+      .mockResolvedValue({ total: 0, limit: 10, page: 1, indicators: [] });
+    const app = createTestApp({ searchWithFilters });
+    await request(app).get(
+      '/api/indicators/search?t=mortality&subtopic=all-cause-and-winter-mortality&page=999&sort=trend-desc&fromYear=2010&toYear=2023&updatedWithin=6',
+    );
+    expect(searchWithFilters).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        topics: ['mortality'],
+        subtopics: ['all-cause-and-winter-mortality'],
+        page: 999,
+        sort: 'trend-desc',
+        limit: 10,
+        dataFromYear: 2010,
+        dataToYear: 2023,
+        updatedWithinMonths: 6,
+      }),
+    );
+    await request(app).get(
+      '/api/indicators/search?page=Infinity&sort=invalid&fromYear=oops&toYear=100000&updatedWithin=999',
+    );
+    expect(searchWithFilters).toHaveBeenLastCalledWith(
+      expect.objectContaining({ page: 1, limit: 10 }),
+    );
+    expect(searchWithFilters.mock.calls.at(-1)?.[0]).not.toHaveProperty('dataFromYear');
+    expect(searchWithFilters.mock.calls.at(-1)?.[0]).not.toHaveProperty('dataToYear');
+    expect(searchWithFilters.mock.calls.at(-1)?.[0]).not.toHaveProperty('updatedWithinMonths');
+  });
+});
+
+describe('search ordering and workload bounds', () => {
+  it('leaves relevance and topic grouping to the repository without an explicit sort', async () => {
+    const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, limit: 200, indicators: [] });
+    const app = createTestApp({ searchWithFilters });
+    await request(app).get('/api/indicators/search?q=108');
+    expect(searchWithFilters.mock.calls[0]?.[0]).not.toHaveProperty('sort');
+    await request(app).get('/api/indicators/search');
+    expect(searchWithFilters.mock.calls[1]?.[0]).not.toHaveProperty('sort');
+  });
+  it('requires one topic before evaluating a trend sort', async () => {
+    const searchWithFilters = vi.fn();
+    const response = await request(createTestApp({ searchWithFilters })).get(
+      '/api/indicators/search?sort=trend-desc',
+    );
+    expect(response.status).toBe(400);
+    expect(searchWithFilters).not.toHaveBeenCalled();
+  });
+  it('bounds explicit paged requests for complete topic loading', async () => {
+    const searchWithFilters = vi.fn().mockResolvedValue({ total: 0, limit: 200, indicators: [] });
+    await request(createTestApp({ searchWithFilters })).get(
+      '/api/indicators/search?t=diabetes&page=2&limit=9999',
+    );
+    expect(searchWithFilters).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 2, limit: 200 }),
+    );
   });
 });

@@ -1,4 +1,5 @@
 import type { IndicatorSearchFilters, Repositories } from '@fphd/db';
+import { indicatorSort } from '@fphd/utils/indicator-sort';
 import { isShortId, SHORT_ID_PATTERN } from '@fphd/utils/short-id';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '@fphd/utils/slug';
 import { Router } from 'express';
@@ -11,6 +12,7 @@ import type {
 } from './contract.ts';
 import {
   DEFAULT_INDICATOR_SEARCH_RESULTS,
+  indicatorPeriodFiltersSchema,
   MAX_FILTER_LABEL_LENGTH,
   MAX_FILTER_VALUE_LENGTH,
   MAX_FILTER_VALUES,
@@ -18,6 +20,7 @@ import {
   MAX_INDICATOR_QUERY_LENGTH,
   MAX_INDICATOR_SEARCH_RESULTS,
   MAX_SELECTED_AREAS,
+  MAX_TABLE_INDICATORS_PER_REQUEST,
   pickAreaCodes,
 } from './contract.ts';
 
@@ -58,6 +61,28 @@ function pickStrings(value: unknown, maxLength = MAX_FILTER_VALUE_LENGTH): strin
 export function indicatorsRouter(indicators: Repositories['indicators']): Router {
   const router = Router();
 
+  router.get('/api/indicator-data', async (request, response) => {
+    const raw = request.query.indicator;
+    const shortIds = [
+      ...new Set(
+        (Array.isArray(raw) ? raw : [raw])
+          .filter((value): value is string => typeof value === 'string' && isShortId(value))
+          .map(Number),
+      ),
+    ].slice(0, MAX_TABLE_INDICATORS_PER_REQUEST);
+    const areaCodes = pickAreaCodes(request.query.areaCode ?? DEFAULT_AREA_CODE);
+    if (!shortIds.length || !areaCodes.length) {
+      response.status(404).json({ error: 'not_found' });
+      return;
+    }
+    const entries = await indicators.findTableData(shortIds, areaCodes);
+    if (entries.length !== shortIds.length || entries.some(({ areaData }) => !areaData.length)) {
+      response.status(404).json({ error: 'not_found' });
+      return;
+    }
+    response.status(200).json(entries);
+  });
+
   router.get('/api/indicators/facets', async (_request, response) => {
     const facets: IndicatorFacets = await indicators.listFacets();
     response.status(200).json(facets);
@@ -70,6 +95,7 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
     const filters: IndicatorSearchFilters = {
       query,
       topics: pickStrings(request.query.t),
+      ...(request.query.subtopic ? { subtopics: pickStrings(request.query.subtopic) } : {}),
       indicatorTypes: pickStrings(request.query.it),
       lifeStages: pickStrings(request.query.ls),
       frameworks: pickStrings(request.query.fw),
@@ -82,6 +108,26 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
       yearTypes: pickStrings(request.query.per),
       limit: MAX_INDICATOR_FILTER_RESULTS,
     };
+    const { page, sort } = request.query;
+    const { fromYear, toYear, updatedWithin } = indicatorPeriodFiltersSchema.parse(request.query);
+    if (typeof page === 'string') {
+      const requested = Number(page);
+      filters.page = Number.isSafeInteger(requested) && requested > 0 ? requested : 1;
+      const limit = request.query.limit;
+      filters.limit =
+        typeof limit === 'string' && /^[1-9]\d*$/.test(limit)
+          ? Math.min(Number(limit), MAX_INDICATOR_FILTER_RESULTS)
+          : 10;
+    }
+    const requestedSort = indicatorSort(sort);
+    if (requestedSort?.startsWith('trend-') && filters.topics.length !== 1) {
+      response.status(400).json({ error: 'topic_required_for_trend_sort' });
+      return;
+    }
+    if (requestedSort) filters.sort = requestedSort;
+    if (fromYear) filters.dataFromYear = Number(fromYear);
+    if (toYear) filters.dataToYear = Number(toYear);
+    if (updatedWithin) filters.updatedWithinMonths = Number(updatedWithin);
 
     const result: IndicatorSearchResult = await indicators.searchWithFilters(filters);
     response.status(200).json(result);
@@ -117,11 +163,9 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
       return;
     }
 
-    const found = await Promise.all(
-      areaCodes.map((code) => indicators.findObservations(indicatorId, code)),
-    );
-    const data: IndicatorAreaData[] = found.filter(
-      (entry): entry is IndicatorAreaData => entry !== undefined,
+    const data: IndicatorAreaData[] = await indicators.findObservationsForAreas(
+      indicatorId,
+      areaCodes,
     );
 
     // The indicator is known, so every requested area missing means unknown areas.

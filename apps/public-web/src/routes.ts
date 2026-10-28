@@ -5,6 +5,10 @@ export default [
   route('search', '../../../packages/public-web-features/src/search/route.tsx'),
   route('topics', '../../../packages/public-web-features/src/topic/list-route.tsx'),
   route('topics/:slug', '../../../packages/public-web-features/src/topic/route.tsx'),
+  route(
+    'topics/:slug/table.csv',
+    '../../../packages/public-web-features/src/topic/table-csv-route.ts',
+  ),
   route('indicators', '../../../packages/public-web-features/src/indicator/route.tsx'),
   route('indicators/search', '../../../packages/public-web-features/src/indicator/search-route.ts'),
   route('geographies', '../../../packages/public-web-features/src/indicator/geography-route.ts'),

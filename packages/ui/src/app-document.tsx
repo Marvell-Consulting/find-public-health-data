@@ -9,6 +9,8 @@ interface AppDocumentProps {
 
 export function AppDocument({ children }: AppDocumentProps) {
   const nonce = useNonce();
+  const supportsFrontend =
+    typeof HTMLScriptElement !== 'undefined' && 'noModule' in HTMLScriptElement.prototype;
 
   return (
     <html lang="en" className="govuk-template">
@@ -18,7 +20,10 @@ export function AppDocument({ children }: AppDocumentProps) {
         <Meta />
         <Links nonce={nonce} />
       </head>
-      <body className="govuk-template__body" suppressHydrationWarning>
+      <body
+        className={`govuk-template__body${supportsFrontend ? ' govuk-frontend-supported' : ''}`}
+        suppressHydrationWarning
+      >
         <script
           nonce={nonce}
           // The CSP blanks the nonce attribute in the DOM, so hydration can never see it

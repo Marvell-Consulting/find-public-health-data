@@ -22,9 +22,10 @@ test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
   await expectNoAccessibilityViolations(page, testInfo);
 });
 
-test('uses the application-wide content width', async ({ page }) => {
+test('keeps the homepage and header at the prototype content width', async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 900 });
 
-  await expect(page.locator('.govuk-template__container')).toHaveCSS('max-width', '1400px');
-  await expect(page.locator('.govuk-template__container')).toHaveCSS('width', '1400px');
+  await expect(page.locator('.govuk-template__container')).toHaveCSS('max-width', '960px');
+  await expect(page.locator('.govuk-template__container')).toHaveCSS('width', '960px');
+  await expect(page.locator('.govuk-header .govuk-width-container')).toHaveCSS('width', '960px');
 });

@@ -10,6 +10,37 @@ afterEach(() => {
 });
 
 describe('GeographyTree', () => {
+  it('shows the areas immediately when only one preloaded geography level is available', () => {
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    render(
+      <GeographyTree
+        levels={['Statistical regions']}
+        name="areas"
+        onChange={() => undefined}
+        onLevelsChange={() => undefined}
+        selected={[]}
+        selectedLevels={[]}
+        fallback={{
+          query: '',
+          level: '',
+          groups: [],
+          error: false,
+          previews: [
+            { name: 'Statistical regions', areas: [{ code: 'E12000007', name: 'London' }] },
+          ],
+        }}
+      />,
+    );
+    expect(
+      screen
+        .getByRole('button', { name: 'Collapse Statistical regions' })
+        .getAttribute('aria-expanded'),
+    ).toBe('true');
+    expect(screen.getByRole('checkbox', { name: 'London' })).toBeTruthy();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it('announces a level while its areas load', () => {
     vi.stubGlobal('fetch', () => new Promise(() => undefined));
     const { container } = render(
@@ -51,4 +82,34 @@ describe('GeographyTree', () => {
     expect(screen.getByText('Local authorities')).toBeTruthy();
     expect(screen.getByText('Finding geographies…').className).toContain('govuk-visually-hidden');
   });
+});
+
+it('searches a flat catalogue supplied after the tab loader finishes', () => {
+  const props = {
+    flat: true,
+    levels: ['Local authorities'],
+    name: 'areas',
+    selected: [],
+    selectedLevels: [],
+    onChange: () => undefined,
+    onLevelsChange: () => undefined,
+  };
+  const fallback = { query: '', level: '', groups: [], previews: [], error: false };
+  const { rerender } = render(<GeographyTree {...props} fallback={fallback} />);
+  rerender(
+    <GeographyTree
+      {...props}
+      fallback={{
+        ...fallback,
+        previews: [{ name: 'Local authorities', areas: [{ code: 'E08000035', name: 'Leeds' }] }],
+      }}
+    />,
+  );
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Add geographies' }), {
+    target: { value: 'Leeds' },
+  });
+  expect(screen.getByRole('checkbox', { name: 'Leeds' })).toBeTruthy();
+  expect(screen.getByRole('region', { name: 'Geography choices' }).getAttribute('tabindex')).toBe(
+    '0',
+  );
 });

@@ -18,9 +18,22 @@ export const MAX_INDICATOR_QUERY_LENGTH = 200;
 export const DEFAULT_INDICATOR_SEARCH_RESULTS = 20;
 export const MAX_INDICATOR_SEARCH_RESULTS = 100;
 export const MAX_INDICATOR_FILTER_RESULTS = 200;
+export const MAX_TABLE_INDICATORS_PER_REQUEST = 20;
 export const MAX_FILTER_LABEL_LENGTH = 500;
 export const MAX_FILTER_VALUE_LENGTH = 100;
 export const MAX_FILTER_VALUES = 100;
+
+export const indicatorPeriodFiltersSchema = z.object({
+  fromYear: z
+    .string()
+    .regex(/^[12]\d{3}$/)
+    .catch(''),
+  toYear: z
+    .string()
+    .regex(/^[12]\d{3}$/)
+    .catch(''),
+  updatedWithin: z.enum(['', '3', '6', '12']).catch(''),
+});
 
 export function pickAreaCodes(value: unknown, limit = MAX_AREA_CODES_PER_REQUEST): string[] {
   return [
@@ -56,9 +69,38 @@ export const topicSummarySchema = z.object({
 
 export const topicSummaryListSchema = z.array(topicSummarySchema);
 
-// A topic's detail currently adds nothing to its summary. Kept as a distinct name so the
-// detail response can grow (indicators, related links) without touching the list contract.
-export const topicDetailSchema = topicSummarySchema;
+export const topicContentSchema = z.object({
+  overviewIntro: z.string().min(1),
+  highlightedIndicatorIds: z.array(z.number().int().positive()).max(4),
+  highlightIntro: z.string().min(1),
+  highlightPoints: z.array(z.string().min(1)),
+  moreInformation: z.object({
+    intro: z.string().min(1),
+    sections: z.array(
+      z.object({
+        heading: z.string().min(1),
+        links: z.array(
+          z.object({ label: z.string().min(1), url: z.url(), note: z.string().optional() }),
+        ),
+      }),
+    ),
+  }),
+});
+
+export const topicDetailSchema = topicSummarySchema.extend({
+  content: topicContentSchema.nullable().optional(),
+  subtopics: z.array(z.object({ slug: z.string().min(1), title: z.string().min(1) })).optional(),
+});
+
+export const topicTrendSummarySchema = z.object({
+  total: z.number().int().nonnegative(),
+  better: z.number().int().nonnegative(),
+  worse: z.number().int().nonnegative(),
+  unchanged: z.number().int().nonnegative(),
+  increasing: z.number().int().nonnegative(),
+  decreasing: z.number().int().nonnegative(),
+  unavailable: z.number().int().nonnegative(),
+});
 
 /** The indicator's canonical slug: what a link to it is built from. */
 export const indicatorSlugSchema = z.string().min(1).max(SLUG_MAX_LENGTH).regex(SLUG_PATTERN);
@@ -160,6 +202,12 @@ export const indicatorAreaDataSchema = z.object({
 });
 
 export const indicatorAreaDataListSchema = z.array(indicatorAreaDataSchema);
+export const indicatorTableDataSchema = z.array(
+  z.object({
+    detail: indicatorDetailSchema,
+    areaData: indicatorAreaDataListSchema,
+  }),
+);
 
 export const indicatorRangeSchema = z.object({
   periods: z.array(
@@ -210,6 +258,7 @@ export const areaParentListSchema = z.array(
 
 export type TopicSummary = z.infer<typeof topicSummarySchema>;
 export type TopicDetail = z.infer<typeof topicDetailSchema>;
+export type TopicTrendSummary = z.infer<typeof topicTrendSummarySchema>;
 export type IndicatorSummary = z.infer<typeof indicatorSummarySchema>;
 export type IndicatorDetail = z.infer<typeof indicatorDetailSchema>;
 export type IndicatorSource = z.infer<typeof indicatorSourceSchema>;
@@ -238,6 +287,7 @@ export const indicatorSearchResultSchema = z.object({
   // The cap the server applied, so the page can say how many of the total it is showing.
   limit: z.number().int(),
   indicators: z.array(indicatorSearchRowSchema),
+  page: z.number().int().positive().optional(),
 });
 
 export const indicatorFacetsSchema = z.object({

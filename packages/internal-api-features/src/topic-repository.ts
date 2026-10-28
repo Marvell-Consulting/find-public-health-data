@@ -79,7 +79,13 @@ export async function updateTopic(
       // Named columns only: the id and creation timestamp stay the database's to set.
       const [updated] = await tx
         .update(topic)
-        .set({ ...update, updatedAt: sql`now()`, updatedBy: actor.userId })
+        .set({
+          ...update,
+          // JS consumers observe millisecond timestamps; a save in the same millisecond
+          // still needs a later revision time.
+          updatedAt: sql`greatest(now(), ${topic.updatedAt} + interval '1 millisecond')`,
+          updatedBy: actor.userId,
+        })
         .where(eq(topic.id, id))
         .returning();
 

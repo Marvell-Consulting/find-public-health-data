@@ -112,6 +112,24 @@
       "development": "./src/value-type-and-unit.ts",
       "types": "./src/value-type-and-unit.ts",
       "default": "./dist/value-type-and-unit.js"
+    },
+    "./recent-trend": {
+      "browser": "./src/recent-trend.ts",
+      "development": "./src/recent-trend.ts",
+      "types": "./src/recent-trend.ts",
+      "default": "./dist/recent-trend.js"
+    },
+    "./indicator-sort": {
+      "browser": "./src/indicator-sort.ts",
+      "development": "./src/indicator-sort.ts",
+      "types": "./src/indicator-sort.ts",
+      "default": "./dist/indicator-sort.js"
+    },
+    "./observation-series": {
+      "browser": "./src/observation-series.ts",
+      "development": "./src/observation-series.ts",
+      "types": "./src/observation-series.ts",
+      "default": "./dist/observation-series.js"
     }
   },
   "files": [

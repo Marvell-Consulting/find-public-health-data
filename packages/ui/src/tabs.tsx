@@ -1,102 +1,156 @@
 import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router';
+import { useLocation, useNavigate, useNavigation } from 'react-router';
 
 interface TabItem {
   id: string;
   label: string;
   content: ReactNode;
-  /** Short value carried in the tab param ('table'); the id remains the anchor target. */
   param?: string;
 }
 
-/**
- * The GOV.UK tabs pattern, with the open tab kept in a query param of its own
- * (`tab-241=table`) rather than the URL hash: several indicators' tab sets coexist
- * on one page, and a single hash cannot remember more than one of them — nor stay out
- * of the browser's scroll handling. The anchors keep their panel hrefs, so without
- * JavaScript the panels stack and the links jump to them.
- *
- * This is not @not-govuk/tabs because that component offers no way to choose the
- * initially-active tab, so a server-chosen pane would flash to the first tab on
- * hydration and the query-param state above could not work.
- */
-export function Tabs({
+interface TabsProps {
+  items: TabItem[];
+  paramKey: string;
+  title?: string;
+  waitForNavigation?: boolean;
+  history?: 'push' | 'replace';
+  defaultParam?: string | undefined;
+  sectionHeadings?: boolean;
+}
+
+// Query parameters preserve the server-rendered view in shared links; NotGovUK tabs only track hashes.
+export function Tabs(props: TabsProps) {
+  return props.waitForNavigation ? <NavigationTabs {...props} /> : <TabPanels {...props} />;
+}
+
+function NavigationTabs(props: TabsProps) {
+  const navigation = useNavigation();
+  return <TabPanels {...props} navigation={navigation} />;
+}
+
+function TabPanels({
   items,
   paramKey,
   title = 'Contents',
-}: {
-  items: TabItem[];
-  /** The query param carrying this tab set's open panel, e.g. 'tab-241'. */
-  paramKey: string;
-  title?: string;
-}) {
+  waitForNavigation = false,
+  history = 'replace',
+  defaultParam,
+  sectionHeadings = false,
+  navigation,
+}: TabsProps & { navigation?: ReturnType<typeof useNavigation> }) {
   const location = useLocation();
   const navigate = useNavigate();
-  // The param is in the request URL, so server render and hydration agree on the choice.
-  const fromParam = new URLSearchParams(location.search).get(paramKey);
-  const paramIndex = items.findIndex(({ id, param }) => (param ?? id) === fromParam);
-  const [selected, setSelected] = useState(paramIndex > 0 ? paramIndex : 0);
+  const fromParam = new URLSearchParams(location.search).get(paramKey) ?? defaultParam;
+  const defaultIndex = Math.max(
+    0,
+    items.findIndex(({ id, param }) => (param ?? id) === defaultParam),
+  );
+  const paramIndex = Math.max(
+    0,
+    items.findIndex(({ id, param }) => (param ?? id) === fromParam),
+  );
+  const [selected, setSelected] = useState(paramIndex);
   const [mounted, setMounted] = useState(false);
+  const [tabMode, setTabMode] = useState(false);
+  const hashIndex = mounted ? items.findIndex(({ id }) => location.hash === `#${id}`) : -1;
+  const committedIndex = hashIndex >= 0 ? hashIndex : waitForNavigation ? paramIndex : selected;
+  const pendingParam =
+    waitForNavigation && navigation?.location?.pathname === location.pathname
+      ? (new URLSearchParams(navigation.location.search).get(paramKey) ?? defaultParam)
+      : undefined;
+  const pendingIndex = Math.max(
+    0,
+    items.findIndex(({ id, param }) => (param ?? id) === pendingParam),
+  );
+  const loading =
+    tabMode &&
+    waitForNavigation &&
+    navigation?.state === 'loading' &&
+    navigation.location?.pathname === location.pathname &&
+    pendingIndex !== committedIndex;
+  const visibleIndex = loading ? pendingIndex : committedIndex;
   const refs = useRef<(HTMLAnchorElement | null)[]>([]);
+  const panels = useRef<(HTMLDivElement | null)[]>([]);
+  const previousTabMode = useRef<boolean | undefined>(undefined);
 
   useEffect(() => {
     setMounted(true);
-    // Legacy #hash links never reach the server; honoured once, superseded by the param.
-    const fromHash = items.findIndex(({ id }) => window.location.hash === `#${id}`);
-    if (fromHash > 0) {
-      setSelected(fromHash);
-    }
+    const media =
+      typeof window.matchMedia === 'function'
+        ? window.matchMedia('(min-width: 40.0625em)')
+        : undefined;
+    const update = () => setTabMode(media?.matches ?? true);
+    update();
+    media?.addEventListener('change', update);
+    return () => media?.removeEventListener('change', update);
   }, []);
 
-  const choose = (index: number) => {
-    setSelected(index);
+  useEffect(() => {
+    if (!mounted) return;
+    const enteredContents = !tabMode && previousTabMode.current !== false;
+    previousTabMode.current = tabMode;
+    if (enteredContents && committedIndex > 0 && !location.hash) {
+      panels.current[committedIndex]?.scrollIntoView({ block: 'start' });
+    }
+  }, [mounted, tabMode, committedIndex, location.hash]);
+
+  const previousParam = useRef(fromParam);
+  useEffect(() => {
+    if (previousParam.current === fromParam) return;
+    previousParam.current = fromParam;
+    setSelected(paramIndex);
+  }, [fromParam, paramIndex]);
+
+  const searchFor = (index: number) => {
     const params = new URLSearchParams(location.search);
     const item = items[index];
-    if (index === 0 || !item) {
-      // The first tab is the default; a param would only clutter the URL.
-      params.delete(paramKey);
-    } else {
-      params.set(paramKey, item.param ?? item.id);
-    }
-    void navigate({ search: `?${params.toString()}` }, { replace: true, preventScrollReset: true });
+    if (index === defaultIndex || !item) params.delete(paramKey);
+    else params.set(paramKey, item.param ?? item.id);
+    return `?${params.toString()}`;
   };
-
+  const choose = (index: number) => {
+    if (index === visibleIndex) return;
+    if (!waitForNavigation) setSelected(index);
+    void navigate(
+      { search: searchFor(index) },
+      { replace: history === 'replace', preventScrollReset: true },
+    );
+  };
   const focusTab = (index: number) => {
     choose(index);
     refs.current[index]?.focus();
   };
-
   const onKeyDown = (event: KeyboardEvent<HTMLAnchorElement>) => {
-    if (event.key === 'ArrowLeft' && selected > 0) {
+    if (!tabMode) return;
+    if (event.key === 'ArrowLeft' && visibleIndex > 0) {
       event.preventDefault();
-      focusTab(selected - 1);
+      focusTab(visibleIndex - 1);
     }
-    if (event.key === 'ArrowRight' && selected < items.length - 1) {
+    if (event.key === 'ArrowRight' && visibleIndex < items.length - 1) {
       event.preventDefault();
-      focusTab(selected + 1);
+      focusTab(visibleIndex + 1);
     }
   };
 
   return (
-    <div className={`govuk-tabs${mounted ? '' : ' fphd-tabs--ssr'}`} data-module="">
+    <div className={`govuk-tabs fphd-tabs${mounted ? '' : ' fphd-tabs--ssr'}`} data-module="">
       <h2 className="govuk-tabs__title">{title}</h2>
-      {/* biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: the ARIA tabs
-          pattern (and govuk-frontend's own markup) puts role=tablist on the list. */}
-      <ul className="govuk-tabs__list" role="tablist">
+      <ul className="govuk-tabs__list" role={tabMode ? 'tablist' : undefined}>
         {items.map(({ id, label }, index) => (
           <li
-            className={`govuk-tabs__list-item${index === selected ? ' govuk-tabs__list-item--selected' : ''}`}
+            className={`govuk-tabs__list-item${index === visibleIndex ? ' govuk-tabs__list-item--selected' : ''}`}
             key={id}
-            role="presentation"
+            role={tabMode ? 'presentation' : undefined}
           >
             <a
-              aria-controls={id}
-              aria-selected={index === selected}
+              {...(tabMode
+                ? { role: 'tab', 'aria-controls': id, 'aria-selected': index === visibleIndex }
+                : {})}
               className="govuk-tabs__tab"
-              href={`#${id}`}
+              href={tabMode && waitForNavigation ? `${searchFor(index)}#${id}` : `#${id}`}
               id={`tab_${id}`}
               onClick={(event) => {
-                // The anchor default would write the hash and scroll; the param changes neither.
+                if (!tabMode) return;
                 event.preventDefault();
                 choose(index);
               }}
@@ -104,8 +158,7 @@ export function Tabs({
               ref={(el) => {
                 refs.current[index] = el;
               }}
-              role="tab"
-              tabIndex={mounted ? (index === selected ? 0 : -1) : undefined}
+              tabIndex={tabMode ? (index === visibleIndex ? 0 : -1) : undefined}
             >
               {label}
             </a>
@@ -114,13 +167,30 @@ export function Tabs({
       </ul>
       {items.map(({ content, id }, index) => (
         <div
-          aria-labelledby={`tab_${id}`}
-          className={`govuk-tabs__panel${index === selected ? ' fphd-tabs__panel--open' : ''}${mounted && index !== selected ? ' govuk-tabs__panel--hidden' : ''}`}
+          {...(tabMode ? { role: 'tabpanel', 'aria-labelledby': `tab_${id}` } : {})}
+          aria-busy={loading && index === visibleIndex ? true : undefined}
+          className={`govuk-tabs__panel${index === visibleIndex ? ' fphd-tabs__panel--open' : ''}${mounted && tabMode && index !== visibleIndex ? ' govuk-tabs__panel--hidden' : ''}`}
           id={id}
           key={id}
-          role="tabpanel"
+          ref={(element) => {
+            panels.current[index] = element;
+          }}
         >
-          {content}
+          {sectionHeadings ? (
+            <h2 className="govuk-heading-l fphd-tabs__section-title">{items[index]?.label}</h2>
+          ) : null}
+          {loading && index === visibleIndex ? (
+            <p className="govuk-body fphd-tabs__loading" role="status">
+              Loading {items[index]?.label.toLowerCase()}…
+            </p>
+          ) : null}
+          <div
+            className="fphd-tabs__content"
+            aria-hidden={loading && index === visibleIndex ? true : undefined}
+            inert={loading && index === visibleIndex ? true : undefined}
+          >
+            {content}
+          </div>
         </div>
       ))}
     </div>

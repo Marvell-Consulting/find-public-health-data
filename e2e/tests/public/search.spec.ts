@@ -20,6 +20,14 @@ test('loads the search page with h1', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: 'Search for data' })).toBeVisible();
 });
 
+test('keeps direct indicator matches ahead of taxonomy-only matches', async ({
+  page,
+}, testInfo) => {
+  await ready(page, '/search?q=diabetes');
+  await expect(results(page).getByRole('link').first()).toHaveText('Diabetes: QOF prevalence');
+  await expectNoAccessibilityViolations(page, testInfo);
+});
+
 test('uses the compact NotGovUK search box', async ({ page }) => {
   await page.goto('/search');
 
@@ -326,7 +334,10 @@ test('lays out the geography levels and their first 100 areas as a compact tree'
   const longLevelBox = await longLevel.boundingBox();
   const areaBox = await area.boundingBox();
   expect(levelBox).not.toBeNull();
-  expect(longLevelBox?.height).toBe(levelBox?.height);
+  expect(longLevelBox?.height ?? 0).toBeGreaterThanOrEqual(levelBox?.height ?? 0);
+  expect(await longLevel.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
+    true,
+  );
   expect((areaBox?.x ?? 0) - (levelBox?.x ?? 0)).toBe(26);
 });
 
@@ -422,7 +433,13 @@ test('geography failure stays visible after scrolling previous results', async (
   const tree = geography.locator('.fphd-geo-alt__tree');
   const input = geography.getByRole('searchbox', { name: 'Add geographies' });
   await input.fill('E');
-  await expect(tree.getByRole('checkbox').first()).toBeVisible();
+  await expect(
+    tree
+      .getByRole('group', { name: /^Areas in / })
+      .first()
+      .getByRole('checkbox')
+      .first(),
+  ).toBeVisible();
   await tree.evaluate((element) => {
     element.scrollTop = element.scrollHeight;
   });
@@ -529,16 +546,11 @@ test('a whole level exceeding the area limit shows a notice on the indicator vie
 
 test('expanded filters have no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
   await ready(page);
-  for (const title of [
-    'Topics and types',
-    'Geography',
-    'Frameworks',
-    'Populations and inequalities',
-    'Data attributes',
-  ]) {
-    await card(page, title)
-      .getByRole('button', { name: /Expand$/ })
-      .click();
+  const filterCards = page.locator('.fphd-filter-card');
+  await expect(filterCards.first()).toBeVisible();
+  for (const filterCard of await filterCards.all()) {
+    const expand = filterCard.getByRole('button', { name: /Expand$/ });
+    if (await expand.count()) await expand.click();
   }
   await expectNoAccessibilityViolations(page, testInfo);
 });

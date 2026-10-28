@@ -45,6 +45,8 @@ export function CollapsibleFilterCard({
   active,
   onClear,
   title,
+  variant = 'card',
+  headingLevel = 2,
 }: {
   children: ReactNode;
   footer?: ReactNode | undefined;
@@ -52,16 +54,21 @@ export function CollapsibleFilterCard({
   active: boolean;
   onClear?: string | undefined;
   title: string;
+  variant?: 'card' | 'accordion';
+  headingLevel?: 2 | 3;
 }) {
   const bodyId = useId();
+  const Heading = headingLevel === 3 ? 'h3' : 'h2';
   const [open, setOpen] = useState(active);
   useEffect(() => {
     if (active) setOpen(true);
   }, [active]);
 
   return (
-    <div className="fphd-filter-card govuk-!-margin-bottom-4">
-      <h2
+    <div
+      className={`fphd-filter-card ${variant === 'accordion' ? 'fphd-filter-card--accordion' : 'govuk-!-margin-bottom-4'}`}
+    >
+      <Heading
         aria-label={title}
         className="fphd-filter-card__header govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-0"
       >
@@ -69,14 +76,24 @@ export function CollapsibleFilterCard({
         <button
           aria-controls={bodyId}
           aria-expanded={open}
-          aria-label={`${title} ${open ? 'Collapse' : 'Expand'}`}
+          aria-label={variant === 'accordion' ? title : `${title} ${open ? 'Collapse' : 'Expand'}`}
           className="fphd-filter-card__toggle"
           onClick={() => setOpen((v) => !v)}
           type="button"
         >
-          {open ? 'Collapse' : 'Expand'}
+          {variant === 'accordion' ? (
+            <svg
+              className="fphd-filter-card__chevron"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="m5 9 7 7 7-7" fill="none" stroke="currentColor" strokeWidth="2.5" />
+            </svg>
+          ) : null}
+          {variant === 'accordion' ? title : open ? 'Collapse' : 'Expand'}
         </button>
-      </h2>
+      </Heading>
       {/* Always in the HTML: CSS reveals it without JavaScript, JS toggles hidden. */}
       <div className="fphd-filter-card__body fphd-collapsible-body" hidden={!open} id={bodyId}>
         {hint ? <Hint className="govuk-body-s govuk-!-margin-bottom-3">{hint}</Hint> : null}

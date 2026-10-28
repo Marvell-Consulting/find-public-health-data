@@ -70,12 +70,14 @@ describe('GET /api/topics', () => {
 
 describe('GET /api/topics/:slug', () => {
   it('finds a topic by slug, as ISO timestamps', async () => {
-    const app = createTestApp({ findBySlug: async () => topicA });
+    const app = createTestApp({ findBySlug: async () => topicA, listSubtopics: async () => [] });
 
     const response = await request(app).get('/api/topics/topic-a');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
+      content: null,
+      subtopics: [],
       slug: 'topic-a',
       title: 'Topic A',
       description: 'All about topic A.',
@@ -85,7 +87,7 @@ describe('GET /api/topics/:slug', () => {
   });
 
   it('does not leak the internal row id in a topic detail', async () => {
-    const app = createTestApp({ findBySlug: async () => topicA });
+    const app = createTestApp({ findBySlug: async () => topicA, listSubtopics: async () => [] });
 
     const response = await request(app).get('/api/topics/topic-a');
 
@@ -99,5 +101,41 @@ describe('GET /api/topics/:slug', () => {
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'not_found' });
+  });
+
+  it('serves reviewed diabetes overview and publication links', async () => {
+    const app = createTestApp({
+      findBySlug: async () => ({ ...topicA, slug: 'diabetes' }),
+      listSubtopics: async () => [{ slug: 'prevalence-and-risk', title: 'Prevalence and risk' }],
+    });
+    const response = await request(app).get('/api/topics/diabetes');
+    expect(response.body.subtopics).toEqual([
+      { slug: 'prevalence-and-risk', title: 'Prevalence and risk' },
+    ]);
+    expect(response.body.content.highlightedIndicatorIds).toEqual([241, 93995, 94262, 94273]);
+    expect(response.body.content.moreInformation.sections[0].links[0].url).toBe(
+      'https://www.gov.uk/government/statistics/diabetes-profile-update-april-2026',
+    );
+  });
+});
+
+describe('GET /api/topics/:slug/trends', () => {
+  it('serves the repository trend summary for a published topic', async () => {
+    const summary = {
+      total: 54,
+      better: 4,
+      worse: 1,
+      unchanged: 2,
+      increasing: 13,
+      decreasing: 0,
+      unavailable: 34,
+    };
+    const app = createTestApp({
+      findBySlug: async () => topicA,
+      trendSummary: async () => summary,
+    });
+    const response = await request(app).get('/api/topics/topic-a/trends');
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(summary);
   });
 });

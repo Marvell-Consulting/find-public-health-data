@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
-
 import { expectNoAccessibilityViolations } from '../support/accessibility.ts';
 import { PUBLISHER } from '../support/sign-in.ts';
+import { topicPageTests } from '../support/topic-page.ts';
 
 test.use({ storageState: PUBLISHER.storageState });
 
@@ -16,3 +16,5 @@ test('shows a topic to a publisher', async ({ page }) => {
 test('has no WCAG 2.2 AA violations', async ({ page }, testInfo) => {
   await expectNoAccessibilityViolations(page, testInfo);
 });
+
+topicPageTests();

@@ -3,6 +3,7 @@ import Checkboxes from '@not-govuk/checkboxes';
 import Hint from '@not-govuk/hint';
 import Input from '@not-govuk/input';
 import Label from '@not-govuk/label';
+import Radios from '@not-govuk/radios';
 import { useEffect, useId, useRef, useState } from 'react';
 
 export interface GeographyArea {
@@ -11,6 +12,13 @@ export interface GeographyArea {
 }
 
 interface GeographyTreeProps {
+  lookupUrl?: string | undefined;
+  flat?: boolean;
+  single?: boolean;
+  searchLabel?: string | undefined;
+  searchHint?: string | undefined;
+  groupAsOne?: boolean;
+  showLimitHint?: boolean;
   fallback?:
     | {
         query: string;
@@ -55,10 +63,24 @@ export function GeographyTree({
   selected,
   selectedLevels,
   fallback,
+  lookupUrl = '/geographies',
+  flat = false,
+  single = false,
+  searchLabel = 'Add geographies',
+  searchHint,
+  groupAsOne = false,
+  showLimitHint = true,
 }: GeographyTreeProps) {
+  const lookup = (query: string) => `${lookupUrl}${lookupUrl.includes('?') ? '&' : '?'}${query}`;
   const idPrefix = useId();
   const [query, setQuery] = useState(fallback?.query ?? '');
-  const [expanded, setExpanded] = useState<string[]>(fallback?.level ? [fallback.level] : []);
+  const [expanded, setExpanded] = useState<string[]>(
+    fallback?.level
+      ? [fallback.level]
+      : levels.length === 1 && fallback?.previews?.some(({ name }) => name === levels[0])
+        ? levels
+        : [],
+  );
   const [loaded, setLoaded] = useState<Record<string, GeographyArea[] | 'loading'>>(() =>
     Object.fromEntries(
       [...(fallback?.previews ?? []), ...(fallback?.level ? fallback.groups : [])].map(
@@ -79,12 +101,13 @@ export function GeographyTree({
   const [retry, setRetry] = useState(0);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const levelRequests = useRef(new Map<string, AbortController>());
-  const resultsRef = useRef<HTMLDivElement>(null);
+  const resultsRef = useRef<HTMLElement>(null);
 
   const searching = query.trim() !== '';
 
   useEffect(() => {
     clearTimeout(searchTimer.current);
+    if (flat) return;
     if (!searching) {
       setSearchGroups([]);
       setCompletedQuery(null);
@@ -94,7 +117,7 @@ export function GeographyTree({
     setSearchStatus('loading');
     const controller = new AbortController();
     searchTimer.current = setTimeout(() => {
-      fetch(`/geographies?q=${encodeURIComponent(query.trim())}`, { signal: controller.signal })
+      fetch(lookup(`q=${encodeURIComponent(query.trim())}`), { signal: controller.signal })
         .then((response) => {
           if (!response.ok) throw new Error(`geographies answered ${response.status}`);
           return response.json();
@@ -114,7 +137,7 @@ export function GeographyTree({
       clearTimeout(searchTimer.current);
       controller.abort();
     };
-  }, [query, searching, retry]);
+  }, [query, searching, retry, lookupUrl, flat]);
 
   useEffect(
     () => () => {
@@ -137,7 +160,7 @@ export function GeographyTree({
       levelRequests.current.set(level, controller);
       setFailedLevels((current) => current.filter((value) => value !== level));
       setLoaded((current) => ({ ...current, [level]: 'loading' }));
-      fetch(`/geographies?level=${encodeURIComponent(level)}`, { signal: controller.signal })
+      fetch(lookup(`level=${encodeURIComponent(level)}`), { signal: controller.signal })
         .then((response) => {
           if (!response.ok) {
             throw new Error(`geographies answered ${response.status}`);
@@ -180,13 +203,30 @@ export function GeographyTree({
 
   const browseGroups = levels.map((level) => ({
     name: level,
-    areas: Array.isArray(loaded[level]) ? (loaded[level] as GeographyArea[]) : [],
+    areas: flat
+      ? (fallback?.previews?.find((group) => group.name === level)?.areas ?? [])
+      : Array.isArray(loaded[level])
+        ? (loaded[level] as GeographyArea[])
+        : [],
   }));
   const showingSearchResults =
     searching &&
-    completedQuery !== null &&
-    (searchGroups.length > 0 || (completedQuery === query.trim() && searchStatus === 'idle'));
-  const groups = showingSearchResults ? searchGroups : browseGroups;
+    (flat ||
+      (completedQuery !== null &&
+        (searchGroups.length > 0 || (completedQuery === query.trim() && searchStatus === 'idle'))));
+  const groups =
+    flat && searching
+      ? browseGroups.map((group) => ({
+          ...group,
+          areas: group.areas.filter(
+            ({ name, code }) =>
+              name.toLowerCase().includes(query.trim().toLowerCase()) ||
+              code.toLowerCase() === query.trim().toLowerCase(),
+          ),
+        }))
+      : showingSearchResults
+        ? searchGroups
+        : browseGroups;
   const shownFor = (group: { name: string; areas: GeographyArea[] }) =>
     // Ticked areas stay rendered past the cap, so their state remains visible.
     group.areas
@@ -194,7 +234,7 @@ export function GeographyTree({
       .concat(group.areas.slice(CHILD_CAP).filter(({ code }) => selected.includes(code)));
   const visibleCodes = new Set(
     groups
-      .filter(({ name: groupName }) => showingSearchResults || expanded.includes(groupName))
+      .filter(({ name: groupName }) => flat || showingSearchResults || expanded.includes(groupName))
       .flatMap((group) => shownFor(group).map(({ code }) => code)),
   );
 
@@ -202,16 +242,25 @@ export function GeographyTree({
     <div>
       <div className="govuk-form-group govuk-!-margin-bottom-2">
         <Label classModifiers="s" htmlFor={`${idPrefix}-search`}>
-          Add geographies
+          {searchLabel}
         </Label>
+        {searchHint ? (
+          <Hint
+            className={flat ? 'govuk-body-s govuk-!-margin-bottom-1' : undefined}
+            id={`${idPrefix}-hint`}
+          >
+            {searchHint}
+          </Hint>
+        ) : null}
         <Input
+          aria-describedby={searchHint ? `${idPrefix}-hint` : undefined}
           autoComplete="off"
           className="fphd-geo-search"
           id={`${idPrefix}-search`}
           name="geo-q"
           maxLength={100}
           onChange={(event) => setQuery(event.currentTarget.value)}
-          placeholder="Type to find geographies"
+          placeholder={searchHint ? undefined : 'Type to find geographies'}
           type="search"
           value={query}
         />
@@ -221,14 +270,20 @@ export function GeographyTree({
           Find geographies
         </Button>
       </noscript>
-      {maxAreaTicks !== undefined ? (
+      {showLimitHint && maxAreaTicks !== undefined ? (
         <Hint className="govuk-body-s">
           Select up to {maxAreaTicks} areas. England is included for comparison.
         </Hint>
       ) : null}
-      <fieldset className="fphd-geo-alt">
+      <fieldset className={`fphd-geo-alt${flat ? ' fphd-geo-alt--flat' : ''}`}>
         <legend className="govuk-visually-hidden">Geographies grouped by level</legend>
-        <div className="fphd-geo-alt__tree" ref={resultsRef}>
+        <section
+          className="fphd-geo-alt__tree"
+          ref={resultsRef}
+          aria-label="Geography choices"
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: the choices must remain keyboard-scrollable when empty.
+          tabIndex={0}
+        >
           <div role="status">
             {searchStatus === 'loading' ? (
               <p className="govuk-visually-hidden">Finding geographies…</p>
@@ -236,7 +291,7 @@ export function GeographyTree({
             {searchStatus === 'error' ? (
               <p className="govuk-body-s">Geography search is not working right now. Try again.</p>
             ) : null}
-            {showingSearchResults && searchGroups.length === 0 ? (
+            {showingSearchResults && !groups.some(({ areas }) => areas.length > 0) ? (
               <p className="govuk-body-s">
                 No geographies found. Try a different name or area code.
               </p>
@@ -255,44 +310,63 @@ export function GeographyTree({
             </Button>
           ) : null}
           {groups.map((group) => {
-            const isOpen = showingSearchResults || expanded.includes(group.name);
+            const AreaChoices = single ? Radios : Checkboxes;
+            const isOpen = flat || showingSearchResults || expanded.includes(group.name);
             const isLoading = !showingSearchResults && loaded[group.name] === 'loading';
             const groupId = `${idPrefix}-grp-${group.name.toLowerCase().replace(/\W+/g, '-')}`;
             const shown = shownFor(group);
             // The component's own `selected` is uncontrolled; `checked` rides the option
             // spread onto the input so React owns the state.
             const levelOption = {
-              label: group.name,
+              label: groupAsOne ? (
+                <>
+                  <span className="govuk-visually-hidden">All </span>
+                  {group.name}
+                  <span className="govuk-visually-hidden"> (as one group)</span>
+                </>
+              ) : (
+                group.name
+              ),
               checked: selectedLevels.includes(group.name),
               value: group.name,
             };
 
             return (
               <div key={group.name}>
-                <div className="fphd-geo-alt__group">
-                  {showingSearchResults ? null : (
-                    <button
-                      aria-expanded={isOpen}
-                      className={`fphd-geo-alt__toggle${isOpen ? ' fphd-geo-alt__toggle--open' : ''}`}
-                      onClick={() => toggleExpanded(group.name)}
-                      type="button"
-                    >
-                      <span className="fphd-geo-alt__chevron" aria-hidden="true" />
-                      <span className="govuk-visually-hidden">
-                        {isOpen ? 'Collapse' : 'Expand'} {group.name}
-                      </span>
-                    </button>
-                  )}
-                  <Checkboxes
-                    className="fphd-geo-alt__group-cb"
-                    classModifiers="small"
-                    id={groupId}
-                    label={<span className="govuk-visually-hidden">All of {group.name}</span>}
-                    name={levelName}
-                    onChange={(event) => toggleLevel(group.name, event.currentTarget.checked)}
-                    options={[levelOption]}
-                  />
-                </div>
+                {flat ? null : (
+                  <div
+                    className={`fphd-geo-alt__group${single ? ' fphd-geo-alt__group--single' : ''}`}
+                  >
+                    {showingSearchResults ? null : (
+                      <button
+                        aria-expanded={isOpen}
+                        className={`fphd-geo-alt__toggle${isOpen ? ' fphd-geo-alt__toggle--open' : ''}`}
+                        onClick={() => toggleExpanded(group.name)}
+                        type="button"
+                      >
+                        <span className="fphd-geo-alt__chevron" aria-hidden="true" />
+                        <span
+                          className={
+                            single ? 'fphd-geo-alt__toggle-label' : 'govuk-visually-hidden'
+                          }
+                        >
+                          {single ? group.name : `${isOpen ? 'Collapse' : 'Expand'} ${group.name}`}
+                        </span>
+                      </button>
+                    )}
+                    {single ? null : (
+                      <Checkboxes
+                        className="fphd-geo-alt__group-cb"
+                        classModifiers="small"
+                        id={groupId}
+                        label={<span className="govuk-visually-hidden">All of {group.name}</span>}
+                        name={levelName}
+                        onChange={(event) => toggleLevel(group.name, event.currentTarget.checked)}
+                        options={[levelOption]}
+                      />
+                    )}
+                  </div>
+                )}
 
                 <noscript>
                   <Button
@@ -315,22 +389,28 @@ export function GeographyTree({
                   {isLoading ? `Loading ${group.name}…` : ''}
                 </p>
                 {isOpen ? (
-                  <div className="fphd-geo-alt__children">
+                  <div
+                    className={`fphd-geo-alt__children${single ? ' fphd-geo-alt__children--radios' : ''}`}
+                  >
                     {isLoading ? null : (
                       <>
-                        <Checkboxes
+                        <AreaChoices
                           id={`${groupId}-areas`}
                           label={
                             <span className="govuk-visually-hidden">Areas in {group.name}</span>
                           }
                           name={name}
-                          onChange={(event) => toggleArea(event.target.value, event.target.checked)}
+                          onChange={(event) =>
+                            single
+                              ? onChange([event.target.value])
+                              : toggleArea(event.target.value, event.target.checked)
+                          }
                           classModifiers="small"
                           options={shown.map((area) => ({
                             label: area.name,
                             checked: selected.includes(area.code),
                             value: area.code,
-                            disabled: !selected.includes(area.code) && atCap,
+                            disabled: !single && !selected.includes(area.code) && atCap,
                           }))}
                         />
                         {group.areas.length > CHILD_CAP ? (
@@ -338,7 +418,7 @@ export function GeographyTree({
                             Showing the first {CHILD_CAP} — search to find the rest
                           </p>
                         ) : null}
-                        {atCap ? (
+                        {!single && atCap ? (
                           <p className="govuk-body-s fphd-geo-alt__more">
                             You have selected the maximum number of areas.
                           </p>
@@ -350,15 +430,15 @@ export function GeographyTree({
               </div>
             );
           })}
-        </div>
+        </section>
       </fieldset>
       {/* Ticks hidden by collapse, a search, or the cap must still submit. */}
-      {selectedLevels
+      {(single ? [] : selectedLevels)
         .filter((level) => !groups.some(({ name }) => name === level))
         .map((level) => (
           <input key={level} name={levelName} type="hidden" value={level} />
         ))}
-      {selected
+      {(single ? [] : selected)
         .filter((code) => !visibleCodes.has(code))
         .map((code) => (
           <input key={code} name={name} type="hidden" value={code} />
