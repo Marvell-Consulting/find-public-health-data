@@ -18,6 +18,7 @@ export const MAX_INDICATOR_QUERY_LENGTH = 200;
 export const DEFAULT_INDICATOR_SEARCH_RESULTS = 20;
 export const MAX_INDICATOR_SEARCH_RESULTS = 100;
 export const MAX_INDICATOR_FILTER_RESULTS = 200;
+export const MAX_TABLE_INDICATORS_PER_REQUEST = 20;
 export const MAX_FILTER_LABEL_LENGTH = 500;
 export const MAX_FILTER_VALUE_LENGTH = 100;
 export const MAX_FILTER_VALUES = 100;
@@ -201,6 +202,12 @@ export const indicatorAreaDataSchema = z.object({
 });
 
 export const indicatorAreaDataListSchema = z.array(indicatorAreaDataSchema);
+export const indicatorTableDataSchema = z.array(
+  z.object({
+    detail: indicatorDetailSchema,
+    areaData: indicatorAreaDataListSchema,
+  }),
+);
 
 export const indicatorRangeSchema = z.object({
   periods: z.array(

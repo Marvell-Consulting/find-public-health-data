@@ -74,7 +74,13 @@ export function GeographyTree({
   const lookup = (query: string) => `${lookupUrl}${lookupUrl.includes('?') ? '&' : '?'}${query}`;
   const idPrefix = useId();
   const [query, setQuery] = useState(fallback?.query ?? '');
-  const [expanded, setExpanded] = useState<string[]>(fallback?.level ? [fallback.level] : []);
+  const [expanded, setExpanded] = useState<string[]>(
+    fallback?.level
+      ? [fallback.level]
+      : levels.length === 1 && fallback?.previews?.some(({ name }) => name === levels[0])
+        ? levels
+        : [],
+  );
   const [loaded, setLoaded] = useState<Record<string, GeographyArea[] | 'loading'>>(() =>
     Object.fromEntries(
       [...(fallback?.previews ?? []), ...(fallback?.level ? fallback.groups : [])].map(

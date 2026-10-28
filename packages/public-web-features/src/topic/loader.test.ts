@@ -4,7 +4,7 @@ import type { LoaderFunctionArgs } from 'react-router';
 import { RouterContextProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { loadTopic, loadTopics } from './loader.ts';
+import { loadTopic, loadTopicPage, loadTopics } from './loader.ts';
 
 function loaderArgs(
   api: ApiClient,
@@ -73,6 +73,7 @@ function topicApi(
         content: { highlightedIndicatorIds },
       };
     if (path === '/api/areas/display-groups') return [];
+    if (path.startsWith('/api/areas?')) return [];
     if (path === '/api/indicators/facets')
       return { topics: [], classifications: [], sources: [], valueTypes: [], yearTypes: [] };
     if (path.startsWith('/api/indicators/search?')) {
@@ -92,13 +93,83 @@ function topicApi(
     )
       throw new Response('Not Found', { status: 404 });
     if (/^\/api\/indicators\/\d+$/.test(path))
-      return { shortId: Number(path.split('/').at(-1)), name: 'Indicator', slug: 'indicator' };
+      return {
+        shortId: Number(path.split('/').at(-1)),
+        name: 'Indicator',
+        slug: 'indicator',
+        topics: [],
+        unit: '%',
+        yearType: null,
+        polarity: null,
+        dataUpdatedAt: null,
+      };
+    if (path.startsWith('/api/indicator-data?')) {
+      return new URL(path, 'http://api').searchParams.getAll('indicator').map((id) => ({
+        detail: {
+          shortId: Number(id),
+          name: 'Indicator',
+          slug: 'indicator',
+          topics: [],
+          unit: '%',
+          yearType: null,
+          polarity: null,
+          dataUpdatedAt: null,
+        },
+        areaData: [],
+      }));
+    }
     if (path.includes('/data?')) return [];
     throw new Error(`Unexpected API path: ${path}`);
   });
 }
 
 describe('loadTopic', () => {
+  it.each(['data', 'areas'])(
+    'keeps the active %s tab when normalising filter inputs',
+    async (tab) => {
+      const result = await loadTopicPage(
+        loaderArgs(
+          { get: topicApi() } as unknown as ApiClient,
+          { slug: 'topic-a' },
+          `?tab-topic=${tab}&src-add=`,
+        ),
+      ).catch((error: unknown) => error);
+      if (!(result instanceof Response)) throw new Error('Expected a filter redirect');
+      expect(result.status).toBe(302);
+      expect(
+        new URL(result.headers.get('Location') ?? '', 'http://localhost').searchParams.get(
+          'tab-topic',
+        ),
+      ).toBe(tab);
+    },
+  );
+
+  it.each(['overview', 'data', 'areas', 'publications'])(
+    'preloads every page section once when opening %s',
+    async (tab) => {
+      const indicators = Array.from({ length: 8 }, (_, index) => ({
+        shortId: index + 1,
+        name: `Indicator ${index + 1}`,
+        slug: `indicator-${index + 1}`,
+      }));
+      const get = topicApi(indicators);
+      const page = await loadTopicPage(
+        loaderArgs({ get } as unknown as ApiClient, { slug: 'topic-a' }, `?tab-topic=${tab}`),
+      );
+      expect(page.overview?.selected).toHaveLength(4);
+      expect(page.content?.listing.indicators).toHaveLength(8);
+      expect(page.areas?.listing.indicators).toHaveLength(8);
+      expect(page.content?.data).not.toHaveProperty('selected');
+      expect(page.areas?.data).not.toHaveProperty('selected');
+      expect(get.mock.calls.filter(([path]) => path === '/api/topics/topic-a')).toHaveLength(1);
+      expect(
+        get.mock.calls.filter(([path]) => /^\/api\/indicators\/\d+(?:\/data\?)?$/.test(path)),
+      ).toHaveLength(0);
+      expect(
+        get.mock.calls.filter(([path]) => path.startsWith('/api/indicator-data?')),
+      ).toHaveLength(2);
+    },
+  );
   it.each(['?tab-topic=publications', '?tab-topic=invalid'])(
     'loads only the topic content for %s',
     async (query) => {
@@ -199,7 +270,13 @@ describe('loadTopic', () => {
     expect(result.content?.data.selected.map(({ detail }) => detail.shortId)).toEqual(
       indicators.map(({ shortId }) => shortId),
     );
-    expect(get.mock.calls.some(([path]) => path === '/api/indicators/1')).toBe(true);
+    expect(
+      get.mock.calls.some(
+        ([path]) =>
+          path.startsWith('/api/indicator-data?') &&
+          new URL(path, 'http://api').searchParams.getAll('indicator').includes('1'),
+      ),
+    ).toBe(true);
   });
 
   it.each(['data', 'areas'])(

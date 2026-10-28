@@ -25,6 +25,14 @@ function createTestApp(repositories = createFakeRepositories()) {
 }
 
 describe('public API', () => {
+  it('mounts the public bulk table-data surface', async () => {
+    const findTableData = vi.fn().mockResolvedValue([]);
+    const response = await request(
+      createTestApp(createFakeRepositories({ indicators: { findTableData } })),
+    ).get('/api/indicator-data?indicator=108');
+    expect(response.status).toBe(404);
+    expect(findTableData).toHaveBeenCalledWith([108], ['E92000001']);
+  });
   it('reports its health', async () => {
     const response = await request(createTestApp()).get('/livez');
 

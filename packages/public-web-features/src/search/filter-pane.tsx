@@ -363,15 +363,17 @@ export function SearchFilterPane({
 
       {!compact ? (
         <>
-          <CollapsibleFilterCard
-            {...card}
-            active={popActive}
-            footer={popDims.map(renderDimensionFooter)}
-            onClear={clearPopUrl}
-            title="Populations and inequalities"
-          >
-            {popDims.map(renderDimensionBody)}
-          </CollapsibleFilterCard>
+          {popActive || popDims.some((dim) => optionsForDimension(dim).length > 0) ? (
+            <CollapsibleFilterCard
+              {...card}
+              active={popActive}
+              footer={popDims.map(renderDimensionFooter)}
+              onClear={clearPopUrl}
+              title="Populations and inequalities"
+            >
+              {popDims.map(renderDimensionBody)}
+            </CollapsibleFilterCard>
+          ) : null}
 
           <CollapsibleFilterCard
             {...card}

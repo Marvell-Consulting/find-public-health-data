@@ -1,20 +1,21 @@
 import { GridColumn, GridRow, Tabs } from '@fphd/ui';
-import { Link, useLocation, useNavigation } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { SearchFilterPane } from '../search/filter-pane.tsx';
 import { TopicGeographies } from './geographies.tsx';
 import { TopicListing } from './listing.tsx';
-import type { loadTopic } from './loader.ts';
+import type { loadTopicPage } from './loader.ts';
 import { TopicKeywordSearch, TopicTableColumns } from './options.tsx';
 import { TopicOverview } from './overview.tsx';
 import { TopicSubtopicFilter } from './subtopic-filter.tsx';
 
-type TopicData = Awaited<ReturnType<typeof loadTopic>>;
+type TopicData = Awaited<ReturnType<typeof loadTopicPage>>;
 
 export function TopicPage(data: TopicData) {
-  const { topic, content, overview } = data;
-  const tableData = content ? { topic, ...content } : null;
-  const path = `/topics/${topic.slug}`;
+  const { topic, content, overview, areas } = data;
   const location = useLocation();
+  const tableData = content ? { topic, ...content } : null;
+  const areaData = areas ? { topic, ...areas } : null;
+  const path = `/topics/${topic.slug}`;
   const viewUrl = (tab: string) => {
     const params = new URLSearchParams(location.search);
     params.set('tab-topic', tab);
@@ -23,7 +24,6 @@ export function TopicPage(data: TopicData) {
   const columnParams = Object.fromEntries(
     [...new URLSearchParams(location.search)].filter(([key]) => key === 'columns-topic'),
   );
-  const navigation = useNavigation();
   return (
     <div className="fphd-wide-layout fphd-topic-page">
       <nav aria-label="Breadcrumb" className="govuk-breadcrumbs">
@@ -41,12 +41,9 @@ export function TopicPage(data: TopicData) {
         </ol>
       </nav>
       <h1 className="govuk-heading-xl">{topic.title}</h1>
-      <p className="govuk-visually-hidden" role="status">
-        {navigation.state === 'loading' ? 'Loading topic data…' : ''}
-      </p>
       <Tabs
+        sectionHeadings
         history="push"
-        waitForNavigation
         paramKey="tab-topic"
         title={`${topic.title} contents`}
         items={[
@@ -116,43 +113,43 @@ export function TopicPage(data: TopicData) {
             param: 'areas',
             label: 'Area summaries',
             content:
-              content &&
-              tableData &&
-              (content.defaultAreas ||
-                content.search.gaCodes.length > 0 ||
-                content.search.geoLevels.length > 0) ? (
+              areas &&
+              areaData &&
+              (areas.defaultAreas ||
+                areas.search.gaCodes.length > 0 ||
+                areas.search.geoLevels.length > 0) ? (
                 <GridRow>
                   <GridColumn width="one-quarter">
-                    <TopicGeographies search={content.search} path={path} tab="areas" />
+                    <TopicGeographies search={areas.search} path={path} tab="areas" />
                     <SearchFilterPane
                       action={path}
                       extraParams={{
                         ...columnParams,
                         'tab-topic': 'areas',
-                        sort: content.listing.sort,
+                        sort: areas.listing.sort,
                       }}
                       includeTopics={false}
                       includeGeography={false}
                       includeSearch={false}
                       variant="accordion"
                       compact
-                      facets={content.search.facets}
-                      displayGroups={content.search.displayGroups}
-                      gaAreaNames={content.search.gaAreaNames}
-                      state={content.search}
+                      facets={areas.search.facets}
+                      displayGroups={areas.search.displayGroups}
+                      gaAreaNames={areas.search.gaAreaNames}
+                      state={areas.search}
                       subtopicFilter={
                         <TopicSubtopicFilter
                           path={path}
-                          state={content.search}
+                          state={areas.search}
                           subtopics={topic.subtopics ?? []}
-                          sort={content.listing.sort}
+                          sort={areas.listing.sort}
                           tab="areas"
                         />
                       }
                     />
                   </GridColumn>
                   <GridColumn width="three-quarters">
-                    <TopicListing data={tableData} areas />
+                    <TopicListing data={areaData} areas />
                   </GridColumn>
                 </GridRow>
               ) : (

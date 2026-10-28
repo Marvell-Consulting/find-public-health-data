@@ -15,6 +15,7 @@ interface TabsProps {
   waitForNavigation?: boolean;
   history?: 'push' | 'replace';
   defaultParam?: string | undefined;
+  sectionHeadings?: boolean;
 }
 
 // Query parameters preserve the server-rendered view in shared links; NotGovUK tabs only track hashes.
@@ -34,6 +35,7 @@ function TabPanels({
   waitForNavigation = false,
   history = 'replace',
   defaultParam,
+  sectionHeadings = false,
   navigation,
 }: TabsProps & { navigation?: ReturnType<typeof useNavigation> }) {
   const location = useLocation();
@@ -68,6 +70,8 @@ function TabPanels({
     pendingIndex !== committedIndex;
   const visibleIndex = loading ? pendingIndex : committedIndex;
   const refs = useRef<(HTMLAnchorElement | null)[]>([]);
+  const panels = useRef<(HTMLDivElement | null)[]>([]);
+  const previousTabMode = useRef<boolean | undefined>(undefined);
 
   useEffect(() => {
     setMounted(true);
@@ -80,6 +84,15 @@ function TabPanels({
     media?.addEventListener('change', update);
     return () => media?.removeEventListener('change', update);
   }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const enteredContents = !tabMode && previousTabMode.current !== false;
+    previousTabMode.current = tabMode;
+    if (enteredContents && committedIndex > 0 && !location.hash) {
+      panels.current[committedIndex]?.scrollIntoView({ block: 'start' });
+    }
+  }, [mounted, tabMode, committedIndex, location.hash]);
 
   const previousParam = useRef(fromParam);
   useEffect(() => {
@@ -159,7 +172,13 @@ function TabPanels({
           className={`govuk-tabs__panel${index === visibleIndex ? ' fphd-tabs__panel--open' : ''}${mounted && tabMode && index !== visibleIndex ? ' govuk-tabs__panel--hidden' : ''}`}
           id={id}
           key={id}
+          ref={(element) => {
+            panels.current[index] = element;
+          }}
         >
+          {sectionHeadings ? (
+            <h2 className="govuk-heading-l fphd-tabs__section-title">{items[index]?.label}</h2>
+          ) : null}
           {loading && index === visibleIndex ? (
             <p className="govuk-body fphd-tabs__loading" role="status">
               Loading {items[index]?.label.toLowerCase()}…

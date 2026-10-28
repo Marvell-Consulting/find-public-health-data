@@ -63,6 +63,7 @@ export function TopicGeographies({
               classModifiers="small"
               onChange={(event) => {
                 setSelectedGroup(event.currentTarget.value);
+                setSelectedCodes([]);
                 void navigate(urlFor([], [event.currentTarget.value]), {
                   preventScrollReset: true,
                 });
@@ -80,24 +81,22 @@ export function TopicGeographies({
                 checked: selectedGroup === group,
               }))}
             />
-            {selectedGroup === group ? (
-              <GeographyTree
-                key={group}
-                flat
-                name="ga"
-                levels={[group]}
-                selected={selectedCodes}
-                selectedLevels={[]}
-                searchLabel="Search for a geography (optional)"
-                searchHint="Choose one or more to compare with England"
-                fallback={search.geographyOptions}
-                onLevelsChange={() => {}}
-                onChange={(codes) => {
-                  setSelectedCodes(codes);
-                  void navigate(urlFor(codes, [group]), { preventScrollReset: true });
-                }}
-              />
-            ) : null}
+            <GeographyTree
+              key={selectedGroup}
+              flat
+              name="ga"
+              levels={[selectedGroup]}
+              selected={selectedCodes}
+              selectedLevels={[]}
+              searchLabel="Search for a geography (optional)"
+              searchHint="Choose one or more to compare with England"
+              fallback={search.geographyOptions}
+              onLevelsChange={() => {}}
+              onChange={(codes) => {
+                setSelectedCodes(codes);
+                void navigate(urlFor(codes, [selectedGroup]), { preventScrollReset: true });
+              }}
+            />
             <noscript>
               <Button type="submit">Apply geographies</Button>
             </noscript>

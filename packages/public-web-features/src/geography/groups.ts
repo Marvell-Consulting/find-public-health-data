@@ -51,3 +51,8 @@ export function publicGeographyGroups<T extends { code: string; name: string }>(
     ),
   }));
 }
+
+export function geographyGroupLabel(group: string): string {
+  const acronyms: Record<string, string> = { nhs: 'NHS', icbs: 'ICBs', msoas: 'MSOAs' };
+  return group.toLowerCase().replace(/\b(nhs|icbs|msoas)\b/g, (word) => acronyms[word] ?? word);
+}

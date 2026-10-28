@@ -124,6 +124,12 @@
       "development": "./src/indicator-sort.ts",
       "types": "./src/indicator-sort.ts",
       "default": "./dist/indicator-sort.js"
+    },
+    "./observation-series": {
+      "browser": "./src/observation-series.ts",
+      "development": "./src/observation-series.ts",
+      "types": "./src/observation-series.ts",
+      "default": "./dist/observation-series.js"
     }
   },
   "files": [

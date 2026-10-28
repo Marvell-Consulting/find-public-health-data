@@ -32,8 +32,8 @@ import {
 import type { Database } from './client.ts';
 import {
   type IndicatorClassification,
-  listClassificationsForIndicator,
-  listTopicsForIndicator,
+  listClassificationsForIndicators,
+  listTopicsForIndicators,
 } from './indicator-topic-repository.ts';
 import { indicatorTrendDirections } from './indicator-trends.ts';
 import {
@@ -265,7 +265,15 @@ export async function getPublishedIndicatorById(
   db: Database,
   indicatorId: string,
 ): Promise<IndicatorDetail | undefined> {
-  const [row] = await db
+  return (await getPublishedIndicatorsByIds(db, [indicatorId])).get(indicatorId);
+}
+
+export async function getPublishedIndicatorsByIds(
+  db: Database,
+  indicatorIds: string[],
+): Promise<Map<string, IndicatorDetail>> {
+  if (!indicatorIds.length) return new Map();
+  const rows = await db
     .select({
       id: indicator.id,
       shortId: indicator.shortId,
@@ -301,24 +309,23 @@ export async function getPublishedIndicatorById(
     .leftJoin(ciMethod, eq(indicator.ciMethodId, ciMethod.id))
     .leftJoin(comparatorMethod, eq(indicator.comparatorMethodId, comparatorMethod.id))
     .leftJoin(dataSource, eq(indicator.dataSourceId, dataSource.id))
-    .where(eq(indicator.id, indicatorId))
-    .limit(1);
-
-  // Required as the inner-joined lookups are: without them, nothing is shown.
-  if (!row || row.polarity === null || row.updateFrequency === null) {
-    return undefined;
-  }
+    .where(inArray(indicator.id, indicatorIds));
 
   const [areaTypes, topics, classifications, sources] = await Promise.all([
     db
-      .select({ name: availableData.areaTypeName, areaCount: availableData.areaCount })
+      .select({
+        indicatorId: availableData.indicatorId,
+        name: availableData.areaTypeName,
+        areaCount: availableData.areaCount,
+      })
       .from(availableData)
-      .where(eq(availableData.indicatorId, row.id))
+      .where(inArray(availableData.indicatorId, indicatorIds))
       .orderBy(asc(availableData.areaTypeName)),
-    listTopicsForIndicator(db, row.id),
-    listClassificationsForIndicator(db, row.id),
+    listTopicsForIndicators(db, indicatorIds),
+    listClassificationsForIndicators(db, indicatorIds),
     db
       .select({
+        indicatorId: indicatorSource.indicatorId,
         part: indicatorSource.part,
         provider: dataProvider.name,
         source: dataProviderSource.name,
@@ -326,43 +333,57 @@ export async function getPublishedIndicatorById(
       .from(indicatorSource)
       .innerJoin(dataProvider, eq(dataProvider.id, indicatorSource.providerId))
       .leftJoin(dataProviderSource, eq(dataProviderSource.id, indicatorSource.sourceId))
-      .where(eq(indicatorSource.indicatorId, row.id))
+      .where(inArray(indicatorSource.indicatorId, indicatorIds))
       .orderBy(asc(indicatorSource.position)),
   ]);
-  const sourcesOf = (part: IndicatorSourcePart) =>
-    sources
-      .filter((entry) => entry.part === part)
-      .map(({ provider, source }) => ({ provider, source }));
+  return new Map(
+    rows.flatMap((row): [string, IndicatorDetail][] => {
+      if (row.polarity === null || row.updateFrequency === null) return [];
+      const sourcesOf = (part: IndicatorSourcePart) =>
+        sources
+          .filter((entry) => entry.indicatorId === row.id && entry.part === part)
+          .map(({ provider, source }) => ({ provider, source }));
 
-  return {
-    shortId: row.shortId,
-    slug: row.slug,
-    name: row.name,
-    valueType: row.valueType,
-    unit: unitLabel({ id: row.unitId, name: row.unitName }, row.unitDetail),
-    yearType: row.yearType === null ? null : publicYearType(row.yearType, yearEndOf(row)),
-    updateFrequency: row.updateFrequency,
-    polarity: row.polarity,
-    ciMethod: row.ciMethod,
-    ciConfidenceLevel: row.ciConfidenceLevel,
-    comparatorMethod: row.comparatorMethod,
-    dataUpdatedAt: row.dataUpdatedAt?.toISOString() ?? null,
-    definition: row.definition,
-    rationale: row.rationale,
-    methodology: row.methodology,
-    numeratorDefinition: row.numeratorDefinition,
-    denominatorDefinition: row.denominatorDefinition,
-    disclosureControl: row.disclosureControl,
-    caveats: row.caveats,
-    notes: row.notes,
-    dataSource:
-      row.dataSourceName === null ? null : { name: row.dataSourceName, url: row.dataSourceUrl },
-    numeratorSources: sourcesOf('numerator'),
-    denominatorSources: sourcesOf('denominator'),
-    areaTypes,
-    topics,
-    classifications,
-  };
+      return [
+        [
+          row.id,
+          {
+            shortId: row.shortId,
+            slug: row.slug,
+            name: row.name,
+            valueType: row.valueType,
+            unit: unitLabel({ id: row.unitId, name: row.unitName }, row.unitDetail),
+            yearType: row.yearType === null ? null : publicYearType(row.yearType, yearEndOf(row)),
+            updateFrequency: row.updateFrequency,
+            polarity: row.polarity,
+            ciMethod: row.ciMethod,
+            ciConfidenceLevel: row.ciConfidenceLevel,
+            comparatorMethod: row.comparatorMethod,
+            dataUpdatedAt: row.dataUpdatedAt?.toISOString() ?? null,
+            definition: row.definition,
+            rationale: row.rationale,
+            methodology: row.methodology,
+            numeratorDefinition: row.numeratorDefinition,
+            denominatorDefinition: row.denominatorDefinition,
+            disclosureControl: row.disclosureControl,
+            caveats: row.caveats,
+            notes: row.notes,
+            dataSource:
+              row.dataSourceName === null
+                ? null
+                : { name: row.dataSourceName, url: row.dataSourceUrl },
+            numeratorSources: sourcesOf('numerator'),
+            denominatorSources: sourcesOf('denominator'),
+            areaTypes: areaTypes
+              .filter((entry) => entry.indicatorId === row.id)
+              .map(({ indicatorId: _id, ...entry }) => entry),
+            topics: topics.get(row.id) ?? [],
+            classifications: classifications.get(row.id) ?? [],
+          },
+        ],
+      ];
+    }),
+  );
 }
 
 export interface ObservationDimensionValue {

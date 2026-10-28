@@ -31,6 +31,7 @@ import { loadGeographyOptions } from '../geography/loader.ts';
 import { MAX_SELECTED_AREAS, MAX_SELECTED_INDICATORS } from '../selection-limits.ts';
 import { areaComparisonOptions } from './area-comparison.ts';
 import { loadInBatches } from './batches.ts';
+import { loadIndicatorTableEntries } from './table-loader.ts';
 
 export type {
   AreaGroup,
@@ -84,6 +85,7 @@ export interface IndicatorPageData {
 }
 
 const DEFAULT_AREA_CODE = 'E92000001';
+const singleAreaBatchSchema = indicatorAreaDataSchema.transform((one) => [one]);
 
 // Charts and tables with dozens of series are unreadable long before they are slow, so the
 // selection is capped rather than the URL trusted.
@@ -308,53 +310,69 @@ export async function loadIndicatorData(
           )
         ).indicators
       : [];
-  const selected = await loadInBatches(shortIds, async (id) => {
-    const dataBatch = (codes: string[]) =>
-      api.get(
-        `${apiPath`/api/indicators/${String(id)}/data`}?${codes
-          .map((code) => `areaCode=${encodeURIComponent(code)}`)
-          .join('&')}`,
-        codes.length === 1
-          ? indicatorAreaDataSchema.transform((one) => [one])
-          : indicatorAreaDataListSchema,
-      );
-    const dataFor = async (codes: string[]) =>
-      (
-        await loadInBatches(
-          Array.from({ length: Math.ceil(codes.length / MAX_AREA_CODES_PER_REQUEST) }, (_, index) =>
-            codes.slice(
-              index * MAX_AREA_CODES_PER_REQUEST,
-              (index + 1) * MAX_AREA_CODES_PER_REQUEST,
-            ),
-          ),
-          dataBatch,
-        )
-      ).flat();
-    const comparison = comparisonFor(id);
-    const [detail, areaData, regionData, rangeEntries] = await Promise.all([
-      // The page's own indicator is already loaded; only the compared ones are fetched.
-      id === routeDetail?.shortId
-        ? routeDetail
-        : api.get(apiPath`/api/indicators/${String(id)}`, indicatorDetailSchema),
-      // One request per indicator carrying every area, rather than one per pair: a
-      // page comparing ten indicators across twenty areas would otherwise fire 200.
-      dataFor(codesToLoad),
-      comparison.region && regionCodes.length > 0 ? dataFor(regionCodes) : Promise.resolve([]),
-      loadInBatches(comparison.rangeLevels, async (level) => {
-        const range = await api.get(
-          `${apiPath`/api/indicators/${String(id)}/range`}?displayGroup=${encodeURIComponent(level)}`,
-          indicatorRangeSchema,
-        );
-        return [level, range.periods] as const;
-      }),
-    ]);
-    return {
-      detail,
-      areaData,
-      regionData,
-      ranges: Object.fromEntries(rangeEntries),
-    };
-  });
+  const selected =
+    tableDisplayGroups !== undefined
+      ? await loadIndicatorTableEntries(api, shortIds, codesToLoad)
+      : await loadInBatches(shortIds, async (id) => {
+          const dataBatch = (codes: string[]) =>
+            api.get(
+              `${apiPath`/api/indicators/${String(id)}/data`}?${codes
+                .map((code) => `areaCode=${encodeURIComponent(code)}`)
+                .join('&')}`,
+              codes.length === 1 ? singleAreaBatchSchema : indicatorAreaDataListSchema,
+            );
+          const dataFor = async (codes: string[]) => {
+            // A stable first batch lets whole-group and individual-area tables share their England read.
+            const ordered =
+              tableDisplayGroups !== undefined && codes.includes(DEFAULT_AREA_CODE)
+                ? [DEFAULT_AREA_CODE, ...codes.filter((code) => code !== DEFAULT_AREA_CODE)]
+                : codes;
+            const loaded = (
+              await loadInBatches(
+                Array.from(
+                  { length: Math.ceil(ordered.length / MAX_AREA_CODES_PER_REQUEST) },
+                  (_, index) =>
+                    ordered.slice(
+                      index * MAX_AREA_CODES_PER_REQUEST,
+                      (index + 1) * MAX_AREA_CODES_PER_REQUEST,
+                    ),
+                ),
+                dataBatch,
+              )
+            ).flat();
+            const byCode = new Map(loaded.map((area) => [area.areaCode, area]));
+            return codes.flatMap((code) => {
+              const area = byCode.get(code);
+              return area ? [area] : [];
+            });
+          };
+          const comparison = comparisonFor(id);
+          const [detail, areaData, regionData, rangeEntries] = await Promise.all([
+            // The page's own indicator is already loaded; only the compared ones are fetched.
+            id === routeDetail?.shortId
+              ? routeDetail
+              : api.get(apiPath`/api/indicators/${String(id)}`, indicatorDetailSchema),
+            // One request per indicator carrying every area, rather than one per pair: a
+            // page comparing ten indicators across twenty areas would otherwise fire 200.
+            dataFor(codesToLoad),
+            comparison.region && regionCodes.length > 0
+              ? dataFor(regionCodes)
+              : Promise.resolve([]),
+            loadInBatches(comparison.rangeLevels, async (level) => {
+              const range = await api.get(
+                `${apiPath`/api/indicators/${String(id)}/range`}?displayGroup=${encodeURIComponent(level)}`,
+                indicatorRangeSchema,
+              );
+              return [level, range.periods] as const;
+            }),
+          ]);
+          return {
+            detail,
+            areaData,
+            regionData,
+            ranges: Object.fromEntries(rangeEntries),
+          };
+        });
 
   return {
     selected,

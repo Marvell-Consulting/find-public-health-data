@@ -37,6 +37,7 @@ export function TopicSubtopicFilter({
       <Checkboxes
         id={`topic-subtopic-${tab}`}
         label="Subtopics"
+        classModifiers="small"
         name="subtopic"
         options={subtopics.map(({ slug, title }) => ({
           value: slug,

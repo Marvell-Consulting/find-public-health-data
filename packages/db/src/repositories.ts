@@ -32,6 +32,7 @@ import {
   searchIndicators,
   searchPublishedIndicators,
 } from './indicator-repository.ts';
+import { getIndicatorTableData } from './indicator-table-repository.ts';
 import {
   getTopicBySlug,
   getTopicTrendSummary,
@@ -42,6 +43,7 @@ import {
 } from './topic-repository.ts';
 
 export interface IndicatorRepository {
+  findTableData(shortIds: number[], areaCodes: string[]): ReturnType<typeof getIndicatorTableData>;
   listAreas(
     indicatorId: string,
     filters?: IndicatorAreaFilters,
@@ -106,6 +108,7 @@ export function createRepositories(db: Database): Repositories {
       listParents: (childCodes, parentTypeName) => listAreaParents(db, childCodes, parentTypeName),
     },
     indicators: {
+      findTableData: (shortIds, areaCodes) => getIndicatorTableData(db, shortIds, areaCodes),
       listAreas: (indicatorId, filters) => listIndicatorAreas(db, indicatorId, filters),
       listPublished: () => listPublishedIndicators(db),
       search: (query, limit) => searchPublishedIndicators(db, query, limit),

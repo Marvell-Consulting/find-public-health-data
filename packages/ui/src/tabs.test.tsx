@@ -113,7 +113,10 @@ it('keeps the current default panel mounted when its own options reload data', a
   act(() => {
     void router.navigate('/?option=changed');
   });
-  expect(screen.getByRole('tabpanel', { name: 'First' }).textContent).toBe('First panel');
+  expect(
+    screen.getByRole('tabpanel', { name: 'First' }).querySelector('.fphd-tabs__content')
+      ?.textContent,
+  ).toBe('First panel');
   expect(screen.queryByRole('status')).toBeNull();
   await act(async () => {
     finish(null);

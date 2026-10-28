@@ -1,21 +1,12 @@
 @use "@not-govuk/sass-base" as *;
 
-// Every width container — header, service nav, phase banner, main and footer
-// — sits at 1400px on wide screens, so the whole page frames the same width.
-// Doubled selector to beat govuk-frontend's own `.govuk-width-container` cap.
 .govuk-width-container.govuk-width-container {
   width: calc(100% - 30px);
-  max-width: 1400px;
+  max-width: 960px;
   margin-right: auto;
   margin-left: auto;
   @media (min-width: 40.0625em) {
     width: calc(100% - 60px);
-  }
-
-  // Once GOV.UK centres width containers, retain enough inset for grid gutters
-  // until the 1400px maximum takes over.
-  @media (min-width: 63.75em) {
-    width: calc(100% - 30px);
   }
 }
 
@@ -271,6 +262,10 @@ body:has(.fphd-single-indicator-page, .fphd-topic-page, .fphd-topics-page) .govu
   }
 
   .fphd-topic-indicator-filters {
+    .govuk-checkboxes__label {
+      @include govuk-font-size($size: 16);
+    }
+
     margin-bottom: govuk-spacing(6);
 
     .fphd-filter-card--accordion {
@@ -1265,6 +1260,10 @@ body.govuk-frontend-supported .fphd-filter-card--accordion {
 }
 
 @media (min-width: 40.0625em) {
+  .govuk-frontend-supported .fphd-tabs__section-title {
+    display: none;
+  }
+
   .govuk-frontend-supported .fphd-tabs > .govuk-tabs__list {
     display: flex;
     align-items: stretch;
@@ -1638,18 +1637,37 @@ body:not(.govuk-frontend-supported) .fphd-share-link {
 
 .fphd-topic-highlight .fphd-trend-tag {
   @include govuk-font-size($size: 16);
+  max-width: 100%;
+  white-space: normal;
 }
 
 .fphd-topic-highlight-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
   gap: govuk-spacing(4);
   margin-top: govuk-spacing(4);
 }
 
 .fphd-topic-highlight {
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 3;
+  min-width: 0;
   border: 1px solid $govuk-border-colour;
   padding: govuk-spacing(4);
+  overflow-wrap: anywhere;
+
+  .govuk-summary-list,
+  .fphd-chart-section { margin-bottom: 0; }
+
+  .fphd-chart-placeholder {
+    box-sizing: border-box;
+    min-height: 120px;
+    padding: govuk-spacing(3);
+
+    .govuk-body,
+    .govuk-hint { @include govuk-font-size($size: 16); }
+  }
 
   .govuk-summary-list__row {
     border-bottom: 0;
@@ -1667,8 +1685,16 @@ body:not(.govuk-frontend-supported) .fphd-share-link {
   }
 }
 
-@media (max-width: 40.0625em) {
-  .fphd-topic-highlight-grid {
-    grid-template-columns: 1fr;
+@media (max-width: 63.75em) {
+  .fphd-topic-overview > .govuk-grid-column-one-quarter,
+  .fphd-topic-overview > .govuk-grid-column-three-quarters {
+    float: none;
+    width: 100%;
   }
+}
+
+.fphd-topic-highlight__no-trend {
+  align-self: center;
+  text-align: center;
+  margin: 0;
 }

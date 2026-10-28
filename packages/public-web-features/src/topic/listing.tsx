@@ -1,13 +1,17 @@
 import { FilterChip, FilterChips, InsetText, Select } from '@fphd/ui';
+import { useMemo } from 'react';
 import { Form, useLocation, useNavigation } from 'react-router';
 import { DownloadShareData } from '../download-share.tsx';
+import { geographyGroupLabel } from '../geography/groups.ts';
 import { TOPIC_SORTS, topicColumns } from './data.ts';
-import type { loadTopic } from './loader.ts';
+import { topicDataKey } from './filters.ts';
+import type { loadTopicPage } from './loader.ts';
 import { AreaSummariesTable } from './tables/area-summaries-table.tsx';
 import { TopicDataTable } from './tables/data-table.tsx';
 
-type TopicData = { topic: Awaited<ReturnType<typeof loadTopic>>['topic'] } & NonNullable<
-  Awaited<ReturnType<typeof loadTopic>>['content']
+type TopicPageData = Awaited<ReturnType<typeof loadTopicPage>>;
+type TopicData = { topic: TopicPageData['topic'] } & NonNullable<
+  TopicPageData['content'] | TopicPageData['areas']
 >;
 
 export function TopicListing({ data, areas = false }: { data: TopicData; areas?: boolean }) {
@@ -22,13 +26,17 @@ export function TopicListing({ data, areas = false }: { data: TopicData; areas?:
       : location.search,
   );
   params.set('tab-topic', tab);
-  const dataSelected =
-    data.defaultAreas && !areas
-      ? data.data.selected.map((entry) => ({
-          ...entry,
-          areaData: entry.areaData.filter(({ areaCode }) => areaCode === 'E92000001'),
-        }))
-      : data.data.selected;
+  const columnKey = new URLSearchParams(
+    [...params].filter(([key]) => key === 'columns-topic'),
+  ).toString();
+  const columns = useMemo(() => topicColumns(new URLSearchParams(columnKey)), [columnKey]);
+  const table = data.table;
+  const total = search.searchResult.total;
+  const hasRows = table.rows.length > 0;
+  const loading =
+    navigation.state === 'loading' &&
+    navigation.location.pathname === location.pathname &&
+    topicDataKey(navigation.location) !== topicDataKey(location);
   return (
     <>
       <div className="fphd-indicator-showing">
@@ -37,7 +45,7 @@ export function TopicListing({ data, areas = false }: { data: TopicData; areas?:
           <FilterChip value="E92000001">England</FilterChip>
           {search.geoLevels.map((level) => (
             <FilterChip key={level} value={level}>
-              {areas ? `All ${level === 'NHS regions' ? level : level.toLowerCase()}` : level}
+              {areas ? `All ${geographyGroupLabel(level)}` : level}
             </FilterChip>
           ))}
           {search.gaCodes.map((code) => (
@@ -53,8 +61,12 @@ export function TopicListing({ data, areas = false }: { data: TopicData; areas?:
           aria-live="polite"
           className="govuk-heading-m govuk-!-margin-bottom-0"
         >
-          {search.searchResult.total.toLocaleString()}{' '}
-          {search.searchResult.total === 1 ? 'indicator' : 'indicators'}
+          {total.toLocaleString()} {total === 1 ? 'indicator' : 'indicators'}
+          {loading ? (
+            <span className="govuk-body-s govuk-!-margin-left-2" role="status">
+              Updating results…
+            </span>
+          ) : null}
         </h2>
         {!areas ? (
           <Form action={path} method="get" preventScrollReset>
@@ -79,7 +91,7 @@ export function TopicListing({ data, areas = false }: { data: TopicData; areas?:
           </Form>
         ) : null}
       </div>
-      {dataSelected.length > 0 ? (
+      {hasRows ? (
         <DownloadShareData
           inline
           href={`${path}/table.csv?${params}`}
@@ -100,9 +112,9 @@ export function TopicListing({ data, areas = false }: { data: TopicData; areas?:
           last.
         </p>
       ) : null}
-      {dataSelected.length === 0 ? (
+      {!hasRows ? (
         <InsetText>No indicators match your selected filters or search terms.</InsetText>
-      ) : areas ? (
+      ) : table.kind === 'areas' ? (
         <>
           {data.data.areasLimited && !data.defaultAreas ? (
             <InsetText>
@@ -110,19 +122,14 @@ export function TopicListing({ data, areas = false }: { data: TopicData; areas?:
               which ones are shown.
             </InsetText>
           ) : null}
-          <AreaSummariesTable
-            selected={dataSelected}
-            geography={data.data.benchmarkGeography}
-            topicSlug={topic.slug}
-          />
+          <div aria-busy={loading}>
+            <AreaSummariesTable model={table} />
+          </div>
         </>
       ) : (
-        <TopicDataTable
-          selected={dataSelected}
-          title={topic.title}
-          topicSlug={topic.slug}
-          columns={topicColumns(params)}
-        />
+        <div aria-busy={loading}>
+          <TopicDataTable model={table} title={topic.title} columns={columns} />
+        </div>
       )}
     </>
   );

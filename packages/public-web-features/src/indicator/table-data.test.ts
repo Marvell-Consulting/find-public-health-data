@@ -39,6 +39,20 @@ function api() {
         },
       ];
     if (path.startsWith('/api/areas')) return [{ areaType: 'England', areas: [] }];
+    if (path.startsWith('/api/indicator-data?')) {
+      const params = new URL(`http://localhost${path}`).searchParams;
+      return params
+        .getAll('indicator')
+        .map(Number)
+        .map((shortId) => ({
+          detail: { shortId, slug: `indicator-${shortId}`, areaTypes: [] },
+          areaData: params.getAll('areaCode').map((code) => ({
+            areaCode: code,
+            areaName: code === 'E92000001' ? 'England' : `Area ${code}`,
+            observations: [],
+          })),
+        }));
+    }
     if (path.includes('/data?'))
       return new URL(`http://localhost${path}`).searchParams.getAll('areaCode').map((code) => ({
         areaCode: code,
@@ -89,7 +103,7 @@ describe('shared table data', () => {
     expect(result.areasLimited).toBe(false);
     const batches = get.mock.calls
       .map(([path]) => path)
-      .filter((path) => path.includes('/data?'))
+      .filter((path) => path.startsWith('/api/indicator-data?'))
       .map((path) => new URL(`http://localhost${path}`).searchParams.getAll('areaCode'));
     expect(batches.map((batch) => batch.length)).toEqual([20, 6]);
   });
