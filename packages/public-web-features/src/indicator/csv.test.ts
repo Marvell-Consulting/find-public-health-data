@@ -59,7 +59,7 @@ describe('loadIndicatorCsv', () => {
     ]);
 
     const response = await loadIndicatorCsv(
-      args(get, 'http://localhost/indicators/mortality-all-causes/table.csv'),
+      args(get, 'http://localhost/indicator/mortality-all-causes/table.csv'),
       'table',
     );
 
@@ -84,7 +84,7 @@ describe('loadIndicatorCsv', () => {
       );
 
     const response = await loadIndicatorCsv(
-      args(get, 'http://localhost/indicators/mortality-all-causes/table.csv'),
+      args(get, 'http://localhost/indicator/mortality-all-causes/table.csv'),
       'table',
     );
 
@@ -113,7 +113,7 @@ describe('loadIndicatorCsv', () => {
     const response = await loadIndicatorCsv(
       args(
         get,
-        'http://localhost/indicators/mortality-all-causes/table.csv?as=E06000052&sex-108=Male',
+        'http://localhost/indicator/mortality-all-causes/table.csv?as=E06000052&sex-108=Male',
       ),
       'table',
     );
@@ -143,7 +143,7 @@ describe('loadIndicatorCsv', () => {
     ]);
 
     const response = await loadIndicatorCsv(
-      args(get, 'http://localhost/indicators/mortality-all-causes/all-data.csv'),
+      args(get, 'http://localhost/indicator/mortality-all-causes/all-data.csv'),
       'all-data',
     );
 
@@ -201,7 +201,7 @@ describe('loadIndicatorCsv', () => {
     ]);
 
     const response = await loadIndicatorCsv(
-      args(get, 'http://localhost/indicators/mortality-all-causes/table.csv?sex-108=Unpublished'),
+      args(get, 'http://localhost/indicator/mortality-all-causes/table.csv?sex-108=Unpublished'),
       'table',
     );
 
@@ -226,7 +226,7 @@ describe('loadIndicatorCsv', () => {
     const response = await loadIndicatorCsv(
       args(
         get,
-        'http://localhost/indicators/mortality-all-causes/table.csv?as=E06000052&sex-108=Male',
+        'http://localhost/indicator/mortality-all-causes/table.csv?as=E06000052&sex-108=Male',
       ),
       'table',
     );
@@ -239,7 +239,7 @@ describe('loadIndicatorCsv', () => {
     const get = vi.fn();
 
     await expect(
-      loadIndicatorCsv(args(get, 'http://localhost/indicators/x/table.csv', '../x'), 'table'),
+      loadIndicatorCsv(args(get, 'http://localhost/indicator/x/table.csv', '../x'), 'table'),
     ).rejects.toMatchObject({ status: 404 });
     expect(get).not.toHaveBeenCalled();
   });
@@ -251,7 +251,7 @@ describe('loadIndicatorCsv', () => {
 
     await expect(
       loadIndicatorCsv(
-        args(get, 'http://localhost/indicators/108/table.csv?as=E06000052', '108'),
+        args(get, 'http://localhost/indicator/108/table.csv?as=E06000052', '108'),
         'table',
       ),
     ).rejects.toMatchObject({
@@ -264,7 +264,7 @@ describe('loadIndicatorCsv', () => {
     const get = api([]);
 
     await loadIndicatorCsv(
-      args(get, 'http://localhost/indicators/108/table.csv?as=E06000052', '108'),
+      args(get, 'http://localhost/indicator/108/table.csv?as=E06000052', '108'),
       'table',
     ).catch(() => undefined);
 
@@ -277,7 +277,7 @@ describe('loadIndicatorCsv', () => {
     ]);
 
     const redirected = await loadIndicatorCsv(
-      args(get, 'http://localhost/indicators/108/all-data.csv?as=E06000052', '108'),
+      args(get, 'http://localhost/indicator/108/all-data.csv?as=E06000052', '108'),
       'all-data',
     ).catch((response: Response) => response);
 
