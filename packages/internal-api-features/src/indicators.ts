@@ -280,7 +280,8 @@ export function internalIndicatorsRouter(
     const row = await indicators.findById(id.data);
     const session = requireApiSession(response);
 
-    // One the user may not see answers as one that does not exist. Assigned reviewers get no access.
+    // An indicator the user may not see answers 404, as if it did not exist. Assigned reviewers
+    // get no access yet.
     if (!row || !canSeeIndicator(session, { ...row, reviewerIds: [] })) {
       response.status(404).json({ error: 'not_found' });
       return;

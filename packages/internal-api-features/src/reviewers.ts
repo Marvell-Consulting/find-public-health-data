@@ -1,6 +1,6 @@
-import { requireJwtSession } from '@fphd/api-server';
+import { requireApiSession, requireJwtSession } from '@fphd/api-server';
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
-import { canAssignReviewers } from '@fphd/auth/permissions';
+import { canAssignReviewers, canSeeIndicator } from '@fphd/auth/permissions';
 import { Router } from 'express';
 
 import { indicatorIdSchema, type ReviewerOptions } from './contract.ts';
@@ -26,7 +26,13 @@ export function internalReviewersRouter(
         return;
       }
 
-      if ((await indicators.findTeamId(id.data)) === undefined) {
+      const teamId = await indicators.findTeamId(id.data);
+
+      // As on the detail route, an indicator the user may not see answers as if it did not exist.
+      if (
+        teamId === undefined ||
+        !canSeeIndicator(requireApiSession(response), { teamId, reviewerIds: [] })
+      ) {
         response.status(404).json({ error: 'not_found' });
         return;
       }
