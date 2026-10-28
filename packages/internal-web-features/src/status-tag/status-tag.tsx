@@ -27,6 +27,7 @@ const DRAFT_STATUS: Record<DraftStatus, TagFace> = {
 // A withdrawn submission leaves the draft as it was before it was submitted.
 const SUBMISSION_STATUS: Partial<Record<DraftSubmissionStatus, TagFace>> = {
   submitted: { label: 'Pending approval', colour: 'yellow' },
+  in_review: { label: 'Pending approval', colour: 'yellow' },
 };
 
 const PUBLISHED: TagFace = { label: 'Published', colour: 'green' };

@@ -1,4 +1,5 @@
 import {
+  canAssignReviewers,
   canSubmitIndicator,
   canWithdrawSubmission,
   type IndicatorAccess,
@@ -66,6 +67,17 @@ const STEPS: Readonly<Record<IndicatorStep, StepEntry>> = {
     },
     leadsTo: { versionStatus: 'draft', submissionStatus: 'withdrawn', isLocked: false },
     permission: canWithdrawSubmission,
+  },
+  // Assigns the first reviewers, or changes them. A new indicator only: an update needs triage.
+  assign_reviewers: {
+    from: {
+      indicatorStatuses: ['new'],
+      versionStatuses: ['draft'],
+      isLocked: true,
+      submissionStatuses: ['submitted', 'in_review'],
+    },
+    leadsTo: { versionStatus: 'draft', submissionStatus: 'in_review', isLocked: true },
+    permission: canAssignReviewers,
   },
 };
 

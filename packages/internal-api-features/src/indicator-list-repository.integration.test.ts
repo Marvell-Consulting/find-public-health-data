@@ -1,4 +1,4 @@
-import { TEAM_IDS } from '@fphd/auth';
+import { FAKE_USER_IDS, TEAM_IDS } from '@fphd/auth';
 import { type Database, listIndicatorFacets, schema } from '@fphd/db';
 import { eq } from 'drizzle-orm';
 import { describe, expect } from 'vitest';
@@ -17,7 +17,11 @@ import {
   repositoryTest,
 } from './indicator-repository.testing.ts';
 import { completeDraft } from './indicator-workflow.testing.ts';
-import { submitIndicator, withdrawSubmission } from './indicator-workflow-repository.ts';
+import {
+  assignReviewers,
+  submitIndicator,
+  withdrawSubmission,
+} from './indicator-workflow-repository.ts';
 
 const EVERY_INDICATOR = { all: true } as const;
 
@@ -177,6 +181,7 @@ describe('the derived statuses', () => {
       draftStatus: 'draft',
       draftLocked: false,
       draftSubmissionStatus: null,
+      draftReviewers: [],
     };
 
     expect(await listed(db, created.indicatorId)).toMatchObject(statuses);
@@ -192,6 +197,7 @@ describe('the derived statuses', () => {
         draftStatus: null,
         draftLocked: false,
         draftSubmissionStatus: null,
+        draftReviewers: [],
       };
 
       expect(await listed(db, indicatorId)).toMatchObject(statuses);
@@ -245,6 +251,32 @@ describe('the derived statuses', () => {
       draftLocked: true,
       draftSubmissionStatus: 'submitted',
     });
+  });
+
+  repositoryTest('reads a draft in review with its reviewers by name', async ({ db }) => {
+    const created = await newDraft(db, 'A draft in review');
+    await submitIndicator(db, created.indicatorId, await completeDraft(db, created), AS_ACTOR);
+    await assignReviewers(
+      db,
+      created.indicatorId,
+      {
+        submissionNumber: 1,
+        previousReviewerIds: [],
+        reviewerIds: [FAKE_USER_IDS.publisherAndReviewer, FAKE_USER_IDS.imrgReviewer],
+      },
+      { userId: FAKE_USER_IDS.imrgManager, requestId: null },
+    );
+    const statuses = {
+      draftLocked: true,
+      draftSubmissionStatus: 'in_review',
+      draftReviewers: [
+        { id: FAKE_USER_IDS.imrgReviewer, name: 'Jamie Evans' },
+        { id: FAKE_USER_IDS.publisherAndReviewer, name: 'Morgan Hughes' },
+      ],
+    };
+
+    expect(await listed(db, created.indicatorId)).toMatchObject(statuses);
+    expect(await getIndicatorById(db, created.indicatorId)).toMatchObject(statuses);
   });
 });
 

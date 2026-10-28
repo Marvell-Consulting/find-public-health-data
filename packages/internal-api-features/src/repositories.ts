@@ -5,7 +5,7 @@ import { type Database, listTopics, type Topic } from '@fphd/db';
 import type { Actor } from '@fphd/db/audit-log';
 
 import { type CiMethodRow, getCiMethodById, listCiMethods } from './ci-method-repository.ts';
-import type { TagOptions, ValueTypeAndUnitOptions } from './contract.ts';
+import type { ReviewerOption, TagOptions, ValueTypeAndUnitOptions } from './contract.ts';
 import { type DataProviderRow, listDataProviders } from './data-provider-repository.ts';
 import type { DataTableRow } from './data-table-check-contract.ts';
 import {
@@ -50,10 +50,13 @@ import {
 } from './indicator-publish-repository.ts';
 import type { IndicatorDraftLists } from './indicator-version-lists-repository.ts';
 import {
+  assignReviewers,
   type IndicatorStepResult,
+  type ReviewerAssignment,
   submitIndicator,
   withdrawSubmission,
 } from './indicator-workflow-repository.ts';
+import { listReviewerOptions } from './reviewer-repository.ts';
 import { listTagOptions } from './tag-repository.ts';
 import {
   type CreateTopicResult,
@@ -112,12 +115,24 @@ export interface InternalIndicatorRepository {
     submissionNumber: number,
     actor: Actor,
   ): Promise<IndicatorStepResult<'changed'>>;
+  /** Assigns or changes the reviewers, as long as the submission and reviewers shown are current. */
+  assignReviewers(
+    indicatorId: string,
+    assignment: ReviewerAssignment,
+    actor: Actor,
+  ): Promise<IndicatorStepResult<'changed' | 'not_a_reviewer'>>;
 }
 
 /** The confidence interval methods a publisher chooses from. */
 export interface InternalCiMethodRepository {
   list(): Promise<CiMethodRow[]>;
   findById(id: string): Promise<CiMethodRow | undefined>;
+}
+
+/** The reviewers an IMRG manager chooses from. */
+export interface InternalReviewerRepository {
+  /** The reviewers who may review the indicator, with how many indicators each is reviewing. */
+  listOptions(indicatorId: string): Promise<ReviewerOption[]>;
 }
 
 /** The topics and classifications a publisher tags an indicator with. */
@@ -167,6 +182,7 @@ export interface InternalRepositories {
   dataProviders: InternalDataProviderRepository;
   dataUploads: InternalDataUploadRepository;
   indicators: InternalIndicatorRepository;
+  reviewers: InternalReviewerRepository;
   tags: InternalTagRepository;
   topics: InternalTopicRepository;
   valueTypesAndUnits: InternalValueTypeAndUnitRepository;
@@ -203,6 +219,11 @@ export function createInternalRepositories(db: Database): InternalRepositories {
         submitIndicator(db, indicatorId, draftUpdatedAt, actor),
       withdraw: (indicatorId, submissionNumber, actor) =>
         withdrawSubmission(db, indicatorId, submissionNumber, actor),
+      assignReviewers: (indicatorId, assignment, actor) =>
+        assignReviewers(db, indicatorId, assignment, actor),
+    },
+    reviewers: {
+      listOptions: (indicatorId) => listReviewerOptions(db, indicatorId),
     },
     tags: {
       listOptions: () => listTagOptions(db),

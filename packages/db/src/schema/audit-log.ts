@@ -27,6 +27,7 @@ export const AUDIT_ACTIONS = [
   'indicator.data_table_confirmed',
   'indicator.submitted',
   'indicator.submission_withdrawn',
+  'indicator.reviewers_assigned',
   'upload_batch.loaded',
   'upload_batch.refused',
   'upload_batch.deleted',

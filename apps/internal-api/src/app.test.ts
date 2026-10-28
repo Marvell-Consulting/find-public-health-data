@@ -188,6 +188,53 @@ describe('internal API', () => {
     expect(asInternal.status).toBe(403);
   });
 
+  it('mounts the assign reviewers step behind the IMRG manager role', async () => {
+    const internalRepositories = createFakeInternalRepositories({
+      indicators: {
+        findTeamId: async () => TEAM_IDS.teamA,
+        assignReviewers: async () => ({ ok: true }),
+      },
+    });
+    const app = createTestApp(createFakeRepositories(), internalRepositories);
+    const path = '/api/internal/indicators/00000000-0000-7000-8000-000000000001/assign-reviewers';
+    const body = {
+      submissionNumber: 1,
+      previousReviewerIds: [],
+      reviewerIds: ['00000000-0000-7000-8000-0000000000a1'],
+    };
+
+    const asManager = await request(app)
+      .post(path)
+      .set('Cookie', await createCookie(['public', 'internal', 'imrg-manager']))
+      .send(body);
+    const asPublisher = await request(app)
+      .post(path)
+      .set('Cookie', await createCookie(['public', 'internal', 'publisher']))
+      .send(body);
+
+    expect(asManager.status).toBe(204);
+    expect(asPublisher.status).toBe(403);
+  });
+
+  it('mounts the reviewer options behind the IMRG manager role', async () => {
+    const internalRepositories = createFakeInternalRepositories({
+      indicators: { findTeamId: async () => TEAM_IDS.teamA },
+      reviewers: { listOptions: async () => [] },
+    });
+    const app = createTestApp(createFakeRepositories(), internalRepositories);
+    const path = '/api/internal/indicators/00000000-0000-7000-8000-000000000001/reviewer-options';
+
+    const asManager = await request(app)
+      .get(path)
+      .set('Cookie', await createCookie(['public', 'internal', 'imrg-manager']));
+    const asPublisher = await request(app)
+      .get(path)
+      .set('Cookie', await createCookie(['public', 'internal', 'publisher']));
+
+    expect(asManager.status).toBe(200);
+    expect(asPublisher.status).toBe(403);
+  });
+
   it('mounts the internal topics surface behind the admin role', async () => {
     const internalRepositories = createFakeInternalRepositories({
       topics: {

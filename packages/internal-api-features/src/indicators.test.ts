@@ -32,6 +32,7 @@ const row: IndicatorAdminRow = {
   draftStatus: null,
   draftLocked: false,
   draftSubmissionStatus: null,
+  draftReviewers: [],
 };
 
 const detailRow: IndicatorAdminDetailRow = {
@@ -104,6 +105,7 @@ describe('GET /api/internal/indicators', () => {
           draftStatus: null,
           draftLocked: false,
           draftSubmissionStatus: null,
+          draftReviewers: [],
         },
       ],
       page: 1,
@@ -189,9 +191,45 @@ describe('GET /api/internal/indicators/:id', () => {
       draftStatus: null,
       draftLocked: false,
       draftSubmissionStatus: null,
+      draftReviewers: [],
       draftSubmissionNumber: null,
       actions: [],
     });
+  });
+
+  it("serves the reviewers of the draft's latest submission", async () => {
+    const draftReviewers = [{ id: '00000000-0000-7000-8000-0000000000a1', name: 'Jamie Evans' }];
+    const findById = vi.fn().mockResolvedValue({
+      ...detailRow,
+      indicatorStatus: 'new',
+      draftStatus: 'draft',
+      draftLocked: true,
+      draftSubmissionStatus: 'in_review',
+      draftReviewers,
+    });
+
+    const response = await request(createTestApp({ findById }))
+      .get(`/api/internal/indicators/${row.id}`)
+      .set('Cookie', await publisherCookie());
+
+    expect(response.body).toMatchObject({ draftReviewers });
+  });
+
+  it('offers an IMRG manager the assignment of reviewers to a submitted draft', async () => {
+    const findById = vi.fn().mockResolvedValue({
+      ...detailRow,
+      indicatorStatus: 'new',
+      draftStatus: 'draft',
+      draftLocked: true,
+      draftSubmissionStatus: 'submitted',
+    });
+
+    const response = await request(createTestApp({ findById }))
+      .get(`/api/internal/indicators/${row.id}`)
+      .set('Cookie', await testSessionCookie(['internal', 'imrg-manager'], []));
+
+    expect(response.status).toBe(200);
+    expect(response.body.actions).toEqual(['assign_reviewers']);
   });
 
   it('serves whether the draft is locked and where its latest submission stands', async () => {
@@ -401,6 +439,7 @@ describe('POST /api/internal/indicators', () => {
       draftStatus: 'draft',
       draftLocked: false,
       draftSubmissionStatus: null,
+      draftReviewers: [],
       updatedAt: '2026-01-02T00:00:00.000Z',
       draftSubmissionNumber: null,
       actions: ['submit'],
@@ -547,6 +586,7 @@ describe('PATCH /api/internal/indicators/:id', () => {
       draftStatus: 'draft',
       draftLocked: false,
       draftSubmissionStatus: null,
+      draftReviewers: [],
       updatedAt: '2026-01-02T00:00:00.000Z',
       draftSubmissionNumber: null,
       actions: ['submit'],

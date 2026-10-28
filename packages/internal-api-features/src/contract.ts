@@ -92,9 +92,12 @@ export const draftStatusSchema = z.enum(['draft']);
 export const draftSubmissionStatusSchema = z.enum(INDICATOR_SUBMISSION_STATUSES);
 
 /** The steps a version takes through review, in the order the workflow allows them. */
-export const INDICATOR_STEPS = ['submit', 'withdraw'] as const;
+export const INDICATOR_STEPS = ['submit', 'withdraw', 'assign_reviewers'] as const;
 
 export const indicatorStepSchema = z.enum(INDICATOR_STEPS);
+
+/** A reviewer assigned to the draft's latest submission. */
+export const draftReviewerSchema = z.object({ id: z.uuid(), name: z.string().min(1) });
 
 /**
  * Both statuses are derived from the versions, never stored, and sent as values rather than
@@ -113,6 +116,8 @@ export const indicatorAdminSummarySchema = z.object({
   draftLocked: z.boolean(),
   /** Null until the draft is first submitted, and while there is no draft. */
   draftSubmissionStatus: draftSubmissionStatusSchema.nullable(),
+  /** The reviewers of the draft's latest submission, by name; empty until they are assigned. */
+  draftReviewers: z.array(draftReviewerSchema),
 });
 
 /** Parsed from a query string, so the page arrives as text; absent means the first page. */
@@ -217,6 +222,7 @@ export type IndicatorAdminPage = z.infer<typeof indicatorAdminPageSchema>;
 export type IndicatorStatus = z.infer<typeof indicatorStatusSchema>;
 export type DraftStatus = z.infer<typeof draftStatusSchema>;
 export type DraftSubmissionStatus = z.infer<typeof draftSubmissionStatusSchema>;
+export type DraftReviewer = z.infer<typeof draftReviewerSchema>;
 export type IndicatorStep = z.infer<typeof indicatorStepSchema>;
 export type IndicatorAdminDetail = z.infer<typeof indicatorAdminDetailSchema>;
 export type IndicatorName = z.infer<typeof indicatorNameSchema>;
@@ -310,6 +316,45 @@ export const indicatorWithdrawSchema = z.object({
 export const indicatorWithdrawErrorSchema = z.object({
   error: z.enum(['invalid_id', 'invalid_submission_number', 'not_allowed', 'changed']),
 });
+
+/**
+ * An assignment names the submission and the reviewers the manager was shown, so it never
+ * overwrites a change they have not seen. It replaces the reviewers with `reviewerIds`.
+ */
+export const indicatorAssignReviewersSchema = z.object({
+  submissionNumber: z.number().int().positive(),
+  previousReviewerIds: z.array(z.uuid()),
+  reviewerIds: z.array(z.uuid()),
+});
+
+/** The 400 and 409 answers. A missing indicator or draft is a 404, which the client throws. */
+export const indicatorAssignReviewersErrorSchema = z.object({
+  error: z.enum([
+    'invalid_id',
+    'invalid_request',
+    'no_reviewers',
+    'duplicate_reviewers',
+    'not_allowed',
+    'changed',
+    'not_a_reviewer',
+  ]),
+});
+
+export type IndicatorAssignReviewers = z.infer<typeof indicatorAssignReviewersSchema>;
+export type IndicatorAssignReviewersError = z.infer<typeof indicatorAssignReviewersErrorSchema>;
+
+/** A reviewer the IMRG manager may assign, with how many indicators they are reviewing now. */
+export const reviewerOptionSchema = z.object({
+  id: z.uuid(),
+  name: z.string().min(1),
+  assignedIndicatorCount: z.number().int().min(0),
+});
+
+/** The reviewers who may review an indicator: neither its creator nor its submitter. */
+export const reviewerOptionsSchema = z.object({ reviewers: z.array(reviewerOptionSchema) });
+
+export type ReviewerOption = z.infer<typeof reviewerOptionSchema>;
+export type ReviewerOptions = z.infer<typeof reviewerOptionsSchema>;
 
 export type IndicatorTaskStatus = z.infer<typeof indicatorTaskStatusSchema>;
 export type IndicatorTaskKey = z.infer<typeof indicatorTaskKeySchema>;

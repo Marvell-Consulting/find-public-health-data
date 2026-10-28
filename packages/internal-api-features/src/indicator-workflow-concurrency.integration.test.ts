@@ -1,5 +1,6 @@
 import { PassThrough, Readable } from 'node:stream';
 
+import { FAKE_USER_IDS } from '@fphd/auth';
 import { type Database, schema } from '@fphd/db';
 import { eq, sql } from 'drizzle-orm';
 import { v7 as randomUuidV7 } from 'uuid';
@@ -19,12 +20,19 @@ import {
 } from './indicator-repository.testing.ts';
 import { completeDraft, draftUpdatedAt } from './indicator-workflow.testing.ts';
 import {
+  assignReviewers,
+  type IndicatorStepWrite,
+  replaceReviewers,
   submitIndicator,
   takeIndicatorStep,
   withdrawSubmission,
 } from './indicator-workflow-repository.ts';
 
-const { indicatorVersion, indicatorVersionSubmission } = schema;
+const { indicatorVersion, indicatorVersionSubmission, indicatorVersionSubmissionReviewer } = schema;
+
+const AS_MANAGER = { userId: FAKE_USER_IDS.imrgManager, requestId: null };
+const REVIEWER = FAKE_USER_IDS.imrgReviewer;
+const OTHER_REVIEWER = FAKE_USER_IDS.publisherAndReviewer;
 
 const HEADER =
   'area_code,period_start,period_end,value,count,sex,age,category_type,category,value_note';
@@ -32,14 +40,15 @@ const VALID_CSV = `${HEADER}\nE92000001,2019-04-01,2020-03-31,83.8,1234,Female,<
 const REFUSED_CSV = `${HEADER}\nE99999999,2019-04-01,2020-03-31,1,,,,,,`;
 
 /**
- * Takes `step` while it holds the draft's lock until `write` has started and is seen waiting
- * on it, then answers what each returned.
+ * Takes `step`, with `stepWrite` for its own rows, while it holds the draft's lock until `write`
+ * has started and is seen waiting on it, then answers what each returned.
  */
 async function writeWhileStepHolds<Result>(
   db: Database,
   indicatorId: string,
   step: IndicatorStep,
   write: () => Promise<Result>,
+  stepWrite?: IndicatorStepWrite,
 ) {
   let held: () => void = () => {};
   let release: () => void = () => {};
@@ -55,6 +64,7 @@ async function writeWhileStepHolds<Result>(
       await released;
       return undefined;
     },
+    ...(stepWrite === undefined ? {} : { write: stepWrite }),
   });
   await holding;
   const written = write();
@@ -105,6 +115,43 @@ async function submissionCount(db: Database, versionId: string): Promise<number>
     .from(indicatorVersionSubmission)
     .where(eq(indicatorVersionSubmission.indicatorVersionId, versionId));
   return rows.length;
+}
+
+/** A new indicator's complete draft, submitted once. */
+async function submittedNewDraft(db: Database, name: string) {
+  const draft = await completeNewDraft(db, name);
+  await submitIndicator(db, draft.indicatorId, draft.shown, AS_ACTOR);
+  return draft;
+}
+
+/** Assigns `reviewerIds` to the draft's first submission as a manager shown none assigned. */
+function assign(db: Database, indicatorId: string, reviewerIds: string[]) {
+  return assignReviewers(
+    db,
+    indicatorId,
+    { submissionNumber: 1, previousReviewerIds: [], reviewerIds },
+    AS_MANAGER,
+  );
+}
+
+async function submissionStatuses(db: Database, versionId: string): Promise<string[]> {
+  const rows = await db
+    .select({ status: indicatorVersionSubmission.status })
+    .from(indicatorVersionSubmission)
+    .where(eq(indicatorVersionSubmission.indicatorVersionId, versionId));
+  return rows.map(({ status }) => status);
+}
+
+async function reviewerIdsOf(db: Database, indicatorId: string): Promise<string[]> {
+  const rows = await db
+    .select({ reviewerId: indicatorVersionSubmissionReviewer.reviewerId })
+    .from(indicatorVersionSubmissionReviewer)
+    .innerJoin(
+      indicatorVersionSubmission,
+      eq(indicatorVersionSubmission.id, indicatorVersionSubmissionReviewer.submissionId),
+    )
+    .where(eq(indicatorVersionSubmission.indicatorId, indicatorId));
+  return rows.map(({ reviewerId }) => reviewerId);
 }
 
 async function draftOf(db: Database, versionId: string) {
@@ -255,6 +302,48 @@ describe('two steps at once', () => {
     expect(result).toEqual({ step: { ok: true }, write: { ok: false, reason: 'not_allowed' } });
     expect(await submissionCount(db, versionId)).toBe(1);
     expect((await draftOf(db, versionId)).isLocked).toBe(false);
+  });
+
+  repositoryTest('refuse an assignment that waited on a withdrawal', async ({ db }) => {
+    const { indicatorId, versionId } = await submittedNewDraft(db, 'Withdrawn, then assigned');
+
+    const result = await writeWhileStepHolds(db, indicatorId, 'withdraw', () =>
+      assign(db, indicatorId, [REVIEWER]),
+    );
+
+    expect(result).toEqual({ step: { ok: true }, write: { ok: false, reason: 'not_allowed' } });
+    expect(await submissionStatuses(db, versionId)).toEqual(['withdrawn']);
+  });
+
+  repositoryTest('refuse a withdrawal that waited on an assignment', async ({ db }) => {
+    const { indicatorId, versionId } = await submittedNewDraft(db, 'Assigned, then withdrawn');
+
+    const result = await writeWhileStepHolds(
+      db,
+      indicatorId,
+      'assign_reviewers',
+      () => withdrawSubmission(db, indicatorId, 1, AS_OTHER_ACTOR),
+      replaceReviewers([REVIEWER], AS_MANAGER),
+    );
+
+    expect(result).toEqual({ step: { ok: true }, write: { ok: false, reason: 'not_allowed' } });
+    expect(await submissionStatuses(db, versionId)).toEqual(['in_review']);
+    expect((await draftOf(db, versionId)).isLocked).toBe(true);
+  });
+
+  repositoryTest('refuse as changed an assignment that waited on another one', async ({ db }) => {
+    const { indicatorId } = await submittedNewDraft(db, 'Assigned by two managers');
+
+    const result = await writeWhileStepHolds(
+      db,
+      indicatorId,
+      'assign_reviewers',
+      () => assign(db, indicatorId, [OTHER_REVIEWER]),
+      replaceReviewers([REVIEWER], AS_MANAGER),
+    );
+
+    expect(result).toEqual({ step: { ok: true }, write: { ok: false, reason: 'changed' } });
+    expect(await reviewerIdsOf(db, indicatorId)).toEqual([REVIEWER]);
   });
 });
 

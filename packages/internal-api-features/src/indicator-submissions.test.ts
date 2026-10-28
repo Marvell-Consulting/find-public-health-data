@@ -235,3 +235,124 @@ describe('POST /api/internal/indicators/:id/withdraw', () => {
     expect(response.body).toEqual({ error: 'changed' });
   });
 });
+
+describe('POST /api/internal/indicators/:id/assign-reviewers', () => {
+  const path = `/api/internal/indicators/${ID}/assign-reviewers`;
+  const REVIEWER = '00000000-0000-7000-8000-0000000000a1';
+  const OTHER_REVIEWER = '00000000-0000-7000-8000-0000000000a2';
+  const body = { submissionNumber: 1, previousReviewerIds: [], reviewerIds: [REVIEWER] };
+
+  function managerCookie() {
+    return testSessionCookie(['internal', 'imrg-manager'], []);
+  }
+
+  it('rejects an anonymous request', async () => {
+    const response = await request(createTestApp()).post(path).send(body);
+
+    expect(response.status).toBe(401);
+  });
+
+  it.each([
+    ['a publisher in its team', ['internal', 'publisher']],
+    ['an admin', ['internal', 'admin']],
+    ['a reviewer', ['internal', 'imrg-reviewer']],
+  ])('refuses %s', async (_, roles) => {
+    const assignReviewers = vi.fn();
+
+    const response = await request(createTestApp({ assignReviewers }))
+      .post(path)
+      .set('Cookie', await testSessionCookie(roles))
+      .send(body);
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({ error: 'forbidden' });
+    expect(assignReviewers).not.toHaveBeenCalled();
+  });
+
+  it('rejects an id that is not a UUID', async () => {
+    const response = await request(createTestApp())
+      .post('/api/internal/indicators/108/assign-reviewers')
+      .set('Cookie', await managerCookie())
+      .send(body);
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'invalid_id' });
+  });
+
+  it('answers 404 for an indicator that does not exist', async () => {
+    const response = await request(createTestApp({ findTeamId: async () => undefined }))
+      .post(path)
+      .set('Cookie', await managerCookie())
+      .send(body);
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: 'not_found' });
+  });
+
+  it('assigns the reviewers as the signed-in manager, answering 204, and logs it', async () => {
+    const { logger, lines } = createCapturingLogger();
+    const assignReviewers = vi.fn().mockResolvedValue({ ok: true });
+    const change = {
+      submissionNumber: 2,
+      previousReviewerIds: [REVIEWER],
+      reviewerIds: [OTHER_REVIEWER, REVIEWER],
+    };
+
+    const response = await request(createTestApp({ assignReviewers }, logger))
+      .post(path)
+      .set('Cookie', await managerCookie())
+      .send(change);
+
+    expect(response.status).toBe(204);
+    expect(assignReviewers).toHaveBeenCalledWith(ID, change, testActor(response));
+    expect(await handlerLogLines(lines)).toEqual([
+      expect.objectContaining({ level: 30, msg: 'Reviewers assigned', indicatorId: ID }),
+    ]);
+  });
+
+  it.each([
+    ['no reviewers', { ...body, reviewerIds: [] }, 'no_reviewers'],
+    ['a reviewer twice', { ...body, reviewerIds: [REVIEWER, REVIEWER] }, 'duplicate_reviewers'],
+    ['a reviewer id that is not one', { ...body, reviewerIds: ['jamie'] }, 'invalid_request'],
+    ['no submission number', { ...body, submissionNumber: undefined }, 'invalid_request'],
+    ['no reviewers shown', { ...body, previousReviewerIds: undefined }, 'invalid_request'],
+  ])('refuses %s without asking the repository', async (_, sent, error) => {
+    const assignReviewers = vi.fn();
+
+    const response = await request(createTestApp({ assignReviewers }))
+      .post(path)
+      .set('Cookie', await managerCookie())
+      .send(sent);
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error });
+    expect(assignReviewers).not.toHaveBeenCalled();
+  });
+
+  it('answers 404 for an indicator with no draft', async () => {
+    const assignReviewers = vi.fn().mockResolvedValue({ ok: false, reason: 'no_draft' });
+
+    const response = await request(createTestApp({ assignReviewers }))
+      .post(path)
+      .set('Cookie', await managerCookie())
+      .send(body);
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: 'no_draft' });
+  });
+
+  it.each(['not_allowed', 'changed', 'not_a_reviewer'])(
+    'answers 409 %s when the repository refuses',
+    async (reason) => {
+      const assignReviewers = vi.fn().mockResolvedValue({ ok: false, reason });
+
+      const response = await request(createTestApp({ assignReviewers }))
+        .post(path)
+        .set('Cookie', await managerCookie())
+        .send(body);
+
+      expect(response.status).toBe(409);
+      expect(response.body).toEqual({ error: reason });
+    },
+  );
+});

@@ -28,6 +28,7 @@ describe('StatusTag', () => {
   it.each([
     ['new', 'draft', null, 'Incomplete', 'blue'],
     ['new', 'draft', 'submitted', 'Pending approval', 'yellow'],
+    ['new', 'draft', 'in_review', 'Pending approval', 'yellow'],
     ['new', 'draft', 'withdrawn', 'Incomplete', 'blue'],
     ['live', null, null, 'Published', 'green'],
     ['live', 'draft', null, 'Update incomplete', 'blue'],

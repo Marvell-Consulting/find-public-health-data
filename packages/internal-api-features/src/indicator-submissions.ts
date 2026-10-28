@@ -1,11 +1,14 @@
-import { requireApiActor, requireApiSession } from '@fphd/api-server';
+import { requireApiActor, requireApiSession, requireJwtSession } from '@fphd/api-server';
 import type { JwtSessionVerifier } from '@fphd/auth/jwt-session';
+import { canAssignReviewers } from '@fphd/auth/permissions';
 import { type Request, type Response, Router } from 'express';
 
 import {
+  type IndicatorAssignReviewersError,
   type IndicatorStep,
   type IndicatorSubmitError,
   type IndicatorWithdrawError,
+  indicatorAssignReviewersSchema,
   indicatorIdSchema,
   indicatorSubmitSchema,
   indicatorWithdrawSchema,
@@ -55,7 +58,19 @@ function refuse<Reason extends string>(
   response.status(reason === 'no_draft' ? 404 : 409).json({ error: reason });
 }
 
-/** The publisher's steps through review: submitting a draft for approval and withdrawing it. */
+/** Why an assignment's reviewers are refused before the repository is asked, if they are. */
+function reviewerListProblem(
+  reviewerIds: readonly string[],
+): IndicatorAssignReviewersError | undefined {
+  if (reviewerIds.length === 0) return { error: 'no_reviewers' };
+  if (new Set(reviewerIds).size !== reviewerIds.length) return { error: 'duplicate_reviewers' };
+  return undefined;
+}
+
+/**
+ * The steps through review: a publisher submitting a draft for approval and withdrawing it, and
+ * an IMRG manager assigning its reviewers.
+ */
 export function indicatorSubmissionsRouter(
   indicators: InternalIndicatorRepository,
   session: JwtSessionVerifier,
@@ -120,6 +135,46 @@ export function indicatorSubmissionsRouter(
     request.log.info({ indicatorId: id }, 'Indicator submission withdrawn');
     response.status(204).end();
   });
+
+  router.post(
+    '/api/internal/indicators/:id/assign-reviewers',
+    requireJwtSession(session, canAssignReviewers),
+    async (request, response) => {
+      const id = await stepIndicatorId(indicators, 'assign_reviewers', request, response);
+
+      if (id === undefined) return;
+
+      const body = indicatorAssignReviewersSchema.safeParse(request.body);
+
+      if (!body.success) {
+        response
+          .status(400)
+          .json({ error: 'invalid_request' } satisfies IndicatorAssignReviewersError);
+        return;
+      }
+
+      const problem = reviewerListProblem(body.data.reviewerIds);
+
+      if (problem !== undefined) {
+        response.status(400).json(problem);
+        return;
+      }
+
+      const result = await indicators.assignReviewers(
+        id,
+        body.data,
+        requireApiActor(request, response),
+      );
+
+      if (!result.ok) {
+        refuse(response, result);
+        return;
+      }
+
+      request.log.info({ indicatorId: id }, 'Reviewers assigned');
+      response.status(204).end();
+    },
+  );
 
   return router;
 }
