@@ -96,9 +96,9 @@ That yields 433,678 observations, 657,869 bridge rows and 67,978 observation not
   and ratio), and the count otherwise. A survey indicator whose count is an estimated number of
   people, such as smoking prevalence (92443), keeps it as the count whatever its value type.
   `export/split-count-and-numerator.py` moves each count that is a numerator, by the lists in
-  `export/count_and_numerator.py`; migration 0052 and `countIsNumerator` in
-  `@fphd/utils/value-type-and-unit` hold the same lists, and a test checks the committed seed
-  against them.
+  `export/count_and_numerator.py`. `countIsNumerator` in `@fphd/utils/value-type-and-unit`
+  holds the same lists, and a test checks the committed seed against them. Migration 0052
+  applied them to existing databases, so a change to them needs a data migration of its own.
 - Pholio's disclosure control, caveats and notes prose becomes the service's answers:
   `export/notes_and_caveats.py` turns prose that is an answer in itself, such as "None
   applied" or "Not applicable", into that answer and drops it, matching the whole text
