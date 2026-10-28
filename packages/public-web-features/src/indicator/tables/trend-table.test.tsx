@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
-
+import { trendCsv } from '../download.ts';
 import type { IndicatorDetail } from '../loader.ts';
+import { type TrendColumns, trendTableModel } from '../trend.ts';
 import { TrendTable } from './trend-table.tsx';
 
 afterEach(cleanup);
@@ -40,6 +41,43 @@ const areaData = [
 ];
 
 describe('TrendTable', () => {
+  it('keeps count, value and both interval column choices consistent with the CSV', () => {
+    const columns: TrendColumns = { count: true, value: false, confidence: ['95', '99.8'] };
+    const data = areaData.map((area) => ({
+      ...area,
+      observations: area.observations.map((row) => ({
+        ...row,
+        count: 1024,
+        lowerCi95: 11,
+        upperCi95: 13,
+        lowerCi998: 10,
+        upperCi998: 14,
+      })),
+    }));
+    render(
+      <TrendTable areaData={data} confidence="none" columns={columns} indicator={indicator('%')} />,
+    );
+    expect(screen.getByRole('columnheader', { name: 'Count' })).toBeTruthy();
+    expect(screen.queryByRole('columnheader', { name: /Calculated value/ })).toBeNull();
+    expect(
+      screen.getByRole('columnheader', { name: '95% lower confidence interval' }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('columnheader', { name: '99.8% lower confidence interval' }),
+    ).toBeTruthy();
+    const csv = trendCsv(
+      indicator('%'),
+      trendTableModel({ areaData: data, confidence: 'none' }),
+      'none',
+      false,
+      columns,
+    );
+    expect(csv).toContain(
+      'England count,England lower 95% CI,England upper 95% CI,England lower 99.8% CI,England upper 99.8% CI',
+    );
+    expect(csv).toContain('2023,1024,11,13,10,14');
+    expect(csv).not.toContain('calculated value');
+  });
   it.each([
     ['with no unit', null, 'Calculated value', '12.3'],
     ['as a percentage', '%', 'Calculated value (%)', '12.3%'],
@@ -52,4 +90,12 @@ describe('TrendTable', () => {
     expect(screen.getByRole('columnheader', { name: heading })).toBeTruthy();
     expect(within(row as HTMLElement).getByRole('cell').textContent).toBe(value);
   });
+});
+
+it('uses the visible caption as the table accessible name', () => {
+  render(
+    <TrendTable visibleCaption areaData={areaData} confidence="none" indicator={indicator('%')} />,
+  );
+  const table = screen.getByRole('table', { name: 'Table: Resident population, England, All' });
+  expect(table.hasAttribute('aria-label')).toBe(false);
 });

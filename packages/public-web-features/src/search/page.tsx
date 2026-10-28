@@ -1,5 +1,4 @@
 import { GridColumn, GridRow } from '@fphd/ui';
-import { useLocation } from 'react-router';
 import { SearchFilterPane } from './filter-pane.tsx';
 import type { loadSearch } from './loader.ts';
 import { SearchResults } from './results.tsx';
@@ -26,7 +25,6 @@ function stateFrom(data: SearchData): SearchState {
 
 export function SearchPage(data: SearchData) {
   const state = stateFrom(data);
-  const location = useLocation();
 
   return (
     <div className="fphd-wide-layout">
@@ -46,7 +44,6 @@ export function SearchPage(data: SearchData) {
         </GridColumn>
         <GridColumn width="two-thirds">
           <SearchResults
-            navigationKey={location.key}
             gaCodes={state.gaCodes}
             geoLevels={state.geoLevels}
             searchResult={data.searchResult}

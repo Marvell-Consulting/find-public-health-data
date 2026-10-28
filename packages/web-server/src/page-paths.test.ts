@@ -19,7 +19,7 @@ const routes = {
   tableCsv: {
     id: 'tableCsv',
     parentId: 'authenticated',
-    path: 'indicators/:slug/table.csv',
+    path: 'indicator/:slug/table.csv',
     module: { loader: () => null },
   },
   notFound: { id: 'notFound', parentId: 'root', path: '*', module: { default: () => null } },
@@ -39,7 +39,7 @@ describe('createPagePathCheck', () => {
     '/dashboard.data',
     '/_.data',
     '/auth/sign-out',
-    '/indicators/90366/table.csv',
+    '/indicator/90366/table.csv',
     '/no-such-page',
   ])('rejects %s, which is not a page', (path) => {
     expect(isPagePath(path)).toBe(false);

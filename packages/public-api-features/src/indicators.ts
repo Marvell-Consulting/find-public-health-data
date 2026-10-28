@@ -13,6 +13,8 @@ import type {
 import {
   DEFAULT_INDICATOR_SEARCH_RESULTS,
   indicatorPeriodFiltersSchema,
+  MAX_AREA_NAME_LENGTH,
+  MAX_AREA_PREVIEW,
   MAX_FILTER_LABEL_LENGTH,
   MAX_FILTER_VALUE_LENGTH,
   MAX_FILTER_VALUES,
@@ -145,6 +147,35 @@ export function indicatorsRouter(indicators: Repositories['indicators']): Router
       return;
     }
     response.status(200).json({ indicators: await indicators.listPublished() });
+  });
+
+  router.get('/api/indicators/:indicator/areas', async (request, response) => {
+    const indicatorId = await resolveIndicator(indicators, request.params.indicator);
+    if (!indicatorId) {
+      response.status(404).json({ error: 'not_found' });
+      return;
+    }
+    const { displayGroup, q, limit, scope } = request.query;
+    if (limit !== undefined && (typeof limit !== 'string' || !/^[1-9]\d*$/.test(limit))) {
+      response.status(400).json({ error: 'invalid_limit' });
+      return;
+    }
+    response.status(200).json(
+      await indicators.listAreas(indicatorId, {
+        scope: scope === 'all-data' ? 'all-data' : undefined,
+        displayGroup:
+          typeof displayGroup === 'string'
+            ? displayGroup.slice(0, MAX_AREA_NAME_LENGTH)
+            : undefined,
+        query: typeof q === 'string' ? q.trim().slice(0, MAX_AREA_NAME_LENGTH) : undefined,
+        limit:
+          typeof limit === 'string' && /^[1-9]\d*$/.test(limit)
+            ? Math.min(Number(limit), MAX_AREA_PREVIEW)
+            : (typeof displayGroup === 'string' && displayGroup) || scope === 'all-data'
+              ? undefined
+              : MAX_AREA_PREVIEW,
+      }),
+    );
   });
 
   router.get('/api/indicators/:indicator/data', async (request, response) => {

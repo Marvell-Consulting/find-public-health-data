@@ -1,10 +1,9 @@
 import { periodLabel } from '@fphd/utils/period-label';
 import { stringify } from 'csv-stringify/sync';
 
-import type { comparisonTable } from './comparison.ts';
-import { type ConfidenceLevel, segmentLabel, unitNote, withUnit } from './data.ts';
+import { type ConfidenceLevel, segmentLabel, unitNote } from './data.ts';
 import type { IndicatorAreaData, IndicatorDetail } from './loader.ts';
-import type { trendTableModel } from './trend.ts';
+import type { TrendColumns, trendTableModel } from './trend.ts';
 
 export function tableCsv(rows: (string | number | null)[][]): string {
   return stringify(rows, {
@@ -19,30 +18,30 @@ export function trendCsv(
   model: ReturnType<typeof trendTableModel>,
   confidence: ConfidenceLevel,
   showRange: boolean,
+  columns?: TrendColumns,
 ): string {
   const {
     benchmarks,
-    hasCounts,
+    hasCounts: availableCounts,
     inPeriod,
-    lowerOf,
     periods,
     referenceSegment,
     seriesByArea,
-    upperOf,
   } = model;
+  const hasCounts = columns ? columns.count : availableCounts;
+  const showValues = columns?.value ?? true;
+  const intervals = columns?.confidence ?? (confidence === 'none' ? [] : [confidence]);
   const headers = [
     'Period',
     ...seriesByArea.flatMap(({ data }) => {
       const benchmark = benchmarks.get(data.areaCode);
       return [
         ...(hasCounts ? [`${data.areaName} count`] : []),
-        `${data.areaName} calculated value${unitNote(indicator.unit)}`,
-        ...(confidence === 'none'
-          ? []
-          : [
-              `${data.areaName} lower ${confidence}% CI`,
-              `${data.areaName} upper ${confidence}% CI`,
-            ]),
+        ...(showValues ? [`${data.areaName} calculated value${unitNote(indicator.unit)}`] : []),
+        ...intervals.flatMap((level) => [
+          `${data.areaName} lower ${level}% CI`,
+          `${data.areaName} upper ${level}% CI`,
+        ]),
         ...(benchmark
           ? [
               `${data.areaName} ${benchmark.name} calculated value${unitNote(indicator.unit)}`,
@@ -68,10 +67,12 @@ export function trendCsv(
       );
       return [
         ...(hasCounts ? [observation?.count ?? null] : []),
-        observation?.value ?? null,
-        ...(confidence === 'none'
-          ? []
-          : [observation ? lowerOf(observation) : null, observation ? upperOf(observation) : null]),
+        ...(showValues ? [observation?.value ?? null] : []),
+        ...intervals.flatMap((level) =>
+          level === '95'
+            ? [observation?.lowerCi95 ?? null, observation?.upperCi95 ?? null]
+            : [observation?.lowerCi998 ?? null, observation?.upperCi998 ?? null],
+        ),
         ...(benchmark
           ? [
               benchmarkObservation?.value ?? null,
@@ -85,7 +86,11 @@ export function trendCsv(
 }
 
 /** Every observation for the selected areas, segments and notes included. */
-export function allDataCsv(indicator: IndicatorDetail, areaData: IndicatorAreaData[]): string {
+export function allDataCsv(
+  indicator: IndicatorDetail,
+  areaData: IndicatorAreaData[],
+  includeHeader = true,
+): string {
   const rows: (string | number | null)[][] = [
     [
       'Indicator',
@@ -120,59 +125,5 @@ export function allDataCsv(indicator: IndicatorDetail, areaData: IndicatorAreaDa
       ]);
     }
   }
-  return stringify(rows);
-}
-
-export function comparisonCsv(
-  comparison: ReturnType<typeof comparisonTable>,
-  range: boolean,
-): string {
-  const { areas, rows, trendOf, benchmarkNameFor, benchmarkCellFor } = comparison;
-  return tableCsv([
-    [
-      'Indicator',
-      'Most recent period',
-      ...areas.flatMap(({ areaCode, areaName }) => [
-        `${areaName} recent trend`,
-        `${areaName} count`,
-        `${areaName} calculated value`,
-        ...(benchmarkNameFor(areaCode)
-          ? [
-              `${areaName} ${benchmarkNameFor(areaCode)} calculated value`,
-              ...(range
-                ? [
-                    `${areaName} ${benchmarkNameFor(areaCode)} minimum`,
-                    `${areaName} ${benchmarkNameFor(areaCode)} maximum`,
-                  ]
-                : []),
-            ]
-          : []),
-      ]),
-    ],
-    ...rows.map((row) => [
-      `${row.name}${row.suffix ? ` ${row.suffix}` : ''}`,
-      row.period,
-      ...row.cells.flatMap((cell) => {
-        const benchmarkCell = benchmarkNameFor(cell.areaCode)
-          ? benchmarkCellFor(row, cell)
-          : undefined;
-        return [
-          trendOf(row, cell).label,
-          cell.count === null ? '' : String(cell.count),
-          cell.value === null ? '' : withUnit(String(cell.value), row.unit),
-          ...(benchmarkNameFor(cell.areaCode)
-            ? [
-                benchmarkCell?.value == null ? '' : withUnit(String(benchmarkCell.value), row.unit),
-                ...(range
-                  ? [
-                      benchmarkCell?.rangePeriod ? String(benchmarkCell.rangePeriod.min) : '',
-                      benchmarkCell?.rangePeriod ? String(benchmarkCell.rangePeriod.max) : '',
-                    ]
-                  : []),
-              ]
-            : []),
-        ];
-      }),
-    ]),
-  ]);
+  return tableCsv(includeHeader ? rows : rows.slice(1));
 }

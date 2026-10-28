@@ -59,7 +59,7 @@ describe('loadIndicatorCsv', () => {
     ]);
 
     const response = await loadIndicatorCsv(
-      args(get, 'http://localhost/indicators/mortality-all-causes/table.csv'),
+      args(get, 'http://localhost/indicator/mortality-all-causes/table.csv'),
       'table',
     );
 
@@ -84,7 +84,7 @@ describe('loadIndicatorCsv', () => {
       );
 
     const response = await loadIndicatorCsv(
-      args(get, 'http://localhost/indicators/mortality-all-causes/table.csv'),
+      args(get, 'http://localhost/indicator/mortality-all-causes/table.csv'),
       'table',
     );
 
@@ -113,7 +113,7 @@ describe('loadIndicatorCsv', () => {
     const response = await loadIndicatorCsv(
       args(
         get,
-        'http://localhost/indicators/mortality-all-causes/table.csv?as=E06000052&sex-108=Male',
+        'http://localhost/indicator/mortality-all-causes/table.csv?as=E06000052&sex-108=Male',
       ),
       'table',
     );
@@ -143,7 +143,7 @@ describe('loadIndicatorCsv', () => {
     ]);
 
     const response = await loadIndicatorCsv(
-      args(get, 'http://localhost/indicators/mortality-all-causes/all-data.csv'),
+      args(get, 'http://localhost/indicator/mortality-all-causes/all-data.csv'),
       'all-data',
     );
 
@@ -154,6 +154,36 @@ describe('loadIndicatorCsv', () => {
     expect(body).toContain('Segment');
     expect(body).toContain('Male');
     expect(body).toContain('Provisional');
+  });
+
+  it('exports every published area in bounded batches with a single CSV header', async () => {
+    const areas = Array.from({ length: 23 }, (_, index) => ({
+      code: `E${String(index).padStart(8, '0')}`,
+      name: `Area ${index}`,
+    }));
+    const get = vi.fn(async (path: string) => {
+      if (path.includes('/areas?')) return [{ displayGroup: 'Local authorities', areas }];
+      if (path.includes('/data?'))
+        return new URL(`http://localhost${path}`).searchParams.getAll('areaCode').map((code) => ({
+          areaCode: code,
+          areaName: areas.find((area) => area.code === code)?.name,
+          observations: [observation()],
+        }));
+      return detail;
+    });
+    const response = await loadIndicatorCsv(
+      args(get, `http://localhost/indicator/${SLUG}/all-data.csv?allAreas=yes`),
+      'all-data',
+    );
+    const csv = await response.text();
+    expect(csv.split('\n').filter((line) => line.startsWith('Indicator,Area,Period'))).toHaveLength(
+      1,
+    );
+    expect(csv).toContain('Area 22');
+    const sizes = get.mock.calls
+      .filter(([path]) => path.includes('/data?'))
+      .map(([path]) => new URL(`http://localhost${path}`).searchParams.getAll('areaCode').length);
+    expect(sizes).toEqual([20, 3]);
   });
 
   it('ignores a sex the data does not publish rather than serving an empty table', async () => {
@@ -171,7 +201,7 @@ describe('loadIndicatorCsv', () => {
     ]);
 
     const response = await loadIndicatorCsv(
-      args(get, 'http://localhost/indicators/mortality-all-causes/table.csv?sex-108=Unpublished'),
+      args(get, 'http://localhost/indicator/mortality-all-causes/table.csv?sex-108=Unpublished'),
       'table',
     );
 
@@ -196,7 +226,7 @@ describe('loadIndicatorCsv', () => {
     const response = await loadIndicatorCsv(
       args(
         get,
-        'http://localhost/indicators/mortality-all-causes/table.csv?as=E06000052&sex-108=Male',
+        'http://localhost/indicator/mortality-all-causes/table.csv?as=E06000052&sex-108=Male',
       ),
       'table',
     );
@@ -209,7 +239,7 @@ describe('loadIndicatorCsv', () => {
     const get = vi.fn();
 
     await expect(
-      loadIndicatorCsv(args(get, 'http://localhost/indicators/x/table.csv', '../x'), 'table'),
+      loadIndicatorCsv(args(get, 'http://localhost/indicator/x/table.csv', '../x'), 'table'),
     ).rejects.toMatchObject({ status: 404 });
     expect(get).not.toHaveBeenCalled();
   });
@@ -221,7 +251,7 @@ describe('loadIndicatorCsv', () => {
 
     await expect(
       loadIndicatorCsv(
-        args(get, 'http://localhost/indicators/108/table.csv?as=E06000052', '108'),
+        args(get, 'http://localhost/indicator/108/table.csv?as=E06000052', '108'),
         'table',
       ),
     ).rejects.toMatchObject({
@@ -234,7 +264,7 @@ describe('loadIndicatorCsv', () => {
     const get = api([]);
 
     await loadIndicatorCsv(
-      args(get, 'http://localhost/indicators/108/table.csv?as=E06000052', '108'),
+      args(get, 'http://localhost/indicator/108/table.csv?as=E06000052', '108'),
       'table',
     ).catch(() => undefined);
 
@@ -247,12 +277,50 @@ describe('loadIndicatorCsv', () => {
     ]);
 
     const redirected = await loadIndicatorCsv(
-      args(get, 'http://localhost/indicators/108/all-data.csv?as=E06000052', '108'),
+      args(get, 'http://localhost/indicator/108/all-data.csv?as=E06000052', '108'),
       'all-data',
     ).catch((response: Response) => response);
 
     expect((redirected as Response).headers.get('location')).toBe(
-      `/indicators/${SLUG}/all-data.csv?as=E06000052`,
+      `/indicator/${SLUG}/all-data.csv?as=E06000052`,
     );
   });
+});
+
+it('rejects an all-areas download body if a later data batch fails', async () => {
+  const areas = Array.from({ length: 23 }, (_, index) => ({
+    code: `E${String(index).padStart(8, '0')}`,
+    name: `Area ${index}`,
+  }));
+  let batches = 0;
+  const failure = new Response(null, { status: 502 });
+  const get = vi.fn(async (path: string) => {
+    if (path.includes('/areas?')) return [{ displayGroup: 'Local authorities', areas }];
+    if (path.includes('/data?')) {
+      if (++batches === 2) throw failure;
+      return [];
+    }
+    return detail;
+  });
+  const response = await loadIndicatorCsv(
+    args(get, `http://localhost/indicator/${SLUG}/all-data.csv?allAreas=yes`),
+    'all-data',
+  );
+  await expect(response.text()).rejects.toBe(failure);
+});
+
+it('propagates an initial all-areas API failure before returning an attachment', async () => {
+  const failure = new Response(null, { status: 502 });
+  const get = vi.fn(async (path: string) => {
+    if (path.includes('/areas?'))
+      return [{ displayGroup: 'NHS regions', areas: [{ code: 'E40000001', name: 'Region' }] }];
+    if (path.includes('/data?')) throw failure;
+    return detail;
+  });
+  await expect(
+    loadIndicatorCsv(
+      args(get, `http://localhost/indicator/${SLUG}/all-data.csv?allAreas=yes`),
+      'all-data',
+    ),
+  ).rejects.toBe(failure);
 });

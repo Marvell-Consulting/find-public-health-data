@@ -1,9 +1,13 @@
+import { TableScrollRegion } from '@fphd/ui';
 import { periodLabel } from '@fphd/utils/period-label';
+import { observationComparisonLabel } from '../area-comparison.ts';
 import {
   type ConfidenceLevel,
   confidenceInterval,
   formatCalculatedValue,
+  formatValue,
   inequalityCategoryLabel,
+  inequalityValueLabel,
   segmentLabel,
   unitNote,
 } from '../data.ts';
@@ -14,12 +18,19 @@ export function InequalitiesTable({
   confidence,
   indicator,
   observations,
+  benchmark,
+  benchmarkCount,
+  areaName = 'England',
 }: {
   confidence: ConfidenceLevel;
   indicator: IndicatorDetail;
   observations: IndicatorObservation[];
+  benchmark?: number | null;
+  benchmarkCount?: number | null;
+  areaName?: string;
 }) {
   const first = observations[0];
+  const compare = benchmark !== undefined;
   if (!first) {
     return null;
   }
@@ -31,46 +42,99 @@ export function InequalitiesTable({
 
   return (
     <>
-      <table className="govuk-table">
-        <caption className="govuk-table__caption govuk-table__caption--s">
-          {inequalityCategoryLabel(dimensionType)}, {periodLabel(first, indicator.yearType)}
-        </caption>
-        <thead className="govuk-table__head">
-          <tr className="govuk-table__row">
-            <th scope="col" className="govuk-table__header">
-              Segment
-            </th>
-            <th scope="col" className="govuk-table__header govuk-table__header--numeric">
-              Value{unitNote(indicator.unit)}
-            </th>
-            {confidence === 'none' ? null : (
-              <th scope="col" className="govuk-table__header govuk-table__header--numeric">
-                {confidence}% confidence interval
-              </th>
+      <TableScrollRegion label={`${indicator.name} inequalities data table`}>
+        <table className="govuk-table fphd-inequalities-table">
+          <caption className="govuk-table__caption govuk-table__caption--s">
+            {compare ? (
+              <>
+                Table of inequalities: {indicator.name}
+                <span className="govuk-visually-hidden">
+                  , {inequalityCategoryLabel(dimensionType)}, {areaName},{' '}
+                  {periodLabel(first, indicator.yearType)}
+                </span>
+              </>
+            ) : (
+              <>
+                {inequalityCategoryLabel(dimensionType)}, {periodLabel(first, indicator.yearType)}
+              </>
             )}
-          </tr>
-        </thead>
-        <tbody className="govuk-table__body">
-          {observations.map((observation) => (
-            <tr className="govuk-table__row" key={segmentLabel(observation)}>
-              <th scope="row" className="govuk-table__header">
-                {/* The category value alone — baseline dimensions describe the whole table. */}
-                {observation.dimensions.find(({ type }) => type === dimensionType)?.value ??
-                  segmentLabel(observation)}
+          </caption>
+          <thead className="govuk-table__head">
+            <tr className="govuk-table__row">
+              <th scope="col" className="govuk-table__header">
+                {compare ? inequalityCategoryLabel(dimensionType, true) : 'Segment'}
               </th>
-              <td className="govuk-table__cell govuk-table__cell--numeric">
-                {formatCalculatedValue(observation.value)}
-                {observation.notes.map(({ text }) => noteMarker(noteTexts, text)).join('')}
-              </td>
-              {confidence === 'none' ? null : (
-                <td className="govuk-table__cell govuk-table__cell--numeric">
-                  {confidenceInterval(observation, confidence)}
-                </td>
+              {compare ? (
+                <th scope="col" className="govuk-table__header govuk-table__header--numeric">
+                  Count
+                </th>
+              ) : null}
+              <th scope="col" className="govuk-table__header govuk-table__header--numeric">
+                {compare ? indicator.name : 'Value'}
+                {unitNote(indicator.unit)}
+              </th>
+              {compare ? (
+                <th scope="col" className="govuk-table__header">
+                  Compared with England
+                </th>
+              ) : confidence === 'none' ? null : (
+                <th scope="col" className="govuk-table__header govuk-table__header--numeric">
+                  {confidence}% confidence interval
+                </th>
               )}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="govuk-table__body">
+            {compare ? (
+              <tr className="govuk-table__row">
+                <th scope="row" className="govuk-table__header">
+                  England
+                </th>
+                <td className="govuk-table__cell govuk-table__cell--numeric">
+                  {benchmarkCount == null ? '—' : formatValue(benchmarkCount)}
+                </td>
+                <td className="govuk-table__cell govuk-table__cell--numeric">
+                  {formatCalculatedValue(benchmark ?? null)}
+                  {benchmark != null && indicator.unit === '%' ? '%' : ''}
+                </td>
+                <td className="govuk-table__cell">Benchmark</td>
+              </tr>
+            ) : null}
+            {observations.map((observation) => (
+              <tr className="govuk-table__row" key={segmentLabel(observation)}>
+                <th scope="row" className="govuk-table__header">
+                  {/* The category value alone — baseline dimensions describe the whole table. */}
+                  {inequalityValueLabel(observation)}
+                </th>
+                {compare ? (
+                  <td className="govuk-table__cell govuk-table__cell--numeric">
+                    {observation.count == null ? '—' : formatValue(observation.count)}
+                  </td>
+                ) : null}
+                <td className="govuk-table__cell govuk-table__cell--numeric">
+                  {formatCalculatedValue(observation.value)}
+                  {compare && observation.value != null && indicator.unit === '%' ? '%' : ''}
+                  {observation.notes.map(({ text }) => noteMarker(noteTexts, text)).join('')}
+                </td>
+                {compare ? (
+                  <td className="govuk-table__cell">
+                    {observationComparisonLabel(
+                      observation,
+                      benchmark ?? null,
+                      indicator,
+                      confidence === '99.8' ? '99.8' : '95',
+                    )}
+                  </td>
+                ) : confidence === 'none' ? null : (
+                  <td className="govuk-table__cell govuk-table__cell--numeric">
+                    {confidenceInterval(observation, confidence)}
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </TableScrollRegion>
       <NoteFootnotes noteTexts={noteTexts} />
     </>
   );

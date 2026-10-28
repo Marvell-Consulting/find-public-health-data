@@ -4,6 +4,9 @@ import {
   areaParentListSchema,
   DEFAULT_INDICATOR_SEARCH_RESULTS,
   displayGroupListSchema,
+  type IndicatorAreaData,
+  type IndicatorDetail,
+  type IndicatorRangePeriod,
   indicatorAreaDataListSchema,
   indicatorAreaDataSchema,
   indicatorDetailSchema,
@@ -15,16 +18,19 @@ import {
   MAX_INDICATOR_QUERY_LENGTH,
   pickAreaCodes,
 } from '@fphd/public-api-features/contract';
-import { indicatorPath } from '@fphd/utils/indicator-path';
 import { apiPath } from '@fphd/web-server/api-client';
 import { apiContext } from '@fphd/web-server/api-context';
-import { pageSearch } from '@fphd/web-server/page-url';
-import { type LoaderFunctionArgs, redirect } from 'react-router';
-import { areasInGeographyGroup, sourceGeographyGroup } from '../geography/groups.ts';
+import type { LoaderFunctionArgs } from 'react-router';
+import {
+  areasInGeographyGroup,
+  normalizePublicLevels,
+  publicGeographyLevels,
+  sourceGeographyGroup,
+} from '../geography/groups.ts';
 import { loadGeographyOptions } from '../geography/loader.ts';
 import { MAX_SELECTED_AREAS, MAX_SELECTED_INDICATORS } from '../selection-limits.ts';
+import { areaComparisonOptions } from './area-comparison.ts';
 import { loadInBatches } from './batches.ts';
-import { isIndicatorSegment, redirectStatus } from './paths.ts';
 import { loadIndicatorTableEntries } from './table-loader.ts';
 
 export type {
@@ -48,13 +54,13 @@ export interface IndicatorSelection {
 
 /** One selected indicator with the area data backing its charts. */
 export interface SelectedIndicator {
-  detail: import('@fphd/public-api-features/contract').IndicatorDetail;
-  areaData: import('@fphd/public-api-features/contract').IndicatorAreaData[];
+  detail: IndicatorDetail;
+  areaData: IndicatorAreaData[];
   /** The statistical regions the selected areas roll up to, for the region benchmark. */
-  regionData?: import('@fphd/public-api-features/contract').IndicatorAreaData[];
+  regionData?: IndicatorAreaData[];
   /** Per display level ('Local authorities', 'Statistical regions'…): min/max of the
    *  value across every area of that level, per period — the comparison range. */
-  ranges?: Record<string, import('@fphd/public-api-features/contract').IndicatorRangePeriod[]>;
+  ranges?: Record<string, IndicatorRangePeriod[]>;
 }
 
 /** A picked area resolved to its display name and level. */
@@ -70,6 +76,12 @@ export interface BenchmarkGeography {
   regionByCode: Record<string, { code: string; name: string }>;
   /** Selected area code → its display level, for picking the England range. */
   levelByCode: Record<string, string>;
+}
+
+export interface IndicatorPageData {
+  detail: IndicatorDetail;
+  compared: IndicatorDetail | undefined;
+  groups: { displayGroup: string; areas: { code: string; name: string }[] }[];
 }
 
 const DEFAULT_AREA_CODE = 'E92000001';
@@ -107,34 +119,25 @@ function selectedIndicatorIds(
  * segment — React Router decodes %2F inside a single dynamic segment, so an un-encoded id
  * of '../topics' would normalise the request onto a different API route entirely.
  */
-async function loadIndicatorData(
-  { context, params, request }: LoaderFunctionArgs,
-  includePageData: boolean,
-  tableDisplayGroups?: string[],
-  wholeAreaGroups = false,
+export async function loadIndicatorData(
+  { context, request }: LoaderFunctionArgs,
+  {
+    page,
+    tableDisplayGroups,
+    wholeAreaGroups = false,
+  }: {
+    page?: IndicatorPageData;
+    tableDisplayGroups?: string[];
+    wholeAreaGroups?: boolean;
+  } = {},
 ) {
   const url = new URL(request.url);
-
-  if (params.slug !== undefined && !isIndicatorSegment(params.slug)) {
-    // `indicators/:slug` matched but the segment is neither a number nor slug-shaped,
-    // which the API would answer with a 404 anyway. Failing here keeps it off the API.
-    throw new Response('Not Found', { status: 404 });
-  }
-
   const api = context.get(apiContext);
-  // The segment goes to the API as it stands — a number, an older slug or the wrong case
-  // all resolve — and the canonical slug the body carries is the one address of the page.
-  const routeDetail =
-    params.slug === undefined
-      ? undefined
-      : await api.get(apiPath`/api/indicators/${params.slug}`, indicatorDetailSchema);
-
-  if (routeDetail !== undefined && params.slug !== undefined && routeDetail.slug !== params.slug) {
-    throw redirect(
-      `${indicatorPath(routeDetail.slug)}${pageSearch(url)}`,
-      redirectStatus(params.slug, routeDetail.slug),
-    );
-  }
+  const routeDetail = page?.detail;
+  const comparedDetail = page?.compared;
+  const indicatorGroups = page?.groups;
+  const singlePage = page !== undefined;
+  const includePageData = singlePage;
 
   // De-duplicated: a hand-edited URL repeating a code would otherwise fetch it twice and
   // render it twice.
@@ -143,7 +146,7 @@ async function loadIndicatorData(
     Number.POSITIVE_INFINITY,
   ).filter((code) => code !== DEFAULT_AREA_CODE);
   const areaCodes = requestedAreaCodes.slice(0, MAX_SELECTED_AREAS);
-  const requestedLevels = [
+  let requestedLevels = [
     ...new Set(
       url.searchParams
         .getAll('als')
@@ -151,24 +154,34 @@ async function loadIndicatorData(
     ),
   ].slice(0, MAX_AREA_GROUPS_PER_REQUEST);
 
+  if (singlePage) requestedLevels = normalizePublicLevels(requestedLevels);
+
   // A whole-level selection ("Local authorities") rides in the URL as its name; its
   // areas are resolved here, subject to the same cap as hand-picked codes.
   let levelCodes: string[] = [];
   if (requestedLevels.length > 0) {
     const sources = [...new Set(requestedLevels.map(sourceGeographyGroup))];
-    const levelGroups = await api.get(
-      `/api/areas?${sources.map((name) => `displayGroup=${encodeURIComponent(name)}`).join('&')}`,
-      areaDisplayGroupListSchema,
-    );
+    const levelGroups =
+      indicatorGroups && routeDetail
+        ? (
+            await loadInBatches(sources, (source) =>
+              api.get(
+                `${apiPath`/api/indicators/${routeDetail.slug}/areas`}?displayGroup=${encodeURIComponent(source)}`,
+                areaDisplayGroupListSchema,
+              ),
+            )
+          ).flat()
+        : await api.get(
+            `/api/areas?${sources.map((source) => `displayGroup=${encodeURIComponent(source)}`).join('&')}`,
+            areaDisplayGroupListSchema,
+          );
     levelCodes = requestedLevels.flatMap((level) =>
       levelGroups
-        .filter(({ displayGroup }) => displayGroup === sourceGeographyGroup(level))
+        .filter((group) => group.displayGroup === sourceGeographyGroup(level))
         .flatMap(({ displayGroup, areas }) =>
-          areasInGeographyGroup(
-            areas,
-            wholeAreaGroups && displayGroup === 'Local authorities'
-              ? 'Upper-tier local authorities'
-              : level,
+          (wholeAreaGroups
+            ? areaComparisonOptions(areas, displayGroup)
+            : areasInGeographyGroup(areas, level)
           ).map(({ code }) => code),
         ),
     );
@@ -188,7 +201,7 @@ async function loadIndicatorData(
   // Only the picked areas resolve to names and levels — the tree fetches its own
   // catalogue on demand, keeping thousands of areas out of the page payload.
   const codeQuery = nonEnglandCodes.map((code) => `areaCode=${encodeURIComponent(code)}`).join('&');
-  const [lookedUp, areaParents, displayGroups] = await Promise.all([
+  const [lookedUp, areaParents, catalogueGroups] = await Promise.all([
     nonEnglandCodes.length > 0
       ? Promise.all(
           Array.from(
@@ -214,15 +227,22 @@ async function loadIndicatorData(
       : Promise.resolve([]),
     // The user-facing levels live on area_type now; the list validates `als` values after
     // the fact (level expansion tolerates unknown groups) and feeds the tree.
-    tableDisplayGroups !== undefined
-      ? Promise.resolve(tableDisplayGroups)
-      : includePageData
-        ? api.get('/api/areas/display-groups', displayGroupListSchema)
-        : Promise.resolve([]),
+    indicatorGroups
+      ? Promise.resolve(indicatorGroups.map(({ displayGroup }) => displayGroup))
+      : tableDisplayGroups !== undefined
+        ? Promise.resolve(tableDisplayGroups)
+        : includePageData
+          ? api.get('/api/areas/display-groups', displayGroupListSchema)
+          : Promise.resolve([]),
   ]);
+  const displayGroups = singlePage ? publicGeographyLevels(catalogueGroups) : catalogueGroups;
   const areaLevels = requestedLevels.filter((level) => displayGroups.includes(level));
   const geographyOptions = includePageData
-    ? await loadGeographyOptions(api, url.searchParams, displayGroups)
+    ? await loadGeographyOptions(api, url.searchParams, displayGroups, {
+        indicator: singlePage ? routeDetail?.slug : undefined,
+        previews: indicatorGroups,
+        publicOnly: singlePage,
+      })
     : undefined;
 
   const selectedAreas = lookedUp.map(({ code, name, areaType: typeName, displayGroup }) => ({
@@ -270,14 +290,14 @@ async function loadIndicatorData(
     return { region: choices.includes('region'), rangeLevels: [...rangeLevels] };
   };
 
-  const shortIds = selectedIndicatorIds(
-    url,
-    routeDetail?.shortId,
-    tableDisplayGroups === undefined ? MAX_SELECTED_INDICATORS : Number.POSITIVE_INFINITY,
-  );
-  const requestedIndicatorCount = new Set(
-    url.searchParams.getAll('is').filter((value) => /^\d+$/.test(value)),
-  ).size;
+  const shortIds =
+    singlePage && routeDetail
+      ? [routeDetail.shortId, ...(comparedDetail ? [comparedDetail.shortId] : [])]
+      : selectedIndicatorIds(
+          url,
+          routeDetail?.shortId,
+          tableDisplayGroups === undefined ? MAX_SELECTED_INDICATORS : Number.POSITIVE_INFINITY,
+        );
   // `find` is the quicksearch form's no-script round trip; matches render as add links.
   const findSubject =
     url.searchParams.get('find')?.trim().slice(0, MAX_INDICATOR_QUERY_LENGTH) ?? '';
@@ -363,24 +383,16 @@ async function loadIndicatorData(
     findResults,
     geographyOptions,
     areasLimited,
-    indicatorsLimited: requestedIndicatorCount > MAX_SELECTED_INDICATORS,
     selection: { areaCodes, areaLevels, shortIds } satisfies IndicatorSelection,
   };
 }
 
-export async function loadIndicator(args: LoaderFunctionArgs) {
-  return loadIndicatorData(args, true);
-}
-
-export async function loadComparisonData(args: LoaderFunctionArgs) {
-  const { selected, benchmarkGeography } = await loadIndicatorData(args, false);
-  return { selected, benchmarkGeography };
-}
+export { loadIndicator } from './single-loader.ts';
 
 export async function loadIndicatorTableData(
   args: LoaderFunctionArgs,
   displayGroups: string[],
   wholeAreaGroups = false,
 ) {
-  return loadIndicatorData(args, false, displayGroups, wholeAreaGroups);
+  return loadIndicatorData(args, { tableDisplayGroups: displayGroups, wholeAreaGroups });
 }

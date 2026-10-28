@@ -7,7 +7,7 @@ import {
   TopicRoute,
   TopicsRoute,
 } from '@fphd/public-web-features';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -105,547 +105,6 @@ describe('public application routes', () => {
     expect(screen.getByText('All about topic A.')).toBeTruthy();
   });
 
-  it('renders the indicator page skeleton from loader data', async () => {
-    const indicator = {
-      shortId: 108,
-      slug: 'under-75-mortality-rate-from-all-causes',
-      name: 'Under 75 mortality rate from all causes',
-      valueType: 'Directly standardised rate',
-      unit: 'per 100,000',
-      yearType: CALENDAR_YEARS,
-      updateFrequency: 'annually',
-      polarity: 'lower-is-better',
-      ciMethod: "Dobson & Byar's methods",
-      ciConfidenceLevel: '95' as const,
-      comparatorMethod: null,
-      dataUpdatedAt: '2026-04-20T16:25:18.000Z',
-      definition: 'Directly age-standardised mortality rate for all deaths.',
-      rationale: 'Premature mortality is a key measure of population health.',
-      methodology: null,
-      numeratorDefinition: null,
-      denominatorDefinition: null,
-      disclosureControl: null,
-      caveats: null,
-      notes: null,
-      dataSource: { name: 'Office for National Statistics', url: 'https://www.ons.gov.uk' },
-      numeratorSources: [],
-      denominatorSources: [],
-      areaTypes: [
-        { name: 'England', areaCount: 1 },
-        { name: 'Counties & UAs (from Apr 2023)', areaCount: 153 },
-      ],
-      topics: [{ slug: 'mortality-and-life-expectancy', title: 'Mortality and life expectancy' }],
-      classifications: [
-        { dimension: 'indicator_type', slug: 'indicator-type-outcome', name: 'Outcome' },
-      ],
-    };
-    const observations = [
-      {
-        fromDate: '2022-01-01',
-        toDate: '2022-12-31',
-        value: 342.2,
-        lowerCi95: 340.1,
-        upperCi95: 344.3,
-        lowerCi998: null,
-        upperCi998: null,
-        count: 129000,
-        denominator: null,
-        notes: [],
-        dimensions: [{ type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 }],
-      },
-      {
-        fromDate: '2023-01-01',
-        toDate: '2023-12-31',
-        value: 341.1,
-        lowerCi95: 339.0,
-        upperCi95: 343.2,
-        lowerCi998: null,
-        upperCi998: null,
-        count: 130000,
-        denominator: null,
-        notes: [],
-        dimensions: [{ type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 }],
-      },
-      {
-        fromDate: '2023-01-01',
-        toDate: '2023-12-31',
-        value: 420.5,
-        lowerCi95: 417.2,
-        upperCi95: 423.8,
-        lowerCi998: null,
-        upperCi998: null,
-        count: 70000,
-        denominator: null,
-        notes: [],
-        dimensions: [
-          { type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 },
-          { type: 'Sex', value: 'Male', dimensionClass: 'core', sortOrder: 1 },
-        ],
-      },
-    ];
-    const areaData = [{ areaCode: 'E92000001', areaName: 'England', observations }];
-    const selection = { areaCodes: [], areaLevels: [], shortIds: [108] };
-    const Routes = createRoutesStub([
-      {
-        path: '/',
-        Component: PublicApp,
-        children: [
-          {
-            path: 'indicators/:slug',
-            Component: IndicatorRoute,
-            loader: () => ({
-              selected: [{ detail: indicator, areaData }],
-              displayGroups: [
-                'Local authorities',
-                'Statistical regions',
-                'NHS regions',
-                'Integrated care boards',
-                'Middle-layer super output areas',
-                'GP practices',
-              ],
-              selection,
-            }),
-          },
-        ],
-      },
-    ]);
-
-    render(<Routes initialEntries={['/indicators/under-75-mortality-rate-from-all-causes']} />);
-
-    expect(
-      await screen.findByRole('heading', { name: 'Under 75 mortality rate from all causes' }),
-    ).toBeTruthy();
-
-    // The summary table carries the source system's publication date and the collections
-    // the indicator belongs to.
-    expect(screen.getByText('20 April 2026')).toBeTruthy();
-    expect(
-      screen.getByRole('link', { name: 'Mortality and life expectancy' }).getAttribute('href'),
-    ).toBe('/topics/mortality-and-life-expectancy');
-
-    // The filter pane shows the selected indicator, its available area types, and a
-    // checkbox per area of the selected type wired into the GET form.
-    expect(screen.getByRole('heading', { name: 'Selected indicators' })).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Geography filters' })).toBeTruthy();
-    // The name appears twice by design: the sidebar chip and the block's own heading —
-    // a single indicator has no contents list, so its name is the page heading.
-    expect(screen.getAllByText('Under 75 mortality rate from all causes')).toHaveLength(2);
-    expect(screen.queryByRole('heading', { name: 'Contents' })).toBeNull();
-    expect(
-      screen.getByRole('heading', { level: 1, name: 'Under 75 mortality rate from all causes' }),
-    ).toBeTruthy();
-    expect(
-      screen.getByRole('link', { name: 'Remove Under 75 mortality rate from all causes filter' }),
-    ).toBeTruthy();
-    // Geographies are picked from the tree, not an area-type dropdown.
-    expect(screen.getByRole('searchbox', { name: 'Add geographies' })).toBeTruthy();
-    // Raw Pholio area-type names are mapped to the prototype's display levels, and
-    // England never appears in the tree — it is the default selected area.
-    expect(screen.getByText('Local authorities')).toBeTruthy();
-    expect(screen.queryByRole('checkbox', { name: /^England/ })).toBeNull();
-    // Every level starts collapsed; expanding one fetches its areas on demand.
-    expect(screen.queryByRole('checkbox', { name: 'Cornwall' })).toBeNull();
-    const geographies = vi.fn(
-      async () =>
-        new Response(JSON.stringify({ areas: [{ code: 'E06000052', name: 'Cornwall' }] }), {
-          headers: { 'content-type': 'application/json' },
-        }),
-    );
-    vi.stubGlobal('fetch', geographies);
-    fireEvent.click(screen.getByRole('button', { name: 'Expand Local authorities' }));
-    expect(geographies).toHaveBeenCalledWith('/geographies?level=Local%20authorities', {
-      signal: expect.any(AbortSignal),
-    });
-    const areaCheckbox = (await screen.findAllByRole('checkbox', { name: 'Cornwall' })).find(
-      (box) => box.getAttribute('name') === 'as',
-    );
-    expect(areaCheckbox?.getAttribute('value')).toBe('E06000052');
-    // Controls apply on change; the submit button exists only for the no-script path.
-
-    // The prototype's tab set, with every panel a real anchor target.
-    for (const name of ['Chart', 'Table', 'Inequalities', 'About this indicator']) {
-      expect(screen.getByRole('tab', { name })).toBeTruthy();
-    }
-    // The chart placeholder is a labelled, keyboard-reachable region (ADR013).
-    const region = screen.getByRole('region', { name: 'Indicator trends over time' });
-    expect(region.getAttribute('tabindex')).toBe('0');
-
-    // The trend table shows the least-disaggregated series in period order, laid out
-    // the prototype's way: the area as a column group over count and calculated value.
-    expect(screen.getByRole('rowheader', { name: '2022' })).toBeTruthy();
-    expect(screen.getByRole('columnheader', { name: 'Count (Raw number)' })).toBeTruthy();
-    expect(screen.getByRole('cell', { name: '342.2' })).toBeTruthy();
-    expect(screen.getByRole('cell', { name: '129,000' })).toBeTruthy();
-
-    // The About tab follows the prototype's section structure.
-    for (const name of ['Overview', 'Data attributes', 'Calculation']) {
-      expect(screen.getByRole('heading', { name })).toBeTruthy();
-    }
-    // The definition lives in the summary table; the About tab opens with the rationale.
-    expect(
-      screen.getAllByText('Directly age-standardised mortality rate for all deaths.'),
-    ).toHaveLength(1);
-    expect(
-      screen.getByText('Premature mortality is a key measure of population health.'),
-    ).toBeTruthy();
-    expect(
-      screen.getByRole('link', { name: 'Office for National Statistics' }).getAttribute('href'),
-    ).toBe('https://www.ons.gov.uk');
-    // The indicator's own confidence level, in the About summary list rather than the
-    // interval selector that offers the same wording.
-    const confidenceRow = screen.getByText('Confidence level').closest('div');
-    expect(confidenceRow?.textContent).toContain('95%');
-  });
-
-  it('gathers ticked areas and applies them in one step', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(
-        async () =>
-          new Response(
-            JSON.stringify({
-              areas: [
-                { code: 'E12000001', name: 'North East' },
-                { code: 'E12000002', name: 'North West' },
-              ],
-            }),
-            { headers: { 'content-type': 'application/json' } },
-          ),
-      ),
-    );
-    const loaderData = {
-      selected: [],
-      displayGroups: [
-        'Local authorities',
-        'Statistical regions',
-        'NHS regions',
-        'Integrated care boards',
-        'Middle-layer super output areas',
-        'GP practices',
-      ],
-      selection: { areaCodes: [], areaLevels: [], shortIds: [108] },
-    };
-    const Routes = createRoutesStub([
-      {
-        path: '/',
-        Component: PublicApp,
-        children: [{ path: 'indicators', Component: IndicatorRoute, loader: () => loaderData }],
-      },
-    ]);
-
-    render(<Routes initialEntries={['/indicators?is=108']} />);
-
-    // The button is always present so the form works without scripting; the count
-    // appears once something is ticked.
-    expect(await screen.findByRole('searchbox', { name: 'Add geographies' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Add selected geographies' })).toBeTruthy();
-
-    // A level's own checkbox is a real form control, so whole-level selection still
-    // works when nothing beneath it has loaded.
-    const levelCheckbox = screen.getByRole('checkbox', { name: /^Statistical regions/ });
-    expect(levelCheckbox.getAttribute('name')).toBe('als');
-
-    // Areas arrive only when the level is expanded; ticking them builds the count.
-    fireEvent.click(screen.getByRole('button', { name: 'Expand Statistical regions' }));
-    fireEvent.click(await screen.findByRole('checkbox', { name: 'North East' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'North West' }));
-
-    expect(
-      await screen.findByRole('button', { name: 'Add selected geographies (2)' }),
-    ).toBeTruthy();
-  });
-
-  it('compares selected areas row by row when more than one is selected', async () => {
-    const observationFor = (value: number) => ({
-      fromDate: '2023-01-01',
-      toDate: '2023-12-31',
-      value,
-      lowerCi95: value - 2,
-      upperCi95: value + 2,
-      lowerCi998: null,
-      upperCi998: null,
-      count: 1000,
-      denominator: null,
-      notes: [],
-      dimensions: [{ type: 'Age', value: '<75 yrs', dimensionClass: 'core', sortOrder: 1 }],
-    });
-    const indicatorDetail = {
-      shortId: 108,
-      slug: 'under-75-mortality-rate-from-all-causes',
-      name: 'Under 75 mortality rate from all causes',
-      valueType: 'Directly standardised rate',
-      unit: 'per 100,000',
-      yearType: CALENDAR_YEARS,
-      updateFrequency: 'annually',
-      polarity: 'lower-is-better',
-      ciMethod: null,
-      ciConfidenceLevel: null,
-      comparatorMethod: null,
-      dataUpdatedAt: null,
-      definition: null,
-      rationale: null,
-      methodology: null,
-      numeratorDefinition: null,
-      denominatorDefinition: null,
-      disclosureControl: null,
-      caveats: null,
-      notes: null,
-      dataSource: null,
-      numeratorSources: [],
-      denominatorSources: [],
-      areaTypes: [{ name: 'Regions (statistical)', areaCount: 9 }],
-      topics: [],
-      classifications: [],
-    };
-    const loaderData = {
-      selectedAreas: [
-        { code: 'E12000001', name: 'North East', level: 'Statistical regions' },
-        { code: 'E12000002', name: 'North West', level: 'Statistical regions' },
-      ],
-      selected: [
-        {
-          detail: indicatorDetail,
-          areaData: [
-            {
-              areaCode: 'E12000001',
-              areaName: 'North East',
-              observations: [observationFor(410.3)],
-            },
-            {
-              areaCode: 'E12000002',
-              areaName: 'North West',
-              observations: [observationFor(395.6)],
-            },
-          ],
-        },
-      ],
-      selection: {
-        areaCodes: ['E12000001', 'E12000002'],
-        areaLevels: [],
-        shortIds: [108],
-      },
-    };
-    const Routes = createRoutesStub([
-      {
-        path: '/',
-        Component: PublicApp,
-        children: [
-          {
-            path: 'indicators/:slug',
-            Component: IndicatorRoute,
-            loader: () => loaderData,
-          },
-        ],
-      },
-    ]);
-
-    render(
-      <Routes
-        initialEntries={[
-          '/indicators/under-75-mortality-rate-from-all-causes?as=E12000001&as=E12000002',
-        ]}
-      />,
-    );
-
-    // Both selected areas appear as removable chips in the geography card.
-    expect(await screen.findByRole('heading', { name: 'Geography filters' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Remove North East filter' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Remove North West filter' })).toBeTruthy();
-
-    // Both areas appear side by side as column groups, and their values with them.
-    expect(screen.getAllByRole('columnheader', { name: 'North East' }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole('columnheader', { name: 'North West' }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole('cell', { name: '410.3' }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole('cell', { name: '395.6' }).length).toBeGreaterThan(0);
-  });
-
-  it('adds a comparison section only when more than one indicator is selected', async () => {
-    const detailFor = (shortId: number, name: string) => ({
-      shortId,
-      slug: `indicator-${shortId}`,
-      name,
-      valueType: 'Directly standardised rate',
-      unit: 'per 100,000',
-      yearType: CALENDAR_YEARS,
-      updateFrequency: 'annually',
-      polarity: 'lower-is-better',
-      ciMethod: null,
-      ciConfidenceLevel: null,
-      comparatorMethod: null,
-      dataUpdatedAt: null,
-      definition: null,
-      rationale: null,
-      methodology: null,
-      numeratorDefinition: null,
-      denominatorDefinition: null,
-      disclosureControl: null,
-      caveats: null,
-      notes: null,
-      dataSource: null,
-      numeratorSources: [],
-      denominatorSources: [],
-      areaTypes: [{ name: 'England', areaCount: 1 }],
-      topics: [],
-      classifications: [],
-    });
-    const areaDataFor = (value: number) => [
-      {
-        areaCode: 'E92000001',
-        areaName: 'England',
-        observations: [
-          {
-            fromDate: '2023-01-01',
-            toDate: '2023-12-31',
-            value,
-            lowerCi95: null,
-            upperCi95: null,
-            lowerCi998: null,
-            upperCi998: null,
-            count: 500,
-            denominator: null,
-            notes: [],
-            dimensions: [],
-          },
-        ],
-      },
-    ];
-    const routesFor = (loaderData: unknown) =>
-      createRoutesStub([
-        {
-          path: '/',
-          Component: PublicApp,
-          children: [{ path: 'indicators', Component: IndicatorRoute, loader: () => loaderData }],
-        },
-      ]);
-
-    const OneIndicator = routesFor({
-      selected: [{ detail: detailFor(108, 'Mortality'), areaData: areaDataFor(341.1) }],
-      selection: { areaCodes: [], areaLevels: [], shortIds: [108] },
-    });
-    render(<OneIndicator initialEntries={['/indicators?is=108']} />);
-
-    expect(await screen.findByRole('heading', { name: 'Mortality' })).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: 'Compare selected indicators' })).toBeNull();
-
-    cleanup();
-
-    const TwoIndicators = routesFor({
-      selected: [
-        { detail: detailFor(108, 'Mortality'), areaData: areaDataFor(341.1) },
-        { detail: detailFor(90366, 'Life expectancy'), areaData: areaDataFor(80.1) },
-      ],
-      selection: {
-        areaCodes: [],
-        areaLevels: [],
-        shortIds: [108, 90366],
-      },
-    });
-    render(<TwoIndicators initialEntries={['/indicators?is=108&is=90366']} />);
-
-    expect(
-      await screen.findByRole('heading', { name: 'Compare selected indicators' }),
-    ).toBeTruthy();
-    // A block per indicator, plus a comparison row per indicator linking to its block.
-    expect(screen.getByRole('heading', { name: 'Mortality' })).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Life expectancy' })).toBeTruthy();
-    expect(screen.getByText('341.1 per 100,000')).toBeTruthy();
-    expect(screen.getByText('80.1 per 100,000')).toBeTruthy();
-    expect(screen.getAllByRole('link', { name: /^Remove .* filter$/ })).toHaveLength(2);
-  });
-
-  it('renders the empty state when nothing is selected', async () => {
-    const Routes = createRoutesStub([
-      {
-        path: '/',
-        Component: PublicApp,
-        children: [
-          {
-            path: 'indicators',
-            Component: IndicatorRoute,
-            loader: () => ({
-              selected: [],
-              selection: { areaCodes: [], areaLevels: [], shortIds: [] },
-            }),
-          },
-        ],
-      },
-    ]);
-
-    render(<Routes initialEntries={['/indicators']} />);
-
-    expect(await screen.findByText('None selected')).toBeTruthy();
-    // The main pane shows the prototype's inset-text empty state.
-    expect(screen.getByText('No indicators selected')).toBeTruthy();
-    // The search input arrives server-rendered and is replaced asynchronously by the
-    // accessible-autocomplete combobox, so the role must be awaited.
-    expect(await screen.findByRole('combobox', { name: 'Search for an indicator' })).toBeTruthy();
-  });
-
-  it('suggests server matches as you type and adds the picked indicator in two steps', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(
-        async () =>
-          new Response(
-            JSON.stringify({
-              indicators: [{ shortId: 108, slug: 'mortality', name: 'Mortality' }],
-            }),
-            {
-              headers: { 'content-type': 'application/json' },
-            },
-          ),
-      ),
-    );
-    const loaderUrls: string[] = [];
-    const Routes = createRoutesStub([
-      {
-        path: '/',
-        Component: PublicApp,
-        children: [
-          {
-            path: 'indicators',
-            Component: IndicatorRoute,
-            loader: ({ request }: { request: Request }) => {
-              loaderUrls.push(request.url);
-              return {
-                selected: [],
-                selection: {
-                  areaCodes: [],
-                  areaLevels: [],
-                  shortIds: [],
-                },
-              };
-            },
-          },
-        ],
-      },
-    ]);
-
-    try {
-      render(<Routes initialEntries={['/indicators']} />);
-
-      const combobox = await screen.findByRole('combobox', { name: 'Search for an indicator' });
-      // Picking a suggestion only readies it; the Add indicator button commits it.
-      expect(screen.queryByRole('button', { name: 'Add indicator' })).toBeNull();
-      fireEvent.input(combobox, { target: { value: 'mort' } });
-
-      // The debounce holds the request for 300ms; the suggestion appearing proves the
-      // server round-trip and the escape-safe template.
-      const option = await screen.findByRole('option', { name: 'Mortality' }, { timeout: 3000 });
-      expect(vi.mocked(fetch)).toHaveBeenCalledWith('/indicators/search?q=mort', expect.anything());
-
-      fireEvent.click(option);
-      const addButton = await screen.findByRole('button', { name: 'Add indicator' });
-      fireEvent.click(addButton);
-      // Committing navigates: the loader re-runs with the picked indicator selected.
-      await waitFor(() => {
-        expect(loaderUrls.some((url) => url.includes('is=108'))).toBe(true);
-      });
-    } finally {
-      vi.unstubAllGlobals();
-    }
-  });
-
   it('offers only the period shapes the picked areas publish', async () => {
     const observation = (fromDate: string, toDate: string, value: number) => ({
       fromDate,
@@ -694,7 +153,7 @@ describe('public application routes', () => {
         Component: PublicApp,
         children: [
           {
-            path: 'indicators/:slug',
+            path: 'indicator/:slug',
             Component: IndicatorRoute,
             loader: () => ({
               selectedAreas: [{ code: 'E06000052', name: 'Cornwall', level: 'Local authorities' }],
@@ -736,7 +195,7 @@ describe('public application routes', () => {
     render(
       <Routes
         initialEntries={[
-          '/indicators/mortality-rate-for-deaths-involving-diabetes-all-ages?as=E06000052&pt-93995=1-year',
+          '/indicator/mortality-rate-for-deaths-involving-diabetes-all-ages?as=E06000052&pt-93995=1-year',
         ]}
       />,
     );
@@ -807,7 +266,7 @@ describe('public application routes', () => {
         Component: PublicApp,
         children: [
           {
-            path: 'indicators/:slug',
+            path: 'indicator/:slug',
             Component: IndicatorRoute,
             loader: () => ({
               selectedAreas: [{ code: 'E06000052', name: 'Cornwall', level: 'Local authorities' }],
@@ -856,12 +315,13 @@ describe('public application routes', () => {
 
     render(
       <Routes
-        initialEntries={['/indicators/under-75-mortality-rate-from-all-causes?as=E06000052']}
+        initialEntries={['/indicator/under-75-mortality-rate-from-all-causes?as=E06000052']}
       />,
     );
 
     // England is not a column of its own while a real area is picked and no benchmark
     // is chosen.
+    fireEvent.click(await screen.findByRole('button', { name: 'Table columns' }));
     const select = await screen.findByLabelText('Select a geography or goal to compare with');
     expect(screen.queryByRole('columnheader', { name: 'England' })).toBeNull();
 
@@ -892,7 +352,7 @@ describe('public application routes', () => {
         ErrorBoundary,
         children: [
           {
-            path: 'indicators/:slug',
+            path: 'indicator/:slug',
             Component: IndicatorRoute,
             loader: () => {
               throw new Response('Not Found', { status: 404 });
@@ -902,7 +362,7 @@ describe('public application routes', () => {
       },
     ]);
 
-    render(<Routes initialEntries={['/indicators/no-such-indicator']} />);
+    render(<Routes initialEntries={['/indicator/no-such-indicator']} />);
 
     expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeTruthy();
   });
@@ -1063,7 +523,7 @@ describe('public application routes', () => {
 
     render(<Routes initialEntries={['/search']} />);
 
-    expect(await screen.findByText(/Select from 5 indicators/)).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: '5 indicators' })).toBeTruthy();
   });
 
   it('prefills keyword input from loader data', async () => {

@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { IndicatorDetail } from './loader.ts';
-import { BackgroundInformation } from './metadata.tsx';
+import { BackgroundInformation, IndicatorSummary } from './metadata.tsx';
 
 afterEach(cleanup);
 
@@ -51,6 +51,36 @@ function renderBackground(detail: IndicatorDetail) {
 function attributeNames() {
   return screen.getAllByRole('term').map((term) => term.textContent);
 }
+
+it('links each subtopic to the filtered topic data page', () => {
+  render(
+    <MemoryRouter>
+      <IndicatorSummary
+        observations={[]}
+        indicator={{
+          ...indicator,
+          topics: [
+            {
+              slug: 'diabetes',
+              title: 'Diabetes',
+              subtopics: [
+                {
+                  slug: 'prevalence-and-risk',
+                  title: 'Prevalence and risk',
+                  isPrimary: true,
+                },
+              ],
+            },
+          ],
+        }}
+      />
+    </MemoryRouter>,
+  );
+  expect(screen.getByText('Subtopic')).toBeTruthy();
+  expect(screen.getByRole('link', { name: 'Prevalence and risk' }).getAttribute('href')).toBe(
+    '/topics/diabetes?tab-topic=data&subtopic=prevalence-and-risk',
+  );
+});
 
 describe('BackgroundInformation', () => {
   it('lists each numerator source, naming a provider alone where it has no specific source', () => {

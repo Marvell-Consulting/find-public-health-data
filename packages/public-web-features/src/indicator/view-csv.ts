@@ -1,0 +1,110 @@
+import type { LoaderFunctionArgs } from 'react-router';
+import {
+  areaComparisonGroups,
+  areaComparisonLabel,
+  areaComparisonRows,
+  observationComparisonLabel,
+} from './area-comparison.ts';
+import { inequalityValueLabel, unitNote } from './data.ts';
+import { tableCsv } from './download.ts';
+import { indicatorPair } from './indicator-pair.ts';
+import { inequalityTableModel } from './inequalities.ts';
+import { loadIndicator } from './loader.ts';
+
+export async function loadIndicatorViewCsv(args: LoaderFunctionArgs): Promise<Response> {
+  const data = await loadIndicator(args);
+  const primary = data.selected[0];
+  if (!primary) throw new Response('Not Found', { status: 404 });
+  const params = new URL(args.request.url).searchParams;
+  const tab = params.get('tab-indicator');
+  let rows: (string | number | null)[][];
+  if (tab === 'areas') {
+    const areas = areaComparisonRows(
+      primary,
+      data.compareAreasData,
+      params.get('areaSort') ?? 'descending',
+    );
+    const colour = params.get('areaColour') ?? 'england';
+    const groups = areaComparisonGroups(areas.rows, colour);
+    rows = [
+      [
+        'Area',
+        `Value${unitNote(primary.detail.unit)}`,
+        groups.heading,
+        '95% lower confidence interval',
+        '95% upper confidence interval',
+      ],
+      ...areas.rows.map((cell) => [
+        cell.areaName + (cell.areaCode === 'E92000001' ? ' (benchmark)' : ''),
+        cell.value,
+        colour === 'quartiles' || colour === 'quintiles'
+          ? (groups.labels.get(cell.areaCode) ?? '')
+          : areaComparisonLabel(cell, areas.england, primary.detail),
+        cell.series.at(-1)?.lowerCi95 ?? null,
+        cell.series.at(-1)?.upperCi95 ?? null,
+      ]),
+    ];
+  } else if (tab === 'compare') {
+    const compared = data.selected[1];
+    if (!compared) throw new Response('Not Found', { status: 404 });
+    const model = indicatorPair([
+      {
+        ...primary,
+        areaData: [
+          ...primary.areaData.filter(({ areaCode }) => areaCode === 'E92000001'),
+          ...data.compareAreasData,
+        ],
+      },
+      {
+        ...compared,
+        areaData: [
+          ...compared.areaData.filter(({ areaCode }) => areaCode === 'E92000001'),
+          ...data.comparedAreasData,
+        ],
+      },
+    ]);
+    const sorted = [
+      ...(model.england ? [model.england] : []),
+      ...model.areas.filter(({ code }) => params.getAll('highlight').includes(code)),
+    ];
+    rows = [
+      [
+        'Area',
+        `${primary.detail.name}${unitNote(primary.detail.unit)} (${model.periods[0]})`,
+        `${compared.detail.name}${unitNote(compared.detail.unit)} (${model.periods[1]})`,
+      ],
+      ...sorted.map((cell) => [cell.name, ...cell.values]),
+      ...(model.areas.length
+        ? [[`${data.compareAreaGroup} (${model.areas.length} areas)`, ...model.range]]
+        : []),
+    ];
+  } else {
+    const {
+      rows: breakdown,
+      benchmark: benchmarkObservation,
+      comparisonConfidence,
+    } = inequalityTableModel(primary, params);
+    const benchmark = benchmarkObservation?.value ?? null;
+    rows = [
+      ['Segment', 'Count', `Value${unitNote(primary.detail.unit)}`, 'Compared with England'],
+      ['England', benchmarkObservation?.count ?? null, benchmark, 'Benchmark'],
+      ...breakdown.map((observation) => [
+        inequalityValueLabel(observation),
+        observation.count,
+        observation.value,
+        observationComparisonLabel(
+          observation,
+          benchmark,
+          primary.detail,
+          comparisonConfidence === '99.8' ? '99.8' : '95',
+        ),
+      ]),
+    ];
+  }
+  return new Response(tableCsv(rows), {
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${primary.detail.shortId}-${tab}.csv"`,
+    },
+  });
+}

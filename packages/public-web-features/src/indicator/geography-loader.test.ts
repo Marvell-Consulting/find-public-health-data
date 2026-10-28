@@ -40,6 +40,21 @@ describe('geography loader', () => {
     });
   });
 
+  it('answers displayGroup requests with the same areas shape as level requests', async () => {
+    const get = vi
+      .fn()
+      .mockResolvedValue([
+        { displayGroup: 'Statistical regions', areas: [{ code: 'E12000007', name: 'London' }] },
+      ]);
+    const response = await loadGeography(
+      loaderArgs(
+        get,
+        'http://localhost/geographies?displayGroup=Statistical%20regions&indicator=indicator-108',
+      ),
+    );
+    expect(await response.json()).toEqual({ areas: [{ code: 'E12000007', name: 'London' }] });
+  });
+
   it('answers an unknown level with no areas', async () => {
     const get = vi.fn().mockResolvedValue([{ displayGroup: 'Nope', areas: [] }]);
 

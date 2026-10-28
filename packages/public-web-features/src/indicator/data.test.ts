@@ -17,6 +17,7 @@ import {
   inequalityCategoryOptions,
   inequalityPeriods,
   inequalitySegments,
+  inequalityValueLabel,
   periodCovered,
   segmentLabel,
   trendSeries,
@@ -367,6 +368,22 @@ describe('benchmarkJudgement', () => {
     expect(benchmarkJudgement(obs({ value: 100 }), 100, noPolarity)).toBe('similar');
   });
 
+  it('uses confidence intervals for a neutral indicator with a sanctioned comparator', () => {
+    const neutral = { ...ciIndicator, polarity: 'no-polarity' as const };
+    const observation = obs({
+      value: 110,
+      lowerCi95: 105,
+      upperCi95: 115,
+      lowerCi998: 95,
+      upperCi998: 120,
+    });
+    expect(benchmarkJudgement(observation, 100, neutral, '95')).toBe('higher');
+    expect(benchmarkJudgement(observation, 100, neutral, '99.8')).toBe('similar');
+    expect(benchmarkJudgement(obs({ value: 90, lowerCi95: 85, upperCi95: 95 }), 100, neutral)).toBe(
+      'lower',
+    );
+  });
+
   it('refuses to judge where no comparison is possible', () => {
     const observation = obs({ value: 90, lowerCi95: 85, upperCi95: 95 });
     expect(
@@ -460,18 +477,18 @@ describe('inequality selection', () => {
 });
 
 describe('inequalityCategoryOptions', () => {
-  it('shortens Pholio category names to their display labels', () => {
+  it('uses the prototype wording for deprivation categories', () => {
     expect(
       inequalityCategoryLabel(
         'County & UA deprivation deciles in England (IMD2019, 4/23 geography)',
       ),
-    ).toBe('County and unitary authority deprivation deciles (IMD2019)');
+    ).toBe('Counties and unitary authorities by deprivation (IMD 2019, April 2023 boundaries)');
     expect(inequalityCategoryLabel('LSOA21 deprivation deciles within area (IMD trend)')).toBe(
       'LSOA21 deprivation deciles (IMD trend)',
     );
   });
 
-  it('keeps the geography qualifier only where shortened labels would collide', () => {
+  it('keeps each deprivation geography distinct in the category options', () => {
     const options = inequalityCategoryOptions([
       'County & UA deprivation deciles in England (IMD2019, 4/21 geography)',
       'County & UA deprivation deciles in England (IMD2019, 4/23 geography)',
@@ -479,9 +496,48 @@ describe('inequalityCategoryOptions', () => {
     ]);
 
     expect(options.map(({ label }) => label)).toEqual([
-      'County and unitary authority deprivation deciles (IMD2019, 4/21 geography)',
-      'County and unitary authority deprivation deciles (IMD2019, 4/23 geography)',
-      'District and unitary authority deprivation deciles (IMD2025)',
+      'Counties and unitary authorities by deprivation (IMD 2019, April 2021 boundaries)',
+      'Counties and unitary authorities by deprivation (IMD 2019, April 2023 boundaries)',
+      'Districts and unitary authorities by deprivation (IMD 2025, April 2023 boundaries)',
     ]);
+  });
+});
+
+describe('inequalityValueLabel', () => {
+  it.each([
+    [
+      'County & UA deprivation deciles in England (IMD2019, 4/23 geography)',
+      1,
+      'Decile 1 (most deprived, IMD 2019)',
+    ],
+    ['LSOA21 deprivation deciles within area (IMD2019)', 2, 'Decile 2 (IMD 2019)'],
+    [
+      'District & UA deprivation deciles in England (IMD2025, 4/23 geography)',
+      10,
+      'Decile 10 (least deprived, IMD 2025)',
+    ],
+  ])('labels the IMD year and deprivation rank for %s', (type, sortOrder, expected) => {
+    expect(
+      inequalityValueLabel(
+        obs({
+          dimensions: [dim(type, 'Original label', { dimensionClass: 'inequality', sortOrder })],
+        }),
+      ),
+    ).toBe(expected);
+  });
+
+  it('preserves unrecognised labels even for long repeated category text', () => {
+    expect(
+      inequalityValueLabel(
+        obs({
+          dimensions: [
+            dim('deprivation deciles'.repeat(2000), 'Original label', {
+              dimensionClass: 'inequality',
+              sortOrder: 1,
+            }),
+          ],
+        }),
+      ),
+    ).toBe('Original label');
   });
 });

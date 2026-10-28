@@ -1,15 +1,83 @@
-import { and, asc, eq, ilike, inArray, isNotNull, isNull, lte, or, sql } from 'drizzle-orm';
+import { and, asc, eq, exists, ilike, inArray, isNotNull, isNull, lte, or, sql } from 'drizzle-orm';
 
 import type { Database } from './client.ts';
 import {
   publishedArea as area,
   publishedAreaRelationship as areaRelationship,
   publishedAreaType as areaType,
+  publishedAvailableData as availableData,
+  publishedObservation as observation,
 } from './schema/index.ts';
 
 export interface AreaSummary {
   code: string;
   name: string;
+}
+
+export interface IndicatorAreaFilters {
+  scope?: 'all-data' | undefined;
+  displayGroup?: string | undefined;
+  query?: string | undefined;
+  limit?: number | undefined;
+}
+
+export async function listIndicatorAreas(
+  db: Database,
+  indicatorId: string,
+  { displayGroup, query, limit, scope }: IndicatorAreaFilters = {},
+): Promise<{ displayGroup: string; areas: AreaSummary[] }[]> {
+  const escaped = query?.replace(/[\\%_]/g, '\\$&');
+  const ranked = db
+    .select({
+      displayGroup: sql<string>`coalesce(${areaType.displayGroup}, ${areaType.name})`.as(
+        'display_group',
+      ),
+      displayOrder: areaType.displayOrder,
+      code: area.code,
+      name: area.name,
+      rank: sql<number>`row_number() over (partition by coalesce(${areaType.displayGroup}, ${areaType.name}) order by ${area.name}, ${area.code})`.as(
+        'rank',
+      ),
+    })
+    .from(area)
+    .innerJoin(areaType, eq(area.areaTypeId, areaType.id))
+    .innerJoin(
+      availableData,
+      and(eq(availableData.areaTypeId, areaType.id), eq(availableData.indicatorId, indicatorId)),
+    )
+    .where(
+      and(
+        scope === 'all-data' ? undefined : isNull(area.validTo),
+        scope === 'all-data' ? undefined : isNotNull(areaType.displayGroup),
+        displayGroup ? eq(areaType.displayGroup, displayGroup) : undefined,
+        escaped ? or(ilike(area.name, `%${escaped}%`), ilike(area.code, escaped)) : undefined,
+        exists(
+          db
+            .select({ one: sql`1` })
+            .from(observation)
+            .where(
+              and(
+                eq(observation.indicatorId, indicatorId),
+                eq(observation.areaId, area.id),
+                scope === 'all-data' ? undefined : isNotNull(observation.value),
+              ),
+            ),
+        ),
+      ),
+    )
+    .as('indicator_areas');
+  const rows = await db
+    .select()
+    .from(ranked)
+    .where(limit === undefined ? undefined : lte(ranked.rank, limit))
+    .orderBy(asc(ranked.displayOrder), asc(ranked.name), asc(ranked.code));
+  const groups = new Map<string, AreaSummary[]>();
+  for (const row of rows) {
+    const areas = groups.get(row.displayGroup) ?? [];
+    areas.push({ code: row.code, name: row.name });
+    groups.set(row.displayGroup, areas);
+  }
+  return [...groups].map(([displayGroup, areas]) => ({ displayGroup, areas }));
 }
 
 /** The user-facing geography levels in display order, straight from area_type. */

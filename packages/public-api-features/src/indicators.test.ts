@@ -134,6 +134,61 @@ describe('GET /api/indicators', () => {
   });
 });
 
+describe('GET /api/indicators/:indicator/areas', () => {
+  it('returns only the published indicator’s available areas and bounds preview searches', async () => {
+    const groups = [
+      { displayGroup: 'Statistical regions', areas: [{ code: 'E12000007', name: 'London' }] },
+    ];
+    const listAreas = vi.fn().mockResolvedValue(groups);
+    const app = createTestApp({ resolveIdBySlug: async () => 'indicator-id', listAreas });
+    const response = await request(app).get(
+      '/api/indicators/diabetic-eye-screening-uptake/areas?displayGroup=Statistical+regions&q=+London+&limit=9999',
+    );
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(groups);
+    expect(listAreas).toHaveBeenCalledWith('indicator-id', {
+      scope: undefined,
+      displayGroup: 'Statistical regions',
+      query: 'London',
+      limit: 101,
+    });
+  });
+
+  it('caps unfiltered previews and preserves explicit complete group and export requests', async () => {
+    const listAreas = vi.fn().mockResolvedValue([]);
+    const app = createTestApp({ resolveIdBySlug: async () => 'indicator-id', listAreas });
+    for (const [query, limit] of [
+      ['', 101],
+      ['?q=London', 101],
+      ['?displayGroup=NHS+regions', undefined],
+      ['?scope=all-data', undefined],
+    ] as const) {
+      expect((await request(app).get(`/api/indicators/indicator-108/areas${query}`)).status).toBe(
+        200,
+      );
+      expect(listAreas).toHaveBeenLastCalledWith(
+        'indicator-id',
+        expect.objectContaining({ limit }),
+      );
+    }
+  });
+
+  it('rejects malformed area limits without listing areas', async () => {
+    const listAreas = vi.fn();
+    const app = createTestApp({ resolveId: async () => 'indicator-id', listAreas });
+    for (const limit of ['0', 'abc', '-1', '1.5', '']) {
+      const response = await request(app).get(`/api/indicators/108/areas?limit=${limit}`);
+      expect(response.status).toBe(400);
+    }
+    expect(listAreas).not.toHaveBeenCalled();
+  });
+
+  it('does not list areas for an unpublished or unknown indicator', async () => {
+    const app = createTestApp({ resolveId: async () => undefined });
+    expect((await request(app).get('/api/indicators/424242/areas')).status).toBe(404);
+  });
+});
+
 describe('GET /api/indicators/:indicator', () => {
   it('finds an indicator by its short id', async () => {
     const app = createTestApp({

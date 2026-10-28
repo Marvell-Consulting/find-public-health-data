@@ -60,7 +60,7 @@ describe('IndicatorOverviewPage', () => {
     expect(screen.getByRole('tab', { name: 'Actions' })).toBeTruthy();
     expect(
       screen.getByRole('link', { name: 'View published indicator' }).getAttribute('href'),
-    ).toBe('/indicators/life-expectancy-at-birth');
+    ).toBe('/indicator/life-expectancy-at-birth');
   });
 
   it('offers the task list as an action for a draft, which has no public page', () => {
