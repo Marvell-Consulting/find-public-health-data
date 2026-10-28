@@ -1,9 +1,10 @@
-import { A, GridColumn, GridRow, NotificationBanner, Tabs } from '@fphd/ui';
+import { A, Button, GridColumn, GridRow, NotificationBanner, Tabs } from '@fphd/ui';
 import { indicatorPath } from '@fphd/utils/indicator-path';
 
 import { indicatorTaskListPath, indicatorWithdrawalPath } from '../publish-paths.ts';
 import { IndicatorHeading } from '../status-tag/indicator-heading.tsx';
 import type { IndicatorAdminDetail, OverviewNotification } from './loader.ts';
+import { indicatorAssignReviewersPath } from './paths.ts';
 
 interface ActionsProps {
   /** Whether the user may edit it, which the task list is for. */
@@ -17,8 +18,10 @@ interface OverviewProps extends ActionsProps {
 }
 
 // A draft is edited from its task list, unless it is locked for review; an indicator with a
-// published version has a public page, draft or not.
+// published version has a public page, draft or not. Reviewers are first assigned with a button.
 function Actions({ canEdit, indicator }: ActionsProps) {
+  const mayAssign = indicator.actions.includes('assign_reviewers');
+  const assignFirst = mayAssign && indicator.draftSubmissionStatus === 'submitted';
   const actions = [
     !canEdit || indicator.draftStatus === null || indicator.draftLocked
       ? undefined
@@ -32,6 +35,12 @@ function Actions({ canEdit, indicator }: ActionsProps) {
     indicator.actions.includes('withdraw')
       ? { href: indicatorWithdrawalPath(indicator.id), label: 'Withdraw submission' }
       : undefined,
+    mayAssign && !assignFirst
+      ? {
+          href: indicatorAssignReviewersPath(indicator.id),
+          label: 'Change reviewers for this indicator',
+        }
+      : undefined,
     indicator.publishedSlug === null
       ? undefined
       : {
@@ -43,6 +52,11 @@ function Actions({ canEdit, indicator }: ActionsProps) {
   return (
     <>
       <h2 className="govuk-heading-m">Actions</h2>
+      {assignFirst ? (
+        <Button href={indicatorAssignReviewersPath(indicator.id)}>
+          Assign reviewers to indicator
+        </Button>
+      ) : null}
       {actions.length > 0 ? (
         <ul className="govuk-list">
           {actions.map(({ href, label }) => (
@@ -51,9 +65,10 @@ function Actions({ canEdit, indicator }: ActionsProps) {
             </li>
           ))}
         </ul>
-      ) : (
+      ) : null}
+      {actions.length === 0 && !assignFirst ? (
         <p className="govuk-body">There are no actions available for this indicator yet.</p>
-      )}
+      ) : null}
     </>
   );
 }

@@ -18,6 +18,7 @@ export const PAGE_SPECS: Readonly<Record<string, string>> = {
   '/indicator/:slug': 'indicator.spec.ts',
   '/dashboard': 'dashboard.spec.ts',
   '/dashboard/indicators/:id': 'indicator-overview.spec.ts',
+  '/dashboard/indicators/:id/assign-reviewers': 'indicator-reviewer-assignment.spec.ts',
   '/publish/indicators/new/team': 'indicator-team.spec.ts',
   '/publish/indicators/new': 'indicator-name.spec.ts',
   '/publish/indicators/:id/name': 'indicator-name.spec.ts',

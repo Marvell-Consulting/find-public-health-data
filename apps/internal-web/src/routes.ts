@@ -40,6 +40,10 @@ export default [
         'dashboard/indicators/:id',
         '../../../packages/internal-web-features/src/indicator-overview/route.tsx',
       ),
+      route(
+        'dashboard/indicators/:id/assign-reviewers',
+        '../../../packages/internal-web-features/src/indicator-reviewer-assignment/route.tsx',
+      ),
     ]),
     layout('./publisher.tsx', [
       route(

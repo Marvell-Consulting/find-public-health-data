@@ -163,4 +163,42 @@ describe('IndicatorOverviewPage', () => {
 
     expect(screen.queryByRole('link', { name: 'Withdraw submission' })).toBeNull();
   });
+
+  const submitted: Partial<IndicatorAdminDetail> = {
+    publishedSlug: null,
+    indicatorStatus: 'new',
+    draftStatus: 'draft',
+    draftLocked: true,
+    draftSubmissionStatus: 'submitted',
+    draftSubmissionNumber: 1,
+    actions: ['assign_reviewers'],
+  };
+
+  it('offers an IMRG manager a button to assign reviewers to a submission', () => {
+    renderPage(submitted, false);
+
+    expect(
+      screen.getByRole('button', { name: 'Assign reviewers to indicator' }).getAttribute('href'),
+    ).toBe(`/dashboard/indicators/${indicator.id}/assign-reviewers`);
+    expect(screen.queryByRole('link', { name: 'Change reviewers for this indicator' })).toBeNull();
+    expect(screen.queryByText(/no actions available/)).toBeNull();
+  });
+
+  it('offers an IMRG manager a link to change the reviewers once they are assigned', () => {
+    renderPage({ ...submitted, draftSubmissionStatus: 'in_review' }, false);
+
+    expect(
+      screen
+        .getByRole('link', { name: 'Change reviewers for this indicator' })
+        .getAttribute('href'),
+    ).toBe(`/dashboard/indicators/${indicator.id}/assign-reviewers`);
+    expect(screen.queryByRole('button', { name: 'Assign reviewers to indicator' })).toBeNull();
+  });
+
+  it('offers no reviewer assignment the workflow does not allow the user', () => {
+    renderPage({ ...submitted, actions: [] }, false);
+
+    expect(screen.queryByRole('button', { name: 'Assign reviewers to indicator' })).toBeNull();
+    expect(screen.getByText('There are no actions available for this indicator yet.')).toBeTruthy();
+  });
 });

@@ -1,4 +1,7 @@
-import { expect, type Page } from '@playwright/test';
+import { type Browser, expect, type Page } from '@playwright/test';
+
+import { createDraft } from './create-indicator.ts';
+import { PUBLISHER } from './sign-in.ts';
 
 /** A one-row table for England, which the check page accepts. */
 const DATA_TABLE = [
@@ -119,4 +122,21 @@ export async function submitDraft(page: Page, id: string): Promise<void> {
   await page.goto(`/publish/indicators/${id}/task-list`);
   await page.getByRole('button', { name: 'Submit for approval' }).click();
   await expect(page).toHaveURL(`/dashboard/indicators/${id}`);
+}
+
+/**
+ * Creates, completes and submits a new indicator as the publisher, in a browser context of their
+ * own, for tests whose user comes to it after submission. Answers its id.
+ */
+export async function submitNewIndicator(browser: Browser, name: string): Promise<string> {
+  const context = await browser.newContext({ storageState: PUBLISHER.storageState });
+  try {
+    const page = await context.newPage();
+    const id = await createDraft(page, name);
+    await completeDraft(page, id);
+    await submitDraft(page, id);
+    return id;
+  } finally {
+    await context.close();
+  }
 }
