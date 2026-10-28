@@ -29,7 +29,7 @@ async function observationOf(
   areaId: string,
   valueType: string | null,
   count: number | null,
-  shortId = ++nextShortId,
+  { shortId = ++nextShortId, uploadedBy = ACTOR }: { shortId?: number; uploadedBy?: string } = {},
 ): Promise<{ indicatorId: string; observationId: string }> {
   const [version] = await sql<{ indicatorId: string; versionId: string }[]>`
     WITH i AS (INSERT INTO indicator (short_id) VALUES (${shortId}) RETURNING id)
@@ -45,7 +45,7 @@ async function observationOf(
   const [batch] = await sql<{ id: string }[]>`
     INSERT INTO upload_batch
       (indicator_id, indicator_version_id, original_filename, uploaded_by, status)
-    VALUES (${version.indicatorId}, ${version.versionId}, 'data.csv', ${ACTOR}, 'processed')
+    VALUES (${version.indicatorId}, ${version.versionId}, 'data.csv', ${uploadedBy}, 'processed')
     RETURNING id
   `;
   await sql`
@@ -94,7 +94,15 @@ describe(`migration ${MIGRATION}`, () => {
     );
     observations.set(
       'smoking prevalence',
-      (await observationOf(sql, areaId, 'Proportion', 100, 92443)).observationId,
+      (await observationOf(sql, areaId, 'Proportion', 100, { shortId: 92443 })).observationId,
+    );
+    const [publisher] = await sql<{ id: string }[]>`
+      INSERT INTO app_user (display_name, kind) VALUES ('A publisher', 'person') RETURNING id
+    `;
+    observations.set(
+      'Proportion a publisher uploaded',
+      (await observationOf(sql, areaId, 'Proportion', 100, { uploadedBy: publisher?.id ?? '' }))
+        .observationId,
     );
 
     await migrateThrough(sql, MIGRATION);
@@ -130,6 +138,13 @@ describe(`migration ${MIGRATION}`, () => {
 
   it('keeps the estimated count of smoking prevalence, a survey proportion', async () => {
     expect(await measures('smoking prevalence')).toEqual({ count: 100, numerator: null });
+  });
+
+  it("keeps the count in a publisher's own upload", async () => {
+    expect(await measures('Proportion a publisher uploaded')).toEqual({
+      count: 100,
+      numerator: null,
+    });
   });
 
   it('leaves both empty where there was no count', async () => {

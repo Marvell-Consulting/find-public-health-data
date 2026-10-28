@@ -8,6 +8,8 @@ ALTER TABLE "observation" ADD COLUMN "numerator" double precision;--> statement-
 -- its count. The value type is the one of the version the observation's batch was uploaded to.
 -- A survey indicator whose count is an estimated number of people rather than its numerator, such
 -- as smoking prevalence from the Annual Population Survey (92443), keeps its count too.
+-- Only batches a system user wrote, the migrated Fingertips data, move: a publisher's own upload
+-- keeps the columns its file had, which the batch's column_names records.
 -- Rebuilding the secondary indexes after the rewrite is quicker than updating them row by row.
 DROP INDEX "idx_obs_indicator_dates";--> statement-breakpoint
 DROP INDEX "idx_obs_area_indicator";--> statement-breakpoint
@@ -19,7 +21,9 @@ SET "numerator" = o."count", "count" = NULL
 FROM "upload_batch" b
 JOIN "indicator_version" v ON v.id = b.indicator_version_id
 JOIN "indicator" i ON i.id = v.indicator_id
+JOIN "app_user" u ON u.id = b.uploaded_by
 WHERE b.id = o.upload_batch_id
+  AND u.kind = 'system'
   AND o."count" IS NOT NULL
   AND i.short_id NOT IN (92443)
   AND v.value_type_id IN (
