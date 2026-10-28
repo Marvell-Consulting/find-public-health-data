@@ -280,8 +280,17 @@ export async function listTopicsForIndicator(
   db: Database,
   indicatorId: string,
 ): Promise<TopicSummaryForIndicator[]> {
+  return (await listTopicsForIndicators(db, [indicatorId])).get(indicatorId) ?? [];
+}
+
+export async function listTopicsForIndicators(
+  db: Database,
+  indicatorIds: string[],
+): Promise<Map<string, TopicSummaryForIndicator[]>> {
+  if (!indicatorIds.length) return new Map();
   const rows = await db
     .select({
+      indicatorId: publishedIndicatorTopic.indicatorId,
       slug: publishedTopic.slug,
       title: publishedTopic.title,
       isPrimary: publishedIndicatorTopic.isPrimary,
@@ -299,10 +308,12 @@ export async function listTopicsForIndicator(
       ),
     )
     .leftJoin(publishedSubtopic, eq(publishedIndicatorSubtopic.subtopicId, publishedSubtopic.id))
-    .where(eq(publishedIndicatorTopic.indicatorId, indicatorId))
+    .where(inArray(publishedIndicatorTopic.indicatorId, indicatorIds))
     .orderBy(asc(publishedTopic.title), asc(publishedSubtopic.title));
-  const topics = new Map<string, Required<TopicSummaryForIndicator>>();
+  const byIndicator = new Map<string, Map<string, Required<TopicSummaryForIndicator>>>();
   for (const row of rows) {
+    const topics =
+      byIndicator.get(row.indicatorId) ?? new Map<string, Required<TopicSummaryForIndicator>>();
     const entry: Required<TopicSummaryForIndicator> = topics.get(row.slug) ?? {
       slug: row.slug,
       title: row.title,
@@ -316,8 +327,9 @@ export async function listTopicsForIndicator(
         isPrimary: row.subtopicIsPrimary,
       });
     topics.set(row.slug, entry);
+    byIndicator.set(row.indicatorId, topics);
   }
-  return [...topics.values()];
+  return new Map([...byIndicator].map(([id, topics]) => [id, [...topics.values()]]));
 }
 
 /** A published indicator's classifications, grouped ready for the summary table. */
@@ -325,8 +337,17 @@ export async function listClassificationsForIndicator(
   db: Database,
   indicatorId: string,
 ): Promise<IndicatorClassification[]> {
-  return db
+  return (await listClassificationsForIndicators(db, [indicatorId])).get(indicatorId) ?? [];
+}
+
+export async function listClassificationsForIndicators(
+  db: Database,
+  indicatorIds: string[],
+): Promise<Map<string, IndicatorClassification[]>> {
+  if (!indicatorIds.length) return new Map();
+  const rows = await db
     .select({
+      indicatorId: publishedIndicatorClassification.indicatorId,
       dimension: publishedClassification.dimension,
       slug: publishedClassification.slug,
       name: publishedClassification.name,
@@ -336,6 +357,13 @@ export async function listClassificationsForIndicator(
       publishedClassification,
       eq(publishedIndicatorClassification.classificationId, publishedClassification.id),
     )
-    .where(eq(publishedIndicatorClassification.indicatorId, indicatorId))
+    .where(inArray(publishedIndicatorClassification.indicatorId, indicatorIds))
     .orderBy(asc(publishedClassification.dimension), asc(publishedClassification.name));
+  const groups = new Map<string, IndicatorClassification[]>();
+  for (const { indicatorId, ...value } of rows) {
+    const values = groups.get(indicatorId) ?? [];
+    values.push(value);
+    groups.set(indicatorId, values);
+  }
+  return groups;
 }

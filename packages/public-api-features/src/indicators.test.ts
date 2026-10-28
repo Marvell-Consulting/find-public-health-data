@@ -2,7 +2,7 @@ import { createFakeRepositories, type FakeRepositoryOverrides } from '@fphd/db/t
 import { request } from '@fphd/express/testing';
 import express, { type Express } from 'express';
 import { describe, expect, it, vi } from 'vitest';
-
+import { indicatorTableDataSchema } from './contract.ts';
 import { indicatorsRouter } from './indicators.ts';
 
 const indicatorDetail = {
@@ -43,6 +43,50 @@ function createTestApp(overrides: FakeRepositoryOverrides['indicators'] = {}): E
 
   return app;
 }
+
+describe('GET /api/indicator-data', () => {
+  it('returns a bounded batch of public table data with its contract metadata', async () => {
+    const entries = [
+      {
+        detail: indicatorDetail,
+        areaData: [{ areaCode: 'E92000001', areaName: 'England', observations: [] }],
+      },
+    ];
+    const findTableData = vi.fn().mockResolvedValue(entries);
+    const response = await request(createTestApp({ findTableData })).get(
+      '/api/indicator-data?indicator=108&indicator=108',
+    );
+    expect(response.status).toBe(200);
+    expect(indicatorTableDataSchema.parse(response.body)).toEqual(entries);
+    expect(findTableData).toHaveBeenCalledWith([108], ['E92000001']);
+    expect(Object.keys(response.body[0].detail)).not.toContain('id');
+  });
+
+  it('caps indicator and area batches and ignores malformed public identifiers', async () => {
+    const findTableData = vi.fn().mockResolvedValue([]);
+    const params = new URLSearchParams();
+    for (let id = 1; id <= 25; id++) params.append('indicator', String(id));
+    for (let id = 0; id < 25; id++) params.append('areaCode', `E${String(id).padStart(8, '0')}`);
+    await request(createTestApp({ findTableData })).get(`/api/indicator-data?${params}`);
+    expect(findTableData).toHaveBeenCalledWith(
+      Array.from({ length: 20 }, (_, i) => i + 1),
+      Array.from({ length: 20 }, (_, i) => `E${String(i).padStart(8, '0')}`),
+    );
+    expect((await request(createTestApp()).get('/api/indicator-data?indicator=nope')).status).toBe(
+      404,
+    );
+  });
+
+  it('refuses a partial batch when a requested indicator is not published', async () => {
+    expect(
+      (
+        await request(createTestApp({ findTableData: async () => [] })).get(
+          '/api/indicator-data?indicator=108',
+        )
+      ).status,
+    ).toBe(404);
+  });
+});
 
 describe('the public indicators surface', () => {
   it('404s data and range requests when the identifier resolves to nothing', async () => {

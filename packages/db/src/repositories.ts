@@ -30,6 +30,7 @@ import {
   searchIndicators,
   searchPublishedIndicators,
 } from './indicator-repository.ts';
+import { getIndicatorTableData } from './indicator-table-repository.ts';
 import {
   getTopicBySlug,
   getTopicTrendSummary,
@@ -40,6 +41,7 @@ import {
 } from './topic-repository.ts';
 
 export interface IndicatorRepository {
+  findTableData(shortIds: number[], areaCodes: string[]): ReturnType<typeof getIndicatorTableData>;
   listPublished(): Promise<PublishedIndicator[]>;
   search(query: string, limit: number): Promise<PublishedIndicator[]>;
   /** The one place the public short id resolves to an internal id. */
@@ -100,6 +102,7 @@ export function createRepositories(db: Database): Repositories {
       listParents: (childCodes, parentTypeName) => listAreaParents(db, childCodes, parentTypeName),
     },
     indicators: {
+      findTableData: (shortIds, areaCodes) => getIndicatorTableData(db, shortIds, areaCodes),
       listPublished: () => listPublishedIndicators(db),
       search: (query, limit) => searchPublishedIndicators(db, query, limit),
       resolveId: (shortId) => resolvePublishedIndicatorId(db, shortId),

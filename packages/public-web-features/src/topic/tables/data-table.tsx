@@ -1,39 +1,22 @@
 import { formatDate, TableScrollRegion } from '@fphd/ui';
 import { indicatorPath } from '@fphd/utils/indicator-path';
+import { memo } from 'react';
 import { Link } from 'react-router';
-import {
-  comparisonRows,
-  formatCalculatedValue,
-  formatValue,
-  recentTrend,
-  withUnit,
-} from '../../indicator/data.ts';
-import type { SelectedIndicator } from '../../indicator/loader.ts';
+import { formatCalculatedValue, formatValue, recentTrend, withUnit } from '../../indicator/data.ts';
 import { TrendTag } from '../../indicator/trend-tag.tsx';
-import { type TopicColumn, topicSubtopics } from '../data.ts';
+import type { TopicColumn } from '../data.ts';
+import type { TopicDataTableModel } from '../table-models.ts';
 
-export function TopicDataTable({
-  selected,
+export const TopicDataTable = memo(function TopicDataTable({
+  model,
   title,
-  topicSlug,
   columns = ['period', 'updated', 'trend', 'value'],
 }: {
-  selected: SelectedIndicator[];
+  model: TopicDataTableModel;
   title: string;
-  topicSlug: string;
   columns?: TopicColumn[];
 }) {
-  const byId = new Map(selected.map((entry) => [entry.detail.shortId, entry]));
-  const rows = comparisonRows(selected);
-  const areas = [
-    ...new Map(
-      rows.flatMap((row) => row.cells.map((cell) => [cell.areaCode, cell.areaName] as const)),
-    ).entries(),
-  ]
-    .map(([code, name]) => ({ code, name }))
-    .sort((a, b) =>
-      a.code === 'E92000001' ? -1 : b.code === 'E92000001' ? 1 : a.name.localeCompare(b.name),
-    );
+  const { rows, areas } = model;
   const measures = columns.filter(
     (column) => column === 'trend' || column === 'count' || column === 'value',
   );
@@ -111,16 +94,14 @@ export function TopicDataTable({
         </thead>
         <tbody className="govuk-table__body">
           {rows.map((row) => {
-            const entry = byId.get(row.shortId);
-            if (!entry) return null;
             return (
               <tr className="govuk-table__row" key={row.key}>
                 <td className="govuk-table__cell">
-                  <Link className="govuk-link" to={indicatorPath(entry.detail.slug)}>
+                  <Link className="govuk-link" to={indicatorPath(row.slug)}>
                     {row.name}
                   </Link>
                   {row.suffix ? ` ${row.suffix}` : ''}
-                  {topicSubtopics(entry, topicSlug).map((subtopic) => (
+                  {row.subtopics.map((subtopic) => (
                     <span className="fphd-rug-cell__label fphd-topic-subtopic" key={subtopic}>
                       {subtopic}
                     </span>
@@ -131,31 +112,26 @@ export function TopicDataTable({
                 ) : null}
                 {columns.includes('updated') ? (
                   <td className="govuk-table__cell">
-                    {entry.detail.dataUpdatedAt
-                      ? formatDate(entry.detail.dataUpdatedAt, 'short')
-                      : 'Not known'}
+                    {row.updatedAt ? formatDate(row.updatedAt, 'short') : 'Not known'}
                   </td>
                 ) : null}
                 {areas.flatMap((area) =>
                   measures.map((measure) => {
                     const cell = row.cells.find(({ areaCode }) => areaCode === area.code);
-                    const latest = cell?.series.at(-1);
                     return (
                       <td key={`${area.code}-${measure}`} className="govuk-table__cell">
                         {measure === 'trend' ? (
-                          <TrendTag
-                            trend={recentTrend(cell?.series ?? [], entry.detail.polarity)}
-                          />
+                          <TrendTag trend={cell?.trend ?? recentTrend([], null)} />
                         ) : measure === 'count' ? (
-                          latest?.count == null ? (
+                          cell?.count == null ? (
                             'No data'
                           ) : (
-                            formatValue(latest.count)
+                            formatValue(cell.count)
                           )
-                        ) : latest?.value == null ? (
+                        ) : cell?.value == null ? (
                           'No data'
                         ) : (
-                          withUnit(formatCalculatedValue(latest.value), entry.detail.unit)
+                          withUnit(formatCalculatedValue(cell.value), row.unit)
                         )}
                       </td>
                     );
@@ -168,4 +144,4 @@ export function TopicDataTable({
       </table>
     </TableScrollRegion>
   );
-}
+});

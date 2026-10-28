@@ -1,17 +1,13 @@
 import { formatDocumentTitle } from '@fphd/ui';
 import { type MetaFunction, type ShouldRevalidateFunctionArgs, useLoaderData } from 'react-router';
-import { loadTopic } from './loader.ts';
+import { topicDataKey } from './filters.ts';
+import { loadTopicPage } from './loader.ts';
 import { TopicPage } from './page.tsx';
 
-export const loader = loadTopic;
+export const loader = loadTopicPage;
 
 export function shouldRevalidate({ currentUrl, nextUrl }: ShouldRevalidateFunctionArgs) {
-  const key = (url: URL) => {
-    const params = new URLSearchParams(url.search);
-    params.delete('columns-topic');
-    return `${url.pathname}?${params}`;
-  };
-  return key(currentUrl) !== key(nextUrl);
+  return topicDataKey(currentUrl) !== topicDataKey(nextUrl);
 }
 
 export const meta: MetaFunction<typeof loader> = ({ loaderData }) => [

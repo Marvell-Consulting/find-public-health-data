@@ -50,6 +50,14 @@ async function createCookie(roles: readonly string[]): Promise<string> {
 }
 
 describe('internal API', () => {
+  it('mounts bulk public table data without requiring an internal session', async () => {
+    const findTableData = vi.fn().mockResolvedValue([]);
+    const response = await request(
+      createTestApp(createFakeRepositories({ indicators: { findTableData } })),
+    ).get('/api/indicator-data?indicator=108');
+    expect(response.status).toBe(404);
+    expect(findTableData).toHaveBeenCalledWith([108], ['E92000001']);
+  });
   it('keeps the public surface open', async () => {
     const response = await request(app).get('/api');
 

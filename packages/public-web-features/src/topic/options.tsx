@@ -28,9 +28,13 @@ export function TopicKeywordSearch({ title }: { title: string }) {
         key={params.get('q') ?? ''}
         id="topic-keyword"
         name="q"
-        labelSize="s"
+        labelSize="m"
         action={
-          <Link className="govuk-link" to={`${location.pathname}?${cleared}`} preventScrollReset>
+          <Link
+            className="govuk-link govuk-body-s govuk-!-margin-bottom-0"
+            to={`${location.pathname}?${cleared}`}
+            preventScrollReset
+          >
             Clear search
           </Link>
         }

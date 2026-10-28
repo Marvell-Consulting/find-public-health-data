@@ -20,6 +20,7 @@ import {
   MAX_INDICATOR_QUERY_LENGTH,
   MAX_INDICATOR_SEARCH_RESULTS,
   MAX_SELECTED_AREAS,
+  MAX_TABLE_INDICATORS_PER_REQUEST,
   pickAreaCodes,
 } from './contract.ts';
 
@@ -59,6 +60,28 @@ function pickStrings(value: unknown, maxLength = MAX_FILTER_VALUE_LENGTH): strin
 
 export function indicatorsRouter(indicators: Repositories['indicators']): Router {
   const router = Router();
+
+  router.get('/api/indicator-data', async (request, response) => {
+    const raw = request.query.indicator;
+    const shortIds = [
+      ...new Set(
+        (Array.isArray(raw) ? raw : [raw])
+          .filter((value): value is string => typeof value === 'string' && isShortId(value))
+          .map(Number),
+      ),
+    ].slice(0, MAX_TABLE_INDICATORS_PER_REQUEST);
+    const areaCodes = pickAreaCodes(request.query.areaCode ?? DEFAULT_AREA_CODE);
+    if (!shortIds.length || !areaCodes.length) {
+      response.status(404).json({ error: 'not_found' });
+      return;
+    }
+    const entries = await indicators.findTableData(shortIds, areaCodes);
+    if (entries.length !== shortIds.length || entries.some(({ areaData }) => !areaData.length)) {
+      response.status(404).json({ error: 'not_found' });
+      return;
+    }
+    response.status(200).json(entries);
+  });
 
   router.get('/api/indicators/facets', async (_request, response) => {
     const facets: IndicatorFacets = await indicators.listFacets();

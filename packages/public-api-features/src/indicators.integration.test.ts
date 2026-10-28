@@ -19,6 +19,7 @@ import {
   indicatorAreaDataSchema,
   indicatorDetailSchema,
   indicatorSearchResultSchema,
+  indicatorTableDataSchema,
 } from './contract.ts';
 import { publicApiRoutes } from './index.ts';
 
@@ -86,6 +87,27 @@ async function insertDraftOnlyIndicator(
 const MORTALITY_SLUG = 'under-75-mortality-rate-from-all-causes';
 
 describe('public routers against the seeded database', () => {
+  it('loads public table batches in requested order and keeps known areas without observations', async () => {
+    const response = await request(app).get(
+      '/api/indicator-data?indicator=241&indicator=108&areaCode=E92000001&areaCode=E07000223',
+    );
+    expect(response.status).toBe(200);
+    const entries = indicatorTableDataSchema.parse(response.body);
+    expect(entries.map(({ detail }) => detail.shortId)).toEqual([241, 108]);
+    for (const entry of entries) {
+      const single = await request(app).get(`/api/indicators/${entry.detail.shortId}`);
+      expect(entry.detail).toEqual(single.body);
+      expect(entry.areaData.map(({ areaCode }) => areaCode)).toEqual(['E92000001', 'E07000223']);
+      for (const area of entry.areaData)
+        expect(Object.keys(area)).toEqual(['areaCode', 'areaName', 'observations']);
+    }
+    const draft = await insertDraftOnlyIndicator(
+      600091,
+      'Unpublished bulk fixture',
+      'unpublished-bulk-fixture',
+    );
+    expect((await request(app).get(`/api/indicator-data?indicator=${draft}`)).status).toBe(404);
+  });
   it('lists the seeded indicators', async () => {
     const response = await request(app).get('/api/indicators');
 

@@ -3,14 +3,15 @@ import type {
   IndicatorDetail,
   IndicatorObservation,
 } from '@fphd/public-api-features/contract';
+import {
+  headlineSeries,
+  isRollingPeriod,
+  observationSegmentKey,
+} from '@fphd/utils/observation-series';
 import { periodLabel } from '@fphd/utils/period-label';
 import type { PublicYearType } from '@fphd/utils/period-type';
 import type { Polarity } from '@fphd/utils/polarity';
 import { recentTrendDirection } from '@fphd/utils/recent-trend';
-
-function daysBetween(fromDate: string, toDate: string): number {
-  return (Date.parse(toDate) - Date.parse(fromDate)) / 86_400_000;
-}
 
 export function segmentLabel(observation: IndicatorObservation): string {
   if (observation.dimensions.length === 0) {
@@ -20,9 +21,7 @@ export function segmentLabel(observation: IndicatorObservation): string {
 }
 
 function segmentKey(observation: IndicatorObservation): string {
-  return observation.dimensions
-    .map((dimension) => `${dimension.type}:${dimension.value}`)
-    .join('|');
+  return observationSegmentKey(observation);
 }
 
 export function sameSegment(a: IndicatorObservation, b: IndicatorObservation): boolean {
@@ -114,23 +113,7 @@ export function benchmarkJudgement(
  * with the most observations wins, as the longest series is the most useful trend.
  */
 export function trendSeries(observations: IndicatorObservation[]): IndicatorObservation[] {
-  if (observations.length === 0) {
-    return [];
-  }
-
-  const minDimensions = Math.min(...observations.map((o) => o.dimensions.length));
-  const candidates = observations.filter((o) => o.dimensions.length === minDimensions);
-
-  const seriesSizes = new Map<string, number>();
-  for (const observation of candidates) {
-    const key = segmentKey(observation);
-    seriesSizes.set(key, (seriesSizes.get(key) ?? 0) + 1);
-  }
-  const [longestSeriesKey] = [...seriesSizes.entries()].sort((a, b) => b[1] - a[1])[0] ?? [''];
-
-  return candidates
-    .filter((observation) => segmentKey(observation) === longestSeriesKey)
-    .sort((a, b) => a.fromDate.localeCompare(b.fromDate) || a.toDate.localeCompare(b.toDate));
+  return headlineSeries(observations);
 }
 
 /**
@@ -387,8 +370,7 @@ export type PeriodType = 'all' | '1-year' | '3-year';
 
 /** A period spanning appreciably more than a year is a rolling average. */
 function isRolling({ fromDate, toDate }: IndicatorObservation): boolean {
-  const days = daysBetween(fromDate, toDate);
-  return days > 400;
+  return isRollingPeriod({ fromDate, toDate });
 }
 
 export function periodTypeLabel(periodType: PeriodType): string {

@@ -17,13 +17,16 @@ export async function indicatorTrendDirections(
     with points as (
       select ${observation.indicatorId} as indicator_id, ${observation.fromDate} as from_date,
         ${observation.toDate} as to_date, ${observation.value} as value,
-        count(${observationDimension.id}) as dimensions,
-        coalesce(string_agg(${observationDimension.dimensionValueId}::text, '|' order by ${observationDimension.dimensionValueId}), '') as segment
+        d.dimensions, d.segment
       from ${observation}
       join ${area} on ${area.id} = ${observation.areaId} and ${area.code} = 'E92000001'
-      left join ${observationDimension} on ${observationDimension.observationId} = ${observation.id}
+      cross join lateral (
+        select count(${observationDimension.id}) as dimensions,
+          coalesce(string_agg(${observationDimension.dimensionValueId}::text, '|' order by ${observationDimension.dimensionValueId}), '') as segment
+        from ${observationDimension}
+        where ${observationDimension.observationId} = ${observation.id}
+      ) d
       where ${inArray(observation.indicatorId, ids)}
-      group by ${observation.id}, ${observation.indicatorId}, ${observation.fromDate}, ${observation.toDate}, ${observation.value}
     ), series as (
       select indicator_id, dimensions, segment, count(value) as length,
         (array_agg(value order by from_date desc, to_date desc) filter (where value is not null))[1:5] as values

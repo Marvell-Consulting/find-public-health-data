@@ -72,6 +72,7 @@ export function FilterDimensionChoices({
   const selected = state[stateKey] as string[];
   const [values, setValues] = useState(selected);
   useEffect(() => setValues(selected), [selected]);
+  if (!options.length) return null;
   return (
     <Form action={action} method="get" preventScrollReset>
       <HiddenFilters state={state} extraParams={extraParams} except={stateKey} />

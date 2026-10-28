@@ -101,6 +101,42 @@ it('retains the displayed values, valid trend points and older England benchmark
   ).toBe(true);
 });
 
+it('sends only displayed area values and their matching England benchmarks when trends are not shown', () => {
+  const entry = {
+    detail: {
+      shortId: 1,
+      name: 'Indicator',
+      unit: '%',
+      yearType: null,
+      polarity: 'lower-is-better',
+    },
+    areaData: [
+      {
+        areaCode: 'E92000001',
+        areaName: 'England',
+        observations: Array.from({ length: 30 }, (_, index) => observation(2000 + index, index)),
+      },
+      {
+        areaCode: 'E07000223',
+        areaName: 'Adur',
+        observations: Array.from({ length: 20 }, (_, index) => observation(2000 + index, index)),
+      },
+    ],
+  } as SelectedIndicator;
+  const compact = topicTableSelection([entry], 0);
+  expect(compact[0]?.areaData[0]?.observations.map(({ fromDate }) => fromDate)).toEqual([
+    '2019-01-01',
+    '2029-01-01',
+  ]);
+  expect(compact[0]?.areaData[1]?.observations.map(({ fromDate }) => fromDate)).toEqual([
+    '2019-01-01',
+  ]);
+  const model = comparisonTable(compact, { regionByCode: {}, levelByCode: {} }, 'england');
+  const row = model.rows[0];
+  const cell = row?.cells.find(({ areaCode }) => areaCode === 'E07000223');
+  expect(row && cell && model.benchmarkCellFor(row, cell)?.value).toBe(19);
+});
+
 it('uses the same no-comparison judgement and label for indicators without polarity', () => {
   const detail = { polarity: 'no-polarity' } as SelectedIndicator['detail'];
   expect(JUDGEMENT_LABELS[topicJudgement(observation(2024, 10), 5, detail)]).toBe(

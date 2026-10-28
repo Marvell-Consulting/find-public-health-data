@@ -1,13 +1,13 @@
-import { GridColumn, GridRow, SummaryList, Tag } from '@fphd/ui';
+import { ChartSection, GridColumn, GridRow, SummaryList, Tag } from '@fphd/ui';
 import { indicatorPath } from '@fphd/utils/indicator-path';
 import { Link } from 'react-router';
 import { comparisonRows, formatCalculatedValue, recentTrend, withUnit } from '../indicator/data.ts';
 import { TrendTag } from '../indicator/trend-tag.tsx';
 import { searchUrl } from '../search/url.ts';
 import { TopicGeographies } from './geographies.tsx';
-import type { loadTopic } from './loader.ts';
+import type { loadTopicPage } from './loader.ts';
 
-type TopicData = Awaited<ReturnType<typeof loadTopic>>;
+type TopicData = Awaited<ReturnType<typeof loadTopicPage>>;
 type Overview = NonNullable<TopicData['overview']>;
 
 export function TopicOverview({
@@ -107,6 +107,19 @@ export function TopicOverview({
                     {entry.detail.name}
                   </Link>
                 </h3>
+                {(cell?.series.filter(({ value }) => value !== null).length ?? 0) >= 2 ? (
+                  <ChartSection
+                    id={`topic-highlight-chart-${entry.detail.shortId}`}
+                    title={`${entry.detail.name}, ${area?.areaName ?? 'England'}: trend chart`}
+                    description={`How this indicator has changed over time in ${area?.areaName ?? 'England'}.`}
+                  />
+                ) : (
+                  <p className="govuk-hint fphd-topic-highlight__no-trend">
+                    No trend available
+                    <br />
+                    (not enough data)
+                  </p>
+                )}
                 <SummaryList
                   items={[
                     { name: 'Most recent period', children: row?.period || 'No data' },

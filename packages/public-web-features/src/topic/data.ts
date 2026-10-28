@@ -80,19 +80,26 @@ export function observationPeriod(
 }
 
 /** Keep the displayed series and their same-period benchmarks out of the full observation history. */
-export function topicTableSelection(selected: SelectedIndicator[]): SelectedIndicator[] {
+export function topicTableSelection(
+  selected: SelectedIndicator[],
+  trendPoints = 5,
+): SelectedIndicator[] {
   return selected.map((entry) => {
     const rows = comparisonRows([entry]);
     const keep = new Set<SelectedIndicator['areaData'][number]['observations'][number]>();
     for (const row of rows) {
       const england = entry.areaData.find(({ areaCode }) => areaCode === 'E92000001');
       const benchmarkSeries = trendSeries(filterObservations(england?.observations ?? [], row));
-      for (const point of benchmarkSeries.filter(({ value }) => value !== null).slice(-5))
+      for (const point of trendPoints
+        ? benchmarkSeries.filter(({ value }) => value !== null).slice(-trendPoints)
+        : [])
         keep.add(point);
       const benchmarkLatest = benchmarkSeries.at(-1);
       if (benchmarkLatest) keep.add(benchmarkLatest);
       for (const cell of row.cells) {
-        for (const point of cell.series.filter(({ value }) => value !== null).slice(-5))
+        for (const point of trendPoints
+          ? cell.series.filter(({ value }) => value !== null).slice(-trendPoints)
+          : [])
           keep.add(point);
         const latest = cell.series.at(-1);
         if (latest) keep.add(latest);

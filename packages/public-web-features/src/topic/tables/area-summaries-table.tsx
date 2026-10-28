@@ -1,38 +1,21 @@
 import { TableScrollRegion } from '@fphd/ui';
 import { indicatorPath } from '@fphd/utils/indicator-path';
+import { memo } from 'react';
 import { Link } from 'react-router';
-import { comparisonTable } from '../../indicator/comparison.ts';
 import { formatCalculatedValue } from '../../indicator/data.ts';
-import type { BenchmarkGeography, SelectedIndicator } from '../../indicator/loader.ts';
 import { NoteFootnotes, noteMarker } from '../../indicator/tables/note-markers.tsx';
-import {
-  englandObservation,
-  JUDGEMENT_LABELS,
-  observationPeriod,
-  topicJudgement,
-  topicSubtopics,
-} from '../data.ts';
+import { JUDGEMENT_LABELS } from '../data.ts';
+import type { TopicAreaTableModel } from '../table-models.ts';
 
-export function AreaSummariesTable({
-  selected,
-  geography,
-  topicSlug,
+export const AreaSummariesTable = memo(function AreaSummariesTable({
+  model,
 }: {
-  selected: SelectedIndicator[];
-  geography: BenchmarkGeography;
-  topicSlug: string;
+  model: TopicAreaTableModel;
 }) {
-  const { areas, rows, benchmarkCellFor } = comparisonTable(selected, geography, 'england');
-  const pickedAreas = areas.filter(({ areaCode }) => areaCode !== 'E92000001');
-  const byId = new Map(selected.map((entry) => [entry.detail.shortId, entry]));
+  const { areas: pickedAreas, rows } = model;
   const noteTexts = [
     ...new Set(
-      rows.flatMap((row) => [
-        ...row.cells.flatMap(({ notes }) => notes),
-        ...(englandObservation(byId.get(row.shortId) as SelectedIndicator, row)?.notes.map(
-          ({ text }) => text,
-        ) ?? []),
-      ]),
+      rows.flatMap((row) => [...row.cells.flatMap(({ notes }) => notes), ...row.england.notes]),
     ),
   ];
   return (
@@ -83,18 +66,16 @@ export function AreaSummariesTable({
           </thead>
           <tbody className="govuk-table__body">
             {rows.map((row) => {
-              const entry = byId.get(row.shortId);
-              if (!entry) return null;
-              const england = englandObservation(entry, row);
-              const englandPeriod = observationPeriod(entry, england);
+              const england = row.england;
+              const englandPeriod = england.period;
               return (
                 <tr className="govuk-table__row" key={row.key}>
                   <td className="govuk-table__cell">
-                    <Link className="govuk-link" to={indicatorPath(entry.detail.slug)}>
+                    <Link className="govuk-link" to={indicatorPath(row.slug)}>
                       {row.name}
                     </Link>
                     {row.suffix ? ` ${row.suffix}` : ''}
-                    {topicSubtopics(entry, topicSlug).map((subtopic) => (
+                    {row.subtopics.map((subtopic) => (
                       <span className="fphd-rug-cell__label fphd-topic-subtopic" key={subtopic}>
                         {subtopic}
                       </span>
@@ -108,7 +89,7 @@ export function AreaSummariesTable({
                     ) : (
                       <>
                         {formatCalculatedValue(england.value)}
-                        {england.notes.map(({ text }) => (
+                        {england.notes.map((text) => (
                           <sup key={text}>{noteMarker(noteTexts, text)}</sup>
                         ))}
                       </>
@@ -117,53 +98,45 @@ export function AreaSummariesTable({
                       <span className="fphd-rug-cell__label">{englandPeriod}</span>
                     ) : null}
                   </td>
-                  {row.cells
-                    .filter(({ areaCode }) => areaCode !== 'E92000001')
-                    .map((cell) => {
-                      const benchmark = benchmarkCellFor(row, cell);
-                      const judgement = topicJudgement(
-                        benchmark?.areaObservation,
-                        benchmark?.value ?? null,
-                        entry.detail,
-                      );
-                      const period = observationPeriod(entry, cell.series.at(-1));
-                      return (
-                        <td
-                          className={`govuk-table__cell${cell.value === null ? '' : ` fphd-rug-cell--${judgement}`}`}
-                          key={cell.areaCode}
-                        >
-                          {cell.value === null ? (
-                            'No data'
-                          ) : (
-                            <>
-                              {formatCalculatedValue(cell.value)}
-                              {cell.notes.map((text) => (
-                                <sup key={text}>{noteMarker(noteTexts, text)}</sup>
-                              ))}
-                              <span
-                                className={
-                                  judgement === 'none'
-                                    ? 'govuk-visually-hidden'
-                                    : 'fphd-rug-cell__label'
-                                }
-                              >
-                                {judgement === 'none'
-                                  ? 'No comparison'
-                                  : judgement.charAt(0).toUpperCase() + judgement.slice(1)}
-                                {judgement !== 'none' ? (
-                                  <span className="govuk-visually-hidden">
-                                    {judgement === 'similar' ? ' to England' : ' than England'}
-                                  </span>
-                                ) : null}
-                              </span>
-                              {period !== row.period ? (
-                                <span className="fphd-rug-cell__label">{period}</span>
+                  {row.cells.map((cell) => {
+                    const { judgement, period } = cell;
+                    return (
+                      <td
+                        className={`govuk-table__cell${cell.value === null ? '' : ` fphd-rug-cell--${judgement}`}`}
+                        key={cell.areaCode}
+                      >
+                        {cell.value === null ? (
+                          'No data'
+                        ) : (
+                          <>
+                            {formatCalculatedValue(cell.value)}
+                            {cell.notes.map((text) => (
+                              <sup key={text}>{noteMarker(noteTexts, text)}</sup>
+                            ))}
+                            <span
+                              className={
+                                judgement === 'none'
+                                  ? 'govuk-visually-hidden'
+                                  : 'fphd-rug-cell__label'
+                              }
+                            >
+                              {judgement === 'none'
+                                ? 'No comparison'
+                                : judgement.charAt(0).toUpperCase() + judgement.slice(1)}
+                              {judgement !== 'none' ? (
+                                <span className="govuk-visually-hidden">
+                                  {judgement === 'similar' ? ' to England' : ' than England'}
+                                </span>
                               ) : null}
-                            </>
-                          )}
-                        </td>
-                      );
-                    })}
+                            </span>
+                            {period !== row.period ? (
+                              <span className="fphd-rug-cell__label">{period}</span>
+                            ) : null}
+                          </>
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
               );
             })}
@@ -173,4 +146,4 @@ export function AreaSummariesTable({
       <NoteFootnotes noteTexts={noteTexts} />
     </>
   );
-}
+});
