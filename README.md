@@ -312,6 +312,10 @@ docker compose down -v    # stop and delete all data
 to `compose.yaml` without a profile becomes a dev prerequisite without the script changing. The four
 app services are profile-gated and belong to `pnpm dev:mixed`.
 
+A second checkout, such as a git worktree, runs its own database and Azurite beside the first by
+setting `FPHD_STACK` in its `.env`, with `DB_PORT` and `AZURITE_PORT` on free host ports. It names
+the compose project and prefixes the container names; `.env.example` lists what to change.
+
 Each API connects with its own login role (`public_api`, `internal_api`) rather than as the owner,
 so access can be constrained per audience at the grant level. The roles are created by
 `pnpm db:bootstrap` — run it once against a fresh database, before the first migration: the grant

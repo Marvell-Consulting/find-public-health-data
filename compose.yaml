@@ -17,10 +17,18 @@
 # well as to .env.example, and an app whose config schema gains one fails at startup until
 # it is. The `:?` forms fail the compose command naming the missing variable, rather than
 # starting a container that crashes on boot.
+#
+# Container names are global to Docker, so a second checkout, such as a git worktree, sets
+# FPHD_STACK in its .env to run its own database and Azurite beside the first. FPHD_STACK names
+# the compose project, which keeps the second checkout's volumes apart, and prefixes every
+# container name. Left unset, the names are the original ones. Running two stacks also needs
+# DB_PORT and AZURITE_PORT set to free host ports.
+name: ${FPHD_STACK:-find-public-health-data}
+
 services:
   db:
     image: postgres:18.4
-    container_name: fphd-postgres
+    container_name: ${FPHD_STACK:-fphd}-postgres
     restart: unless-stopped
     environment:
       # Passwords have no default: a missing one fails the command rather than silently
@@ -45,7 +53,7 @@ services:
   # Blob Storage emulator; its version is pinned with @azure/storage-blob in pnpm-workspace.yaml.
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite:3.37.0
-    container_name: fphd-azurite
+    container_name: ${FPHD_STACK:-fphd}-azurite
     restart: unless-stopped
     command: ['azurite-blob', '--blobHost', '0.0.0.0', '--location', '/data']
     ports:
@@ -65,7 +73,7 @@ services:
       dockerfile: docker/app.Dockerfile
       args:
         APP: public-web
-    container_name: fphd-public-web
+    container_name: ${FPHD_STACK:-fphd}-public-web
     init: true
     environment:
       APP_ENV: ${APP_ENV:?set APP_ENV in .env (see .env.example)}
@@ -95,7 +103,7 @@ services:
       dockerfile: docker/app.Dockerfile
       args:
         APP: internal-web
-    container_name: fphd-internal-web
+    container_name: ${FPHD_STACK:-fphd}-internal-web
     init: true
     environment:
       APP_ENV: ${APP_ENV:?set APP_ENV in .env (see .env.example)}
@@ -125,7 +133,7 @@ services:
       dockerfile: docker/app.Dockerfile
       args:
         APP: public-api
-    container_name: fphd-public-api
+    container_name: ${FPHD_STACK:-fphd}-public-api
     init: true
     environment:
       APP_ENV: ${APP_ENV:?set APP_ENV in .env (see .env.example)}
@@ -158,7 +166,7 @@ services:
       dockerfile: docker/app.Dockerfile
       args:
         APP: internal-api
-    container_name: fphd-internal-api
+    container_name: ${FPHD_STACK:-fphd}-internal-api
     init: true
     environment:
       APP_ENV: ${APP_ENV:?set APP_ENV in .env (see .env.example)}
