@@ -33,9 +33,11 @@ function renderPage(
   {
     currentReviewers = [],
     fieldErrors = {},
+    offered = options,
   }: {
     currentReviewers?: { id: string; name: string }[];
     fieldErrors?: { addReviewer?: string };
+    offered?: typeof options;
   } = {},
 ) {
   return render(
@@ -44,7 +46,7 @@ function renderPage(
         {...noRefusal}
         currentReviewers={currentReviewers}
         fieldErrors={fieldErrors}
-        options={options}
+        options={offered}
         values={{ ...empty, ...values }}
       />
     </MemoryRouter>,
@@ -117,6 +119,26 @@ describe('ReviewerAssignmentPage', () => {
     expect(screen.queryByRole('combobox', { name: 'Reviewer' })).toBeNull();
     expect(screen.queryByRole('button', { name: /^Add/ })).toBeNull();
     expect(screen.getAllByRole('button', { name: /^Remove reviewer/ })).toHaveLength(3);
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeTruthy();
+  });
+
+  it('says no reviewers are available when there is nobody to offer or list', () => {
+    renderPage({}, { offered: [] });
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Assign reviewers' })).toBeTruthy();
+    expect(
+      screen.getByText('There are no reviewers available to assign to this indicator.'),
+    ).toBeTruthy();
+    expect(screen.queryByRole('combobox')).toBeNull();
+    expect(screen.queryByRole('button')).toBeNull();
+  });
+
+  it('keeps the form for a listed reviewer when nobody else is on offer', () => {
+    const departed = { id: '019fa38f-073f-764e-9ac6-1c4d03b20009', name: 'Sam Departed' };
+
+    renderPage({ reviewerIds: [departed.id] }, { currentReviewers: [departed], offered: [] });
+
+    expect(screen.queryByText(/no reviewers available/)).toBeNull();
     expect(screen.getByRole('button', { name: 'Continue' })).toBeTruthy();
   });
 

@@ -1,11 +1,13 @@
 import type { DraftReviewer, ReviewerOption } from '@fphd/internal-api-features/contract';
-import { Button, Select } from '@fphd/ui';
+import { Button, DocumentTitle, GridColumn, GridRow, Select } from '@fphd/ui';
 
 import { IndicatorSectionForm, type SectionPageProps } from '../indicator-section-form.tsx';
 import { ADD_INTENT, removeIntent } from '../list-form.ts';
 import type { ReviewerAssignmentField, ReviewerAssignmentValues } from './form.ts';
 
 const FIELDS: readonly ReviewerAssignmentField[] = ['addReviewer'];
+
+const TITLE = 'Assign reviewers';
 
 function optionLabel({ name, assignedIndicatorCount: count }: ReviewerOption): string {
   return `${name} (${count} ${count === 1 ? 'indicator' : 'indicators'} currently assigned)`;
@@ -36,8 +38,25 @@ export function ReviewerAssignmentPage({
   const offered = options.filter(({ id }) => !values.reviewerIds.includes(id));
   const allListed = offered.length === 0 && listed.length > 0;
 
+  // With nobody to offer and nobody listed, there is nothing to choose, so no form either.
+  if (offered.length === 0 && listed.length === 0) {
+    return (
+      <>
+        <DocumentTitle hasErrors={false} pageTitle={TITLE} />
+        <GridRow>
+          <GridColumn width="two-thirds">
+            <h1 className="govuk-heading-xl">{TITLE}</h1>
+            <p className="govuk-body">
+              There are no reviewers available to assign to this indicator.
+            </p>
+          </GridColumn>
+        </GridRow>
+      </>
+    );
+  }
+
   return (
-    <IndicatorSectionForm continueOnEnter fields={FIELDS} form={form} title="Assign reviewers">
+    <IndicatorSectionForm continueOnEnter fields={FIELDS} form={form} title={TITLE}>
       <input name="submissionNumber" type="hidden" value={values.submissionNumber} />
       {values.previousReviewerIds.map((id) => (
         <input key={id} name="previousReviewerIds" type="hidden" value={id} />
