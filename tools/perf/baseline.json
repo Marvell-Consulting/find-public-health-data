@@ -54,16 +54,16 @@
     "bytes": 38824
   },
   "internal-web /topics/mortality-and-life-expectancy?tab-topic=areas": {
-    "statements": 54,
-    "buffers": 64926,
-    "rows": 23954,
-    "bytes": 238193
+    "statements": 55,
+    "buffers": 104542,
+    "rows": 22613,
+    "bytes": 168610
   },
   "internal-web /topics/mortality-and-life-expectancy?tab-topic=data": {
-    "statements": 54,
-    "buffers": 45308,
-    "rows": 15992,
-    "bytes": 121528
+    "statements": 55,
+    "buffers": 104542,
+    "rows": 22613,
+    "bytes": 168607
   },
   "public-api /api/areas/search?q=leeds": {
     "statements": 1,
@@ -168,10 +168,10 @@
     "bytes": 50571
   },
   "public-web /topics/diabetes": {
-    "statements": 39,
-    "buffers": 48377,
-    "rows": 7749,
-    "bytes": 73098
+    "statements": 63,
+    "buffers": 85813,
+    "rows": 23971,
+    "bytes": 146541
   },
   "public-web /topics/mortality-and-life-expectancy/table.csv?tab-topic=areas": {
     "statements": 54,
@@ -180,27 +180,27 @@
     "bytes": 3900
   },
   "public-web /topics/mortality-and-life-expectancy?tab-topic=areas": {
-    "statements": 54,
-    "buffers": 64926,
-    "rows": 23954,
-    "bytes": 235587
+    "statements": 55,
+    "buffers": 104542,
+    "rows": 22613,
+    "bytes": 166020
   },
   "public-web /topics/mortality-and-life-expectancy?tab-topic=data": {
-    "statements": 54,
-    "buffers": 45308,
-    "rows": 15992,
-    "bytes": 118915
+    "statements": 55,
+    "buffers": 104542,
+    "rows": 22613,
+    "bytes": 166017
   },
   "public-web /topics/mortality-and-life-expectancy?tab-topic=data&sort=period-desc": {
-    "statements": 54,
-    "buffers": 52335,
-    "rows": 15992,
-    "bytes": 119121
+    "statements": 55,
+    "buffers": 112537,
+    "rows": 22613,
+    "bytes": 166329
   },
   "public-web /topics/mortality-and-life-expectancy?tab-topic=data&sort=trend-desc": {
-    "statements": 55,
-    "buffers": 112454,
-    "rows": 15996,
-    "bytes": 119225
+    "statements": 57,
+    "buffers": 163967,
+    "rows": 22619,
+    "bytes": 166558
   }
 }
