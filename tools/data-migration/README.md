@@ -47,9 +47,14 @@ publishing moves to this service. The operations image applies the packages with
   It preserves every observation-note link, records the source-id aliases in
   `reference_name_aliases`, and updates the prepared file counts and hashes. Conflicting
   categories or other reference-name collisions stop preparation.
-- Every migrated timestamp is the indicator's `DateEnteredInPHOLIO`, never the export time,
-  so re-exporting unchanged source data writes the same rows and an increment carries only
-  real changes. The export time appears only in the manifest.
+- Creation and migration audit timestamps use the indicator's `DateEnteredInPHOLIO`,
+  never the export time. `indicator.data_updated_at` uses the latest successful
+  `UploadJob.DateCreated` whose batch is still referenced by that indicator's
+  `CoreDataSet` rows (`Status = 1000`), matching Fingertips' `DataChange.LastUploadedAt`.
+  Without a matching successful upload, the update date stays null. Both production and
+  development exports use this rule. Re-exporting unchanged source data writes the same
+  rows, so an increment carries only real changes. The export time appears only in the
+  manifest.
 - The expected live database name must match `DB_NAME()`.
 - UUIDs are deterministic from the source table and integer ID. The same source row keeps
   the same target ID across the baseline and every increment.

@@ -208,6 +208,22 @@ export async function exportIndicators(context: PholioExportOptions) {
   if (unmappableYearTypes.length)
     throw new Error(`Cannot translate year types: ${unmappableYearTypes.join(', ')}`);
 
+  const uploadRows = await queryPholio<{ IndicatorID: number; LastUploadedAt: Date }>(
+    pool,
+    `SELECT d.IndicatorID, MAX(u.DateCreated) AS LastUploadedAt
+     FROM (
+       SELECT DISTINCT IndicatorID, UploadBatchId
+       FROM dbo.CoreDataSet
+       WHERE UploadBatchId IS NOT NULL
+     ) d
+     INNER JOIN dbo.UploadJob u ON u.Guid = CONVERT(varchar(36), d.UploadBatchId)
+     WHERE u.Status = 1000
+     GROUP BY d.IndicatorID`,
+  );
+  const dataUpdatedAtById = new Map(
+    uploadRows.map((row) => [row.IndicatorID, row.LastUploadedAt.toISOString()]),
+  );
+
   // Load prose text values for indicator_metadata (ProfileId IS NULL rows).
   const textRows = await queryPholio<TextValuesRow>(
     pool,
@@ -290,7 +306,11 @@ export async function exportIndicators(context: PholioExportOptions) {
     });
 
     const enteredAt = row.EnteredAt.toISOString();
-    await indicatorWriter.write({ id, created_at: enteredAt, data_updated_at: null });
+    await indicatorWriter.write({
+      id,
+      created_at: enteredAt,
+      data_updated_at: dataUpdatedAtById.get(id) ?? null,
+    });
 
     await versionWriter.write({
       id,

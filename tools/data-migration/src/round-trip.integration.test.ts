@@ -6,6 +6,7 @@ import {
   baselineManifestSchema,
   DATA_MIGRATION_NULL,
   dataMigrationManifestSchema,
+  incrementalManifestSchema,
 } from '@fphd/db/data-migration-contract';
 import {
   applyDataMigration,
@@ -50,7 +51,13 @@ afterAll(async () => {
   if (directory) await rm(directory, { recursive: true });
 });
 
-async function snapshot(id: string, cutoff: string, observations: ExportRow[], withdrawn = false) {
+async function snapshot(
+  id: string,
+  cutoff: string,
+  observations: ExportRow[],
+  withdrawn = false,
+  dataUpdatedAt: string | null = null,
+) {
   const out = join(directory, id);
   await mkdir(out);
   const enteredAt = '2026-01-01T00:00:00Z';
@@ -63,7 +70,7 @@ async function snapshot(id: string, cutoff: string, observations: ExportRow[], w
     area: [
       { id: 1, code: 'E92000001', name: 'England', area_type_id: 1, valid_from: '2010-01-01' },
     ],
-    indicator: [{ id: 108, created_at: enteredAt }],
+    indicator: [{ id: 108, created_at: enteredAt, data_updated_at: dataUpdatedAt }],
     indicator_version: [
       {
         id: 108,
@@ -111,7 +118,11 @@ async function snapshot(id: string, cutoff: string, observations: ExportRow[], w
     rows.indicator_version = [];
     rows.upload_batch = [];
   }
-  rows.indicator?.push({ id: 109, created_at: enteredAt });
+  rows.indicator?.push({
+    id: 109,
+    created_at: enteredAt,
+    data_updated_at: '2026-09-15T10:00:00.000Z',
+  });
   rows.indicator_version?.push({
     id: 109,
     indicator_id: 109,
@@ -182,7 +193,7 @@ async function apply(out: string) {
   await rebuildReadModels(sql);
 }
 
-it('imports prepared baseline, corrections and withdrawal with resolved batch links', async () => {
+it('imports baseline dates, date-only corrections, observations and withdrawal', async () => {
   const first = await snapshot('baseline-1', '2026-10-01T00:00:00Z', [
     { id: 2, from_date: '2025-01-01', to_date: '2025-12-31', value: 10 },
     { id: 4, from_date: '2026-01-01', to_date: '2026-12-31', value: 11 },
@@ -204,17 +215,62 @@ it('imports prepared baseline, corrections and withdrawal with resolved batch li
   ]);
   expect((await sql`SELECT id FROM published.observation`).length).toBe(2);
 
-  const current = await snapshot('increment-2', '2026-11-01T00:00:00Z', [
-    { id: 2, from_date: '2025-01-01', to_date: '2025-12-31', value: 20 },
-    { id: 6, from_date: '2027-01-01', to_date: '2027-12-31', value: 30 },
+  const publishedDates = async () =>
+    (
+      await sql<{ short_id: number; data_updated_at: Date | null }[]>`
+      SELECT short_id, data_updated_at FROM published.indicator ORDER BY short_id
+    `
+    ).map((row) => ({
+      shortId: row.short_id,
+      updatedAt: row.data_updated_at?.toISOString() ?? null,
+    }));
+  expect(await publishedDates()).toEqual([
+    { shortId: 108, updatedAt: null },
+    { shortId: 109, updatedAt: '2026-09-15T10:00:00.000Z' },
   ]);
+  const correctedDate = '2026-10-10T09:30:00.000Z';
+  const dated = await snapshot(
+    'date-correction',
+    '2026-10-15T00:00:00Z',
+    [
+      { id: 2, from_date: '2025-01-01', to_date: '2025-12-31', value: 10 },
+      { id: 4, from_date: '2026-01-01', to_date: '2026-12-31', value: 11 },
+    ],
+    false,
+    correctedDate,
+  );
+  const dateIncrement = join(directory, 'date-increment');
+  await createIncremental(first, dated, dateIncrement, 'date-correction');
+  const dateManifest = incrementalManifestSchema.parse(
+    JSON.parse(await readFile(join(dateIncrement, 'manifest.json'), 'utf8')),
+  );
+  expect(dateManifest.tables.indicator?.upserts.rows).toBe(1);
+  expect(dateManifest.tables.observation?.upserts.rows).toBe(0);
+  expect(dateManifest.tables.indicator_version?.upserts.rows).toBe(0);
+  await apply(dateIncrement);
+  expect(await publishedDates()).toEqual([
+    { shortId: 108, updatedAt: correctedDate },
+    { shortId: 109, updatedAt: '2026-09-15T10:00:00.000Z' },
+  ]);
+
+  const current = await snapshot(
+    'increment-2',
+    '2026-11-01T00:00:00Z',
+    [
+      { id: 2, from_date: '2025-01-01', to_date: '2025-12-31', value: 20 },
+      { id: 6, from_date: '2027-01-01', to_date: '2027-12-31', value: 30 },
+    ],
+    false,
+    correctedDate,
+  );
   const increment = join(directory, 'increment');
-  await createIncremental(first, current, increment, 'increment-2');
+  await createIncremental(dated, current, increment, 'increment-2');
   await apply(increment);
   expect(
     (await sql`SELECT value FROM published.observation ORDER BY id`).map((row) => row.value),
   ).toEqual([20, 30]);
-  expect((await sql`SELECT * FROM data_migration`).length).toBe(2);
+  expect((await sql`SELECT * FROM data_migration`).length).toBe(3);
+  expect((await publishedDates())[0]?.updatedAt).toBe(correctedDate);
   const manifest = baselineManifestSchema.parse(
     JSON.parse(await readFile(join(current, 'manifest.json'), 'utf8')),
   );
@@ -232,5 +288,5 @@ it('imports prepared baseline, corrections and withdrawal with resolved batch li
     { count: 1 },
   ]);
   expect(await sql`SELECT id FROM published.observation`).toEqual([]);
-  expect((await sql`SELECT id FROM data_migration`).length).toBe(3);
+  expect((await sql`SELECT id FROM data_migration`).length).toBe(4);
 });

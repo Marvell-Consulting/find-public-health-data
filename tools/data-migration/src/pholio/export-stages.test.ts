@@ -586,6 +586,7 @@ function indicatorQueries(
     IndicatorID,
     Name: `Indicator ${IndicatorID}`,
   })),
+  uploads: { IndicatorID: number; LastUploadedAt: Date }[] = [],
 ) {
   vi.mocked(queryPholio)
     .mockResolvedValueOnce([])
@@ -604,6 +605,7 @@ function indicatorQueries(
         EnteredAt: new Date('2020-01-01T00:00:00Z'),
       })),
     )
+    .mockResolvedValueOnce(uploads)
     .mockResolvedValueOnce([
       {
         IndicatorID: 108,
@@ -628,6 +630,29 @@ it('exports only the approved indicators and uses plain text without damaging in
   expect(result.excludedNonApprovedIndicators).toBe(1);
   expect((await rows('indicator_version'))[0]?.definition).toBe('aged <16 and >64, high');
 });
+it.each(['approved', 'development-snapshot'] as const)(
+  'exports the source upload date independently of creation time for %s',
+  async (kind) => {
+    const uploadedAt = '2026-04-29T12:05:00.000Z';
+    indicatorQueries('No unit', undefined, [
+      { IndicatorID: 108, LastUploadedAt: new Date(uploadedAt) },
+      { IndicatorID: 109, LastUploadedAt: new Date('2026-05-01T09:30:00Z') },
+    ]);
+    options.indicatorSelection = kind === 'approved' ? { kind, indicators: [108] } : { kind };
+    await exportIndicators(options);
+    expect((await rows('indicator')).find(({ id }) => id === '108')).toMatchObject({
+      created_at: '2020-01-01T00:00:00.000Z',
+      data_updated_at: uploadedAt,
+    });
+  },
+);
+
+it('leaves the update date unknown when the source has no successful upload', async () => {
+  indicatorQueries();
+  await exportIndicators(options);
+  expect((await rows('indicator'))[0]?.data_updated_at).toBe(DATA_MIGRATION_NULL);
+});
+
 it('refuses an approved indicator absent from the source', async () => {
   indicatorQueries();
   options.indicatorSelection = { kind: 'approved', indicators: [110] };
