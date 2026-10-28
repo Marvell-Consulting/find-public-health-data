@@ -134,6 +134,7 @@ function observationOptions(): ObservationExportOptions {
     ...options,
     indicatorIds: new Set([108]),
     indicatorEnteredAt: new Map([[108, '2020-01-01T00:00:00.000Z']]),
+    countIsNumerator: new Set(),
     areaIdByPholioCode: new Map([['S1', areaId('S1')]]),
     noteTypeCategory: new Map(),
     dimensionValueIds: new Set(),
@@ -235,6 +236,28 @@ it('retains observations whose sex is not applicable with their other dimensions
   ]);
   expect(await rows('observation_dimension')).toEqual([
     expect.objectContaining({ dimension_type_id: '2', dimension_value_id: String(ageValueId) }),
+  ]);
+});
+
+it("writes Pholio's Count as the numerator of an indicator whose value type has one", async () => {
+  sourceObservations([observation({ Count: 12 })]);
+  const input = observationOptions();
+  input.countIsNumerator = new Set([108]);
+
+  await exportObservations(input);
+
+  expect(await rows('observation')).toEqual([
+    expect.objectContaining({ count: DATA_MIGRATION_NULL, numerator: '12' }),
+  ]);
+});
+
+it("keeps Pholio's Count as the count of any other indicator", async () => {
+  sourceObservations([observation({ Count: 12 })]);
+
+  await exportObservations(observationOptions());
+
+  expect(await rows('observation')).toEqual([
+    expect.objectContaining({ count: '12', numerator: DATA_MIGRATION_NULL }),
   ]);
 });
 

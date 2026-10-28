@@ -66,6 +66,7 @@ export async function exportPholio(options: ExportPholioOptions): Promise<void> 
       dimensionValueIds: dimensions.dimensionValueIds,
       indicatorIds: indicators.indicatorIds,
       indicatorEnteredAt: indicators.indicatorEnteredAt,
+      countIsNumerator: indicators.countIsNumerator,
       supersededSentinelIndicators: options.supersededSentinelIndicators ?? [],
     });
     const tables: StageResult = {

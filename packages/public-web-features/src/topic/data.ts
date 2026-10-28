@@ -36,6 +36,7 @@ export const TOPIC_COLUMNS = [
   { value: 'updated', label: 'Last updated' },
   { value: 'trend', label: 'Trend (last 5 periods)' },
   { value: 'count', label: 'Count' },
+  { value: 'numerator', label: 'Numerator' },
   { value: 'value', label: 'Calculated value' },
 ] as const;
 export type TopicColumn = (typeof TOPIC_COLUMNS)[number]['value'];

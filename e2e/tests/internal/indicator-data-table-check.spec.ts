@@ -87,6 +87,34 @@ test('shows a preview of the uploaded data table', async ({ page }) => {
   await expect(page.getByText('Showing 1 to 10 of 23 rows')).toBeVisible();
 });
 
+test('keeps an uploaded count and numerator in separate columns', async ({ page }) => {
+  const id = await createDraft(page, uniqueIndicatorName('check data'));
+  const csv = [
+    'area_code,period_start,period_end,value,count,numerator,denominator',
+    'E92000001,2019-01-01,2019-12-31,25,120,100,400',
+  ].join('\n');
+  expect(await uploadFile(page, id, csv)).toBe(`/publish/indicators/${id}/data-table/check`);
+  await page.goto(`/publish/indicators/${id}/data-table/check`);
+
+  const table = page.getByRole('region', { name: 'Data table' }).getByRole('table');
+  await expect(table.getByRole('columnheader')).toHaveText([
+    'Data values',
+    'Count',
+    'Numerator',
+    'Denominator',
+    'Period',
+    'Area code',
+  ]);
+  await expect(dataRows(page).first().locator('th, td')).toHaveText([
+    '25',
+    '120',
+    '100',
+    '400',
+    '2019',
+    'E92000001',
+  ]);
+});
+
 test('pages through the data table', async ({ page }) => {
   const id = await openCheckPage(page);
   const pages = page.getByRole('navigation', { name: 'Data table pages' });

@@ -246,6 +246,7 @@ export const publishedObservation = publishedSchema
     toDate: date('to_date').notNull(),
     value: doublePrecision('value'),
     count: doublePrecision('count'),
+    numerator: doublePrecision('numerator'),
     denominator: doublePrecision('denominator'),
     denominator2: doublePrecision('denominator_2'),
     lowerCi95: doublePrecision('lower_ci_95'),

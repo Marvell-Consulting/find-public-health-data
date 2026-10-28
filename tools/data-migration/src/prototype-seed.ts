@@ -6,12 +6,14 @@ import { createGunzip } from 'node:zlib';
 
 import { schema } from '@fphd/db';
 import { slugify } from '@fphd/utils/slug';
+import { countIsNumerator } from '@fphd/utils/value-type-and-unit';
 import { parse } from 'csv-parse';
 import postgres, { type TransactionSql } from 'postgres';
 import { ensureDirectory, writeGzipped } from './files.ts';
 import { translateFrequency, translatePolarity } from './fingertips-lookups.ts';
 import { legacySource, legacySourceIds, readLegacyMap } from './legacy-sources.ts';
 import { notesAndCaveats } from './notes-and-caveats.ts';
+import { countAndNumerator } from './pholio/observations.ts';
 import { unitNameForLabel, unitValues, valueTypeId } from './pholio/value-type-and-unit.ts';
 import { yearTypeValues } from './pholio/year-type.ts';
 
@@ -387,6 +389,11 @@ async function addObservations(
     const id = uuid7();
     const [fromDate, toDate] = parsePeriod(row['Time period'] ?? '');
     const publishedAt = String(metadata[shortId]?.DataChange.LastUploadedAt);
+    const valueType = metadata[shortId]?.ValueType.Name;
+    const measures = countAndNumerator(
+      number(row.Count ?? ''),
+      valueType !== undefined && countIsNumerator(valueTypeId(valueType), Number(shortId)),
+    );
     observations.push({
       id,
       indicator_id: indicators.get(shortId),
@@ -394,7 +401,7 @@ async function addObservations(
       from_date: fromDate,
       to_date: toDate,
       value: number(row.Value ?? ''),
-      count: number(row.Count ?? ''),
+      ...measures,
       denominator: number(row.Denominator ?? ''),
       lower_ci_95: number(row['Lower CI 95.0 limit'] ?? ''),
       upper_ci_95: number(row['Upper CI 95.0 limit'] ?? ''),

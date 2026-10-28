@@ -47,6 +47,7 @@ const STAGED_COLUMNS = [
   'to_date',
   'value',
   'count',
+  'numerator',
   'denominator',
   'lower_ci_95',
   'upper_ci_95',
@@ -69,6 +70,7 @@ function stagedLine(row: DataTableRow): string {
     row.toDate,
     row.value,
     row.count,
+    row.numerator,
     row.denominator,
     row.lower_ci_95,
     row.upper_ci_95,
@@ -250,6 +252,7 @@ export async function stageRows(
       to_date date NOT NULL,
       value double precision,
       count double precision,
+      numerator double precision,
       denominator double precision,
       lower_ci_95 double precision,
       upper_ci_95 double precision,
@@ -378,11 +381,11 @@ async function loadStagedRows(
 ): Promise<Pick<UploadTimings, 'observationMs' | 'dimensionMs' | 'noteMs'>> {
   const observations = tx`
     INSERT INTO observation (
-      id, indicator_id, area_id, from_date, to_date, value, count, denominator,
+      id, indicator_id, area_id, from_date, to_date, value, count, numerator, denominator,
       lower_ci_95, upper_ci_95, lower_ci_998, upper_ci_998, upload_batch_id, dimension_key
     )
     SELECT
-      id, ${upload.indicatorId}, area_id, from_date, to_date, value, count, denominator,
+      id, ${upload.indicatorId}, area_id, from_date, to_date, value, count, numerator, denominator,
       lower_ci_95, upper_ci_95, lower_ci_998, upper_ci_998, ${upload.batchId}, dimension_key
     FROM upload_row`;
   const dimensions = tx`

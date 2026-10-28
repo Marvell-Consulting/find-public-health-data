@@ -126,6 +126,7 @@ export async function listDataTableRows(
       dimensionKey: observation.dimensionKey,
       value: observation.value,
       count: observation.count,
+      numerator: observation.numerator,
       denominator: observation.denominator,
       lowerCi95: observation.lowerCi95,
       upperCi95: observation.upperCi95,

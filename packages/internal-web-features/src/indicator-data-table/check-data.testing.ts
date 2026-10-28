@@ -9,6 +9,7 @@ export const ROW: DataTableRow = {
   dimensionKey: '00000000-0000-7000-8000-000000000004',
   value: 83.8,
   count: null,
+  numerator: null,
   denominator: null,
   lowerCi95: 83.7,
   upperCi95: 83.9,

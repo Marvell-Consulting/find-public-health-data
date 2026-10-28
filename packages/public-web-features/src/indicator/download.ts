@@ -23,12 +23,14 @@ export function trendCsv(
   const {
     benchmarks,
     hasCounts: availableCounts,
+    hasNumerators: availableNumerators,
     inPeriod,
     periods,
     referenceSegment,
     seriesByArea,
   } = model;
   const hasCounts = columns ? columns.count : availableCounts;
+  const hasNumerators = columns ? columns.numerator : availableNumerators;
   const showValues = columns?.value ?? true;
   const intervals = columns?.confidence ?? (confidence === 'none' ? [] : [confidence]);
   const headers = [
@@ -37,6 +39,7 @@ export function trendCsv(
       const benchmark = benchmarks.get(data.areaCode);
       return [
         ...(hasCounts ? [`${data.areaName} count`] : []),
+        ...(hasNumerators ? [`${data.areaName} numerator`] : []),
         ...(showValues ? [`${data.areaName} calculated value${unitNote(indicator.unit)}`] : []),
         ...intervals.flatMap((level) => [
           `${data.areaName} lower ${level}% CI`,
@@ -67,6 +70,7 @@ export function trendCsv(
       );
       return [
         ...(hasCounts ? [observation?.count ?? null] : []),
+        ...(hasNumerators ? [observation?.numerator ?? null] : []),
         ...(showValues ? [observation?.value ?? null] : []),
         ...intervals.flatMap((level) =>
           level === '95'
@@ -98,6 +102,7 @@ export function allDataCsv(
       'Period',
       'Segment',
       'Count',
+      'Numerator',
       'Denominator',
       `Calculated value${unitNote(indicator.unit)}`,
       'Lower 95% CI',
@@ -115,6 +120,7 @@ export function allDataCsv(
         periodLabel(observation, indicator.yearType),
         segmentLabel(observation),
         observation.count,
+        observation.numerator,
         observation.denominator,
         observation.value,
         observation.lowerCi95,

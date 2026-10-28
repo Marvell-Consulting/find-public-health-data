@@ -20,6 +20,7 @@ from pathlib import Path
 import psycopg2
 from psycopg2.extras import Json, execute_values
 
+from count_and_numerator import count_is_numerator
 from legacy_sources import (
     LEGACY_COLUMNS,
     legacy_source,
@@ -450,6 +451,12 @@ def add_observations(cur, csv_path, registry, area_ids, metadata, indicator_ids,
             observation_id = uuid7()
             from_date, to_date = parse_period(row["Time period"])
             published_at = metadata[fingertips_id]["DataChange"]["LastUploadedAt"]
+            count = number(row["Count"])
+            numerator = None
+            if count_is_numerator(
+                value_type_id(metadata[fingertips_id]["ValueType"]["Name"]), fingertips_id
+            ):
+                count, numerator = None, count
 
             dimension_names = {}
             if row["Sex"] and row["Sex"] != "Persons":
@@ -478,7 +485,8 @@ def add_observations(cur, csv_path, registry, area_ids, metadata, indicator_ids,
                     from_date,
                     to_date,
                     number(row["Value"]),
-                    number(row["Count"]),
+                    count,
+                    numerator,
                     number(row["Denominator"]),
                     number(row["Lower CI 95.0 limit"]),
                     number(row["Upper CI 95.0 limit"]),
@@ -504,7 +512,7 @@ def add_observations(cur, csv_path, registry, area_ids, metadata, indicator_ids,
         cur,
         """
         INSERT INTO observation
-          (id, indicator_id, area_id, from_date, to_date, value, count, denominator,
+          (id, indicator_id, area_id, from_date, to_date, value, count, numerator, denominator,
            lower_ci_95, upper_ci_95, lower_ci_998, upper_ci_998, published_at,
            upload_batch_id, dimension_key, created_at)
         VALUES %s

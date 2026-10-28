@@ -177,6 +177,7 @@ export interface ComparisonCell {
   areaName: string;
   value: number | null;
   count: number | null;
+  numerator: number | null;
   /** The cell's own series, for the recent-trend calculation. */
   series: IndicatorObservation[];
   /** Note texts attached to the latest value. */
@@ -194,6 +195,7 @@ export interface ComparisonRow {
   period: string;
   value: number | null;
   count: number | null;
+  numerator: number | null;
   series: IndicatorObservation[];
   notes: string[];
   /** The variant behind a breakout row, so a benchmark can be filtered the same way. */
@@ -264,6 +266,7 @@ export function comparisonRows(
         areaName: data.areaName,
         value: latest?.value ?? null,
         count: latest?.count ?? null,
+        numerator: latest?.numerator ?? null,
         series,
         notes: latest?.notes.map(({ text }) => text) ?? [],
       };
@@ -287,6 +290,7 @@ export function comparisonRows(
           period: periodLabel(latest, detail.yearType),
           value: firstWithData?.value ?? null,
           count: firstWithData?.count ?? null,
+          numerator: firstWithData?.numerator ?? null,
           series: firstWithData?.series ?? [],
           notes: firstWithData?.notes ?? [],
           sex: variant.sex,
@@ -309,6 +313,7 @@ export function comparisonRows(
             period: '',
             value: null,
             count: null,
+            numerator: null,
             series: [],
             notes: [],
             sex: '',
@@ -437,6 +442,21 @@ export function filterObservations(
 }
 
 export type ConfidenceLevel = 'none' | '95' | '99.8';
+
+/** The raw numbers an observation may carry beside its value, as tables label them. */
+export const MEASURES = [
+  { key: 'count', label: 'Count' },
+  { key: 'numerator', label: 'Numerator' },
+] as const;
+
+export type Measure = (typeof MEASURES)[number]['key'];
+
+/** The raw numbers any of the observations has, which are the columns a table offers. */
+export function availableMeasures(observations: Pick<IndicatorObservation, Measure>[]): Measure[] {
+  return MEASURES.map(({ key }) => key).filter((key) =>
+    observations.some((observation) => observation[key] != null),
+  );
+}
 
 /** The interval levels the data actually carries; the filter offers nothing emptier. */
 export function availableConfidenceLevels(

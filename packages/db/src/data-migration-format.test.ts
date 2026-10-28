@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { baselineManifestSchema, DATA_MIGRATION_NULL } from './data-migration-manifest.ts';
 
-describe('the taxonomy-aware migration format', () => {
-  it('requires version 2 so older receivers cannot silently discard placements', () => {
+describe('the migration format', () => {
+  it('requires version 3, whose observations split count and numerator', () => {
     const manifest = {
-      format_version: 2,
-      schema: 'canonical-v2',
+      format_version: 3,
+      schema: 'canonical-v3',
       migration_id: 'taxonomy-fixture',
       source: {
         system: 'fingertips',
@@ -28,7 +28,7 @@ describe('the taxonomy-aware migration format', () => {
     };
     expect(baselineManifestSchema.safeParse(manifest).success).toBe(true);
     expect(
-      baselineManifestSchema.safeParse({ ...manifest, format_version: 1, schema: 'canonical-v1' })
+      baselineManifestSchema.safeParse({ ...manifest, format_version: 2, schema: 'canonical-v2' })
         .success,
     ).toBe(false);
   });

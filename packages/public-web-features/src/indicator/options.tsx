@@ -7,6 +7,8 @@ import {
   type ConfidenceLevel,
   inequalityCategoryHint,
   inequalityCategoryOptions,
+  MEASURES,
+  type Measure,
   type PeriodType,
   periodTypeLabel,
 } from './data.ts';
@@ -137,6 +139,7 @@ export function PanelOptionsPanel({
   benchmarks,
   confidenceLevels,
   label,
+  measures = [],
   onChange,
   options,
   periodTypes,
@@ -152,6 +155,8 @@ export function PanelOptionsPanel({
   benchmarks?: { region: boolean } | undefined;
   confidenceLevels: string[];
   label: string;
+  /** The raw numbers the data has, which the table columns offer. */
+  measures?: Measure[];
   onChange: (options: PanelOptions) => void;
   options: PanelOptions;
   periodTypes: PeriodType[];
@@ -174,7 +179,11 @@ export function PanelOptionsPanel({
   ];
   const columnOptions = columns
     ? [
-        { value: 'count', label: 'Count', checked: columns.count },
+        ...MEASURES.filter(({ key }) => measures.includes(key)).map(({ key, label }) => ({
+          value: key,
+          label,
+          checked: columns[key],
+        })),
         { value: 'value', label: 'Calculated value', checked: columns.value },
         ...confidenceLevels.map((value) => ({
           value,
@@ -198,7 +207,7 @@ export function PanelOptionsPanel({
             onChange={(event) => {
               const { value, checked } = event.currentTarget;
               onColumnsChange(
-                value === 'count' || value === 'value'
+                value === 'count' || value === 'numerator' || value === 'value'
                   ? { ...columns, [value]: checked }
                   : {
                       ...columns,

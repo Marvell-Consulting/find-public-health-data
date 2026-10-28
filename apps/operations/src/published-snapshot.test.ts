@@ -33,8 +33,15 @@ async function snapshot(
   directories.push(directory);
   const tables: Record<string, { rows: number; bytes: number; sha256: string }> = {};
   for (const table of tableNames) {
-    // The version file carries the slug the importer insists on; the rest only need an id.
-    const data = gzipSync(table === 'indicator_version' ? 'id,slug\n1,a-slug\n' : 'id\n1\n');
+    // The version and observation files carry the columns the importer insists on; the rest
+    // only need an id.
+    const data = gzipSync(
+      table === 'indicator_version'
+        ? 'id,slug\n1,a-slug\n'
+        : table === 'observation'
+          ? 'id,numerator\n1,\n'
+          : 'id\n1\n',
+    );
     await writeFile(join(directory, `${table}.csv.gz`), data);
     tables[table] = {
       rows:
@@ -85,6 +92,21 @@ describe('verifyPublishedSnapshot', () => {
     await writeFile(path, JSON.stringify(manifest));
 
     await expect(verifyPublishedSnapshot(directory)).rejects.toThrow('carries no slug column');
+  });
+
+  it('rejects an archive exported before observations carried a numerator', async () => {
+    const directory = await snapshot();
+    const data = gzipSync('id\n1\n');
+    await writeFile(join(directory, 'observation.csv.gz'), data);
+    const path = join(directory, 'manifest.json');
+    const manifest = JSON.parse(await readFile(path, 'utf8'));
+    manifest.tables.observation.sha256 = createHash('sha256').update(data).digest('hex');
+    manifest.tables.observation.bytes = data.length;
+    await writeFile(path, JSON.stringify(manifest));
+
+    await expect(verifyPublishedSnapshot(directory)).rejects.toThrow(
+      'Published snapshot predates the numerator column and must be regenerated',
+    );
   });
 
   it('rejects an archive exported before its writers were users', async () => {

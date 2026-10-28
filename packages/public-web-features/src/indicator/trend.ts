@@ -15,10 +15,12 @@ export interface AreaBenchmark {
 
 export interface TrendColumns {
   count: boolean;
+  numerator: boolean;
   value: boolean;
   confidence: ('95' | '99.8')[];
 }
 
+/** The chosen columns among those available: the measures and confidence levels the data has. */
 export function selectedTrendColumns(
   params: URLSearchParams,
   id: number,
@@ -38,12 +40,27 @@ export function selectedTrendColumns(
               : []),
       ];
   return {
-    count: values.includes('count'),
+    count: available.includes('count') && values.includes('count'),
+    numerator: available.includes('numerator') && values.includes('numerator'),
     value: values.includes('value'),
     confidence: (['95', '99.8'] as const).filter(
       (level) => available.includes(level) && values.includes(level),
     ),
   };
+}
+
+/** The columns as the `columns-<id>` parameter holds them, `none` when none is chosen. */
+export function trendColumnsParam(columns: TrendColumns): string {
+  return (
+    [
+      columns.count ? 'count' : '',
+      columns.numerator ? 'numerator' : '',
+      columns.value ? 'value' : '',
+      ...columns.confidence,
+    ]
+      .filter(Boolean)
+      .join(',') || 'none'
+  );
 }
 
 export function trendTableModel({
@@ -108,7 +125,10 @@ export function trendTableModel({
   const inPeriod =
     (period: (typeof periods)[number]) => (row: { fromDate: string; toDate: string }) =>
       row.fromDate === period.fromDate && row.toDate === period.toDate;
-  const hasCounts = seriesByArea.some(({ series }) => series.some(({ count }) => count !== null));
+  const hasCounts = seriesByArea.some(({ series }) => series.some(({ count }) => count != null));
+  const hasNumerators = seriesByArea.some(({ series }) =>
+    series.some(({ numerator }) => numerator != null),
+  );
   const lowerOf = (observation: IndicatorObservation) =>
     confidence === '99.8' ? observation.lowerCi998 : observation.lowerCi95;
   const upperOf = (observation: IndicatorObservation) =>
@@ -118,6 +138,7 @@ export function trendTableModel({
     benchmarks,
     firstObservation: seriesByArea[0]?.series[0],
     hasCounts,
+    hasNumerators,
     inPeriod,
     lowerOf,
     periods,
@@ -125,12 +146,4 @@ export function trendTableModel({
     seriesByArea,
     upperOf,
   };
-}
-
-export function trendColumnsParam(columns: TrendColumns): string {
-  return (
-    [columns.count ? 'count' : '', columns.value ? 'value' : '', ...columns.confidence]
-      .filter(Boolean)
-      .join(',') || 'none'
-  );
 }

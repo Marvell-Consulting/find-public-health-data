@@ -2,7 +2,7 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { trendCsv } from '../download.ts';
-import type { IndicatorDetail } from '../loader.ts';
+import type { IndicatorAreaData, IndicatorDetail } from '../loader.ts';
 import { type TrendColumns, trendTableModel } from '../trend.ts';
 import { TrendTable } from './trend-table.tsx';
 
@@ -32,6 +32,7 @@ const areaData = [
         lowerCi998: null,
         upperCi998: null,
         count: null,
+        numerator: null,
         denominator: null,
         notes: [],
         dimensions: [],
@@ -41,13 +42,19 @@ const areaData = [
 ];
 
 describe('TrendTable', () => {
-  it('keeps count, value and both interval column choices consistent with the CSV', () => {
-    const columns: TrendColumns = { count: true, value: false, confidence: ['95', '99.8'] };
+  it('keeps count, numerator, value and both interval column choices consistent with the CSV', () => {
+    const columns: TrendColumns = {
+      count: true,
+      numerator: true,
+      value: false,
+      confidence: ['95', '99.8'],
+    };
     const data = areaData.map((area) => ({
       ...area,
       observations: area.observations.map((row) => ({
         ...row,
         count: 1024,
+        numerator: 512,
         lowerCi95: 11,
         upperCi95: 13,
         lowerCi998: 10,
@@ -58,6 +65,7 @@ describe('TrendTable', () => {
       <TrendTable areaData={data} confidence="none" columns={columns} indicator={indicator('%')} />,
     );
     expect(screen.getByRole('columnheader', { name: 'Count' })).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: 'Numerator' })).toBeTruthy();
     expect(screen.queryByRole('columnheader', { name: /Calculated value/ })).toBeNull();
     expect(
       screen.getByRole('columnheader', { name: '95% lower confidence interval' }),
@@ -73,11 +81,44 @@ describe('TrendTable', () => {
       columns,
     );
     expect(csv).toContain(
-      'England count,England lower 95% CI,England upper 95% CI,England lower 99.8% CI,England upper 99.8% CI',
+      'England count,England numerator,England lower 95% CI,England upper 95% CI,England lower 99.8% CI,England upper 99.8% CI',
     );
-    expect(csv).toContain('2023,1024,11,13,10,14');
+    expect(csv).toContain('2023,1024,512,11,13,10,14');
     expect(csv).not.toContain('calculated value');
   });
+  it('shows a numerator column without a picker only when the data has numerators', () => {
+    const withNumerators = areaData.map((area) => ({
+      ...area,
+      observations: area.observations.map((row) => ({ ...row, numerator: 512 })),
+    }));
+    const { rerender } = render(
+      <TrendTable areaData={areaData} confidence="none" indicator={indicator(null)} />,
+    );
+    expect(screen.queryByRole('columnheader', { name: /^Numerator/ })).toBeNull();
+
+    rerender(
+      <TrendTable areaData={withNumerators} confidence="none" indicator={indicator(null)} />,
+    );
+
+    expect(screen.getByRole('columnheader', { name: 'Numerator (Raw number)' })).toBeTruthy();
+  });
+  it('shows no numerator column when an older API sends none', () => {
+    const older = areaData.map((area) => ({
+      ...area,
+      observations: area.observations.map(({ numerator: _, ...row }) => ({ ...row, count: 4 })),
+    }));
+    render(
+      <TrendTable
+        areaData={older as unknown as IndicatorAreaData[]}
+        confidence="none"
+        indicator={indicator(null)}
+      />,
+    );
+
+    expect(screen.getByRole('columnheader', { name: 'Count (Raw number)' })).toBeTruthy();
+    expect(screen.queryByRole('columnheader', { name: /^Numerator/ })).toBeNull();
+  });
+
   it.each([
     ['with no unit', null, 'Calculated value', '12.3'],
     ['as a percentage', '%', 'Calculated value (%)', '12.3%'],

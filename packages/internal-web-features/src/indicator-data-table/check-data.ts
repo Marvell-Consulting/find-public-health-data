@@ -50,6 +50,12 @@ const COLUMNS: readonly CheckColumn[] = [
   },
   { key: 'count', heading: 'Count', from: ['count'], cell: (row) => number(row.count) },
   {
+    key: 'numerator',
+    heading: 'Numerator',
+    from: ['numerator'],
+    cell: (row) => number(row.numerator),
+  },
+  {
     key: 'denominator',
     heading: 'Denominator',
     from: ['denominator'],

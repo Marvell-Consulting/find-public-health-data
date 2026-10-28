@@ -184,6 +184,7 @@ describe('GET /api/internal/indicators/:id/data-table', () => {
           dimensionKey: expect.any(String),
           value: 83.8,
           count: null,
+          numerator: null,
           denominator: null,
           lowerCi95: 83.7,
           upperCi95: null,

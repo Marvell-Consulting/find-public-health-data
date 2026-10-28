@@ -1,3 +1,5 @@
+import { countIsNumerator as countIsNumeratorOf } from '@fphd/utils/value-type-and-unit';
+
 import { translateFrequency, translatePolarity } from '../fingertips-lookups.ts';
 import { notesAndCaveats } from '../notes-and-caveats.ts';
 import { plainTextFromHtml } from '../plain-text.ts';
@@ -66,6 +68,7 @@ export async function exportIndicators(context: PholioExportOptions) {
   const indicatorIds = new Set<number>();
   const indicatorNames = new Map<number, string>();
   const indicatorEnteredAt = new Map<number, string>();
+  const countIsNumerator = new Set<number>();
 
   const selected = new Set(
     context.indicatorSelection.kind === 'approved' ? context.indicatorSelection.indicators : [],
@@ -387,6 +390,7 @@ export async function exportIndicators(context: PholioExportOptions) {
 
     indicatorIds.add(id);
     indicatorEnteredAt.set(id, enteredAt);
+    if (countIsNumeratorOf(resolvedValueTypeId, id)) countIsNumerator.add(id);
   }
 
   return {
@@ -396,6 +400,7 @@ export async function exportIndicators(context: PholioExportOptions) {
       indicatorIds.has(fingertipsId),
     ),
     indicatorEnteredAt,
+    countIsNumerator,
     excludedNonApprovedIndicators,
     tables: {
       indicator: await indicatorWriter.close(),

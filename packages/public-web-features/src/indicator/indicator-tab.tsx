@@ -4,6 +4,7 @@ import { DownloadShareData } from '../download-share.tsx';
 import type { GeographyOptions } from '../geography/loader.ts';
 import {
   availableConfidenceLevels,
+  availableMeasures,
   availablePeriodTypes,
   dimensionValues,
   filterObservations,
@@ -53,7 +54,8 @@ export function IndicatorTab({
   const sexes = dimensionValues(allObservations, 'Sex');
   const periodTypes = availablePeriodTypes(shownObservations);
   const confidenceLevels = availableConfidenceLevels(shownObservations);
-  const columns = selectedTrendColumns(params, id, confidenceLevels);
+  const measures = availableMeasures(shownObservations);
+  const columns = selectedTrendColumns(params, id, [...measures, ...confidenceLevels]);
   const confidence = confidenceLevels.includes(options.confidence as '95' | '99.8')
     ? options.confidence
     : 'none';
@@ -161,6 +163,7 @@ export function IndicatorTab({
             }
             benchmarks={hasPickedAreas ? { region: regionAvailable } : undefined}
             confidenceLevels={confidenceLevels}
+            measures={measures}
             label="Table columns"
             onChange={applyOptions}
             options={options}

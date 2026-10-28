@@ -60,12 +60,14 @@ export function TrendTable({
     benchmarks,
     firstObservation,
     hasCounts: availableCounts,
+    hasNumerators: availableNumerators,
     inPeriod,
     periods,
     referenceSegment,
     seriesByArea,
   } = model;
   const hasCounts = columns ? columns.count : availableCounts;
+  const hasNumerators = columns ? columns.numerator : availableNumerators;
   const showValues = columns?.value ?? true;
   const intervals = columns?.confidence ?? (confidence === 'none' ? [] : [confidence]);
   if (!firstObservation) {
@@ -74,7 +76,8 @@ export function TrendTable({
   const benchmarkColumns = 1 + (showRange ? 3 : 0);
   const cell = (areaSeries: (typeof seriesByArea)[number], period: (typeof periods)[number]) =>
     areaSeries.series.find(inPeriod(period));
-  const columnsPerArea = Number(hasCounts) + Number(showValues) + intervals.length * 2;
+  const columnsPerArea =
+    Number(hasCounts) + Number(hasNumerators) + Number(showValues) + intervals.length * 2;
   if (columnsPerArea === 0) return <p className="govuk-body">Select at least one table column.</p>;
   const valueSuffix = indicator.unit === '%' ? '%' : '';
   // Every distinct value note gets a sequential marker, explained under the table.
@@ -143,6 +146,12 @@ export function TrendTable({
                       Count {columns ? null : <span className="fphd-table-note">(Raw number)</span>}
                     </th>
                   ) : null}
+                  {hasNumerators ? (
+                    <th scope="col" className="govuk-table__header">
+                      Numerator{' '}
+                      {columns ? null : <span className="fphd-table-note">(Raw number)</span>}
+                    </th>
+                  ) : null}
                   {showValues ? (
                     <th scope="col" className="govuk-table__header">
                       Calculated value
@@ -187,6 +196,13 @@ export function TrendTable({
                       {hasCounts ? (
                         <td className="govuk-table__cell">
                           {observation?.count == null ? '-' : formatValue(observation.count)}
+                        </td>
+                      ) : null}
+                      {hasNumerators ? (
+                        <td className="govuk-table__cell">
+                          {observation?.numerator == null
+                            ? '-'
+                            : formatValue(observation.numerator)}
                         </td>
                       ) : null}
                       {showValues ? (

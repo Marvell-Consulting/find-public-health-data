@@ -53,6 +53,7 @@ function selected(shortId: number, name: string, value: number): SelectedIndicat
             lowerCi998: null,
             upperCi998: null,
             count: 100,
+            numerator: null,
             denominator: 1000,
             notes: [],
             dimensions: [],
@@ -104,6 +105,25 @@ it('opens one indicator with the five prototype tabs and no selection controls',
       name: 'Diabetes prevalence trend chart',
     }).textContent,
   ).toContain('Data visualisation to follow');
+});
+
+it('offers the table columns for the raw numbers the indicator has', () => {
+  const rate = selected(241, 'Diabetes prevalence', 7.9);
+  rate.areaData = rate.areaData.map((area) => ({
+    ...area,
+    observations: area.observations.map((observation) => ({
+      ...observation,
+      count: null,
+      numerator: 79,
+    })),
+  }));
+  page([rate], '/indicator/indicator-241');
+
+  const columns = within(screen.getByRole('tabpanel', { name: 'Indicator' }));
+
+  // The columns sit in the collapsed display options.
+  expect(columns.getByRole('checkbox', { name: 'Numerator', hidden: true })).toBeTruthy();
+  expect(columns.queryByRole('checkbox', { name: 'Count', hidden: true })).toBeNull();
 });
 
 it('keeps England as the benchmark when comparing local areas', () => {

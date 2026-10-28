@@ -28,7 +28,9 @@ export async function loader(args: LoaderFunctionArgs) {
   const byId = new Map(data.selected.map((entry) => [entry.detail.shortId, entry]));
   const areas = model.areas.filter(({ areaCode }) => areaCode !== 'E92000001');
   const columns = topicColumns(url.searchParams);
-  const measures = columns.filter((column) => ['trend', 'count', 'value'].includes(column));
+  const measures = columns.filter((column) =>
+    ['trend', 'count', 'numerator', 'value'].includes(column),
+  );
   const dataAreas = [...model.areas].sort((a, b) =>
     a.areaCode === 'E92000001'
       ? -1
@@ -95,7 +97,7 @@ export async function loader(args: LoaderFunctionArgs) {
           ...dataAreas.flatMap(({ areaName }) =>
             measures.map(
               (measure) =>
-                `${areaName} ${measure === 'trend' ? 'trend (last 5 periods)' : measure === 'count' ? 'count' : 'calculated value'}`,
+                `${areaName} ${measure === 'trend' ? 'trend (last 5 periods)' : measure === 'count' || measure === 'numerator' ? measure : 'calculated value'}`,
             ),
           ),
         ],
@@ -120,8 +122,8 @@ export async function loader(args: LoaderFunctionArgs) {
                   const cell = row.cells.find((cell) => cell.areaCode === areaCode);
                   return measure === 'trend'
                     ? recentTrend(cell?.series ?? [], entry.detail.polarity).label
-                    : measure === 'count'
-                      ? (cell?.count ?? null)
+                    : measure === 'count' || measure === 'numerator'
+                      ? (cell?.[measure] ?? null)
                       : (cell?.value ?? null);
                 }),
               ),

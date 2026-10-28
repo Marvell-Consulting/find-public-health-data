@@ -46,6 +46,7 @@ function point(fromDate: string, toDate: string, value: number): IndicatorObserv
     toDate,
     value,
     count: null,
+    numerator: null,
     denominator: null,
     lowerCi95: value - 0.1,
     upperCi95: value + 0.1,

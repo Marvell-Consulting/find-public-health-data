@@ -19,6 +19,7 @@ export interface DataTableReferences {
 const NUMBER_COLUMNS = [
   'value',
   'count',
+  'numerator',
   'denominator',
   'lower_ci_95',
   'upper_ci_95',

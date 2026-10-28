@@ -25,6 +25,7 @@ export const dataTableRowSchema = z.object({
   dimensionKey: z.string(),
   value: number,
   count: number,
+  numerator: number,
   denominator: number,
   lowerCi95: number,
   upperCi95: number,

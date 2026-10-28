@@ -248,6 +248,7 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
       toDate: '2020-03-31',
       value: 83.8,
       count: 1234,
+      numerator: null,
       denominator: 56789,
       lowerCi95: 83.5,
       upperCi95: 84.1,
@@ -281,6 +282,24 @@ describe('POST /api/internal/indicators/:id/data-uploads', () => {
       .innerJoin(noteType, eq(noteType.id, observationNote.noteTypeId))
       .where(eq(observationNote.observationId, row?.id ?? ''));
     expect(note?.text).toBe('Aggregated from values for merged CCGs');
+  });
+
+  it('stores a numerator column apart from the count, recording the columns the file had', async () => {
+    const { indicatorId } = await newDraft(internalDb, 'Upload with a numerator');
+    const csv = [
+      'area_code,period_start,period_end,value,numerator,denominator',
+      'E08000035,2019-04-01,2020-03-31,12.5,250,2000',
+    ].join('\n');
+
+    const response = await upload(indicatorId, csv);
+
+    expect(response.status).toBe(201);
+    expect(await rowsOf(response.body.id)).toMatchObject([
+      { value: 12.5, count: null, numerator: 250, denominator: 2000 },
+    ]);
+    expect(await batchOf(response.body.id)).toMatchObject({
+      columnNames: ['area_code', 'period_start', 'period_end', 'value', 'numerator', 'denominator'],
+    });
   });
 
   it('logs how long each stage of the upload took, in whole milliseconds', async () => {
@@ -799,6 +818,7 @@ describe('stageRows', () => {
     toDate: '2020-03-31',
     value: '1',
     count: null,
+    numerator: null,
     denominator: null,
     lower_ci_95: null,
     upper_ci_95: null,

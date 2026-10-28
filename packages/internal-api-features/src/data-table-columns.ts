@@ -7,6 +7,7 @@ export const DATA_TABLE_COLUMNS = [
   'period_end',
   'value',
   'count',
+  'numerator',
   'denominator',
   'lower_ci_95',
   'upper_ci_95',

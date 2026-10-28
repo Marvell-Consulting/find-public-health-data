@@ -292,6 +292,27 @@ test('shows inequalities and methodology', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Calculation' })).toBeVisible();
 });
 
+test("shows a rate's numerator, not a count, on the indicator page and in its download", async ({
+  page,
+}) => {
+  const options = page
+    .locator('.fphd-filter-card')
+    .filter({ has: page.getByRole('button', { name: 'Table columns', exact: true }) });
+  await options.getByRole('button', { name: 'Table columns', exact: true }).click();
+  await expect(options.getByRole('checkbox', { name: 'Numerator', exact: true })).toBeVisible();
+  await expect(options.getByRole('checkbox', { name: 'Count', exact: true })).toHaveCount(0);
+  await page
+    .getByRole('tabpanel', { name: 'Indicator', exact: true })
+    .getByText('Download or share data', { exact: true })
+    .click();
+  const all = await downloadFrom(page, 'Download data for all areas (CSV)', 'link');
+  expect(all.text.split('\n')[0]).toContain('Count,Numerator,Denominator');
+  await page.getByRole('tab', { name: 'Inequalities' }).click();
+  const table = page.getByRole('table', { name: /Table of inequalities/ });
+  await expect(table.getByRole('columnheader', { name: 'Numerator', exact: true })).toBeVisible();
+  await expect(table.getByRole('columnheader', { name: 'Count', exact: true })).toHaveCount(0);
+});
+
 test('downloads the indicator table and complete data', async ({ page }) => {
   await page
     .getByRole('tabpanel', { name: 'Indicator', exact: true })
