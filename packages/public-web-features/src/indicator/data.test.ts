@@ -270,6 +270,12 @@ describe('availableMeasures', () => {
     expect(availableMeasures([obs(), rate])).toEqual(['count', 'numerator']);
     expect(availableMeasures([obs({ count: null })])).toEqual([]);
   });
+
+  it('offers no numerator when an older API sends none', () => {
+    const { numerator: _, ...older } = obs();
+
+    expect(availableMeasures([older as ReturnType<typeof obs>])).toEqual(['count']);
+  });
 });
 
 describe('dimensionValues', () => {

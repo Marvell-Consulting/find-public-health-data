@@ -125,9 +125,9 @@ export function trendTableModel({
   const inPeriod =
     (period: (typeof periods)[number]) => (row: { fromDate: string; toDate: string }) =>
       row.fromDate === period.fromDate && row.toDate === period.toDate;
-  const hasCounts = seriesByArea.some(({ series }) => series.some(({ count }) => count !== null));
+  const hasCounts = seriesByArea.some(({ series }) => series.some(({ count }) => count != null));
   const hasNumerators = seriesByArea.some(({ series }) =>
-    series.some(({ numerator }) => numerator !== null),
+    series.some(({ numerator }) => numerator != null),
   );
   const lowerOf = (observation: IndicatorObservation) =>
     confidence === '99.8' ? observation.lowerCi998 : observation.lowerCi95;

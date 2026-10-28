@@ -454,7 +454,7 @@ export type Measure = (typeof MEASURES)[number]['key'];
 /** The raw numbers any of the observations has, which are the columns a table offers. */
 export function availableMeasures(observations: Pick<IndicatorObservation, Measure>[]): Measure[] {
   return MEASURES.map(({ key }) => key).filter((key) =>
-    observations.some((observation) => observation[key] !== null),
+    observations.some((observation) => observation[key] != null),
   );
 }
 

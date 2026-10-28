@@ -2,7 +2,7 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { trendCsv } from '../download.ts';
-import type { IndicatorDetail } from '../loader.ts';
+import type { IndicatorAreaData, IndicatorDetail } from '../loader.ts';
 import { type TrendColumns, trendTableModel } from '../trend.ts';
 import { TrendTable } from './trend-table.tsx';
 
@@ -101,6 +101,22 @@ describe('TrendTable', () => {
     );
 
     expect(screen.getByRole('columnheader', { name: 'Numerator (Raw number)' })).toBeTruthy();
+  });
+  it('shows no numerator column when an older API sends none', () => {
+    const older = areaData.map((area) => ({
+      ...area,
+      observations: area.observations.map(({ numerator: _, ...row }) => ({ ...row, count: 4 })),
+    }));
+    render(
+      <TrendTable
+        areaData={older as unknown as IndicatorAreaData[]}
+        confidence="none"
+        indicator={indicator(null)}
+      />,
+    );
+
+    expect(screen.getByRole('columnheader', { name: 'Count (Raw number)' })).toBeTruthy();
+    expect(screen.queryByRole('columnheader', { name: /^Numerator/ })).toBeNull();
   });
 
   it.each([
