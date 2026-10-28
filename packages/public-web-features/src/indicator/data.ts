@@ -443,7 +443,6 @@ export function filterObservations(
 
 export type ConfidenceLevel = 'none' | '95' | '99.8';
 
-/** The interval levels the data actually carries; the filter offers nothing emptier. */
 /** The raw numbers an observation may carry beside its value, as tables label them. */
 export const MEASURES = [
   { key: 'count', label: 'Count' },
@@ -459,6 +458,7 @@ export function availableMeasures(observations: Pick<IndicatorObservation, Measu
   );
 }
 
+/** The interval levels the data actually carries; the filter offers nothing emptier. */
 export function availableConfidenceLevels(
   observations: IndicatorObservation[],
 ): Exclude<ConfidenceLevel, 'none'>[] {

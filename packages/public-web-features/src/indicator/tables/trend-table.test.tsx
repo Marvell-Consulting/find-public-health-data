@@ -94,13 +94,13 @@ describe('TrendTable', () => {
     const { rerender } = render(
       <TrendTable areaData={areaData} confidence="none" indicator={indicator(null)} />,
     );
-    expect(screen.queryByRole('columnheader', { name: 'Numerator' })).toBeNull();
+    expect(screen.queryByRole('columnheader', { name: /^Numerator/ })).toBeNull();
 
     rerender(
       <TrendTable areaData={withNumerators} confidence="none" indicator={indicator(null)} />,
     );
 
-    expect(screen.getByRole('columnheader', { name: 'Numerator' })).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: 'Numerator (Raw number)' })).toBeTruthy();
   });
 
   it.each([

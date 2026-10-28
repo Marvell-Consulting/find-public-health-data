@@ -148,7 +148,8 @@ export function TrendTable({
                   ) : null}
                   {hasNumerators ? (
                     <th scope="col" className="govuk-table__header">
-                      Numerator
+                      Numerator{' '}
+                      {columns ? null : <span className="fphd-table-note">(Raw number)</span>}
                     </th>
                   ) : null}
                   {showValues ? (
