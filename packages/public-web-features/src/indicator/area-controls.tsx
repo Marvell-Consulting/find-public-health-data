@@ -1,5 +1,6 @@
 import { Button, CollapsibleFilterCard, GeographyTree, Select } from '@fphd/ui';
 import { Form, useLocation, useNavigate, useNavigation } from 'react-router';
+import { geographyGroupLabel } from '../geography/groups.ts';
 import type { AreaSummary } from './loader.ts';
 
 export function AreaControls({
@@ -70,7 +71,7 @@ export function AreaControls({
             levels={[group]}
             selected={highlighted}
             selectedLevels={[]}
-            searchLabel={`Highlight ${group.toLowerCase()}`}
+            searchLabel={`Highlight ${geographyGroupLabel(group)}`}
             searchHint="Search areas"
             lookupUrl={`/geographies?indicator=${encodeURIComponent(slug)}&displayGroup=${encodeURIComponent(group)}`}
             fallback={{

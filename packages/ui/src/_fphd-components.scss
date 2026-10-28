@@ -444,11 +444,6 @@ body:has(.fphd-single-indicator-page, .fphd-topic-page, .fphd-topics-page) .govu
       width: calc(100vw - 60px);
     }
 
-    > .govuk-tabs:has(#indicator-inequalities.fphd-tabs__panel--open .fphd-inequalities-table) {
-      width: calc(100vw - 60px);
-      max-width: 2034px;
-    }
-
     .govuk-grid-row {
       display: flex;
       align-items: flex-start;

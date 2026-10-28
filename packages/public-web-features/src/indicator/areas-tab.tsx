@@ -1,5 +1,6 @@
 import { ChartSection, FilterChip, FilterChips, GridColumn, GridRow } from '@fphd/ui';
 import { useLocation } from 'react-router';
+import { geographyGroupLabel } from '../geography/groups.ts';
 import { areaComparisonRows } from './area-comparison.ts';
 import { AreaControls } from './area-controls.tsx';
 import type { ComparisonTabProps } from './compare-tab.tsx';
@@ -26,7 +27,7 @@ export function CompareAreasTab({
           ? 'NHS region'
           : compareAreaGroup === 'Integrated care boards'
             ? 'integrated care board'
-            : compareAreaGroup.toLowerCase();
+            : geographyGroupLabel(compareAreaGroup);
   return (
     <>
       <h2 className="govuk-heading-l">Compare areas</h2>
@@ -65,7 +66,7 @@ export function CompareAreasTab({
             <GridColumn width="one-half" className="fphd-map-space">
               <h3 className="govuk-heading-s govuk-!-margin-bottom-2">Map view</h3>
               <p className="govuk-body-s">
-                Map of {detail.name} by {compareAreaGroup.toLowerCase()} in England.
+                Map of {detail.name} by {geographyGroupLabel(compareAreaGroup)} in England.
               </p>
               <div className="fphd-indicator-chart fphd-indicator-chart--map">
                 <ChartSection

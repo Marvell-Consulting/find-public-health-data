@@ -1,4 +1,5 @@
 import { Details, TableScrollRegion } from '@fphd/ui';
+import { geographyGroupLabel } from '../../geography/groups.ts';
 import { indicatorPair } from '../indicator-pair.ts';
 import type { SelectedIndicator } from '../loader.ts';
 
@@ -68,11 +69,11 @@ export function IndicatorPairTable({
         </table>
       </TableScrollRegion>
       {areas.length ? (
-        <Details summary={`Show data for all ${areas.length} ${group.toLowerCase()}`}>
+        <Details summary={`Show data for all ${areas.length} ${geographyGroupLabel(group)}`}>
           <TableScrollRegion label="All areas in the indicator comparison">
             <table className="govuk-table">
               <caption className="govuk-visually-hidden">
-                All {group.toLowerCase()} in the comparison
+                All {geographyGroupLabel(group)} in the comparison
               </caption>
               <thead className="govuk-table__head">
                 <tr>

@@ -8,6 +8,43 @@ test.beforeEach(async ({ page }) => {
   await openIndicatorPage(page, MORTALITY_PATH);
 });
 
+test('keeps Compare areas in view when changing to mobile and opening its shared link', async ({
+  page,
+}, testInfo) => {
+  await page.getByRole('tab', { name: 'Compare areas', exact: true }).click();
+  const panel = page.locator('#indicator-compare-areas');
+  const heading = panel.getByRole('heading', { level: 2, name: 'Compare areas', exact: true });
+  const selector = panel.getByRole('combobox', { name: 'Type of geography', exact: true });
+  await expect(selector).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(heading).toBeInViewport();
+  await expect(selector).toBeInViewport();
+  await expect(selector).toHaveJSProperty('tagName', 'SELECT');
+  for (const id of [
+    'indicator-data',
+    'indicator-compare-areas',
+    'indicator-compare-indicators',
+    'indicator-inequalities',
+    'indicator-about',
+  ]) {
+    await expect(page.locator(`#${id}`)).toBeVisible();
+  }
+  await page.reload();
+  await expect(heading).toBeInViewport();
+  await expect(selector).toBeInViewport();
+  await expectNoAccessibilityViolations(page, testInfo);
+  await page
+    .locator('.govuk-tabs__list')
+    .getByRole('link', { name: 'Compare indicators', exact: true })
+    .click();
+  await expect(page).toHaveURL(/#indicator-compare-indicators$/);
+  await expect(
+    page
+      .locator('#indicator-compare-indicators')
+      .getByRole('heading', { name: 'Compare indicators', exact: true }),
+  ).toBeInViewport();
+});
+
 test('shows one indicator with its summary and five sections', async ({ page }, testInfo) => {
   await expect(page.getByRole('heading', { level: 1, name: MORTALITY_NAME })).toBeVisible();
   const summaryRow = (name: string) =>
