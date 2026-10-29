@@ -97,6 +97,11 @@ jobs:
           APP: ${{ matrix.app }}
         run: scripts/smoke-image.sh "${APP}" "${IMAGE}:${GITHUB_SHA}"
 
+      - name: Check the image's contents
+        env:
+          APP: ${{ matrix.app }}
+        run: scripts/check-image-contents.sh "${APP}" "${IMAGE}:${GITHUB_SHA}"
+
       # After the smoke test, so a scan finding never masks an image that fails to start, and
       # before the push, so a failing image is never in the registry to be deployed.
       - name: Scan the image

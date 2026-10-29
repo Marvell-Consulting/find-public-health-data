@@ -94,7 +94,7 @@ pnpm dev
 pnpm dev:public
 pnpm dev:internal
 pnpm check
-pnpm check:artefacts   # assert no internal code or secret reaches the public artifacts
+pnpm check:artefacts   # assert no internal code, secret or database operation reaches an artifact
 pnpm check:e2e-coverage # assert every page route has an e2e spec and every spec scans with axe
 pnpm check:migrations  # assert the schema holds no change its migrations do not
 pnpm build
@@ -259,8 +259,8 @@ story against the spec titles.
 ## The public artifact boundary
 
 `pnpm check:artefacts` (`tools/artefact-boundary`, also its own CI job) fails if internal code or a
-repository secret has reached a public artifact. It applies five checks, cheapest first so the
-common failure is reported without waiting for a build:
+repository secret has reached a public artifact, or the database operations a server app. It
+applies six checks, cheapest first so the common failure is reported without waiting for a build:
 
 - no reference to the `secrets` context can reach a `docker build` step in any workflow — not in
   the step's `run`, `with` or `env`, and not in `env` inherited from its job or the workflow. The
@@ -268,6 +268,8 @@ common failure is reported without waiting for a build:
   scan in CI inspects the built layers for the patterns it knows, and this refuses the route
   whatever the value looks like;
 - the two public apps' transitive workspace dependency closures contain no `internal-*` package;
+- the four server apps' closures do not contain `@fphd/db-operations`, so only the operations
+  image carries the migrations, seeding and the core data import;
 - no route module in `public-web`'s route table is internal. React Router declares routes as path
   strings rather than imports, so `route('manage', '../../packages/internal-web-features/…')` is
   invisible to an import linter — `react-router routes --json` names those paths directly;
@@ -284,7 +286,8 @@ common failure is reported without waiting for a build:
 The rule the four code checks share is "a module reference naming an `@fphd/internal-*` package or
 living under a directory named `internal-*`", unit-tested in
 `tools/artefact-boundary/src/internal.test.ts`. The build-input check is unit-tested in
-`tools/artefact-boundary/src/builds.test.ts`.
+`tools/artefact-boundary/src/builds.test.ts`, and the operations rule in
+`tools/artefact-boundary/src/operations.test.ts`.
 
 Three of the checks would pass vacuously if they silently found nothing to inspect, so all refuse
 to: no workflow building an image is an error, an app name absent from the workspace refuses to be
@@ -525,11 +528,14 @@ This is separate from `docker/app.Dockerfile`, which is the development image us
 its devDependencies — exactly what the production images must not do.
 
 On a pull request, CI builds the four server images in one `docker buildx bake` run from
-`docker/docker-bake.hcl`, so the shared builder stage runs once. It smoke-tests them and saves them
-as an artifact. The e2e job loads that artifact and runs the suite against the images, with
+`docker/docker-bake.hcl`, so the shared builder stage runs once. It smoke-tests them, checks their
+contents with `scripts/check-image-contents.sh` and saves them as an artifact. The contents check
+fails if an image carries TypeScript, or if a server image carries `@fphd/db-operations`, a `.sql`
+or `.csv.gz` file or a drizzle config; for the operations image it requires the migration journal
+and the core data. The e2e job loads that artifact and runs the suite against the images, with
 `compose.e2e.yaml` layered over `compose.yaml` to swap each service's build for its image, and a
 scan job per image runs Trivy on the same images alongside it. The operations image, which e2e
-does not use, is built, smoke-tested and scanned in a job of its own.
+does not use, is built, smoke-tested, contents-checked and scanned in a job of its own.
 
 `.github/workflows/publish-images.yml` builds all five on every push to `main` and pushes them to
 GitHub Container Registry under the repository that ran it —
