@@ -11,7 +11,7 @@ import {
   DATA_MIGRATION_NULL,
   DATA_MIGRATION_SCHEMA,
   DATA_MIGRATION_TABLES,
-} from '@fphd/db/operations';
+} from '@fphd/db-operations';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { downloadDataMigration } from './data-migration-package.ts';

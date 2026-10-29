@@ -1,7 +1,7 @@
 import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { DATA_MIGRATION_NULL } from '@fphd/db/data-migration-contract';
+import { DATA_MIGRATION_NULL } from '@fphd/db-operations/data-migration-contract';
 import type mssql from 'mssql';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 

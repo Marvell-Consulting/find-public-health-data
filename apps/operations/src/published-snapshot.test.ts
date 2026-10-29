@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { gzipSync } from 'node:zlib';
 
-import { SEED_TABLES } from '@fphd/db/operations';
+import { SEED_TABLES } from '@fphd/db-operations';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { downloadPublishedSnapshot, verifyPublishedSnapshot } from './published-snapshot.ts';

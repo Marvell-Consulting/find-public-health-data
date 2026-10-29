@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 
 import { schema } from '@fphd/db';
-import type { BaselineManifest } from '@fphd/db/data-migration-contract';
+import type { BaselineManifest } from '@fphd/db-operations/data-migration-contract';
 
 import { transformGzipCsv } from './csv.ts';
 import { fileRecord } from './files.ts';

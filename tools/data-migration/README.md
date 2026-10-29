@@ -112,10 +112,10 @@ Generate draft relationships from the committed V2 workbook snapshot:
 
 ```sh
 pnpm --filter @fphd/data-migration data-migration generate-taxonomy-relationships \
-  --source ../../packages/db/data/taxonomy-v2.json \
-  --topics ../../packages/db/data/topics.json \
-  --subtopics ../../packages/db/data/subtopics.json \
-  --classifications ../../packages/db/data/classifications.json \
+  --source ../../packages/db-operations/data/taxonomy-v2.json \
+  --topics ../../packages/db-operations/data/topics.json \
+  --subtopics ../../packages/db-operations/data/subtopics.json \
+  --classifications ../../packages/db-operations/data/classifications.json \
   --output /secure/draft-taxonomy-relationships.json
 ```
 

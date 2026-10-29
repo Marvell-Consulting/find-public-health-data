@@ -251,6 +251,8 @@ overrides:
   '@azure/identity>@azure/msal-node': 7.1.1
   '@esbuild-kit/core-utils>esbuild': '>=0.24.3 <0.26'
 
+pnpmfileChecksum: sha256-CZAJzV29393EAcq1yVNJqo8Ta+cjp6u6e8Qi/zuta/E=
+
 patchedDependencies:
   postgres@3.4.9: 329e577a68a6c2642e295f2d0f3bbe0bdf5d790c5a845b23e4b06064f7c2e87f
 
@@ -261,9 +263,9 @@ importers:
       '@biomejs/biome':
         specifier: 'catalog:'
         version: 2.5.9
-      '@fphd/db':
+      '@fphd/db-operations':
         specifier: workspace:*
-        version: link:packages/db
+        version: link:packages/db-operations
       '@react-router/dev':
         specifier: 'catalog:'
         version: 8.3.0(react-router@8.3.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(typescript@6.0.3)(vite@8.3.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0)(yaml@2.9.0))
@@ -410,6 +412,9 @@ importers:
       '@fphd/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@fphd/db-operations':
+        specifier: workspace:*
+        version: link:../../packages/db-operations
       '@fphd/logger':
         specifier: workspace:*
         version: link:../../packages/logger
@@ -630,6 +635,34 @@ importers:
         specifier: 'catalog:'
         version: 3.4.9(patch_hash=329e577a68a6c2642e295f2d0f3bbe0bdf5d790c5a845b23e4b06064f7c2e87f)
     devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.13.3
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.12(@types/node@24.13.3)(jsdom@30.1.1(@noble/hashes@1.8.0))(vite@8.3.4(@types/node@24.13.3)(esbuild@0.28.1)(sass@1.101.0)(tsx@4.23.0)(yaml@2.9.0))
+
+  packages/db-operations:
+    dependencies:
+      '@fphd/config':
+        specifier: workspace:*
+        version: link:../config
+      '@fphd/db':
+        specifier: workspace:*
+        version: link:../db
+      '@fphd/utils':
+        specifier: workspace:*
+        version: link:../utils
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.2(postgres@3.4.9(patch_hash=329e577a68a6c2642e295f2d0f3bbe0bdf5d790c5a845b23e4b06064f7c2e87f))
+      postgres:
+        specifier: 'catalog:'
+        version: 3.4.9(patch_hash=329e577a68a6c2642e295f2d0f3bbe0bdf5d790c5a845b23e4b06064f7c2e87f)
+    devDependencies:
       '@fphd/auth':
         specifier: workspace:*
         version: link:../auth
@@ -639,9 +672,6 @@ importers:
       drizzle-kit:
         specifier: 'catalog:'
         version: 0.31.10
-      tsx:
-        specifier: 'catalog:'
-        version: 4.23.0
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -1073,10 +1103,10 @@ importers:
         version: link:../logger
       '@react-router/express':
         specifier: 'catalog:'
-        version: 8.3.0(express@5.2.1)(react-router@8.3.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(typescript@6.0.3)
+        version: 8.3.0(express@5.2.1)(react-router@8.3.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))
       '@react-router/node':
         specifier: 'catalog:'
-        version: 8.3.0(react-router@8.3.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(typescript@6.0.3)
+        version: 8.3.0(react-router@8.3.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))
       basic-auth:
         specifier: 'catalog:'
         version: 3.0.0
@@ -1156,6 +1186,9 @@ importers:
       '@fphd/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@fphd/db-operations':
+        specifier: workspace:*
+        version: link:../../packages/db-operations
       '@fphd/utils':
         specifier: workspace:*
         version: link:../../packages/utils
@@ -2555,20 +2588,12 @@ packages:
     peerDependencies:
       express: ^4.22.2 || ^5
       react-router: 8.3.0
-      typescript: ^5.1.0 || ^6.0.0 || ^7.0.0
-    peerDependenciesMeta:
-      typescript:
-        optional: true
 
   '@react-router/node@8.3.0':
     resolution: {integrity: sha512-qw5ibcolE1OcwngiEw6t7LR11Hi6yWEDvj6cfvaYROX+w18JPxc0YSmsdn3Wlc9TOX+Qo8FVcxbXRdc9vojn2w==}
     engines: {node: '>=22.22.0'}
     peerDependencies:
       react-router: 8.3.0
-      typescript: ^5.1.0 || ^6.0.0 || ^7.0.0
-    peerDependenciesMeta:
-      typescript:
-        optional: true
 
   '@remix-run/node-fetch-server@0.13.3':
     resolution: {integrity: sha512-UfjOXed/DQteaM5VyTfqTeGpHwyL2J5aoRGY6cydip4tt1ehNNeSwuXCC7AEGE0RWBs/7bgKxYkL/B/+UDe4AA==}
@@ -5395,7 +5420,7 @@ snapshots:
       '@babel/preset-typescript': 7.29.7(@babel/core@7.29.7)
       '@babel/traverse': 7.29.7
       '@babel/types': 7.29.7
-      '@react-router/node': 8.3.0(react-router@8.3.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(typescript@6.0.3)
+      '@react-router/node': 8.3.0(react-router@8.3.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))
       '@remix-run/node-fetch-server': 0.13.3
       babel-dead-code-elimination: 1.0.12
       chokidar: 5.0.0
@@ -5422,20 +5447,16 @@ snapshots:
       - babel-plugin-macros
       - supports-color
 
-  '@react-router/express@8.3.0(express@5.2.1)(react-router@8.3.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(typescript@6.0.3)':
+  '@react-router/express@8.3.0(express@5.2.1)(react-router@8.3.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))':
     dependencies:
-      '@react-router/node': 8.3.0(react-router@8.3.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(typescript@6.0.3)
+      '@react-router/node': 8.3.0(react-router@8.3.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))
       express: 5.2.1
       react-router: 8.3.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-    optionalDependencies:
-      typescript: 6.0.3
 
-  '@react-router/node@8.3.0(react-router@8.3.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(typescript@6.0.3)':
+  '@react-router/node@8.3.0(react-router@8.3.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))':
     dependencies:
       '@remix-run/node-fetch-server': 0.13.3
       react-router: 8.3.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-    optionalDependencies:
-      typescript: 6.0.3
 
   '@remix-run/node-fetch-server@0.13.3': {}
 

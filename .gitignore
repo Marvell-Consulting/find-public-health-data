@@ -19,5 +19,5 @@ AGENTS.md
 agent-docs
 plans
 __pycache__/
-packages/db/.migration-drift.*/
+packages/db-operations/.migration-drift.*/
 .vscode/

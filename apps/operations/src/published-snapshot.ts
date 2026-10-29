@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 
 import { z } from '@fphd/config';
-import { readCsvHeader, SEED_TABLES } from '@fphd/db/operations';
+import { readCsvHeader, SEED_TABLES } from '@fphd/db-operations';
 
 import { type DownloadResume, downloadFile } from './download.ts';
 

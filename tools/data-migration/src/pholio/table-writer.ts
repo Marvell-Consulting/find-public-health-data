@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { finished } from 'node:stream/promises';
 import { createGzip } from 'node:zlib';
 
-import { DATA_MIGRATION_NULL } from '@fphd/db/data-migration-contract';
+import { DATA_MIGRATION_NULL } from '@fphd/db-operations/data-migration-contract';
 
 import { encodeRow } from '../csv.ts';
 import { fileRecord } from '../files.ts';

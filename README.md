@@ -94,7 +94,7 @@ pnpm dev
 pnpm dev:public
 pnpm dev:internal
 pnpm check
-pnpm check:artefacts   # assert no internal code or secret reaches the public artifacts
+pnpm check:artefacts   # assert no internal code, secret or database operation reaches an artifact
 pnpm check:e2e-coverage # assert every page route has an e2e spec and every spec scans with axe
 pnpm check:migrations  # assert the schema holds no change its migrations do not
 pnpm build
@@ -259,8 +259,8 @@ story against the spec titles.
 ## The public artifact boundary
 
 `pnpm check:artefacts` (`tools/artefact-boundary`, also its own CI job) fails if internal code or a
-repository secret has reached a public artifact. It applies five checks, cheapest first so the
-common failure is reported without waiting for a build:
+repository secret has reached a public artifact, or the database operations a server app. It
+applies six checks, cheapest first so the common failure is reported without waiting for a build:
 
 - no reference to the `secrets` context can reach a `docker build` step in any workflow — not in
   the step's `run`, `with` or `env`, and not in `env` inherited from its job or the workflow. The
@@ -268,6 +268,8 @@ common failure is reported without waiting for a build:
   scan in CI inspects the built layers for the patterns it knows, and this refuses the route
   whatever the value looks like;
 - the two public apps' transitive workspace dependency closures contain no `internal-*` package;
+- the four server apps' closures do not contain `@fphd/db-operations`, so only the operations
+  image carries the migrations, seeding and the core data import;
 - no route module in `public-web`'s route table is internal. React Router declares routes as path
   strings rather than imports, so `route('manage', '../../packages/internal-web-features/…')` is
   invisible to an import linter — `react-router routes --json` names those paths directly;
@@ -284,7 +286,8 @@ common failure is reported without waiting for a build:
 The rule the four code checks share is "a module reference naming an `@fphd/internal-*` package or
 living under a directory named `internal-*`", unit-tested in
 `tools/artefact-boundary/src/internal.test.ts`. The build-input check is unit-tested in
-`tools/artefact-boundary/src/builds.test.ts`.
+`tools/artefact-boundary/src/builds.test.ts`, and the operations rule in
+`tools/artefact-boundary/src/operations.test.ts`.
 
 Three of the checks would pass vacuously if they silently found nothing to inspect, so all refuse
 to: no workflow building an image is an error, an app name absent from the workspace refuses to be
@@ -319,7 +322,7 @@ migrations reference the roles, so migrating a database that has never been boot
 It is idempotent, and it sets the passwords every time, so re-running it is also how a password
 change in `.env` reaches the database.
 
-Schema and migrations are managed with Drizzle in `packages/db`:
+The Drizzle schema lives in `packages/db` and its migrations in `packages/db-operations`:
 
 ```sh
 pnpm db:generate              # generate a migration from the schema
@@ -342,8 +345,9 @@ published surface (not `upload_batch`), `internal_api` additionally reads and wr
 publisher's tables and upload state, and a table added by a future migration gets no access
 until granted deliberately.
 
-The package layout, naming conventions, the add-a-table checklist and the core data
-import's semantics are documented in [`packages/db/README.md`](packages/db/README.md).
+The schema's layout, naming conventions and the add-a-table checklist are documented in
+[`packages/db/README.md`](packages/db/README.md), and the migrations and the core data import's
+semantics in [`packages/db-operations/README.md`](packages/db-operations/README.md).
 
 A fresh database is ready for development with:
 
@@ -356,8 +360,8 @@ something that should happen as a side effect of running the apps. So a first ru
 `docker compose down -v` — needs the command above before the pages have data.
 
 The seed is real Pholio data for 12 indicators and the prototype's geography catalogue,
-committed as gzipped CSVs — see `packages/db/data/seed/README.md` for what is in it and
-how to regenerate it.
+committed as gzipped CSVs — see `packages/db-operations/data/seed/README.md` for what is in it
+and how to regenerate it.
 
 ## Graceful shutdown
 
@@ -410,8 +414,8 @@ These commands are worth noting:
   idempotent — safe against a server where the roles already exist — and it sets the passwords
   every time, so it is also how a credential is rotated.
 - `db import-core-data` loads the required starting data the service relies on from
-  `packages/db/data/`: topics, the classifications indicators are tagged with, and the lists a
-  publisher chooses from — CI methods, data providers, value types, units and comparator
+  `packages/db-operations/data/`: topics, the classifications indicators are tagged with, and the
+  lists a publisher chooses from — CI methods, data providers, value types, units and comparator
   methods. It is idempotent (upserts keyed on stable ids, rows absent from the file are reported
   rather than deleted) and runs in any environment: this is permanent content preview and
   production need, not dummy data.
@@ -524,11 +528,15 @@ This is separate from `docker/app.Dockerfile`, which is the development image us
 its devDependencies — exactly what the production images must not do.
 
 On a pull request, CI builds the four server images in one `docker buildx bake` run from
-`docker/docker-bake.hcl`, so the shared builder stage runs once. It smoke-tests them and saves them
-as an artifact. The e2e job loads that artifact and runs the suite against the images, with
-`compose.e2e.yaml` layered over `compose.yaml` to swap each service's build for its image, and a
-scan job per image runs Trivy on the same images alongside it. The operations image, which e2e
-does not use, is built, smoke-tested and scanned in a job of its own.
+`docker/docker-bake.hcl`, so the shared builder stage runs once. It smoke-tests them, checks their
+contents with `scripts/check-image-contents.sh` and saves them as an artifact. The contents check
+fails if an image carries TypeScript, or if a server image carries `@fphd/db-operations`, a `.sql`
+or `.csv.gz` file or a drizzle config; for the operations image it requires every migration the
+journal lists, the core data and the seed. The e2e job loads that artifact and runs the suite
+against the images, with `compose.e2e.yaml` layered over `compose.yaml` to swap each service's
+build for its image, and a scan job per image runs Trivy on the same images alongside it. The
+operations image, which e2e does not use, is built, smoke-tested, contents-checked and scanned in
+a job of its own.
 
 `.github/workflows/publish-images.yml` builds all five on every push to `main` and pushes them to
 GitHub Container Registry under the repository that ran it —
@@ -623,7 +631,8 @@ Each package has a README describing its purpose and entry points:
 | [`@fphd/api-server`](packages/api-server/README.md)              | The Express app both APIs are built from                        |
 | [`@fphd/auth`](packages/auth/README.md)                          | Audiences, fake users and the JWT session cookie                |
 | [`@fphd/config`](packages/config/README.md)                      | Environment parsing fragments and the shared zod instance       |
-| [`@fphd/db`](packages/db/README.md)                              | Schema, migrations, repositories and database operations        |
+| [`@fphd/db`](packages/db/README.md)                              | Schema, client and the repositories the APIs read through       |
+| [`@fphd/db-operations`](packages/db-operations/README.md)        | Migrations, bootstrap, imports, seed data and reset             |
 | [`@fphd/express`](packages/express/README.md)                    | The base Express app and middleware every server shares         |
 | [`@fphd/internal-api-features`](packages/internal-api-features/README.md) | Routes and queries only the internal API runs          |
 | [`@fphd/internal-storage`](packages/internal-storage/README.md)  | Blob Storage for uploaded files, kept out of the public images  |

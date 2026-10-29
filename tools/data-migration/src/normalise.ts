@@ -1,4 +1,4 @@
-import { DATA_MIGRATION_NULL } from '@fphd/db/data-migration-contract';
+import { DATA_MIGRATION_NULL } from '@fphd/db-operations/data-migration-contract';
 import { slugify } from '@fphd/utils/slug';
 
 import { NOTES_AND_CAVEATS_COLUMNS, notesAndCaveats } from './notes-and-caveats.ts';

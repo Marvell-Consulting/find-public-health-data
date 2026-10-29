@@ -10,6 +10,7 @@
   "dependencies": {
     "@fphd/config": "workspace:*",
     "@fphd/db": "workspace:*",
+    "@fphd/db-operations": "workspace:*",
     "@fphd/utils": "workspace:*",
     "csv-parse": "catalog:",
     "entities": "catalog:",

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { findSecretsReachingBuilds } from './builds.ts';
 import { capture, run } from './exec.ts';
 import { findInternalReferences } from './internal.ts';
+import { findOperationsPackages } from './operations.ts';
 import { collectRouteFiles } from './routes.ts';
 import { collectSourcemapSources } from './sourcemaps.ts';
 import { extractImportSpecifiers } from './specifiers.ts';
@@ -18,6 +19,14 @@ const PUBLIC_WEB: PublicApp = { pkg: '@fphd/public-web', dir: 'apps/public-web',
 const PUBLIC_API: PublicApp = { pkg: '@fphd/public-api', dir: 'apps/public-api', bundled: false };
 const PUBLIC_APPS = [PUBLIC_WEB, PUBLIC_API];
 
+/** The apps that serve requests. Only the operations image may change a database. */
+const SERVER_APPS: Pick<PublicApp, 'pkg' | 'bundled'>[] = [
+  PUBLIC_WEB,
+  PUBLIC_API,
+  { pkg: '@fphd/internal-web', bundled: true },
+  { pkg: '@fphd/internal-api', bundled: false },
+];
+
 type Violation = {
   check: string;
   detail: string;
@@ -29,17 +38,18 @@ async function main(): Promise<void> {
   const violations: Violation[] = [
     ...(await checkImageBuildInputs()),
     ...(await checkDependencyClosures()),
+    ...(await checkOperationsClosures()),
     ...checkWebRouteTable(),
     ...(await checkApiOutput()),
     ...(await checkWebBundle()),
   ];
 
   if (violations.length === 0) {
-    console.log('\nNothing crossed the public artefact boundary.');
+    console.log('\nNothing crossed an artefact boundary.');
     return;
   }
 
-  console.error('\nCrossed the public artefact boundary:\n');
+  console.error('\nCrossed an artefact boundary:\n');
   for (const violation of violations) {
     console.error(`  ${violation.check}: ${violation.detail}`);
     for (const reference of violation.references) {
@@ -73,6 +83,21 @@ async function checkDependencyClosures(): Promise<Violation[]> {
     return references.length === 0
       ? []
       : [{ check: 'dependency closure', detail: pkg, references }];
+  });
+}
+
+async function checkOperationsClosures(): Promise<Violation[]> {
+  console.log('Checking the server apps’ workspace dependency closures for database operations…');
+  const packages = await readWorkspacePackages(repoRoot);
+
+  return SERVER_APPS.flatMap(({ pkg, bundled }) => {
+    const references = findOperationsPackages(
+      collectDependencyClosure(pkg, packages, { bundled }),
+      packages,
+    );
+    return references.length === 0
+      ? []
+      : [{ check: 'operations closure', detail: pkg, references }];
   });
 }
 

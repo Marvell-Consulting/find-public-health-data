@@ -381,6 +381,12 @@ jobs:
             scripts/smoke-image.sh "${app}" "fphd-ci/${app}:ci"
           done
 
+      - name: Check the app images' contents
+        run: |
+          for app in public-web internal-web public-api internal-api; do
+            scripts/check-image-contents.sh "${app}" "fphd-ci/${app}:ci"
+          done
+
       # One archive for all four so the base layers they share are stored once. zstd rather than
       # the artifact's own zip compression, which is slower for the same size.
       - name: Save the app images
@@ -452,6 +458,9 @@ jobs:
 
       - name: Smoke test operations
         run: scripts/smoke-image.sh operations fphd-ci/operations:ci
+
+      - name: Check operations' contents
+        run: scripts/check-image-contents.sh operations fphd-ci/operations:ci
 
       # After the smoke test, so a scan finding never masks an image that fails to start.
       - name: Scan operations

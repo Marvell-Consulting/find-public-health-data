@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { DATA_MIGRATION_NULL } from '@fphd/db/data-migration-contract';
+import { DATA_MIGRATION_NULL } from '@fphd/db-operations/data-migration-contract';
 import { type ExportRow, TableWriter } from './pholio/table-writer.ts';
 import { TABLES } from './tables.ts';
 
@@ -12,7 +12,10 @@ export async function writeDevelopmentSource(outDir: string): Promise<void> {
   await mkdir(outDir, { recursive: true });
   const relationships = JSON.parse(
     await readFile(
-      new URL('../../../packages/db/data/published-indicator-topics.json', import.meta.url),
+      new URL(
+        '../../../packages/db-operations/data/published-indicator-topics.json',
+        import.meta.url,
+      ),
       'utf8',
     ),
   ) as { indicators: number[] };

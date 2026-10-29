@@ -5,7 +5,10 @@ import { taxonomyRelationships } from './taxonomy.ts';
 
 const data = (name: string) =>
   JSON.parse(
-    readFileSync(new URL(`../../../packages/db/data/${name}.json`, import.meta.url), 'utf8'),
+    readFileSync(
+      new URL(`../../../packages/db-operations/data/${name}.json`, import.meta.url),
+      'utf8',
+    ),
   );
 const source = data('taxonomy-v2');
 const topics = data('topics');

@@ -3,7 +3,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
-import { baselineManifestSchema, DATA_MIGRATION_NULL } from '@fphd/db/data-migration-contract';
+import {
+  baselineManifestSchema,
+  DATA_MIGRATION_NULL,
+} from '@fphd/db-operations/data-migration-contract';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { readGzipCsv } from './csv.ts';

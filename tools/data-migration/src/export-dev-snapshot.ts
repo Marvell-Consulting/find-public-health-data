@@ -3,7 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 
-import { DATA_MIGRATION_NULL, SEED_TABLES } from '@fphd/db/data-migration-contract';
+import { DATA_MIGRATION_NULL, SEED_TABLES } from '@fphd/db-operations/data-migration-contract';
 
 import { exportPholio } from './pholio/export-pholio.ts';
 import { rekeyDirectory } from './prepare-baseline.ts';
