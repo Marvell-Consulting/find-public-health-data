@@ -24,11 +24,31 @@ describe('findOperationsPackages', () => {
     expect(
       findOperationsPackages(
         collectDependencyClosure('@fphd/internal-api', packages, { bundled: false }),
+        packages,
       ),
     ).toEqual(['@fphd/db-operations']);
   });
 
   it('passes a closure holding only the read side', () => {
-    expect(findOperationsPackages(['@fphd/db', '@fphd/internal-api-features'])).toEqual([]);
+    const packages = workspace(
+      ['@fphd/internal-api', ['@fphd/db']],
+      ['@fphd/db', []],
+      ['@fphd/db-operations', ['@fphd/db']],
+    );
+
+    expect(
+      findOperationsPackages(
+        collectDependencyClosure('@fphd/internal-api', packages, { bundled: false }),
+        packages,
+      ),
+    ).toEqual([]);
+  });
+
+  it('throws when the workspace has no @fphd/db-operations to look for', () => {
+    const packages = workspace(['@fphd/internal-api', ['@fphd/db']], ['@fphd/db', []]);
+
+    expect(() => findOperationsPackages(['@fphd/db'], packages)).toThrow(
+      '@fphd/db-operations is not a workspace package',
+    );
   });
 });

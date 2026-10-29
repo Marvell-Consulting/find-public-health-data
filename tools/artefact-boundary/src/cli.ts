@@ -91,7 +91,10 @@ async function checkOperationsClosures(): Promise<Violation[]> {
   const packages = await readWorkspacePackages(repoRoot);
 
   return SERVER_APPS.flatMap(({ pkg, bundled }) => {
-    const references = findOperationsPackages(collectDependencyClosure(pkg, packages, { bundled }));
+    const references = findOperationsPackages(
+      collectDependencyClosure(pkg, packages, { bundled }),
+      packages,
+    );
     return references.length === 0
       ? []
       : [{ check: 'operations closure', detail: pkg, references }];

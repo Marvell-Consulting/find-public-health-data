@@ -531,11 +531,12 @@ On a pull request, CI builds the four server images in one `docker buildx bake` 
 `docker/docker-bake.hcl`, so the shared builder stage runs once. It smoke-tests them, checks their
 contents with `scripts/check-image-contents.sh` and saves them as an artifact. The contents check
 fails if an image carries TypeScript, or if a server image carries `@fphd/db-operations`, a `.sql`
-or `.csv.gz` file or a drizzle config; for the operations image it requires the migration journal
-and the core data. The e2e job loads that artifact and runs the suite against the images, with
-`compose.e2e.yaml` layered over `compose.yaml` to swap each service's build for its image, and a
-scan job per image runs Trivy on the same images alongside it. The operations image, which e2e
-does not use, is built, smoke-tested, contents-checked and scanned in a job of its own.
+or `.csv.gz` file or a drizzle config; for the operations image it requires every migration the
+journal lists, the core data and the seed. The e2e job loads that artifact and runs the suite
+against the images, with `compose.e2e.yaml` layered over `compose.yaml` to swap each service's
+build for its image, and a scan job per image runs Trivy on the same images alongside it. The
+operations image, which e2e does not use, is built, smoke-tested, contents-checked and scanned in
+a job of its own.
 
 `.github/workflows/publish-images.yml` builds all five on every push to `main` and pushes them to
 GitHub Container Registry under the repository that ran it —
